@@ -7,53 +7,59 @@
 
 import SwiftUI
 
-/// 전역 피드 카드 — 작가 정보 포함.
-struct FeedCard: View {
+/// 글 카드 = 목록 행 (§10.2). 카드 그리드 ❌ — 타이포 위계가 전부.
+/// 조회수는 카드에서 제거. 좋아요는 >0 일 때만 강등 표시. 썸네일은 이미지 있을 때만.
+struct FeedRow: View {
     let item: FeedItem
+    var featured = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            CoverImage(urlString: item.ogImageUrl)
-
-            HStack(spacing: 6) {
-                AvatarView(author: item.author, size: 22)
-                Text(item.author.username)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.secondary)
-                if let date = item.publishedAt {
-                    Text("·").foregroundStyle(.tertiary)
-                    Text(date.relativeShort)
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
+        HStack(alignment: .top, spacing: 14) {
+            VStack(alignment: .leading, spacing: 6) {
+                if featured {
+                    Text("오늘의 글")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Palette.accent)
                 }
+                if let tag = item.tags.first {
+                    Text(tag)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Palette.faint)
+                }
+                Text(item.title)
+                    .font(.system(size: featured ? 22 : 18, weight: featured ? .bold : .semibold))
+                    .foregroundStyle(Palette.ink)
+                    .lineLimit(featured ? 3 : 2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if let excerpt = item.excerpt, !excerpt.isEmpty {
+                    Text(excerpt)
+                        .font(.system(size: 14))
+                        .foregroundStyle(Palette.secondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                MetaRow(author: item.author.username, date: item.publishedAt, likes: item.likeCount)
+                    .padding(.top, 2)
             }
 
-            Text(item.title)
-                .font(.title3.weight(.bold))
-                .lineLimit(2)
-
-            if let excerpt = item.excerpt, !excerpt.isEmpty {
-                Text(excerpt)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
+            if let urlString = item.ogImageUrl, let url = URL(string: urlString) {
+                AsyncImage(url: url) { image in
+                    image.resizable().scaledToFill()
+                } placeholder: {
+                    Rectangle().fill(Palette.hairline)
+                }
+                .frame(width: 96, height: 72)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
             }
-
-            HStack(spacing: 14) {
-                ForEach(item.tags.prefix(3), id: \.self) { TagChip(tag: $0) }
-                Spacer()
-                Label("\(item.likeCount)", systemImage: "heart")
-                Label("\(item.viewCount)", systemImage: "eye")
-            }
-            .font(.caption)
-            .foregroundStyle(.tertiary)
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, 16)
         .contentShape(Rectangle())
     }
 }
 
-/// 작가 블로그/시리즈 내 글 행 — 작가가 컨텍스트로 고정된 경우.
+/// 작가 컨텍스트가 고정된 행 (작가 블로그 / 시리즈 내부).
 struct PostRow: View {
     let item: PostListItem
 
@@ -62,29 +68,61 @@ struct PostRow: View {
             HStack(spacing: 6) {
                 if item.pinned {
                     Image(systemName: "pin.fill")
-                        .font(.caption2)
-                        .foregroundStyle(.brand)
+                        .font(.system(size: 10))
+                        .foregroundStyle(Palette.accent)
                 }
-                Text(item.title)
-                    .font(.headline)
-                    .lineLimit(2)
+                if let tag = item.tags.first {
+                    Text(tag)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Palette.faint)
+                }
             }
+            Text(item.title)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(Palette.ink)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
             if let excerpt = item.excerpt, !excerpt.isEmpty {
                 Text(excerpt)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Palette.secondary)
                     .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            HStack(spacing: 10) {
-                if let date = item.publishedAt {
-                    Text(date.relativeShort)
-                }
-                Label("\(item.likeCount)", systemImage: "heart")
-            }
-            .font(.caption)
-            .foregroundStyle(.tertiary)
+            MetaRow(author: nil, date: item.publishedAt, likes: item.likeCount)
+                .padding(.top, 2)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 16)
         .contentShape(Rectangle())
+    }
+}
+
+/// 작가 · 날짜 · (좋아요 >0) 한 줄 메타 — slate-500.
+struct MetaRow: View {
+    var author: String?
+    var date: Date?
+    var likes: Int64
+
+    var body: some View {
+        HStack(spacing: 7) {
+            if let author {
+                Text(author).fontWeight(.medium)
+            }
+            if let date {
+                if author != nil { dot }
+                Text(date.relativeShort)
+            }
+            if likes > 0 {
+                dot
+                Label("\(likes)", systemImage: "heart")
+                    .labelStyle(.titleAndIcon)
+            }
+        }
+        .font(.system(size: 13))
+        .foregroundStyle(Palette.secondary)
+    }
+
+    private var dot: some View {
+        Text("·").foregroundStyle(Palette.faint)
     }
 }

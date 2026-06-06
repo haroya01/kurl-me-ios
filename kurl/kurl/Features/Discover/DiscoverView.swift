@@ -21,10 +21,10 @@ final class DiscoverViewModel {
         if case .loaded = phase { return }
         phase = .loading
         do {
-            async let trending = BlogAPI.trendingByTag()
-            async let tags = BlogAPI.popularTags(limit: 30)
-            async let authors = BlogAPI.suggestedAuthors(limit: 8)
-            async let series = BlogAPI.discoverSeries(limit: 8)
+            async let trending = BlogAPI.trendingByTag(tagLimit: 5, perTag: 4)
+            async let tags = BlogAPI.popularTags(limit: 24)
+            async let authors = BlogAPI.suggestedAuthors(limit: 6)
+            async let series = BlogAPI.discoverSeries(limit: 6)
             self.trending = try await trending
             self.tags = try await tags
             self.authors = try await authors
@@ -42,16 +42,12 @@ struct DiscoverView: View {
     var body: some View {
         NavigationStack {
             StateView(state: model.phase, retry: { Task { await model.load() } }) { _ in
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 28) {
-                        if !model.tags.isEmpty { tagsSection }
-                        if !model.authors.isEmpty { authorsSection }
-                        if !model.series.isEmpty { seriesSection }
-                        ForEach(model.trending) { section in
-                            trendingSection(section)
-                        }
-                    }
-                    .padding(.vertical, 12)
+                ReadingColumn(spacing: 28) {
+                    if !model.tags.isEmpty { tagsSection }
+                    if !model.authors.isEmpty { authorsSection }
+                    if !model.series.isEmpty { seriesSection }
+                    ForEach(model.trending) { trendingSection($0) }
+                    Color.clear.frame(height: 24)
                 }
             }
             .navigationTitle("발견")
@@ -61,95 +57,85 @@ struct DiscoverView: View {
     }
 
     private var tagsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            sectionTitle("인기 태그")
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(model.tags) { tag in
-                        NavigationLink(value: Route.tag(tag.tag)) { TagChip(tag: tag.tag) }
-                    }
-                }
-                .padding(.horizontal, 20)
-            }
+        VStack(alignment: .leading, spacing: 12) {
+            RailHeading("주제")
+            FlowTags(tags: model.tags.map(\.tag))
         }
     }
 
     private var authorsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            sectionTitle("추천 작가")
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
-                    ForEach(model.authors) { item in
-                        NavigationLink(value: Route.author(username: item.author.username)) {
-                            VStack(spacing: 6) {
-                                AvatarView(author: item.author, size: 56)
+        VStack(alignment: .leading, spacing: 14) {
+            RailHeading("추천 작가")
+            VStack(spacing: 0) {
+                ForEach(Array(model.authors.enumerated()), id: \.element.id) { index, item in
+                    NavigationLink(value: Route.author(username: item.author.username)) {
+                        HStack(spacing: 12) {
+                            AvatarView(author: item.author, size: 40)
+                            VStack(alignment: .leading, spacing: 2) {
                                 Text(item.author.username)
-                                    .font(.caption.weight(.medium))
-                                    .lineLimit(1)
-                                Text("\(item.postCount)편")
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(Palette.ink)
+                                if let bio = item.author.bio, !bio.isEmpty {
+                                    Text(bio).font(.system(size: 13))
+                                        .foregroundStyle(Palette.secondary).lineLimit(1)
+                                } else {
+                                    Text("글 \(item.postCount)")
+                                        .font(.system(size: 13)).foregroundStyle(Palette.faint)
+                                }
                             }
-                            .frame(width: 76)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12)).foregroundStyle(Palette.faint)
                         }
-                        .buttonStyle(.plain)
+                        .padding(.vertical, 12)
                     }
+                    .buttonStyle(.plain)
+                    if index < model.authors.count - 1 { Hairline() }
                 }
-                .padding(.horizontal, 20)
             }
         }
     }
 
     private var seriesSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            sectionTitle("시리즈")
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(model.series) { card in
-                        VStack(alignment: .leading, spacing: 6) {
-                            Image(systemName: "square.stack.3d.up.fill")
-                                .foregroundStyle(.brand)
-                            Text(card.title)
-                                .font(.subheadline.weight(.semibold))
-                                .lineLimit(2)
-                            Text("\(card.postCount)편")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .frame(width: 160, height: 110, alignment: .topLeading)
-                        .padding(12)
-                        .background(Color.surface, in: RoundedRectangle(cornerRadius: 12))
+        VStack(alignment: .leading, spacing: 14) {
+            RailHeading("시리즈")
+            VStack(spacing: 0) {
+                ForEach(Array(model.series.enumerated()), id: \.element.id) { index, card in
+                    HStack(spacing: 10) {
+                        Image(systemName: "square.stack.3d.up")
+                            .font(.system(size: 14)).foregroundStyle(Palette.accentMarker)
+                        Text(card.title)
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(Palette.ink).lineLimit(1)
+                        Spacer()
+                        Text("\(card.postCount)편")
+                            .font(.system(size: 13)).foregroundStyle(Palette.faint)
                     }
+                    .padding(.vertical, 12)
+                    if index < model.series.count - 1 { Hairline() }
                 }
-                .padding(.horizontal, 20)
             }
         }
     }
 
     private func trendingSection(_ section: TrendingTagSection) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 4) {
             NavigationLink(value: Route.tag(section.tag)) {
                 HStack {
-                    sectionTitle("#\(section.tag)")
+                    RailHeading("\(section.tag)")
                     Spacer()
-                    Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11)).foregroundStyle(Palette.faint)
                 }
-                .padding(.trailing, 20)
             }
             .buttonStyle(.plain)
-            ForEach(section.posts) { item in
+            ForEach(Array(section.posts.enumerated()), id: \.element.id) { index, item in
                 NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
-                    FeedCard(item: item)
+                    FeedRow(item: item)
                 }
-                .buttonStyle(.plain)
-                .padding(.horizontal, 20)
+                .buttonStyle(RowButtonStyle())
+                if index < section.posts.count - 1 { Hairline() }
             }
         }
-    }
-
-    private func sectionTitle(_ text: String) -> some View {
-        Text(text)
-            .font(.title3.bold())
-            .padding(.horizontal, 20)
     }
 }

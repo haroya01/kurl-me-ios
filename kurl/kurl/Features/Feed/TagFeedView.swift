@@ -13,22 +13,34 @@ struct TagFeedView: View {
     @State private var phase: LoadState<[FeedItem]> = .idle
 
     var body: some View {
-        StateView(state: phase, retry: { Task { await load() } }) { items in
-            List {
-                if items.isEmpty {
-                    ContentUnavailableView("글이 없습니다", systemImage: "tray")
-                        .listRowSeparator(.hidden)
-                }
-                ForEach(items) { item in
-                    NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
-                        FeedCard(item: item)
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                switch phase {
+                case .idle, .loading:
+                    ProgressView().tint(Palette.accent)
+                        .frame(maxWidth: .infinity, minHeight: 320)
+                case .failed(let message):
+                    ContentUnavailableView("불러오지 못했습니다", systemImage: "wifi.exclamationmark",
+                                           description: Text(message))
+                        .padding(.top, 80)
+                case .loaded(let items):
+                    if items.isEmpty {
+                        ContentUnavailableView("글이 없습니다", systemImage: "tray").padding(.top, 80)
                     }
-                    .buttonStyle(.plain)
-                    .listRowSeparator(.hidden)
+                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                        NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
+                            FeedRow(item: item)
+                        }
+                        .buttonStyle(RowButtonStyle())
+                        if index < items.count - 1 { Hairline() }
+                    }
                 }
             }
-            .listStyle(.plain)
+            .frame(maxWidth: Metrics.readingColumn)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, Metrics.gutter)
         }
+        .scrollIndicators(.hidden)
         .navigationTitle("#\(tag)")
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }

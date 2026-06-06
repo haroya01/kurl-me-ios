@@ -14,36 +14,60 @@ struct SeriesDetailView: View {
     @State private var phase: LoadState<PublicSeriesDetail> = .idle
 
     var body: some View {
-        StateView(state: phase, retry: { Task { await load() } }) { detail in
-            List {
-                Section {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(detail.series.title).font(.title2.bold())
-                        Text("\(detail.author.username) · \(detail.series.postCount)편")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                    .listRowSeparator(.hidden)
-                }
-                Section {
-                    ForEach(Array(detail.posts.enumerated()), id: \.element.id) { index, post in
-                        NavigationLink(value: Route.post(username: username, slug: post.slug)) {
-                            HStack(alignment: .top, spacing: 12) {
-                                Text("\(index + 1)")
-                                    .font(.headline.monospacedDigit())
-                                    .foregroundStyle(.brand)
-                                    .frame(width: 24)
-                                PostRow(item: post)
-                            }
-                        }
-                    }
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                switch phase {
+                case .idle, .loading:
+                    ProgressView().tint(Palette.accent)
+                        .frame(maxWidth: .infinity, minHeight: 320)
+                case .failed(let message):
+                    ContentUnavailableView("불러오지 못했습니다", systemImage: "wifi.exclamationmark",
+                                           description: Text(message))
+                        .padding(.top, 80)
+                case .loaded(let detail):
+                    content(detail)
                 }
             }
-            .listStyle(.plain)
+            .frame(maxWidth: Metrics.readingColumn)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, Metrics.gutter)
         }
+        .scrollIndicators(.hidden)
         .navigationTitle("시리즈")
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
+    }
+
+    @ViewBuilder
+    private func content(_ detail: PublicSeriesDetail) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                RoundedRectangle(cornerRadius: 1).fill(Palette.accentMarker).frame(width: 3, height: 14)
+                Text("시리즈").font(.system(size: 12, weight: .bold)).foregroundStyle(Palette.faint)
+            }
+            Text(detail.series.title)
+                .font(.system(size: 26, weight: .bold)).foregroundStyle(Palette.ink)
+            Text("\(detail.author.username) · \(detail.series.postCount)편")
+                .font(.system(size: 14)).foregroundStyle(Palette.secondary)
+        }
+        .padding(.vertical, 16)
+        Hairline()
+
+        ForEach(Array(detail.posts.enumerated()), id: \.element.id) { index, post in
+            NavigationLink(value: Route.post(username: username, slug: post.slug)) {
+                HStack(alignment: .top, spacing: 14) {
+                    Text("\(index + 1)")
+                        .font(.system(size: 15, weight: .bold).monospacedDigit())
+                        .foregroundStyle(Palette.accentMarker)
+                        .frame(width: 22, alignment: .leading)
+                        .padding(.top, 18)
+                    PostRow(item: post)
+                }
+            }
+            .buttonStyle(RowButtonStyle())
+            if index < detail.posts.count - 1 { Hairline() }
+        }
+        Color.clear.frame(height: 40)
     }
 
     private func load() async {

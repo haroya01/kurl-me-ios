@@ -20,9 +20,10 @@ struct SearchView: View {
                     ContentUnavailableView("검색", systemImage: "magnifyingglass",
                                            description: Text("제목·내용으로 글을 찾아보세요"))
                 case .loading:
-                    ProgressView().frame(maxWidth: .infinity, minHeight: 240)
+                    ProgressView().tint(Palette.accent)
+                        .frame(maxWidth: .infinity, minHeight: 280)
                 case .loaded(let items):
-                    resultList(items)
+                    results(items)
                 case .failed(let message):
                     ContentUnavailableView("불러오지 못했습니다", systemImage: "wifi.exclamationmark",
                                            description: Text(message))
@@ -36,20 +37,26 @@ struct SearchView: View {
         .onSubmit(of: .search) { runSearch(query) }
     }
 
-    private func resultList(_ items: [FeedItem]) -> some View {
-        Group {
-            if items.isEmpty {
-                ContentUnavailableView.search(text: query)
-            } else {
-                List(items) { item in
-                    NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
-                        FeedCard(item: item)
+    @ViewBuilder
+    private func results(_ items: [FeedItem]) -> some View {
+        if items.isEmpty {
+            ContentUnavailableView.search(text: query)
+        } else {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                        NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
+                            FeedRow(item: item)
+                        }
+                        .buttonStyle(RowButtonStyle())
+                        if index < items.count - 1 { Hairline() }
                     }
-                    .buttonStyle(.plain)
-                    .listRowSeparator(.hidden)
                 }
-                .listStyle(.plain)
+                .frame(maxWidth: Metrics.readingColumn)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, Metrics.gutter)
             }
+            .scrollIndicators(.hidden)
         }
     }
 

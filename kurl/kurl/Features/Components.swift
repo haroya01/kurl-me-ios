@@ -16,7 +16,6 @@ enum LoadState<Value> {
     case failed(String)
 }
 
-/// 비동기 콘텐츠의 로딩/에러/빈 상태를 일관되게 처리한다.
 struct StateView<Value, Content: View>: View {
     let state: LoadState<Value>
     var retry: (() -> Void)?
@@ -26,7 +25,8 @@ struct StateView<Value, Content: View>: View {
         switch state {
         case .idle, .loading:
             ProgressView()
-                .frame(maxWidth: .infinity, minHeight: 240)
+                .tint(Palette.accent)
+                .frame(maxWidth: .infinity, minHeight: 280)
         case .loaded(let value):
             content(value)
         case .failed(let message):
@@ -37,58 +37,103 @@ struct StateView<Value, Content: View>: View {
             } actions: {
                 if let retry {
                     Button(String(localized: "다시 시도"), action: retry)
-                        .buttonStyle(.borderedProminent)
-                        .tint(.brand)
+                        .foregroundStyle(Palette.accent)
                 }
             }
         }
     }
 }
 
-// MARK: 태그 칩
+// MARK: 읽기 컬럼 (정중앙 max-w-2xl)
 
-struct TagChip: View {
-    let tag: String
-
-    var body: some View {
-        Text("#\(tag)")
-            .font(.caption.weight(.medium))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(Brand.green.opacity(0.10), in: Capsule())
-            .foregroundStyle(.brand)
-    }
-}
-
-// MARK: 커버 이미지
-
-struct CoverImage: View {
-    let urlString: String?
-    var height: CGFloat = 180
+struct ReadingColumn<Content: View>: View {
+    var spacing: CGFloat = 0
+    @ViewBuilder var content: Content
 
     var body: some View {
-        if let urlString, let url = URL(string: urlString) {
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image.resizable().scaledToFill()
-                case .failure:
-                    placeholder
-                default:
-                    Rectangle().fill(.quaternary).overlay(ProgressView())
-                }
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: spacing) {
+                content
             }
-            .frame(height: height)
+            .frame(maxWidth: Metrics.readingColumn)
             .frame(maxWidth: .infinity)
-            .clipped()
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .padding(.horizontal, Metrics.gutter)
+        }
+        .scrollIndicators(.hidden)
+    }
+}
+
+// MARK: 섹션 라벨 — RailHeading (그린 마커 + 13px bold)
+
+struct RailHeading: View {
+    let text: LocalizedStringKey
+    init(_ text: LocalizedStringKey) { self.text = text }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            RoundedRectangle(cornerRadius: 1)
+                .fill(Palette.accentMarker)
+                .frame(width: 3, height: 12)
+            Text(text)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(Palette.heading)
         }
     }
+}
 
-    private var placeholder: some View {
+// MARK: 1px hairline (slate-100)
+
+struct Hairline: View {
+    var body: some View {
         Rectangle()
-            .fill(.quaternary)
-            .overlay(Image(systemName: "photo").foregroundStyle(.secondary))
+            .fill(Palette.hairline)
+            .frame(height: 1)
+    }
+}
+
+// MARK: 그린 밑줄 탭 (active = 그린 한 가닥)
+
+struct UnderlineTabs<T: Hashable & Identifiable>: View {
+    let items: [T]
+    @Binding var selection: T
+    let label: (T) -> String
+
+    var body: some View {
+        HStack(spacing: 22) {
+            ForEach(items) { item in
+                let active = item == selection
+                Button {
+                    selection = item
+                } label: {
+                    VStack(spacing: 7) {
+                        Text(label(item))
+                            .font(.system(size: 15, weight: active ? .semibold : .regular))
+                            .foregroundStyle(active ? Palette.ink : Palette.secondary)
+                        Rectangle()
+                            .fill(active ? Palette.accent : .clear)
+                            .frame(height: 2)
+                    }
+                    .fixedSize()
+                }
+                .buttonStyle(.plain)
+            }
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+// MARK: 절제된 칩 (slate, 초록 캡슐 금지)
+
+struct MutedChip: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 13, weight: .medium))
+            .foregroundStyle(Palette.chipText)
+            .padding(.horizontal, 11)
+            .padding(.vertical, 6)
+            .background(Palette.chipBg, in: Capsule())
     }
 }
 
@@ -116,11 +161,11 @@ struct AvatarView: View {
 
     private var initials: some View {
         Circle()
-            .fill(Brand.green.opacity(0.15))
+            .fill(Palette.chipBg)
             .overlay(
                 Text(author.username.prefix(1).uppercased())
-                    .font(.system(size: size * 0.45, weight: .semibold))
-                    .foregroundStyle(.brand)
+                    .font(.system(size: size * 0.42, weight: .semibold))
+                    .foregroundStyle(Palette.secondary)
             )
     }
 }
@@ -132,5 +177,9 @@ extension Date {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .short
         return formatter.localizedString(for: self, relativeTo: Date())
+    }
+
+    var mediumDate: String {
+        formatted(.dateTime.year().month(.abbreviated).day())
     }
 }

@@ -15,121 +15,173 @@ struct PostDetailView: View {
     }
 
     var body: some View {
-        StateView(state: model.phase, retry: { Task { await model.load() } }) { detail in
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    header(detail)
-                    blocks(detail.blocks)
-                    if let nav = detail.series { seriesNav(nav, username: detail.author.username) }
-                    if !model.comments.isEmpty { commentsSection }
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                switch model.phase {
+                case .idle, .loading:
+                    ProgressView().tint(Palette.accent)
+                        .frame(maxWidth: .infinity, minHeight: 320)
+                case .failed(let message):
+                    ContentUnavailableView {
+                        Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
+                    } description: {
+                        Text(message)
+                    } actions: {
+                        Button("다시 시도") { Task { await model.load() } }
+                            .foregroundStyle(Palette.accent)
+                    }
+                    .padding(.top, 80)
+                case .loaded(let detail):
+                    content(detail)
                 }
-                .frame(maxWidth: Metrics.readingMaxWidth)
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 16)
             }
+            .frame(maxWidth: Metrics.readingColumn)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, Metrics.gutter)
         }
+        .scrollIndicators(.hidden)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .task { await model.load() }
     }
 
-    private func header(_ detail: PublicPostDetail) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(detail.post.title)
-                .font(.largeTitle.bold())
-
-            NavigationLink(value: Route.author(username: detail.author.username)) {
-                HStack(spacing: 8) {
-                    AvatarView(author: detail.author, size: 34)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(detail.author.username)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.primary)
-                        if let date = detail.post.publishedAt {
-                            Text(date.formatted(date: .abbreviated, time: .omitted))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            }
-            .buttonStyle(.plain)
-
-            if !detail.post.tags.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(detail.post.tags, id: \.self) { tag in
-                            NavigationLink(value: Route.tag(tag)) { TagChip(tag: tag) }
-                        }
-                    }
-                }
-            }
-            Divider()
-        }
-    }
-
-    private func blocks(_ blocks: [PostBlock]) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            ForEach(Array(blocks.enumerated()), id: \.offset) { _, block in
+    @ViewBuilder
+    private func content(_ detail: PublicPostDetail) -> some View {
+        header(detail)
+        VStack(alignment: .leading, spacing: 2) {
+            ForEach(Array(detail.blocks.enumerated()), id: \.offset) { _, block in
                 BlockView(block: block)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+        .padding(.top, 8)
+        if let nav = detail.series { seriesNav(nav, username: detail.author.username) }
+        if !model.comments.isEmpty { comments }
+        Color.clear.frame(height: 40)
     }
 
-    private func seriesNav(_ nav: PostSeriesNav, username: String) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Divider()
-            NavigationLink(value: Route.series(username: username, slug: nav.slug)) {
-                HStack {
-                    Image(systemName: "square.stack.3d.up")
-                    Text(nav.title).fontWeight(.semibold)
-                    Spacer()
-                    Text("\(nav.position)/\(nav.total)").foregroundStyle(.secondary)
+    private func header(_ detail: PublicPostDetail) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            if let tag = detail.post.tags.first {
+                Text(tag)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Palette.faint)
+            }
+            Text(detail.post.title)
+                .font(.system(size: 30, weight: .bold))
+                .foregroundStyle(Palette.ink)
+                .fixedSize(horizontal: false, vertical: true)
+
+            NavigationLink(value: Route.author(username: detail.author.username)) {
+                HStack(spacing: 10) {
+                    AvatarView(author: detail.author, size: 36)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(detail.author.username)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Palette.ink)
+                        if let date = detail.post.publishedAt {
+                            Text(date.mediumDate)
+                                .font(.system(size: 13))
+                                .foregroundStyle(Palette.secondary)
+                        }
+                    }
                 }
-                .font(.subheadline)
             }
             .buttonStyle(.plain)
-            .tint(.brand)
 
-            HStack {
-                if let prev = nav.prev {
-                    NavigationLink(value: Route.post(username: username, slug: prev.slug)) {
-                        Label(prev.title, systemImage: "chevron.left").lineLimit(1)
-                    }
-                }
-                Spacer()
-                if let next = nav.next {
-                    NavigationLink(value: Route.post(username: username, slug: next.slug)) {
-                        Label(next.title, systemImage: "chevron.right")
-                            .labelStyle(.titleAndIcon)
-                            .lineLimit(1)
-                    }
-                }
+            if detail.post.tags.count > 1 {
+                FlowTags(tags: detail.post.tags)
             }
-            .font(.footnote)
-            .tint(.brand)
+            Hairline().padding(.top, 4)
         }
         .padding(.top, 8)
     }
 
-    private var commentsSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Divider()
-            Text("댓글 \(model.comments.count)").font(.headline)
+    private func seriesNav(_ nav: PostSeriesNav, username: String) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Hairline()
+            NavigationLink(value: Route.series(username: username, slug: nav.slug)) {
+                HStack(spacing: 8) {
+                    RoundedRectangle(cornerRadius: 1).fill(Palette.accentMarker).frame(width: 3, height: 12)
+                    Text(nav.title).font(.system(size: 13, weight: .bold)).foregroundStyle(Palette.heading)
+                    Spacer()
+                    Text("\(nav.position) / \(nav.total)")
+                        .font(.system(size: 13)).foregroundStyle(Palette.secondary)
+                }
+            }
+            .buttonStyle(.plain)
+
+            HStack(alignment: .top, spacing: 16) {
+                if let prev = nav.prev {
+                    navLink(username: username, slug: prev.slug, title: prev.title,
+                            caption: "이전 글", systemImage: "chevron.left", trailing: false)
+                }
+                Spacer(minLength: 0)
+                if let next = nav.next {
+                    navLink(username: username, slug: next.slug, title: next.title,
+                            caption: "다음 글", systemImage: "chevron.right", trailing: true)
+                }
+            }
+        }
+        .padding(.vertical, 16)
+    }
+
+    private func navLink(username: String, slug: String, title: String,
+                         caption: LocalizedStringKey, systemImage: String, trailing: Bool) -> some View {
+        NavigationLink(value: Route.post(username: username, slug: slug)) {
+            VStack(alignment: trailing ? .trailing : .leading, spacing: 4) {
+                Label(caption, systemImage: systemImage)
+                    .font(.system(size: 12))
+                    .foregroundStyle(Palette.faint)
+                    .labelStyle(.titleAndIcon)
+                Text(title)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(Palette.body)
+                    .lineLimit(2)
+                    .multilineTextAlignment(trailing ? .trailing : .leading)
+            }
+            .frame(maxWidth: 180, alignment: trailing ? .trailing : .leading)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var comments: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Hairline()
+            RailHeading("댓글 \(model.comments.count)")
             ForEach(model.comments) { comment in
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        AvatarView(author: comment.author, size: 22)
-                        Text(comment.author.username).font(.subheadline.weight(.medium))
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
+                        AvatarView(author: comment.author, size: 24)
+                        Text(comment.author.username)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Palette.ink)
                         if let date = comment.createdAt {
-                            Text(date.relativeShort).font(.caption).foregroundStyle(.tertiary)
+                            Text(date.relativeShort)
+                                .font(.system(size: 12)).foregroundStyle(Palette.faint)
                         }
                     }
                     Text(comment.body)
-                        .font(.subheadline)
-                        .padding(.leading, 28)
+                        .font(.system(size: 14))
+                        .foregroundStyle(Palette.body)
+                        .padding(.leading, 32)
+                }
+            }
+        }
+        .padding(.vertical, 16)
+    }
+}
+
+/// 태그 줄바꿈 래핑 — muted 칩.
+struct FlowTags: View {
+    let tags: [String]
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(tags, id: \.self) { tag in
+                    NavigationLink(value: Route.tag(tag)) { MutedChip(text: tag) }
+                        .buttonStyle(.plain)
                 }
             }
         }

@@ -7,35 +7,46 @@
 
 import SwiftUI
 
-/// 백엔드 blocks 를 네이티브 SwiftUI 뷰로 렌더한다. 서드파티 마크다운 라이브러리 없이
-/// 인라인 서식만 Foundation 의 AttributedString(markdown:) 으로 처리한다.
+/// blocks → 네이티브 SwiftUI. 읽기 타이포는 프론트 `.prose-post`(§10.7) 를 그대로 옮긴다.
+/// 서드파티 마크다운 라이브러리 없이 인라인 서식만 AttributedString(markdown:) 로 처리.
 struct BlockView: View {
     let block: PostBlock
 
     var body: some View {
         switch block.kind {
         case .paragraph:
-            inlineText(block.content ?? "")
-                .font(.body)
+            inline(block.content ?? "")
+                .font(.system(size: 18))
+                .lineSpacing(5)
+                .foregroundStyle(Palette.body)
 
         case .h1:
-            inlineText(block.content ?? "").font(.title.bold()).padding(.top, 8)
+            inline(block.content ?? "")
+                .font(.system(size: 26, weight: .bold)).foregroundStyle(Palette.ink)
+                .padding(.top, 18).padding(.bottom, 4)
         case .h2:
-            inlineText(block.content ?? "").font(.title2.bold()).padding(.top, 6)
+            inline(block.content ?? "")
+                .font(.system(size: 24, weight: .bold)).foregroundStyle(Palette.ink)
+                .padding(.top, 16).padding(.bottom, 4)
         case .h3:
-            inlineText(block.content ?? "").font(.title3.bold()).padding(.top, 4)
+            inline(block.content ?? "")
+                .font(.system(size: 20, weight: .semibold)).foregroundStyle(Palette.ink)
+                .padding(.top, 12).padding(.bottom, 2)
 
         case .quote:
-            inlineText(block.content ?? "")
-                .font(.body.italic())
-                .foregroundStyle(.secondary)
-                .padding(.leading, 14)
+            inline(block.content ?? "")
+                .font(.system(size: 18).italic())
+                .lineSpacing(5)
+                .foregroundStyle(Palette.secondary)
+                .padding(.leading, 20)
                 .overlay(alignment: .leading) {
-                    Rectangle().fill(.brand).frame(width: 3)
+                    RoundedRectangle(cornerRadius: 1.5)
+                        .fill(Palette.accentSoft)
+                        .frame(width: 3)
                 }
 
         case .divider:
-            Divider().padding(.vertical, 8)
+            Hairline().padding(.vertical, 8)
 
         case .code:
             CodeBlockView(payload: CodePayload.decode(block.content))
@@ -64,11 +75,14 @@ struct BlockView: View {
         }
     }
 
-    private func inlineText(_ raw: String) -> Text {
+    private func inline(_ raw: String) -> Text {
         let options = AttributedString.MarkdownParsingOptions(
             interpretedSyntax: .inlineOnlyPreservingWhitespace
         )
-        if let attributed = try? AttributedString(markdown: raw, options: options) {
+        if var attributed = try? AttributedString(markdown: raw, options: options) {
+            for run in attributed.runs where run.link != nil {
+                attributed[run.range].foregroundColor = Palette.link
+            }
             return Text(attributed)
         }
         return Text(raw)
@@ -95,7 +109,7 @@ struct BlockView: View {
     }
 }
 
-// MARK: 코드 블록
+// MARK: 코드 블록 — slate-900 / slate-100
 
 private struct CodePayload {
     var lang: String?
@@ -113,42 +127,30 @@ private struct CodeBlockView: View {
     let payload: CodePayload
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            if let lang = payload.lang, !lang.isEmpty {
-                Text(lang)
-                    .font(.caption2.monospaced())
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 12)
-                    .padding(.top, 8)
-            }
-            ScrollView(.horizontal, showsIndicators: false) {
-                Text(payload.code)
-                    .font(.system(.callout, design: .monospaced))
-                    .textSelection(.enabled)
-                    .padding(12)
-            }
+        ScrollView(.horizontal, showsIndicators: false) {
+            Text(payload.code)
+                .font(.system(size: 14, design: .monospaced))
+                .foregroundStyle(Palette.codeText)
+                .textSelection(.enabled)
+                .padding(16)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.surface, in: RoundedRectangle(cornerRadius: 10))
+        .background(Palette.codeBg, in: RoundedRectangle(cornerRadius: 12))
+        .padding(.vertical, 6)
     }
 }
 
-// MARK: 이미지 블록
+// MARK: 이미지 블록 — rounded-2xl + 캡션 slate-400
 
 private struct ImagePayload {
     var url: String
-    var alt: String?
     var caption: String?
 
     static func decode(_ content: String?) -> ImagePayload {
         guard let content, let data = content.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-        else { return ImagePayload(url: content ?? "", alt: nil, caption: nil) }
-        return ImagePayload(
-            url: json["url"] as? String ?? "",
-            alt: json["alt"] as? String,
-            caption: json["caption"] as? String
-        )
+        else { return ImagePayload(url: content ?? "", caption: nil) }
+        return ImagePayload(url: json["url"] as? String ?? "", caption: json["caption"] as? String)
     }
 }
 
@@ -156,25 +158,30 @@ private struct ImageBlockView: View {
     let payload: ImagePayload
 
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 12) {
             if let url = URL(string: payload.url) {
                 AsyncImage(url: url) { image in
                     image.resizable().scaledToFit()
                 } placeholder: {
-                    Rectangle().fill(.quaternary).frame(height: 200).overlay(ProgressView())
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Palette.hairline)
+                        .frame(height: 200)
+                        .overlay(ProgressView().tint(Palette.accent))
                 }
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
             }
             if let caption = payload.caption, !caption.isEmpty {
                 Text(caption)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Palette.faint)
+                    .multilineTextAlignment(.center)
             }
         }
+        .padding(.vertical, 6)
     }
 }
 
-// MARK: 리스트 블록
+// MARK: 리스트 블록 — 마커 그린
 
 private struct ListBlockView: View {
     let items: [String]
@@ -183,15 +190,18 @@ private struct ListBlockView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             ForEach(Array(items.enumerated()), id: \.offset) { index, item in
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
                     Text(ordered ? "\(index + 1)." : "•")
-                        .font(.body)
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 18))
+                        .foregroundStyle(Palette.accentMarker)
+                        .monospacedDigit()
                     Text(inline(item))
-                        .font(.body)
+                        .font(.system(size: 18))
+                        .foregroundStyle(Palette.body)
                 }
             }
         }
+        .padding(.vertical, 4)
     }
 
     private func inline(_ raw: String) -> AttributedString {
@@ -199,7 +209,7 @@ private struct ListBlockView: View {
     }
 }
 
-// MARK: 테이블 블록 (GFM 마크다운)
+// MARK: 테이블 블록 — flat (헤더 밑줄 + 행 구분선)
 
 private struct TableBlockView: View {
     let markdown: String
@@ -213,7 +223,6 @@ private struct TableBlockView: View {
                     .filter { !$0.isEmpty }
             }
             .filter { cells in
-                // 구분선(---) 행 제거
                 !cells.allSatisfy { $0.allSatisfy { "-: ".contains($0) } }
             }
     }
@@ -221,24 +230,27 @@ private struct TableBlockView: View {
     var body: some View {
         let rows = rows
         ScrollView(.horizontal, showsIndicators: false) {
-            Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
+            Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 0) {
                 ForEach(Array(rows.enumerated()), id: \.offset) { index, cells in
                     GridRow {
                         ForEach(Array(cells.enumerated()), id: \.offset) { _, cell in
                             Text(cell)
-                                .font(index == 0 ? .callout.bold() : .callout)
+                                .font(.system(size: 15, weight: index == 0 ? .semibold : .regular))
+                                .foregroundStyle(index == 0 ? Palette.ink : Palette.body)
+                                .padding(.vertical, 8)
                         }
                     }
-                    if index == 0 { Divider() }
+                    Rectangle()
+                        .fill(index == 0 ? Palette.hairlineStrong : Palette.hairline)
+                        .frame(height: index == 0 ? 2 : 1)
                 }
             }
-            .padding(12)
         }
-        .background(Color.surface, in: RoundedRectangle(cornerRadius: 10))
+        .padding(.vertical, 6)
     }
 }
 
-// MARK: 임베드 블록
+// MARK: 임베드 — flat 보더 링크
 
 private struct EmbedPayload {
     var provider: String?
@@ -258,24 +270,27 @@ private struct EmbedBlockView: View {
     var body: some View {
         if let url = URL(string: payload.url) {
             Link(destination: url) {
-                HStack {
-                    Image(systemName: "link")
+                HStack(spacing: 8) {
+                    Image(systemName: "link").font(.system(size: 13))
                     Text(payload.provider ?? payload.url)
+                        .font(.system(size: 14, weight: .medium))
                         .lineLimit(1)
                     Spacer()
-                    Image(systemName: "arrow.up.right")
+                    Image(systemName: "arrow.up.right").font(.system(size: 12))
                 }
-                .font(.callout)
-                .padding(12)
+                .foregroundStyle(Palette.link)
+                .padding(14)
                 .frame(maxWidth: .infinity)
-                .background(Color.surface, in: RoundedRectangle(cornerRadius: 10))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12).strokeBorder(Palette.hairlineStrong, lineWidth: 1)
+                )
             }
-            .tint(.brand)
+            .padding(.vertical, 6)
         }
     }
 }
 
-// MARK: CTA 블록
+// MARK: CTA — primary 그린
 
 private struct CtaBlockView: View {
     let cta: CtaInfo
@@ -284,12 +299,13 @@ private struct CtaBlockView: View {
         if let url = URL(string: cta.url) {
             Link(destination: url) {
                 Text(cta.label)
-                    .font(.headline)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
+                    .background(Palette.accent, in: RoundedRectangle(cornerRadius: 12))
             }
-            .buttonStyle(.borderedProminent)
-            .tint(.brand)
+            .padding(.vertical, 6)
         }
     }
 }
