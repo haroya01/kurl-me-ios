@@ -51,6 +51,7 @@ struct DiscoverView: View {
                 }
             }
             .navigationTitle("발견")
+            .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: Route.self) { RouteView(route: $0) }
         }
         .task { await model.load() }

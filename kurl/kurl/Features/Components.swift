@@ -97,23 +97,29 @@ struct UnderlineTabs<T: Hashable & Identifiable>: View {
     let items: [T]
     @Binding var selection: T
     let label: (T) -> String
+    @Namespace private var ns
 
     var body: some View {
         HStack(spacing: 22) {
             ForEach(items) { item in
                 let active = item == selection
                 Button {
-                    selection = item
+                    withAnimation(.snappy(duration: 0.28)) { selection = item }
                 } label: {
                     VStack(spacing: 7) {
                         Text(label(item))
                             .font(.system(size: 15, weight: active ? .semibold : .regular))
                             .foregroundStyle(active ? Palette.ink : Palette.secondary)
-                        Rectangle()
-                            .fill(active ? Palette.accent : .clear)
-                            .frame(height: 2)
+                        ZStack {
+                            Capsule().fill(.clear).frame(height: 2)
+                            if active {
+                                Capsule().fill(Palette.accent).frame(height: 2)
+                                    .matchedGeometryEffect(id: "underline", in: ns)
+                            }
+                        }
                     }
                     .fixedSize()
+                    .animation(.snappy(duration: 0.2), value: active)
                 }
                 .buttonStyle(.plain)
             }

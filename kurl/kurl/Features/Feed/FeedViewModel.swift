@@ -5,7 +5,7 @@
 //  Created by 김동현 on 6/7/26.
 //
 
-import Foundation
+import SwiftUI
 import Observation
 
 @MainActor
@@ -31,14 +31,19 @@ final class FeedViewModel {
     func reload() async {
         page = 0
         hasNext = true
-        phase = .loading
+        // 이미 글이 있으면(탭 전환 등) 스피너로 깜빡이지 않고 기존 목록을 유지한 채 교체한다.
+        if items.isEmpty { phase = .loading }
         do {
             let view = try await BlogAPI.feed(sort: sort, page: 0, size: pageSize)
-            items = view.items
             hasNext = view.hasNext
-            phase = .loaded(items)
+            withAnimation(.easeInOut(duration: 0.2)) {
+                items = view.items
+                phase = .loaded(items)
+            }
         } catch {
-            phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
+            if items.isEmpty {
+                phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
+            }
         }
     }
 

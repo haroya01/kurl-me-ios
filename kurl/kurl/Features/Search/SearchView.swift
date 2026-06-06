@@ -30,6 +30,7 @@ struct SearchView: View {
                 }
             }
             .navigationTitle("검색")
+            .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: Route.self) { RouteView(route: $0) }
         }
         .searchable(text: $query, prompt: "글 검색")
