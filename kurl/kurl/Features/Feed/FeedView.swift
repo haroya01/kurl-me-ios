@@ -8,62 +8,86 @@
 import SwiftUI
 
 struct FeedView: View {
-    @State private var model = FeedViewModel()
+    @State private var selection: FeedSort = .recent
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // 상단 고정 탭 스트립 — 스크롤해도 사라지지 않는다.
-                UnderlineTabs(items: FeedSort.allCases, selection: $model.sort) { $0.label }
+                // 상단 고정 탭 스트립 — 스크롤·스와이프와 동기화.
+                UnderlineTabs(items: FeedSort.allCases, selection: $selection) { $0.label }
                     .padding(.horizontal, Metrics.gutter)
                     .padding(.top, 4)
                     .padding(.bottom, 10)
                 Hairline()
 
-                feed
+                // 손가락으로 최신 ↔ 인기 좌우 스와이프. 각 페이지는 자기 데이터·스크롤을 유지.
+                TabView(selection: $selection) {
+                    ForEach(FeedSort.allCases) { sort in
+                        FeedPage(sort: sort)
+                            .tag(sort)
+                    }
+                }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .animation(.snappy(duration: 0.28), value: selection)
             }
             .background(Color(uiColor: .systemBackground))
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: Route.self) { RouteView(route: $0) }
         }
+    }
+}
+
+/// 한 정렬(최신/인기)의 피드 페이지. TabView 가 살려두므로 스와이프해도 상태 유지.
+struct FeedPage: View {
+    let sort: FeedSort
+    @State private var model: FeedViewModel
+
+    init(sort: FeedSort) {
+        self.sort = sort
+        _model = State(initialValue: FeedViewModel(sort: sort))
+    }
+
+    var body: some View {
+        Group {
+            switch model.phase {
+            case .idle, .loading:
+                ProgressView().tint(Palette.accent)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            case .failed(let message):
+                failed(message)
+            case .loaded:
+                list
+            }
+        }
         .task { await model.loadInitial() }
     }
 
-    @ViewBuilder
-    private var feed: some View {
-        switch model.phase {
-        case .idle, .loading:
-            ProgressView().tint(Palette.accent)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-        case .failed(let message):
-            failed(message)
-        case .loaded:
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(model.items.enumerated()), id: \.element.id) { index, item in
-                        NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
-                            FeedRow(item: item, featured: index == 0 && model.sort == .recent)
-                        }
-                        .buttonStyle(RowButtonStyle())
-                        .task { await model.loadMoreIfNeeded(current: item) }
-                        if index < model.items.count - 1 { Hairline() }
+    private var list: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(Array(model.items.enumerated()), id: \.element.id) { index, item in
+                    NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
+                        FeedRow(item: item, featured: index == 0 && sort == .recent)
                     }
-                    if model.isLoadingMore {
-                        ProgressView().tint(Palette.accent)
-                            .frame(maxWidth: .infinity).padding(.vertical, 18)
-                    }
-                    if model.items.isEmpty {
-                        ContentUnavailableView("아직 글이 없습니다", systemImage: "doc.text")
-                            .padding(.top, 80)
-                    }
+                    .buttonStyle(RowButtonStyle())
+                    .task { await model.loadMoreIfNeeded(current: item) }
+                    if index < model.items.count - 1 { Hairline() }
                 }
-                .frame(maxWidth: Metrics.readingColumn)
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, Metrics.gutter)
+                if model.isLoadingMore {
+                    ProgressView().tint(Palette.accent)
+                        .frame(maxWidth: .infinity).padding(.vertical, 18)
+                }
+                if model.items.isEmpty {
+                    ContentUnavailableView("아직 글이 없습니다", systemImage: "doc.text")
+                        .padding(.top, 80)
+                }
             }
-            .scrollIndicators(.hidden)
-            .refreshable { await model.reload() }
+            .frame(maxWidth: Metrics.readingColumn)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, Metrics.gutter)
         }
+        .scrollIndicators(.hidden)
+        .refreshable { await model.reload() }
     }
 
     private func failed(_ message: String) -> some View {
