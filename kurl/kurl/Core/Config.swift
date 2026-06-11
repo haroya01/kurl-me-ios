@@ -12,9 +12,9 @@ enum Config {
     static let apiBase = URL(string: "https://kurl.me")!
     static let apiPrefix = "/api/v1"
 
-    /// UI 로케일 (ja/ko). 시스템 우선 언어를 따르되 미지원이면 ko 로 떨어진다.
+    /// UI 로케일 (ja/ko/en). 시스템 우선 언어를 따르되 미지원이면 ko 로 떨어진다.
     static var preferredLanguageTag: String {
-        let supported = ["ja", "ko"]
+        let supported = ["ja", "ko", "en"]
         for code in Locale.preferredLanguages {
             let base = String(code.prefix(2))
             if supported.contains(base) { return base }

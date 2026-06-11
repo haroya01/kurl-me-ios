@@ -9,6 +9,7 @@ import SwiftUI
 
 struct FeedView: View {
     @State private var selection: FeedSort = .recent
+    @Namespace private var zoomNS
 
     var body: some View {
         NavigationStack {
@@ -26,7 +27,7 @@ struct FeedView: View {
                 // 위치 유지) 좌우 스와이프는 제스처로 직접 — ScrollView 가 탭 콘텐츠의 직계가 된다.
                 ZStack {
                     ForEach(FeedSort.allCases) { sort in
-                        FeedPage(sort: sort)
+                        FeedPage(sort: sort, active: sort == selection, zoom: zoomNS)
                             .opacity(sort == selection ? 1 : 0)
                             .allowsHitTesting(sort == selection)
                     }
@@ -46,7 +47,15 @@ struct FeedView: View {
             }
             .background(Color(uiColor: .systemBackground))
             .toolbar(.hidden, for: .navigationBar)
-            .navigationDestination(for: Route.self) { RouteView(route: $0) }
+            .navigationDestination(for: Route.self) { route in
+                // 카드에서 출발한 글만 zoom — 탭한 카드가 글로 확대돼 들어간다.
+                if case .post(let username, let slug) = route {
+                    RouteView(route: route)
+                        .navigationTransition(.zoom(sourceID: "post-\(username)-\(slug)", in: zoomNS))
+                } else {
+                    RouteView(route: route)
+                }
+            }
         }
     }
 }
@@ -54,10 +63,14 @@ struct FeedView: View {
 /// 한 정렬(최신/인기)의 피드 페이지. TabView 가 살려두므로 스와이프해도 상태 유지.
 struct FeedPage: View {
     let sort: FeedSort
+    let active: Bool
+    let zoom: Namespace.ID
     @State private var model: FeedViewModel
 
-    init(sort: FeedSort) {
+    init(sort: FeedSort, active: Bool, zoom: Namespace.ID) {
         self.sort = sort
+        self.active = active
+        self.zoom = zoom
         _model = State(initialValue: FeedViewModel(sort: sort))
     }
 
@@ -85,6 +98,11 @@ struct FeedPage: View {
                         BlogCard(item: item, featured: index == 0 && sort == .recent)
                     }
                     .buttonStyle(CardButtonStyle())
+                    .modifier(ZoomSource(
+                        active: active,
+                        id: "post-\(item.author.username)-\(item.slug)",
+                        ns: zoom))
+                    .modifier(CardScrollFade())
                     .task { await model.loadMoreIfNeeded(current: item) }
                 }
                 if model.isLoadingMore {

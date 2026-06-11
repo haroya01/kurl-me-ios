@@ -11,6 +11,7 @@ struct SearchView: View {
     @State private var query = ""
     @State private var phase: LoadState<[FeedItem]> = .idle
     @State private var searchTask: Task<Void, Never>?
+    @Namespace private var zoomNS
 
     var body: some View {
         NavigationStack {
@@ -31,7 +32,14 @@ struct SearchView: View {
             }
             .navigationTitle("검색")
             .navigationBarTitleDisplayMode(.inline)
-            .navigationDestination(for: Route.self) { RouteView(route: $0) }
+            .navigationDestination(for: Route.self) { route in
+                if case .post(let username, let slug) = route {
+                    RouteView(route: route)
+                        .navigationTransition(.zoom(sourceID: "search-\(username)-\(slug)", in: zoomNS))
+                } else {
+                    RouteView(route: route)
+                }
+            }
         }
         .searchable(text: $query, prompt: "글 검색")
         .onChange(of: query) { _, newValue in scheduleSearch(newValue) }
@@ -51,6 +59,11 @@ struct SearchView: View {
                             BlogCard(item: item)
                         }
                         .buttonStyle(CardButtonStyle())
+                        .modifier(ZoomSource(
+                            active: true,
+                            id: "search-\(item.author.username)-\(item.slug)",
+                            ns: zoomNS))
+                        .modifier(CardScrollFade())
                     }
                 }
                 .padding(.vertical, 16)

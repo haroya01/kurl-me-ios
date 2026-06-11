@@ -67,6 +67,7 @@ final class DiscoverDeckModel {
 
 struct DiscoverDeckView: View {
     @State private var model = DiscoverDeckModel()
+    @Namespace private var zoomNS
 
     var body: some View {
         NavigationStack {
@@ -101,7 +102,14 @@ struct DiscoverDeckView: View {
             }
             .navigationTitle("발견")
             .navigationBarTitleDisplayMode(.inline)
-            .navigationDestination(for: Route.self) { RouteView(route: $0) }
+            .navigationDestination(for: Route.self) { route in
+                if case .post(let username, let slug) = route {
+                    RouteView(route: route)
+                        .navigationTransition(.zoom(sourceID: "deck-\(username)-\(slug)", in: zoomNS))
+                } else {
+                    RouteView(route: route)
+                }
+            }
         }
     }
 
@@ -114,6 +122,11 @@ struct DiscoverDeckView: View {
                             .containerRelativeFrame(.horizontal)
                     }
                     .buttonStyle(.plain)
+                    .modifier(ZoomSource(
+                        active: true,
+                        id: "deck-\(item.author.username)-\(item.slug)",
+                        ns: zoomNS))
+                    .modifier(CardScrollFade(axis: .horizontal))
                     .task { await model.loadMoreIfNeeded(current: item) }
                 }
             }

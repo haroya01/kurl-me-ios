@@ -189,3 +189,45 @@ extension Date {
         formatted(.dateTime.year().month(.abbreviated).day())
     }
 }
+
+// MARK: 전환 모션 (§10.7 — 조용하지만 살아 있게)
+
+/// 카드 → 글 상세 zoom 전환의 출발점. 피드처럼 같은 글이 숨은 페이지에도 떠 있는 표면은
+/// active 가 아닐 때 등록하지 않는다(같은 네임스페이스에 중복 id 등록 방지).
+struct ZoomSource: ViewModifier {
+    let active: Bool
+    let id: String
+    let ns: Namespace.ID
+
+    func body(content: Content) -> some View {
+        if active {
+            content.matchedTransitionSource(id: id, in: ns)
+        } else {
+            content
+        }
+    }
+}
+
+/// 스크롤 가장자리에서 카드가 살짝 가라앉았다 떠오르는 입장감. reduce-motion 이면 끈다.
+struct CardScrollFade: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    var axis: Axis = .vertical
+
+    func body(content: Content) -> some View {
+        if reduceMotion {
+            content
+        } else if axis == .horizontal {
+            content.scrollTransition(.interactive, axis: .horizontal) { view, phase in
+                view
+                    .opacity(phase.isIdentity ? 1 : 0.45)
+                    .scaleEffect(phase.isIdentity ? 1 : 0.92)
+            }
+        } else {
+            content.scrollTransition(.interactive) { view, phase in
+                view
+                    .opacity(phase.isIdentity ? 1 : 0.65)
+                    .scaleEffect(phase.isIdentity ? 1 : 0.97)
+            }
+        }
+    }
+}

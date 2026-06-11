@@ -188,10 +188,12 @@
 				};
 			};
 			buildConfigurationList = D3696C772FD48A89006D9F90 /* Build configuration list for PBXProject "kurl" */;
-			developmentRegion = en;
+			developmentRegion = ko;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				ja,
+				ko,
 				Base,
 			);
 			mainGroup = D3696C732FD48A89006D9F90;

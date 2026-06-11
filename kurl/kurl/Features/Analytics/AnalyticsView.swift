@@ -131,7 +131,7 @@ struct AnalyticsView: View {
         Color.clear.frame(height: 32)
     }
 
-    private func stat(_ label: String, _ value: Int64) -> some View {
+    private func stat(_ label: LocalizedStringKey, _ value: Int64) -> some View {
         VStack(spacing: 4) {
             Text("\(value)")
                 .font(.system(size: 19, weight: .semibold).monospacedDigit())

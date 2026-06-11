@@ -134,7 +134,7 @@ struct AnalyticsWidgetView: View {
         }
     }
 
-    private func stat(_ label: String, _ value: Int64) -> some View {
+    private func stat(_ label: LocalizedStringKey, _ value: Int64) -> some View {
         HStack(spacing: 6) {
             Text(label)
                 .font(.system(size: 11))

@@ -1,0 +1,150 @@
+{
+  "sourceLanguage": "ko",
+  "strings": {
+    "kurl 분석": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kurl Analytics"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kurl 分析"
+          }
+        }
+      }
+    },
+    "누적 조회": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total views"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "累計閲覧"
+          }
+        }
+      }
+    },
+    "발행한 글": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Published"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "公開記事"
+          }
+        }
+      }
+    },
+    "블로그 분석": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blog Analytics"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブログ分析"
+          }
+        }
+      }
+    },
+    "앱에서 분석을 한 번 열면\n여기에 지표가 떠요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Analytics in the app once\nand your stats will appear here."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アプリで分析を一度開くと\nここに指標が表示されます。"
+          }
+        }
+      }
+    },
+    "좋아요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Likes"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "いいね"
+          }
+        }
+      }
+    },
+    "최근 %lld일 조회": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Views, last %lld days"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "直近%lld日の閲覧"
+          }
+        }
+      }
+    },
+    "최근 조회수와 누적 지표를 홈 화면에서.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recent views and lifetime stats on your Home Screen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近の閲覧数と累計指標をホーム画面で。"
+          }
+        }
+      }
+    },
+    "팔로워": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Followers"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォロワー"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

@@ -25,6 +25,7 @@ struct EngagementBar: View {
                 HStack(spacing: 5) {
                     Image(systemName: model.liked ? "heart.fill" : "heart")
                         .font(.system(size: 16))
+                        .symbolEffect(.bounce, value: model.liked)
                     if model.likeCount > 0 {
                         Text("\(model.likeCount)")
                             .font(.system(size: 14, weight: .medium))
@@ -42,6 +43,7 @@ struct EngagementBar: View {
             } label: {
                 Image(systemName: model.bookmarked ? "bookmark.fill" : "bookmark")
                     .font(.system(size: 15))
+                    .symbolEffect(.bounce, value: model.bookmarked)
                     .foregroundStyle(model.bookmarked ? Palette.accent : Palette.secondary)
             }
             .buttonStyle(.plain)
