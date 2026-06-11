@@ -36,7 +36,8 @@ iOS 27의 답은 Liquid Glass 극대화 — 단, 유리가 **어디에 사는지
 | --- | --- |
 | 탭바 | 시스템 유리 + `.tabBarMinimizeBehavior(.onScrollDown)` 유지. 5탭 아이콘-온리 |
 | 피드 소스 전환 | 떠 있는 유리 캡슐 세그먼트(`GlassSourceSwitcher`) — 상단 고정 스트립 ❌ |
-| 글 상세 좋아요·북마크 | 떠 있는 유리 독(`EngagementDock`, 우하단). 덱 임베드에선 인라인 행 유지 |
+| 글 좋아요·북마크 | 떠 있는 유리 독(`EngagementDock`, 우하단) — 단독·덱 임베드 동일 문법, 인라인 줄 금지. 글 끝에선 materialize 후퇴(스크롤 불가한 짧은 글은 유지) |
+| 댓글 | 본문 끝 인라인 한 곳(덱=접힌 행) — 독·툴바에 댓글 진입을 중복시키지 않는다 |
 | 글쓰기 새 글 | 유리 FAB(`.glassProminent` + accentFill 틴트) |
 | 팔로우/구독 | 주행동(팔로우 전) = 그린 유리 캡슐, 완료 상태 = 맑은 유리(가라앉음) — `glassCapsule(prominent:)` |
 | 로그인 CTA | 종이 위 = 그린 유리 캡슐. 유리 패널 *안*이면 솔리드 그린 캡슐(§1.4 유리 중첩 금지) |

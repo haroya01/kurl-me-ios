@@ -40,9 +40,8 @@ struct PostDetailView: View {
     /// 다음 글로 튕겨가지 않게 한다.
     @State private var fingerDown = false
 
-    /// 단독 상세 전용 — 떠 있는 유리 독. 글 끝(컴포저 영역)에 닿으면 materialize 로
+    /// 떠 있는 유리 독 — 글 끝(컴포저·다음 글 큐 영역)에 닿으면 materialize 로
     /// 물러나 입력을 가리지 않고, 본문이 한 화면이면(스크롤 불가) 물러날 이유가 없다.
-    @State private var scrollPosition = ScrollPosition()
     @State private var endVisible = false
     @State private var scrollable = false
 
@@ -79,7 +78,6 @@ struct PostDetailView: View {
         }
         .scrollIndicators(.hidden)
         .scrollDismissesKeyboard(.interactively)
-        .scrollPosition($scrollPosition)
         .scrollEdgeEffectStyle(.soft, for: .bottom)
         .ignoresSafeArea(edges: hasCover && !embedded ? .top : [])
         // 본문이 화면보다 긴지 — 독 후퇴 판정의 전제(짧은 글은 독이 유일한 인게이지 표면).
@@ -153,16 +151,13 @@ struct PostDetailView: View {
             !embedded && hasCover && !showNavTitle ? .hidden : .automatic, for: .navigationBar)
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .bottomTrailing) {
-            if !embedded, case .loaded(let detail) = model.phase,
-               !(endVisible && scrollable) {
-                EngagementDock(postId: detail.post.id, initialLikeCount: detail.post.likeCount) {
-                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.45)) {
-                        scrollPosition.scrollTo(id: "comments", anchor: .top)
-                    }
-                }
-                .padding(.trailing, 14)
-                .padding(.bottom, 10)
-                .transition(.opacity)
+            // 단독·덱 임베드 공통의 단일 인게이지 문법 — 임베드별 인라인 줄을 두지 않는다.
+            // 덱에선 장마다 제 페이지 안에 떠서 페이지와 함께 밀려 나간다.
+            if case .loaded(let detail) = model.phase, !(endVisible && scrollable) {
+                EngagementDock(postId: detail.post.id, initialLikeCount: detail.post.likeCount)
+                    .padding(.trailing, 14)
+                    .padding(.bottom, 10)
+                    .transition(.opacity)
             }
         }
         .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: endVisible)
@@ -206,20 +201,14 @@ struct PostDetailView: View {
             FlowTags(tags: detail.post.tags)
                 .padding(.top, 26)
         }
-        // 단독 상세의 좋아요·북마크는 떠 있는 유리 독이 맡는다 — 인라인 줄은 덱 전용.
-        if embedded {
-            EngagementBar(postId: detail.post.id, initialLikeCount: detail.post.likeCount)
-                .padding(.top, 8)
-        }
         if let nav = detail.series { seriesNav(nav, username: detail.author.username) }
         comments
-            .id("comments")
         if embedded, let next = nextPost {
             nextPostCue(next)
         }
         Color.clear.frame(height: 56)
             .onScrollVisibilityChange(threshold: 0.2) { visible in
-                if !embedded { endVisible = visible }
+                endVisible = visible
             }
     }
 

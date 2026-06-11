@@ -1,24 +1,24 @@
 //
-//  EngagementBar.swift
+//  EngagementDock.swift
 //  kurl
 //
 
 import SwiftUI
 
-/// 단독 글 상세의 좋아요·북마크·댓글 — 우하단에 떠 있는 유리 독(AGENTS.md §1).
-/// 활성 상태는 캡슐 전체가 그린(700) 유리로 차오른다. 토글 낙관/복귀 문법은 바와 동일.
-/// 덱 임베드는 페이지가 여러 장 살아 있어 독이 겹치므로 인라인 `EngagementBar` 를 쓴다.
+/// 글 상세의 좋아요·북마크 — 우하단에 떠 있는 유리 독(AGENTS.md §1).
+/// 단독 상세와 덱 임베드가 이 문법 하나를 쓴다 — 같은 화면에 두 인게이지 UI 금지.
+/// 댓글 진입도 본문 끝 인라인 한 곳뿐이라 독은 토글만 든다.
+/// 활성 상태는 캡슐 전체가 그린(700) 유리로 차오르고, 토글은 낙관(즉시 반영 →
+/// 실패 시 서버 응답/원상태로 복귀). 로그아웃 상태에서 누르면 그 자리 로그인.
 struct EngagementDock: View {
     @State private var model: EngagementModel
     @State private var showLoginPrompt = false
     @State private var showTwoFactorHint = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var glassNS
-    let onComments: () -> Void
 
-    init(postId: Int64, initialLikeCount: Int64, onComments: @escaping () -> Void) {
+    init(postId: Int64, initialLikeCount: Int64) {
         _model = State(initialValue: EngagementModel(postId: postId, likeCount: initialLikeCount))
-        self.onComments = onComments
     }
 
     var body: some View {
@@ -26,7 +26,6 @@ struct EngagementDock: View {
             VStack(spacing: 12) {
                 like
                 bookmark
-                comments
             }
         }
         .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
@@ -95,115 +94,6 @@ struct EngagementDock: View {
         .glassEffectTransition(.materialize)
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: model.bookmarked)
         .accessibilityLabel(model.bookmarked ? Text("북마크 해제") : Text("북마크"))
-    }
-
-    private var comments: some View {
-        Button(action: onComments) {
-            Image(systemName: "text.bubble")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(.primary)
-                .frame(width: 52, height: 52)
-                .contentShape(Circle())
-        }
-        .buttonStyle(.plain)
-        .glassEffect(.regular.interactive(), in: .circle)
-        .glassEffectID("comments", in: glassNS)
-        .glassEffectTransition(.materialize)
-        .accessibilityLabel(Text("댓글로 이동"))
-    }
-
-    private func interact(failure: String, _ action: @escaping () async throws -> Void) {
-        guard AuthStore.shared.isSignedIn else {
-            showLoginPrompt = true
-            return
-        }
-        Task {
-            do { try await action() } catch { ToastCenter.shared.show(failure) }
-        }
-    }
-
-    private func signInHere() {
-        Task {
-            // 2FA 계정은 TOTP 입력 UI 가 계정 탭에 있어 여기서 끝까지 못 간다 — 안내만.
-            if (try? await AuthStore.shared.signIn()) == .twoFactorRequired {
-                showTwoFactorHint = true
-            } else if AuthStore.shared.isSignedIn {
-                await model.hydrate()
-            }
-        }
-    }
-}
-
-/// 덱 임베드 전용의 좋아요·북마크 줄 — 본문 끝 한 줄, 조용한 고스트 아이콘.
-/// 토글은 낙관(즉시 반영 → 실패 시 서버 응답/원상태로 복귀), 활성 색은 그린 한 가닥.
-/// 로그아웃 상태에서 누르면 그 자리에서 로그인 시트를 띄운다 — 글을 떠나지 않는다.
-struct EngagementBar: View {
-    @State private var model: EngagementModel
-    @State private var showLoginPrompt = false
-    @State private var showTwoFactorHint = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    init(postId: Int64, initialLikeCount: Int64) {
-        _model = State(initialValue: EngagementModel(postId: postId, likeCount: initialLikeCount))
-    }
-
-    var body: some View {
-        HStack(spacing: 18) {
-            Button {
-                interact(failure: String(localized: "좋아요를 반영하지 못했습니다")) {
-                    try await model.toggleLike()
-                }
-            } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: model.liked ? "heart.fill" : "heart")
-                        .font(.system(size: 16))
-                        .symbolEffect(.bounce, value: reduceMotion ? false : model.liked)
-                    if model.likeCount > 0 {
-                        Text("\(model.likeCount)")
-                            .font(.system(size: 14, weight: .medium))
-                            .contentTransition(.numericText())
-                    }
-                }
-                .foregroundStyle(model.liked ? Palette.link : Palette.secondary)
-                .expandTapTarget()
-            }
-            .buttonStyle(.plain)
-            .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: model.liked)
-            .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: model.likeCount)
-            .accessibilityLabel(model.liked ? Text("좋아요 취소") : Text("좋아요"))
-
-            Button {
-                interact(failure: String(localized: "북마크를 반영하지 못했습니다")) {
-                    try await model.toggleBookmark()
-                }
-            } label: {
-                Image(systemName: model.bookmarked ? "bookmark.fill" : "bookmark")
-                    .font(.system(size: 15))
-                    .symbolEffect(.bounce, value: reduceMotion ? false : model.bookmarked)
-                    .foregroundStyle(model.bookmarked ? Palette.accent : Palette.secondary)
-                    .expandTapTarget()
-            }
-            .buttonStyle(.plain)
-            .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: model.bookmarked)
-            .accessibilityLabel(model.bookmarked ? Text("북마크 해제") : Text("북마크"))
-
-            Spacer()
-        }
-        .padding(.vertical, 10)
-        // hydrate 반영에는 울리지 않게 — 사용자 토글 횟수에만 발화.
-        .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
-        .task(id: AuthStore.shared.isSignedIn) { await model.hydrate() }
-        .alert("로그인이 필요합니다", isPresented: $showLoginPrompt) {
-            Button("로그인") { signInHere() }
-            Button("취소", role: .cancel) {}
-        } message: {
-            Text("좋아요와 북마크는 kurl 계정으로 이어집니다.")
-        }
-        .alert("2단계 인증이 설정된 계정입니다", isPresented: $showTwoFactorHint) {
-            Button("확인", role: .cancel) {}
-        } message: {
-            Text("내 계정 탭에서 로그인을 완료해 주세요.")
-        }
     }
 
     private func interact(failure: String, _ action: @escaping () async throws -> Void) {
