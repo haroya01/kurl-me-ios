@@ -45,57 +45,76 @@ struct PostDetailView: View {
         .task { await model.load() }
     }
 
+    // 읽기 흐름 우선: 커버 → 제목 → 작가 한 줄 → 본문. 태그와 좋아요는 다 읽은 뒤
+    // 자연스럽게 만나도록 본문 끝으로 — 헤더에 끼어 있던 인터랙션 바가 진입을 막지 않는다.
     @ViewBuilder
     private func content(_ detail: PublicPostDetail) -> some View {
         header(detail)
-        EngagementBar(postId: detail.post.id, initialLikeCount: detail.post.likeCount)
         VStack(alignment: .leading, spacing: 2) {
             ForEach(Array(detail.blocks.enumerated()), id: \.offset) { _, block in
                 BlockView(block: block)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .padding(.top, 8)
+        .padding(.top, 20)
+
+        if !detail.post.tags.isEmpty {
+            FlowTags(tags: detail.post.tags)
+                .padding(.top, 26)
+        }
+        EngagementBar(postId: detail.post.id, initialLikeCount: detail.post.likeCount)
+            .padding(.top, 8)
         if let nav = detail.series { seriesNav(nav, username: detail.author.username) }
         comments
         Color.clear.frame(height: 40)
     }
 
     private func header(_ detail: PublicPostDetail) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            if let tag = detail.post.tags.first {
-                Text(tag)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Palette.faint)
+        VStack(alignment: .leading, spacing: 0) {
+            // 커버 히어로 — 카드의 zoom 전환이 이 커버로 확대되며 도착한다(웹 커버 모핑의 결).
+            if let urlString = detail.post.ogImageUrl, let url = URL(string: urlString) {
+                Color.clear
+                    .aspectRatio(16.0 / 9.0, contentMode: .fit)
+                    .overlay {
+                        AsyncImage(url: url) { image in
+                            image.resizable().scaledToFill()
+                        } placeholder: {
+                            Rectangle().fill(Palette.hairline)
+                        }
+                        .saturation(0.85)
+                    }
+                    .overlay(Palette.coverVeil)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .padding(.top, 10)
+                    .padding(.bottom, 22)
+            } else {
+                Color.clear.frame(height: 18)
             }
+
             Text(detail.post.title)
                 .font(.system(size: 30, weight: .bold))
                 .foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
 
             NavigationLink(value: Route.author(username: detail.author.username)) {
-                HStack(spacing: 10) {
-                    AvatarView(author: detail.author, size: 36)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(detail.author.username)
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(Palette.ink)
-                        if let date = detail.post.publishedAt {
-                            Text(date.mediumDate)
-                                .font(.system(size: 13))
-                                .foregroundStyle(Palette.secondary)
-                        }
+                HStack(spacing: 9) {
+                    AvatarView(author: detail.author, size: 28)
+                    Text(detail.author.username)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Palette.ink)
+                    if let date = detail.post.publishedAt {
+                        Text("·").foregroundStyle(Palette.faint)
+                        Text(date.mediumDate)
+                            .font(.system(size: 13))
+                            .foregroundStyle(Palette.secondary)
                     }
                 }
             }
             .buttonStyle(.plain)
+            .padding(.top, 14)
 
-            if detail.post.tags.count > 1 {
-                FlowTags(tags: detail.post.tags)
-            }
-            Hairline().padding(.top, 4)
+            Hairline().padding(.top, 18)
         }
-        .padding(.top, 8)
     }
 
     private func seriesNav(_ nav: PostSeriesNav, username: String) -> some View {
