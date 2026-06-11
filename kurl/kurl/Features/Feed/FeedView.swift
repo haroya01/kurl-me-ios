@@ -20,15 +20,29 @@ struct FeedView: View {
                     .padding(.bottom, 10)
                 Hairline()
 
-                // 손가락으로 최신 ↔ 인기 좌우 스와이프. 각 페이지는 자기 데이터·스크롤을 유지.
-                TabView(selection: $selection) {
+                // 페이지형 TabView(UIPageViewController) 중첩은 Liquid Glass 가 활성 탭의
+                // 스크롤뷰를 못 찾게 만들어 하단 바 아래로 콘텐츠가 흐르지 않고(별도 영역처럼
+                // 보임) 스크롤 축소도 안 걸렸다. 두 페이지를 ZStack 으로 살려두고(데이터·스크롤
+                // 위치 유지) 좌우 스와이프는 제스처로 직접 — ScrollView 가 탭 콘텐츠의 직계가 된다.
+                ZStack {
                     ForEach(FeedSort.allCases) { sort in
                         FeedPage(sort: sort)
-                            .tag(sort)
+                            .opacity(sort == selection ? 1 : 0)
+                            .allowsHitTesting(sort == selection)
                     }
                 }
-                .tabViewStyle(.page(indexDisplayMode: .never))
                 .animation(.snappy(duration: 0.28), value: selection)
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 30)
+                        .onEnded { value in
+                            let dx = value.translation.width
+                            let dy = value.translation.height
+                            guard abs(dx) > 60, abs(dx) > abs(dy) * 1.5 else { return }
+                            withAnimation(.snappy(duration: 0.28)) {
+                                selection = dx < 0 ? .trending : .recent
+                            }
+                        }
+                )
             }
             .background(Color(uiColor: .systemBackground))
             .toolbar(.hidden, for: .navigationBar)
