@@ -19,6 +19,7 @@ final class DiscoverDeckModel {
     private var nextRecentPage = 0
     private var exhausted = false
     private var loadingMore = false
+    private var epoch = 0
 
     func load() async {
         if case .loaded = phase { return }
@@ -42,7 +43,10 @@ final class DiscoverDeckModel {
         else { return }
         loadingMore = true
         defer { loadingMore = false }
+        let myEpoch = epoch
         if let page = try? await BlogAPI.feed(sort: .recent, page: nextRecentPage, size: 20) {
+            // 셔플이 끼어들었으면 옛 페이지 — 새 덱 머리에 붙이지 않는다.
+            guard myEpoch == epoch else { return }
             nextRecentPage += 1
             if page.items.isEmpty { exhausted = true }
             appendShuffled(page.items)
@@ -51,6 +55,7 @@ final class DiscoverDeckModel {
 
     /// 셔플 버튼 — 덱을 새로 섞는다(처음부터 다시).
     func reshuffle() async {
+        epoch += 1
         phase = .idle
         deck = []
         seenIds = []
@@ -67,10 +72,11 @@ final class DiscoverDeckModel {
 
 struct DiscoverDeckView: View {
     @State private var model = DiscoverDeckModel()
+    @State private var path = NavigationPath()
     @Namespace private var zoomNS
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             Group {
                 switch model.phase {
                 case .idle, .loading:
@@ -104,7 +110,7 @@ struct DiscoverDeckView: View {
             .navigationTitle("발견")
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: Route.self) { route in
-                if case .post(let username, let slug) = route {
+                if case .post(let username, let slug) = route, path.count <= 1 {
                     RouteView(route: route)
                         .navigationTransition(.zoom(sourceID: "deck-\(username)-\(slug)", in: zoomNS))
                 } else {

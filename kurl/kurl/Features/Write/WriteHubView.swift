@@ -61,7 +61,7 @@ struct WriteHubView: View {
             }
             .onAppear {
                 // `--open analytics|compose` — 목/스크린샷 검증용 자동 진입.
-                switch Config.launchValue(after: "--open") {
+                switch Config.consumeLaunchValue(after: "--open") {
                 case "analytics": showAnalytics = true
                 case "compose": composing = true
                 default: break
@@ -162,6 +162,8 @@ struct WriteHubView: View {
         do {
             phase = .loaded(try await WriteAPI.myPosts())
         } catch {
+            // 보이던 목록을 에러 화면으로 대체하지 않는다 — 비었을 때만 실패 표시.
+            if case .loaded(let posts) = phase, !posts.isEmpty { return }
             phase = .failed(error.localizedDescription)
         }
     }

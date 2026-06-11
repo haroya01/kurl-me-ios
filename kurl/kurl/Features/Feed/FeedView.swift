@@ -9,10 +9,11 @@ import SwiftUI
 
 struct FeedView: View {
     @State private var selection: FeedSource = .recent
+    @State private var path = NavigationPath()
     @Namespace private var zoomNS
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             VStack(spacing: 0) {
                 // 상단 고정 탭 스트립 — 스크롤·스와이프와 동기화.
                 UnderlineTabs(items: FeedSource.allCases, selection: $selection) { $0.label }
@@ -51,8 +52,9 @@ struct FeedView: View {
             .background(Palette.pageBg)
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: Route.self) { route in
-                // 카드에서 출발한 글만 zoom — 탭한 카드가 글로 확대돼 들어간다.
-                if case .post(let username, let slug) = route {
+                // 카드에서 출발한 "루트 직속" 글만 zoom — 글→시리즈→글 같은 깊은 푸시가
+                // 스택 뒤에 가려진 카드에서 zoom 을 발화하지 않게.
+                if case .post(let username, let slug) = route, path.count <= 1 {
                     RouteView(route: route)
                         .navigationTransition(.zoom(sourceID: "post-\(username)-\(slug)", in: zoomNS))
                 } else {
@@ -79,7 +81,7 @@ struct FeedPage: View {
 
     var body: some View {
         Group {
-            // 팔로잉은 인증 피드 — 로그아웃이면 게이트.
+            // 팔로잉은 인증 피드 — 로그아웃이면 게이트(이때는 fetch 도 하지 않는다).
             if source == .following, !AuthStore.shared.isSignedIn {
                 followingGate
             } else {
@@ -94,7 +96,18 @@ struct FeedPage: View {
             }
             }
         }
-        .task { await model.loadInitial() }
+        // 인증 전환을 task id 로 관찰 — 로그아웃 상태의 401 failed 고착과
+        // 계정 전환 후 이전 계정 피드 잔존을 모두 해소한다.
+        .task(id: AuthStore.shared.isSignedIn) {
+            if source == .following {
+                guard AuthStore.shared.isSignedIn else {
+                    model.resetForAuthChange()
+                    return
+                }
+                model.resetForAuthChange()
+            }
+            await model.loadInitial()
+        }
     }
 
     private var followingGate: some View {

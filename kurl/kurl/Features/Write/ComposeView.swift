@@ -15,6 +15,10 @@ struct ComposeView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
+    private enum Field: Hashable { case title, tags, excerpt, editor }
+    @FocusState private var focusedField: Field?
 
     @State private var title = ""
     @State private var tagsText = ""
@@ -28,6 +32,7 @@ struct ComposeView: View {
     @State private var lastSavedSignature: String?
     @State private var lastSavedAt: Date?
     @State private var autosaveTask: Task<Void, Never>?
+    @State private var createTask: Task<Int64, Error>?
 
     // 시리즈
     @State private var seriesList: [MySeries] = []
@@ -42,6 +47,7 @@ struct ComposeView: View {
     // 시트
     @State private var showSchedule = false
     @State private var scheduleDate = Date().addingTimeInterval(3600)
+    @State private var scheduleError: String?
     @State private var showRevisions = false
 
     init(post: MyPost?, onSaved: @escaping () -> Void) {
@@ -51,9 +57,13 @@ struct ComposeView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            meta
-            Hairline()
-                .padding(.horizontal, Metrics.gutter)
+            // 가로(compact 높이)에서 에디터에 포커스가 가면 메타를 접는다 —
+            // 안 그러면 키보드+메타가 에디터 가시 영역을 0 으로 만든다.
+            if !(verticalSizeClass == .compact && focusedField == .editor) {
+                meta
+                Hairline()
+                    .padding(.horizontal, Metrics.gutter)
+            }
             editor
         }
         .navigationTitle(existing == nil ? "새 글" : "편집")
@@ -92,13 +102,20 @@ struct ComposeView: View {
         VStack(spacing: 8) {
             TextField("제목", text: $title)
                 .font(.system(size: 24, weight: .bold))
+                .focused($focusedField, equals: .title)
+                .submitLabel(.next)
+                .onSubmit { focusedField = .tags }
             TextField("태그 (쉼표로 구분)", text: $tagsText)
                 .font(.system(size: 13))
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
+                .focused($focusedField, equals: .tags)
+                .submitLabel(.next)
+                .onSubmit { focusedField = .excerpt }
             TextField("소개글 — 카드와 검색에 보이는 한 단락", text: $excerpt, axis: .vertical)
                 .font(.system(size: 13))
                 .lineLimit(1...3)
+                .focused($focusedField, equals: .excerpt)
 
             HStack(spacing: 10) {
                 // 시리즈 지정 — 멤버십은 저장 시점에 PUT 으로 반영.
@@ -151,6 +168,7 @@ struct ComposeView: View {
 
     private var editor: some View {
         TextEditor(text: $markdown)
+            .focused($focusedField, equals: .editor)
             .font(.system(size: 16, design: .monospaced))
             .scrollContentBackground(.hidden)
             .padding(.horizontal, Metrics.gutter - 4)
@@ -226,6 +244,14 @@ struct ComposeView: View {
                 Spacer()
             }
             .padding(Metrics.gutter)
+            .alert(
+                "예약하지 못했습니다",
+                isPresented: .init(get: { scheduleError != nil }, set: { if !$0 { scheduleError = nil } })
+            ) {
+                Button("확인", role: .cancel) {}
+            } message: {
+                Text(scheduleError ?? "")
+            }
             .navigationTitle("예약 발행")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -296,6 +322,8 @@ struct ComposeView: View {
         guard publish || signature != lastSavedSignature else { return }
         busy = true
         defer { busy = false }
+        // 비행 중 타이핑이 "저장된 셈" 되지 않게 — 전송 시점 스냅샷을 기록한다.
+        let snapshot = signature
         do {
             let id = try await ensurePost()
             let canonical = try await WriteAPI.replaceMarkdown(postId: id, markdown: markdown)
@@ -317,21 +345,33 @@ struct ComposeView: View {
                 let published = try await WriteAPI.publish(postId: id)
                 status = published.status
             }
-            lastSavedSignature = signature
+            lastSavedSignature = snapshot
             lastSavedAt = Date()
             onSaved()
+            // 스냅샷 이후 입력이 있었으면 디바운스를 다시 무장한다.
+            if signature != snapshot { scheduleAutosave() }
             if publish { dismiss() }
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
+    /// 단일 비행 — 자동저장과 커버 업로드가 동시에 들어와도 초안은 하나만 만든다.
     private func ensurePost() async throws -> Int64 {
         if let postId { return postId }
-        let created = try await WriteAPI.createDraft(
-            title: title.trimmingCharacters(in: .whitespaces))
-        postId = created.id
-        return created.id
+        if let running = createTask {
+            return try await running.value
+        }
+        let task = Task<Int64, Error> {
+            let created = try await WriteAPI.createDraft(
+                title: title.trimmingCharacters(in: .whitespaces))
+            return created.id
+        }
+        createTask = task
+        defer { createTask = nil }
+        let id = try await task.value
+        postId = id
+        return id
     }
 
     // MARK: 부가 동작
@@ -356,10 +396,12 @@ struct ComposeView: View {
 
     private func scheduleNow() async {
         guard let postId, !busy else { return }
-        // 저장이 자체 busy 를 관리하므로 먼저 끝낸다 — 이전엔 busy 선점으로 저장이 스킵돼
-        // 미저장 본문이 예약됐다.
+        // 저장이 자체 busy 를 관리하므로 먼저 끝낸다 — busy 선점은 저장 스킵을 만든다.
         await save(publish: false)
-        guard signature == lastSavedSignature else { return } // 저장 실패 시 예약 중단
+        guard signature == lastSavedSignature else {
+            scheduleError = errorMessage ?? String(localized: "저장하지 못했습니다")
+            return
+        }
         busy = true
         defer { busy = false }
         do {
@@ -369,12 +411,13 @@ struct ComposeView: View {
             onSaved()
             dismiss()
         } catch {
-            errorMessage = error.localizedDescription
+            // 시트가 떠 있는 동안 본체 알럿은 가려진다 — 시트 안에서 보여준다.
+            scheduleError = error.localizedDescription
         }
     }
 
     private func uploadPickedCover() {
-        guard let item = coverItem else { return }
+        guard let item = coverItem, !uploadingCover else { return }
         uploadingCover = true
         Task {
             defer { uploadingCover = false }

@@ -98,6 +98,7 @@ struct SubscribedSeriesView: View {
                     .padding(.top, 60)
             } else {
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, card in
+                    // author 없는 카드는 라우팅 불가 — 행은 그리되 링크를 걸지 않는다.
                     NavigationLink(value: Route.series(
                         username: card.author?.username ?? "", slug: card.slug)) {
                         HStack(spacing: 10) {

@@ -20,6 +20,8 @@ final class PostDetailViewModel {
     private(set) var likedCommentIds: Set<Int64> = []
     /// 낙관 카운트 보정(댓글 id → 증감) — 서버 likeCount 는 공개 목록 재로드 때만 갱신되므로.
     private(set) var commentLikeDelta: [Int64: Int64] = [:]
+    /// 댓글별 토글 세대 — 비행 중 재로드/연타의 스테일 echo 를 버린다.
+    private var commentToggleGen: [Int64: Int] = [:]
 
     init(username: String, slug: String) {
         self.username = username
@@ -44,6 +46,7 @@ final class PostDetailViewModel {
     private func loadComments(postId: Int64) async {
         comments = (try? await BlogAPI.comments(postId: postId)) ?? []
         commentLikeDelta = [:]
+        commentToggleGen = [:]
         if AuthStore.shared.isSignedIn {
             likedCommentIds = Set((try? await InteractionsAPI.likedCommentIds(postId: postId)) ?? [])
         }
@@ -54,15 +57,21 @@ final class PostDetailViewModel {
     }
 
     func toggleCommentLike(_ comment: Comment) async {
+        let gen = (commentToggleGen[comment.id] ?? 0) + 1
+        commentToggleGen[comment.id] = gen
         let on = !likedCommentIds.contains(comment.id)
         // 낙관 반영
         if on { likedCommentIds.insert(comment.id) } else { likedCommentIds.remove(comment.id) }
         commentLikeDelta[comment.id, default: 0] += on ? 1 : -1
         do {
             let status = try await InteractionsAPI.setCommentLike(commentId: comment.id, on: on)
-            commentLikeDelta[comment.id] = status.likeCount - (comment.likeCount ?? 0)
+            guard gen == commentToggleGen[comment.id] else { return }
+            // delta 기준은 "현재 배열의 likeCount" — 비행 중 목록이 갈렸어도 이중 반영되지 않게.
+            let base = comments.first(where: { $0.id == comment.id })?.likeCount ?? comment.likeCount ?? 0
+            commentLikeDelta[comment.id] = status.likeCount - base
             if status.liked { likedCommentIds.insert(comment.id) } else { likedCommentIds.remove(comment.id) }
         } catch {
+            guard gen == commentToggleGen[comment.id] else { return }
             if on { likedCommentIds.remove(comment.id) } else { likedCommentIds.insert(comment.id) }
             commentLikeDelta[comment.id, default: 0] += on ? -1 : 1
         }

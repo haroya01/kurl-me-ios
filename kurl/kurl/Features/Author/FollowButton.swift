@@ -95,7 +95,8 @@ final class FollowModel {
 
     /// 비로그인도 팔로워 수는 공개 — following 만 로그인 상태에서 의미.
     func hydrate() async {
-        if let status = try? await InteractionsAPI.followStatus(username: username) {
+        let gen = userToggleCount
+        if let status = try? await InteractionsAPI.followStatus(username: username), gen == userToggleCount {
             following = status.following
             followerCount = status.followerCount
         }
@@ -103,6 +104,7 @@ final class FollowModel {
 
     func toggle() async throws {
         userToggleCount += 1
+        let gen = userToggleCount
         let target = !following
         following = target
         if let count = followerCount {
@@ -110,9 +112,11 @@ final class FollowModel {
         }
         do {
             let status = try await InteractionsAPI.setFollow(username: username, on: target)
+            guard gen == userToggleCount else { return }
             following = status.following
             followerCount = status.followerCount
         } catch {
+            guard gen == userToggleCount else { return }
             await hydrate()
             throw error
         }

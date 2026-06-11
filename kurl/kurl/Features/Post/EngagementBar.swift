@@ -56,7 +56,7 @@ struct EngagementBar: View {
         .padding(.vertical, 10)
         // hydrate 반영에는 울리지 않게 — 사용자 토글 횟수에만 발화.
         .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
-        .task { await model.hydrate() }
+        .task(id: AuthStore.shared.isSignedIn) { await model.hydrate() }
         .alert("로그인이 필요합니다", isPresented: $showLoginPrompt) {
             Button("로그인") { signInHere() }
             Button("취소", role: .cancel) {}
@@ -107,27 +107,38 @@ final class EngagementModel {
     }
 
     /// 로그인 상태일 때만 내 상태(liked/bookmarked)를 서버에서 가져온다.
+    /// 응답 적용 전 세대 검사 — 비행 중 사용자가 토글했으면 스테일 스냅샷을 버린다.
     func hydrate() async {
-        guard AuthStore.shared.isSignedIn else { return }
-        if let like = try? await InteractionsAPI.likeStatus(postId: postId) {
+        guard AuthStore.shared.isSignedIn else {
+            liked = false
+            bookmarked = false
+            return
+        }
+        let gen = userToggleCount
+        if let like = try? await InteractionsAPI.likeStatus(postId: postId), gen == userToggleCount {
             liked = like.liked
             likeCount = like.likeCount
         }
-        if let bookmark = try? await InteractionsAPI.bookmarkStatus(postId: postId) {
+        if let bookmark = try? await InteractionsAPI.bookmarkStatus(postId: postId),
+           gen == userToggleCount {
             bookmarked = bookmark.bookmarked
         }
     }
 
     func toggleLike() async throws {
         userToggleCount += 1
+        let gen = userToggleCount
         let target = !liked
         liked = target
         likeCount += target ? 1 : -1
         do {
             let status = try await InteractionsAPI.setLike(postId: postId, on: target)
+            // 연타로 더 새 토글이 나갔으면 이 echo 는 스테일 — 버린다.
+            guard gen == userToggleCount else { return }
             liked = status.liked
             likeCount = status.likeCount
         } catch {
+            guard gen == userToggleCount else { return }
             liked = !target
             likeCount += target ? -1 : 1
             throw error
@@ -136,11 +147,15 @@ final class EngagementModel {
 
     func toggleBookmark() async throws {
         userToggleCount += 1
+        let gen = userToggleCount
         let target = !bookmarked
         bookmarked = target
         do {
-            bookmarked = try await InteractionsAPI.setBookmark(postId: postId, on: target).bookmarked
+            let status = try await InteractionsAPI.setBookmark(postId: postId, on: target)
+            guard gen == userToggleCount else { return }
+            bookmarked = status.bookmarked
         } catch {
+            guard gen == userToggleCount else { return }
             bookmarked = !target
             throw error
         }

@@ -56,8 +56,9 @@ struct AnalyticsView: View {
         guard sort != performanceSort else { return }
         performanceSort = sort
         Task {
-            // 실패하면 기존 목록 유지 — 섹션이 통째로 사라지지 않게.
-            if let next = try? await AnalyticsAPI.postPerformance(sort: sort) {
+            // 실패 시 기존 목록 유지 + 칩이 또 바뀌었으면 스테일 응답 폐기.
+            if let next = try? await AnalyticsAPI.postPerformance(sort: sort),
+               sort == performanceSort {
                 performance = next
             }
         }
@@ -66,10 +67,12 @@ struct AnalyticsView: View {
     private func loadMorePosts() {
         guard let current = performance, current.hasNext, !loadingMorePosts else { return }
         loadingMorePosts = true
+        let sortAtStart = performanceSort
         Task {
             defer { loadingMorePosts = false }
             if let next = try? await AnalyticsAPI.postPerformance(
-                sort: performanceSort, page: current.page + 1)
+                sort: sortAtStart, page: current.page + 1),
+               sortAtStart == performanceSort
             {
                 performance = PostPerformanceResult(
                     items: current.items + next.items, page: next.page, hasNext: next.hasNext)

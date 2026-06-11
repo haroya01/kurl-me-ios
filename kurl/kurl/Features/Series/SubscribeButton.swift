@@ -96,7 +96,8 @@ final class SubscribeModel {
     /// 구독 표면은 전부 인증 — 비로그인은 hydrate 생략(버튼은 "구독" 기본값).
     func hydrate() async {
         guard AuthStore.shared.isSignedIn else { return }
-        if let status = try? await InteractionsAPI.subscriptionStatus(seriesId: seriesId) {
+        let gen = userToggleCount
+        if let status = try? await InteractionsAPI.subscriptionStatus(seriesId: seriesId), gen == userToggleCount {
             subscribed = status.subscribed
             subscriberCount = status.subscriberCount
         }
@@ -104,6 +105,7 @@ final class SubscribeModel {
 
     func toggle() async throws {
         userToggleCount += 1
+        let gen = userToggleCount
         let target = !subscribed
         subscribed = target
         if let count = subscriberCount {
@@ -111,9 +113,11 @@ final class SubscribeModel {
         }
         do {
             let status = try await InteractionsAPI.setSubscription(seriesId: seriesId, on: target)
+            guard gen == userToggleCount else { return }
             subscribed = status.subscribed
             subscriberCount = status.subscriberCount
         } catch {
+            guard gen == userToggleCount else { return }
             await hydrate()
             throw error
         }

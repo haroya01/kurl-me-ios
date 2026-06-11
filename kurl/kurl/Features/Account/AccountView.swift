@@ -69,7 +69,7 @@ struct AccountView: View {
                 if auth.isSignedIn {
                     unreadCount = (try? await NotificationsAPI.unreadCount()) ?? 0
                 }
-                if Config.launchValue(after: "--open") == "notifications" {
+                if Config.consumeLaunchValue(after: "--open") == "notifications" {
                     showNotifications = true
                 }
             }
@@ -244,6 +244,7 @@ private struct TwoFactorSheet: View {
                     .padding(.top, 8)
 
                 TextField(useRecovery ? "복구 코드" : "000000", text: $code)
+                    .textContentType(useRecovery ? nil : .oneTimeCode)
                     .keyboardType(useRecovery ? .asciiCapable : .numberPad)
                     .textFieldStyle(.roundedBorder)
                     .font(.system(size: 22, weight: .medium, design: .monospaced))

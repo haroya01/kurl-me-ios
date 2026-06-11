@@ -9,6 +9,7 @@ import SwiftUI
 
 struct PostDetailView: View {
     @State private var model: PostDetailViewModel
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @ScaledMetric(relativeTo: .largeTitle) private var titleSize: CGFloat = 30
     @ScaledMetric(relativeTo: .subheadline) private var commentSize: CGFloat = 14
 
@@ -41,7 +42,7 @@ struct PostDetailView: View {
                 case .loaded(let detail):
                     // 커버는 엣지-투-엣지(컬럼 밖) — 본문 컬럼만 읽기 폭으로 좁힌다.
                     if let urlString = detail.post.ogImageUrl, let url = URL(string: urlString) {
-                        StretchyCover(url: url)
+                        StretchyCover(url: url, height: coverHeight)
                     }
                     LazyVStack(alignment: .leading, spacing: 0) {
                         content(detail)
@@ -53,9 +54,16 @@ struct PostDetailView: View {
             }
         }
         .scrollIndicators(.hidden)
+        .scrollDismissesKeyboard(.interactively)
         .ignoresSafeArea(edges: hasCover ? .top : [])
+        .onChange(of: model.comments) {
+            // 답글 대상이 삭제/소실되면 답글 모드를 푼다 — 영구 실패 루프 방지.
+            if let target = replyTo, !model.comments.contains(where: { $0.id == target.id }) {
+                replyTo = nil
+            }
+        }
         .onScrollGeometryChange(for: Bool.self) { geometry in
-            geometry.contentOffset.y + geometry.contentInsets.top > (hasCover ? 300 : 110)
+            geometry.contentOffset.y + geometry.contentInsets.top > (hasCover ? coverHeight : 110)
         } action: { _, passed in
             withAnimation(.easeInOut(duration: 0.18)) { showNavTitle = passed }
         }
@@ -79,6 +87,9 @@ struct PostDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task { await model.load() }
     }
+
+    /// 가로(compact 높이)에선 커버가 화면을 다 먹지 않게 낮춘다.
+    private var coverHeight: CGFloat { verticalSizeClass == .compact ? 180 : 300 }
 
     private var hasCover: Bool {
         if case .loaded(let detail) = model.phase { return detail.post.ogImageUrl != nil }
@@ -221,6 +232,7 @@ private struct CommentRow: View {
     @Binding var replyTo: Comment?
 
     @State private var confirmDelete = false
+    @State private var deleteFailed = false
     @ScaledMetric(relativeTo: .subheadline) private var bodySize: CGFloat = 14
 
     private var likedByMe: Bool { model.likedCommentIds.contains(comment.id) }
@@ -291,8 +303,14 @@ private struct CommentRow: View {
         }
         .confirmationDialog("이 댓글을 삭제할까요?", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("삭제", role: .destructive) {
-                Task { try? await model.deleteComment(comment) }
+                Task {
+                    do { try await model.deleteComment(comment) }
+                    catch { deleteFailed = true }
+                }
             }
+        }
+        .alert("삭제하지 못했습니다", isPresented: $deleteFailed) {
+            Button("확인", role: .cancel) {}
         }
     }
 }
@@ -361,6 +379,9 @@ private struct CommentComposer: View {
                     .offset(y: 20)
             }
         }
+        .onChange(of: replyTo) { _, target in
+            if target != nil { focused = true }
+        }
         .alert("로그인이 필요합니다", isPresented: $showLoginPrompt) {
             Button("로그인") { signInHere() }
             Button("취소", role: .cancel) {}
@@ -415,6 +436,7 @@ private struct CommentComposer: View {
 /// 카드 zoom 전환의 도착점이기도 하다.
 private struct StretchyCover: View {
     let url: URL
+    var height: CGFloat = 300
 
     var body: some View {
         GeometryReader { geo in
@@ -431,7 +453,7 @@ private struct StretchyCover: View {
             .offset(y: min(0, -minY))
             .accessibilityHidden(true)
         }
-        .frame(height: 300)
+        .frame(height: height)
     }
 }
 

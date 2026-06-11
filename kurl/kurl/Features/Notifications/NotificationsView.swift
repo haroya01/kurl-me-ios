@@ -58,13 +58,20 @@ struct NotificationsView: View {
     @ViewBuilder
     private var list: some View {
         ForEach(Array(items.enumerated()), id: \.element.id) { index, notification in
-            NavigationLink(value: route(for: notification)) {
-                row(notification)
+            Group {
+                if let route = route(for: notification) {
+                    NavigationLink(value: route) {
+                        row(notification)
+                    }
+                    .buttonStyle(RowButtonStyle())
+                    .simultaneousGesture(TapGesture().onEnded {
+                        markRead(notification)
+                    })
+                } else {
+                    row(notification)
+                        .onTapGesture { markRead(notification) }
+                }
             }
-            .buttonStyle(RowButtonStyle())
-            .simultaneousGesture(TapGesture().onEnded {
-                markRead(notification)
-            })
             .task {
                 if index >= items.count - 3 { await loadMore() }
             }
@@ -128,14 +135,18 @@ struct NotificationsView: View {
     }
 
     /// 알림 대상 라우팅 — 글이 있으면 글로, 팔로우는 작가로, 시리즈 구독은 내 시리즈로.
-    private func route(for n: AppNotification) -> Route {
-        if let slug = n.postSlug, let author = n.postAuthorUsername {
+    /// 라우팅 재료가 비어 있으면 nil — 404 화면으로 푸시하지 않는다.
+    private func route(for n: AppNotification) -> Route? {
+        if let slug = n.postSlug, let author = n.postAuthorUsername, !author.isEmpty {
             return .post(username: author, slug: slug)
         }
-        if let slug = n.seriesSlug {
-            return .series(username: AuthStore.shared.me?.username ?? "", slug: slug)
+        if let slug = n.seriesSlug, let mine = AuthStore.shared.me?.username, !mine.isEmpty {
+            return .series(username: mine, slug: slug)
         }
-        return .author(username: n.actorUsername ?? "")
+        if let actor = n.actorUsername, !actor.isEmpty {
+            return .author(username: actor)
+        }
+        return nil
     }
 
     private func markRead(_ n: AppNotification) {

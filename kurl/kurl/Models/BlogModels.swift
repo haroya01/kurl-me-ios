@@ -178,7 +178,7 @@ struct TrendingTagSection: Decodable, Identifiable {
     var id: String { tag }
 }
 
-struct Comment: Decodable, Identifiable {
+struct Comment: Decodable, Identifiable, Equatable {
     let id: Int64
     let parentId: Int64?
     let author: Author
