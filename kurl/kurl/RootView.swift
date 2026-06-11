@@ -19,6 +19,9 @@ struct RootView: View {
             Tab("검색", systemImage: "magnifyingglass", role: .search) {
                 SearchView()
             }
+            Tab("내 계정", systemImage: "person.crop.circle") {
+                AccountView()
+            }
         }
         .tint(.brand)
     }

@@ -37,10 +37,12 @@ struct APIClient {
     func get<T: Decodable>(
         _ path: String,
         query: [String: String?] = [:],
-        as type: T.Type = T.self
+        as type: T.Type = T.self,
+        authenticated: Bool = false
     ) async throws -> T {
         let request = try makeRequest(path: path, query: query, method: "GET")
-        return try await send(request)
+        let data = try await perform(request, authenticated: authenticated)
+        return try decode(data)
     }
 
     /// 응답 본문이 없는 POST (예: 조회 비콘). 실패해도 호출측에서 무시할 수 있다.
@@ -49,7 +51,70 @@ struct APIClient {
         _ = try await rawData(request)
     }
 
-    private func makeRequest(path: String, query: [String: String?], method: String) throws -> URLRequest {
+    /// JSON 바디 POST + 디코딩 응답.
+    func post<B: Encodable, T: Decodable>(
+        _ path: String,
+        body: B,
+        as type: T.Type = T.self,
+        authenticated: Bool = false
+    ) async throws -> T {
+        let request = try makeRequest(path: path, query: [:], method: "POST", body: try encode(body))
+        let data = try await perform(request, authenticated: authenticated)
+        return try decode(data)
+    }
+
+    /// JSON 바디 POST, 응답 본문 무시 (204 등).
+    func post<B: Encodable>(
+        _ path: String,
+        body: B,
+        authenticated: Bool = false
+    ) async throws {
+        let request = try makeRequest(path: path, query: [:], method: "POST", body: try encode(body))
+        _ = try await perform(request, authenticated: authenticated)
+    }
+
+    /// 인증 요청 공통 경로: Bearer 를 싣고, 401 이면 리프레시 한 번 후 재시도 한 번.
+    /// 리프레시 자체는 AuthStore 가 단일 비행으로 직렬화한다.
+    private func perform(_ request: URLRequest, authenticated: Bool) async throws -> Data {
+        guard authenticated else { return try await rawData(request) }
+        var authorized = request
+        if let token = await AuthStore.shared.bearerToken {
+            authorized.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        do {
+            return try await rawData(authorized)
+        } catch APIError.http(let status) where status == 401 {
+            try await AuthStore.shared.refreshTokens()
+            guard let token = await AuthStore.shared.bearerToken else {
+                throw APIError.http(status: 401)
+            }
+            authorized.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            return try await rawData(authorized)
+        }
+    }
+
+    private func encode<B: Encodable>(_ body: B) throws -> Data {
+        do {
+            return try JSONEncoder().encode(body)
+        } catch {
+            throw APIError.invalidURL
+        }
+    }
+
+    private func decode<T: Decodable>(_ data: Data) throws -> T {
+        do {
+            return try decoder.decode(T.self, from: data)
+        } catch {
+            throw APIError.decoding(error)
+        }
+    }
+
+    private func makeRequest(
+        path: String,
+        query: [String: String?],
+        method: String,
+        body: Data? = nil
+    ) throws -> URLRequest {
         var components = URLComponents(
             url: Config.apiBase.appendingPathComponent(Config.apiPrefix + path),
             resolvingAgainstBaseURL: false
@@ -65,16 +130,11 @@ struct APIClient {
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue(Config.preferredLanguageTag, forHTTPHeaderField: "Accept-Language")
-        return request
-    }
-
-    private func send<T: Decodable>(_ request: URLRequest) async throws -> T {
-        let data = try await rawData(request)
-        do {
-            return try decoder.decode(T.self, from: data)
-        } catch {
-            throw APIError.decoding(error)
+        if let body {
+            request.httpBody = body
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
+        return request
     }
 
     @discardableResult

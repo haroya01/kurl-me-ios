@@ -1,0 +1,183 @@
+//
+//  AuthStore.swift
+//  kurl
+//
+
+import AuthenticationServices
+import Foundation
+import Observation
+import UIKit
+
+enum AuthError: LocalizedError {
+    /// 사용자가 브라우저 시트를 직접 닫음 — UI 는 조용히 무시한다.
+    case cancelled
+    case provider(String)
+    case malformedCallback
+    case notSignedIn
+
+    var errorDescription: String? {
+        switch self {
+        case .cancelled: return nil
+        case .provider: return String(localized: "로그인에 실패했습니다. 다시 시도해 주세요.")
+        case .malformedCallback: return String(localized: "로그인 응답을 처리하지 못했습니다.")
+        case .notSignedIn: return String(localized: "로그인이 필요합니다.")
+        }
+    }
+}
+
+enum SignInOutcome {
+    case signedIn
+    case twoFactorRequired
+}
+
+/// 로그인 상태의 단일 소유자. 흐름:
+/// 1. `signIn()` — ASWebAuthenticationSession 으로 서버사이드 Google OAuth 를 그대로 타고,
+///    `kurl://auth` 콜백의 일회용 코드를 토큰쌍으로 교환한다 (2FA 계정이면 challenge 보류).
+/// 2. 토큰쌍은 Keychain 에만 저장. access 만료 시 APIClient 가 `refreshTokens()` 를 불러
+///    rotation(+grace) 으로 새 쌍을 받는다 — 동시 401 은 단일 비행으로 합쳐진다.
+@MainActor
+@Observable
+final class AuthStore {
+    static let shared = AuthStore()
+
+    private(set) var isSignedIn = false
+    private(set) var me: Me?
+
+    @ObservationIgnored private var accessToken: String?
+    @ObservationIgnored private var refreshToken: String?
+    @ObservationIgnored private var pendingChallenge: String?
+    @ObservationIgnored private var refreshTask: Task<Void, Error>?
+    @ObservationIgnored private var activeSession: ASWebAuthenticationSession?
+    @ObservationIgnored private let presenter = WebAuthPresenter()
+
+    private static let accessAccount = "access-token"
+    private static let refreshAccount = "refresh-token"
+
+    private init() {
+        accessToken = Keychain.load(account: Self.accessAccount)
+        refreshToken = Keychain.load(account: Self.refreshAccount)
+        isSignedIn = refreshToken != nil
+        if isSignedIn {
+            Task { await loadMe() }
+        }
+    }
+
+    var bearerToken: String? { accessToken }
+
+    // MARK: 로그인
+
+    func signIn() async throws -> SignInOutcome {
+        let callbackURL = try await startBrowserDance()
+        let items = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        func value(_ name: String) -> String? {
+            items.first { $0.name == name }?.value
+        }
+        if let reason = value("error") {
+            throw AuthError.provider(reason)
+        }
+        if let challenge = value("challenge") {
+            pendingChallenge = challenge
+            return .twoFactorRequired
+        }
+        guard let code = value("code") else {
+            throw AuthError.malformedCallback
+        }
+        adopt(try await AuthAPI.exchange(code: code))
+        return .signedIn
+    }
+
+    func completeTwoFactor(code: String, recovery: Bool) async throws {
+        guard let challenge = pendingChallenge else { throw AuthError.notSignedIn }
+        adopt(try await AuthAPI.verifyTwoFactor(challenge: challenge, code: code, recovery: recovery))
+        pendingChallenge = nil
+    }
+
+    private func startBrowserDance() async throws -> URL {
+        let url = Config.apiBase.appendingPathComponent(Config.apiPrefix + "/auth/mobile/start")
+        return try await withCheckedThrowingContinuation { continuation in
+            let session = ASWebAuthenticationSession(
+                url: url,
+                callback: .customScheme("kurl")
+            ) { [weak self] callbackURL, error in
+                Task { @MainActor in self?.activeSession = nil }
+                if let callbackURL {
+                    continuation.resume(returning: callbackURL)
+                } else if let authError = error as? ASWebAuthenticationSessionError,
+                          authError.code == .canceledLogin {
+                    continuation.resume(throwing: AuthError.cancelled)
+                } else {
+                    continuation.resume(throwing: error ?? AuthError.malformedCallback)
+                }
+            }
+            session.presentationContextProvider = presenter
+            // start() 이후에도 세션을 강하게 쥐고 있어야 시트가 유지된다.
+            activeSession = session
+            session.start()
+        }
+    }
+
+    // MARK: 토큰 수명
+
+    /// 단일 비행 리프레시 — 동시 401 들이 각자 rotation 을 돌려 grace 를 소모하지 않게 한다.
+    func refreshTokens() async throws {
+        if let running = refreshTask {
+            return try await running.value
+        }
+        guard let current = refreshToken else { throw AuthError.notSignedIn }
+        let task = Task<Void, Error> {
+            do {
+                adopt(try await AuthAPI.refresh(refreshToken: current))
+            } catch APIError.http(let status) where status == 401 {
+                // 리프레시 토큰 자체가 죽음 — 로컬 세션 폐기 (다른 기기 세션은 서버가 유지)
+                forgetSession()
+                throw AuthError.notSignedIn
+            }
+        }
+        refreshTask = task
+        defer { refreshTask = nil }
+        try await task.value
+    }
+
+    func signOut() {
+        if let token = refreshToken {
+            Task { try? await AuthAPI.logout(refreshToken: token) }
+        }
+        forgetSession()
+    }
+
+    func loadMe() async {
+        guard isSignedIn else { return }
+        me = try? await AuthAPI.me()
+    }
+
+    private func adopt(_ pair: TokenPair) {
+        accessToken = pair.accessToken
+        refreshToken = pair.refreshToken
+        Keychain.save(pair.accessToken, account: Self.accessAccount)
+        Keychain.save(pair.refreshToken, account: Self.refreshAccount)
+        if !isSignedIn {
+            isSignedIn = true
+            Task { await loadMe() }
+        }
+    }
+
+    private func forgetSession() {
+        accessToken = nil
+        refreshToken = nil
+        pendingChallenge = nil
+        me = nil
+        isSignedIn = false
+        Keychain.delete(account: Self.accessAccount)
+        Keychain.delete(account: Self.refreshAccount)
+    }
+}
+
+private final class WebAuthPresenter: NSObject, ASWebAuthenticationPresentationContextProviding {
+    func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+        MainActor.assumeIsolated {
+            UIApplication.shared.connectedScenes
+                .compactMap { ($0 as? UIWindowScene)?.keyWindow }
+                .first ?? ASPresentationAnchor()
+        }
+    }
+}

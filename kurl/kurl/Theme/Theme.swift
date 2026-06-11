@@ -47,6 +47,7 @@ enum Palette {
     static let accentMarker = Color(hex: 0x10B981)  // accent-500
     static let accentSoft = Color(hex: 0x34D399)    // accent-400 인용 보더
     static let link = Color(light: 0x047857, dark: 0x34D399) // accent-700/400
+    static let accentFill = Color(hex: 0x047857)    // 흰 라벨 채움 = accent-700 (WCAG 4.5:1)
 
     // 코드
     static let codeBg = Color(hex: 0x0F172A)        // slate-900 (항상 어둡게)

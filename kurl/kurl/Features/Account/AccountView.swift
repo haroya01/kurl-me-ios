@@ -1,0 +1,231 @@
+//
+//  AccountView.swift
+//  kurl
+//
+
+import SwiftUI
+
+/// 계정 탭 — 조용한 웹로그 톤 그대로. 로그아웃 상태는 한 단락 + 버튼 하나,
+/// 로그인 상태는 정체(아바타·이름·이메일)와 로그아웃만. 기능 나열식 설정 화면 금지.
+struct AccountView: View {
+    private var auth: AuthStore { .shared }
+
+    @State private var isSigningIn = false
+    @State private var showTwoFactor = false
+    @State private var errorMessage: String?
+
+    var body: some View {
+        NavigationStack {
+            ReadingColumn(spacing: 0) {
+                if auth.isSignedIn {
+                    signedIn
+                } else {
+                    signedOut
+                }
+            }
+            .navigationTitle("내 계정")
+            .navigationBarTitleDisplayMode(.inline)
+        }
+        .sheet(isPresented: $showTwoFactor) {
+            TwoFactorSheet()
+        }
+        .alert(
+            "로그인 실패",
+            isPresented: .init(
+                get: { errorMessage != nil },
+                set: { if !$0 { errorMessage = nil } }
+            )
+        ) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(errorMessage ?? "")
+        }
+    }
+
+    // MARK: 로그아웃 상태
+
+    private var signedOut: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            RailHeading("계정")
+                .padding(.top, 28)
+
+            Text("kurl에 로그인")
+                .font(.system(size: 24, weight: .bold))
+                .foregroundStyle(Palette.ink)
+                .padding(.top, 14)
+
+            Text("좋아요와 북마크, 구독, 그리고 글쓰기까지 — 웹과 같은 계정 하나로 이어집니다.")
+                .font(.system(size: 15))
+                .foregroundStyle(Palette.secondary)
+                .lineSpacing(4)
+                .padding(.top, 8)
+
+            Button {
+                startSignIn()
+            } label: {
+                HStack(spacing: 8) {
+                    if isSigningIn {
+                        ProgressView().tint(.white)
+                    }
+                    Text("Google로 계속하기")
+                        .font(.system(size: 15, weight: .semibold))
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 48)
+                .background(Palette.accentFill, in: RoundedRectangle(cornerRadius: 12))
+            }
+            .buttonStyle(.plain)
+            .disabled(isSigningIn)
+            .padding(.top, 24)
+
+            Text("로그인은 시스템 브라우저에서 안전하게 진행됩니다.")
+                .font(.system(size: 12))
+                .foregroundStyle(Palette.secondary)
+                .padding(.top, 10)
+        }
+    }
+
+    private func startSignIn() {
+        guard !isSigningIn else { return }
+        isSigningIn = true
+        Task {
+            defer { isSigningIn = false }
+            do {
+                if try await auth.signIn() == .twoFactorRequired {
+                    showTwoFactor = true
+                }
+            } catch AuthError.cancelled {
+                // 사용자가 시트를 닫음 — 조용히
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    // MARK: 로그인 상태
+
+    private var signedIn: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            RailHeading("계정")
+                .padding(.top, 28)
+
+            HStack(spacing: 12) {
+                AvatarView(
+                    author: Author(
+                        id: 0,
+                        username: auth.me?.username ?? "kurl",
+                        bio: nil,
+                        avatarUrl: auth.me?.avatarUrl
+                    ),
+                    size: 44
+                )
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(auth.me?.username ?? "kurl")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(Palette.ink)
+                    Text(auth.me?.email ?? "")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Palette.secondary)
+                }
+            }
+            .padding(.top, 16)
+
+            Hairline()
+                .padding(.top, 24)
+
+            Button("로그아웃", role: .destructive) {
+                auth.signOut()
+            }
+            .font(.system(size: 15))
+            .padding(.top, 18)
+        }
+        .task { await auth.loadMe() }
+    }
+}
+
+/// 2FA 계정의 TOTP 입력. 챌린지는 AuthStore 가 보류 중.
+private struct TwoFactorSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var code = ""
+    @State private var useRecovery = false
+    @State private var isVerifying = false
+    @State private var failed = false
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 0) {
+                Text(useRecovery ? "복구 코드를 입력하세요" : "인증 앱의 6자리 코드를 입력하세요")
+                    .font(.system(size: 15))
+                    .foregroundStyle(Palette.body)
+                    .padding(.top, 8)
+
+                TextField(useRecovery ? "복구 코드" : "000000", text: $code)
+                    .keyboardType(useRecovery ? .asciiCapable : .numberPad)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 22, weight: .medium, design: .monospaced))
+                    .padding(.top, 14)
+
+                if failed {
+                    Text("코드가 올바르지 않습니다.")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.red)
+                        .padding(.top, 8)
+                }
+
+                Button {
+                    verify()
+                } label: {
+                    Text("확인")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                        .background(Palette.accentFill, in: RoundedRectangle(cornerRadius: 12))
+                }
+                .buttonStyle(.plain)
+                .disabled(code.isEmpty || isVerifying)
+                .padding(.top, 20)
+
+                Button(useRecovery ? "인증 앱 코드 사용" : "복구 코드 사용") {
+                    useRecovery.toggle()
+                    code = ""
+                    failed = false
+                }
+                .font(.system(size: 13))
+                .foregroundStyle(Palette.link)
+                .padding(.top, 14)
+
+                Spacer()
+            }
+            .padding(.horizontal, Metrics.gutter)
+            .navigationTitle("2단계 인증")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("취소") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+
+    private func verify() {
+        guard !isVerifying else { return }
+        isVerifying = true
+        failed = false
+        Task {
+            defer { isVerifying = false }
+            do {
+                try await AuthStore.shared.completeTwoFactor(code: code, recovery: useRecovery)
+                dismiss()
+            } catch {
+                failed = true
+            }
+        }
+    }
+}
+
+#Preview {
+    AccountView()
+}
