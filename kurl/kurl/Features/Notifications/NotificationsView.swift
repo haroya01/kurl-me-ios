@@ -13,12 +13,23 @@ struct NotificationsView: View {
     @State private var hasMore = false
     @State private var loading = true
     @State private var loadingMore = false
+    @State private var loadError: String?
 
     var body: some View {
         ReadingColumn(spacing: 0) {
             if loading {
                 ProgressView().tint(Palette.accent)
                     .frame(maxWidth: .infinity, minHeight: 240)
+            } else if items.isEmpty, let loadError {
+                ContentUnavailableView {
+                    Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
+                } description: {
+                    Text(loadError)
+                } actions: {
+                    Button("다시 시도") { Task { await load() } }
+                        .foregroundStyle(Palette.accent)
+                }
+                .padding(.top, 60)
             } else if items.isEmpty {
                 ContentUnavailableView("알림이 없습니다", systemImage: "bell")
                     .padding(.top, 60)
@@ -91,13 +102,15 @@ struct NotificationsView: View {
                 if let date = n.createdAt {
                     Text(date.relativeShort)
                         .font(.system(size: 12))
-                        .foregroundStyle(Palette.faint)
+                        .foregroundStyle(Palette.secondary)
                 }
             }
             Spacer(minLength: 0)
         }
         .padding(.vertical, 12)
         .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityValue(n.read ? Text(verbatim: "") : Text("읽지 않음"))
     }
 
     private func headline(_ n: AppNotification) -> LocalizedStringKey {
@@ -148,8 +161,10 @@ struct NotificationsView: View {
             items = page.items
             nextCursor = page.nextCursor
             hasMore = page.hasMore
+            loadError = nil
         } catch {
-            items = []
+            // 실패가 빈 상태로 위장하지 않게 — 이미 보이던 목록은 보존한다.
+            if items.isEmpty { loadError = error.localizedDescription }
         }
         loading = false
     }

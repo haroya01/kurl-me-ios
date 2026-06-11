@@ -132,9 +132,21 @@
     "%lld편": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld posts"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld post"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld posts"
+                }
+              }
+            }
           }
         },
         "ja": {
@@ -276,9 +288,21 @@
     "구독자 %lld": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld subscribers"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld subscriber"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld subscribers"
+                }
+              }
+            }
           }
         },
         "ja": {
@@ -412,7 +436,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "アカウント"
+            "value": "マイアカウント"
           }
         }
       }
@@ -545,6 +569,22 @@
         }
       }
     },
+    "댓글 보내기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send comment"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コメントを送信"
+          }
+        }
+      }
+    },
     "댓글은 kurl 계정으로 남겨집니다.": {
       "localizations": {
         "en": {
@@ -589,6 +629,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "もっと見る"
+          }
+        }
+      }
+    },
+    "덱 섞기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shuffle deck"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "デッキをシャッフル"
           }
         }
       }
@@ -1025,6 +1081,38 @@
         }
       }
     },
+    "북마크": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bookmark"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブックマーク"
+          }
+        }
+      }
+    },
+    "북마크 해제": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove bookmark"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブックマークを解除"
+          }
+        }
+      }
+    },
     "분석": {
       "localizations": {
         "en": {
@@ -1409,6 +1497,22 @@
         }
       }
     },
+    "읽지 않음": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unread"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未読"
+          }
+        }
+      }
+    },
     "임시저장": {
       "localizations": {
         "en": {
@@ -1489,6 +1593,22 @@
         }
       }
     },
+    "전송하지 못했습니다 — 다시 시도해 주세요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't send — please try again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "送信できませんでした — もう一度お試しください。"
+          }
+        }
+      }
+    },
     "제목": {
       "localizations": {
         "en": {
@@ -1549,6 +1669,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "いいね"
+          }
+        }
+      }
+    },
+    "좋아요 취소": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlike"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "いいねを取り消す"
           }
         }
       }
@@ -1780,9 +1916,21 @@
     "팔로워 %lld": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld followers"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld follower"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld followers"
+                }
+              }
+            }
           }
         },
         "ja": {

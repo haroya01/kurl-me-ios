@@ -32,11 +32,12 @@ struct EngagementBar: View {
                             .contentTransition(.numericText())
                     }
                 }
-                .foregroundStyle(model.liked ? Palette.accent : Palette.secondary)
+                .foregroundStyle(model.liked ? Palette.link : Palette.secondary)
             }
             .buttonStyle(.plain)
             .animation(.snappy(duration: 0.2), value: model.liked)
             .animation(.snappy(duration: 0.2), value: model.likeCount)
+            .accessibilityLabel(model.liked ? Text("좋아요 취소") : Text("좋아요"))
 
             Button {
                 interact { try await model.toggleBookmark() }
@@ -48,12 +49,13 @@ struct EngagementBar: View {
             }
             .buttonStyle(.plain)
             .animation(.snappy(duration: 0.2), value: model.bookmarked)
+            .accessibilityLabel(model.bookmarked ? Text("북마크 해제") : Text("북마크"))
 
             Spacer()
         }
         .padding(.vertical, 10)
-        .sensoryFeedback(.impact(weight: .light), trigger: model.liked)
-        .sensoryFeedback(.impact(weight: .light), trigger: model.bookmarked)
+        // hydrate 반영에는 울리지 않게 — 사용자 토글 횟수에만 발화.
+        .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
         .task { await model.hydrate() }
         .alert("로그인이 필요합니다", isPresented: $showLoginPrompt) {
             Button("로그인") { signInHere() }
@@ -94,6 +96,8 @@ final class EngagementModel {
     private(set) var liked = false
     private(set) var likeCount: Int64
     private(set) var bookmarked = false
+    /// 햅틱 트리거 — 서버 hydrate 가 아닌 사용자 토글에만 증가.
+    private(set) var userToggleCount = 0
 
     private let postId: Int64
 
@@ -115,6 +119,7 @@ final class EngagementModel {
     }
 
     func toggleLike() async throws {
+        userToggleCount += 1
         let target = !liked
         liked = target
         likeCount += target ? 1 : -1
@@ -130,6 +135,7 @@ final class EngagementModel {
     }
 
     func toggleBookmark() async throws {
+        userToggleCount += 1
         let target = !bookmarked
         bookmarked = target
         do {

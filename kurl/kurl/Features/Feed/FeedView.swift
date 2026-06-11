@@ -45,7 +45,7 @@ struct FeedView: View {
                         }
                 )
             }
-            .background(Color(uiColor: .systemBackground))
+            .background(Palette.pageBg)
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: Route.self) { route in
                 // 카드에서 출발한 글만 zoom — 탭한 카드가 글로 확대돼 들어간다.

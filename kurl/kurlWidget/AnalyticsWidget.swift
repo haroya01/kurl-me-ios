@@ -91,7 +91,7 @@ struct AnalyticsWidgetView: View {
         VStack(alignment: .leading, spacing: 4) {
             header
             Spacer(minLength: 0)
-            Text("\(s.windowViews)")
+            Text(s.windowViews.formatted())
                 .font(.system(size: 30, weight: .bold).monospacedDigit())
                 .foregroundStyle(WidgetPalette.ink)
                 .minimumScaleFactor(0.6)
@@ -111,7 +111,7 @@ struct AnalyticsWidgetView: View {
             VStack(alignment: .leading, spacing: 4) {
                 header
                 Spacer(minLength: 0)
-                Text("\(s.windowViews)")
+                Text(s.windowViews.formatted())
                     .font(.system(size: 30, weight: .bold).monospacedDigit())
                     .foregroundStyle(WidgetPalette.ink)
                     .minimumScaleFactor(0.6)
@@ -140,7 +140,7 @@ struct AnalyticsWidgetView: View {
                 .font(.system(size: 11))
                 .foregroundStyle(WidgetPalette.secondary)
             Spacer(minLength: 4)
-            Text("\(value)")
+            Text(value.formatted())
                 .font(.system(size: 13, weight: .semibold).monospacedDigit())
                 .foregroundStyle(WidgetPalette.ink)
         }

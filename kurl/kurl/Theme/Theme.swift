@@ -38,16 +38,19 @@ enum Palette {
     static let faint = Color(light: 0x94A3B8, dark: 0x64748B)          // 대표 태그 slate-400/500
     static let hairline = Color(light: 0xF1F5F9, dark: 0x1E293B)       // 구분선 slate-100/800
     static let hairlineStrong = Color(light: 0xE2E8F0, dark: 0x334155) // 테이블 헤더 slate-200/700
-    static let rowHighlight = Color(light: 0xF8FAFC, dark: 0x111827)   // 행 hover slate-50
+    static let rowHighlight = Color(light: 0xF8FAFC, dark: 0x1E293B)   // 행 press slate-50/800
     static let chipBg = Color(light: 0xF1F5F9, dark: 0x1E293B)         // slate-100/800
     static let chipText = Color(light: 0x475569, dark: 0xCBD5E1)       // slate-600/300
 
     // 그린 한 가닥 (마커 / active 밑줄 / 링크) — 절제해서만
     static let accent = Color(hex: 0x059669)        // 브랜드
-    static let accentMarker = Color(hex: 0x10B981)  // accent-500
+    static let accentMarker = Color(hex: 0x059669)  // accent-600 (§10.3 비텍스트=600)
     static let accentSoft = Color(hex: 0x34D399)    // accent-400 인용 보더
     static let link = Color(light: 0x047857, dark: 0x34D399) // accent-700/400
     static let accentFill = Color(hex: 0x047857)    // 흰 라벨 채움 = accent-700 (WCAG 4.5:1)
+
+    // 페이지 배경 — 웹 다크는 퓨어블랙이 아니라 slate-950 단일 휴.
+    static let pageBg = Color(light: 0xFFFFFF, dark: 0x020617)
 
     // 카드 (browse 면 전용 — 읽기 면은 여전히 flat 행)
     static let cardBg = Color(light: 0xFFFFFF, dark: 0x0F172A)     // white / slate-900

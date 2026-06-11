@@ -98,6 +98,7 @@ struct DiscoverDeckView: View {
                         Image(systemName: "shuffle")
                     }
                     .tint(.brand)
+                    .accessibilityLabel("덱 섞기")
                 }
             }
             .navigationTitle("발견")

@@ -147,7 +147,7 @@ private struct FeaturedBadge: View {
     var body: some View {
         HStack(spacing: 5) {
             Circle()
-                .fill(over ? Palette.accent : Palette.accent)
+                .fill(Palette.accent)
                 .frame(width: 6, height: 6)
             Text("오늘의 글")
                 .font(.system(size: 11, weight: .semibold))

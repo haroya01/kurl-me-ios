@@ -56,7 +56,10 @@ struct AnalyticsView: View {
         guard sort != performanceSort else { return }
         performanceSort = sort
         Task {
-            performance = try? await AnalyticsAPI.postPerformance(sort: sort)
+            // 실패하면 기존 목록 유지 — 섹션이 통째로 사라지지 않게.
+            if let next = try? await AnalyticsAPI.postPerformance(sort: sort) {
+                performance = next
+            }
         }
     }
 
@@ -92,7 +95,7 @@ struct AnalyticsView: View {
             RailHeading("최근 \(overview.windowDays)일")
                 .padding(.top, 24)
             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text("\(overview.windowViews)")
+                Text(overview.windowViews.formatted())
                     .font(.system(size: 40, weight: .bold).monospacedDigit())
                     .foregroundStyle(Palette.ink)
                     .contentTransition(.numericText())
@@ -122,7 +125,7 @@ struct AnalyticsView: View {
             .chartXAxis {
                 AxisMarks { _ in
                     AxisValueLabel()
-                        .font(.system(size: 9))
+                        .font(.system(size: 10))
                         .foregroundStyle(Palette.faint)
                 }
             }
@@ -172,7 +175,7 @@ struct AnalyticsView: View {
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
                     Text("\(index + 1)")
                         .font(.system(size: 13, weight: .bold).monospacedDigit())
-                        .foregroundStyle(index < 3 ? Palette.accent : Palette.faint)
+                        .foregroundStyle(index < 3 ? Palette.link : Palette.secondary)
                         .frame(width: 20, alignment: .leading)
                     VStack(alignment: .leading, spacing: 3) {
                         Text(row.title)
@@ -288,7 +291,7 @@ struct AnalyticsView: View {
                 .padding(.vertical, 4)
                 .background {
                     if performanceSort == key {
-                        Capsule().fill(Palette.accent.opacity(0.10))
+                        Capsule().fill(Palette.chipBg)
                     }
                 }
         }
@@ -306,7 +309,7 @@ struct AnalyticsView: View {
 
     private func stat(_ label: LocalizedStringKey, _ value: Int64) -> some View {
         VStack(spacing: 4) {
-            Text("\(value)")
+            Text(value.formatted())
                 .font(.system(size: 17, weight: .semibold).monospacedDigit())
                 .foregroundStyle(Palette.ink)
                 .minimumScaleFactor(0.7)

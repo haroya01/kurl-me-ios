@@ -128,6 +128,7 @@ struct PostDetailView: View {
                 .font(.system(size: titleSize, weight: .bold))
                 .foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
 
             NavigationLink(value: Route.author(username: detail.author.username)) {
                 HStack(spacing: 9) {
@@ -185,7 +186,7 @@ struct PostDetailView: View {
             VStack(alignment: trailing ? .trailing : .leading, spacing: 4) {
                 Label(caption, systemImage: systemImage)
                     .font(.system(size: 12))
-                    .foregroundStyle(Palette.faint)
+                    .foregroundStyle(Palette.secondary)
                     .labelStyle(.titleAndIcon)
                 Text(title)
                     .font(.system(size: 14, weight: .medium))
@@ -211,7 +212,7 @@ struct PostDetailView: View {
                             .foregroundStyle(Palette.ink)
                         if let date = comment.createdAt {
                             Text(date.relativeShort)
-                                .font(.system(size: 12)).foregroundStyle(Palette.faint)
+                                .font(.system(size: 12)).foregroundStyle(Palette.secondary)
                         }
                     }
                     Text(comment.body)
@@ -232,6 +233,7 @@ private struct CommentComposer: View {
 
     @State private var body_ = ""
     @State private var sending = false
+    @State private var sendFailed = false
     @State private var showLoginPrompt = false
     @State private var showTwoFactorHint = false
     @FocusState private var focused: Bool
@@ -259,8 +261,17 @@ private struct CommentComposer: View {
             }
             .buttonStyle(.plain)
             .disabled(!canSend || sending)
+            .accessibilityLabel("댓글 보내기")
         }
         .padding(.top, 4)
+        .overlay(alignment: .bottomLeading) {
+            if sendFailed {
+                Text("전송하지 못했습니다 — 다시 시도해 주세요.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.red)
+                    .offset(y: 20)
+            }
+        }
         .alert("로그인이 필요합니다", isPresented: $showLoginPrompt) {
             Button("로그인") { signInHere() }
             Button("취소", role: .cancel) {}
@@ -284,6 +295,7 @@ private struct CommentComposer: View {
             return
         }
         guard !sending else { return }
+        sendFailed = false
         sending = true
         Task {
             defer { sending = false }
@@ -292,8 +304,9 @@ private struct CommentComposer: View {
                     body: body_.trimmingCharacters(in: .whitespacesAndNewlines))
                 body_ = ""
                 focused = false
+                sendFailed = false
             } catch {
-                // 전송 실패 — 입력은 보존, 버튼이 다시 활성화된다.
+                sendFailed = true // 입력은 보존 — 실패를 보이게.
             }
         }
     }
@@ -325,6 +338,7 @@ private struct StretchyCover: View {
             .frame(width: geo.size.width, height: geo.size.height + max(0, minY))
             .clipped()
             .offset(y: min(0, -minY))
+            .accessibilityHidden(true)
         }
         .frame(height: 300)
     }

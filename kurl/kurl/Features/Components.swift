@@ -60,6 +60,7 @@ struct ReadingColumn<Content: View>: View {
             .padding(.horizontal, Metrics.gutter)
         }
         .scrollIndicators(.hidden)
+        .background(Palette.pageBg)
     }
 }
 

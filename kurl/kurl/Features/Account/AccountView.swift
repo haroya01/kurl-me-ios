@@ -44,11 +44,25 @@ struct AccountView: View {
                                 }
                         }
                         .tint(.brand)
+                        .accessibilityLabel("알림")
                     }
                 }
             }
             .navigationDestination(isPresented: $showNotifications) {
                 NotificationsView()
+            }
+            .onChange(of: showNotifications) { _, open in
+                // 알림에서 돌아오면 미읽음 점 갱신 — 모두 읽었는데 점이 남지 않게.
+                if !open, auth.isSignedIn {
+                    Task { unreadCount = (try? await NotificationsAPI.unreadCount()) ?? 0 }
+                }
+            }
+            .onChange(of: auth.isSignedIn) { _, signedIn in
+                if signedIn {
+                    Task { unreadCount = (try? await NotificationsAPI.unreadCount()) ?? 0 }
+                } else {
+                    unreadCount = 0
+                }
             }
             .navigationDestination(for: Route.self) { RouteView(route: $0) }
             .task {

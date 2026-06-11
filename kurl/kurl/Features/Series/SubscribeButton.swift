@@ -45,7 +45,7 @@ struct SubscribeButton: View {
                     .animation(.snappy(duration: 0.2), value: count)
             }
         }
-        .sensoryFeedback(.impact(weight: .light), trigger: model.subscribed)
+        .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
         .task { await model.hydrate() }
         .alert("로그인이 필요합니다", isPresented: $showLoginPrompt) {
             Button("로그인") { signInHere() }
@@ -83,6 +83,8 @@ struct SubscribeButton: View {
 @Observable
 final class SubscribeModel {
     private(set) var subscribed = false
+    /// 햅틱 트리거 — hydrate 가 아닌 사용자 토글에만 증가.
+    private(set) var userToggleCount = 0
     private(set) var subscriberCount: Int64?
 
     private let seriesId: Int64
@@ -101,6 +103,7 @@ final class SubscribeModel {
     }
 
     func toggle() async throws {
+        userToggleCount += 1
         let target = !subscribed
         subscribed = target
         if let count = subscriberCount {

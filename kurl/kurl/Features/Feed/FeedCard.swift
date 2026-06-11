@@ -19,12 +19,12 @@ struct FeedRow: View {
                 if featured {
                     Text("오늘의 글")
                         .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Palette.accent)
+                        .foregroundStyle(Palette.link)
                 }
                 if let tag = item.tags.first {
-                    Text(tag)
-                        .font(.system(size: 12))
-                        .foregroundStyle(Palette.faint)
+                    Text("#\(tag)")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Palette.secondary)
                 }
                 Text(item.title)
                     .font(.system(size: featured ? 22 : 18, weight: featured ? .bold : .semibold))
@@ -72,9 +72,9 @@ struct PostRow: View {
                         .foregroundStyle(Palette.accent)
                 }
                 if let tag = item.tags.first {
-                    Text(tag)
-                        .font(.system(size: 12))
-                        .foregroundStyle(Palette.faint)
+                    Text("#\(tag)")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Palette.secondary)
                 }
             }
             Text(item.title)

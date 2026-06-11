@@ -37,6 +37,7 @@ struct WriteHubView: View {
                             Image(systemName: "chart.bar")
                         }
                         .tint(.brand)
+                        .accessibilityLabel("분석")
                     }
                     ToolbarItem(placement: .primaryAction) {
                         Button {
@@ -45,6 +46,7 @@ struct WriteHubView: View {
                             Image(systemName: "square.and.pencil")
                         }
                         .tint(.brand)
+                        .accessibilityLabel("새 글")
                     }
                 }
             }
@@ -134,7 +136,7 @@ struct WriteHubView: View {
                             .foregroundStyle(Palette.link)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
-                            .background(Palette.accent.opacity(0.10), in: Capsule())
+                            .background(Palette.chipBg, in: Capsule())
                     }
                 }
                 .padding(.vertical, 14)

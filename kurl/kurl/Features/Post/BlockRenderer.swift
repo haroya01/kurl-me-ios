@@ -29,14 +29,17 @@ struct BlockView: View {
         case .h1:
             inline(block.content ?? "")
                 .font(.system(size: h1Size, weight: .bold)).foregroundStyle(Palette.ink)
+                .accessibilityAddTraits(.isHeader)
                 .padding(.top, 18).padding(.bottom, 4)
         case .h2:
             inline(block.content ?? "")
                 .font(.system(size: h2Size, weight: .bold)).foregroundStyle(Palette.ink)
+                .accessibilityAddTraits(.isHeader)
                 .padding(.top, 16).padding(.bottom, 4)
         case .h3:
             inline(block.content ?? "")
                 .font(.system(size: h3Size, weight: .semibold)).foregroundStyle(Palette.ink)
+                .accessibilityAddTraits(.isHeader)
                 .padding(.top, 12).padding(.bottom, 2)
 
         case .quote:
@@ -142,6 +145,7 @@ private struct CodeBlockView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Palette.codeBg, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Palette.hairlineStrong.opacity(0.4), lineWidth: 1))
         .padding(.vertical, 6)
     }
 }
@@ -179,7 +183,7 @@ private struct ImageBlockView: View {
             if let caption = payload.caption, !caption.isEmpty {
                 Text(caption)
                     .font(.system(size: 13))
-                    .foregroundStyle(Palette.faint)
+                    .foregroundStyle(Palette.secondary)
                     .multilineTextAlignment(.center)
             }
         }
@@ -311,7 +315,7 @@ private struct CtaBlockView: View {
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(Palette.accent, in: RoundedRectangle(cornerRadius: 12))
+                    .background(Palette.accentFill, in: RoundedRectangle(cornerRadius: 12))
             }
             .padding(.vertical, 6)
         }

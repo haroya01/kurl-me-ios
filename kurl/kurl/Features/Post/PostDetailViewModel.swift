@@ -23,7 +23,9 @@ final class PostDetailViewModel {
     }
 
     func load() async {
-        guard case .idle = phase else { return }
+        // 재시도 가능해야 한다 — loaded/loading 만 막고 idle/failed 에선 진입.
+        if case .loaded = phase { return }
+        if case .loading = phase { return }
         phase = .loading
         do {
             let detail = try await BlogAPI.postDetail(username: username, slug: slug)

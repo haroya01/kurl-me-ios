@@ -41,10 +41,7 @@ struct SeriesDetailView: View {
     @ViewBuilder
     private func content(_ detail: PublicSeriesDetail) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                RoundedRectangle(cornerRadius: 1).fill(Palette.accentMarker).frame(width: 3, height: 14)
-                Text("시리즈").font(.system(size: 12, weight: .bold)).foregroundStyle(Palette.faint)
-            }
+            RailHeading("시리즈")
             Text(detail.series.title)
                 .font(.system(size: 26, weight: .bold)).foregroundStyle(Palette.ink)
             Text("\(detail.author.username) · \(detail.series.postCount)편")

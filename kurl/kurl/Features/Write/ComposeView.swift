@@ -62,7 +62,13 @@ struct ComposeView: View {
         .task { await loadExisting() }
         .onChange(of: signature) { scheduleAutosave() }
         .onChange(of: coverItem) { uploadPickedCover() }
-        .onDisappear { autosaveTask?.cancel() }
+        .onDisappear {
+            // 디바운스 창에 걸린 마지막 변경을 버리지 않는다 — 즉시 1회 저장.
+            autosaveTask?.cancel()
+            if canSave, signature != lastSavedSignature {
+                Task { await save(publish: false) }
+            }
+        }
         .sheet(isPresented: $showSchedule) { scheduleSheet }
         .sheet(isPresented: $showRevisions) {
             RevisionsSheet(postId: postId) { restored in
@@ -105,7 +111,7 @@ struct ComposeView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "square.stack.3d.up")
                             .font(.system(size: 11))
-                        Text(seriesList.first(where: { $0.id == seriesId })?.title ?? "시리즈 없음")
+                        Text(seriesList.first(where: { $0.id == seriesId })?.title ?? String(localized: "시리즈 없음"))
                             .font(.system(size: 12))
                             .lineLimit(1)
                     }
@@ -205,6 +211,7 @@ struct ComposeView: View {
             } label: {
                 Image(systemName: "ellipsis")
             }
+            .accessibilityLabel("더 보기")
         }
     }
 
@@ -348,11 +355,14 @@ struct ComposeView: View {
     }
 
     private func scheduleNow() async {
-        guard let postId else { return }
+        guard let postId, !busy else { return }
+        // 저장이 자체 busy 를 관리하므로 먼저 끝낸다 — 이전엔 busy 선점으로 저장이 스킵돼
+        // 미저장 본문이 예약됐다.
+        await save(publish: false)
+        guard signature == lastSavedSignature else { return } // 저장 실패 시 예약 중단
         busy = true
         defer { busy = false }
         do {
-            await save(publish: false)
             let scheduled = try await WriteAPI.schedule(postId: postId, at: scheduleDate)
             status = scheduled.status
             showSchedule = false
