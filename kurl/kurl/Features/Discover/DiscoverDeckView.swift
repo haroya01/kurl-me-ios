@@ -142,6 +142,8 @@ struct DiscoverDeckView: View {
 private struct DeckCard: View {
     let item: FeedItem
 
+    @ScaledMetric(relativeTo: .largeTitle) private var titleUnit: CGFloat = 1
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let urlString = item.ogImageUrl, let url = URL(string: urlString) {
@@ -170,7 +172,7 @@ private struct DeckCard: View {
             }
 
             Text(item.title)
-                .font(.system(size: item.ogImageUrl == nil ? 30 : 25, weight: .bold))
+                .font(.system(size: (item.ogImageUrl == nil ? 30 : 25) * titleUnit, weight: .bold))
                 .foregroundStyle(Palette.ink)
                 .lineLimit(4)
                 .multilineTextAlignment(.leading)
@@ -179,7 +181,7 @@ private struct DeckCard: View {
 
             if let excerpt = item.excerpt, !excerpt.isEmpty {
                 Text(excerpt)
-                    .font(.system(size: 16))
+                    .font(.system(size: 16 * titleUnit))
                     .foregroundStyle(Palette.body)
                     .lineSpacing(5)
                     .lineLimit(item.ogImageUrl == nil ? 10 : 5)

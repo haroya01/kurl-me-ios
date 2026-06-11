@@ -18,6 +18,8 @@ struct BlogCard: View {
     let item: FeedItem
     var featured = false
 
+    @ScaledMetric(relativeTo: .headline) private var titleUnit: CGFloat = 1
+
     var body: some View {
         Group {
             if let urlString = item.ogImageUrl, let url = URL(string: urlString) {
@@ -78,7 +80,7 @@ struct BlogCard: View {
             .overlay(alignment: .bottomLeading) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(item.title)
-                        .font(.system(size: featured ? 20 : 18, weight: .semibold))
+                        .font(.system(size: (featured ? 20 : 18) * titleUnit, weight: .semibold))
                         .foregroundStyle(.white)
                         .lineLimit(3)
                         .multilineTextAlignment(.leading)
@@ -111,14 +113,14 @@ struct BlogCard: View {
                 }
             }
             Text(item.title)
-                .font(.system(size: featured ? 19 : 17, weight: .semibold))
+                .font(.system(size: (featured ? 19 : 17) * titleUnit, weight: .semibold))
                 .foregroundStyle(Palette.ink)
                 .lineLimit(3)
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
             if let excerpt = item.excerpt, !excerpt.isEmpty {
                 Text(excerpt)
-                    .font(.system(size: 13.5))
+                    .font(.system(size: 13.5 * titleUnit))
                     .foregroundStyle(Palette.secondary)
                     .lineSpacing(3)
                     .lineLimit(4)

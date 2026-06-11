@@ -60,6 +60,8 @@ struct RootView: View {
         }
         .tabBarMinimizeBehavior(.onScrollDown)
         .tint(.brand)
+        // Dynamic Type 은 따르되 상한을 둔다 — 그 위 극단 크기는 카드/덱 레이아웃이 깨진다.
+        .dynamicTypeSize(...DynamicTypeSize.accessibility2)
     }
 }
 

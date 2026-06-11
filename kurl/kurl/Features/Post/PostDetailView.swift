@@ -9,6 +9,8 @@ import SwiftUI
 
 struct PostDetailView: View {
     @State private var model: PostDetailViewModel
+    @ScaledMetric(relativeTo: .largeTitle) private var titleSize: CGFloat = 30
+    @ScaledMetric(relativeTo: .subheadline) private var commentSize: CGFloat = 14
 
     init(username: String, slug: String) {
         _model = State(initialValue: PostDetailViewModel(username: username, slug: slug))
@@ -123,7 +125,7 @@ struct PostDetailView: View {
             Color.clear.frame(height: detail.post.ogImageUrl != nil ? 22 : 18)
 
             Text(detail.post.title)
-                .font(.system(size: 30, weight: .bold))
+                .font(.system(size: titleSize, weight: .bold))
                 .foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -213,7 +215,7 @@ struct PostDetailView: View {
                         }
                     }
                     Text(comment.body)
-                        .font(.system(size: 14))
+                        .font(.system(size: commentSize))
                         .foregroundStyle(Palette.body)
                         .padding(.leading, 32)
                 }

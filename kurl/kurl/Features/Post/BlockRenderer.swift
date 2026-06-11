@@ -7,35 +7,41 @@
 
 import SwiftUI
 
-/// blocks → 네이티브 SwiftUI. 읽기 타이포는 프론트 `.prose-post`(§10.7) 를 그대로 옮긴다.
+/// blocks → 네이티브 SwiftUI. 읽기 타이포는 프론트 `.prose-post`(§10.7) 를 그대로 옮기되,
+/// 크기는 Dynamic Type 에 상대화(@ScaledMetric) — 시스템 글자 크기 설정을 따라간다.
 /// 서드파티 마크다운 라이브러리 없이 인라인 서식만 AttributedString(markdown:) 로 처리.
 struct BlockView: View {
     let block: PostBlock
+
+    @ScaledMetric(relativeTo: .body) private var bodySize: CGFloat = 18
+    @ScaledMetric(relativeTo: .title) private var h1Size: CGFloat = 26
+    @ScaledMetric(relativeTo: .title2) private var h2Size: CGFloat = 24
+    @ScaledMetric(relativeTo: .title3) private var h3Size: CGFloat = 20
 
     var body: some View {
         switch block.kind {
         case .paragraph:
             inline(block.content ?? "")
-                .font(.system(size: 18))
+                .font(.system(size: bodySize))
                 .lineSpacing(5)
                 .foregroundStyle(Palette.body)
 
         case .h1:
             inline(block.content ?? "")
-                .font(.system(size: 26, weight: .bold)).foregroundStyle(Palette.ink)
+                .font(.system(size: h1Size, weight: .bold)).foregroundStyle(Palette.ink)
                 .padding(.top, 18).padding(.bottom, 4)
         case .h2:
             inline(block.content ?? "")
-                .font(.system(size: 24, weight: .bold)).foregroundStyle(Palette.ink)
+                .font(.system(size: h2Size, weight: .bold)).foregroundStyle(Palette.ink)
                 .padding(.top, 16).padding(.bottom, 4)
         case .h3:
             inline(block.content ?? "")
-                .font(.system(size: 20, weight: .semibold)).foregroundStyle(Palette.ink)
+                .font(.system(size: h3Size, weight: .semibold)).foregroundStyle(Palette.ink)
                 .padding(.top, 12).padding(.bottom, 2)
 
         case .quote:
             inline(block.content ?? "")
-                .font(.system(size: 18).italic())
+                .font(.system(size: bodySize).italic())
                 .lineSpacing(5)
                 .foregroundStyle(Palette.secondary)
                 .padding(.leading, 20)
@@ -187,16 +193,18 @@ private struct ListBlockView: View {
     let items: [String]
     let ordered: Bool
 
+    @ScaledMetric(relativeTo: .body) private var bodySize: CGFloat = 18
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             ForEach(Array(items.enumerated()), id: \.offset) { index, item in
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
                     Text(ordered ? "\(index + 1)." : "•")
-                        .font(.system(size: 18))
+                        .font(.system(size: bodySize))
                         .foregroundStyle(Palette.accentMarker)
                         .monospacedDigit()
                     Text(inline(item))
-                        .font(.system(size: 18))
+                        .font(.system(size: bodySize))
                         .foregroundStyle(Palette.body)
                 }
             }
