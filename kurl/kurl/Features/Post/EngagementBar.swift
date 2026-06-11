@@ -13,12 +13,9 @@ struct EngagementBar: View {
     @State private var showLoginPrompt = false
     @State private var showTwoFactorHint = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    /// 댓글이 같은 화면에 없는 표면(발견 덱)이 시트를 띄울 때만 넘긴다.
-    private let onComments: (() -> Void)?
 
-    init(postId: Int64, initialLikeCount: Int64, onComments: (() -> Void)? = nil) {
+    init(postId: Int64, initialLikeCount: Int64) {
         _model = State(initialValue: EngagementModel(postId: postId, likeCount: initialLikeCount))
-        self.onComments = onComments
     }
 
     var body: some View {
@@ -60,17 +57,6 @@ struct EngagementBar: View {
             .buttonStyle(.plain)
             .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: model.bookmarked)
             .accessibilityLabel(model.bookmarked ? Text("북마크 해제") : Text("북마크"))
-
-            if let onComments {
-                Button(action: onComments) {
-                    Image(systemName: "bubble.right")
-                        .font(.system(size: 15))
-                        .foregroundStyle(Palette.secondary)
-                        .expandTapTarget()
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("댓글")
-            }
 
             Spacer()
         }

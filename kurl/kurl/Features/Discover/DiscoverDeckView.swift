@@ -6,18 +6,15 @@
 import SwiftUI
 import Observation
 
-/// 발견 = 리딩 덱. 한 장 = 열린 글 전체(커버·제목·본문·태그·반응 바) — 카드를 탭해
-/// 들어가는 한 단계를 없애고, 릴스처럼 콘텐츠가 즉시 시작된다. 좌우 스와이프 = 다음 글,
-/// 세로 스크롤 = 본문 읽기, 댓글만 시트 한 겹 아래. 최신+트렌딩 셔플, 끝 도달 시 append.
+/// 발견 = 리딩 덱. 한 장 = **글 상세보기 그대로**(PostDetailView 임베드) — 댓글까지
+/// 포함된 진짜 그 화면이다. 좌우 스와이프 = 다음 글, 세로 스크롤 = 읽기.
+/// 최신+트렌딩을 섞어 셔플하고, 끝에 다다르면 더 가져온다.
 @MainActor
 @Observable
 final class DiscoverDeckModel {
     private(set) var phase: LoadState<Bool> = .idle
     private(set) var deck: [FeedItem] = []
-    /// 글 id → 풀 본문. 현재 장 + 다음 두 장을 미리 받아 스와이프 시 본문이 즉시 선다.
-    private(set) var details: [Int64: PublicPostDetail] = [:]
 
-    private var detailTasks: [Int64: Task<Void, Never>] = [:]
     /// 체류 비콘을 이미 쏜 글 — 세션당 한 번. 스쳐 지나간 장은 조회수로 세지 않는다.
     private var beaconed: Set<Int64> = []
     private var seenIds: Set<Int64> = []
@@ -58,7 +55,7 @@ final class DiscoverDeckModel {
         }
     }
 
-    /// 셔플 버튼 — 덱을 새로 섞는다(처음부터 다시). 본문 캐시는 살린다.
+    /// 셔플 버튼 — 덱을 새로 섞는다(처음부터 다시).
     func reshuffle() async {
         epoch += 1
         phase = .idle
@@ -69,27 +66,8 @@ final class DiscoverDeckModel {
         await load()
     }
 
-    /// 풀 본문 확보 — 중복 요청은 비행 중 태스크로 단일화.
-    func ensureDetail(for item: FeedItem) {
-        guard details[item.id] == nil, detailTasks[item.id] == nil else { return }
-        detailTasks[item.id] = Task {
-            defer { detailTasks[item.id] = nil }
-            if let detail = try? await BlogAPI.postDetail(
-                username: item.author.username, slug: item.slug) {
-                details[item.id] = detail
-            }
-        }
-    }
-
-    /// 현재 장 + 다음 두 장 프리페치.
-    func prefetchAround(id: Int64) {
-        guard let idx = deck.firstIndex(where: { $0.id == id }) else { return }
-        for i in idx..<min(idx + 3, deck.count) {
-            ensureDetail(for: deck[i])
-        }
-    }
-
     /// 체류 비콘 — 한 장에 머문 뒤에만 호출된다(스와이프로 지나가면 발화 전에 취소).
+    /// 임베드된 상세는 자체 비콘을 쏘지 않으므로(recordsView=false) 이중 집계가 없다.
     func recordDwell(id: Int64) async {
         guard let item = deck.first(where: { $0.id == id }),
               !beaconed.contains(id) else { return }
@@ -106,7 +84,6 @@ final class DiscoverDeckModel {
 struct DiscoverDeckView: View {
     @State private var model = DiscoverDeckModel()
     @State private var currentId: Int64?
-    @State private var commentsTarget: FeedItem?
 
     var body: some View {
         // path 바인딩 금지 — tabBarMinimizeBehavior 가 죽는다(FeedView 참조).
@@ -131,7 +108,14 @@ struct DiscoverDeckView: View {
             }
             .task { await model.load() }
             .toolbar {
-                ToolbarItem(placement: .primaryAction) {
+                // 임베드된 상세는 내비바를 못 쓰므로 공유는 현재 장 기준으로 호스트가 든다.
+                ToolbarItemGroup(placement: .primaryAction) {
+                    if let url = currentShareURL {
+                        ShareLink(item: url) {
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                        .tint(.brand)
+                    }
                     Button {
                         Task { await model.reshuffle() }
                     } label: {
@@ -145,25 +129,30 @@ struct DiscoverDeckView: View {
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: Route.self) { RouteView(route: $0) }
         }
-        .sheet(item: $commentsTarget) { item in
-            CommentsSheet(username: item.author.username, slug: item.slug)
-                .presentationDetents([.medium, .large])
-        }
+    }
+
+    private var currentItem: FeedItem? {
+        let id = currentId ?? model.deck.first?.id
+        return model.deck.first { $0.id == id }
+    }
+
+    /// 네이티브 공유 시트용 공개 URL — 글 상세와 같은 주소.
+    private var currentShareURL: URL? {
+        guard let item = currentItem else { return nil }
+        return URL(
+            string: "\(Config.apiBase)/\(Config.preferredLanguageTag)/p/\(item.author.username)/\(item.slug)")
     }
 
     private var deck: some View {
         ScrollView(.horizontal) {
             LazyHStack(spacing: 0) {
                 ForEach(model.deck) { item in
-                    DeckPostPage(item: item, detail: model.details[item.id]) {
-                        commentsTarget = item
-                    }
+                    PostDetailView(
+                        username: item.author.username, slug: item.slug, embedded: true
+                    )
                     .containerRelativeFrame(.horizontal)
                     .modifier(CardScrollFade(axis: .horizontal))
-                    .task {
-                        model.ensureDetail(for: item)
-                        await model.loadMoreIfNeeded(current: item)
-                    }
+                    .task { await model.loadMoreIfNeeded(current: item) }
                 }
             }
             .scrollTargetLayout()
@@ -171,104 +160,12 @@ struct DiscoverDeckView: View {
         .scrollTargetBehavior(.paging)
         .scrollPosition(id: $currentId)
         .scrollIndicators(.hidden)
-        // 장이 바뀔 때마다 프리페치 + 체류 비콘. 2.5초 안에 넘기면 sleep 취소 →
-        // 조회수로 세지 않는다.
+        // 장이 바뀔 때마다 체류 비콘 무장 — 2.5초 안에 넘기면 sleep 취소 → 미집계.
         .task(id: currentId ?? model.deck.first?.id) {
             guard let id = currentId ?? model.deck.first?.id else { return }
-            model.prefetchAround(id: id)
             try? await Task.sleep(for: .seconds(2.5))
             guard !Task.isCancelled else { return }
             await model.recordDwell(id: id)
         }
-    }
-}
-
-/// 덱 한 장 = 열린 글. 제목·커버·작가 줄은 피드 데이터로 즉시 서고,
-/// 본문(blocks)은 도착하는 대로 아래에 채워진다. 반응 바는 본문 끝 — 글 상세와 같은 결.
-private struct DeckPostPage: View {
-    let item: FeedItem
-    let detail: PublicPostDetail?
-    let onComments: () -> Void
-
-    @ScaledMetric(relativeTo: .largeTitle) private var titleSize: CGFloat = 26
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                if let urlString = item.ogImageUrl, let url = URL(string: urlString) {
-                    Color.clear
-                        .aspectRatio(4.0 / 3.0, contentMode: .fit)
-                        .overlay {
-                            AsyncImage(url: url) { image in
-                                image.resizable().scaledToFill()
-                            } placeholder: {
-                                Rectangle().fill(Palette.hairline)
-                            }
-                            .saturation(0.85)
-                        }
-                        .overlay(Palette.coverVeil)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                        .padding(.top, 8)
-                        .accessibilityHidden(true)
-                }
-
-                Text(item.title)
-                    .font(.system(size: titleSize, weight: .bold))
-                    .foregroundStyle(Palette.ink)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityAddTraits(.isHeader)
-                    .padding(.top, item.ogImageUrl == nil ? 18 : 16)
-
-                NavigationLink(value: Route.author(username: item.author.username)) {
-                    HStack(spacing: 9) {
-                        AvatarView(author: item.author, size: 26)
-                        Text(item.author.username)
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(Palette.ink)
-                        if let date = item.publishedAt {
-                            Text("·").foregroundStyle(Palette.faint)
-                            Text(date.mediumDate)
-                                .font(.system(size: 13))
-                                .foregroundStyle(Palette.secondary)
-                        }
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .padding(.top, 12)
-
-                Hairline().padding(.top, 14)
-
-                if let detail {
-                    VStack(alignment: .leading, spacing: 2) {
-                        ForEach(Array(detail.blocks.enumerated()), id: \.offset) { _, block in
-                            BlockView(block: block)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                    }
-                    .padding(.top, 18)
-
-                    if !detail.post.tags.isEmpty {
-                        FlowTags(tags: detail.post.tags)
-                            .padding(.top, 24)
-                    }
-                    EngagementBar(
-                        postId: detail.post.id,
-                        initialLikeCount: detail.post.likeCount,
-                        onComments: onComments
-                    )
-                    .padding(.top, 6)
-                } else {
-                    ProgressView().tint(Palette.accent)
-                        .frame(maxWidth: .infinity, minHeight: 180)
-                }
-
-                Color.clear.frame(height: 32)
-            }
-            .frame(maxWidth: Metrics.readingColumn, alignment: .leading)
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, Metrics.gutter)
-        }
-        .scrollIndicators(.hidden)
     }
 }

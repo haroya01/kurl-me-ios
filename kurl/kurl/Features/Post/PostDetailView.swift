@@ -13,8 +13,15 @@ struct PostDetailView: View {
     @ScaledMetric(relativeTo: .largeTitle) private var titleSize: CGFloat = 30
     @ScaledMetric(relativeTo: .subheadline) private var commentSize: CGFloat = 14
 
-    init(username: String, slug: String) {
-        _model = State(initialValue: PostDetailViewModel(username: username, slug: slug))
+    /// 발견 덱이 페이지로 품을 때 true — 같은 화면을 그대로 쓰되, 내비바(제목 스밈·공유)와
+    /// 커버의 세이프에어리어 침범은 덱의 것이 아니므로 끄고, 조회 비콘도 덱의 체류
+    /// 판정에 맡긴다(여러 장이 lazy 로 살아 있어 load 시점 비콘은 부풀려진다).
+    private let embedded: Bool
+
+    init(username: String, slug: String, embedded: Bool = false) {
+        self.embedded = embedded
+        _model = State(initialValue: PostDetailViewModel(
+            username: username, slug: slug, recordsView: !embedded))
     }
 
     /// 헤더를 지나면 제목이 내비바로 스며들고(아이폰 리딩 앱 문법), 커버가 있으면
@@ -55,7 +62,7 @@ struct PostDetailView: View {
         }
         .scrollIndicators(.hidden)
         .scrollDismissesKeyboard(.interactively)
-        .ignoresSafeArea(edges: hasCover ? .top : [])
+        .ignoresSafeArea(edges: hasCover && !embedded ? .top : [])
         .onChange(of: model.comments) {
             // 답글 대상이 삭제/소실되면 답글 모드를 푼다 — 영구 실패 루프 방지.
             if let target = replyTo, !model.comments.contains(where: { $0.id == target.id }) {
@@ -65,25 +72,30 @@ struct PostDetailView: View {
         .onScrollGeometryChange(for: Bool.self) { geometry in
             geometry.contentOffset.y + geometry.contentInsets.top > (hasCover ? coverHeight : 110)
         } action: { _, passed in
+            guard !embedded else { return }
             withAnimation(.easeInOut(duration: 0.18)) { showNavTitle = passed }
         }
         .toolbar {
-            ToolbarItem(placement: .principal) {
-                Text(loadedTitle)
-                    .font(.system(size: 16, weight: .semibold))
-                    .lineLimit(1)
-                    .opacity(showNavTitle ? 1 : 0)
-            }
-            ToolbarItem(placement: .primaryAction) {
-                if let shareURL {
-                    ShareLink(item: shareURL) {
-                        Image(systemName: "square.and.arrow.up")
+            // 임베드 시 내비바는 호스트(발견)의 것 — 여러 장이 동시에 살아 있어
+            // principal/공유를 끼우면 서로 싸운다.
+            if !embedded {
+                ToolbarItem(placement: .principal) {
+                    Text(loadedTitle)
+                        .font(.system(size: 16, weight: .semibold))
+                        .lineLimit(1)
+                        .opacity(showNavTitle ? 1 : 0)
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    if let shareURL {
+                        ShareLink(item: shareURL) {
+                            Image(systemName: "square.and.arrow.up")
+                        }
                     }
                 }
             }
         }
         .toolbarBackground(
-            hasCover && !showNavTitle ? .hidden : .automatic, for: .navigationBar)
+            !embedded && hasCover && !showNavTitle ? .hidden : .automatic, for: .navigationBar)
         .navigationBarTitleDisplayMode(.inline)
         .task { await model.load() }
     }

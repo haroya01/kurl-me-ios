@@ -2244,38 +2244,6 @@
           }
         }
       }
-    },
-    "댓글": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コメント"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Comments"
-          }
-        }
-      }
-    },
-    "아직 댓글이 없습니다": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "まだコメントはありません"
-          }
-        },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No comments yet"
-          }
-        }
-      }
     }
   },
   "version": "1.0"

@@ -5,38 +5,32 @@
 
 import XCTest
 
-/// 발견 덱 = 열린 글 검증 — 본문이 서고, 반응 바의 댓글 버튼이 시트를 띄우는지.
+/// 발견 덱 = 글 상세보기 임베드 검증 — 본문이 서고, 끝까지 내리면
+/// 상세와 동일한 인라인 댓글 컴포저가 있는지.
 final class DiscoverDeckUITests: XCTestCase {
 
     override func setUpWithError() throws {
         continueAfterFailure = false
     }
 
-    func testDeckShowsFullPostAndCommentsSheet() throws {
+    func testDeckEmbedsFullPostDetail() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "discover"]
         app.launch()
 
-        // 본문(반응 바)이 설 때까지 — 덱은 실서버 글이라 네트워크 대기.
-        let comments = app.buttons["댓글"].firstMatch
-        var hittable = comments.waitForExistence(timeout: 15)
-        // 긴 글이면 반응 바가 접혀 있다 — 본문을 끌어내려 끝까지 간다.
+        // 상세와 동일한 댓글 컴포저(placeholder)가 본문 끝에 있다 — 실서버 글이라
+        // 길이가 제각각이니 보일 때까지 끌어내린다.
+        let composer = app.textFields["댓글을 남겨보세요"].firstMatch
+        _ = composer.waitForExistence(timeout: 15)
         var swipes = 0
-        while (!hittable || !comments.isHittable), swipes < 12 {
+        while !(composer.exists && composer.isHittable), swipes < 14 {
             app.swipeUp(velocity: .fast)
             swipes += 1
-            hittable = comments.exists
         }
-        XCTAssertTrue(comments.isHittable, "덱 페이지에 댓글 버튼이 없음 — 본문이 서지 않았나")
-
-        comments.tap()
-        // 시트 제목 "댓글 N" — 정확한 수는 모르니 내비바 존재로 판정.
-        let sheetBar = app.navigationBars.matching(
-            NSPredicate(format: "identifier BEGINSWITH '댓글'")).firstMatch
-        XCTAssertTrue(sheetBar.waitForExistence(timeout: 10), "댓글 시트가 뜨지 않음")
+        XCTAssertTrue(composer.exists, "덱 페이지에 인라인 댓글 컴포저가 없음 — 상세 임베드 실패")
 
         let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
-        attachment.name = "deck-comments-sheet"
+        attachment.name = "deck-embedded-detail-bottom"
         attachment.lifetime = .keepAlways
         add(attachment)
     }
