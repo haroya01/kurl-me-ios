@@ -29,6 +29,16 @@ struct PostDetailView: View {
     @State private var showNavTitle = false
     @State private var replyTo: Comment?
 
+    /// 덱 임베드 전용 — 댓글은 접힌 행으로 시작하고, 본문 끝에서 더 당기면
+    /// 같은 작가의 다음 글로 이어진다(가로 = 다른 작가, 세로 = 이 작가 더 보기).
+    @State private var commentsExpanded = false
+    @State private var nextPost: PostListItem?
+    @State private var nextFetched = false
+    @State private var showNext = false
+    /// 손가락이 실제로 당기는 중일 때만 true — 플릭 관성의 바운스가 임계를 넘어도
+    /// 다음 글로 튕겨가지 않게 한다.
+    @State private var fingerDown = false
+
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
@@ -74,6 +84,36 @@ struct PostDetailView: View {
         } action: { _, passed in
             guard !embedded else { return }
             withAnimation(.easeInOut(duration: 0.18)) { showNavTitle = passed }
+        }
+        // 임베드 전용: 바닥까지 남은 거리. 가까워지면 다음 글을 미리 찾고,
+        // 바닥을 지나 90pt 이상 당기면 다음 글로 넘어간다.
+        // 본문이 화면보다 짧으면 스크롤(러버밴드)이 없어 당김이 불가능 — 0 을 돌려
+        // 프리페치는 즉시 일어나게 하고, 이동은 큐 탭에 맡긴다.
+        .onScrollGeometryChange(for: CGFloat.self) { geometry in
+            guard geometry.containerSize.height > 0,
+                  geometry.contentSize.height > geometry.containerSize.height
+            else { return 0 }
+            return geometry.contentSize.height
+                - (geometry.contentOffset.y + geometry.containerSize.height)
+        } action: { _, remaining in
+            guard embedded else { return }
+            if remaining < 600, !nextFetched {
+                nextFetched = true
+                Task { await fetchNextPost() }
+            }
+            if remaining < -90, fingerDown, nextPost != nil, !showNext {
+                showNext = true
+            }
+        }
+        .onScrollPhaseChange { _, newPhase in
+            if embedded { fingerDown = newPhase == .interacting }
+        }
+        .sensoryFeedback(.impact(weight: .medium), trigger: showNext)
+        .navigationDestination(isPresented: $showNext) {
+            if let nextPost {
+                // 당겨서 명시적으로 넘어간 글 — 정상 상세(자체 비콘 포함)로 푸시.
+                PostDetailView(username: model.username, slug: nextPost.slug)
+            }
         }
         .toolbar {
             // 임베드 시 내비바는 호스트(발견)의 것 — 여러 장이 동시에 살아 있어
@@ -141,7 +181,45 @@ struct PostDetailView: View {
             .padding(.top, 8)
         if let nav = detail.series { seriesNav(nav, username: detail.author.username) }
         comments
+        if embedded, let next = nextPost {
+            nextPostCue(next)
+        }
         Color.clear.frame(height: 40)
+    }
+
+    /// 본문 끝의 조용한 신호 — 더 당기면 이 작가의 다음 글로 이어진다.
+    /// 탭해도 간다: 짧은 글은 러버밴드가 없어 당김이 성립하지 않는다.
+    private func nextPostCue(_ next: PostListItem) -> some View {
+        Button {
+            showNext = true
+        } label: {
+            VStack(spacing: 5) {
+                Image(systemName: "chevron.compact.down")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Palette.faint)
+                Text("계속 당기면 다음 글")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Palette.secondary)
+                Text(next.title)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Palette.ink)
+                    .lineLimit(1)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 18)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("다음 글 — \(next.title)")
+    }
+
+    private func fetchNextPost() async {
+        guard let list = try? await BlogAPI.authorPosts(username: model.username) else { return }
+        if let idx = list.posts.firstIndex(where: { $0.slug == model.slug }),
+           idx + 1 < list.posts.count {
+            nextPost = list.posts[idx + 1]
+        }
     }
 
     private func header(_ detail: PublicPostDetail) -> some View {
@@ -226,12 +304,32 @@ struct PostDetailView: View {
     private var comments: some View {
         VStack(alignment: .leading, spacing: 16) {
             Hairline()
-            RailHeading("댓글 \(model.comments.count)")
-            ForEach(model.comments) { comment in
-                CommentRow(model: model, comment: comment, replyTo: $replyTo)
-                    .padding(.leading, comment.parentId != nil ? 28 : 0)
+            // 덱에서는 접힌 행으로 — 읽기 흐름과 "당겨서 다음 글" 동작을 댓글이
+            // 길게 끊지 않는다. 탭하면 그 자리에서 펼친다.
+            if embedded, !commentsExpanded {
+                Button {
+                    withAnimation(.snappy(duration: 0.25)) { commentsExpanded = true }
+                } label: {
+                    HStack(spacing: 8) {
+                        RailHeading("댓글 \(model.comments.count)")
+                        Spacer()
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Palette.secondary)
+                    }
+                    .padding(.vertical, 6)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("댓글 \(model.comments.count) 펼치기")
+            } else {
+                RailHeading("댓글 \(model.comments.count)")
+                ForEach(model.comments) { comment in
+                    CommentRow(model: model, comment: comment, replyTo: $replyTo)
+                        .padding(.leading, comment.parentId != nil ? 28 : 0)
+                }
+                CommentComposer(model: model, replyTo: $replyTo)
             }
-            CommentComposer(model: model, replyTo: $replyTo)
         }
         .padding(.vertical, 16)
     }

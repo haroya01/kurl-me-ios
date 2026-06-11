@@ -2244,6 +2244,38 @@
           }
         }
       }
+    },
+    "계속 당기면 다음 글": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "さらに引っ張ると次の記事へ"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep pulling for the next post"
+          }
+        }
+      }
+    },
+    "댓글 %lld 펼치기": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コメント%lld件を表示"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show %lld comments"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

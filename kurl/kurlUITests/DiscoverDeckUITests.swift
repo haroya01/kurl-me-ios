@@ -13,25 +13,49 @@ final class DiscoverDeckUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    func testDeckEmbedsFullPostDetail() throws {
+    func testDeckEmbedsDetailWithCollapsedComments() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "discover"]
         app.launch()
 
-        // 상세와 동일한 댓글 컴포저(placeholder)가 본문 끝에 있다 — 실서버 글이라
+        // 덱에서는 댓글이 접힌 행("댓글 N")으로 시작한다 — 실서버 글이라
         // 길이가 제각각이니 보일 때까지 끌어내린다.
-        let composer = app.textFields["댓글을 남겨보세요"].firstMatch
-        _ = composer.waitForExistence(timeout: 15)
+        let collapsed = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH '댓글'")).firstMatch
+        _ = collapsed.waitForExistence(timeout: 15)
         var swipes = 0
-        while !(composer.exists && composer.isHittable), swipes < 14 {
+        while !(collapsed.exists && collapsed.isHittable), swipes < 14 {
             app.swipeUp(velocity: .fast)
             swipes += 1
         }
-        XCTAssertTrue(composer.exists, "덱 페이지에 인라인 댓글 컴포저가 없음 — 상세 임베드 실패")
+        XCTAssertTrue(collapsed.exists, "덱 페이지에 접힌 댓글 행이 없음 — 상세 임베드 실패")
+
+        let composer = app.textFields["댓글을 남겨보세요"].firstMatch
+        XCTAssertFalse(composer.exists, "접힌 상태인데 컴포저가 이미 보임")
+
+        // 펼치면 상세와 동일한 댓글 목록 + 컴포저.
+        collapsed.tap()
+        app.swipeUp(velocity: .slow)
+        XCTAssertTrue(composer.waitForExistence(timeout: 5), "댓글 펼침 후 컴포저가 없음")
 
         let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
-        attachment.name = "deck-embedded-detail-bottom"
+        attachment.name = "deck-comments-expanded"
         attachment.lifetime = .keepAlways
         add(attachment)
+
+        // 다음 글 큐(작가에게 다음 글이 있을 때만) — 탭 경로로 푸시를 결정적으로
+        // 검증한다. 당김 제스처는 같은 showNext 를 쏘므로 경로 검증은 이걸로 충분.
+        for _ in 0..<3 { app.swipeUp(velocity: .slow) }
+        let cue = app.staticTexts["계속 당기면 다음 글"].firstMatch
+        guard cue.exists, cue.isHittable else { return }
+        cue.tap()
+        // 푸시되면 "발견" 이 내비 타이틀(정적 텍스트)에서 back 버튼으로 바뀐다.
+        let backToDeck = app.navigationBars.buttons["발견"].firstMatch
+        XCTAssertTrue(backToDeck.waitForExistence(timeout: 6), "다음 글로 푸시되지 않음")
+
+        let pushed = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        pushed.name = "deck-next-post-pushed"
+        pushed.lifetime = .keepAlways
+        add(pushed)
     }
 }
