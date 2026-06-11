@@ -157,6 +157,48 @@ enum MockBackend {
             return json(["id": 1, "body": decode(body)["body"] as? String ?? ""])
         }
 
+        if method == "GET", parts == ["bookmarks"] {
+            return json([
+                ["id": 9002, "username": "honggildong", "title": "발행된 목 글", "slug": "p-mock-2"],
+                ["id": 9001, "username": "honggildong", "title": "목 초안 — 헥사고날 정리", "slug": "p-mock-1"],
+            ])
+        }
+
+        if method == "GET", parts == ["users", "me", "likes"] {
+            return json([feedItem(id: 9002, title: "발행된 목 글", slug: "p-mock-2")])
+        }
+
+        if method == "GET", parts == ["users", "me", "subscribed-series"] {
+            return json([[
+                "id": 1, "author": ["id": 1, "username": "honggildong", "bio": NSNull(), "avatarUrl": NSNull()],
+                "slug": "hexagonal", "title": "헥사고날 전환기", "postCount": 6,
+                "lastPublishedAt": iso(Date().addingTimeInterval(-86_400)),
+                "posts": [["slug": "p-mock-2", "title": "발행된 목 글"]],
+            ]])
+        }
+
+        if method == "GET", parts == ["feed", "following"] {
+            return json([
+                "items": [feedItem(id: 9002, title: "발행된 목 글", slug: "p-mock-2")],
+                "page": 0, "size": 20, "hasNext": false,
+            ])
+        }
+
+        if parts.count == 3, parts[0] == "comments", parts[2] == "like" {
+            let cid = Int64(parts[1]) ?? 0
+            if method == "POST" { likedComments.insert(cid) }
+            if method == "DELETE" { likedComments.remove(cid) }
+            return json(["likeCount": likedComments.contains(cid) ? 3 : 2, "liked": likedComments.contains(cid)])
+        }
+
+        if method == "GET", parts.count == 4, parts[0] == "posts", parts[2] == "comments", parts[3] == "liked" {
+            return json(Array(likedComments))
+        }
+
+        if method == "DELETE", parts.count == 2, parts[0] == "comments" {
+            return json([:] as [String: Any])
+        }
+
         if method == "GET", parts == ["notifications"] {
             return json([
                 "items": [
@@ -261,6 +303,18 @@ enum MockBackend {
         (2, "ios-build", "iOS 앱 만들기"),
     ]
     private static var seriesMembers: [Int64: [Int64]] = [1: [9002], 2: []]
+    private static var likedComments: Set<Int64> = []
+
+    private static func feedItem(id: Int64, title: String, slug: String) -> [String: Any] {
+        [
+            "id": id,
+            "author": ["id": 1, "username": "honggildong", "bio": NSNull(), "avatarUrl": NSNull()],
+            "slug": slug, "title": title, "excerpt": "목 발췌",
+            "ogImageUrl": NSNull(), "languageTag": "ko", "tags": ["목"],
+            "publishedAt": iso(Date().addingTimeInterval(-3600)),
+            "viewCount": 42, "likeCount": 3,
+        ]
+    }
 
     // MARK: 픽스처
 

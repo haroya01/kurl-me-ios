@@ -19,6 +19,7 @@ struct PostDetailView: View {
     /// 헤더를 지나면 제목이 내비바로 스며들고(아이폰 리딩 앱 문법), 커버가 있으면
     /// 그 동안 내비바 배경을 숨겨 커버가 상단을 다 쓴다.
     @State private var showNavTitle = false
+    @State private var replyTo: Comment?
 
     var body: some View {
         ScrollView {
@@ -204,32 +205,102 @@ struct PostDetailView: View {
             Hairline()
             RailHeading("댓글 \(model.comments.count)")
             ForEach(model.comments) { comment in
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 8) {
-                        AvatarView(author: comment.author, size: 24)
-                        Text(comment.author.username)
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Palette.ink)
-                        if let date = comment.createdAt {
-                            Text(date.relativeShort)
-                                .font(.system(size: 12)).foregroundStyle(Palette.secondary)
-                        }
-                    }
-                    Text(comment.body)
-                        .font(.system(size: commentSize))
-                        .foregroundStyle(Palette.body)
-                        .padding(.leading, 32)
-                }
+                CommentRow(model: model, comment: comment, replyTo: $replyTo)
+                    .padding(.leading, comment.parentId != nil ? 28 : 0)
             }
-            CommentComposer(model: model)
+            CommentComposer(model: model, replyTo: $replyTo)
         }
         .padding(.vertical, 16)
+    }
+}
+
+/// 댓글 한 줄 — 좋아요(#538)·답글·내 댓글 삭제. 미로그인 인터랙션은 컴포저와 같은 로그인 유도.
+private struct CommentRow: View {
+    let model: PostDetailViewModel
+    let comment: Comment
+    @Binding var replyTo: Comment?
+
+    @State private var confirmDelete = false
+    @ScaledMetric(relativeTo: .subheadline) private var bodySize: CGFloat = 14
+
+    private var likedByMe: Bool { model.likedCommentIds.contains(comment.id) }
+    private var isMine: Bool {
+        guard let myId = AuthStore.shared.me?.id else { return false }
+        return comment.author.id == myId
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                AvatarView(author: comment.author, size: 24)
+                Text(comment.author.username)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Palette.ink)
+                if let date = comment.createdAt {
+                    Text(date.relativeShort)
+                        .font(.system(size: 12)).foregroundStyle(Palette.secondary)
+                }
+                Spacer()
+                if isMine {
+                    Button {
+                        confirmDelete = true
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Palette.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("댓글 삭제")
+                }
+            }
+            Text(comment.body)
+                .font(.system(size: bodySize))
+                .foregroundStyle(Palette.body)
+                .padding(.leading, 32)
+            HStack(spacing: 14) {
+                Button {
+                    guard AuthStore.shared.isSignedIn else { return }
+                    Task { await model.toggleCommentLike(comment) }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: likedByMe ? "heart.fill" : "heart")
+                            .font(.system(size: 11))
+                        if model.displayLikeCount(comment) > 0 {
+                            Text("\(model.displayLikeCount(comment))")
+                                .font(.system(size: 12).monospacedDigit())
+                                .contentTransition(.numericText())
+                        }
+                    }
+                    .foregroundStyle(likedByMe ? Palette.link : Palette.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(likedByMe ? Text("댓글 좋아요 취소") : Text("댓글 좋아요"))
+                .animation(.snappy(duration: 0.2), value: likedByMe)
+
+                // 답글은 최상위 댓글에만 — 1단 깊이 유지.
+                if comment.parentId == nil {
+                    Button("답글") {
+                        replyTo = comment
+                    }
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Palette.secondary)
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.leading, 32)
+        }
+        .confirmationDialog("이 댓글을 삭제할까요?", isPresented: $confirmDelete, titleVisibility: .visible) {
+            Button("삭제", role: .destructive) {
+                Task { try? await model.deleteComment(comment) }
+            }
+        }
     }
 }
 
 /// 댓글 입력 한 줄 — 조용한 인라인 컴포저. 로그아웃 상태에서 보내려 하면 그 자리 로그인.
 private struct CommentComposer: View {
     let model: PostDetailViewModel
+    @Binding var replyTo: Comment?
 
     @State private var body_ = ""
     @State private var sending = false
@@ -239,8 +310,25 @@ private struct CommentComposer: View {
     @FocusState private var focused: Bool
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+        if let replyTo {
+            HStack(spacing: 6) {
+                Text("\(replyTo.author.username)님에게 답글")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Palette.link)
+                Button {
+                    self.replyTo = nil
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Palette.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("답글 취소")
+            }
+        }
         HStack(spacing: 8) {
-            TextField("댓글을 남겨보세요", text: $body_, axis: .vertical)
+            TextField(replyTo == nil ? "댓글을 남겨보세요" : "답글을 남겨보세요", text: $body_, axis: .vertical)
                 .font(.system(size: 14))
                 .lineLimit(1...4)
                 .focused($focused)
@@ -262,6 +350,7 @@ private struct CommentComposer: View {
             .buttonStyle(.plain)
             .disabled(!canSend || sending)
             .accessibilityLabel("댓글 보내기")
+        }
         }
         .padding(.top, 4)
         .overlay(alignment: .bottomLeading) {
@@ -301,8 +390,10 @@ private struct CommentComposer: View {
             defer { sending = false }
             do {
                 try await model.postComment(
-                    body: body_.trimmingCharacters(in: .whitespacesAndNewlines))
+                    body: body_.trimmingCharacters(in: .whitespacesAndNewlines),
+                    parentId: replyTo?.id)
                 body_ = ""
+                replyTo = nil
                 focused = false
                 sendFailed = false
             } catch {

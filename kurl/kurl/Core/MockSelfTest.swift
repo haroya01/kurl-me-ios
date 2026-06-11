@@ -68,6 +68,20 @@ enum MockSelfTest {
             try await InteractionsAPI.createComment(postId: 9001, body: "셀프테스트 댓글")
             log("engage.comment: posted")
 
+            // 서재·팔로잉 — 모아 보기 면
+            let bookmarks = try await LibraryAPI.bookmarks()
+            let likedList = try await LibraryAPI.likedPosts()
+            let subscribed = try await LibraryAPI.subscribedSeries()
+            let followingFeed = try await LibraryAPI.followingFeed()
+            log("library: bookmarks=\(bookmarks.count) liked=\(likedList.count) series=\(subscribed.count) following=\(followingFeed.items.count)")
+
+            // 댓글 인터랙션
+            let cLiked = try await InteractionsAPI.setCommentLike(commentId: 77, on: true)
+            let cIds = try await InteractionsAPI.likedCommentIds(postId: 9001)
+            try await InteractionsAPI.createComment(postId: 9001, body: "답글", parentId: 77)
+            try await InteractionsAPI.deleteComment(commentId: 77)
+            log("comments: like=\(cLiked.liked)(\(cLiked.likeCount)) likedIds=\(cIds.count) replyPosted deleted")
+
             // 분석 — 디코드 + 데이터 형태
             let overview = try await AnalyticsAPI.overview()
             log("analytics: windowViews=\(overview.windowViews) daily=\(overview.daily.count) referrers=\(overview.referrers.count) linkClicks=\(overview.windowLinkClicks)")

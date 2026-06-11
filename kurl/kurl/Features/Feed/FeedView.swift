@@ -8,14 +8,14 @@
 import SwiftUI
 
 struct FeedView: View {
-    @State private var selection: FeedSort = .recent
+    @State private var selection: FeedSource = .recent
     @Namespace private var zoomNS
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 // 상단 고정 탭 스트립 — 스크롤·스와이프와 동기화.
-                UnderlineTabs(items: FeedSort.allCases, selection: $selection) { $0.label }
+                UnderlineTabs(items: FeedSource.allCases, selection: $selection) { $0.label }
                     .padding(.horizontal, Metrics.gutter)
                     .padding(.top, 4)
                     .padding(.bottom, 10)
@@ -26,10 +26,10 @@ struct FeedView: View {
                 // 보임) 스크롤 축소도 안 걸렸다. 두 페이지를 ZStack 으로 살려두고(데이터·스크롤
                 // 위치 유지) 좌우 스와이프는 제스처로 직접 — ScrollView 가 탭 콘텐츠의 직계가 된다.
                 ZStack {
-                    ForEach(FeedSort.allCases) { sort in
-                        FeedPage(sort: sort, active: sort == selection, zoom: zoomNS)
-                            .opacity(sort == selection ? 1 : 0)
-                            .allowsHitTesting(sort == selection)
+                    ForEach(FeedSource.allCases) { source in
+                        FeedPage(source: source, active: source == selection, zoom: zoomNS)
+                            .opacity(source == selection ? 1 : 0)
+                            .allowsHitTesting(source == selection)
                     }
                 }
                 .animation(.snappy(duration: 0.28), value: selection)
@@ -40,7 +40,10 @@ struct FeedView: View {
                             let dy = value.translation.height
                             guard abs(dx) > 60, abs(dx) > abs(dy) * 1.5 else { return }
                             withAnimation(.snappy(duration: 0.28)) {
-                                selection = dx < 0 ? .trending : .recent
+                                let all = FeedSource.allCases
+                                guard let idx = all.firstIndex(of: selection) else { return }
+                                let next = dx < 0 ? min(idx + 1, all.count - 1) : max(idx - 1, 0)
+                                selection = all[next]
                             }
                         }
                 )
@@ -62,20 +65,24 @@ struct FeedView: View {
 
 /// 한 정렬(최신/인기)의 피드 페이지. TabView 가 살려두므로 스와이프해도 상태 유지.
 struct FeedPage: View {
-    let sort: FeedSort
+    let source: FeedSource
     let active: Bool
     let zoom: Namespace.ID
     @State private var model: FeedViewModel
 
-    init(sort: FeedSort, active: Bool, zoom: Namespace.ID) {
-        self.sort = sort
+    init(source: FeedSource, active: Bool, zoom: Namespace.ID) {
+        self.source = source
         self.active = active
         self.zoom = zoom
-        _model = State(initialValue: FeedViewModel(sort: sort))
+        _model = State(initialValue: FeedViewModel(source: source))
     }
 
     var body: some View {
         Group {
+            // 팔로잉은 인증 피드 — 로그아웃이면 게이트.
+            if source == .following, !AuthStore.shared.isSignedIn {
+                followingGate
+            } else {
             switch model.phase {
             case .idle, .loading:
                 ProgressView().tint(Palette.accent)
@@ -85,8 +92,22 @@ struct FeedPage: View {
             case .loaded:
                 list
             }
+            }
         }
         .task { await model.loadInitial() }
+    }
+
+    private var followingGate: some View {
+        ContentUnavailableView {
+            Label("팔로잉", systemImage: "person.2")
+        } description: {
+            Text("로그인하면 팔로우한 작가와 구독한 시리즈의 새 글이 여기에 모여요.")
+        } actions: {
+            Button("로그인") {
+                Task { _ = try? await AuthStore.shared.signIn() }
+            }
+            .foregroundStyle(Palette.accent)
+        }
     }
 
     // 발견(browse) 면 = 1열 카드 그리드(#707 웹과 동일 문법). 행 사이 hairline 대신 카드 간격.
@@ -95,7 +116,7 @@ struct FeedPage: View {
             LazyVStack(alignment: .leading, spacing: 16) {
                 ForEach(Array(model.items.enumerated()), id: \.element.id) { index, item in
                     NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
-                        BlogCard(item: item, featured: index == 0 && sort == .recent)
+                        BlogCard(item: item, featured: index == 0 && source == .recent)
                     }
                     .buttonStyle(CardButtonStyle())
                     .modifier(ZoomSource(

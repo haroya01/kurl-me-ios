@@ -85,8 +85,35 @@ enum InteractionsAPI {
     // MARK: 댓글
 
     /// 작성 후 목록은 공개 엔드포인트로 다시 읽는다 — 생성 응답 형태에 묶이지 않게.
-    static func createComment(postId: Int64, body: String) async throws {
-        struct Body: Encodable { let body: String }
-        try await client.post("/posts/\(postId)/comments", body: Body(body: body), authenticated: true)
+    static func createComment(postId: Int64, body: String, parentId: Int64? = nil) async throws {
+        struct Body: Encodable {
+            let body: String
+            let parentId: Int64?
+        }
+        try await client.post(
+            "/posts/\(postId)/comments",
+            body: Body(body: body, parentId: parentId), authenticated: true)
     }
+
+    struct CommentLikeStatus: Decodable {
+        let likeCount: Int64
+        let liked: Bool
+    }
+
+    static func setCommentLike(commentId: Int64, on: Bool) async throws -> CommentLikeStatus {
+        on
+            ? try await client.post("/comments/\(commentId)/like", body: Empty(), authenticated: true)
+            : try await client.delete("/comments/\(commentId)/like", authenticated: true)
+    }
+
+    /// 공개 댓글 목록은 비인증 — 보는 사람의 likedByMe 만 이 인증 엔드포인트가 따로 답한다(#538).
+    static func likedCommentIds(postId: Int64) async throws -> [Int64] {
+        try await client.get("/posts/\(postId)/comments/liked", authenticated: true)
+    }
+
+    static func deleteComment(commentId: Int64) async throws {
+        try await client.deleteVoid("/comments/\(commentId)", authenticated: true)
+    }
+
+    private struct Empty: Encodable {}
 }

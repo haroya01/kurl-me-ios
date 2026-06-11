@@ -134,6 +134,7 @@ struct SeriesPostRef: Decodable, Hashable {
 
 struct PublicSeriesCard: Decodable, Identifiable {
     let id: Int64
+    let author: Author?
     let slug: String
     let title: String
     let postCount: Int
@@ -183,4 +184,5 @@ struct Comment: Decodable, Identifiable {
     let author: Author
     let body: String
     let createdAt: Date?
+    let likeCount: Int64?
 }

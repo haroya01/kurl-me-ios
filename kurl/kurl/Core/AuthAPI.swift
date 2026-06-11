@@ -46,6 +46,7 @@ struct TokenPair: Decodable {
 }
 
 struct Me: Decodable, Equatable {
+    let id: Int64?
     let email: String
     let username: String?
     let avatarUrl: String?

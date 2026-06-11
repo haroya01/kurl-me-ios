@@ -16,6 +16,10 @@ final class PostDetailViewModel {
 
     private(set) var phase: LoadState<PublicPostDetail> = .idle
     private(set) var comments: [Comment] = []
+    /// 보는 사람이 좋아요한 댓글 id — 공개 목록과 별도의 인증 엔드포인트로 hydrate(#538 패턴).
+    private(set) var likedCommentIds: Set<Int64> = []
+    /// 낙관 카운트 보정(댓글 id → 증감) — 서버 likeCount 는 공개 목록 재로드 때만 갱신되므로.
+    private(set) var commentLikeDelta: [Int64: Int64] = [:]
 
     init(username: String, slug: String) {
         self.username = username
@@ -39,12 +43,40 @@ final class PostDetailViewModel {
 
     private func loadComments(postId: Int64) async {
         comments = (try? await BlogAPI.comments(postId: postId)) ?? []
+        commentLikeDelta = [:]
+        if AuthStore.shared.isSignedIn {
+            likedCommentIds = Set((try? await InteractionsAPI.likedCommentIds(postId: postId)) ?? [])
+        }
+    }
+
+    func displayLikeCount(_ comment: Comment) -> Int64 {
+        max(0, (comment.likeCount ?? 0) + (commentLikeDelta[comment.id] ?? 0))
+    }
+
+    func toggleCommentLike(_ comment: Comment) async {
+        let on = !likedCommentIds.contains(comment.id)
+        // 낙관 반영
+        if on { likedCommentIds.insert(comment.id) } else { likedCommentIds.remove(comment.id) }
+        commentLikeDelta[comment.id, default: 0] += on ? 1 : -1
+        do {
+            let status = try await InteractionsAPI.setCommentLike(commentId: comment.id, on: on)
+            commentLikeDelta[comment.id] = status.likeCount - (comment.likeCount ?? 0)
+            if status.liked { likedCommentIds.insert(comment.id) } else { likedCommentIds.remove(comment.id) }
+        } catch {
+            if on { likedCommentIds.remove(comment.id) } else { likedCommentIds.insert(comment.id) }
+            commentLikeDelta[comment.id, default: 0] += on ? -1 : 1
+        }
+    }
+
+    func deleteComment(_ comment: Comment) async throws {
+        try await InteractionsAPI.deleteComment(commentId: comment.id)
+        comments.removeAll { $0.id == comment.id || $0.parentId == comment.id }
     }
 
     /// 댓글 작성 → 공개 목록 재로드(생성 응답 형태에 의존하지 않는다).
-    func postComment(body: String) async throws {
+    func postComment(body: String, parentId: Int64? = nil) async throws {
         guard case .loaded(let detail) = phase else { return }
-        try await InteractionsAPI.createComment(postId: detail.post.id, body: body)
+        try await InteractionsAPI.createComment(postId: detail.post.id, body: body, parentId: parentId)
         await loadComments(postId: detail.post.id)
     }
 }

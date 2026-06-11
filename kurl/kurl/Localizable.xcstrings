@@ -17,6 +17,22 @@
         }
       }
     },
+    "%@님에게 답글": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Replying to %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@さんへの返信"
+          }
+        }
+      }
+    },
     "%@님이 글을 좋아합니다": {
       "localizations": {
         "en": {
@@ -329,6 +345,38 @@
         }
       }
     },
+    "구독한 시리즈": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subscribed Series"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "購読中のシリーズ"
+          }
+        }
+      }
+    },
+    "구독한 시리즈가 없습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No subscribed series"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "購読中のシリーズはありません"
+          }
+        }
+      }
+    },
     "글": {
       "localizations": {
         "en": {
@@ -553,6 +601,54 @@
         }
       }
     },
+    "답글": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reply"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返信"
+          }
+        }
+      }
+    },
+    "답글 취소": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel reply"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返信をやめる"
+          }
+        }
+      }
+    },
+    "답글을 남겨보세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write a reply"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返信を書く"
+          }
+        }
+      }
+    },
     "댓글 %lld": {
       "localizations": {
         "en": {
@@ -581,6 +677,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "コメントを送信"
+          }
+        }
+      }
+    },
+    "댓글 삭제": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete comment"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コメントを削除"
+          }
+        }
+      }
+    },
+    "댓글 좋아요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Like comment"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コメントにいいね"
+          }
+        }
+      }
+    },
+    "댓글 좋아요 취소": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlike comment"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コメントのいいねを取り消す"
           }
         }
       }
@@ -789,6 +933,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "ログインして書きましょう"
+          }
+        }
+      }
+    },
+    "로그인하면 팔로우한 작가와 구독한 시리즈의 새 글이 여기에 모여요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to see new posts from authors you follow and series you subscribe to."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログインすると、フォロー中の作家と購読中のシリーズの新着記事がここに集まります。"
           }
         }
       }
@@ -1113,6 +1273,22 @@
         }
       }
     },
+    "북마크한 글이 없습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No bookmarked posts"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブックマークした記事はありません"
+          }
+        }
+      }
+    },
     "분석": {
       "localizations": {
         "en": {
@@ -1145,6 +1321,22 @@
         }
       }
     },
+    "삭제": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除"
+          }
+        }
+      }
+    },
     "새 글": {
       "localizations": {
         "en": {
@@ -1173,6 +1365,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "サーバーエラー (%lld)"
+          }
+        }
+      }
+    },
+    "서재": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Library"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ライブラリ"
           }
         }
       }
@@ -1429,6 +1637,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "レスポンスを読み取れませんでした。"
+          }
+        }
+      }
+    },
+    "이 댓글을 삭제할까요?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete this comment?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このコメントを削除しますか？"
           }
         }
       }
@@ -1717,6 +1941,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "いいねとブックマークは kurl アカウントに紐づきます。"
+          }
+        }
+      }
+    },
+    "좋아요한 글": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Liked Posts"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "いいねした記事"
+          }
+        }
+      }
+    },
+    "좋아요한 글이 없습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No liked posts"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "いいねした記事はありません"
           }
         }
       }

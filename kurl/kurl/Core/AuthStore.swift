@@ -57,7 +57,7 @@ final class AuthStore {
         if Config.useMocks {
             // 목 모드 = 항상 로그인된 상태. Keychain·네트워크를 건드리지 않는다.
             isSignedIn = true
-            me = Me(email: "mock@kurl.me", username: "honggildong", avatarUrl: nil)
+            me = Me(id: 1, email: "mock@kurl.me", username: "honggildong", avatarUrl: nil)
             return
         }
         accessToken = Keychain.load(account: Self.accessAccount)

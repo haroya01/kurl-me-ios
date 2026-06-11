@@ -179,6 +179,16 @@ struct AccountView: View {
             }
             .padding(.top, 16)
 
+            // 서재 — 행동(좋아요·북마크·구독)의 모아 보기.
+            RailHeading("서재")
+                .padding(.top, 28)
+                .padding(.bottom, 4)
+            libraryRow("북마크", icon: "bookmark") { BookmarksView() }
+            Hairline()
+            libraryRow("좋아요한 글", icon: "heart") { LikedPostsView() }
+            Hairline()
+            libraryRow("구독한 시리즈", icon: "square.stack.3d.up") { SubscribedSeriesView() }
+
             Hairline()
                 .padding(.top, 24)
 
@@ -189,6 +199,31 @@ struct AccountView: View {
             .padding(.top, 18)
         }
         .task { await auth.loadMe() }
+    }
+
+    private func libraryRow(
+        _ title: LocalizedStringKey, icon: String, @ViewBuilder destination: @escaping () -> some View
+    ) -> some View {
+        NavigationLink {
+            destination()
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: icon)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Palette.accentMarker)
+                    .frame(width: 22)
+                Text(title)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Palette.ink)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Palette.secondary)
+            }
+            .padding(.vertical, 13)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(RowButtonStyle())
     }
 }
 

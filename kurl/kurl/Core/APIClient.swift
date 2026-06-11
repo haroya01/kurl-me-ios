@@ -108,6 +108,12 @@ struct APIClient {
         return try decode(data)
     }
 
+    /// 바디·응답 없는 DELETE (204).
+    func deleteVoid(_ path: String, authenticated: Bool = false) async throws {
+        let request = try makeRequest(path: path, query: [:], method: "DELETE")
+        _ = try await perform(request, authenticated: authenticated)
+    }
+
     /// 바디 없는 DELETE — 멱등 토글 오프.
     func delete<T: Decodable>(
         _ path: String,
