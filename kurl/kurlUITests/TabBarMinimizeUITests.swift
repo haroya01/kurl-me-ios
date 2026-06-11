@@ -22,10 +22,12 @@ final class TabBarMinimizeUITests: XCTestCase {
 
     /// 스크롤 내리면(콘텐츠 위로 스와이프) 바가 줄어드는지 — 프레임 폭으로 판정.
     /// iOS 26.0.x 시뮬 런타임은 tabBarMinimizeBehavior 자체가 동작하지 않는다
-    /// (Tab+ScrollView 교과서 케이스로 검증, 2026-06-11). 26.1+ 에서만 단정한다.
+    /// (Tab+ScrollView 교과서 케이스로 검증, 2026-06-11). 27.0 베타1 런타임도 동일
+    /// (글래스 전환 전 코드로 대조 확인, 2026-06-12). x.1+ 런타임에서만 단정한다.
     private func assertMinimizes(_ app: XCUIApplication, surface: String) throws {
         let version = ProcessInfo.processInfo.operatingSystemVersion
-        let runtimeBroken = version.majorVersion == 26 && version.minorVersion == 0
+        let runtimeBroken = version.minorVersion == 0
+            && (version.majorVersion == 26 || version.majorVersion == 27)
         let tabBar = app.tabBars.firstMatch
         XCTAssertTrue(tabBar.waitForExistence(timeout: 10), "\(surface): 탭바 자체가 없음")
         let before = tabBar.frame

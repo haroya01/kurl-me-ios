@@ -39,15 +39,16 @@ struct WriteHubView: View {
                         .tint(.brand)
                         .accessibilityLabel("분석")
                     }
-                    ToolbarItem(placement: .primaryAction) {
-                        Button {
-                            composing = true
-                        } label: {
-                            Image(systemName: "square.and.pencil")
-                        }
-                        .tint(.brand)
-                        .accessibilityLabel("새 글")
+                }
+            }
+            // 새 글 = 떠 있는 유리 FAB — 글쓰기 탭의 주행동을 엄지 아래로.
+            .overlay(alignment: .bottomTrailing) {
+                if auth.isSignedIn {
+                    GlassFAB(systemImage: "square.and.pencil", label: "새 글") {
+                        composing = true
                     }
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 12)
                 }
             }
             .navigationDestination(isPresented: $showAnalytics) {
@@ -198,9 +199,10 @@ struct WriteHubView: View {
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 48)
-                    .background(Palette.accentFill, in: RoundedRectangle(cornerRadius: 12))
+                    .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
+                .glassEffect(.regular.tint(GlassTokens.prominentTint).interactive(), in: .capsule)
                 .disabled(isSigningIn)
                 .padding(.top, 22)
             }

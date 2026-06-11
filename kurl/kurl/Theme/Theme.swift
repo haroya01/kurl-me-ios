@@ -73,3 +73,16 @@ enum Metrics {
     static let readingColumn: CGFloat = 672
     static let gutter: CGFloat = 20
 }
+
+/// Liquid Glass 토큰 — "종이 본문, 액체 크롬"(AGENTS.md §1).
+/// 유리는 떠 있는 크롬에만 산다. 종이 세계 토큰은 위 Palette 그대로.
+enum GlassTokens {
+    /// 흰 라벨을 받는 유리 틴트 = accent-700 — §10.3 600/700 규칙의 유리판.
+    static let prominentTint = Palette.accentFill
+    /// 커버 사진 위 맑은 유리의 가독 틴트 — 어떤 사진에서도 흰 타이포가 서게.
+    static let mediaScrim = Color.black.opacity(0.32)
+    /// 큰 유리 면(독·패널) 모서리. 컨트롤은 캡슐이 기본.
+    static let panelRadius: CGFloat = 24
+    /// 유리 클러스터 간격 — GlassEffectContainer 가 이 거리부터 서로 녹여 붙인다.
+    static let clusterSpacing: CGFloat = 18
+}

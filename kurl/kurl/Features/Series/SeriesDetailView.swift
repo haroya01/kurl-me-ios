@@ -33,6 +33,7 @@ struct SeriesDetailView: View {
             .padding(.horizontal, Metrics.gutter)
         }
         .scrollIndicators(.hidden)
+        .scrollEdgeEffectStyle(.soft, for: .top)
         .navigationTitle("시리즈")
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }

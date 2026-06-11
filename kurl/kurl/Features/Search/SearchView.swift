@@ -90,6 +90,7 @@ struct SearchView: View {
                 .padding(.horizontal, Metrics.gutter)
             }
             .scrollIndicators(.hidden)
+            .scrollEdgeEffectStyle(.soft, for: .top)
         }
     }
 

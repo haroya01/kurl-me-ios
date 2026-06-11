@@ -60,6 +60,8 @@ struct ReadingColumn<Content: View>: View {
             .padding(.horizontal, Metrics.gutter)
         }
         .scrollIndicators(.hidden)
+        // 콘텐츠가 유리 크롬 밑으로 흐를 때의 가장자리 — soft 가 기본 정책(AGENTS.md §1).
+        .scrollEdgeEffectStyle(.soft, for: .top)
         .background(Palette.pageBg)
     }
 }
@@ -89,46 +91,6 @@ struct Hairline: View {
         Rectangle()
             .fill(Palette.hairline)
             .frame(height: 1)
-    }
-}
-
-// MARK: 그린 밑줄 탭 (active = 그린 한 가닥)
-
-struct UnderlineTabs<T: Hashable & Identifiable>: View {
-    let items: [T]
-    @Binding var selection: T
-    let label: (T) -> String
-    @Namespace private var ns
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        HStack(spacing: 22) {
-            ForEach(items) { item in
-                let active = item == selection
-                Button {
-                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.28)) { selection = item }
-                } label: {
-                    VStack(spacing: 7) {
-                        Text(label(item))
-                            .font(.system(size: 15, weight: active ? .semibold : .regular))
-                            .foregroundStyle(active ? Palette.ink : Palette.secondary)
-                        ZStack {
-                            Capsule().fill(.clear).frame(height: 2)
-                            if active {
-                                Capsule().fill(Palette.accent).frame(height: 2)
-                                    .matchedGeometryEffect(id: "underline", in: ns)
-                            }
-                        }
-                    }
-                    .fixedSize()
-                    .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: active)
-                    .expandTapTarget(10)
-                }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(active ? [.isSelected] : [])
-            }
-            Spacer(minLength: 0)
-        }
     }
 }
 
@@ -225,10 +187,10 @@ struct ToastHost: ViewModifier {
             if let message = center.message {
                 Text(message)
                     .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Color(uiColor: .systemBackground))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 9)
-                    .background(Color(uiColor: .label).opacity(0.88), in: Capsule())
+                    .foregroundStyle(.primary)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .glassEffect(.regular, in: .capsule)
                     .padding(.bottom, 74)
                     .allowsHitTesting(false)
                     .transition(.move(edge: .bottom).combined(with: .opacity))

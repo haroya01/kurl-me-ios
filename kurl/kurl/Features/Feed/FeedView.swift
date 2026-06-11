@@ -17,40 +17,37 @@ struct FeedView: View {
         // 그 탭에서 동작하지 않는다(시스템 버그, 기기에서도 재현). 깊은 푸시의 zoom
         // 중복 발화 가드보다 바 최소화가 우선이라 path 없이 간다.
         NavigationStack {
-            VStack(spacing: 0) {
-                // 상단 고정 탭 스트립 — 스크롤·스와이프와 동기화.
-                UnderlineTabs(items: FeedSource.allCases, selection: $selection) { $0.label }
-                    .padding(.horizontal, Metrics.gutter)
-                    .padding(.top, 4)
-                    .padding(.bottom, 10)
-                Hairline()
-
-                // 페이지형 TabView(UIPageViewController) 중첩은 Liquid Glass 가 활성 탭의
-                // 스크롤뷰를 못 찾게 만들어 하단 바 아래로 콘텐츠가 흐르지 않고(별도 영역처럼
-                // 보임) 스크롤 축소도 안 걸렸다. 두 페이지를 ZStack 으로 살려두고(데이터·스크롤
-                // 위치 유지) 좌우 스와이프는 제스처로 직접 — ScrollView 가 탭 콘텐츠의 직계가 된다.
-                ZStack {
-                    ForEach(FeedSource.allCases) { source in
-                        FeedPage(source: source, active: source == selection, zoom: zoomNS)
-                            .opacity(source == selection ? 1 : 0)
-                            .allowsHitTesting(source == selection)
-                    }
+            // 페이지형 TabView(UIPageViewController) 중첩은 Liquid Glass 가 활성 탭의
+            // 스크롤뷰를 못 찾게 만들어 하단 바 아래로 콘텐츠가 흐르지 않고(별도 영역처럼
+            // 보임) 스크롤 축소도 안 걸렸다. 두 페이지를 ZStack 으로 살려두고(데이터·스크롤
+            // 위치 유지) 좌우 스와이프는 제스처로 직접 — ScrollView 가 탭 콘텐츠의 직계가 된다.
+            ZStack {
+                ForEach(FeedSource.allCases) { source in
+                    FeedPage(source: source, active: source == selection, zoom: zoomNS)
+                        .opacity(source == selection ? 1 : 0)
+                        .allowsHitTesting(source == selection)
                 }
-                .animation(reduceMotion ? nil : .snappy(duration: 0.28), value: selection)
-                .simultaneousGesture(
-                    DragGesture(minimumDistance: 30)
-                        .onEnded { value in
-                            let dx = value.translation.width
-                            let dy = value.translation.height
-                            guard abs(dx) > 60, abs(dx) > abs(dy) * 1.5 else { return }
-                            withAnimation(reduceMotion ? nil : .snappy(duration: 0.28)) {
-                                let all = FeedSource.allCases
-                                guard let idx = all.firstIndex(of: selection) else { return }
-                                let next = dx < 0 ? min(idx + 1, all.count - 1) : max(idx - 1, 0)
-                                selection = all[next]
-                            }
+            }
+            .animation(reduceMotion ? nil : .snappy(duration: 0.28), value: selection)
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 30)
+                    .onEnded { value in
+                        let dx = value.translation.width
+                        let dy = value.translation.height
+                        guard abs(dx) > 60, abs(dx) > abs(dy) * 1.5 else { return }
+                        withAnimation(reduceMotion ? nil : .snappy(duration: 0.28)) {
+                            let all = FeedSource.allCases
+                            guard let idx = all.firstIndex(of: selection) else { return }
+                            let next = dx < 0 ? min(idx + 1, all.count - 1) : max(idx - 1, 0)
+                            selection = all[next]
                         }
-                )
+                    }
+            )
+            // 고정 스트립 대신 떠 있는 유리 — 카드가 캡슐 양옆·뒤로 그대로 흐른다.
+            .safeAreaInset(edge: .top) {
+                GlassSegmentSwitcher(items: FeedSource.allCases, selection: $selection) { $0.label }
+                    .padding(.top, 2)
+                    .padding(.bottom, 8)
             }
             .background(Palette.pageBg)
             .toolbar(.hidden, for: .navigationBar)
@@ -157,6 +154,7 @@ struct FeedPage: View {
             .padding(.horizontal, Metrics.gutter)
         }
         .scrollIndicators(.hidden)
+        .scrollEdgeEffectStyle(.soft, for: .top)
         .refreshable { await model.reload() }
     }
 

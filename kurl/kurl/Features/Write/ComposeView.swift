@@ -200,11 +200,17 @@ struct ComposeView: View {
             Button("저장") { Task { await save(publish: false) } }
                 .disabled(!canSave || busy)
             if status != "PUBLISHED" {
+                // 발행 = 이 화면의 주행동 — 핀 안에서 그린(700) 유리로 차오른다.
                 Button("발행") { Task { await save(publish: true) } }
                     .font(.body.weight(.semibold))
-                    .tint(.brand)
+                    .buttonStyle(.glassProminent)
+                    .tint(GlassTokens.prominentTint)
                     .disabled(!canSave || busy)
             }
+        }
+        // ⋯ 는 별도 유리 핀으로 — 저장·발행 묶음과 부가 동작을 물리적으로 분리.
+        ToolbarSpacer(.fixed, placement: .primaryAction)
+        ToolbarItem(placement: .primaryAction) {
             Menu {
                 Button {
                     openPreview()

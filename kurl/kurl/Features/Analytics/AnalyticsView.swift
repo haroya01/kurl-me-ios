@@ -162,13 +162,16 @@ struct AnalyticsView: View {
     @ViewBuilder
     private var postPerformanceSection: some View {
         if let performance, !performance.items.isEmpty {
-            HStack(alignment: .firstTextBaseline) {
+            HStack(alignment: .center) {
                 RailHeading("글별 성과")
                 Spacer()
-                HStack(spacing: 6) {
-                    sortChip("조회", key: "views")
-                    sortChip("좋아요", key: "likes")
-                    sortChip("최신", key: "recent")
+                // 정렬 = 유리 칩 클러스터 — 가까이 붙어 서로 녹아 보이는 컨트롤 군.
+                GlassEffectContainer(spacing: 8) {
+                    HStack(spacing: 5) {
+                        sortChip("조회", key: "views")
+                        sortChip("좋아요", key: "likes")
+                        sortChip("최신", key: "recent")
+                    }
                 }
             }
             .padding(.top, 24)
@@ -284,21 +287,20 @@ struct AnalyticsView: View {
     // MARK: 조각
 
     private func sortChip(_ label: LocalizedStringKey, key: String) -> some View {
-        Button {
+        let active = performanceSort == key
+        return Button {
             resort(key)
         } label: {
             Text(label)
-                .font(.system(size: 12, weight: performanceSort == key ? .semibold : .regular))
-                .foregroundStyle(performanceSort == key ? Palette.link : Palette.secondary)
-                .padding(.horizontal, 9)
-                .padding(.vertical, 4)
-                .background {
-                    if performanceSort == key {
-                        Capsule().fill(Palette.chipBg)
-                    }
-                }
+                .font(.system(size: 12, weight: active ? .semibold : .regular))
+                .foregroundStyle(active ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
+                .padding(.horizontal, 11)
+                .padding(.vertical, 6)
+                .contentShape(Capsule())
         }
         .buttonStyle(.plain)
+        .glassCapsule(prominent: active)
+        .accessibilityAddTraits(active ? [.isSelected] : [])
     }
 
     private func metaCount(_ icon: String, _ value: Int64) -> some View {

@@ -45,18 +45,6 @@ struct BlogCard: View {
                 .saturation(0.85)
             }
             .overlay(Palette.coverVeil)
-            .overlay {
-                // 하단 가독 scrim — 제목·메타가 어떤 사진 위에서도 읽히게.
-                LinearGradient(
-                    stops: [
-                        .init(color: .black.opacity(0.70), location: 0),
-                        .init(color: .black.opacity(0.10), location: 0.55),
-                        .init(color: .clear, location: 1),
-                    ],
-                    startPoint: .bottom,
-                    endPoint: .top
-                )
-            }
             .overlay(alignment: .top) {
                 // 상단 scrim — 좌상단 태그/featured 뱃지 가독용.
                 LinearGradient(
@@ -77,7 +65,9 @@ struct BlogCard: View {
                 }
                 .padding(14)
             }
-            .overlay(alignment: .bottomLeading) {
+            .overlay(alignment: .bottom) {
+                // 하단 타이포 띠 = 맑은 유리 — 카드 안 유리의 유일한 예외(AGENTS.md §1.5).
+                // 무거운 그라데이션 대신 사진이 띠 뒤로 비치고, 가독은 mediaScrim 틴트가 잡는다.
                 VStack(alignment: .leading, spacing: 8) {
                     Text(item.title)
                         .font(.system(size: (featured ? 20 : 18) * titleUnit, weight: .semibold))
@@ -88,6 +78,12 @@ struct BlogCard: View {
                     CardMeta(item: item, over: true)
                 }
                 .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .glassEffect(
+                    .clear.tint(GlassTokens.mediaScrim),
+                    in: UnevenRoundedRectangle(
+                        cornerRadii: .init(bottomLeading: 16, bottomTrailing: 16),
+                        style: .continuous))
             }
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .overlay {

@@ -5,8 +5,8 @@
 
 import SwiftUI
 
-/// 작가 페이지의 팔로우 버튼 + 팔로워 수 — 그린 실 규칙: 채움(팔로우 전) = accent-700,
-/// 팔로잉 상태는 muted 외곽선으로 가라앉는다. 토글은 낙관, 실패 시 서버 상태로 복귀.
+/// 작가 페이지의 팔로우 버튼 + 팔로워 수 — 유리 캡슐 문법: 팔로우 전 = 그린(700) 유리,
+/// 팔로잉 상태는 맑은 유리로 가라앉는다. 토글은 낙관, 실패 시 서버 상태로 복귀.
 struct FollowButton: View {
     @State private var model: FollowModel
     @State private var showLoginPrompt = false
@@ -24,18 +24,13 @@ struct FollowButton: View {
             } label: {
                 Text(model.following ? "팔로잉" : "팔로우")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(model.following ? Palette.body : .white)
+                    .foregroundStyle(model.following ? AnyShapeStyle(.primary) : AnyShapeStyle(.white))
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 7)
-                    .background {
-                        if model.following {
-                            Capsule().strokeBorder(Palette.hairlineStrong, lineWidth: 1)
-                        } else {
-                            Capsule().fill(Palette.accentFill)
-                        }
-                    }
+                    .padding(.vertical, 8)
+                    .contentShape(Capsule())
             }
             .buttonStyle(.plain)
+            .glassCapsule(prominent: !model.following)
             .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: model.following)
 
             if let count = model.followerCount {

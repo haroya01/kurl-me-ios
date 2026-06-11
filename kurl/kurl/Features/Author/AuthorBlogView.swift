@@ -33,6 +33,7 @@ struct AuthorBlogView: View {
             .padding(.horizontal, Metrics.gutter)
         }
         .scrollIndicators(.hidden)
+        .scrollEdgeEffectStyle(.soft, for: .top)
         .navigationTitle(username)
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }

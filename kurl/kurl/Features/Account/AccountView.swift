@@ -20,10 +20,20 @@ struct AccountView: View {
     var body: some View {
         NavigationStack {
             ReadingColumn(spacing: 0) {
-                if auth.isSignedIn {
-                    signedIn
-                } else {
-                    signedOut
+                Group {
+                    if auth.isSignedIn {
+                        signedIn
+                    } else {
+                        signedOut
+                    }
+                }
+                // 정체 패널(유리)이 설 자리 — 옅은 브랜드 안개가 유리 뒤로 흐른다.
+                // (ReadingColumn 의 pageBg 안쪽이어야 보인다. 가터를 음수로 물려 전폭.)
+                .background(alignment: .top) {
+                    BrandMist()
+                        .frame(height: 300)
+                        .mask(LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom))
+                        .padding(.horizontal, -Metrics.gutter)
                 }
             }
             .navigationTitle("내 계정")
@@ -104,40 +114,48 @@ struct AccountView: View {
             RailHeading("계정")
                 .padding(.top, 28)
 
-            Text("kurl에 로그인")
-                .font(.system(size: 24, weight: .bold))
-                .foregroundStyle(Palette.ink)
-                .padding(.top, 14)
+            // 환대의 유리 패널 — 안개 위에 뜬 한 장. 본문 타이포는 유리 위 시맨틱.
+            VStack(alignment: .leading, spacing: 0) {
+                Text("kurl에 로그인")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundStyle(.primary)
 
-            Text("좋아요와 북마크, 구독, 그리고 글쓰기까지 — 웹과 같은 계정 하나로 이어집니다.")
-                .font(.system(size: 15))
-                .foregroundStyle(Palette.secondary)
-                .lineSpacing(4)
-                .padding(.top, 8)
+                Text("좋아요와 북마크, 구독, 그리고 글쓰기까지 — 웹과 같은 계정 하나로 이어집니다.")
+                    .font(.system(size: 15))
+                    .foregroundStyle(.secondary)
+                    .lineSpacing(4)
+                    .padding(.top, 8)
 
-            Button {
-                startSignIn()
-            } label: {
-                HStack(spacing: 8) {
-                    if isSigningIn {
-                        ProgressView().tint(.white)
+                Button {
+                    startSignIn()
+                } label: {
+                    HStack(spacing: 8) {
+                        if isSigningIn {
+                            ProgressView().tint(.white)
+                        }
+                        Text("Google로 계속하기")
+                            .font(.system(size: 15, weight: .semibold))
                     }
-                    Text("Google로 계속하기")
-                        .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    // 유리 패널 안 주행동 = 솔리드 그린 캡슐 — 유리 위 유리 금지(§1.4).
+                    .background(GlassTokens.prominentTint, in: Capsule())
+                    .contentShape(Capsule())
                 }
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .frame(height: 48)
-                .background(Palette.accentFill, in: RoundedRectangle(cornerRadius: 12))
-            }
-            .buttonStyle(.plain)
-            .disabled(isSigningIn)
-            .padding(.top, 24)
+                .buttonStyle(.plain)
+                .disabled(isSigningIn)
+                .padding(.top, 24)
 
-            Text("로그인은 시스템 브라우저에서 안전하게 진행됩니다.")
-                .font(.system(size: 12))
-                .foregroundStyle(Palette.secondary)
-                .padding(.top, 10)
+                Text("로그인은 시스템 브라우저에서 안전하게 진행됩니다.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 12)
+            }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .glassEffect(.regular, in: .rect(cornerRadius: GlassTokens.panelRadius))
+            .padding(.top, 16)
         }
     }
 
@@ -165,6 +183,7 @@ struct AccountView: View {
             RailHeading("계정")
                 .padding(.top, 28)
 
+            // 정체 카드 — 안개 위에 뜬 유리 한 장.
             HStack(spacing: 12) {
                 AvatarView(
                     author: Author(
@@ -173,17 +192,20 @@ struct AccountView: View {
                         bio: nil,
                         avatarUrl: auth.me?.avatarUrl
                     ),
-                    size: 44
+                    size: 52
                 )
                 VStack(alignment: .leading, spacing: 3) {
                     Text(auth.me?.username ?? "kurl")
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(Palette.ink)
+                        .foregroundStyle(.primary)
                     Text(auth.me?.email ?? "")
                         .font(.system(size: 13))
-                        .foregroundStyle(Palette.secondary)
+                        .foregroundStyle(.secondary)
                 }
+                Spacer(minLength: 0)
             }
+            .padding(18)
+            .glassEffect(.regular, in: .rect(cornerRadius: GlassTokens.panelRadius))
             .padding(.top, 16)
 
             // 서재 — 행동(좋아요·북마크·구독)의 모아 보기.
@@ -272,7 +294,7 @@ private struct TwoFactorSheet: View {
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
-                        .background(Palette.accentFill, in: RoundedRectangle(cornerRadius: 12))
+                        .background(GlassTokens.prominentTint, in: Capsule())
                 }
                 .buttonStyle(.plain)
                 .disabled(code.isEmpty || isVerifying)

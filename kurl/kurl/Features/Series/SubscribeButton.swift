@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-/// 시리즈 구독 버튼 — FollowButton 과 같은 문법(채움=accent-700, 구독 중=muted 외곽선).
+/// 시리즈 구독 버튼 — FollowButton 과 같은 유리 캡슐 문법(구독 전=그린 유리, 구독 중=맑은 유리).
 /// 새 글이 올라오면 알림으로 이어지는 구독이라 라벨은 "구독"으로.
 struct SubscribeButton: View {
     @State private var model: SubscribeModel
@@ -24,18 +24,13 @@ struct SubscribeButton: View {
             } label: {
                 Text(model.subscribed ? "구독 중" : "구독")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(model.subscribed ? Palette.body : .white)
+                    .foregroundStyle(model.subscribed ? AnyShapeStyle(.primary) : AnyShapeStyle(.white))
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 7)
-                    .background {
-                        if model.subscribed {
-                            Capsule().strokeBorder(Palette.hairlineStrong, lineWidth: 1)
-                        } else {
-                            Capsule().fill(Palette.accentFill)
-                        }
-                    }
+                    .padding(.vertical, 8)
+                    .contentShape(Capsule())
             }
             .buttonStyle(.plain)
+            .glassCapsule(prominent: !model.subscribed)
             .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: model.subscribed)
 
             if let count = model.subscriberCount, count > 0 {

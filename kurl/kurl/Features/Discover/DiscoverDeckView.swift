@@ -109,13 +109,17 @@ struct DiscoverDeckView: View {
             .task { await model.load() }
             .toolbar {
                 // 임베드된 상세는 내비바를 못 쓰므로 공유는 현재 장 기준으로 호스트가 든다.
-                ToolbarItemGroup(placement: .primaryAction) {
+                // 공유(현재 장)와 섞기(덱 전체)는 작용 범위가 달라 유리 핀도 분리한다.
+                ToolbarItem(placement: .primaryAction) {
                     if let url = currentShareURL {
                         ShareLink(item: url) {
                             Image(systemName: "square.and.arrow.up")
                         }
                         .tint(.brand)
                     }
+                }
+                ToolbarSpacer(.fixed, placement: .primaryAction)
+                ToolbarItem(placement: .primaryAction) {
                     Button {
                         Task { await model.reshuffle() }
                     } label: {

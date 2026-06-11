@@ -57,6 +57,7 @@ struct TagFeedView: View {
             .padding(.horizontal, Metrics.gutter)
         }
         .scrollIndicators(.hidden)
+        .scrollEdgeEffectStyle(.soft, for: .top)
         .navigationTitle("#\(tag)")
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }

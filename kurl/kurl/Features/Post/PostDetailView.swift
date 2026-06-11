@@ -10,6 +10,7 @@ import SwiftUI
 struct PostDetailView: View {
     @State private var model: PostDetailViewModel
     @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .largeTitle) private var titleSize: CGFloat = 30
     @ScaledMetric(relativeTo: .subheadline) private var commentSize: CGFloat = 14
 
@@ -38,6 +39,12 @@ struct PostDetailView: View {
     /// 손가락이 실제로 당기는 중일 때만 true — 플릭 관성의 바운스가 임계를 넘어도
     /// 다음 글로 튕겨가지 않게 한다.
     @State private var fingerDown = false
+
+    /// 단독 상세 전용 — 떠 있는 유리 독. 글 끝(컴포저 영역)에 닿으면 materialize 로
+    /// 물러나 입력을 가리지 않고, 본문이 한 화면이면(스크롤 불가) 물러날 이유가 없다.
+    @State private var scrollPosition = ScrollPosition()
+    @State private var endVisible = false
+    @State private var scrollable = false
 
     var body: some View {
         ScrollView {
@@ -72,7 +79,15 @@ struct PostDetailView: View {
         }
         .scrollIndicators(.hidden)
         .scrollDismissesKeyboard(.interactively)
+        .scrollPosition($scrollPosition)
+        .scrollEdgeEffectStyle(.soft, for: .bottom)
         .ignoresSafeArea(edges: hasCover && !embedded ? .top : [])
+        // 본문이 화면보다 긴지 — 독 후퇴 판정의 전제(짧은 글은 독이 유일한 인게이지 표면).
+        .onScrollGeometryChange(for: Bool.self) { geometry in
+            geometry.contentSize.height > geometry.containerSize.height
+        } action: { _, isScrollable in
+            scrollable = isScrollable
+        }
         .onChange(of: model.comments) {
             // 답글 대상이 삭제/소실되면 답글 모드를 푼다 — 영구 실패 루프 방지.
             if let target = replyTo, !model.comments.contains(where: { $0.id == target.id }) {
@@ -137,6 +152,20 @@ struct PostDetailView: View {
         .toolbarBackground(
             !embedded && hasCover && !showNavTitle ? .hidden : .automatic, for: .navigationBar)
         .navigationBarTitleDisplayMode(.inline)
+        .overlay(alignment: .bottomTrailing) {
+            if !embedded, case .loaded(let detail) = model.phase,
+               !(endVisible && scrollable) {
+                EngagementDock(postId: detail.post.id, initialLikeCount: detail.post.likeCount) {
+                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.45)) {
+                        scrollPosition.scrollTo(id: "comments", anchor: .top)
+                    }
+                }
+                .padding(.trailing, 14)
+                .padding(.bottom, 10)
+                .transition(.opacity)
+            }
+        }
+        .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: endVisible)
         .task { await model.load() }
     }
 
@@ -177,14 +206,21 @@ struct PostDetailView: View {
             FlowTags(tags: detail.post.tags)
                 .padding(.top, 26)
         }
-        EngagementBar(postId: detail.post.id, initialLikeCount: detail.post.likeCount)
-            .padding(.top, 8)
+        // 단독 상세의 좋아요·북마크는 떠 있는 유리 독이 맡는다 — 인라인 줄은 덱 전용.
+        if embedded {
+            EngagementBar(postId: detail.post.id, initialLikeCount: detail.post.likeCount)
+                .padding(.top, 8)
+        }
         if let nav = detail.series { seriesNav(nav, username: detail.author.username) }
         comments
+            .id("comments")
         if embedded, let next = nextPost {
             nextPostCue(next)
         }
-        Color.clear.frame(height: 40)
+        Color.clear.frame(height: 56)
+            .onScrollVisibilityChange(threshold: 0.2) { visible in
+                if !embedded { endVisible = visible }
+            }
     }
 
     /// 본문 끝의 조용한 신호 — 더 당기면 이 작가의 다음 글로 이어진다.
