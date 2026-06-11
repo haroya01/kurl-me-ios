@@ -19,6 +19,9 @@ struct RootView: View {
             Tab("", systemImage: "safari") {
                 DiscoverView()
             }
+            Tab("", systemImage: "square.and.pencil") {
+                WriteHubView()
+            }
             Tab("", systemImage: "magnifyingglass") {
                 SearchView()
             }

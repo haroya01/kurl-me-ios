@@ -84,6 +84,18 @@ struct APIClient {
         return try decode(data)
     }
 
+    /// JSON 바디 PUT (본문 교체 등).
+    func put<B: Encodable, T: Decodable>(
+        _ path: String,
+        body: B,
+        as type: T.Type = T.self,
+        authenticated: Bool = false
+    ) async throws -> T {
+        let request = try makeRequest(path: path, query: [:], method: "PUT", body: try encode(body))
+        let data = try await perform(request, authenticated: authenticated)
+        return try decode(data)
+    }
+
     /// 바디 없는 DELETE — 멱등 토글 오프.
     func delete<T: Decodable>(
         _ path: String,
