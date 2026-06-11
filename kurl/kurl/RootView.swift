@@ -17,7 +17,7 @@ struct RootView: View {
                 FeedView()
             }
             Tab("", systemImage: "safari") {
-                DiscoverView()
+                DiscoverDeckView()
             }
             Tab("", systemImage: "square.and.pencil") {
                 WriteHubView()
