@@ -72,12 +72,12 @@ final class DiscoverDeckModel {
 
 struct DiscoverDeckView: View {
     @State private var model = DiscoverDeckModel()
-    @State private var path = NavigationPath()
     @Namespace private var zoomNS
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        NavigationStack(path: $path) {
+        // path 바인딩 금지 — tabBarMinimizeBehavior 가 죽는다(FeedView 참조).
+        NavigationStack {
             Group {
                 switch model.phase {
                 case .idle, .loading:
@@ -111,7 +111,7 @@ struct DiscoverDeckView: View {
             .navigationTitle("발견")
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: Route.self) { route in
-                if case .post(let username, let slug) = route, path.count <= 1, !reduceMotion {
+                if case .post(let username, let slug) = route, !reduceMotion {
                     RouteView(route: route)
                         .navigationTransition(.zoom(sourceID: "deck-\(username)-\(slug)", in: zoomNS))
                 } else {

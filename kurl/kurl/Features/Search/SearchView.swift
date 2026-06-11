@@ -11,7 +11,6 @@ struct SearchView: View {
     @State private var query = ""
     @State private var phase: LoadState<[FeedItem]> = .idle
     @State private var searchTask: Task<Void, Never>?
-    @State private var path = NavigationPath()
     @Namespace private var zoomNS
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -24,7 +23,8 @@ struct SearchView: View {
     @State private var generation = 0
 
     var body: some View {
-        NavigationStack(path: $path) {
+        // path 바인딩 금지 — tabBarMinimizeBehavior 가 죽는다(FeedView 참조).
+        NavigationStack {
             Group {
                 switch phase {
                 case .idle:
@@ -43,7 +43,7 @@ struct SearchView: View {
             .navigationTitle("검색")
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: Route.self) { route in
-                if case .post(let username, let slug) = route, path.count <= 1, !reduceMotion {
+                if case .post(let username, let slug) = route, !reduceMotion {
                     RouteView(route: route)
                         .navigationTransition(.zoom(sourceID: "search-\(username)-\(slug)", in: zoomNS))
                 } else {

@@ -9,6 +9,7 @@
 /* Begin PBXFileReference section */
 		D3696C7C2FD48A89006D9F90 /* kurl.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = kurl.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D400000000000000000000A1 /* kurlWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = kurlWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		D500000000000000000000B1 /* kurlUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = kurlUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXBuildFile section */
@@ -22,6 +23,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = D400000000000000000000A6;
 			remoteInfo = kurlWidgetExtension;
+		};
+		D500000000000000000000B2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D3696C742FD48A89006D9F90 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D3696C7B2FD48A89006D9F90;
+			remoteInfo = kurl;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -74,6 +82,11 @@
 			path = kurlWidget;
 			sourceTree = "<group>";
 		};
+		D500000000000000000000B4 /* kurlUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = kurlUITests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -91,6 +104,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D500000000000000000000B8 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -99,6 +119,7 @@
 			children = (
 				D3696C7E2FD48A89006D9F90 /* kurl */,
 				D400000000000000000000A2 /* kurlWidget */,
+				D500000000000000000000B4 /* kurlUITests */,
 				D3696C7D2FD48A89006D9F90 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -108,6 +129,7 @@
 			children = (
 				D3696C7C2FD48A89006D9F90 /* kurl.app */,
 				D400000000000000000000A1 /* kurlWidgetExtension.appex */,
+				D500000000000000000000B1 /* kurlUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -161,6 +183,29 @@
 			productReference = D400000000000000000000A1 /* kurlWidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		D500000000000000000000B5 /* kurlUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D500000000000000000000B6 /* Build configuration list for PBXNativeTarget "kurlUITests" */;
+			buildPhases = (
+				D500000000000000000000B7 /* Sources */,
+				D500000000000000000000B8 /* Frameworks */,
+				D500000000000000000000B9 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D500000000000000000000B3 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				D500000000000000000000B4 /* kurlUITests */,
+			);
+			name = kurlUITests;
+			packageProductDependencies = (
+			);
+			productName = kurlUITests;
+			productReference = D500000000000000000000B1 /* kurlUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXTargetDependency section */
@@ -168,6 +213,11 @@
 			isa = PBXTargetDependency;
 			target = D400000000000000000000A6 /* kurlWidgetExtension */;
 			targetProxy = D400000000000000000000AA /* PBXContainerItemProxy */;
+		};
+		D500000000000000000000B3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D3696C7B2FD48A89006D9F90 /* kurl */;
+			targetProxy = D500000000000000000000B2 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -184,6 +234,10 @@
 					};
 					D400000000000000000000A6 = {
 						CreatedOnToolsVersion = 26.0.1;
+					};
+					D500000000000000000000B5 = {
+						CreatedOnToolsVersion = 26.0.1;
+						TestTargetID = D3696C7B2FD48A89006D9F90;
 					};
 				};
 			};
@@ -205,6 +259,7 @@
 			targets = (
 				D3696C7B2FD48A89006D9F90 /* kurl */,
 				D400000000000000000000A6 /* kurlWidgetExtension */,
+				D500000000000000000000B5 /* kurlUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -224,6 +279,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D500000000000000000000B9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -235,6 +297,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		D400000000000000000000A3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D500000000000000000000B7 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -483,6 +552,42 @@
 			};
 			name = Release;
 		};
+		D500000000000000000000BA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5R78H9H4YU;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = focustime.kurlUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = kurl;
+			};
+			name = Debug;
+		};
+		D500000000000000000000BB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5R78H9H4YU;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = focustime.kurlUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = kurl;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -509,6 +614,15 @@
 			buildConfigurations = (
 				D400000000000000000000A8 /* Debug */,
 				D400000000000000000000A9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D500000000000000000000B6 /* Build configuration list for PBXNativeTarget "kurlUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D500000000000000000000BA /* Debug */,
+				D500000000000000000000BB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

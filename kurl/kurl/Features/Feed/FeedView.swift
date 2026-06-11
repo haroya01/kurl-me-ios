@@ -9,12 +9,14 @@ import SwiftUI
 
 struct FeedView: View {
     @State private var selection: FeedSource = .recent
-    @State private var path = NavigationPath()
     @Namespace private var zoomNS
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        NavigationStack(path: $path) {
+        // NavigationStack 에 path 를 바인딩하면 iOS 26 의 tabBarMinimizeBehavior 가
+        // 그 탭에서 동작하지 않는다(시스템 버그, 기기에서도 재현). 깊은 푸시의 zoom
+        // 중복 발화 가드보다 바 최소화가 우선이라 path 없이 간다.
+        NavigationStack {
             VStack(spacing: 0) {
                 // 상단 고정 탭 스트립 — 스크롤·스와이프와 동기화.
                 UnderlineTabs(items: FeedSource.allCases, selection: $selection) { $0.label }
@@ -53,9 +55,9 @@ struct FeedView: View {
             .background(Palette.pageBg)
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: Route.self) { route in
-                // 카드에서 출발한 "루트 직속" 글만 zoom — 글→시리즈→글 같은 깊은 푸시가
-                // 스택 뒤에 가려진 카드에서 zoom 을 발화하지 않게.
-                if case .post(let username, let slug) = route, path.count <= 1, !reduceMotion {
+                // 글 푸시만 zoom. 소스 카드가 화면에 없으면(깊은 푸시) 시스템이 표준
+                // 푸시로 폴백한다.
+                if case .post(let username, let slug) = route, !reduceMotion {
                     RouteView(route: route)
                         .navigationTransition(.zoom(sourceID: "post-\(username)-\(slug)", in: zoomNS))
                 } else {
