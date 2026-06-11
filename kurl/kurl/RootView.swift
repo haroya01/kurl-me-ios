@@ -9,20 +9,23 @@ import SwiftUI
 
 struct RootView: View {
     var body: some View {
+        // 스레드식 하단바: 라벨 없는 아이콘-온리 탭 + 스크롤 내릴 때 바가 최소화되는
+        // iOS 26 네이티브 동작. 검색은 role 로 분리돼 Liquid Glass 의 독립 pill 이 된다.
         TabView {
-            Tab("피드", systemImage: "doc.text.image") {
+            Tab("", systemImage: "doc.text.image") {
                 FeedView()
             }
-            Tab("발견", systemImage: "sparkles") {
+            Tab("", systemImage: "sparkles") {
                 DiscoverView()
             }
-            Tab("검색", systemImage: "magnifyingglass", role: .search) {
-                SearchView()
-            }
-            Tab("내 계정", systemImage: "person.crop.circle") {
+            Tab("", systemImage: "person.crop.circle") {
                 AccountView()
             }
+            Tab("", systemImage: "magnifyingglass", role: .search) {
+                SearchView()
+            }
         }
+        .tabBarMinimizeBehavior(.onScrollDown)
         .tint(.brand)
     }
 }

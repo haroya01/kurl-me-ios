@@ -49,6 +49,11 @@ enum Palette {
     static let link = Color(light: 0x047857, dark: 0x34D399) // accent-700/400
     static let accentFill = Color(hex: 0x047857)    // 흰 라벨 채움 = accent-700 (WCAG 4.5:1)
 
+    // 카드 (browse 면 전용 — 읽기 면은 여전히 flat 행)
+    static let cardBg = Color(light: 0xFFFFFF, dark: 0x0F172A)     // white / slate-900
+    static let cardBorder = Color(light: 0xE2E8F0, dark: 0x1E293B) // slate-200 / slate-800
+    static let coverVeil = Color(hex: 0x064E3B).opacity(0.10)      // accent-900/10 톤 베일
+
     // 코드
     static let codeBg = Color(hex: 0x0F172A)        // slate-900 (항상 어둡게)
     static let codeText = Color(hex: 0xF1F5F9)      // slate-100

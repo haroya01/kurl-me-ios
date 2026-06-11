@@ -43,16 +43,17 @@ struct SearchView: View {
         if items.isEmpty {
             ContentUnavailableView.search(text: query)
         } else {
+            // 검색도 browse 면 — 피드와 같은 카드 문법(웹 §10.1 예외와 동일 경계).
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                LazyVStack(alignment: .leading, spacing: 16) {
+                    ForEach(items) { item in
                         NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
-                            FeedRow(item: item)
+                            BlogCard(item: item)
                         }
-                        .buttonStyle(RowButtonStyle())
-                        if index < items.count - 1 { Hairline() }
+                        .buttonStyle(CardButtonStyle())
                     }
                 }
+                .padding(.vertical, 16)
                 .frame(maxWidth: Metrics.readingColumn)
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, Metrics.gutter)

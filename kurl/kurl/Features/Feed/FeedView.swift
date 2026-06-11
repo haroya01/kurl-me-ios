@@ -62,16 +62,16 @@ struct FeedPage: View {
         .task { await model.loadInitial() }
     }
 
+    // 발견(browse) 면 = 1열 카드 그리드(#707 웹과 동일 문법). 행 사이 hairline 대신 카드 간격.
     private var list: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 0) {
+            LazyVStack(alignment: .leading, spacing: 16) {
                 ForEach(Array(model.items.enumerated()), id: \.element.id) { index, item in
                     NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
-                        FeedRow(item: item, featured: index == 0 && sort == .recent)
+                        BlogCard(item: item, featured: index == 0 && sort == .recent)
                     }
-                    .buttonStyle(RowButtonStyle())
+                    .buttonStyle(CardButtonStyle())
                     .task { await model.loadMoreIfNeeded(current: item) }
-                    if index < model.items.count - 1 { Hairline() }
                 }
                 if model.isLoadingMore {
                     ProgressView().tint(Palette.accent)
@@ -82,6 +82,7 @@ struct FeedPage: View {
                         .padding(.top, 80)
                 }
             }
+            .padding(.vertical, 16)
             .frame(maxWidth: Metrics.readingColumn)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, Metrics.gutter)
