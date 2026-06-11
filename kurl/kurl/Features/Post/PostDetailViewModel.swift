@@ -38,4 +38,11 @@ final class PostDetailViewModel {
     private func loadComments(postId: Int64) async {
         comments = (try? await BlogAPI.comments(postId: postId)) ?? []
     }
+
+    /// 댓글 작성 → 공개 목록 재로드(생성 응답 형태에 의존하지 않는다).
+    func postComment(body: String) async throws {
+        guard case .loaded(let detail) = phase else { return }
+        try await InteractionsAPI.createComment(postId: detail.post.id, body: body)
+        await loadComments(postId: detail.post.id)
+    }
 }

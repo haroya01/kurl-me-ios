@@ -57,7 +57,7 @@ struct PostDetailView: View {
         }
         .padding(.top, 8)
         if let nav = detail.series { seriesNav(nav, username: detail.author.username) }
-        if !model.comments.isEmpty { comments }
+        comments
         Color.clear.frame(height: 40)
     }
 
@@ -168,8 +168,90 @@ struct PostDetailView: View {
                         .padding(.leading, 32)
                 }
             }
+            CommentComposer(model: model)
         }
         .padding(.vertical, 16)
+    }
+}
+
+/// 댓글 입력 한 줄 — 조용한 인라인 컴포저. 로그아웃 상태에서 보내려 하면 그 자리 로그인.
+private struct CommentComposer: View {
+    let model: PostDetailViewModel
+
+    @State private var body_ = ""
+    @State private var sending = false
+    @State private var showLoginPrompt = false
+    @State private var showTwoFactorHint = false
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        HStack(spacing: 8) {
+            TextField("댓글을 남겨보세요", text: $body_, axis: .vertical)
+                .font(.system(size: 14))
+                .lineLimit(1...4)
+                .focused($focused)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: 12))
+            Button {
+                send()
+            } label: {
+                if sending {
+                    ProgressView()
+                        .frame(width: 32, height: 32)
+                } else {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.system(size: 28))
+                        .foregroundStyle(canSend ? Palette.accent : Palette.faint)
+                }
+            }
+            .buttonStyle(.plain)
+            .disabled(!canSend || sending)
+        }
+        .padding(.top, 4)
+        .alert("로그인이 필요합니다", isPresented: $showLoginPrompt) {
+            Button("로그인") { signInHere() }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("댓글은 kurl 계정으로 남겨집니다.")
+        }
+        .alert("2단계 인증이 설정된 계정입니다", isPresented: $showTwoFactorHint) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text("내 계정 탭에서 로그인을 완료해 주세요.")
+        }
+    }
+
+    private var canSend: Bool {
+        !body_.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func send() {
+        guard AuthStore.shared.isSignedIn else {
+            showLoginPrompt = true
+            return
+        }
+        guard !sending else { return }
+        sending = true
+        Task {
+            defer { sending = false }
+            do {
+                try await model.postComment(
+                    body: body_.trimmingCharacters(in: .whitespacesAndNewlines))
+                body_ = ""
+                focused = false
+            } catch {
+                // 전송 실패 — 입력은 보존, 버튼이 다시 활성화된다.
+            }
+        }
+    }
+
+    private func signInHere() {
+        Task {
+            if (try? await AuthStore.shared.signIn()) == .twoFactorRequired {
+                showTwoFactorHint = true
+            }
+        }
     }
 }
 

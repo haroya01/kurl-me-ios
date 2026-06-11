@@ -63,4 +63,30 @@ enum InteractionsAPI {
             ? try await client.put("/users/\(username)/follow", authenticated: true)
             : try await client.delete("/users/\(username)/follow", authenticated: true)
     }
+
+    // MARK: 시리즈 구독
+
+    struct SeriesSubscriptionStatus: Decodable {
+        let subscribed: Bool
+        let subscriberCount: Int64
+    }
+
+    /// 구독 표면은 전부 인증 필요 — 비로그인은 hydrate 하지 않는다.
+    static func subscriptionStatus(seriesId: Int64) async throws -> SeriesSubscriptionStatus {
+        try await client.get("/series/\(seriesId)/subscription", authenticated: true)
+    }
+
+    static func setSubscription(seriesId: Int64, on: Bool) async throws -> SeriesSubscriptionStatus {
+        on
+            ? try await client.put("/series/\(seriesId)/subscription", authenticated: true)
+            : try await client.delete("/series/\(seriesId)/subscription", authenticated: true)
+    }
+
+    // MARK: 댓글
+
+    /// 작성 후 목록은 공개 엔드포인트로 다시 읽는다 — 생성 응답 형태에 묶이지 않게.
+    static func createComment(postId: Int64, body: String) async throws {
+        struct Body: Encodable { let body: String }
+        try await client.post("/posts/\(postId)/comments", body: Body(body: body), authenticated: true)
+    }
 }

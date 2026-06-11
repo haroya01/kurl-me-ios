@@ -49,6 +49,8 @@ struct SeriesDetailView: View {
                 .font(.system(size: 26, weight: .bold)).foregroundStyle(Palette.ink)
             Text("\(detail.author.username) · \(detail.series.postCount)편")
                 .font(.system(size: 14)).foregroundStyle(Palette.secondary)
+            SubscribeButton(seriesId: detail.series.id)
+                .padding(.top, 6)
         }
         .padding(.vertical, 16)
         Hairline()
