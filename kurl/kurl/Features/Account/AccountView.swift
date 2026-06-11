@@ -10,6 +10,7 @@ import SwiftUI
 struct AccountView: View {
     private var auth: AuthStore { .shared }
 
+    @Environment(\.scenePhase) private var scenePhase
     @State private var isSigningIn = false
     @State private var showTwoFactor = false
     @State private var showNotifications = false
@@ -62,6 +63,12 @@ struct AccountView: View {
                     Task { unreadCount = (try? await NotificationsAPI.unreadCount()) ?? 0 }
                 } else {
                     unreadCount = 0
+                }
+            }
+            .onChange(of: scenePhase) { _, newPhase in
+                // 며칠 만에 돌아와도 미읽음 점이 그제 상태로 남지 않게.
+                if newPhase == .active, auth.isSignedIn {
+                    Task { unreadCount = (try? await NotificationsAPI.unreadCount()) ?? unreadCount }
                 }
             }
             .navigationDestination(for: Route.self) { RouteView(route: $0) }

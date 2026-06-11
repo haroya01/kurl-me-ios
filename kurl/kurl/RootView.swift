@@ -42,26 +42,33 @@ struct RootView: View {
         // iOS 26 네이티브 동작. 검색에 role 을 주지 않는 건 의도 — role: .search 는
         // Liquid Glass 가 검색을 독립 pill 로 분리하는데, 한 바에 4탭이 모이는 쪽을 택했다.
         TabView(selection: $selection) {
+            // 빈 시각 라벨(스레드식)을 유지하면서 VoiceOver 라벨만 단다.
             Tab("", systemImage: "doc.text.image", value: 0) {
                 FeedView()
             }
+            .accessibilityLabel(Text("피드"))
             Tab("", systemImage: "safari", value: 1) {
                 DiscoverDeckView()
             }
+            .accessibilityLabel(Text("발견"))
             Tab("", systemImage: "square.and.pencil", value: 2) {
                 WriteHubView()
             }
+            .accessibilityLabel(Text("글쓰기"))
             Tab("", systemImage: "magnifyingglass", value: 3) {
                 SearchView()
             }
+            .accessibilityLabel(Text("검색"))
             Tab("", systemImage: "person.crop.circle", value: 4) {
                 AccountView()
             }
+            .accessibilityLabel(Text("내 계정"))
         }
         .tabBarMinimizeBehavior(.onScrollDown)
         .tint(.brand)
         // Dynamic Type 은 따르되 상한을 둔다 — 그 위 극단 크기는 카드/덱 레이아웃이 깨진다.
         .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+        .modifier(ToastHost())
     }
 }
 

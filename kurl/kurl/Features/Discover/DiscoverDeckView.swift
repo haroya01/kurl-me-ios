@@ -74,6 +74,7 @@ struct DiscoverDeckView: View {
     @State private var model = DiscoverDeckModel()
     @State private var path = NavigationPath()
     @Namespace private var zoomNS
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -110,7 +111,7 @@ struct DiscoverDeckView: View {
             .navigationTitle("발견")
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: Route.self) { route in
-                if case .post(let username, let slug) = route, path.count <= 1 {
+                if case .post(let username, let slug) = route, path.count <= 1, !reduceMotion {
                     RouteView(route: route)
                         .navigationTransition(.zoom(sourceID: "deck-\(username)-\(slug)", in: zoomNS))
                 } else {

@@ -13,6 +13,15 @@ struct SearchView: View {
     @State private var searchTask: Task<Void, Never>?
     @State private var path = NavigationPath()
     @Namespace private var zoomNS
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    // 페이지네이션 — 결과 30개에서 끊기지 않게. generation 은 새 검색이 시작되면
+    // 비행 중인 다음-페이지 응답을 버리는 스테일 가드.
+    @State private var activeQuery = ""
+    @State private var page = 0
+    @State private var hasNext = false
+    @State private var loadingMore = false
+    @State private var generation = 0
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -34,7 +43,7 @@ struct SearchView: View {
             .navigationTitle("검색")
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: Route.self) { route in
-                if case .post(let username, let slug) = route, path.count <= 1 {
+                if case .post(let username, let slug) = route, path.count <= 1, !reduceMotion {
                     RouteView(route: route)
                         .navigationTransition(.zoom(sourceID: "search-\(username)-\(slug)", in: zoomNS))
                 } else {
@@ -56,7 +65,7 @@ struct SearchView: View {
             // 검색도 browse 면 — 피드와 같은 카드 문법(웹 §10.1 예외와 동일 경계).
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 16) {
-                    ForEach(items) { item in
+                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                         NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
                             BlogCard(item: item)
                         }
@@ -66,6 +75,13 @@ struct SearchView: View {
                             id: "search-\(item.author.username)-\(item.slug)",
                             ns: zoomNS))
                         .modifier(CardScrollFade())
+                        .task {
+                            if index >= items.count - 5 { await loadMore() }
+                        }
+                    }
+                    if loadingMore {
+                        ProgressView().tint(Palette.accent)
+                            .frame(maxWidth: .infinity).padding(.vertical, 18)
                     }
                 }
                 .padding(.vertical, 16)
@@ -96,13 +112,33 @@ struct SearchView: View {
     }
 
     private func search(_ text: String) async {
+        generation += 1
+        let myGen = generation
         phase = .loading
         do {
-            let items = try await BlogAPI.feed(query: text, page: 0, size: 30).items
-            guard !Task.isCancelled else { return }
-            phase = .loaded(items)
+            let result = try await BlogAPI.feed(query: text, page: 0, size: 30)
+            guard !Task.isCancelled, myGen == generation else { return }
+            activeQuery = text
+            page = 0
+            hasNext = result.hasNext
+            phase = .loaded(result.items)
         } catch {
+            guard myGen == generation else { return }
             phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
+        }
+    }
+
+    private func loadMore() async {
+        guard hasNext, !loadingMore, case .loaded(let current) = phase else { return }
+        loadingMore = true
+        defer { loadingMore = false }
+        let myGen = generation
+        if let result = try? await BlogAPI.feed(query: activeQuery, page: page + 1, size: 30) {
+            // 그 사이 새 검색이 시작됐으면 이 페이지는 옛 질의의 것 — 버린다.
+            guard myGen == generation else { return }
+            page += 1
+            hasNext = result.hasNext
+            phase = .loaded(current + result.items)
         }
     }
 }

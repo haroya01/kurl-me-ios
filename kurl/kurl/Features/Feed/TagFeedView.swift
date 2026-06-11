@@ -11,6 +11,9 @@ struct TagFeedView: View {
     let tag: String
 
     @State private var phase: LoadState<[FeedItem]> = .idle
+    @State private var page = 0
+    @State private var hasNext = false
+    @State private var loadingMore = false
 
     var body: some View {
         ScrollView {
@@ -20,9 +23,15 @@ struct TagFeedView: View {
                     ProgressView().tint(Palette.accent)
                         .frame(maxWidth: .infinity, minHeight: 320)
                 case .failed(let message):
-                    ContentUnavailableView("불러오지 못했습니다", systemImage: "wifi.exclamationmark",
-                                           description: Text(message))
-                        .padding(.top, 80)
+                    ContentUnavailableView {
+                        Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
+                    } description: {
+                        Text(message)
+                    } actions: {
+                        Button("다시 시도") { Task { await load() } }
+                            .foregroundStyle(Palette.accent)
+                    }
+                    .padding(.top, 80)
                 case .loaded(let items):
                     if items.isEmpty {
                         ContentUnavailableView("글이 없습니다", systemImage: "tray").padding(.top, 80)
@@ -32,7 +41,14 @@ struct TagFeedView: View {
                             FeedRow(item: item)
                         }
                         .buttonStyle(RowButtonStyle())
+                        .task {
+                            if index >= items.count - 5 { await loadMore() }
+                        }
                         if index < items.count - 1 { Hairline() }
+                    }
+                    if loadingMore {
+                        ProgressView().tint(Palette.accent)
+                            .frame(maxWidth: .infinity).padding(.vertical, 14)
                     }
                 }
             }
@@ -50,9 +66,23 @@ struct TagFeedView: View {
         if case .loaded = phase { return }
         phase = .loading
         do {
-            phase = .loaded(try await BlogAPI.feed(tag: tag, page: 0, size: 30).items)
+            let result = try await BlogAPI.feed(tag: tag, page: 0, size: 30)
+            page = 0
+            hasNext = result.hasNext
+            phase = .loaded(result.items)
         } catch {
             phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
+        }
+    }
+
+    private func loadMore() async {
+        guard hasNext, !loadingMore, case .loaded(let current) = phase else { return }
+        loadingMore = true
+        defer { loadingMore = false }
+        if let result = try? await BlogAPI.feed(tag: tag, page: page + 1, size: 30) {
+            page += 1
+            hasNext = result.hasNext
+            phase = .loaded(current + result.items)
         }
     }
 }

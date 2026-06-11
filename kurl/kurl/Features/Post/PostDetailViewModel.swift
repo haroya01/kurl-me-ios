@@ -74,6 +74,7 @@ final class PostDetailViewModel {
             guard gen == commentToggleGen[comment.id] else { return }
             if on { likedCommentIds.remove(comment.id) } else { likedCommentIds.insert(comment.id) }
             commentLikeDelta[comment.id, default: 0] += on ? -1 : 1
+            ToastCenter.shared.show(String(localized: "좋아요를 반영하지 못했습니다"))
         }
     }
 

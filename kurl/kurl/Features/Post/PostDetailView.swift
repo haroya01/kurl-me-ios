@@ -234,6 +234,7 @@ private struct CommentRow: View {
     @State private var confirmDelete = false
     @State private var deleteFailed = false
     @ScaledMetric(relativeTo: .subheadline) private var bodySize: CGFloat = 14
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var likedByMe: Bool { model.likedCommentIds.contains(comment.id) }
     private var isMine: Bool {
@@ -260,6 +261,7 @@ private struct CommentRow: View {
                         Image(systemName: "trash")
                             .font(.system(size: 12))
                             .foregroundStyle(Palette.secondary)
+                            .expandTapTarget()
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("댓글 삭제")
@@ -284,18 +286,22 @@ private struct CommentRow: View {
                         }
                     }
                     .foregroundStyle(likedByMe ? Palette.link : Palette.secondary)
+                    .expandTapTarget()
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(likedByMe ? Text("댓글 좋아요 취소") : Text("댓글 좋아요"))
-                .animation(.snappy(duration: 0.2), value: likedByMe)
+                .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: likedByMe)
 
                 // 답글은 최상위 댓글에만 — 1단 깊이 유지.
                 if comment.parentId == nil {
-                    Button("답글") {
+                    Button {
                         replyTo = comment
+                    } label: {
+                        Text("답글")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(Palette.secondary)
+                            .expandTapTarget()
                     }
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Palette.secondary)
                     .buttonStyle(.plain)
                 }
             }
@@ -340,6 +346,7 @@ private struct CommentComposer: View {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 13))
                         .foregroundStyle(Palette.secondary)
+                        .expandTapTarget()
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("답글 취소")

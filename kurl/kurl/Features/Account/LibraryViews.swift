@@ -9,6 +9,7 @@ import SwiftUI
 struct BookmarksView: View {
     @State private var items: [BookmarkItem] = []
     @State private var loading = true
+    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
 
     var body: some View {
         ReadingColumn(spacing: 0) {
@@ -23,12 +24,12 @@ struct BookmarksView: View {
                     NavigationLink(value: Route.post(username: item.username, slug: item.slug)) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(item.title)
-                                .font(.system(size: 16, weight: .semibold))
+                                .font(.system(size: 16 * unit, weight: .semibold))
                                 .foregroundStyle(Palette.ink)
                                 .lineLimit(2)
                                 .multilineTextAlignment(.leading)
                             Text(item.username)
-                                .font(.system(size: 13))
+                                .font(.system(size: 13 * unit))
                                 .foregroundStyle(Palette.secondary)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -87,6 +88,7 @@ struct LikedPostsView: View {
 struct SubscribedSeriesView: View {
     @State private var items: [PublicSeriesCard] = []
     @State private var loading = true
+    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
 
     var body: some View {
         ReadingColumn(spacing: 0) {
@@ -107,7 +109,7 @@ struct SubscribedSeriesView: View {
                                 .foregroundStyle(Palette.accentMarker)
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(card.title)
-                                    .font(.system(size: 16, weight: .semibold))
+                                    .font(.system(size: 16 * unit, weight: .semibold))
                                     .foregroundStyle(Palette.ink)
                                     .lineLimit(1)
                                 HStack(spacing: 6) {
@@ -116,7 +118,7 @@ struct SubscribedSeriesView: View {
                                     }
                                     Text("\(card.postCount)편")
                                 }
-                                .font(.system(size: 13))
+                                .font(.system(size: 13 * unit))
                                 .foregroundStyle(Palette.secondary)
                             }
                             Spacer()

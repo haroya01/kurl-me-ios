@@ -14,6 +14,7 @@ struct NotificationsView: View {
     @State private var loading = true
     @State private var loadingMore = false
     @State private var loadError: String?
+    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
 
     var body: some View {
         ReadingColumn(spacing: 0) {
@@ -43,8 +44,13 @@ struct NotificationsView: View {
             ToolbarItem(placement: .primaryAction) {
                 Button("모두 읽음") {
                     Task {
-                        try? await NotificationsAPI.markAllRead()
-                        items = items.map(asRead)
+                        do {
+                            try await NotificationsAPI.markAllRead()
+                            items = items.map(asRead)
+                        } catch {
+                            // 실패했는데 점만 사라지는 거짓 성공을 만들지 않는다.
+                            ToastCenter.shared.show(String(localized: "읽음 처리하지 못했습니다"))
+                        }
                     }
                 }
                 .font(.system(size: 13))
@@ -96,19 +102,19 @@ struct NotificationsView: View {
                 size: 30)
             VStack(alignment: .leading, spacing: 3) {
                 Text(headline(n))
-                    .font(.system(size: 14, weight: n.read ? .regular : .medium))
+                    .font(.system(size: 14 * unit, weight: n.read ? .regular : .medium))
                     .foregroundStyle(Palette.ink)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
                 if let subtitle = n.postTitle ?? n.seriesTitle {
                     Text(subtitle)
-                        .font(.system(size: 13))
+                        .font(.system(size: 13 * unit))
                         .foregroundStyle(Palette.secondary)
                         .lineLimit(1)
                 }
                 if let date = n.createdAt {
                     Text(date.relativeShort)
-                        .font(.system(size: 12))
+                        .font(.system(size: 12 * unit))
                         .foregroundStyle(Palette.secondary)
                 }
             }

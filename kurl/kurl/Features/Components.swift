@@ -99,13 +99,14 @@ struct UnderlineTabs<T: Hashable & Identifiable>: View {
     @Binding var selection: T
     let label: (T) -> String
     @Namespace private var ns
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack(spacing: 22) {
             ForEach(items) { item in
                 let active = item == selection
                 Button {
-                    withAnimation(.snappy(duration: 0.28)) { selection = item }
+                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.28)) { selection = item }
                 } label: {
                     VStack(spacing: 7) {
                         Text(label(item))
@@ -120,9 +121,11 @@ struct UnderlineTabs<T: Hashable & Identifiable>: View {
                         }
                     }
                     .fixedSize()
-                    .animation(.snappy(duration: 0.2), value: active)
+                    .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: active)
+                    .expandTapTarget(10)
                 }
                 .buttonStyle(.plain)
+                .accessibilityAddTraits(active ? [.isSelected] : [])
             }
             Spacer(minLength: 0)
         }
@@ -188,6 +191,62 @@ extension Date {
 
     var mediumDate: String {
         formatted(.dateTime.year().month(.abbreviated).day())
+    }
+}
+
+// MARK: 토스트 — 낙관 토글 실패의 조용한 한 줄
+
+/// 낙관 토글(좋아요·팔로우·구독…)이 실패해 원상복귀할 때 한 줄로 알린다.
+/// alert 만큼 무겁지 않게 — 하단 캡슐 하나가 잠시 떴다 사라진다.
+@MainActor
+@Observable
+final class ToastCenter {
+    static let shared = ToastCenter()
+    private(set) var message: String?
+    private var dismissTask: Task<Void, Never>?
+
+    func show(_ message: String) {
+        self.message = message
+        dismissTask?.cancel()
+        dismissTask = Task {
+            try? await Task.sleep(for: .seconds(2.4))
+            guard !Task.isCancelled else { return }
+            self.message = nil
+        }
+    }
+}
+
+/// 루트(탭바 위)에 한 번만 부착한다.
+struct ToastHost: ViewModifier {
+    private var center: ToastCenter { .shared }
+
+    func body(content: Content) -> some View {
+        content.overlay(alignment: .bottom) {
+            if let message = center.message {
+                Text(message)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Color(uiColor: .systemBackground))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
+                    .background(Color(uiColor: .label).opacity(0.88), in: Capsule())
+                    .padding(.bottom, 74)
+                    .allowsHitTesting(false)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.snappy(duration: 0.25), value: center.message)
+    }
+}
+
+// MARK: 히트 영역 확장 (44pt 터치 타깃)
+
+extension View {
+    /// 시각 크기는 그대로 두고 탭 영역만 넓힌다 — 버튼 *라벨* 안쪽에 부착할 것.
+    /// (패딩으로 contentShape 를 키운 뒤 음수 패딩으로 레이아웃만 되돌린다.)
+    func expandTapTarget(_ inset: CGFloat = 12) -> some View {
+        padding(inset)
+            .contentShape(Rectangle())
+            .padding(-inset)
     }
 }
 

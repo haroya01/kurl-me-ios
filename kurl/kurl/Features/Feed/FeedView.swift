@@ -11,6 +11,7 @@ struct FeedView: View {
     @State private var selection: FeedSource = .recent
     @State private var path = NavigationPath()
     @Namespace private var zoomNS
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -33,14 +34,14 @@ struct FeedView: View {
                             .allowsHitTesting(source == selection)
                     }
                 }
-                .animation(.snappy(duration: 0.28), value: selection)
+                .animation(reduceMotion ? nil : .snappy(duration: 0.28), value: selection)
                 .simultaneousGesture(
                     DragGesture(minimumDistance: 30)
                         .onEnded { value in
                             let dx = value.translation.width
                             let dy = value.translation.height
                             guard abs(dx) > 60, abs(dx) > abs(dy) * 1.5 else { return }
-                            withAnimation(.snappy(duration: 0.28)) {
+                            withAnimation(reduceMotion ? nil : .snappy(duration: 0.28)) {
                                 let all = FeedSource.allCases
                                 guard let idx = all.firstIndex(of: selection) else { return }
                                 let next = dx < 0 ? min(idx + 1, all.count - 1) : max(idx - 1, 0)
@@ -54,7 +55,7 @@ struct FeedView: View {
             .navigationDestination(for: Route.self) { route in
                 // 카드에서 출발한 "루트 직속" 글만 zoom — 글→시리즈→글 같은 깊은 푸시가
                 // 스택 뒤에 가려진 카드에서 zoom 을 발화하지 않게.
-                if case .post(let username, let slug) = route, path.count <= 1 {
+                if case .post(let username, let slug) = route, path.count <= 1, !reduceMotion {
                     RouteView(route: route)
                         .navigationTransition(.zoom(sourceID: "post-\(username)-\(slug)", in: zoomNS))
                 } else {

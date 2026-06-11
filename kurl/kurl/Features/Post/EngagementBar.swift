@@ -12,6 +12,7 @@ struct EngagementBar: View {
     @State private var model: EngagementModel
     @State private var showLoginPrompt = false
     @State private var showTwoFactorHint = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(postId: Int64, initialLikeCount: Int64) {
         _model = State(initialValue: EngagementModel(postId: postId, likeCount: initialLikeCount))
@@ -20,12 +21,14 @@ struct EngagementBar: View {
     var body: some View {
         HStack(spacing: 18) {
             Button {
-                interact { try await model.toggleLike() }
+                interact(failure: String(localized: "좋아요를 반영하지 못했습니다")) {
+                    try await model.toggleLike()
+                }
             } label: {
                 HStack(spacing: 5) {
                     Image(systemName: model.liked ? "heart.fill" : "heart")
                         .font(.system(size: 16))
-                        .symbolEffect(.bounce, value: model.liked)
+                        .symbolEffect(.bounce, value: reduceMotion ? false : model.liked)
                     if model.likeCount > 0 {
                         Text("\(model.likeCount)")
                             .font(.system(size: 14, weight: .medium))
@@ -33,22 +36,26 @@ struct EngagementBar: View {
                     }
                 }
                 .foregroundStyle(model.liked ? Palette.link : Palette.secondary)
+                .expandTapTarget()
             }
             .buttonStyle(.plain)
-            .animation(.snappy(duration: 0.2), value: model.liked)
-            .animation(.snappy(duration: 0.2), value: model.likeCount)
+            .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: model.liked)
+            .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: model.likeCount)
             .accessibilityLabel(model.liked ? Text("좋아요 취소") : Text("좋아요"))
 
             Button {
-                interact { try await model.toggleBookmark() }
+                interact(failure: String(localized: "북마크를 반영하지 못했습니다")) {
+                    try await model.toggleBookmark()
+                }
             } label: {
                 Image(systemName: model.bookmarked ? "bookmark.fill" : "bookmark")
                     .font(.system(size: 15))
-                    .symbolEffect(.bounce, value: model.bookmarked)
+                    .symbolEffect(.bounce, value: reduceMotion ? false : model.bookmarked)
                     .foregroundStyle(model.bookmarked ? Palette.accent : Palette.secondary)
+                    .expandTapTarget()
             }
             .buttonStyle(.plain)
-            .animation(.snappy(duration: 0.2), value: model.bookmarked)
+            .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: model.bookmarked)
             .accessibilityLabel(model.bookmarked ? Text("북마크 해제") : Text("북마크"))
 
             Spacer()
@@ -70,12 +77,14 @@ struct EngagementBar: View {
         }
     }
 
-    private func interact(_ action: @escaping () async throws -> Void) {
+    private func interact(failure: String, _ action: @escaping () async throws -> Void) {
         guard AuthStore.shared.isSignedIn else {
             showLoginPrompt = true
             return
         }
-        Task { try? await action() }
+        Task {
+            do { try await action() } catch { ToastCenter.shared.show(failure) }
+        }
     }
 
     private func signInHere() {

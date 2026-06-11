@@ -11,6 +11,7 @@ struct SubscribeButton: View {
     @State private var model: SubscribeModel
     @State private var showLoginPrompt = false
     @State private var showTwoFactorHint = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(seriesId: Int64) {
         _model = State(initialValue: SubscribeModel(seriesId: seriesId))
@@ -35,14 +36,14 @@ struct SubscribeButton: View {
                     }
             }
             .buttonStyle(.plain)
-            .animation(.snappy(duration: 0.2), value: model.subscribed)
+            .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: model.subscribed)
 
             if let count = model.subscriberCount, count > 0 {
                 Text("구독자 \(count)")
                     .font(.system(size: 13))
                     .foregroundStyle(Palette.secondary)
                     .contentTransition(.numericText())
-                    .animation(.snappy(duration: 0.2), value: count)
+                    .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: count)
             }
         }
         .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
@@ -65,7 +66,10 @@ struct SubscribeButton: View {
             showLoginPrompt = true
             return
         }
-        Task { try? await model.toggle() }
+        Task {
+            do { try await model.toggle() }
+            catch { ToastCenter.shared.show(String(localized: "구독을 반영하지 못했습니다")) }
+        }
     }
 
     private func signInHere() {

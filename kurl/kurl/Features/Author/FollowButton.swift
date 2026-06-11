@@ -11,6 +11,7 @@ struct FollowButton: View {
     @State private var model: FollowModel
     @State private var showLoginPrompt = false
     @State private var showTwoFactorHint = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(username: String) {
         _model = State(initialValue: FollowModel(username: username))
@@ -35,14 +36,14 @@ struct FollowButton: View {
                     }
             }
             .buttonStyle(.plain)
-            .animation(.snappy(duration: 0.2), value: model.following)
+            .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: model.following)
 
             if let count = model.followerCount {
                 Text("팔로워 \(count)")
                     .font(.system(size: 13))
                     .foregroundStyle(Palette.secondary)
                     .contentTransition(.numericText())
-                    .animation(.snappy(duration: 0.2), value: count)
+                    .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: count)
             }
         }
         .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
@@ -65,7 +66,10 @@ struct FollowButton: View {
             showLoginPrompt = true
             return
         }
-        Task { try? await model.toggle() }
+        Task {
+            do { try await model.toggle() }
+            catch { ToastCenter.shared.show(String(localized: "팔로우를 반영하지 못했습니다")) }
+        }
     }
 
     private func signInHere() {
