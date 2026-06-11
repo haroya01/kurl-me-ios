@@ -12,6 +12,8 @@ struct AccountView: View {
 
     @State private var isSigningIn = false
     @State private var showTwoFactor = false
+    @State private var showNotifications = false
+    @State private var unreadCount: Int64 = 0
     @State private var errorMessage: String?
 
     var body: some View {
@@ -25,6 +27,38 @@ struct AccountView: View {
             }
             .navigationTitle("내 계정")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                if auth.isSignedIn {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button {
+                            showNotifications = true
+                        } label: {
+                            Image(systemName: "bell")
+                                .overlay(alignment: .topTrailing) {
+                                    if unreadCount > 0 {
+                                        Circle()
+                                            .fill(Palette.accent)
+                                            .frame(width: 8, height: 8)
+                                            .offset(x: 3, y: -2)
+                                    }
+                                }
+                        }
+                        .tint(.brand)
+                    }
+                }
+            }
+            .navigationDestination(isPresented: $showNotifications) {
+                NotificationsView()
+            }
+            .navigationDestination(for: Route.self) { RouteView(route: $0) }
+            .task {
+                if auth.isSignedIn {
+                    unreadCount = (try? await NotificationsAPI.unreadCount()) ?? 0
+                }
+                if Config.launchValue(after: "--open") == "notifications" {
+                    showNotifications = true
+                }
+            }
         }
         .sheet(isPresented: $showTwoFactor) {
             TwoFactorSheet()

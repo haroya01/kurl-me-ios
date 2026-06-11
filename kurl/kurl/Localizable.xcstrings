@@ -17,6 +17,118 @@
         }
       }
     },
+    "%@님이 글을 좋아합니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ liked your post"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@さんが記事にいいねしました"
+          }
+        }
+      }
+    },
+    "%@님이 답글을 남겼습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ replied to your comment"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@さんが返信しました"
+          }
+        }
+      }
+    },
+    "%@님이 댓글을 남겼습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ commented on your post"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@さんがコメントしました"
+          }
+        }
+      }
+    },
+    "%@님이 새 글을 발행했습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ published a new post"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@さんが新しい記事を公開しました"
+          }
+        }
+      }
+    },
+    "%@님이 시리즈를 구독합니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ subscribed to your series"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@さんがシリーズを購読しています"
+          }
+        }
+      }
+    },
+    "%@님이 팔로우하기 시작했습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ started following you"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@さんがフォローを始めました"
+          }
+        }
+      }
+    },
+    "%@님이 회원님을 언급했습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ mentioned you"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@さんがあなたをメンションしました"
+          }
+        }
+      }
+    },
     "%lld편": {
       "localizations": {
         "en": {
@@ -737,6 +849,22 @@
         }
       }
     },
+    "모두 읽음": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mark all read"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべて既読"
+          }
+        }
+      }
+    },
     "미리보기": {
       "localizations": {
         "en": {
@@ -1053,6 +1181,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "まだ記事がありません。右上のボタンから最初の記事を始めましょう。"
+          }
+        }
+      }
+    },
+    "알 수 없는 사용자": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unknown user"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不明なユーザー"
+          }
+        }
+      }
+    },
+    "알림": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notifications"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通知"
+          }
+        }
+      }
+    },
+    "알림이 없습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No notifications"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通知はありません"
           }
         }
       }

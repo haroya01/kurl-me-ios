@@ -157,6 +157,42 @@ enum MockBackend {
             return json(["id": 1, "body": decode(body)["body"] as? String ?? ""])
         }
 
+        if method == "GET", parts == ["notifications"] {
+            return json([
+                "items": [
+                    ["id": 1, "type": "LIKE", "actorUsername": "reader_kim", "actorAvatarUrl": NSNull(),
+                     "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글", "postAuthorUsername": "honggildong",
+                     "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                     "read": false, "createdAt": iso(Date().addingTimeInterval(-600))],
+                    ["id": 2, "type": "COMMENT", "actorUsername": "yuki_dev", "actorAvatarUrl": NSNull(),
+                     "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글", "postAuthorUsername": "honggildong",
+                     "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                     "read": false, "createdAt": iso(Date().addingTimeInterval(-3600))],
+                    ["id": 3, "type": "FOLLOW", "actorUsername": "stranger99", "actorAvatarUrl": NSNull(),
+                     "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
+                     "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                     "read": true, "createdAt": iso(Date().addingTimeInterval(-86_400))],
+                    ["id": 4, "type": "SERIES_SUBSCRIBE", "actorUsername": "yuki_dev", "actorAvatarUrl": NSNull(),
+                     "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
+                     "seriesId": 1, "seriesSlug": "hexagonal", "seriesTitle": "헥사고날 전환기",
+                     "read": true, "createdAt": iso(Date().addingTimeInterval(-172_800))],
+                ],
+                "nextCursor": NSNull(), "hasMore": false,
+            ])
+        }
+
+        if method == "GET", parts == ["notifications", "unread-count"] {
+            return json(["count": 2])
+        }
+
+        if method == "POST", parts.count == 3, parts[0] == "notifications", parts[2] == "read" {
+            return json([:] as [String: Any])
+        }
+
+        if method == "POST", parts == ["notifications", "read-all"] {
+            return json(["count": 0])
+        }
+
         if method == "POST", parts.count == 3, parts[0] == "posts", parts[2] == "preview-token" {
             return json(["token": "mock-preview-token"])
         }
