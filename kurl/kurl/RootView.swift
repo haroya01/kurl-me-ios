@@ -22,6 +22,22 @@ struct RootView: View {
     }
 
     var body: some View {
+        // `--post user/slug` — 글 상세를 곧장 띄우는 검증 진입로(simctl 터치 불가 우회).
+        if let target = Config.launchValue(after: "--post"),
+           let slash = target.firstIndex(of: "/") {
+            NavigationStack {
+                PostDetailView(
+                    username: String(target[..<slash]),
+                    slug: String(target[target.index(after: slash)...])
+                )
+                .navigationDestination(for: Route.self) { RouteView(route: $0) }
+            }
+        } else {
+            tabs
+        }
+    }
+
+    private var tabs: some View {
         // 스레드식 하단바: 라벨 없는 아이콘-온리 탭 + 스크롤 내릴 때 바가 최소화되는
         // iOS 26 네이티브 동작. 검색에 role 을 주지 않는 건 의도 — role: .search 는
         // Liquid Glass 가 검색을 독립 pill 로 분리하는데, 한 바에 4탭이 모이는 쪽을 택했다.
