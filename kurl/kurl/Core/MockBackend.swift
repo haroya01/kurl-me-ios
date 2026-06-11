@@ -1,0 +1,177 @@
+//
+//  MockBackend.swift
+//  kurl
+//
+
+import Foundation
+
+/// `--mocks` 모드의 인증 표면 가짜 백엔드. 응답 JSON 은 백엔드 record 와 같은 필드명을 쓰므로
+/// 실모드와 동일한 디코더·뷰 바인딩이 그대로 검증된다. 상태(좋아요·팔로우·글)는 메모리에 들고
+/// 토글·작성 흐름이 왕복하도록 한다. 공개 읽기(/public/*)는 다루지 않는다 — 실서버로 흘려보냄.
+@MainActor
+enum MockBackend {
+
+    // MARK: 상태
+
+    private struct MockPost {
+        var id: Int64
+        var slug: String
+        var title: String
+        var status: String
+        var markdown: String
+        var publishedAt: Date?
+        var updatedAt: Date
+    }
+
+    private static var posts: [MockPost] = [
+        MockPost(id: 9001, slug: "p-mock-1", title: "목 초안 — 헥사고날 정리", status: "DRAFT",
+                 markdown: "# 헥사고날\n\n포트와 어댑터.", publishedAt: nil, updatedAt: Date()),
+        MockPost(id: 9002, slug: "p-mock-2", title: "발행된 목 글", status: "PUBLISHED",
+                 markdown: "# 발행됨\n\n본문.", publishedAt: Date().addingTimeInterval(-86_400), updatedAt: Date()),
+    ]
+    private static var nextId: Int64 = 9100
+    private static var likes: [Int64: (count: Int64, liked: Bool)] = [:]
+    private static var bookmarks: Set<Int64> = []
+    private static var follows: [String: (following: Bool, count: Int64)] = [:]
+    private static var subscriptions: [Int64: (subscribed: Bool, count: Int64)] = [:]
+
+    // MARK: 라우팅
+
+    /// 처리하면 응답 바디, 아니면 nil → 실네트워크로.
+    static func respond(path: String, method: String, body: Data?) -> Data? {
+        let parts = path.split(separator: "/").map(String.init)
+
+        if method == "GET", parts == ["users", "me"] {
+            return json(["id": 1, "email": "mock@kurl.me", "username": "honggildong", "avatarUrl": NSNull()])
+        }
+
+        if method == "GET", parts == ["posts", "analytics", "overview"] {
+            return json(analyticsOverview())
+        }
+
+        if method == "GET", parts == ["posts"] {
+            return json(posts.sorted { $0.updatedAt > $1.updatedAt }.map(postView))
+        }
+
+        if method == "POST", parts == ["posts"] {
+            let req = decode(body)
+            let post = MockPost(
+                id: nextId, slug: req["slug"] as? String ?? "p-mock",
+                title: req["title"] as? String ?? "무제", status: "DRAFT",
+                markdown: "", publishedAt: nil, updatedAt: Date())
+            nextId += 1
+            posts.append(post)
+            return json(postView(post))
+        }
+
+        if parts.count == 3, parts[0] == "posts", parts[2] == "markdown" {
+            guard let idx = posts.firstIndex(where: { String($0.id) == parts[1] }) else { return nil }
+            if method == "PUT" {
+                posts[idx].markdown = decode(body)["markdown"] as? String ?? ""
+                posts[idx].updatedAt = Date()
+            }
+            return json(["markdown": posts[idx].markdown])
+        }
+
+        if method == "POST", parts.count == 3, parts[0] == "posts", parts[2] == "publish" {
+            guard let idx = posts.firstIndex(where: { String($0.id) == parts[1] }) else { return nil }
+            posts[idx].status = "PUBLISHED"
+            posts[idx].publishedAt = Date()
+            return json(postView(posts[idx]))
+        }
+
+        if parts.count == 3, parts[0] == "posts", parts[2] == "like" {
+            let pid = Int64(parts[1]) ?? 0
+            var state = likes[pid] ?? (count: 3, liked: false)
+            if method == "PUT" { if !state.liked { state.count += 1 }; state.liked = true }
+            if method == "DELETE" { if state.liked { state.count -= 1 }; state.liked = false }
+            likes[pid] = state
+            return json(["likeCount": state.count, "liked": state.liked])
+        }
+
+        if parts.count == 3, parts[0] == "posts", parts[2] == "bookmark" {
+            let pid = Int64(parts[1]) ?? 0
+            if method == "PUT" { bookmarks.insert(pid) }
+            if method == "DELETE" { bookmarks.remove(pid) }
+            return json(["bookmarked": bookmarks.contains(pid)])
+        }
+
+        if parts.count == 3, parts[0] == "users", parts[2] == "follow" {
+            let username = parts[1]
+            var state = follows[username] ?? (following: false, count: 12)
+            if method == "PUT" { if !state.following { state.count += 1 }; state.following = true }
+            if method == "DELETE" { if state.following { state.count -= 1 }; state.following = false }
+            follows[username] = state
+            return json(["following": state.following, "followerCount": state.count, "followingCount": 5])
+        }
+
+        if parts.count == 3, parts[0] == "series", parts[2] == "subscription" {
+            let sid = Int64(parts[1]) ?? 0
+            var state = subscriptions[sid] ?? (subscribed: false, count: 7)
+            if method == "PUT" { if !state.subscribed { state.count += 1 }; state.subscribed = true }
+            if method == "DELETE" { if state.subscribed { state.count -= 1 }; state.subscribed = false }
+            subscriptions[sid] = state
+            return json(["subscribed": state.subscribed, "subscriberCount": state.count])
+        }
+
+        if method == "POST", parts.count == 3, parts[0] == "posts", parts[2] == "comments" {
+            return json(["id": 1, "body": decode(body)["body"] as? String ?? ""])
+        }
+
+        return nil
+    }
+
+    // MARK: 픽스처
+
+    private static func postView(_ p: MockPost) -> [String: Any] {
+        [
+            "id": p.id, "slug": p.slug, "title": p.title, "status": p.status,
+            "languageTag": "ko",
+            "publishedAt": p.publishedAt.map(iso) ?? NSNull(),
+            "excerpt": NSNull(), "ogImageUrl": NSNull(),
+            "viewCount": 42, "likeCount": 3, "tags": ["목"],
+            "createdAt": iso(p.updatedAt), "updatedAt": iso(p.updatedAt),
+        ]
+    }
+
+    private static func analyticsOverview() -> [String: Any] {
+        let calendar = Calendar(identifier: .gregorian)
+        let daily: [[String: Any]] = (0..<30).reversed().map { back in
+            let day = calendar.date(byAdding: .day, value: -back, to: Date()) ?? Date()
+            let fmt = DateFormatter()
+            fmt.dateFormat = "yyyy-MM-dd"
+            return ["date": fmt.string(from: day), "views": Int.random(in: 8...90)]
+        }
+        return [
+            "totalPosts": 24, "publishedPosts": 21,
+            "lifetimeViews": 5421, "lifetimeLikes": 132,
+            "windowDays": 30, "windowViews": 1284,
+            "lifetimeLinkClicks": 310, "windowLinkClicks": 57,
+            "lifetimeFollows": 48, "windowFollows": 6,
+            "daily": daily,
+            "referrers": [
+                ["host": "google.com", "views": 412],
+                ["host": "t.co", "views": 187],
+                ["host": "news.hada.io", "views": 96],
+                ["host": "kurl.me", "views": 44],
+            ],
+        ]
+    }
+
+    // MARK: 유틸
+
+    private static func iso(_ date: Date) -> String {
+        ISO8601DateFormatter().string(from: date)
+    }
+
+    private static func decode(_ body: Data?) -> [String: Any] {
+        guard let body,
+              let obj = try? JSONSerialization.jsonObject(with: body) as? [String: Any]
+        else { return [:] }
+        return obj
+    }
+
+    private static func json(_ value: Any) -> Data {
+        (try? JSONSerialization.data(withJSONObject: value)) ?? Data("{}".utf8)
+    }
+}

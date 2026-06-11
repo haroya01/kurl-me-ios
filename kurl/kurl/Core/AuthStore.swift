@@ -54,6 +54,12 @@ final class AuthStore {
     private static let refreshAccount = "refresh-token"
 
     private init() {
+        if Config.useMocks {
+            // 목 모드 = 항상 로그인된 상태. Keychain·네트워크를 건드리지 않는다.
+            isSignedIn = true
+            me = Me(email: "mock@kurl.me", username: "honggildong", avatarUrl: nil)
+            return
+        }
         accessToken = Keychain.load(account: Self.accessAccount)
         refreshToken = Keychain.load(account: Self.refreshAccount)
         isSignedIn = refreshToken != nil
@@ -120,6 +126,7 @@ final class AuthStore {
 
     /// 단일 비행 리프레시 — 동시 401 들이 각자 rotation 을 돌려 grace 를 소모하지 않게 한다.
     func refreshTokens() async throws {
+        if Config.useMocks { return }
         if let running = refreshTask {
             return try await running.value
         }

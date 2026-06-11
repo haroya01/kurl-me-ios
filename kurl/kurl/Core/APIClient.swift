@@ -173,6 +173,16 @@ struct APIClient {
 
     @discardableResult
     private func rawData(_ request: URLRequest) async throws -> Data {
+        // 목 모드: 목 백엔드가 아는 경로면 네트워크를 건너뛴다(공개 읽기는 fall-through).
+        if Config.useMocks,
+           let url = request.url,
+           let mocked = await MockBackend.respond(
+               path: String(url.path.dropFirst(Config.apiPrefix.count + 1)),
+               method: request.httpMethod ?? "GET",
+               body: request.httpBody
+           ) {
+            return mocked
+        }
         let data: Data
         let response: URLResponse
         do {

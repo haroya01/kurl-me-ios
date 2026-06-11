@@ -13,6 +13,7 @@ struct WriteHubView: View {
     @State private var phase: LoadState<[MyPost]> = .idle
     @State private var composing = false
     @State private var editing: MyPost?
+    @State private var showAnalytics = false
     @State private var isSigningIn = false
     @State private var showTwoFactorHint = false
 
@@ -30,8 +31,8 @@ struct WriteHubView: View {
             .toolbar {
                 if auth.isSignedIn {
                     ToolbarItem(placement: .topBarLeading) {
-                        NavigationLink {
-                            AnalyticsView()
+                        Button {
+                            showAnalytics = true
                         } label: {
                             Image(systemName: "chart.bar")
                         }
@@ -47,11 +48,22 @@ struct WriteHubView: View {
                     }
                 }
             }
+            .navigationDestination(isPresented: $showAnalytics) {
+                AnalyticsView()
+            }
             .navigationDestination(isPresented: $composing) {
                 ComposeView(post: nil) { reloadSoon() }
             }
             .navigationDestination(item: $editing) { post in
                 ComposeView(post: post) { reloadSoon() }
+            }
+            .onAppear {
+                // `--open analytics|compose` — 목/스크린샷 검증용 자동 진입.
+                switch Config.launchValue(after: "--open") {
+                case "analytics": showAnalytics = true
+                case "compose": composing = true
+                default: break
+                }
             }
         }
         .alert("2단계 인증이 설정된 계정입니다", isPresented: $showTwoFactorHint) {

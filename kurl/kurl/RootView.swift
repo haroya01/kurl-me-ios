@@ -8,24 +8,37 @@
 import SwiftUI
 
 struct RootView: View {
+    @State private var selection = Self.initialTab
+
+    /// `--tab write|discover|search|account` — simctl 은 터치를 못 넣으니 스크린샷/목 검증용 진입로.
+    private static var initialTab: Int {
+        switch Config.launchValue(after: "--tab") {
+        case "discover": 1
+        case "write": 2
+        case "search": 3
+        case "account": 4
+        default: 0
+        }
+    }
+
     var body: some View {
         // 스레드식 하단바: 라벨 없는 아이콘-온리 탭 + 스크롤 내릴 때 바가 최소화되는
         // iOS 26 네이티브 동작. 검색에 role 을 주지 않는 건 의도 — role: .search 는
         // Liquid Glass 가 검색을 독립 pill 로 분리하는데, 한 바에 4탭이 모이는 쪽을 택했다.
-        TabView {
-            Tab("", systemImage: "doc.text.image") {
+        TabView(selection: $selection) {
+            Tab("", systemImage: "doc.text.image", value: 0) {
                 FeedView()
             }
-            Tab("", systemImage: "safari") {
+            Tab("", systemImage: "safari", value: 1) {
                 DiscoverDeckView()
             }
-            Tab("", systemImage: "square.and.pencil") {
+            Tab("", systemImage: "square.and.pencil", value: 2) {
                 WriteHubView()
             }
-            Tab("", systemImage: "magnifyingglass") {
+            Tab("", systemImage: "magnifyingglass", value: 3) {
                 SearchView()
             }
-            Tab("", systemImage: "person.crop.circle") {
+            Tab("", systemImage: "person.crop.circle", value: 4) {
                 AccountView()
             }
         }
