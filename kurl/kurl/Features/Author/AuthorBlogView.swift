@@ -47,6 +47,8 @@ struct AuthorBlogView: View {
             if let bio = view.author.bio, !bio.isEmpty {
                 Text(bio).font(.system(size: 15)).foregroundStyle(Palette.secondary)
             }
+            FollowButton(username: view.author.username)
+                .padding(.top, 4)
         }
         .padding(.vertical, 16)
 

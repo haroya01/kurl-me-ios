@@ -73,6 +73,28 @@ struct APIClient {
         _ = try await perform(request, authenticated: authenticated)
     }
 
+    /// 바디 없는 PUT — 멱등 토글 온 (좋아요/북마크/팔로우).
+    func put<T: Decodable>(
+        _ path: String,
+        as type: T.Type = T.self,
+        authenticated: Bool = false
+    ) async throws -> T {
+        let request = try makeRequest(path: path, query: [:], method: "PUT")
+        let data = try await perform(request, authenticated: authenticated)
+        return try decode(data)
+    }
+
+    /// 바디 없는 DELETE — 멱등 토글 오프.
+    func delete<T: Decodable>(
+        _ path: String,
+        as type: T.Type = T.self,
+        authenticated: Bool = false
+    ) async throws -> T {
+        let request = try makeRequest(path: path, query: [:], method: "DELETE")
+        let data = try await perform(request, authenticated: authenticated)
+        return try decode(data)
+    }
+
     /// 인증 요청 공통 경로: Bearer 를 싣고, 401 이면 리프레시 한 번 후 재시도 한 번.
     /// 리프레시 자체는 AuthStore 가 단일 비행으로 직렬화한다.
     private func perform(_ request: URLRequest, authenticated: Bool) async throws -> Data {

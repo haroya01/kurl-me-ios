@@ -48,6 +48,7 @@ struct PostDetailView: View {
     @ViewBuilder
     private func content(_ detail: PublicPostDetail) -> some View {
         header(detail)
+        EngagementBar(postId: detail.post.id, initialLikeCount: detail.post.likeCount)
         VStack(alignment: .leading, spacing: 2) {
             ForEach(Array(detail.blocks.enumerated()), id: \.offset) { _, block in
                 BlockView(block: block)

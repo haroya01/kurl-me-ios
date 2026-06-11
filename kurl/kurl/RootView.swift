@@ -16,7 +16,7 @@ struct RootView: View {
             Tab("", systemImage: "doc.text.image") {
                 FeedView()
             }
-            Tab("", systemImage: "sparkles") {
+            Tab("", systemImage: "safari") {
                 DiscoverView()
             }
             Tab("", systemImage: "magnifyingglass") {
