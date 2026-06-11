@@ -128,6 +128,13 @@ struct WriteHubView: View {
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
                             .background(Palette.chipBg, in: Capsule())
+                    } else if post.isScheduled {
+                        Text("예약됨")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(Palette.link)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Palette.accent.opacity(0.10), in: Capsule())
                     }
                 }
                 .padding(.vertical, 14)

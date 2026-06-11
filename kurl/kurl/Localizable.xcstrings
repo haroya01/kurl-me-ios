@@ -401,6 +401,22 @@
         }
       }
     },
+    "닫기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "閉じる"
+          }
+        }
+      }
+    },
     "댓글 %lld": {
       "localizations": {
         "en": {
@@ -609,6 +625,54 @@
         }
       }
     },
+    "리비전": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisions"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リビジョン"
+          }
+        }
+      }
+    },
+    "리비전…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Revisions…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リビジョン…"
+          }
+        }
+      }
+    },
+    "리비전이 없습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No revisions"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リビジョンがありません"
+          }
+        }
+      }
+    },
     "링크 클릭": {
       "localizations": {
         "en": {
@@ -673,6 +737,22 @@
         }
       }
     },
+    "미리보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preview"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プレビュー"
+          }
+        }
+      }
+    },
     "발견": {
       "localizations": {
         "en": {
@@ -701,6 +781,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "公開"
+          }
+        }
+      }
+    },
+    "발행 시각": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publish at"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "公開時刻"
           }
         }
       }
@@ -765,6 +861,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "リカバリーコードを入力してください"
+          }
+        }
+      }
+    },
+    "복원": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "復元"
           }
         }
       }
@@ -849,6 +961,22 @@
         }
       }
     },
+    "선택한 시각에 자동으로 발행됩니다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publishes automatically at the chosen time."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選択した時刻に自動で公開されます。"
+          }
+        }
+      }
+    },
     "소개글 — 카드와 검색에 보이는 한 단락": {
       "localizations": {
         "en": {
@@ -881,6 +1009,22 @@
         }
       }
     },
+    "시리즈 없음": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No series"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "シリーズなし"
+          }
+        }
+      }
+    },
     "아직 글이 없습니다": {
       "localizations": {
         "en": {
@@ -909,6 +1053,70 @@
           "stringUnit": {
             "state": "translated",
             "value": "まだ記事がありません。右上のボタンから最初の記事を始めましょう。"
+          }
+        }
+      }
+    },
+    "예약": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schedule"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "予約"
+          }
+        }
+      }
+    },
+    "예약 발행": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schedule"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "予約公開"
+          }
+        }
+      }
+    },
+    "예약 발행…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schedule…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "予約公開…"
+          }
+        }
+      }
+    },
+    "예약됨": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scheduled"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "予約済み"
           }
         }
       }
@@ -1277,6 +1485,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "キャンセル"
+          }
+        }
+      }
+    },
+    "커버": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cover"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カバー"
           }
         }
       }

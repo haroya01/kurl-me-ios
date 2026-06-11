@@ -23,6 +23,9 @@ enum MockBackend {
         var updatedAt: Date
         var tags: [String] = []
         var excerpt: String?
+        var seriesId: Int64?
+        var ogImageUrl: String?
+        var scheduledAt: Date?
     }
 
     private static var posts: [MockPost] = [
@@ -154,8 +157,74 @@ enum MockBackend {
             return json(["id": 1, "body": decode(body)["body"] as? String ?? ""])
         }
 
+        if method == "POST", parts.count == 3, parts[0] == "posts", parts[2] == "preview-token" {
+            return json(["token": "mock-preview-token"])
+        }
+
+        if method == "POST", parts.count == 3, parts[0] == "posts", parts[2] == "schedule" {
+            guard let idx = posts.firstIndex(where: { String($0.id) == parts[1] }) else { return nil }
+            posts[idx].status = "SCHEDULED"
+            posts[idx].scheduledAt = Date().addingTimeInterval(3600)
+            return json(postView(posts[idx]))
+        }
+
+        if method == "GET", parts.count == 3, parts[0] == "posts", parts[2] == "revisions" {
+            return json([
+                ["id": 1, "versionNumber": 2, "titleSnapshot": "두 번째 저장", "createdAt": iso(Date().addingTimeInterval(-3600))],
+                ["id": 2, "versionNumber": 1, "titleSnapshot": "첫 저장", "createdAt": iso(Date().addingTimeInterval(-7200))],
+            ])
+        }
+
+        if method == "POST", parts.count == 5, parts[0] == "posts", parts[2] == "revisions", parts[4] == "restore" {
+            guard let idx = posts.firstIndex(where: { String($0.id) == parts[1] }) else { return nil }
+            posts[idx].markdown = "# 복원된 본문 v\(parts[3])\n\n리비전에서 돌아왔다."
+            return json(postView(posts[idx]))
+        }
+
+        if method == "GET", parts == ["series"] {
+            return json(mockSeries.map { ["id": $0.0, "slug": $0.1, "title": $0.2, "postCount": seriesMembers[$0.0]?.count ?? 0, "createdAt": iso(Date()), "updatedAt": iso(Date())] })
+        }
+
+        if method == "GET", parts.count == 2, parts[0] == "series" {
+            let sid = Int64(parts[1]) ?? 0
+            let members = (seriesMembers[sid] ?? []).compactMap { id in posts.first { $0.id == id } }
+            return json([
+                "series": ["id": sid, "slug": "s", "title": "시리즈", "postCount": members.count, "createdAt": iso(Date()), "updatedAt": iso(Date())],
+                "posts": members.map(postView),
+            ])
+        }
+
+        if method == "PUT", parts.count == 3, parts[0] == "series", parts[2] == "posts" {
+            let sid = Int64(parts[1]) ?? 0
+            let ids = (decode(body)["postIds"] as? [Any] ?? []).compactMap { ($0 as? NSNumber)?.int64Value }
+            seriesMembers[sid] = ids
+            for i in posts.indices {
+                if ids.contains(posts[i].id) { posts[i].seriesId = sid }
+                else if posts[i].seriesId == sid { posts[i].seriesId = nil }
+            }
+            return json(["series": ["id": sid, "slug": "s", "title": "시리즈", "postCount": ids.count, "createdAt": iso(Date()), "updatedAt": iso(Date())], "posts": []])
+        }
+
+        if method == "POST", parts.count == 4, parts[0] == "posts", parts[2] == "images", parts[3] == "presign" {
+            return json([
+                "uploadUrl": "https://mock-upload.invalid/put",
+                "publicUrl": "https://cdn.kurl.me/mock-cover.jpg",
+                "key": "mock/cover.jpg", "contentType": "image/jpeg", "maxBytes": 5_242_880,
+            ])
+        }
+
+        if method == "POST", parts.count == 4, parts[0] == "posts", parts[2] == "images", parts[3] == "commit" {
+            return json(["imageUrl": "https://cdn.kurl.me/mock-cover.jpg", "key": "mock/cover.jpg"])
+        }
+
         return nil
     }
+
+    private static let mockSeries: [(Int64, String, String)] = [
+        (1, "hexagonal", "헥사고날 전환기"),
+        (2, "ios-build", "iOS 앱 만들기"),
+    ]
+    private static var seriesMembers: [Int64: [Int64]] = [1: [9002], 2: []]
 
     // MARK: 픽스처
 
@@ -164,7 +233,10 @@ enum MockBackend {
             "id": p.id, "slug": p.slug, "title": p.title, "status": p.status,
             "languageTag": "ko",
             "publishedAt": p.publishedAt.map(iso) ?? NSNull(),
-            "excerpt": p.excerpt ?? NSNull(), "ogImageUrl": NSNull(),
+            "scheduledAt": p.scheduledAt.map(iso) ?? NSNull(),
+            "excerpt": p.excerpt ?? NSNull(),
+            "ogImageUrl": p.ogImageUrl ?? NSNull(),
+            "seriesId": p.seriesId ?? NSNull(),
             "viewCount": 42, "likeCount": 3, "tags": p.tags,
             "createdAt": iso(p.updatedAt), "updatedAt": iso(p.updatedAt),
         ]
