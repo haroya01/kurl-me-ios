@@ -241,6 +241,22 @@
         }
       }
     },
+    "글별 성과": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Post performance"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記事別パフォーマンス"
+          }
+        }
+      }
+    },
     "글쓰기": {
       "localizations": {
         "en": {
@@ -433,6 +449,22 @@
         }
       }
     },
+    "더 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show more"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "もっと見る"
+          }
+        }
+      }
+    },
     "로그아웃": {
       "localizations": {
         "en": {
@@ -573,6 +605,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "ログインして書きましょう"
+          }
+        }
+      }
+    },
+    "링크 클릭": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Link clicks"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンククリック"
+          }
+        }
+      }
+    },
+    "링크 클릭 %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld link clicks"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンククリック %lld"
           }
         }
       }
@@ -785,6 +849,22 @@
         }
       }
     },
+    "소개글 — 카드와 검색에 보이는 한 단락": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Excerpt — the paragraph shown on cards and search"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "紹介文 — カードと検索に表示される一段落"
+          }
+        }
+      }
+    },
     "시리즈": {
       "localizations": {
         "en": {
@@ -989,6 +1069,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "保存"
+          }
+        }
+      }
+    },
+    "저장됨 %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存済み %@"
           }
         }
       }
@@ -1201,6 +1297,22 @@
         }
       }
     },
+    "태그 (쉼표로 구분)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tags (comma separated)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タグ（カンマ区切り）"
+          }
+        }
+      }
+    },
     "팔로우": {
       "localizations": {
         "en": {
@@ -1213,6 +1325,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "フォロー"
+          }
+        }
+      }
+    },
+    "팔로우 +%lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+%lld follows"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォロー +%lld"
           }
         }
       }
@@ -1277,6 +1405,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "フォロー中"
+          }
+        }
+      }
+    },
+    "편집": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "編集"
           }
         }
       }

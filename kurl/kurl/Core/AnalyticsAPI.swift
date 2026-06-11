@@ -16,6 +16,50 @@ enum AnalyticsAPI {
             authenticated: true
         )
     }
+
+    /// 글별 성과 테이블 — sort: views|likes|recent.
+    static func postPerformance(sort: String = "views", page: Int = 0, size: Int = 10)
+        async throws -> PostPerformanceResult
+    {
+        try await client.get(
+            "/posts/analytics/posts",
+            query: ["sort": sort, "page": String(page), "size": String(size)],
+            authenticated: true
+        )
+    }
+
+    static func seriesAnalytics() async throws -> [SeriesAnalyticsRow] {
+        try await client.get("/posts/analytics/series", authenticated: true)
+    }
+}
+
+struct PostPerformanceResult: Decodable {
+    let items: [TopPostView]
+    let page: Int
+    let hasNext: Bool
+}
+
+struct TopPostView: Decodable, Identifiable {
+    let postId: Int64
+    let slug: String
+    let title: String
+    let viewCount: Int64
+    let likeCount: Int64
+    let followsGained: Int64
+
+    var id: Int64 { postId }
+}
+
+struct SeriesAnalyticsRow: Decodable, Identifiable {
+    let seriesId: Int64
+    let slug: String
+    let title: String
+    let postCount: Int64
+    let subscriberCount: Int64
+    let totalViews: Int64
+    let totalLikes: Int64
+
+    var id: Int64 { seriesId }
 }
 
 struct AuthorAnalyticsOverview: Decodable {
@@ -25,6 +69,8 @@ struct AuthorAnalyticsOverview: Decodable {
     let lifetimeLikes: Int64
     let windowDays: Int
     let windowViews: Int64
+    let lifetimeLinkClicks: Int64
+    let windowLinkClicks: Int64
     let lifetimeFollows: Int64
     let windowFollows: Int64
     let daily: [DailyPoint]

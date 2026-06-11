@@ -84,6 +84,18 @@ struct APIClient {
         return try decode(data)
     }
 
+    /// JSON 바디 PATCH (메타데이터 부분 수정 — 빠진 키는 서버가 무시).
+    func patch<B: Encodable, T: Decodable>(
+        _ path: String,
+        body: B,
+        as type: T.Type = T.self,
+        authenticated: Bool = false
+    ) async throws -> T {
+        let request = try makeRequest(path: path, query: [:], method: "PATCH", body: try encode(body))
+        let data = try await perform(request, authenticated: authenticated)
+        return try decode(data)
+    }
+
     /// JSON 바디 PUT (본문 교체 등).
     func put<B: Encodable, T: Decodable>(
         _ path: String,

@@ -53,6 +53,27 @@ enum WriteAPI {
         try await client.post("/posts/\(postId)/publish", body: EmptyBody(), authenticated: true)
     }
 
+    /// 메타데이터 부분 수정 — 백엔드 PATCH 는 null 필드를 무시하므로 바뀐 것만 보낸다.
+    /// slug 는 절대 보내지 않는다(발행 후 frozen — 웹에서만 관리).
+    @discardableResult
+    static func updateMetadata(
+        postId: Int64,
+        title: String? = nil,
+        excerpt: String? = nil,
+        tags: [String]? = nil
+    ) async throws -> MyPost {
+        struct Body: Encodable {
+            let title: String?
+            let excerpt: String?
+            let tags: [String]?
+        }
+        return try await client.patch(
+            "/posts/\(postId)",
+            body: Body(title: title, excerpt: excerpt, tags: tags),
+            authenticated: true
+        )
+    }
+
     private struct EmptyBody: Encodable {}
 }
 
@@ -64,6 +85,8 @@ struct MyPost: Decodable, Identifiable, Hashable {
     let status: String
     let publishedAt: Date?
     let updatedAt: Date?
+    let tags: [String]?
+    let excerpt: String?
 
     var isDraft: Bool { status == "DRAFT" }
 }

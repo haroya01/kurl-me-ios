@@ -21,11 +21,14 @@ enum MockBackend {
         var markdown: String
         var publishedAt: Date?
         var updatedAt: Date
+        var tags: [String] = []
+        var excerpt: String?
     }
 
     private static var posts: [MockPost] = [
         MockPost(id: 9001, slug: "p-mock-1", title: "목 초안 — 헥사고날 정리", status: "DRAFT",
-                 markdown: "# 헥사고날\n\n포트와 어댑터.", publishedAt: nil, updatedAt: Date()),
+                 markdown: "# 헥사고날\n\n포트와 어댑터.", publishedAt: nil, updatedAt: Date(),
+                 tags: ["개발"], excerpt: "포트와 어댑터로 다시 그린다."),
         MockPost(id: 9002, slug: "p-mock-2", title: "발행된 목 글", status: "PUBLISHED",
                  markdown: "# 발행됨\n\n본문.", publishedAt: Date().addingTimeInterval(-86_400), updatedAt: Date()),
     ]
@@ -47,6 +50,39 @@ enum MockBackend {
 
         if method == "GET", parts == ["posts", "analytics", "overview"] {
             return json(analyticsOverview())
+        }
+
+        if method == "GET", parts == ["posts", "analytics", "posts"] {
+            return json([
+                "items": [
+                    ["postId": 9002, "slug": "p-mock-2", "title": "발행된 목 글",
+                     "viewCount": 812, "likeCount": 41, "followsGained": 6],
+                    ["postId": 9001, "slug": "p-mock-1", "title": "목 초안 — 헥사고날 정리",
+                     "viewCount": 287, "likeCount": 19, "followsGained": 2],
+                    ["postId": 9003, "slug": "p-mock-3", "title": "조용한 웹로그라는 결정",
+                     "viewCount": 145, "likeCount": 12, "followsGained": 0],
+                ],
+                "page": 0, "hasNext": false,
+            ])
+        }
+
+        if method == "GET", parts == ["posts", "analytics", "series"] {
+            return json([
+                ["seriesId": 1, "slug": "hexagonal", "title": "헥사고날 전환기",
+                 "postCount": 6, "subscriberCount": 14, "totalViews": 1930, "totalLikes": 72],
+                ["seriesId": 2, "slug": "ios-build", "title": "iOS 앱 만들기",
+                 "postCount": 3, "subscriberCount": 7, "totalViews": 640, "totalLikes": 25],
+            ])
+        }
+
+        if method == "PATCH", parts.count == 2, parts[0] == "posts" {
+            guard let idx = posts.firstIndex(where: { String($0.id) == parts[1] }) else { return nil }
+            let req = decode(body)
+            if let title = req["title"] as? String { posts[idx].title = title }
+            if let excerpt = req["excerpt"] as? String { posts[idx].excerpt = excerpt.isEmpty ? nil : excerpt }
+            if let tags = req["tags"] as? [String] { posts[idx].tags = tags }
+            posts[idx].updatedAt = Date()
+            return json(postView(posts[idx]))
         }
 
         if method == "GET", parts == ["posts"] {
@@ -128,8 +164,8 @@ enum MockBackend {
             "id": p.id, "slug": p.slug, "title": p.title, "status": p.status,
             "languageTag": "ko",
             "publishedAt": p.publishedAt.map(iso) ?? NSNull(),
-            "excerpt": NSNull(), "ogImageUrl": NSNull(),
-            "viewCount": 42, "likeCount": 3, "tags": ["목"],
+            "excerpt": p.excerpt ?? NSNull(), "ogImageUrl": NSNull(),
+            "viewCount": 42, "likeCount": 3, "tags": p.tags,
             "createdAt": iso(p.updatedAt), "updatedAt": iso(p.updatedAt),
         ]
     }

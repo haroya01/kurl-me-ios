@@ -31,6 +31,10 @@ enum MockSelfTest {
             log("write.save: roundtrip=\(canonical.hasPrefix("# 제목"))")
             let reloaded = try await WriteAPI.markdown(postId: created.id)
             log("write.reload: matches=\(reloaded == canonical)")
+            let patched = try await WriteAPI.updateMetadata(
+                postId: created.id, title: "셀프테스트 글(수정)",
+                excerpt: "소개글 한 단락", tags: ["테스트", "셀프"])
+            log("write.meta: title=\(patched.title.hasSuffix("(수정)")) tags=\(patched.tags ?? []) excerpt=\(patched.excerpt != nil)")
             let published = try await WriteAPI.publish(postId: created.id)
             log("write.publish: status=\(published.status)")
             let mine = try await WriteAPI.myPosts()
@@ -51,7 +55,11 @@ enum MockSelfTest {
 
             // 분석 — 디코드 + 데이터 형태
             let overview = try await AnalyticsAPI.overview()
-            log("analytics: windowViews=\(overview.windowViews) daily=\(overview.daily.count) referrers=\(overview.referrers.count)")
+            log("analytics: windowViews=\(overview.windowViews) daily=\(overview.daily.count) referrers=\(overview.referrers.count) linkClicks=\(overview.windowLinkClicks)")
+            let perf = try await AnalyticsAPI.postPerformance()
+            log("analytics.posts: items=\(perf.items.count) top=\(perf.items.first?.viewCount ?? -1)")
+            let rows = try await AnalyticsAPI.seriesAnalytics()
+            log("analytics.series: rows=\(rows.count)")
 
             log("SELFTEST OK")
         } catch {
