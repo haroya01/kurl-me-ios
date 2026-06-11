@@ -14,9 +14,13 @@ struct PostDetailView: View {
         _model = State(initialValue: PostDetailViewModel(username: username, slug: slug))
     }
 
+    /// 헤더를 지나면 제목이 내비바로 스며들고(아이폰 리딩 앱 문법), 커버가 있으면
+    /// 그 동안 내비바 배경을 숨겨 커버가 상단을 다 쓴다.
+    @State private var showNavTitle = false
+
     var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 0) {
+            VStack(spacing: 0) {
                 switch model.phase {
                 case .idle, .loading:
                     ProgressView().tint(Palette.accent)
@@ -32,17 +36,62 @@ struct PostDetailView: View {
                     }
                     .padding(.top, 80)
                 case .loaded(let detail):
-                    content(detail)
+                    // 커버는 엣지-투-엣지(컬럼 밖) — 본문 컬럼만 읽기 폭으로 좁힌다.
+                    if let urlString = detail.post.ogImageUrl, let url = URL(string: urlString) {
+                        StretchyCover(url: url)
+                    }
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        content(detail)
+                    }
+                    .frame(maxWidth: Metrics.readingColumn)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, Metrics.gutter)
                 }
             }
-            .frame(maxWidth: Metrics.readingColumn)
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, Metrics.gutter)
         }
         .scrollIndicators(.hidden)
-        .navigationTitle("")
+        .ignoresSafeArea(edges: hasCover ? .top : [])
+        .onScrollGeometryChange(for: Bool.self) { geometry in
+            geometry.contentOffset.y + geometry.contentInsets.top > (hasCover ? 300 : 110)
+        } action: { _, passed in
+            withAnimation(.easeInOut(duration: 0.18)) { showNavTitle = passed }
+        }
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text(loadedTitle)
+                    .font(.system(size: 16, weight: .semibold))
+                    .lineLimit(1)
+                    .opacity(showNavTitle ? 1 : 0)
+            }
+            ToolbarItem(placement: .primaryAction) {
+                if let shareURL {
+                    ShareLink(item: shareURL) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                }
+            }
+        }
+        .toolbarBackground(
+            hasCover && !showNavTitle ? .hidden : .automatic, for: .navigationBar)
         .navigationBarTitleDisplayMode(.inline)
         .task { await model.load() }
+    }
+
+    private var hasCover: Bool {
+        if case .loaded(let detail) = model.phase { return detail.post.ogImageUrl != nil }
+        return false
+    }
+
+    private var loadedTitle: String {
+        if case .loaded(let detail) = model.phase { return detail.post.title }
+        return ""
+    }
+
+    /// 네이티브 공유 시트용 공개 URL — 웹과 같은 주소.
+    private var shareURL: URL? {
+        guard case .loaded(let detail) = model.phase else { return nil }
+        return URL(
+            string: "\(Config.apiBase)/\(Config.preferredLanguageTag)/p/\(detail.author.username)/\(detail.post.slug)")
     }
 
     // 읽기 흐름 우선: 커버 → 제목 → 작가 한 줄 → 본문. 태그와 좋아요는 다 읽은 뒤
@@ -71,25 +120,7 @@ struct PostDetailView: View {
 
     private func header(_ detail: PublicPostDetail) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            // 커버 히어로 — 카드의 zoom 전환이 이 커버로 확대되며 도착한다(웹 커버 모핑의 결).
-            if let urlString = detail.post.ogImageUrl, let url = URL(string: urlString) {
-                Color.clear
-                    .aspectRatio(16.0 / 9.0, contentMode: .fit)
-                    .overlay {
-                        AsyncImage(url: url) { image in
-                            image.resizable().scaledToFill()
-                        } placeholder: {
-                            Rectangle().fill(Palette.hairline)
-                        }
-                        .saturation(0.85)
-                    }
-                    .overlay(Palette.coverVeil)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .padding(.top, 10)
-                    .padding(.bottom, 22)
-            } else {
-                Color.clear.frame(height: 18)
-            }
+            Color.clear.frame(height: detail.post.ogImageUrl != nil ? 22 : 18)
 
             Text(detail.post.title)
                 .font(.system(size: 30, weight: .bold))
@@ -271,6 +302,29 @@ private struct CommentComposer: View {
                 showTwoFactorHint = true
             }
         }
+    }
+}
+
+/// 엣지-투-엣지 커버 — 당겨 내리면 늘어나는 네이티브 stretchy 헤더.
+/// 카드 zoom 전환의 도착점이기도 하다.
+private struct StretchyCover: View {
+    let url: URL
+
+    var body: some View {
+        GeometryReader { geo in
+            let minY = geo.frame(in: .scrollView).minY
+            AsyncImage(url: url) { image in
+                image.resizable().scaledToFill()
+            } placeholder: {
+                Rectangle().fill(Palette.hairline)
+            }
+            .saturation(0.85)
+            .overlay(Palette.coverVeil)
+            .frame(width: geo.size.width, height: geo.size.height + max(0, minY))
+            .clipped()
+            .offset(y: min(0, -minY))
+        }
+        .frame(height: 300)
     }
 }
 

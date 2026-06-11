@@ -45,6 +45,7 @@ struct FollowButton: View {
                     .animation(.snappy(duration: 0.2), value: count)
             }
         }
+        .sensoryFeedback(.impact(weight: .light), trigger: model.following)
         .task { await model.hydrate() }
         .alert("로그인이 필요합니다", isPresented: $showLoginPrompt) {
             Button("로그인") { signInHere() }

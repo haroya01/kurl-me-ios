@@ -52,6 +52,8 @@ struct EngagementBar: View {
             Spacer()
         }
         .padding(.vertical, 10)
+        .sensoryFeedback(.impact(weight: .light), trigger: model.liked)
+        .sensoryFeedback(.impact(weight: .light), trigger: model.bookmarked)
         .task { await model.hydrate() }
         .alert("로그인이 필요합니다", isPresented: $showLoginPrompt) {
             Button("로그인") { signInHere() }
