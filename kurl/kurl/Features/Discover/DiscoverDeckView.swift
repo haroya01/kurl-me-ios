@@ -6,15 +6,20 @@
 import SwiftUI
 import Observation
 
-/// 발견 = 리딩 덱. 한 화면에 글 하나(풀스크린 미리보기 카드), 좌우 스와이프로 다음 글.
-/// 릴스의 문법을 빌리되 본문 자동재생이 아니라 "표지를 한 장씩 넘기는" 미리보기 —
-/// 탭하면 글 상세로 들어간다. 최신+트렌딩을 섞어 셔플하고, 끝에 다다르면 더 가져온다.
+/// 발견 = 리딩 덱. 한 장 = 열린 글 전체(커버·제목·본문·태그·반응 바) — 카드를 탭해
+/// 들어가는 한 단계를 없애고, 릴스처럼 콘텐츠가 즉시 시작된다. 좌우 스와이프 = 다음 글,
+/// 세로 스크롤 = 본문 읽기, 댓글만 시트 한 겹 아래. 최신+트렌딩 셔플, 끝 도달 시 append.
 @MainActor
 @Observable
 final class DiscoverDeckModel {
     private(set) var phase: LoadState<Bool> = .idle
     private(set) var deck: [FeedItem] = []
+    /// 글 id → 풀 본문. 현재 장 + 다음 두 장을 미리 받아 스와이프 시 본문이 즉시 선다.
+    private(set) var details: [Int64: PublicPostDetail] = [:]
 
+    private var detailTasks: [Int64: Task<Void, Never>] = [:]
+    /// 체류 비콘을 이미 쏜 글 — 세션당 한 번. 스쳐 지나간 장은 조회수로 세지 않는다.
+    private var beaconed: Set<Int64> = []
     private var seenIds: Set<Int64> = []
     private var nextRecentPage = 0
     private var exhausted = false
@@ -53,7 +58,7 @@ final class DiscoverDeckModel {
         }
     }
 
-    /// 셔플 버튼 — 덱을 새로 섞는다(처음부터 다시).
+    /// 셔플 버튼 — 덱을 새로 섞는다(처음부터 다시). 본문 캐시는 살린다.
     func reshuffle() async {
         epoch += 1
         phase = .idle
@@ -64,6 +69,34 @@ final class DiscoverDeckModel {
         await load()
     }
 
+    /// 풀 본문 확보 — 중복 요청은 비행 중 태스크로 단일화.
+    func ensureDetail(for item: FeedItem) {
+        guard details[item.id] == nil, detailTasks[item.id] == nil else { return }
+        detailTasks[item.id] = Task {
+            defer { detailTasks[item.id] = nil }
+            if let detail = try? await BlogAPI.postDetail(
+                username: item.author.username, slug: item.slug) {
+                details[item.id] = detail
+            }
+        }
+    }
+
+    /// 현재 장 + 다음 두 장 프리페치.
+    func prefetchAround(id: Int64) {
+        guard let idx = deck.firstIndex(where: { $0.id == id }) else { return }
+        for i in idx..<min(idx + 3, deck.count) {
+            ensureDetail(for: deck[i])
+        }
+    }
+
+    /// 체류 비콘 — 한 장에 머문 뒤에만 호출된다(스와이프로 지나가면 발화 전에 취소).
+    func recordDwell(id: Int64) async {
+        guard let item = deck.first(where: { $0.id == id }),
+              !beaconed.contains(id) else { return }
+        beaconed.insert(id)
+        await BlogAPI.recordView(username: item.author.username, slug: item.slug, source: "ios-deck")
+    }
+
     private func appendShuffled(_ items: [FeedItem]) {
         let fresh = items.filter { seenIds.insert($0.id).inserted }
         deck.append(contentsOf: fresh.shuffled())
@@ -72,8 +105,8 @@ final class DiscoverDeckModel {
 
 struct DiscoverDeckView: View {
     @State private var model = DiscoverDeckModel()
-    @Namespace private var zoomNS
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var currentId: Int64?
+    @State private var commentsTarget: FeedItem?
 
     var body: some View {
         // path 바인딩 금지 — tabBarMinimizeBehavior 가 죽는다(FeedView 참조).
@@ -110,14 +143,11 @@ struct DiscoverDeckView: View {
             }
             .navigationTitle("발견")
             .navigationBarTitleDisplayMode(.inline)
-            .navigationDestination(for: Route.self) { route in
-                if case .post(let username, let slug) = route, !reduceMotion {
-                    RouteView(route: route)
-                        .navigationTransition(.zoom(sourceID: "deck-\(username)-\(slug)", in: zoomNS))
-                } else {
-                    RouteView(route: route)
-                }
-            }
+            .navigationDestination(for: Route.self) { RouteView(route: $0) }
+        }
+        .sheet(item: $commentsTarget) { item in
+            CommentsSheet(username: item.author.username, slug: item.slug)
+                .presentationDetents([.medium, .large])
         }
     }
 
@@ -125,113 +155,120 @@ struct DiscoverDeckView: View {
         ScrollView(.horizontal) {
             LazyHStack(spacing: 0) {
                 ForEach(model.deck) { item in
-                    NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
-                        DeckCard(item: item)
-                            .containerRelativeFrame(.horizontal)
+                    DeckPostPage(item: item, detail: model.details[item.id]) {
+                        commentsTarget = item
                     }
-                    .buttonStyle(.plain)
-                    .modifier(ZoomSource(
-                        active: true,
-                        id: "deck-\(item.author.username)-\(item.slug)",
-                        ns: zoomNS))
+                    .containerRelativeFrame(.horizontal)
                     .modifier(CardScrollFade(axis: .horizontal))
-                    .task { await model.loadMoreIfNeeded(current: item) }
+                    .task {
+                        model.ensureDetail(for: item)
+                        await model.loadMoreIfNeeded(current: item)
+                    }
                 }
             }
             .scrollTargetLayout()
         }
         .scrollTargetBehavior(.paging)
+        .scrollPosition(id: $currentId)
         .scrollIndicators(.hidden)
+        // 장이 바뀔 때마다 프리페치 + 체류 비콘. 2.5초 안에 넘기면 sleep 취소 →
+        // 조회수로 세지 않는다.
+        .task(id: currentId ?? model.deck.first?.id) {
+            guard let id = currentId ?? model.deck.first?.id else { return }
+            model.prefetchAround(id: id)
+            try? await Task.sleep(for: .seconds(2.5))
+            guard !Task.isCancelled else { return }
+            await model.recordDwell(id: id)
+        }
     }
 }
 
-/// 풀스크린 미리보기 카드 — 표지가 있으면 상단 절반이 사진, 없으면 타이포가 전부.
-/// 한 장 = 한 글. 가독은 §10 결: 제목 크게, 발췌 여러 줄, 메타는 조용히.
-private struct DeckCard: View {
+/// 덱 한 장 = 열린 글. 제목·커버·작가 줄은 피드 데이터로 즉시 서고,
+/// 본문(blocks)은 도착하는 대로 아래에 채워진다. 반응 바는 본문 끝 — 글 상세와 같은 결.
+private struct DeckPostPage: View {
     let item: FeedItem
+    let detail: PublicPostDetail?
+    let onComments: () -> Void
 
-    @ScaledMetric(relativeTo: .largeTitle) private var titleUnit: CGFloat = 1
+    @ScaledMetric(relativeTo: .largeTitle) private var titleSize: CGFloat = 26
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            if let urlString = item.ogImageUrl, let url = URL(string: urlString) {
-                Color.clear
-                    .aspectRatio(4.0 / 3.0, contentMode: .fit)
-                    .overlay {
-                        AsyncImage(url: url) { image in
-                            image.resizable().scaledToFill()
-                        } placeholder: {
-                            Rectangle().fill(Palette.hairline)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                if let urlString = item.ogImageUrl, let url = URL(string: urlString) {
+                    Color.clear
+                        .aspectRatio(4.0 / 3.0, contentMode: .fit)
+                        .overlay {
+                            AsyncImage(url: url) { image in
+                                image.resizable().scaledToFill()
+                            } placeholder: {
+                                Rectangle().fill(Palette.hairline)
+                            }
+                            .saturation(0.85)
                         }
-                        .saturation(0.85)
-                    }
-                    .overlay(Palette.coverVeil)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .padding(.top, 8)
-            } else {
-                Spacer(minLength: 28)
-            }
-
-            if let tag = item.tags.first {
-                Text("#\(tag)")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Palette.secondary)
-                    .padding(.top, 22)
-            }
-
-            Text(item.title)
-                .font(.system(size: (item.ogImageUrl == nil ? 30 : 25) * titleUnit, weight: .bold))
-                .foregroundStyle(Palette.ink)
-                .lineLimit(4)
-                .multilineTextAlignment(.leading)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 8)
-
-            if let excerpt = item.excerpt, !excerpt.isEmpty {
-                Text(excerpt)
-                    .font(.system(size: 16 * titleUnit))
-                    .foregroundStyle(Palette.body)
-                    .lineSpacing(5)
-                    .lineLimit(item.ogImageUrl == nil ? 10 : 5)
-                    .multilineTextAlignment(.leading)
-                    .padding(.top, 12)
-            }
-
-            Spacer(minLength: 16)
-
-            HStack(spacing: 8) {
-                AvatarView(author: item.author, size: 24)
-                Text(item.author.username)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Palette.body)
-                if let date = item.publishedAt {
-                    Text("·").foregroundStyle(Palette.faint)
-                    Text(date.formatted(.dateTime.month().day()))
-                        .font(.system(size: 13))
-                        .foregroundStyle(Palette.secondary)
+                        .overlay(Palette.coverVeil)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .padding(.top, 8)
+                        .accessibilityHidden(true)
                 }
-                if item.likeCount > 0 {
-                    Text("·").foregroundStyle(Palette.faint)
-                    HStack(spacing: 3) {
-                        Image(systemName: "heart")
-                            .font(.system(size: 11))
-                            .foregroundStyle(Palette.accentMarker)
-                        Text("\(item.likeCount)")
-                            .font(.system(size: 13))
-                            .foregroundStyle(Palette.secondary)
+
+                Text(item.title)
+                    .font(.system(size: titleSize, weight: .bold))
+                    .foregroundStyle(Palette.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
+                    .padding(.top, item.ogImageUrl == nil ? 18 : 16)
+
+                NavigationLink(value: Route.author(username: item.author.username)) {
+                    HStack(spacing: 9) {
+                        AvatarView(author: item.author, size: 26)
+                        Text(item.author.username)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Palette.ink)
+                        if let date = item.publishedAt {
+                            Text("·").foregroundStyle(Palette.faint)
+                            Text(date.mediumDate)
+                                .font(.system(size: 13))
+                                .foregroundStyle(Palette.secondary)
+                        }
                     }
+                    .contentShape(Rectangle())
                 }
-                Spacer()
-                // 넘김 affordance — 다음 장이 있다는 조용한 신호.
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Palette.faint)
+                .buttonStyle(.plain)
+                .padding(.top, 12)
+
+                Hairline().padding(.top, 14)
+
+                if let detail {
+                    VStack(alignment: .leading, spacing: 2) {
+                        ForEach(Array(detail.blocks.enumerated()), id: \.offset) { _, block in
+                            BlockView(block: block)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                    .padding(.top, 18)
+
+                    if !detail.post.tags.isEmpty {
+                        FlowTags(tags: detail.post.tags)
+                            .padding(.top, 24)
+                    }
+                    EngagementBar(
+                        postId: detail.post.id,
+                        initialLikeCount: detail.post.likeCount,
+                        onComments: onComments
+                    )
+                    .padding(.top, 6)
+                } else {
+                    ProgressView().tint(Palette.accent)
+                        .frame(maxWidth: .infinity, minHeight: 180)
+                }
+
+                Color.clear.frame(height: 32)
             }
-            .padding(.bottom, 18)
+            .frame(maxWidth: Metrics.readingColumn, alignment: .leading)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, Metrics.gutter)
         }
-        .padding(.horizontal, Metrics.gutter)
-        .frame(maxWidth: Metrics.readingColumn)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .contentShape(Rectangle())
+        .scrollIndicators(.hidden)
     }
 }

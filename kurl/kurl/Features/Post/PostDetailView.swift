@@ -226,7 +226,8 @@ struct PostDetailView: View {
 }
 
 /// 댓글 한 줄 — 좋아요(#538)·답글·내 댓글 삭제. 미로그인 인터랙션은 컴포저와 같은 로그인 유도.
-private struct CommentRow: View {
+/// 글 상세와 발견 덱의 댓글 시트가 공유한다.
+struct CommentRow: View {
     let model: PostDetailViewModel
     let comment: Comment
     @Binding var replyTo: Comment?
@@ -322,7 +323,7 @@ private struct CommentRow: View {
 }
 
 /// 댓글 입력 한 줄 — 조용한 인라인 컴포저. 로그아웃 상태에서 보내려 하면 그 자리 로그인.
-private struct CommentComposer: View {
+struct CommentComposer: View {
     let model: PostDetailViewModel
     @Binding var replyTo: Comment?
 

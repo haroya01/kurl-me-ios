@@ -13,6 +13,9 @@ import Observation
 final class PostDetailViewModel {
     let username: String
     let slug: String
+    /// 발견 덱의 댓글 시트처럼 "이미 읽은 글"을 다시 여는 표면은 비콘을 쏘지 않는다 —
+    /// 조회수 이중 집계 방지. 덱 자체는 체류 시간 기준으로 따로 쏜다.
+    private let recordsView: Bool
 
     private(set) var phase: LoadState<PublicPostDetail> = .idle
     private(set) var comments: [Comment] = []
@@ -23,9 +26,10 @@ final class PostDetailViewModel {
     /// 댓글별 토글 세대 — 비행 중 재로드/연타의 스테일 echo 를 버린다.
     private var commentToggleGen: [Int64: Int] = [:]
 
-    init(username: String, slug: String) {
+    init(username: String, slug: String, recordsView: Bool = true) {
         self.username = username
         self.slug = slug
+        self.recordsView = recordsView
     }
 
     func load() async {
@@ -36,7 +40,9 @@ final class PostDetailViewModel {
         do {
             let detail = try await BlogAPI.postDetail(username: username, slug: slug)
             phase = .loaded(detail)
-            await BlogAPI.recordView(username: username, slug: slug)
+            if recordsView {
+                await BlogAPI.recordView(username: username, slug: slug)
+            }
             await loadComments(postId: detail.post.id)
         } catch {
             phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
