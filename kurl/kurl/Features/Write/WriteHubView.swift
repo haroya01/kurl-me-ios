@@ -29,6 +29,14 @@ struct WriteHubView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 if auth.isSignedIn {
+                    ToolbarItem(placement: .topBarLeading) {
+                        NavigationLink {
+                            AnalyticsView()
+                        } label: {
+                            Image(systemName: "chart.bar")
+                        }
+                        .tint(.brand)
+                    }
                     ToolbarItem(placement: .primaryAction) {
                         Button {
                             composing = true

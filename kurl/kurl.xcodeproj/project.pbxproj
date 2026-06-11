@@ -8,18 +8,83 @@
 
 /* Begin PBXFileReference section */
 		D3696C7C2FD48A89006D9F90 /* kurl.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = kurl.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D400000000000000000000A1 /* kurlWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = kurlWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXBuildFile section */
+		D400000000000000000000AC /* kurlWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D400000000000000000000A1 /* kurlWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		D400000000000000000000AA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D3696C742FD48A89006D9F90 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D400000000000000000000A6;
+			remoteInfo = kurlWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		D400000000000000000000AD /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				D400000000000000000000AC /* kurlWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		D400000000000000000000AE /* Exceptions for "kurlWidget" folder in "kurlWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+				kurlWidget.entitlements,
+			);
+			target = D400000000000000000000A6 /* kurlWidgetExtension */;
+		};
+		D400000000000000000000AF /* Exceptions for "kurl" folder in "kurl" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				kurl.entitlements,
+			);
+			target = D3696C7B2FD48A89006D9F90 /* kurl */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		D3696C7E2FD48A89006D9F90 /* kurl */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				D400000000000000000000AF /* Exceptions for "kurl" folder in "kurl" target */,
+			);
 			path = kurl;
+			sourceTree = "<group>";
+		};
+		D400000000000000000000A2 /* kurlWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				D400000000000000000000AE /* Exceptions for "kurlWidget" folder in "kurlWidgetExtension" target */,
+			);
+			path = kurlWidget;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		D3696C792FD48A89006D9F90 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D400000000000000000000A4 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -33,6 +98,7 @@
 			isa = PBXGroup;
 			children = (
 				D3696C7E2FD48A89006D9F90 /* kurl */,
+				D400000000000000000000A2 /* kurlWidget */,
 				D3696C7D2FD48A89006D9F90 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,6 +107,7 @@
 			isa = PBXGroup;
 			children = (
 				D3696C7C2FD48A89006D9F90 /* kurl.app */,
+				D400000000000000000000A1 /* kurlWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -55,10 +122,12 @@
 				D3696C782FD48A89006D9F90 /* Sources */,
 				D3696C792FD48A89006D9F90 /* Frameworks */,
 				D3696C7A2FD48A89006D9F90 /* Resources */,
+				D400000000000000000000AD /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				D400000000000000000000AB /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				D3696C7E2FD48A89006D9F90 /* kurl */,
@@ -70,7 +139,37 @@
 			productReference = D3696C7C2FD48A89006D9F90 /* kurl.app */;
 			productType = "com.apple.product-type.application";
 		};
+		D400000000000000000000A6 /* kurlWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D400000000000000000000A7 /* Build configuration list for PBXNativeTarget "kurlWidgetExtension" */;
+			buildPhases = (
+				D400000000000000000000A3 /* Sources */,
+				D400000000000000000000A4 /* Frameworks */,
+				D400000000000000000000A5 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				D400000000000000000000A2 /* kurlWidget */,
+			);
+			name = kurlWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = kurlWidgetExtension;
+			productReference = D400000000000000000000A1 /* kurlWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
+
+/* Begin PBXTargetDependency section */
+		D400000000000000000000AB /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D400000000000000000000A6 /* kurlWidgetExtension */;
+			targetProxy = D400000000000000000000AA /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXProject section */
 		D3696C742FD48A89006D9F90 /* Project object */ = {
@@ -81,6 +180,9 @@
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					D3696C7B2FD48A89006D9F90 = {
+						CreatedOnToolsVersion = 26.0.1;
+					};
+					D400000000000000000000A6 = {
 						CreatedOnToolsVersion = 26.0.1;
 					};
 				};
@@ -100,6 +202,7 @@
 			projectRoot = "";
 			targets = (
 				D3696C7B2FD48A89006D9F90 /* kurl */,
+				D400000000000000000000A6 /* kurlWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -112,10 +215,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D400000000000000000000A5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		D3696C782FD48A89006D9F90 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D400000000000000000000A3 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -251,6 +368,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = kurl/kurl.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 5R78H9H4YU;
@@ -283,6 +401,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = kurl/kurl.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 5R78H9H4YU;
@@ -310,6 +429,58 @@
 			};
 			name = Release;
 		};
+		D400000000000000000000A8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = kurlWidget/kurlWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5R78H9H4YU;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = kurlWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = kurl;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = focustime.kurl.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		D400000000000000000000A9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = kurlWidget/kurlWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 5R78H9H4YU;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = kurlWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = kurl;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = focustime.kurl.widgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -327,6 +498,15 @@
 			buildConfigurations = (
 				D3696C882FD48A8B006D9F90 /* Debug */,
 				D3696C892FD48A8B006D9F90 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D400000000000000000000A7 /* Build configuration list for PBXNativeTarget "kurlWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D400000000000000000000A8 /* Debug */,
+				D400000000000000000000A9 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
