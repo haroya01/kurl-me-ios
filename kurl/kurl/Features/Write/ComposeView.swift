@@ -16,6 +16,7 @@ struct ComposeView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private enum Field: Hashable { case title, tags, excerpt, editor }
     @FocusState private var focusedField: Field?
@@ -24,6 +25,8 @@ struct ComposeView: View {
     @State private var tagsText = ""
     @State private var excerpt = ""
     @State private var markdown = ""
+    /// 유리 스니펫 바의 삽입 기준 — 커서/선택을 그대로 쓴다(끝에 덧붙이기 금지).
+    @State private var editorSelection: TextSelection?
     @State private var postId: Int64?
     @State private var status = "DRAFT"
     @State private var busy = false
@@ -66,10 +69,24 @@ struct ComposeView: View {
             }
             editor
         }
+        // 키보드 위에 뜨는 유리 마크다운 바 — 캔버스는 종이, 크롬은 유리(AGENTS.md §1).
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if focusedField == .editor {
+                MarkdownSnippetBar(perform: applySnippet) { focusedField = nil }
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: focusedField == .editor)
         .navigationTitle(existing == nil ? "새 글" : "편집")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { toolbarContent }
-        .task { await loadExisting() }
+        .task {
+            await loadExisting()
+            // `--focus editor` — 키보드·스니펫 바까지 띄우는 검증 진입로(simctl 터치 불가 우회).
+            if Config.consumeLaunchValue(after: "--focus") == "editor" {
+                focusedField = .editor
+            }
+        }
         .onChange(of: signature) { scheduleAutosave() }
         .onChange(of: coverItem) { uploadPickedCover() }
         .onDisappear {
@@ -118,7 +135,7 @@ struct ComposeView: View {
                 .focused($focusedField, equals: .excerpt)
 
             HStack(spacing: 10) {
-                // 시리즈 지정 — 멤버십은 저장 시점에 PUT 으로 반영.
+                // 시리즈 지정 — 멤버십은 저장 시점에 PUT 으로 반영. 칩은 유리 캡슐(컨트롤).
                 Menu {
                     Button("시리즈 없음") { seriesId = nil }
                     ForEach(seriesList) { series in
@@ -132,12 +149,16 @@ struct ComposeView: View {
                             .font(.system(size: 12))
                             .lineLimit(1)
                     }
-                    .foregroundStyle(seriesId == nil ? Palette.secondary : Palette.link)
+                    .foregroundStyle(seriesId == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(Palette.link))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .contentShape(Capsule())
                 }
+                .glassEffect(.regular.interactive(), in: .capsule)
 
                 Spacer()
 
-                // 커버 — 썸네일 또는 추가 버튼.
+                // 커버 — 썸네일 또는 유리 칩 추가 버튼.
                 PhotosPicker(selection: $coverItem, matching: .images) {
                     if uploadingCover {
                         ProgressView().controlSize(.small)
@@ -156,7 +177,11 @@ struct ComposeView: View {
                             Text("커버")
                                 .font(.system(size: 12))
                         }
-                        .foregroundStyle(Palette.secondary)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .contentShape(Capsule())
+                        .glassEffect(.regular.interactive(), in: .capsule)
                     }
                 }
             }
@@ -167,7 +192,7 @@ struct ComposeView: View {
     }
 
     private var editor: some View {
-        TextEditor(text: $markdown)
+        TextEditor(text: $markdown, selection: $editorSelection)
             .focused($focusedField, equals: .editor)
             .font(.system(size: 16, design: .monospaced))
             .scrollContentBackground(.hidden)
@@ -442,6 +467,149 @@ struct ComposeView: View {
                 errorMessage = error.localizedDescription
             }
         }
+    }
+
+    // MARK: 마크다운 스니펫 삽입 — 커서/선택 기준
+
+    private func applySnippet(_ action: MarkdownSnippetBar.Action) {
+        switch action {
+        case .heading: applyLinePrefix("# ")
+        case .quote: applyLinePrefix("> ")
+        case .list: applyLinePrefix("- ")
+        case .bold: wrapSelection("**")
+        case .inlineCode: wrapSelection("`")
+        case .codeBlock: insertFence()
+        case .link: insertLink()
+        }
+    }
+
+    /// 현재 선택 범위 — 커서가 없으면 본문 끝(빈 선택).
+    private func selectionRange() -> Range<String.Index> {
+        if let selection = editorSelection, case .selection(let range) = selection.indices {
+            return range
+        }
+        return markdown.endIndex..<markdown.endIndex
+    }
+
+    /// 변경 후 커서 이동 — 인덱스는 본문 변형으로 무효가 되므로 오프셋으로 다시 만든다.
+    private func moveCaret(to offset: Int) {
+        let clamped = min(max(0, offset), markdown.count)
+        editorSelection = TextSelection(
+            insertionPoint: markdown.index(markdown.startIndex, offsetBy: clamped))
+    }
+
+    /// 커서가 속한 줄 맨 앞에 줄머리(#·>·-)를 붙인다.
+    private func applyLinePrefix(_ prefix: String) {
+        let range = selectionRange()
+        let caret = markdown.distance(from: markdown.startIndex, to: range.lowerBound)
+        let lineStart = markdown[..<range.lowerBound].lastIndex(of: "\n")
+            .map { markdown.index(after: $0) } ?? markdown.startIndex
+        markdown.insert(contentsOf: prefix, at: lineStart)
+        moveCaret(to: caret + prefix.count)
+    }
+
+    /// 선택이 있으면 감싸고, 없으면 쌍만 넣고 커서를 그 사이에 둔다.
+    private func wrapSelection(_ fix: String) {
+        let range = selectionRange()
+        let start = markdown.distance(from: markdown.startIndex, to: range.lowerBound)
+        let selected = String(markdown[range])
+        markdown.replaceSubrange(range, with: fix + selected + fix)
+        moveCaret(to: start + fix.count + selected.count + (selected.isEmpty ? 0 : fix.count))
+    }
+
+    private func insertFence() {
+        let range = selectionRange()
+        let start = markdown.distance(from: markdown.startIndex, to: range.lowerBound)
+        markdown.replaceSubrange(range, with: "\n```\n\n```\n")
+        moveCaret(to: start + 5)
+    }
+
+    /// 선택을 라벨로 삼아 링크를 넣고, url 자리를 선택해 둔다 — 바로 타이핑하면 덮인다.
+    private func insertLink() {
+        let range = selectionRange()
+        let start = markdown.distance(from: markdown.startIndex, to: range.lowerBound)
+        let selected = String(markdown[range])
+        let label = selected.isEmpty ? String(localized: "제목") : selected
+        markdown.replaceSubrange(range, with: "[\(label)](url)")
+        let urlStart = markdown.index(markdown.startIndex, offsetBy: start + label.count + 3)
+        editorSelection = TextSelection(range: urlStart..<markdown.index(urlStart, offsetBy: 3))
+    }
+}
+
+/// 키보드 위에 뜨는 유리 마크다운 바 — 에디터의 유일한 유리 크롬.
+/// 표준 md 만 — 비표준 문법 버튼은 두지 않는다(웹 에디터와 같은 경계).
+/// 좁은 화면에선 스니펫 캡슐이 가로 스크롤되고 터치 타깃 44pt 는 줄이지 않는다.
+private struct MarkdownSnippetBar: View {
+    let perform: (Action) -> Void
+    let dismiss: () -> Void
+
+    enum Action: CaseIterable {
+        case heading, bold, inlineCode, codeBlock, quote, list, link
+
+        var icon: String {
+            switch self {
+            case .heading: "number"
+            case .bold: "bold"
+            case .inlineCode: "chevron.left.forwardslash.chevron.right"
+            case .codeBlock: "curlybraces"
+            case .quote: "text.quote"
+            case .list: "list.bullet"
+            case .link: "link"
+            }
+        }
+
+        var label: LocalizedStringKey {
+            switch self {
+            case .heading: "제목"
+            case .bold: "굵게"
+            case .inlineCode: "인라인 코드"
+            case .codeBlock: "코드 블록"
+            case .quote: "인용"
+            case .list: "리스트"
+            case .link: "링크"
+            }
+        }
+    }
+
+    var body: some View {
+        GlassEffectContainer(spacing: GlassTokens.clusterSpacing) {
+            HStack(spacing: 10) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 0) {
+                        ForEach(Action.allCases, id: \.self) { action in
+                            Button {
+                                perform(action)
+                            } label: {
+                                Image(systemName: action.icon)
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundStyle(.primary)
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(Text(action.label))
+                        }
+                    }
+                    .padding(.horizontal, 4)
+                }
+                .frame(height: 44)
+                .glassEffect(.regular.interactive(), in: .capsule)
+
+                Button(action: dismiss) {
+                    Image(systemName: "keyboard.chevron.compact.down")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.interactive(), in: .circle)
+                .accessibilityLabel(Text("키보드 내리기"))
+            }
+        }
+        .padding(.horizontal, Metrics.gutter)
+        .padding(.top, 6)
+        .padding(.bottom, 8)
     }
 }
 
