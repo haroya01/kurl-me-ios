@@ -85,7 +85,8 @@ iOS 27의 답은 Liquid Glass 극대화 — 단, 유리가 **어디에 사는지
   `--feed recent|trending|following|notes`,
   `--open analytics|compose|notifications`, `--post user/slug`, `--selftest`.
 - UI 테스트: `xcodebuild test -scheme kurl` (DiscoverDeck·TabBarMinimize·
-  ComposeSnippetBar·NotesFeed). 시뮬 런타임은 minimize 자체가 깨져 skip —
-  실기기에서 단정한다.
+  ComposeSnippetBar·NotesFeed). 탭바 minimize 는 26.0·27.0 런타임에서
+  시뮬·실기기 모두 OS 쪽이 깨져 있음(교과서 케이스 실기기 재현으로 확정,
+  26 SDK 앱만 동작) — 테스트는 줄면 pass / 안 줄면 skip, 고쳐진 베타부터 자동 단정.
 - 27-only API 채택 현황: `GlassEffectTransition.materialize`(독 등장),
   `ConcentricRectangle`(코어 승격) — 독·FAB 쉐이프. `DepthAlignment` 계열은 미채용.

@@ -55,6 +55,8 @@ struct RootView: View {
         // 스레드식 하단바: 라벨 없는 아이콘-온리 탭 + 스크롤 내릴 때 바가 최소화되는
         // iOS 26 네이티브 동작. 검색에 role 을 주지 않는 건 의도 — role: .search 는
         // Liquid Glass 가 검색을 독립 pill 로 분리하는데, 한 바에 4탭이 모이는 쪽을 택했다.
+        // 최소화는 27.0 베타에선 시뮬·실기기 모두 OS 가 안 태운다(2026-06-13 교과서
+        // 케이스로 실기기 확정 — 우리 구조 무관). 동작하는 OS 가 오면 그대로 산다.
         TabView(selection: $selection) {
             // 빈 시각 라벨(스레드식)을 유지하면서 VoiceOver 라벨만 단다.
             Tab("", systemImage: "doc.text.image", value: 0) {
