@@ -34,6 +34,10 @@ struct PostDetailView: View {
     /// 덱 임베드 전용 — 댓글은 접힌 행으로 시작하고, 본문 끝에서 더 당기면
     /// 같은 작가의 다음 글로 이어진다(가로 = 다른 작가, 세로 = 이 작가 더 보기).
     @State private var commentsExpanded = false
+
+    /// 댓글 입력 = 키보드 위에 붙는 유리 바(채팅 문법). 본문 끝 프롬프트 행이나
+    /// 답글 버튼이 이걸 깨운다 — 인라인 입력은 키보드와 위치가 따로 놀았다.
+    @State private var composerActive = false
     @State private var nextPost: PostListItem?
     @State private var nextFetched = false
     @State private var showNext = false
@@ -105,6 +109,19 @@ struct PostDetailView: View {
                 replyTo = nil
             }
         }
+        .onChange(of: replyTo) { _, target in
+            if target != nil { composerActive = true }
+        }
+        // 키보드 위에 붙는 유리 댓글 바 — safeAreaInset 이 키보드를 따라 위치를 보장한다.
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if composerActive {
+                GlassCommentBar(model: model, replyTo: $replyTo) {
+                    composerActive = false
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: composerActive)
         .onScrollGeometryChange(for: Bool.self) { geometry in
             geometry.contentOffset.y + geometry.contentInsets.top > (hasCover ? coverHeight : 110)
         } action: { _, passed in
@@ -464,7 +481,27 @@ struct PostDetailView: View {
                         }
                     }
                 }
-                CommentComposer(model: model, replyTo: $replyTo)
+                // 본문 끝의 조용한 프롬프트 — 탭하면 유리 바가 키보드와 함께 떠오른다.
+                Button {
+                    composerActive = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "bubble.left")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Palette.faint)
+                        Text("댓글을 남겨보세요")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Palette.faint)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.horizontal, 13)
+                    .padding(.vertical, 11)
+                    .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: 12))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("댓글을 남겨보세요")
+                .padding(.top, 4)
             }
         }
         .padding(.vertical, 16)
@@ -585,10 +622,13 @@ struct CommentRow: View {
     }
 }
 
-/// 댓글 입력 한 줄 — 조용한 인라인 컴포저. 로그아웃 상태에서 보내려 하면 그 자리 로그인.
-struct CommentComposer: View {
+/// 키보드 위에 붙는 유리 댓글 바 — 입력은 떠 있는 크롬이므로 유리(AGENTS §1).
+/// safeAreaInset(.bottom) 이 키보드를 따라가 위치는 시스템이 보장한다.
+/// 유리 위 주행동(보내기)은 솔리드 그린 원(§1.4 유리 중첩 금지).
+struct GlassCommentBar: View {
     let model: PostDetailViewModel
     @Binding var replyTo: Comment?
+    let onDone: () -> Void
 
     @State private var body_ = ""
     @State private var sending = false
@@ -598,63 +638,76 @@ struct CommentComposer: View {
     @FocusState private var focused: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-        if let replyTo {
-            HStack(spacing: 6) {
-                Text("\(replyTo.author.username)님에게 답글")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Palette.link)
-                Button {
-                    self.replyTo = nil
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Palette.secondary)
-                        .expandTapTarget()
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("답글 취소")
-            }
-        }
-        HStack(spacing: 8) {
-            TextField(replyTo == nil ? "댓글을 남겨보세요" : "답글을 남겨보세요", text: $body_, axis: .vertical)
-                .font(.system(size: 14))
-                .lineLimit(1...4)
-                .focused($focused)
-                .submitLabel(.send)
-                .onSubmit { if canSend { send() } }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 9)
-                .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: 12))
-            Button {
-                send()
-            } label: {
-                if sending {
-                    ProgressView()
-                        .frame(width: 32, height: 32)
-                } else {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 28))
-                        // 비활성도 식별은 돼야 한다 — faint 는 1.5:1 대로 사실상 투명이었다.
-                        .foregroundStyle(canSend ? Palette.accent : Palette.secondary.opacity(0.55))
+        VStack(alignment: .leading, spacing: 8) {
+            if let replyTo {
+                HStack(spacing: 6) {
+                    Text("\(replyTo.author.username)님에게 답글")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Palette.link)
+                    Button {
+                        self.replyTo = nil
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 13))
+                            .foregroundStyle(.secondary)
+                            .expandTapTarget()
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("답글 취소")
                 }
             }
-            .buttonStyle(.plain)
-            .disabled(!canSend || sending)
-            .accessibilityLabel("댓글 보내기")
-        }
-        }
-        .padding(.top, 4)
-        .overlay(alignment: .bottomLeading) {
             if sendFailed {
                 Text("전송하지 못했습니다 — 다시 시도해 주세요.")
                     .font(.system(size: 12))
                     .foregroundStyle(.red)
-                    .offset(y: 20)
+            }
+            HStack(alignment: .bottom, spacing: 10) {
+                TextField(
+                    replyTo == nil ? "댓글을 남겨보세요" : "답글을 남겨보세요",
+                    text: $body_, axis: .vertical
+                )
+                .font(.system(size: 15))
+                .lineLimit(1...4)
+                .focused($focused)
+                .submitLabel(.send)
+                .onSubmit { if canSend { send() } }
+
+                Button {
+                    send()
+                } label: {
+                    if sending {
+                        ProgressView()
+                            .tint(.white)
+                            .frame(width: 34, height: 34)
+                            .background(GlassTokens.prominentTint, in: Circle())
+                    } else {
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 34, height: 34)
+                            .background(
+                                canSend ? GlassTokens.prominentTint : Color.secondary.opacity(0.45),
+                                in: Circle())
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(!canSend || sending)
+                .accessibilityLabel("댓글 보내기")
             }
         }
-        .onChange(of: replyTo) { _, target in
-            if target != nil { focused = true }
+        .padding(.horizontal, 15)
+        .padding(.vertical, 11)
+        .glassEffect(.regular, in: .rect(cornerRadius: 24))
+        .padding(.horizontal, 10)
+        .padding(.bottom, 6)
+        .onAppear { focused = true }
+        .onChange(of: focused) { _, isFocused in
+            // 키보드를 내렸고 쓰던 글도 없으면 바도 물러난다(초안이 있으면 남아서 지킨다).
+            if !isFocused, !sending,
+               body_.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                replyTo = nil
+                onDone()
+            }
         }
         .alert("로그인이 필요합니다", isPresented: $showLoginPrompt) {
             Button("Apple로 로그인") { appleHere() }
@@ -692,6 +745,7 @@ struct CommentComposer: View {
                 replyTo = nil
                 focused = false
                 sendFailed = false
+                onDone()
             } catch {
                 sendFailed = true // 입력은 보존 — 실패를 보이게.
             }

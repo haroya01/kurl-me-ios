@@ -33,15 +33,22 @@ final class DiscoverDeckUITests: XCTestCase {
         let composer = app.textFields["댓글을 남겨보세요"].firstMatch
         XCTAssertFalse(composer.exists, "접힌 상태인데 컴포저가 이미 보임")
 
-        // 펼치면 상세와 동일한 댓글 목록 + 컴포저.
+        // 펼치면 프롬프트 행이 서고, 탭해야 키보드 위 유리 바(진짜 입력)가 떠오른다.
         collapsed.tap()
         app.swipeUp(velocity: .slow)
-        XCTAssertTrue(composer.waitForExistence(timeout: 5), "댓글 펼침 후 컴포저가 없음")
+        let prompt = app.buttons["댓글을 남겨보세요"].firstMatch
+        XCTAssertTrue(prompt.waitForExistence(timeout: 5), "댓글 펼침 후 프롬프트가 없음")
+        prompt.tap()
+        XCTAssertTrue(composer.waitForExistence(timeout: 5), "프롬프트 탭 후 유리 바 입력이 없음")
 
         let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = "deck-comments-expanded"
         attachment.lifetime = .keepAlways
         add(attachment)
+
+        // 다음 단계(당김 큐)를 위해 키보드·바를 물린다 — 빈 입력에서 블러면 바도 내려간다.
+        app.swipeDown(velocity: .fast)
+        Thread.sleep(forTimeInterval: 0.6)
 
         // 다음 글 큐(작가에게 다음 글이 있을 때만) — 탭 경로로 푸시를 결정적으로
         // 검증한다. 당김 제스처는 같은 showNext 를 쏘므로 경로 검증은 이걸로 충분.
