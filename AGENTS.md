@@ -82,8 +82,10 @@ iOS 27의 답은 Liquid Glass 극대화 — 단, 유리가 **어디에 사는지
   배포 타깃 27.0. 시뮬 기준 디바이스 `kurl-air-27`(iPhone Air, 27.0 런타임) — GUI 는
   stable Xcode 의 Simulator.app 사용(27 베타엔 Simulator.app 미포함).
 - 검증 진입로(DEBUG): `--mocks`, `--tab write|discover|search|account`,
+  `--feed recent|trending|following|notes`,
   `--open analytics|compose|notifications`, `--post user/slug`, `--selftest`.
-- UI 테스트: `xcodebuild test -scheme kurl` (DiscoverDeck·TabBarMinimize).
-  26.0 런타임은 minimize 자체가 깨져 skip — 27 디바이스에서 단정한다.
+- UI 테스트: `xcodebuild test -scheme kurl` (DiscoverDeck·TabBarMinimize·
+  ComposeSnippetBar·NotesFeed). 시뮬 런타임은 minimize 자체가 깨져 skip —
+  실기기에서 단정한다.
 - 27-only API 채택 현황: `GlassEffectTransition.materialize`(독 등장),
   `ConcentricRectangle`(코어 승격) — 독·FAB 쉐이프. `DepthAlignment` 계열은 미채용.
