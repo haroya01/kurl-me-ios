@@ -1853,6 +1853,22 @@
         }
       }
     },
+    "시리즈 %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld series"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "シリーズ %lld"
+          }
+        }
+      }
+    },
     "시리즈 없음": {
       "localizations": {
         "en": {
@@ -2785,6 +2801,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "消去"
+          }
+        }
+      }
+    },
+    "첫 화부터": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From Ep. 1"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第1話から"
           }
         }
       }

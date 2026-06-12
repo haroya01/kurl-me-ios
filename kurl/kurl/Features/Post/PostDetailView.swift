@@ -224,7 +224,7 @@ struct PostDetailView: View {
         }
         if let nav = detail.series { seriesNav(nav, username: detail.author.username) }
         authorCard(detail.author)
-        comments
+        comments(authorId: detail.author.id)
         if embedded, let next = nextPost {
             nextPostCue(next)
         }
@@ -424,7 +424,7 @@ struct PostDetailView: View {
         .buttonStyle(.plain)
     }
 
-    private var comments: some View {
+    private func comments(authorId: Int64) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             Hairline()
             // 덱에서는 접힌 행으로 — 읽기 흐름과 "당겨서 다음 글" 동작을 댓글이
@@ -448,8 +448,21 @@ struct PostDetailView: View {
             } else {
                 RailHeading("댓글 \(model.comments.count)")
                 ForEach(model.comments) { comment in
-                    CommentRow(model: model, comment: comment, replyTo: $replyTo)
-                        .padding(.leading, comment.parentId != nil ? 28 : 0)
+                    CommentRow(
+                        model: model, comment: comment, replyTo: $replyTo,
+                        postAuthorId: authorId
+                    )
+                    .padding(.leading, comment.parentId != nil ? 28 : 0)
+                    // 답글의 소속을 눈으로 — 들여쓰기만으로는 스레드가 안 읽힌다.
+                    .overlay(alignment: .leading) {
+                        if comment.parentId != nil {
+                            RoundedRectangle(cornerRadius: 1)
+                                .fill(Palette.hairlineStrong)
+                                .frame(width: 2)
+                                .padding(.vertical, 4)
+                                .offset(x: 13)
+                        }
+                    }
                 }
                 CommentComposer(model: model, replyTo: $replyTo)
             }
@@ -464,6 +477,8 @@ struct CommentRow: View {
     let model: PostDetailViewModel
     let comment: Comment
     @Binding var replyTo: Comment?
+    /// 글쓴이 표시용 — 댓글 작성자가 글 작가면 "작가" 칩이 붙는다.
+    var postAuthorId: Int64?
 
     @State private var confirmDelete = false
     @State private var deleteFailed = false
@@ -479,10 +494,25 @@ struct CommentRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
-                AvatarView(author: comment.author, size: 24)
-                Text(comment.author.username)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Palette.ink)
+                // 댓글에서 사람으로 — 아바타·이름 탭 = 그 사람의 블로그.
+                NavigationLink(value: Route.author(username: comment.author.username)) {
+                    HStack(spacing: 8) {
+                        AvatarView(author: comment.author, size: 24)
+                        Text(comment.author.username)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Palette.ink)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                if let postAuthorId, comment.author.id == postAuthorId {
+                    Text("작가")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Palette.link)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Palette.chipBg, in: Capsule())
+                }
                 if let date = comment.createdAt {
                     Text(date.relativeShort)
                         .font(.system(size: 12)).foregroundStyle(Palette.secondary)

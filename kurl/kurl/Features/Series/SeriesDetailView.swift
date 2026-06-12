@@ -45,25 +45,78 @@ struct SeriesDetailView: View {
         VStack(alignment: .leading, spacing: 8) {
             RailHeading("시리즈")
             Text(detail.series.title)
-                .font(.system(size: 26, weight: .bold)).foregroundStyle(Palette.ink)
-            Text("\(detail.author.username) · \(detail.series.postCount)편")
-                .font(.system(size: 14)).foregroundStyle(Palette.secondary)
-            SubscribeButton(seriesId: detail.series.id)
-                .padding(.top, 6)
+                .font(.system(size: 26, weight: .bold))
+                .tracking(-0.4)
+                .foregroundStyle(Palette.ink)
+            NavigationLink(value: Route.author(username: detail.author.username)) {
+                HStack(spacing: 6) {
+                    Text(detail.author.username)
+                        .fontWeight(.medium)
+                    Text("·").foregroundStyle(Palette.faint)
+                    Text("\(detail.series.postCount)편")
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Palette.faint)
+                }
+                .font(.system(size: 14))
+                .foregroundStyle(Palette.secondary)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            HStack(spacing: 12) {
+                SubscribeButton(seriesId: detail.series.id)
+                Spacer(minLength: 0)
+                // 시리즈의 본업은 순서대로 읽기 — 1화 직행 문을 단다.
+                if let first = detail.posts.first {
+                    NavigationLink(value: Route.post(username: username, slug: first.slug)) {
+                        HStack(spacing: 5) {
+                            Image(systemName: "book")
+                                .font(.system(size: 12, weight: .semibold))
+                            Text("첫 화부터")
+                                .font(.system(size: 14, weight: .semibold))
+                        }
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .contentShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .glassEffect(.regular.interactive(), in: .capsule)
+                }
+            }
+            .padding(.top, 8)
         }
         .padding(.vertical, 16)
         Hairline()
 
+        // 목차 문법 — 번호·제목·날짜만(소개글은 목차를 늘어뜨린다).
         ForEach(Array(detail.posts.enumerated()), id: \.element.id) { index, post in
             NavigationLink(value: Route.post(username: username, slug: post.slug)) {
-                HStack(alignment: .top, spacing: 14) {
+                HStack(alignment: .firstTextBaseline, spacing: 14) {
                     Text("\(index + 1)")
                         .font(.system(size: 15, weight: .bold).monospacedDigit())
                         .foregroundStyle(Palette.accentMarker)
-                        .frame(width: 22, alignment: .leading)
-                        .padding(.top, 18)
-                    PostRow(item: post)
+                        .frame(width: 24, alignment: .leading)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(post.title)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(Palette.ink)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                        if let date = post.publishedAt {
+                            Text(date.relativeShort)
+                                .font(.system(size: 12))
+                                .foregroundStyle(Palette.secondary)
+                        }
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Palette.faint)
                 }
+                .padding(.vertical, 13)
+                .contentShape(Rectangle())
             }
             .buttonStyle(RowButtonStyle())
             if index < detail.posts.count - 1 { Hairline() }

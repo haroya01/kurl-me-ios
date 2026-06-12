@@ -42,40 +42,76 @@ struct AuthorBlogView: View {
 
     @ViewBuilder
     private func content(_ view: PublicPostListView) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            AvatarView(author: view.author, size: 60)
-            Text(view.author.username)
-                .font(.system(size: 24, weight: .bold)).foregroundStyle(Palette.ink)
+        // 정체 헤더 — 이름·소개·산출물 한 줄(글·시리즈 수)이 한눈에.
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .center, spacing: 14) {
+                AvatarView(author: view.author, size: 64)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(view.author.username)
+                        .font(.system(size: 24, weight: .bold))
+                        .tracking(-0.4)
+                        .foregroundStyle(Palette.ink)
+                    HStack(spacing: 6) {
+                        Text("글 \(view.posts.count)")
+                        if !series.isEmpty {
+                            Text("·").foregroundStyle(Palette.faint)
+                            Text("시리즈 \(series.count)")
+                        }
+                    }
+                    .font(.system(size: 13))
+                    .foregroundStyle(Palette.secondary)
+                }
+                Spacer(minLength: 0)
+            }
             if let bio = view.author.bio, !bio.isEmpty {
-                Text(bio).font(.system(size: 15)).foregroundStyle(Palette.secondary)
+                Text(bio)
+                    .font(.system(size: 15))
+                    .foregroundStyle(Palette.secondary)
+                    .lineSpacing(4)
+                    .padding(.top, 12)
             }
             FollowButton(username: view.author.username)
-                .padding(.top, 4)
+                .padding(.top, 14)
         }
-        .padding(.vertical, 16)
+        .padding(.vertical, 18)
 
         if !series.isEmpty {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 12) {
                 RailHeading("시리즈")
-                VStack(spacing: 0) {
-                    ForEach(Array(series.enumerated()), id: \.element.id) { index, s in
-                        NavigationLink(value: Route.series(username: username, slug: s.slug)) {
-                            HStack(spacing: 10) {
-                                Image(systemName: "square.stack.3d.up")
-                                    .font(.system(size: 14)).foregroundStyle(Palette.accentMarker)
-                                Text(s.title).font(.system(size: 15, weight: .medium))
-                                    .foregroundStyle(Palette.ink)
-                                Spacer()
-                                Text("\(s.postCount)편").font(.system(size: 13)).foregroundStyle(Palette.faint)
+                // 세로 행 대신 가로 레일 — 시리즈가 프로필의 책장처럼 읽히게.
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(series) { item in
+                            NavigationLink(
+                                value: Route.series(username: username, slug: item.slug)
+                            ) {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Image(systemName: "square.stack.3d.up")
+                                        .font(.system(size: 13))
+                                        .foregroundStyle(Palette.accentMarker)
+                                    Text(item.title)
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundStyle(Palette.ink)
+                                        .lineLimit(2)
+                                        .multilineTextAlignment(.leading)
+                                    Spacer(minLength: 0)
+                                    Text("\(item.postCount)편")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(Palette.secondary)
+                                }
+                                .padding(13)
+                                .frame(width: 148, height: 108, alignment: .topLeading)
+                                .background(
+                                    Palette.chipBg,
+                                    in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                .contentShape(Rectangle())
                             }
-                            .padding(.vertical, 12)
+                            .buttonStyle(CardButtonStyle())
                         }
-                        .buttonStyle(.plain)
-                        if index < series.count - 1 { Hairline() }
                     }
                 }
             }
-            .padding(.bottom, 12)
+            .padding(.bottom, 18)
         }
 
         RailHeading("글").padding(.bottom, 6)

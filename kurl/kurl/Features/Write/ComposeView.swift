@@ -17,15 +17,18 @@ struct ComposeView: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private enum Field: Hashable { case title, editor }
+    private enum Field: Hashable { case title }
     @FocusState private var focusedField: Field?
+
+    /// 본문 캔버스(UIKit 직결)의 포커스·커서 제어 — TextEditor selection 바인딩의
+    /// 한글 조합 깨짐을 피해 FocusState 대신 delegate 콜백으로 추적한다.
+    @State private var editorController = MarkdownEditorController()
+    @State private var editorFocused = false
 
     @State private var title = ""
     @State private var tagsText = ""
     @State private var excerpt = ""
     @State private var markdown = ""
-    /// 유리 스니펫 바의 삽입 기준 — 커서/선택을 그대로 쓴다(끝에 덧붙이기 금지).
-    @State private var editorSelection: TextSelection?
     @State private var postId: Int64?
     @State private var status = "DRAFT"
     @State private var busy = false
@@ -75,7 +78,7 @@ struct ComposeView: View {
         VStack(spacing: 0) {
             // 가로(compact 높이)에서 에디터에 포커스가 가면 메타를 접는다 —
             // 안 그러면 키보드+메타가 에디터 가시 영역을 0 으로 만든다.
-            if !(verticalSizeClass == .compact && focusedField == .editor) {
+            if !(verticalSizeClass == .compact && editorFocused) {
                 meta
                 Hairline()
                     .padding(.horizontal, Metrics.gutter)
@@ -84,12 +87,12 @@ struct ComposeView: View {
         }
         // 키보드 위에 뜨는 유리 마크다운 바 — 캔버스는 종이, 크롬은 유리(AGENTS.md §1).
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if focusedField == .editor {
-                MarkdownSnippetBar(perform: applySnippet) { focusedField = nil }
+            if editorFocused {
+                MarkdownSnippetBar(perform: applySnippet) { editorController.dismissKeyboard() }
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: focusedField == .editor)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: editorFocused)
         .navigationTitle(existing == nil ? "새 글" : "편집")
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
@@ -100,7 +103,9 @@ struct ComposeView: View {
             await loadExisting()
             // `--focus editor` / `--sheet publish` — 검증 진입로(simctl 터치 불가 우회).
             if Config.consumeLaunchValue(after: "--focus") == "editor" {
-                focusedField = .editor
+                // representable 의 makeUIView 가 붙은 뒤에 포커스를 줘야 한다.
+                try? await Task.sleep(for: .milliseconds(200))
+                editorController.focus()
             }
             if Config.consumeLaunchValue(after: "--sheet") == "publish" {
                 showPublish = true
@@ -158,29 +163,27 @@ struct ComposeView: View {
             .font(.system(size: 26, weight: .bold))
             .focused($focusedField, equals: .title)
             .submitLabel(.next)
-            .onSubmit { focusedField = .editor }
+            .onSubmit { editorController.focus() }
             .padding(.horizontal, Metrics.gutter)
             .padding(.top, 16)
             .padding(.bottom, 12)
     }
 
     private var editor: some View {
-        TextEditor(text: $markdown, selection: $editorSelection)
-            .focused($focusedField, equals: .editor)
-            .font(.system(size: 16, design: .monospaced))
-            .scrollContentBackground(.hidden)
-            .padding(.horizontal, Metrics.gutter - 4)
-            .padding(.top, 4)
-            .overlay(alignment: .topLeading) {
-                if markdown.isEmpty {
-                    Text("마크다운으로 쓰세요 — #, >, -, ```, 이미지·URL 한 줄이면 카드가 됩니다.")
-                        .font(.system(size: 14))
-                        .foregroundStyle(Palette.faint)
-                        .padding(.horizontal, Metrics.gutter)
-                        .padding(.top, 12)
-                        .allowsHitTesting(false)
-                }
+        MarkdownTextView(text: $markdown, controller: editorController) { focused in
+            editorFocused = focused
+        }
+        .padding(.horizontal, Metrics.gutter - 4)
+        .overlay(alignment: .topLeading) {
+            if markdown.isEmpty {
+                Text("마크다운으로 쓰세요 — #, >, -, ```, 이미지·URL 한 줄이면 카드가 됩니다.")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Palette.faint)
+                    .padding(.horizontal, Metrics.gutter)
+                    .padding(.top, 12)
+                    .allowsHitTesting(false)
             }
+        }
     }
 
     @ToolbarContentBuilder
@@ -621,14 +624,18 @@ struct ComposeView: View {
 
     private func applySnippet(_ action: MarkdownSnippetBar.Action) {
         switch action {
-        case .heading: applyLinePrefix("# ")
-        case .quote: applyLinePrefix("> ")
-        case .list: applyLinePrefix("- ")
-        case .bold: wrapSelection("**")
-        case .inlineCode: wrapSelection("`")
-        case .codeBlock: insertFence()
-        case .link: insertLink()
+        case .heading: editorController.applyLinePrefix("# ")
+        case .quote: editorController.applyLinePrefix("> ")
+        case .list: editorController.applyLinePrefix("- ")
+        case .bold: editorController.wrapSelection("**")
+        case .inlineCode: editorController.wrapSelection("`")
+        case .codeBlock: editorController.insertFence()
+        case .link: editorController.insertLink()
         case .image: showBodyImagePicker = true
+        }
+        // 프로그램 삽입은 delegate 를 거치지 않는다 — 바인딩(자동저장 시그니처) 수동 동기화.
+        if action != .image {
+            markdown = editorController.currentText
         }
     }
 
@@ -647,71 +654,12 @@ struct ComposeView: View {
                       let jpeg = image.jpegData(compressionQuality: 0.88)
                 else { return }
                 let uploaded = try await WriteAPI.uploadImage(postId: id, jpegData: jpeg)
-                insertImageMarkdown(url: uploaded.url)
+                editorController.insertImageMarkdown(url: uploaded.url)
+                markdown = editorController.currentText
             } catch {
                 ToastCenter.shared.show(String(localized: "이미지를 올리지 못했습니다"))
             }
         }
-    }
-
-    private func insertImageMarkdown(url: String) {
-        let range = selectionRange()
-        let start = markdown.distance(from: markdown.startIndex, to: range.lowerBound)
-        let snippet = "\n![](\(url))\n"
-        markdown.replaceSubrange(range, with: snippet)
-        moveCaret(to: start + snippet.count)
-    }
-
-    /// 현재 선택 범위 — 커서가 없으면 본문 끝(빈 선택).
-    private func selectionRange() -> Range<String.Index> {
-        if let selection = editorSelection, case .selection(let range) = selection.indices {
-            return range
-        }
-        return markdown.endIndex..<markdown.endIndex
-    }
-
-    /// 변경 후 커서 이동 — 인덱스는 본문 변형으로 무효가 되므로 오프셋으로 다시 만든다.
-    private func moveCaret(to offset: Int) {
-        let clamped = min(max(0, offset), markdown.count)
-        editorSelection = TextSelection(
-            insertionPoint: markdown.index(markdown.startIndex, offsetBy: clamped))
-    }
-
-    /// 커서가 속한 줄 맨 앞에 줄머리(#·>·-)를 붙인다.
-    private func applyLinePrefix(_ prefix: String) {
-        let range = selectionRange()
-        let caret = markdown.distance(from: markdown.startIndex, to: range.lowerBound)
-        let lineStart = markdown[..<range.lowerBound].lastIndex(of: "\n")
-            .map { markdown.index(after: $0) } ?? markdown.startIndex
-        markdown.insert(contentsOf: prefix, at: lineStart)
-        moveCaret(to: caret + prefix.count)
-    }
-
-    /// 선택이 있으면 감싸고, 없으면 쌍만 넣고 커서를 그 사이에 둔다.
-    private func wrapSelection(_ fix: String) {
-        let range = selectionRange()
-        let start = markdown.distance(from: markdown.startIndex, to: range.lowerBound)
-        let selected = String(markdown[range])
-        markdown.replaceSubrange(range, with: fix + selected + fix)
-        moveCaret(to: start + fix.count + selected.count + (selected.isEmpty ? 0 : fix.count))
-    }
-
-    private func insertFence() {
-        let range = selectionRange()
-        let start = markdown.distance(from: markdown.startIndex, to: range.lowerBound)
-        markdown.replaceSubrange(range, with: "\n```\n\n```\n")
-        moveCaret(to: start + 5)
-    }
-
-    /// 선택을 라벨로 삼아 링크를 넣고, url 자리를 선택해 둔다 — 바로 타이핑하면 덮인다.
-    private func insertLink() {
-        let range = selectionRange()
-        let start = markdown.distance(from: markdown.startIndex, to: range.lowerBound)
-        let selected = String(markdown[range])
-        let label = selected.isEmpty ? String(localized: "제목") : selected
-        markdown.replaceSubrange(range, with: "[\(label)](url)")
-        let urlStart = markdown.index(markdown.startIndex, offsetBy: start + label.count + 3)
-        editorSelection = TextSelection(range: urlStart..<markdown.index(urlStart, offsetBy: 3))
     }
 }
 

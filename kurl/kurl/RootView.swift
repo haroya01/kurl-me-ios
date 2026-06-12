@@ -22,11 +22,25 @@ struct RootView: View {
     }
 
     var body: some View {
-        // `--post user/slug` — 글 상세를 곧장 띄우는 검증 진입로(simctl 터치 불가 우회).
+        // `--post user/slug`·`--author user`·`--series user/slug` — 검증 진입로(simctl 터치 불가 우회).
         if let target = Config.launchValue(after: "--post"),
            let slash = target.firstIndex(of: "/") {
             NavigationStack {
                 PostDetailView(
+                    username: String(target[..<slash]),
+                    slug: String(target[target.index(after: slash)...])
+                )
+                .navigationDestination(for: Route.self) { RouteView(route: $0) }
+            }
+        } else if let author = Config.launchValue(after: "--author") {
+            NavigationStack {
+                AuthorBlogView(username: author)
+                    .navigationDestination(for: Route.self) { RouteView(route: $0) }
+            }
+        } else if let target = Config.launchValue(after: "--series"),
+                  let slash = target.firstIndex(of: "/") {
+            NavigationStack {
+                SeriesDetailView(
                     username: String(target[..<slash]),
                     slug: String(target[target.index(after: slash)...])
                 )
