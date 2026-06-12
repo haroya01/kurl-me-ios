@@ -31,6 +31,32 @@ enum AnalyticsAPI {
     static func seriesAnalytics() async throws -> [SeriesAnalyticsRow] {
         try await client.get("/posts/analytics/series", authenticated: true)
     }
+
+    /// 글 하나의 분석 — 수명 합계 + 윈도우 추이(글 facet).
+    static func postAnalytics(postId: Int64, days: Int = 30) async throws -> PostAnalyticsDetail {
+        try await client.get(
+            "/posts/\(postId)/analytics",
+            query: ["days": String(days)],
+            authenticated: true
+        )
+    }
+}
+
+/// GET /posts/{id}/analytics — linkBreakdown 은 아직 안 쓴다(미디코딩 키는 무시됨).
+struct PostAnalyticsDetail: Decodable {
+    let postId: Int64
+    let slug: String
+    let title: String
+    let status: String
+    let lifetimeViews: Int64
+    let lifetimeLikes: Int64
+    let windowDays: Int
+    let windowViews: Int64
+    let lifetimeLinkClicks: Int64
+    let windowLinkClicks: Int64
+    let lifetimeFollows: Int64
+    let windowFollows: Int64
+    let daily: [AuthorAnalyticsOverview.DailyPoint]
 }
 
 struct PostPerformanceResult: Decodable {
@@ -39,7 +65,7 @@ struct PostPerformanceResult: Decodable {
     let hasNext: Bool
 }
 
-struct TopPostView: Decodable, Identifiable {
+struct TopPostView: Decodable, Identifiable, Hashable {
     let postId: Int64
     let slug: String
     let title: String

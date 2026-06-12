@@ -10,13 +10,29 @@ import SwiftUI
 /// 윈도우 보조지표(팔로우·링크 클릭) → 누적 스탯 → 글별 성과(정렬·더보기) →
 /// 시리즈 → 유입 경로. 성공적으로 읽을 때마다 홈 위젯용 스냅샷을 남긴다.
 struct AnalyticsView: View {
+    /// 스튜디오 분면으로 품길 때 true — 내비 타이틀을 건드리지 않는다(스튜디오 소유).
+    var embedded = false
+
     @State private var phase: LoadState<AuthorAnalyticsOverview> = .idle
     @State private var performance: PostPerformanceResult?
     @State private var performanceSort = "views"
     @State private var loadingMorePosts = false
     @State private var series: [SeriesAnalyticsRow] = []
+    @State private var days = 30
+    @State private var selectedPost: TopPostView?
 
     var body: some View {
+        if embedded {
+            core
+        } else {
+            core
+                .navigationTitle("분석")
+                .toolbarRole(.editor)
+                .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    private var core: some View {
         ReadingColumn(spacing: 0) {
             switch phase {
             case .idle, .loading:
@@ -30,9 +46,9 @@ struct AnalyticsView: View {
                 content(overview)
             }
         }
-        .navigationTitle("분석")
-        .toolbarRole(.editor)
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(item: $selectedPost) { post in
+            PostAnalyticsView(post: post)
+        }
         .task { await load() }
         .refreshable { await load() }
     }
@@ -40,7 +56,7 @@ struct AnalyticsView: View {
     private func load() async {
         if case .idle = phase { phase = .loading }
         do {
-            async let overviewReq = AnalyticsAPI.overview()
+            async let overviewReq = AnalyticsAPI.overview(days: days)
             async let performanceReq = AnalyticsAPI.postPerformance(sort: performanceSort)
             async let seriesReq = AnalyticsAPI.seriesAnalytics()
             let overview = try await overviewReq
@@ -51,6 +67,12 @@ struct AnalyticsView: View {
         } catch {
             phase = .failed(error.localizedDescription)
         }
+    }
+
+    private func changeWindow(_ newDays: Int) {
+        guard newDays != days else { return }
+        days = newDays
+        Task { await load() }
     }
 
     private func resort(_ sort: String) {
@@ -96,8 +118,33 @@ struct AnalyticsView: View {
     @ViewBuilder
     private func hero(_ overview: AuthorAnalyticsOverview) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            RailHeading("최근 \(overview.windowDays)일")
-                .padding(.top, 24)
+            HStack(alignment: .center) {
+                RailHeading("최근 \(overview.windowDays)일")
+                Spacer()
+                // 기간은 서버가 받는 파라미터 — 30일 고정 리포트를 끝낸다.
+                GlassEffectContainer(spacing: 8) {
+                    HStack(spacing: 5) {
+                        ForEach([7, 30, 90], id: \.self) { option in
+                            Button {
+                                changeWindow(option)
+                            } label: {
+                                Text("\(option)일")
+                                    .font(.system(
+                                        size: 12, weight: days == option ? .semibold : .regular))
+                                    .foregroundStyle(
+                                        days == option
+                                            ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .contentShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                            .glassCapsule(prominent: days == option)
+                        }
+                    }
+                }
+            }
+            .padding(.top, 24)
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(overview.windowViews.formatted())
                     .font(.system(size: 40, weight: .bold).monospacedDigit())
@@ -179,27 +226,38 @@ struct AnalyticsView: View {
             .padding(.bottom, 4)
 
             ForEach(Array(performance.items.enumerated()), id: \.element.id) { index, row in
-                HStack(alignment: .firstTextBaseline, spacing: 10) {
-                    Text("\(index + 1)")
-                        .font(.system(size: 13, weight: .bold).monospacedDigit())
-                        .foregroundStyle(index < 3 ? Palette.link : Palette.secondary)
-                        .frame(width: 20, alignment: .leading)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(row.title)
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundStyle(Palette.ink)
-                            .lineLimit(1)
-                        HStack(spacing: 10) {
-                            metaCount("eye", row.viewCount)
-                            metaCount("heart", row.likeCount)
-                            if row.followsGained > 0 {
-                                metaCount("person.badge.plus", row.followsGained)
+                // 행 탭 = 그 글의 facet — "이 글이 어디서 얼마나 읽혔나"로 들어가는 문.
+                Button {
+                    selectedPost = row
+                } label: {
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        Text("\(index + 1)")
+                            .font(.system(size: 13, weight: .bold).monospacedDigit())
+                            .foregroundStyle(index < 3 ? Palette.link : Palette.secondary)
+                            .frame(width: 20, alignment: .leading)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(row.title)
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(Palette.ink)
+                                .lineLimit(1)
+                                .multilineTextAlignment(.leading)
+                            HStack(spacing: 10) {
+                                metaCount("eye", row.viewCount)
+                                metaCount("heart", row.likeCount)
+                                if row.followsGained > 0 {
+                                    metaCount("person.badge.plus", row.followsGained)
+                                }
                             }
                         }
+                        Spacer(minLength: 0)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Palette.faint)
                     }
-                    Spacer(minLength: 0)
+                    .padding(.vertical, 9)
+                    .contentShape(Rectangle())
                 }
-                .padding(.vertical, 9)
+                .buttonStyle(RowButtonStyle())
                 if index < performance.items.count - 1 {
                     Hairline()
                 }

@@ -5,7 +5,22 @@
 //  Created by 김동현 on 6/7/26.
 //
 
+import SafariServices
 import SwiftUI
+
+// MARK: 인앱 사파리 (미리보기 등 — 앱 밖으로 내쫓지 않는다)
+
+struct SafariView: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeUIViewController(context: Context) -> SFSafariViewController {
+        let controller = SFSafariViewController(url: url)
+        controller.preferredControlTintColor = UIColor(Palette.accent)
+        return controller
+    }
+
+    func updateUIViewController(_ controller: SFSafariViewController, context: Context) {}
+}
 
 // MARK: 로딩/에러/빈 상태
 

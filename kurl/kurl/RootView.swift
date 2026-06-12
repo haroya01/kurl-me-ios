@@ -52,7 +52,7 @@ struct RootView: View {
             }
             .accessibilityLabel(Text("발견"))
             Tab("", systemImage: "square.and.pencil", value: 2) {
-                WriteHubView()
+                StudioView()
             }
             .accessibilityLabel(Text("글쓰기"))
             Tab("", systemImage: "magnifyingglass", value: 3) {

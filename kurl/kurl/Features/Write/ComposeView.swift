@@ -14,7 +14,6 @@ struct ComposeView: View {
     let onSaved: () -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.openURL) private var openURL
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -55,6 +54,13 @@ struct ComposeView: View {
     // 시트
     @State private var showPublish = false
     @State private var scheduleNext = false
+    @State private var previewNext = false
+    @State private var previewItem: PreviewItem?
+
+    struct PreviewItem: Identifiable {
+        let url: URL
+        var id: String { url.absoluteString }
+    }
     @State private var showSchedule = false
     @State private var scheduleDate = Date().addingTimeInterval(3600)
     @State private var scheduleError: String?
@@ -87,6 +93,8 @@ struct ComposeView: View {
         .navigationTitle(existing == nil ? "새 글" : "편집")
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
+        // 쓰는 동안 탭 5개가 떠 있을 이유가 없다 — 에디터는 풀스크린 몰입.
+        .toolbar(.hidden, for: .tabBar)
         .toolbar { toolbarContent }
         .task {
             await loadExisting()
@@ -112,14 +120,21 @@ struct ComposeView: View {
         .sheet(
             isPresented: $showPublish,
             onDismiss: {
-                // 시트 위 시트를 피한다 — 예약은 발행 시트가 닫힌 뒤 이어서 띄운다.
+                // 시트 위 시트를 피한다 — 예약·미리보기는 발행 시트가 닫힌 뒤 이어서 띄운다.
                 if scheduleNext {
                     scheduleNext = false
                     showSchedule = true
+                } else if previewNext {
+                    previewNext = false
+                    openPreview()
                 }
             }
         ) { publishSheet }
         .sheet(isPresented: $showSchedule) { scheduleSheet }
+        .sheet(item: $previewItem) { item in
+            SafariView(url: item.url)
+                .ignoresSafeArea()
+        }
         .sheet(isPresented: $showRevisions) {
             RevisionsSheet(postId: postId) { restored in
                 markdown = restored
@@ -345,15 +360,28 @@ struct ComposeView: View {
                             .foregroundStyle(Palette.secondary)
                     }
 
-                    if status != "PUBLISHED" {
-                        Button("예약 발행…") {
-                            scheduleNext = true
+                    HStack(spacing: 18) {
+                        Button {
+                            previewNext = true
                             showPublish = false
+                        } label: {
+                            Label("미리보기", systemImage: "doc.text.magnifyingglass")
+                                .font(.system(size: 13))
                         }
-                        .font(.system(size: 13))
                         .foregroundStyle(Palette.link)
                         .disabled(postId == nil)
+
+                        if status != "PUBLISHED" {
+                            Button("예약 발행…") {
+                                scheduleNext = true
+                                showPublish = false
+                            }
+                            .font(.system(size: 13))
+                            .foregroundStyle(Palette.link)
+                            .disabled(postId == nil)
+                        }
                     }
+                    .frame(maxWidth: .infinity)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
@@ -539,7 +567,8 @@ struct ComposeView: View {
                     .first(where: { $0.id == postId })?.slug ?? ""
             }
             if let url = try? await WriteAPI.previewURL(slug: resolved, postId: postId) {
-                openURL(url)
+                // 외부 사파리로 내쫓지 않는다 — 발행 전 확인은 인앱 시트로.
+                previewItem = PreviewItem(url: url)
             }
         }
     }

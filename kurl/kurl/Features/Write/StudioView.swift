@@ -1,22 +1,25 @@
 //
-//  WriteHubView.swift
+//  StudioView.swift
 //  kurl
 //
 
 import AuthenticationServices
 import SwiftUI
 
-/// 글쓰기 탭 — 웹 /write 허브의 축소판: 내 글 목록(임시저장/발행 상태) + 새 글.
-/// 로그아웃 상태는 이 표면 전체가 로그인 게이트.
-struct WriteHubView: View {
+/// 글쓰기 탭 = 작가 스튜디오 — 웹 /write 허브 철학의 네이티브 번역.
+/// [글 | 시리즈 | 분석] 이 한 지붕: 목록만 있던 허브에서, 시리즈와 분석이 1급으로 승격됐다
+/// (분석이 무라벨 차트 아이콘 뒤에 숨어 있던 시절을 끝낸다). 로그아웃 상태는 표면 전체가 게이트.
+struct StudioView: View {
     private var auth: AuthStore { .shared }
 
     @Environment(\.colorScheme) private var colorScheme
+    @State private var section: StudioSection = .posts
     @State private var phase: LoadState<[MyPost]> = .idle
     @State private var filter: HubFilter = .all
+    @State private var seriesList: [MySeries] = []
+    @State private var seriesLoaded = false
     @State private var composing = false
     @State private var editing: MyPost?
-    @State private var showAnalytics = false
     @State private var isSigningIn = false
     @State private var showTwoFactorHint = false
     @State private var appleNonce = ""
@@ -25,49 +28,25 @@ struct WriteHubView: View {
         NavigationStack {
             Group {
                 if auth.isSignedIn {
-                    hub
+                    studio
                 } else {
                     signedOutGate
                 }
             }
             .navigationTitle("글쓰기")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                if auth.isSignedIn {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button {
-                            showAnalytics = true
-                        } label: {
-                            Image(systemName: "chart.bar")
-                        }
-                        .tint(.brand)
-                        .accessibilityLabel("분석")
-                    }
-                }
-            }
-            // 새 글 = 떠 있는 유리 FAB — 글쓰기 탭의 주행동을 엄지 아래로.
-            .overlay(alignment: .bottomTrailing) {
-                if auth.isSignedIn {
-                    GlassFAB(systemImage: "square.and.pencil", label: "새 글") {
-                        composing = true
-                    }
-                    .padding(.trailing, 20)
-                    .padding(.bottom, 12)
-                }
-            }
-            .navigationDestination(isPresented: $showAnalytics) {
-                AnalyticsView()
-            }
             .navigationDestination(isPresented: $composing) {
                 ComposeView(post: nil) { reloadSoon() }
             }
             .navigationDestination(item: $editing) { post in
                 ComposeView(post: post) { reloadSoon() }
             }
+            .navigationDestination(for: Route.self) { RouteView(route: $0) }
             .onAppear {
                 // `--open analytics|compose` — 목/스크린샷 검증용 자동 진입.
                 switch Config.consumeLaunchValue(after: "--open") {
-                case "analytics": showAnalytics = true
+                case "analytics": section = .analytics
+                case "series": section = .series
                 case "compose": composing = true
                 default: break
                 }
@@ -80,9 +59,35 @@ struct WriteHubView: View {
         }
     }
 
-    // MARK: 내 글 목록
+    // MARK: 스튜디오 3분면
 
-    private var hub: some View {
+    private var studio: some View {
+        Group {
+            switch section {
+            case .posts: postsSection
+            case .series: seriesSection
+            case .analytics: AnalyticsView(embedded: true)
+            }
+        }
+        // 피드와 같은 문법 — 분면 전환은 떠 있는 유리 세그먼트.
+        .safeAreaInset(edge: .top) {
+            GlassSegmentSwitcher(items: StudioSection.allCases, selection: $section) { $0.label }
+                .padding(.top, 2)
+                .padding(.bottom, 8)
+        }
+        // 새 글은 분면과 무관한 스튜디오의 주행동 — 항상 떠 있다.
+        .overlay(alignment: .bottomTrailing) {
+            GlassFAB(systemImage: "square.and.pencil", label: "새 글") {
+                composing = true
+            }
+            .padding(.trailing, 20)
+            .padding(.bottom, 12)
+        }
+    }
+
+    // MARK: 글
+
+    private var postsSection: some View {
         ReadingColumn(spacing: 0) {
             switch phase {
             case .idle, .loading:
@@ -96,7 +101,7 @@ struct WriteHubView: View {
                 if posts.isEmpty {
                     emptyState
                 } else {
-                    list(posts)
+                    list
                 }
             }
         }
@@ -119,13 +124,13 @@ struct WriteHubView: View {
     }
 
     @ViewBuilder
-    private func list(_ posts: [MyPost]) -> some View {
+    private var list: some View {
         HStack(alignment: .center) {
             RailHeading("내 글")
             Spacer()
             GlassSegmentSwitcher(items: HubFilter.allCases, selection: $filter) { $0.label }
         }
-        .padding(.top, 18)
+        .padding(.top, 14)
         .padding(.bottom, 8)
         Hairline()
         if filtered.isEmpty {
@@ -180,7 +185,7 @@ struct WriteHubView: View {
         VStack(alignment: .leading, spacing: 10) {
             RailHeading("내 글")
                 .padding(.top, 24)
-            Text("아직 글이 없습니다. 오른쪽 위 버튼으로 첫 글을 시작하세요.")
+            Text("아직 글이 없습니다. 오른쪽 아래 버튼으로 첫 글을 시작하세요.")
                 .font(.system(size: 14))
                 .foregroundStyle(Palette.secondary)
         }
@@ -199,6 +204,58 @@ struct WriteHubView: View {
 
     private func reloadSoon() {
         Task { await load() }
+    }
+
+    // MARK: 시리즈
+
+    private var seriesSection: some View {
+        ReadingColumn(spacing: 0) {
+            RailHeading("내 시리즈")
+                .padding(.top, 14)
+                .padding(.bottom, 8)
+            Hairline()
+            if seriesLoaded, seriesList.isEmpty {
+                Text("아직 시리즈가 없습니다. 발행 시트에서 글을 시리즈로 묶어 보세요.")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Palette.secondary)
+                    .padding(.top, 24)
+            }
+            ForEach(Array(seriesList.enumerated()), id: \.element.id) { index, series in
+                NavigationLink(value: Route.series(
+                    username: auth.me?.username ?? "", slug: series.slug)
+                ) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "square.stack.3d.up")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Palette.accentMarker)
+                        Text(series.title)
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(Palette.ink)
+                            .lineLimit(1)
+                        Spacer()
+                        Text("\(series.postCount)편")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Palette.faint)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Palette.secondary)
+                    }
+                    .padding(.vertical, 13)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(RowButtonStyle())
+                .disabled((auth.me?.username ?? "").isEmpty)
+                if index < seriesList.count - 1 { Hairline() }
+            }
+        }
+        .task {
+            await auth.loadMe()
+            seriesList = (try? await WriteAPI.mySeries()) ?? []
+            seriesLoaded = true
+        }
+        .refreshable {
+            seriesList = (try? await WriteAPI.mySeries()) ?? seriesList
+        }
     }
 
     // MARK: 로그인 게이트
@@ -264,6 +321,23 @@ struct WriteHubView: View {
             if (try? await auth.completeApple(result, rawNonce: appleNonce)) == .twoFactorRequired {
                 showTwoFactorHint = true
             }
+        }
+    }
+}
+
+/// 스튜디오 3분면 — 웹 /write 의 글·시리즈·분석을 그대로 옮긴 구도.
+enum StudioSection: String, CaseIterable, Identifiable {
+    case posts
+    case series
+    case analytics
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .posts: return String(localized: "글")
+        case .series: return String(localized: "시리즈")
+        case .analytics: return String(localized: "분석")
         }
     }
 }
