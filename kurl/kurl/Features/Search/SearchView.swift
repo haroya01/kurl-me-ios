@@ -22,8 +22,9 @@ struct SearchView: View {
     @State private var loadingMore = false
     @State private var generation = 0
 
-    // 대기 화면의 출발점들 — 최근 검색은 기기 로컬, 태그·작가는 공개 API 1회 캐시.
+    // 대기 화면의 출발점들 — 최근 검색은 기기 로컬, 트렌딩·태그·작가는 공개 API 1회 캐시.
     @State private var recents: [String] = SearchRecents.load()
+    @State private var trending: [FeedItem] = []
     @State private var popularTags: [TagCount] = []
     @State private var suggestedAuthors: [SuggestedAuthor] = []
 
@@ -67,6 +68,60 @@ struct SearchView: View {
     private var idleState: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 26) {
+                if !trending.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        RailHeading("지금 뜨는 글")
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 10) {
+                                ForEach(trending) { item in
+                                    NavigationLink(
+                                        value: Route.post(
+                                            username: item.author.username, slug: item.slug)
+                                    ) {
+                                        VStack(alignment: .leading, spacing: 7) {
+                                            if let tag = item.tags.first {
+                                                Text("#\(tag)")
+                                                    .font(.system(size: 11, weight: .medium))
+                                                    .foregroundStyle(Palette.secondary)
+                                            }
+                                            Text(item.title)
+                                                .font(.system(size: 15, weight: .semibold))
+                                                .tracking(-0.2)
+                                                .foregroundStyle(Palette.ink)
+                                                .lineLimit(2)
+                                                .multilineTextAlignment(.leading)
+                                            Spacer(minLength: 0)
+                                            HStack(spacing: 5) {
+                                                Text(item.author.username)
+                                                    .lineLimit(1)
+                                                if item.likeCount > 0 {
+                                                    Text("·").foregroundStyle(Palette.faint)
+                                                    HStack(spacing: 2) {
+                                                        Image(systemName: "heart")
+                                                            .font(.system(size: 9))
+                                                        Text("\(item.likeCount)")
+                                                    }
+                                                }
+                                            }
+                                            .font(.system(size: 11))
+                                            .foregroundStyle(Palette.secondary)
+                                        }
+                                        .padding(14)
+                                        .frame(width: 200, height: 112, alignment: .topLeading)
+                                        .background(
+                                            Palette.cardBg,
+                                            in: RoundedRectangle(
+                                                cornerRadius: 16, style: .continuous))
+                                        .contentShape(Rectangle())
+                                    }
+                                    .buttonStyle(CardButtonStyle())
+                                    .cardQuickActions(item)
+                                }
+                            }
+                        }
+                    }
+                }
+
                 if !recents.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
@@ -134,7 +189,7 @@ struct SearchView: View {
                                 value: Route.author(username: suggestion.author.username)
                             ) {
                                 HStack(spacing: 11) {
-                                    AvatarView(author: suggestion.author, size: 38)
+                                    AvatarView(author: suggestion.author, size: 42)
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(suggestion.author.username)
                                             .font(.system(size: 15, weight: .semibold))
@@ -149,6 +204,9 @@ struct SearchView: View {
                                     Spacer()
                                     Text("글 \(suggestion.postCount)")
                                         .font(.system(size: 12))
+                                        .foregroundStyle(Palette.faint)
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 11, weight: .semibold))
                                         .foregroundStyle(Palette.faint)
                                 }
                                 .padding(.vertical, 9)
@@ -178,6 +236,10 @@ struct SearchView: View {
     }
 
     private func loadDiscovery() async {
+        if trending.isEmpty {
+            trending = Array(
+                ((try? await BlogAPI.feed(sort: .trending, size: 6))?.items ?? []).prefix(6))
+        }
         if popularTags.isEmpty {
             popularTags = Array(((try? await BlogAPI.popularTags(limit: 12)) ?? []).prefix(12))
         }

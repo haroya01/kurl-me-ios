@@ -39,7 +39,9 @@ struct AnalyticsWidget: Widget {
         }
         .configurationDisplayName("블로그 분석")
         .description("최근 조회수와 누적 지표를 홈 화면에서.")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .supportedFamilies([
+            .systemSmall, .systemMedium, .accessoryCircular, .accessoryRectangular,
+        ])
     }
 }
 
@@ -58,11 +60,43 @@ struct AnalyticsWidgetView: View {
         if let snapshot = entry.snapshot {
             switch family {
             case .systemMedium: medium(snapshot)
+            case .accessoryCircular: circular(snapshot)
+            case .accessoryRectangular: rectangular(snapshot)
             default: small(snapshot)
             }
+        } else if family == .accessoryCircular || family == .accessoryRectangular {
+            // 잠금화면엔 긴 안내문이 안 선다 — 마크 한 점으로만.
+            Text(verbatim: "kurl")
+                .font(.system(size: 12, weight: .bold))
         } else {
             empty
         }
+    }
+
+    /// 잠금화면 원형 — 윈도우 조회수 한 숫자.
+    private func circular(_ s: WidgetSnapshot) -> some View {
+        VStack(spacing: 0) {
+            Text(s.windowViews.formatted())
+                .font(.system(size: 16, weight: .bold).monospacedDigit())
+                .minimumScaleFactor(0.5)
+                .lineLimit(1)
+            Text("조회")
+                .font(.system(size: 9, weight: .medium))
+        }
+    }
+
+    /// 잠금화면 사각 — 헤더 + 숫자 + 미니 추이.
+    private func rectangular(_ s: WidgetSnapshot) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("최근 \(s.windowDays)일 조회")
+                .font(.system(size: 11, weight: .semibold))
+            Text(s.windowViews.formatted())
+                .font(.system(size: 17, weight: .bold).monospacedDigit())
+                .lineLimit(1)
+            bars(s.dailyViews)
+                .frame(height: 10)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var empty: some View {

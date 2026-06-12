@@ -34,6 +34,7 @@ struct AuthorBlogView: View {
         }
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
+        .background(Palette.pageBg)
         .navigationTitle(username)
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)

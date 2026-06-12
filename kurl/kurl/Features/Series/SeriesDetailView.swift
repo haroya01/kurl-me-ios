@@ -34,6 +34,7 @@ struct SeriesDetailView: View {
         }
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
+        .background(Palette.pageBg)
         .navigationTitle("시리즈")
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)

@@ -84,6 +84,8 @@ final class DiscoverDeckModel {
 struct DiscoverDeckView: View {
     @State private var model = DiscoverDeckModel()
     @State private var currentId: Int64?
+    /// 첫 만남 1회 — "이건 추천 덱이고, 넘기면 다음 글"이라는 걸 눈으로 알려준다.
+    @AppStorage("deckSwipeHintSeen") private var swipeHintSeen = false
 
     var body: some View {
         // path 바인딩 금지 — tabBarMinimizeBehavior 가 죽는다(FeedView 참조).
@@ -164,18 +166,39 @@ struct DiscoverDeckView: View {
         .scrollTargetBehavior(.paging)
         .scrollPosition(id: $currentId)
         .scrollIndicators(.hidden)
-        // 덱에서의 내 위치 — 무맥락 슬롯머신이 되지 않게 좌표 한 점.
+        // 덱에서의 내 위치 + 이게 "추천"이라는 선언 — 무맥락 슬롯머신이 되지 않게.
         .overlay(alignment: .bottom) {
             if let item = currentItem, let idx = model.deck.firstIndex(of: item) {
-                Text(verbatim: "\(idx + 1) / \(model.deck.count)")
-                    .font(.system(size: 11, weight: .semibold).monospacedDigit())
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .glassEffect(.regular, in: .capsule)
-                    .padding(.bottom, 6)
-                    .allowsHitTesting(false)
+                HStack(spacing: 5) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(Palette.accent)
+                    Text("추천 \(idx + 1) / \(model.deck.count)")
+                        .font(.system(size: 11, weight: .semibold).monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 11)
+                .padding(.vertical, 5)
+                .glassEffect(.regular, in: .capsule)
+                .padding(.bottom, 6)
+                .allowsHitTesting(false)
             }
+        }
+        // 첫 1회 스와이프 힌트 — 우측 가장자리에서 셰브론이 숨 쉬다 사라진다.
+        .overlay(alignment: .trailing) {
+            if !swipeHintSeen {
+                DeckSwipeHint()
+                    .padding(.trailing, 6)
+                    .allowsHitTesting(false)
+                    .task {
+                        try? await Task.sleep(for: .seconds(3.2))
+                        swipeHintSeen = true
+                    }
+            }
+        }
+        .onChange(of: currentId) {
+            // 한 장이라도 넘겼으면 배운 것 — 힌트는 다시 안 나온다.
+            swipeHintSeen = true
         }
         // 장이 바뀔 때마다 체류 비콘 무장 — 2.5초 안에 넘기면 sleep 취소 → 미집계.
         .task(id: currentId ?? model.deck.first?.id) {
@@ -183,6 +206,38 @@ struct DiscoverDeckView: View {
             try? await Task.sleep(for: .seconds(2.5))
             guard !Task.isCancelled else { return }
             await model.recordDwell(id: id)
+        }
+    }
+}
+
+/// 덱 첫 만남의 스와이프 힌트 — 셰브론이 왼쪽으로 숨 쉬며 "넘기면 다음"을 가르친다.
+/// 첫 스와이프나 3초 뒤 영원히 사라진다. reduce-motion 이면 정지 상태로만.
+private struct DeckSwipeHint: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var phase = false
+
+    var body: some View {
+        VStack(spacing: 10) {
+            HStack(spacing: 2) {
+                ForEach(0..<3, id: \.self) { index in
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .opacity(phase ? (index == 0 ? 1 : 0.35) : (index == 2 ? 1 : 0.35))
+                }
+            }
+            Text("넘겨서 다음 글")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .glassEffect(.regular, in: .rect(cornerRadius: 14))
+        .onAppear {
+            guard !reduceMotion else { return }
+            withAnimation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true)) {
+                phase = true
+            }
         }
     }
 }

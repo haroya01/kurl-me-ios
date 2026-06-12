@@ -34,11 +34,16 @@ struct FeedView: View {
             }
             .animation(reduceMotion ? nil : .snappy(duration: 0.28), value: selection)
             .simultaneousGesture(
-                DragGesture(minimumDistance: 30)
+                DragGesture(minimumDistance: 24)
                     .onEnded { value in
                         let dx = value.translation.width
                         let dy = value.translation.height
-                        guard abs(dx) > 60, abs(dx) > abs(dy) * 1.5 else { return }
+                        let vx = value.velocity.width
+                        // "됐다 안 됐다"의 원인 = 거리 임계 하나로만 판정 — 플릭은 거리가
+                        // 짧다. 빠른 플릭(속도) 또는 의도적 끌기(거리+방향비) 둘 다 받는다.
+                        let flick = abs(vx) > 260 && abs(dx) > 20 && abs(dx) > abs(dy)
+                        let deliberate = abs(dx) > 48 && abs(dx) > abs(dy) * 1.2
+                        guard flick || deliberate else { return }
                         withAnimation(reduceMotion ? nil : .snappy(duration: 0.28)) {
                             let all = FeedSource.allCases
                             guard let idx = all.firstIndex(of: selection) else { return }
@@ -60,9 +65,9 @@ struct FeedView: View {
                                 NotificationsView()
                             } label: {
                                 Image(systemName: "bell")
-                                    .font(.system(size: 14, weight: .semibold))
+                                    .font(.system(size: 15, weight: .semibold))
                                     .foregroundStyle(.primary)
-                                    .frame(width: 38, height: 38)
+                                    .frame(width: 40, height: 40)
                                     .overlay(alignment: .topTrailing) {
                                         if unreadCount > 0 {
                                             Circle()

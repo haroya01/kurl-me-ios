@@ -807,6 +807,22 @@
         }
       }
     },
+    "넘겨서 다음 글": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Swipe for the next post"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スワイプで次の記事"
+          }
+        }
+      }
+    },
     "네트워크에 연결할 수 없습니다.": {
       "localizations": {
         "en": {
@@ -1997,6 +2013,22 @@
         }
       }
     },
+    "알림 설정": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notification settings"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通知設定"
+          }
+        }
+      }
+    },
     "알림이 없습니다": {
       "localizations": {
         "en": {
@@ -2773,6 +2805,22 @@
         }
       }
     },
+    "지금 뜨는 글": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trending now"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "急上昇の記事"
+          }
+        }
+      }
+    },
     "지금 발행": {
       "localizations": {
         "en": {
@@ -2865,6 +2913,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "最新"
+          }
+        }
+      }
+    },
+    "추천 %lld / %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For you %lld / %lld"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "おすすめ %lld / %lld"
           }
         }
       }

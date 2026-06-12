@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 /// 설정 — 법적 문서·버전·회원 탈퇴. 기능 나열식 화면을 피해온 앱이지만
 /// 이 셋은 없으면 안 되는 최소 집합이다(App Store 5.1.1(v): 앱 내 계정 삭제 필수).
@@ -19,8 +20,18 @@ struct SettingsView: View {
 
     var body: some View {
         ReadingColumn(spacing: 0) {
-            RailHeading("정책")
+            RailHeading("알림")
                 .padding(.top, 24)
+                .padding(.bottom, 4)
+            // 푸시 도입 전까지는 시스템 설정으로 안내 — 가짜 토글을 만들지 않는다.
+            linkRow("알림 설정") {
+                if let url = URL(string: UIApplication.openNotificationSettingsURLString) {
+                    openURL(url)
+                }
+            }
+
+            RailHeading("정책")
+                .padding(.top, 28)
                 .padding(.bottom, 4)
             linkRow("이용약관") { open(path: "terms") }
             Hairline()

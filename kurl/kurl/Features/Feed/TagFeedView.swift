@@ -58,6 +58,7 @@ struct TagFeedView: View {
         }
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
+        .background(Palette.pageBg)
         .navigationTitle("#\(tag)")
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)

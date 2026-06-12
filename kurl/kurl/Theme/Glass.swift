@@ -31,6 +31,7 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable>: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
+        // 높이 ≈ 40pt — 헤더 영역의 유리 원형 버튼(벨 등)과 같은 키로 맞춘다.
         HStack(spacing: 2) {
             ForEach(items) { item in
                 let active = item == selection
@@ -38,10 +39,10 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable>: View {
                     withAnimation(reduceMotion ? nil : .snappy(duration: 0.28)) { selection = item }
                 } label: {
                     Text(label(item))
-                        .font(.system(size: 14, weight: active ? .semibold : .medium))
+                        .font(.system(size: 15, weight: active ? .semibold : .medium))
                         .foregroundStyle(active ? .white : .secondary)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 7)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
                         .background {
                             if active {
                                 Capsule()
@@ -55,7 +56,7 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable>: View {
                 .accessibilityAddTraits(active ? [.isSelected] : [])
             }
         }
-        .padding(3)
+        .padding(4)
         .glassEffect(.regular.interactive(), in: .capsule)
     }
 }
