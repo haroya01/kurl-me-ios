@@ -7,8 +7,34 @@
 
 import SwiftUI
 
+/// 피드 상단 4분면 — 글 셋(최신·인기·구독함) + 짧은 글(노트). 노트는 FeedSource(글 정렬)가
+/// 아니라 별도 페이지라 여기서만 합쳐 스위처 한 줄로 묶는다.
+enum FeedTab: String, CaseIterable, Identifiable {
+    case recent
+    case trending
+    case following
+    case notes
+
+    var id: String { rawValue }
+
+    var source: FeedSource? {
+        switch self {
+        case .recent: return .recent
+        case .trending: return .trending
+        case .following: return .following
+        case .notes: return nil
+        }
+    }
+
+    var label: String {
+        source?.label ?? String(localized: "노트")
+    }
+}
+
 struct FeedView: View {
-    @State private var selection: FeedSource = .recent
+    /// `--feed recent|trending|following|notes` — 스크린샷/목 검증 진입로(--tab 과 같은 문법).
+    @State private var selection: FeedTab =
+        Config.launchValue(after: "--feed").flatMap(FeedTab.init(rawValue:)) ?? .recent
     @Namespace private var zoomNS
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
@@ -26,10 +52,16 @@ struct FeedView: View {
             // 보임) 스크롤 축소도 안 걸렸다. 두 페이지를 ZStack 으로 살려두고(데이터·스크롤
             // 위치 유지) 좌우 스와이프는 제스처로 직접 — ScrollView 가 탭 콘텐츠의 직계가 된다.
             ZStack {
-                ForEach(FeedSource.allCases) { source in
-                    FeedPage(source: source, active: source == selection, zoom: zoomNS)
-                        .opacity(source == selection ? 1 : 0)
-                        .allowsHitTesting(source == selection)
+                ForEach(FeedTab.allCases) { tab in
+                    Group {
+                        if let source = tab.source {
+                            FeedPage(source: source, active: tab == selection, zoom: zoomNS)
+                        } else {
+                            NotesPage(active: tab == selection)
+                        }
+                    }
+                    .opacity(tab == selection ? 1 : 0)
+                    .allowsHitTesting(tab == selection)
                 }
             }
             .animation(reduceMotion ? nil : .snappy(duration: 0.28), value: selection)
@@ -45,7 +77,7 @@ struct FeedView: View {
                         let deliberate = abs(dx) > 48 && abs(dx) > abs(dy) * 1.2
                         guard flick || deliberate else { return }
                         withAnimation(reduceMotion ? nil : .snappy(duration: 0.28)) {
-                            let all = FeedSource.allCases
+                            let all = FeedTab.allCases
                             guard let idx = all.firstIndex(of: selection) else { return }
                             let next = dx < 0 ? min(idx + 1, all.count - 1) : max(idx - 1, 0)
                             selection = all[next]
@@ -55,7 +87,7 @@ struct FeedView: View {
             // 고정 스트립 대신 떠 있는 유리 — 카드가 캡슐 양옆·뒤로 그대로 흐른다.
             .safeAreaInset(edge: .top) {
                 ZStack {
-                    GlassSegmentSwitcher(items: FeedSource.allCases, selection: $selection) {
+                    GlassSegmentSwitcher(items: FeedTab.allCases, selection: $selection) {
                         $0.label
                     }
                     if AuthStore.shared.isSignedIn {
@@ -185,14 +217,19 @@ struct FeedPage: View {
     }
 
     // 발견(browse) 면 = 1열 카드 그리드(#707 웹과 동일 문법). 행 사이 hairline 대신 카드 간격.
+    // 구독함은 카드가 아니라 인박스 문법 — 도착한 글의 행 + 미읽음 점(기기 로컬).
     private var list: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 16) {
+            LazyVStack(alignment: .leading, spacing: source == .following ? 0 : 16) {
                 ForEach(Array(model.items.enumerated()), id: \.element.id) { index, item in
                     NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
-                        BlogCard(item: item, featured: index == 0 && source == .recent)
+                        if source == .following {
+                            InboxRow(item: item)
+                        } else {
+                            BlogCard(item: item, featured: index == 0 && source == .recent)
+                        }
                     }
-                    .buttonStyle(CardButtonStyle())
+                    .buttonStyle(source == .following ? AnyButtonStyle(RowButtonStyle()) : AnyButtonStyle(CardButtonStyle()))
                     .cardQuickActions(item)
                     .modifier(ZoomSource(
                         active: active,
@@ -200,15 +237,28 @@ struct FeedPage: View {
                         ns: zoom))
                     .modifier(QuietAppear(index: index))
                     .modifier(CardScrollFade())
+                    .simultaneousGesture(TapGesture().onEnded {
+                        if source == .following { InboxReadStore.markRead(item.id) }
+                    })
                     .task { await model.loadMoreIfNeeded(current: item) }
+                    if source == .following, index < model.items.count - 1 {
+                        Hairline()
+                    }
                 }
                 if model.isLoadingMore {
                     ProgressView().tint(Palette.accent)
                         .frame(maxWidth: .infinity).padding(.vertical, 18)
                 }
                 if model.items.isEmpty {
-                    ContentUnavailableView("아직 글이 없습니다", systemImage: "doc.text")
-                        .padding(.top, 80)
+                    if source == .following {
+                        ContentUnavailableView(
+                            "구독함이 비어 있어요", systemImage: "tray",
+                            description: Text("작가를 팔로우하면 새 글이 여기 도착해요."))
+                            .padding(.top, 80)
+                    } else {
+                        ContentUnavailableView("아직 글이 없습니다", systemImage: "doc.text")
+                            .padding(.top, 80)
+                    }
                 }
             }
             .padding(.vertical, 16)

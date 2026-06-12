@@ -20,7 +20,7 @@ enum FeedSource: String, CaseIterable, Identifiable {
         switch self {
         case .recent: String(localized: "최신")
         case .trending: String(localized: "인기")
-        case .following: String(localized: "팔로잉")
+        case .following: String(localized: "구독함")
         }
     }
 }

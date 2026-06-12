@@ -220,10 +220,20 @@ final class AuthStore {
     }
 
     func signOut() {
-        if let token = refreshToken {
-            Task { try? await AuthAPI.logout(refreshToken: token) }
-        }
+        // 뒷정리에 쓸 토큰을 스냅샷 — forgetSession 이후엔 저장소가 비어 있다.
+        let access = accessToken
+        let refresh = refreshToken
+        let device = Config.useMocks ? nil : PushRegistrar.storedToken
         forgetSession()
+        Task {
+            if let device, let access {
+                // 디바이스 등록 해제 — 로그아웃한 계정의 푸시가 이 기기로 오지 않게.
+                try? await AuthAPI.unregisterDevice(token: device, bearer: access)
+            }
+            if let refresh {
+                try? await AuthAPI.logout(refreshToken: refresh)
+            }
+        }
     }
 
     func loadMe() async {
@@ -239,6 +249,7 @@ final class AuthStore {
         if !isSignedIn {
             isSignedIn = true
             Task { await loadMe() }
+            PushRegistrar.syncAfterSignIn()
         }
     }
 

@@ -20,11 +20,14 @@ struct BlockView: View {
 
     var body: some View {
         switch block.kind {
+        // 가독의 두 기둥: 행간 ≈1.65(한국어 본문 기준, 5pt 는 1.28 로 너무 좁았다)
+        // + 문단 사이 한 호흡. 글자를 키우는 게 아니라 숨 쉴 자리를 준다.
         case .paragraph:
             inline(block.content ?? "")
                 .font(.system(size: bodySize))
-                .lineSpacing(5)
+                .lineSpacing(bodySize * 0.62)
                 .foregroundStyle(Palette.body)
+                .padding(.bottom, 14)
 
         // 한글은 볼드 대비가 라틴보다 약하다 — 굵기만으로는 위계가 안 서서
         // 크기 간격 + 자간 + 위 여백을 함께 벌린다.
@@ -52,14 +55,16 @@ struct BlockView: View {
         case .quote:
             inline(block.content ?? "")
                 .font(.system(size: bodySize).italic())
-                .lineSpacing(5)
+                .lineSpacing(bodySize * 0.55)
                 .foregroundStyle(Palette.secondary)
                 .padding(.leading, 20)
+                .padding(.vertical, 2)
                 .overlay(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 1.5)
                         .fill(Palette.accentSoft)
                         .frame(width: 3)
                 }
+                .padding(.bottom, 14)
 
         case .divider:
             Hairline().padding(.vertical, 8)
@@ -153,7 +158,8 @@ private struct CodeBlockView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Palette.codeBg, in: RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Palette.hairlineStrong.opacity(0.4), lineWidth: 1))
-        .padding(.vertical, 6)
+        .padding(.top, 4)
+        .padding(.bottom, 16)
     }
 }
 
@@ -207,7 +213,7 @@ private struct ListBlockView: View {
     @ScaledMetric(relativeTo: .body) private var bodySize: CGFloat = 18
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 9) {
             ForEach(Array(items.enumerated()), id: \.offset) { index, item in
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
                     Text(ordered ? "\(index + 1)." : "•")
@@ -216,11 +222,13 @@ private struct ListBlockView: View {
                         .monospacedDigit()
                     Text(inline(item))
                         .font(.system(size: bodySize))
+                        .lineSpacing(bodySize * 0.5)
                         .foregroundStyle(Palette.body)
                 }
             }
         }
-        .padding(.vertical, 4)
+        .padding(.top, 2)
+        .padding(.bottom, 14)
     }
 
     private func inline(_ raw: String) -> AttributedString {

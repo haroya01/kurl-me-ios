@@ -35,6 +35,26 @@ enum MockBackend {
         MockPost(id: 9002, slug: "p-mock-2", title: "발행된 목 글", status: "PUBLISHED",
                  markdown: "# 발행됨\n\n본문.", publishedAt: Date().addingTimeInterval(-86_400), updatedAt: Date()),
     ]
+    private struct MockNote {
+        var id: Int64
+        var body: String
+        var createdAt: Date
+        var likeCount: Int64
+        var authorId: Int64
+        var username: String
+    }
+
+    private static var notes: [MockNote] = [
+        MockNote(id: 9501, body: "오늘 헥사고날 포트 이름 짓는 데 한 시간 썼다. 이름이 곧 경계라는 걸 다시 배운다.",
+                 createdAt: Date().addingTimeInterval(-1_800), likeCount: 4, authorId: 2, username: "yuki_dev"),
+        MockNote(id: 9502, body: "긴 글로 정리하기 전의 생각 조각을 둘 곳이 필요했는데, 노트가 딱 그 자리다.",
+                 createdAt: Date().addingTimeInterval(-7_200), likeCount: 11, authorId: 1, username: "honggildong"),
+        MockNote(id: 9503, body: "라이트 모드 캔버스를 순백에서 slate-50 으로 바꿨더니 카드가 비로소 떠 보인다. 배경은 색이 아니라 깊이다.",
+                 createdAt: Date().addingTimeInterval(-26_000), likeCount: 7, authorId: 3, username: "reader_kim"),
+    ]
+    private static var nextNoteId: Int64 = 9600
+    private static var likedNotes: Set<Int64> = []
+
     private static var nextId: Int64 = 9100
     private static var likes: [Int64: (count: Int64, liked: Bool)] = [:]
     private static var bookmarks: Set<Int64> = []
@@ -49,6 +69,50 @@ enum MockBackend {
 
         if method == "GET", parts == ["users", "me"] {
             return json(["id": 1, "email": "mock@kurl.me", "username": "honggildong", "avatarUrl": NSNull()])
+        }
+
+        // 노트는 공개 읽기까지 목으로 받는다 — 실서버에 아직 배포 전이라 fall-through 하면 404.
+        if method == "GET", parts == ["public", "notes"] {
+            return json([
+                "items": notes.sorted { $0.createdAt > $1.createdAt }.map(noteView),
+                "page": 0, "hasNext": false,
+            ])
+        }
+
+        if method == "POST", parts == ["notes"] {
+            let note = MockNote(
+                id: nextNoteId, body: decode(body)["body"] as? String ?? "",
+                createdAt: Date(), likeCount: 0, authorId: 1, username: "honggildong")
+            nextNoteId += 1
+            notes.insert(note, at: 0)
+            return json(noteView(note))
+        }
+
+        if method == "GET", parts == ["notes", "like-status"] {
+            return json(["likedIds": Array(likedNotes)])
+        }
+
+        if method == "DELETE", parts.count == 2, parts[0] == "notes" {
+            let nid = Int64(parts[1]) ?? 0
+            notes.removeAll { $0.id == nid }
+            likedNotes.remove(nid)
+            return json([:] as [String: Any])
+        }
+
+        if parts.count == 3, parts[0] == "notes", parts[2] == "like" {
+            let nid = Int64(parts[1]) ?? 0
+            if let idx = notes.firstIndex(where: { $0.id == nid }) {
+                if method == "PUT", !likedNotes.contains(nid) {
+                    likedNotes.insert(nid)
+                    notes[idx].likeCount += 1
+                }
+                if method == "DELETE", likedNotes.contains(nid) {
+                    likedNotes.remove(nid)
+                    notes[idx].likeCount -= 1
+                }
+                return json(["liked": likedNotes.contains(nid), "likeCount": notes[idx].likeCount])
+            }
+            return json(["liked": method == "PUT", "likeCount": 0])
         }
 
         if method == "GET", parts == ["posts", "analytics", "overview"] {
@@ -317,6 +381,13 @@ enum MockBackend {
     }
 
     // MARK: 픽스처
+
+    private static func noteView(_ n: MockNote) -> [String: Any] {
+        [
+            "id": n.id, "body": n.body, "createdAt": iso(n.createdAt), "likeCount": n.likeCount,
+            "author": ["id": n.authorId, "username": n.username, "avatarUrl": NSNull()],
+        ]
+    }
 
     private static func postView(_ p: MockPost) -> [String: Any] {
         [

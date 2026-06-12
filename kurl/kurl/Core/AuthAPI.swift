@@ -51,6 +51,22 @@ enum AuthAPI {
     static func deleteAccount() async throws {
         try await client.deleteVoid("/users/me", authenticated: true)
     }
+
+    /// APNs 디바이스 등록 — 토큰 콜백마다 불러도 서버가 upsert(+소유자 reassign)한다.
+    static func registerDevice(token: String) async throws {
+        try await client.post("/notifications/devices", body: DeviceBody(token: token), authenticated: true)
+    }
+
+    /// 로그아웃 뒷정리 — 이 기기로의 오발송을 끊는다. 세션 저장소는 이미 비워진 뒤라
+    /// 호출측이 스냅샷한 access 토큰을 직접 받는다.
+    static func unregisterDevice(token: String, bearer: String) async throws {
+        try await client.delete("/notifications/devices", body: DeviceBody(token: token), bearer: bearer)
+    }
+
+    private struct DeviceBody: Encodable {
+        let token: String
+        var platform = "ios"
+    }
 }
 
 struct TokenPair: Decodable {

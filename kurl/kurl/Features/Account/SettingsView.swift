@@ -5,6 +5,7 @@
 
 import SwiftUI
 import UIKit
+import UserNotifications
 
 /// 설정 — 법적 문서·버전·회원 탈퇴. 기능 나열식 화면을 피해온 앱이지만
 /// 이 셋은 없으면 안 되는 최소 집합이다(App Store 5.1.1(v): 앱 내 계정 삭제 필수).
@@ -13,22 +14,41 @@ struct SettingsView: View {
 
     @Environment(\.openURL) private var openURL
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     @State private var confirmDelete = false
     @State private var finalConfirmDelete = false
     @State private var deleting = false
     @State private var deleteFailed = false
+    @State private var pushStatus: UNAuthorizationStatus = .notDetermined
 
     var body: some View {
         ReadingColumn(spacing: 0) {
             RailHeading("알림")
                 .padding(.top, 24)
                 .padding(.bottom, 4)
-            // 푸시 도입 전까지는 시스템 설정으로 안내 — 가짜 토글을 만들지 않는다.
-            linkRow("알림 설정", icon: "bell.badge") {
-                if let url = URL(string: UIApplication.openNotificationSettingsURLString) {
-                    openURL(url)
+            // 미결정이면 여기서 권한 시트까지. 한 번 결정된 뒤의 변경은 시스템 설정 영역이다 —
+            // 시트를 다시 띄울 수 없으므로 가짜 토글 대신 딥링크로 보낸다.
+            Button(action: handlePushRow) {
+                HStack(spacing: 10) {
+                    settingIcon("bell.badge")
+                    Text("푸시 알림")
+                        .font(.system(size: 15))
+                        .foregroundStyle(Palette.ink)
+                    Spacer()
+                    if let label = pushStatusLabel {
+                        Text(label)
+                            .font(.system(size: 14))
+                            .foregroundStyle(Palette.secondary)
+                    }
+                    Image(systemName: pushStatus == .notDetermined ? "chevron.right" : "arrow.up.right")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Palette.faint)
                 }
+                .padding(.vertical, 13)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(RowButtonStyle())
+            .task { await reloadPushStatus() }
 
             RailHeading("정책")
                 .padding(.top, 28)
@@ -79,6 +99,12 @@ struct SettingsView: View {
         .navigationTitle("설정")
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: scenePhase) { _, phase in
+            // 시스템 설정에 다녀온 뒤 상태 라벨을 따라잡는다.
+            if phase == .active {
+                Task { await reloadPushStatus() }
+            }
+        }
         .confirmationDialog(
             "계정을 삭제할까요?", isPresented: $confirmDelete, titleVisibility: .visible
         ) {
@@ -94,6 +120,29 @@ struct SettingsView: View {
         }
         .alert("탈퇴하지 못했습니다", isPresented: $deleteFailed) {
             Button("확인", role: .cancel) {}
+        }
+    }
+
+    private var pushStatusLabel: LocalizedStringKey? {
+        switch pushStatus {
+        case .authorized, .provisional, .ephemeral: return "켜짐"
+        case .denied: return "꺼짐"
+        default: return nil
+        }
+    }
+
+    private func reloadPushStatus() async {
+        pushStatus = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
+    }
+
+    private func handlePushRow() {
+        if pushStatus == .notDetermined {
+            Task {
+                _ = await PushRegistrar.requestAndRegister()
+                await reloadPushStatus()
+            }
+        } else if let url = URL(string: UIApplication.openNotificationSettingsURLString) {
+            openURL(url)
         }
     }
 

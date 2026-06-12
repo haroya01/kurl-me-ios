@@ -114,6 +114,14 @@ struct APIClient {
         _ = try await perform(request, authenticated: authenticated)
     }
 
+    /// 명시 bearer 의 JSON 바디 DELETE — 로그아웃 뒷정리처럼 저장소가 이미 비워진 뒤
+    /// 스냅샷해 둔 토큰으로 마지막 요청을 보내야 하는 자리(401 리프레시 재시도 없음).
+    func delete<B: Encodable>(_ path: String, body: B, bearer: String) async throws {
+        var request = try makeRequest(path: path, query: [:], method: "DELETE", body: try encode(body))
+        request.setValue("Bearer \(bearer)", forHTTPHeaderField: "Authorization")
+        _ = try await rawData(request)
+    }
+
     /// 바디 없는 DELETE — 멱등 토글 오프.
     func delete<T: Decodable>(
         _ path: String,

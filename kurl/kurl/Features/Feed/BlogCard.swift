@@ -79,8 +79,8 @@ struct BlogCard: View {
                 // 무거운 그라데이션 대신 사진이 띠 뒤로 비치고, 가독은 mediaScrim 틴트가 잡는다.
                 VStack(alignment: .leading, spacing: 8) {
                     Text(item.title)
-                        .font(.system(size: (featured ? 20 : 18) * titleUnit, weight: .semibold))
-                        .tracking(-0.2)
+                        .font(.system(size: (featured ? 22 : 18) * titleUnit, weight: featured ? .bold : .semibold))
+                        .tracking(featured ? -0.4 : -0.2)
                         .foregroundStyle(.white)
                         .lineLimit(3)
                         .multilineTextAlignment(.leading)
@@ -124,8 +124,8 @@ struct BlogCard: View {
                 }
             }
             Text(item.title)
-                .font(.system(size: (featured ? 19 : 17) * titleUnit, weight: .semibold))
-                .tracking(-0.2)
+                .font(.system(size: (featured ? 21 : 17) * titleUnit, weight: featured ? .bold : .semibold))
+                .tracking(featured ? -0.4 : -0.2)
                 .foregroundStyle(Palette.ink)
                 .lineLimit(3)
                 .multilineTextAlignment(.leading)

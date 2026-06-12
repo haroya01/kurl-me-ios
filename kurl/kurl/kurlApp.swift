@@ -9,6 +9,7 @@ import SwiftUI
 
 @main
 struct kurlApp: App {
+    @UIApplicationDelegateAdaptor(PushDelegate.self) private var pushDelegate
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showSplash = true
 

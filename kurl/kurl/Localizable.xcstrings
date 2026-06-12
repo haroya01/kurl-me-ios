@@ -5,6 +5,7 @@
     "#%@": {},
     "%@": {},
     "%@ · %lld편": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -550,6 +551,38 @@
         }
       }
     },
+    "구독함": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inbox"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "受信箱"
+          }
+        }
+      }
+    },
+    "구독함이 비어 있어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your inbox is empty"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "受信箱は空です"
+          }
+        }
+      }
+    },
     "굵게": {},
     "글": {
       "localizations": {
@@ -727,6 +760,22 @@
         }
       }
     },
+    "꺼짐": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフ"
+          }
+        }
+      }
+    },
     "내 계정": {
       "localizations": {
         "en": {
@@ -808,6 +857,7 @@
       }
     },
     "내 블로그 보기": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -867,6 +917,86 @@
           "stringUnit": {
             "state": "translated",
             "value": "ネットワークに接続できません。"
+          }
+        }
+      }
+    },
+    "노트": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノート"
+          }
+        }
+      }
+    },
+    "노트 삭제": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete Note"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートを削除"
+          }
+        }
+      }
+    },
+    "노트 올리기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Post note"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートを投稿"
+          }
+        }
+      }
+    },
+    "노트를 삭제하지 못했습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't delete the note"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートを削除できませんでした"
+          }
+        }
+      }
+    },
+    "노트를 올리지 못했습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't post the note"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートを投稿できませんでした"
           }
         }
       }
@@ -1982,6 +2112,7 @@
       }
     },
     "아직 글이 없습니다. 오른쪽 위 버튼으로 첫 글을 시작하세요.": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -1993,6 +2124,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "まだ記事がありません。右上のボタンから最初の記事を始めましょう。"
+          }
+        }
+      }
+    },
+    "아직 노트가 없습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No notes yet"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだノートがありません"
           }
         }
       }
@@ -2514,6 +2661,22 @@
         }
       }
     },
+    "작가를 팔로우하면 새 글이 여기 도착해요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow writers and their new posts will land here."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "作家をフォローすると、新しい記事がここに届きます。"
+          }
+        }
+      }
+    },
     "잘못된 요청입니다.": {
       "localizations": {
         "en": {
@@ -2853,6 +3016,38 @@
         }
       }
     },
+    "지금 떠오른 생각은…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What's on your mind…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "いま浮かんだ考えは…"
+          }
+        }
+      }
+    },
+    "지금 떠오른 생각을 첫 노트로 남겨보세요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leave the thought on your mind as the first note."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "いま浮かんだ考えを最初のノートに残してみましょう。"
+          }
+        }
+      }
+    },
     "지금 뜨는 글": {
       "localizations": {
         "en": {
@@ -3042,6 +3237,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "カバーを追加"
+          }
+        }
+      }
+    },
+    "켜짐": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オン"
           }
         }
       }
@@ -3249,6 +3460,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "編集"
+          }
+        }
+      }
+    },
+    "푸시 알림": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Push Notifications"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プッシュ通知"
           }
         }
       }
