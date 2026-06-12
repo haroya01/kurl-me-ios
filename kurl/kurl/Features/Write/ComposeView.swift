@@ -47,6 +47,11 @@ struct ComposeView: View {
     @State private var coverItem: PhotosPickerItem?
     @State private var uploadingCover = false
 
+    // 본문 이미지 — 스니펫 바의 사진 버튼이 연다. 업로드 후 커서 자리에 마크다운 삽입.
+    @State private var showBodyImagePicker = false
+    @State private var bodyImageItem: PhotosPickerItem?
+    @State private var uploadingBodyImage = false
+
     // 시트
     @State private var showPublish = false
     @State private var scheduleNext = false
@@ -95,6 +100,8 @@ struct ComposeView: View {
         }
         .onChange(of: signature) { scheduleAutosave() }
         .onChange(of: coverItem) { uploadPickedCover() }
+        .photosPicker(isPresented: $showBodyImagePicker, selection: $bodyImageItem, matching: .images)
+        .onChange(of: bodyImageItem) { uploadBodyImage() }
         .onDisappear {
             // 디바운스 창에 걸린 마지막 변경을 버리지 않는다 — 즉시 1회 저장.
             autosaveTask?.cancel()
@@ -331,6 +338,13 @@ struct ComposeView: View {
                     .buttonStyle(.plain)
                     .disabled(!canSave || busy)
 
+                    // 비활성엔 이유를 — 흐린 버튼만 보여주고 침묵하지 않는다.
+                    if !canSave {
+                        Text("제목과 본문을 채우면 발행할 수 있어요.")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Palette.secondary)
+                    }
+
                     if status != "PUBLISHED" {
                         Button("예약 발행…") {
                             scheduleNext = true
@@ -563,7 +577,7 @@ struct ComposeView: View {
                       let image = UIImage(data: data),
                       let jpeg = image.jpegData(compressionQuality: 0.88)
                 else { return }
-                let uploaded = try await WriteAPI.uploadCover(postId: id, jpegData: jpeg)
+                let uploaded = try await WriteAPI.uploadImage(postId: id, jpegData: jpeg)
                 try await WriteAPI.updateCover(postId: id, url: uploaded.url, key: uploaded.key)
                 coverUrl = uploaded.url
                 lastSavedAt = Date()
@@ -585,7 +599,38 @@ struct ComposeView: View {
         case .inlineCode: wrapSelection("`")
         case .codeBlock: insertFence()
         case .link: insertLink()
+        case .image: showBodyImagePicker = true
         }
+    }
+
+    /// 본문 이미지 — 골라서 업로드되면 커서 자리에 `![](url)` 한 줄로 들어간다.
+    private func uploadBodyImage() {
+        guard let item = bodyImageItem, !uploadingBodyImage else { return }
+        uploadingBodyImage = true
+        bodyImageItem = nil
+        ToastCenter.shared.show(String(localized: "이미지 올리는 중…"))
+        Task {
+            defer { uploadingBodyImage = false }
+            do {
+                let id = try await ensurePost()
+                guard let data = try await item.loadTransferable(type: Data.self),
+                      let image = UIImage(data: data),
+                      let jpeg = image.jpegData(compressionQuality: 0.88)
+                else { return }
+                let uploaded = try await WriteAPI.uploadImage(postId: id, jpegData: jpeg)
+                insertImageMarkdown(url: uploaded.url)
+            } catch {
+                ToastCenter.shared.show(String(localized: "이미지를 올리지 못했습니다"))
+            }
+        }
+    }
+
+    private func insertImageMarkdown(url: String) {
+        let range = selectionRange()
+        let start = markdown.distance(from: markdown.startIndex, to: range.lowerBound)
+        let snippet = "\n![](\(url))\n"
+        markdown.replaceSubrange(range, with: snippet)
+        moveCaret(to: start + snippet.count)
     }
 
     /// 현재 선택 범위 — 커서가 없으면 본문 끝(빈 선택).
@@ -649,7 +694,7 @@ private struct MarkdownSnippetBar: View {
     let dismiss: () -> Void
 
     enum Action: CaseIterable {
-        case heading, bold, inlineCode, codeBlock, quote, list, link
+        case heading, bold, inlineCode, codeBlock, quote, list, link, image
 
         var icon: String {
             switch self {
@@ -660,6 +705,7 @@ private struct MarkdownSnippetBar: View {
             case .quote: "text.quote"
             case .list: "list.bullet"
             case .link: "link"
+            case .image: "photo"
             }
         }
 
@@ -672,6 +718,7 @@ private struct MarkdownSnippetBar: View {
             case .quote: "인용"
             case .list: "리스트"
             case .link: "링크"
+            case .image: "이미지"
             }
         }
     }

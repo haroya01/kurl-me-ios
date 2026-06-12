@@ -22,6 +22,11 @@ struct SearchView: View {
     @State private var loadingMore = false
     @State private var generation = 0
 
+    // 대기 화면의 출발점들 — 최근 검색은 기기 로컬, 태그·작가는 공개 API 1회 캐시.
+    @State private var recents: [String] = SearchRecents.load()
+    @State private var popularTags: [TagCount] = []
+    @State private var suggestedAuthors: [SuggestedAuthor] = []
+
     var body: some View {
         // path 바인딩 금지 — tabBarMinimizeBehavior 가 죽는다(FeedView 참조).
         NavigationStack {
@@ -53,36 +58,131 @@ struct SearchView: View {
             .searchable(text: $query, prompt: "글 검색")
         }
         .onChange(of: query) { _, newValue in scheduleSearch(newValue) }
+        .onChange(of: recents) { SearchRecents.save(recents) }
         .onSubmit(of: .search) { runSearch(query) }
     }
 
-    /// 대기 상태 — 기본 빈 화면 대신 안개 위 유리 한 점. 검색이 "비어 있음"이 아니라
-    /// "조용히 기다림"으로 읽히게.
+    /// 대기 상태 — 장식이 아니라 출발점. 막연한 탐색 의도("뭐 볼 거 없나")가 그대로
+    /// 행동이 되도록 최근 검색·인기 태그·추천 작가를 깐다. 전부 탭 = 즉시 이동.
     private var idleState: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 34, weight: .light))
-                .foregroundStyle(.secondary)
-                .frame(width: 92, height: 92)
-                .glassEffect(.regular, in: .circle)
-            VStack(spacing: 5) {
-                Text("글을 찾아보세요")
-                    .font(.system(size: 17, weight: .semibold))
-                    .tracking(-0.2)
-                    .foregroundStyle(Palette.ink)
-                Text("제목과 내용으로 검색합니다")
-                    .font(.system(size: 14))
-                    .foregroundStyle(Palette.secondary)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 26) {
+                if !recents.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            RailHeading("최근 검색")
+                            Spacer()
+                            Button("지우기") { recents = [] }
+                                .font(.system(size: 12))
+                                .foregroundStyle(Palette.secondary)
+                        }
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(recents, id: \.self) { term in
+                                    HStack(spacing: 6) {
+                                        Button {
+                                            query = term
+                                            runSearch(term)
+                                        } label: {
+                                            Text(term)
+                                                .font(.system(size: 13, weight: .medium))
+                                                .foregroundStyle(Palette.chipText)
+                                        }
+                                        .buttonStyle(.plain)
+                                        Button {
+                                            recents.removeAll { $0 == term }
+                                        } label: {
+                                            Image(systemName: "xmark")
+                                                .font(.system(size: 9, weight: .semibold))
+                                                .foregroundStyle(Palette.faint)
+                                                .expandTapTarget(8)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .accessibilityLabel("\(term) 삭제")
+                                    }
+                                    .padding(.horizontal, 11)
+                                    .padding(.vertical, 6)
+                                    .background(Palette.chipBg, in: Capsule())
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if !popularTags.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        RailHeading("인기 태그")
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(popularTags) { tag in
+                                    NavigationLink(value: Route.tag(tag.tag)) {
+                                        MutedChip(text: "#\(tag.tag)")
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if !suggestedAuthors.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        RailHeading("작가")
+                            .padding(.bottom, 4)
+                        ForEach(suggestedAuthors) { suggestion in
+                            NavigationLink(
+                                value: Route.author(username: suggestion.author.username)
+                            ) {
+                                HStack(spacing: 11) {
+                                    AvatarView(author: suggestion.author, size: 38)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(suggestion.author.username)
+                                            .font(.system(size: 15, weight: .semibold))
+                                            .foregroundStyle(Palette.ink)
+                                        if let bio = suggestion.author.bio, !bio.isEmpty {
+                                            Text(bio)
+                                                .font(.system(size: 13))
+                                                .foregroundStyle(Palette.secondary)
+                                                .lineLimit(1)
+                                        }
+                                    }
+                                    Spacer()
+                                    Text("글 \(suggestion.postCount)")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(Palette.faint)
+                                }
+                                .padding(.vertical, 9)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(RowButtonStyle())
+                        }
+                    }
+                }
+
+                if popularTags.isEmpty, suggestedAuthors.isEmpty, recents.isEmpty {
+                    Text("제목과 내용으로 글을 검색합니다.")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Palette.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 80)
+                }
             }
+            .padding(.top, 18)
+            .frame(maxWidth: Metrics.readingColumn)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, Metrics.gutter)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background {
-            BrandMist()
-                .frame(width: 420, height: 420)
-                .mask(
-                    RadialGradient(
-                        colors: [.black, .clear], center: .center, startRadius: 40, endRadius: 210))
-                .allowsHitTesting(false)
+        .scrollIndicators(.hidden)
+        .scrollEdgeEffectStyle(.soft, for: .top)
+        .task { await loadDiscovery() }
+    }
+
+    private func loadDiscovery() async {
+        if popularTags.isEmpty {
+            popularTags = Array(((try? await BlogAPI.popularTags(limit: 12)) ?? []).prefix(12))
+        }
+        if suggestedAuthors.isEmpty {
+            suggestedAuthors = (try? await BlogAPI.suggestedAuthors(limit: 5)) ?? []
         }
     }
 
@@ -99,6 +199,7 @@ struct SearchView: View {
                             BlogCard(item: item)
                         }
                         .buttonStyle(CardButtonStyle())
+                        .cardQuickActions(item)
                         .modifier(ZoomSource(
                             active: true,
                             id: "search-\(item.author.username)-\(item.slug)",
@@ -146,6 +247,7 @@ struct SearchView: View {
         generation += 1
         let myGen = generation
         phase = .loading
+        recordRecent(text)
         do {
             let result = try await BlogAPI.feed(query: text, page: 0, size: 30)
             guard !Task.isCancelled, myGen == generation else { return }
@@ -157,6 +259,12 @@ struct SearchView: View {
             guard myGen == generation else { return }
             phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
         }
+    }
+
+    private func recordRecent(_ term: String) {
+        var next = recents.filter { $0 != term }
+        next.insert(term, at: 0)
+        recents = Array(next.prefix(8))
     }
 
     private func loadMore() async {
@@ -171,5 +279,18 @@ struct SearchView: View {
             hasNext = result.hasNext
             phase = .loaded(current + result.items)
         }
+    }
+}
+
+/// 최근 검색 — 기기 로컬에만 남는다(서버 전송 없음). 최대 8개.
+enum SearchRecents {
+    private static let key = "recentSearches"
+
+    static func load() -> [String] {
+        UserDefaults.standard.stringArray(forKey: key) ?? []
+    }
+
+    static func save(_ terms: [String]) {
+        UserDefaults.standard.set(terms, forKey: key)
     }
 }

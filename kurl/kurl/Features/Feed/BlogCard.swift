@@ -62,9 +62,14 @@ struct BlogCard: View {
                 HStack(spacing: 8) {
                     if featured { FeaturedBadge(over: true) }
                     if let tag = item.tags.first {
-                        Text("#\(tag)")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.85))
+                        // 칩처럼 보이면 칩처럼 동작해야 한다 — 탭 = 태그 피드.
+                        NavigationLink(value: Route.tag(tag)) {
+                            Text("#\(tag)")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.85))
+                                .expandTapTarget(8)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(14)
@@ -108,9 +113,13 @@ struct BlogCard: View {
                 HStack(spacing: 8) {
                     if featured { FeaturedBadge(over: false) }
                     if let tag = item.tags.first {
-                        Text("#\(tag)")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(Palette.secondary)
+                        NavigationLink(value: Route.tag(tag)) {
+                            Text("#\(tag)")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(Palette.secondary)
+                                .expandTapTarget(8)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -183,7 +192,8 @@ private struct CardMeta: View {
                 .lineLimit(1)
             if let date = item.publishedAt {
                 Text("·").foregroundStyle(dim)
-                Text(date.formatted(.dateTime.month().day()))
+                // browse 면 시간 문법 통일 — 행·허브와 같은 상대시간(상세만 절대 날짜).
+                Text(date.relativeShort)
             }
             if item.likeCount > 0 {
                 Text("·").foregroundStyle(dim)

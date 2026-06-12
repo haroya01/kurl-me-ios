@@ -164,6 +164,19 @@ struct DiscoverDeckView: View {
         .scrollTargetBehavior(.paging)
         .scrollPosition(id: $currentId)
         .scrollIndicators(.hidden)
+        // 덱에서의 내 위치 — 무맥락 슬롯머신이 되지 않게 좌표 한 점.
+        .overlay(alignment: .bottom) {
+            if let item = currentItem, let idx = model.deck.firstIndex(of: item) {
+                Text(verbatim: "\(idx + 1) / \(model.deck.count)")
+                    .font(.system(size: 11, weight: .semibold).monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .glassEffect(.regular, in: .capsule)
+                    .padding(.bottom, 6)
+                    .allowsHitTesting(false)
+            }
+        }
         // 장이 바뀔 때마다 체류 비콘 무장 — 2.5초 안에 넘기면 sleep 취소 → 미집계.
         .task(id: currentId ?? model.deck.first?.id) {
             guard let id = currentId ?? model.deck.first?.id else { return }

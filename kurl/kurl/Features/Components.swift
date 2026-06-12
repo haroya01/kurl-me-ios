@@ -147,6 +147,10 @@ struct AvatarView: View {
 
 extension Date {
     var relativeShort: String {
+        // 1분 미만은 "0초 후" 같은 미래형 라운딩이 나온다 — 방금 전으로 바닥을 깐다.
+        if abs(timeIntervalSinceNow) < 60 {
+            return String(localized: "방금 전")
+        }
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .short
         return formatter.localizedString(for: self, relativeTo: Date())
@@ -198,6 +202,81 @@ struct ToastHost: ViewModifier {
             }
         }
         .animation(.snappy(duration: 0.25), value: center.message)
+    }
+}
+
+// MARK: 카드 길게 누르기 — 열지 않고도 하트·북마크
+
+/// 카드 컨텍스트 메뉴의 빠른 행동. 토글이 아니라 멱등 "켜기"다 — 카드에는 내 상태가
+/// 없으므로(목록 응답에 likedByMe 없음) 끄기를 약속할 수 없다. 이미 켜져 있었으면 무해.
+@MainActor
+enum CardQuickActions {
+    static func like(_ item: FeedItem) {
+        perform(
+            failure: String(localized: "좋아요를 반영하지 못했습니다"),
+            done: String(localized: "좋아요했습니다")
+        ) {
+            _ = try await InteractionsAPI.setLike(postId: item.id, on: true)
+        }
+    }
+
+    static func bookmark(_ item: FeedItem) {
+        perform(
+            failure: String(localized: "북마크를 반영하지 못했습니다"),
+            done: String(localized: "북마크에 추가했습니다")
+        ) {
+            _ = try await InteractionsAPI.setBookmark(postId: item.id, on: true)
+        }
+    }
+
+    static func shareURL(_ item: FeedItem) -> URL? {
+        URL(
+            string:
+                "\(Config.apiBase)/\(Config.preferredLanguageTag)/p/\(item.author.username)/\(item.slug)"
+        )
+    }
+
+    private static func perform(
+        failure: String, done: String, _ action: @escaping () async throws -> Void
+    ) {
+        guard AuthStore.shared.isSignedIn else {
+            ToastCenter.shared.show(String(localized: "로그인이 필요합니다"))
+            return
+        }
+        Task {
+            do {
+                try await action()
+                ToastCenter.shared.show(done)
+            } catch {
+                ToastCenter.shared.show(failure)
+            }
+        }
+    }
+}
+
+extension View {
+    /// browse 카드 공용 — 길게 누르면 열지 않고 좋아요·북마크·작가·공유.
+    func cardQuickActions(_ item: FeedItem) -> some View {
+        contextMenu {
+            Button {
+                CardQuickActions.like(item)
+            } label: {
+                Label("좋아요", systemImage: "heart")
+            }
+            Button {
+                CardQuickActions.bookmark(item)
+            } label: {
+                Label("북마크", systemImage: "bookmark")
+            }
+            NavigationLink(value: Route.author(username: item.author.username)) {
+                Label("작가 블로그", systemImage: "person.crop.circle")
+            }
+            if let url = CardQuickActions.shareURL(item) {
+                ShareLink(item: url) {
+                    Label("공유", systemImage: "square.and.arrow.up")
+                }
+            }
+        }
     }
 }
 

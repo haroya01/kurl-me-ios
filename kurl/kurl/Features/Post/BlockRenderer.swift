@@ -26,21 +26,28 @@ struct BlockView: View {
                 .lineSpacing(5)
                 .foregroundStyle(Palette.body)
 
+        // 한글은 볼드 대비가 라틴보다 약하다 — 굵기만으로는 위계가 안 서서
+        // 크기 간격 + 자간 + 위 여백을 함께 벌린다.
         case .h1:
             inline(block.content ?? "")
-                .font(.system(size: h1Size, weight: .bold)).foregroundStyle(Palette.ink)
+                .font(.system(size: h1Size, weight: .bold))
+                .tracking(-0.4)
+                .foregroundStyle(Palette.ink)
                 .accessibilityAddTraits(.isHeader)
-                .padding(.top, 18).padding(.bottom, 4)
+                .padding(.top, 24).padding(.bottom, 5)
         case .h2:
             inline(block.content ?? "")
-                .font(.system(size: h2Size, weight: .bold)).foregroundStyle(Palette.ink)
+                .font(.system(size: h2Size, weight: .bold))
+                .tracking(-0.3)
+                .foregroundStyle(Palette.ink)
                 .accessibilityAddTraits(.isHeader)
-                .padding(.top, 16).padding(.bottom, 4)
+                .padding(.top, 20).padding(.bottom, 4)
         case .h3:
             inline(block.content ?? "")
-                .font(.system(size: h3Size, weight: .semibold)).foregroundStyle(Palette.ink)
+                .font(.system(size: h3Size, weight: .semibold))
+                .foregroundStyle(Palette.ink)
                 .accessibilityAddTraits(.isHeader)
-                .padding(.top, 12).padding(.bottom, 2)
+                .padding(.top, 14).padding(.bottom, 2)
 
         case .quote:
             inline(block.content ?? "")

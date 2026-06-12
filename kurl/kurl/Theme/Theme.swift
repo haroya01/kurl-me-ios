@@ -79,8 +79,9 @@ enum Metrics {
 enum GlassTokens {
     /// 흰 라벨을 받는 유리 틴트 = accent-700 — §10.3 600/700 규칙의 유리판.
     static let prominentTint = Palette.accentFill
-    /// 커버 사진 위 맑은 유리의 가독 틴트 — 어떤 사진에서도 흰 타이포가 서게.
-    static let mediaScrim = Color.black.opacity(0.32)
+    /// 커버 사진 위 맑은 유리의 가독 틴트 — 밝은 사진(흰 책상류)에서도 흰 타이포가 서야
+    /// 해서 0.32 로는 모자랐다.
+    static let mediaScrim = Color.black.opacity(0.40)
     /// 큰 유리 면(독·패널) 모서리. 컨트롤은 캡슐이 기본.
     static let panelRadius: CGFloat = 24
     /// 유리 클러스터 간격 — GlassEffectContainer 가 이 거리부터 서로 녹여 붙인다.

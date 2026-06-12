@@ -13,6 +13,7 @@ struct WriteHubView: View {
 
     @Environment(\.colorScheme) private var colorScheme
     @State private var phase: LoadState<[MyPost]> = .idle
+    @State private var filter: HubFilter = .all
     @State private var composing = false
     @State private var editing: MyPost?
     @State private var showAnalytics = false
@@ -103,13 +104,37 @@ struct WriteHubView: View {
         .refreshable { await load() }
     }
 
+    /// 글이 쌓이면 초안 찾기가 스크롤 사냥이 된다 — 임시/발행 한 번에 거르는 칩.
+    private var filtered: [MyPost] {
+        switch filter {
+        case .all: return currentPosts
+        case .draft: return currentPosts.filter(\.isDraft)
+        case .published: return currentPosts.filter { !$0.isDraft }
+        }
+    }
+
+    private var currentPosts: [MyPost] {
+        if case .loaded(let posts) = phase { return posts }
+        return []
+    }
+
     @ViewBuilder
     private func list(_ posts: [MyPost]) -> some View {
-        RailHeading("내 글")
-            .padding(.top, 24)
-            .padding(.bottom, 6)
+        HStack(alignment: .center) {
+            RailHeading("내 글")
+            Spacer()
+            GlassSegmentSwitcher(items: HubFilter.allCases, selection: $filter) { $0.label }
+        }
+        .padding(.top, 18)
+        .padding(.bottom, 8)
         Hairline()
-        ForEach(Array(posts.enumerated()), id: \.element.id) { index, post in
+        if filtered.isEmpty {
+            Text(filter == .draft ? "임시저장한 글이 없습니다." : "발행한 글이 없습니다.")
+                .font(.system(size: 14))
+                .foregroundStyle(Palette.secondary)
+                .padding(.top, 24)
+        }
+        ForEach(Array(filtered.enumerated()), id: \.element.id) { index, post in
             Button {
                 editing = post
             } label: {
@@ -147,7 +172,7 @@ struct WriteHubView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(RowButtonStyle())
-            if index < posts.count - 1 { Hairline() }
+            if index < filtered.count - 1 { Hairline() }
         }
     }
 
@@ -239,6 +264,23 @@ struct WriteHubView: View {
             if (try? await auth.completeApple(result, rawNonce: appleNonce)) == .twoFactorRequired {
                 showTwoFactorHint = true
             }
+        }
+    }
+}
+
+/// 내 글 허브의 상태 필터 — 예약 글은 발행 쪽 양동이로(발행 흐름에 들어간 글).
+enum HubFilter: String, CaseIterable, Identifiable {
+    case all
+    case draft
+    case published
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .all: return String(localized: "전체")
+        case .draft: return String(localized: "임시")
+        case .published: return String(localized: "발행")
         }
     }
 }

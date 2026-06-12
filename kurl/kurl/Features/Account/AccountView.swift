@@ -42,6 +42,15 @@ struct AccountView: View {
             .navigationTitle("내 계정")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    NavigationLink {
+                        SettingsView()
+                    } label: {
+                        Image(systemName: "gearshape")
+                    }
+                    .tint(.brand)
+                    .accessibilityLabel("설정")
+                }
                 if auth.isSignedIn {
                     ToolbarItem(placement: .primaryAction) {
                         Button {
@@ -211,29 +220,37 @@ struct AccountView: View {
             RailHeading("계정")
                 .padding(.top, 28)
 
-            // 정체 카드 — 안개 위에 뜬 유리 한 장.
-            HStack(spacing: 12) {
-                AvatarView(
-                    author: Author(
-                        id: 0,
-                        username: auth.me?.username ?? "kurl",
-                        bio: nil,
-                        avatarUrl: auth.me?.avatarUrl
-                    ),
-                    size: 52
-                )
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(auth.me?.username ?? "kurl")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.primary)
-                    Text(auth.me?.email ?? "")
-                        .font(.system(size: 13))
+            // 정체 카드 — 안개 위에 뜬 유리 한 장. 탭 = 독자에게 보이는 내 블로그.
+            NavigationLink(value: Route.author(username: auth.me?.username ?? "")) {
+                HStack(spacing: 12) {
+                    AvatarView(
+                        author: Author(
+                            id: 0,
+                            username: auth.me?.username ?? "kurl",
+                            bio: nil,
+                            avatarUrl: auth.me?.avatarUrl
+                        ),
+                        size: 52
+                    )
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(auth.me?.username ?? "kurl")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(.primary)
+                        Text("내 블로그 보기")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Palette.link)
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(.secondary)
                 }
-                Spacer(minLength: 0)
+                .padding(18)
+                .contentShape(Rectangle())
             }
-            .padding(18)
-            .glassEffect(.regular, in: .rect(cornerRadius: GlassTokens.panelRadius))
+            .buttonStyle(.plain)
+            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: GlassTokens.panelRadius))
+            .disabled((auth.me?.username ?? "").isEmpty)
             .padding(.top, 16)
 
             // 서재 — 행동(좋아요·북마크·구독)의 모아 보기.

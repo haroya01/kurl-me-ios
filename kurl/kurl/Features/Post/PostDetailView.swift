@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct PostDetailView: View {
     @State private var model: PostDetailViewModel
@@ -40,10 +41,16 @@ struct PostDetailView: View {
     /// 다음 글로 튕겨가지 않게 한다.
     @State private var fingerDown = false
 
-    /// 떠 있는 유리 독 — 글 끝(컴포저·다음 글 큐 영역)에 닿으면 materialize 로
-    /// 물러나 입력을 가리지 않고, 본문이 한 화면이면(스크롤 불가) 물러날 이유가 없다.
+    /// 떠 있는 유리 독 — 글 끝(컴포저·다음 글 큐 영역)에 닿으면 materialize 로 물러나
+    /// 입력을 가리지 않는다. 후퇴는 "스크롤 여유가 충분한 글"에만 — 한 화면 남짓 글은
+    /// 시작부터 끝이 보여 독이 영영 안 뜨는 회귀가 있었다(여유 120pt 미만이면 항상 유지).
+    /// 키보드가 떠 있는 동안(댓글 입력)은 길이와 무관하게 물러난다.
     @State private var endVisible = false
     @State private var scrollable = false
+    @State private var keyboardUp = false
+
+    /// 글 끝의 작가 카드·다른 글 — 작가 글 목록은 한 번만 가져와 양쪽(카드·다음 글 큐)이 쓴다.
+    @State private var authorPosts: [PostListItem] = []
 
     var body: some View {
         ScrollView {
@@ -80,12 +87,18 @@ struct PostDetailView: View {
         .scrollDismissesKeyboard(.interactively)
         .scrollEdgeEffectStyle(.soft, for: .bottom)
         .ignoresSafeArea(edges: hasCover && !embedded ? .top : [])
-        // 본문이 화면보다 긴지 — 독 후퇴 판정의 전제(짧은 글은 독이 유일한 인게이지 표면).
+        // 스크롤 여유가 충분한지 — 독 후퇴 판정의 전제(짧은 글은 독이 유일한 인게이지 표면).
         .onScrollGeometryChange(for: Bool.self) { geometry in
-            geometry.contentSize.height > geometry.containerSize.height
+            geometry.contentSize.height > geometry.containerSize.height + 120
         } action: { _, isScrollable in
             scrollable = isScrollable
         }
+        .onReceive(
+            NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
+        ) { _ in keyboardUp = true }
+        .onReceive(
+            NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)
+        ) { _ in keyboardUp = false }
         .onChange(of: model.comments) {
             // 답글 대상이 삭제/소실되면 답글 모드를 푼다 — 영구 실패 루프 방지.
             if let target = replyTo, !model.comments.contains(where: { $0.id == target.id }) {
@@ -112,7 +125,7 @@ struct PostDetailView: View {
             guard embedded else { return }
             if remaining < 600, !nextFetched {
                 nextFetched = true
-                Task { await fetchNextPost() }
+                Task { await loadAuthorContext() }
             }
             if remaining < -90, fingerDown, nextPost != nil, !showNext {
                 showNext = true
@@ -155,7 +168,8 @@ struct PostDetailView: View {
         .overlay(alignment: .bottomTrailing) {
             // 단독·덱 임베드 공통의 단일 인게이지 문법 — 임베드별 인라인 줄을 두지 않는다.
             // 덱에선 장마다 제 페이지 안에 떠서 페이지와 함께 밀려 나간다.
-            if case .loaded(let detail) = model.phase, !(endVisible && scrollable) {
+            if case .loaded(let detail) = model.phase, !keyboardUp,
+               !(endVisible && scrollable) {
                 EngagementDock(postId: detail.post.id, initialLikeCount: detail.post.likeCount)
                     .padding(.trailing, 14)
                     .padding(.bottom, 10)
@@ -163,7 +177,12 @@ struct PostDetailView: View {
             }
         }
         .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: endVisible)
-        .task { await model.load() }
+        .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: keyboardUp)
+        .task {
+            await model.load()
+            // 덱은 lazy 페이지가 많아 바닥 근접 때만(loadMore 경로), 단독은 곧장 작가 컨텍스트.
+            if !embedded { await loadAuthorContext() }
+        }
     }
 
     /// 가로(compact 높이)에선 커버가 화면을 다 먹지 않게 낮춘다.
@@ -204,6 +223,7 @@ struct PostDetailView: View {
                 .padding(.top, 26)
         }
         if let nav = detail.series { seriesNav(nav, username: detail.author.username) }
+        authorCard(detail.author)
         comments
         if embedded, let next = nextPost {
             nextPostCue(next)
@@ -241,12 +261,81 @@ struct PostDetailView: View {
         .accessibilityLabel("다음 글 — \(next.title)")
     }
 
-    private func fetchNextPost() async {
-        guard let list = try? await BlogAPI.authorPosts(username: model.username) else { return }
+    /// 작가 글 목록 1회 로드 — 글 끝 작가 카드(다른 글)와 덱의 다음 글 큐가 함께 쓴다.
+    private func loadAuthorContext() async {
+        guard authorPosts.isEmpty,
+              let list = try? await BlogAPI.authorPosts(username: model.username)
+        else { return }
+        authorPosts = list.posts
         if let idx = list.posts.firstIndex(where: { $0.slug == model.slug }),
            idx + 1 < list.posts.count {
             nextPost = list.posts[idx + 1]
         }
+    }
+
+    private var otherPosts: [PostListItem] {
+        Array(authorPosts.filter { $0.slug != model.slug }.prefix(3))
+    }
+
+    /// 글 끝의 작가 카드 — 완독 직후가 팔로우 전환의 최적 순간. 글이 막다른 길로 끝나지 않게.
+    private func authorCard(_ author: Author) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Hairline()
+            NavigationLink(value: Route.author(username: author.username)) {
+                HStack(spacing: 12) {
+                    AvatarView(author: author, size: 46)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(author.username)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(Palette.ink)
+                        if let bio = author.bio, !bio.isEmpty {
+                            Text(bio)
+                                .font(.system(size: 13))
+                                .foregroundStyle(Palette.secondary)
+                                .lineLimit(2)
+                        }
+                    }
+                    Spacer(minLength: 8)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Palette.faint)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            FollowButton(username: author.username)
+
+            if !otherPosts.isEmpty {
+                VStack(alignment: .leading, spacing: 2) {
+                    RailHeading("이 작가의 다른 글")
+                        .padding(.bottom, 6)
+                    ForEach(otherPosts) { post in
+                        NavigationLink(
+                            value: Route.post(username: author.username, slug: post.slug)
+                        ) {
+                            HStack(spacing: 8) {
+                                Text(post.title)
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundStyle(Palette.body)
+                                    .lineLimit(1)
+                                Spacer(minLength: 8)
+                                if let date = post.publishedAt {
+                                    Text(date.relativeShort)
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(Palette.faint)
+                                }
+                            }
+                            .padding(.vertical, 7)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.top, 2)
+            }
+        }
+        .padding(.vertical, 10)
     }
 
     private func header(_ detail: PublicPostDetail) -> some View {
@@ -273,7 +362,12 @@ struct PostDetailView: View {
                             .font(.system(size: 13))
                             .foregroundStyle(Palette.secondary)
                     }
+                    // 탭 가능한 행이라는 신호 — 어포던스 없는 링크는 없는 링크다.
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Palette.faint)
                 }
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .padding(.top, 14)
@@ -497,6 +591,8 @@ struct CommentComposer: View {
                 .font(.system(size: 14))
                 .lineLimit(1...4)
                 .focused($focused)
+                .submitLabel(.send)
+                .onSubmit { if canSend { send() } }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 9)
                 .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: 12))
@@ -509,7 +605,8 @@ struct CommentComposer: View {
                 } else {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.system(size: 28))
-                        .foregroundStyle(canSend ? Palette.accent : Palette.faint)
+                        // 비활성도 식별은 돼야 한다 — faint 는 1.5:1 대로 사실상 투명이었다.
+                        .foregroundStyle(canSend ? Palette.accent : Palette.secondary.opacity(0.55))
                 }
             }
             .buttonStyle(.plain)

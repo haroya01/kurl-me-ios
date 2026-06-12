@@ -11,6 +11,10 @@ struct FeedView: View {
     @State private var selection: FeedSource = .recent
     @Namespace private var zoomNS
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
+
+    /// 알림은 리텐션 루프의 심장인데 계정 탭 안 2뎁스였다 — 첫 화면에 벨을 둔다.
+    @State private var unreadCount: Int64 = 0
 
     var body: some View {
         // NavigationStack 에 path 를 바인딩하면 iOS 26 의 tabBarMinimizeBehavior 가
@@ -45,9 +49,44 @@ struct FeedView: View {
             )
             // 고정 스트립 대신 떠 있는 유리 — 카드가 캡슐 양옆·뒤로 그대로 흐른다.
             .safeAreaInset(edge: .top) {
-                GlassSegmentSwitcher(items: FeedSource.allCases, selection: $selection) { $0.label }
-                    .padding(.top, 2)
-                    .padding(.bottom, 8)
+                ZStack {
+                    GlassSegmentSwitcher(items: FeedSource.allCases, selection: $selection) {
+                        $0.label
+                    }
+                    if AuthStore.shared.isSignedIn {
+                        HStack {
+                            Spacer()
+                            NavigationLink {
+                                NotificationsView()
+                            } label: {
+                                Image(systemName: "bell")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(.primary)
+                                    .frame(width: 38, height: 38)
+                                    .overlay(alignment: .topTrailing) {
+                                        if unreadCount > 0 {
+                                            Circle()
+                                                .fill(Palette.accent)
+                                                .frame(width: 7, height: 7)
+                                                .offset(x: -7, y: 8)
+                                        }
+                                    }
+                                    .contentShape(Circle())
+                            }
+                            .buttonStyle(.plain)
+                            .glassEffect(.regular.interactive(), in: .circle)
+                            .accessibilityLabel(
+                                unreadCount > 0 ? Text("알림 — 읽지 않음 있음") : Text("알림"))
+                        }
+                        .padding(.trailing, Metrics.gutter)
+                    }
+                }
+                .padding(.top, 2)
+                .padding(.bottom, 8)
+            }
+            .task(id: AuthStore.shared.isSignedIn) { await refreshUnread() }
+            .onChange(of: scenePhase) { _, newPhase in
+                if newPhase == .active { Task { await refreshUnread() } }
             }
             // 유리는 뒤에 흐르는 것이 있을 때만 유리다 — 스위처 뒤 옅은 안개 한 겹.
             // 뷰포트 고정(스크롤 안 함)이라 카드 사이 틈으로도 첫 화면이 은은하게 물든다.
@@ -71,6 +110,14 @@ struct FeedView: View {
                 }
             }
         }
+    }
+
+    private func refreshUnread() async {
+        guard AuthStore.shared.isSignedIn else {
+            unreadCount = 0
+            return
+        }
+        unreadCount = (try? await NotificationsAPI.unreadCount()) ?? unreadCount
     }
 }
 
@@ -141,6 +188,7 @@ struct FeedPage: View {
                         BlogCard(item: item, featured: index == 0 && source == .recent)
                     }
                     .buttonStyle(CardButtonStyle())
+                    .cardQuickActions(item)
                     .modifier(ZoomSource(
                         active: active,
                         id: "post-\(item.author.username)-\(item.slug)",

@@ -142,11 +142,12 @@ enum WriteAPI {
             "/series/\(seriesId)/posts", body: Body(postIds: postIds), authenticated: true)
     }
 
-    // MARK: 커버 이미지
+    // MARK: 이미지 업로드 (커버·본문 공용)
 
     /// presign → S3 PUT → commit. JPEG 로 재인코딩해 올린다(HEIC 화이트리스트 이슈 회피).
-    /// 반환 = 커버로 쓸 공개 URL 과 키 — 호출측이 PATCH(ogImageUrl/ogImageKey)로 마무리.
-    static func uploadCover(postId: Int64, jpegData: Data) async throws -> (url: String, key: String) {
+    /// 반환 = 공개 URL 과 키. 커버는 호출측이 PATCH(ogImageUrl/ogImageKey)로 마무리하고,
+    /// 본문 이미지는 URL 을 마크다운으로 삽입하면 끝이다.
+    static func uploadImage(postId: Int64, jpegData: Data) async throws -> (url: String, key: String) {
         struct PresignBody: Encodable { let contentType: String }
         struct Presign: Decodable {
             let uploadUrl: String

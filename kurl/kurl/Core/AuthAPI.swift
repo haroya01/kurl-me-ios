@@ -46,6 +46,11 @@ enum AuthAPI {
     static func me() async throws -> Me {
         try await client.get("/users/me", authenticated: true)
     }
+
+    /// 회원 탈퇴(소프트 삭제) — 성공하면 호출측이 로컬 세션을 정리한다.
+    static func deleteAccount() async throws {
+        try await client.deleteVoid("/users/me", authenticated: true)
+    }
 }
 
 struct TokenPair: Decodable {
