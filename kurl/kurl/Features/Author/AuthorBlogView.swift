@@ -12,6 +12,7 @@ struct AuthorBlogView: View {
 
     @State private var phase: LoadState<PublicPostListView> = .idle
     @State private var series: [SeriesListItem] = []
+    @State private var showCard = false
 
     var body: some View {
         ScrollView {
@@ -71,10 +72,37 @@ struct AuthorBlogView: View {
                     .lineSpacing(4)
                     .padding(.top, 12)
             }
-            FollowButton(username: view.author.username)
-                .padding(.top, 14)
+            HStack(spacing: 10) {
+                FollowButton(username: view.author.username)
+                Spacer(minLength: 0)
+                // 명함(u/ — 링크 모음·소셜)으로 가는 문 — 블로그와 같은 정체의 다른 얼굴.
+                Button {
+                    showCard = true
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "person.crop.rectangle")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text("명함")
+                            .font(.system(size: 14, weight: .semibold))
+                    }
+                    .foregroundStyle(.primary)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.interactive(), in: .capsule)
+            }
+            .padding(.top, 14)
         }
         .padding(.vertical, 18)
+        .sheet(isPresented: $showCard) {
+            if let url = URL(
+                string: "\(Config.apiBase)/\(Config.preferredLanguageTag)/u/\(username)") {
+                SafariView(url: url)
+                    .ignoresSafeArea()
+            }
+        }
 
         if !series.isEmpty {
             VStack(alignment: .leading, spacing: 12) {

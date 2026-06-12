@@ -775,6 +775,38 @@
         }
       }
     },
+    "내 명함": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "My card"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "マイ名刺"
+          }
+        }
+      }
+    },
+    "내 블로그": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "My blog"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "マイブログ"
+          }
+        }
+      }
+    },
     "내 블로그 보기": {
       "localizations": {
         "en": {
@@ -1382,6 +1414,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "マークダウンで書く — #, >, -, ```、画像や URL は1行でカードになります。"
+          }
+        }
+      }
+    },
+    "명함": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Card"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名刺"
           }
         }
       }

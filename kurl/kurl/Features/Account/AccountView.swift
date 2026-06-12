@@ -15,6 +15,7 @@ struct AccountView: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var isSigningIn = false
     @State private var appleNonce = ""
+    @State private var showCard = false
     @State private var showTwoFactor = false
     @State private var showNotifications = false
     @State private var unreadCount: Int64 = 0
@@ -105,6 +106,15 @@ struct AccountView: View {
         }
         .sheet(isPresented: $showTwoFactor) {
             TwoFactorSheet()
+        }
+        // 명함은 웹의 것을 그대로 — u/ 페이지(테마·소셜·방문 통계)를 인앱으로 연다.
+        .sheet(isPresented: $showCard) {
+            if let username = auth.me?.username,
+               let url = URL(
+                   string: "\(Config.apiBase)/\(Config.preferredLanguageTag)/u/\(username)") {
+                SafariView(url: url)
+                    .ignoresSafeArea()
+            }
         }
         .alert(
             "로그인 실패",
@@ -220,38 +230,51 @@ struct AccountView: View {
             RailHeading("계정")
                 .padding(.top, 28)
 
-            // 정체 카드 — 안개 위에 뜬 유리 한 장. 탭 = 독자에게 보이는 내 블로그.
-            NavigationLink(value: Route.author(username: auth.me?.username ?? "")) {
-                HStack(spacing: 12) {
-                    AvatarView(
-                        author: Author(
-                            id: 0,
-                            username: auth.me?.username ?? "kurl",
-                            bio: nil,
-                            avatarUrl: auth.me?.avatarUrl
-                        ),
-                        size: 52
-                    )
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(auth.me?.username ?? "kurl")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(.primary)
-                        Text("내 블로그 보기")
-                            .font(.system(size: 13))
-                            .foregroundStyle(Palette.link)
-                    }
-                    Spacer(minLength: 0)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
+            // 정체 카드 — 안개 위에 뜬 유리 한 장.
+            HStack(spacing: 13) {
+                AvatarView(
+                    author: Author(
+                        id: 0,
+                        username: auth.me?.username ?? "kurl",
+                        bio: nil,
+                        avatarUrl: auth.me?.avatarUrl
+                    ),
+                    size: 56
+                )
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(auth.me?.username ?? "kurl")
+                        .font(.system(size: 18, weight: .semibold))
+                        .tracking(-0.2)
+                        .foregroundStyle(.primary)
+                    Text(auth.me?.email ?? "")
+                        .font(.system(size: 13))
                         .foregroundStyle(.secondary)
                 }
-                .padding(18)
-                .contentShape(Rectangle())
+                Spacer(minLength: 0)
             }
-            .buttonStyle(.plain)
-            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: GlassTokens.panelRadius))
-            .disabled((auth.me?.username ?? "").isEmpty)
+            .padding(18)
+            .glassEffect(.regular, in: .rect(cornerRadius: GlassTokens.panelRadius))
             .padding(.top, 16)
+
+            // 내 페이지의 두 얼굴 — 블로그(글)와 명함(링크 모음). 같은 정체, 다른 문.
+            HStack(spacing: 10) {
+                NavigationLink(value: Route.author(username: auth.me?.username ?? "")) {
+                    pageChip("내 블로그", systemImage: "book")
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.interactive(), in: .capsule)
+                .disabled((auth.me?.username ?? "").isEmpty)
+
+                Button {
+                    showCard = true
+                } label: {
+                    pageChip("내 명함", systemImage: "person.crop.rectangle")
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.interactive(), in: .capsule)
+                .disabled((auth.me?.username ?? "").isEmpty)
+            }
+            .padding(.top, 10)
 
             // 서재 — 행동(좋아요·북마크·구독)의 모아 보기.
             RailHeading("서재")
@@ -273,6 +296,19 @@ struct AccountView: View {
             .padding(.top, 18)
         }
         .task { await auth.loadMe() }
+    }
+
+    private func pageChip(_ title: LocalizedStringKey, systemImage: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: systemImage)
+                .font(.system(size: 13, weight: .semibold))
+            Text(title)
+                .font(.system(size: 14, weight: .semibold))
+        }
+        .foregroundStyle(.primary)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 11)
+        .contentShape(Capsule())
     }
 
     private func libraryRow(

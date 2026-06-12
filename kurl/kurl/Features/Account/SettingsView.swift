@@ -24,7 +24,7 @@ struct SettingsView: View {
                 .padding(.top, 24)
                 .padding(.bottom, 4)
             // 푸시 도입 전까지는 시스템 설정으로 안내 — 가짜 토글을 만들지 않는다.
-            linkRow("알림 설정") {
+            linkRow("알림 설정", icon: "bell.badge") {
                 if let url = URL(string: UIApplication.openNotificationSettingsURLString) {
                     openURL(url)
                 }
@@ -33,14 +33,15 @@ struct SettingsView: View {
             RailHeading("정책")
                 .padding(.top, 28)
                 .padding(.bottom, 4)
-            linkRow("이용약관") { open(path: "terms") }
+            linkRow("이용약관", icon: "doc.text") { open(path: "terms") }
             Hairline()
-            linkRow("개인정보처리방침") { open(path: "privacy") }
+            linkRow("개인정보처리방침", icon: "hand.raised") { open(path: "privacy") }
 
             RailHeading("앱")
                 .padding(.top, 28)
                 .padding(.bottom, 4)
-            HStack {
+            HStack(spacing: 10) {
+                settingIcon("info.circle")
                 Text("버전")
                     .font(.system(size: 15))
                     .foregroundStyle(Palette.ink)
@@ -57,12 +58,19 @@ struct SettingsView: View {
                 Button(role: .destructive) {
                     confirmDelete = true
                 } label: {
-                    if deleting {
-                        ProgressView()
-                    } else {
+                    HStack(spacing: 10) {
+                        if deleting {
+                            ProgressView()
+                                .frame(width: 22)
+                        } else {
+                            Image(systemName: "person.crop.circle.badge.minus")
+                                .font(.system(size: 14))
+                                .frame(width: 22)
+                        }
                         Text("회원 탈퇴")
                             .font(.system(size: 15))
                     }
+                    .contentShape(Rectangle())
                 }
                 .padding(.top, 18)
                 .disabled(deleting)
@@ -89,9 +97,19 @@ struct SettingsView: View {
         }
     }
 
-    private func linkRow(_ title: LocalizedStringKey, action: @escaping () -> Void) -> some View {
+    private func settingIcon(_ name: String) -> some View {
+        Image(systemName: name)
+            .font(.system(size: 14))
+            .foregroundStyle(Palette.accentMarker)
+            .frame(width: 22)
+    }
+
+    private func linkRow(
+        _ title: LocalizedStringKey, icon: String, action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
-            HStack {
+            HStack(spacing: 10) {
+                settingIcon(icon)
                 Text(title)
                     .font(.system(size: 15))
                     .foregroundStyle(Palette.ink)
