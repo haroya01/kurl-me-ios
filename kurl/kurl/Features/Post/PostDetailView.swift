@@ -526,7 +526,8 @@ struct CommentComposer: View {
             if target != nil { focused = true }
         }
         .alert("로그인이 필요합니다", isPresented: $showLoginPrompt) {
-            Button("로그인") { signInHere() }
+            Button("Apple로 로그인") { appleHere() }
+            Button("Google로 로그인") { signInHere() }
             Button("취소", role: .cancel) {}
         } message: {
             Text("댓글은 kurl 계정으로 남겨집니다.")
@@ -569,6 +570,14 @@ struct CommentComposer: View {
     private func signInHere() {
         Task {
             if (try? await AuthStore.shared.signIn()) == .twoFactorRequired {
+                showTwoFactorHint = true
+            }
+        }
+    }
+
+    private func appleHere() {
+        Task {
+            if (try? await AuthStore.shared.signInWithApple()) == .twoFactorRequired {
                 showTwoFactorHint = true
             }
         }

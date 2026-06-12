@@ -4,8 +4,10 @@
 //
 
 import AuthenticationServices
+import CryptoKit
 import Foundation
 import Observation
+import Security
 import UIKit
 
 enum AuthError: LocalizedError {
@@ -48,6 +50,7 @@ final class AuthStore {
     @ObservationIgnored private var pendingChallenge: String?
     @ObservationIgnored private var refreshTask: Task<Void, Error>?
     @ObservationIgnored private var activeSession: ASWebAuthenticationSession?
+    @ObservationIgnored private var appleDelegate: AppleAuthDelegate?
     @ObservationIgnored private let presenter = WebAuthPresenter()
 
     private static let accessAccount = "access-token"
@@ -96,6 +99,77 @@ final class AuthStore {
         guard let challenge = pendingChallenge else { throw AuthError.notSignedIn }
         adopt(try await AuthAPI.verifyTwoFactor(challenge: challenge, code: code, recovery: recovery))
         pendingChallenge = nil
+    }
+
+    // MARK: Apple 로그인 (네이티브 — 브라우저 왕복 없음)
+
+    /// 공식 SignInWithAppleButton 의 onRequest 에서 호출 — 스코프와 nonce 해시를 싣고
+    /// 원문 nonce 를 돌려준다. 완료 시 `completeApple(_:rawNonce:)` 에 그대로 전달할 것.
+    static func prepareAppleRequest(_ request: ASAuthorizationAppleIDRequest) -> String {
+        let raw = randomNonce()
+        request.requestedScopes = [.email]
+        request.nonce = sha256Hex(raw)
+        return raw
+    }
+
+    /// 버튼/프로그램 경로 공용 본선 — identityToken 을 서버로 보내 토큰쌍으로 바꾼다.
+    /// 서버는 nonce 해시 일치까지 검증하므로 다른 세션의 토큰은 여기서 죽는다.
+    func completeApple(
+        _ result: Result<ASAuthorization, Error>, rawNonce: String
+    ) async throws -> SignInOutcome {
+        switch result {
+        case .failure(let error):
+            if let authError = error as? ASAuthorizationError, authError.code == .canceled {
+                throw AuthError.cancelled
+            }
+            throw AuthError.provider(error.localizedDescription)
+        case .success(let authorization):
+            guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
+                  let tokenData = credential.identityToken,
+                  let identityToken = String(data: tokenData, encoding: .utf8)
+            else { throw AuthError.malformedCallback }
+            let outcome = try await AuthAPI.appleLogin(identityToken: identityToken, nonce: rawNonce)
+            if let challenge = outcome.challenge {
+                pendingChallenge = challenge
+                return .twoFactorRequired
+            }
+            guard let access = outcome.accessToken, let refresh = outcome.refreshToken else {
+                throw AuthError.malformedCallback
+            }
+            adopt(TokenPair(accessToken: access, refreshToken: refresh))
+            return .signedIn
+        }
+    }
+
+    /// 버튼이 없는 자리(좋아요·팔로우 알럿 등)의 Apple 로그인 — 시스템 시트를 직접 띄운다.
+    func signInWithApple() async throws -> SignInOutcome {
+        let raw = Self.randomNonce()
+        let request = ASAuthorizationAppleIDProvider().createRequest()
+        request.requestedScopes = [.email]
+        request.nonce = Self.sha256Hex(raw)
+        let result: Result<ASAuthorization, Error> = await withCheckedContinuation { continuation in
+            let delegate = AppleAuthDelegate { [weak self] result in
+                Task { @MainActor in self?.appleDelegate = nil }
+                continuation.resume(returning: result)
+            }
+            // 시트가 떠 있는 동안 delegate 를 강하게 쥔다 — activeSession 과 같은 이유.
+            appleDelegate = delegate
+            let controller = ASAuthorizationController(authorizationRequests: [request])
+            controller.delegate = delegate
+            controller.presentationContextProvider = delegate
+            controller.performRequests()
+        }
+        return try await completeApple(result, rawNonce: raw)
+    }
+
+    private static func randomNonce() -> String {
+        var bytes = [UInt8](repeating: 0, count: 32)
+        _ = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
+        return bytes.map { String(format: "%02x", $0) }.joined()
+    }
+
+    private static func sha256Hex(_ input: String) -> String {
+        SHA256.hash(data: Data(input.utf8)).map { String(format: "%02x", $0) }.joined()
     }
 
     private func startBrowserDance() async throws -> URL {
@@ -181,6 +255,38 @@ final class AuthStore {
 
 private final class WebAuthPresenter: NSObject, ASWebAuthenticationPresentationContextProviding {
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+        MainActor.assumeIsolated {
+            UIApplication.shared.connectedScenes
+                .compactMap { ($0 as? UIWindowScene)?.keyWindow }
+                .first ?? ASPresentationAnchor()
+        }
+    }
+}
+
+/// 프로그램 경로 Apple 로그인의 delegate + 프레젠테이션 앵커.
+private final class AppleAuthDelegate: NSObject, ASAuthorizationControllerDelegate,
+    ASAuthorizationControllerPresentationContextProviding {
+
+    private let completion: (Result<ASAuthorization, Error>) -> Void
+
+    init(completion: @escaping (Result<ASAuthorization, Error>) -> Void) {
+        self.completion = completion
+    }
+
+    func authorizationController(
+        controller: ASAuthorizationController,
+        didCompleteWithAuthorization authorization: ASAuthorization
+    ) {
+        completion(.success(authorization))
+    }
+
+    func authorizationController(
+        controller: ASAuthorizationController, didCompleteWithError error: any Error
+    ) {
+        completion(.failure(error))
+    }
+
+    func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
         MainActor.assumeIsolated {
             UIApplication.shared.connectedScenes
                 .compactMap { ($0 as? UIWindowScene)?.keyWindow }

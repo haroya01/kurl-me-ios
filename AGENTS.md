@@ -59,8 +59,9 @@ iOS 27의 답은 Liquid Glass 극대화 — 단, 유리가 **어디에 사는지
 
 ## 3. 빌드·검증 (iOS 27)
 
-- 툴체인: Xcode 27 베타 — `DEVELOPER_DIR=~/Downloads/Xcode-beta.app/Contents/Developer`
-  (응용 프로그램으로 옮기면 경로 갱신). 배포 타깃 27.0, 시뮬 디바이스 `kurl-27`(27.0 런타임).
+- 툴체인: Xcode 27 베타 — `DEVELOPER_DIR=/Applications/Xcode-27-beta.app/Contents/Developer`.
+  배포 타깃 27.0. 시뮬 기준 디바이스 `kurl-air-27`(iPhone Air, 27.0 런타임) — GUI 는
+  stable Xcode 의 Simulator.app 사용(27 베타엔 Simulator.app 미포함).
 - 검증 진입로(DEBUG): `--mocks`, `--tab write|discover|search|account`,
   `--open analytics|compose|notifications`, `--post user/slug`, `--selftest`.
 - UI 테스트: `xcodebuild test -scheme kurl` (DiscoverDeck·TabBarMinimize).

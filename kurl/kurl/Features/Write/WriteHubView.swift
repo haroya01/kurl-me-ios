@@ -3,6 +3,7 @@
 //  kurl
 //
 
+import AuthenticationServices
 import SwiftUI
 
 /// 글쓰기 탭 — 웹 /write 허브의 축소판: 내 글 목록(임시저장/발행 상태) + 새 글.
@@ -10,12 +11,14 @@ import SwiftUI
 struct WriteHubView: View {
     private var auth: AuthStore { .shared }
 
+    @Environment(\.colorScheme) private var colorScheme
     @State private var phase: LoadState<[MyPost]> = .idle
     @State private var composing = false
     @State private var editing: MyPost?
     @State private var showAnalytics = false
     @State private var isSigningIn = false
     @State private var showTwoFactorHint = false
+    @State private var appleNonce = ""
 
     var body: some View {
         NavigationStack {
@@ -188,6 +191,17 @@ struct WriteHubView: View {
                     .font(.system(size: 15))
                     .foregroundStyle(Palette.secondary)
                     .padding(.top, 6)
+                // Apple 버튼은 시스템 소유 모양(브랜딩 규정) — 유리 없이 캡슐만 맞춘다.
+                SignInWithAppleButton(.continue) { request in
+                    appleNonce = AuthStore.prepareAppleRequest(request)
+                } onCompletion: { result in
+                    finishApple(result)
+                }
+                .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
+                .frame(height: 48)
+                .clipShape(Capsule())
+                .padding(.top, 22)
+
                 Button {
                     signInHere()
                 } label: {
@@ -204,7 +218,7 @@ struct WriteHubView: View {
                 .buttonStyle(.plain)
                 .glassEffect(.regular.tint(GlassTokens.prominentTint).interactive(), in: .capsule)
                 .disabled(isSigningIn)
-                .padding(.top, 22)
+                .padding(.top, 10)
             }
         }
     }
@@ -215,6 +229,14 @@ struct WriteHubView: View {
         Task {
             defer { isSigningIn = false }
             if (try? await auth.signIn()) == .twoFactorRequired {
+                showTwoFactorHint = true
+            }
+        }
+    }
+
+    private func finishApple(_ result: Result<ASAuthorization, Error>) {
+        Task {
+            if (try? await auth.completeApple(result, rawNonce: appleNonce)) == .twoFactorRequired {
                 showTwoFactorHint = true
             }
         }

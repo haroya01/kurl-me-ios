@@ -31,6 +31,14 @@ enum AuthAPI {
         )
     }
 
+    /// 네이티브 Sign in with Apple — 시스템 시트의 identityToken 을 서버가 JWKS 로 검증한다.
+    /// 2FA 계정이면 토큰 대신 challenge 가 온다(이후는 Google 과 같은 /2fa/verify 공용).
+    static func appleLogin(identityToken: String, nonce: String) async throws -> AppleLoginResult {
+        try await client.post(
+            "/auth/mobile/apple",
+            body: ["identityToken": identityToken, "nonce": nonce])
+    }
+
     static func logout(refreshToken: String) async throws {
         try await client.post("/auth/mobile/logout", body: ["refreshToken": refreshToken])
     }
@@ -43,6 +51,13 @@ enum AuthAPI {
 struct TokenPair: Decodable {
     let accessToken: String
     let refreshToken: String
+}
+
+/// 토큰쌍 또는 2FA challenge 중 한쪽만 채워져 온다.
+struct AppleLoginResult: Decodable {
+    let accessToken: String?
+    let refreshToken: String?
+    let challenge: String?
 }
 
 struct Me: Decodable, Equatable {

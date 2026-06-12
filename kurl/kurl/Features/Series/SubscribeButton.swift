@@ -44,7 +44,8 @@ struct SubscribeButton: View {
         .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
         .task { await model.hydrate() }
         .alert("로그인이 필요합니다", isPresented: $showLoginPrompt) {
-            Button("로그인") { signInHere() }
+            Button("Apple로 로그인") { appleHere() }
+            Button("Google로 로그인") { signInHere() }
             Button("취소", role: .cancel) {}
         } message: {
             Text("구독하면 시리즈에 새 글이 올라올 때 알 수 있어요.")
@@ -70,6 +71,16 @@ struct SubscribeButton: View {
     private func signInHere() {
         Task {
             if (try? await AuthStore.shared.signIn()) == .twoFactorRequired {
+                showTwoFactorHint = true
+            } else if AuthStore.shared.isSignedIn {
+                await model.hydrate()
+            }
+        }
+    }
+
+    private func appleHere() {
+        Task {
+            if (try? await AuthStore.shared.signInWithApple()) == .twoFactorRequired {
                 showTwoFactorHint = true
             } else if AuthStore.shared.isSignedIn {
                 await model.hydrate()

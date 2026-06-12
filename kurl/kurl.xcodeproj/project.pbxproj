@@ -6,12 +6,6 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXFileReference section */
-		D3696C7C2FD48A89006D9F90 /* kurl.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = kurl.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		D400000000000000000000A1 /* kurlWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = kurlWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		D500000000000000000000B1 /* kurlUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = kurlUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-/* End PBXFileReference section */
-
 /* Begin PBXBuildFile section */
 		D400000000000000000000AC /* kurlWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D400000000000000000000A1 /* kurlWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
@@ -47,30 +41,25 @@
 		};
 /* End PBXCopyFilesBuildPhase section */
 
+/* Begin PBXFileReference section */
+		D3696C7C2FD48A89006D9F90 /* kurl.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = kurl.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D400000000000000000000A1 /* kurlWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = kurlWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		D500000000000000000000B1 /* kurlUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = kurlUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
 		D400000000000000000000AE /* Exceptions for "kurlWidget" folder in "kurlWidgetExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				kurlWidget.entitlements,
 			);
 			target = D400000000000000000000A6 /* kurlWidgetExtension */;
-		};
-		D400000000000000000000AF /* Exceptions for "kurl" folder in "kurl" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				kurl.entitlements,
-			);
-			target = D3696C7B2FD48A89006D9F90 /* kurl */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		D3696C7E2FD48A89006D9F90 /* kurl */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				D400000000000000000000AF /* Exceptions for "kurl" folder in "kurl" target */,
-			);
 			path = kurl;
 			sourceTree = "<group>";
 		};
@@ -208,19 +197,6 @@
 		};
 /* End PBXNativeTarget section */
 
-/* Begin PBXTargetDependency section */
-		D400000000000000000000AB /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = D400000000000000000000A6 /* kurlWidgetExtension */;
-			targetProxy = D400000000000000000000AA /* PBXContainerItemProxy */;
-		};
-		D500000000000000000000B3 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = D3696C7B2FD48A89006D9F90 /* kurl */;
-			targetProxy = D500000000000000000000B2 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
-
 /* Begin PBXProject section */
 		D3696C742FD48A89006D9F90 /* Project object */ = {
 			isa = PBXProject;
@@ -311,6 +287,19 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D400000000000000000000AB /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D400000000000000000000A6 /* kurlWidgetExtension */;
+			targetProxy = D400000000000000000000AA /* PBXContainerItemProxy */;
+		};
+		D500000000000000000000B3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D3696C7B2FD48A89006D9F90 /* kurl */;
+			targetProxy = D500000000000000000000B2 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		D3696C852FD48A8B006D9F90 /* Debug */ = {

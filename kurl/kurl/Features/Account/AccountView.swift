@@ -3,15 +3,18 @@
 //  kurl
 //
 
+import AuthenticationServices
 import SwiftUI
 
-/// 계정 탭 — 조용한 웹로그 톤 그대로. 로그아웃 상태는 한 단락 + 버튼 하나,
+/// 계정 탭 — 조용한 웹로그 톤 그대로. 로그아웃 상태는 한 단락 + 로그인 두 줄(Apple/Google),
 /// 로그인 상태는 정체(아바타·이름·이메일)와 로그아웃만. 기능 나열식 설정 화면 금지.
 struct AccountView: View {
     private var auth: AuthStore { .shared }
 
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.colorScheme) private var colorScheme
     @State private var isSigningIn = false
+    @State private var appleNonce = ""
     @State private var showTwoFactor = false
     @State private var showNotifications = false
     @State private var unreadCount: Int64 = 0
@@ -126,6 +129,17 @@ struct AccountView: View {
                     .lineSpacing(4)
                     .padding(.top, 8)
 
+                // Apple 버튼은 시스템 소유 모양(브랜딩 규정) — 유리를 입히지 않고 캡슐만 맞춘다.
+                SignInWithAppleButton(.continue) { request in
+                    appleNonce = AuthStore.prepareAppleRequest(request)
+                } onCompletion: { result in
+                    finishApple(result)
+                }
+                .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
+                .frame(height: 48)
+                .clipShape(Capsule())
+                .padding(.top, 24)
+
                 Button {
                     startSignIn()
                 } label: {
@@ -145,7 +159,7 @@ struct AccountView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(isSigningIn)
-                .padding(.top, 24)
+                .padding(.top, 10)
 
                 Text("로그인은 시스템 브라우저에서 안전하게 진행됩니다.")
                     .font(.system(size: 12))
@@ -166,6 +180,20 @@ struct AccountView: View {
             defer { isSigningIn = false }
             do {
                 if try await auth.signIn() == .twoFactorRequired {
+                    showTwoFactor = true
+                }
+            } catch AuthError.cancelled {
+                // 사용자가 시트를 닫음 — 조용히
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func finishApple(_ result: Result<ASAuthorization, Error>) {
+        Task {
+            do {
+                if try await auth.completeApple(result, rawNonce: appleNonce) == .twoFactorRequired {
                     showTwoFactor = true
                 }
             } catch AuthError.cancelled {

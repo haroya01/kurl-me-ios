@@ -31,7 +31,8 @@ struct EngagementDock: View {
         .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
         .task(id: AuthStore.shared.isSignedIn) { await model.hydrate() }
         .alert("로그인이 필요합니다", isPresented: $showLoginPrompt) {
-            Button("로그인") { signInHere() }
+            Button("Apple로 로그인") { appleHere() }
+            Button("Google로 로그인") { signInHere() }
             Button("취소", role: .cancel) {}
         } message: {
             Text("좋아요와 북마크는 kurl 계정으로 이어집니다.")
@@ -110,6 +111,16 @@ struct EngagementDock: View {
         Task {
             // 2FA 계정은 TOTP 입력 UI 가 계정 탭에 있어 여기서 끝까지 못 간다 — 안내만.
             if (try? await AuthStore.shared.signIn()) == .twoFactorRequired {
+                showTwoFactorHint = true
+            } else if AuthStore.shared.isSignedIn {
+                await model.hydrate()
+            }
+        }
+    }
+
+    private func appleHere() {
+        Task {
+            if (try? await AuthStore.shared.signInWithApple()) == .twoFactorRequired {
                 showTwoFactorHint = true
             } else if AuthStore.shared.isSignedIn {
                 await model.hydrate()
