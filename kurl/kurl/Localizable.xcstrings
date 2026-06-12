@@ -221,6 +221,38 @@
         }
       }
     },
+    "%lld편 — %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Part %1$lld — %2$@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第%1$lld回 — %2$@"
+          }
+        }
+      }
+    },
+    "%lld편 — %@, 현재 글": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Part %1$lld — %2$@, current post"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第%1$lld回 — %2$@、現在の記事"
+          }
+        }
+      }
+    },
     "000000": {},
     "2단계 인증": {
       "localizations": {
@@ -1050,6 +1082,38 @@
       }
     },
     "다음 글 — %@": {},
+    "다음 편": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next up"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "次の回"
+          }
+        }
+      }
+    },
+    "다음 편 — %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next up — %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "次の回 — %@"
+          }
+        }
+      }
+    },
     "닫기": {
       "localizations": {
         "en": {
@@ -1580,6 +1644,22 @@
         }
       }
     },
+    "목록을 불러오지 못했습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't load the list"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一覧を読み込めませんでした"
+          }
+        }
+      }
+    },
     "미리보기": {
       "localizations": {
         "en": {
@@ -2047,6 +2127,22 @@
         }
       }
     },
+    "시리즈 %@ — %lld/%lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Series %1$@ — %2$lld of %3$lld"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "シリーズ %1$@ — %2$lld/%3$lld"
+          }
+        }
+      }
+    },
     "시리즈 %lld": {
       "localizations": {
         "en": {
@@ -2075,6 +2171,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "シリーズなし"
+          }
+        }
+      }
+    },
+    "시리즈 전체 보기 (%lld편)": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "View full series (%lld part)"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "View full series (%lld parts)"
+                }
+              }
+            }
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "シリーズ全体を見る（%lld編）"
           }
         }
       }
@@ -2209,6 +2333,7 @@
       }
     },
     "알림 설정": {
+      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -2397,6 +2522,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "この操作は取り消せません。"
+          }
+        }
+      }
+    },
+    "이 시리즈의 글": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In this series"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このシリーズの記事"
           }
         }
       }
@@ -3509,6 +3650,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "アカウントを削除"
+          }
+        }
+      }
+    },
+    "회차 목록 접기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collapse episode list"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回の一覧をたたむ"
+          }
+        }
+      }
+    },
+    "회차 목록 펼치기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Expand episode list"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回の一覧をひらく"
           }
         }
       }

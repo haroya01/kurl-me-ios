@@ -227,6 +227,11 @@ struct PostDetailView: View {
     @ViewBuilder
     private func content(_ detail: PublicPostDetail) -> some View {
         header(detail)
+        // 시리즈 글은 본문 전에 "여정의 몇 번째"부터 세운다 — 웹 SeriesNav 와 같은 자리.
+        if let nav = detail.series {
+            SeriesBanner(nav: nav, username: detail.author.username, currentSlug: detail.post.slug)
+                .padding(.top, 22)
+        }
         VStack(alignment: .leading, spacing: 2) {
             ForEach(Array(detail.blocks.enumerated()), id: \.offset) { _, block in
                 BlockView(block: block)
@@ -239,7 +244,10 @@ struct PostDetailView: View {
             FlowTags(tags: detail.post.tags)
                 .padding(.top, 26)
         }
-        if let nav = detail.series { seriesNav(nav, username: detail.author.username) }
+        // 완독 직후의 연결 — 다음 편 카드(시리즈) → 작가 카드 → 댓글 순.
+        if let nav = detail.series {
+            SeriesNextCard(nav: nav, username: detail.author.username)
+        }
         authorCard(detail.author)
         comments(authorId: detail.author.id)
         if embedded, let next = nextPost {
@@ -324,29 +332,17 @@ struct PostDetailView: View {
             FollowButton(username: author.username)
 
             if !otherPosts.isEmpty {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 0) {
                     RailHeading("이 작가의 다른 글")
-                        .padding(.bottom, 6)
-                    ForEach(otherPosts) { post in
+                        .padding(.bottom, 4)
+                    ForEach(Array(otherPosts.enumerated()), id: \.element.id) { index, post in
                         NavigationLink(
                             value: Route.post(username: author.username, slug: post.slug)
                         ) {
-                            HStack(spacing: 8) {
-                                Text(post.title)
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundStyle(Palette.body)
-                                    .lineLimit(1)
-                                Spacer(minLength: 8)
-                                if let date = post.publishedAt {
-                                    Text(date.relativeShort)
-                                        .font(.system(size: 12))
-                                        .foregroundStyle(Palette.faint)
-                                }
-                            }
-                            .padding(.vertical, 7)
-                            .contentShape(Rectangle())
+                            otherPostRow(post)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(RowButtonStyle())
+                        if index < otherPosts.count - 1 { Hairline() }
                     }
                 }
                 .padding(.top, 2)
@@ -393,52 +389,48 @@ struct PostDetailView: View {
         }
     }
 
-    private func seriesNav(_ nav: PostSeriesNav, username: String) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Hairline()
-            NavigationLink(value: Route.series(username: username, slug: nav.slug)) {
-                HStack(spacing: 8) {
-                    RoundedRectangle(cornerRadius: 1).fill(Palette.accentMarker).frame(width: 3, height: 12)
-                    Text(nav.title).font(.system(size: 13, weight: .bold)).foregroundStyle(Palette.heading)
-                    Spacer()
-                    Text("\(nav.position) / \(nav.total)")
-                        .font(.system(size: 13)).foregroundStyle(Palette.secondary)
-                }
-            }
-            .buttonStyle(.plain)
-
-            HStack(alignment: .top, spacing: 16) {
-                if let prev = nav.prev {
-                    navLink(username: username, slug: prev.slug, title: prev.title,
-                            caption: "이전 글", systemImage: "chevron.left", trailing: false)
-                }
-                Spacer(minLength: 0)
-                if let next = nav.next {
-                    navLink(username: username, slug: next.slug, title: next.title,
-                            caption: "다음 글", systemImage: "chevron.right", trailing: true)
-                }
-            }
-        }
-        .padding(.vertical, 16)
-    }
-
-    private func navLink(username: String, slug: String, title: String,
-                         caption: LocalizedStringKey, systemImage: String, trailing: Bool) -> some View {
-        NavigationLink(value: Route.post(username: username, slug: slug)) {
-            VStack(alignment: trailing ? .trailing : .leading, spacing: 4) {
-                Label(caption, systemImage: systemImage)
-                    .font(.system(size: 12))
-                    .foregroundStyle(Palette.secondary)
-                    .labelStyle(.titleAndIcon)
-                Text(title)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Palette.body)
+    /// 다른 글 한 행 — 제목 한 줄짜리 텍스트 행이었던 것을 발췌·메타가 있는 도착 행 문법
+    /// (구독함과 동일 계열)으로. 썸네일은 있을 때만 — 없는 글이 비뚤어 보이지 않게 trailing.
+    private func otherPostRow(_ post: PostListItem) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(post.title)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Palette.ink)
                     .lineLimit(2)
-                    .multilineTextAlignment(trailing ? .trailing : .leading)
+                    .multilineTextAlignment(.leading)
+                if let excerpt = post.excerpt, !excerpt.isEmpty {
+                    Text(excerpt)
+                        .font(.system(size: 13))
+                        .foregroundStyle(Palette.secondary)
+                        .lineLimit(1)
+                }
+                HStack(spacing: 6) {
+                    if let date = post.publishedAt {
+                        Text(date.relativeShort)
+                    }
+                    if post.likeCount > 0 {
+                        Text("♥ \(post.likeCount)")
+                    }
+                }
+                .font(.system(size: 12))
+                .foregroundStyle(Palette.faint)
             }
-            .frame(maxWidth: 180, alignment: trailing ? .trailing : .leading)
+            Spacer(minLength: 0)
+            if let cover = post.ogImageUrl, let url = URL(string: cover) {
+                AsyncImage(url: url) { phase in
+                    if case .success(let image) = phase {
+                        image.resizable().scaledToFill()
+                    } else {
+                        Rectangle().fill(Palette.hairline)
+                    }
+                }
+                .frame(width: 56, height: 42)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            }
         }
-        .buttonStyle(.plain)
+        .padding(.vertical, 10)
+        .contentShape(Rectangle())
     }
 
     private func comments(authorId: Int64) -> some View {
