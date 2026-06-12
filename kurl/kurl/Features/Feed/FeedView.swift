@@ -49,6 +49,15 @@ struct FeedView: View {
                     .padding(.top, 2)
                     .padding(.bottom, 8)
             }
+            // 유리는 뒤에 흐르는 것이 있을 때만 유리다 — 스위처 뒤 옅은 안개 한 겹.
+            // 뷰포트 고정(스크롤 안 함)이라 카드 사이 틈으로도 첫 화면이 은은하게 물든다.
+            .background(alignment: .top) {
+                BrandMist()
+                    .frame(height: 240)
+                    .mask(LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom))
+                    .ignoresSafeArea(edges: .top)
+                    .allowsHitTesting(false)
+            }
             .background(Palette.pageBg)
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: Route.self) { route in
@@ -136,6 +145,7 @@ struct FeedPage: View {
                         active: active,
                         id: "post-\(item.author.username)-\(item.slug)",
                         ns: zoom))
+                    .modifier(QuietAppear(index: index))
                     .modifier(CardScrollFade())
                     .task { await model.loadMoreIfNeeded(current: item) }
                 }

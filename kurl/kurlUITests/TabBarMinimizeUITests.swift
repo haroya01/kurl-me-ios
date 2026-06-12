@@ -72,6 +72,12 @@ final class TabBarMinimizeUITests: XCTestCase {
         let app = launch()
         let firstCard = app.scrollViews.buttons.firstMatch
         XCTAssertTrue(firstCard.waitForExistence(timeout: 10), "피드 카드 없음")
+        // 입장 스태거(QuietAppear) 페이드 동안은 탭이 박히지 않는다 — 히터블까지 기다린다.
+        var waited = 0.0
+        while !firstCard.isHittable, waited < 4 {
+            Thread.sleep(forTimeInterval: 0.2)
+            waited += 0.2
+        }
         firstCard.tap()
         Thread.sleep(forTimeInterval: 2)
         try assertMinimizes(app, surface: "post-detail")

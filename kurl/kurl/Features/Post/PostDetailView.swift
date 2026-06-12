@@ -253,6 +253,8 @@ struct PostDetailView: View {
 
             Text(detail.post.title)
                 .font(.system(size: titleSize, weight: .bold))
+                .tracking(-0.4)
+                .lineSpacing(3)
                 .foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)

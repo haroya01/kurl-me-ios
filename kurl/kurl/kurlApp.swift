@@ -15,7 +15,10 @@ struct kurlApp: App {
     var body: some Scene {
         WindowGroup {
             ZStack {
+                // 스플래시가 걷힐 때 본 화면이 1.5% 에서 제자리로 — 막이 오르는 한 호흡.
                 RootView()
+                    .scaleEffect(showSplash && !reduceMotion ? 1.015 : 1)
+                    .animation(.easeOut(duration: 0.5), value: showSplash)
                 if showSplash {
                     SplashView()
                         .zIndex(1)

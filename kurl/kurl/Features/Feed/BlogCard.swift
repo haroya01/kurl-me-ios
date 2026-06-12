@@ -19,6 +19,10 @@ struct BlogCard: View {
     var featured = false
 
     @ScaledMetric(relativeTo: .headline) private var titleUnit: CGFloat = 1
+    @Environment(\.colorScheme) private var colorScheme
+
+    /// 카드 모서리 — 유리 시대의 연속 곡률(§1.5). 하단 유리 띠와 반드시 같은 값.
+    private static let radius: CGFloat = 20
 
     var body: some View {
         Group {
@@ -71,6 +75,7 @@ struct BlogCard: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(item.title)
                         .font(.system(size: (featured ? 20 : 18) * titleUnit, weight: .semibold))
+                        .tracking(-0.2)
                         .foregroundStyle(.white)
                         .lineLimit(3)
                         .multilineTextAlignment(.leading)
@@ -82,13 +87,14 @@ struct BlogCard: View {
                 .glassEffect(
                     .clear.tint(GlassTokens.mediaScrim),
                     in: UnevenRoundedRectangle(
-                        cornerRadii: .init(bottomLeading: 16, bottomTrailing: 16),
+                        cornerRadii: .init(
+                            bottomLeading: Self.radius, bottomTrailing: Self.radius),
                         style: .continuous))
             }
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .clipShape(RoundedRectangle(cornerRadius: Self.radius, style: .continuous))
             .overlay {
                 // 어두운 커버 가장자리의 유리 같은 1px 빛 테두리.
-                RoundedRectangle(cornerRadius: 16)
+                RoundedRectangle(cornerRadius: Self.radius, style: .continuous)
                     .strokeBorder(.white.opacity(0.10), lineWidth: 1)
             }
             .cardShadow()
@@ -110,6 +116,7 @@ struct BlogCard: View {
             }
             Text(item.title)
                 .font(.system(size: (featured ? 19 : 17) * titleUnit, weight: .semibold))
+                .tracking(-0.2)
                 .foregroundStyle(Palette.ink)
                 .lineLimit(3)
                 .multilineTextAlignment(.leading)
@@ -118,19 +125,23 @@ struct BlogCard: View {
                 Text(excerpt)
                     .font(.system(size: 13.5 * titleUnit))
                     .foregroundStyle(Palette.secondary)
-                    .lineSpacing(3)
+                    .lineSpacing(4)
                     .lineLimit(4)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
             }
             CardMeta(item: item, over: false)
         }
-        .padding(16)
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Palette.cardBg, in: RoundedRectangle(cornerRadius: 16))
+        .background(
+            Palette.cardBg, in: RoundedRectangle(cornerRadius: Self.radius, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(Palette.cardBorder, lineWidth: 1)
+            // 라이트는 그림자만으로 선다(보더 = 웹 상자 느낌) — 다크는 그림자가 죽어 보더 유지.
+            if colorScheme == .dark {
+                RoundedRectangle(cornerRadius: Self.radius, style: .continuous)
+                    .strokeBorder(Palette.cardBorder, lineWidth: 1)
+            }
         }
         .cardShadow()
     }
@@ -192,12 +203,13 @@ private struct CardMeta: View {
     private var dim: Color { over ? .white.opacity(0.5) : Palette.faint }
 }
 
-/// 카드 다층 그림자 — 닿는 면 1px + 퍼지는 ambient(웹 CARD_SHADOW 등가).
+/// 카드 다층 그림자 — 닿는 면 1px + 멀리 퍼지는 ambient. 라이트의 무보더 카드를
+/// 이 두 겹이 종이에서 들어 올린다(웹 CARD_SHADOW 의 유리 시대 보정).
 private struct CardShadow: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .shadow(color: .black.opacity(0.04), radius: 1, y: 1)
-            .shadow(color: .black.opacity(0.10), radius: 10, y: 6)
+            .shadow(color: .black.opacity(0.05), radius: 1.5, y: 1)
+            .shadow(color: .black.opacity(0.08), radius: 18, y: 10)
     }
 }
 
@@ -205,11 +217,11 @@ extension View {
     func cardShadow() -> some View { modifier(CardShadow()) }
 }
 
-/// 카드 press — 행 하이라이트 대신 카드가 살짝 가라앉는다.
+/// 카드 press — 행 하이라이트 대신 카드가 살짝 가라앉았다 스프링으로 돌아온다.
 struct CardButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.98 : 1)
-            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed ? 0.975 : 1)
+            .animation(.spring(response: 0.32, dampingFraction: 0.72), value: configuration.isPressed)
     }
 }

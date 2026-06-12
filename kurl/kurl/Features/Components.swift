@@ -129,6 +129,8 @@ struct AvatarView: View {
         }
         .frame(width: size, height: size)
         .clipShape(Circle())
+        // 사진과 배경 사이 경계 한 가닥 — 밝은 사진이 흰 종이에 번져 보이지 않게.
+        .overlay(Circle().strokeBorder(Palette.hairlineStrong.opacity(0.5), lineWidth: 0.5))
     }
 
     private var initials: some View {
@@ -141,7 +143,6 @@ struct AvatarView: View {
             )
     }
 }
-
 // MARK: 상대 시간
 
 extension Date {
@@ -227,6 +228,31 @@ struct ZoomSource: ViewModifier {
         } else {
             content
         }
+    }
+}
+
+/// 첫 화면 카드들이 한 장씩 조용히 떠오르는 입장(§10.7 — 과시 없는 생기).
+/// 스태거는 첫 8장까지만 — 그 아래는 스크롤로 만나므로 지연 없이 나타난다.
+/// reduce-motion 이면 정지 상태로 그려진다.
+struct QuietAppear: ViewModifier {
+    let index: Int
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var shown = false
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(shown || reduceMotion ? 1 : 0)
+            .offset(y: shown || reduceMotion ? 0 : 7)
+            .onAppear {
+                guard !shown else { return }
+                guard index < 8 else {
+                    shown = true
+                    return
+                }
+                withAnimation(.easeOut(duration: 0.32).delay(Double(index) * 0.04)) {
+                    shown = true
+                }
+            }
     }
 }
 

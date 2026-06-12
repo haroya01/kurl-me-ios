@@ -28,8 +28,7 @@ struct SearchView: View {
             Group {
                 switch phase {
                 case .idle:
-                    ContentUnavailableView("검색", systemImage: "magnifyingglass",
-                                           description: Text("제목·내용으로 글을 찾아보세요"))
+                    idleState
                 case .loading:
                     ProgressView().tint(Palette.accent)
                         .frame(maxWidth: .infinity, minHeight: 280)
@@ -57,6 +56,36 @@ struct SearchView: View {
         .onSubmit(of: .search) { runSearch(query) }
     }
 
+    /// 대기 상태 — 기본 빈 화면 대신 안개 위 유리 한 점. 검색이 "비어 있음"이 아니라
+    /// "조용히 기다림"으로 읽히게.
+    private var idleState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 34, weight: .light))
+                .foregroundStyle(.secondary)
+                .frame(width: 92, height: 92)
+                .glassEffect(.regular, in: .circle)
+            VStack(spacing: 5) {
+                Text("글을 찾아보세요")
+                    .font(.system(size: 17, weight: .semibold))
+                    .tracking(-0.2)
+                    .foregroundStyle(Palette.ink)
+                Text("제목과 내용으로 검색합니다")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Palette.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background {
+            BrandMist()
+                .frame(width: 420, height: 420)
+                .mask(
+                    RadialGradient(
+                        colors: [.black, .clear], center: .center, startRadius: 40, endRadius: 210))
+                .allowsHitTesting(false)
+        }
+    }
+
     @ViewBuilder
     private func results(_ items: [FeedItem]) -> some View {
         if items.isEmpty {
@@ -74,6 +103,7 @@ struct SearchView: View {
                             active: true,
                             id: "search-\(item.author.username)-\(item.slug)",
                             ns: zoomNS))
+                        .modifier(QuietAppear(index: index))
                         .modifier(CardScrollFade())
                         .task {
                             if index >= items.count - 5 { await loadMore() }
