@@ -39,6 +39,7 @@ struct NotificationsView: View {
             }
         }
         .navigationTitle("알림")
+        .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {

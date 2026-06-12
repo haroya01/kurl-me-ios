@@ -35,6 +35,7 @@ struct SeriesDetailView: View {
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
         .navigationTitle("시리즈")
+        .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
     }

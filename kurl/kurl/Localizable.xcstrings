@@ -473,6 +473,38 @@
         }
       }
     },
+    "글 정보": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Post info"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記事情報"
+          }
+        }
+      }
+    },
+    "글 정보…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Post info…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記事情報…"
+          }
+        }
+      }
+    },
     "글별 성과": {
       "localizations": {
         "en": {
@@ -1209,6 +1241,22 @@
         }
       }
     },
+    "발행 준비": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ready to publish"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "公開の準備"
+          }
+        }
+      }
+    },
     "발행한 글": {
       "localizations": {
         "en": {
@@ -1461,6 +1509,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "選択した時刻に自動で公開されます。"
+          }
+        }
+      }
+    },
+    "소개글": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Excerpt"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "紹介文"
           }
         }
       }
@@ -2057,6 +2121,22 @@
         }
       }
     },
+    "지금 발행": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publish now"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今すぐ公開"
+          }
+        }
+      }
+    },
     "최근 %lld일": {
       "localizations": {
         "en": {
@@ -2137,6 +2217,22 @@
         }
       }
     },
+    "커버 추가": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add cover"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カバーを追加"
+          }
+        }
+      }
+    },
     "코드가 올바르지 않습니다.": {
       "localizations": {
         "en": {
@@ -2149,6 +2245,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "コードが正しくありません。"
+          }
+        }
+      }
+    },
+    "태그": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tags"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タグ"
           }
         }
       }

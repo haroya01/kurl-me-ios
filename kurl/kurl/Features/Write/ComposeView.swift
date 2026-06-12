@@ -18,7 +18,7 @@ struct ComposeView: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private enum Field: Hashable { case title, tags, excerpt, editor }
+    private enum Field: Hashable { case title, editor }
     @FocusState private var focusedField: Field?
 
     @State private var title = ""
@@ -48,6 +48,8 @@ struct ComposeView: View {
     @State private var uploadingCover = false
 
     // 시트
+    @State private var showPublish = false
+    @State private var scheduleNext = false
     @State private var showSchedule = false
     @State private var scheduleDate = Date().addingTimeInterval(3600)
     @State private var scheduleError: String?
@@ -78,13 +80,17 @@ struct ComposeView: View {
         }
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: focusedField == .editor)
         .navigationTitle(existing == nil ? "새 글" : "편집")
+        .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { toolbarContent }
         .task {
             await loadExisting()
-            // `--focus editor` — 키보드·스니펫 바까지 띄우는 검증 진입로(simctl 터치 불가 우회).
+            // `--focus editor` / `--sheet publish` — 검증 진입로(simctl 터치 불가 우회).
             if Config.consumeLaunchValue(after: "--focus") == "editor" {
                 focusedField = .editor
+            }
+            if Config.consumeLaunchValue(after: "--sheet") == "publish" {
+                showPublish = true
             }
         }
         .onChange(of: signature) { scheduleAutosave() }
@@ -96,6 +102,16 @@ struct ComposeView: View {
                 Task { await save(publish: false) }
             }
         }
+        .sheet(
+            isPresented: $showPublish,
+            onDismiss: {
+                // 시트 위 시트를 피한다 — 예약은 발행 시트가 닫힌 뒤 이어서 띄운다.
+                if scheduleNext {
+                    scheduleNext = false
+                    showSchedule = true
+                }
+            }
+        ) { publishSheet }
         .sheet(isPresented: $showSchedule) { scheduleSheet }
         .sheet(isPresented: $showRevisions) {
             RevisionsSheet(postId: postId) { restored in
@@ -113,82 +129,17 @@ struct ComposeView: View {
         }
     }
 
-    // MARK: 메타 영역
+    // MARK: 메타 영역 — 캔버스엔 제목뿐. 태그·소개글·시리즈·커버는 발행 시트의 일.
 
     private var meta: some View {
-        VStack(spacing: 8) {
-            TextField("제목", text: $title)
-                .font(.system(size: 24, weight: .bold))
-                .focused($focusedField, equals: .title)
-                .submitLabel(.next)
-                .onSubmit { focusedField = .tags }
-            TextField("태그 (쉼표로 구분)", text: $tagsText)
-                .font(.system(size: 13))
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
-                .focused($focusedField, equals: .tags)
-                .submitLabel(.next)
-                .onSubmit { focusedField = .excerpt }
-            TextField("소개글 — 카드와 검색에 보이는 한 단락", text: $excerpt, axis: .vertical)
-                .font(.system(size: 13))
-                .lineLimit(1...3)
-                .focused($focusedField, equals: .excerpt)
-
-            HStack(spacing: 10) {
-                // 시리즈 지정 — 멤버십은 저장 시점에 PUT 으로 반영. 칩은 유리 캡슐(컨트롤).
-                Menu {
-                    Button("시리즈 없음") { seriesId = nil }
-                    ForEach(seriesList) { series in
-                        Button(series.title) { seriesId = series.id }
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "square.stack.3d.up")
-                            .font(.system(size: 11))
-                        Text(seriesList.first(where: { $0.id == seriesId })?.title ?? String(localized: "시리즈 없음"))
-                            .font(.system(size: 12))
-                            .lineLimit(1)
-                    }
-                    .foregroundStyle(seriesId == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(Palette.link))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 7)
-                    .contentShape(Capsule())
-                }
-                .glassEffect(.regular.interactive(), in: .capsule)
-
-                Spacer()
-
-                // 커버 — 썸네일 또는 유리 칩 추가 버튼.
-                PhotosPicker(selection: $coverItem, matching: .images) {
-                    if uploadingCover {
-                        ProgressView().controlSize(.small)
-                    } else if let coverUrl, let url = URL(string: coverUrl) {
-                        AsyncImage(url: url) { image in
-                            image.resizable().scaledToFill()
-                        } placeholder: {
-                            Rectangle().fill(Palette.hairline)
-                        }
-                        .frame(width: 44, height: 33)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                    } else {
-                        HStack(spacing: 4) {
-                            Image(systemName: "photo")
-                                .font(.system(size: 11))
-                            Text("커버")
-                                .font(.system(size: 12))
-                        }
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 7)
-                        .contentShape(Capsule())
-                        .glassEffect(.regular.interactive(), in: .capsule)
-                    }
-                }
-            }
-        }
-        .padding(.horizontal, Metrics.gutter)
-        .padding(.top, 14)
-        .padding(.bottom, 10)
+        TextField("제목", text: $title)
+            .font(.system(size: 26, weight: .bold))
+            .focused($focusedField, equals: .title)
+            .submitLabel(.next)
+            .onSubmit { focusedField = .editor }
+            .padding(.horizontal, Metrics.gutter)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
     }
 
     private var editor: some View {
@@ -225,8 +176,8 @@ struct ComposeView: View {
             Button("저장") { Task { await save(publish: false) } }
                 .disabled(!canSave || busy)
             if status != "PUBLISHED" {
-                // 발행 = 이 화면의 주행동 — 핀 안에서 그린(700) 유리로 차오른다.
-                Button("발행") { Task { await save(publish: true) } }
+                // 발행 = 즉시 쏘지 않는다 — 발행 시트에서 메타데이터를 갖추는 마지막 한 박자.
+                Button("발행") { showPublish = true }
                     .font(.body.weight(.semibold))
                     .buttonStyle(.glassProminent)
                     .tint(GlassTokens.prominentTint)
@@ -243,13 +194,13 @@ struct ComposeView: View {
                     Label("미리보기", systemImage: "safari")
                 }
                 .disabled(postId == nil)
-                if status != "PUBLISHED" {
+                if status == "PUBLISHED" {
+                    // 발행된 글의 태그·소개글·시리즈·커버 편집 — 같은 시트, 저장 모드.
                     Button {
-                        showSchedule = true
+                        showPublish = true
                     } label: {
-                        Label("예약 발행…", systemImage: "calendar.badge.clock")
+                        Label("글 정보…", systemImage: "info.circle")
                     }
-                    .disabled(postId == nil)
                 }
                 Button {
                     showRevisions = true
@@ -261,6 +212,160 @@ struct ComposeView: View {
                 Image(systemName: "ellipsis")
             }
             .accessibilityLabel("더 보기")
+        }
+    }
+
+    /// 발행 준비 — 캔버스에서 걷어낸 메타데이터(태그·소개글·시리즈·커버)가 모이는 자리.
+    /// 미발행 글은 [지금 발행]이 주행동, 발행된 글은 같은 시트가 "글 정보" 저장 모드로 선다.
+    private var publishSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    sheetField("커버") {
+                        PhotosPicker(selection: $coverItem, matching: .images) {
+                            if uploadingCover {
+                                ProgressView()
+                                    .controlSize(.small)
+                                    .frame(height: 64)
+                            } else if let coverUrl, let url = URL(string: coverUrl) {
+                                AsyncImage(url: url) { image in
+                                    image.resizable().scaledToFill()
+                                } placeholder: {
+                                    Rectangle().fill(Palette.hairline)
+                                }
+                                .frame(height: 120)
+                                .frame(maxWidth: .infinity)
+                                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                            } else {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "photo")
+                                        .font(.system(size: 13))
+                                    Text("커버 추가")
+                                        .font(.system(size: 14, weight: .medium))
+                                }
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 64)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .strokeBorder(
+                                            Palette.hairlineStrong,
+                                            style: StrokeStyle(lineWidth: 1, dash: [5, 4])))
+                                .contentShape(Rectangle())
+                            }
+                        }
+                    }
+
+                    sheetField("태그") {
+                        TextField("태그 (쉼표로 구분)", text: $tagsText)
+                            .font(.system(size: 14))
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                            .padding(.horizontal, 13)
+                            .padding(.vertical, 11)
+                            .background(
+                                Palette.chipBg,
+                                in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+
+                    sheetField("소개글") {
+                        TextField(
+                            "소개글 — 카드와 검색에 보이는 한 단락", text: $excerpt, axis: .vertical
+                        )
+                        .font(.system(size: 14))
+                        .lineLimit(2...4)
+                        .padding(.horizontal, 13)
+                        .padding(.vertical, 11)
+                        .background(
+                            Palette.chipBg,
+                            in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+
+                    sheetField("시리즈") {
+                        Menu {
+                            Button("시리즈 없음") { seriesId = nil }
+                            ForEach(seriesList) { series in
+                                Button(series.title) { seriesId = series.id }
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "square.stack.3d.up")
+                                    .font(.system(size: 12))
+                                Text(
+                                    seriesList.first(where: { $0.id == seriesId })?.title
+                                        ?? String(localized: "시리즈 없음")
+                                )
+                                .font(.system(size: 14, weight: .medium))
+                                .lineLimit(1)
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.system(size: 10))
+                            }
+                            .foregroundStyle(
+                                seriesId == nil
+                                    ? AnyShapeStyle(.secondary) : AnyShapeStyle(Palette.link))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 9)
+                            .contentShape(Capsule())
+                        }
+                        .glassEffect(.regular.interactive(), in: .capsule)
+                    }
+
+                }
+                .padding(20)
+            }
+            .scrollIndicators(.hidden)
+            // 주행동은 detent 높이와 무관하게 항상 보이게 — 시트 하단 고정.
+            .safeAreaInset(edge: .bottom) {
+                VStack(spacing: 10) {
+                    Button {
+                        showPublish = false
+                        Task { await save(publish: status != "PUBLISHED") }
+                    } label: {
+                        Text(status != "PUBLISHED" ? "지금 발행" : "저장")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 48)
+                            .background(GlassTokens.prominentTint, in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!canSave || busy)
+
+                    if status != "PUBLISHED" {
+                        Button("예약 발행…") {
+                            scheduleNext = true
+                            showPublish = false
+                        }
+                        .font(.system(size: 13))
+                        .foregroundStyle(Palette.link)
+                        .disabled(postId == nil)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 10)
+                .padding(.bottom, 6)
+                .background(.bar)
+            }
+            .navigationTitle(status != "PUBLISHED" ? "발행 준비" : "글 정보")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("닫기") { showPublish = false }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    /// 시트 필드 한 단 — 작은 라벨 + 컨트롤.
+    private func sheetField(
+        _ label: LocalizedStringKey, @ViewBuilder content: () -> some View
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(label)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Palette.heading)
+            content()
         }
     }
 

@@ -31,6 +31,7 @@ struct AnalyticsView: View {
             }
         }
         .navigationTitle("분석")
+        .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
         .refreshable { await load() }

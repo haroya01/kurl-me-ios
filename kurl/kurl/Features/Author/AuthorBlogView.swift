@@ -35,6 +35,7 @@ struct AuthorBlogView: View {
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
         .navigationTitle(username)
+        .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
     }

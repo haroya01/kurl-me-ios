@@ -149,6 +149,8 @@ struct PostDetailView: View {
         }
         .toolbarBackground(
             !embedded && hasCover && !showNavTitle ? .hidden : .automatic, for: .navigationBar)
+        // 뒤로가기 = 셰브론-온리 유리 원판 — "< 피드" 텍스트 꼬리 제거(스와이프 백 유지).
+        .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .bottomTrailing) {
             // 단독·덱 임베드 공통의 단일 인게이지 문법 — 임베드별 인라인 줄을 두지 않는다.
