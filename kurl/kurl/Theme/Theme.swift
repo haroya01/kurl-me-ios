@@ -54,6 +54,10 @@ enum Palette {
     // 950/900 톤 레이어링과 대칭). 순백은 글 상세 본문·에디터 캔버스만 쓴다.
     static let pageBg = Color(light: 0xF8FAFC, dark: 0x020617)
 
+    // 읽기 면(글 상세 본문·에디터 캔버스) — 종전 순백 대신 살짝 따뜻한 오프화이트.
+    // 눈에 덜 쏘이는 종이 톤. 다크는 종전 그대로(시스템 검정).
+    static let readingBg = Color(light: 0xF8F9F6, dark: 0x000000)
+
     // 카드 (browse 면 전용 — 읽기 면은 여전히 flat 행)
     static let cardBg = Color(light: 0xFFFFFF, dark: 0x0F172A)     // white / slate-900
     static let cardBorder = Color(light: 0xE2E8F0, dark: 0x1E293B) // slate-200 / slate-800

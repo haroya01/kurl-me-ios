@@ -94,6 +94,7 @@ struct PostDetailView: View {
         .scrollIndicators(.hidden)
         .scrollDismissesKeyboard(.interactively)
         .scrollEdgeEffectStyle(.soft, for: .bottom)
+        .background(Palette.readingBg.ignoresSafeArea())
         .ignoresSafeArea(edges: hasCover && !embedded ? .top : [])
         // 스크롤 여유가 충분한지 — 독 후퇴 판정의 전제(짧은 글은 독이 유일한 인게이지 표면).
         .onScrollGeometryChange(for: Bool.self) { geometry in

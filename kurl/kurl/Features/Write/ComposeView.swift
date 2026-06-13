@@ -90,6 +90,7 @@ struct ComposeView: View {
             }
             editor
         }
+        .background(Palette.readingBg.ignoresSafeArea())
         // 키보드 위에 뜨는 유리 마크다운 바 — 캔버스는 종이, 크롬은 유리(AGENTS.md §1).
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if editorFocused {
