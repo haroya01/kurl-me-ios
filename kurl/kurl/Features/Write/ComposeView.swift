@@ -16,6 +16,7 @@ struct ComposeView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
     @ScaledMetric(relativeTo: .title3) private var titleSize: CGFloat = 26
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
@@ -66,8 +67,6 @@ struct ComposeView: View {
 
     // 시트
     @State private var showPublish = false
-    @State private var scheduleNext = false
-    @State private var previewNext = false
     @State private var previewItem: PreviewItem?
 
     struct PreviewItem: Identifiable {
@@ -134,22 +133,10 @@ struct ComposeView: View {
                 Task { await save(publish: false) }
             }
         }
-        // 발행 준비 = 바텀 시트가 아니라 전체 화면 폼 — 짧은 시트에서 폼이 잘리고 하단
-        // 버튼에 눌려 답답했다. 풀스크린이라 필드가 여유 있게 선다.
-        .fullScreenCover(
-            isPresented: $showPublish,
-            onDismiss: {
-                // 화면 위 시트를 피한다 — 예약·미리보기는 발행 폼이 닫힌 뒤 이어서 띄운다.
-                if scheduleNext {
-                    scheduleNext = false
-                    showSchedule = true
-                } else if previewNext {
-                    previewNext = false
-                    openPreview()
-                }
-            }
-        ) { publishSheet }
-        .sheet(isPresented: $showSchedule) { scheduleSheet }
+        // 발행 준비 = 살아있는 카드 미리보기 폼(전체 화면). 미리보기·예약은 이 폼 위에
+        // 바로 떠서 폼을 잃지 않는다(닫았다 다시 여는 왕복을 없앴다).
+        .fullScreenCover(isPresented: $showPublish) { publishSheet }
+        // ⋯ 메뉴의 미리보기(폼 밖) 경로.
         .sheet(item: $previewItem) { item in
             SafariView(url: item.url)
                 .ignoresSafeArea()
@@ -276,54 +263,11 @@ struct ComposeView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
-                    sheetField("커버") {
-                        PhotosPicker(selection: $coverItem, matching: .images) {
-                            if uploadingCover {
-                                ProgressView()
-                                    .controlSize(.small)
-                                    .frame(height: 64)
-                            } else if let coverUrl, let url = URL(string: coverUrl) {
-                                // 커버 히어로 — 카드/상세에 실릴 그 비율(16:9) 그대로. 탭하면 변경.
-                                AsyncImage(url: url) { image in
-                                    image.resizable().scaledToFill()
-                                } placeholder: {
-                                    Rectangle().fill(Palette.hairline)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 188)
-                                .clipped()
-                                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                                .overlay(alignment: .bottomTrailing) {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "photo")
-                                            .font(.system(size: 11 * metaUnit, weight: .semibold))
-                                        Text("변경")
-                                            .font(.system(size: 12 * metaUnit, weight: .medium))
-                                    }
-                                    .foregroundStyle(.white)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 6)
-                                    .background(.black.opacity(0.45), in: Capsule())
-                                    .padding(10)
-                                }
-                            } else {
-                                // 흐린 점선 + 가운데 텍스트가 "안 불러와진" 것처럼 보였다 —
-                                // 채워진 타일 + 또렷한 심볼로 누를 자리를 분명히 한다.
-                                VStack(spacing: 8) {
-                                    Image(systemName: "photo.badge.plus")
-                                        .font(.system(size: 26 * unit, weight: .regular))
-                                    Text("커버 이미지 추가")
-                                        .font(.system(size: 14 * unit, weight: .medium))
-                                }
-                                .foregroundStyle(Palette.secondary)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 150)
-                                .background(
-                                    Palette.chipBg,
-                                    in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                                .contentShape(Rectangle())
-                            }
-                        }
+                    // 살아있는 미리보기 — 발행하면 이 카드로 보인다. 커버는 카드 위를 탭해 넣고,
+                    // 아래 필드(태그·소개글)를 다듬으면 카드가 그 자리에서 따라 바뀐다.
+                    VStack(alignment: .leading, spacing: 10) {
+                        sectionLabel("이렇게 보여요")
+                        publishPreview
                     }
 
                     sheetField("태그") {
@@ -408,24 +352,19 @@ struct ComposeView: View {
                     }
 
                     HStack(spacing: 18) {
-                        Button {
-                            previewNext = true
-                            showPublish = false
-                        } label: {
-                            Label("미리보기", systemImage: "doc.text.magnifyingglass")
+                        // 폼을 닫지 않고 그 위로 — 보고 닫으면 폼으로 돌아온다.
+                        Button { openPreview() } label: {
+                            Label("전체 미리보기", systemImage: "doc.text.magnifyingglass")
                                 .font(.system(size: 13 * unit))
                         }
                         .foregroundStyle(Palette.link)
                         .disabled(postId == nil)
 
                         if status != "PUBLISHED" {
-                            Button("예약 발행…") {
-                                scheduleNext = true
-                                showPublish = false
-                            }
-                            .font(.system(size: 13 * unit))
-                            .foregroundStyle(Palette.link)
-                            .disabled(postId == nil)
+                            Button("예약 발행…") { showSchedule = true }
+                                .font(.system(size: 13 * unit))
+                                .foregroundStyle(Palette.link)
+                                .disabled(postId == nil)
                         }
                     }
                     .frame(maxWidth: .infinity)
@@ -450,7 +389,137 @@ struct ComposeView: View {
             } message: {
                 Text("이 글이 들어갈 새 시리즈를 만듭니다. 제목은 나중에 시리즈에서 바꿀 수 있어요.")
             }
+            // 미리보기·예약은 폼 위에 직접 — 폼을 잃지 않는다.
+            .sheet(item: $previewItem) { item in
+                SafariView(url: item.url).ignoresSafeArea()
+            }
+            .sheet(isPresented: $showSchedule) { scheduleSheet }
         }
+    }
+
+    /// 섹션 라벨 — RailHeading 의 작은 인라인 형(그린 마커 + bold).
+    private func sectionLabel(_ text: LocalizedStringKey) -> some View {
+        HStack(spacing: 7) {
+            RoundedRectangle(cornerRadius: 1)
+                .fill(Palette.accentMarker)
+                .frame(width: 3, height: 12 * metaUnit)
+            Text(text)
+                .font(.system(size: 13 * unit, weight: .semibold))
+                .foregroundStyle(Palette.heading)
+        }
+    }
+
+    /// 살아있는 카드 미리보기 — 발행 결과를 그대로. 커버 영역 탭 = 사진 선택.
+    private var publishPreview: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            PhotosPicker(selection: $coverItem, matching: .images) {
+                coverArea
+            }
+            .buttonStyle(.plain)
+
+            VStack(alignment: .leading, spacing: 8) {
+                if let tag = tags.first {
+                    HStack(spacing: 5) {
+                        Circle().fill(Palette.accentMarker).frame(width: 5, height: 5)
+                        Text(tag)
+                            .font(.system(size: 12.5 * metaUnit, weight: .semibold))
+                            .tracking(0.4)
+                            .lineLimit(1)
+                    }
+                    .foregroundStyle(Palette.link)
+                }
+                Text(title.trimmingCharacters(in: .whitespaces).isEmpty
+                    ? String(localized: "제목을 적어 주세요") : title)
+                    .font(.system(size: 20 * unit, weight: .bold))
+                    .tracking(-0.3)
+                    .foregroundStyle(title.trimmingCharacters(in: .whitespaces).isEmpty
+                        ? Palette.faint : Palette.ink)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                if !excerpt.trimmingCharacters(in: .whitespaces).isEmpty {
+                    Text(excerpt)
+                        .font(.system(size: 14 * unit))
+                        .foregroundStyle(Palette.secondary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                }
+                if let me = AuthStore.shared.me, let username = me.username {
+                    HStack(spacing: 7) {
+                        AvatarView(
+                            author: Author(id: me.id ?? 0, username: username, bio: nil, avatarUrl: me.avatarUrl),
+                            size: 20)
+                        Text(username)
+                            .font(.system(size: 13 * metaUnit, weight: .medium))
+                            .foregroundStyle(Palette.ink)
+                        Text("· 지금")
+                            .font(.system(size: 13 * metaUnit))
+                            .foregroundStyle(Palette.secondary)
+                    }
+                    .padding(.top, 2)
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .background(Palette.cardBg)
+        .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
+        .overlay {
+            if colorScheme == .dark {
+                RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous)
+                    .strokeBorder(Palette.cardBorder, lineWidth: 1)
+            }
+        }
+        .cardShadow()
+        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: coverUrl)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: tags)
+    }
+
+    /// 미리보기 카드의 커버 — 채워졌으면 16:9 이미지(+변경), 없으면 추가 타일. 업로드 중엔 스피너.
+    @ViewBuilder
+    private var coverArea: some View {
+        Group {
+            if uploadingCover {
+                ZStack {
+                    Palette.chipBg
+                    ProgressView().controlSize(.small)
+                }
+            } else if let coverUrl, let url = URL(string: coverUrl) {
+                AsyncImage(url: url) { image in
+                    image.resizable().scaledToFill()
+                } placeholder: {
+                    Rectangle().fill(Palette.hairline)
+                }
+                .overlay(alignment: .bottomTrailing) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "photo")
+                            .font(.system(size: 11 * metaUnit, weight: .semibold))
+                        Text("변경")
+                            .font(.system(size: 12 * metaUnit, weight: .medium))
+                    }
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(.black.opacity(0.45), in: Capsule())
+                    .padding(10)
+                }
+            } else {
+                ZStack {
+                    Palette.chipBg
+                    VStack(spacing: 8) {
+                        Image(systemName: "photo.badge.plus")
+                            .font(.system(size: 26 * unit, weight: .regular))
+                        Text("커버 이미지 추가")
+                            .font(.system(size: 14 * unit, weight: .medium))
+                    }
+                    .foregroundStyle(Palette.secondary)
+                }
+            }
+        }
+        .frame(height: 176)
+        .frame(maxWidth: .infinity)
+        .clipped()
+        .contentShape(Rectangle())
     }
 
     /// 시트 필드 한 단 — 작은 라벨 + 컨트롤.
@@ -468,11 +537,49 @@ struct ComposeView: View {
     private var scheduleSheet: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 16) {
-                Text("선택한 시각에 자동으로 발행됩니다.")
-                    .font(.system(size: 14 * unit))
-                    .foregroundStyle(Palette.secondary)
+                // 빠른 선택 — 자주 쓰는 발행 시각을 한 번에. 지난 시각은 숨긴다.
+                let presets = schedulePresets
+                if !presets.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(presets, id: \.label) { preset in
+                                let active = abs(scheduleDate.timeIntervalSince(preset.date)) < 60
+                                Button {
+                                    scheduleDate = preset.date
+                                } label: {
+                                    Text(preset.label)
+                                        .font(.system(size: 13 * unit, weight: .medium))
+                                        .foregroundStyle(active ? .white : Palette.chipText)
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 8)
+                                        .background(
+                                            active ? AnyShapeStyle(Palette.accentFill) : AnyShapeStyle(Palette.chipBg),
+                                            in: Capsule())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                    .sensoryFeedback(.selection, trigger: scheduleDate)
+                }
+
                 DatePicker("발행 시각", selection: $scheduleDate, in: Date()...)
                     .datePickerStyle(.graphical)
+
+                // 무엇이 정해졌는지 한 줄로 — 그래프 픽커만으론 결정이 흐릿했다.
+                HStack(spacing: 8) {
+                    Image(systemName: "clock")
+                        .font(.system(size: 13 * unit, weight: .semibold))
+                    Text(scheduleSummary)
+                        .font(.system(size: 14 * unit, weight: .semibold))
+                        .contentTransition(.numericText())
+                }
+                .foregroundStyle(Palette.link)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 11)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+
                 Spacer()
             }
             .padding(Metrics.gutter)
@@ -497,6 +604,31 @@ struct ComposeView: View {
             }
         }
         .presentationDetents([.large])
+    }
+
+    /// 자주 쓰는 발행 시각 — 지난 시각은 빼고. 그래프 픽커 전에 한 번에 고르게.
+    private var schedulePresets: [(label: String, date: Date)] {
+        let cal = Calendar.current
+        let now = Date()
+        func at(_ base: Date, _ hour: Int) -> Date? {
+            cal.date(bySettingHour: hour, minute: 0, second: 0, of: base)
+        }
+        var out: [(String, Date)] = []
+        if let d = at(now, 19), d > now { out.append(("오늘 저녁 7시", d)) }
+        if let tomorrow = cal.date(byAdding: .day, value: 1, to: now), let d = at(tomorrow, 9) {
+            out.append(("내일 아침 9시", d))
+        }
+        var sat = DateComponents()
+        sat.weekday = 7 // 토요일
+        if let next = cal.nextDate(after: now, matching: sat, matchingPolicy: .nextTime),
+           let d = at(next, 10) {
+            out.append(("주말 오전 10시", d))
+        }
+        return out
+    }
+
+    private var scheduleSummary: String {
+        scheduleDate.formatted(.dateTime.month().day().weekday(.abbreviated).hour().minute())
     }
 
     // MARK: 상태
