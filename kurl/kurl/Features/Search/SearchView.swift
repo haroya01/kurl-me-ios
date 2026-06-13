@@ -111,7 +111,7 @@ struct SearchView: View {
                                         .background(
                                             Palette.cardBg,
                                             in: RoundedRectangle(
-                                                cornerRadius: 16, style: .continuous))
+                                                cornerRadius: Metrics.radiusMini, style: .continuous))
                                         .contentShape(Rectangle())
                                     }
                                     .buttonStyle(CardButtonStyle())

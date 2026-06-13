@@ -51,7 +51,7 @@ struct FeedRow: View {
                     Rectangle().fill(Palette.hairline)
                 }
                 .frame(width: 96, height: 72)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
             }
         }
         .padding(.vertical, 16)
@@ -136,7 +136,7 @@ struct InboxRow: View {
                     Rectangle().fill(Palette.hairline)
                 }
                 .frame(width: 56, height: 42)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
             }
         }
         .padding(.vertical, 13)

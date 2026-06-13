@@ -132,7 +132,7 @@ struct AuthorBlogView: View {
                                 .frame(width: 148, height: 108, alignment: .topLeading)
                                 .background(
                                     Palette.chipBg,
-                                    in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                    in: RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous))
                                 .contentShape(Rectangle())
                             }
                             .buttonStyle(CardButtonStyle())

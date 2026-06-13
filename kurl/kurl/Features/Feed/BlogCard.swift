@@ -22,7 +22,7 @@ struct BlogCard: View {
     @Environment(\.colorScheme) private var colorScheme
 
     /// 카드 모서리 — 유리 시대의 연속 곡률(§1.5). 하단 유리 띠와 반드시 같은 값.
-    static let radius: CGFloat = 20
+    static let radius: CGFloat = Metrics.radiusCard
 
     var body: some View {
         Group {

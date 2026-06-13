@@ -3,6 +3,7 @@
 //  kurl
 //
 
+import Accessibility
 import Charts
 import SwiftUI
 
@@ -202,6 +203,8 @@ struct AnalyticsView: View {
                 }
             }
             .accessibilityLabel(Text("최근 \(overview.windowDays)일 일별 조회 추이"))
+            // 오디오 그래프 — VoiceOver 로터에서 추이를 소리 높낮이로 훑을 수 있다.
+            .accessibilityChartDescriptor(DailyViewsChartDescriptor(points: overview.daily))
             .frame(height: 140)
             .padding(.top, 14)
         }
@@ -410,5 +413,37 @@ struct AnalyticsView: View {
                 .foregroundStyle(Palette.secondary)
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+
+/// 일별 조회 차트의 오디오 그래프 서술자 — 시각 막대와 같은 데이터를 소리로.
+private struct DailyViewsChartDescriptor: AXChartDescriptorRepresentable {
+    let points: [AuthorAnalyticsOverview.DailyPoint]
+
+    func makeChartDescriptor() -> AXChartDescriptor {
+        let xAxis = AXCategoricalDataAxisDescriptor(
+            title: String(localized: "날짜"),
+            categoryOrder: points.map(\.date))
+        let maxViews = points.map(\.views).max() ?? 0
+        let yAxis = AXNumericDataAxisDescriptor(
+            title: String(localized: "조회수"),
+            range: 0...Double(max(maxViews, 1)),
+            gridlinePositions: []
+        ) { value in
+            String(localized: "조회 \(Int(value))")
+        }
+        let series = AXDataSeriesDescriptor(
+            name: String(localized: "일별 조회"),
+            isContinuous: false,
+            dataPoints: points.map {
+                AXDataPoint(x: $0.date, y: Double($0.views))
+            })
+        return AXChartDescriptor(
+            title: String(localized: "일별 조회 추이"),
+            summary: nil,
+            xAxis: xAxis,
+            yAxis: yAxis,
+            series: [series])
     }
 }

@@ -177,10 +177,10 @@ struct SeriesNextCard: View {
                     .padding(16)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous)
                             .stroke(Palette.cardBorder, lineWidth: 1)
                     )
-                    .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .contentShape(RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous))
                 }
                 .buttonStyle(RowButtonStyle())
                 .accessibilityLabel("다음 편 — \(next.title)")

@@ -74,6 +74,16 @@ enum Metrics {
     /// 읽기 컬럼 불변식 — 본문 정중앙 max-w-2xl(672 ≈ 한 줄 66자)
     static let readingColumn: CGFloat = 672
     static let gutter: CGFloat = 20
+
+    // 코너 반경 4단 — 같은 급의 면은 같은 반경(매직넘버 산포 방지).
+    /// 전폭 카드(피드·커버) — 하단 유리 띠와 동일값 강제(AGENTS §1.5).
+    static let radiusCard: CGFloat = 20
+    /// 미니 카드(레일·다음 편·힌트 캡슐류)
+    static let radiusMini: CGFloat = 16
+    /// 컨트롤 면(코드 블록·입력 프롬프트·임베드)
+    static let radiusControl: CGFloat = 12
+    /// 썸네일(행 안의 56×42 등)
+    static let radiusThumb: CGFloat = 8
 }
 
 /// Liquid Glass 토큰 — "종이 본문, 액체 크롬"(AGENTS.md §1).

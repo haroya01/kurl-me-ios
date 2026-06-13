@@ -202,22 +202,26 @@ private struct NoteRowView: View {
             }
             .buttonStyle(.plain)
             VStack(alignment: .leading, spacing: 5) {
-                HStack(spacing: 6) {
-                    Text(note.author.username)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Palette.ink)
-                    if let date = note.createdAt {
-                        Text(date.relativeShort)
-                            .font(.system(size: 12))
-                            .foregroundStyle(Palette.faint)
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(spacing: 6) {
+                        Text(note.author.username)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Palette.ink)
+                        if let date = note.createdAt {
+                            Text(date.relativeShort)
+                                .font(.system(size: 12))
+                                .foregroundStyle(Palette.secondary)
+                        }
+                        Spacer(minLength: 0)
                     }
-                    Spacer(minLength: 0)
+                    Text(note.body)
+                        .font(.system(size: 15))
+                        .lineSpacing(6)
+                        .foregroundStyle(Palette.body)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                Text(note.body)
-                    .font(.system(size: 15))
-                    .lineSpacing(6)
-                    .foregroundStyle(Palette.body)
-                    .fixedSize(horizontal: false, vertical: true)
+                // 이름·시각·본문이 한 번에 읽히게 — 행이 5조각으로 흩어지지 않는다.
+                .accessibilityElement(children: .combine)
                 Button {
                     likeTaps += 1
                     Task { await model.toggleLike(note) }
@@ -286,20 +290,23 @@ private struct NoteComposerBar: View {
             Button {
                 send()
             } label: {
-                if sending {
-                    ProgressView()
-                        .tint(.white)
-                        .frame(width: 34, height: 34)
-                        .background(GlassTokens.prominentTint, in: Circle())
-                } else {
-                    Image(systemName: "arrow.up")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 34, height: 34)
-                        .background(
-                            canSend ? GlassTokens.prominentTint : Color.secondary.opacity(0.45),
-                            in: Circle())
+                Group {
+                    if sending {
+                        ProgressView()
+                            .tint(.white)
+                            .frame(width: 34, height: 34)
+                            .background(GlassTokens.prominentTint, in: Circle())
+                    } else {
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 34, height: 34)
+                            .background(
+                                canSend ? GlassTokens.prominentTint : Color.secondary.opacity(0.45),
+                                in: Circle())
+                    }
                 }
+                .expandTapTarget()
             }
             .buttonStyle(.plain)
             .disabled(!canSend || sending)

@@ -45,6 +45,8 @@ struct PostDetailView: View {
     /// 손가락이 실제로 당기는 중일 때만 true — 플릭 관성의 바운스가 임계를 넘어도
     /// 다음 글로 튕겨가지 않게 한다.
     @State private var fingerDown = false
+    /// 바닥 너머 당김의 진행도(0~1, 임계 90pt) — 큐의 셰브론·제목이 손가락을 따라온다.
+    @State private var pullProgress: CGFloat = 0
 
     /// 떠 있는 유리 독 — 글 끝(컴포저·다음 글 큐 영역)에 닿으면 materialize 로 물러나
     /// 입력을 가리지 않는다. 후퇴는 "스크롤 여유가 충분한 글"에만 — 한 화면 남짓 글은
@@ -145,6 +147,7 @@ struct PostDetailView: View {
                 nextFetched = true
                 Task { await loadAuthorContext() }
             }
+            pullProgress = remaining < 0 ? min(1, -remaining / 90) : 0
             if remaining < -90, fingerDown, nextPost != nil, !showNext {
                 showNext = true
             }
@@ -286,7 +289,8 @@ struct PostDetailView: View {
             VStack(spacing: 5) {
                 Image(systemName: "chevron.compact.down")
                     .font(.system(size: 16 * unit, weight: .semibold))
-                    .foregroundStyle(Palette.faint)
+                    .foregroundStyle(pullProgress > 0.97 ? Palette.link : Palette.faint)
+                    .rotationEffect(.degrees(reduceMotion ? 0 : 180 * pullProgress))
                 Text("계속 당기면 다음 글")
                     .font(.system(size: 12 * metaUnit))
                     .foregroundStyle(Palette.secondary)
@@ -294,6 +298,8 @@ struct PostDetailView: View {
                     .font(.system(size: 14 * unit, weight: .semibold))
                     .foregroundStyle(Palette.ink)
                     .lineLimit(1)
+                    .opacity(0.6 + 0.4 * pullProgress)
+                    .offset(y: reduceMotion ? 0 : 5 * (1 - pullProgress))
             }
             .frame(maxWidth: .infinity)
             .padding(.top, 18)
@@ -444,7 +450,7 @@ struct PostDetailView: View {
                     }
                 }
                 .frame(width: 56, height: 42)
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb, style: .continuous))
             }
         }
         .padding(.vertical, 10)
