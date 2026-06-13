@@ -40,6 +40,28 @@ enum AnalyticsAPI {
             authenticated: true
         )
     }
+
+    /// 독자 분석 — 고유 방문·유입 채널·국가·기기(웹과 같은 PostReadStats).
+    static func readStats(postId: Int64) async throws -> PostReadStats {
+        try await client.get("/posts/\(postId)/stats", authenticated: true)
+    }
+}
+
+/// GET /posts/{id}/stats — 독자 breakdown. 헤드라인 지표만 디코드(나머지 키는 무시).
+struct PostReadStats: Decodable {
+    let totalVisits: Int64
+    let humanVisits: Int64
+    let botVisits: Int64
+    let uniqueVisits: Int64
+    let countryVisits: [CountryVisit]
+    let deviceVisits: [DeviceVisit]
+    let sourceChannelVisits: [SourceChannelVisit]
+    let referrerHostVisits: [ReferrerHostVisit]
+
+    struct CountryVisit: Decodable, Identifiable { let country: String; let count: Int64; var id: String { country } }
+    struct DeviceVisit: Decodable, Identifiable { let device: String; let count: Int64; var id: String { device } }
+    struct SourceChannelVisit: Decodable, Identifiable { let source: String; let count: Int64; var id: String { source } }
+    struct ReferrerHostVisit: Decodable, Identifiable { let host: String; let count: Int64; var id: String { host } }
 }
 
 /// GET /posts/{id}/analytics — linkBreakdown 은 아직 안 쓴다(미디코딩 키는 무시됨).
