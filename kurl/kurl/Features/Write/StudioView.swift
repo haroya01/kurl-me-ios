@@ -43,6 +43,12 @@ struct StudioView: View {
             // 모든 분면에서 늘 같은 자리(컴포즈 툴바의 발행과 같은 .glassProminent 문법).
             .toolbar {
                 if auth.isSignedIn {
+                    // 글·시리즈·분석 = 헤더(내비바)에. 떠 있는 캡슐로 따로 두지 않고 헤더 하나로 합친다.
+                    ToolbarItem(placement: .principal) {
+                        GlassSegmentSwitcher(
+                            items: StudioSection.allCases, selection: $section, label: { $0.label },
+                            bare: true)
+                    }
                     ToolbarItem(placement: .primaryAction) {
                         Button {
                             composing = true
@@ -89,14 +95,8 @@ struct StudioView: View {
             case .analytics: AnalyticsView(embedded: true).transition(.opacity)
             }
         }
-        // 같은 스위처를 쓰는 피드와 같은 문법 — 분면 교체도 한 호흡 크로스페이드.
+        // 분면 교체는 한 호흡 크로스페이드. 세그먼트 자체는 내비바(헤더)에 산다.
         .animation(reduceMotion ? nil : .snappy(duration: 0.28), value: section)
-        // 피드와 같은 문법 — 분면 전환은 떠 있는 유리 세그먼트.
-        .safeAreaInset(edge: .top) {
-            GlassSegmentSwitcher(items: StudioSection.allCases, selection: $section) { $0.label }
-                .padding(.top, 2)
-                .padding(.bottom, 8)
-        }
     }
 
     // MARK: 글
