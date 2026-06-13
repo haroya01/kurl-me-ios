@@ -294,9 +294,8 @@ struct StudioView: View {
                     username: auth.me?.username ?? "", slug: series.slug)
                 ) {
                     HStack(spacing: 12) {
-                        Image(systemName: "square.stack.3d.up.fill")
-                            .font(.system(size: 16 * unit))
-                            .foregroundStyle(Palette.accent)
+                        KurlMark(drawn: [true, true, true])
+                            .frame(width: 20 * unit, height: 12 * unit)
                             .frame(width: 40, height: 40)
                             .background(
                                 Palette.accent.opacity(0.10),
