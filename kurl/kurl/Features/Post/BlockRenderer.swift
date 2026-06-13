@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import UIKit
+import WebKit
 
 /// blocks → 네이티브 SwiftUI. 읽기 타이포는 프론트 `.prose-post`(§10.7) 를 그대로 옮기되,
 /// 크기는 Dynamic Type 에 상대화(@ScaledMetric) — 시스템 글자 크기 설정을 따라간다.
@@ -101,8 +103,17 @@ struct BlockView: View {
             interpretedSyntax: .inlineOnlyPreservingWhitespace
         )
         if var attributed = try? AttributedString(markdown: raw, options: options) {
-            for run in attributed.runs where run.link != nil {
-                attributed[run.range].foregroundColor = Palette.link
+            for run in attributed.runs {
+                if run.link != nil {
+                    attributed[run.range].foregroundColor = Palette.link
+                }
+                // 인라인 코드 — 모노스페이스 + 옅은 칩 배경으로 본문과 또렷이 구분(프론트 `code` 등가).
+                // Text 는 AttributedString 의 backgroundColor 를 렌더하므로 별도 뷰 없이 면이 깔린다.
+                if run.inlinePresentationIntent?.contains(.code) == true {
+                    attributed[run.range].font = .system(size: bodySize * 0.92, design: .monospaced)
+                    attributed[run.range].foregroundColor = Palette.ink
+                    attributed[run.range].backgroundColor = Palette.chipBg
+                }
             }
             return Text(attributed)
         }
@@ -146,20 +157,65 @@ private struct CodePayload {
 
 private struct CodeBlockView: View {
     let payload: CodePayload
+    @State private var copied = false
+
+    private var language: String? {
+        guard let lang = payload.lang?.trimmingCharacters(in: .whitespaces), !lang.isEmpty
+        else { return nil }
+        return lang
+    }
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            Text(payload.code)
-                .font(.system(size: 14, design: .monospaced))
-                .foregroundStyle(Palette.codeText)
-                .textSelection(.enabled)
-                .padding(16)
+        VStack(spacing: 0) {
+            // 라벨·복사 바 — 코드 블록을 "정말 코드"로 읽히게 한다(언어 표시 + 한 번에 복사).
+            HStack(spacing: 8) {
+                if let language {
+                    Text(language.uppercased())
+                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(Palette.codeText.opacity(0.55))
+                }
+                Spacer(minLength: 0)
+                Button(action: copy) {
+                    HStack(spacing: 4) {
+                        Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                            .font(.system(size: 11, weight: .semibold))
+                        Text(copied ? "복사됨" : "복사")
+                            .font(.system(size: 12, weight: .medium))
+                    }
+                    .foregroundStyle(copied ? Palette.accentSoft : Palette.codeText.opacity(0.7))
+                    .expandTapTarget(8)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(copied ? Text("복사됨") : Text("코드 복사"))
+            }
+            .padding(.horizontal, 14)
+            .padding(.top, 11)
+            .padding(.bottom, 2)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                Text(payload.code)
+                    .font(.system(size: 14, design: .monospaced))
+                    .foregroundStyle(Palette.codeText)
+                    .textSelection(.enabled)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 10)
+                    .padding(.bottom, 16)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Palette.codeBg, in: RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Palette.hairlineStrong.opacity(0.4), lineWidth: 1))
         .padding(.top, 4)
         .padding(.bottom, 16)
+    }
+
+    private func copy() {
+        UIPasteboard.general.string = payload.code
+        withAnimation(.snappy(duration: 0.2)) { copied = true }
+        Task {
+            try? await Task.sleep(for: .seconds(1.8))
+            withAnimation(.easeOut(duration: 0.2)) { copied = false }
+        }
     }
 }
 
@@ -280,7 +336,7 @@ private struct TableBlockView: View {
     }
 }
 
-// MARK: 임베드 — flat 보더 링크
+// MARK: 임베드 — 영상은 인라인 재생, 그 외는 링크 카드
 
 private struct EmbedPayload {
     var provider: String?
@@ -294,7 +350,28 @@ private struct EmbedPayload {
     }
 }
 
+/// 영상 임베드는 앱 밖으로 내보내지 않는다 — 유튜브처럼 그 자리에서 바로 재생한다.
+/// 영상이 아닌 링크(트위터·깃허브 등)는 종전대로 종이 위 링크 카드.
 private struct EmbedBlockView: View {
+    let payload: EmbedPayload
+
+    var body: some View {
+        if let id = YouTubeRef.videoId(from: payload.url),
+           let player = URL(
+            string: "https://www.youtube-nocookie.com/embed/\(id)?autoplay=1&playsinline=1&rel=0&modestbranding=1") {
+            InlineVideoEmbed(
+                poster: URL(string: "https://i.ytimg.com/vi/\(id)/hqdefault.jpg"),
+                player: player, label: "YouTube 동영상 재생")
+        } else if let id = VimeoRef.videoId(from: payload.url),
+                  let player = URL(string: "https://player.vimeo.com/video/\(id)?autoplay=1&playsinline=1") {
+            InlineVideoEmbed(poster: nil, player: player, label: "Vimeo 동영상 재생")
+        } else {
+            EmbedLinkCard(payload: payload)
+        }
+    }
+}
+
+private struct EmbedLinkCard: View {
     let payload: EmbedPayload
 
     var body: some View {
@@ -317,6 +394,118 @@ private struct EmbedBlockView: View {
             }
             .padding(.vertical, 6)
         }
+    }
+}
+
+/// 인라인 영상 — 처음엔 포스터 + 재생 버튼(웹뷰 수십 개가 동시에 살아 있지 않게),
+/// 한 번 탭하면 그 자리에서 16:9 플레이어로 바뀌어 자동 재생된다.
+private struct InlineVideoEmbed: View {
+    let poster: URL?
+    let player: URL
+    let label: LocalizedStringKey
+    @State private var playing = false
+
+    var body: some View {
+        ZStack {
+            if playing {
+                WebVideoPlayer(url: player)
+            } else {
+                Button {
+                    playing = true
+                } label: {
+                    posterView
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text(label))
+                .accessibilityAddTraits(.isButton)
+            }
+        }
+        .aspectRatio(16.0 / 9.0, contentMode: .fit)
+        .frame(maxWidth: .infinity)
+        .background(Color.black)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Palette.hairlineStrong.opacity(0.5), lineWidth: 1)
+        )
+        .padding(.vertical, 8)
+    }
+
+    private var posterView: some View {
+        ZStack {
+            if let poster {
+                AsyncImage(url: poster) { image in
+                    image.resizable().scaledToFill()
+                } placeholder: {
+                    Palette.codeBg
+                }
+            } else {
+                Palette.codeBg
+            }
+            Color.black.opacity(0.16)
+            Image(systemName: "play.fill")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(Palette.ink)
+                .offset(x: 1) // 광학 보정 — 삼각형 무게중심을 원 가운데로.
+                .frame(width: 58, height: 58)
+                .background(.white.opacity(0.94), in: Circle())
+                .shadow(color: .black.opacity(0.25), radius: 8, y: 2)
+        }
+        .contentShape(Rectangle())
+    }
+}
+
+/// WKWebView 직결 — 인라인 재생 허용(전체화면 강제 X) + 자동 재생.
+private struct WebVideoPlayer: UIViewRepresentable {
+    let url: URL
+
+    func makeUIView(context: Context) -> WKWebView {
+        let config = WKWebViewConfiguration()
+        config.allowsInlineMediaPlayback = true
+        config.mediaTypesRequiringUserActionForPlayback = []
+        let webView = WKWebView(frame: .zero, configuration: config)
+        webView.scrollView.isScrollEnabled = false
+        webView.isOpaque = false
+        webView.backgroundColor = .black
+        webView.load(URLRequest(url: url))
+        return webView
+    }
+
+    func updateUIView(_ webView: WKWebView, context: Context) {}
+}
+
+/// 유튜브 URL → 영상 id. watch?v= · youtu.be/ · /embed/ · /shorts/ · /v/ 를 모두 받는다.
+private enum YouTubeRef {
+    static func videoId(from raw: String) -> String? {
+        guard let comps = URLComponents(string: raw.trimmingCharacters(in: .whitespaces)),
+              let host = comps.host?.lowercased() else { return nil }
+        if host.contains("youtu.be") {
+            return firstPathSegment(comps.path)
+        }
+        guard host.contains("youtube.com") || host.contains("youtube-nocookie.com") else { return nil }
+        if let v = comps.queryItems?.first(where: { $0.name == "v" })?.value, !v.isEmpty {
+            return v
+        }
+        let parts = comps.path.split(separator: "/").map(String.init)
+        if let idx = parts.firstIndex(where: { ["embed", "shorts", "v"].contains($0) }),
+           idx + 1 < parts.count {
+            return parts[idx + 1]
+        }
+        return nil
+    }
+
+    private static func firstPathSegment(_ path: String) -> String? {
+        let seg = path.split(separator: "/").first.map(String.init)
+        return (seg?.isEmpty == false) ? seg : nil
+    }
+}
+
+private enum VimeoRef {
+    static func videoId(from raw: String) -> String? {
+        guard let comps = URLComponents(string: raw.trimmingCharacters(in: .whitespaces)),
+              comps.host?.lowercased().contains("vimeo.com") == true else { return nil }
+        let seg = comps.path.split(separator: "/").first.map(String.init)
+        return seg.flatMap { $0.allSatisfy(\.isNumber) ? $0 : nil }
     }
 }
 

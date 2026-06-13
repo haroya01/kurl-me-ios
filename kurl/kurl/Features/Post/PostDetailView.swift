@@ -357,8 +357,24 @@ struct PostDetailView: View {
 
             if !otherPosts.isEmpty {
                 VStack(alignment: .leading, spacing: 0) {
-                    RailHeading("이 작가의 다른 글")
-                        .padding(.bottom, 4)
+                    // 헤딩 + "전체 보기" — 3편만 추리므로 작가 블로그로 이어지는 문을 같은 줄에 둔다.
+                    HStack(alignment: .firstTextBaseline) {
+                        RailHeading("이 작가의 다른 글")
+                        Spacer(minLength: 8)
+                        NavigationLink(value: Route.author(username: author.username)) {
+                            HStack(spacing: 2) {
+                                Text("전체 보기")
+                                    .font(.system(size: 13 * metaUnit, weight: .medium))
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 10 * metaUnit, weight: .semibold))
+                            }
+                            .foregroundStyle(Palette.link)
+                            .expandTapTarget(8)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("\(author.username)님의 글 전체 보기")
+                    }
+                    .padding(.bottom, 6)
                     ForEach(Array(otherPosts.enumerated()), id: \.element.id) { index, post in
                         NavigationLink(
                             value: Route.post(username: author.username, slug: post.slug)
@@ -416,10 +432,10 @@ struct PostDetailView: View {
     /// 다른 글 한 행 — 제목 한 줄짜리 텍스트 행이었던 것을 발췌·메타가 있는 도착 행 문법
     /// (구독함과 동일 계열)으로. 썸네일은 있을 때만 — 없는 글이 비뚤어 보이지 않게 trailing.
     private func otherPostRow(_ post: PostListItem) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(post.title)
-                    .font(.system(size: 14 * unit, weight: .semibold))
+                    .font(.system(size: 15 * unit, weight: .semibold))
                     .foregroundStyle(Palette.ink)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
@@ -429,16 +445,20 @@ struct PostDetailView: View {
                         .foregroundStyle(Palette.secondary)
                         .lineLimit(1)
                 }
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     if let date = post.publishedAt {
                         Text(date.relativeShort)
                     }
                     if post.likeCount > 0 {
-                        Text("♥ \(post.likeCount)")
+                        HStack(spacing: 3) {
+                            Image(systemName: "heart")
+                            Text("\(post.likeCount)").monospacedDigit()
+                        }
                     }
                 }
                 .font(.system(size: 12 * metaUnit))
                 .foregroundStyle(Palette.secondary)
+                .padding(.top, 1)
             }
             Spacer(minLength: 0)
             if let cover = post.ogImageUrl, let url = URL(string: cover) {
@@ -449,11 +469,11 @@ struct PostDetailView: View {
                         Rectangle().fill(Palette.hairline)
                     }
                 }
-                .frame(width: 56, height: 42)
+                .frame(width: 64, height: 64)
                 .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb, style: .continuous))
             }
         }
-        .padding(.vertical, 10)
+        .padding(.vertical, 11)
         .contentShape(Rectangle())
     }
 
@@ -485,15 +505,16 @@ struct PostDetailView: View {
                         model: model, comment: comment, replyTo: $replyTo,
                         postAuthorId: authorId
                     )
-                    .padding(.leading, comment.parentId != nil ? 28 : 0)
+                    .padding(.leading, comment.parentId != nil ? 30 : 0)
                     // 답글의 소속을 눈으로 — 들여쓰기만으로는 스레드가 안 읽힌다.
+                    // 스파인은 부모 아바타(32) 중심선(15) 자리에 내린다.
                     .overlay(alignment: .leading) {
                         if comment.parentId != nil {
                             RoundedRectangle(cornerRadius: 1)
                                 .fill(Palette.hairlineStrong)
                                 .frame(width: 2)
                                 .padding(.vertical, 4)
-                                .offset(x: 13)
+                                .offset(x: 15)
                         }
                     }
                 }
@@ -547,90 +568,102 @@ struct CommentRow: View {
         return comment.author.id == myId
     }
 
+    /// 답글은 한 단 작은 아바타로 — 들여쓰기와 함께 "이 사람 밑"임이 읽힌다.
+    private var avatarSize: CGFloat { comment.parentId == nil ? 32 : 26 }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
-                // 댓글에서 사람으로 — 아바타·이름 탭 = 그 사람의 블로그.
-                NavigationLink(value: Route.author(username: comment.author.username)) {
-                    HStack(spacing: 8) {
-                        AvatarView(author: comment.author, size: 24)
+        // 2열 — 왼쪽 아바타, 오른쪽에 이름·본문·액션이 한 기둥으로 정렬된다.
+        // (본문을 32pt 행잉 인덴트로 띄우던 옛 레이아웃은 한글에서 폭만 깎고 떠 보였다.)
+        HStack(alignment: .top, spacing: 10) {
+            NavigationLink(value: Route.author(username: comment.author.username)) {
+                AvatarView(author: comment.author, size: avatarSize)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("\(comment.author.username)님의 블로그"))
+
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 6) {
+                    NavigationLink(value: Route.author(username: comment.author.username)) {
                         Text(comment.author.username)
-                            .font(.system(size: 13 * unit, weight: .semibold))
+                            .font(.system(size: 14 * unit, weight: .semibold))
                             .foregroundStyle(Palette.ink)
                     }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                if let postAuthorId, comment.author.id == postAuthorId {
-                    Text("작가")
-                        .font(.system(size: 10 * metaUnit, weight: .semibold))
-                        .foregroundStyle(Palette.link)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Palette.chipBg, in: Capsule())
-                }
-                if let date = comment.createdAt {
-                    Text(date.relativeShort)
-                        .font(.system(size: 12 * metaUnit)).foregroundStyle(Palette.secondary)
-                }
-                Spacer()
-                if isMine {
-                    Button {
-                        confirmDelete = true
-                    } label: {
-                        Image(systemName: "trash")
+                    .buttonStyle(.plain)
+                    if let postAuthorId, comment.author.id == postAuthorId {
+                        Text("작가")
+                            .font(.system(size: 10 * metaUnit, weight: .semibold))
+                            .foregroundStyle(Palette.link)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Palette.chipBg, in: Capsule())
+                    }
+                    if let date = comment.createdAt {
+                        Text(date.relativeShort)
                             .font(.system(size: 12 * metaUnit))
                             .foregroundStyle(Palette.secondary)
-                            .expandTapTarget()
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("댓글 삭제")
-                }
-            }
-            Text(comment.body)
-                .font(.system(size: bodySize))
-                .foregroundStyle(Palette.body)
-                .padding(.leading, 32)
-            HStack(spacing: 14) {
-                Button {
-                    guard AuthStore.shared.isSignedIn else { return }
-                    likeTaps += 1
-                    Task { await model.toggleCommentLike(comment) }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: likedByMe ? "heart.fill" : "heart")
-                            .font(.system(size: 11 * metaUnit))
-                            .symbolEffect(.bounce, value: reduceMotion ? false : likedByMe)
-                        if model.displayLikeCount(comment) > 0 {
-                            Text("\(model.displayLikeCount(comment))")
-                                .font(.system(size: 12 * metaUnit).monospacedDigit())
-                                .contentTransition(.numericText())
+                    Spacer(minLength: 0)
+                    if isMine {
+                        Button {
+                            confirmDelete = true
+                        } label: {
+                            Image(systemName: "trash")
+                                .font(.system(size: 12 * metaUnit))
+                                .foregroundStyle(Palette.secondary)
+                                .expandTapTarget()
                         }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("댓글 삭제")
                     }
-                    .foregroundStyle(likedByMe ? Palette.link : Palette.secondary)
-                    .expandTapTarget()
                 }
-                .buttonStyle(.plain)
-                .sensoryFeedback(.impact(weight: .light), trigger: likeTaps)
-                .accessibilityLabel(Text("댓글 좋아요"))
-                .accessibilityValue(Text("\(model.displayLikeCount(comment))"))
-                .accessibilityAddTraits(likedByMe ? [.isSelected] : [])
-                .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: likedByMe)
-
-                // 답글은 최상위 댓글에만 — 1단 깊이 유지.
-                if comment.parentId == nil {
+                Text(comment.body)
+                    .font(.system(size: bodySize))
+                    .lineSpacing(2)
+                    .foregroundStyle(Palette.body)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .textSelection(.enabled)
+                HStack(spacing: 16) {
                     Button {
-                        replyTo = comment
+                        guard AuthStore.shared.isSignedIn else { return }
+                        likeTaps += 1
+                        Task { await model.toggleCommentLike(comment) }
                     } label: {
-                        Text("답글")
-                            .font(.system(size: 12 * metaUnit, weight: .medium))
-                            .foregroundStyle(Palette.secondary)
-                            .expandTapTarget()
+                        HStack(spacing: 4) {
+                            Image(systemName: likedByMe ? "heart.fill" : "heart")
+                                .font(.system(size: 11 * metaUnit))
+                                .symbolEffect(.bounce, value: reduceMotion ? false : likedByMe)
+                            if model.displayLikeCount(comment) > 0 {
+                                Text("\(model.displayLikeCount(comment))")
+                                    .font(.system(size: 12 * metaUnit).monospacedDigit())
+                                    .contentTransition(.numericText())
+                            }
+                        }
+                        .foregroundStyle(likedByMe ? Palette.link : Palette.secondary)
+                        .expandTapTarget()
                     }
                     .buttonStyle(.plain)
+                    .sensoryFeedback(.impact(weight: .light), trigger: likeTaps)
+                    .accessibilityLabel(Text("댓글 좋아요"))
+                    .accessibilityValue(Text("\(model.displayLikeCount(comment))"))
+                    .accessibilityAddTraits(likedByMe ? [.isSelected] : [])
+                    .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: likedByMe)
+
+                    // 답글은 최상위 댓글에만 — 1단 깊이 유지.
+                    if comment.parentId == nil {
+                        Button {
+                            replyTo = comment
+                        } label: {
+                            Text("답글")
+                                .font(.system(size: 12 * metaUnit, weight: .medium))
+                                .foregroundStyle(Palette.secondary)
+                                .expandTapTarget()
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
+                .padding(.top, 1)
             }
-            .padding(.leading, 32)
         }
         .confirmationDialog("이 댓글을 삭제할까요?", isPresented: $confirmDelete, titleVisibility: .visible) {
             Button("삭제", role: .destructive) {
