@@ -162,7 +162,14 @@ struct DiscoverDeckView: View {
                         username: item.author.username, slug: item.slug, embedded: true
                     )
                     .containerRelativeFrame(.horizontal)
-                    .modifier(CardScrollFade(axis: .horizontal))
+                    // 덱의 깊이 — 넘기는 동안 옆 장은 한 겹 뒤로 물러났다(축소+가라앉음) 떠오른다.
+                    // 읽기 폭은 안 깎는다(착지하면 풀스크린). reduce-motion 이면 정지.
+                    .scrollTransition(.interactive, axis: .horizontal) { view, phase in
+                        view
+                            .scaleEffect(reduceMotion ? 1 : (phase.isIdentity ? 1 : 0.9))
+                            .opacity(reduceMotion ? 1 : (phase.isIdentity ? 1 : 0.55))
+                            .offset(y: reduceMotion ? 0 : (phase.isIdentity ? 0 : 14))
+                    }
                     .task { await model.loadMoreIfNeeded(current: item) }
                 }
             }
@@ -171,6 +178,8 @@ struct DiscoverDeckView: View {
         .scrollTargetBehavior(.paging)
         .scrollPosition(id: $currentId)
         .scrollIndicators(.hidden)
+        // 새 글에 착지하는 순간의 촉각 — 덱을 넘기는 의례에 손맛 한 틱.
+        .sensoryFeedback(.selection, trigger: currentId)
         // 덱에서의 내 위치 + 이게 "추천"이라는 선언 — 무맥락 슬롯머신이 되지 않게.
         .overlay(alignment: .bottom) {
             if let item = currentItem, let idx = model.deck.firstIndex(of: item) {
