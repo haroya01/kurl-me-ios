@@ -56,7 +56,7 @@ struct SplashView: View {
 }
 
 /// 3-bar 브랜드 마크 — 웹 SVG(viewBox 28×17)의 rect 좌표를 그대로 스케일.
-private struct KurlMark: View {
+struct KurlMark: View {
     let drawn: [Bool]
 
     // (x, y, width) — height 3.4, rx 1.7 고정. viewBox 기준.

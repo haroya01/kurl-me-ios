@@ -204,7 +204,7 @@ struct SearchView: View {
                                     Spacer()
                                     Text("글 \(suggestion.postCount)")
                                         .font(.system(size: 12))
-                                        .foregroundStyle(Palette.faint)
+                                        .foregroundStyle(Palette.secondary)
                                     Image(systemName: "chevron.right")
                                         .font(.system(size: 11, weight: .semibold))
                                         .foregroundStyle(Palette.faint)

@@ -84,6 +84,8 @@ final class DiscoverDeckModel {
 struct DiscoverDeckView: View {
     @State private var model = DiscoverDeckModel()
     @State private var currentId: Int64?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var shuffleCount = 0
     /// 첫 만남 1회 — "이건 추천 덱이고, 넘기면 다음 글"이라는 걸 눈으로 알려준다.
     @AppStorage("deckSwipeHintSeen") private var swipeHintSeen = false
 
@@ -93,7 +95,7 @@ struct DiscoverDeckView: View {
             Group {
                 switch model.phase {
                 case .idle, .loading:
-                    ProgressView().tint(Palette.accent)
+                    KurlLoadingMark()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 case .failed(let message):
                     ContentUnavailableView {
@@ -123,11 +125,14 @@ struct DiscoverDeckView: View {
                 ToolbarSpacer(.fixed, placement: .primaryAction)
                 ToolbarItem(placement: .primaryAction) {
                     Button {
+                        shuffleCount += 1
                         Task { await model.reshuffle() }
                     } label: {
                         Image(systemName: "shuffle")
+                            .symbolEffect(.rotate, value: reduceMotion ? 0 : shuffleCount)
                     }
                     .tint(.brand)
+                    .sensoryFeedback(.impact(weight: .light), trigger: shuffleCount)
                     .accessibilityLabel("덱 섞기")
                 }
             }
@@ -174,6 +179,8 @@ struct DiscoverDeckView: View {
                         .font(.system(size: 9, weight: .semibold))
                         .foregroundStyle(Palette.accent)
                     Text("추천 \(idx + 1) / \(model.deck.count)")
+                        .contentTransition(.numericText())
+                        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: idx)
                         .font(.system(size: 11, weight: .semibold).monospacedDigit())
                         .foregroundStyle(.secondary)
                 }

@@ -13,6 +13,7 @@ struct AnalyticsView: View {
     /// 스튜디오 분면으로 품길 때 true — 내비 타이틀을 건드리지 않는다(스튜디오 소유).
     var embedded = false
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var phase: LoadState<AuthorAnalyticsOverview> = .idle
     @State private var performance: PostPerformanceResult?
     @State private var performanceSort = "views"
@@ -60,9 +61,14 @@ struct AnalyticsView: View {
             async let performanceReq = AnalyticsAPI.postPerformance(sort: performanceSort)
             async let seriesReq = AnalyticsAPI.seriesAnalytics()
             let overview = try await overviewReq
-            performance = try? await performanceReq
-            series = (try? await seriesReq) ?? []
-            phase = .loaded(overview)
+            let nextPerformance = try? await performanceReq
+            let nextSeries = (try? await seriesReq) ?? []
+            // 트랜잭션 밖 교체는 numericText·차트 보간을 전부 죽인다 — 한 호흡에 굴린다.
+            withAnimation(reduceMotion ? nil : .snappy(duration: 0.3)) {
+                performance = nextPerformance
+                series = nextSeries
+                phase = .loaded(overview)
+            }
             AnalyticsSnapshot.save(from: overview)
         } catch {
             phase = .failed(error.localizedDescription)
@@ -82,7 +88,9 @@ struct AnalyticsView: View {
             // 실패 시 기존 목록 유지 + 칩이 또 바뀌었으면 스테일 응답 폐기.
             if let next = try? await AnalyticsAPI.postPerformance(sort: sort),
                sort == performanceSort {
-                performance = next
+                withAnimation(reduceMotion ? nil : .snappy(duration: 0.3)) {
+                    performance = next
+                }
             }
         }
     }

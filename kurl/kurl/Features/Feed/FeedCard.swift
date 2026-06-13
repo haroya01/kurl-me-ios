@@ -118,7 +118,7 @@ struct InboxRow: View {
                         Text("·").foregroundStyle(Palette.faint)
                         Text(date.relativeShort)
                             .font(.system(size: 12))
-                            .foregroundStyle(Palette.faint)
+                            .foregroundStyle(Palette.secondary)
                     }
                 }
                 Text(item.title)

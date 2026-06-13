@@ -32,6 +32,8 @@ struct ComposeView: View {
     @State private var postId: Int64?
     @State private var status = "DRAFT"
     @State private var busy = false
+    /// 발행·예약 성공의 보상 박자 — 트리거 전용 카운터.
+    @State private var publishCelebration = 0
     @State private var errorMessage: String?
     @State private var loaded = false
     @State private var lastSavedSignature: String?
@@ -98,6 +100,7 @@ struct ComposeView: View {
         .navigationBarTitleDisplayMode(.inline)
         // 쓰는 동안 탭 5개가 떠 있을 이유가 없다 — 에디터는 풀스크린 몰입.
         .toolbar(.hidden, for: .tabBar)
+        .sensoryFeedback(.success, trigger: publishCelebration)
         .toolbar { toolbarContent }
         .task {
             await loadExisting()
@@ -531,7 +534,12 @@ struct ComposeView: View {
             onSaved()
             // 스냅샷 이후 입력이 있었으면 디바운스를 다시 무장한다.
             if signature != snapshot { scheduleAutosave() }
-            if publish { dismiss() }
+            if publish {
+                // 이 앱 최대의 순간이 무음으로 끝나면 안 된다 — 성공 햅틱 + 토스트 한 번.
+                publishCelebration += 1
+                ToastCenter.shared.show(String(localized: "발행되었습니다"))
+                dismiss()
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -591,6 +599,8 @@ struct ComposeView: View {
             status = scheduled.status
             showSchedule = false
             onSaved()
+            publishCelebration += 1
+            ToastCenter.shared.show(String(localized: "예약되었습니다"))
             dismiss()
         } catch {
             // 시트가 떠 있는 동안 본체 알럿은 가려진다 — 시트 안에서 보여준다.

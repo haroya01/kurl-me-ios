@@ -61,7 +61,7 @@ struct PostDetailView: View {
             VStack(spacing: 0) {
                 switch model.phase {
                 case .idle, .loading:
-                    ProgressView().tint(Palette.accent)
+                    KurlLoadingMark()
                         .frame(maxWidth: .infinity, minHeight: 320)
                 case .failed(let message):
                     ContentUnavailableView {
@@ -431,7 +431,7 @@ struct PostDetailView: View {
                     }
                 }
                 .font(.system(size: 12))
-                .foregroundStyle(Palette.faint)
+                .foregroundStyle(Palette.secondary)
             }
             Spacer(minLength: 0)
             if let cover = post.ogImageUrl, let url = URL(string: cover) {
@@ -497,10 +497,10 @@ struct PostDetailView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "bubble.left")
                             .font(.system(size: 13))
-                            .foregroundStyle(Palette.faint)
+                            .foregroundStyle(Palette.secondary)
                         Text("댓글을 남겨보세요")
                             .font(.system(size: 14))
-                            .foregroundStyle(Palette.faint)
+                            .foregroundStyle(Palette.secondary)
                         Spacer(minLength: 0)
                     }
                     .padding(.horizontal, 13)
@@ -527,6 +527,7 @@ struct CommentRow: View {
     var postAuthorId: Int64?
 
     @State private var confirmDelete = false
+    @State private var likeTaps = 0
     @State private var deleteFailed = false
     @ScaledMetric(relativeTo: .subheadline) private var bodySize: CGFloat = 14
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -584,11 +585,13 @@ struct CommentRow: View {
             HStack(spacing: 14) {
                 Button {
                     guard AuthStore.shared.isSignedIn else { return }
+                    likeTaps += 1
                     Task { await model.toggleCommentLike(comment) }
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: likedByMe ? "heart.fill" : "heart")
                             .font(.system(size: 11))
+                            .symbolEffect(.bounce, value: reduceMotion ? false : likedByMe)
                         if model.displayLikeCount(comment) > 0 {
                             Text("\(model.displayLikeCount(comment))")
                                 .font(.system(size: 12).monospacedDigit())
@@ -599,7 +602,10 @@ struct CommentRow: View {
                     .expandTapTarget()
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(likedByMe ? Text("댓글 좋아요 취소") : Text("댓글 좋아요"))
+                .sensoryFeedback(.impact(weight: .light), trigger: likeTaps)
+                .accessibilityLabel(Text("댓글 좋아요"))
+                .accessibilityValue(Text("\(model.displayLikeCount(comment))"))
+                .accessibilityAddTraits(likedByMe ? [.isSelected] : [])
                 .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: likedByMe)
 
                 // 답글은 최상위 댓글에만 — 1단 깊이 유지.

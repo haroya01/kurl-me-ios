@@ -192,6 +192,9 @@ private struct ImageBlockView: View {
                         .overlay(ProgressView().tint(Palette.accent))
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 16))
+                .accessibilityLabel(Text(
+                    payload.caption?.isEmpty == false
+                        ? payload.caption! : String(localized: "본문 이미지")))
             }
             if let caption = payload.caption, !caption.isEmpty {
                 Text(caption)

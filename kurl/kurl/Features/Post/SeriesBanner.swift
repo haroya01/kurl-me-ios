@@ -112,7 +112,7 @@ struct SeriesBanner: View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(verbatim: String(format: "%02d", index + 1))
                 .font(.system(size: 11).monospacedDigit())
-                .foregroundStyle(current ? Palette.link : Palette.faint)
+                .foregroundStyle(current ? Palette.link : Palette.secondary)
             Text(title)
                 .font(.system(size: 13, weight: current ? .semibold : .regular))
                 .foregroundStyle(current ? Palette.link : Palette.body)

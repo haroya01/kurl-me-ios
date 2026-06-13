@@ -13,6 +13,7 @@ struct AccountView: View {
 
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isSigningIn = false
     @State private var appleNonce = ""
     @State private var showCard = false
@@ -27,10 +28,14 @@ struct AccountView: View {
                 Group {
                     if auth.isSignedIn {
                         signedIn
+                            .transition(.opacity.combined(with: .offset(y: 7)))
                     } else {
                         signedOut
+                            .transition(.opacity)
                     }
                 }
+                // 로그인 성공은 의미 있는 순간 — 정체 카드가 한 호흡 착지한다.
+                .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: auth.isSignedIn)
                 // 정체 패널(유리)이 설 자리 — 옅은 브랜드 안개가 유리 뒤로 흐른다.
                 // (ReadingColumn 의 pageBg 안쪽이어야 보인다. 가터를 음수로 물려 전폭.)
                 .background(alignment: .top) {

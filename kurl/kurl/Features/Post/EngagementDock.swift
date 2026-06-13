@@ -74,7 +74,9 @@ struct EngagementDock: View {
         .glassEffectTransition(.materialize)
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: model.liked)
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: model.likeCount)
-        .accessibilityLabel(model.liked ? Text("좋아요 취소") : Text("좋아요"))
+        .accessibilityLabel(Text("좋아요"))
+        .accessibilityValue(Text("\(model.likeCount)"))
+        .accessibilityAddTraits(model.liked ? [.isSelected] : [])
 
     }
 
@@ -96,7 +98,8 @@ struct EngagementDock: View {
         .glassEffectID("bookmark", in: glassNS)
         .glassEffectTransition(.materialize)
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: model.bookmarked)
-        .accessibilityLabel(model.bookmarked ? Text("북마크 해제") : Text("북마크"))
+        .accessibilityLabel(Text("북마크"))
+        .accessibilityAddTraits(model.bookmarked ? [.isSelected] : [])
     }
 
     private func interact(failure: String, _ action: @escaping () async throws -> Void) {

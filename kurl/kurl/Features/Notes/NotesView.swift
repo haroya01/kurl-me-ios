@@ -100,13 +100,17 @@ final class NotesViewModel {
 
     func publish(body: String) async throws {
         let created = try await NoteAPI.create(body: body)
-        items.insert(created, at: 0)
+        withAnimation(.snappy(duration: 0.3)) {
+            items.insert(created, at: 0)
+        }
     }
 
     func delete(_ note: Note) async {
         do {
             try await NoteAPI.delete(id: note.id)
-            items.removeAll { $0.id == note.id }
+            _ = withAnimation(.snappy(duration: 0.25)) {
+                items.removeAll { $0.id == note.id }
+            }
         } catch {
             ToastCenter.shared.show(String(localized: "노트를 삭제하지 못했습니다"))
         }
@@ -116,12 +120,13 @@ final class NotesViewModel {
 struct NotesPage: View {
     let active: Bool
     @State private var model = NotesViewModel()
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Group {
             switch model.phase {
             case .idle, .loading:
-                ProgressView().tint(Palette.accent)
+                KurlLoadingMark()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             case .failed(let message):
                 ContentUnavailableView {
@@ -152,6 +157,9 @@ struct NotesPage: View {
                 ForEach(Array(model.items.enumerated()), id: \.element.id) { index, note in
                     NoteRowView(model: model, note: note)
                         .modifier(QuietAppear(index: index))
+                        .transition(
+                            reduceMotion
+                                ? .opacity : .opacity.combined(with: .move(edge: .top)))
                         .task { await model.loadMoreIfNeeded(current: note) }
                     if index < model.items.count - 1 { Hairline() }
                 }
@@ -180,6 +188,7 @@ struct NotesPage: View {
 private struct NoteRowView: View {
     let model: NotesViewModel
     let note: Note
+    @State private var likeTaps = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var isMine: Bool {
@@ -210,6 +219,7 @@ private struct NoteRowView: View {
                     .foregroundStyle(Palette.body)
                     .fixedSize(horizontal: false, vertical: true)
                 Button {
+                    likeTaps += 1
                     Task { await model.toggleLike(note) }
                 } label: {
                     HStack(spacing: 4) {
@@ -228,7 +238,11 @@ private struct NoteRowView: View {
                 }
                 .buttonStyle(.plain)
                 .padding(.top, 2)
-                .accessibilityLabel(model.isLiked(note) ? Text("좋아요 취소") : Text("좋아요"))
+                .sensoryFeedback(.impact(weight: .light), trigger: likeTaps)
+                // 상태는 라벨 뒤집기가 아니라 값·트레잇으로 — 카운트도 들리게.
+                .accessibilityLabel(Text("좋아요"))
+                .accessibilityValue(Text("\(model.displayLikeCount(note))"))
+                .accessibilityAddTraits(model.isLiked(note) ? [.isSelected] : [])
             }
         }
         .padding(.vertical, 13)
@@ -251,6 +265,7 @@ private struct NoteComposerBar: View {
 
     @State private var body_ = ""
     @State private var sending = false
+    @State private var sentCount = 0
     @FocusState private var focused: Bool
 
     private var trimmed: String {
@@ -295,6 +310,7 @@ private struct NoteComposerBar: View {
         .glassEffect(.regular, in: .rect(cornerRadius: 24))
         .padding(.horizontal, 10)
         .padding(.bottom, 6)
+        .sensoryFeedback(.success, trigger: sentCount)
     }
 
     private var canSend: Bool {
@@ -308,6 +324,7 @@ private struct NoteComposerBar: View {
             defer { sending = false }
             do {
                 try await publish(trimmed)
+                sentCount += 1
                 body_ = ""
                 focused = false
             } catch {

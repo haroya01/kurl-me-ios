@@ -1740,6 +1740,22 @@
         }
       }
     },
+    "발행되었습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Published"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "公開されました"
+          }
+        }
+      }
+    },
     "발행한 글": {
       "localizations": {
         "en": {
@@ -1868,6 +1884,22 @@
         }
       }
     },
+    "본문 이미지": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Image in post"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本文の画像"
+          }
+        }
+      }
+    },
     "본문 편집": {
       "extractionState": "stale",
       "localizations": {
@@ -1962,6 +1994,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "分析"
+          }
+        }
+      }
+    },
+    "불러오는 중": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loading"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "読み込み中"
           }
         }
       }
@@ -2425,6 +2473,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "予約公開…"
+          }
+        }
+      }
+    },
+    "예약되었습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scheduled"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "予約されました"
           }
         }
       }

@@ -58,6 +58,8 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable>: View {
         }
         .padding(4)
         .glassEffect(.regular.interactive(), in: .capsule)
+        // 분면 선택 = selection 햅틱 — 토글(.impact)·결과(.success)와 구분되는 세 번째 어휘.
+        .sensoryFeedback(.selection, trigger: selection)
     }
 }
 

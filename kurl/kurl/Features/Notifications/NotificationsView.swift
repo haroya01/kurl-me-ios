@@ -47,7 +47,9 @@ struct NotificationsView: View {
                     Task {
                         do {
                             try await NotificationsAPI.markAllRead()
-                            items = items.map(asRead)
+                            withAnimation(.easeOut(duration: 0.25)) {
+                                items = items.map(asRead)
+                            }
                         } catch {
                             // 실패했는데 점만 사라지는 거짓 성공을 만들지 않는다.
                             ToastCenter.shared.show(String(localized: "읽음 처리하지 못했습니다"))

@@ -180,7 +180,7 @@ struct FeedPage: View {
             } else {
             switch model.phase {
             case .idle, .loading:
-                ProgressView().tint(Palette.accent)
+                KurlLoadingMark()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             case .failed(let message):
                 failed(message)

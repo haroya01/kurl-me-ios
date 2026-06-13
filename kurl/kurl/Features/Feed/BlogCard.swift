@@ -66,7 +66,7 @@ struct BlogCard: View {
                         NavigationLink(value: Route.tag(tag)) {
                             Text("#\(tag)")
                                 .font(.system(size: 12, weight: .medium))
-                                .foregroundStyle(.white.opacity(0.85))
+                                .foregroundStyle(.white)
                                 .expandTapTarget(8)
                         }
                         .buttonStyle(.plain)
@@ -209,8 +209,9 @@ private struct CardMeta: View {
         .foregroundStyle(tone)
     }
 
-    private var tone: Color { over ? .white.opacity(0.85) : Palette.secondary }
-    private var dim: Color { over ? .white.opacity(0.5) : Palette.faint }
+    // 유리 띠 + 0.40 스크림 위 12pt — 밝은 커버에서 0.85 는 ~2.3:1 로 깎였다. 텍스트는 순백.
+    private var tone: Color { over ? .white : Palette.secondary }
+    private var dim: Color { over ? .white.opacity(0.65) : Palette.faint }
 }
 
 /// 카드 다층 그림자 — 닿는 면 1px + 멀리 퍼지는 ambient. 라이트의 무보더 카드를

@@ -13,6 +13,7 @@ struct StudioView: View {
     private var auth: AuthStore { .shared }
 
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var section: StudioSection = .posts
     @State private var phase: LoadState<[MyPost]> = .idle
     @State private var filter: HubFilter = .all
@@ -64,11 +65,13 @@ struct StudioView: View {
     private var studio: some View {
         Group {
             switch section {
-            case .posts: postsSection
-            case .series: seriesSection
-            case .analytics: AnalyticsView(embedded: true)
+            case .posts: postsSection.transition(.opacity)
+            case .series: seriesSection.transition(.opacity)
+            case .analytics: AnalyticsView(embedded: true).transition(.opacity)
             }
         }
+        // 같은 스위처를 쓰는 피드와 같은 문법 — 분면 교체도 한 호흡 크로스페이드.
+        .animation(reduceMotion ? nil : .snappy(duration: 0.28), value: section)
         // 피드와 같은 문법 — 분면 전환은 떠 있는 유리 세그먼트.
         .safeAreaInset(edge: .top) {
             GlassSegmentSwitcher(items: StudioSection.allCases, selection: $section) { $0.label }
