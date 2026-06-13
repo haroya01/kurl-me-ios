@@ -142,6 +142,14 @@ enum MockBackend {
             ])
         }
 
+        if method == "GET", parts.count == 3, parts[0] == "posts", parts[2] == "stats" {
+            return json(readStatsFixture())
+        }
+
+        if method == "GET", parts.count == 3, parts[0] == "posts", parts[2] == "analytics" {
+            return json(postAnalyticsFixture(id: Int64(parts[1]) ?? 9002))
+        }
+
         if method == "PATCH", parts.count == 2, parts[0] == "posts" {
             guard let idx = posts.firstIndex(where: { String($0.id) == parts[1] }) else { return nil }
             let req = decode(body)
@@ -411,6 +419,51 @@ enum MockBackend {
             "seriesId": p.seriesId ?? NSNull(),
             "viewCount": 42, "likeCount": 3, "tags": p.tags,
             "createdAt": iso(p.updatedAt), "updatedAt": iso(p.updatedAt),
+        ]
+    }
+
+    private static func postAnalyticsFixture(id: Int64) -> [String: Any] {
+        let p = posts.first { $0.id == id }
+        let calendar = Calendar(identifier: .gregorian)
+        let daily: [[String: Any]] = (0..<30).reversed().map { back in
+            let day = calendar.date(byAdding: .day, value: -back, to: Date()) ?? Date()
+            let fmt = DateFormatter()
+            fmt.dateFormat = "yyyy-MM-dd"
+            return ["date": fmt.string(from: day), "views": Int.random(in: 4...60)]
+        }
+        return [
+            "postId": id, "slug": p?.slug ?? "p-mock", "title": p?.title ?? "글",
+            "status": p?.status ?? "PUBLISHED",
+            "lifetimeViews": 812, "lifetimeLikes": 41, "windowDays": 30, "windowViews": 624,
+            "lifetimeLinkClicks": 57, "windowLinkClicks": 38, "lifetimeFollows": 9, "windowFollows": 4,
+            "daily": daily,
+        ]
+    }
+
+    private static func readStatsFixture() -> [String: Any] {
+        [
+            "timezone": "Asia/Seoul",
+            "totalVisits": 812, "humanVisits": 781, "botVisits": 31, "uniqueVisits": 596,
+            "firstVisitAt": NSNull(), "lastVisitAt": NSNull(), "peakHour": 21,
+            "dailyVisits": [], "hourVisits": [], "heatmap": [],
+            "countryVisits": [
+                ["country": "KR", "count": 540], ["country": "US", "count": 121],
+                ["country": "JP", "count": 58], ["country": "GB", "count": 22],
+                ["country": "DE", "count": 11],
+            ],
+            "deviceVisits": [
+                ["device": "mobile", "count": 498], ["device": "desktop", "count": 271],
+                ["device": "tablet", "count": 43],
+            ],
+            "browserVisits": [],
+            "referrerHostVisits": [
+                ["host": "google.com", "count": 96], ["host": "t.co", "count": 71],
+            ],
+            "sourceChannelVisits": [
+                ["source": "direct", "count": 402], ["source": "social", "count": 214],
+                ["source": "search", "count": 118], ["source": "referral", "count": 47],
+            ],
+            "utmCampaignVisits": [], "utmSourceVisits": [],
         ]
     }
 

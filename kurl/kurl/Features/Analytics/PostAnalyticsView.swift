@@ -13,6 +13,8 @@ struct PostAnalyticsView: View {
 
     @State private var phase: LoadState<PostAnalyticsDetail> = .idle
     @State private var days = 30
+    /// 독자 분석(고유·유입·국가·기기) — 기간과 무관한 전체. 실패해도 화면은 산다.
+    @State private var readStats: PostReadStats?
 
     var body: some View {
         ReadingColumn(spacing: 0) {
@@ -130,6 +132,8 @@ struct PostAnalyticsView: View {
         .padding(.vertical, 16)
         Hairline()
 
+        if let readStats { readersSection(readStats) }
+
         // 분석에서 글로 — 막다른 길 금지.
         if let username = AuthStore.shared.me?.username, !username.isEmpty {
             NavigationLink(value: Route.post(username: username, slug: detail.slug)) {
@@ -147,6 +151,83 @@ struct PostAnalyticsView: View {
             .buttonStyle(.plain)
         }
         Color.clear.frame(height: 32)
+    }
+
+    /// 독자 분석 — 웹과 같은 PostReadStats. 고유 방문 헤드라인 + 유입 채널·국가·기기 막대.
+    @ViewBuilder
+    private func readersSection(_ stats: PostReadStats) -> some View {
+        RailHeading("독자")
+            .padding(.top, 24)
+            .padding(.bottom, 10)
+        HStack(spacing: 0) {
+            stat("고유 방문", stats.uniqueVisits)
+            stat("사람", stats.humanVisits)
+            stat("봇", stats.botVisits)
+        }
+        .padding(.bottom, 4)
+
+        breakdown("유입 채널", stats.sourceChannelVisits.map { (sourceLabel($0.source), $0.count) })
+        breakdown("국가", stats.countryVisits.map { ($0.country.uppercased(), $0.count) })
+        breakdown("기기", stats.deviceVisits.map { (deviceLabel($0.device), $0.count) })
+    }
+
+    /// 막대 목록 — 상위 5개를 비율 막대로(유입 경로와 같은 문법). 비면 그리지 않는다.
+    @ViewBuilder
+    private func breakdown(_ title: LocalizedStringKey, _ items: [(label: String, count: Int64)]) -> some View {
+        if !items.isEmpty {
+            let top = Array(items.prefix(5))
+            let maxCount = top.map(\.count).max() ?? 1
+            Text(title)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Palette.heading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 18)
+                .padding(.bottom, 4)
+            ForEach(Array(top.enumerated()), id: \.offset) { _, item in
+                HStack(spacing: 10) {
+                    Text(item.label)
+                        .font(.system(size: 14))
+                        .foregroundStyle(Palette.body)
+                        .lineLimit(1)
+                        .frame(width: 110, alignment: .leading)
+                    GeometryReader { geo in
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Palette.accent.opacity(0.25))
+                            .frame(
+                                width: max(2, geo.size.width * CGFloat(item.count) / CGFloat(maxCount)),
+                                height: 8)
+                            .frame(maxHeight: .infinity, alignment: .center)
+                    }
+                    Text("\(item.count)")
+                        .font(.system(size: 13).monospacedDigit())
+                        .foregroundStyle(Palette.secondary)
+                }
+                .frame(height: 26)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(Text("\(item.label) \(item.count)"))
+            }
+        }
+    }
+
+    private func sourceLabel(_ raw: String) -> String {
+        switch raw.lowercased() {
+        case "direct": String(localized: "직접")
+        case "social": String(localized: "소셜")
+        case "search": String(localized: "검색")
+        case "referral": String(localized: "추천")
+        case "internal": String(localized: "내부")
+        case "newsletter": String(localized: "뉴스레터")
+        default: raw
+        }
+    }
+
+    private func deviceLabel(_ raw: String) -> String {
+        switch raw.lowercased() {
+        case "mobile": String(localized: "모바일")
+        case "desktop": String(localized: "데스크톱")
+        case "tablet": String(localized: "태블릿")
+        default: raw
+        }
     }
 
     private func stat(_ label: LocalizedStringKey, _ value: Int64) -> some View {
@@ -171,10 +252,12 @@ struct PostAnalyticsView: View {
 
     private func load() async {
         if case .idle = phase { phase = .loading }
+        async let statsReq = AnalyticsAPI.readStats(postId: post.postId)
         do {
             phase = .loaded(try await AnalyticsAPI.postAnalytics(postId: post.postId, days: days))
         } catch {
             phase = .failed(error.localizedDescription)
         }
+        readStats = try? await statsReq
     }
 }
