@@ -107,6 +107,10 @@ struct PostDetailView: View {
         .scrollIndicators(.hidden)
         .scrollDismissesKeyboard(.interactively)
         .scrollEdgeEffectStyle(.soft, for: .bottom)
+        // 커버가 보이는 동안만(아직 제목이 안 스민) 상단 스크롤 엣지 효과를 끈다 — 안 끄면
+        // 사진 위에 반투명 바("투명 박스")가 깔려 엣지-투-엣지 커버를 가린다. 스크롤로 제목이
+        // 스미면(showNavTitle) 효과를 되살려 내비바와 본문이 제대로 갈린다.
+        .scrollEdgeEffectHidden(hasCover && !embedded && !showNavTitle, for: .top)
         .background(Palette.readingBg.ignoresSafeArea())
         .ignoresSafeArea(edges: hasCover && !embedded ? .top : [])
         // 스크롤 여유가 충분한지 — 독 후퇴 판정의 전제(짧은 글은 독이 유일한 인게이지 표면).
