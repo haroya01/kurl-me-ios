@@ -48,8 +48,8 @@ struct PostAnalyticsView: View {
         HStack(alignment: .center) {
             RailHeading("최근 \(detail.windowDays)일")
             Spacer()
-            GlassEffectContainer(spacing: 8) {
-                HStack(spacing: 5) {
+            GlassEffectContainer(spacing: 0) {  // 0 = 닿을 때만 — 칩이 서로 녹아 붙지 않게
+                HStack(spacing: 8) {
                     ForEach([7, 30, 90], id: \.self) { option in
                         Button {
                             changeWindow(option)
