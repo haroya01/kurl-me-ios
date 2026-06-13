@@ -399,8 +399,29 @@ struct PostDetailView: View {
     }
 
     private func header(_ detail: PublicPostDetail) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Color.clear.frame(height: detail.post.ogImageUrl != nil ? 22 : 18)
+        // 커버 없는 글은 내비바 아래가 휑했다 — 제목 위 카테고리 eyebrow(대표 태그)가
+        // 그 띠를 의미 있게 채우고(매거진 머릿글 문법), 커버가 없을 땐 위 여백을 더 조인다.
+        let hasCover = detail.post.ogImageUrl != nil
+        let kicker = detail.post.tags.first
+        return VStack(alignment: .leading, spacing: 0) {
+            Color.clear.frame(height: hasCover ? 22 : (kicker != nil ? 6 : 14))
+
+            if let kicker {
+                NavigationLink(value: Route.tag(kicker)) {
+                    HStack(spacing: 5) {
+                        Circle()
+                            .fill(Palette.accentMarker)
+                            .frame(width: 5, height: 5)
+                        Text(kicker)
+                            .font(.system(size: 12.5 * metaUnit, weight: .semibold))
+                            .tracking(0.4)
+                    }
+                    .foregroundStyle(Palette.link)
+                    .expandTapTarget(6)
+                }
+                .buttonStyle(.plain)
+                .padding(.bottom, 9)
+            }
 
             Text(detail.post.title)
                 .font(.system(size: titleSize, weight: .bold))
