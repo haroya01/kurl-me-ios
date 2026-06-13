@@ -22,10 +22,15 @@ struct PostDetailView: View {
     /// 판정에 맡긴다(여러 장이 lazy 로 살아 있어 load 시점 비콘은 부풀려진다).
     private let embedded: Bool
 
+    /// 피드 카드가 미리 남긴 커버 — 로딩 첫 프레임부터 커버를 깔아 zoom 전환이
+    /// 빈 화면(투명한 내비바 막)이 아니라 사진으로 착지하게 한다.
+    @State private var coverHint: String?
+
     init(username: String, slug: String, embedded: Bool = false) {
         self.embedded = embedded
         _model = State(initialValue: PostDetailViewModel(
             username: username, slug: slug, recordsView: !embedded))
+        _coverHint = State(initialValue: PostPeek.cover(username: username, slug: slug))
     }
 
     /// 헤더를 지나면 제목이 내비바로 스며들고(아이폰 리딩 앱 문법), 커버가 있으면
@@ -65,8 +70,15 @@ struct PostDetailView: View {
             VStack(spacing: 0) {
                 switch model.phase {
                 case .idle, .loading:
-                    KurlLoadingMark()
-                        .frame(maxWidth: .infinity, minHeight: 320)
+                    // 피드에서 넘어온 커버가 있으면 그대로 깔고(zoom 착지), 그 아래 본문을 기다린다.
+                    if let coverHint, let url = URL(string: coverHint) {
+                        StretchyCover(url: url, height: coverHeight)
+                        KurlLoadingMark()
+                            .frame(maxWidth: .infinity, minHeight: 200)
+                    } else {
+                        KurlLoadingMark()
+                            .frame(maxWidth: .infinity, minHeight: 320)
+                    }
                 case .failed(let message):
                     ContentUnavailableView {
                         Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
@@ -216,7 +228,8 @@ struct PostDetailView: View {
 
     private var hasCover: Bool {
         if case .loaded(let detail) = model.phase { return detail.post.ogImageUrl != nil }
-        return false
+        // 로딩 중엔 힌트로 판단 — 내비바 막을 처음부터 숨겨 커버가 상단을 다 쓴다.
+        return coverHint != nil
     }
 
     private var loadedTitle: String {
@@ -926,5 +939,22 @@ struct FlowTags: View {
                 }
             }
         }
+    }
+}
+
+/// 피드 카드 → 글 상세로 넘기는 가벼운 커버 힌트. 카드가 화면에 뜰 때 자기 커버를
+/// 기억해 두면, 그 글로 들어갈 때 상세가 로딩 첫 프레임부터 커버를 깔아 zoom 전환이
+/// 빈 막(반투명 내비바)이 아니라 사진으로 착지한다.
+@MainActor
+enum PostPeek {
+    private static var covers: [String: String] = [:]
+
+    static func remember(username: String, slug: String, cover: String?) {
+        guard let cover, !cover.isEmpty else { return }
+        covers["\(username)/\(slug)"] = cover
+    }
+
+    static func cover(username: String, slug: String) -> String? {
+        covers["\(username)/\(slug)"]
     }
 }
