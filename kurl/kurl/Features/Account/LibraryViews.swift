@@ -138,9 +138,8 @@ struct SubscribedSeriesView: View {
                     NavigationLink(value: Route.series(
                         username: card.author?.username ?? "", slug: card.slug)) {
                         HStack(spacing: 10) {
-                            Image(systemName: "square.stack.3d.up")
-                                .font(.system(size: 14))
-                                .foregroundStyle(Palette.accentMarker)
+                            KurlMark(drawn: [true, true, true])
+                                .frame(width: 18, height: 11)
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(card.title)
                                     .font(.system(size: 16 * unit, weight: .semibold))
