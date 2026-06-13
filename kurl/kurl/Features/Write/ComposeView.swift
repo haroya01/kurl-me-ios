@@ -41,6 +41,7 @@ struct ComposeView: View {
     @State private var loaded = false
     @State private var lastSavedSignature: String?
     @State private var lastSavedAt: Date?
+    @State private var showSaveStatus = false
     @State private var autosaveTask: Task<Void, Never>?
     @State private var createTask: Task<Int64, Error>?
 
@@ -196,12 +197,28 @@ struct ComposeView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
+            // 저장 상태는 평소엔 조용한 체크 아이콘 하나 — 탭하면 마지막 저장 시각을 팝오버로.
+            // (항상 떠 있던 "저장됨 오후 X:XX" 텍스트가 중요도에 비해 과했다.)
             if busy {
-                ProgressView()
+                ProgressView().controlSize(.small)
             } else if let at = lastSavedAt {
-                Text("저장됨 \(at.formatted(date: .omitted, time: .shortened))")
-                    .font(.system(size: 12 * metaUnit))
-                    .foregroundStyle(Palette.secondary)
+                Button {
+                    showSaveStatus = true
+                } label: {
+                    Image(systemName: "checkmark.circle")
+                        .font(.system(size: 15 * metaUnit))
+                        .foregroundStyle(Palette.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("저장 상태 보기"))
+                .popover(isPresented: $showSaveStatus) {
+                    Text("저장됨 \(at.formatted(date: .omitted, time: .shortened))")
+                        .font(.system(size: 13 * metaUnit))
+                        .foregroundStyle(Palette.secondary)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 11)
+                        .presentationCompactAdaptation(.popover)
+                }
             }
         }
         ToolbarItemGroup(placement: .primaryAction) {
