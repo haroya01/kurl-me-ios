@@ -136,6 +136,7 @@ struct AuthorBlogView: View {
                                 .contentShape(Rectangle())
                             }
                             .buttonStyle(CardButtonStyle())
+                            .modifier(CardScrollFade(axis: .horizontal))
                         }
                     }
                 }

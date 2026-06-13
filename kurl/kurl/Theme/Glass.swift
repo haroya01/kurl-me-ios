@@ -10,12 +10,27 @@ import SwiftUI
 extension View {
     /// prominent = 흰 라벨 + 그린(700) 유리, 아니면 맑은 유리로 가라앉는다.
     /// 켜짐/꺼짐이 아니라 "지금 주행동인가"로 고른다 — 팔로우 전이 prominent, 팔로잉은 조용히.
+    /// 투명도 감소가 켜지면 유리를 솔리드로 — 위계(그린 채움 vs 차분한 면)는 그대로 성립(§1.7).
     func glassCapsule(prominent: Bool) -> some View {
-        glassEffect(
-            prominent
-                ? .regular.tint(GlassTokens.prominentTint).interactive()
-                : .regular.interactive(),
-            in: .capsule)
+        modifier(GlassCapsule(prominent: prominent))
+    }
+}
+
+private struct GlassCapsule: ViewModifier {
+    let prominent: Bool
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    func body(content: Content) -> some View {
+        if reduceTransparency {
+            content.background(
+                prominent ? Palette.accentFill : Palette.cardBg, in: Capsule())
+        } else {
+            content.glassEffect(
+                prominent
+                    ? .regular.tint(GlassTokens.prominentTint).interactive()
+                    : .regular.interactive(),
+                in: .capsule)
+        }
     }
 }
 
@@ -91,8 +106,13 @@ struct GlassFAB: View {
 /// 설 자리를 만드는, 아주 옅은 브랜드 그린 메시. reduce-motion 이면 정지.
 struct BrandMist: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     var body: some View {
+        if reduceTransparency { Color.clear } else { mist }
+    }
+
+    private var mist: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 20.0, paused: reduceMotion)) { context in
             let t = reduceMotion ? 0 : context.date.timeIntervalSinceReferenceDate * 0.18
             MeshGradient(

@@ -16,6 +16,9 @@ struct ComposeView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .title3) private var titleSize: CGFloat = 26
+    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+    @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
     private enum Field: Hashable { case title }
     @FocusState private var focusedField: Field?
@@ -163,7 +166,7 @@ struct ComposeView: View {
 
     private var meta: some View {
         TextField("제목", text: $title)
-            .font(.system(size: 26, weight: .bold))
+            .font(.system(size: titleSize, weight: .bold))
             .focused($focusedField, equals: .title)
             .submitLabel(.next)
             .onSubmit { editorController.focus() }
@@ -180,7 +183,7 @@ struct ComposeView: View {
         .overlay(alignment: .topLeading) {
             if markdown.isEmpty {
                 Text("마크다운으로 쓰세요 — #, >, -, ```, 이미지·URL 한 줄이면 카드가 됩니다.")
-                    .font(.system(size: 14))
+                    .font(.system(size: 14 * unit))
                     .foregroundStyle(Palette.faint)
                     .padding(.horizontal, Metrics.gutter)
                     .padding(.top, 12)
@@ -196,7 +199,7 @@ struct ComposeView: View {
                 ProgressView()
             } else if let at = lastSavedAt {
                 Text("저장됨 \(at.formatted(date: .omitted, time: .shortened))")
-                    .font(.system(size: 12))
+                    .font(.system(size: 12 * metaUnit))
                     .foregroundStyle(Palette.secondary)
             }
         }
@@ -267,9 +270,9 @@ struct ComposeView: View {
                             } else {
                                 HStack(spacing: 6) {
                                     Image(systemName: "photo")
-                                        .font(.system(size: 13))
+                                        .font(.system(size: 13 * unit))
                                     Text("커버 추가")
-                                        .font(.system(size: 14, weight: .medium))
+                                        .font(.system(size: 14 * unit, weight: .medium))
                                 }
                                 .foregroundStyle(.secondary)
                                 .frame(maxWidth: .infinity)
@@ -286,7 +289,7 @@ struct ComposeView: View {
 
                     sheetField("태그") {
                         TextField("태그 (쉼표로 구분)", text: $tagsText)
-                            .font(.system(size: 14))
+                            .font(.system(size: 14 * unit))
                             .autocorrectionDisabled()
                             .textInputAutocapitalization(.never)
                             .padding(.horizontal, 13)
@@ -300,7 +303,7 @@ struct ComposeView: View {
                         TextField(
                             "소개글 — 카드와 검색에 보이는 한 단락", text: $excerpt, axis: .vertical
                         )
-                        .font(.system(size: 14))
+                        .font(.system(size: 14 * unit))
                         .lineLimit(2...4)
                         .padding(.horizontal, 13)
                         .padding(.vertical, 11)
@@ -318,15 +321,15 @@ struct ComposeView: View {
                         } label: {
                             HStack(spacing: 6) {
                                 Image(systemName: "square.stack.3d.up")
-                                    .font(.system(size: 12))
+                                    .font(.system(size: 12 * metaUnit))
                                 Text(
                                     seriesList.first(where: { $0.id == seriesId })?.title
                                         ?? String(localized: "시리즈 없음")
                                 )
-                                .font(.system(size: 14, weight: .medium))
+                                .font(.system(size: 14 * unit, weight: .medium))
                                 .lineLimit(1)
                                 Image(systemName: "chevron.up.chevron.down")
-                                    .font(.system(size: 10))
+                                    .font(.system(size: 10 * metaUnit))
                             }
                             .foregroundStyle(
                                 seriesId == nil
@@ -350,7 +353,7 @@ struct ComposeView: View {
                         Task { await save(publish: status != "PUBLISHED") }
                     } label: {
                         Text(status != "PUBLISHED" ? "지금 발행" : "저장")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.system(size: 15 * unit, weight: .semibold))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 48)
@@ -362,7 +365,7 @@ struct ComposeView: View {
                     // 비활성엔 이유를 — 흐린 버튼만 보여주고 침묵하지 않는다.
                     if !canSave {
                         Text("제목과 본문을 채우면 발행할 수 있어요.")
-                            .font(.system(size: 12))
+                            .font(.system(size: 12 * metaUnit))
                             .foregroundStyle(Palette.secondary)
                     }
 
@@ -372,7 +375,7 @@ struct ComposeView: View {
                             showPublish = false
                         } label: {
                             Label("미리보기", systemImage: "doc.text.magnifyingglass")
-                                .font(.system(size: 13))
+                                .font(.system(size: 13 * unit))
                         }
                         .foregroundStyle(Palette.link)
                         .disabled(postId == nil)
@@ -382,7 +385,7 @@ struct ComposeView: View {
                                 scheduleNext = true
                                 showPublish = false
                             }
-                            .font(.system(size: 13))
+                            .font(.system(size: 13 * unit))
                             .foregroundStyle(Palette.link)
                             .disabled(postId == nil)
                         }
@@ -411,7 +414,7 @@ struct ComposeView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(label)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 13 * unit, weight: .semibold))
                 .foregroundStyle(Palette.heading)
             content()
         }
@@ -421,7 +424,7 @@ struct ComposeView: View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 16) {
                 Text("선택한 시각에 자동으로 발행됩니다.")
-                    .font(.system(size: 14))
+                    .font(.system(size: 14 * unit))
                     .foregroundStyle(Palette.secondary)
                 DatePicker("발행 시각", selection: $scheduleDate, in: Date()...)
                     .datePickerStyle(.graphical)
@@ -680,6 +683,9 @@ private struct MarkdownSnippetBar: View {
     let perform: (Action) -> Void
     let dismiss: () -> Void
 
+    /// 아이콘만 키운다 — 44pt 터치 타깃 프레임은 작은 글자 설정에서도 줄이지 않는다.
+    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+
     enum Action: CaseIterable {
         case heading, bold, inlineCode, codeBlock, quote, list, link, image
 
@@ -720,7 +726,7 @@ private struct MarkdownSnippetBar: View {
                                 perform(action)
                             } label: {
                                 Image(systemName: action.icon)
-                                    .font(.system(size: 15, weight: .medium))
+                                    .font(.system(size: 15 * unit, weight: .medium))
                                     .foregroundStyle(.primary)
                                     .frame(width: 44, height: 44)
                                     .contentShape(Rectangle())
@@ -736,7 +742,7 @@ private struct MarkdownSnippetBar: View {
 
                 Button(action: dismiss) {
                     Image(systemName: "keyboard.chevron.compact.down")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: 14 * unit, weight: .semibold))
                         .foregroundStyle(.primary)
                         .frame(width: 44, height: 44)
                         .contentShape(Circle())
@@ -757,6 +763,8 @@ private struct RevisionsSheet: View {
     let postId: Int64?
     let onRestored: (String) -> Void
 
+    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+    @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
     @Environment(\.dismiss) private var dismiss
     @State private var revisions: [PostRevision] = []
     @State private var loading = true
@@ -775,12 +783,12 @@ private struct RevisionsSheet: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 3) {
                                 Text("v\(revision.versionNumber) — \(revision.titleSnapshot)")
-                                    .font(.system(size: 15, weight: .medium))
+                                    .font(.system(size: 15 * unit, weight: .medium))
                                     .foregroundStyle(Palette.ink)
                                     .lineLimit(1)
                                 if let date = revision.createdAt {
                                     Text(date.formatted(date: .abbreviated, time: .shortened))
-                                        .font(.system(size: 12))
+                                        .font(.system(size: 12 * metaUnit))
                                         .foregroundStyle(Palette.secondary)
                                 }
                             }
@@ -788,7 +796,7 @@ private struct RevisionsSheet: View {
                             Button("복원") {
                                 restore(revision)
                             }
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.system(size: 13 * unit, weight: .medium))
                             .foregroundStyle(Palette.link)
                             .disabled(busy)
                         }

@@ -304,8 +304,15 @@ enum CardQuickActions {
 
 extension View {
     /// browse 카드 공용 — 길게 누르면 열지 않고 좋아요·북마크·작가·공유.
+    /// VoiceOver 에선 같은 행동이 로터 커스텀 액션으로 — 컨텍스트 메뉴는 발견이 어렵다.
     func cardQuickActions(_ item: FeedItem) -> some View {
-        contextMenu {
+        accessibilityAction(named: Text("좋아요")) {
+            CardQuickActions.like(item)
+        }
+        .accessibilityAction(named: Text("북마크")) {
+            CardQuickActions.bookmark(item)
+        }
+        .contextMenu {
             Button {
                 CardQuickActions.like(item)
             } label: {

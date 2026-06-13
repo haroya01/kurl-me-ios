@@ -86,13 +86,16 @@ struct FeedView: View {
             )
             // 고정 스트립 대신 떠 있는 유리 — 카드가 캡슐 양옆·뒤로 그대로 흐른다.
             .safeAreaInset(edge: .top) {
-                ZStack {
-                    GlassSegmentSwitcher(items: FeedTab.allCases, selection: $selection) {
-                        $0.label
-                    }
-                    if AuthStore.shared.isSignedIn {
-                        HStack {
-                            Spacer()
+                // ZStack 중첩(중앙 스위처 + 우단 벨)은 375pt 기기에서 겹쳤다 — 압축 가능한
+                // HStack 으로. 한 영역의 유리 둘은 컨테이너 하나로 묶는다(§1.4).
+                GlassEffectContainer(spacing: GlassTokens.clusterSpacing) {
+                    HStack(spacing: 10) {
+                        Spacer(minLength: 0)
+                        GlassSegmentSwitcher(items: FeedTab.allCases, selection: $selection) {
+                            $0.label
+                        }
+                        Spacer(minLength: 0)
+                        if AuthStore.shared.isSignedIn {
                             NavigationLink {
                                 NotificationsView()
                             } label: {
@@ -106,18 +109,21 @@ struct FeedView: View {
                                                 .fill(Palette.accent)
                                                 .frame(width: 7, height: 7)
                                                 .offset(x: -7, y: 8)
+                                                .transition(.scale.combined(with: .opacity))
                                         }
                                     }
                                     .contentShape(Circle())
                             }
                             .buttonStyle(.plain)
                             .glassEffect(.regular.interactive(), in: .circle)
-                            .accessibilityLabel(
-                                unreadCount > 0 ? Text("알림 — 읽지 않음 있음") : Text("알림"))
+                            .accessibilityLabel(Text("알림"))
+                            .accessibilityValue(
+                                unreadCount > 0 ? Text("읽지 않음 \(unreadCount)") : Text(""))
                         }
-                        .padding(.trailing, Metrics.gutter)
                     }
+                    .padding(.horizontal, Metrics.gutter)
                 }
+                .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: unreadCount > 0)
                 .padding(.top, 2)
                 .padding(.bottom, 8)
             }
@@ -251,12 +257,22 @@ struct FeedPage: View {
                 }
                 if model.items.isEmpty {
                     if source == .following {
-                        ContentUnavailableView(
-                            "구독함이 비어 있어요", systemImage: "tray",
-                            description: Text("작가를 팔로우하면 새 글이 여기 도착해요."))
+                        ContentUnavailableView {
+                            Label("구독함이 비어 있어요", systemImage: "tray")
+                        } description: {
+                            Text("작가를 팔로우하면 새 글이 여기 도착해요.")
+                        } actions: {
+                            Button("발견에서 작가 찾기") { TabRouter.shared.selection = 1 }
+                                .foregroundStyle(Palette.accent)
+                        }
                             .padding(.top, 80)
                     } else {
-                        ContentUnavailableView("아직 글이 없습니다", systemImage: "doc.text")
+                        ContentUnavailableView {
+                            Label("아직 글이 없습니다", systemImage: "doc.text")
+                        } actions: {
+                            Button("발견에서 읽을 글 찾기") { TabRouter.shared.selection = 1 }
+                                .foregroundStyle(Palette.accent)
+                        }
                             .padding(.top, 80)
                     }
                 }

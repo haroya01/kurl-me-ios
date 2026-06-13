@@ -20,8 +20,15 @@ struct BookmarksView: View {
                 ProgressView().tint(Palette.accent)
                     .frame(maxWidth: .infinity, minHeight: 240)
             } else if items.isEmpty {
-                ContentUnavailableView("북마크한 글이 없습니다", systemImage: "bookmark")
-                    .padding(.top, 60)
+                ContentUnavailableView {
+                    Label("북마크한 글이 없습니다", systemImage: "bookmark")
+                } description: {
+                    Text("북마크한 글은 오프라인에서도 읽을 수 있어요.")
+                } actions: {
+                    Button("발견에서 읽을 글 찾기") { TabRouter.shared.selection = 1 }
+                        .foregroundStyle(Palette.accent)
+                }
+                .padding(.top, 60)
             } else {
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                     NavigationLink(value: Route.post(username: item.username, slug: item.slug)) {
@@ -79,7 +86,12 @@ struct LikedPostsView: View {
                 ProgressView().tint(Palette.accent)
                     .frame(maxWidth: .infinity, minHeight: 240)
             } else if items.isEmpty {
-                ContentUnavailableView("좋아요한 글이 없습니다", systemImage: "heart")
+                ContentUnavailableView {
+                    Label("좋아요한 글이 없습니다", systemImage: "heart")
+                } actions: {
+                    Button("발견에서 읽을 글 찾기") { TabRouter.shared.selection = 1 }
+                        .foregroundStyle(Palette.accent)
+                }
                     .padding(.top, 60)
             } else {
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
@@ -113,8 +125,13 @@ struct SubscribedSeriesView: View {
                 ProgressView().tint(Palette.accent)
                     .frame(maxWidth: .infinity, minHeight: 240)
             } else if items.isEmpty {
-                ContentUnavailableView("구독한 시리즈가 없습니다", systemImage: "square.stack.3d.up")
-                    .padding(.top, 60)
+                ContentUnavailableView {
+                    Label("구독한 시리즈가 없습니다", systemImage: "square.stack.3d.up")
+                } actions: {
+                    Button("검색에서 시리즈 찾기") { TabRouter.shared.selection = 3 }
+                        .foregroundStyle(Palette.accent)
+                }
+                .padding(.top, 60)
             } else {
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, card in
                     // author 없는 카드는 라우팅 불가 — 행은 그리되 링크를 걸지 않는다.

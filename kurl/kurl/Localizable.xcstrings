@@ -394,6 +394,22 @@
         }
       }
     },
+    "검색에서 시리즈 찾기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find series in Search"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検索でシリーズを探す"
+          }
+        }
+      }
+    },
     "계속": {
       "localizations": {
         "en": {
@@ -1692,6 +1708,38 @@
         }
       }
     },
+    "발견에서 읽을 글 찾기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find something to read in Discover"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "発見で読む記事を探す"
+          }
+        }
+      }
+    },
+    "발견에서 작가 찾기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find writers in Discover"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "発見で作家を探す"
+          }
+        }
+      }
+    },
     "발행": {
       "localizations": {
         "en": {
@@ -1962,6 +2010,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "ブックマークに追加しました"
+          }
+        }
+      }
+    },
+    "북마크한 글은 오프라인에서도 읽을 수 있어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bookmarked posts are readable offline too."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブックマークした記事はオフラインでも読めます。"
           }
         }
       }
@@ -2814,6 +2878,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "未読"
+          }
+        }
+      }
+    },
+    "읽지 않음 %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld unread"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未読%lld件"
           }
         }
       }

@@ -14,6 +14,9 @@ struct AnalyticsView: View {
     var embedded = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .title3) private var heroSize: CGFloat = 40
+    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+    @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
     @State private var phase: LoadState<AuthorAnalyticsOverview> = .idle
     @State private var performance: PostPerformanceResult?
     @State private var performanceSort = "views"
@@ -138,7 +141,8 @@ struct AnalyticsView: View {
                             } label: {
                                 Text("\(option)일")
                                     .font(.system(
-                                        size: 12, weight: days == option ? .semibold : .regular))
+                                        size: 12 * metaUnit,
+                                        weight: days == option ? .semibold : .regular))
                                     .foregroundStyle(
                                         days == option
                                             ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
@@ -148,6 +152,7 @@ struct AnalyticsView: View {
                             }
                             .buttonStyle(.plain)
                             .glassCapsule(prominent: days == option)
+                            .accessibilityAddTraits(days == option ? [.isSelected] : [])
                         }
                     }
                 }
@@ -155,11 +160,11 @@ struct AnalyticsView: View {
             .padding(.top, 24)
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(overview.windowViews.formatted())
-                    .font(.system(size: 40, weight: .bold).monospacedDigit())
+                    .font(.system(size: heroSize, weight: .bold).monospacedDigit())
                     .foregroundStyle(Palette.ink)
                     .contentTransition(.numericText())
                 Text("조회")
-                    .font(.system(size: 15))
+                    .font(.system(size: 15 * unit))
                     .foregroundStyle(Palette.secondary)
             }
             // 윈도우 보조지표 — 팔로우 전환과 본문 kurl 링크 클릭.
@@ -167,7 +172,7 @@ struct AnalyticsView: View {
                 Label("팔로우 +\(overview.windowFollows)", systemImage: "person.badge.plus")
                 Label("링크 클릭 \(overview.windowLinkClicks)", systemImage: "link")
             }
-            .font(.system(size: 13))
+            .font(.system(size: 13 * unit))
             .foregroundStyle(Palette.secondary)
             .labelStyle(.titleAndIcon)
         }
@@ -196,6 +201,7 @@ struct AnalyticsView: View {
                         .foregroundStyle(Palette.faint)
                 }
             }
+            .accessibilityLabel(Text("최근 \(overview.windowDays)일 일별 조회 추이"))
             .frame(height: 140)
             .padding(.top, 14)
         }
@@ -240,12 +246,12 @@ struct AnalyticsView: View {
                 } label: {
                     HStack(alignment: .firstTextBaseline, spacing: 10) {
                         Text("\(index + 1)")
-                            .font(.system(size: 13, weight: .bold).monospacedDigit())
+                            .font(.system(size: 13 * unit, weight: .bold).monospacedDigit())
                             .foregroundStyle(index < 3 ? Palette.link : Palette.secondary)
-                            .frame(width: 20, alignment: .leading)
+                            .frame(width: 20 * unit, alignment: .leading)
                         VStack(alignment: .leading, spacing: 3) {
                             Text(row.title)
-                                .font(.system(size: 15, weight: .medium))
+                                .font(.system(size: 15 * unit, weight: .medium))
                                 .foregroundStyle(Palette.ink)
                                 .lineLimit(1)
                                 .multilineTextAlignment(.leading)
@@ -259,7 +265,7 @@ struct AnalyticsView: View {
                         }
                         Spacer(minLength: 0)
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.system(size: 11 * metaUnit, weight: .semibold))
                             .foregroundStyle(Palette.faint)
                     }
                     .padding(.vertical, 9)
@@ -279,7 +285,7 @@ struct AnalyticsView: View {
                         ProgressView().tint(Palette.accent)
                     } else {
                         Text("더 보기")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(.system(size: 13 * unit, weight: .medium))
                             .foregroundStyle(Palette.link)
                     }
                 }
@@ -299,7 +305,7 @@ struct AnalyticsView: View {
             ForEach(Array(series.enumerated()), id: \.element.id) { index, row in
                 VStack(alignment: .leading, spacing: 3) {
                     Text(row.title)
-                        .font(.system(size: 15, weight: .medium))
+                        .font(.system(size: 15 * unit, weight: .medium))
                         .foregroundStyle(Palette.ink)
                         .lineLimit(1)
                     HStack(spacing: 10) {
@@ -308,7 +314,7 @@ struct AnalyticsView: View {
                         metaCount("eye", row.totalViews)
                         metaCount("heart", row.totalLikes)
                     }
-                    .font(.system(size: 12))
+                    .font(.system(size: 12 * metaUnit))
                     .foregroundStyle(Palette.secondary)
                 }
                 .padding(.vertical, 9)
@@ -329,10 +335,10 @@ struct AnalyticsView: View {
             ForEach(overview.referrers) { ref in
                 HStack(spacing: 10) {
                     Text(ref.host)
-                        .font(.system(size: 14))
+                        .font(.system(size: 14 * unit))
                         .foregroundStyle(Palette.body)
                         .lineLimit(1)
-                        .frame(width: 120, alignment: .leading)
+                        .frame(width: 120 * unit, alignment: .leading)
                     GeometryReader { geo in
                         RoundedRectangle(cornerRadius: 2)
                             .fill(Palette.accent.opacity(0.25))
@@ -343,10 +349,10 @@ struct AnalyticsView: View {
                             .frame(maxHeight: .infinity, alignment: .center)
                     }
                     Text("\(ref.views)")
-                        .font(.system(size: 13).monospacedDigit())
+                        .font(.system(size: 13 * unit).monospacedDigit())
                         .foregroundStyle(Palette.secondary)
                 }
-                .frame(height: 28)
+                .frame(height: 28 * unit)
             }
         }
     }
@@ -359,7 +365,7 @@ struct AnalyticsView: View {
             resort(key)
         } label: {
             Text(label)
-                .font(.system(size: 12, weight: active ? .semibold : .regular))
+                .font(.system(size: 12 * metaUnit, weight: active ? .semibold : .regular))
                 .foregroundStyle(active ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
                 .padding(.horizontal, 11)
                 .padding(.vertical, 6)
@@ -372,22 +378,35 @@ struct AnalyticsView: View {
 
     private func metaCount(_ icon: String, _ value: Int64) -> some View {
         HStack(spacing: 3) {
-            Image(systemName: icon).font(.system(size: 10))
+            Image(systemName: icon).font(.system(size: 10 * metaUnit))
             Text("\(value)").monospacedDigit()
         }
-        .font(.system(size: 12))
+        .font(.system(size: 12 * metaUnit))
         .foregroundStyle(Palette.secondary)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text("\(metaCountName(icon)) \(value)"))
+    }
+
+    /// VoiceOver 용 — 아이콘은 읽히지 않으니 지표 이름을 붙인다.
+    private func metaCountName(_ icon: String) -> String {
+        switch icon {
+        case "eye": String(localized: "조회")
+        case "heart": String(localized: "좋아요")
+        case "person.badge.plus": String(localized: "팔로우")
+        case "person.2": String(localized: "구독자")
+        default: ""
+        }
     }
 
     private func stat(_ label: LocalizedStringKey, _ value: Int64) -> some View {
         VStack(spacing: 4) {
             Text(value.formatted())
-                .font(.system(size: 17, weight: .semibold).monospacedDigit())
+                .font(.system(size: 17 * unit, weight: .semibold).monospacedDigit())
                 .foregroundStyle(Palette.ink)
                 .minimumScaleFactor(0.7)
                 .lineLimit(1)
             Text(label)
-                .font(.system(size: 11))
+                .font(.system(size: 11 * metaUnit))
                 .foregroundStyle(Palette.secondary)
         }
         .frame(maxWidth: .infinity)

@@ -116,6 +116,13 @@ struct SearchView: View {
                                     }
                                     .buttonStyle(CardButtonStyle())
                                     .cardQuickActions(item)
+                                    // 결과 카드와 같은 글 푸시 — zoom 문법도 같아야 한다
+                                    // (idle/loaded 상호배타라 id 중복 안전).
+                                    .modifier(ZoomSource(
+                                        active: true,
+                                        id: "search-\(item.author.username)-\(item.slug)",
+                                        ns: zoomNS))
+                                    .modifier(CardScrollFade(axis: .horizontal))
                                 }
                             }
                         }

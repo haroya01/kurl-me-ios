@@ -14,6 +14,9 @@ struct StudioView: View {
 
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .title3) private var titleSize: CGFloat = 22
+    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+    @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
     @State private var section: StudioSection = .posts
     @State private var phase: LoadState<[MyPost]> = .idle
     @State private var filter: HubFilter = .all
@@ -138,7 +141,7 @@ struct StudioView: View {
         Hairline()
         if filtered.isEmpty {
             Text(filter == .draft ? "임시저장한 글이 없습니다." : "발행한 글이 없습니다.")
-                .font(.system(size: 14))
+                .font(.system(size: 14 * unit))
                 .foregroundStyle(Palette.secondary)
                 .padding(.top, 24)
         }
@@ -149,27 +152,27 @@ struct StudioView: View {
                 HStack(alignment: .center, spacing: 10) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(post.title)
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.system(size: 16 * unit, weight: .semibold))
                             .foregroundStyle(Palette.ink)
                             .lineLimit(2)
                             .multilineTextAlignment(.leading)
                         if let date = post.publishedAt ?? post.updatedAt {
                             Text(date.relativeShort)
-                                .font(.system(size: 12))
+                                .font(.system(size: 12 * metaUnit))
                                 .foregroundStyle(Palette.secondary)
                         }
                     }
                     Spacer()
                     if post.isDraft {
                         Text("임시저장")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.system(size: 11 * metaUnit, weight: .medium))
                             .foregroundStyle(Palette.secondary)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
                             .background(Palette.chipBg, in: Capsule())
                     } else if post.isScheduled {
                         Text("예약됨")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.system(size: 11 * metaUnit, weight: .medium))
                             .foregroundStyle(Palette.link)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
@@ -189,7 +192,7 @@ struct StudioView: View {
             RailHeading("내 글")
                 .padding(.top, 24)
             Text("아직 글이 없습니다. 오른쪽 아래 버튼으로 첫 글을 시작하세요.")
-                .font(.system(size: 14))
+                .font(.system(size: 14 * unit))
                 .foregroundStyle(Palette.secondary)
         }
     }
@@ -219,7 +222,7 @@ struct StudioView: View {
             Hairline()
             if seriesLoaded, seriesList.isEmpty {
                 Text("아직 시리즈가 없습니다. 발행 시트에서 글을 시리즈로 묶어 보세요.")
-                    .font(.system(size: 14))
+                    .font(.system(size: 14 * unit))
                     .foregroundStyle(Palette.secondary)
                     .padding(.top, 24)
             }
@@ -229,18 +232,18 @@ struct StudioView: View {
                 ) {
                     HStack(spacing: 10) {
                         Image(systemName: "square.stack.3d.up")
-                            .font(.system(size: 14))
+                            .font(.system(size: 14 * unit))
                             .foregroundStyle(Palette.accentMarker)
                         Text(series.title)
-                            .font(.system(size: 15, weight: .medium))
+                            .font(.system(size: 15 * unit, weight: .medium))
                             .foregroundStyle(Palette.ink)
                             .lineLimit(1)
                         Spacer()
                         Text("\(series.postCount)편")
-                            .font(.system(size: 13))
+                            .font(.system(size: 13 * unit))
                             .foregroundStyle(Palette.faint)
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.system(size: 12 * metaUnit, weight: .semibold))
                             .foregroundStyle(Palette.secondary)
                     }
                     .padding(.vertical, 13)
@@ -269,11 +272,11 @@ struct StudioView: View {
                 RailHeading("글쓰기")
                     .padding(.top, 28)
                 Text("로그인하고 글을 쓰세요")
-                    .font(.system(size: 22, weight: .bold))
+                    .font(.system(size: titleSize, weight: .bold))
                     .foregroundStyle(Palette.ink)
                     .padding(.top, 12)
                 Text("마크다운으로 쓰면 웹과 똑같이 발행됩니다.")
-                    .font(.system(size: 15))
+                    .font(.system(size: 15 * unit))
                     .foregroundStyle(Palette.secondary)
                     .padding(.top, 6)
                 // Apple 버튼은 시스템 소유 모양(브랜딩 규정) — 유리 없이 캡슐만 맞춘다.
@@ -293,7 +296,7 @@ struct StudioView: View {
                     HStack(spacing: 8) {
                         if isSigningIn { ProgressView().tint(.white) }
                         Text("Google로 계속하기")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.system(size: 15 * unit, weight: .semibold))
                     }
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)

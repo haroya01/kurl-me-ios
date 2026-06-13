@@ -13,7 +13,8 @@ struct PostDetailView: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .largeTitle) private var titleSize: CGFloat = 30
-    @ScaledMetric(relativeTo: .subheadline) private var commentSize: CGFloat = 14
+    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+    @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
     /// 발견 덱이 페이지로 품을 때 true — 같은 화면을 그대로 쓰되, 내비바(제목 스밈·공유)와
     /// 커버의 세이프에어리어 침범은 덱의 것이 아니므로 끄고, 조회 비콘도 덱의 체류
@@ -164,7 +165,7 @@ struct PostDetailView: View {
             if !embedded {
                 ToolbarItem(placement: .principal) {
                     Text(loadedTitle)
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.system(size: 16 * unit, weight: .semibold))
                         .lineLimit(1)
                         .opacity(showNavTitle ? 1 : 0)
                 }
@@ -234,9 +235,9 @@ struct PostDetailView: View {
             // 기기 사본 렌더 중 — 조용한 한 줄. 댓글·좋아요가 비어 있는 이유까지 여기서 설명된다.
             HStack(spacing: 6) {
                 Image(systemName: "wifi.slash")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 11 * metaUnit, weight: .semibold))
                 Text("오프라인 사본 — 연결되면 최신으로 갱신됩니다")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: 12 * metaUnit, weight: .medium))
             }
             .foregroundStyle(Palette.secondary)
             .padding(.horizontal, 10)
@@ -284,13 +285,13 @@ struct PostDetailView: View {
         } label: {
             VStack(spacing: 5) {
                 Image(systemName: "chevron.compact.down")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 16 * unit, weight: .semibold))
                     .foregroundStyle(Palette.faint)
                 Text("계속 당기면 다음 글")
-                    .font(.system(size: 12))
+                    .font(.system(size: 12 * metaUnit))
                     .foregroundStyle(Palette.secondary)
                 Text(next.title)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 14 * unit, weight: .semibold))
                     .foregroundStyle(Palette.ink)
                     .lineLimit(1)
             }
@@ -328,18 +329,18 @@ struct PostDetailView: View {
                     AvatarView(author: author, size: 46)
                     VStack(alignment: .leading, spacing: 3) {
                         Text(author.username)
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.system(size: 16 * unit, weight: .semibold))
                             .foregroundStyle(Palette.ink)
                         if let bio = author.bio, !bio.isEmpty {
                             Text(bio)
-                                .font(.system(size: 13))
+                                .font(.system(size: 13 * unit))
                                 .foregroundStyle(Palette.secondary)
                                 .lineLimit(2)
                         }
                     }
                     Spacer(minLength: 8)
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(size: 12 * metaUnit, weight: .semibold))
                         .foregroundStyle(Palette.faint)
                 }
                 .contentShape(Rectangle())
@@ -384,17 +385,17 @@ struct PostDetailView: View {
                 HStack(spacing: 9) {
                     AvatarView(author: detail.author, size: 28)
                     Text(detail.author.username)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: 14 * unit, weight: .semibold))
                         .foregroundStyle(Palette.ink)
                     if let date = detail.post.publishedAt {
                         Text("·").foregroundStyle(Palette.faint)
                         Text(date.mediumDate)
-                            .font(.system(size: 13))
+                            .font(.system(size: 13 * unit))
                             .foregroundStyle(Palette.secondary)
                     }
                     // 탭 가능한 행이라는 신호 — 어포던스 없는 링크는 없는 링크다.
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.system(size: 11 * metaUnit, weight: .semibold))
                         .foregroundStyle(Palette.faint)
                 }
                 .contentShape(Rectangle())
@@ -412,13 +413,13 @@ struct PostDetailView: View {
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(post.title)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 14 * unit, weight: .semibold))
                     .foregroundStyle(Palette.ink)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                 if let excerpt = post.excerpt, !excerpt.isEmpty {
                     Text(excerpt)
-                        .font(.system(size: 13))
+                        .font(.system(size: 13 * unit))
                         .foregroundStyle(Palette.secondary)
                         .lineLimit(1)
                 }
@@ -430,7 +431,7 @@ struct PostDetailView: View {
                         Text("♥ \(post.likeCount)")
                     }
                 }
-                .font(.system(size: 12))
+                .font(.system(size: 12 * metaUnit))
                 .foregroundStyle(Palette.secondary)
             }
             Spacer(minLength: 0)
@@ -463,7 +464,7 @@ struct PostDetailView: View {
                         RailHeading("댓글 \(model.comments.count)")
                         Spacer()
                         Image(systemName: "chevron.down")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.system(size: 12 * metaUnit, weight: .semibold))
                             .foregroundStyle(Palette.secondary)
                     }
                     .padding(.vertical, 6)
@@ -496,10 +497,10 @@ struct PostDetailView: View {
                 } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "bubble.left")
-                            .font(.system(size: 13))
+                            .font(.system(size: 13 * unit))
                             .foregroundStyle(Palette.secondary)
                         Text("댓글을 남겨보세요")
-                            .font(.system(size: 14))
+                            .font(.system(size: 14 * unit))
                             .foregroundStyle(Palette.secondary)
                         Spacer(minLength: 0)
                     }
@@ -530,6 +531,8 @@ struct CommentRow: View {
     @State private var likeTaps = 0
     @State private var deleteFailed = false
     @ScaledMetric(relativeTo: .subheadline) private var bodySize: CGFloat = 14
+    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+    @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var likedByMe: Bool { model.likedCommentIds.contains(comment.id) }
@@ -546,7 +549,7 @@ struct CommentRow: View {
                     HStack(spacing: 8) {
                         AvatarView(author: comment.author, size: 24)
                         Text(comment.author.username)
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: 13 * unit, weight: .semibold))
                             .foregroundStyle(Palette.ink)
                     }
                     .contentShape(Rectangle())
@@ -554,7 +557,7 @@ struct CommentRow: View {
                 .buttonStyle(.plain)
                 if let postAuthorId, comment.author.id == postAuthorId {
                     Text("작가")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.system(size: 10 * metaUnit, weight: .semibold))
                         .foregroundStyle(Palette.link)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
@@ -562,7 +565,7 @@ struct CommentRow: View {
                 }
                 if let date = comment.createdAt {
                     Text(date.relativeShort)
-                        .font(.system(size: 12)).foregroundStyle(Palette.secondary)
+                        .font(.system(size: 12 * metaUnit)).foregroundStyle(Palette.secondary)
                 }
                 Spacer()
                 if isMine {
@@ -570,7 +573,7 @@ struct CommentRow: View {
                         confirmDelete = true
                     } label: {
                         Image(systemName: "trash")
-                            .font(.system(size: 12))
+                            .font(.system(size: 12 * metaUnit))
                             .foregroundStyle(Palette.secondary)
                             .expandTapTarget()
                     }
@@ -590,11 +593,11 @@ struct CommentRow: View {
                 } label: {
                     HStack(spacing: 4) {
                         Image(systemName: likedByMe ? "heart.fill" : "heart")
-                            .font(.system(size: 11))
+                            .font(.system(size: 11 * metaUnit))
                             .symbolEffect(.bounce, value: reduceMotion ? false : likedByMe)
                         if model.displayLikeCount(comment) > 0 {
                             Text("\(model.displayLikeCount(comment))")
-                                .font(.system(size: 12).monospacedDigit())
+                                .font(.system(size: 12 * metaUnit).monospacedDigit())
                                 .contentTransition(.numericText())
                         }
                     }
@@ -614,7 +617,7 @@ struct CommentRow: View {
                         replyTo = comment
                     } label: {
                         Text("답글")
-                            .font(.system(size: 12, weight: .medium))
+                            .font(.system(size: 12 * metaUnit, weight: .medium))
                             .foregroundStyle(Palette.secondary)
                             .expandTapTarget()
                     }
@@ -645,6 +648,8 @@ struct GlassCommentBar: View {
     @Binding var replyTo: Comment?
     let onDone: () -> Void
 
+    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+    @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
     @State private var body_ = ""
     @State private var sending = false
     @State private var sendFailed = false
@@ -657,13 +662,13 @@ struct GlassCommentBar: View {
             if let replyTo {
                 HStack(spacing: 6) {
                     Text("\(replyTo.author.username)님에게 답글")
-                        .font(.system(size: 12))
+                        .font(.system(size: 12 * metaUnit))
                         .foregroundStyle(Palette.link)
                     Button {
                         self.replyTo = nil
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 13))
+                            .font(.system(size: 13 * unit))
                             .foregroundStyle(.secondary)
                             .expandTapTarget()
                     }
@@ -673,7 +678,7 @@ struct GlassCommentBar: View {
             }
             if sendFailed {
                 Text("전송하지 못했습니다 — 다시 시도해 주세요.")
-                    .font(.system(size: 12))
+                    .font(.system(size: 12 * metaUnit))
                     .foregroundStyle(.red)
             }
             HStack(alignment: .bottom, spacing: 10) {
@@ -681,7 +686,7 @@ struct GlassCommentBar: View {
                     replyTo == nil ? "댓글을 남겨보세요" : "답글을 남겨보세요",
                     text: $body_, axis: .vertical
                 )
-                .font(.system(size: 15))
+                .font(.system(size: 15 * unit))
                 .lineLimit(1...4)
                 .focused($focused)
                 .submitLabel(.send)
@@ -693,13 +698,13 @@ struct GlassCommentBar: View {
                     if sending {
                         ProgressView()
                             .tint(.white)
-                            .frame(width: 34, height: 34)
+                            .frame(width: 34 * unit, height: 34 * unit)
                             .background(GlassTokens.prominentTint, in: Circle())
                     } else {
                         Image(systemName: "arrow.up")
-                            .font(.system(size: 15, weight: .bold))
+                            .font(.system(size: 15 * unit, weight: .bold))
                             .foregroundStyle(.white)
-                            .frame(width: 34, height: 34)
+                            .frame(width: 34 * unit, height: 34 * unit)
                             .background(
                                 canSend ? GlassTokens.prominentTint : Color.secondary.opacity(0.45),
                                 in: Circle())

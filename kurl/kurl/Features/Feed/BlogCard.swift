@@ -22,7 +22,7 @@ struct BlogCard: View {
     @Environment(\.colorScheme) private var colorScheme
 
     /// 카드 모서리 — 유리 시대의 연속 곡률(§1.5). 하단 유리 띠와 반드시 같은 값.
-    private static let radius: CGFloat = 20
+    static let radius: CGFloat = 20
 
     var body: some View {
         Group {
@@ -89,12 +89,7 @@ struct BlogCard: View {
                 }
                 .padding(14)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .glassEffect(
-                    .clear.tint(GlassTokens.mediaScrim),
-                    in: UnevenRoundedRectangle(
-                        cornerRadii: .init(
-                            bottomLeading: Self.radius, bottomTrailing: Self.radius),
-                        style: .continuous))
+                .modifier(CoverBandSurface())
             }
             .clipShape(RoundedRectangle(cornerRadius: Self.radius, style: .continuous))
             .overlay {
@@ -234,5 +229,26 @@ struct CardButtonStyle: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.975 : 1)
             .animation(.spring(response: 0.32, dampingFraction: 0.72), value: configuration.isPressed)
+    }
+}
+
+
+/// 커버 하단 타이포 띠의 표면 — 평소엔 맑은 유리+스크림, 투명도 감소가 켜지면
+/// 비치는 사진 대신 진한 솔리드 스크림으로(가독이 설정보다 우선).
+private struct CoverBandSurface: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    private var shape: UnevenRoundedRectangle {
+        UnevenRoundedRectangle(
+            cornerRadii: .init(bottomLeading: BlogCard.radius, bottomTrailing: BlogCard.radius),
+            style: .continuous)
+    }
+
+    func body(content: Content) -> some View {
+        if reduceTransparency {
+            content.background(Color.black.opacity(0.72), in: shape)
+        } else {
+            content.glassEffect(.clear.tint(GlassTokens.mediaScrim), in: shape)
+        }
     }
 }

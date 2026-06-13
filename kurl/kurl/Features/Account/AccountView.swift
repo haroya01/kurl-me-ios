@@ -14,6 +14,9 @@ struct AccountView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .title3) private var titleSize: CGFloat = 24
+    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+    @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
     @State private var isSigningIn = false
     @State private var appleNonce = ""
     @State private var showCard = false
@@ -144,11 +147,11 @@ struct AccountView: View {
             // 환대의 유리 패널 — 안개 위에 뜬 한 장. 본문 타이포는 유리 위 시맨틱.
             VStack(alignment: .leading, spacing: 0) {
                 Text("kurl에 로그인")
-                    .font(.system(size: 24, weight: .bold))
+                    .font(.system(size: titleSize, weight: .bold))
                     .foregroundStyle(.primary)
 
                 Text("좋아요와 북마크, 구독, 그리고 글쓰기까지 — 웹과 같은 계정 하나로 이어집니다.")
-                    .font(.system(size: 15))
+                    .font(.system(size: 15 * unit))
                     .foregroundStyle(.secondary)
                     .lineSpacing(4)
                     .padding(.top, 8)
@@ -172,7 +175,7 @@ struct AccountView: View {
                             ProgressView().tint(.white)
                         }
                         Text("Google로 계속하기")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.system(size: 15 * unit, weight: .semibold))
                     }
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
@@ -186,7 +189,7 @@ struct AccountView: View {
                 .padding(.top, 10)
 
                 Text("로그인은 시스템 브라우저에서 안전하게 진행됩니다.")
-                    .font(.system(size: 12))
+                    .font(.system(size: 12 * metaUnit))
                     .foregroundStyle(.secondary)
                     .padding(.top, 12)
             }
@@ -248,11 +251,11 @@ struct AccountView: View {
                 )
                 VStack(alignment: .leading, spacing: 3) {
                     Text(auth.me?.username ?? "kurl")
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.system(size: 18 * unit, weight: .semibold))
                         .tracking(-0.2)
                         .foregroundStyle(.primary)
                     Text(auth.me?.email ?? "")
-                        .font(.system(size: 13))
+                        .font(.system(size: 13 * unit))
                         .foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 0)
@@ -297,7 +300,7 @@ struct AccountView: View {
             Button("로그아웃", role: .destructive) {
                 auth.signOut()
             }
-            .font(.system(size: 15))
+            .font(.system(size: 15 * unit))
             .padding(.top, 18)
         }
         .task { await auth.loadMe() }
@@ -306,9 +309,9 @@ struct AccountView: View {
     private func pageChip(_ title: LocalizedStringKey, systemImage: String) -> some View {
         HStack(spacing: 6) {
             Image(systemName: systemImage)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 13 * unit, weight: .semibold))
             Text(title)
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: 14 * unit, weight: .semibold))
         }
         .foregroundStyle(.primary)
         .frame(maxWidth: .infinity)
@@ -324,15 +327,15 @@ struct AccountView: View {
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: icon)
-                    .font(.system(size: 14))
+                    .font(.system(size: 14 * unit))
                     .foregroundStyle(Palette.accentMarker)
-                    .frame(width: 22)
+                    .frame(width: 22 * unit)
                 Text(title)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.system(size: 15 * unit, weight: .medium))
                     .foregroundStyle(Palette.ink)
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 12 * metaUnit, weight: .semibold))
                     .foregroundStyle(Palette.secondary)
             }
             .padding(.vertical, 13)
@@ -345,6 +348,7 @@ struct AccountView: View {
 /// 2FA 계정의 TOTP 입력. 챌린지는 AuthStore 가 보류 중.
 private struct TwoFactorSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @State private var code = ""
     @State private var useRecovery = false
     @State private var isVerifying = false
@@ -354,7 +358,7 @@ private struct TwoFactorSheet: View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 0) {
                 Text(useRecovery ? "복구 코드를 입력하세요" : "인증 앱의 6자리 코드를 입력하세요")
-                    .font(.system(size: 15))
+                    .font(.system(size: 15 * unit))
                     .foregroundStyle(Palette.body)
                     .padding(.top, 8)
 
@@ -362,12 +366,12 @@ private struct TwoFactorSheet: View {
                     .textContentType(useRecovery ? nil : .oneTimeCode)
                     .keyboardType(useRecovery ? .asciiCapable : .numberPad)
                     .textFieldStyle(.roundedBorder)
-                    .font(.system(size: 22, weight: .medium, design: .monospaced))
+                    .font(.system(size: 22 * unit, weight: .medium, design: .monospaced))
                     .padding(.top, 14)
 
                 if failed {
                     Text("코드가 올바르지 않습니다.")
-                        .font(.system(size: 13))
+                        .font(.system(size: 13 * unit))
                         .foregroundStyle(.red)
                         .padding(.top, 8)
                 }
@@ -376,7 +380,7 @@ private struct TwoFactorSheet: View {
                     verify()
                 } label: {
                     Text("확인")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(size: 15 * unit, weight: .semibold))
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
@@ -391,7 +395,7 @@ private struct TwoFactorSheet: View {
                     code = ""
                     failed = false
                 }
-                .font(.system(size: 13))
+                .font(.system(size: 13 * unit))
                 .foregroundStyle(Palette.link)
                 .padding(.top, 14)
 

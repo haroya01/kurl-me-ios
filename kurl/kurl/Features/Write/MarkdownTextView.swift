@@ -16,7 +16,9 @@ struct MarkdownTextView: UIViewRepresentable {
 
     func makeUIView(context: Context) -> UITextView {
         let textView = UITextView()
-        textView.font = .monospacedSystemFont(ofSize: 16, weight: .regular)
+        textView.font = UIFontMetrics(forTextStyle: .body)
+            .scaledFont(for: .monospacedSystemFont(ofSize: 16, weight: .regular))
+        textView.adjustsFontForContentSizeCategory = true
         textView.backgroundColor = .clear
         textView.textColor = UIColor(Palette.body)
         textView.alwaysBounceVertical = true

@@ -7,19 +7,29 @@
 
 import SwiftUI
 
-struct RootView: View {
-    @State private var selection = Self.initialTab
+/// 탭 전환의 단일 손잡이 — 빈 상태의 "발견에서 찾기" 같은 행동 문이 다른 화면에서
+/// 탭을 갈아탈 때 쓴다(빈 상태는 막다른 길이면 안 된다 — AGENTS 폴리시).
+@MainActor
+@Observable
+final class TabRouter {
+    static let shared = TabRouter()
 
-    /// `--tab write|discover|search|account` — simctl 은 터치를 못 넣으니 스크린샷/목 검증용 진입로.
-    private static var initialTab: Int {
-        switch Config.launchValue(after: "--tab") {
-        case "discover": 1
-        case "write": 2
-        case "search": 3
-        case "account": 4
-        default: 0
-        }
+    var selection: Int
+
+    private init() {
+        // `--tab write|discover|search|account` — simctl 은 터치를 못 넣으니 검증용 진입로.
+        selection =
+            switch Config.launchValue(after: "--tab") {
+            case "discover": 1
+            case "write": 2
+            case "search": 3
+            case "account": 4
+            default: 0
+            }
     }
+}
+
+struct RootView: View {
 
     var body: some View {
         // `--post user/slug`·`--author user`·`--series user/slug` — 검증 진입로(simctl 터치 불가 우회).
@@ -52,12 +62,17 @@ struct RootView: View {
     }
 
     private var tabs: some View {
+        @Bindable var router = TabRouter.shared
+        return tabView(selection: $router.selection)
+    }
+
+    private func tabView(selection: Binding<Int>) -> some View {
         // 스레드식 하단바: 라벨 없는 아이콘-온리 탭 + 스크롤 내릴 때 바가 최소화되는
         // iOS 26 네이티브 동작. 검색에 role 을 주지 않는 건 의도 — role: .search 는
         // Liquid Glass 가 검색을 독립 pill 로 분리하는데, 한 바에 4탭이 모이는 쪽을 택했다.
         // 최소화는 27.0 베타에선 시뮬·실기기 모두 OS 가 안 태운다(2026-06-13 교과서
         // 케이스로 실기기 확정 — 우리 구조 무관). 동작하는 OS 가 오면 그대로 산다.
-        TabView(selection: $selection) {
+        TabView(selection: selection) {
             // 빈 시각 라벨(스레드식)을 유지하면서 VoiceOver 라벨만 단다.
             Tab("", systemImage: "doc.text.image", value: 0) {
                 FeedView()
