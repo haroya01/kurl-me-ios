@@ -111,7 +111,12 @@ struct StudioView: View {
                 }
             }
         }
-        .task { await load() }
+        .task {
+            await auth.loadMe()
+            await load()
+            // 헤더의 시리즈 수 — 없으면 0 으로 두고 글 로드는 막지 않는다.
+            if seriesList.isEmpty { seriesList = (try? await WriteAPI.mySeries()) ?? [] }
+        }
         .refreshable { await load() }
     }
 
@@ -131,12 +136,16 @@ struct StudioView: View {
 
     @ViewBuilder
     private var list: some View {
+        studioHeader
+            .padding(.top, 6)
+            .padding(.bottom, 4)
+
         HStack(alignment: .center) {
             RailHeading("내 글")
             Spacer()
             GlassSegmentSwitcher(items: HubFilter.allCases, selection: $filter) { $0.label }
         }
-        .padding(.top, 14)
+        .padding(.top, 8)
         .padding(.bottom, 8)
         Hairline()
         if filtered.isEmpty {
@@ -149,52 +158,132 @@ struct StudioView: View {
             Button {
                 editing = post
             } label: {
-                HStack(alignment: .center, spacing: 10) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(post.title)
-                            .font(.system(size: 16 * unit, weight: .semibold))
-                            .foregroundStyle(Palette.ink)
-                            .lineLimit(2)
-                            .multilineTextAlignment(.leading)
-                        if let date = post.publishedAt ?? post.updatedAt {
-                            Text(date.relativeShort)
-                                .font(.system(size: 12 * metaUnit))
-                                .foregroundStyle(Palette.secondary)
-                        }
-                    }
-                    Spacer()
-                    if post.isDraft {
-                        Text("임시저장")
-                            .font(.system(size: 11 * metaUnit, weight: .medium))
-                            .foregroundStyle(Palette.secondary)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(Palette.chipBg, in: Capsule())
-                    } else if post.isScheduled {
-                        Text("예약됨")
-                            .font(.system(size: 11 * metaUnit, weight: .medium))
-                            .foregroundStyle(Palette.link)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(Palette.chipBg, in: Capsule())
-                    }
-                }
-                .padding(.vertical, 14)
-                .contentShape(Rectangle())
+                postRow(post)
             }
             .buttonStyle(RowButtonStyle())
+            .modifier(QuietAppear(index: index))
             if index < filtered.count - 1 { Hairline() }
+        }
+        Color.clear.frame(height: 80) // FAB 가 마지막 행을 가리지 않게.
+    }
+
+    /// 스튜디오 정체성 — 아바타·이름·산출물 한 줄. "내 작업실"이라는 감각을 준다.
+    private var studioHeader: some View {
+        let published = currentPosts.filter { !$0.isDraft && !$0.isScheduled }.count
+        let drafts = currentPosts.filter(\.isDraft).count
+        return HStack(spacing: 14) {
+            if let me = auth.me, let username = me.username {
+                AvatarView(
+                    author: Author(id: me.id ?? 0, username: username, bio: nil, avatarUrl: me.avatarUrl),
+                    size: 52)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(username)
+                        .font(.system(size: 19 * unit, weight: .bold))
+                        .tracking(-0.3)
+                        .foregroundStyle(Palette.ink)
+                    HStack(spacing: 6) {
+                        Text("발행 \(published)")
+                        Text("·").foregroundStyle(Palette.faint)
+                        Text("임시 \(drafts)")
+                        if !seriesList.isEmpty {
+                            Text("·").foregroundStyle(Palette.faint)
+                            Text("시리즈 \(seriesList.count)")
+                        }
+                    }
+                    .font(.system(size: 13 * metaUnit))
+                    .foregroundStyle(Palette.secondary)
+                    .contentTransition(.numericText())
+                }
+            }
+            Spacer(minLength: 0)
         }
     }
 
-    private var emptyState: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            RailHeading("내 글")
-                .padding(.top, 24)
-            Text("아직 글이 없습니다. 오른쪽 아래 버튼으로 첫 글을 시작하세요.")
-                .font(.system(size: 14 * unit))
-                .foregroundStyle(Palette.secondary)
+    /// 글 한 행 — 상태 점(이브로) + 제목 + 발췌 + 커버 썸네일. 평평한 제목-행을
+    /// 콘텐츠가 보이는 도착 행으로(발견 카드와 같은 슬레이트 문법).
+    private func postRow(_ post: MyPost) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 5) {
+                statusEyebrow(post)
+                Text(post.title)
+                    .font(.system(size: 16 * unit, weight: .semibold))
+                    .foregroundStyle(Palette.ink)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                if let excerpt = post.excerpt, !excerpt.isEmpty {
+                    Text(excerpt)
+                        .font(.system(size: 13 * unit))
+                        .foregroundStyle(Palette.secondary)
+                        .lineLimit(1)
+                }
+            }
+            Spacer(minLength: 0)
+            if let cover = post.ogImageUrl, let url = URL(string: cover) {
+                AsyncImage(url: url) { phase in
+                    if case .success(let image) = phase {
+                        image.resizable().scaledToFill()
+                    } else {
+                        Rectangle().fill(Palette.hairline)
+                    }
+                }
+                .frame(width: 60, height: 60)
+                .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb, style: .continuous))
+            }
         }
+        .padding(.vertical, 13)
+        .contentShape(Rectangle())
+    }
+
+    /// 상태 점 + (발행 외엔) 라벨 + 날짜. 점 색이 상태를 인코딩한다(초록=라이브, 흐림=초안).
+    private func statusEyebrow(_ post: MyPost) -> some View {
+        let dotColor: Color = post.isDraft ? Palette.faint : (post.isScheduled ? Palette.link : Palette.accentMarker)
+        let label: String? = post.isDraft ? String(localized: "임시저장")
+            : (post.isScheduled ? String(localized: "예약됨") : nil)
+        return HStack(spacing: 5) {
+            Circle().fill(dotColor).frame(width: 5, height: 5)
+            if let label {
+                Text(label).foregroundStyle(dotColor)
+                Text("·").foregroundStyle(Palette.faint)
+            }
+            if let date = post.publishedAt ?? post.scheduledAt ?? post.updatedAt {
+                Text(date.relativeShort).foregroundStyle(Palette.secondary)
+            }
+        }
+        .font(.system(size: 12 * metaUnit, weight: .medium))
+    }
+
+    /// 빈 상태 — 막다른 길 금지(AGENTS 폴리시). 인사 + 또렷한 시작 버튼.
+    private var emptyState: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "square.and.pencil")
+                .font(.system(size: 26))
+                .foregroundStyle(Palette.accent)
+                .frame(width: 68, height: 68)
+                .background(Palette.accent.opacity(0.10), in: Circle())
+            VStack(spacing: 6) {
+                Text(auth.me?.username.map { "\($0) 님의 첫 글" } ?? "첫 글을 시작하세요")
+                    .font(.system(size: 19 * unit, weight: .bold))
+                    .foregroundStyle(Palette.ink)
+                Text("마크다운으로 쓰면 웹과 똑같이 발행됩니다.")
+                    .font(.system(size: 14 * unit))
+                    .foregroundStyle(Palette.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            Button {
+                composing = true
+            } label: {
+                Text("새 글 쓰기")
+                    .font(.system(size: 15 * unit, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 24)
+                    .frame(height: 46)
+                    .background(GlassTokens.prominentTint, in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 2)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 64)
     }
 
     private func load() async {
@@ -230,26 +319,33 @@ struct StudioView: View {
                 NavigationLink(value: Route.series(
                     username: auth.me?.username ?? "", slug: series.slug)
                 ) {
-                    HStack(spacing: 10) {
-                        Image(systemName: "square.stack.3d.up")
-                            .font(.system(size: 14 * unit))
-                            .foregroundStyle(Palette.accentMarker)
-                        Text(series.title)
-                            .font(.system(size: 15 * unit, weight: .medium))
-                            .foregroundStyle(Palette.ink)
-                            .lineLimit(1)
-                        Spacer()
-                        Text("\(series.postCount)편")
-                            .font(.system(size: 13 * unit))
-                            .foregroundStyle(Palette.faint)
+                    HStack(spacing: 12) {
+                        Image(systemName: "square.stack.3d.up.fill")
+                            .font(.system(size: 16 * unit))
+                            .foregroundStyle(Palette.accent)
+                            .frame(width: 40, height: 40)
+                            .background(
+                                Palette.accent.opacity(0.10),
+                                in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(series.title)
+                                .font(.system(size: 15 * unit, weight: .semibold))
+                                .foregroundStyle(Palette.ink)
+                                .lineLimit(1)
+                            Text("\(series.postCount)편")
+                                .font(.system(size: 12 * metaUnit))
+                                .foregroundStyle(Palette.secondary)
+                        }
+                        Spacer(minLength: 0)
                         Image(systemName: "chevron.right")
                             .font(.system(size: 12 * metaUnit, weight: .semibold))
-                            .foregroundStyle(Palette.secondary)
+                            .foregroundStyle(Palette.faint)
                     }
-                    .padding(.vertical, 13)
+                    .padding(.vertical, 11)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(RowButtonStyle())
+                .modifier(QuietAppear(index: index))
                 .disabled((auth.me?.username ?? "").isEmpty)
                 if index < seriesList.count - 1 { Hairline() }
             }
