@@ -111,6 +111,17 @@ enum WriteAPI {
         try await client.get("/series", authenticated: true)
     }
 
+    /// 새 시리즈 생성 후 갱신된 목록을 돌려준다 — 호출측은 방금 만든 slug 로 골라잡는다.
+    /// slug 는 제목에서 파생(유저별 유니크) — 호출측이 충돌 안 나게 토큰을 붙여 넘긴다.
+    @discardableResult
+    static func createSeries(slug: String, title: String) async throws -> [MySeries] {
+        struct Body: Encodable { let slug: String; let title: String }
+        struct Ignored: Decodable {}
+        let _: Ignored = try await client.post(
+            "/series", body: Body(slug: slug, title: title), authenticated: true)
+        return try await mySeries()
+    }
+
     /// 시리즈 멤버십은 전체 교체(PUT postIds) — 지정/해제는 현재 목록을 읽어 더하고 빼서 보낸다.
     static func assign(postId: Int64, from oldSeriesId: Int64?, to newSeriesId: Int64?) async throws {
         guard oldSeriesId != newSeriesId else { return }

@@ -29,7 +29,8 @@ struct ComposeView: View {
     @State private var editorFocused = false
 
     @State private var title = ""
-    @State private var tagsText = ""
+    @State private var tags: [String] = []
+    @State private var tagDraft = ""
     @State private var excerpt = ""
     @State private var markdown = ""
     @State private var postId: Int64?
@@ -49,6 +50,9 @@ struct ComposeView: View {
     @State private var seriesList: [MySeries] = []
     @State private var seriesId: Int64?
     @State private var savedSeriesId: Int64?
+    @State private var showNewSeries = false
+    @State private var newSeriesTitle = ""
+    @State private var creatingSeries = false
 
     // 커버
     @State private var coverUrl: String?
@@ -323,15 +327,7 @@ struct ComposeView: View {
                     }
 
                     sheetField("태그") {
-                        TextField("태그 (쉼표로 구분)", text: $tagsText)
-                            .font(.system(size: 14 * unit))
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
-                            .padding(.horizontal, 13)
-                            .padding(.vertical, 11)
-                            .background(
-                                Palette.chipBg,
-                                in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        TagsField(tags: $tags, draft: $tagDraft)
                     }
 
                     sheetField("소개글") {
@@ -352,6 +348,13 @@ struct ComposeView: View {
                             Button("시리즈 없음") { seriesId = nil }
                             ForEach(seriesList) { series in
                                 Button(series.title) { seriesId = series.id }
+                            }
+                            Divider()
+                            Button {
+                                newSeriesTitle = ""
+                                showNewSeries = true
+                            } label: {
+                                Label("새 시리즈 만들기…", systemImage: "plus")
                             }
                         } label: {
                             HStack(spacing: 6) {
@@ -395,11 +398,11 @@ struct ComposeView: View {
                             .background(GlassTokens.prominentTint, in: Capsule())
                     }
                     .buttonStyle(.plain)
-                    .disabled(!canSave || busy)
+                    .disabled((status != "PUBLISHED" ? !canPublish : !canSave) || busy)
 
                     // 비활성엔 이유를 — 흐린 버튼만 보여주고 침묵하지 않는다.
-                    if !canSave {
-                        Text("제목과 본문을 채우면 발행할 수 있어요.")
+                    if let reason = publishBlockReason {
+                        Text(reason)
                             .font(.system(size: 12 * metaUnit))
                             .foregroundStyle(Palette.secondary)
                     }
@@ -438,6 +441,14 @@ struct ComposeView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("닫기") { showPublish = false }
                 }
+            }
+            .alert("새 시리즈", isPresented: $showNewSeries) {
+                TextField("시리즈 제목", text: $newSeriesTitle)
+                    .textInputAutocapitalization(.never)
+                Button("만들기") { createNewSeries() }
+                Button("취소", role: .cancel) {}
+            } message: {
+                Text("이 글이 들어갈 새 시리즈를 만듭니다. 제목은 나중에 시리즈에서 바꿀 수 있어요.")
             }
         }
     }
@@ -495,14 +506,21 @@ struct ComposeView: View {
             && !markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    private var tags: [String] {
-        tagsText.split(whereSeparator: { $0 == "," || $0 == " " })
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
+    /// 발행은 대표 태그(첫 태그) 1개가 필수 — 초안 저장(canSave)과는 분리한다.
+    private var canPublish: Bool { canSave && !tags.isEmpty }
+
+    /// 발행 버튼이 흐릴 때의 이유 한 줄 — 침묵하지 않는다.
+    private var publishBlockReason: String? {
+        if !canSave { return String(localized: "제목과 본문을 채우면 발행할 수 있어요.") }
+        if status != "PUBLISHED", tags.isEmpty {
+            return String(localized: "대표 태그를 1개 이상 정하면 발행할 수 있어요.")
+        }
+        return nil
     }
 
     private var signature: String {
-        [title, tagsText, excerpt, markdown, seriesId.map(String.init) ?? ""].joined(separator: "\u{1F}")
+        [title, tags.joined(separator: ","), excerpt, markdown, seriesId.map(String.init) ?? ""]
+            .joined(separator: "\u{1F}")
     }
 
     private func loadExisting() async {
@@ -511,7 +529,7 @@ struct ComposeView: View {
         seriesList = (try? await WriteAPI.mySeries()) ?? []
         guard let post = existing else { return }
         title = post.title
-        tagsText = (post.tags ?? []).joined(separator: ", ")
+        tags = post.tags ?? []
         excerpt = post.excerpt ?? ""
         coverUrl = post.ogImageUrl
         seriesId = post.seriesId
@@ -665,6 +683,40 @@ struct ComposeView: View {
                 errorMessage = error.localizedDescription
             }
         }
+    }
+
+    // MARK: 새 시리즈
+
+    /// 발행 폼에서 새 시리즈를 만들고 곧장 이 글에 지정한다. slug 는 제목에서 파생.
+    private func createNewSeries() {
+        let title = newSeriesTitle.trimmingCharacters(in: .whitespaces)
+        guard !title.isEmpty, !creatingSeries else { return }
+        creatingSeries = true
+        Task {
+            defer { creatingSeries = false }
+            do {
+                let slug = makeSeriesSlug(from: title)
+                let list = try await WriteAPI.createSeries(slug: slug, title: title)
+                seriesList = list
+                seriesId = (list.first { $0.slug == slug } ?? list.first { $0.title == title })?.id
+                newSeriesTitle = ""
+            } catch {
+                ToastCenter.shared.show(String(localized: "시리즈를 만들지 못했습니다"))
+            }
+        }
+    }
+
+    /// 제목 → 유저별 유니크 slug. ASCII 영숫자만 남기고(한글은 떨궈) 짧은 토큰을 붙여 충돌 회피.
+    private func makeSeriesSlug(from title: String) -> String {
+        let mapped = title.lowercased().unicodeScalars.map {
+            ($0.isASCII && CharacterSet.alphanumerics.contains($0)) ? Character($0) : "-"
+        }
+        var base = String(mapped)
+        while base.contains("--") { base = base.replacingOccurrences(of: "--", with: "-") }
+        base = base.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+        if base.count < 2 { base = "series" }
+        let token = String(Int.random(in: 1_000_000...9_999_999), radix: 36)
+        return "\(base.prefix(40))-\(token)"
     }
 
     // MARK: 마크다운 스니펫 삽입 — 커서/선택 기준
@@ -880,6 +932,146 @@ private struct RevisionsSheet: View {
             } catch {
                 // 복원 실패 — 시트는 열어두고 버튼만 다시 살린다.
             }
+        }
+    }
+}
+
+/// 대표 태그 칩 에디터 — 입력해서 칩으로 쌓고, 첫 칩이 "대표"(카드·글 위 카테고리).
+/// 비대표 칩을 탭하면 대표로 끌어올리고, ✕ 로 지운다. 발행은 대표 1개가 필수.
+private struct TagsField: View {
+    @Binding var tags: [String]
+    @Binding var draft: String
+    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+    @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                TextField("태그 입력 후 추가 (쉼표로 여러 개)", text: $draft)
+                    .font(.system(size: 14 * unit))
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .submitLabel(.done)
+                    .onSubmit { commit() }
+                    .onChange(of: draft) { _, value in
+                        if value.contains(",") { commit() } // 쉼표 입력 즉시 칩으로.
+                    }
+                Button { commit() } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 20 * unit))
+                        .foregroundStyle(isDraftEmpty ? Palette.faint : Palette.accent)
+                }
+                .buttonStyle(.plain)
+                .disabled(isDraftEmpty)
+                .accessibilityLabel(Text("태그 추가"))
+            }
+            .padding(.horizontal, 13)
+            .padding(.vertical, 11)
+            .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+            if tags.isEmpty {
+                Text("첫 번째 태그가 대표 — 카드·글 위에 카테고리로 보입니다. (발행 시 1개 필수)")
+                    .font(.system(size: 12 * metaUnit))
+                    .foregroundStyle(Palette.secondary)
+            } else {
+                FlowLayout(spacing: 8) {
+                    ForEach(Array(tags.enumerated()), id: \.element) { index, tag in
+                        chip(tag, isPrimary: index == 0)
+                    }
+                }
+                Text("탭하면 대표로 · ✕ 로 삭제")
+                    .font(.system(size: 11 * metaUnit))
+                    .foregroundStyle(Palette.faint)
+            }
+        }
+    }
+
+    private func chip(_ tag: String, isPrimary: Bool) -> some View {
+        HStack(spacing: 5) {
+            if isPrimary {
+                Text("대표")
+                    .font(.system(size: 10 * metaUnit, weight: .bold))
+                    .opacity(0.9)
+            }
+            Button {
+                promote(tag)
+            } label: {
+                Text(tag).font(.system(size: 13 * unit, weight: .medium))
+            }
+            .buttonStyle(.plain)
+            .disabled(isPrimary)
+            .accessibilityLabel(Text(isPrimary ? "대표 태그 \(tag)" : "\(tag) — 대표로 지정"))
+
+            Button {
+                tags.removeAll { $0 == tag }
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 9 * metaUnit, weight: .bold))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("\(tag) 삭제"))
+        }
+        .foregroundStyle(isPrimary ? AnyShapeStyle(.white) : AnyShapeStyle(Palette.chipText))
+        .padding(.leading, isPrimary ? 9 : 11)
+        .padding(.trailing, 8)
+        .padding(.vertical, 6)
+        .background(
+            isPrimary ? AnyShapeStyle(Palette.accentFill) : AnyShapeStyle(Palette.chipBg),
+            in: Capsule())
+    }
+
+    private var isDraftEmpty: Bool {
+        draft.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    private func commit() {
+        let parts = draft
+            .split(whereSeparator: { $0 == "," })
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        for part in parts where !tags.contains(where: { $0.caseInsensitiveCompare(part) == .orderedSame }) {
+            tags.append(part)
+        }
+        draft = ""
+    }
+
+    private func promote(_ tag: String) {
+        guard let index = tags.firstIndex(of: tag), index != 0 else { return }
+        tags.remove(at: index)
+        tags.insert(tag, at: 0)
+    }
+}
+
+/// 칩이 줄을 넘기면 다음 줄로 흐르는 단순 flow 레이아웃(iOS 16+ Layout).
+private struct FlowLayout: Layout {
+    var spacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        var x: CGFloat = 0, y: CGFloat = 0, rowHeight: CGFloat = 0
+        for sub in subviews {
+            let size = sub.sizeThatFits(.unspecified)
+            if x + size.width > maxWidth, x > 0 {
+                x = 0; y += rowHeight + spacing; rowHeight = 0
+            }
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+        return CGSize(width: proposal.width ?? x, height: y + rowHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let maxWidth = bounds.width
+        var x: CGFloat = 0, y: CGFloat = 0, rowHeight: CGFloat = 0
+        for sub in subviews {
+            let size = sub.sizeThatFits(.unspecified)
+            if x + size.width > maxWidth, x > 0 {
+                x = 0; y += rowHeight + spacing; rowHeight = 0
+            }
+            sub.place(at: CGPoint(x: bounds.minX + x, y: bounds.minY + y),
+                      anchor: .topLeading, proposal: ProposedViewSize(size))
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
         }
     }
 }
