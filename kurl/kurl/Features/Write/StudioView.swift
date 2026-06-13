@@ -24,6 +24,8 @@ struct StudioView: View {
     @State private var seriesLoaded = false
     @State private var composing = false
     @State private var editing: MyPost?
+    /// 방금 발행한 글 — 셀레브레이션 "글 보기" 가 에디터를 닫고 여기로 이어 보낸다(라이브 상세).
+    @State private var justPublished: PublishedRef?
     @State private var isSigningIn = false
     @State private var showTwoFactorHint = false
     @State private var appleNonce = ""
@@ -62,10 +64,14 @@ struct StudioView: View {
                 }
             }
             .navigationDestination(isPresented: $composing) {
-                ComposeView(post: nil) { reloadSoon() }
+                ComposeView(post: nil, onSaved: { reloadSoon() }, onOpenPublished: openPublished)
             }
             .navigationDestination(item: $editing) { post in
-                ComposeView(post: post) { reloadSoon() }
+                ComposeView(post: post, onSaved: { reloadSoon() }, onOpenPublished: openPublished)
+            }
+            // 발행 직후 "글 보기" — 에디터가 닫히면 그 자리로 라이브 상세를 띄운다(뒤로 = 스튜디오).
+            .navigationDestination(item: $justPublished) { ref in
+                PostDetailView(username: ref.username, slug: ref.slug)
             }
             .navigationDestination(for: Route.self) { RouteView(route: $0) }
             .onAppear {
@@ -275,6 +281,17 @@ struct StudioView: View {
         Task { await load() }
     }
 
+    /// 에디터가 "글 보기"로 닫혔다 — 목록을 새로고침하고, 에디터 pop 직후 라이브 상세를 띄운다.
+    private func openPublished(slug: String) {
+        guard let username = auth.me?.username else { return }
+        reloadSoon()
+        // 에디터 pop 애니메이션과 겹치지 않게 한 박자 뒤 푸시(뒤로 = 스튜디오).
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(380))
+            justPublished = PublishedRef(username: username, slug: slug)
+        }
+    }
+
     // MARK: 시리즈
 
     private var seriesSection: some View {
@@ -398,6 +415,13 @@ struct StudioView: View {
             }
         }
     }
+}
+
+/// 발행 직후 "글 보기"로 띄울 라이브 글 참조 — navigationDestination(item:) 키.
+struct PublishedRef: Hashable, Identifiable {
+    let username: String
+    let slug: String
+    var id: String { "\(username)/\(slug)" }
 }
 
 /// 스튜디오 3분면 — 웹 /write 의 글·시리즈·분석을 그대로 옮긴 구도.
