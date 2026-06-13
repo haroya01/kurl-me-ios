@@ -160,16 +160,27 @@ struct AuthorBlogView: View {
             .padding(.bottom, 18)
         }
 
-        RailHeading("글").padding(.bottom, 6)
-        Hairline()
-        ForEach(Array(view.posts.enumerated()), id: \.element.id) { index, post in
-            NavigationLink(value: Route.post(username: username, slug: post.slug)) {
-                PostRow(item: post)
+        RailHeading("글").padding(.bottom, 10)
+        // 작가 글 목록도 카드로 — 피드·검색과 같은 BlogCard. 단 작가 자기 페이지라
+        // 아바타·이름은 숨긴다(showsAuthor=false): 날짜·좋아요만.
+        LazyVStack(spacing: 16) {
+            ForEach(Array(view.posts.enumerated()), id: \.element.id) { index, post in
+                NavigationLink(value: Route.post(username: username, slug: post.slug)) {
+                    BlogCard(item: feedItem(from: post, author: view.author), showsAuthor: false)
+                }
+                .buttonStyle(CardButtonStyle())
+                .modifier(QuietAppear(index: index))
             }
-            .buttonStyle(RowButtonStyle())
-            if index < view.posts.count - 1 { Hairline() }
         }
         Color.clear.frame(height: 40)
+    }
+
+    /// PostListItem → FeedItem(카드용). 작가는 이 페이지의 작가로 채운다.
+    private func feedItem(from p: PostListItem, author: Author) -> FeedItem {
+        FeedItem(
+            id: p.id, author: author, slug: p.slug, title: p.title, excerpt: p.excerpt,
+            ogImageUrl: p.ogImageUrl, languageTag: p.languageTag, tags: p.tags,
+            publishedAt: p.publishedAt, viewCount: 0, likeCount: p.likeCount)
     }
 
     private func load() async {

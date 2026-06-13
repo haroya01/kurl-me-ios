@@ -17,6 +17,8 @@ import SwiftUI
 struct BlogCard: View {
     let item: FeedItem
     var featured = false
+    /// 작가 자기 페이지 등 작가가 자명한 맥락에선 아바타·이름을 숨긴다(날짜·좋아요만).
+    var showsAuthor = true
 
     @ScaledMetric(relativeTo: .headline) private var titleUnit: CGFloat = 1
     @Environment(\.colorScheme) private var colorScheme
@@ -89,7 +91,7 @@ struct BlogCard: View {
                         .lineLimit(3)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
-                    CardMeta(item: item, over: true)
+                    CardMeta(item: item, over: true, showsAuthor: showsAuthor)
                 }
                 .padding(14)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -137,7 +139,7 @@ struct BlogCard: View {
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            CardMeta(item: item, over: false)
+            CardMeta(item: item, over: false, showsAuthor: showsAuthor)
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -181,20 +183,23 @@ private struct FeaturedBadge: View {
 private struct CardMeta: View {
     let item: FeedItem
     let over: Bool
+    var showsAuthor = true
 
     var body: some View {
         HStack(spacing: 6) {
-            AvatarView(author: item.author, size: 16)
-            Text(item.author.username)
-                .fontWeight(.medium)
-                .lineLimit(1)
+            if showsAuthor {
+                AvatarView(author: item.author, size: 16)
+                Text(item.author.username)
+                    .fontWeight(.medium)
+                    .lineLimit(1)
+            }
             if let date = item.publishedAt {
-                Text("·").foregroundStyle(dim)
+                if showsAuthor { Text("·").foregroundStyle(dim) }
                 // browse 면 시간 문법 통일 — 행·허브와 같은 상대시간(상세만 절대 날짜).
                 Text(date.relativeShort)
             }
             if item.likeCount > 0 {
-                Text("·").foregroundStyle(dim)
+                if showsAuthor || item.publishedAt != nil { Text("·").foregroundStyle(dim) }
                 HStack(spacing: 3) {
                     Image(systemName: "heart")
                         .font(.system(size: 10))

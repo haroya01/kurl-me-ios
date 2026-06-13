@@ -121,13 +121,17 @@ struct LikedPostsView: View {
                 }
                     .padding(.top, 60)
             } else {
-                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                    NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
-                        FeedRow(item: item)
+                // 좋아요한 글 = 내 컬렉션(북마크와 한 결) — 카드로. browse·검색과 같은 BlogCard.
+                LazyVStack(spacing: 16) {
+                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                        NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
+                            BlogCard(item: item)
+                        }
+                        .buttonStyle(CardButtonStyle())
+                        .modifier(QuietAppear(index: index))
                     }
-                    .buttonStyle(RowButtonStyle())
-                    if index < items.count - 1 { Hairline() }
                 }
+                .padding(.vertical, 16)
             }
         }
         .navigationTitle("좋아요한 글")
