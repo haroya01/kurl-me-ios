@@ -14,15 +14,18 @@ struct TagFeedView: View {
     @State private var page = 0
     @State private var hasNext = false
     @State private var loadingMore = false
+    @State private var showNavTitle = false
     @Namespace private var zoomNS
 
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 16) {
+                // 태그 마스트헤드 — 시리즈 랜딩과 같은 결(eyebrow + 큰 #태그). 로딩부터 떠 있는다.
+                masthead
                 switch phase {
                 case .idle, .loading:
                     ProgressView().tint(Palette.accent)
-                        .frame(maxWidth: .infinity, minHeight: 320)
+                        .frame(maxWidth: .infinity, minHeight: 280)
                 case .failed(let message):
                     ContentUnavailableView {
                         Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
@@ -32,10 +35,10 @@ struct TagFeedView: View {
                         Button("다시 시도") { Task { await load() } }
                             .foregroundStyle(Palette.accent)
                     }
-                    .padding(.top, 80)
+                    .padding(.top, 60)
                 case .loaded(let items):
                     if items.isEmpty {
-                        ContentUnavailableView("글이 없습니다", systemImage: "tray").padding(.top, 80)
+                        ContentUnavailableView("글이 없습니다", systemImage: "tray").padding(.top, 60)
                     }
                     // 태그 피드도 browse 면 — 검색·홈과 같은 카드 문법(웹 §10.1 예외 경계).
                     ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
@@ -60,7 +63,7 @@ struct TagFeedView: View {
                     }
                 }
             }
-            .padding(.vertical, 16)
+            .padding(.bottom, 16)
             .frame(maxWidth: Metrics.readingColumn)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, Metrics.gutter)
@@ -68,10 +71,38 @@ struct TagFeedView: View {
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
         .background(Palette.pageBg)
-        .navigationTitle("#\(tag)")
+        // 마스트헤드를 지나면 태그 이름이 내비바로 스민다(읽기 앱 문법) — 상단 중복 제거.
+        .onScrollGeometryChange(for: Bool.self) { geometry in
+            geometry.contentOffset.y + geometry.contentInsets.top > 56
+        } action: { _, passed in
+            withAnimation(.easeInOut(duration: 0.18)) { showNavTitle = passed }
+        }
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text("#\(tag)")
+                    .font(.system(size: 16, weight: .semibold))
+                    .opacity(showNavTitle ? 1 : 0)
+            }
+        }
+        .toolbarBackground(showNavTitle ? .automatic : .hidden, for: .navigationBar)
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
+    }
+
+    /// 태그 머리 — "태그" eyebrow + #태그 디스플레이 제목. 페이지의 단일 히어로.
+    private var masthead: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            RailHeading("태그")
+            Text("#\(tag)")
+                .typeScale(.display)
+                .foregroundStyle(Palette.ink)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 8)
+        .padding(.bottom, 2)
     }
 
     private func load() async {
