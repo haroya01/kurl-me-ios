@@ -583,22 +583,27 @@ struct PostDetailView: View {
         .cardShadow()
     }
 
-    /// 커버 없는 글의 종이 플레이스홀더 — slate 그라데이션 위 옅은 문서 마크(장식 일러스트 ❌).
+    /// 커버 없는 글의 플레이스홀더 — 빈 칸 대신 브랜드 그라데이션 위에 옅은 kurl 마크를 띄운다.
+    /// 태그가 있으면 좌상단에 작은 칩으로(맥락), 마크는 면을 채우는 워터마크로.
     private func otherPostCover(_ post: PostListItem) -> some View {
         ZStack {
             LinearGradient(
-                colors: [Palette.chipBg, Palette.hairline],
+                colors: [Palette.accent.opacity(0.22), Palette.accent.opacity(0.07)],
                 startPoint: .topLeading, endPoint: .bottomTrailing)
+            KurlMark(drawn: [true, true, true])
+                .frame(width: 64, height: 38)
+                .opacity(0.65)
+        }
+        .overlay(alignment: .topLeading) {
             if let tag = post.tags.first {
                 Text("#\(tag)")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Palette.faint)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Palette.secondary)
                     .lineLimit(1)
-                    .padding(.horizontal, 12)
-            } else {
-                Image(systemName: "doc.text")
-                    .font(.system(size: 20, weight: .light))
-                    .foregroundStyle(Palette.faint)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .padding(10)
             }
         }
     }
