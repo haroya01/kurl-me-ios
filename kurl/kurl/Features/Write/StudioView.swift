@@ -39,6 +39,22 @@ struct StudioView: View {
             }
             .navigationTitle("글쓰기")
             .navigationBarTitleDisplayMode(.inline)
+            // 새 글 = 헤더의 prominent 유리 버튼 — 떠다니는 FAB 대신 콘텐츠를 안 가리고
+            // 모든 분면에서 늘 같은 자리(컴포즈 툴바의 발행과 같은 .glassProminent 문법).
+            .toolbar {
+                if auth.isSignedIn {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button {
+                            composing = true
+                        } label: {
+                            Label("새 글", systemImage: "square.and.pencil")
+                        }
+                        .buttonStyle(.glassProminent)
+                        .tint(GlassTokens.prominentTint)
+                        .accessibilityLabel(Text("새 글 쓰기"))
+                    }
+                }
+            }
             .navigationDestination(isPresented: $composing) {
                 ComposeView(post: nil) { reloadSoon() }
             }
@@ -80,14 +96,6 @@ struct StudioView: View {
             GlassSegmentSwitcher(items: StudioSection.allCases, selection: $section) { $0.label }
                 .padding(.top, 2)
                 .padding(.bottom, 8)
-        }
-        // 새 글은 분면과 무관한 스튜디오의 주행동 — 항상 떠 있다.
-        .overlay(alignment: .bottomTrailing) {
-            GlassFAB(systemImage: "square.and.pencil", label: "새 글") {
-                composing = true
-            }
-            .padding(.trailing, 20)
-            .padding(.bottom, 12)
         }
     }
 
@@ -164,7 +172,7 @@ struct StudioView: View {
             .modifier(QuietAppear(index: index))
             if index < filtered.count - 1 { Hairline() }
         }
-        Color.clear.frame(height: 80) // FAB 가 마지막 행을 가리지 않게.
+        Color.clear.frame(height: 40) // 탭바 최소화 여백.
     }
 
     /// 스튜디오 정체성 — 아바타·이름·산출물 한 줄. "내 작업실"이라는 감각을 준다.
