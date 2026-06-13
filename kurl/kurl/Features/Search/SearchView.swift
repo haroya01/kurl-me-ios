@@ -13,6 +13,7 @@ struct SearchView: View {
     @State private var searchTask: Task<Void, Never>?
     @Namespace private var zoomNS
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
 
     // 페이지네이션 — 결과 30개에서 끊기지 않게. generation 은 새 검색이 시작되면
     // 비행 중인 다음-페이지 응답을 버리는 스테일 가드.
@@ -114,6 +115,16 @@ struct SearchView: View {
                                             Palette.cardBg,
                                             in: RoundedRectangle(
                                                 cornerRadius: Metrics.radiusMini, style: .continuous))
+                                        // 흰 카드가 slate-50 위에서 안 보였다 — 다른 카드처럼
+                                        // 그림자(라이트)·보더(다크)로 면을 들어 올린다.
+                                        .overlay {
+                                            if colorScheme == .dark {
+                                                RoundedRectangle(
+                                                    cornerRadius: Metrics.radiusMini, style: .continuous)
+                                                    .strokeBorder(Palette.cardBorder, lineWidth: 1)
+                                            }
+                                        }
+                                        .cardShadow()
                                         .contentShape(Rectangle())
                                     }
                                     .buttonStyle(CardButtonStyle())
@@ -127,7 +138,9 @@ struct SearchView: View {
                                     .modifier(CardScrollFade(axis: .horizontal))
                                 }
                             }
+                            .padding(.vertical, 6) // 카드 그림자가 레일에서 안 잘리게.
                         }
+                        .scrollClipDisabled()
                     }
                 }
 
