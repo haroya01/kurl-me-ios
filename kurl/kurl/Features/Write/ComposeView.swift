@@ -130,10 +130,12 @@ struct ComposeView: View {
                 Task { await save(publish: false) }
             }
         }
-        .sheet(
+        // 발행 준비 = 바텀 시트가 아니라 전체 화면 폼 — 짧은 시트에서 폼이 잘리고 하단
+        // 버튼에 눌려 답답했다. 풀스크린이라 필드가 여유 있게 선다.
+        .fullScreenCover(
             isPresented: $showPublish,
             onDismiss: {
-                // 시트 위 시트를 피한다 — 예약·미리보기는 발행 시트가 닫힌 뒤 이어서 띄운다.
+                // 화면 위 시트를 피한다 — 예약·미리보기는 발행 폼이 닫힌 뒤 이어서 띄운다.
                 if scheduleNext {
                     scheduleNext = false
                     showSchedule = true
@@ -286,20 +288,20 @@ struct ComposeView: View {
                                 .frame(maxWidth: .infinity)
                                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                             } else {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "photo")
-                                        .font(.system(size: 13 * unit))
-                                    Text("커버 추가")
+                                // 흐린 점선 + 가운데 텍스트가 "안 불러와진" 것처럼 보였다 —
+                                // 채워진 타일 + 또렷한 심볼로 누를 자리를 분명히 한다.
+                                VStack(spacing: 8) {
+                                    Image(systemName: "photo.badge.plus")
+                                        .font(.system(size: 24 * unit, weight: .regular))
+                                    Text("커버 이미지 추가")
                                         .font(.system(size: 14 * unit, weight: .medium))
                                 }
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Palette.secondary)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 64)
+                                .frame(height: 108)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                        .strokeBorder(
-                                            Palette.hairlineStrong,
-                                            style: StrokeStyle(lineWidth: 1, dash: [5, 4])))
+                                    Palette.chipBg,
+                                    in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                                 .contentShape(Rectangle())
                             }
                         }
@@ -423,7 +425,6 @@ struct ComposeView: View {
                 }
             }
         }
-        .presentationDetents([.medium, .large])
     }
 
     /// 시트 필드 한 단 — 작은 라벨 + 컨트롤.
