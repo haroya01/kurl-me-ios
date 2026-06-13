@@ -208,13 +208,18 @@ struct FeedView: View {
                     dragX = 0
                     return
                 }
-                // 인접 페이지가 중앙까지 미끄러진 뒤(완료) 선택을 바꾸고 오프셋을 0 으로 —
-                // 주차 위치가 연속이라 시각적 점프 없이 매끄럽게 안착한다.
+                // 인접 페이지가 중앙까지 미끄러진 뒤(완료) 선택을 바꾸고 오프셋을 0 으로.
+                // 스왑은 애니메이션 없이 한 트랜잭션으로 — 안 그러면 selection 은 애니메이트되고
+                // dragX 는 즉시라 둘이 어긋나는 한 프레임에 옛 페이지가 중앙으로 튀어 깜빡인다.
                 withAnimation(.snappy(duration: 0.28)) {
                     dragX = dx < 0 ? -containerWidth : containerWidth
                 } completion: {
-                    selection = newTab
-                    dragX = 0
+                    var t = Transaction()
+                    t.disablesAnimations = true
+                    withTransaction(t) {
+                        selection = newTab
+                        dragX = 0
+                    }
                 }
             }
     }
