@@ -179,6 +179,7 @@ struct StudioView: View {
                 statusEyebrow(post)
                 Text(post.title)
                     .font(.system(size: 18, weight: .semibold))
+                    .tracking(-0.3) // 앱 전체 제목 보이스 통일
                     .foregroundStyle(Palette.ink)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
