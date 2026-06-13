@@ -57,6 +57,8 @@ struct SearchView: View {
             }
             // 스택 안쪽에 부착 — 바깥이면 push 된 글 상세에도 검색바가 남는다.
             .searchable(text: $query, prompt: "글 검색")
+            // 태그·작가 갈래는 결과에서도 쓰므로 phase 와 무관하게 한 번 받아 둔다.
+            .task { await loadDiscovery() }
         }
         .onChange(of: query) { _, newValue in scheduleSearch(newValue) }
         .onChange(of: recents) { SearchRecents.save(recents) }
@@ -239,7 +241,6 @@ struct SearchView: View {
         }
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
-        .task { await loadDiscovery() }
     }
 
     private func loadDiscovery() async {
@@ -255,28 +256,100 @@ struct SearchView: View {
         }
     }
 
+    /// 검색어와 겹치는 인기 태그 — 결과를 "태그 / 작가 / 글" 갈래로 보여주기 위한 얕은 매칭
+    /// (이미 받아 둔 인기 세트 안에서만 — 전수 검색은 백엔드 몫).
+    private var matchedTags: [TagCount] {
+        guard !activeQuery.isEmpty else { return [] }
+        return popularTags.filter { $0.tag.localizedCaseInsensitiveContains(activeQuery) }
+    }
+
+    /// 검색어와 겹치는 추천 작가(이름/소개).
+    private var matchedAuthors: [SuggestedAuthor] {
+        guard !activeQuery.isEmpty else { return [] }
+        return suggestedAuthors.filter {
+            $0.author.username.localizedCaseInsensitiveContains(activeQuery)
+                || ($0.author.bio?.localizedCaseInsensitiveContains(activeQuery) ?? false)
+        }
+    }
+
     @ViewBuilder
     private func results(_ items: [FeedItem]) -> some View {
-        if items.isEmpty {
+        let tags = matchedTags
+        let authors = matchedAuthors
+        if items.isEmpty, tags.isEmpty, authors.isEmpty {
             ContentUnavailableView.search(text: query)
         } else {
             // 검색도 browse 면 — 피드와 같은 카드 문법(웹 §10.1 예외와 동일 경계).
+            // 결과는 태그 → 작가 → 글 갈래로. 다른 갈래가 있을 때만 "글" 라벨을 붙인다.
+            let labelled = !tags.isEmpty || !authors.isEmpty
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 16) {
-                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                        NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
-                            BlogCard(item: item)
+                    if !tags.isEmpty {
+                        VStack(alignment: .leading, spacing: 10) {
+                            RailHeading("태그")
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    ForEach(tags) { tag in
+                                        NavigationLink(value: Route.tag(tag.tag)) {
+                                            MutedChip(text: "#\(tag.tag)")
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                            }
                         }
-                        .buttonStyle(CardButtonStyle())
-                        .cardQuickActions(item)
-                        .modifier(ZoomSource(
-                            active: true,
-                            id: "search-\(item.author.username)-\(item.slug)",
-                            ns: zoomNS))
-                        .modifier(QuietAppear(index: index))
-                        .modifier(CardScrollFade())
-                        .task {
-                            if index >= items.count - 5 { await loadMore() }
+                    }
+                    if !authors.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            RailHeading("작가")
+                            ForEach(authors) { suggestion in
+                                NavigationLink(
+                                    value: Route.author(username: suggestion.author.username)
+                                ) {
+                                    HStack(spacing: 11) {
+                                        AvatarView(author: suggestion.author, size: 42)
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(suggestion.author.username)
+                                                .font(.system(size: 15, weight: .semibold))
+                                                .foregroundStyle(Palette.ink)
+                                            if let bio = suggestion.author.bio, !bio.isEmpty {
+                                                Text(bio)
+                                                    .font(.system(size: 13))
+                                                    .foregroundStyle(Palette.secondary)
+                                                    .lineLimit(1)
+                                            }
+                                        }
+                                        Spacer()
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: 11, weight: .semibold))
+                                            .foregroundStyle(Palette.faint)
+                                    }
+                                    .padding(.vertical, 9)
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(RowButtonStyle())
+                            }
+                        }
+                    }
+                    if !items.isEmpty {
+                        if labelled {
+                            RailHeading("글").padding(.top, tags.isEmpty && authors.isEmpty ? 0 : 4)
+                        }
+                        ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                            NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
+                                BlogCard(item: item)
+                            }
+                            .buttonStyle(CardButtonStyle())
+                            .cardQuickActions(item)
+                            .modifier(ZoomSource(
+                                active: true,
+                                id: "search-\(item.author.username)-\(item.slug)",
+                                ns: zoomNS))
+                            .modifier(QuietAppear(index: index))
+                            .modifier(CardScrollFade())
+                            .task {
+                                if index >= items.count - 5 { await loadMore() }
+                            }
                         }
                     }
                     if loadingMore {
