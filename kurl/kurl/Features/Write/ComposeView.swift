@@ -44,6 +44,9 @@ struct ComposeView: View {
     @State private var publishCelebration = 0
     /// 발행 성공 모먼트(전체화면 블룸) 표시.
     @State private var celebrating = false
+    /// 예약 발행 모먼트 = 같은 마크 환호지만 "예약되었습니다" + 발행 예정 시각, "글 보기"는 없음(아직 비공개).
+    @State private var celebrationIsSchedule = false
+    @State private var celebrationSubtitle: String?
     @State private var errorMessage: String?
     @State private var loaded = false
     @State private var lastSavedSignature: String?
@@ -414,11 +417,14 @@ struct ComposeView: View {
             .overlay {
                 if celebrating {
                     PublishCelebrationView(
-                        onView: publishedSlug.map { slug in
+                        title: celebrationIsSchedule ? "예약되었습니다" : "발행되었습니다",
+                        subtitle: celebrationSubtitle,
+                        onView: celebrationIsSchedule ? nil : publishedSlug.map { slug in
                             { showPublish = false; dismiss(); onOpenPublished?(slug) }
                         }
                     ) {
-                        ToastCenter.shared.show(String(localized: "발행되었습니다"))
+                        ToastCenter.shared.show(
+                            String(localized: celebrationIsSchedule ? "예약되었습니다" : "발행되었습니다"))
                         showPublish = false
                         dismiss()
                     }
@@ -762,6 +768,8 @@ struct ComposeView: View {
             if publish {
                 // 이 앱 최대의 순간 — 전체화면 모먼트(그린 블룸 + 햅틱 시퀀스)로 받는다.
                 // 토스트·dismiss 는 모먼트가 끝난 뒤 onDone 에서.
+                celebrationIsSchedule = false
+                celebrationSubtitle = nil
                 celebrating = true
             }
         } catch {
@@ -821,11 +829,13 @@ struct ComposeView: View {
         do {
             let scheduled = try await WriteAPI.schedule(postId: postId, at: scheduleDate)
             status = scheduled.status
-            showSchedule = false
             onSaved()
             publishCelebration += 1
-            ToastCenter.shared.show(String(localized: "예약되었습니다"))
-            dismiss()
+            // 예약도 발행과 같은 마크 환호로 — 보조줄에 발행 예정 시각, "글 보기"는 없음.
+            celebrationIsSchedule = true
+            celebrationSubtitle = String(localized: "\(scheduleSummary) 발행 예정")
+            showSchedule = false
+            celebrating = true
         } catch {
             // 시트가 떠 있는 동안 본체 알럿은 가려진다 — 시트 안에서 보여준다.
             scheduleError = error.localizedDescription
@@ -1248,6 +1258,9 @@ private struct FlowLayout: Layout {
 /// 발행 성공 모먼트 — "조용한 웹로그"의 절제 안에서 허락하는 한 번의 환호.
 /// 그린 블룸(컨페티) + 체크 + 햅틱 시퀀스. reduce-motion 이면 정적 체크만 띄운다.
 private struct PublishCelebrationView: View {
+    /// 발행=「발행되었습니다」, 예약=「예약되었습니다」. 보조줄(예약 시각 등)은 있을 때만.
+    var title: LocalizedStringKey = "발행되었습니다"
+    var subtitle: String? = nil
     /// "글 보기" 한 틱 — 있으면 버튼을 띄우고 자동 닫힘을 늦춘다(탭할 시간을 준다).
     var onView: (() -> Void)? = nil
     let onDone: () -> Void
@@ -1282,14 +1295,20 @@ private struct PublishCelebrationView: View {
                     }
                     .scaleEffect(marked ? 1 : 0.4)
                     .opacity(marked ? 1 : 0)
-                    Text("발행되었습니다")
-                        .font(.system(size: 19, weight: .bold))
-                        .foregroundStyle(Palette.ink)
-                        .opacity(marked ? 1 : 0)
+                    VStack(spacing: 5) {
+                        Text(title)
+                            .font(.system(size: 19, weight: .bold))
+                            .foregroundStyle(Palette.ink)
+                        if let subtitle {
+                            Text(subtitle)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(Palette.secondary)
+                        }
+                    }
+                    .opacity(marked ? 1 : 0)
                 }
                 // 마크+문구만 한 덩어리로 읽고, "글 보기"는 별도 동작 요소로 남긴다(VoiceOver).
                 .accessibilityElement(children: .combine)
-                .accessibilityLabel(Text("발행되었습니다"))
                 if let onView {
                     Button {
                         guard !handled else { return }
