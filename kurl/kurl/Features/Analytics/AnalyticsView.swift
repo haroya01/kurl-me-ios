@@ -247,17 +247,16 @@ struct AnalyticsView: View {
                 Button {
                     selectedPost = row
                 } label: {
-                    HStack(alignment: .firstTextBaseline, spacing: 10) {
-                        Text("\(index + 1)")
-                            .font(.system(size: 13 * unit, weight: .bold).monospacedDigit())
-                            .foregroundStyle(index < 3 ? Palette.link : Palette.secondary)
-                            .frame(width: 20 * unit, alignment: .leading)
-                        VStack(alignment: .leading, spacing: 3) {
+                    // 정규 "글 행" 언어 — 순위 숫자 column 을 빼고(순서·지표값이 곧 순위)
+                    // 제목 18 + 메타 카운트로 스튜디오·작가 목록과 한 결.
+                    HStack(alignment: .top, spacing: 14) {
+                        VStack(alignment: .leading, spacing: 6) {
                             Text(row.title)
-                                .font(.system(size: 15 * unit, weight: .medium))
+                                .font(.system(size: 18, weight: .semibold))
                                 .foregroundStyle(Palette.ink)
-                                .lineLimit(1)
+                                .lineLimit(2)
                                 .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
                             HStack(spacing: 10) {
                                 metaCount("eye", row.viewCount)
                                 metaCount("heart", row.likeCount)
@@ -270,8 +269,9 @@ struct AnalyticsView: View {
                         Image(systemName: "chevron.right")
                             .font(.system(size: 11 * metaUnit, weight: .semibold))
                             .foregroundStyle(Palette.faint)
+                            .padding(.top, 4)
                     }
-                    .padding(.vertical, 9)
+                    .padding(.vertical, 16)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(RowButtonStyle())
