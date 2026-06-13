@@ -1241,6 +1241,8 @@ private struct PublishCelebrationView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var bloom = false
     @State private var marked = false
+    /// 발행 순간의 서명 — 브랜드 마크가 스플래시처럼 줄별로 그려진다(체크 대신).
+    @State private var barsDrawn = [false, false, false]
 
     var body: some View {
         ZStack {
@@ -1257,9 +1259,9 @@ private struct PublishCelebrationView: View {
                         .fill(Palette.accentFill)
                         .frame(width: 84, height: 84)
                         .shadow(color: Palette.accent.opacity(0.35), radius: 16, y: 6)
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 36, weight: .bold))
-                        .foregroundStyle(.white)
+                    // 흰 3-bar 마크 — 그린 원판 위에서 줄별로 왼쪽부터 그어진다.
+                    KurlMark(drawn: barsDrawn, tint: .white)
+                        .frame(width: 40, height: 24)
                 }
                 .scaleEffect(marked ? 1 : 0.4)
                 .opacity(marked ? 1 : 0)
@@ -1273,12 +1275,20 @@ private struct PublishCelebrationView: View {
             withAnimation(
                 reduceMotion ? .easeOut(duration: 0.2) : .spring(response: 0.5, dampingFraction: 0.6)
             ) { marked = true }
-            if !reduceMotion {
+            if reduceMotion {
+                barsDrawn = [true, true, true]
+            } else {
                 withAnimation(.easeOut(duration: 1.0)) { bloom = true }
+                // 원판이 솟은 뒤 줄별 스태거 — 스플래시 warp 의 타이밍을 그대로.
+                for i in 0..<3 {
+                    withAnimation(
+                        .timingCurve(0.22, 1, 0.36, 1, duration: 0.26).delay(0.22 + Double(i) * 0.1)
+                    ) { barsDrawn[i] = true }
+                }
             }
             playHaptics()
             Task {
-                try? await Task.sleep(for: .seconds(reduceMotion ? 0.9 : 1.5))
+                try? await Task.sleep(for: .seconds(reduceMotion ? 0.9 : 1.7))
                 onDone()
             }
         }
