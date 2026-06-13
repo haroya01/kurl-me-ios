@@ -2462,6 +2462,38 @@
         }
       }
     },
+    "오프라인 사본 — 연결되면 최신으로 갱신됩니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offline copy — updates when you're back online"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフラインのコピー — 接続時に最新へ更新されます"
+          }
+        }
+      }
+    },
+    "오프라인 저장됨": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved offline"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフライン保存済み"
+          }
+        }
+      }
+    },
     "유입 경로": {
       "localizations": {
         "en": {

@@ -18,6 +18,8 @@ final class PostDetailViewModel {
     private let recordsView: Bool
 
     private(set) var phase: LoadState<PublicPostDetail> = .idle
+    /// 네트워크가 죽어 기기 사본으로 렌더 중 — 상단에 조용한 배지 하나만 세운다.
+    private(set) var isOfflineCopy = false
     private(set) var comments: [Comment] = []
     /// 보는 사람이 좋아요한 댓글 id — 공개 목록과 별도의 인증 엔드포인트로 hydrate(#538 패턴).
     private(set) var likedCommentIds: Set<Int64> = []
@@ -38,13 +40,26 @@ final class PostDetailViewModel {
         if case .loading = phase { return }
         phase = .loading
         do {
-            let detail = try await BlogAPI.postDetail(username: username, slug: slug)
+            let raw = try await BlogAPI.postDetailData(username: username, slug: slug)
+            let detail = try JSONDecoder.blog.decode(PublicPostDetail.self, from: raw)
+            isOfflineCopy = false
             phase = .loaded(detail)
+            // 북마크로 저장된 글이면 사본을 방금 본 최신으로 갈아 둔다(read-through).
+            if OfflineStore.shared.contains(username: username, slug: slug) {
+                OfflineStore.shared.save(raw: raw, username: username, slug: slug)
+            }
             if recordsView {
                 await BlogAPI.recordView(username: username, slug: slug)
             }
             await loadComments(postId: detail.post.id)
         } catch {
+            // 네트워크 실패 → 기기 사본 폴백. 댓글·좋아요는 온라인 전용으로 비워 둔다.
+            if let data = OfflineStore.shared.data(username: username, slug: slug),
+               let detail = try? JSONDecoder.blog.decode(PublicPostDetail.self, from: data) {
+                isOfflineCopy = true
+                phase = .loaded(detail)
+                return
+            }
             phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
         }
     }

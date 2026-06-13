@@ -241,6 +241,8 @@ enum CardQuickActions {
             done: String(localized: "북마크에 추가했습니다")
         ) {
             _ = try await InteractionsAPI.setBookmark(postId: item.id, on: true)
+            // 북마크 = 오프라인 보장 — 카드에서 켜도 기기 사본을 따라 받는다.
+            await OfflineStore.shared.download(username: item.author.username, slug: item.slug)
         }
     }
 

@@ -5,11 +5,14 @@
 
 import SwiftUI
 
-/// 북마크한 글 — 행 탭 = 글로.
+/// 북마크한 글 — 행 탭 = 글로. 북마크 = 오프라인 보장이라 목록을 볼 때마다 서버
+/// 목록과 기기 사본을 맞춘다(웹에서 북마크한 글도 여기서 기기로 따라온다).
 struct BookmarksView: View {
     @State private var items: [BookmarkItem] = []
     @State private var loading = true
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+
+    private var offline: OfflineStore { .shared }
 
     var body: some View {
         ReadingColumn(spacing: 0) {
@@ -22,15 +25,25 @@ struct BookmarksView: View {
             } else {
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                     NavigationLink(value: Route.post(username: item.username, slug: item.slug)) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(item.title)
-                                .font(.system(size: 16 * unit, weight: .semibold))
-                                .foregroundStyle(Palette.ink)
-                                .lineLimit(2)
-                                .multilineTextAlignment(.leading)
-                            Text(item.username)
-                                .font(.system(size: 13 * unit))
-                                .foregroundStyle(Palette.secondary)
+                        HStack(alignment: .top, spacing: 8) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(item.title)
+                                    .font(.system(size: 16 * unit, weight: .semibold))
+                                    .foregroundStyle(Palette.ink)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                                Text(item.username)
+                                    .font(.system(size: 13 * unit))
+                                    .foregroundStyle(Palette.secondary)
+                            }
+                            Spacer(minLength: 0)
+                            if offline.contains(username: item.username, slug: item.slug) {
+                                Image(systemName: "arrow.down.circle.fill")
+                                    .font(.system(size: 13))
+                                    .foregroundStyle(Palette.accentMarker)
+                                    .padding(.top, 4)
+                                    .accessibilityLabel("오프라인 저장됨")
+                            }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.vertical, 13)
@@ -46,8 +59,12 @@ struct BookmarksView: View {
         .task {
             items = (try? await LibraryAPI.bookmarks()) ?? []
             loading = false
+            await offline.reconcile(bookmarks: items.map { ($0.username, $0.slug) })
         }
-        .refreshable { items = (try? await LibraryAPI.bookmarks()) ?? items }
+        .refreshable {
+            items = (try? await LibraryAPI.bookmarks()) ?? items
+            await offline.reconcile(bookmarks: items.map { ($0.username, $0.slug) })
+        }
     }
 }
 

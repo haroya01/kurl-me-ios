@@ -80,6 +80,15 @@ final class FeedViewModel {
                 items = view.items
                 phase = .loaded(items)
             }
+            // 구독함 머리쪽은 조용히 기기로 — 도착한 글은 지하철에서도 읽혀야 한다.
+            if source == .following {
+                let head = view.items.prefix(10).map { ($0.author.username, $0.slug) }
+                Task(priority: .utility) {
+                    for (username, slug) in head {
+                        await OfflineStore.shared.download(username: username, slug: slug)
+                    }
+                }
+            }
         } catch {
             if items.isEmpty {
                 phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)

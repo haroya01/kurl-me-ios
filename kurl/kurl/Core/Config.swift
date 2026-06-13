@@ -22,6 +22,15 @@ enum Config {
         #endif
     }()
 
+    /// `--offline` — 모든 네트워크를 즉시 실패시켜 오프라인 폴백을 검증한다(DEBUG 전용).
+    static let simulateOffline: Bool = {
+        #if DEBUG
+        return ProcessInfo.processInfo.arguments.contains("--offline")
+        #else
+        return false
+        #endif
+    }()
+
     /// 디버그 화면 진입 — `--tab write|discover|search|account`, `--open analytics|compose`,
     /// `--selftest`. simctl 로는 터치를 못 넣으니 스크린샷/검증용 진입로다. DEBUG 전용.
     static func launchValue(after flag: String) -> String? {

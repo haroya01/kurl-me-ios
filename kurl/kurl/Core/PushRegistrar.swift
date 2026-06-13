@@ -63,6 +63,14 @@ final class PushDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCen
     ) -> Bool {
         UNUserNotificationCenter.current().delegate = self
         PushRegistrar.bootstrap()
+        // AsyncImage 가 shared 세션을 탄다 — 디스크 캐시를 넉넉히 잡아 오프라인 사본의
+        // 커버·본문 이미지가 기본 10MB 에서 밀려나지 않게 한다(본문 텍스트는 OfflineStore 확정).
+        URLCache.shared = URLCache(
+            memoryCapacity: 32 << 20, diskCapacity: 512 << 20)
+        #if DEBUG
+        // 뷰가 생기기 전에 — `--post` 진입로의 상세 로드와 시드가 경합하지 않게 여기서.
+        OfflineSeed.runIfRequested()
+        #endif
         return true
     }
 

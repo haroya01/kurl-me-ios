@@ -45,6 +45,11 @@ struct APIClient {
         return try decode(data)
     }
 
+    /// 응답 원문이 필요한 GET — 오프라인 저장소가 서버 바이트를 그대로 보관할 때.
+    func getData(_ path: String, query: [String: String?] = [:]) async throws -> Data {
+        try await rawData(try makeRequest(path: path, query: query, method: "GET"))
+    }
+
     /// 응답 본문이 없는 POST (예: 조회 비콘). 실패해도 호출측에서 무시할 수 있다.
     func post(_ path: String, query: [String: String?] = [:]) async throws {
         let request = try makeRequest(path: path, query: query, method: "POST")
@@ -199,6 +204,12 @@ struct APIClient {
 
     @discardableResult
     private func rawData(_ request: URLRequest) async throws -> Data {
+        #if DEBUG
+        // `--offline` — 비행기 모드 시뮬레이션(오프라인 폴백 검증 진입로).
+        if Config.simulateOffline {
+            throw APIError.transport(URLError(.notConnectedToInternet))
+        }
+        #endif
         // 목 모드: 목 백엔드가 아는 경로면 네트워크를 건너뛴다(공개 읽기는 fall-through).
         if Config.useMocks,
            let url = request.url,

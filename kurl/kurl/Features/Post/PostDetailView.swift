@@ -187,10 +187,13 @@ struct PostDetailView: View {
             // 덱에선 장마다 제 페이지 안에 떠서 페이지와 함께 밀려 나간다.
             if case .loaded(let detail) = model.phase, !keyboardUp,
                !(endVisible && scrollable) {
-                EngagementDock(postId: detail.post.id, initialLikeCount: detail.post.likeCount)
-                    .padding(.trailing, 14)
-                    .padding(.bottom, 10)
-                    .transition(.opacity)
+                EngagementDock(
+                    postId: detail.post.id, initialLikeCount: detail.post.likeCount,
+                    offlineRef: (username: detail.author.username, slug: detail.post.slug)
+                )
+                .padding(.trailing, 14)
+                .padding(.bottom, 10)
+                .transition(.opacity)
             }
         }
         .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: endVisible)
@@ -227,6 +230,20 @@ struct PostDetailView: View {
     @ViewBuilder
     private func content(_ detail: PublicPostDetail) -> some View {
         header(detail)
+        if model.isOfflineCopy {
+            // 기기 사본 렌더 중 — 조용한 한 줄. 댓글·좋아요가 비어 있는 이유까지 여기서 설명된다.
+            HStack(spacing: 6) {
+                Image(systemName: "wifi.slash")
+                    .font(.system(size: 11, weight: .semibold))
+                Text("오프라인 사본 — 연결되면 최신으로 갱신됩니다")
+                    .font(.system(size: 12, weight: .medium))
+            }
+            .foregroundStyle(Palette.secondary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(Palette.hairline, in: Capsule())
+            .padding(.top, 14)
+        }
         // 시리즈 글은 본문 전에 "여정의 몇 번째"부터 세운다 — 웹 SeriesNav 와 같은 자리.
         if let nav = detail.series {
             SeriesBanner(nav: nav, username: detail.author.username, currentSlug: detail.post.slug)

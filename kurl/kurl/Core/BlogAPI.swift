@@ -73,6 +73,11 @@ enum BlogAPI {
         try await client.get("/public/profiles/\(username)/posts/\(slug)")
     }
 
+    /// 상세 응답 원문 — 오프라인 저장소가 서버 바이트를 그대로 보관·재생하기 위한 경로.
+    static func postDetailData(username: String, slug: String) async throws -> Data {
+        try await client.getData("/public/profiles/\(username)/posts/\(slug)")
+    }
+
     static func comments(postId: Int64) async throws -> [Comment] {
         try await client.get("/public/posts/\(postId)/comments")
     }

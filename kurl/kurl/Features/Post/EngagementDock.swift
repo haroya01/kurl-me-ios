@@ -17,8 +17,10 @@ struct EngagementDock: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var glassNS
 
-    init(postId: Int64, initialLikeCount: Int64) {
-        _model = State(initialValue: EngagementModel(postId: postId, likeCount: initialLikeCount))
+    init(postId: Int64, initialLikeCount: Int64, offlineRef: (username: String, slug: String)? = nil) {
+        _model = State(
+            initialValue: EngagementModel(
+                postId: postId, likeCount: initialLikeCount, offlineRef: offlineRef))
     }
 
     var body: some View {
@@ -139,10 +141,13 @@ final class EngagementModel {
     private(set) var userToggleCount = 0
 
     private let postId: Int64
+    /// 오프라인 저장 짝지 — 북마크 켜짐=기기 사본 확보, 꺼짐=사본 제거.
+    private let offlineRef: (username: String, slug: String)?
 
-    init(postId: Int64, likeCount: Int64) {
+    init(postId: Int64, likeCount: Int64, offlineRef: (username: String, slug: String)? = nil) {
         self.postId = postId
         self.likeCount = likeCount
+        self.offlineRef = offlineRef
     }
 
     /// 로그인 상태일 때만 내 상태(liked/bookmarked)를 서버에서 가져온다.
@@ -193,6 +198,16 @@ final class EngagementModel {
             let status = try await InteractionsAPI.setBookmark(postId: postId, on: target)
             guard gen == userToggleCount else { return }
             bookmarked = status.bookmarked
+            // 북마크 = 오프라인 보장 — 켜지면 기기 사본 확보, 꺼지면 정리.
+            if let ref = offlineRef {
+                if status.bookmarked {
+                    Task {
+                        await OfflineStore.shared.download(username: ref.username, slug: ref.slug)
+                    }
+                } else {
+                    OfflineStore.shared.remove(username: ref.username, slug: ref.slug)
+                }
+            }
         } catch {
             guard gen == userToggleCount else { return }
             bookmarked = !target
