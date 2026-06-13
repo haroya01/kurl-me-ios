@@ -155,31 +155,31 @@ struct StudioView: View {
             GlassSegmentSwitcher(items: HubFilter.allCases, selection: $filter) { $0.label }
         }
         .padding(.top, 4)
-        .padding(.bottom, 8)
-        Hairline()
+        .padding(.bottom, 12)
         if filtered.isEmpty {
             Text(filter == .draft ? "임시저장한 글이 없습니다." : "발행한 글이 없습니다.")
                 .font(.system(size: 14 * unit))
                 .foregroundStyle(Palette.secondary)
                 .padding(.top, 24)
         }
-        ForEach(Array(filtered.enumerated()), id: \.element.id) { index, post in
-            Button {
-                editing = post
-            } label: {
-                postRow(post)
+        LazyVStack(spacing: 14) {
+            ForEach(Array(filtered.enumerated()), id: \.element.id) { index, post in
+                Button {
+                    editing = post
+                } label: {
+                    postCard(post)
+                }
+                .buttonStyle(CardButtonStyle())
+                .modifier(QuietAppear(index: index))
             }
-            .buttonStyle(RowButtonStyle())
-            .modifier(QuietAppear(index: index))
-            if index < filtered.count - 1 { Hairline() }
         }
         Color.clear.frame(height: 40) // 탭바 최소화 여백.
     }
 
-    /// 글 한 행 — 상태 점(이브로) + 제목 + 발췌 + 커버 썸네일. 평평한 제목-행을
-    /// 콘텐츠가 보이는 도착 행으로(발견 카드와 같은 슬레이트 문법).
-    private func postRow(_ post: MyPost) -> some View {
-        // 정규 "글 행" 언어 — 작가/시리즈 PostRow 와 동일(eyebrow + 제목 18 + 발췌 2줄 + 96×72).
+    /// 내 글 카드 — 상태 eyebrow + 제목 + 발췌 + 커버 썸네일. 평평한 행 대신 카드로
+    /// (browse·에피소드 카드와 같은 표면 언어: 라이트는 그림자, 다크는 보더). 상태는
+    /// 사진 위가 아니라 종이 위 eyebrow 로 둬 초안/예약/발행이 또렷하다.
+    private func postCard(_ post: MyPost) -> some View {
         HStack(alignment: .top, spacing: 14) {
             VStack(alignment: .leading, spacing: 6) {
                 statusEyebrow(post)
@@ -194,9 +194,11 @@ struct StudioView: View {
                         .font(.system(size: 14))
                         .foregroundStyle(Palette.secondary)
                         .lineLimit(2)
+                        .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            Spacer(minLength: 0)
             if let cover = post.ogImageUrl, let url = URL(string: cover) {
                 AsyncImage(url: url) { phase in
                     if case .success(let image) = phase {
@@ -205,12 +207,22 @@ struct StudioView: View {
                         Rectangle().fill(Palette.hairline)
                     }
                 }
-                .frame(width: 96, height: 72)
-                .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb, style: .continuous))
+                .frame(width: 80, height: 80)
+                .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusControl, style: .continuous))
             }
         }
-        .padding(.vertical, 16)
-        .contentShape(Rectangle())
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            Palette.cardBg, in: RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
+        .overlay {
+            if colorScheme == .dark {
+                RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous)
+                    .strokeBorder(Palette.cardBorder, lineWidth: 1)
+            }
+        }
+        .cardShadow()
+        .contentShape(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
     }
 
     /// 상태 점 + (발행 외엔) 라벨 + 날짜. 점 색이 상태를 인코딩한다(초록=라이브, 흐림=초안).
