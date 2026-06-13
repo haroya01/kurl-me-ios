@@ -42,6 +42,11 @@ struct FeedView: View {
     /// 알림은 리텐션 루프의 심장인데 계정 탭 안 2뎁스였다 — 첫 화면에 벨을 둔다.
     @State private var unreadCount: Int64 = 0
 
+    /// 좌우 스와이프 인터랙티브 — 손가락을 따라 화면이 슬라이드되어 "넘기는 중"이 느껴진다.
+    /// dragX = 현재 끌린 거리(현재 페이지 오프셋), 인접 페이지는 한 폭 옆에서 따라 들어온다.
+    @State private var dragX: CGFloat = 0
+    @State private var containerWidth: CGFloat = 0
+
     var body: some View {
         // NavigationStack 에 path 를 바인딩하면 iOS 26 의 tabBarMinimizeBehavior 가
         // 그 탭에서 동작하지 않는다(시스템 버그, 기기에서도 재현). 깊은 푸시의 zoom
@@ -53,37 +58,18 @@ struct FeedView: View {
             // 위치 유지) 좌우 스와이프는 제스처로 직접 — ScrollView 가 탭 콘텐츠의 직계가 된다.
             ZStack {
                 ForEach(FeedTab.allCases) { tab in
-                    Group {
-                        if let source = tab.source {
-                            FeedPage(source: source, active: tab == selection, zoom: zoomNS)
-                        } else {
-                            NotesPage(active: tab == selection)
-                        }
-                    }
-                    .opacity(tab == selection ? 1 : 0)
-                    .allowsHitTesting(tab == selection)
+                    page(for: tab)
+                        .opacity(pageVisible(tab) ? 1 : 0)
+                        // 드래그 중엔 페이지 콘텐츠를 비활성화 — 페이지가 손가락 따라 미끄러지면
+                        // 카드가 손가락과 함께 움직여 탭이 안 취소되고 글로 새던 것을 막는다.
+                        .disabled(dragX != 0)
+                        .allowsHitTesting(tab == selection)
+                        .offset(x: pageOffset(tab))
                 }
             }
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { containerWidth = $0 }
             .animation(reduceMotion ? nil : .snappy(duration: 0.28), value: selection)
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 24)
-                    .onEnded { value in
-                        let dx = value.translation.width
-                        let dy = value.translation.height
-                        let vx = value.velocity.width
-                        // "됐다 안 됐다"의 원인 = 거리 임계 하나로만 판정 — 플릭은 거리가
-                        // 짧다. 빠른 플릭(속도) 또는 의도적 끌기(거리+방향비) 둘 다 받는다.
-                        let flick = abs(vx) > 260 && abs(dx) > 20 && abs(dx) > abs(dy)
-                        let deliberate = abs(dx) > 48 && abs(dx) > abs(dy) * 1.2
-                        guard flick || deliberate else { return }
-                        withAnimation(reduceMotion ? nil : .snappy(duration: 0.28)) {
-                            let all = FeedTab.allCases
-                            guard let idx = all.firstIndex(of: selection) else { return }
-                            let next = dx < 0 ? min(idx + 1, all.count - 1) : max(idx - 1, 0)
-                            selection = all[next]
-                        }
-                    }
-            )
+            .simultaneousGesture(feedDrag)
             // 고정 스트립 대신 떠 있는 유리 — 카드가 캡슐 양옆·뒤로 그대로 흐른다.
             .safeAreaInset(edge: .top) {
                 // ZStack 중첩(중앙 스위처 + 우단 벨)은 375pt 기기에서 겹쳤다 — 압축 가능한
@@ -153,6 +139,84 @@ struct FeedView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func page(for tab: FeedTab) -> some View {
+        if let source = tab.source {
+            FeedPage(source: source, active: tab == selection, zoom: zoomNS)
+        } else {
+            NotesPage(active: tab == selection)
+        }
+    }
+
+    /// 끌기 방향으로 들어오는 인접 탭(없으면 끝 — nil).
+    private func incoming() -> FeedTab? {
+        guard dragX != 0 else { return nil }
+        let all = FeedTab.allCases
+        guard let i = all.firstIndex(of: selection) else { return nil }
+        if dragX < 0 { return i + 1 < all.count ? all[i + 1] : nil }
+        return i > 0 ? all[i - 1] : nil
+    }
+
+    private func pageVisible(_ tab: FeedTab) -> Bool {
+        tab == selection || tab == incoming()
+    }
+
+    /// 현재=손가락 따라(dragX), 인접=한 폭 옆에서 따라 들어옴, 나머지=인덱스 방향 화면 밖 주차.
+    /// 주차 위치가 전환 직후 위치와 연속이라 선택이 바뀌어도 점프가 없다.
+    private func pageOffset(_ tab: FeedTab) -> CGFloat {
+        let all = FeedTab.allCases
+        guard let ti = all.firstIndex(of: tab), let si = all.firstIndex(of: selection)
+        else { return 0 }
+        if tab == selection { return dragX }
+        if tab == incoming() { return dragX + (dragX < 0 ? containerWidth : -containerWidth) }
+        return ti < si ? -containerWidth : containerWidth
+    }
+
+    private var feedDrag: some Gesture {
+        DragGesture(minimumDistance: 18)
+            .onChanged { value in
+                guard !reduceMotion,
+                      abs(value.translation.width) > abs(value.translation.height) else { return }
+                var dx = value.translation.width
+                let all = FeedTab.allCases
+                let i = all.firstIndex(of: selection) ?? 0
+                // 끝 탭에서 더 끌면 고무줄 저항 — 들어올 페이지가 없다.
+                let atEdge = (i == 0 && dx > 0) || (i == all.count - 1 && dx < 0)
+                if atEdge { dx *= 0.28 }
+                dragX = dx
+            }
+            .onEnded { value in
+                let dx = value.translation.width
+                let dy = value.translation.height
+                let vx = value.velocity.width
+                let all = FeedTab.allCases
+                let i = all.firstIndex(of: selection) ?? 0
+                // 빠른 플릭(속도) 또는 의도적 끌기(거리+방향비) 둘 다 받는다.
+                let horizontal = abs(dx) > abs(dy)
+                let flick = abs(vx) > 260 && abs(dx) > 20
+                let deliberate = abs(dx) > 48 && abs(dx) > abs(dy) * 1.2
+                let canGo = dx < 0 ? i < all.count - 1 : i > 0
+                guard horizontal, flick || deliberate, canGo else {
+                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.3)) { dragX = 0 }
+                    return
+                }
+                let newTab = all[dx < 0 ? i + 1 : i - 1]
+                if reduceMotion {
+                    selection = newTab
+                    dragX = 0
+                    return
+                }
+                // 인접 페이지가 중앙까지 미끄러진 뒤(완료) 선택을 바꾸고 오프셋을 0 으로 —
+                // 주차 위치가 연속이라 시각적 점프 없이 매끄럽게 안착한다.
+                withAnimation(.snappy(duration: 0.28)) {
+                    dragX = dx < 0 ? -containerWidth : containerWidth
+                } completion: {
+                    selection = newTab
+                    dragX = 0
+                }
+            }
     }
 
     private func refreshUnread() async {
