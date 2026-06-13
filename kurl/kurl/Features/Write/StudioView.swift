@@ -162,24 +162,25 @@ struct StudioView: View {
                 .foregroundStyle(Palette.secondary)
                 .padding(.top, 24)
         }
-        LazyVStack(spacing: 14) {
+        LazyVStack(spacing: 0) {
             ForEach(Array(filtered.enumerated()), id: \.element.id) { index, post in
                 Button {
                     editing = post
                 } label: {
-                    postCard(post)
+                    postRow(post)
                 }
-                .buttonStyle(CardButtonStyle())
+                .buttonStyle(RowButtonStyle())
                 .modifier(QuietAppear(index: index))
+                if index < filtered.count - 1 { Hairline() }
             }
         }
         Color.clear.frame(height: 40) // 탭바 최소화 여백.
     }
 
-    /// 내 글 카드 — 상태 eyebrow + 제목 + 발췌 + 커버 썸네일. 평평한 행 대신 카드로
-    /// (browse·에피소드 카드와 같은 표면 언어: 라이트는 그림자, 다크는 보더). 상태는
-    /// 사진 위가 아니라 종이 위 eyebrow 로 둬 초안/예약/발행이 또렷하다.
-    private func postCard(_ post: MyPost) -> some View {
+    /// 내 글 행 — 상태 eyebrow + 제목 + 발췌 + 커버 썸네일. 카탈로그(내 책장)라
+    /// 카드가 아니라 깔끔한 글 행(3원칙 표준). 상태는 사진 위가 아니라 종이 위
+    /// eyebrow 로 둬 초안/예약/발행이 또렷하다.
+    private func postRow(_ post: MyPost) -> some View {
         HStack(alignment: .top, spacing: 14) {
             VStack(alignment: .leading, spacing: 6) {
                 statusEyebrow(post)
@@ -207,22 +208,12 @@ struct StudioView: View {
                         Rectangle().fill(Palette.hairline)
                     }
                 }
-                .frame(width: 80, height: 80)
-                .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusControl, style: .continuous))
+                .frame(width: 72, height: 72)
+                .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb, style: .continuous))
             }
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            Palette.cardBg, in: RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
-        .overlay {
-            if colorScheme == .dark {
-                RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous)
-                    .strokeBorder(Palette.cardBorder, lineWidth: 1)
-            }
-        }
-        .cardShadow()
-        .contentShape(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
+        .padding(.vertical, 16)
+        .contentShape(Rectangle())
     }
 
     /// 상태 점 + (발행 외엔) 라벨 + 날짜. 점 색이 상태를 인코딩한다(초록=라이브, 흐림=초안).

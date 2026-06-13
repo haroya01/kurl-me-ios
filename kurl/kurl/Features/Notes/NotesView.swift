@@ -6,8 +6,8 @@
 import Observation
 import SwiftUI
 
-/// 짧은 글 피드 — 제목 없는 생각의 줄. 글(post)의 격식 없이 한 단락을 흘리는 자리.
-/// 각 노트는 카드 한 장으로 떠 있는다(앱 카드 언어 일관). 작성은 하단 유리 바(로그인 시),
+/// 짧은 글 피드 — 제목 없는 생각의 줄. 글(post)의 격식 없이 한 단락을 흘리는 자리라
+/// 카드가 아니라 가벼운 대화 행(헤어라인 구분). 작성은 하단 유리 바(로그인 시),
 /// 좋아요는 낙관 토글.
 @MainActor
 @Observable
@@ -154,7 +154,7 @@ struct NotesPage: View {
 
     private var list: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 14) {
+            LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(model.items.enumerated()), id: \.element.id) { index, note in
                     NoteRowView(model: model, note: note)
                         .modifier(QuietAppear(index: index))
@@ -162,6 +162,7 @@ struct NotesPage: View {
                             reduceMotion
                                 ? .opacity : .opacity.combined(with: .move(edge: .top)))
                         .task { await model.loadMoreIfNeeded(current: note) }
+                    if index < model.items.count - 1 { Hairline() }
                 }
                 if model.isLoadingMore {
                     ProgressView().tint(Palette.accent)
@@ -190,7 +191,6 @@ private struct NoteRowView: View {
     let note: Note
     @State private var likeTaps = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.colorScheme) private var colorScheme
 
     private var isMine: Bool {
         AuthStore.shared.me?.id == note.author.id
@@ -250,18 +250,8 @@ private struct NoteRowView: View {
                 .accessibilityAddTraits(model.isLiked(note) ? [.isSelected] : [])
             }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            Palette.cardBg, in: RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous))
-        .overlay {
-            if colorScheme == .dark {
-                RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous)
-                    .strokeBorder(Palette.cardBorder, lineWidth: 1)
-            }
-        }
-        .cardShadow()
-        .contentShape(RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous))
+        .padding(.vertical, 13)
+        .contentShape(Rectangle())
         .contextMenu {
             if isMine {
                 Button(role: .destructive) {
