@@ -42,22 +42,24 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable>: View {
     let items: [T]
     @Binding var selection: T
     let label: (T) -> String
+    /// 내비바(유리) 안에 들 때 true — 자기 유리 배경을 빼서 glass-on-glass(§1.4)를 피한다.
+    var bare = false
     @Namespace private var ns
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         // 높이 ≈ 40pt — 헤더 영역의 유리 원형 버튼(벨 등)과 같은 키로 맞춘다.
-        HStack(spacing: 2) {
+        let row = HStack(spacing: 2) {
             ForEach(items) { item in
                 let active = item == selection
                 Button {
                     withAnimation(reduceMotion ? nil : .snappy(duration: 0.28)) { selection = item }
                 } label: {
                     Text(label(item))
-                        .font(.system(size: 15, weight: active ? .semibold : .medium))
+                        .font(.system(size: bare ? 14 : 15, weight: active ? .semibold : .medium))
                         .foregroundStyle(active ? .white : .secondary)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
+                        .padding(.horizontal, bare ? 13 : 16)
+                        .padding(.vertical, bare ? 6 : 8)
                         .background {
                             if active {
                                 Capsule()
@@ -71,8 +73,15 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable>: View {
                 .accessibilityAddTraits(active ? [.isSelected] : [])
             }
         }
-        .padding(4)
-        .glassEffect(.regular.interactive(), in: .capsule)
+        .padding(bare ? 0 : 4)
+
+        return Group {
+            if bare {
+                row // 내비바 유리가 배경 — 자기 유리는 얹지 않는다.
+            } else {
+                row.glassEffect(.regular.interactive(), in: .capsule)
+            }
+        }
         // 분면 선택 = selection 햅틱 — 토글(.impact)·결과(.success)와 구분되는 세 번째 어휘.
         .sensoryFeedback(.selection, trigger: selection)
     }
