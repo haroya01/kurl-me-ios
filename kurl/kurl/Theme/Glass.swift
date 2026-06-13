@@ -53,7 +53,7 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable>: View {
             ForEach(items) { item in
                 let active = item == selection
                 Button {
-                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.28)) { selection = item }
+                    selection = item
                 } label: {
                     Text(label(item))
                         .font(.system(size: bare ? 14 : 15, weight: active ? .semibold : .medium))
@@ -74,6 +74,9 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable>: View {
             }
         }
         .padding(bare ? 0 : 4)
+        // 알약(thumb)은 selection 이 어떻게 바뀌든(탭이든 스와이프든) 항상 미끄러진다 —
+        // 호출측 withAnimation 에 기대지 않고 자체 애니메이션으로 matchedGeometry 를 굴린다.
+        .animation(reduceMotion ? nil : .snappy(duration: 0.28), value: selection)
 
         return Group {
             if bare {
