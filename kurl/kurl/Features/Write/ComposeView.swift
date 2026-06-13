@@ -279,26 +279,41 @@ struct ComposeView: View {
                                     .controlSize(.small)
                                     .frame(height: 64)
                             } else if let coverUrl, let url = URL(string: coverUrl) {
+                                // 커버 히어로 — 카드/상세에 실릴 그 비율(16:9) 그대로. 탭하면 변경.
                                 AsyncImage(url: url) { image in
                                     image.resizable().scaledToFill()
                                 } placeholder: {
                                     Rectangle().fill(Palette.hairline)
                                 }
-                                .frame(height: 120)
                                 .frame(maxWidth: .infinity)
+                                .frame(height: 188)
+                                .clipped()
                                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                .overlay(alignment: .bottomTrailing) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "photo")
+                                            .font(.system(size: 11 * metaUnit, weight: .semibold))
+                                        Text("변경")
+                                            .font(.system(size: 12 * metaUnit, weight: .medium))
+                                    }
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(.black.opacity(0.45), in: Capsule())
+                                    .padding(10)
+                                }
                             } else {
                                 // 흐린 점선 + 가운데 텍스트가 "안 불러와진" 것처럼 보였다 —
                                 // 채워진 타일 + 또렷한 심볼로 누를 자리를 분명히 한다.
                                 VStack(spacing: 8) {
                                     Image(systemName: "photo.badge.plus")
-                                        .font(.system(size: 24 * unit, weight: .regular))
+                                        .font(.system(size: 26 * unit, weight: .regular))
                                     Text("커버 이미지 추가")
                                         .font(.system(size: 14 * unit, weight: .medium))
                                 }
                                 .foregroundStyle(Palette.secondary)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 108)
+                                .frame(height: 150)
                                 .background(
                                     Palette.chipBg,
                                     in: RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -688,6 +703,14 @@ struct ComposeView: View {
                 let uploaded = try await WriteAPI.uploadImage(postId: id, jpegData: jpeg)
                 editorController.insertImageMarkdown(url: uploaded.url)
                 markdown = editorController.currentText
+                // 커버가 비어 있으면 본문 첫 이미지를 기본 커버로 — 이미지 있는 글이
+                // 커버 없이 발행되지 않게(작성자는 발행 폼에서 언제든 바꿀 수 있다).
+                if coverUrl == nil {
+                    coverUrl = uploaded.url
+                    try? await WriteAPI.updateCover(postId: id, url: uploaded.url, key: uploaded.key)
+                    lastSavedAt = Date()
+                    onSaved()
+                }
             } catch {
                 ToastCenter.shared.show(String(localized: "이미지를 올리지 못했습니다"))
             }
