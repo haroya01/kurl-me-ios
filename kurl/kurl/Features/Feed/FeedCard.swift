@@ -27,8 +27,7 @@ struct FeedRow: View {
                         .foregroundStyle(Palette.secondary)
                 }
                 Text(item.title)
-                    .font(.system(size: featured ? 22 : 18, weight: featured ? .bold : .semibold))
-                    .tracking(featured ? -0.5 : -0.3) // 앱 전체 제목 보이스 — 클수록 더 조임(읽기 스케일 일관)
+                    .typeScale(featured ? .featured : .title)
                     .foregroundStyle(Palette.ink)
                     .lineLimit(featured ? 3 : 2)
                     .fixedSize(horizontal: false, vertical: true)
@@ -79,8 +78,7 @@ struct PostRow: View {
                 }
             }
             Text(item.title)
-                .font(.system(size: 18, weight: .semibold))
-                .tracking(-0.3) // 앱 전체 제목 보이스 통일
+                .typeScale(.title)
                 .foregroundStyle(Palette.ink)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)

@@ -20,7 +20,6 @@ struct ComposeView: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
-    @ScaledMetric(relativeTo: .title3) private var titleSize: CGFloat = 26
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
@@ -173,7 +172,7 @@ struct ComposeView: View {
 
     private var meta: some View {
         TextField("제목", text: $title)
-            .font(.system(size: titleSize, weight: .bold))
+            .typeScale(.masthead)
             .focused($focusedField, equals: .title)
             .submitLabel(.next)
             .onSubmit { editorController.focus() }

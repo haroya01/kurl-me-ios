@@ -50,7 +50,7 @@ struct AuthorBlogView: View {
                 AvatarView(author: view.author, size: 64)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(view.author.username)
-                        .font(.system(size: 24, weight: .bold))
+                        .typeScale(.name)
                         .tracking(-0.4)
                         .foregroundStyle(Palette.ink)
                     HStack(spacing: 6) {

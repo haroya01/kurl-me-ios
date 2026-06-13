@@ -120,7 +120,7 @@ struct RailHeading: View {
                 .fill(Palette.accentMarker)
                 .frame(width: 3, height: 12 * unit)
             Text(text)
-                .font(.system(size: 13 * unit, weight: .bold))
+                .typeScale(.eyebrow)
                 .foregroundStyle(Palette.heading)
         }
         // 섹션 제목 — VoiceOver 헤딩 로터로 화면을 점프할 수 있어야 한다(25곳 일괄).
