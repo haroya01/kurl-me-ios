@@ -68,7 +68,6 @@ struct FeedView: View {
                 }
             }
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { containerWidth = $0 }
-            .animation(reduceMotion ? nil : .snappy(duration: 0.28), value: selection)
             .simultaneousGesture(feedDrag)
             // 고정 스트립 대신 떠 있는 유리 — 카드가 캡슐 양옆·뒤로 그대로 흐른다.
             .safeAreaInset(edge: .top) {
@@ -150,28 +149,18 @@ struct FeedView: View {
         }
     }
 
-    /// 끌기 방향으로 들어오는 인접 탭(없으면 끝 — nil).
-    private func incoming() -> FeedTab? {
-        guard dragX != 0 else { return nil }
-        let all = FeedTab.allCases
-        guard let i = all.firstIndex(of: selection) else { return nil }
-        if dragX < 0 { return i + 1 < all.count ? all[i + 1] : nil }
-        return i > 0 ? all[i - 1] : nil
-    }
+    private var selectionIndex: Int { FeedTab.allCases.firstIndex(of: selection) ?? 0 }
+    private func tabIndex(_ tab: FeedTab) -> Int { FeedTab.allCases.firstIndex(of: tab) ?? 0 }
 
+    /// 선택 기준 한 칸 이내만 그린다 — 인접 페이지가 슬라이드로 들어올 수 있게.
     private func pageVisible(_ tab: FeedTab) -> Bool {
-        tab == selection || tab == incoming()
+        abs(tabIndex(tab) - selectionIndex) <= 1
     }
 
-    /// 현재=손가락 따라(dragX), 인접=한 폭 옆에서 따라 들어옴, 나머지=인덱스 방향 화면 밖 주차.
-    /// 주차 위치가 전환 직후 위치와 연속이라 선택이 바뀌어도 점프가 없다.
+    /// 필름스트립 — 각 페이지를 (자기 인덱스 − 선택 인덱스)×폭 + dragX 위치에 둔다. 전환 시
+    /// 선택 인덱스와 dragX 를 같은 프레임에 맞바꿔(±폭이 상쇄) 시각이 연속이라 점프·깜빡임이 없다.
     private func pageOffset(_ tab: FeedTab) -> CGFloat {
-        let all = FeedTab.allCases
-        guard let ti = all.firstIndex(of: tab), let si = all.firstIndex(of: selection)
-        else { return 0 }
-        if tab == selection { return dragX }
-        if tab == incoming() { return dragX + (dragX < 0 ? containerWidth : -containerWidth) }
-        return ti < si ? -containerWidth : containerWidth
+        CGFloat(tabIndex(tab) - selectionIndex) * containerWidth + dragX
     }
 
     private var feedDrag: some Gesture {
@@ -208,19 +197,12 @@ struct FeedView: View {
                     dragX = 0
                     return
                 }
-                // 인접 페이지가 중앙까지 미끄러진 뒤(완료) 선택을 바꾸고 오프셋을 0 으로.
-                // 스왑은 애니메이션 없이 한 트랜잭션으로 — 안 그러면 selection 은 애니메이트되고
-                // dragX 는 즉시라 둘이 어긋나는 한 프레임에 옛 페이지가 중앙으로 튀어 깜빡인다.
-                withAnimation(.snappy(duration: 0.28)) {
-                    dragX = dx < 0 ? -containerWidth : containerWidth
-                } completion: {
-                    var t = Transaction()
-                    t.disablesAnimations = true
-                    withTransaction(t) {
-                        selection = newTab
-                        dragX = 0
-                    }
-                }
+                // 선택을 곧바로 바꾸고(→ 햅틱 즉시) dragX 를 ±폭만큼 보정해 한 프레임에 같이
+                // 적용 — 인덱스 변화와 상쇄돼 시각은 연속(깜빡임 없음). 그 뒤 dragX 를 0 으로
+                // 애니메이트해 새 페이지를 중앙에 안착시킨다.
+                selection = newTab
+                dragX += dx < 0 ? containerWidth : -containerWidth
+                withAnimation(.snappy(duration: 0.28)) { dragX = 0 }
             }
     }
 
