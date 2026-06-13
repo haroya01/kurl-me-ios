@@ -134,8 +134,8 @@ struct AnalyticsView: View {
                 RailHeading("최근 \(overview.windowDays)일")
                 Spacer()
                 // 기간은 서버가 받는 파라미터 — 30일 고정 리포트를 끝낸다.
-                GlassEffectContainer(spacing: 8) {
-                    HStack(spacing: 5) {
+                GlassEffectContainer(spacing: 0) {  // 0 = 닿을 때만 — 칩이 서로 녹아 붙지 않게
+                    HStack(spacing: 8) {
                         ForEach([7, 30, 90], id: \.self) { option in
                             Button {
                                 changeWindow(option)
@@ -231,8 +231,8 @@ struct AnalyticsView: View {
                 RailHeading("글별 성과")
                 Spacer()
                 // 정렬 = 유리 칩 클러스터 — 가까이 붙어 서로 녹아 보이는 컨트롤 군.
-                GlassEffectContainer(spacing: 8) {
-                    HStack(spacing: 5) {
+                GlassEffectContainer(spacing: 0) {  // 0 = 닿을 때만 — 칩이 서로 녹아 붙지 않게
+                    HStack(spacing: 8) {
                         sortChip("조회", key: "views")
                         sortChip("좋아요", key: "likes")
                         sortChip("최신", key: "recent")
