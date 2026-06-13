@@ -5,6 +5,7 @@
 
 import PhotosUI
 import SwiftUI
+import UIKit
 
 /// 마크다운 컴포즈 — 제목·태그·소개글·시리즈·커버 메타 + 본문 캔버스.
 /// 자동저장(2초 디바운스·dirty 시그니처)이 기본이고, ⋯ 메뉴에 미리보기/예약 발행/리비전.
@@ -39,6 +40,8 @@ struct ComposeView: View {
     @State private var busy = false
     /// 발행·예약 성공의 보상 박자 — 트리거 전용 카운터.
     @State private var publishCelebration = 0
+    /// 발행 성공 모먼트(전체화면 블룸) 표시.
+    @State private var celebrating = false
     @State private var errorMessage: String?
     @State private var loaded = false
     @State private var lastSavedSignature: String?
@@ -269,10 +272,12 @@ struct ComposeView: View {
                         sectionLabel("이렇게 보여요")
                         publishPreview
                     }
+                    .modifier(QuietAppear(index: 0))
 
                     sheetField("태그") {
                         TagsField(tags: $tags, draft: $tagDraft)
                     }
+                    .modifier(QuietAppear(index: 1))
 
                     sheetField("소개글") {
                         TextField(
@@ -286,6 +291,7 @@ struct ComposeView: View {
                             Palette.chipBg,
                             in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
+                    .modifier(QuietAppear(index: 2))
 
                     sheetField("시리즈") {
                         Menu {
@@ -322,6 +328,7 @@ struct ComposeView: View {
                         }
                         .glassEffect(.regular.interactive(), in: .capsule)
                     }
+                    .modifier(QuietAppear(index: 3))
 
                 }
                 .padding(20)
@@ -331,8 +338,11 @@ struct ComposeView: View {
             .safeAreaInset(edge: .bottom) {
                 VStack(spacing: 10) {
                     Button {
-                        showPublish = false
-                        Task { await save(publish: status != "PUBLISHED") }
+                        let willPublish = status != "PUBLISHED"
+                        // 발행이면 폼을 유지한다 — 그 위로 성공 모먼트가 뜨고, 끝나면 onDone 이 닫는다.
+                        // 글 정보 저장(발행됨)은 모먼트 없이 폼만 닫는다.
+                        if !willPublish { showPublish = false }
+                        Task { await save(publish: willPublish) }
                     } label: {
                         Text(status != "PUBLISHED" ? "지금 발행" : "저장")
                             .font(.system(size: 15 * unit, weight: .semibold))
@@ -394,6 +404,18 @@ struct ComposeView: View {
                 SafariView(url: item.url).ignoresSafeArea()
             }
             .sheet(isPresented: $showSchedule) { scheduleSheet }
+            // 발행 성공 모먼트 — 폼 위 전체화면 블룸. 끝나면 토스트 남기고 에디터를 닫는다.
+            .overlay {
+                if celebrating {
+                    PublishCelebrationView {
+                        ToastCenter.shared.show(String(localized: "발행되었습니다"))
+                        showPublish = false
+                        dismiss()
+                    }
+                    .transition(.opacity)
+                }
+            }
+            .animation(.easeOut(duration: 0.2), value: celebrating)
         }
     }
 
@@ -471,8 +493,10 @@ struct ComposeView: View {
             }
         }
         .cardShadow()
-        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: coverUrl)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: coverUrl)
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: tags)
+        // 커버가 자리잡는 순간 가벼운 햅틱 — 손에 닿는 확인.
+        .sensoryFeedback(.impact(weight: .light), trigger: coverUrl)
     }
 
     /// 미리보기 카드의 커버 — 채워졌으면 16:9 이미지(+변경), 없으면 추가 타일. 업로드 중엔 스피너.
@@ -503,12 +527,14 @@ struct ComposeView: View {
                     .background(.black.opacity(0.45), in: Capsule())
                     .padding(10)
                 }
+                // 커버가 들어오면 카드가 펼쳐지며 이미지가 살짝 부풀어 자리잡는다.
+                .transition(.scale(scale: 1.04).combined(with: .opacity))
             } else {
                 ZStack {
                     Palette.chipBg
-                    VStack(spacing: 8) {
+                    VStack(spacing: 6) {
                         Image(systemName: "photo.badge.plus")
-                            .font(.system(size: 26 * unit, weight: .regular))
+                            .font(.system(size: 22 * unit, weight: .regular))
                         Text("커버 이미지 추가")
                             .font(.system(size: 14 * unit, weight: .medium))
                     }
@@ -516,7 +542,8 @@ struct ComposeView: View {
                 }
             }
         }
-        .frame(height: 176)
+        // 빈 상태는 컴팩트, 커버가 들어오면 176 으로 펼쳐진다(높이 변화가 곧 언폴드).
+        .frame(height: (coverUrl == nil && !uploadingCover) ? 96 : 176)
         .frame(maxWidth: .infinity)
         .clipped()
         .contentShape(Rectangle())
@@ -722,10 +749,9 @@ struct ComposeView: View {
             // 스냅샷 이후 입력이 있었으면 디바운스를 다시 무장한다.
             if signature != snapshot { scheduleAutosave() }
             if publish {
-                // 이 앱 최대의 순간이 무음으로 끝나면 안 된다 — 성공 햅틱 + 토스트 한 번.
-                publishCelebration += 1
-                ToastCenter.shared.show(String(localized: "발행되었습니다"))
-                dismiss()
+                // 이 앱 최대의 순간 — 전체화면 모먼트(그린 블룸 + 햅틱 시퀀스)로 받는다.
+                // 토스트·dismiss 는 모먼트가 끝난 뒤 onDone 에서.
+                celebrating = true
             }
         } catch {
             errorMessage = error.localizedDescription
@@ -1204,6 +1230,119 @@ private struct FlowLayout: Layout {
                       anchor: .topLeading, proposal: ProposedViewSize(size))
             x += size.width + spacing
             rowHeight = max(rowHeight, size.height)
+        }
+    }
+}
+
+/// 발행 성공 모먼트 — "조용한 웹로그"의 절제 안에서 허락하는 한 번의 환호.
+/// 그린 블룸(컨페티) + 체크 + 햅틱 시퀀스. reduce-motion 이면 정적 체크만 띄운다.
+private struct PublishCelebrationView: View {
+    let onDone: () -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var bloom = false
+    @State private var marked = false
+
+    var body: some View {
+        ZStack {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .ignoresSafeArea()
+            if !reduceMotion {
+                ConfettiBurst(active: bloom)
+                    .allowsHitTesting(false)
+            }
+            VStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(Palette.accentFill)
+                        .frame(width: 84, height: 84)
+                        .shadow(color: Palette.accent.opacity(0.35), radius: 16, y: 6)
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 36, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+                .scaleEffect(marked ? 1 : 0.4)
+                .opacity(marked ? 1 : 0)
+                Text("발행되었습니다")
+                    .font(.system(size: 19, weight: .bold))
+                    .foregroundStyle(Palette.ink)
+                    .opacity(marked ? 1 : 0)
+            }
+        }
+        .onAppear {
+            withAnimation(
+                reduceMotion ? .easeOut(duration: 0.2) : .spring(response: 0.5, dampingFraction: 0.6)
+            ) { marked = true }
+            if !reduceMotion {
+                withAnimation(.easeOut(duration: 1.0)) { bloom = true }
+            }
+            playHaptics()
+            Task {
+                try? await Task.sleep(for: .seconds(reduceMotion ? 0.9 : 1.5))
+                onDone()
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text("발행되었습니다"))
+    }
+
+    private func playHaptics() {
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        guard !reduceMotion else { return }
+        Task {
+            let impact = UIImpactFeedbackGenerator(style: .light)
+            for _ in 0..<3 {
+                try? await Task.sleep(for: .milliseconds(110))
+                impact.impactOccurred(intensity: 0.65)
+            }
+        }
+    }
+}
+
+/// 중심에서 터지는 그린 블룸 — active 토글에 맞춰 바깥으로 퍼지며 가라앉고 사라진다.
+/// 브랜드 그린 계열 + slate 한 톤으로만(요란한 무지개 ❌).
+private struct ConfettiBurst: View {
+    let active: Bool
+    private let pieces: [Piece]
+
+    init(active: Bool) {
+        self.active = active
+        self.pieces = (0..<22).map { _ in Piece.random() }
+    }
+
+    struct Piece {
+        var angle: Double
+        var distance: CGFloat
+        var fall: CGFloat
+        var size: CGFloat
+        var spin: Double
+        var color: Color
+
+        static func random() -> Piece {
+            let palette: [Color] = [Palette.accent, Palette.accentSoft, Palette.accentMarker, Palette.faint]
+            return Piece(
+                angle: Double.random(in: 0..<(2 * .pi)),
+                distance: CGFloat.random(in: 80...190),
+                fall: CGFloat.random(in: 40...160),
+                size: CGFloat.random(in: 7...13),
+                spin: Double.random(in: -220...220),
+                color: palette.randomElement() ?? Palette.accent)
+        }
+    }
+
+    var body: some View {
+        ZStack {
+            ForEach(pieces.indices, id: \.self) { i in
+                let p = pieces[i]
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(p.color)
+                    .frame(width: p.size, height: p.size * 0.55)
+                    .rotationEffect(.degrees(active ? p.spin : 0))
+                    .offset(
+                        x: active ? cos(p.angle) * p.distance : 0,
+                        y: active ? sin(p.angle) * p.distance + p.fall : 0)
+                    .opacity(active ? 0 : 1)
+            }
         }
     }
 }
