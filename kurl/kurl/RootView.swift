@@ -56,6 +56,11 @@ struct RootView: View {
                 )
                 .navigationDestination(for: Route.self) { RouteView(route: $0) }
             }
+        } else if let tag = Config.launchValue(after: "--tag") {
+            NavigationStack {
+                TagFeedView(tag: tag)
+                    .navigationDestination(for: Route.self) { RouteView(route: $0) }
+            }
         } else {
             tabs
         }
