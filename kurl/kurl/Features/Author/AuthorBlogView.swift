@@ -13,6 +13,7 @@ struct AuthorBlogView: View {
     @State private var phase: LoadState<PublicPostListView> = .idle
     @State private var series: [SeriesListItem] = []
     @State private var showCard = false
+    @State private var showNavTitle = false
 
     var body: some View {
         ScrollView {
@@ -36,7 +37,20 @@ struct AuthorBlogView: View {
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
         .background(Palette.pageBg)
-        .navigationTitle(username)
+        // 헤더를 지나면 작가 이름이 내비바로 스민다 — 상단 중복 제거(태그·글 상세와 같은 결).
+        .onScrollGeometryChange(for: Bool.self) { geometry in
+            geometry.contentOffset.y + geometry.contentInsets.top > 64
+        } action: { _, passed in
+            withAnimation(.easeInOut(duration: 0.18)) { showNavTitle = passed }
+        }
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text(username)
+                    .font(.system(size: 16, weight: .semibold))
+                    .opacity(showNavTitle ? 1 : 0)
+            }
+        }
+        .toolbarBackground(showNavTitle ? .automatic : .hidden, for: .navigationBar)
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
@@ -44,15 +58,18 @@ struct AuthorBlogView: View {
 
     @ViewBuilder
     private func content(_ view: PublicPostListView) -> some View {
-        // 정체 헤더 — 이름·소개·산출물 한 줄(글·시리즈 수)이 한눈에.
+        // 정체 헤더 = 작가 랜딩 마스트헤드(태그·시리즈와 같은 family — eyebrow + 히어로).
         VStack(alignment: .leading, spacing: 0) {
+            RailHeading("작가")
+                .padding(.top, 8)
+                .padding(.bottom, 14)
             HStack(alignment: .center, spacing: 14) {
-                AvatarView(author: view.author, size: 64)
+                AvatarView(author: view.author, size: 76)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(view.author.username)
                         .typeScale(.name)
-                        .tracking(-0.4)
                         .foregroundStyle(Palette.ink)
+                        .accessibilityAddTraits(.isHeader)
                     HStack(spacing: 6) {
                         Text("글 \(view.posts.count)")
                         if !series.isEmpty {
