@@ -37,7 +37,7 @@ struct StudioView: View {
                     signedOutGate
                 }
             }
-            .navigationTitle("글쓰기")
+            // nav 타이틀 제거 — 세그먼트(글·시리즈·분석)가 곧 이 탭의 헤더다(중복 제거).
             .navigationBarTitleDisplayMode(.inline)
             // 새 글 = 헤더의 prominent 유리 버튼 — 떠다니는 FAB 대신 콘텐츠를 안 가리고
             // 모든 분면에서 늘 같은 자리(컴포즈 툴바의 발행과 같은 .glassProminent 문법).
@@ -120,10 +120,8 @@ struct StudioView: View {
             }
         }
         .task {
-            await auth.loadMe()
+            await auth.loadMe() // 빈 상태 인사("…님의 첫 글")용.
             await load()
-            // 헤더의 시리즈 수 — 없으면 0 으로 두고 글 로드는 막지 않는다.
-            if seriesList.isEmpty { seriesList = (try? await WriteAPI.mySeries()) ?? [] }
         }
         .refreshable { await load() }
     }
@@ -144,16 +142,13 @@ struct StudioView: View {
 
     @ViewBuilder
     private var list: some View {
-        studioHeader
-            .padding(.top, 6)
-            .padding(.bottom, 4)
-
-        HStack(alignment: .center) {
-            RailHeading("내 글")
-            Spacer()
+        // 정체성 헤더(아바타·이름)·"내 글" 라벨·nav 타이틀을 걷어냈다 — 세그먼트가 곧 헤더다.
+        // 필터만 슬림하게 한 줄, 그 아래 바로 콘텐츠.
+        HStack {
+            Spacer(minLength: 0)
             GlassSegmentSwitcher(items: HubFilter.allCases, selection: $filter) { $0.label }
         }
-        .padding(.top, 8)
+        .padding(.top, 4)
         .padding(.bottom, 8)
         Hairline()
         if filtered.isEmpty {
@@ -173,38 +168,6 @@ struct StudioView: View {
             if index < filtered.count - 1 { Hairline() }
         }
         Color.clear.frame(height: 40) // 탭바 최소화 여백.
-    }
-
-    /// 스튜디오 정체성 — 아바타·이름·산출물 한 줄. "내 작업실"이라는 감각을 준다.
-    private var studioHeader: some View {
-        let published = currentPosts.filter { !$0.isDraft && !$0.isScheduled }.count
-        let drafts = currentPosts.filter(\.isDraft).count
-        return HStack(spacing: 14) {
-            if let me = auth.me, let username = me.username {
-                AvatarView(
-                    author: Author(id: me.id ?? 0, username: username, bio: nil, avatarUrl: me.avatarUrl),
-                    size: 52)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(username)
-                        .font(.system(size: 19 * unit, weight: .bold))
-                        .tracking(-0.3)
-                        .foregroundStyle(Palette.ink)
-                    HStack(spacing: 6) {
-                        Text("발행 \(published)")
-                        Text("·").foregroundStyle(Palette.faint)
-                        Text("임시 \(drafts)")
-                        if !seriesList.isEmpty {
-                            Text("·").foregroundStyle(Palette.faint)
-                            Text("시리즈 \(seriesList.count)")
-                        }
-                    }
-                    .font(.system(size: 13 * metaUnit))
-                    .foregroundStyle(Palette.secondary)
-                    .contentTransition(.numericText())
-                }
-            }
-            Spacer(minLength: 0)
-        }
     }
 
     /// 글 한 행 — 상태 점(이브로) + 제목 + 발췌 + 커버 썸네일. 평평한 제목-행을
