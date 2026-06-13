@@ -25,6 +25,20 @@ extension Color {
                 : UIColor(Color(hex: light))
         })
     }
+
+    /// 명암 4종 — 시스템 "대비 증가"(Increase Contrast)를 켜면 더 또렷한 변형으로.
+    /// 읽기·메타·구분선이 손가락 설정 하나로 단단해진다(접근성).
+    init(light: UInt, dark: UInt, lightHC: UInt, darkHC: UInt) {
+        self = Color(uiColor: UIColor { trait in
+            let high = trait.accessibilityContrast == .high
+            switch (trait.userInterfaceStyle, high) {
+            case (.dark, true): return UIColor(Color(hex: darkHC))
+            case (.dark, false): return UIColor(Color(hex: dark))
+            case (_, true): return UIColor(Color(hex: lightHC))
+            default: return UIColor(Color(hex: light))
+            }
+        })
+    }
 }
 
 /// "조용한 웹로그" 표면 토큰. 프론트 §10 디자인 언어를 그대로 옮긴다.
@@ -33,10 +47,11 @@ enum Palette {
     // 잉크 (slate)
     static let ink = Color(light: 0x0F172A, dark: 0xF1F5F9)            // 제목/헤딩 slate-900/100
     static let heading = Color(light: 0x1E293B, dark: 0xE2E8F0)        // RailHeading slate-800/200
-    static let body = Color(light: 0x334155, dark: 0xCBD5E1)           // 본문 slate-700/300
-    static let secondary = Color(light: 0x64748B, dark: 0x94A3B8)      // excerpt/메타 slate-500/400
-    static let faint = Color(light: 0x94A3B8, dark: 0x64748B)          // 대표 태그 slate-400/500
-    static let hairline = Color(light: 0xF1F5F9, dark: 0x1E293B)       // 구분선 slate-100/800
+    // 본문·메타·구분선은 "대비 증가"를 켜면 한 단계 진하게(읽기 가독 우선).
+    static let body = Color(light: 0x334155, dark: 0xCBD5E1, lightHC: 0x1E293B, darkHC: 0xE2E8F0)        // slate-700/300 → 800/200
+    static let secondary = Color(light: 0x64748B, dark: 0x94A3B8, lightHC: 0x475569, darkHC: 0xCBD5E1)  // slate-500/400 → 600/300
+    static let faint = Color(light: 0x94A3B8, dark: 0x64748B, lightHC: 0x64748B, darkHC: 0x94A3B8)      // slate-400/500 → 600/400
+    static let hairline = Color(light: 0xF1F5F9, dark: 0x1E293B, lightHC: 0xCBD5E1, darkHC: 0x475569)   // slate-100/800 → 300/600
     static let hairlineStrong = Color(light: 0xE2E8F0, dark: 0x334155) // 테이블 헤더 slate-200/700
     static let rowHighlight = Color(light: 0xF8FAFC, dark: 0x1E293B)   // 행 press slate-50/800
     static let chipBg = Color(light: 0xF1F5F9, dark: 0x1E293B)         // slate-100/800
