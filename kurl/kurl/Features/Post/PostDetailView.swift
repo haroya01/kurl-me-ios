@@ -271,8 +271,10 @@ struct PostDetailView: View {
                 .padding(.top, 22)
         }
         VStack(alignment: .leading, spacing: 2) {
-            ForEach(Array(detail.blocks.enumerated()), id: \.offset) { _, block in
-                BlockView(block: block)
+            // 첫 문단은 lead — 독자를 글 안으로 들이는 한 호흡 큰 도입(에디토리얼 문법).
+            let leadIndex = detail.blocks.firstIndex { $0.kind == .paragraph }
+            ForEach(Array(detail.blocks.enumerated()), id: \.offset) { index, block in
+                BlockView(block: block, isLead: index == leadIndex)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
@@ -469,8 +471,29 @@ struct PostDetailView: View {
             .buttonStyle(.plain)
             .padding(.top, 14)
 
+            // 읽는 시간 — 글 입구에서 "얼마나 걸릴지" 한 호흡(에디토리얼 마스트헤드 메타).
+            if let minutes = readingMinutes(detail.blocks) {
+                HStack(spacing: 5) {
+                    Image(systemName: "book")
+                        .font(.system(size: 11 * metaUnit, weight: .medium))
+                    Text("\(minutes)분 읽기")
+                        .font(.system(size: 12 * metaUnit, weight: .medium))
+                }
+                .foregroundStyle(Palette.faint)
+                .padding(.top, 7)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(Text("읽는 시간 약 \(minutes)분"))
+            }
+
             Hairline().padding(.top, 18)
         }
+    }
+
+    /// 본문 글자 수로 읽는 시간 추정 — 한국어 ≈ 분당 500자, 최소 1분. 본문 없으면 nil.
+    private func readingMinutes(_ blocks: [PostBlock]) -> Int? {
+        let chars = blocks.reduce(0) { $0 + ($1.content?.count ?? 0) }
+        guard chars > 0 else { return nil }
+        return max(1, Int((Double(chars) / 500.0).rounded()))
     }
 
     /// 다른 글 한 장 — 커버(없으면 종이 플레이스홀더) + 제목 + 메타. 카드 문법(20곡률·

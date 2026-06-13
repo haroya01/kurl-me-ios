@@ -14,6 +14,8 @@ import WebKit
 /// 서드파티 마크다운 라이브러리 없이 인라인 서식만 AttributedString(markdown:) 로 처리.
 struct BlockView: View {
     let block: PostBlock
+    /// 첫 문단이면 lead — 한 호흡 큰 도입으로 독자를 들인다(에디토리얼 마스트헤드의 일부).
+    var isLead = false
 
     // 읽기 타입 스케일(§ 타이포 시스템) — 한국어 기준으로 자간·행간을 함께 설계한다.
     // 제목류는 클수록 더 조여(−tracking) 디스플레이의 무게를, 본문은 행간으로 숨을 준다.
@@ -25,12 +27,14 @@ struct BlockView: View {
     var body: some View {
         switch block.kind {
         // 본문 = 차분한 읽기. 행간 ≈1.7(한국어 기준)로 숨을 주고, 문단 사이 한 호흡.
+        // 첫 문단(lead)은 한 단계 크고 진하게 — 글 입구의 도입 호흡.
         case .paragraph:
+            let size = isLead ? bodySize + 2 : bodySize
             inline(block.content ?? "")
-                .font(.system(size: bodySize))
-                .lineSpacing(bodySize * 0.68)
-                .foregroundStyle(Palette.body)
-                .padding(.bottom, 18)
+                .font(.system(size: size))
+                .lineSpacing(size * (isLead ? 0.6 : 0.68))
+                .foregroundStyle(isLead ? Palette.heading : Palette.body)
+                .padding(.bottom, isLead ? 20 : 18)
 
         // 헤딩 = 크기·자간·위 여백을 함께 — 한글은 볼드 대비가 약해 굵기만으론 위계가 안 선다.
         // 클수록 자간을 더 조여(−0.5 → −0.4 → −0.25) 디스플레이의 단단함을 만든다.
