@@ -173,22 +173,24 @@ struct StudioView: View {
     /// 글 한 행 — 상태 점(이브로) + 제목 + 발췌 + 커버 썸네일. 평평한 제목-행을
     /// 콘텐츠가 보이는 도착 행으로(발견 카드와 같은 슬레이트 문법).
     private func postRow(_ post: MyPost) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 5) {
+        // 정규 "글 행" 언어 — 작가/시리즈 PostRow 와 동일(eyebrow + 제목 18 + 발췌 2줄 + 96×72).
+        HStack(alignment: .top, spacing: 14) {
+            VStack(alignment: .leading, spacing: 6) {
                 statusEyebrow(post)
                 Text(post.title)
-                    .font(.system(size: 16 * unit, weight: .semibold))
+                    .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(Palette.ink)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
                 if let excerpt = post.excerpt, !excerpt.isEmpty {
                     Text(excerpt)
-                        .font(.system(size: 13 * unit))
+                        .font(.system(size: 14))
                         .foregroundStyle(Palette.secondary)
-                        .lineLimit(1)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            Spacer(minLength: 0)
             if let cover = post.ogImageUrl, let url = URL(string: cover) {
                 AsyncImage(url: url) { phase in
                     if case .success(let image) = phase {
@@ -197,11 +199,11 @@ struct StudioView: View {
                         Rectangle().fill(Palette.hairline)
                     }
                 }
-                .frame(width: 60, height: 60)
+                .frame(width: 96, height: 72)
                 .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb, style: .continuous))
             }
         }
-        .padding(.vertical, 13)
+        .padding(.vertical, 16)
         .contentShape(Rectangle())
     }
 
