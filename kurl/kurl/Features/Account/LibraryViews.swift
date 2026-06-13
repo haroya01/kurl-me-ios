@@ -11,6 +11,7 @@ struct BookmarksView: View {
     @State private var items: [BookmarkItem] = []
     @State private var loading = true
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+    @Environment(\.colorScheme) private var colorScheme
 
     private var offline: OfflineStore { .shared }
 
@@ -30,35 +31,61 @@ struct BookmarksView: View {
                 }
                 .padding(.top, 60)
             } else {
-                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                    NavigationLink(value: Route.post(username: item.username, slug: item.slug)) {
-                        HStack(alignment: .top, spacing: 8) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(item.title)
-                                    .font(.system(size: 16 * unit, weight: .semibold))
-                                    .foregroundStyle(Palette.ink)
-                                    .lineLimit(2)
-                                    .multilineTextAlignment(.leading)
-                                Text(item.username)
+                // 북마크도 카드로 — 다른 면과 같은 표면(라이트 그림자/다크 보더). 오프라인
+                // 저장분은 메타에 ⤓ 배지로. 표지가 없는 글이라 타이포 중심 카드.
+                LazyVStack(spacing: 14) {
+                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                        NavigationLink(value: Route.post(username: item.username, slug: item.slug)) {
+                            HStack(alignment: .top, spacing: 12) {
+                                VStack(alignment: .leading, spacing: 5) {
+                                    Text(item.title)
+                                        .typeScale(.title)
+                                        .foregroundStyle(Palette.ink)
+                                        .lineLimit(2)
+                                        .multilineTextAlignment(.leading)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                    HStack(spacing: 6) {
+                                        Text(item.username)
+                                            .foregroundStyle(Palette.secondary)
+                                        if offline.contains(username: item.username, slug: item.slug) {
+                                            Text("·").foregroundStyle(Palette.faint)
+                                            HStack(spacing: 3) {
+                                                Image(systemName: "arrow.down.circle.fill")
+                                                Text("오프라인")
+                                            }
+                                            .foregroundStyle(Palette.accentMarker)
+                                            .accessibilityElement(children: .combine)
+                                            .accessibilityLabel("오프라인 저장됨")
+                                        }
+                                    }
                                     .font(.system(size: 13 * unit))
-                                    .foregroundStyle(Palette.secondary)
-                            }
-                            Spacer(minLength: 0)
-                            if offline.contains(username: item.username, slug: item.slug) {
-                                Image(systemName: "arrow.down.circle.fill")
+                                }
+                                Spacer(minLength: 0)
+                                Image(systemName: "bookmark.fill")
                                     .font(.system(size: 13))
-                                    .foregroundStyle(Palette.accentMarker)
-                                    .padding(.top, 4)
-                                    .accessibilityLabel("오프라인 저장됨")
+                                    .foregroundStyle(Palette.accentMarker.opacity(0.85))
+                                    .accessibilityHidden(true)
                             }
+                            .padding(16)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                Palette.cardBg,
+                                in: RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
+                            .overlay {
+                                if colorScheme == .dark {
+                                    RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous)
+                                        .strokeBorder(Palette.cardBorder, lineWidth: 1)
+                                }
+                            }
+                            .cardShadow()
+                            .contentShape(
+                                RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 13)
-                        .contentShape(Rectangle())
+                        .buttonStyle(CardButtonStyle())
+                        .modifier(QuietAppear(index: index))
                     }
-                    .buttonStyle(RowButtonStyle())
-                    if index < items.count - 1 { Hairline() }
                 }
+                .padding(.vertical, 14)
             }
         }
         .navigationTitle("북마크")
