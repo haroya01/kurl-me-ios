@@ -195,8 +195,10 @@ struct PostDetailView: View {
                 }
             }
         }
+        // 스크롤로 제목이 스밀 때까지는 내비바 배경을 숨긴다 — 커버 유무와 무관하게.
+        // (무커버 글 진입 때 .automatic 의 반투명 내비바가 상단에 "투명한 박스"로 떴던 것 제거.)
         .toolbarBackground(
-            !embedded && hasCover && !showNavTitle ? .hidden : .automatic, for: .navigationBar)
+            !embedded && !showNavTitle ? .hidden : .automatic, for: .navigationBar)
         // 뒤로가기 = 셰브론-온리 유리 원판 — "< 피드" 텍스트 꼬리 제거(스와이프 백 유지).
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
