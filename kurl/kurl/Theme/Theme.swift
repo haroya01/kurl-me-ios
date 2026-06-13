@@ -89,6 +89,85 @@ extension ShapeStyle where Self == Color {
     static var brand: Color { Palette.accent }
 }
 
+/// 제목 타이포 사다리 — 한 곳에서 크기·굵기·자간을 정의한다(흩어진 매직넘버 종식).
+/// 규칙(§10 + PR#7 검증): **클수록 자간을 더 조인다**(디스플레이는 −0.6, 목록 제목은 −0.3),
+/// 디스플레이/마스트헤드는 bold, 목록 제목은 semibold. 본문·메타는 읽기면(BlockRenderer)이
+/// 소유하므로 여기 두지 않는다 — 이 사다리는 "제목의 목소리"만 책임진다.
+/// 색은 호출측이 따로 입힌다(.foregroundStyle) — 토큰은 글자꼴·자간만.
+enum TypeRole {
+    case display      // 글 상세 제목 — 읽기면 마스트헤드
+    case masthead     // 시리즈/스튜디오 섹션 제목, 에디터 제목
+    case name         // 작가 프로필 이름
+    case featured     // featured(오늘의 글) 카드 제목
+    case title        // 피드·카드·목록 표준 제목
+    case titleSmall   // 에피소드·소형 카드 제목
+    case eyebrow      // 섹션 라벨(RailHeading)
+
+    var size: CGFloat {
+        switch self {
+        case .display: return 33
+        case .masthead: return 26
+        case .name: return 24
+        case .featured: return 22
+        case .title: return 18
+        case .titleSmall: return 16
+        case .eyebrow: return 13
+        }
+    }
+
+    var weight: Font.Weight {
+        switch self {
+        case .display, .masthead, .name, .featured, .eyebrow: return .bold
+        case .title, .titleSmall: return .semibold
+        }
+    }
+
+    /// 클수록 더 조인다 — 큰 제목의 헐거운 기본 자간이 "에디토리얼"을 깬다.
+    var tracking: CGFloat {
+        switch self {
+        case .display: return -0.6
+        case .masthead: return -0.5
+        case .name, .featured: return -0.4
+        case .title: return -0.3
+        case .titleSmall: return -0.25
+        case .eyebrow: return 0
+        }
+    }
+
+    /// Dynamic Type 기준 텍스트 스타일 — @ScaledMetric 이 이 비율로 키운다.
+    var relativeTo: Font.TextStyle {
+        switch self {
+        case .display: return .largeTitle
+        case .masthead, .name: return .title
+        case .featured: return .title2
+        case .title, .titleSmall: return .headline
+        case .eyebrow: return .footnote
+        }
+    }
+}
+
+/// 제목 사다리를 Dynamic Type 와 함께 적용한다(글자꼴·굵기·자간). 색은 안 건드린다.
+private struct TypeScaleModifier: ViewModifier {
+    @ScaledMetric private var size: CGFloat
+    private let role: TypeRole
+
+    init(_ role: TypeRole) {
+        self.role = role
+        _size = ScaledMetric(wrappedValue: role.size, relativeTo: role.relativeTo)
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .font(.system(size: size, weight: role.weight))
+            .tracking(role.tracking)
+    }
+}
+
+extension View {
+    /// 제목 타이포 토큰 — `Text(...).typeScale(.title)`. 색은 따로 `.foregroundStyle`.
+    func typeScale(_ role: TypeRole) -> some View { modifier(TypeScaleModifier(role)) }
+}
+
 enum Metrics {
     /// 읽기 컬럼 불변식 — 본문 정중앙 max-w-2xl(672 ≈ 한 줄 66자)
     static let readingColumn: CGFloat = 672

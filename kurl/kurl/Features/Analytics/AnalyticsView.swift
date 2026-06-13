@@ -252,8 +252,7 @@ struct AnalyticsView: View {
                     HStack(alignment: .top, spacing: 14) {
                         VStack(alignment: .leading, spacing: 6) {
                             Text(row.title)
-                                .font(.system(size: 18, weight: .semibold))
-                                .tracking(-0.3) // 앱 전체 제목 보이스 통일
+                                .typeScale(.title)
                                 .foregroundStyle(Palette.ink)
                                 .lineLimit(2)
                                 .multilineTextAlignment(.leading)

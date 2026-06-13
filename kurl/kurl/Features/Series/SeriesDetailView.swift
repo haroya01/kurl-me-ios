@@ -50,8 +50,7 @@ struct SeriesDetailView: View {
                 RailHeading("시리즈")
             }
             Text(detail.series.title)
-                .font(.system(size: 26, weight: .bold))
-                .tracking(-0.4)
+                .typeScale(.masthead)
                 .foregroundStyle(Palette.ink)
             NavigationLink(value: Route.author(username: detail.author.username)) {
                 HStack(spacing: 6) {
@@ -139,8 +138,7 @@ private struct EpisodeCard: View {
                     .tracking(0.3)
                     .foregroundStyle(Palette.accentMarker)
                 Text(post.title)
-                    .font(.system(size: 16 * titleUnit, weight: .semibold))
-                    .tracking(-0.2)
+                    .typeScale(.titleSmall)
                     .foregroundStyle(Palette.ink)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
