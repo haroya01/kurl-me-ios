@@ -13,7 +13,7 @@ struct PostDetailView: View {
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
-    @ScaledMetric(relativeTo: .largeTitle) private var titleSize: CGFloat = 30
+    @ScaledMetric(relativeTo: .largeTitle) private var titleSize: CGFloat = 33
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
@@ -439,8 +439,8 @@ struct PostDetailView: View {
 
             Text(detail.post.title)
                 .font(.system(size: titleSize, weight: .bold))
-                .tracking(-0.4)
-                .lineSpacing(3)
+                .tracking(-0.6)
+                .lineSpacing(6)
                 .foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)

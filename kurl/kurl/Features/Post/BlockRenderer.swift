@@ -15,49 +15,51 @@ import WebKit
 struct BlockView: View {
     let block: PostBlock
 
+    // 읽기 타입 스케일(§ 타이포 시스템) — 한국어 기준으로 자간·행간을 함께 설계한다.
+    // 제목류는 클수록 더 조여(−tracking) 디스플레이의 무게를, 본문은 행간으로 숨을 준다.
     @ScaledMetric(relativeTo: .body) private var bodySize: CGFloat = 18
-    @ScaledMetric(relativeTo: .title) private var h1Size: CGFloat = 26
-    @ScaledMetric(relativeTo: .title2) private var h2Size: CGFloat = 24
-    @ScaledMetric(relativeTo: .title3) private var h3Size: CGFloat = 20
+    @ScaledMetric(relativeTo: .title) private var h1Size: CGFloat = 27
+    @ScaledMetric(relativeTo: .title2) private var h2Size: CGFloat = 23
+    @ScaledMetric(relativeTo: .title3) private var h3Size: CGFloat = 19
 
     var body: some View {
         switch block.kind {
-        // 가독의 두 기둥: 행간 ≈1.65(한국어 본문 기준, 5pt 는 1.28 로 너무 좁았다)
-        // + 문단 사이 한 호흡. 글자를 키우는 게 아니라 숨 쉴 자리를 준다.
+        // 본문 = 차분한 읽기. 행간 ≈1.7(한국어 기준)로 숨을 주고, 문단 사이 한 호흡.
         case .paragraph:
             inline(block.content ?? "")
                 .font(.system(size: bodySize))
-                .lineSpacing(bodySize * 0.62)
+                .lineSpacing(bodySize * 0.68)
                 .foregroundStyle(Palette.body)
-                .padding(.bottom, 14)
+                .padding(.bottom, 18)
 
-        // 한글은 볼드 대비가 라틴보다 약하다 — 굵기만으로는 위계가 안 서서
-        // 크기 간격 + 자간 + 위 여백을 함께 벌린다.
+        // 헤딩 = 크기·자간·위 여백을 함께 — 한글은 볼드 대비가 약해 굵기만으론 위계가 안 선다.
+        // 클수록 자간을 더 조여(−0.5 → −0.4 → −0.25) 디스플레이의 단단함을 만든다.
         case .h1:
             inline(block.content ?? "")
                 .font(.system(size: h1Size, weight: .bold))
+                .tracking(-0.5)
+                .foregroundStyle(Palette.ink)
+                .accessibilityAddTraits(.isHeader)
+                .padding(.top, 30).padding(.bottom, 6)
+        case .h2:
+            inline(block.content ?? "")
+                .font(.system(size: h2Size, weight: .bold))
                 .tracking(-0.4)
                 .foregroundStyle(Palette.ink)
                 .accessibilityAddTraits(.isHeader)
                 .padding(.top, 24).padding(.bottom, 5)
-        case .h2:
-            inline(block.content ?? "")
-                .font(.system(size: h2Size, weight: .bold))
-                .tracking(-0.3)
-                .foregroundStyle(Palette.ink)
-                .accessibilityAddTraits(.isHeader)
-                .padding(.top, 20).padding(.bottom, 4)
         case .h3:
             inline(block.content ?? "")
                 .font(.system(size: h3Size, weight: .semibold))
+                .tracking(-0.25)
                 .foregroundStyle(Palette.ink)
                 .accessibilityAddTraits(.isHeader)
-                .padding(.top, 14).padding(.bottom, 2)
+                .padding(.top, 16).padding(.bottom, 2)
 
         case .quote:
             inline(block.content ?? "")
                 .font(.system(size: bodySize).italic())
-                .lineSpacing(bodySize * 0.55)
+                .lineSpacing(bodySize * 0.6)
                 .foregroundStyle(Palette.secondary)
                 .padding(.leading, 20)
                 .padding(.vertical, 2)
