@@ -12,6 +12,7 @@ struct PostDetailView: View {
     @State private var model: PostDetailViewModel
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
     @ScaledMetric(relativeTo: .largeTitle) private var titleSize: CGFloat = 30
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
@@ -323,7 +324,7 @@ struct PostDetailView: View {
     }
 
     private var otherPosts: [PostListItem] {
-        Array(authorPosts.filter { $0.slug != model.slug }.prefix(3))
+        Array(authorPosts.filter { $0.slug != model.slug }.prefix(6))
     }
 
     /// 글 끝의 작가 카드 — 완독 직후가 팔로우 전환의 최적 순간. 글이 막다른 길로 끝나지 않게.
@@ -356,8 +357,8 @@ struct PostDetailView: View {
             FollowButton(username: author.username)
 
             if !otherPosts.isEmpty {
-                VStack(alignment: .leading, spacing: 0) {
-                    // 헤딩 + "전체 보기" — 3편만 추리므로 작가 블로그로 이어지는 문을 같은 줄에 둔다.
+                VStack(alignment: .leading, spacing: 12) {
+                    // 헤딩 + "전체 보기" — 일부만 추리므로 작가 블로그로 이어지는 문을 같은 줄에 둔다.
                     HStack(alignment: .firstTextBaseline) {
                         RailHeading("이 작가의 다른 글")
                         Spacer(minLength: 8)
@@ -374,18 +375,24 @@ struct PostDetailView: View {
                         .buttonStyle(.plain)
                         .accessibilityLabel("\(author.username)님의 글 전체 보기")
                     }
-                    .padding(.bottom, 6)
-                    ForEach(Array(otherPosts.enumerated()), id: \.element.id) { index, post in
-                        NavigationLink(
-                            value: Route.post(username: author.username, slug: post.slug)
-                        ) {
-                            otherPostRow(post)
+                    // 평평한 목록 대신 커버 카드 가로 레일 — 작가 시리즈 레일과 같은 책장 문법.
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ForEach(otherPosts) { post in
+                                NavigationLink(
+                                    value: Route.post(username: author.username, slug: post.slug)
+                                ) {
+                                    otherPostCard(post)
+                                }
+                                .buttonStyle(CardButtonStyle())
+                                .modifier(CardScrollFade(axis: .horizontal))
+                            }
                         }
-                        .buttonStyle(RowButtonStyle())
-                        if index < otherPosts.count - 1 { Hairline() }
+                        .padding(.vertical, 4) // 카드 그림자가 레일 가장자리에서 잘리지 않게.
                     }
+                    .scrollClipDisabled()
                 }
-                .padding(.top, 2)
+                .padding(.top, 4)
             }
         }
         .padding(.vertical, 10)
@@ -429,27 +436,40 @@ struct PostDetailView: View {
         }
     }
 
-    /// 다른 글 한 행 — 제목 한 줄짜리 텍스트 행이었던 것을 발췌·메타가 있는 도착 행 문법
-    /// (구독함과 동일 계열)으로. 썸네일은 있을 때만 — 없는 글이 비뚤어 보이지 않게 trailing.
-    private func otherPostRow(_ post: PostListItem) -> some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
+    /// 다른 글 한 장 — 커버(없으면 종이 플레이스홀더) + 제목 + 메타. 카드 문법(20곡률·
+    /// 다층 그림자·다크 보더)은 발견 카드와 같은 토큰을 쓴다.
+    private func otherPostCard(_ post: PostListItem) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Group {
+                if let cover = post.ogImageUrl, let url = URL(string: cover) {
+                    AsyncImage(url: url) { phase in
+                        if case .success(let image) = phase {
+                            image.resizable().scaledToFill()
+                        } else {
+                            otherPostCover(post)
+                        }
+                    }
+                } else {
+                    otherPostCover(post)
+                }
+            }
+            .frame(width: 220, height: 118)
+            .clipped()
+
+            VStack(alignment: .leading, spacing: 7) {
                 Text(post.title)
                     .font(.system(size: 15 * unit, weight: .semibold))
                     .foregroundStyle(Palette.ink)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
-                if let excerpt = post.excerpt, !excerpt.isEmpty {
-                    Text(excerpt)
-                        .font(.system(size: 13 * unit))
-                        .foregroundStyle(Palette.secondary)
-                        .lineLimit(1)
-                }
-                HStack(spacing: 8) {
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+                HStack(spacing: 6) {
                     if let date = post.publishedAt {
                         Text(date.relativeShort)
                     }
                     if post.likeCount > 0 {
+                        Text("·").foregroundStyle(Palette.faint)
                         HStack(spacing: 3) {
                             Image(systemName: "heart")
                             Text("\(post.likeCount)").monospacedDigit()
@@ -458,23 +478,41 @@ struct PostDetailView: View {
                 }
                 .font(.system(size: 12 * metaUnit))
                 .foregroundStyle(Palette.secondary)
-                .padding(.top, 1)
             }
-            Spacer(minLength: 0)
-            if let cover = post.ogImageUrl, let url = URL(string: cover) {
-                AsyncImage(url: url) { phase in
-                    if case .success(let image) = phase {
-                        image.resizable().scaledToFill()
-                    } else {
-                        Rectangle().fill(Palette.hairline)
-                    }
-                }
-                .frame(width: 64, height: 64)
-                .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb, style: .continuous))
+            .padding(13)
+            .frame(width: 220, alignment: .leading)
+        }
+        .frame(width: 220, height: 214, alignment: .top)
+        .background(Palette.cardBg)
+        .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
+        .overlay {
+            // 라이트는 그림자로 서고(보더=상자 느낌), 다크는 그림자가 죽어 보더 유지(발견 카드 규칙).
+            if colorScheme == .dark {
+                RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous)
+                    .strokeBorder(Palette.cardBorder, lineWidth: 1)
             }
         }
-        .padding(.vertical, 11)
-        .contentShape(Rectangle())
+        .cardShadow()
+    }
+
+    /// 커버 없는 글의 종이 플레이스홀더 — slate 그라데이션 위 옅은 문서 마크(장식 일러스트 ❌).
+    private func otherPostCover(_ post: PostListItem) -> some View {
+        ZStack {
+            LinearGradient(
+                colors: [Palette.chipBg, Palette.hairline],
+                startPoint: .topLeading, endPoint: .bottomTrailing)
+            if let tag = post.tags.first {
+                Text("#\(tag)")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Palette.faint)
+                    .lineLimit(1)
+                    .padding(.horizontal, 12)
+            } else {
+                Image(systemName: "doc.text")
+                    .font(.system(size: 20, weight: .light))
+                    .foregroundStyle(Palette.faint)
+            }
+        }
     }
 
     private func comments(authorId: Int64) -> some View {
