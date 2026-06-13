@@ -718,8 +718,11 @@ private struct MarkdownSnippetBar: View {
     }
 
     var body: some View {
-        GlassEffectContainer(spacing: GlassTokens.clusterSpacing) {
-            HStack(spacing: 10) {
+        // 도구 캡슐과 키보드 내리기 버튼은 성격이 다른 컨트롤 — clusterSpacing(18) 안에서
+        // 액체처럼 녹아 붙어(metaball) 한 덩어리로 보였다. 이 묶음의 융합 거리만 0 으로
+        // (닿을 때만 융합) 두고 간격을 벌려 또렷한 두 컨트롤로 분리한다.
+        GlassEffectContainer(spacing: 0) {
+            HStack(spacing: 14) {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 0) {
                         ForEach(Action.allCases, id: \.self) { action in
