@@ -168,14 +168,13 @@ struct PostDetailView: View {
                 showNext = true
             }
         }
-        // 읽기 진행도 — 덱에서만. 본문을 얼마나 내려왔는지 0~1 로.
+        // 읽기 진행도 — 본문을 얼마나 내려왔는지 0~1 로(덱·단독 공통).
         .onScrollGeometryChange(for: CGFloat.self) { geometry in
             let total = geometry.contentSize.height - geometry.containerSize.height
             guard total > 1 else { return 0 }
             let scrolled = geometry.contentOffset.y + geometry.contentInsets.top
             return min(1, max(0, scrolled / total))
         } action: { _, progress in
-            guard embedded else { return }
             readProgress = progress
         }
         .onScrollPhaseChange { _, newPhase in
@@ -228,9 +227,11 @@ struct PostDetailView: View {
                 .transition(.opacity)
             }
         }
-        // 읽기 진행 띠 — 덱(임베드)에서 내비바 바로 아래에 한 줄. 충분히 긴 글에만.
+        // 읽기 진행 띠 — 내비바 바로 아래 한 줄. 충분히 긴 글에만.
+        // 덱: 항상(장 상단부터). 단독: 헤더/커버를 지나 제목이 내비바로 스민 뒤(showNavTitle)
+        // 켜야 커버를 가로지르지 않고 단단한 내비바 아래에 깔린다.
         .overlay(alignment: .top) {
-            if embedded, scrollable {
+            if scrollable, embedded || showNavTitle {
                 GeometryReader { geo in
                     Capsule()
                         .fill(Palette.accent)
