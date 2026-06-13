@@ -807,11 +807,23 @@ private struct CommentThreadCard: View {
         VStack(alignment: .leading, spacing: 0) {
             CommentRow(
                 model: model, comment: comment, replyTo: $replyTo, postAuthorId: postAuthorId)
-            ForEach(replies) { reply in
-                Hairline().padding(.vertical, 12)
-                CommentRow(
-                    model: model, comment: reply, replyTo: $replyTo, postAuthorId: postAuthorId)
-                    .padding(.leading, 6)
+            if !replies.isEmpty {
+                // 답글 블록 — 부모 아바타 중심선에서 끊김 없이 내려오는 연결 스파인 + 들여쓰기로
+                // "이 사람 밑"임이 또렷하게(평면 헤어라인은 형제로 읽혀 뎁스가 안 느껴졌다).
+                HStack(alignment: .top, spacing: 12) {
+                    RoundedRectangle(cornerRadius: 1)
+                        .fill(Palette.hairlineStrong)
+                        .frame(width: 2)
+                    VStack(alignment: .leading, spacing: 18) {
+                        ForEach(replies) { reply in
+                            CommentRow(
+                                model: model, comment: reply, replyTo: $replyTo,
+                                postAuthorId: postAuthorId)
+                        }
+                    }
+                }
+                .padding(.top, 16)
+                .padding(.leading, 15)
             }
         }
         .padding(16)
