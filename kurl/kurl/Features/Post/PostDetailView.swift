@@ -622,23 +622,14 @@ struct PostDetailView: View {
                 .accessibilityLabel("댓글 \(model.comments.count) 펼치기")
             } else {
                 RailHeading("댓글 \(model.comments.count)")
-                ForEach(model.comments) { comment in
-                    CommentRow(
-                        model: model, comment: comment, replyTo: $replyTo,
-                        postAuthorId: authorId
-                    )
-                    .padding(.leading, comment.parentId != nil ? 30 : 0)
-                    // 답글의 소속을 눈으로 — 들여쓰기만으로는 스레드가 안 읽힌다.
-                    // 스파인은 부모 아바타(32) 중심선(15) 자리에 내린다.
-                    .overlay(alignment: .leading) {
-                        if comment.parentId != nil {
-                            RoundedRectangle(cornerRadius: 1)
-                                .fill(Palette.hairlineStrong)
-                                .frame(width: 2)
-                                .padding(.vertical, 4)
-                                .offset(x: 15)
-                        }
-                    }
+                // 한 묶음(원댓글 + 답글) = 카드 하나. 대화 단위가 한 면으로 읽힌다.
+                ForEach(model.comments.filter { $0.parentId == nil }) { parent in
+                    CommentThreadCard(
+                        model: model,
+                        comment: parent,
+                        replies: model.comments.filter { $0.parentId == parent.id },
+                        replyTo: $replyTo,
+                        postAuthorId: authorId)
                 }
                 // 본문 끝의 조용한 프롬프트 — 탭하면 유리 바가 키보드와 함께 떠오른다.
                 Button {
@@ -798,6 +789,42 @@ struct CommentRow: View {
         .alert("삭제하지 못했습니다", isPresented: $deleteFailed) {
             Button("확인", role: .cancel) {}
         }
+    }
+}
+
+/// 댓글 한 묶음(원댓글 + 답글)을 카드 하나로 — 대화 단위가 한 면으로 읽힌다.
+/// 읽기 면(readingBg) 위에 살짝 떠오르는 카드(라이트 그림자/다크 보더). 답글은 카드 안에서
+/// 헤어라인으로 나뉘고 한 단 들여써 "이 사람 밑"임이 읽힌다(아바타도 작아진다 — CommentRow).
+private struct CommentThreadCard: View {
+    let model: PostDetailViewModel
+    let comment: Comment
+    let replies: [Comment]
+    @Binding var replyTo: Comment?
+    var postAuthorId: Int64?
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            CommentRow(
+                model: model, comment: comment, replyTo: $replyTo, postAuthorId: postAuthorId)
+            ForEach(replies) { reply in
+                Hairline().padding(.vertical, 12)
+                CommentRow(
+                    model: model, comment: reply, replyTo: $replyTo, postAuthorId: postAuthorId)
+                    .padding(.leading, 6)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            Palette.cardBg, in: RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous))
+        .overlay {
+            if colorScheme == .dark {
+                RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous)
+                    .strokeBorder(Palette.cardBorder, lineWidth: 1)
+            }
+        }
+        .cardShadow()
     }
 }
 
