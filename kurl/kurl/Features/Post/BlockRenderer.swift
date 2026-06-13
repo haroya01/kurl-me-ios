@@ -193,9 +193,8 @@ private struct CodeBlockView: View {
             .padding(.bottom, 2)
 
             ScrollView(.horizontal, showsIndicators: false) {
-                Text(payload.code)
+                Text(CodeSyntax.highlight(payload.code, lang: payload.lang))
                     .font(.system(size: 14, design: .monospaced))
-                    .foregroundStyle(Palette.codeText)
                     .textSelection(.enabled)
                     .padding(.horizontal, 16)
                     .padding(.top, 10)
@@ -216,6 +215,140 @@ private struct CodeBlockView: View {
             try? await Task.sleep(for: .seconds(1.8))
             withAnimation(.easeOut(duration: 0.2)) { copied = false }
         }
+    }
+}
+
+// MARK: 경량 구문 하이라이트 — IDE 처럼 색을 입히되 서드파티 없이 한 패스 스캐너로.
+
+/// slate-900 위에서 또렷한, 절제된 다크 테마. 문자열은 브랜드 그린 계열로 묶고
+/// 나머지는 IDE 관습 색(키워드 핑크·숫자 앰버·타입 스카이·주석 muted slate).
+/// 언어를 정확히 파싱하지 않는다 — 문자열·주석·숫자·식별자(키워드/타입) 수준의
+/// 범용 토큰만 칠해 어떤 언어든 "코드처럼" 보이게 한다(과채색보다 안전 우선).
+private enum CodeSyntax {
+    static let plain = Palette.codeText
+    static let comment = Color(hex: 0x7C8BA3)
+    static let keyword = Color(hex: 0xF472B6)
+    static let string = Color(hex: 0x6EE7B7)
+    static let number = Color(hex: 0xFCD34D)
+    static let type = Color(hex: 0x7DD3FC)
+
+    /// 여러 언어 키워드의 합집합 — 식별자로 쓰일 일이 드문 예약어만(과채색 방지).
+    static let keywords: Set<String> = [
+        // 선언/흐름 공통
+        "func", "fun", "fn", "def", "let", "var", "val", "const", "static", "final",
+        "class", "struct", "enum", "interface", "protocol", "extension", "trait", "impl",
+        "import", "export", "from", "package", "module", "use", "mod", "namespace",
+        "return", "if", "else", "elif", "for", "while", "do", "switch", "case", "default",
+        "break", "continue", "guard", "defer", "try", "catch", "finally", "throw", "throws",
+        "async", "await", "yield", "lazy", "where", "in", "is", "as", "of", "new", "delete",
+        "public", "private", "protected", "internal", "open", "override", "mutating",
+        "typealias", "associatedtype", "init", "deinit", "self", "this", "super", "extends",
+        "implements", "abstract", "void", "type", "with", "lambda", "pass", "raise", "except",
+        "global", "nonlocal", "go", "chan", "select", "pub", "mut", "ref", "unsafe", "match",
+        "and", "or", "not", "typeof", "instanceof", "function",
+        // 상수/타입성 키워드
+        "true", "false", "nil", "null", "undefined", "None", "True", "False",
+        "Int", "String", "Bool", "Double", "Float", "Void", "Any", "Self",
+        "int", "float", "double", "char", "bool", "boolean", "string", "long", "short", "byte",
+    ]
+
+    private static let hashCommentLangs: Set<String> = [
+        "py", "python", "rb", "ruby", "sh", "bash", "zsh", "shell", "yaml", "yml",
+        "toml", "r", "perl", "makefile", "dockerfile", "ini", "conf", "elixir", "ex",
+    ]
+
+    static func highlight(_ code: String, lang: String?) -> AttributedString {
+        // 아주 긴 블록은 색칠 비용을 피한다(스캔·다수 append).
+        guard code.count <= 6000 else {
+            var flat = AttributedString(code)
+            flat.foregroundColor = plain
+            return flat
+        }
+        let s = Array(code)
+        let n = s.count
+        let hashComment = hashCommentLangs.contains((lang ?? "").lowercased())
+        var result = AttributedString()
+        var i = 0
+
+        func emit(_ range: Range<Int>, _ color: Color) {
+            guard !range.isEmpty else { return }
+            var piece = AttributedString(String(s[range]))
+            piece.foregroundColor = color
+            result += piece
+        }
+
+        func isWordChar(_ c: Character) -> Bool { c.isLetter || c.isNumber || c == "_" }
+
+        while i < n {
+            let c = s[i]
+
+            // 줄/블록 주석
+            if c == "/", i + 1 < n, s[i + 1] == "/" {
+                var j = i
+                while j < n, s[j] != "\n" { j += 1 }
+                emit(i..<j, comment); i = j; continue
+            }
+            if c == "/", i + 1 < n, s[i + 1] == "*" {
+                var j = i + 2
+                while j < n, !(s[j] == "*" && j + 1 < n && s[j + 1] == "/") { j += 1 }
+                j = min(n, j + 2)
+                emit(i..<j, comment); i = j; continue
+            }
+            if hashComment, c == "#" {
+                var j = i
+                while j < n, s[j] != "\n" { j += 1 }
+                emit(i..<j, comment); i = j; continue
+            }
+
+            // 문자열/문자 리터럴
+            if c == "\"" || c == "'" || c == "`" {
+                let quote = c
+                var j = i + 1
+                while j < n {
+                    if s[j] == "\\" { j += 2; continue }
+                    if s[j] == quote { j += 1; break }
+                    if s[j] == "\n", quote != "`" { break }
+                    j += 1
+                }
+                emit(i..<min(j, n), string); i = min(j, n); continue
+            }
+
+            // 숫자
+            if c.isNumber {
+                var j = i
+                while j < n, s[j].isNumber || s[j] == "." || s[j] == "_"
+                    || "xXoObBeE".contains(s[j]) || "abcdefABCDEF".contains(s[j]) { j += 1 }
+                emit(i..<j, number); i = j; continue
+            }
+
+            // 식별자 → 키워드/타입/일반
+            if c.isLetter || c == "_" {
+                var j = i
+                while j < n, isWordChar(s[j]) { j += 1 }
+                let word = String(s[i..<j])
+                if keywords.contains(word) {
+                    emit(i..<j, keyword)
+                } else if let first = word.first, first.isUppercase {
+                    emit(i..<j, type)
+                } else {
+                    emit(i..<j, plain)
+                }
+                i = j; continue
+            }
+
+            // 그 외(공백·구두점) — 다음 토큰 시작 전까지 한 덩어리로 묶어 append 수를 줄인다.
+            var j = i
+            while j < n {
+                let d = s[j]
+                if isWordChar(d) || d == "\"" || d == "'" || d == "`" { break }
+                if d == "/", j + 1 < n, s[j + 1] == "/" || s[j + 1] == "*" { break }
+                if hashComment, d == "#" { break }
+                j += 1
+            }
+            if j == i { j = i + 1 }
+            emit(i..<j, plain); i = j
+        }
+        return result
     }
 }
 
