@@ -52,8 +52,10 @@ struct PostDetailView: View {
     @State private var fingerDown = false
     /// 바닥 너머 당김의 진행도(0~1, 임계 90pt) — 큐의 셰브론·제목이 손가락을 따라온다.
     @State private var pullProgress: CGFloat = 0
-    /// 읽기 진행도(0~1) — 덱에서 한 장을 얼마나 읽었는지 상단 띠로. "리딩 덱"의 서명.
+    /// 읽기 진행도(0~1). 시그니처 = 이 진행을 kurl 3-bar 마크가 왼쪽부터 그려지며 표현한다.
     @State private var readProgress: CGFloat = 0
+    /// 끝까지 읽으면 마크가 완성되는 한 번의 모먼트(완독). 위로 다시 올라가면 재무장.
+    @State private var readComplete = false
 
     /// 떠 있는 유리 독 — 글 끝(컴포저·다음 글 큐 영역)에 닿으면 materialize 로 물러나
     /// 입력을 가리지 않는다. 후퇴는 "스크롤 여유가 충분한 글"에만 — 한 화면 남짓 글은
@@ -179,6 +181,12 @@ struct PostDetailView: View {
             return min(1, max(0, scrolled / total))
         } action: { _, progress in
             readProgress = progress
+            // 완독 모먼트 — 거의 끝(0.985)에 닿으면 마크 완성 한 번. 0.9 아래로 되돌아가면 재무장.
+            if progress >= 0.985, !readComplete {
+                readComplete = true
+            } else if progress < 0.9, readComplete {
+                readComplete = false
+            }
         }
         .onScrollPhaseChange { _, newPhase in
             if embedded { fingerDown = newPhase == .interacting }
@@ -230,21 +238,25 @@ struct PostDetailView: View {
                 .transition(.opacity)
             }
         }
-        // 읽기 진행 띠 — 내비바 바로 아래 한 줄. 충분히 긴 글에만.
-        // 덱: 항상(장 상단부터). 단독: 헤더/커버를 지나 제목이 내비바로 스민 뒤(showNavTitle)
-        // 켜야 커버를 가로지르지 않고 단단한 내비바 아래에 깔린다.
+        // 시그니처 — 읽기 진행을 kurl 3-bar 마크가 왼쪽부터 그려지며 표현한다(밋밋한 띠 대신
+        // 브랜드 마크가 "읽는 행위"에 묶임). 끝까지 읽으면 마크가 완성되며 한 번 톡 튄다(완독).
+        // 덱: 장 상단부터. 단독: 제목이 내비바로 스민 뒤(showNavTitle). 충분히 긴 글에만.
         .overlay(alignment: .top) {
             if scrollable, embedded || showNavTitle {
-                GeometryReader { geo in
-                    Capsule()
-                        .fill(Palette.accent)
-                        .frame(width: max(0, geo.size.width * readProgress), height: 3)
-                        .opacity(readProgress > 0.001 ? 1 : 0)
-                }
-                .frame(height: 3)
-                .allowsHitTesting(false)
+                // 작은 유리 캡슐에 담아 떠 있는 크롬으로 — 본문 위에 깔려도 글자에 안 묻고
+                // 읽힌다(덱의 "추천 N/M" 칩과 같은 결).
+                ReadingMark(progress: readProgress, complete: readComplete)
+                    .frame(width: 30, height: 18)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .glassEffect(.regular, in: .capsule)
+                    .padding(.top, 6)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
             }
         }
+        // 완독 = 결과 햅틱 한 번(.success). trigger 닫힘(되돌아감)엔 울리지 않게 완료에만.
+        .sensoryFeedback(trigger: readComplete) { _, done in done ? .success : nil }
         .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: endVisible)
         .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: keyboardUp)
         .task {
@@ -994,6 +1006,36 @@ struct GlassCommentBar: View {
             if (try? await AuthStore.shared.signInWithApple()) == .twoFactorRequired {
                 showTwoFactorHint = true
             }
+        }
+    }
+}
+
+/// 시그니처 — 읽기 진행을 kurl 3-bar 마크가 그려지며 표현한다. 옅은 트랙(미독) 위로 그린
+/// 마크가 왼쪽부터 채워지고(progress), 완독하면(complete) 한 번 톡 튄다. 밋밋한 진행 띠를
+/// 브랜드 행위로 — "읽으면 마크가 그려진다."
+private struct ReadingMark: View {
+    var progress: CGFloat
+    var complete: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var pop: CGFloat = 1
+
+    var body: some View {
+        ZStack {
+            // 미독 트랙 — 마크의 옅은 골격.
+            KurlMark(drawn: [true, true, true], tint: Palette.hairlineStrong)
+            // 읽은 만큼 — 그린 마크를 왼쪽부터 드러낸다.
+            KurlMark(drawn: [true, true, true], tint: Palette.accent)
+                .mask(alignment: .leading) {
+                    GeometryReader { geo in
+                        Color.black.frame(width: geo.size.width * min(1, max(0, progress)))
+                    }
+                }
+        }
+        .scaleEffect(pop)
+        .onChange(of: complete) { _, done in
+            guard done, !reduceMotion else { return }
+            withAnimation(.spring(response: 0.26, dampingFraction: 0.45)) { pop = 1.32 }
+            withAnimation(.spring(response: 0.42, dampingFraction: 0.6).delay(0.16)) { pop = 1 }
         }
     }
 }
