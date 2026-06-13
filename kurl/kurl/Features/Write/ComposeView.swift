@@ -13,6 +13,8 @@ import UIKit
 struct ComposeView: View {
     let existing: MyPost?
     let onSaved: () -> Void
+    /// 방금 발행한 글의 slug 를 들고 닫힌다 — 호스트(스튜디오)가 라이브 글로 이어 보낸다.
+    var onOpenPublished: ((String) -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.verticalSizeClass) private var verticalSizeClass
@@ -81,9 +83,13 @@ struct ComposeView: View {
     @State private var scheduleError: String?
     @State private var showRevisions = false
 
-    init(post: MyPost?, onSaved: @escaping () -> Void) {
+    /// 방금 발행한 글의 slug — 셀레브레이션의 "글 보기" 한 틱이 이걸 들고 라이브로 보낸다.
+    @State private var publishedSlug: String?
+
+    init(post: MyPost?, onSaved: @escaping () -> Void, onOpenPublished: ((String) -> Void)? = nil) {
         self.existing = post
         self.onSaved = onSaved
+        self.onOpenPublished = onOpenPublished
     }
 
     var body: some View {
@@ -407,7 +413,11 @@ struct ComposeView: View {
             // 발행 성공 모먼트 — 폼 위 전체화면 블룸. 끝나면 토스트 남기고 에디터를 닫는다.
             .overlay {
                 if celebrating {
-                    PublishCelebrationView {
+                    PublishCelebrationView(
+                        onView: publishedSlug.map { slug in
+                            { showPublish = false; dismiss(); onOpenPublished?(slug) }
+                        }
+                    ) {
                         ToastCenter.shared.show(String(localized: "발행되었습니다"))
                         showPublish = false
                         dismiss()
@@ -742,6 +752,7 @@ struct ComposeView: View {
             if publish {
                 let published = try await WriteAPI.publish(postId: id)
                 status = published.status
+                publishedSlug = published.slug
             }
             lastSavedSignature = snapshot
             lastSavedAt = Date()
@@ -1237,12 +1248,17 @@ private struct FlowLayout: Layout {
 /// 발행 성공 모먼트 — "조용한 웹로그"의 절제 안에서 허락하는 한 번의 환호.
 /// 그린 블룸(컨페티) + 체크 + 햅틱 시퀀스. reduce-motion 이면 정적 체크만 띄운다.
 private struct PublishCelebrationView: View {
+    /// "글 보기" 한 틱 — 있으면 버튼을 띄우고 자동 닫힘을 늦춘다(탭할 시간을 준다).
+    var onView: (() -> Void)? = nil
     let onDone: () -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var bloom = false
     @State private var marked = false
     /// 발행 순간의 서명 — 브랜드 마크가 스플래시처럼 줄별로 그려진다(체크 대신).
     @State private var barsDrawn = [false, false, false]
+    @State private var actionsShown = false
+    /// 사용자가 "글 보기"를 눌렀으면 자동 닫힘(onDone)이 뒤늦게 끼어들지 않게.
+    @State private var handled = false
 
     var body: some View {
         ZStack {
@@ -1254,21 +1270,46 @@ private struct PublishCelebrationView: View {
                     .allowsHitTesting(false)
             }
             VStack(spacing: 16) {
-                ZStack {
-                    Circle()
-                        .fill(Palette.accentFill)
-                        .frame(width: 84, height: 84)
-                        .shadow(color: Palette.accent.opacity(0.35), radius: 16, y: 6)
-                    // 흰 3-bar 마크 — 그린 원판 위에서 줄별로 왼쪽부터 그어진다.
-                    KurlMark(drawn: barsDrawn, tint: .white)
-                        .frame(width: 40, height: 24)
-                }
-                .scaleEffect(marked ? 1 : 0.4)
-                .opacity(marked ? 1 : 0)
-                Text("발행되었습니다")
-                    .font(.system(size: 19, weight: .bold))
-                    .foregroundStyle(Palette.ink)
+                VStack(spacing: 16) {
+                    ZStack {
+                        Circle()
+                            .fill(Palette.accentFill)
+                            .frame(width: 84, height: 84)
+                            .shadow(color: Palette.accent.opacity(0.35), radius: 16, y: 6)
+                        // 흰 3-bar 마크 — 그린 원판 위에서 줄별로 왼쪽부터 그어진다.
+                        KurlMark(drawn: barsDrawn, tint: .white)
+                            .frame(width: 40, height: 24)
+                    }
+                    .scaleEffect(marked ? 1 : 0.4)
                     .opacity(marked ? 1 : 0)
+                    Text("발행되었습니다")
+                        .font(.system(size: 19, weight: .bold))
+                        .foregroundStyle(Palette.ink)
+                        .opacity(marked ? 1 : 0)
+                }
+                // 마크+문구만 한 덩어리로 읽고, "글 보기"는 별도 동작 요소로 남긴다(VoiceOver).
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(Text("발행되었습니다"))
+                if let onView {
+                    Button {
+                        guard !handled else { return }
+                        handled = true
+                        onView()
+                    } label: {
+                        Text("글 보기")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+                            .contentShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .glassEffect(.regular.tint(Palette.accentFill).interactive(), in: .capsule)
+                    .opacity(actionsShown ? 1 : 0)
+                    .offset(y: actionsShown ? 0 : 6)
+                    .padding(.top, 4)
+                    .accessibilityIdentifier("viewPublishedPost")
+                }
             }
         }
         .onAppear {
@@ -1286,14 +1327,20 @@ private struct PublishCelebrationView: View {
                     ) { barsDrawn[i] = true }
                 }
             }
+            // 마크가 다 그려진 뒤 "글 보기"가 떠오른다.
+            withAnimation(reduceMotion ? .easeOut(duration: 0.2) : .easeOut(duration: 0.3).delay(0.7)) {
+                actionsShown = true
+            }
             playHaptics()
             Task {
-                try? await Task.sleep(for: .seconds(reduceMotion ? 0.9 : 1.7))
+                // "글 보기"가 있으면 탭할 시간을 주고(4s), 없으면 짧게 닫는다.
+                let hold: Double = reduceMotion ? 1.2 : (onView != nil ? 4.0 : 1.7)
+                try? await Task.sleep(for: .seconds(hold))
+                guard !handled else { return }
+                handled = true
                 onDone()
             }
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text("발행되었습니다"))
     }
 
     private func playHaptics() {
