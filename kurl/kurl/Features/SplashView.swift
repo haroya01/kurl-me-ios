@@ -56,8 +56,10 @@ struct SplashView: View {
 }
 
 /// 3-bar 브랜드 마크 — 웹 SVG(viewBox 28×17)의 rect 좌표를 그대로 스케일.
+/// tint 로 색을 바꾼다(기본 브랜드 그린, 그린 면 위에선 흰색 등).
 struct KurlMark: View {
     let drawn: [Bool]
+    var tint: Color = Palette.accent
 
     // (x, y, width) — height 3.4, rx 1.7 고정. viewBox 기준.
     private static let bars: [(CGFloat, CGFloat, CGFloat)] = [
@@ -73,7 +75,7 @@ struct KurlMark: View {
                 ForEach(0..<3, id: \.self) { i in
                     let bar = Self.bars[i]
                     RoundedRectangle(cornerRadius: 1.7 * scale)
-                        .fill(Palette.accent)
+                        .fill(tint)
                         .frame(width: bar.2 * scale, height: 3.4 * scale)
                         .scaleEffect(x: drawn[i] ? 1 : 0, anchor: .leading)
                         .offset(x: bar.0 * scale, y: bar.1 * scale)

@@ -53,6 +53,8 @@ struct PostDetailView: View {
     @State private var fingerDown = false
     /// 바닥 너머 당김의 진행도(0~1, 임계 90pt) — 큐의 셰브론·제목이 손가락을 따라온다.
     @State private var pullProgress: CGFloat = 0
+    /// 읽기 진행도(0~1) — 덱에서 한 장을 얼마나 읽었는지 상단 띠로. "리딩 덱"의 서명.
+    @State private var readProgress: CGFloat = 0
 
     /// 떠 있는 유리 독 — 글 끝(컴포저·다음 글 큐 영역)에 닿으면 materialize 로 물러나
     /// 입력을 가리지 않는다. 후퇴는 "스크롤 여유가 충분한 글"에만 — 한 화면 남짓 글은
@@ -166,6 +168,16 @@ struct PostDetailView: View {
                 showNext = true
             }
         }
+        // 읽기 진행도 — 덱에서만. 본문을 얼마나 내려왔는지 0~1 로.
+        .onScrollGeometryChange(for: CGFloat.self) { geometry in
+            let total = geometry.contentSize.height - geometry.containerSize.height
+            guard total > 1 else { return 0 }
+            let scrolled = geometry.contentOffset.y + geometry.contentInsets.top
+            return min(1, max(0, scrolled / total))
+        } action: { _, progress in
+            guard embedded else { return }
+            readProgress = progress
+        }
         .onScrollPhaseChange { _, newPhase in
             if embedded { fingerDown = newPhase == .interacting }
         }
@@ -214,6 +226,19 @@ struct PostDetailView: View {
                 .padding(.trailing, 14)
                 .padding(.bottom, 10)
                 .transition(.opacity)
+            }
+        }
+        // 읽기 진행 띠 — 덱(임베드)에서 내비바 바로 아래에 한 줄. 충분히 긴 글에만.
+        .overlay(alignment: .top) {
+            if embedded, scrollable {
+                GeometryReader { geo in
+                    Capsule()
+                        .fill(Palette.accent)
+                        .frame(width: max(0, geo.size.width * readProgress), height: 3)
+                        .opacity(readProgress > 0.001 ? 1 : 0)
+                }
+                .frame(height: 3)
+                .allowsHitTesting(false)
             }
         }
         .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: endVisible)
