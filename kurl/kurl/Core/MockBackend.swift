@@ -323,8 +323,17 @@ enum MockBackend {
             return json(postView(posts[idx]))
         }
 
+        if method == "POST", parts == ["series"] {
+            let req = decode(body)
+            let id = nextSeriesId
+            nextSeriesId += 1
+            createdSeries.append((id, req["slug"] as? String ?? "s-\(id)", req["title"] as? String ?? "시리즈"))
+            seriesMembers[id] = []
+            return json(["series": ["id": id, "slug": req["slug"] as? String ?? "s", "title": req["title"] as? String ?? "시리즈", "postCount": 0, "createdAt": iso(Date()), "updatedAt": iso(Date())], "posts": []])
+        }
+
         if method == "GET", parts == ["series"] {
-            return json(mockSeries.map { ["id": $0.0, "slug": $0.1, "title": $0.2, "postCount": seriesMembers[$0.0]?.count ?? 0, "createdAt": iso(Date()), "updatedAt": iso(Date())] })
+            return json((mockSeries + createdSeries).map { ["id": $0.0, "slug": $0.1, "title": $0.2, "postCount": seriesMembers[$0.0]?.count ?? 0, "createdAt": iso(Date()), "updatedAt": iso(Date())] })
         }
 
         if method == "GET", parts.count == 2, parts[0] == "series" {
@@ -367,6 +376,8 @@ enum MockBackend {
         (2, "ios-build", "iOS 앱 만들기"),
     ]
     private static var seriesMembers: [Int64: [Int64]] = [1: [9002], 2: []]
+    private static var createdSeries: [(Int64, String, String)] = []
+    private static var nextSeriesId: Int64 = 100
     private static var likedComments: Set<Int64> = []
 
     private static func feedItem(id: Int64, title: String, slug: String) -> [String: Any] {
