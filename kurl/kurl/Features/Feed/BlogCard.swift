@@ -32,6 +32,11 @@ struct BlogCard: View {
                 textCard
             }
         }
+        // 이 카드로 들어갈 때 상세가 첫 프레임부터 커버를 깔도록 미리 기억해 둔다.
+        .onAppear {
+            PostPeek.remember(
+                username: item.author.username, slug: item.slug, cover: item.ogImageUrl)
+        }
     }
 
     // MARK: cover — 사진이 카드 전체 배경
