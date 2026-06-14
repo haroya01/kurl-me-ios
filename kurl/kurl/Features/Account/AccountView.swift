@@ -162,30 +162,38 @@ struct AccountView: View {
             RailHeading("계정")
                 .padding(.top, 28)
 
-            // 정체 카드 — 안개 위에 뜬 유리 한 장.
-            HStack(spacing: 13) {
-                AvatarView(
-                    author: Author(
-                        id: 0,
-                        username: auth.me?.username ?? "kurl",
-                        bio: nil,
-                        avatarUrl: auth.me?.avatarUrl
-                    ),
-                    size: 56
-                )
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(auth.me?.username ?? "kurl")
-                        .font(.system(size: 18 * unit, weight: .semibold))
-                        .tracking(-0.2)
-                        .foregroundStyle(.primary)
-                    Text(auth.me?.email ?? "")
-                        .font(.system(size: 13 * unit))
-                        .foregroundStyle(.secondary)
+            // 정체 카드 — 안개 위에 뜬 유리 한 장. 탭하면 내 공개 프로필(블로그)로.
+            NavigationLink(value: Route.author(username: auth.me?.username ?? "")) {
+                HStack(spacing: 13) {
+                    AvatarView(
+                        author: Author(
+                            id: 0,
+                            username: auth.me?.username ?? "kurl",
+                            bio: nil,
+                            avatarUrl: auth.me?.avatarUrl
+                        ),
+                        size: 56
+                    )
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(auth.me?.username ?? "kurl")
+                            .font(.system(size: 18 * unit, weight: .semibold))
+                            .tracking(-0.2)
+                            .foregroundStyle(.primary)
+                        Text(auth.me?.email ?? "")
+                            .font(.system(size: 13 * unit))
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13 * metaUnit, weight: .semibold))
+                        .foregroundStyle(Palette.secondary)
                 }
-                Spacer(minLength: 0)
+                .padding(18)
+                .glassEffect(.regular, in: .rect(cornerRadius: GlassTokens.panelRadius))
+                .contentShape(Rectangle())
             }
-            .padding(18)
-            .glassEffect(.regular, in: .rect(cornerRadius: GlassTokens.panelRadius))
+            .buttonStyle(.plain)
+            .disabled((auth.me?.username ?? "").isEmpty)
             .padding(.top, 16)
 
             // 내 페이지의 두 얼굴 — 블로그(글)와 명함(링크 모음). 같은 정체, 다른 문.
