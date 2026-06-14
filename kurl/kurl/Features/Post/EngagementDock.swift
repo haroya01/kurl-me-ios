@@ -13,7 +13,6 @@ import SwiftUI
 struct EngagementDock: View {
     @State private var model: EngagementModel
     @State private var showLoginPrompt = false
-    @State private var showTwoFactorHint = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var glassNS
 
@@ -32,17 +31,8 @@ struct EngagementDock: View {
         }
         .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
         .task(id: AuthStore.shared.isSignedIn) { await model.hydrate() }
-        .alert("로그인이 필요합니다", isPresented: $showLoginPrompt) {
-            Button("Apple로 로그인") { appleHere() }
-            Button("Google로 로그인") { signInHere() }
-            Button("취소", role: .cancel) {}
-        } message: {
-            Text("좋아요와 북마크는 kurl 계정으로 이어집니다.")
-        }
-        .alert("2단계 인증이 설정된 계정입니다", isPresented: $showTwoFactorHint) {
-            Button("확인", role: .cancel) {}
-        } message: {
-            Text("내 계정 탭에서 로그인을 완료해 주세요.")
+        .loginPrompt(isPresented: $showLoginPrompt, message: "좋아요와 북마크는 kurl 계정으로 이어집니다.") {
+            await model.hydrate()
         }
     }
 
@@ -109,27 +99,6 @@ struct EngagementDock: View {
         }
         Task {
             do { try await action() } catch { ToastCenter.shared.show(failure) }
-        }
-    }
-
-    private func signInHere() {
-        Task {
-            // 2FA 계정은 TOTP 입력 UI 가 계정 탭에 있어 여기서 끝까지 못 간다 — 안내만.
-            if (try? await AuthStore.shared.signIn()) == .twoFactorRequired {
-                showTwoFactorHint = true
-            } else if AuthStore.shared.isSignedIn {
-                await model.hydrate()
-            }
-        }
-    }
-
-    private func appleHere() {
-        Task {
-            if (try? await AuthStore.shared.signInWithApple()) == .twoFactorRequired {
-                showTwoFactorHint = true
-            } else if AuthStore.shared.isSignedIn {
-                await model.hydrate()
-            }
         }
     }
 }
