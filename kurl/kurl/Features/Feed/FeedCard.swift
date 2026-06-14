@@ -93,6 +93,9 @@ struct PostRow: View {
                 .padding(.top, 2)
         }
         .padding(.vertical, 16)
+        // 행은 컬럼 전폭으로 좌측 정렬 — 안 그러면 내용 폭으로 줄어 부모(center)에서 가운데로 떠
+        // "기사 목록이 가운데 정렬"되어 보인다(작가 페이지 버그).
+        .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
     }
 }

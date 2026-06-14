@@ -138,6 +138,9 @@ struct DiscoverDeckView: View {
             }
             .navigationTitle("발견")
             .navigationBarTitleDisplayMode(.inline)
+            // 덱은 엣지-투-엣지 읽기 면 — 내비바 배경(반투명 막)을 걷어 커버가 상단까지 꽉 찬다.
+            // 섞기·공유 아이콘은 그대로 떠 있고, 제목은 스크롤 콘텐츠 위에 가볍게 얹힌다.
+            .toolbarBackground(.hidden, for: .navigationBar)
             .navigationDestination(for: Route.self) { RouteView(route: $0) }
         }
     }

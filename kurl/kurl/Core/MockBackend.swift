@@ -229,6 +229,45 @@ enum MockBackend {
             return json(["id": 1, "body": decode(body)["body"] as? String ?? ""])
         }
 
+        // 공개 작가 글 목록 — 실서버 미목이라 작가 페이지 검증 불가했음.
+        if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "profiles",
+           parts[3] == "posts" {
+            let username = parts[2]
+            let titles = [
+                ("헥사고날 아키텍처로 가는 길", "왜 레이어드에서 갈아탔나, 그 결정의 기록."),
+                ("포트와 어댑터, 3개월 회고", "경계가 준 것과 가져간 것."),
+                ("테스트가 빨라진 이유", "도메인을 프레임워크에서 떼면 생기는 일."),
+                ("작은 리팩터링의 복리", "매일 5분이 1년 뒤에 만든 차이."),
+            ]
+            let posts = titles.enumerated().map { i, t -> [String: Any] in
+                [
+                    "id": 8101 + i, "slug": "post-\(i + 1)", "title": t.0, "excerpt": t.1,
+                    "ogImageUrl": NSNull(), "languageTag": "ko", "tags": ["아키텍처"],
+                    "likeCount": 12 - i * 2, "pinned": i == 0, "lastEditedAt": NSNull(),
+                    "publishedAt": iso(Date().addingTimeInterval(-Double(i + 1) * 172_800)),
+                ]
+            }
+            return json([
+                "author": [
+                    "id": 1, "username": username,
+                    "bio": "경계를 긋는 사람. 헥사고날·도메인 모델링.", "avatarUrl": NSNull(),
+                ],
+                "posts": posts,
+            ])
+        }
+
+        // 공개 작가 시리즈 목록.
+        if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "profiles",
+           parts[3] == "series" {
+            return json([
+                "author": ["id": 1, "username": parts[2], "bio": NSNull(), "avatarUrl": NSNull()],
+                "series": [
+                    ["id": 7, "slug": "hexagonal", "title": "헥사고날 전환기", "postCount": 6, "tags": ["아키텍처"]],
+                    ["id": 8, "slug": "ios-build", "title": "iOS 앱 만들기", "postCount": 3, "tags": ["iOS"]],
+                ],
+            ])
+        }
+
         // 공개 시리즈 상세 — 실서버 미목이라 fall-through 하면 404(시리즈 진행 화면 검증 불가).
         // ids 8001~ 는 `--seed-read` 로 읽음 시드와 짝지어 진행/체크 상태를 그려본다.
         if method == "GET", parts.count == 5, parts[0] == "public", parts[1] == "profiles",
