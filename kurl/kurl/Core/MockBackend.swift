@@ -71,7 +71,10 @@ enum MockBackend {
         let parts = path.split(separator: "/").map(String.init)
 
         if method == "GET", parts == ["users", "me"] {
-            return json(["id": 1, "email": "mock@kurl.me", "username": "honggildong", "avatarUrl": NSNull()])
+            return json([
+                "id": 1, "email": "mock@kurl.me", "username": "honggildong",
+                "avatarUrl": NSNull(), "role": "ADMIN",
+            ])
         }
 
         // 태그 구독/숨김 — 웹 tag-prefs parity. url.path 가 디코드돼 parts[4] = 원문 태그.

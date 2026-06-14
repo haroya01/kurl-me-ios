@@ -86,4 +86,8 @@ struct Me: Decodable, Equatable {
     let email: String
     let username: String?
     let avatarUrl: String?
+    /// 백엔드 role (USER/ADMIN) — /users/me 가 원래 내려준다. 관리자 전용 진단 화면 게이트.
+    var role: String? = nil
+
+    var isAdmin: Bool { role == "ADMIN" }
 }
