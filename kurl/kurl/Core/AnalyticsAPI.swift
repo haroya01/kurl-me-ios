@@ -132,6 +132,17 @@ struct AuthorAnalyticsOverview: Decodable {
         var id: String { date }
         /// "06-11" → 차트 축 라벨용 일(day) 숫자.
         var dayLabel: String { String(date.suffix(2)) }
+
+        /// "yyyy-MM-dd" → Date(자정, Asia/Seoul). 날짜 축·스크럽 선택에 쓴다.
+        var day: Date? { DailyPoint.parser.date(from: date) }
+        private static let parser: DateFormatter = {
+            let f = DateFormatter()
+            f.calendar = Calendar(identifier: .gregorian)
+            f.locale = Locale(identifier: "en_US_POSIX")
+            f.timeZone = TimeZone(identifier: "Asia/Seoul")
+            f.dateFormat = "yyyy-MM-dd"
+            return f
+        }()
     }
 
     struct ReferrerPoint: Decodable, Identifiable {
