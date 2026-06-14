@@ -18,11 +18,15 @@ enum ProfileAPI {
         return p.bio
     }
 
-    /// 소개글만 PUT — username/theme/socials 는 보내지 않아(null) 명함 설정이 안 지워진다.
-    static func updateBio(_ bio: String) async throws {
-        struct Body: Encodable { let bio: String }
+    /// 부분 PUT — 보낸 필드만 바뀐다(nil=인코딩에서 생략 → 서버는 미변경). 그래서 username·bio
+    /// 만 넘겨도 theme·socials(명함) 설정은 보존된다. username 검증·중복·이전 이름 유예는 서버 몫.
+    static func update(username: String? = nil, bio: String? = nil) async throws {
+        struct Body: Encodable {
+            let username: String?
+            let bio: String?
+        }
         let _: ProfileBio = try await client.put(
-            "/users/me/profile", body: Body(bio: bio), authenticated: true)
+            "/users/me/profile", body: Body(username: username, bio: bio), authenticated: true)
     }
 
     /// 아바타 업로드 — presign → S3 직행 PUT → commit. 반환 = 공개 avatarUrl.

@@ -73,6 +73,11 @@ struct RootView: View {
             NavigationStack {
                 SeriesAnalyticsDetailView(seriesId: 1, seriesTitle: "헥사고날 전환기")
             }
+        } else if Config.launchValue(after: "--screen") == "profile-edit" {
+            // 프로필 편집은 계정 탭에서 푸시로만 들어가 simctl 로 못 띄운다 — 검증 진입로.
+            NavigationStack {
+                ProfileEditView(currentAvatarUrl: AuthStore.shared.me?.avatarUrl)
+            }
         } else {
             tabs
         }
