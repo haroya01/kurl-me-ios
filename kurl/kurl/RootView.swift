@@ -68,6 +68,11 @@ struct RootView: View {
                 .sheet(isPresented: .constant(true)) {
                     LoginSheet(message: "좋아요와 북마크는 kurl 계정으로 이어집니다.")
                 }
+        } else if Config.launchValue(after: "--screen") == "series-analytics" {
+            // 시리즈 상세 분석은 분석 탭에서 행 탭으로만 들어가 simctl 로 못 띄운다 — 검증 진입로.
+            NavigationStack {
+                SeriesAnalyticsDetailView(seriesId: 1, seriesTitle: "헥사고날 전환기")
+            }
         } else {
             tabs
         }

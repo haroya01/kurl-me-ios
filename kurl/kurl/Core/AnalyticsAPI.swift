@@ -32,6 +32,15 @@ enum AnalyticsAPI {
         try await client.get("/posts/analytics/series", authenticated: true)
     }
 
+    /// 시리즈 하나의 상세 — 구독자 추이 + 회차별 완주 funnel(웹 시리즈 분석 patity).
+    static func seriesDetail(seriesId: Int64, days: Int = 30) async throws -> SeriesAnalyticsDetail {
+        try await client.get(
+            "/posts/analytics/series/\(seriesId)",
+            query: ["days": String(days)],
+            authenticated: true
+        )
+    }
+
     /// 글 하나의 분석 — 수명 합계 + 윈도우 추이(글 facet).
     static func postAnalytics(postId: Int64, days: Int = 30) async throws -> PostAnalyticsDetail {
         try await client.get(
@@ -98,7 +107,7 @@ struct TopPostView: Decodable, Identifiable, Hashable {
     var id: Int64 { postId }
 }
 
-struct SeriesAnalyticsRow: Decodable, Identifiable {
+struct SeriesAnalyticsRow: Decodable, Identifiable, Hashable {
     let seriesId: Int64
     let slug: String
     let title: String
@@ -108,6 +117,31 @@ struct SeriesAnalyticsRow: Decodable, Identifiable {
     let totalLikes: Int64
 
     var id: Int64 { seriesId }
+}
+
+/// GET /posts/analytics/series/{id} — 구독자 추이 + 회차별 funnel.
+struct SeriesAnalyticsDetail: Decodable {
+    let series: SeriesAnalyticsRow
+    let windowDays: Int
+    /// 일별 누적 구독자(DailyPoint.views 가 구독자 수를 나른다).
+    let subscriberDaily: [AuthorAnalyticsOverview.DailyPoint]
+    let members: [SeriesMemberStat]
+}
+
+struct SeriesMemberStat: Decodable, Identifiable {
+    let postId: Int64
+    let slug: String
+    let title: String
+    let episode: Int
+    let views: Int64
+    let likes: Int64
+    let follows: Int64
+    /// 이 회차를 읽은 고유 독자.
+    let uniqueReaders: Int64
+    /// 이 회차 독자 중 다음 화도 읽은 수(마지막 화는 0).
+    let continuedToNext: Int64
+
+    var id: Int64 { postId }
 }
 
 struct AuthorAnalyticsOverview: Decodable {

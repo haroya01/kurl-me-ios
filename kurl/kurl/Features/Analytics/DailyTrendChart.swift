@@ -12,6 +12,8 @@ import SwiftUI
 /// (≈4틱)라 7·30·90일 어디서도 라벨이 겹치지 않는다. 본문을 스크럽하면 그날의 값이 뜬다(살아 있는 절제).
 struct DailyTrendChart: View {
     let points: [AuthorAnalyticsOverview.DailyPoint]
+    /// 접근성·오디오 그래프에 쓰는 지표 이름(기본 "조회"). 구독자 추이면 "구독자".
+    var metricName: String = String(localized: "조회")
 
     @State private var selectedDate: Date?
 
@@ -86,15 +88,16 @@ struct DailyTrendChart: View {
         }
         .frame(height: 150)
         .padding(.top, 14)
-        .accessibilityLabel(Text("일별 조회 추이"))
+        .accessibilityLabel(Text("일별 \(metricName) 추이"))
         // 오디오 그래프 — VoiceOver 로터에서 추이를 소리 높낮이로 훑을 수 있다.
-        .accessibilityChartDescriptor(DailyViewsChartDescriptor(points: points))
+        .accessibilityChartDescriptor(DailyViewsChartDescriptor(points: points, metricName: metricName))
     }
 }
 
 /// 일별 조회 차트의 오디오 그래프 서술자 — 시각 추이와 같은 데이터를 소리로.
 private struct DailyViewsChartDescriptor: AXChartDescriptorRepresentable {
     let points: [AuthorAnalyticsOverview.DailyPoint]
+    let metricName: String
 
     func makeChartDescriptor() -> AXChartDescriptor {
         let xAxis = AXCategoricalDataAxisDescriptor(
@@ -102,20 +105,20 @@ private struct DailyViewsChartDescriptor: AXChartDescriptorRepresentable {
             categoryOrder: points.map(\.date))
         let maxViews = points.map(\.views).max() ?? 0
         let yAxis = AXNumericDataAxisDescriptor(
-            title: String(localized: "조회수"),
+            title: metricName,
             range: 0...Double(max(maxViews, 1)),
             gridlinePositions: []
         ) { value in
-            String(localized: "조회 \(Int(value))")
+            "\(metricName) \(Int(value))"
         }
         let series = AXDataSeriesDescriptor(
-            name: String(localized: "일별 조회"),
+            name: String(localized: "일별 \(metricName)"),
             isContinuous: false,
             dataPoints: points.map {
                 AXDataPoint(x: $0.date, y: Double($0.views))
             })
         return AXChartDescriptor(
-            title: String(localized: "일별 조회 추이"),
+            title: String(localized: "일별 \(metricName) 추이"),
             summary: nil,
             xAxis: xAxis,
             yAxis: yAxis,

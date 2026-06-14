@@ -23,6 +23,7 @@ struct AnalyticsView: View {
     @State private var series: [SeriesAnalyticsRow] = []
     @State private var days = 30
     @State private var selectedPost: TopPostView?
+    @State private var selectedSeries: SeriesAnalyticsRow?
 
     var body: some View {
         if embedded {
@@ -57,6 +58,9 @@ struct AnalyticsView: View {
         }
         .navigationDestination(item: $selectedPost) { post in
             PostAnalyticsView(post: post)
+        }
+        .navigationDestination(item: $selectedSeries) { row in
+            SeriesAnalyticsDetailView(seriesId: row.seriesId, seriesTitle: row.title)
         }
         .task { await load() }
         .refreshable { await load() }
@@ -283,21 +287,35 @@ struct AnalyticsView: View {
                 .padding(.top, 24)
                 .padding(.bottom, 4)
             ForEach(Array(series.enumerated()), id: \.element.id) { index, row in
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(row.title)
-                        .font(.system(size: 15 * unit, weight: .medium))
-                        .foregroundStyle(Palette.ink)
-                        .lineLimit(1)
-                    HStack(spacing: 10) {
-                        Text("\(row.postCount)편")
-                        metaCount("person.2", row.subscriberCount)
-                        metaCount("eye", row.totalViews)
-                        metaCount("heart", row.totalLikes)
+                // 행 탭 = 시리즈 facet — 구독자 추이 + 회차별 완주 funnel 로 들어가는 문.
+                Button {
+                    selectedSeries = row
+                } label: {
+                    HStack(alignment: .top, spacing: 14) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(row.title)
+                                .font(.system(size: 15 * unit, weight: .medium))
+                                .foregroundStyle(Palette.ink)
+                                .lineLimit(1)
+                            HStack(spacing: 10) {
+                                Text("\(row.postCount)편")
+                                metaCount("person.2", row.subscriberCount)
+                                metaCount("eye", row.totalViews)
+                                metaCount("heart", row.totalLikes)
+                            }
+                            .font(.system(size: 12 * metaUnit))
+                            .foregroundStyle(Palette.secondary)
+                        }
+                        Spacer(minLength: 0)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 11 * metaUnit, weight: .semibold))
+                            .foregroundStyle(Palette.faint)
+                            .padding(.top, 4)
                     }
-                    .font(.system(size: 12 * metaUnit))
-                    .foregroundStyle(Palette.secondary)
+                    .padding(.vertical, 9)
+                    .contentShape(Rectangle())
                 }
-                .padding(.vertical, 9)
+                .buttonStyle(RowButtonStyle())
                 if index < series.count - 1 {
                     Hairline()
                 }
