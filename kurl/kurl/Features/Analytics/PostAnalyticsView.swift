@@ -31,9 +31,15 @@ struct PostAnalyticsView: View {
                 ProgressView().tint(Palette.accent)
                     .frame(maxWidth: .infinity, minHeight: 240)
             case .failed(let message):
-                ContentUnavailableView("불러오지 못했습니다", systemImage: "wifi.exclamationmark",
-                                       description: Text(message))
-                    .padding(.top, 40)
+                ContentUnavailableView {
+                    Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
+                } description: {
+                    Text(message)
+                } actions: {
+                    Button("다시 시도") { Task { await load() } }
+                        .foregroundStyle(Palette.accent)
+                }
+                .padding(.top, 40)
             case .loaded(let detail):
                 content(detail)
             }

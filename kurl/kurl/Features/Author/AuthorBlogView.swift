@@ -34,9 +34,15 @@ struct AuthorBlogView: View {
                     ProgressView().tint(Palette.accent)
                         .frame(maxWidth: .infinity, minHeight: 320)
                 case .failed(let message):
-                    ContentUnavailableView("불러오지 못했습니다", systemImage: "wifi.exclamationmark",
-                                           description: Text(message))
-                        .padding(.top, 80)
+                    ContentUnavailableView {
+                        Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
+                    } description: {
+                        Text(message)
+                    } actions: {
+                        Button("다시 시도") { Task { await load() } }
+                            .foregroundStyle(Palette.accent)
+                    }
+                    .padding(.top, 80)
                 case .loaded(let view):
                     content(view)
                 }

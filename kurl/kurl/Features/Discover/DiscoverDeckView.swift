@@ -130,6 +130,7 @@ struct DiscoverDeckView: View {
                             Image(systemName: "square.and.arrow.up")
                         }
                         .tint(.brand)
+                        .accessibilityLabel(Text("공유"))
                     }
                 }
                 ToolbarSpacer(.fixed, placement: .primaryAction)

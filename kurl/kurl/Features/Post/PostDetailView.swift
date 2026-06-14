@@ -232,6 +232,7 @@ struct PostDetailView: View {
                         ShareLink(item: shareURL) {
                             Image(systemName: "square.and.arrow.up")
                         }
+                        .accessibilityLabel(Text("공유"))
                     }
                 }
                 // 내 글이면 — 읽으면서 바로 편집·분석으로 갈 수 있게 작가 동작을 같이 노출.
