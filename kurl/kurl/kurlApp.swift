@@ -16,6 +16,8 @@ struct kurlApp: App {
     @State private var showWelcome = false
     /// 스플래시가 걷히는 순간 true — 웰컴 엔트런스가 이때 시작된다(t0 가 아니라).
     @State private var welcomeRevealed = false
+    /// 스플래시 → 웰컴 마크 핸드오프용 — 마크가 스플래시 자리에서 웰컴 자리로 이어진다.
+    @Namespace private var launchNS
 
     var body: some Scene {
         WindowGroup {
@@ -28,13 +30,14 @@ struct kurlApp: App {
                 if showWelcome {
                     WelcomeView(
                         revealed: welcomeRevealed,
+                        launchNS: launchNS,
                         onContinueAsGuest: { dismissWelcome() },
                         onSignedIn: { dismissWelcome() })
                         .zIndex(1)
                         .transition(.opacity)
                 }
                 if showSplash {
-                    SplashView()
+                    SplashView(launchNS: launchNS)
                         .zIndex(2)
                         .transition(.opacity)
                 }
@@ -47,11 +50,12 @@ struct kurlApp: App {
                 showWelcome = forceWelcome || (!hasCompletedWelcome && !AuthStore.shared.isSignedIn)
                 // 마크 드로잉(~0.4s)+워드마크(~0.8s)가 끝나고 한 박자 머문 뒤 걷는다.
                 try? await Task.sleep(for: .seconds(reduceMotion ? 0.6 : 1.6))
-                withAnimation(.easeOut(duration: 0.35)) {
+                // 막이 걷히며 마크가 스플래시 자리에서 웰컴 자리로 글라이드한다(matched). 같은
+                // 트랜잭션에서 reveal 을 켜 마크 핸드오프와 텍스트 스태거가 한 호흡으로 이어진다.
+                withAnimation(.easeOut(duration: reduceMotion ? 0.35 : 0.5)) {
                     showSplash = false
+                    welcomeRevealed = true
                 }
-                // 막이 걷히는 순간 웰컴 엔트런스를 깨운다 — 스플래시 뒤에서 미리 끝나버리지 않게.
-                welcomeRevealed = true
             }
         }
     }

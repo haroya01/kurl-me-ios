@@ -62,6 +62,12 @@ struct RootView: View {
                 TagFeedView(tag: tag)
                     .navigationDestination(for: Route.self) { RouteView(route: $0) }
             }
+        } else if Config.launchValue(after: "--screen") == "loginsheet" {
+            // 로그인 시트는 인게이지 탭으로만 떠 simctl 로 못 띄운다 — 검증 진입로.
+            Color(uiColor: .systemBackground).ignoresSafeArea()
+                .sheet(isPresented: .constant(true)) {
+                    LoginSheet(message: "좋아요와 북마크는 kurl 계정으로 이어집니다.")
+                }
         } else {
             tabs
         }

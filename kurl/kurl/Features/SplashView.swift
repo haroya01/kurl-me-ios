@@ -10,6 +10,9 @@ import SwiftUI
 /// 0.46s 에 워드마크가 7px 아래에서 떠오른다. 하단엔 브랜드 그린 물결 두 겹이 천천히 흐른다.
 /// reduce-motion 이면 전부 정지 상태로 그려지고 빨리 사라진다.
 struct SplashView: View {
+    /// 웰컴으로 마크를 이어 보낼 네임스페이스(matchedGeometry) — 없으면(프리뷰) 그냥 정적.
+    var launchNS: Namespace.ID? = nil
+
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var barsDrawn = [false, false, false]
     @State private var wordVisible = false
@@ -22,6 +25,7 @@ struct SplashView: View {
             VStack(spacing: 14) {
                 KurlMark(drawn: barsDrawn)
                     .frame(width: 84, height: 51)
+                    .launchMatched("launchMark", in: launchNS)
                 Text(verbatim: "kurl")
                     .font(.system(size: 28, weight: .bold))
                     .tracking(-1.1)
@@ -51,6 +55,19 @@ struct SplashView: View {
         }
         withAnimation(.easeOut(duration: 0.34).delay(0.46)) {
             wordVisible = true
+        }
+    }
+}
+
+extension View {
+    /// matchedGeometryEffect 를 네임스페이스가 있을 때만 적용 — 프리뷰(ns=nil)에서도 산다.
+    /// 스플래시→웰컴 마크 핸드오프 한 군데에서만 쓴다.
+    @ViewBuilder
+    func launchMatched(_ id: String, in ns: Namespace.ID?, isSource: Bool = true) -> some View {
+        if let ns {
+            matchedGeometryEffect(id: id, in: ns, isSource: isSource)
+        } else {
+            self
         }
     }
 }
