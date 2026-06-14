@@ -71,6 +71,11 @@ struct FeedView: View {
                 // HStack 으로. 한 영역의 유리 둘은 컨테이너 하나로 묶는다(§1.4).
                 GlassEffectContainer(spacing: GlassTokens.clusterSpacing) {
                     HStack(spacing: 10) {
+                        // 오른쪽 벨과 같은 폭의 투명 균형추 — 스위처가 화면 정중앙에 오게(벨이
+                        // 한쪽으로만 밀던 것 보정). 벨이 흐름 안에 남아 좁은 기기 겹침도 없다.
+                        if AuthStore.shared.isSignedIn {
+                            Color.clear.frame(width: 40, height: 40)
+                        }
                         Spacer(minLength: 0)
                         GlassSegmentSwitcher(items: FeedTab.allCases, selection: $selection) {
                             $0.label
