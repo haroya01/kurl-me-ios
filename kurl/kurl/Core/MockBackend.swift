@@ -64,6 +64,210 @@ enum MockBackend {
     private static var hiddenTags: Set<String> = []
     private static var myBio = "경계를 긋는 사람. 헥사고날·도메인 모델링."
 
+    // MARK: 긴 글 픽스처
+
+    /// 읽기 표면(목차·읽기 진행·블록 렌더)을 제대로 보려면 타입이 다양한 긴 글이 필요하다.
+    /// 회고·튜토리얼·릴리스 노트·디버깅 — 장르도, 블록 타입(헤딩/코드/이미지/인용/목록/표/구분선/CTA)도
+    /// 두루 쓴다. 공개 작가 글 목록·상세가 이 배열을 소스로 슬러그로 찾아 돌려준다.
+    private struct MockArticle {
+        let slug: String
+        let title: String
+        let excerpt: String
+        let tags: [String]
+        let likeCount: Int
+        let daysAgo: Double
+        let blocks: [[String: Any]]
+    }
+
+    private static func mockCode(_ lang: String, _ code: String) -> String {
+        (try? JSONSerialization.data(withJSONObject: ["lang": lang, "code": code]))
+            .flatMap { String(data: $0, encoding: .utf8) } ?? code
+    }
+
+    private static func mockImage(_ url: String, _ caption: String) -> String {
+        (try? JSONSerialization.data(withJSONObject: ["url": url, "caption": caption]))
+            .flatMap { String(data: $0, encoding: .utf8) } ?? url
+    }
+
+    private static func mockList(_ items: [String]) -> String {
+        (try? JSONSerialization.data(withJSONObject: items))
+            .flatMap { String(data: $0, encoding: .utf8) } ?? items.joined(separator: "\n")
+    }
+
+    /// blockOrder 를 인덱스로 자동 부여 — 작성할 땐 순서만 신경 쓰면 된다.
+    private static func ordered(_ raw: [[String: Any]]) -> [[String: Any]] {
+        raw.enumerated().map { i, b in
+            var x = b
+            x["blockOrder"] = i
+            return x
+        }
+    }
+
+    private static let articles: [MockArticle] = [
+        // 1) 회고 에세이 — 산문 위주 + 인용·목록·구분선.
+        MockArticle(
+            slug: "hexagonal-after-3-months",
+            title: "헥사고날로 갈아탄 지 석 달, 무엇이 남았나",
+            excerpt: "레이어드를 버린 결정의 회고 — 경계가 준 것과 가져간 것.",
+            tags: ["아키텍처", "회고"], likeCount: 42, daysAgo: 2,
+            blocks: ordered([
+                ["type": "H1", "content": "헥사고날로 갈아탄 지 석 달"],
+                ["type": "PARAGRAPH", "content":
+                    "결론부터 적는다. 다시 돌아가라면 또 갈아탄다. 다만 첫 두 주에 들인 비용을 미리 알았다면, 훨씬 더 작게 시작했을 것이다."],
+                ["type": "PARAGRAPH", "content":
+                    "레이어드 구조로 3년을 버텼다. 컨트롤러-서비스-리포지토리, 익숙한 삼층. 문제는 코드가 늘면서 '서비스'가 만물상이 된 거였다. 도메인 규칙과 트랜잭션 경계와 외부 API 호출이 한 클래스에 뒤섞였고, 단위 테스트 한 줄을 돌리려고 스프링 컨텍스트를 통째로 띄우고 있었다."],
+                ["type": "QUOTE", "content": "경계가 없으면 모든 변경이 전역 변경이 된다."],
+                ["type": "H2", "content": "포트를 먼저 그었다"],
+                ["type": "PARAGRAPH", "content":
+                    "어댑터부터 짜고 싶은 충동을 눌렀다. 도메인이 바깥에 무엇을 기대하는지 — 그 인터페이스(포트)부터 이름을 지었다. `PublishedPostReader`, `ProfileCacheInvalidator` 처럼."],
+                ["type": "PARAGRAPH", "content":
+                    "이름이 곧 경계였다. 포트 이름을 짓다 보면 '이건 도메인이 알 바 아니다' 싶은 것이 드러난다. 그걸 바깥으로 밀어내는 게 작업의 절반이었다. 나머지 절반은 그 결정을 팀이 납득하게 만드는 일이었고."],
+                ["type": "H2", "content": "무엇이 좋아졌나"],
+                ["type": "LIST_BULLET", "content": mockList([
+                    "도메인 단위 테스트가 컨텍스트 없이 밀리초 단위로 돈다.",
+                    "DB를 MySQL에서 다른 것으로 바꾸는 상상이 더는 무섭지 않다 — 어댑터 하나의 일이니까.",
+                    "리뷰가 빨라졌다. PR이 어느 층의 변경인지 디렉토리만 봐도 보인다.",
+                ])],
+                ["type": "H3", "content": "그리고 가져간 것"],
+                ["type": "PARAGRAPH", "content":
+                    "공짜는 없었다. 파일 수가 늘었고, 작은 기능 하나에도 포트·어댑터·도메인 세 곳을 건드려야 한다. 신입에게 '왜 이렇게까지 해야 하느냐'를 설명하는 시간도 함께 늘었다."],
+                ["type": "DIVIDER"],
+                ["type": "PARAGRAPH", "content":
+                    "그래서 권하는 건 전면 전환이 아니라 '가장 아픈 슬라이스부터'다. 가장 자주 바뀌고 가장 테스트하기 싫은 모듈 하나를 골라, 거기서만 경계를 그어 보라. 석 달 전의 나에게 해주고 싶은 말이다."],
+            ])),
+
+        // 2) 튜토리얼 — 코드·인라인코드·이미지·번호목록·표·인용 전부.
+        MockArticle(
+            slug: "liquid-glass-without-glass-on-glass",
+            title: "Liquid Glass, 유리 위에 유리를 얹지 않기",
+            excerpt: "iOS 26 글래스 효과를 쓰며 정한 한 가지 규칙과 그 코드.",
+            tags: ["iOS", "SwiftUI"], likeCount: 28, daysAgo: 5,
+            blocks: ordered([
+                ["type": "H1", "content": "유리 위에 유리를 얹지 않기"],
+                ["type": "PARAGRAPH", "content":
+                    "Liquid Glass는 강력하다. 하지만 한 화면에 유리를 두 겹 겹치는 순간 둘 다 탁해진다. 우리가 정한 규칙은 한 문장이다 — 한 영역에 유리는 하나."],
+                ["type": "H2", "content": "기본형"],
+                ["type": "PARAGRAPH", "content":
+                    "버튼 하나에 캡슐 유리를 입히는 건 `glassEffect(_:in:)` 한 줄이면 된다."],
+                ["type": "CODE", "content": mockCode("swift", """
+                Button("구독") { subscribe() }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .glassEffect(.regular.interactive(), in: .capsule)
+                """)],
+                ["type": "PARAGRAPH", "content":
+                    "`.interactive()`는 눌렀을 때 유리가 살짝 반응하게 한다. 빼면 정적인 유리가 된다."],
+                ["type": "H2", "content": "겹치면 생기는 일"],
+                ["type": "PARAGRAPH", "content":
+                    "유리 패널 안에 또 유리 버튼을 넣으면 뒤 배경을 두 번 샘플링해 대비가 무너진다. 패널은 유리로, 그 안의 주행동은 솔리드로 둔다."],
+                ["type": "CODE", "content": mockCode("swift", """
+                // 패널은 유리
+                VStack { content }
+                    .glassEffect(.regular, in: .rect(cornerRadius: 20))
+
+                // 그 안의 주행동은 솔리드 캡슐 — 유리 위 유리 금지
+                Button("계속") { go() }
+                    .background(Palette.accent, in: .capsule)
+                """)],
+                ["type": "PARAGRAPH", "content":
+                    "여러 유리가 한 무리로 움직여야 한다면 `GlassEffectContainer`로 묶는다. 닿을 때 서로 녹아 붙는 모션은 컨테이너가 만든다."],
+                ["type": "IMAGE", "content": mockImage(
+                    "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=1200&q=80",
+                    "유리 카드가 떠 보이려면 뒤에 흐르는 무언가가 있어야 한다.")],
+                ["type": "H3", "content": "체크리스트"],
+                ["type": "LIST_NUMBERED", "content": mockList([
+                    "한 영역에 유리는 하나인가?",
+                    "유리 패널 안의 주행동은 솔리드인가?",
+                    "한 무리로 움직이는 유리는 컨테이너로 묶었나?",
+                    "어두운 배경 위 흰 글자의 대비는 충분한가?",
+                ])],
+                ["type": "H2", "content": "언제 쓰지 말까"],
+                ["type": "TABLE", "content": """
+                | 상황 | 유리 | 대안 |
+                | 본문 카드 | X | 종이(solid) |
+                | 떠 있는 액션 | O | — |
+                | 내비바 위 알약 | O | — |
+                | 긴 목록 행 | X | hairline 구분 |
+                """],
+                ["type": "QUOTE", "content": "유리는 뒤에 흐르는 것이 있을 때만 유리다."],
+            ])),
+
+        // 3) 릴리스 노트 — 짧은 섹션 + 목록 + CTA.
+        MockArticle(
+            slug: "kurl-2-4-release-notes",
+            title: "kurl 2.4 — 읽기 진행, 구독함, 그리고 조용한 것들",
+            excerpt: "이번 업데이트에서 더하고 고친 것들.",
+            tags: ["릴리스노트"], likeCount: 15, daysAgo: 1,
+            blocks: ordered([
+                ["type": "H1", "content": "kurl 2.4"],
+                ["type": "PARAGRAPH", "content":
+                    "이번 판은 '읽는 사람'을 위한 것이다. 쓰는 도구는 다음 판에서 손본다."],
+                ["type": "H2", "content": "새로운 것"],
+                ["type": "LIST_BULLET", "content": mockList([
+                    "**읽기 진행** — 글을 스크롤하면 상단에 얇은 막대가 찬다. 완독하면 마크가 한 번 톡 튄다.",
+                    "**구독함** — 팔로우한 작가와 구독한 시리즈의 새 글이 한 피드로 모인다.",
+                    "**태그 구독** — 관심 태그의 새 글을 구독함으로 흘려보낸다.",
+                ])],
+                ["type": "H2", "content": "고친 것"],
+                ["type": "LIST_BULLET", "content": mockList([
+                    "글을 쓰다 가끔 로그아웃되던 문제(새로고침 회전 레이스)를 잡았다.",
+                    "무커버 글 상단에 투명한 박스가 떠 보이던 것을 없앴다.",
+                    "다크 모드에서 코드 블록 대비를 높였다.",
+                ])],
+                ["type": "H2", "content": "다음"],
+                ["type": "PARAGRAPH", "content":
+                    "모바일 글쓰기를 노션처럼 — 버튼을 누르면 본문에 바로 반영되는 WYSIWYG로 바꾸는 작업을 하고 있다."],
+                ["type": "CTA_REF", "cta": [
+                    "label": "웹에서 전체 변경 보기",
+                    "url": "https://kurl.me/blog/release-2-4",
+                    "deleted": false,
+                ]],
+            ])),
+
+        // 4) 디버깅 딥다이브 — 로그 코드블록·인용·번호목록·표·구분선.
+        MockArticle(
+            slug: "the-night-tokens-vanished",
+            title: "토큰이 사라진 밤 — 새로고침 회전 레이스를 쫓다",
+            excerpt: "글을 쓰다 로그아웃되는 버그. 범인은 회전하는 리프레시 토큰이었다.",
+            tags: ["디버깅", "인증"], likeCount: 67, daysAgo: 9,
+            blocks: ordered([
+                ["type": "H1", "content": "토큰이 사라진 밤"],
+                ["type": "PARAGRAPH", "content":
+                    "제보는 늘 같았다. '글 쓰다가 갑자기 로그아웃됐어요.' 그런데 재현이 안 됐다. 서버 로그에도 이렇다 할 에러가 없었다."],
+                ["type": "PARAGRAPH", "content":
+                    "단서는 둘이었다. 첫째, 블로그 글쓰기에서만 났다. 둘째, 늘 한참 쓰던 중에 났다 — 즉 토큰이 한 번은 갱신될 만큼 시간이 지난 뒤였다."],
+                ["type": "QUOTE", "content": "재현이 안 되는 버그는 대개 타이밍 버그다."],
+                ["type": "H2", "content": "회전하는 리프레시 토큰"],
+                ["type": "PARAGRAPH", "content":
+                    "우리는 보안을 위해 리프레시 토큰을 1회용으로 굴린다(rotating refresh). 갱신할 때마다 새 토큰을 발급하고 옛 토큰은 폐기한다. 문제는 '거의 동시에 두 번 갱신'이 일어날 때다."],
+                ["type": "CODE", "content": mockCode("text", """
+                12:04:01.221  POST /auth/refresh  rt=…a91  -> 200  new rt=…4d2
+                12:04:01.233  POST /auth/refresh  rt=…a91  -> 401  (already rotated)
+                12:04:01.235  wipe session: refresh failed
+                """)],
+                ["type": "PARAGRAPH", "content":
+                    "두 요청이 같은 옛 토큰(`…a91`)으로 거의 동시에 출발했다. 먼저 도착한 쪽이 회전에 성공했고, 12밀리초 뒤 도착한 둘째는 '이미 회전됨' 401을 받았다. 그리고 우리 코드는 그 401을 '세션 죽음'으로 해석해 전부 지워 버렸다."],
+                ["type": "H2", "content": "고친 방법"],
+                ["type": "LIST_NUMBERED", "content": mockList([
+                    "갱신을 single-flight로 — 동시에 터진 401들은 진행 중인 회전 하나를 기다린다.",
+                    "방금 회전된 토큰에는 짧은 유예(grace)를 둬, 경합에서 진 요청도 새 토큰을 받게 했다.",
+                    "'세션 죽음' 판정을 리프레시 자체의 401로만 좁혔다.",
+                ])],
+                ["type": "TABLE", "content": """
+                | 항목 | 전 | 후 |
+                | 동시 갱신 | 각자 회전 시도 | 하나만 회전, 나머지 대기 |
+                | 경합에서 진 요청 | 세션 wipe | grace로 새 토큰 |
+                | 로그아웃 제보 | 주 3~4건 | 0건 |
+                """],
+                ["type": "H3", "content": "남은 교훈"],
+                ["type": "PARAGRAPH", "content":
+                    "보안 기능(토큰 회전)이 가용성 버그(로그아웃)를 낳았다. 둘은 자주 충돌한다. 그 사이를 메우는 게 grace 같은 작은 완충 장치다."],
+                ["type": "DIVIDER"],
+                ["type": "PARAGRAPH", "content":
+                    "그날 밤 이후로 '재현 안 됨'이라는 말이 덜 무섭다. 안 되는 게 아니라, 우리가 타이밍을 못 맞춘 것뿐이니까."],
+            ])),
+    ]
+
     // MARK: 라우팅
 
     /// 처리하면 응답 바디, 아니면 nil → 실네트워크로.
@@ -277,18 +481,13 @@ enum MockBackend {
         if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "profiles",
            parts[3] == "posts" {
             let username = parts[2]
-            let titles = [
-                ("헥사고날 아키텍처로 가는 길", "왜 레이어드에서 갈아탔나, 그 결정의 기록."),
-                ("포트와 어댑터, 3개월 회고", "경계가 준 것과 가져간 것."),
-                ("테스트가 빨라진 이유", "도메인을 프레임워크에서 떼면 생기는 일."),
-                ("작은 리팩터링의 복리", "매일 5분이 1년 뒤에 만든 차이."),
-            ]
-            let posts = titles.enumerated().map { i, t -> [String: Any] in
+            // 긴 글 픽스처를 그대로 목록으로 — 카드를 누르면 같은 슬러그의 상세가 열린다.
+            let posts = articles.enumerated().map { i, a -> [String: Any] in
                 [
-                    "id": 8101 + i, "slug": "post-\(i + 1)", "title": t.0, "excerpt": t.1,
-                    "ogImageUrl": NSNull(), "languageTag": "ko", "tags": ["아키텍처"],
-                    "likeCount": 12 - i * 2, "pinned": i == 0, "lastEditedAt": NSNull(),
-                    "publishedAt": iso(Date().addingTimeInterval(-Double(i + 1) * 172_800)),
+                    "id": 8100 + i, "slug": a.slug, "title": a.title, "excerpt": a.excerpt,
+                    "ogImageUrl": NSNull(), "languageTag": "ko", "tags": a.tags,
+                    "likeCount": a.likeCount, "pinned": i == 0, "lastEditedAt": NSNull(),
+                    "publishedAt": iso(Date().addingTimeInterval(-a.daysAgo * 86_400)),
                 ]
             }
             return json([
@@ -313,30 +512,32 @@ enum MockBackend {
             ])
         }
 
-        // 공개 글 상세 — 헤딩 포함 블록으로 목차·읽기 표면 검증을 연다(실서버 미목).
+        // 공개 글 상세 — 긴 글 픽스처를 슬러그로 찾아 블록을 통째로 돌려준다(목차·읽기 표면 검증).
+        // 모르는 슬러그는 짧은 기본 글로 폴백(작가 페이지를 거치지 않은 직접 진입도 살게).
         if method == "GET", parts.count == 5, parts[0] == "public", parts[1] == "profiles",
            parts[3] == "posts" {
             let username = parts[2]
-            let blocks: [[String: Any]] = [
-                ["type": "H1", "content": "헥사고날로 가는 길", "blockOrder": 0],
-                ["type": "PARAGRAPH", "content": "레이어드에서 갈아탄 이유와 그 결정의 기록.", "blockOrder": 1],
-                ["type": "H2", "content": "포트와 어댑터", "blockOrder": 2],
-                ["type": "PARAGRAPH", "content": "경계를 먼저 긋고, 구현은 그 바깥으로 민다.", "blockOrder": 3],
-                ["type": "H2", "content": "의존성 역전", "blockOrder": 4],
-                ["type": "PARAGRAPH", "content": "화살표의 방향이 곧 설계의 방향이다.", "blockOrder": 5],
-                ["type": "H3", "content": "테스트 전략", "blockOrder": 6],
-                ["type": "PARAGRAPH", "content": "도메인은 단위로, 어댑터는 슬라이스로.", "blockOrder": 7],
-            ]
+            let slug = parts[4]
+            let article = articles.first { $0.slug == slug }
+            let blocks = article?.blocks ?? ordered([
+                ["type": "H1", "content": "헥사고날로 가는 길"],
+                ["type": "PARAGRAPH", "content": "레이어드에서 갈아탄 이유와 그 결정의 기록."],
+                ["type": "H2", "content": "포트와 어댑터"],
+                ["type": "PARAGRAPH", "content": "경계를 먼저 긋고, 구현은 그 바깥으로 민다."],
+            ])
             return json([
                 "author": [
                     "id": username == "honggildong" ? 1 : 2, "username": username,
                     "bio": NSNull(), "avatarUrl": NSNull(),
                 ],
                 "post": [
-                    "id": 8201, "slug": parts[4], "title": "헥사고날로 가는 길",
-                    "excerpt": "경계를 긋는 이야기", "ogImageUrl": NSNull(), "languageTag": "ko",
-                    "tags": ["아키텍처"], "likeCount": 8, "pinned": false, "lastEditedAt": NSNull(),
-                    "publishedAt": iso(Date().addingTimeInterval(-86_400)),
+                    "id": 8201, "slug": slug, "title": article?.title ?? "헥사고날로 가는 길",
+                    "excerpt": article?.excerpt ?? "경계를 긋는 이야기",
+                    "ogImageUrl": NSNull(), "languageTag": "ko",
+                    "tags": article?.tags ?? ["아키텍처"], "likeCount": article?.likeCount ?? 8,
+                    "pinned": false, "lastEditedAt": NSNull(),
+                    "publishedAt": iso(Date().addingTimeInterval(
+                        -(article?.daysAgo ?? 1) * 86_400)),
                 ],
                 "blocks": blocks,
                 "series": NSNull(),
