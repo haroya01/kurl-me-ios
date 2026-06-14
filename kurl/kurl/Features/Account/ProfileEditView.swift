@@ -13,6 +13,8 @@ struct ProfileEditView: View {
     var onSaved: () -> Void = {}
 
     @Environment(\.dismiss) private var dismiss
+    @State private var username = ""
+    @State private var initialUsername = ""
     @State private var bio = ""
     @State private var loaded = false
     @State private var pickerItem: PhotosPickerItem?
@@ -41,6 +43,30 @@ struct ProfileEditView: View {
                 .listRowBackground(Color.clear)
             }
 
+            Section("사용자 이름") {
+                HStack(spacing: 1) {
+                    Text("kurl.me/u/")
+                        .foregroundStyle(Palette.secondary)
+                    TextField("username", text: $username)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .onChange(of: username) { _, value in
+                            // 서버 규칙(소문자·숫자·_, 16자)에 맞춰 입력 단계에서 정리.
+                            let cleaned = value.lowercased()
+                                .filter { $0.isNumber || ("a"..."z").contains($0) || $0 == "_" }
+                            let capped = String(cleaned.prefix(16))
+                            if capped != value { username = capped }
+                        }
+                }
+                .font(.system(size: 15))
+                if let usernameError {
+                    Text(usernameError).font(.caption).foregroundStyle(.red)
+                } else if usernameChanged {
+                    Text("이전 이름은 30일간 예약돼 기존 링크가 바로 깨지지 않아요.")
+                        .font(.caption).foregroundStyle(Palette.secondary)
+                }
+            }
+
             Section("소개") {
                 TextField("자기소개를 적어보세요", text: $bio, axis: .vertical)
                     .lineLimit(3...6)
@@ -60,7 +86,7 @@ struct ProfileEditView: View {
                     ProgressView()
                 } else {
                     Button("저장") { save() }
-                        .disabled(!loaded || bio.count > bioLimit)
+                        .disabled(!loaded || bio.count > bioLimit || usernameError != nil)
                 }
             }
         }
@@ -96,7 +122,21 @@ struct ProfileEditView: View {
         .overlay { Circle().strokeBorder(Palette.hairlineStrong, lineWidth: 1) }
     }
 
+    private var trimmedUsername: String { username.trimmingCharacters(in: .whitespaces) }
+    private var usernameChanged: Bool { !trimmedUsername.isEmpty && trimmedUsername != initialUsername }
+    /// 서버와 같은 규칙: 소문자·숫자·_, 3~16자, 첫 글자는 영문/숫자. 바뀐 값일 때만 검사.
+    private var usernameError: String? {
+        guard usernameChanged else { return nil }
+        let ok = trimmedUsername.range(
+            of: "^[a-z0-9][a-z0-9_]{2,15}$", options: .regularExpression) != nil
+        return ok ? nil : String(localized: "영문 소문자·숫자·_ 3~16자, 첫 글자는 영문이나 숫자")
+    }
+
     private func load() async {
+        await AuthStore.shared.loadMe()
+        let current = AuthStore.shared.me?.username ?? ""
+        username = current
+        initialUsername = current
         bio = (try? await ProfileAPI.myBio()) ?? ""
         loaded = true
     }
@@ -127,13 +167,27 @@ struct ProfileEditView: View {
                 if let img = newAvatar, let jpeg = img.jpegData(compressionQuality: 0.85) {
                     _ = try await ProfileAPI.uploadAvatar(jpegData: jpeg)
                 }
-                try await ProfileAPI.updateBio(bio.trimmingCharacters(in: .whitespacesAndNewlines))
+                try await ProfileAPI.update(
+                    username: usernameChanged ? trimmedUsername : nil,
+                    bio: bio.trimmingCharacters(in: .whitespacesAndNewlines))
                 await AuthStore.shared.loadMe()
                 onSaved()
                 dismiss()
             } catch {
-                self.error = (error as? APIError)?.localizedDescription ?? error.localizedDescription
+                self.error = usernameSaveError(error)
             }
         }
+    }
+
+    /// 서버 거절을 사람 말로 — 409=중복, 400=형식. 그 외는 일반 메시지.
+    private func usernameSaveError(_ error: Error) -> String {
+        if case APIError.http(let status) = error {
+            switch status {
+            case 409: return String(localized: "이미 사용 중인 이름이에요.")
+            case 400: return String(localized: "사용할 수 없는 이름이에요.")
+            default: break
+            }
+        }
+        return (error as? APIError)?.localizedDescription ?? error.localizedDescription
     }
 }

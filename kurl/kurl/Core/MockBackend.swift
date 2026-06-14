@@ -63,6 +63,7 @@ enum MockBackend {
     private static var followedTags: Set<String> = ["아키텍처"]
     private static var hiddenTags: Set<String> = []
     private static var myBio = "경계를 긋는 사람. 헥사고날·도메인 모델링."
+    private static var myUsername = "honggildong"
 
     // MARK: 긴 글 픽스처
 
@@ -276,7 +277,7 @@ enum MockBackend {
 
         if method == "GET", parts == ["users", "me"] {
             return json([
-                "id": 1, "email": "mock@kurl.me", "username": "honggildong",
+                "id": 1, "email": "mock@kurl.me", "username": myUsername,
                 "avatarUrl": NSNull(), "role": "ADMIN",
             ])
         }
@@ -302,10 +303,17 @@ enum MockBackend {
             return json([:] as [String: Any])
         }
 
-        // 프로필 편집 — 소개글(부분 PUT)·아바타(presign→commit).
+        // 프로필 편집 — 사용자 이름·소개글(부분 PUT)·아바타(presign→commit).
         if parts == ["users", "me", "profile"] {
-            if method == "PUT", let bio = decode(body)["bio"] as? String { myBio = bio }
-            return json(["username": "honggildong", "bio": myBio, "theme": "light", "socials": NSNull()])
+            if method == "PUT" {
+                let req = decode(body)
+                if let bio = req["bio"] as? String { myBio = bio }
+                if let u = (req["username"] as? String)?.trimmingCharacters(in: .whitespaces),
+                   !u.isEmpty {
+                    myUsername = u.lowercased()
+                }
+            }
+            return json(["username": myUsername, "bio": myBio, "theme": "light", "socials": NSNull()])
         }
         if method == "POST", parts == ["users", "me", "avatar", "presigned-url"] {
             return json([
