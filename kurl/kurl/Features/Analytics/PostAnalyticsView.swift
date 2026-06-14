@@ -66,13 +66,14 @@ struct PostAnalyticsView: View {
                                     size: 12, weight: days == option ? .semibold : .regular))
                                 .foregroundStyle(
                                     days == option
-                                        ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
+                                        ? AnyShapeStyle(Color(uiColor: .systemBackground))
+                                        : AnyShapeStyle(.secondary))
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
                                 .contentShape(Capsule())
                         }
                         .buttonStyle(.plain)
-                        .glassCapsule(prominent: days == option)
+                        .selectorPill(selected: days == option)
                     }
                 }
             }

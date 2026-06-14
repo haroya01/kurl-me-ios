@@ -154,13 +154,14 @@ struct AnalyticsView: View {
                                         weight: days == option ? .semibold : .regular))
                                     .foregroundStyle(
                                         days == option
-                                            ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
+                                            ? AnyShapeStyle(Color(uiColor: .systemBackground))
+                                            : AnyShapeStyle(.secondary))
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 6)
                                     .contentShape(Capsule())
                             }
                             .buttonStyle(.plain)
-                            .glassCapsule(prominent: days == option)
+                            .selectorPill(selected: days == option)
                             .accessibilityAddTraits(days == option ? [.isSelected] : [])
                         }
                     }
@@ -354,13 +355,14 @@ struct AnalyticsView: View {
         } label: {
             Text(label)
                 .font(.system(size: 12 * metaUnit, weight: active ? .semibold : .regular))
-                .foregroundStyle(active ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
+                .foregroundStyle(active
+                    ? AnyShapeStyle(Color(uiColor: .systemBackground)) : AnyShapeStyle(.secondary))
                 .padding(.horizontal, 11)
                 .padding(.vertical, 6)
                 .contentShape(Capsule())
         }
         .buttonStyle(.plain)
-        .glassCapsule(prominent: active)
+        .selectorPill(selected: active)
         .accessibilityAddTraits(active ? [.isSelected] : [])
     }
 
