@@ -97,54 +97,7 @@ struct PostRow: View {
     }
 }
 
-/// 구독함 행 — 카드가 아니라 "도착한 글". 미읽음은 그린 점, 읽음 기억은 기기 로컬.
-struct InboxRow: View {
-    let item: FeedItem
-
-    private var read: Bool { PostReadStore.shared.isRead(item.id) }
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            AvatarView(author: item.author, size: 42)
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    if !read {
-                        Circle().fill(Palette.accent).frame(width: 7, height: 7)
-                    }
-                    Text(item.author.username)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Palette.secondary)
-                    if let date = item.publishedAt {
-                        Text("·").foregroundStyle(Palette.faint)
-                        Text(date.relativeShort)
-                            .font(.system(size: 12))
-                            .foregroundStyle(Palette.secondary)
-                    }
-                }
-                Text(item.title)
-                    .font(.system(size: 16, weight: read ? .regular : .semibold))
-                    .foregroundStyle(read ? Palette.body : Palette.ink)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Spacer(minLength: 8)
-            if let urlString = item.ogImageUrl, let url = URL(string: urlString) {
-                AsyncImage(url: url) { image in
-                    image.resizable().scaledToFill()
-                } placeholder: {
-                    Rectangle().fill(Palette.hairline)
-                }
-                .frame(width: 56, height: 42)
-                .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
-            }
-        }
-        .padding(.vertical, 13)
-        .contentShape(Rectangle())
-    }
-}
-
-/// 읽은(연 적 있는) 글의 기기 로컬 기억 — 구독함 미읽음 점과 시리즈 진행이 함께 읽는다.
+/// 읽은(연 적 있는) 글의 기기 로컬 기억 — 시리즈 진행이 읽는다.
 /// 서버에 읽음 모델이 없어 기기에만, 최근 600개. `@Observable` 이라 글을 읽고 돌아오면
 /// 시리즈 회차 체크·진행 막대가 곧바로 갱신된다(푸시된 채로 바뀌어도 pop 시 최신 반영).
 @MainActor
@@ -174,19 +127,6 @@ final class PostReadStore {
         stored.append(id)
         if stored.count > 600 { stored.removeFirst(stored.count - 600) }
         UserDefaults.standard.set(stored.map(NSNumber.init(value:)), forKey: Self.key)
-    }
-}
-
-/// 조건 분기에서 서로 다른 ButtonStyle 을 한 자리에 — 타입 소거.
-struct AnyButtonStyle: ButtonStyle {
-    private let make: (Configuration) -> AnyView
-
-    init<S: ButtonStyle>(_ style: S) {
-        make = { AnyView(style.makeBody(configuration: $0)) }
-    }
-
-    func makeBody(configuration: Configuration) -> some View {
-        make(configuration)
     }
 }
 

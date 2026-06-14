@@ -41,18 +41,18 @@ final class NotesFeedUITests: XCTestCase {
         add(shot)
     }
 
-    func testInboxShowsArrivedPosts() throws {
+    func testFollowingFeedRendersCards() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--feed", "following"]
         app.launch()
 
-        // 구독함은 카드가 아니라 도착 행 — 목 팔로잉 피드의 글 제목이 행으로 선다.
+        // 구독함도 최신·인기와 같은 발견 카드 — 알림 같던 인박스 행을 걷어냈다. 목 팔로잉 피드의 글 제목이 선다.
         let row = app.staticTexts
             .matching(NSPredicate(format: "label CONTAINS '발행된 목 글'")).firstMatch
-        XCTAssertTrue(row.waitForExistence(timeout: 10), "구독함 행이 렌더되지 않음")
+        XCTAssertTrue(row.waitForExistence(timeout: 10), "구독함 카드가 렌더되지 않음")
 
         let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
-        shot.name = "inbox-following"
+        shot.name = "following-cards"
         shot.lifetime = .keepAlways
         add(shot)
     }
