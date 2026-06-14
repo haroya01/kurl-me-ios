@@ -267,13 +267,21 @@ enum CardQuickActions {
     }
 
     static func bookmark(_ item: FeedItem) {
+        let target = !BookmarkStore.shared.contains(item.id)
         perform(
             failure: String(localized: "북마크를 반영하지 못했습니다"),
-            done: String(localized: "북마크에 추가했습니다")
+            done: target
+                ? String(localized: "북마크에 추가했습니다")
+                : String(localized: "북마크를 해제했습니다")
         ) {
-            _ = try await InteractionsAPI.setBookmark(postId: item.id, on: true)
-            // 북마크 = 오프라인 보장 — 카드에서 켜도 기기 사본을 따라 받는다.
-            await OfflineStore.shared.download(username: item.author.username, slug: item.slug)
+            _ = try await InteractionsAPI.setBookmark(postId: item.id, on: target)
+            BookmarkStore.shared.set(item.id, on: target)
+            // 북마크 = 오프라인 보장 — 카드에서 켜면 기기 사본을 따라 받고, 끄면 정리한다.
+            if target {
+                await OfflineStore.shared.download(username: item.author.username, slug: item.slug)
+            } else {
+                OfflineStore.shared.remove(username: item.author.username, slug: item.slug)
+            }
         }
     }
 
@@ -321,7 +329,8 @@ extension View {
             Button {
                 CardQuickActions.bookmark(item)
             } label: {
-                Label("북마크", systemImage: "bookmark")
+                let on = BookmarkStore.shared.contains(item.id)
+                Label(on ? "북마크 해제" : "북마크", systemImage: on ? "bookmark.slash" : "bookmark")
             }
             NavigationLink(value: Route.author(username: item.author.username)) {
                 Label("작가 블로그", systemImage: "person.crop.circle")
