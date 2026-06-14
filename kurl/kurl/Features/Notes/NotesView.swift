@@ -149,6 +149,8 @@ struct NotesPage: View {
                 }
             }
         }
+        .navigationTitle("노트")
+        .navigationBarTitleDisplayMode(.inline)
         .task { await model.loadInitial() }
     }
 
