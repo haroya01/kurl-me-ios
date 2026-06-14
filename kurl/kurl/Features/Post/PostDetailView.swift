@@ -818,6 +818,7 @@ struct CommentRow: View {
     var postAuthorId: Int64?
 
     @State private var confirmDelete = false
+    @State private var showReport = false
     @State private var likeTaps = 0
     @State private var deleteFailed = false
     @ScaledMetric(relativeTo: .subheadline) private var bodySize: CGFloat = 14
@@ -877,6 +878,20 @@ struct CommentRow: View {
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("댓글 삭제")
+                    } else {
+                        // 남의 댓글 — 더 보기 메뉴에 신고(subjectType=COMMENT).
+                        Menu {
+                            Button(role: .destructive) { showReport = true } label: {
+                                Label("신고", systemImage: "flag")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis")
+                                .font(.system(size: 12 * metaUnit))
+                                .foregroundStyle(Palette.secondary)
+                                .expandTapTarget()
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("댓글 더 보기")
                     }
                 }
                 Text(comment.body)
@@ -939,6 +954,7 @@ struct CommentRow: View {
         .alert("삭제하지 못했습니다", isPresented: $deleteFailed) {
             Button("확인", role: .cancel) {}
         }
+        .reportDialog(isPresented: $showReport, subjectType: "COMMENT", subjectId: comment.id)
     }
 }
 
