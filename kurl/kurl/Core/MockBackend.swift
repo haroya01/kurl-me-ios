@@ -287,6 +287,36 @@ enum MockBackend {
             ])
         }
 
+        // 공개 글 상세 — 헤딩 포함 블록으로 목차·읽기 표면 검증을 연다(실서버 미목).
+        if method == "GET", parts.count == 5, parts[0] == "public", parts[1] == "profiles",
+           parts[3] == "posts" {
+            let username = parts[2]
+            let blocks: [[String: Any]] = [
+                ["type": "H1", "content": "헥사고날로 가는 길", "blockOrder": 0],
+                ["type": "PARAGRAPH", "content": "레이어드에서 갈아탄 이유와 그 결정의 기록.", "blockOrder": 1],
+                ["type": "H2", "content": "포트와 어댑터", "blockOrder": 2],
+                ["type": "PARAGRAPH", "content": "경계를 먼저 긋고, 구현은 그 바깥으로 민다.", "blockOrder": 3],
+                ["type": "H2", "content": "의존성 역전", "blockOrder": 4],
+                ["type": "PARAGRAPH", "content": "화살표의 방향이 곧 설계의 방향이다.", "blockOrder": 5],
+                ["type": "H3", "content": "테스트 전략", "blockOrder": 6],
+                ["type": "PARAGRAPH", "content": "도메인은 단위로, 어댑터는 슬라이스로.", "blockOrder": 7],
+            ]
+            return json([
+                "author": [
+                    "id": username == "honggildong" ? 1 : 2, "username": username,
+                    "bio": NSNull(), "avatarUrl": NSNull(),
+                ],
+                "post": [
+                    "id": 8201, "slug": parts[4], "title": "헥사고날로 가는 길",
+                    "excerpt": "경계를 긋는 이야기", "ogImageUrl": NSNull(), "languageTag": "ko",
+                    "tags": ["아키텍처"], "likeCount": 8, "pinned": false, "lastEditedAt": NSNull(),
+                    "publishedAt": iso(Date().addingTimeInterval(-86_400)),
+                ],
+                "blocks": blocks,
+                "series": NSNull(),
+            ])
+        }
+
         // 공개 시리즈 상세 — 실서버 미목이라 fall-through 하면 404(시리즈 진행 화면 검증 불가).
         // ids 8001~ 는 `--seed-read` 로 읽음 시드와 짝지어 진행/체크 상태를 그려본다.
         if method == "GET", parts.count == 5, parts[0] == "public", parts[1] == "profiles",
