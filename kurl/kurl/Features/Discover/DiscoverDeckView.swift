@@ -112,6 +112,16 @@ struct DiscoverDeckView: View {
             }
             .task { await model.load() }
             .toolbar {
+                // "발견" = 떠 있는 리퀴드 글래스 알약(피드 스위처와 같은 결) — 투명 헤더 위에 얹힌다.
+                ToolbarItem(placement: .principal) {
+                    Text("발견")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 7)
+                        .glassEffect(.regular, in: .capsule)
+                        .accessibilityAddTraits(.isHeader)
+                }
                 // 임베드된 상세는 내비바를 못 쓰므로 공유는 현재 장 기준으로 호스트가 든다.
                 // 공유(현재 장)와 섞기(덱 전체)는 작용 범위가 달라 유리 핀도 분리한다.
                 ToolbarItem(placement: .primaryAction) {
@@ -136,10 +146,9 @@ struct DiscoverDeckView: View {
                     .accessibilityLabel("덱 섞기")
                 }
             }
-            .navigationTitle("발견")
             .navigationBarTitleDisplayMode(.inline)
-            // 덱은 엣지-투-엣지 읽기 면 — 내비바 배경(반투명 막)을 걷어 커버가 상단까지 꽉 찬다.
-            // 섞기·공유 아이콘은 그대로 떠 있고, 제목은 스크롤 콘텐츠 위에 가볍게 얹힌다.
+            // 덱은 엣지-투-엣지 읽기 면 — 내비바 배경(반투명 막)을 걷어 투명 헤더로. 발견 알약·
+            // 섞기·공유만 유리로 떠 있고, 커버는 상단까지 꽉 찬다.
             .toolbarBackground(.hidden, for: .navigationBar)
             .navigationDestination(for: Route.self) { RouteView(route: $0) }
         }
