@@ -33,9 +33,12 @@ extension View {
     /// 신고 사유 선택 다이얼로그 — 글/작가 어디서나 같은 문법. 접수되면 토스트로 알린다.
     /// 익명도 가능(서버 permitAll). subjectType = "POST" | "USER".
     func reportDialog(isPresented: Binding<Bool>, subjectType: String, subjectId: Int64) -> some View {
-        let noun = subjectType == "USER"
-            ? String(localized: "이 작가를")
-            : String(localized: "이 글을")
+        let noun: String
+        switch subjectType {
+        case "USER": noun = String(localized: "이 작가를")
+        case "COMMENT": noun = String(localized: "이 댓글을")
+        default: noun = String(localized: "이 글을")
+        }
         return confirmationDialog(
             "신고 사유를 선택하세요", isPresented: isPresented, titleVisibility: .visible
         ) {
