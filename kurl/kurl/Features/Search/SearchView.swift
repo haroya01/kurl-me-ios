@@ -285,9 +285,22 @@ struct SearchView: View {
         }
     }
 
+    /// 결과의 태그 칩 — 입력어 자체를 첫 태그로(인기 태그에 없어도 바로 그 태그 피드로 가게),
+    /// 이어서 겹치는 인기 태그. 중복(대소문자 무시) 제거.
+    private var tagOptions: [String] {
+        let q = activeQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else { return [] }
+        var seen = Set<String>()
+        var tags: [String] = []
+        for t in [q] + matchedTags.map(\.tag) where seen.insert(t.lowercased()).inserted {
+            tags.append(t)
+        }
+        return tags
+    }
+
     @ViewBuilder
     private func results(_ items: [FeedItem]) -> some View {
-        let tags = matchedTags
+        let tags = tagOptions
         let authors = matchedAuthors
         if items.isEmpty, tags.isEmpty, authors.isEmpty {
             ContentUnavailableView.search(text: query)
@@ -302,9 +315,9 @@ struct SearchView: View {
                             RailHeading("태그")
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
-                                    ForEach(tags) { tag in
-                                        NavigationLink(value: Route.tag(tag.tag)) {
-                                            MutedChip(text: "#\(tag.tag)")
+                                    ForEach(tags, id: \.self) { tag in
+                                        NavigationLink(value: Route.tag(tag)) {
+                                            MutedChip(text: "#\(tag)")
                                         }
                                         .buttonStyle(.plain)
                                     }
