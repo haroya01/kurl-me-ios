@@ -38,7 +38,15 @@ struct TagFeedView: View {
                     .padding(.top, 60)
                 case .loaded(let items):
                     if items.isEmpty {
-                        ContentUnavailableView("글이 없습니다", systemImage: "tray").padding(.top, 60)
+                        ContentUnavailableView {
+                            Label("글이 없습니다", systemImage: "tray")
+                        } description: {
+                            Text("이 태그의 글이 아직 없어요.")
+                        } actions: {
+                            Button("발견에서 읽을 글 찾기") { TabRouter.shared.selection = 1 }
+                                .foregroundStyle(Palette.accent)
+                        }
+                        .padding(.top, 60)
                     }
                     // 태그 피드도 browse 면 — 검색·홈과 같은 카드 문법(웹 §10.1 예외 경계).
                     ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
