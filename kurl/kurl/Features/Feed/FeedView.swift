@@ -7,28 +7,24 @@
 
 import SwiftUI
 
-/// 피드 상단 4분면 — 글 셋(최신·인기·구독함) + 짧은 글(노트). 노트는 FeedSource(글 정렬)가
-/// 아니라 별도 페이지라 여기서만 합쳐 스위처 한 줄로 묶는다.
+/// 피드 상단 스위처 — 글 셋(최신·인기·구독함). 짧은 글(노트)은 1급 탭에서 강등,
+/// 내 계정 탭의 진입으로 옮겼다(블로그=긴 글 정체성을 흐리지 않게).
 enum FeedTab: String, CaseIterable, Identifiable {
     case recent
     case trending
     case following
-    case notes
 
     var id: String { rawValue }
 
-    var source: FeedSource? {
+    var source: FeedSource {
         switch self {
         case .recent: return .recent
         case .trending: return .trending
         case .following: return .following
-        case .notes: return nil
         }
     }
 
-    var label: String {
-        source?.label ?? String(localized: "노트")
-    }
+    var label: String { source.label }
 }
 
 struct FeedView: View {
@@ -140,13 +136,8 @@ struct FeedView: View {
         }
     }
 
-    @ViewBuilder
     private func page(for tab: FeedTab) -> some View {
-        if let source = tab.source {
-            FeedPage(source: source, active: tab == selection, zoom: zoomNS)
-        } else {
-            NotesPage(active: tab == selection)
-        }
+        FeedPage(source: tab.source, active: tab == selection, zoom: zoomNS)
     }
 
     private var selectionIndex: Int { FeedTab.allCases.firstIndex(of: selection) ?? 0 }

@@ -13,10 +13,18 @@ final class NotesFeedUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    func testNotesTabRendersAndPublishes() throws {
+    func testNotesReachableFromAccountAndPublishes() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["--mocks", "--feed", "notes"]
+        app.launchArguments = ["--mocks", "--tab", "account"]
         app.launch()
+
+        // 노트는 1급 피드 탭에서 강등 — 내 계정 '둘러보기'의 진입으로 들어간다.
+        let entry = app.buttons
+            .matching(NSPredicate(format: "label CONTAINS '노트'")).firstMatch
+        var tries = 0
+        while entry.exists, !entry.isHittable, tries < 4 { app.swipeUp(); tries += 1 }
+        XCTAssertTrue(entry.waitForExistence(timeout: 10), "노트 진입 행 없음")
+        entry.tap()
 
         // 목 피드의 첫 노트가 보이면 디코더·행 렌더까지 산 것.
         let seeded = app.staticTexts
@@ -33,10 +41,10 @@ final class NotesFeedUITests: XCTestCase {
 
         let published = app.staticTexts
             .matching(NSPredicate(format: "label CONTAINS 'uitest note round trip'")).firstMatch
-        XCTAssertTrue(published.waitForExistence(timeout: 6), "발행한 노트가 피드 맨 위에 안 꽂힘")
+        XCTAssertTrue(published.waitForExistence(timeout: 6), "발행한 노트가 맨 위에 안 꽂힘")
 
         let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
-        shot.name = "notes-feed-published"
+        shot.name = "notes-from-account"
         shot.lifetime = .keepAlways
         add(shot)
     }

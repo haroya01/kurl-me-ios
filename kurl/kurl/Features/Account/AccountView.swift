@@ -284,6 +284,12 @@ struct AccountView: View {
             }
             .padding(.top, 10)
 
+            // 노트(짧은 글) — 1급 피드 탭에서 강등, 여기서 들어간다.
+            RailHeading("둘러보기")
+                .padding(.top, 28)
+                .padding(.bottom, 4)
+            libraryRow("노트", icon: "text.bubble") { NotesPage(active: true) }
+
             // 서재 — 행동(좋아요·북마크·구독)의 모아 보기.
             RailHeading("서재")
                 .padding(.top, 28)
