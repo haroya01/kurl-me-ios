@@ -60,6 +60,7 @@ enum MockBackend {
     private static var bookmarks: Set<Int64> = []
     private static var follows: [String: (following: Bool, count: Int64)] = [:]
     private static var subscriptions: [Int64: (subscribed: Bool, count: Int64)] = [:]
+    private static var followedTags: Set<String> = ["아키텍처"]
 
     // MARK: 라우팅
 
@@ -69,6 +70,23 @@ enum MockBackend {
 
         if method == "GET", parts == ["users", "me"] {
             return json(["id": 1, "email": "mock@kurl.me", "username": "honggildong", "avatarUrl": NSNull()])
+        }
+
+        // 태그 구독(팔로우) — 웹 tag-prefs parity. url.path 가 디코드돼 parts[4] = 원문 태그.
+        if parts == ["users", "me", "tag-prefs"] {
+            return json(["followed": Array(followedTags), "hidden": [String]()])
+        }
+        if parts.count == 5, parts[0] == "users", parts[1] == "me", parts[2] == "tag-prefs",
+           parts[3] == "followed" {
+            let tag = parts[4]
+            if method == "PUT" { followedTags.insert(tag) }
+            if method == "DELETE" { followedTags.remove(tag) }
+            return json(["followed": Array(followedTags), "hidden": [String]()])
+        }
+
+        // 신고 — 202, 본문 없음. 목에선 실서버에 진짜 신고가 쌓이지 않게 받아만 준다.
+        if method == "POST", parts == ["public", "abuse-reports"] {
+            return json([:] as [String: Any])
         }
 
         // 노트는 공개 읽기까지 목으로 받는다 — 실서버에 아직 배포 전이라 fall-through 하면 404.
@@ -249,7 +267,8 @@ enum MockBackend {
             }
             return json([
                 "author": [
-                    "id": 1, "username": username,
+                    // honggildong = 목 로그인 유저(내 프로필), 그 외는 남(신고 노출 검증용).
+                    "id": username == "honggildong" ? 1 : 2, "username": username,
                     "bio": "경계를 긋는 사람. 헥사고날·도메인 모델링.", "avatarUrl": NSNull(),
                 ],
                 "posts": posts,

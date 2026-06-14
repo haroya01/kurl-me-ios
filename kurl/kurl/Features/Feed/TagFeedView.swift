@@ -90,7 +90,7 @@ struct TagFeedView: View {
         .task { await load() }
     }
 
-    /// 태그 머리 — "태그" eyebrow + #태그 디스플레이 제목. 페이지의 단일 히어로.
+    /// 태그 머리 — "태그" eyebrow + #태그 디스플레이 제목 + 구독 버튼. 페이지의 단일 히어로.
     private var masthead: some View {
         VStack(alignment: .leading, spacing: 6) {
             RailHeading("태그")
@@ -99,6 +99,9 @@ struct TagFeedView: View {
                 .foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
+            // 이 태그의 새 글을 구독함으로 — 웹 태그 페이지의 구독과 같은 동작.
+            TagFollowButton(tag: tag)
+                .padding(.top, 10)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.top, 8)

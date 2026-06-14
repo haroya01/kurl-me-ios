@@ -14,6 +14,17 @@ struct AuthorBlogView: View {
     @State private var series: [SeriesListItem] = []
     @State private var showCard = false
     @State private var showNavTitle = false
+    @State private var showReport = false
+
+    /// 로드된 작가 id — 신고 대상. 내가 아닐 때만 신고를 노출한다.
+    private var author: Author? {
+        if case .loaded(let view) = phase { return view.author }
+        return nil
+    }
+    private var isOwnAuthor: Bool {
+        guard let myId = AuthStore.shared.me?.id, let author else { return false }
+        return author.id == myId
+    }
 
     var body: some View {
         ScrollView {
@@ -49,7 +60,22 @@ struct AuthorBlogView: View {
                     .font(.system(size: 16, weight: .semibold))
                     .opacity(showNavTitle ? 1 : 0)
             }
+            if let author, !isOwnAuthor {
+                ToolbarItem(placement: .primaryAction) {
+                    Menu {
+                        Button(role: .destructive) { showReport = true } label: {
+                            Label("신고", systemImage: "flag")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                    }
+                    .tint(.brand)
+                    .accessibilityLabel("더 보기")
+                    .id(author.id)
+                }
+            }
         }
+        .reportDialog(isPresented: $showReport, subjectType: "USER", subjectId: author?.id ?? 0)
         .toolbarBackground(showNavTitle ? .automatic : .hidden, for: .navigationBar)
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
