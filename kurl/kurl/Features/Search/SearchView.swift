@@ -42,8 +42,14 @@ struct SearchView: View {
                 case .loaded(let items):
                     results(items)
                 case .failed(let message):
-                    ContentUnavailableView("불러오지 못했습니다", systemImage: "wifi.exclamationmark",
-                                           description: Text(message))
+                    ContentUnavailableView {
+                        Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
+                    } description: {
+                        Text(message)
+                    } actions: {
+                        Button("다시 시도") { runSearch(query) }
+                            .foregroundStyle(Palette.accent)
+                    }
                 }
             }
             .navigationTitle("검색")
