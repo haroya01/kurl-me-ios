@@ -264,6 +264,19 @@ struct PostDetailView: View {
             // 덱은 lazy 페이지가 많아 바닥 근접 때만(loadMore 경로), 단독은 곧장 작가 컨텍스트.
             if !embedded { await loadAuthorContext() }
         }
+        // 완독 = 읽음. 긴 글은 끝까지 내려간 순간(readComplete) 찍는다 — '열기'가 아니라 '다 읽기'.
+        .onChange(of: readComplete) { _, done in
+            guard done, !embedded, let id = loadedPostId else { return }
+            PostReadStore.shared.markRead(id)
+        }
+        // 짧은 글(스크롤 없음)은 완독 판정이 안 잡힌다 — 전체가 한 화면이라 잠깐 체류하면 읽음.
+        // 긴 글은 여기서 안 찍고(레이아웃 후 scrollable=true) readComplete 경로에 맡긴다.
+        .task(id: loadedPostId) {
+            guard !embedded, let id = loadedPostId else { return }
+            try? await Task.sleep(for: .seconds(2.5))
+            guard !Task.isCancelled, !scrollable else { return }
+            PostReadStore.shared.markRead(id)
+        }
     }
 
     /// 가로(compact 높이)에선 커버가 화면을 다 먹지 않게 낮춘다.
@@ -278,6 +291,12 @@ struct PostDetailView: View {
     private var loadedTitle: String {
         if case .loaded(let detail) = model.phase { return detail.post.title }
         return ""
+    }
+
+    /// 로드된 글의 id — 읽음 기록(완독·짧은 글 체류)의 키. 로딩 중엔 nil 이라 안 찍힌다.
+    private var loadedPostId: Int64? {
+        if case .loaded(let detail) = model.phase { return detail.post.id }
+        return nil
     }
 
     /// 네이티브 공유 시트용 공개 URL — 웹과 같은 주소.

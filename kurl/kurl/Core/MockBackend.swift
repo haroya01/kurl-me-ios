@@ -229,6 +229,37 @@ enum MockBackend {
             return json(["id": 1, "body": decode(body)["body"] as? String ?? ""])
         }
 
+        // 공개 시리즈 상세 — 실서버 미목이라 fall-through 하면 404(시리즈 진행 화면 검증 불가).
+        // ids 8001~ 는 `--seed-read` 로 읽음 시드와 짝지어 진행/체크 상태를 그려본다.
+        if method == "GET", parts.count == 5, parts[0] == "public", parts[1] == "profiles",
+           parts[3] == "series" {
+            let username = parts[2]
+            let titles = [
+                ("포트와 어댑터", "경계를 먼저 긋고, 구현은 그 바깥으로 민다."),
+                ("도메인을 안으로", "비즈니스 규칙이 프레임워크를 모르게 한다."),
+                ("의존성 뒤집기", "화살표의 방향이 설계의 방향이다."),
+                ("어댑터 구현", "DB·HTTP·큐는 전부 바깥의 디테일."),
+                ("테스트 전략", "도메인은 단위로, 어댑터는 슬라이스로."),
+                ("마이그레이션", "한 슬라이스씩, 멈추지 않고 갈아탄다."),
+            ]
+            let posts = titles.enumerated().map { i, t -> [String: Any] in
+                [
+                    "id": 8001 + i, "slug": "ep-\(i + 1)", "title": t.0, "excerpt": t.1,
+                    "ogImageUrl": NSNull(), "languageTag": "ko", "tags": ["아키텍처"],
+                    "likeCount": 5 - i, "pinned": false, "lastEditedAt": NSNull(),
+                    "publishedAt": iso(Date().addingTimeInterval(-Double(titles.count - i) * 86_400)),
+                ]
+            }
+            return json([
+                "author": ["id": 1, "username": username, "bio": NSNull(), "avatarUrl": NSNull()],
+                "series": [
+                    "id": 7, "slug": parts[4], "title": "헥사고날 전환기",
+                    "postCount": titles.count, "tags": ["아키텍처"],
+                ],
+                "posts": posts,
+            ])
+        }
+
         if method == "GET", parts == ["bookmarks"] {
             return json([
                 ["id": 9002, "username": "honggildong", "title": "발행된 목 글", "slug": "p-mock-2"],

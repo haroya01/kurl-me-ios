@@ -295,7 +295,7 @@ struct FeedPage: View {
                     .modifier(QuietAppear(index: index))
                     .modifier(CardScrollFade())
                     .simultaneousGesture(TapGesture().onEnded {
-                        if source == .following { InboxReadStore.markRead(item.id) }
+                        if source == .following { PostReadStore.shared.markRead(item.id) }
                     })
                     .task { await model.loadMoreIfNeeded(current: item) }
                     if source == .following, index < model.items.count - 1 {
