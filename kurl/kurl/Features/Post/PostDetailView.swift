@@ -10,7 +10,6 @@ import UIKit
 
 struct PostDetailView: View {
     @State private var model: PostDetailViewModel
-    @Environment(\.verticalSizeClass) private var verticalSizeClass
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
@@ -21,15 +20,10 @@ struct PostDetailView: View {
     /// 판정에 맡긴다(여러 장이 lazy 로 살아 있어 load 시점 비콘은 부풀려진다).
     private let embedded: Bool
 
-    /// 피드 카드가 미리 남긴 커버 — 로딩 첫 프레임부터 커버를 깔아 zoom 전환이
-    /// 빈 화면(투명한 내비바 막)이 아니라 사진으로 착지하게 한다.
-    @State private var coverHint: String?
-
     init(username: String, slug: String, embedded: Bool = false) {
         self.embedded = embedded
         _model = State(initialValue: PostDetailViewModel(
             username: username, slug: slug, recordsView: !embedded))
-        _coverHint = State(initialValue: PostPeek.cover(username: username, slug: slug))
     }
 
     /// 헤더를 지나면 제목이 내비바로 스며들고(아이폰 리딩 앱 문법), 커버가 있으면
@@ -79,15 +73,8 @@ struct PostDetailView: View {
             VStack(spacing: 0) {
                 switch model.phase {
                 case .idle, .loading:
-                    // 피드에서 넘어온 커버가 있으면 그대로 깔고(zoom 착지), 그 아래 본문을 기다린다.
-                    if let coverHint, let url = URL(string: coverHint) {
-                        StretchyCover(url: url, height: coverHeight)
-                        KurlLoadingMark()
-                            .frame(maxWidth: .infinity, minHeight: 200)
-                    } else {
-                        KurlLoadingMark()
-                            .frame(maxWidth: .infinity, minHeight: 320)
-                    }
+                    KurlLoadingMark()
+                        .frame(maxWidth: .infinity, minHeight: 320)
                 case .failed(let message):
                     ContentUnavailableView {
                         Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
@@ -99,10 +86,8 @@ struct PostDetailView: View {
                     }
                     .padding(.top, 80)
                 case .loaded(let detail):
-                    // 커버는 엣지-투-엣지(컬럼 밖) — 본문 컬럼만 읽기 폭으로 좁힌다.
-                    if let urlString = detail.post.ogImageUrl, let url = URL(string: urlString) {
-                        StretchyCover(url: url, height: coverHeight)
-                    }
+                    // 커버 헤더 없음 — 제목이 항상 맨 위(커버·무커버 글 제목 위치 일관).
+                    // 커버 이미지가 의미 있으면 작가가 본문에 넣고, 발견 카드엔 그대로 남는다.
                     LazyVStack(alignment: .leading, spacing: 0) {
                         content(detail)
                     }
@@ -115,12 +100,10 @@ struct PostDetailView: View {
         .scrollIndicators(.hidden)
         .scrollDismissesKeyboard(.interactively)
         .scrollEdgeEffectStyle(.soft, for: .bottom)
-        // 커버가 보이는 동안만(아직 제목이 안 스민) 상단 스크롤 엣지 효과를 끈다 — 안 끄면
-        // 사진 위에 반투명 바("투명 박스")가 깔려 엣지-투-엣지 커버를 가린다. 스크롤로 제목이
-        // 스미면(showNavTitle) 효과를 되살려 내비바와 본문이 제대로 갈린다.
-        .scrollEdgeEffectHidden(hasCover && (embedded || !showNavTitle), for: .top)
+        // 제목이 내비바로 스밀 때까지(showNavTitle) 상단 엣지 효과를 끈다 — 투명 헤더 위
+        // 제목이 깔끔히 떠 있게. 덱(임베드)은 항상 끈다.
+        .scrollEdgeEffectHidden(embedded || !showNavTitle, for: .top)
         .background(Palette.readingBg.ignoresSafeArea())
-        .ignoresSafeArea(edges: hasCover && !embedded ? .top : [])
         // 스크롤 여유가 충분한지 — 독 후퇴 판정의 전제(짧은 글은 독이 유일한 인게이지 표면).
         .onScrollGeometryChange(for: Bool.self) { geometry in
             geometry.contentSize.height > geometry.containerSize.height + 120
@@ -153,7 +136,7 @@ struct PostDetailView: View {
         }
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: composerActive)
         .onScrollGeometryChange(for: Bool.self) { geometry in
-            geometry.contentOffset.y + geometry.contentInsets.top > (hasCover ? coverHeight : 110)
+            geometry.contentOffset.y + geometry.contentInsets.top > 110
         } action: { _, passed in
             guard !embedded else { return }
             withAnimation(.easeInOut(duration: 0.18)) { showNavTitle = passed }
@@ -343,15 +326,6 @@ struct PostDetailView: View {
             PostReadStore.shared.markRead(id)
         }
         }
-    }
-
-    /// 가로(compact 높이)에선 커버가 화면을 다 먹지 않게 낮춘다.
-    private var coverHeight: CGFloat { verticalSizeClass == .compact ? 180 : 300 }
-
-    private var hasCover: Bool {
-        if case .loaded(let detail) = model.phase { return detail.post.ogImageUrl != nil }
-        // 로딩 중엔 힌트로 판단 — 내비바 막을 처음부터 숨겨 커버가 상단을 다 쓴다.
-        return coverHint != nil
     }
 
     private var loadedTitle: String {
@@ -585,12 +559,10 @@ struct PostDetailView: View {
     }
 
     private func header(_ detail: PublicPostDetail) -> some View {
-        // 커버 없는 글은 내비바 아래가 휑했다 — 제목 위 카테고리 eyebrow(대표 태그)가
-        // 그 띠를 의미 있게 채우고(매거진 머릿글 문법), 커버가 없을 땐 위 여백을 더 조인다.
-        let hasCover = detail.post.ogImageUrl != nil
+        // 제목 위 카테고리 eyebrow(대표 태그)가 내비바 아래 띠를 매거진 머릿글처럼 채운다.
         let kicker = detail.post.tags.first
         return VStack(alignment: .leading, spacing: 0) {
-            Color.clear.frame(height: hasCover ? 22 : (kicker != nil ? 6 : 14))
+            Color.clear.frame(height: kicker != nil ? 6 : 14)
 
             if let kicker {
                 NavigationLink(value: Route.tag(kicker)) {
@@ -1143,32 +1115,6 @@ struct GlassCommentBar: View {
 
 /// 시그니처 — 읽기 진행을 kurl 3-bar 마크가 그려지며 표현한다. 옅은 트랙(미독) 위로 그린
 /// 마크가 왼쪽부터 채워지고(progress), 완독하면(complete) 한 번 톡 튄다. 밋밋한 진행 띠를
-/// 브랜드 행위로 — "읽으면 마크가 그려진다."
-/// 엣지-투-엣지 커버 — 당겨 내리면 늘어나는 네이티브 stretchy 헤더.
-/// 카드 zoom 전환의 도착점이기도 하다.
-private struct StretchyCover: View {
-    let url: URL
-    var height: CGFloat = 300
-
-    var body: some View {
-        GeometryReader { geo in
-            let minY = geo.frame(in: .scrollView).minY
-            AsyncImage(url: url) { image in
-                image.resizable().scaledToFill()
-            } placeholder: {
-                Rectangle().fill(Palette.hairline)
-            }
-            .saturation(0.85)
-            .overlay(Palette.coverVeil)
-            .frame(width: geo.size.width, height: geo.size.height + max(0, minY))
-            .clipped()
-            .offset(y: min(0, -minY))
-            .accessibilityHidden(true)
-        }
-        .frame(height: height)
-    }
-}
-
 /// 태그 줄바꿈 래핑 — muted 칩.
 struct FlowTags: View {
     let tags: [String]
