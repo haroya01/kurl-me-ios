@@ -135,5 +135,22 @@ enum InteractionsAPI {
             : try await client.delete("/users/me/tag-prefs/followed/\(tag)", authenticated: true)
     }
 
+    // MARK: 신고(abuse report)
+
+    /// 글·작가 신고 — `POST /public/abuse-reports`(202). subjectType = POST | USER.
+    /// 익명 허용(permitAll) 이라 로그인 안 해도 보내되, 로그인 상태면 토큰을 붙인다.
+    static func report(subjectType: String, subjectId: Int64, reason: String) async throws {
+        struct Body: Encodable {
+            let subjectType: String
+            let subjectId: Int64
+            let reason: String
+        }
+        let signedIn = await AuthStore.shared.isSignedIn
+        try await client.post(
+            "/public/abuse-reports",
+            body: Body(subjectType: subjectType, subjectId: subjectId, reason: reason),
+            authenticated: signedIn)
+    }
+
     private struct Empty: Encodable {}
 }

@@ -50,6 +50,8 @@ struct PostDetailView: View {
     /// 내 글을 볼 때만 뜨는 작가 동작 — 편집(에디터)·분석(이 글 성과).
     @State private var editingOwnPost = false
     @State private var showOwnAnalytics = false
+    /// 남의 글 신고(더 보기 메뉴).
+    @State private var showReport = false
     /// 손가락이 실제로 당기는 중일 때만 true — 플릭 관성의 바운스가 임계를 넘어도
     /// 다음 글로 튕겨가지 않게 한다.
     @State private var fingerDown = false
@@ -244,9 +246,23 @@ struct PostDetailView: View {
                         .tint(.brand)
                         .accessibilityLabel("이 글 편집")
                     }
+                } else if loadedPostId != nil {
+                    // 남의 글이면 — 더 보기 메뉴에 신고(UGC 신고 경로).
+                    ToolbarItem(placement: .primaryAction) {
+                        Menu {
+                            Button(role: .destructive) { showReport = true } label: {
+                                Label("신고", systemImage: "flag")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis")
+                        }
+                        .tint(.brand)
+                        .accessibilityLabel("더 보기")
+                    }
                 }
             }
         }
+        .reportDialog(isPresented: $showReport, subjectType: "POST", subjectId: loadedPostId ?? 0)
         // 스크롤로 제목이 스밀 때까지는 내비바 배경을 숨긴다 — 커버 유무와 무관하게.
         // (무커버 글 진입 때 .automatic 의 반투명 내비바가 상단에 "투명한 박스"로 떴던 것 제거.)
         .toolbarBackground(
