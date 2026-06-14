@@ -115,5 +115,25 @@ enum InteractionsAPI {
         try await client.deleteVoid("/comments/\(commentId)", authenticated: true)
     }
 
+    // MARK: 태그 구독(팔로우)
+
+    /// 내 태그 환경설정 — 구독(followed)/숨김(hidden) 태그 목록. 구독한 태그의 새 글이
+    /// 구독함 피드로 들어온다(웹 parity). 전부 인증 필요.
+    struct TagPrefs: Decodable {
+        let followed: [String]
+        let hidden: [String]
+    }
+
+    static func tagPrefs() async throws -> TagPrefs {
+        try await client.get("/users/me/tag-prefs", authenticated: true)
+    }
+
+    /// 태그는 경로 변수 — 한글/특수문자는 URL 빌더(appendingPathComponent)가 인코딩한다.
+    static func setTagFollow(tag: String, on: Bool) async throws -> TagPrefs {
+        on
+            ? try await client.put("/users/me/tag-prefs/followed/\(tag)", authenticated: true)
+            : try await client.delete("/users/me/tag-prefs/followed/\(tag)", authenticated: true)
+    }
+
     private struct Empty: Encodable {}
 }

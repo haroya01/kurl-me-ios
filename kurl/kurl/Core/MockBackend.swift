@@ -60,6 +60,7 @@ enum MockBackend {
     private static var bookmarks: Set<Int64> = []
     private static var follows: [String: (following: Bool, count: Int64)] = [:]
     private static var subscriptions: [Int64: (subscribed: Bool, count: Int64)] = [:]
+    private static var followedTags: Set<String> = ["아키텍처"]
 
     // MARK: 라우팅
 
@@ -69,6 +70,18 @@ enum MockBackend {
 
         if method == "GET", parts == ["users", "me"] {
             return json(["id": 1, "email": "mock@kurl.me", "username": "honggildong", "avatarUrl": NSNull()])
+        }
+
+        // 태그 구독(팔로우) — 웹 tag-prefs parity. url.path 가 디코드돼 parts[4] = 원문 태그.
+        if parts == ["users", "me", "tag-prefs"] {
+            return json(["followed": Array(followedTags), "hidden": [String]()])
+        }
+        if parts.count == 5, parts[0] == "users", parts[1] == "me", parts[2] == "tag-prefs",
+           parts[3] == "followed" {
+            let tag = parts[4]
+            if method == "PUT" { followedTags.insert(tag) }
+            if method == "DELETE" { followedTags.remove(tag) }
+            return json(["followed": Array(followedTags), "hidden": [String]()])
         }
 
         // 노트는 공개 읽기까지 목으로 받는다 — 실서버에 아직 배포 전이라 fall-through 하면 404.
