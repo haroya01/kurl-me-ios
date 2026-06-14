@@ -74,6 +74,7 @@ struct PostDetailView: View {
     @State private var authorPosts: [PostListItem] = []
 
     var body: some View {
+        ScrollViewReader { proxy in
         ScrollView {
             VStack(spacing: 0) {
                 switch model.phase {
@@ -217,6 +218,26 @@ struct PostDetailView: View {
             // 임베드 시 내비바는 호스트(발견)의 것 — 여러 장이 동시에 살아 있어
             // principal/공유를 끼우면 서로 싸운다.
             if !embedded {
+                // 헤딩 2개 이상이면 목차 — 탭하면 그 자리로 스크롤(웹 post-toc 의 네이티브 번역).
+                if headings.count >= 2 {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Menu {
+                            ForEach(headings, id: \.id) { h in
+                                Button {
+                                    withAnimation(.easeInOut(duration: 0.3)) {
+                                        proxy.scrollTo(h.id, anchor: UnitPoint(x: 0, y: 0.08))
+                                    }
+                                } label: {
+                                    Text(String(repeating: "   ", count: h.level - 1) + h.title)
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "list.bullet")
+                        }
+                        .tint(.brand)
+                        .accessibilityLabel("목차")
+                    }
+                }
                 ToolbarItem(placement: .principal) {
                     Text(loadedTitle)
                         .font(.system(size: 16 * unit, weight: .semibold))
@@ -321,6 +342,7 @@ struct PostDetailView: View {
             guard !Task.isCancelled, !scrollable else { return }
             PostReadStore.shared.markRead(id)
         }
+        }
     }
 
     /// 가로(compact 높이)에선 커버가 화면을 다 먹지 않게 낮춘다.
@@ -341,6 +363,23 @@ struct PostDetailView: View {
     private var loadedPostId: Int64? {
         if case .loaded(let detail) = model.phase { return detail.post.id }
         return nil
+    }
+
+    /// 본문 헤딩(H1~H3) 목차 — 텍스트·앵커 id(블록 id)·들여쓰기 레벨.
+    private var headings: [(id: Int, title: String, level: Int)] {
+        guard case .loaded(let detail) = model.phase else { return [] }
+        return detail.blocks.compactMap { block in
+            let level: Int
+            switch block.kind {
+            case .h1: level = 1
+            case .h2: level = 2
+            case .h3: level = 3
+            default: return nil
+            }
+            let text = (block.content ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !text.isEmpty else { return nil }
+            return (id: block.id, title: text, level: level)
+        }
     }
 
     /// 로그인한 내가 이 글의 작가인가 — 편집·분석 동작은 이때만.
@@ -403,6 +442,8 @@ struct PostDetailView: View {
             ForEach(Array(detail.blocks.enumerated()), id: \.offset) { index, block in
                 BlockView(block: block, isLead: index == leadIndex)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    // 목차가 이 블록으로 점프할 수 있게 앵커 — 헤딩만 쓰지만 전부 달아도 무해.
+                    .id(block.id)
             }
         }
         .padding(.top, 20)
