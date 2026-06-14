@@ -14,6 +14,8 @@ struct NotificationsView: View {
     @State private var loading = true
     @State private var loadingMore = false
     @State private var loadError: String?
+    /// "모두 읽음" 성공 햅틱 트리거 — 글 완독 성공 햅틱과 같은 결의 확인음.
+    @State private var markAllPulse = 0
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
 
     var body: some View {
@@ -50,6 +52,7 @@ struct NotificationsView: View {
                             withAnimation(.easeOut(duration: 0.25)) {
                                 items = items.map(asRead)
                             }
+                            markAllPulse += 1
                         } catch {
                             // 실패했는데 점만 사라지는 거짓 성공을 만들지 않는다.
                             ToastCenter.shared.show(String(localized: "읽음 처리하지 못했습니다"))
@@ -62,6 +65,7 @@ struct NotificationsView: View {
         }
         .task { await load() }
         .refreshable { await load() }
+        .sensoryFeedback(.success, trigger: markAllPulse)
     }
 
     @ViewBuilder
