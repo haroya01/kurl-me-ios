@@ -14,6 +14,8 @@ struct kurlApp: App {
     @AppStorage("hasCompletedWelcome") private var hasCompletedWelcome = false
     @State private var showSplash = true
     @State private var showWelcome = false
+    /// 스플래시가 걷히는 순간 true — 웰컴 엔트런스가 이때 시작된다(t0 가 아니라).
+    @State private var welcomeRevealed = false
 
     var body: some Scene {
         WindowGroup {
@@ -25,6 +27,7 @@ struct kurlApp: App {
                 // 첫 실행 1회 웰컴 — 스플래시 뒤에 깔려 있다가 막이 걷히면 드러난다.
                 if showWelcome {
                     WelcomeView(
+                        revealed: welcomeRevealed,
                         onContinueAsGuest: { dismissWelcome() },
                         onSignedIn: { dismissWelcome() })
                         .zIndex(1)
@@ -47,6 +50,8 @@ struct kurlApp: App {
                 withAnimation(.easeOut(duration: 0.35)) {
                     showSplash = false
                 }
+                // 막이 걷히는 순간 웰컴 엔트런스를 깨운다 — 스플래시 뒤에서 미리 끝나버리지 않게.
+                welcomeRevealed = true
             }
         }
     }
