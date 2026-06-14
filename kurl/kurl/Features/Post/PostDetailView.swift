@@ -47,6 +47,9 @@ struct PostDetailView: View {
     @State private var nextPost: PostListItem?
     @State private var nextFetched = false
     @State private var showNext = false
+    /// 내 글을 볼 때만 뜨는 작가 동작 — 편집(에디터)·분석(이 글 성과).
+    @State private var editingOwnPost = false
+    @State private var showOwnAnalytics = false
     /// 손가락이 실제로 당기는 중일 때만 true — 플릭 관성의 바운스가 임계를 넘어도
     /// 다음 글로 튕겨가지 않게 한다.
     @State private var fingerDown = false
@@ -198,6 +201,16 @@ struct PostDetailView: View {
                 PostDetailView(username: model.username, slug: nextPost.slug)
             }
         }
+        .navigationDestination(isPresented: $editingOwnPost) {
+            if case .loaded(let detail) = model.phase {
+                ComposeView(post: myPost(from: detail), onSaved: {})
+            }
+        }
+        .navigationDestination(isPresented: $showOwnAnalytics) {
+            if case .loaded(let detail) = model.phase {
+                PostAnalyticsView(post: topPost(from: detail))
+            }
+        }
         .toolbar {
             // 임베드 시 내비바는 호스트(발견)의 것 — 여러 장이 동시에 살아 있어
             // principal/공유를 끼우면 서로 싸운다.
@@ -213,6 +226,23 @@ struct PostDetailView: View {
                         ShareLink(item: shareURL) {
                             Image(systemName: "square.and.arrow.up")
                         }
+                    }
+                }
+                // 내 글이면 — 읽으면서 바로 편집·분석으로 갈 수 있게 작가 동작을 같이 노출.
+                if isOwnPost {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button { showOwnAnalytics = true } label: {
+                            Image(systemName: "chart.bar")
+                        }
+                        .tint(.brand)
+                        .accessibilityLabel("이 글 분석")
+                    }
+                    ToolbarItem(placement: .primaryAction) {
+                        Button { editingOwnPost = true } label: {
+                            Image(systemName: "pencil")
+                        }
+                        .tint(.brand)
+                        .accessibilityLabel("이 글 편집")
                     }
                 }
             }
@@ -295,6 +325,29 @@ struct PostDetailView: View {
     private var loadedPostId: Int64? {
         if case .loaded(let detail) = model.phase { return detail.post.id }
         return nil
+    }
+
+    /// 로그인한 내가 이 글의 작가인가 — 편집·분석 동작은 이때만.
+    private var isOwnPost: Bool {
+        guard let myId = AuthStore.shared.me?.id,
+              case .loaded(let detail) = model.phase else { return false }
+        return detail.author.id == myId
+    }
+
+    /// 공개 상세 → 에디터용 MyPost. 본문(markdown)은 에디터가 id 로 다시 받는다.
+    private func myPost(from detail: PublicPostDetail) -> MyPost {
+        MyPost(
+            id: detail.post.id, slug: detail.post.slug, title: detail.post.title,
+            status: "PUBLISHED", publishedAt: detail.post.publishedAt, scheduledAt: nil,
+            updatedAt: detail.post.lastEditedAt, tags: detail.post.tags,
+            excerpt: detail.post.excerpt, ogImageUrl: detail.post.ogImageUrl, seriesId: nil)
+    }
+
+    /// 공개 상세 → 분석용 TopPostView. 수치는 분석 화면이 id 로 다시 받는다.
+    private func topPost(from detail: PublicPostDetail) -> TopPostView {
+        TopPostView(
+            postId: detail.post.id, slug: detail.post.slug, title: detail.post.title,
+            viewCount: 0, likeCount: detail.post.likeCount, followsGained: 0)
     }
 
     /// 네이티브 공유 시트용 공개 URL — 웹과 같은 주소.
