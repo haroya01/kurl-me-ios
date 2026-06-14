@@ -135,6 +135,13 @@ enum InteractionsAPI {
             : try await client.delete("/users/me/tag-prefs/followed/\(tag)", authenticated: true)
     }
 
+    /// 태그 숨기기(mute) — 숨긴 태그의 글은 피드에서 빠진다(구독의 반대).
+    static func setTagHidden(tag: String, on: Bool) async throws -> TagPrefs {
+        on
+            ? try await client.put("/users/me/tag-prefs/hidden/\(tag)", authenticated: true)
+            : try await client.delete("/users/me/tag-prefs/hidden/\(tag)", authenticated: true)
+    }
+
     // MARK: 신고(abuse report)
 
     /// 글·작가 신고 — `POST /public/abuse-reports`(202). subjectType = POST | USER.
