@@ -10,7 +10,6 @@ import SwiftUI
 struct SubscribeButton: View {
     @State private var model: SubscribeModel
     @State private var showLoginPrompt = false
-    @State private var showTwoFactorHint = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(seriesId: Int64) {
@@ -43,17 +42,8 @@ struct SubscribeButton: View {
         }
         .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
         .task { await model.hydrate() }
-        .alert("로그인이 필요합니다", isPresented: $showLoginPrompt) {
-            Button("Apple로 로그인") { appleHere() }
-            Button("Google로 로그인") { signInHere() }
-            Button("취소", role: .cancel) {}
-        } message: {
-            Text("구독하면 시리즈에 새 글이 올라올 때 알 수 있어요.")
-        }
-        .alert("2단계 인증이 설정된 계정입니다", isPresented: $showTwoFactorHint) {
-            Button("확인", role: .cancel) {}
-        } message: {
-            Text("내 계정 탭에서 로그인을 완료해 주세요.")
+        .loginPrompt(isPresented: $showLoginPrompt, message: "구독하면 시리즈에 새 글이 올라올 때 알 수 있어요.") {
+            await model.hydrate()
         }
     }
 
@@ -65,26 +55,6 @@ struct SubscribeButton: View {
         Task {
             do { try await model.toggle() }
             catch { ToastCenter.shared.show(String(localized: "구독을 반영하지 못했습니다")) }
-        }
-    }
-
-    private func signInHere() {
-        Task {
-            if (try? await AuthStore.shared.signIn()) == .twoFactorRequired {
-                showTwoFactorHint = true
-            } else if AuthStore.shared.isSignedIn {
-                await model.hydrate()
-            }
-        }
-    }
-
-    private func appleHere() {
-        Task {
-            if (try? await AuthStore.shared.signInWithApple()) == .twoFactorRequired {
-                showTwoFactorHint = true
-            } else if AuthStore.shared.isSignedIn {
-                await model.hydrate()
-            }
         }
     }
 }

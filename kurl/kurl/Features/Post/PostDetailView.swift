@@ -978,7 +978,6 @@ struct GlassCommentBar: View {
     @State private var sending = false
     @State private var sendFailed = false
     @State private var showLoginPrompt = false
-    @State private var showTwoFactorHint = false
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -1053,18 +1052,7 @@ struct GlassCommentBar: View {
                 onDone()
             }
         }
-        .alert("로그인이 필요합니다", isPresented: $showLoginPrompt) {
-            Button("Apple로 로그인") { appleHere() }
-            Button("Google로 로그인") { signInHere() }
-            Button("취소", role: .cancel) {}
-        } message: {
-            Text("댓글은 kurl 계정으로 남겨집니다.")
-        }
-        .alert("2단계 인증이 설정된 계정입니다", isPresented: $showTwoFactorHint) {
-            Button("확인", role: .cancel) {}
-        } message: {
-            Text("내 계정 탭에서 로그인을 완료해 주세요.")
-        }
+        .loginPrompt(isPresented: $showLoginPrompt, message: "댓글은 kurl 계정으로 남겨집니다.")
     }
 
     private var canSend: Bool {
@@ -1096,21 +1084,6 @@ struct GlassCommentBar: View {
         }
     }
 
-    private func signInHere() {
-        Task {
-            if (try? await AuthStore.shared.signIn()) == .twoFactorRequired {
-                showTwoFactorHint = true
-            }
-        }
-    }
-
-    private func appleHere() {
-        Task {
-            if (try? await AuthStore.shared.signInWithApple()) == .twoFactorRequired {
-                showTwoFactorHint = true
-            }
-        }
-    }
 }
 
 /// 시그니처 — 읽기 진행을 kurl 3-bar 마크가 그려지며 표현한다. 옅은 트랙(미독) 위로 그린
