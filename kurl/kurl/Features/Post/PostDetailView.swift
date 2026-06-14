@@ -112,7 +112,7 @@ struct PostDetailView: View {
         // 커버가 보이는 동안만(아직 제목이 안 스민) 상단 스크롤 엣지 효과를 끈다 — 안 끄면
         // 사진 위에 반투명 바("투명 박스")가 깔려 엣지-투-엣지 커버를 가린다. 스크롤로 제목이
         // 스미면(showNavTitle) 효과를 되살려 내비바와 본문이 제대로 갈린다.
-        .scrollEdgeEffectHidden(hasCover && !embedded && !showNavTitle, for: .top)
+        .scrollEdgeEffectHidden(hasCover && (embedded || !showNavTitle), for: .top)
         .background(Palette.readingBg.ignoresSafeArea())
         .ignoresSafeArea(edges: hasCover && !embedded ? .top : [])
         // 스크롤 여유가 충분한지 — 독 후퇴 판정의 전제(짧은 글은 독이 유일한 인게이지 표면).
@@ -238,21 +238,19 @@ struct PostDetailView: View {
                 .transition(.opacity)
             }
         }
-        // 시그니처 — 읽기 진행을 kurl 3-bar 마크가 왼쪽부터 그려지며 표현한다(밋밋한 띠 대신
-        // 브랜드 마크가 "읽는 행위"에 묶임). 끝까지 읽으면 마크가 완성되며 한 번 톡 튄다(완독).
+        // 읽기 진행 = 상단 가는 막대(내비바 아래 한 줄). 왼쪽부터 그린으로 찬다 — 떠 있는
+        // 마크 캡슐이 거슬린다는 피드백으로 조용한 띠로 되돌렸다.
         // 덱: 장 상단부터. 단독: 제목이 내비바로 스민 뒤(showNavTitle). 충분히 긴 글에만.
         .overlay(alignment: .top) {
             if scrollable, embedded || showNavTitle {
-                // 작은 유리 캡슐에 담아 떠 있는 크롬으로 — 본문 위에 깔려도 글자에 안 묻고
-                // 읽힌다(덱의 "추천 N/M" 칩과 같은 결).
-                ReadingMark(progress: readProgress, complete: readComplete)
-                    .frame(width: 30, height: 18)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .glassEffect(.regular, in: .capsule)
-                    .padding(.top, 6)
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
+                GeometryReader { geo in
+                    Capsule()
+                        .fill(Palette.accent)
+                        .frame(width: geo.size.width * min(1, max(0, readProgress)), height: 3)
+                }
+                .frame(height: 3)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
             }
         }
         // 완독 = 결과 햅틱 한 번(.success). trigger 닫힘(되돌아감)엔 울리지 않게 완료에만.
@@ -1020,33 +1018,6 @@ struct GlassCommentBar: View {
 /// 시그니처 — 읽기 진행을 kurl 3-bar 마크가 그려지며 표현한다. 옅은 트랙(미독) 위로 그린
 /// 마크가 왼쪽부터 채워지고(progress), 완독하면(complete) 한 번 톡 튄다. 밋밋한 진행 띠를
 /// 브랜드 행위로 — "읽으면 마크가 그려진다."
-private struct ReadingMark: View {
-    var progress: CGFloat
-    var complete: Bool
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var pop: CGFloat = 1
-
-    var body: some View {
-        ZStack {
-            // 미독 트랙 — 마크의 옅은 골격.
-            KurlMark(drawn: [true, true, true], tint: Palette.hairlineStrong)
-            // 읽은 만큼 — 그린 마크를 왼쪽부터 드러낸다.
-            KurlMark(drawn: [true, true, true], tint: Palette.accent)
-                .mask(alignment: .leading) {
-                    GeometryReader { geo in
-                        Color.black.frame(width: geo.size.width * min(1, max(0, progress)))
-                    }
-                }
-        }
-        .scaleEffect(pop)
-        .onChange(of: complete) { _, done in
-            guard done, !reduceMotion else { return }
-            withAnimation(.spring(response: 0.26, dampingFraction: 0.45)) { pop = 1.32 }
-            withAnimation(.spring(response: 0.42, dampingFraction: 0.6).delay(0.16)) { pop = 1 }
-        }
-    }
-}
-
 /// 엣지-투-엣지 커버 — 당겨 내리면 늘어나는 네이티브 stretchy 헤더.
 /// 카드 zoom 전환의 도착점이기도 하다.
 private struct StretchyCover: View {
