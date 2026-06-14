@@ -32,10 +32,22 @@ struct BlogCard: View {
                 textCard
             }
         }
+        // 북마크한 글이면 우상단에 북마크 표식 — 피드에서 "이미 담아 둔 글"이 한눈에 보인다.
+        .overlay(alignment: .topTrailing) {
+            if BookmarkStore.shared.contains(item.id) {
+                Image(systemName: "bookmark.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(item.ogImageUrl != nil ? AnyShapeStyle(.white) : AnyShapeStyle(Palette.accentMarker))
+                    .shadow(color: .black.opacity(item.ogImageUrl != nil ? 0.35 : 0), radius: 3, y: 1)
+                    .padding(12)
+                    .accessibilityLabel("북마크됨")
+            }
+        }
         // 이 카드로 들어갈 때 상세가 첫 프레임부터 커버를 깔도록 미리 기억해 둔다.
         .onAppear {
             PostPeek.remember(
                 username: item.author.username, slug: item.slug, cover: item.ogImageUrl)
+            Task { await BookmarkStore.shared.hydrateIfNeeded() }
         }
     }
 

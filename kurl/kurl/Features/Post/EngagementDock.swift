@@ -169,6 +169,7 @@ final class EngagementModel {
         if let bookmark = try? await InteractionsAPI.bookmarkStatus(postId: postId),
            gen == userToggleCount {
             bookmarked = bookmark.bookmarked
+            BookmarkStore.shared.set(postId, on: bookmark.bookmarked)
         }
     }
 
@@ -197,10 +198,12 @@ final class EngagementModel {
         let gen = userToggleCount
         let target = !bookmarked
         bookmarked = target
+        BookmarkStore.shared.set(postId, on: target)
         do {
             let status = try await InteractionsAPI.setBookmark(postId: postId, on: target)
             guard gen == userToggleCount else { return }
             bookmarked = status.bookmarked
+            BookmarkStore.shared.set(postId, on: status.bookmarked)
             // 북마크 = 오프라인 보장 — 켜지면 기기 사본 확보, 꺼지면 정리.
             if let ref = offlineRef {
                 if status.bookmarked {
@@ -214,6 +217,7 @@ final class EngagementModel {
         } catch {
             guard gen == userToggleCount else { return }
             bookmarked = !target
+            BookmarkStore.shared.set(postId, on: !target)
             throw error
         }
     }
