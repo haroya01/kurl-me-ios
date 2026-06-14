@@ -3,7 +3,6 @@
 //  kurl
 //
 
-import AuthenticationServices
 import SwiftUI
 
 /// 글쓰기 탭 = 작가 스튜디오 — 웹 /write 허브 철학의 네이티브 번역.
@@ -12,7 +11,6 @@ import SwiftUI
 struct StudioView: View {
     private var auth: AuthStore { .shared }
 
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .title3) private var titleSize: CGFloat = 22
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
@@ -26,9 +24,6 @@ struct StudioView: View {
     @State private var editing: MyPost?
     /// 방금 발행한 글 — 셀레브레이션 "글 보기" 가 에디터를 닫고 여기로 이어 보낸다(라이브 상세).
     @State private var justPublished: PublishedRef?
-    @State private var isSigningIn = false
-    @State private var showTwoFactorHint = false
-    @State private var appleNonce = ""
 
     var body: some View {
         NavigationStack {
@@ -83,11 +78,6 @@ struct StudioView: View {
                 default: break
                 }
             }
-        }
-        .alert("2단계 인증이 설정된 계정입니다", isPresented: $showTwoFactorHint) {
-            Button("확인", role: .cancel) {}
-        } message: {
-            Text("내 계정 탭에서 로그인을 완료해 주세요.")
         }
     }
 
@@ -373,53 +363,9 @@ struct StudioView: View {
                     .font(.system(size: 15 * unit))
                     .foregroundStyle(Palette.secondary)
                     .padding(.top, 6)
-                // Apple 버튼은 시스템 소유 모양(브랜딩 규정) — 유리 없이 캡슐만 맞춘다.
-                SignInWithAppleButton(.continue) { request in
-                    appleNonce = AuthStore.prepareAppleRequest(request)
-                } onCompletion: { result in
-                    finishApple(result)
-                }
-                .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
-                .frame(height: 48)
-                .clipShape(Capsule())
-                .padding(.top, 22)
-
-                Button {
-                    signInHere()
-                } label: {
-                    HStack(spacing: 8) {
-                        if isSigningIn { ProgressView().tint(.white) }
-                        Text("Google로 계속하기")
-                            .font(.system(size: 15 * unit, weight: .semibold))
-                    }
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 48)
-                    .contentShape(Capsule())
-                }
-                .buttonStyle(.plain)
-                .glassEffect(.regular.tint(GlassTokens.prominentTint).interactive(), in: .capsule)
-                .disabled(isSigningIn)
-                .padding(.top, 10)
-            }
-        }
-    }
-
-    private func signInHere() {
-        guard !isSigningIn else { return }
-        isSigningIn = true
-        Task {
-            defer { isSigningIn = false }
-            if (try? await auth.signIn()) == .twoFactorRequired {
-                showTwoFactorHint = true
-            }
-        }
-    }
-
-    private func finishApple(_ result: Result<ASAuthorization, Error>) {
-        Task {
-            if (try? await auth.completeApple(result, rawNonce: appleNonce)) == .twoFactorRequired {
-                showTwoFactorHint = true
+                // Apple/Google 버튼 한 쌍은 공유 컴포넌트 — 계정 탭·웰컴·로그인 시트와 같은 출처.
+                AuthProviderButtons()
+                    .padding(.top, 22)
             }
         }
     }

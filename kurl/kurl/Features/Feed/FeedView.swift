@@ -217,6 +217,8 @@ struct FeedPage: View {
     let active: Bool
     let zoom: Namespace.ID
     @State private var model: FeedViewModel
+    /// 구독함 게이트의 로그인 — 다른 인게이지 면과 같은 정식 로그인 시트로.
+    @State private var showLoginSheet = false
 
     init(source: FeedSource, active: Bool, zoom: Namespace.ID) {
         self.source = source
@@ -262,11 +264,12 @@ struct FeedPage: View {
         } description: {
             Text("로그인하면 팔로우한 작가와 구독한 시리즈의 새 글이 여기에 모여요.")
         } actions: {
-            Button("로그인") {
-                Task { _ = try? await AuthStore.shared.signIn() }
-            }
-            .foregroundStyle(Palette.accent)
+            Button("로그인") { showLoginSheet = true }
+                .foregroundStyle(Palette.accent)
         }
+        .loginPrompt(
+            isPresented: $showLoginSheet,
+            message: "로그인하면 팔로우한 작가와 구독한 시리즈의 새 글이 여기 모여요.")
     }
 
     // 발견(browse) 면 = 1열 카드 그리드(#707 웹과 동일 문법). 구독함도 같은 카드 —
