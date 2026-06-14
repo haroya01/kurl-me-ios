@@ -61,6 +61,7 @@ enum MockBackend {
     private static var follows: [String: (following: Bool, count: Int64)] = [:]
     private static var subscriptions: [Int64: (subscribed: Bool, count: Int64)] = [:]
     private static var followedTags: Set<String> = ["아키텍처"]
+    private static var myBio = "경계를 긋는 사람. 헥사고날·도메인 모델링."
 
     // MARK: 라우팅
 
@@ -87,6 +88,23 @@ enum MockBackend {
         // 신고 — 202, 본문 없음. 목에선 실서버에 진짜 신고가 쌓이지 않게 받아만 준다.
         if method == "POST", parts == ["public", "abuse-reports"] {
             return json([:] as [String: Any])
+        }
+
+        // 프로필 편집 — 소개글(부분 PUT)·아바타(presign→commit).
+        if parts == ["users", "me", "profile"] {
+            if method == "PUT", let bio = decode(body)["bio"] as? String { myBio = bio }
+            return json(["username": "honggildong", "bio": myBio, "theme": "light", "socials": NSNull()])
+        }
+        if method == "POST", parts == ["users", "me", "avatar", "presigned-url"] {
+            return json([
+                "uploadUrl": "https://mock-upload.invalid/put",
+                "publicUrl": "https://cdn.kurl.me/mock-avatar.jpg",
+                "key": "avatars/1/mock.jpg", "contentType": "image/jpeg",
+                "maxBytes": 5_242_880, "presignTtlSeconds": 300,
+            ])
+        }
+        if method == "PUT", parts == ["users", "me", "avatar"] {
+            return json(["avatarUrl": "https://cdn.kurl.me/mock-avatar.jpg"])
         }
 
         // 노트는 공개 읽기까지 목으로 받는다 — 실서버에 아직 배포 전이라 fall-through 하면 404.
