@@ -273,20 +273,16 @@ struct FeedPage: View {
         }
     }
 
-    // 발견(browse) 면 = 1열 카드 그리드(#707 웹과 동일 문법). 행 사이 hairline 대신 카드 간격.
-    // 구독함은 카드가 아니라 인박스 문법 — 도착한 글의 행 + 미읽음 점(기기 로컬).
+    // 발견(browse) 면 = 1열 카드 그리드(#707 웹과 동일 문법). 구독함도 같은 카드 —
+    // 최신·인기와 같은 발견 피드(팔로우한 작가의 새 글)라, 알림 같던 인박스 행 대신 카드로.
     private var list: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: source == .following ? 0 : 16) {
+            LazyVStack(alignment: .leading, spacing: 16) {
                 ForEach(Array(model.items.enumerated()), id: \.element.id) { index, item in
                     NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
-                        if source == .following {
-                            InboxRow(item: item)
-                        } else {
-                            BlogCard(item: item, featured: index == 0 && source == .recent)
-                        }
+                        BlogCard(item: item, featured: index == 0 && source == .recent)
                     }
-                    .buttonStyle(source == .following ? AnyButtonStyle(RowButtonStyle()) : AnyButtonStyle(CardButtonStyle()))
+                    .buttonStyle(CardButtonStyle())
                     .cardQuickActions(item)
                     .modifier(ZoomSource(
                         active: active,
@@ -294,13 +290,7 @@ struct FeedPage: View {
                         ns: zoom))
                     .modifier(QuietAppear(index: index))
                     .modifier(CardScrollFade())
-                    .simultaneousGesture(TapGesture().onEnded {
-                        if source == .following { PostReadStore.shared.markRead(item.id) }
-                    })
                     .task { await model.loadMoreIfNeeded(current: item) }
-                    if source == .following, index < model.items.count - 1 {
-                        Hairline()
-                    }
                 }
                 if model.isLoadingMore {
                     ProgressView().tint(Palette.accent)
