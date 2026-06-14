@@ -17,12 +17,13 @@ import SwiftUI
 struct WelcomeView: View {
     /// 스플래시가 걷혀 웰컴이 드러나는 순간 true — 이때 엔트런스가 시작된다.
     var revealed: Bool
+    /// 스플래시 마크가 날아올 네임스페이스(matchedGeometry). 마크는 이미 그려진 채 글라이드한다.
+    var launchNS: Namespace.ID? = nil
     var onContinueAsGuest: () -> Void
     var onSignedIn: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
-    @State private var barsDrawn = [false, false, false]
     @State private var wordVisible = false
     @State private var taglineVisible = false
     @State private var actionsVisible = false
@@ -34,8 +35,10 @@ struct WelcomeView: View {
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
 
-                KurlMark(drawn: barsDrawn)
+                // 마크는 스플래시에서 이미 그려진 채 날아온다 — 다시 그리지 않고 글라이드(matched).
+                KurlMark(drawn: [true, true, true])
                     .frame(width: 104, height: 63)
+                    .launchMatched("launchMark", in: launchNS, isSource: revealed)
                 Text(verbatim: "kurl")
                     .font(.system(size: 36, weight: .bold))
                     .tracking(-1.4)
@@ -117,23 +120,18 @@ struct WelcomeView: View {
         ]
     }
 
-    // MARK: 엔트런스 — 스플래시 warp 타이밍 그대로(줄별 스태거 → 워드마크 → 태그라인 → 버튼)
+    // MARK: 엔트런스 — 마크는 스플래시에서 글라이드(matched), 그 뒤로 워드마크 → 태그라인 → 버튼 스태거
 
     private func play() {
         guard !reduceMotion else {
-            barsDrawn = [true, true, true]
             wordVisible = true
             taglineVisible = true
             actionsVisible = true
             return
         }
-        for i in 0..<3 {
-            withAnimation(.timingCurve(0.22, 1, 0.36, 1, duration: 0.34).delay(0.08 + Double(i) * 0.1)) {
-                barsDrawn[i] = true
-            }
-        }
-        withAnimation(.easeOut(duration: 0.4).delay(0.48)) { wordVisible = true }
-        withAnimation(.easeOut(duration: 0.4).delay(0.6)) { taglineVisible = true }
-        withAnimation(.easeOut(duration: 0.45).delay(0.78)) { actionsVisible = true }
+        // 마크 글라이드가 자리잡는 동안 텍스트·버튼이 한 박자씩 따라 오른다.
+        withAnimation(.easeOut(duration: 0.4).delay(0.16)) { wordVisible = true }
+        withAnimation(.easeOut(duration: 0.4).delay(0.28)) { taglineVisible = true }
+        withAnimation(.easeOut(duration: 0.45).delay(0.42)) { actionsVisible = true }
     }
 }
