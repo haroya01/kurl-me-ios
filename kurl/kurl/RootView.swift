@@ -62,6 +62,9 @@ struct RootView: View {
                 TagFeedView(tag: tag)
                     .navigationDestination(for: Route.self) { RouteView(route: $0) }
             }
+        } else if Config.launchValue(after: "--screen") == "richmd-test" {
+            // 마크다운 왕복 검증(DEBUG·목 전용) — 유닛 타깃이 없어 화면으로 확인.
+            RichMarkdownSelfTestView()
         } else {
             tabs
         }

@@ -28,7 +28,7 @@ struct ComposeView: View {
 
     /// 본문 캔버스(UIKit 직결)의 포커스·커서 제어 — TextEditor selection 바인딩의
     /// 한글 조합 깨짐을 피해 FocusState 대신 delegate 콜백으로 추적한다.
-    @State private var editorController = MarkdownEditorController()
+    @State private var editorController = RichEditorController()
     @State private var editorFocused = false
 
     @State private var title = ""
@@ -182,13 +182,13 @@ struct ComposeView: View {
     }
 
     private var editor: some View {
-        MarkdownTextView(text: $markdown, controller: editorController) { focused in
+        RichMarkdownEditor(markdown: $markdown, controller: editorController) { focused in
             editorFocused = focused
         }
         .padding(.horizontal, Metrics.gutter - 4)
         .overlay(alignment: .topLeading) {
             if markdown.isEmpty {
-                Text("마크다운으로 쓰세요 — #, >, -, ```, 이미지·URL 한 줄이면 카드가 됩니다.")
+                Text("바로 써보세요 — 툴바의 제목·굵게·코드 버튼이 그 자리에 서식으로 반영됩니다.")
                     .font(.system(size: 14 * unit))
                     .foregroundStyle(Palette.faint)
                     .padding(.horizontal, Metrics.gutter)
@@ -900,19 +900,17 @@ struct ComposeView: View {
     // MARK: 마크다운 스니펫 삽입 — 커서/선택 기준
 
     private func applySnippet(_ action: MarkdownSnippetBar.Action) {
+        // Phase 1 WYSIWYG: 제목·굵게·인라인코드는 그 자리에 실제 서식으로. 나머지(인용·리스트·
+        // 코드블록·링크·이미지)는 아직 평문 마크다운으로 — Phase 2~3 에서 WYSIWYG 화.
         switch action {
-        case .heading: editorController.applyLinePrefix("# ")
-        case .quote: editorController.applyLinePrefix("> ")
-        case .list: editorController.applyLinePrefix("- ")
-        case .bold: editorController.wrapSelection("**")
-        case .inlineCode: editorController.wrapSelection("`")
-        case .codeBlock: editorController.insertFence()
-        case .link: editorController.insertLink()
+        case .heading: editorController.toggleHeading(2)
+        case .bold: editorController.toggleBold()
+        case .inlineCode: editorController.toggleInlineCode()
+        case .quote: editorController.insertPlain("> ")
+        case .list: editorController.insertPlain("- ")
+        case .codeBlock: editorController.insertPlain("\n```\n\n```\n", caretBackBy: 5)
+        case .link: editorController.insertPlain("[제목](url)", caretBackBy: 4)
         case .image: showBodyImagePicker = true
-        }
-        // 프로그램 삽입은 delegate 를 거치지 않는다 — 바인딩(자동저장 시그니처) 수동 동기화.
-        if action != .image {
-            markdown = editorController.currentText
         }
     }
 
@@ -931,8 +929,7 @@ struct ComposeView: View {
                       let jpeg = image.jpegData(compressionQuality: 0.88)
                 else { return }
                 let uploaded = try await WriteAPI.uploadImage(postId: id, jpegData: jpeg)
-                editorController.insertImageMarkdown(url: uploaded.url)
-                markdown = editorController.currentText
+                editorController.insertPlain("\n![](\(uploaded.url))\n")
                 // 커버가 비어 있으면 본문 첫 이미지를 기본 커버로 — 이미지 있는 글이
                 // 커버 없이 발행되지 않게(작성자는 발행 폼에서 언제든 바꿀 수 있다).
                 if coverUrl == nil {

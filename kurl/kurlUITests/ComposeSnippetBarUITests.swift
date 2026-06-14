@@ -13,7 +13,7 @@ final class ComposeSnippetBarUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    func testSnippetBarInsertsMarkdown() throws {
+    func testSnippetBarAppliesFormatting() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "write", "--open", "compose", "--focus", "editor"]
         app.launch()
@@ -24,11 +24,10 @@ final class ComposeSnippetBarUITests: XCTestCase {
         let editor = app.textViews.firstMatch
         XCTAssertTrue(editor.waitForExistence(timeout: 3), "본문 캔버스 없음")
 
-        // 빈 본문에서 굵게 = 쌍 삽입(커서는 그 사이) → 줄머리 = 줄 맨 앞에 "# ".
+        // Phase 1 WYSIWYG: 굵게/제목은 기호 없이 서식만(텍스트 불변), 리스트는 아직 평문 "- ".
         bold.tap()
-        XCTAssertEqual(editor.value as? String, "****", "굵게 쌍 삽입 실패")
-        app.buttons["제목"].tap()
-        XCTAssertEqual(editor.value as? String, "# ****", "줄머리 삽입 실패")
+        app.buttons["리스트"].tap()
+        XCTAssertEqual(editor.value as? String, "- ", "리스트 평문 삽입 실패")
 
         app.buttons["키보드 내리기"].tap()
         XCTAssertTrue(bold.waitForNonExistence(timeout: 4), "포커스 해제에도 바가 남음")
