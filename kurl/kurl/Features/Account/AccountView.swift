@@ -237,6 +237,8 @@ struct AccountView: View {
             libraryRow("좋아요한 글", icon: "heart") { LikedPostsView() }
             Hairline()
             libraryRow("구독한 시리즈", icon: "square.stack.3d.up") { SubscribedSeriesView() }
+            Hairline()
+            libraryRow("내 하이라이트", icon: "highlighter") { MyHighlightsView() }
 
             Hairline()
                 .padding(.top, 24)

@@ -67,6 +67,10 @@ struct PostDetailView: View {
     /// 글 끝의 작가 카드·다른 글 — 작가 글 목록은 한 번만 가져와 양쪽(카드·다음 글 큐)이 쓴다.
     @State private var authorPosts: [PostListItem] = []
 
+    /// 리더 소셜 하이라이트 — 본 글(단독)에서만. 본문 문단이 환경에서 읽어 칠하고 만든다.
+    /// 임베드(덱)는 만들지 않아 종전 렌더 그대로다.
+    @State private var highlights: PostHighlightStore?
+
     var body: some View {
         ScrollViewReader { proxy in
         ScrollView {
@@ -94,6 +98,8 @@ struct PostDetailView: View {
                     .frame(maxWidth: Metrics.readingColumn)
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, Metrics.gutter)
+                    // 본문 문단이 선택→하이라이트 + 공개 하이라이트 페인트를 띄울 수 있게.
+                    .environment(\.postHighlightStore, highlights)
                 }
             }
         }
@@ -326,6 +332,22 @@ struct PostDetailView: View {
             guard !Task.isCancelled, !scrollable else { return }
             PostReadStore.shared.markRead(id)
         }
+        // 리더 하이라이트 — 본 글일 때만 store 를 세우고 공개 하이라이트를 싣는다.
+        .task(id: loadedPostId) {
+            guard !embedded, let id = loadedPostId else {
+                highlights = nil
+                return
+            }
+            let store = PostHighlightStore(postId: id)
+            highlights = store
+            await store.load()
+        }
+        // 미로그인 사용자가 하이라이트를 시도하면 — 댓글·팔로우와 같은 공용 로그인 시트.
+        .loginPrompt(
+            isPresented: Binding(
+                get: { highlights?.loginPrompt ?? false },
+                set: { highlights?.loginPrompt = $0 }),
+            message: "하이라이트는 kurl 계정에 저장됩니다.")
         }
     }
 
