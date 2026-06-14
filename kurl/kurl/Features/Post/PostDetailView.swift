@@ -262,7 +262,13 @@ struct PostDetailView: View {
         .task {
             await model.load()
             // 덱은 lazy 페이지가 많아 바닥 근접 때만(loadMore 경로), 단독은 곧장 작가 컨텍스트.
-            if !embedded { await loadAuthorContext() }
+            if !embedded {
+                // 실제로 연 글 = 읽음으로 기록 — 시리즈 진행·구독함 미읽음 점이 이걸 읽는다.
+                if case .loaded(let detail) = model.phase {
+                    PostReadStore.shared.markRead(detail.post.id)
+                }
+                await loadAuthorContext()
+            }
         }
     }
 

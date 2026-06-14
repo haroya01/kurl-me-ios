@@ -101,7 +101,7 @@ struct PostRow: View {
 struct InboxRow: View {
     let item: FeedItem
 
-    private var read: Bool { InboxReadStore.isRead(item.id) }
+    private var read: Bool { PostReadStore.shared.isRead(item.id) }
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -144,24 +144,36 @@ struct InboxRow: View {
     }
 }
 
-/// 구독함 읽음 표시 — 서버에 읽음 상태가 없어 기기 로컬로만 기억한다(최근 600개).
-enum InboxReadStore {
-    private static let key = "inboxReadIds"
-    private static var cache: Set<Int64> = Set(stored())
+/// 읽은(연 적 있는) 글의 기기 로컬 기억 — 구독함 미읽음 점과 시리즈 진행이 함께 읽는다.
+/// 서버에 읽음 모델이 없어 기기에만, 최근 600개. `@Observable` 이라 글을 읽고 돌아오면
+/// 시리즈 회차 체크·진행 막대가 곧바로 갱신된다(푸시된 채로 바뀌어도 pop 시 최신 반영).
+@MainActor
+@Observable
+final class PostReadStore {
+    static let shared = PostReadStore()
 
-    static func isRead(_ id: Int64) -> Bool { cache.contains(id) }
+    private static let key = "postReadIds"
+    private var ids: Set<Int64>
 
-    static func markRead(_ id: Int64) {
-        guard !cache.contains(id) else { return }
-        cache.insert(id)
-        var ids = stored()
-        ids.append(id)
-        if ids.count > 600 { ids.removeFirst(ids.count - 600) }
-        UserDefaults.standard.set(ids.map(NSNumber.init(value:)), forKey: key)
+    private init() {
+        let stored = (UserDefaults.standard.array(forKey: Self.key) as? [NSNumber]) ?? []
+        ids = Set(stored.map(\.int64Value))
+        // 검증용 시드 — 목 모드에서 시리즈 진행/체크 상태를 그려보기 위함(`--seed-read 8001,8002`).
+        if Config.useMocks, let seed = Config.launchValue(after: "--seed-read") {
+            ids.formUnion(seed.split(separator: ",").compactMap { Int64($0) })
+        }
     }
 
-    private static func stored() -> [Int64] {
-        ((UserDefaults.standard.array(forKey: key) as? [NSNumber]) ?? []).map(\.int64Value)
+    func isRead(_ id: Int64) -> Bool { ids.contains(id) }
+
+    func markRead(_ id: Int64) {
+        guard !ids.contains(id) else { return }
+        ids.insert(id)
+        var stored = ((UserDefaults.standard.array(forKey: Self.key) as? [NSNumber]) ?? [])
+            .map(\.int64Value)
+        stored.append(id)
+        if stored.count > 600 { stored.removeFirst(stored.count - 600) }
+        UserDefaults.standard.set(stored.map(NSNumber.init(value:)), forKey: Self.key)
     }
 }
 
