@@ -78,6 +78,9 @@ struct RootView: View {
             NavigationStack {
                 ProfileEditView(currentAvatarUrl: AuthStore.shared.me?.avatarUrl)
             }
+        } else if Config.launchValue(after: "--screen") == "choose-username" {
+            // 핸들 정하기 게이트는 빈 username 일 때만 떠 simctl 로 못 띄운다 — 검증 진입로.
+            ChooseUsernameView()
         } else {
             tabs
         }
@@ -89,12 +92,16 @@ struct RootView: View {
     }
 
     private func tabView(selection: Binding<Int>) -> some View {
+        // 가입 직후 핸들 정하기 — me 로드 후 username 이 비어 있으면(특히 애플 신규) 풀스크린 게이트.
+        let needsUsername = AuthStore.shared.isSignedIn
+            && AuthStore.shared.me != nil
+            && (AuthStore.shared.me?.username ?? "").isEmpty
         // 스레드식 하단바: 라벨 없는 아이콘-온리 탭 + 스크롤 내릴 때 바가 최소화되는
         // iOS 26 네이티브 동작. 검색에 role 을 주지 않는 건 의도 — role: .search 는
         // Liquid Glass 가 검색을 독립 pill 로 분리하는데, 한 바에 4탭이 모이는 쪽을 택했다.
         // 최소화는 27.0 베타에선 시뮬·실기기 모두 OS 가 안 태운다(2026-06-13 교과서
         // 케이스로 실기기 확정 — 우리 구조 무관). 동작하는 OS 가 오면 그대로 산다.
-        TabView(selection: selection) {
+        return TabView(selection: selection) {
             // 빈 시각 라벨(스레드식)을 유지하면서 VoiceOver 라벨만 단다.
             Tab("", systemImage: "doc.text.image", value: 0) {
                 FeedView()
@@ -133,6 +140,10 @@ struct RootView: View {
             if Config.launchValue(after: "--open") == "debug", AuthStore.shared.me?.isAdmin == true {
                 showDebug = true
             }
+        }
+        // 핸들 없는 계정은 핸들을 정하기 전엔 못 닫는다 — username 이 서면 me 갱신으로 자동 해제.
+        .fullScreenCover(isPresented: .constant(needsUsername)) {
+            ChooseUsernameView()
         }
     }
 }
