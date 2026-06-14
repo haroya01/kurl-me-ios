@@ -176,14 +176,9 @@ struct AnalyticsView: View {
                     .font(.system(size: 15 * unit))
                     .foregroundStyle(Palette.secondary)
             }
-            // 윈도우 보조지표 — 팔로우 전환과 본문 kurl 링크 클릭.
-            HStack(spacing: 14) {
-                Label("팔로우 +\(overview.windowFollows)", systemImage: "person.badge.plus")
-                Label("링크 클릭 \(overview.windowLinkClicks)", systemImage: "link")
-            }
-            .font(.system(size: 13 * unit))
-            .foregroundStyle(Palette.secondary)
-            .labelStyle(.titleAndIcon)
+            // 윈도우 보조지표 — 아이콘 군집 대신 담백한 한 줄(§10 절제).
+            metaLine(["팔로우 +\(overview.windowFollows)", "링크 클릭 \(overview.windowLinkClicks)"])
+                .padding(.top, 2)
         }
 
         if !overview.daily.isEmpty {
@@ -238,13 +233,11 @@ struct AnalyticsView: View {
                                 .lineLimit(2)
                                 .multilineTextAlignment(.leading)
                                 .fixedSize(horizontal: false, vertical: true)
-                            HStack(spacing: 10) {
-                                metaCount("eye", row.viewCount)
-                                metaCount("heart", row.likeCount)
-                                if row.followsGained > 0 {
-                                    metaCount("person.badge.plus", row.followsGained)
-                                }
-                            }
+                            metaLine(
+                                ["조회 \(row.viewCount.formatted())",
+                                 "좋아요 \(row.likeCount.formatted())"]
+                                + (row.followsGained > 0
+                                    ? ["팔로우 \(row.followsGained.formatted())"] : []))
                         }
                         Spacer(minLength: 0)
                         Image(systemName: "chevron.right")
@@ -294,17 +287,14 @@ struct AnalyticsView: View {
                     HStack(alignment: .top, spacing: 14) {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(row.title)
-                                .font(.system(size: 15 * unit, weight: .medium))
+                                .typeScale(.title)
                                 .foregroundStyle(Palette.ink)
                                 .lineLimit(1)
-                            HStack(spacing: 10) {
-                                Text("\(row.postCount)편")
-                                metaCount("person.2", row.subscriberCount)
-                                metaCount("eye", row.totalViews)
-                                metaCount("heart", row.totalLikes)
-                            }
-                            .font(.system(size: 12 * metaUnit))
-                            .foregroundStyle(Palette.secondary)
+                            metaLine([
+                                "\(row.postCount)편", "구독 \(row.subscriberCount.formatted())",
+                                "조회 \(row.totalViews.formatted())",
+                                "좋아요 \(row.totalLikes.formatted())",
+                            ])
                         }
                         Spacer(minLength: 0)
                         Image(systemName: "chevron.right")
@@ -374,26 +364,14 @@ struct AnalyticsView: View {
         .accessibilityAddTraits(active ? [.isSelected] : [])
     }
 
-    private func metaCount(_ icon: String, _ value: Int64) -> some View {
-        HStack(spacing: 3) {
-            Image(systemName: icon).font(.system(size: 10 * metaUnit))
-            Text("\(value)").monospacedDigit()
-        }
-        .font(.system(size: 12 * metaUnit))
-        .foregroundStyle(Palette.secondary)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text("\(metaCountName(icon)) \(value)"))
-    }
-
-    /// VoiceOver 용 — 아이콘은 읽히지 않으니 지표 이름을 붙인다.
-    private func metaCountName(_ icon: String) -> String {
-        switch icon {
-        case "eye": String(localized: "조회")
-        case "heart": String(localized: "좋아요")
-        case "person.badge.plus": String(localized: "팔로우")
-        case "person.2": String(localized: "구독자")
-        default: ""
-        }
+    /// 절제 — 작은 아이콘 군집 대신 muted 텍스트 한 줄(라벨·값을 가운뎃점으로). 텍스트라
+    /// VoiceOver 도 그대로 읽힌다. 메타에서 아이콘을 걷어내는 게 "조용함"의 큰 부분(§10).
+    private func metaLine(_ parts: [String]) -> some View {
+        Text(parts.joined(separator: "  ·  "))
+            .font(.system(size: 13 * metaUnit))
+            .foregroundStyle(Palette.secondary)
+            .monospacedDigit()
+            .lineLimit(1)
     }
 
     private func stat(_ label: LocalizedStringKey, _ value: Int64) -> some View {
