@@ -57,6 +57,13 @@ struct kurlApp: App {
                     welcomeRevealed = true
                 }
             }
+            // 로그아웃하면 로그인 화면(웰컴)으로 — 페이드로 올라오고 마크 엔트런스가 다시 재생된다.
+            .onChange(of: AuthStore.shared.isSignedIn) { wasSignedIn, signedIn in
+                if wasSignedIn && !signedIn {
+                    welcomeRevealed = true
+                    withAnimation(.easeOut(duration: 0.4)) { showWelcome = true }
+                }
+            }
         }
     }
 

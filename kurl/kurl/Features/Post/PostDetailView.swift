@@ -695,17 +695,15 @@ struct PostDetailView: View {
         .cardShadow()
     }
 
-    /// 커버 없는 글의 플레이스홀더 — 빈 칸 대신 브랜드 그라데이션 위에 옅은 kurl 마크를 띄운다.
-    /// 태그가 있으면 좌상단에 작은 칩으로(맥락), 마크는 면을 채우는 워터마크로.
+    /// 커버 없는 글의 플레이스홀더 — 색 없이 흰 타일 + 옅은 회색 kurl 마크 워터마크.
+    /// 태그가 있으면 좌상단에 작은 칩으로(맥락).
     private func otherPostCover(_ post: PostListItem) -> some View {
         ZStack {
-            LinearGradient(
-                colors: [Palette.accent.opacity(0.22), Palette.accent.opacity(0.07)],
-                startPoint: .topLeading, endPoint: .bottomTrailing)
-            KurlMark(drawn: [true, true, true])
-                .frame(width: 64, height: 38)
-                .opacity(0.65)
+            Color(uiColor: .systemBackground)
+            KurlMark(drawn: [true, true, true], tint: Palette.hairlineStrong)
+                .frame(width: 60, height: 36)
         }
+        .overlay(alignment: .bottom) { Hairline() }
         .overlay(alignment: .topLeading) {
             if let tag = post.tags.first {
                 Text("#\(tag)")
