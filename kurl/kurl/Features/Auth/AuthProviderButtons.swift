@@ -32,23 +32,29 @@ struct AuthProviderButtons: View {
             .frame(height: 48)
             .clipShape(Capsule())
 
+            // Google 버튼도 브랜딩 규정 — 중립 면 + 4색 "G" 로고 + 정해진 문구(초록 캡슐 X).
             Button {
                 startSignIn()
             } label: {
-                HStack(spacing: 8) {
-                    if isSigningIn { ProgressView().tint(.white) }
+                HStack(spacing: 10) {
+                    if isSigningIn {
+                        ProgressView().controlSize(.small).tint(googleText)
+                    } else {
+                        GoogleGLogo().frame(width: 18, height: 18)
+                    }
                     Text("Google로 계속하기")
-                        .font(.system(size: 15 * unit, weight: .semibold))
+                        .font(.system(size: 15 * unit, weight: .medium))
+                        .foregroundStyle(googleText)
                 }
-                .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
-                // 솔리드 그린 캡슐 — 유리 위 유리 금지(§1.4). 어느 표면에 얹혀도 같은 주행동.
-                .background(GlassTokens.prominentTint, in: Capsule())
+                .background(googleBg, in: Capsule())
+                .overlay(Capsule().strokeBorder(googleBorder, lineWidth: 1))
                 .contentShape(Capsule())
             }
             .buttonStyle(.plain)
             .disabled(isSigningIn)
+            .accessibilityLabel(Text("Google로 계속하기"))
         }
         .sheet(isPresented: $showTwoFactor, onDismiss: { Task { await notifyIfSignedIn() } }) {
             TwoFactorSheet()
@@ -99,6 +105,17 @@ struct AuthProviderButtons: View {
                 errorMessage = error.localizedDescription
             }
         }
+    }
+
+    // Google 브랜딩 색 — 라이트=흰 면/짙은 글자, 다크=짙은 면/옅은 글자(공식 light/dark 변형).
+    private var googleBg: Color {
+        colorScheme == .dark ? Color(red: 0.075, green: 0.075, blue: 0.078) : .white
+    }
+    private var googleText: Color {
+        colorScheme == .dark ? Color(white: 0.9) : Color(red: 0.12, green: 0.12, blue: 0.12)
+    }
+    private var googleBorder: Color {
+        colorScheme == .dark ? Color(white: 0.32) : Color(red: 0.855, green: 0.863, blue: 0.878)
     }
 
     /// 직접 로그인 성공·2FA 시트 완료 후 한 군데서만 통지 — 로그인됐을 때만.
@@ -189,5 +206,41 @@ struct TwoFactorSheet: View {
                 failed = true
             }
         }
+    }
+}
+
+/// Google 4색 "G" 마크 — 공식 에셋이 없어 가이드라인 색으로 직접 그린다(필요하면 공식 PNG 로 교체 가능).
+/// 링은 4색 호 + 파란 가로 크로스바, 우상단이 입(mouth)으로 열린다.
+struct GoogleGLogo: View {
+    private static let blue = Color(red: 66 / 255, green: 133 / 255, blue: 244 / 255)
+    private static let green = Color(red: 52 / 255, green: 168 / 255, blue: 83 / 255)
+    private static let yellow = Color(red: 251 / 255, green: 188 / 255, blue: 5 / 255)
+    private static let red = Color(red: 234 / 255, green: 67 / 255, blue: 53 / 255)
+
+    var body: some View {
+        Canvas { ctx, size in
+            let w = min(size.width, size.height)
+            let lw = w * 0.235
+            let radius = (w - lw) / 2
+            let c = CGPoint(x: size.width / 2, y: size.height / 2)
+
+            func seg(_ from: Double, _ to: Double, _ color: Color) {
+                var p = Path()
+                p.addArc(
+                    center: c, radius: radius,
+                    startAngle: .degrees(from), endAngle: .degrees(to), clockwise: false)
+                ctx.stroke(p, with: .color(color), style: StrokeStyle(lineWidth: lw, lineCap: .butt))
+            }
+            // 0°=3시, 90°=6시, 180°=9시, 270°=12시 (화면에서 시계방향). 우상단(310°~350°)은 입으로 비운다.
+            seg(234, 310, Self.red)      // 위
+            seg(-10, 40, Self.blue)      // 오른쪽(크로스바 쪽)
+            seg(40, 140, Self.green)     // 아래
+            seg(140, 234, Self.yellow)   // 왼쪽
+
+            // 파란 가로 크로스바 — 가운데에서 오른쪽 링까지.
+            let bar = CGRect(x: c.x, y: c.y - lw / 2, width: radius + lw / 2, height: lw)
+            ctx.fill(Path(bar), with: .color(Self.blue))
+        }
+        .accessibilityHidden(true)
     }
 }
