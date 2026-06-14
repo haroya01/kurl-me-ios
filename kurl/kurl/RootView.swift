@@ -30,6 +30,7 @@ final class TabRouter {
 }
 
 struct RootView: View {
+    @State private var showDebug = false
 
     var body: some View {
         // `--post user/slug`·`--author user`·`--series user/slug` — 검증 진입로(simctl 터치 불가 우회).
@@ -105,6 +106,18 @@ struct RootView: View {
         // Dynamic Type 은 따르되 상한을 둔다 — 그 위 극단 크기는 카드/덱 레이아웃이 깨진다.
         .dynamicTypeSize(...DynamicTypeSize.accessibility2)
         .modifier(ToastHost())
+        // 관리자만 — 기기를 흔들면 현재 API·앱·유저·기기 진단 화면이 뜬다.
+        .sheet(isPresented: $showDebug) { AdminDebugView() }
+        .onShake {
+            guard AuthStore.shared.me?.isAdmin == true else { return }
+            showDebug = true
+        }
+        .task {
+            // 흔들기는 시뮬/UITest 로 못 넣으니 검증 진입로(목·DEBUG 전용, 관리자만).
+            if Config.launchValue(after: "--open") == "debug", AuthStore.shared.me?.isAdmin == true {
+                showDebug = true
+            }
+        }
     }
 }
 
