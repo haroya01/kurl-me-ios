@@ -284,6 +284,12 @@ struct AccountView: View {
             }
             .padding(.top, 10)
 
+            // 프로필 편집 — 소개글·아바타. 명함(테마·소셜)은 웹 u/ 의 것이라 여기선 안 건드린다.
+            libraryRow("프로필 편집", icon: "person.crop.circle") {
+                ProfileEditView(currentAvatarUrl: auth.me?.avatarUrl)
+            }
+            .padding(.top, 18)
+
             // 노트(짧은 글) — 1급 피드 탭에서 강등, 여기서 들어간다.
             RailHeading("둘러보기")
                 .padding(.top, 28)
