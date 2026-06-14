@@ -18,27 +18,48 @@ struct TagFollowButton: View {
     }
 
     var body: some View {
-        Button {
-            toggle()
-        } label: {
-            HStack(spacing: 5) {
-                Image(systemName: model.following ? "checkmark" : "plus")
-                    .font(.system(size: 12, weight: .semibold))
-                Text(model.following ? "구독 중" : "구독")
-                    .font(.system(size: 14, weight: .semibold))
+        HStack(spacing: 8) {
+            Button {
+                toggle()
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: model.following ? "checkmark" : "plus")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text(model.following ? "구독 중" : "구독")
+                        .font(.system(size: 14, weight: .semibold))
+                }
+                .foregroundStyle(model.following ? AnyShapeStyle(.primary) : AnyShapeStyle(.white))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .contentShape(Capsule())
             }
-            .foregroundStyle(model.following ? AnyShapeStyle(.primary) : AnyShapeStyle(.white))
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .contentShape(Capsule())
+            .buttonStyle(.plain)
+            .glassCapsule(prominent: !model.following)
+            .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: model.following)
+            .accessibilityLabel(Text("태그 구독"))
+            .accessibilityAddTraits(model.following ? [.isSelected] : [])
+
+            // 숨기기(mute) = 구독의 반대 — 더 보기 메뉴에. 숨기면 이 태그 글이 피드에서 빠진다.
+            Menu {
+                Button(role: model.hidden ? nil : .destructive) {
+                    mute()
+                } label: {
+                    Label(
+                        model.hidden ? "숨김 해제" : "이 태그 숨기기",
+                        systemImage: model.hidden ? "eye" : "eye.slash")
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Palette.secondary)
+                    .frame(width: 38, height: 38)
+                    .contentShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("태그 더 보기")
         }
-        .buttonStyle(.plain)
-        .glassCapsule(prominent: !model.following)
-        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: model.following)
         .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
         .task { await model.hydrate() }
-        .accessibilityLabel(Text("태그 구독"))
-        .accessibilityAddTraits(model.following ? [.isSelected] : [])
         .alert("로그인이 필요합니다", isPresented: $showLoginPrompt) {
             Button("Apple로 로그인") { appleHere() }
             Button("Google로 로그인") { signInHere() }
@@ -61,6 +82,23 @@ struct TagFollowButton: View {
         Task {
             do { try await model.toggle() }
             catch { ToastCenter.shared.show(String(localized: "구독을 반영하지 못했습니다")) }
+        }
+    }
+
+    private func mute() {
+        guard AuthStore.shared.isSignedIn else {
+            showLoginPrompt = true
+            return
+        }
+        Task {
+            do {
+                try await model.toggleHidden()
+                ToastCenter.shared.show(model.hidden
+                    ? String(localized: "이 태그를 숨겼습니다")
+                    : String(localized: "숨김을 해제했습니다"))
+            } catch {
+                ToastCenter.shared.show(String(localized: "반영하지 못했습니다"))
+            }
         }
     }
 
@@ -89,6 +127,7 @@ struct TagFollowButton: View {
 @Observable
 final class TagFollowModel {
     private(set) var following = false
+    private(set) var hidden = false
     /// 햅틱 트리거 — hydrate 가 아닌 사용자 토글에만 증가.
     private(set) var userToggleCount = 0
 
@@ -106,6 +145,7 @@ final class TagFollowModel {
         let gen = userToggleCount
         if let prefs = try? await InteractionsAPI.tagPrefs(), gen == userToggleCount {
             following = prefs.followed.contains(where: isThis)
+            hidden = prefs.hidden.contains(where: isThis)
         }
     }
 
@@ -118,9 +158,28 @@ final class TagFollowModel {
             let prefs = try await InteractionsAPI.setTagFollow(tag: tag, on: target)
             guard gen == userToggleCount else { return }
             following = prefs.followed.contains(where: isThis)
+            hidden = prefs.hidden.contains(where: isThis)
         } catch {
             guard gen == userToggleCount else { return }
             following = !target
+            throw error
+        }
+    }
+
+    func toggleHidden() async throws {
+        userToggleCount += 1
+        let gen = userToggleCount
+        let target = !hidden
+        hidden = target
+        do {
+            let prefs = try await InteractionsAPI.setTagHidden(tag: tag, on: target)
+            guard gen == userToggleCount else { return }
+            hidden = prefs.hidden.contains(where: isThis)
+            // 숨기면 서버가 구독을 정리할 수 있으니 같이 반영.
+            following = prefs.followed.contains(where: isThis)
+        } catch {
+            guard gen == userToggleCount else { return }
+            hidden = !target
             throw error
         }
     }
