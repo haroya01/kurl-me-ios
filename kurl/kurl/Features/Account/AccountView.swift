@@ -66,11 +66,14 @@ struct AccountView: View {
                                             .fill(Palette.accent)
                                             .frame(width: 8, height: 8)
                                             .offset(x: 3, y: -2)
+                                            // 미읽음 점은 톡 떠오르고 사라진다 — 피드 벨과 같은 결.
+                                            .transition(.scale.combined(with: .opacity))
                                     }
                                 }
                         }
                         .tint(.brand)
                         .accessibilityLabel("알림")
+                        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: unreadCount > 0)
                     }
                 }
             }
