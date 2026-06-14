@@ -14,6 +14,12 @@ extension View {
     func glassCapsule(prominent: Bool) -> some View {
         modifier(GlassCapsule(prominent: prominent))
     }
+
+    /// 셀렉터(기간·정렬 칩 등) 선택 표시 — 형광 초록(주 액션 색)과 구분되는 중립 잉크 알약.
+    /// 선택 라벨은 배경색으로 두면(반전) 다크모드에서도 대비가 선다. §10 색 규율: 초록은 주 액션만.
+    func selectorPill(selected: Bool) -> some View {
+        background(selected ? AnyShapeStyle(Palette.ink) : AnyShapeStyle(Color.clear), in: Capsule())
+    }
 }
 
 private struct GlassCapsule: ViewModifier {
@@ -57,13 +63,16 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable>: View {
                 } label: {
                     Text(label(item))
                         .font(.system(size: bare ? 14 : 15, weight: active ? .semibold : .medium))
-                        .foregroundStyle(active ? .white : .secondary)
+                        // 선택=중립 잉크 알약 + 반전 라벨(배경색). 형광 초록 candy를 걷는다(§10 색 규율).
+                        .foregroundStyle(active
+                            ? AnyShapeStyle(Color(uiColor: .systemBackground))
+                            : AnyShapeStyle(.secondary))
                         .padding(.horizontal, bare ? 13 : 16)
                         .padding(.vertical, bare ? 6 : 8)
                         .background {
                             if active {
                                 Capsule()
-                                    .fill(GlassTokens.prominentTint)
+                                    .fill(Palette.ink)
                                     .matchedGeometryEffect(id: "thumb", in: ns)
                             }
                         }

@@ -175,13 +175,15 @@ struct SeriesAnalyticsDetailView: View {
                             .font(.system(
                                 size: 12 * metaUnit, weight: days == option ? .semibold : .regular))
                             .foregroundStyle(
-                                days == option ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
+                                days == option
+                                    ? AnyShapeStyle(Color(uiColor: .systemBackground))
+                                    : AnyShapeStyle(.secondary))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
                             .contentShape(Capsule())
                     }
                     .buttonStyle(.plain)
-                    .glassCapsule(prominent: days == option)
+                    .selectorPill(selected: days == option)
                     .accessibilityAddTraits(days == option ? [.isSelected] : [])
                 }
             }
