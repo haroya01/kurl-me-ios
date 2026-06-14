@@ -11,7 +11,6 @@ struct BookmarksView: View {
     @State private var items: [BookmarkItem] = []
     @State private var loading = true
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
-    @Environment(\.colorScheme) private var colorScheme
 
     private var offline: OfflineStore { .shared }
 
@@ -31,9 +30,9 @@ struct BookmarksView: View {
                 }
                 .padding(.top, 60)
             } else {
-                // 북마크도 카드로 — 다른 면과 같은 표면(라이트 그림자/다크 보더). 오프라인
-                // 저장분은 메타에 ⤓ 배지로. 표지가 없는 글이라 타이포 중심 카드.
-                LazyVStack(spacing: 14) {
+                // 북마크 = 카탈로그(오프라인 책장) — 카드가 아니라 깔끔한 글 행(3원칙 표준).
+                // 오프라인 저장분은 메타에 ⤓ 배지로, 끝에 북마크 글리프.
+                LazyVStack(spacing: 0) {
                     ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                         NavigationLink(value: Route.post(username: item.username, slug: item.slug)) {
                             HStack(alignment: .top, spacing: 12) {
@@ -66,26 +65,14 @@ struct BookmarksView: View {
                                     .foregroundStyle(Palette.accentMarker.opacity(0.85))
                                     .accessibilityHidden(true)
                             }
-                            .padding(16)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(
-                                Palette.cardBg,
-                                in: RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
-                            .overlay {
-                                if colorScheme == .dark {
-                                    RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous)
-                                        .strokeBorder(Palette.cardBorder, lineWidth: 1)
-                                }
-                            }
-                            .cardShadow()
-                            .contentShape(
-                                RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
+                            .padding(.vertical, 14)
+                            .contentShape(Rectangle())
                         }
-                        .buttonStyle(CardButtonStyle())
+                        .buttonStyle(RowButtonStyle())
                         .modifier(QuietAppear(index: index))
+                        if index < items.count - 1 { Hairline() }
                     }
                 }
-                .padding(.vertical, 14)
             }
         }
         .navigationTitle("북마크")
@@ -121,17 +108,17 @@ struct LikedPostsView: View {
                 }
                     .padding(.top, 60)
             } else {
-                // 좋아요한 글 = 내 컬렉션(북마크와 한 결) — 카드로. browse·검색과 같은 BlogCard.
-                LazyVStack(spacing: 16) {
+                // 좋아요한 글 = 내 컬렉션(카탈로그) — 카드가 아니라 피드와 같은 글 행(3원칙 표준).
+                LazyVStack(spacing: 0) {
                     ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                         NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
-                            BlogCard(item: item)
+                            FeedRow(item: item)
                         }
-                        .buttonStyle(CardButtonStyle())
+                        .buttonStyle(RowButtonStyle())
                         .modifier(QuietAppear(index: index))
+                        if index < items.count - 1 { Hairline() }
                     }
                 }
-                .padding(.vertical, 16)
             }
         }
         .navigationTitle("좋아요한 글")

@@ -643,14 +643,16 @@ struct PostDetailView: View {
                 .accessibilityLabel("댓글 \(model.comments.count) 펼치기")
             } else {
                 RailHeading("댓글 \(model.comments.count)")
-                // 한 묶음(원댓글 + 답글) = 카드 하나. 대화 단위가 한 면으로 읽힌다.
-                ForEach(model.comments.filter { $0.parentId == nil }) { parent in
-                    CommentThreadCard(
+                // 대화는 가벼운 행으로 — 스레드 사이만 헤어라인으로 나눈다(박스 카드 ❌).
+                let threads = model.comments.filter { $0.parentId == nil }
+                ForEach(Array(threads.enumerated()), id: \.element.id) { index, parent in
+                    CommentThread(
                         model: model,
                         comment: parent,
                         replies: model.comments.filter { $0.parentId == parent.id },
                         replyTo: $replyTo,
                         postAuthorId: authorId)
+                    if index < threads.count - 1 { Hairline() }
                 }
                 // 본문 끝의 조용한 프롬프트 — 탭하면 유리 바가 키보드와 함께 떠오른다.
                 Button {
@@ -813,24 +815,20 @@ struct CommentRow: View {
     }
 }
 
-/// 댓글 한 묶음(원댓글 + 답글)을 카드 하나로 — 대화 단위가 한 면으로 읽힌다.
-/// 읽기 면(readingBg) 위에 살짝 떠오르는 카드(라이트 그림자/다크 보더). 답글은 카드 안에서
-/// 헤어라인으로 나뉘고 한 단 들여써 "이 사람 밑"임이 읽힌다(아바타도 작아진다 — CommentRow).
-private struct CommentThreadCard: View {
+/// 댓글 한 묶음(원댓글 + 답글) — 대화는 가벼운 행으로(박스 카드 ❌, 조용한 웹로그 표준).
+/// 답글은 부모 아바타 중심선에서 내려오는 연결 스파인 + 들여쓰기로 "이 사람 밑"임이 읽힌다.
+private struct CommentThread: View {
     let model: PostDetailViewModel
     let comment: Comment
     let replies: [Comment]
     @Binding var replyTo: Comment?
     var postAuthorId: Int64?
-    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             CommentRow(
                 model: model, comment: comment, replyTo: $replyTo, postAuthorId: postAuthorId)
             if !replies.isEmpty {
-                // 답글 블록 — 부모 아바타 중심선에서 끊김 없이 내려오는 연결 스파인 + 들여쓰기로
-                // "이 사람 밑"임이 또렷하게(평면 헤어라인은 형제로 읽혀 뎁스가 안 느껴졌다).
                 HStack(alignment: .top, spacing: 12) {
                     RoundedRectangle(cornerRadius: 1)
                         .fill(Palette.hairlineStrong)
@@ -847,17 +845,7 @@ private struct CommentThreadCard: View {
                 .padding(.leading, 15)
             }
         }
-        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            Palette.cardBg, in: RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous))
-        .overlay {
-            if colorScheme == .dark {
-                RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous)
-                    .strokeBorder(Palette.cardBorder, lineWidth: 1)
-            }
-        }
-        .cardShadow()
     }
 }
 
