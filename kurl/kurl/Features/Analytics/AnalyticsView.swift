@@ -3,8 +3,6 @@
 //  kurl
 //
 
-import Accessibility
-import Charts
 import SwiftUI
 
 /// 작가 분석 — 웹 /write 분석의 모바일 판. 30일 조회 추이가 히어로, 그 아래
@@ -25,6 +23,7 @@ struct AnalyticsView: View {
     @State private var series: [SeriesAnalyticsRow] = []
     @State private var days = 30
     @State private var selectedPost: TopPostView?
+    @State private var selectedSeries: SeriesAnalyticsRow?
 
     var body: some View {
         if embedded {
@@ -59,6 +58,9 @@ struct AnalyticsView: View {
         }
         .navigationDestination(item: $selectedPost) { post in
             PostAnalyticsView(post: post)
+        }
+        .navigationDestination(item: $selectedSeries) { row in
+            SeriesAnalyticsDetailView(seriesId: row.seriesId, seriesTitle: row.title)
         }
         .task { await load() }
         .refreshable { await load() }
@@ -185,34 +187,7 @@ struct AnalyticsView: View {
         }
 
         if !overview.daily.isEmpty {
-            Chart(overview.daily) { point in
-                BarMark(
-                    x: .value("일", point.dayLabel),
-                    y: .value("조회", point.views)
-                )
-                .foregroundStyle(Palette.accent.opacity(0.85))
-                .cornerRadius(2)
-            }
-            .chartXAxis {
-                AxisMarks { _ in
-                    AxisValueLabel()
-                        .font(.system(size: 10))
-                        .foregroundStyle(Palette.faint)
-                }
-            }
-            .chartYAxis {
-                AxisMarks { _ in
-                    AxisGridLine().foregroundStyle(Palette.hairline)
-                    AxisValueLabel()
-                        .font(.system(size: 10))
-                        .foregroundStyle(Palette.faint)
-                }
-            }
-            .accessibilityLabel(Text("최근 \(overview.windowDays)일 일별 조회 추이"))
-            // 오디오 그래프 — VoiceOver 로터에서 추이를 소리 높낮이로 훑을 수 있다.
-            .accessibilityChartDescriptor(DailyViewsChartDescriptor(points: overview.daily))
-            .frame(height: 140)
-            .padding(.top, 14)
+            DailyTrendChart(points: overview.daily)
         }
     }
 
@@ -312,21 +287,35 @@ struct AnalyticsView: View {
                 .padding(.top, 24)
                 .padding(.bottom, 4)
             ForEach(Array(series.enumerated()), id: \.element.id) { index, row in
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(row.title)
-                        .font(.system(size: 15 * unit, weight: .medium))
-                        .foregroundStyle(Palette.ink)
-                        .lineLimit(1)
-                    HStack(spacing: 10) {
-                        Text("\(row.postCount)편")
-                        metaCount("person.2", row.subscriberCount)
-                        metaCount("eye", row.totalViews)
-                        metaCount("heart", row.totalLikes)
+                // 행 탭 = 시리즈 facet — 구독자 추이 + 회차별 완주 funnel 로 들어가는 문.
+                Button {
+                    selectedSeries = row
+                } label: {
+                    HStack(alignment: .top, spacing: 14) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(row.title)
+                                .font(.system(size: 15 * unit, weight: .medium))
+                                .foregroundStyle(Palette.ink)
+                                .lineLimit(1)
+                            HStack(spacing: 10) {
+                                Text("\(row.postCount)편")
+                                metaCount("person.2", row.subscriberCount)
+                                metaCount("eye", row.totalViews)
+                                metaCount("heart", row.totalLikes)
+                            }
+                            .font(.system(size: 12 * metaUnit))
+                            .foregroundStyle(Palette.secondary)
+                        }
+                        Spacer(minLength: 0)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 11 * metaUnit, weight: .semibold))
+                            .foregroundStyle(Palette.faint)
+                            .padding(.top, 4)
                     }
-                    .font(.system(size: 12 * metaUnit))
-                    .foregroundStyle(Palette.secondary)
+                    .padding(.vertical, 9)
+                    .contentShape(Rectangle())
                 }
-                .padding(.vertical, 9)
+                .buttonStyle(RowButtonStyle())
                 if index < series.count - 1 {
                     Hairline()
                 }
@@ -419,37 +408,5 @@ struct AnalyticsView: View {
                 .foregroundStyle(Palette.secondary)
         }
         .frame(maxWidth: .infinity)
-    }
-}
-
-
-/// 일별 조회 차트의 오디오 그래프 서술자 — 시각 막대와 같은 데이터를 소리로.
-private struct DailyViewsChartDescriptor: AXChartDescriptorRepresentable {
-    let points: [AuthorAnalyticsOverview.DailyPoint]
-
-    func makeChartDescriptor() -> AXChartDescriptor {
-        let xAxis = AXCategoricalDataAxisDescriptor(
-            title: String(localized: "날짜"),
-            categoryOrder: points.map(\.date))
-        let maxViews = points.map(\.views).max() ?? 0
-        let yAxis = AXNumericDataAxisDescriptor(
-            title: String(localized: "조회수"),
-            range: 0...Double(max(maxViews, 1)),
-            gridlinePositions: []
-        ) { value in
-            String(localized: "조회 \(Int(value))")
-        }
-        let series = AXDataSeriesDescriptor(
-            name: String(localized: "일별 조회"),
-            isContinuous: false,
-            dataPoints: points.map {
-                AXDataPoint(x: $0.date, y: Double($0.views))
-            })
-        return AXChartDescriptor(
-            title: String(localized: "일별 조회 추이"),
-            summary: nil,
-            xAxis: xAxis,
-            yAxis: yAxis,
-            series: [series])
     }
 }

@@ -390,6 +390,12 @@ enum MockBackend {
             ])
         }
 
+        // 시리즈 상세 분석 — 구독자 추이 + 회차 funnel.
+        if method == "GET", parts.count == 4, parts[0] == "posts", parts[1] == "analytics",
+           parts[2] == "series", let id = Int64(parts[3]) {
+            return json(seriesDetailFixture(id: id))
+        }
+
         if method == "GET", parts.count == 3, parts[0] == "posts", parts[2] == "stats" {
             return json(readStatsFixture())
         }
@@ -783,6 +789,53 @@ enum MockBackend {
             "lifetimeViews": 812, "lifetimeLikes": 41, "windowDays": 30, "windowViews": 624,
             "lifetimeLinkClicks": 57, "windowLinkClicks": 38, "lifetimeFollows": 9, "windowFollows": 4,
             "daily": daily,
+        ]
+    }
+
+    private static func seriesDetailFixture(id: Int64) -> [String: Any] {
+        let known: [Int64: (slug: String, title: String, titles: [String], subs: Int64, views: Int64, likes: Int64)] = [
+            1: ("hexagonal", "헥사고날 전환기",
+                ["포트와 어댑터", "도메인을 안으로", "의존성 뒤집기", "어댑터 구현", "테스트 전략", "마이그레이션"],
+                14, 1930, 72),
+            2: ("ios-build", "iOS 앱 만들기",
+                ["Xcode 세팅", "첫 화면", "배포까지"],
+                7, 640, 25),
+        ]
+        let s = known[id] ?? ("series", "시리즈", ["1화", "2화", "3화", "4화"], 9, 800, 30)
+        let count = s.titles.count
+
+        let calendar = Calendar(identifier: .gregorian)
+        let fmt = DateFormatter()
+        fmt.dateFormat = "yyyy-MM-dd"
+        fmt.timeZone = TimeZone(identifier: "Asia/Seoul")
+        // 구독자 추이 — 30일 완만 상승(누적).
+        let subscriberDaily: [[String: Any]] = (0..<30).reversed().map { back in
+            let day = calendar.date(byAdding: .day, value: -back, to: Date()) ?? Date()
+            let progress = Double(30 - back) / 30.0
+            return ["date": fmt.string(from: day), "views": Int(Double(s.subs) * (0.45 + 0.55 * progress))]
+        }
+        // 회차 funnel — 고유 독자 완만 감소 + 다음 화 read-through(이어 읽은 수).
+        var members: [[String: Any]] = []
+        var readers = Int64(Double(s.views) / Double(max(count, 1)) * 0.62)
+        for (i, title) in s.titles.enumerated() {
+            let isLast = i == count - 1
+            let next = isLast ? 0 : Int64(Double(readers) * Double.random(in: 0.62...0.86))
+            members.append([
+                "postId": 8000 + i + 1, "slug": "ep-\(i + 1)", "title": title, "episode": i + 1,
+                "views": Int64(Double(readers) * 1.35), "likes": max(1, readers / 14),
+                "follows": max(0, readers / 40), "uniqueReaders": readers, "continuedToNext": next,
+            ])
+            readers = isLast ? readers : max(8, next + Int64.random(in: 0...6))
+        }
+        return [
+            "series": [
+                "seriesId": id, "slug": s.slug, "title": s.title,
+                "postCount": count, "subscriberCount": s.subs,
+                "totalViews": s.views, "totalLikes": s.likes,
+            ],
+            "windowDays": 30,
+            "subscriberDaily": subscriberDaily,
+            "members": members,
         ]
     }
 

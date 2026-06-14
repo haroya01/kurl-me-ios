@@ -3,7 +3,6 @@
 //  kurl
 //
 
-import Charts
 import SwiftUI
 
 /// 글 하나의 분석(facet) — "이 글이 어디서 얼마나 읽혔나"에 들어가는 화면.
@@ -101,31 +100,7 @@ struct PostAnalyticsView: View {
         .padding(.top, 4)
 
         if !detail.daily.isEmpty {
-            Chart(detail.daily) { point in
-                BarMark(
-                    x: .value("일", point.dayLabel),
-                    y: .value("조회", point.views)
-                )
-                .foregroundStyle(Palette.accent.opacity(0.85))
-                .cornerRadius(2)
-            }
-            .chartXAxis {
-                AxisMarks { _ in
-                    AxisValueLabel()
-                        .font(.system(size: 10))
-                        .foregroundStyle(Palette.faint)
-                }
-            }
-            .chartYAxis {
-                AxisMarks { _ in
-                    AxisGridLine().foregroundStyle(Palette.hairline)
-                    AxisValueLabel()
-                        .font(.system(size: 10))
-                        .foregroundStyle(Palette.faint)
-                }
-            }
-            .frame(height: 150)
-            .padding(.top, 14)
+            DailyTrendChart(points: detail.daily)
         }
 
         Hairline().padding(.top, 22)
