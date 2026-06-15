@@ -3,15 +3,14 @@
 //  kurl
 //
 //  발견 = 읽기의 연결 그래프 홈(§0). 1차 표면 = 큐레이터 연결 흐름("누가 무엇을 어느 컬렉션에
-//  이었나 + 왜"). 기존 릴스 덱은 "읽기 모드"로 흡수 — 선택 없이 몰입해 바로 읽는 보조 모드.
-//  broadcast 아니라 큐레이션을 따라간다(docs/collections-design.md).
+//  이었나 + 왜"). broadcast 아니라 큐레이션을 따라간다(docs/collections-design.md).
+//  (릴스형 몰입 덱 DiscoverDeckView 는 `--screen deck` 으로 주차 — 발견 표면에선 내렸다.)
 //
 
 import SwiftUI
 
 struct DiscoverView: View {
     @State private var events = CollectionsMock.discoverFeed
-    @State private var showDeck = false
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
@@ -32,29 +31,8 @@ struct DiscoverView: View {
             }
             // 고정 스트립 대신 콘텐츠가 유리 크롬 밑으로 흐른다 — 상단 라벨은 탭바 아이콘이 맡는다.
             .toolbar(.hidden, for: .navigationBar)
-            // "읽기 모드" — 선택 없이 바로 읽는 몰입 덱(릴스형)을 보조 모드로 띄운다.
-            .safeAreaInset(edge: .bottom) {
-                Button { showDeck = true } label: {
-                    HStack(spacing: 7) {
-                        Image(systemName: "book.pages")
-                            .font(.system(size: 14 * unit, weight: .semibold))
-                        Text("읽기 모드")
-                            .font(.system(size: 15 * unit, weight: .semibold))
-                    }
-                    .foregroundStyle(.primary)
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 11)
-                    .glassEffect(.regular.interactive(), in: .capsule)
-                }
-                .buttonStyle(.plain)
-                .padding(.bottom, 8)
-                .accessibilityLabel(Text("읽기 모드 — 바로 읽는 덱"))
-            }
             .navigationDestination(for: CollectionSummary.self) { CollectionDetailView(collection: $0) }
             .navigationDestination(for: Route.self) { RouteView(route: $0) }
-        }
-        .fullScreenCover(isPresented: $showDeck) {
-            DeckModeContainer { showDeck = false }
         }
     }
 }
@@ -219,24 +197,3 @@ struct BlockPreview: View {
     }
 }
 
-/// "읽기 모드" 컨테이너 — 기존 릴스 덱을 그대로 띄우고, 닫기 핀만 얹는다.
-private struct DeckModeContainer: View {
-    let onClose: () -> Void
-
-    var body: some View {
-        DiscoverDeckView()
-            .overlay(alignment: .topLeading) {
-                Button(action: onClose) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.primary)
-                        .frame(width: 40, height: 40)
-                        .glassEffect(.regular.interactive(), in: .circle)
-                }
-                .buttonStyle(.plain)
-                .padding(.leading, Metrics.gutter)
-                .padding(.top, 4)
-                .accessibilityLabel(Text("읽기 모드 닫기"))
-            }
-    }
-}

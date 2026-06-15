@@ -81,6 +81,9 @@ struct RootView: View {
         } else if Config.launchValue(after: "--screen") == "choose-username" {
             // 핸들 정하기 게이트는 빈 username 일 때만 떠 simctl 로 못 띄운다 — 검증 진입로.
             ChooseUsernameView()
+        } else if Config.launchValue(after: "--screen") == "deck" {
+            // 릴스형 몰입 덱 — 발견 표면에서 내리고 주차. 되살리기/UI 테스트용 진입로.
+            DiscoverDeckView()
         } else if Config.launchValue(after: "--screen") == "collections" {
             // 컬렉션 프로토타입 — 계정 탭 안 푸시라 simctl 로 못 띄운다, 검증 진입로.
             NavigationStack { CollectionsListView() }

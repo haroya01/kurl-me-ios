@@ -15,7 +15,8 @@ final class DiscoverDeckUITests: XCTestCase {
 
     func testDeckEmbedsDetailWithCollapsedComments() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["--mocks", "--tab", "discover"]
+        // 덱은 발견 표면에서 내려 `--screen deck` 으로 주차됨(발견 탭=연결 흐름).
+        app.launchArguments = ["--mocks", "--screen", "deck"]
         app.launch()
 
         // 덱에서는 댓글이 접힌 행("댓글 N")으로 시작한다 — 실서버 글이라
