@@ -160,7 +160,7 @@ struct SubscribedSeriesView: View {
                                 .frame(width: 18, height: 11)
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(card.title)
-                                    .font(.system(size: 16 * unit, weight: .semibold))
+                                    .typeScale(.titleSmall)
                                     .foregroundStyle(Palette.ink)
                                     .lineLimit(1)
                                 HStack(spacing: 6) {

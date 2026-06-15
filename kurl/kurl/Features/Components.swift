@@ -116,8 +116,10 @@ struct RailHeading: View {
 
     var body: some View {
         HStack(spacing: 8) {
+            // 섹션 마커 = 구조 신호일 뿐 — 초록은 주액션·데이터 전용이라 중립(잉크)으로 가라앉힌다.
+            // 25곳 섹션 머릿글에서 초록이 한꺼번에 빠져 "초록 과용"의 큰 몫이 정리된다(§10 색 규율).
             RoundedRectangle(cornerRadius: 1)
-                .fill(Palette.accentMarker)
+                .fill(Palette.hairlineStrong)
                 .frame(width: 3, height: 12 * unit)
             Text(text)
                 .typeScale(.eyebrow)
