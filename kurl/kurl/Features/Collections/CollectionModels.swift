@@ -93,9 +93,11 @@ struct CollectionSummary: Decodable, Identifiable, Hashable {
     let blurb: String?
     let visibility: CollectionVisibility
     let count: Int
+    /// 최근 담긴 항목 라벨 몇 개 — "안에 뭐가 들었는지" 떠올리게(어디 넣을지 결정 보조).
+    let preview: [String]
 
     private enum CodingKeys: String, CodingKey {
-        case id, title, description, visibility, count
+        case id, title, description, visibility, count, preview
     }
 
     init(from decoder: Decoder) throws {
@@ -106,6 +108,7 @@ struct CollectionSummary: Decodable, Identifiable, Hashable {
         let vis = try c.decode(String.self, forKey: .visibility)
         visibility = CollectionVisibility(rawValue: vis) ?? .private
         count = try c.decode(Int.self, forKey: .count)
+        preview = try c.decodeIfPresent([String].self, forKey: .preview) ?? []
     }
 
     /// 로컬 생성(낙관) — 새 컬렉션을 목록에 즉시 끼워 넣을 때.
@@ -115,6 +118,7 @@ struct CollectionSummary: Decodable, Identifiable, Hashable {
         self.blurb = blurb
         self.visibility = visibility
         self.count = count
+        self.preview = []
     }
 }
 

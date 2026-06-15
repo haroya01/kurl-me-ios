@@ -89,6 +89,13 @@ struct CollectionsListView: View {
                     .foregroundStyle(Palette.secondary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
+            } else if !c.preview.isEmpty {
+                // 소개가 없으면 안에 든 것으로 — 어디든 "뭐가 들었는지"가 보이게.
+                Text(c.preview.joined(separator: " · "))
+                    .font(.system(size: 14 * unit))
+                    .foregroundStyle(Palette.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
 
             HStack(spacing: 6) {

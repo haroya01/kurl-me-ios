@@ -88,11 +88,19 @@ struct ConnectSheet: View {
             if selected.contains(c.id) { selected.remove(c.id) } else { selected.insert(c.id) }
         } label: {
             HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 3) {
                     Text(c.title)
                         .font(.system(size: 15 * unit, weight: .medium))
                         .foregroundStyle(Palette.ink)
                         .lineLimit(1)
+                    // 안에 뭐가 들었는지 한 줄 — 어디 넣을지 떠올리게. 비었으면 개수만.
+                    if !c.preview.isEmpty {
+                        Text(c.preview.joined(separator: " · "))
+                            .font(.system(size: 13 * metaUnit))
+                            .foregroundStyle(Palette.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
                     HStack(spacing: 5) {
                         Image(systemName: c.visibility.icon)
                             .font(.system(size: 10 * metaUnit, weight: .medium))

@@ -381,11 +381,19 @@ enum MockBackend {
     }
 
     private static func collectionSummary(_ c: MockCollection) -> [String: Any] {
-        [
+        // 최근 2개 항목 라벨 — 백엔드 preview 와 동일(POST 제목·HIGHLIGHT 인용·NOTE 본문).
+        let preview = c.connections.suffix(2).reversed().compactMap { conn -> String? in
+            switch conn.blockType {
+            case "NOTE": return conn.body
+            case "HIGHLIGHT": return conn.quote
+            default: return conn.title
+            }
+        }
+        return [
             "id": c.id, "title": c.title,
             "description": orNull(c.description),
             "visibility": c.visibility, "count": c.connections.count,
-            "updatedAt": iso(Date()),
+            "updatedAt": iso(Date()), "preview": Array(preview),
         ]
     }
 
