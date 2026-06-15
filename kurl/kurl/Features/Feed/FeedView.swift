@@ -12,6 +12,7 @@ import SwiftUI
 enum FeedTab: String, CaseIterable, Identifiable {
     case recent
     case trending
+    case forYou
     case following
 
     var id: String { rawValue }
@@ -20,6 +21,7 @@ enum FeedTab: String, CaseIterable, Identifiable {
         switch self {
         case .recent: return .recent
         case .trending: return .trending
+        case .forYou: return .forYou
         case .following: return .following
         }
     }
@@ -229,8 +231,8 @@ struct FeedPage: View {
 
     var body: some View {
         Group {
-            // 팔로잉은 인증 피드 — 로그아웃이면 게이트(이때는 fetch 도 하지 않는다).
-            if source == .following, !AuthStore.shared.isSignedIn {
+            // 추천·구독함은 인증 피드 — 로그아웃이면 게이트(이때는 fetch 도 하지 않는다).
+            if source.requiresAuth, !AuthStore.shared.isSignedIn {
                 followingGate
             } else {
             switch model.phase {
@@ -247,7 +249,7 @@ struct FeedPage: View {
         // 인증 전환을 task id 로 관찰 — 로그아웃 상태의 401 failed 고착과
         // 계정 전환 후 이전 계정 피드 잔존을 모두 해소한다.
         .task(id: AuthStore.shared.isSignedIn) {
-            if source == .following {
+            if source.requiresAuth {
                 guard AuthStore.shared.isSignedIn else {
                     model.resetForAuthChange()
                     return
@@ -260,16 +262,21 @@ struct FeedPage: View {
 
     private var followingGate: some View {
         ContentUnavailableView {
-            Label("팔로잉", systemImage: "person.2")
+            Label(source == .forYou ? "추천" : "팔로잉",
+                  systemImage: source == .forYou ? "sparkles" : "person.2")
         } description: {
-            Text("로그인하면 팔로우한 작가와 구독한 시리즈의 새 글이 여기에 모여요.")
+            Text(source == .forYou
+                ? "로그인하면 읽은 글과 관심 주제를 바탕으로 맞춤 글을 추천해 드려요."
+                : "로그인하면 팔로우한 작가와 구독한 시리즈의 새 글이 여기에 모여요.")
         } actions: {
             Button("로그인") { showLoginSheet = true }
                 .foregroundStyle(Palette.accent)
         }
         .loginPrompt(
             isPresented: $showLoginSheet,
-            message: "로그인하면 팔로우한 작가와 구독한 시리즈의 새 글이 여기 모여요.")
+            message: source == .forYou
+                ? "로그인하면 취향에 맞는 글을 추천해 드려요."
+                : "로그인하면 팔로우한 작가와 구독한 시리즈의 새 글이 여기 모여요.")
     }
 
     // 발견(browse) 면 = 1열 카드 그리드(#707 웹과 동일 문법). 구독함도 같은 카드 —
