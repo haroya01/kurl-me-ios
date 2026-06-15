@@ -18,19 +18,20 @@ struct DiscoverView: View {
     var body: some View {
         NavigationStack {
             ReadingColumn(spacing: 0) {
+                // 콘텐츠가 edge-to-edge로 흐른다 — 피드 탭과 같은 결(고정 "발견" 타이틀 ❌).
+                Color.clear.frame(height: 8)
                 LazyVStack(spacing: 0) {
                     ForEach(Array(events.enumerated()), id: \.element.id) { index, event in
                         ConnectionEventCard(event: event)
                             .modifier(QuietAppear(index: index))
                         if index < events.count - 1 {
-                            Hairline().padding(.vertical, 4)
+                            Hairline().padding(.vertical, 10)
                         }
                     }
                 }
-                .padding(.top, 4)
             }
-            .navigationTitle("발견")
-            .navigationBarTitleDisplayMode(.inline)
+            // 고정 스트립 대신 콘텐츠가 유리 크롬 밑으로 흐른다 — 상단 라벨은 탭바 아이콘이 맡는다.
+            .toolbar(.hidden, for: .navigationBar)
             // "읽기 모드" — 선택 없이 바로 읽는 몰입 덱(릴스형)을 보조 모드로 띄운다.
             .safeAreaInset(edge: .bottom) {
                 Button { showDeck = true } label: {
@@ -65,48 +66,53 @@ private struct ConnectionEventCard: View {
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 11) {
-            // 귀속 줄 — broadcast("…님이 게시함")가 아니라 connect("…에 연결했어요").
-            HStack(spacing: 8) {
-                AvatarView(author: event.curator, size: 24)
-                (Text(event.curator.username).foregroundStyle(Palette.ink)
-                    + Text(" 님이 ").foregroundStyle(Palette.secondary)
-                    + Text(event.collectionTitle).foregroundStyle(Palette.ink)
-                    + Text(" 에 연결했어요").foregroundStyle(Palette.secondary))
-                    .font(.system(size: 14 * metaUnit, weight: .medium))
-                    .lineLimit(2)
-                Spacer(minLength: 0)
+        VStack(alignment: .leading, spacing: 12) {
+            // 귀속 = 조용히. 누가·언제만(broadcast 아니라 connect 라는 건 아래 eyebrow 가 말한다).
+            HStack(spacing: 7) {
+                AvatarView(author: event.curator, size: 22)
+                Text(event.curator.username)
+                    .font(.system(size: 13 * metaUnit, weight: .semibold))
+                    .foregroundStyle(Palette.secondary)
+                Text("·").foregroundStyle(Palette.faint)
                 Text(event.connectedAt.relativeShort)
-                    .font(.system(size: 12 * metaUnit))
+                    .font(.system(size: 13 * metaUnit))
                     .foregroundStyle(Palette.faint)
+                Spacer(minLength: 0)
             }
 
-            if let why = event.why {
-                Text(why)
-                    .font(.system(size: 15 * unit, weight: .medium))
-                    .foregroundStyle(Palette.ink)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            BlockPreview(block: event.block)
-
-            // 컬렉션으로 — 한 연결에서 그 채널 전체로 이어지는 문.
+            // 컬렉션 eyebrow — "…에 연결" 이라는 동사를 탭 가능한 채널 칩으로. 한 연결에서
+            // 그 채널 전체로 이어지는 문(§0 connect). 초록은 데이터 링크라 link 톤 허용.
             NavigationLink(value: collectionTarget) {
-                HStack(spacing: 3) {
+                HStack(spacing: 4) {
                     Image(systemName: "square.grid.2x2")
-                        .font(.system(size: 11 * metaUnit, weight: .semibold))
+                        .font(.system(size: 10 * metaUnit, weight: .bold))
                     Text(event.collectionTitle)
-                        .font(.system(size: 13 * metaUnit, weight: .semibold))
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 9 * metaUnit, weight: .semibold))
+                        .font(.system(size: 12 * metaUnit, weight: .bold))
+                        .tracking(0.3)
+                    Text("에 연결")
+                        .font(.system(size: 12 * metaUnit, weight: .medium))
+                        .foregroundStyle(Palette.faint)
                 }
                 .foregroundStyle(Palette.link)
                 .expandTapTarget(6)
             }
             .buttonStyle(.plain)
+
+            // 큐레이터의 한 줄 = 히어로. 이 흐름이 알고리즘 피드가 아니라 사람의 큐레이션이라는
+            // 가장 또렷한 신호. 없으면(이유 안 단 연결) 블록이 곧장 히어로가 된다.
+            if let why = event.why {
+                Text(why)
+                    .font(.system(size: 17 * unit, weight: .medium))
+                    .foregroundStyle(Palette.ink)
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            BlockPreview(block: event.block)
+                .padding(.top, 2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 16)
+        .padding(.vertical, 14)
     }
 
     // 프로토타입 — 흐름의 컬렉션을 목 상세로 잇는다(슬러그 매칭 대신 대표 컬렉션).
