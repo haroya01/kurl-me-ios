@@ -212,12 +212,11 @@ private struct EpisodeRow: View {
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                     if state == .next {
+                        // 회색 캡슐 없이 — "다음"은 그린 글자만으로 충분히 읽힌다.
                         Text("다음")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.system(size: 11, weight: .bold))
+                            .tracking(0.3)
                             .foregroundStyle(Palette.link)
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 2)
-                            .background(Palette.chipBg, in: Capsule())
                     }
                 }
                 if let excerpt = post.excerpt, !excerpt.isEmpty {

@@ -140,7 +140,7 @@ struct Hairline: View {
     }
 }
 
-// MARK: 절제된 칩 (slate, 초록 캡슐 금지)
+// MARK: 절제된 태그 — 회색 캡슐 없이 글자만(§10). 종이 위에 #태그가 그대로 앉는다.
 
 struct MutedChip: View {
     let text: String
@@ -148,10 +148,7 @@ struct MutedChip: View {
     var body: some View {
         Text(text)
             .font(.system(size: 13, weight: .medium))
-            .foregroundStyle(Palette.chipText)
-            .padding(.horizontal, 11)
-            .padding(.vertical, 6)
-            .background(Palette.chipBg, in: Capsule())
+            .foregroundStyle(Palette.secondary)
     }
 }
 

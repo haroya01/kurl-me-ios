@@ -181,9 +181,13 @@ struct AuthorBlogView: View {
                                 }
                                 .padding(13)
                                 .frame(width: 148, height: 108, alignment: .topLeading)
+                                // 회색 박스 → 흰 종이 카드(보더) — 다른 카드와 같은 문법.
                                 .background(
-                                    Palette.chipBg,
+                                    Palette.cardBg,
                                     in: RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous)
+                                        .strokeBorder(Palette.cardBorder, lineWidth: 1))
                                 .contentShape(Rectangle())
                             }
                             .buttonStyle(CardButtonStyle())

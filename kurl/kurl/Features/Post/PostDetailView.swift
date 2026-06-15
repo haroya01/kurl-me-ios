@@ -1120,7 +1120,7 @@ struct FlowTags: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 ForEach(tags, id: \.self) { tag in
-                    NavigationLink(value: Route.tag(tag)) { MutedChip(text: tag) }
+                    NavigationLink(value: Route.tag(tag)) { MutedChip(text: "#\(tag)") }
                         .buttonStyle(.plain)
                 }
             }
