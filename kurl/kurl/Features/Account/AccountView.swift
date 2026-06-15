@@ -240,6 +240,8 @@ struct AccountView: View {
             Hairline()
             libraryRow("내 하이라이트", icon: "highlighter") { MyHighlightsView() }
             Hairline()
+            libraryRow("컬렉션", icon: "square.grid.2x2") { CollectionsListView() }
+            Hairline()
             libraryRow("읽기 기록", icon: "clock") { MyReadingHistoryView() }
 
             Hairline()
