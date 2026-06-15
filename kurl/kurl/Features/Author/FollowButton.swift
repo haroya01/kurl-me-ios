@@ -12,8 +12,12 @@ struct FollowButton: View {
     @State private var showLoginPrompt = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(username: String) {
+    /// 옆에 "팔로워 N"을 붙일지 — 작가 헤더처럼 탭 가능한 카운트 행이 따로 있으면 끈다.
+    private let showCount: Bool
+
+    init(username: String, showCount: Bool = true) {
         _model = State(initialValue: FollowModel(username: username))
+        self.showCount = showCount
     }
 
     var body: some View {
@@ -32,7 +36,7 @@ struct FollowButton: View {
             .glassCapsule(prominent: !model.following)
             .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: model.following)
 
-            if let count = model.followerCount {
+            if showCount, let count = model.followerCount {
                 Text("팔로워 \(count)")
                     .font(.system(size: 13))
                     .foregroundStyle(Palette.secondary)
