@@ -8,10 +8,11 @@
 import SwiftUI
 import Observation
 
-/// 피드 탭 — 최신/인기는 공개, 팔로잉은 인증 피드.
+/// 피드 탭 — 최신/인기는 공개, 추천(For You)·구독함은 인증 피드.
 enum FeedSource: String, CaseIterable, Identifiable {
     case recent
     case trending
+    case forYou
     case following
 
     var id: String { rawValue }
@@ -20,9 +21,13 @@ enum FeedSource: String, CaseIterable, Identifiable {
         switch self {
         case .recent: String(localized: "최신")
         case .trending: String(localized: "인기")
+        case .forYou: String(localized: "추천")
         case .following: String(localized: "구독함")
         }
     }
+
+    /// 본인 신호로 만드는 면 — 로그아웃이면 게이트하고 인증 전환에 초기화한다.
+    var requiresAuth: Bool { self == .forYou || self == .following }
 }
 
 @MainActor
@@ -48,6 +53,7 @@ final class FeedViewModel {
         switch source {
         case .recent: try await BlogAPI.feed(sort: .recent, page: page, size: pageSize)
         case .trending: try await BlogAPI.feed(sort: .trending, page: page, size: pageSize)
+        case .forYou: try await LibraryAPI.forYouFeed(page: page, size: pageSize)
         case .following: try await LibraryAPI.followingFeed(page: page, size: pageSize)
         }
     }
