@@ -593,17 +593,14 @@ struct PostDetailView: View {
             Color.clear.frame(height: kicker != nil ? 6 : 14)
 
             if let kicker {
+                // 카테고리 eyebrow = 조용한 매거진 머릿글. 초록은 주액션(팔로우)·데이터 전용이므로
+                // 여기선 muted — 대문자 트래킹으로 위계를 세우고 색은 빼는 절제(§10 색 규율).
                 NavigationLink(value: Route.tag(kicker)) {
-                    HStack(spacing: 5) {
-                        Circle()
-                            .fill(Palette.accentMarker)
-                            .frame(width: 5, height: 5)
-                        Text(kicker)
-                            .font(.system(size: 12.5 * metaUnit, weight: .semibold))
-                            .tracking(0.4)
-                    }
-                    .foregroundStyle(Palette.link)
-                    .expandTapTarget(6)
+                    Text(kicker.uppercased())
+                        .font(.system(size: 12 * metaUnit, weight: .semibold))
+                        .tracking(0.8)
+                        .foregroundStyle(Palette.secondary)
+                        .expandTapTarget(6)
                 }
                 .buttonStyle(.plain)
                 .padding(.bottom, 9)
