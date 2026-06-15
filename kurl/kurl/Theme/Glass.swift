@@ -62,12 +62,18 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable>: View {
                     selection = item
                 } label: {
                     Text(label(item))
-                        .font(.system(size: bare ? 14 : 15, weight: active ? .semibold : .medium))
+                        .font(.system(size: 14, weight: active ? .semibold : .medium))
+                        // 네 탭(최신·인기·추천·구독함)이 좁은 기기에서 줄바꿈돼 캡슐이 두꺼운
+                        // 덩어리가 되던 것 — 한 줄 고정 + 긴 로케일(영어 Trending 등)은 살짝
+                        // 축소해 잘림 없이 길쭉한 알약 유지.
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .fixedSize(horizontal: false, vertical: true)
                         // 선택=중립 잉크 알약 + 반전 라벨(배경색). 형광 초록 candy를 걷는다(§10 색 규율).
                         .foregroundStyle(active
                             ? AnyShapeStyle(Color(uiColor: .systemBackground))
                             : AnyShapeStyle(.secondary))
-                        .padding(.horizontal, bare ? 13 : 16)
+                        .padding(.horizontal, 13)
                         .padding(.vertical, bare ? 6 : 8)
                         .background {
                             if active {

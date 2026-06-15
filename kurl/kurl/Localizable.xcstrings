@@ -1,3867 +1,4346 @@
 {
-  "sourceLanguage": "ko",
-  "strings": {
-    "": {},
-    "#%@": {},
-    "%@": {},
-    "%@ · %lld편": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ · %lld posts"
+  "sourceLanguage" : "ko",
+  "strings" : {
+    "" : {
+
+    },
+    "·" : {
+
+    },
+    "· 지금" : {
+
+    },
+    "@%@" : {
+
+    },
+    "#%@" : {
+
+    },
+    "%@" : {
+
+    },
+    "%@ — 대표로 지정" : {
+
+    },
+    "%@ · %lld편" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %lld posts"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ · %lld本"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ · %lld本"
           }
         }
       }
     },
-    "%@ 삭제": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Remove %@"
+    "%@ %lld" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$lld"
+          }
+        }
+      }
+    },
+    "%@ 님의 첫 글" : {
+
+    },
+    "%@ 발행 예정" : {
+
+    },
+    "%@ 삭제" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove %@"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@を削除"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@を削除"
           }
         }
       }
     },
-    "%@님에게 답글": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Replying to %@"
+    "%@ 신고합니다. 검토 후 조치됩니다." : {
+
+    },
+    "%@, 다음 읽을 글" : {
+
+    },
+    "%@, 읽음" : {
+
+    },
+    "%@님에게 답글" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Replying to %@"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@さんへの返信"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@さんへの返信"
           }
         }
       }
     },
-    "%@님이 글을 좋아합니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ liked your post"
+    "%@님의 글 전체 보기" : {
+
+    },
+    "%@님의 블로그" : {
+
+    },
+    "%@님이 글을 좋아합니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ liked your post"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@さんが記事にいいねしました"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@さんが記事にいいねしました"
           }
         }
       }
     },
-    "%@님이 답글을 남겼습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ replied to your comment"
+    "%@님이 답글을 남겼습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ replied to your comment"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@さんが返信しました"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@さんが返信しました"
           }
         }
       }
     },
-    "%@님이 댓글을 남겼습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ commented on your post"
+    "%@님이 댓글을 남겼습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ commented on your post"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@さんがコメントしました"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@さんがコメントしました"
           }
         }
       }
     },
-    "%@님이 새 글을 발행했습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ published a new post"
+    "%@님이 새 글을 발행했습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ published a new post"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@さんが新しい記事を公開しました"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@さんが新しい記事を公開しました"
           }
         }
       }
     },
-    "%@님이 시리즈를 구독합니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ subscribed to your series"
+    "%@님이 시리즈를 구독합니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ subscribed to your series"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@さんがシリーズを購読しています"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@さんがシリーズを購読しています"
           }
         }
       }
     },
-    "%@님이 팔로우하기 시작했습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ started following you"
+    "%@님이 팔로우하기 시작했습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ started following you"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@さんがフォローを始めました"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@さんがフォローを始めました"
           }
         }
       }
     },
-    "%@님이 회원님을 언급했습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ mentioned you"
+    "%@님이 회원님을 언급했습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ mentioned you"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@さんがあなたをメンションしました"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@さんがあなたをメンションしました"
           }
         }
       }
     },
-    "%lld": {},
-    "%lld / %lld": {
-      "localizations": {
-        "ko": {
-          "stringUnit": {
-            "state": "new",
-            "value": "%1$lld / %2$lld"
+    "%lld" : {
+
+    },
+    "%lld." : {
+
+    },
+    "%lld/%lld" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld/%2$lld"
           }
         }
       }
     },
-    "%lld.": {},
-    "%lld일": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lldd"
+    "%lld분 읽기" : {
+
+    },
+    "%lld일" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldd"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld日"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld日"
           }
         }
       }
     },
-    "%lld편": {
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld post"
+    "%lld편" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld post"
                 }
               },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld posts"
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld posts"
                 }
               }
             }
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld本"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld本"
           }
         }
       }
     },
-    "%lld편 — %@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Part %1$lld — %2$@"
+    "%lld편 — %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Part %1$lld — %2$@"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "第%1$lld回 — %2$@"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第%1$lld回 — %2$@"
           }
         }
       }
     },
-    "%lld편 — %@, 현재 글": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Part %1$lld — %2$@, current post"
+    "%lld편 — %@, 현재 글" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Part %1$lld — %2$@, current post"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "第%1$lld回 — %2$@、現在の記事"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第%1$lld回 — %2$@、現在の記事"
           }
         }
       }
     },
-    "000000": {},
-    "2단계 인증": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Two-Factor Authentication"
+    "%lld편 모두 읽음" : {
+
+    },
+    "%lld편 중 %lld편 읽음" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld편 중 %2$lld편 읽음"
+          }
+        }
+      }
+    },
+    "•" : {
+
+    },
+    "000000" : {
+
+    },
+    "2단계 인증" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Two-Factor Authentication"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "2段階認証"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2段階認証"
           }
         }
       }
     },
-    "2단계 인증이 설정된 계정입니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This account uses two-factor authentication"
+    "2단계 인증이 설정된 계정입니다" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This account uses two-factor authentication"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "2段階認証が設定されたアカウントです"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2段階認証が設定されたアカウントです"
           }
         }
       }
     },
-    "Apple로 로그인": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign in with Apple"
+    "API / 설정" : {
+
+    },
+    "Apple로 로그인" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in with Apple"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Apple でサインイン"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apple でサインイン"
           }
         }
       }
     },
-    "Google로 계속하기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Continue with Google"
+    "EP %lld" : {
+
+    },
+    "Google로 계속하기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue with Google"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Google で続ける"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google で続ける"
           }
         }
       }
     },
-    "Google로 로그인": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign in with Google"
+    "Google로 로그인" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in with Google"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Google でログイン"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google でログイン"
           }
         }
       }
     },
-    "kurl에 로그인": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign in to kurl"
+    "kurl 계정으로 이어집니다" : {
+
+    },
+    "kurl.me/u/" : {
+
+    },
+    "kurl.me/u/ 주소에 쓰여요. 나중에 바꿀 수 있어요." : {
+
+    },
+    "kurl에 로그인" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to kurl"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "kurl にログイン"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "kurl にログイン"
           }
         }
       }
     },
-    "v%lld — %@": {
-      "localizations": {
-        "ko": {
-          "stringUnit": {
-            "state": "new",
-            "value": "v%1$lld — %2$@"
+    "username" : {
+
+    },
+    "v%lld — %@" : {
+      "localizations" : {
+        "ko" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "v%1$lld — %2$@"
           }
         }
       }
     },
-    "·": {},
-    "•": {},
-    "개인정보처리방침": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Privacy Policy"
+    "Vimeo 동영상 재생" : {
+
+    },
+    "YouTube 동영상 재생" : {
+
+    },
+    "개인정보처리방침" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy Policy"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "プライバシーポリシー"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プライバシーポリシー"
           }
         }
       }
     },
-    "검색": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Search"
+    "검색" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "検索"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索"
           }
         }
       }
     },
-    "검색에서 시리즈 찾기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Find series in Search"
+    "검색에서 시리즈 찾기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find series in Search"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "検索でシリーズを探す"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "検索でシリーズを探す"
           }
         }
       }
     },
-    "계속": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Continue"
+    "계속" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continue"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "続ける"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "続ける"
           }
         }
       }
     },
-    "계속 당기면 다음 글": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Keep pulling for the next post"
+    "계속 당기면 다음 글" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep pulling for the next post"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "さらに引っ張ると次の記事へ"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "さらに引っ張ると次の記事へ"
           }
         }
       }
     },
-    "계정": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Account"
+    "계정" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Account"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アカウント"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウント"
           }
         }
       }
     },
-    "계정을 삭제할까요?": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Delete your account?"
+    "계정을 삭제할까요?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete your account?"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アカウントを削除しますか？"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントを削除しますか？"
           }
         }
       }
     },
-    "공유": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Share"
+    "고유 방문" : {
+
+    },
+    "공유" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "共有"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "共有"
           }
         }
       }
     },
-    "구독": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Subscribe"
+    "관리자 진단" : {
+
+    },
+    "구독" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subscribe"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "購読"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購読"
           }
         }
       }
     },
-    "구독 중": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Subscribed"
+    "구독 중" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subscribed"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "購読中"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購読中"
           }
         }
       }
     },
-    "구독을 반영하지 못했습니다": {},
-    "구독자 %lld": {
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld subscriber"
+    "구독을 반영하지 못했습니다" : {
+
+    },
+    "구독자" : {
+
+    },
+    "구독자 %lld" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld subscriber"
                 }
               },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld subscribers"
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld subscribers"
                 }
               }
             }
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "購読者 %lld"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購読者 %lld"
           }
         }
       }
     },
-    "구독하면 시리즈에 새 글이 올라올 때 알 수 있어요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Subscribe to know when new posts land in this series."
+    "구독하면 시리즈에 새 글이 올라올 때 알 수 있어요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subscribe to know when new posts land in this series."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "購読するとシリーズの新着記事に気づけます。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購読するとシリーズの新着記事に気づけます。"
           }
         }
       }
     },
-    "구독한 시리즈": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Subscribed Series"
+    "구독한 시리즈" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subscribed Series"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "購読中のシリーズ"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購読中のシリーズ"
           }
         }
       }
     },
-    "구독한 시리즈가 없습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No subscribed series"
+    "구독한 시리즈가 없습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No subscribed series"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "購読中のシリーズはありません"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購読中のシリーズはありません"
           }
         }
       }
     },
-    "구독함": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inbox"
+    "구독함" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inbox"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "受信箱"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "受信箱"
           }
         }
       }
     },
-    "구독함이 비어 있어요": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Your inbox is empty"
+    "구독함이 비어 있어요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your inbox is empty"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "受信箱は空です"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "受信箱は空です"
           }
         }
       }
     },
-    "굵게": {},
-    "글": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Posts"
+    "국가" : {
+
+    },
+    "굵게" : {
+
+    },
+    "글" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posts"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "記事"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記事"
           }
         }
       }
     },
-    "글 %lld": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld posts"
+    "글 %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld posts"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "記事 %lld"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記事 %lld"
           }
         }
       }
     },
-    "글 검색": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Search posts"
+    "글 검색" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search posts"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "記事を検索"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記事を検索"
           }
         }
       }
     },
-    "글 보기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "View post"
+    "글 보기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View post"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "記事を見る"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記事を見る"
           }
         }
       }
     },
-    "글 분석": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Post analytics"
+    "글 분석" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Post analytics"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "記事の分析"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記事の分析"
           }
         }
       }
     },
-    "글 정보": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Post info"
+    "글 정보" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Post info"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "記事情報"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記事情報"
           }
         }
       }
     },
-    "글 정보…": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Post info…"
+    "글 정보…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Post info…"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "記事情報…"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記事情報…"
           }
         }
       }
     },
-    "글·시리즈·댓글이 모두 삭제 대상이 됩니다.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Your posts, series and comments will all be deleted."
+    "글·시리즈·댓글이 모두 삭제 대상이 됩니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your posts, series and comments will all be deleted."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "記事・シリーズ・コメントがすべて削除対象になります。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記事・シリーズ・コメントがすべて削除対象になります。"
           }
         }
       }
     },
-    "글별 성과": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Post performance"
+    "글별 성과" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Post performance"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "記事別パフォーマンス"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記事別パフォーマンス"
           }
         }
       }
     },
-    "글쓰기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Write"
+    "글쓰기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "執筆"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "執筆"
           }
         }
       }
+    },
+    "글을 읽다 마음에 닿는 문장을 길게 눌러 하이라이트해 보세요." : {
+
     },
-    "글이 없습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No posts"
+    "글을 읽으면 여기에 기록돼요. 기록은 나만 봅니다." : {
+
+    },
+    "글이 없습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No posts"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "記事がありません"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "記事がありません"
           }
         }
       }
+    },
+    "기기" : {
+
+    },
+    "기록 지우기" : {
+
     },
-    "꺼짐": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Off"
+    "기록에서 지우기" : {
+
+    },
+    "꺼짐" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オフ"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフ"
           }
         }
       }
     },
-    "내 계정": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "My Account"
+    "날짜" : {
+
+    },
+    "내 계정" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My Account"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "マイアカウント"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マイアカウント"
           }
         }
       }
     },
-    "내 계정 탭에서 로그인을 완료해 주세요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Please finish signing in from the My Account tab."
+    "내 계정 탭에서 로그인을 완료해 주세요." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please finish signing in from the My Account tab."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アカウントタブでログインを完了してください。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントタブでログインを完了してください。"
           }
         }
       }
     },
-    "내 글": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "My Posts"
+    "내 글" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My Posts"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自分の記事"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自分の記事"
           }
         }
       }
     },
-    "내 명함": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "My card"
+    "내 명함" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My card"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "マイ名刺"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マイ名刺"
           }
         }
       }
     },
-    "내 블로그": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "My blog"
+    "내 블로그" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My blog"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "マイブログ"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マイブログ"
           }
         }
       }
     },
-    "내 블로그 보기": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "View my blog"
+    "내 블로그 보기" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View my blog"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自分のブログを見る"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自分のブログを見る"
           }
         }
       }
     },
-    "내 시리즈": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "My series"
+    "내 시리즈" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "My series"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "マイシリーズ"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マイシリーズ"
           }
         }
       }
+    },
+    "내 하이라이트" : {
+
     },
-    "넘겨서 다음 글": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Swipe for the next post"
+    "내부" : {
+
+    },
+    "넘겨서 다음 글" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swipe for the next post"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "スワイプで次の記事"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スワイプで次の記事"
           }
         }
       }
     },
-    "네트워크에 연결할 수 없습니다.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Can't connect to the network."
+    "네트워크에 연결할 수 없습니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Can't connect to the network."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ネットワークに接続できません。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ネットワークに接続できません。"
           }
         }
       }
     },
-    "노트": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notes"
+    "노트" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notes"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ノート"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ノート"
           }
         }
       }
     },
-    "노트 삭제": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Delete Note"
+    "노트 삭제" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Note"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ノートを削除"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ノートを削除"
           }
         }
       }
     },
-    "노트 올리기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Post note"
+    "노트 올리기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Post note"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ノートを投稿"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ノートを投稿"
           }
         }
       }
     },
-    "노트를 삭제하지 못했습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Couldn't delete the note"
+    "노트를 삭제하지 못했습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't delete the note"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ノートを削除できませんでした"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ノートを削除できませんでした"
           }
         }
       }
     },
-    "노트를 올리지 못했습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Couldn't post the note"
+    "노트를 올리지 못했습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't post the note"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ノートを投稿できませんでした"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ノートを投稿できませんでした"
           }
         }
       }
     },
-    "누적 조회": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Total views"
+    "누적 조회" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total views"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "累計閲覧"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "累計閲覧"
           }
         }
       }
+    },
+    "뉴스레터" : {
+
     },
-    "다시 시도": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Try Again"
+    "다시 시도" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try Again"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "再試行"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再試行"
           }
         }
       }
     },
-    "다음 글": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Next"
+    "다음" : {
+
+    },
+    "다음 글" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "次の記事"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次の記事"
           }
         }
       }
+    },
+    "다음 글 — %@" : {
+
     },
-    "다음 글 — %@": {},
-    "다음 편": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Next up"
+    "다음 편" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next up"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "次の回"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次の回"
           }
         }
       }
     },
-    "다음 편 — %@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Next up — %@"
+    "다음 편 — %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next up — %@"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "次の回 — %@"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次の回 — %@"
           }
         }
       }
     },
-    "닫기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Close"
+    "다음 화 %lld%%" : {
+
+    },
+    "다음 화로 %lld퍼센트 이어 읽음" : {
+
+    },
+    "닫기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "閉じる"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閉じる"
           }
         }
       }
     },
-    "답글": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reply"
+    "답글" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reply"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "返信"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "返信"
           }
         }
       }
     },
-    "답글 취소": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cancel reply"
+    "답글 취소" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel reply"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "返信をやめる"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "返信をやめる"
           }
         }
       }
     },
-    "답글을 남겨보세요": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Write a reply"
+    "답글을 남겨보세요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write a reply"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "返信を書く"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "返信を書く"
           }
         }
       }
+    },
+    "대표" : {
+
     },
-    "댓글 %lld": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Comments %lld"
+    "대표 태그 %@" : {
+
+    },
+    "대표 태그를 1개 이상 정하면 발행할 수 있어요." : {
+
+    },
+    "댓글 %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comments %lld"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コメント %lld"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コメント %lld"
           }
         }
       }
     },
-    "댓글 %lld 펼치기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show %lld comments"
+    "댓글 %lld 펼치기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show %lld comments"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コメント%lld件を表示"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コメント%lld件を表示"
           }
         }
       }
+    },
+    "댓글 더 보기" : {
+
     },
-    "댓글 보내기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Send comment"
+    "댓글 보내기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send comment"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コメントを送信"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コメントを送信"
           }
         }
       }
     },
-    "댓글 삭제": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Delete comment"
+    "댓글 삭제" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete comment"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コメントを削除"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コメントを削除"
           }
         }
       }
     },
-    "댓글 좋아요": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Like comment"
+    "댓글 좋아요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Like comment"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コメントにいいね"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コメントにいいね"
           }
         }
       }
     },
-    "댓글 좋아요 취소": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Unlike comment"
+    "댓글 좋아요 취소" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlike comment"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コメントのいいねを取り消す"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コメントのいいねを取り消す"
           }
         }
       }
     },
-    "댓글은 kurl 계정으로 남겨집니다.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Comments are posted with your kurl account."
+    "댓글은 kurl 계정으로 남겨집니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comments are posted with your kurl account."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コメントは kurl アカウントで投稿されます。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コメントは kurl アカウントで投稿されます。"
           }
         }
       }
     },
-    "댓글을 남겨보세요": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Leave a comment"
+    "댓글을 남겨보세요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave a comment"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コメントを書く"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コメントを書く"
           }
         }
       }
     },
-    "더 보기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show more"
+    "더 보기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show more"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "もっと見る"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "もっと見る"
           }
         }
       }
     },
-    "덱 섞기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Shuffle deck"
+    "데스크톱" : {
+
+    },
+    "덱 섞기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shuffle deck"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "デッキをシャッフル"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デッキをシャッフル"
           }
         }
       }
+    },
+    "독자" : {
+
+    },
+    "둘러보기" : {
+
     },
-    "로그아웃": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign Out"
+    "로그아웃" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign Out"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ログアウト"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログアウト"
           }
         }
       }
     },
-    "로그인": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign In"
+    "로그인" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign In"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ログイン"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログイン"
           }
         }
       }
     },
-    "로그인 실패": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign-in failed"
+    "로그인 실패" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign-in failed"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ログイン失敗"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログイン失敗"
           }
         }
       }
     },
-    "로그인 응답을 처리하지 못했습니다.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Couldn't process the sign-in response."
+    "로그인 없이 둘러보기" : {
+
+    },
+    "로그인 응답을 처리하지 못했습니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't process the sign-in response."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ログイン応答を処理できませんでした。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログイン応答を処理できませんでした。"
           }
         }
       }
     },
-    "로그인에 실패했습니다. 다시 시도해 주세요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign-in failed. Please try again."
+    "로그인에 실패했습니다. 다시 시도해 주세요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign-in failed. Please try again."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ログインに失敗しました。もう一度お試しください。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログインに失敗しました。もう一度お試しください。"
           }
         }
       }
     },
-    "로그인은 시스템 브라우저에서 안전하게 진행됩니다.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign-in happens securely in the system browser."
+    "로그인은 시스템 브라우저에서 안전하게 진행됩니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign-in happens securely in the system browser."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ログインはシステムブラウザで安全に行われます。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログインはシステムブラウザで安全に行われます。"
           }
         }
       }
     },
-    "로그인이 필요합니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign in required"
+    "로그인이 필요합니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in required"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ログインが必要です"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログインが必要です"
           }
         }
       }
     },
-    "로그인이 필요합니다.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign in required."
+    "로그인이 필요합니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in required."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ログインが必要です。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログインが必要です。"
           }
         }
       }
     },
-    "로그인하고 글을 쓰세요": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign in to write"
+    "로그인하고 글을 쓰세요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to write"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ログインして書きましょう"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログインして書きましょう"
           }
         }
       }
+    },
+    "로그인하면 읽은 글과 관심 주제를 바탕으로 맞춤 글을 추천해 드려요." : {
+
+    },
+    "로그인하면 취향에 맞는 글을 추천해 드려요." : {
+
+    },
+    "로그인하면 팔로우한 작가와 구독한 시리즈의 새 글이 여기 모여요." : {
+
     },
-    "로그인하면 팔로우한 작가와 구독한 시리즈의 새 글이 여기에 모여요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign in to see new posts from authors you follow and series you subscribe to."
+    "로그인하면 팔로우한 작가와 구독한 시리즈의 새 글이 여기에 모여요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to see new posts from authors you follow and series you subscribe to."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ログインすると、フォロー中の作家と購読中のシリーズの新着記事がここに集まります。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログインすると、フォロー中の作家と購読中のシリーズの新着記事がここに集まります。"
           }
         }
       }
     },
-    "리비전": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Revisions"
+    "리비전" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revisions"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "リビジョン"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リビジョン"
           }
         }
       }
     },
-    "리비전…": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Revisions…"
+    "리비전…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Revisions…"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "リビジョン…"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リビジョン…"
           }
         }
       }
     },
-    "리비전이 없습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No revisions"
+    "리비전이 없습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No revisions"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "リビジョンがありません"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リビジョンがありません"
           }
         }
       }
     },
-    "리스트": {},
-    "링크": {},
-    "링크 클릭": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Link clicks"
+    "리스트" : {
+
+    },
+    "링크" : {
+
+    },
+    "링크 클릭" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link clicks"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "リンククリック"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リンククリック"
           }
         }
       }
     },
-    "링크 클릭 %lld": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld link clicks"
+    "링크 클릭 %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld link clicks"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "リンククリック %lld"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リンククリック %lld"
           }
         }
       }
     },
-    "마크다운으로 쓰면 웹과 똑같이 발행됩니다.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Write in Markdown — it publishes exactly like the web."
+    "마크다운으로 쓰면 웹과 똑같이 발행됩니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write in Markdown — it publishes exactly like the web."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "マークダウンで書けば、ウェブと同じように公開されます。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マークダウンで書けば、ウェブと同じように公開されます。"
           }
         }
       }
     },
-    "마크다운으로 쓰세요 — #, >, -, ```, 이미지·URL 한 줄이면 카드가 됩니다.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Write in Markdown — #, >, -, ```; an image or URL on its own line becomes a card."
+    "마크다운으로 쓰세요 — #, >, -, ```, 이미지·URL 한 줄이면 카드가 됩니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write in Markdown — #, >, -, ```; an image or URL on its own line becomes a card."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "マークダウンで書く — #, >, -, ```、画像や URL は1行でカードになります。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "マークダウンで書く — #, >, -, ```、画像や URL は1行でカードになります。"
           }
         }
       }
+    },
+    "만들기" : {
+
     },
-    "명함": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Card"
+    "명함" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Card"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "名刺"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名刺"
           }
         }
       }
     },
-    "모두 읽음": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mark all read"
+    "모두 읽음" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark all read"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "すべて既読"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべて既読"
           }
         }
       }
     },
-    "목록을 불러오지 못했습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Couldn't load the list"
+    "모바일" : {
+
+    },
+    "목록을 불러오지 못했습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't load the list"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "一覧を読み込めませんでした"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一覧を読み込めませんでした"
           }
         }
       }
     },
-    "미리보기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Preview"
+    "목차" : {
+
+    },
+    "미리보기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preview"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "プレビュー"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プレビュー"
           }
         }
       }
+    },
+    "반영하지 못했습니다" : {
+
     },
-    "발견": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Discover"
+    "발견" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discover"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "発見"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "発見"
           }
         }
       }
     },
-    "발견에서 읽을 글 찾기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Find something to read in Discover"
+    "발견에서 읽을 글 찾기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find something to read in Discover"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "発見で読む記事を探す"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "発見で読む記事を探す"
           }
         }
       }
     },
-    "발견에서 작가 찾기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Find writers in Discover"
+    "발견에서 작가 찾기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find writers in Discover"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "発見で作家を探す"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "発見で作家を探す"
           }
         }
       }
     },
-    "발행": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Publish"
+    "발행" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Publish"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "公開"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公開"
           }
         }
       }
     },
-    "발행 시각": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Publish at"
+    "발행 시각" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Publish at"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "公開時刻"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公開時刻"
           }
         }
       }
     },
-    "발행 준비": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ready to publish"
+    "발행 준비" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ready to publish"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "公開の準備"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公開の準備"
           }
         }
       }
     },
-    "발행되었습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Published"
+    "발행되었습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Published"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "公開されました"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公開されました"
           }
         }
       }
     },
-    "발행한 글": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Published"
+    "발행한 글" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Published"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "公開記事"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公開記事"
           }
         }
       }
     },
-    "발행한 글이 없습니다.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No published posts yet."
+    "발행한 글이 없습니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No published posts yet."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "公開した記事はありません。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公開した記事はありません。"
           }
         }
       }
     },
-    "방금 전": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "just now"
+    "방금 전" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "just now"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "たった今"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "たった今"
           }
         }
       }
     },
-    "버전": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Version"
+    "버전" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "バージョン"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "バージョン"
           }
         }
       }
     },
-    "복구 코드": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recovery code"
+    "변경" : {
+
+    },
+    "복구 코드" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recovery code"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "リカバリーコード"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リカバリーコード"
           }
         }
       }
     },
-    "복구 코드 사용": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Use recovery code"
+    "복구 코드 사용" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use recovery code"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "リカバリーコードを使う"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リカバリーコードを使う"
           }
         }
       }
     },
-    "복구 코드를 입력하세요": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enter a recovery code"
+    "복구 코드를 입력하세요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a recovery code"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "リカバリーコードを入力してください"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リカバリーコードを入力してください"
           }
         }
       }
+    },
+    "복사" : {
+
+    },
+    "복사됨" : {
+
     },
-    "복원": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Restore"
+    "복원" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "復元"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "復元"
           }
         }
       }
     },
-    "본문 이미지": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Image in post"
+    "본문 이미지" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image in post"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "本文の画像"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本文の画像"
           }
         }
       }
     },
-    "본문 편집": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Edit Body"
+    "본문 편집" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Body"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "本文を編集"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本文を編集"
           }
         }
       }
     },
-    "북마크": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bookmark"
+    "봇" : {
+
+    },
+    "북마크" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bookmark"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ブックマーク"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブックマーク"
           }
         }
       }
     },
-    "북마크 해제": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Remove bookmark"
+    "북마크 해제" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove bookmark"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ブックマークを解除"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブックマークを解除"
           }
         }
       }
+    },
+    "북마크됨" : {
+
+    },
+    "북마크를 반영하지 못했습니다" : {
+
+    },
+    "북마크를 해제했습니다" : {
+
     },
-    "북마크를 반영하지 못했습니다": {},
-    "북마크에 추가했습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Added to bookmarks"
+    "북마크에 추가했습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Added to bookmarks"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ブックマークに追加しました"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブックマークに追加しました"
           }
         }
       }
     },
-    "북마크한 글은 오프라인에서도 읽을 수 있어요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bookmarked posts are readable offline too."
+    "북마크한 글은 오프라인에서도 읽을 수 있어요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bookmarked posts are readable offline too."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ブックマークした記事はオフラインでも読めます。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブックマークした記事はオフラインでも読めます。"
           }
         }
       }
     },
-    "북마크한 글이 없습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No bookmarked posts"
+    "북마크한 글이 없습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No bookmarked posts"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ブックマークした記事はありません"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブックマークした記事はありません"
           }
         }
       }
     },
-    "분석": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Analytics"
+    "분석" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Analytics"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "分析"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分析"
           }
         }
       }
     },
-    "불러오는 중": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Loading"
+    "불러오는 중" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "読み込み中"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み込み中"
           }
         }
       }
     },
-    "불러오지 못했습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Couldn't load"
+    "불러오지 못했습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't load"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "読み込めませんでした"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み込めませんでした"
           }
         }
       }
     },
-    "삭제": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Delete"
+    "사람" : {
+
+    },
+    "사용자 이름" : {
+
+    },
+    "사용자 이름을 정해 주세요" : {
+
+    },
+    "사용할 수 없는 이름이에요." : {
+
+    },
+    "사진 변경" : {
+
+    },
+    "삭제" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "削除"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "削除"
           }
         }
       }
     },
-    "삭제하지 못했습니다": {},
-    "새 글": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "New Post"
+    "삭제하지 못했습니다" : {
+
+    },
+    "새 글" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New Post"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "新しい記事"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しい記事"
           }
         }
       }
+    },
+    "새 글 쓰기" : {
+
     },
-    "서버 오류 (%lld)": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Server error (%lld)"
+    "새 시리즈" : {
+
+    },
+    "새 시리즈 만들기…" : {
+
+    },
+    "서버 오류 (%lld)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server error (%lld)"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "サーバーエラー (%lld)"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "サーバーエラー (%lld)"
           }
         }
       }
     },
-    "서재": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Library"
+    "서재" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Library"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ライブラリ"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ライブラリ"
           }
         }
       }
+    },
+    "선택" : {
+
     },
-    "선택한 시각에 자동으로 발행됩니다.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Publishes automatically at the chosen time."
+    "선택한 시각에 자동으로 발행됩니다." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Publishes automatically at the chosen time."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "選択した時刻に自動で公開されます。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択した時刻に自動で公開されます。"
           }
         }
       }
     },
-    "설정": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Settings"
+    "설정" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "設定"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設定"
           }
         }
       }
     },
-    "소개글": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Excerpt"
+    "소개" : {
+
+    },
+    "소개글" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Excerpt"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "紹介文"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "紹介文"
           }
         }
       }
     },
-    "소개글 — 카드와 검색에 보이는 한 단락": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Excerpt — the paragraph shown on cards and search"
+    "소개글 — 카드와 검색에 보이는 한 단락" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Excerpt — the paragraph shown on cards and search"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "紹介文 — カードと検索に表示される一段落"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "紹介文 — カードと検索に表示される一段落"
           }
         }
       }
+    },
+    "소셜" : {
+
+    },
+    "숨김 해제" : {
+
+    },
+    "숨김을 해제했습니다" : {
+
     },
-    "시리즈": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Series"
+    "시리즈" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Series"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "シリーズ"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "シリーズ"
           }
         }
       }
     },
-    "시리즈 %@ — %lld/%lld": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Series %1$@ — %2$lld of %3$lld"
+    "시리즈 %@ — %lld/%lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Series %1$@ — %2$lld of %3$lld"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "シリーズ %1$@ — %2$lld/%3$lld"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "シリーズ %1$@ — %2$lld/%3$lld"
           }
         }
       }
     },
-    "시리즈 %lld": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld series"
+    "시리즈 %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld series"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "シリーズ %lld"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "シリーズ %lld"
           }
         }
       }
     },
-    "시리즈 없음": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No series"
+    "시리즈 없음" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No series"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "シリーズなし"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "シリーズなし"
           }
         }
       }
     },
-    "시리즈 전체 보기 (%lld편)": {
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "View full series (%lld part)"
+    "시리즈 전체 보기 (%lld편)" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "View full series (%lld part)"
                 }
               },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "View full series (%lld parts)"
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "View full series (%lld parts)"
                 }
               }
             }
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "シリーズ全体を見る（%lld編）"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "シリーズ全体を見る（%lld編）"
           }
         }
       }
     },
-    "아직 글이 없습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No posts yet"
+    "시리즈 제목" : {
+
+    },
+    "시리즈를 만들지 못했습니다" : {
+
+    },
+    "시작하기" : {
+
+    },
+    "신고" : {
+
+    },
+    "신고 사유를 선택하세요" : {
+
+    },
+    "신고가 접수되었습니다" : {
+
+    },
+    "신고를 보내지 못했습니다" : {
+
+    },
+    "아직 글이 없습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No posts yet"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだ記事がありません"
+          }
+        }
+      }
+    },
+    "아직 글이 없습니다. 오른쪽 아래 버튼으로 첫 글을 시작하세요." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No posts yet. Start your first one with the button at the bottom right."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "まだ記事がありません"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだ記事がありません。右下のボタンから最初の記事を始めましょう。"
           }
         }
       }
     },
-    "아직 글이 없습니다. 오른쪽 아래 버튼으로 첫 글을 시작하세요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No posts yet. Start your first one with the button at the bottom right."
+    "아직 글이 없습니다. 오른쪽 위 버튼으로 첫 글을 시작하세요." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No posts yet. Start your first one from the button up top."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "まだ記事がありません。右下のボタンから最初の記事を始めましょう。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだ記事がありません。右上のボタンから最初の記事を始めましょう。"
           }
         }
       }
     },
-    "아직 글이 없습니다. 오른쪽 위 버튼으로 첫 글을 시작하세요.": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No posts yet. Start your first one from the button up top."
+    "아직 노트가 없습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No notes yet"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "まだ記事がありません。右上のボタンから最初の記事を始めましょう。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだノートがありません"
           }
         }
       }
     },
-    "아직 노트가 없습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No notes yet"
+    "아직 시리즈가 없습니다. 발행 시트에서 글을 시리즈로 묶어 보세요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No series yet. Group posts into a series from the publish sheet."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "まだノートがありません"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだシリーズがありません。公開シートで記事をシリーズにまとめられます。"
           }
         }
       }
+    },
+    "아직 읽기 기록이 없어요" : {
+
+    },
+    "아직 팔로우하는 사람이 없어요" : {
+
+    },
+    "아직 팔로워가 없어요" : {
+
     },
-    "아직 시리즈가 없습니다. 발행 시트에서 글을 시리즈로 묶어 보세요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No series yet. Group posts into a series from the publish sheet."
+    "알 수 없는 사용자" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown user"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "まだシリーズがありません。公開シートで記事をシリーズにまとめられます。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不明なユーザー"
           }
         }
       }
     },
-    "알 수 없는 사용자": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Unknown user"
+    "알림" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifications"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "不明なユーザー"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通知"
           }
         }
       }
     },
-    "알림": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notifications"
+    "알림 — 읽지 않음 있음" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifications — unread"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "通知"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通知 — 未読あり"
           }
         }
       }
     },
-    "알림 — 읽지 않음 있음": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notifications — unread"
+    "알림 설정" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notification settings"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "通知 — 未読あり"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通知設定"
           }
         }
       }
     },
-    "알림 설정": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notification settings"
+    "알림이 없습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No notifications"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "通知設定"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通知はありません"
           }
         }
       }
     },
-    "알림이 없습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No notifications"
+    "앱" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "通知はありません"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリ"
           }
         }
       }
     },
-    "앱": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "App"
+    "영문 소문자·숫자·_ 3~16자, 첫 글자는 영문이나 숫자" : {
+
+    },
+    "예약" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schedule"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アプリ"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予約"
           }
         }
       }
     },
-    "예약": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Schedule"
+    "예약 발행" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schedule"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "予約"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予約公開"
           }
         }
       }
     },
-    "예약 발행": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Schedule"
+    "예약 발행…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schedule…"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "予約公開"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予約公開…"
           }
         }
       }
     },
-    "예약 발행…": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Schedule…"
+    "예약됨" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scheduled"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "予約公開…"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予約済み"
           }
         }
       }
     },
-    "예약되었습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Scheduled"
+    "예약되었습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scheduled"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "予約されました"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予約されました"
           }
         }
       }
+    },
+    "예약하지 못했습니다" : {
+
     },
-    "예약됨": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Scheduled"
+    "오늘의 글" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Today's post"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "予約済み"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今日の記事"
           }
         }
       }
     },
-    "예약하지 못했습니다": {},
-    "오늘의 글": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Today's post"
+    "오프라인" : {
+
+    },
+    "오프라인 사본 — 연결되면 최신으로 갱신됩니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offline copy — updates when you're back online"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "今日の記事"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフラインのコピー — 接続時に最新へ更新されます"
           }
         }
       }
     },
-    "오프라인 사본 — 연결되면 최신으로 갱신됩니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Offline copy — updates when you're back online"
+    "오프라인 저장됨" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved offline"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オフラインのコピー — 接続時に最新へ更新されます"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフライン保存済み"
           }
         }
       }
     },
-    "오프라인 저장됨": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Saved offline"
+    "유입 경로" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Referrers"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オフライン保存済み"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "流入元"
           }
         }
       }
+    },
+    "유입 채널" : {
+
     },
-    "유입 경로": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Referrers"
+    "응답을 읽지 못했습니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't read the response."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "流入元"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "レスポンスを読み取れませんでした。"
           }
         }
       }
+    },
+    "이 글 분석" : {
+
+    },
+    "이 글 편집" : {
+
+    },
+    "이 글을" : {
+
+    },
+    "이 글이 들어갈 새 시리즈를 만듭니다. 제목은 나중에 시리즈에서 바꿀 수 있어요." : {
+
     },
-    "응답을 읽지 못했습니다.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Couldn't read the response."
+    "이 댓글을" : {
+
+    },
+    "이 댓글을 삭제할까요?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete this comment?"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "レスポンスを読み取れませんでした。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このコメントを削除しますか？"
           }
         }
       }
     },
-    "이 댓글을 삭제할까요?": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Delete this comment?"
+    "이 동작은 되돌릴 수 없습니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This cannot be undone."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "このコメントを削除しますか？"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この操作は取り消せません。"
           }
         }
       }
     },
-    "이 동작은 되돌릴 수 없습니다.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This cannot be undone."
+    "이 시리즈의 글" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In this series"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "この操作は取り消せません。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このシリーズの記事"
           }
         }
       }
+    },
+    "이 작가를" : {
+
     },
-    "이 시리즈의 글": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "In this series"
+    "이 작가의 다른 글" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More from this author"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "このシリーズの記事"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この作者のほかの記事"
           }
         }
       }
+    },
+    "이 태그 숨기기" : {
+
+    },
+    "이 태그를 숨겼습니다" : {
+
     },
-    "이 작가의 다른 글": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "More from this author"
+    "이 태그의 글이 아직 없어요." : {
+
+    },
+    "이렇게 보여요" : {
+
+    },
+    "이미 사용 중인 이름이에요." : {
+
+    },
+    "이미지" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Image"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "この作者のほかの記事"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像"
           }
         }
       }
     },
-    "이미지": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Image"
+    "이미지 올리는 중…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uploading image…"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "画像"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像をアップロード中…"
           }
         }
       }
     },
-    "이미지 올리는 중…": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Uploading image…"
+    "이미지를 올리지 못했습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not upload the image"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "画像をアップロード中…"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "画像をアップロードできませんでした"
           }
         }
       }
     },
-    "이미지를 올리지 못했습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Could not upload the image"
+    "이어 읽기 — %lld편" : {
+
+    },
+    "이용약관" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terms of Service"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "画像をアップロードできませんでした"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "利用規約"
           }
         }
       }
     },
-    "이용약관": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Terms of Service"
+    "이전 글" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Previous"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "利用規約"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "前の記事"
           }
         }
       }
+    },
+    "이전 이름은 30일간 예약돼 기존 링크가 바로 깨지지 않아요." : {
+
     },
-    "이전 글": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Previous"
+    "인기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trending"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "前の記事"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "人気"
           }
         }
       }
     },
-    "인기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Trending"
+    "인기 태그" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Popular tags"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "人気"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "人気のタグ"
           }
         }
       }
     },
-    "인기 태그": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Popular tags"
+    "인라인 코드" : {
+
+    },
+    "인용" : {
+
+    },
+    "인증 앱 코드 사용" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use authenticator code"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "人気のタグ"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "認証アプリのコードを使う"
           }
         }
       }
     },
-    "인라인 코드": {},
-    "인용": {},
-    "인증 앱 코드 사용": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Use authenticator code"
+    "인증 앱의 6자리 코드를 입력하세요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter the 6-digit code from your authenticator app"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "認証アプリのコードを使う"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "認証アプリの6桁コードを入力してください"
           }
         }
       }
+    },
+    "일별 %@" : {
+
+    },
+    "일별 %@ 추이" : {
+
+    },
+    "읽고, 쓰고, 모으는 곳." : {
+
+    },
+    "읽기 기록" : {
+
+    },
+    "읽는 시간 약 %lld분" : {
+
+    },
+    "읽음 처리하지 못했습니다" : {
+
     },
-    "인증 앱의 6자리 코드를 입력하세요": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enter the 6-digit code from your authenticator app"
+    "읽지 않음" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unread"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "認証アプリの6桁コードを入力してください"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未読"
           }
         }
       }
     },
-    "일": {},
-    "읽음 처리하지 못했습니다": {},
-    "읽지 않음": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Unread"
+    "읽지 않음 %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld unread"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "未読"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未読%lld件"
           }
         }
       }
     },
-    "읽지 않음 %lld": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld unread"
+    "임시" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Drafts"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "未読%lld件"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下書き"
           }
         }
       }
     },
-    "임시": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Drafts"
+    "임시저장" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Draft"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "下書き"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下書き"
           }
         }
       }
     },
-    "임시저장": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Draft"
+    "임시저장한 글이 없습니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No drafts yet."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "下書き"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下書きはありません。"
           }
         }
       }
     },
-    "임시저장한 글이 없습니다.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No drafts yet."
+    "자기소개를 적어보세요" : {
+
+    },
+    "작가" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authors"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "下書きはありません。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作者"
           }
         }
       }
     },
-    "작가": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Authors"
+    "작가 블로그" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Author blog"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "作者"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作者のブログ"
           }
         }
       }
     },
-    "작가 블로그": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Author blog"
+    "작가를 팔로우하면 새 글이 여기 도착해요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Follow writers and their new posts will land here."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "作者のブログ"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作家をフォローすると、新しい記事がここに届きます。"
           }
         }
       }
     },
-    "작가를 팔로우하면 새 글이 여기 도착해요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Follow writers and their new posts will land here."
+    "잘못된 요청입니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invalid request."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "作家をフォローすると、新しい記事がここに届きます。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不正なリクエストです。"
           }
         }
       }
     },
-    "잘못된 요청입니다.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Invalid request."
+    "저장" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "不正なリクエストです。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存"
           }
         }
       }
+    },
+    "저장 상태 보기" : {
+
     },
-    "저장": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Save"
+    "저장됨 %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved %@"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "保存"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存済み %@"
           }
         }
       }
     },
-    "저장됨 %@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Saved %@"
+    "저장하지 못했습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't save"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "保存済み %@"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存できませんでした"
           }
         }
       }
     },
-    "저장하지 못했습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Couldn't save"
+    "전송하지 못했습니다 — 다시 시도해 주세요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't send — please try again."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "保存できませんでした"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "送信できませんでした — もう一度お試しください。"
           }
         }
       }
     },
-    "전송하지 못했습니다 — 다시 시도해 주세요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Couldn't send — please try again."
+    "전체" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "送信できませんでした — もう一度お試しください。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべて"
           }
         }
       }
+    },
+    "전체 기록을 지울까요?" : {
+
+    },
+    "전체 미리보기" : {
+
     },
-    "전체": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "All"
+    "전체 보기" : {
+
+    },
+    "정말 탈퇴할까요?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Really delete your account?"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "すべて"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本当に削除しますか？"
           }
         }
       }
     },
-    "정말 탈퇴할까요?": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Really delete your account?"
+    "정책" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Policies"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "本当に削除しますか？"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ポリシー"
           }
         }
       }
     },
-    "정책": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Policies"
+    "제목" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ポリシー"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトル"
           }
         }
       }
     },
-    "제목": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Title"
+    "제목·내용으로 글을 찾아보세요" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search posts by title or content"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "タイトル"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトルや本文から記事を探せます"
           }
         }
       }
     },
-    "제목·내용으로 글을 찾아보세요": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Search posts by title or content"
+    "제목과 내용으로 글을 검색합니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search posts by title and content."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "タイトルや本文から記事を探せます"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトルと本文で記事を検索します。"
           }
         }
       }
     },
-    "제목과 내용으로 글을 검색합니다.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Search posts by title and content."
+    "제목과 본문을 채우면 발행할 수 있어요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a title and body to publish."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "タイトルと本文で記事を検索します。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトルと本文を入力すると公開できます。"
           }
         }
       }
+    },
+    "제목을 적어 주세요" : {
+
     },
-    "제목과 본문을 채우면 발행할 수 있어요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Add a title and body to publish."
+    "조회" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "views"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "タイトルと本文を入力すると公開できます。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "閲覧"
           }
         }
       }
     },
-    "조회": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "views"
+    "조회 %lld" : {
+
+    },
+    "좋아요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Likes"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "閲覧"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "いいね"
           }
         }
       }
+    },
+    "좋아요 %lld" : {
+
     },
-    "좋아요": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Likes"
+    "좋아요 취소" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlike"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "いいね"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "いいねを取り消す"
           }
         }
       }
     },
-    "좋아요 취소": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Unlike"
+    "좋아요를 반영하지 못했습니다" : {
+
+    },
+    "좋아요와 북마크, 구독, 그리고 글쓰기까지 — 웹과 같은 계정 하나로 이어집니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Likes, bookmarks, subscriptions, and writing — one account, same as the web."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "いいねを取り消す"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "いいね・ブックマーク・購読、そして執筆まで — ウェブと同じひとつのアカウントでつながります。"
           }
         }
       }
     },
-    "좋아요를 반영하지 못했습니다": {},
-    "좋아요와 북마크, 구독, 그리고 글쓰기까지 — 웹과 같은 계정 하나로 이어집니다.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Likes, bookmarks, subscriptions, and writing — one account, same as the web."
+    "좋아요와 북마크는 kurl 계정으로 이어집니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Likes and bookmarks are tied to your kurl account."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "いいね・ブックマーク・購読、そして執筆まで — ウェブと同じひとつのアカウントでつながります。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "いいねとブックマークは kurl アカウントに紐づきます。"
           }
         }
       }
     },
-    "좋아요와 북마크는 kurl 계정으로 이어집니다.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Likes and bookmarks are tied to your kurl account."
+    "좋아요한 글" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liked Posts"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "いいねとブックマークは kurl アカウントに紐づきます。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "いいねした記事"
           }
         }
       }
     },
-    "좋아요한 글": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Liked Posts"
+    "좋아요한 글이 없습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No liked posts"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "いいねした記事"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "いいねした記事はありません"
           }
         }
       }
     },
-    "좋아요한 글이 없습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No liked posts"
+    "좋아요했습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Liked"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "いいねした記事はありません"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "いいねしました"
           }
         }
       }
     },
-    "좋아요했습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Liked"
+    "주제" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Topics"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "いいねしました"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "トピック"
           }
         }
       }
     },
-    "주제": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Topics"
+    "지금 떠오른 생각은…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What's on your mind…"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "トピック"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "いま浮かんだ考えは…"
           }
         }
       }
     },
-    "지금 떠오른 생각은…": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "What's on your mind…"
+    "지금 떠오른 생각을 첫 노트로 남겨보세요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave the thought on your mind as the first note."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "いま浮かんだ考えは…"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "いま浮かんだ考えを最初のノートに残してみましょう。"
           }
         }
       }
     },
-    "지금 떠오른 생각을 첫 노트로 남겨보세요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Leave the thought on your mind as the first note."
+    "지금 뜨는 글" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trending now"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "いま浮かんだ考えを最初のノートに残してみましょう。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "急上昇の記事"
           }
         }
       }
     },
-    "지금 뜨는 글": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Trending now"
+    "지금 발행" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Publish now"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "急上昇の記事"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今すぐ公開"
           }
         }
       }
     },
-    "지금 발행": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Publish now"
+    "지우기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "今すぐ公開"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "消去"
           }
         }
       }
+    },
+    "직접" : {
+
+    },
+    "처음부터 다시" : {
+
+    },
+    "첫 글을 시작하세요" : {
+
     },
-    "지우기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clear"
+    "첫 번째 태그가 대표 — 카드·글 위에 카테고리로 보입니다. (발행 시 1개 필수)" : {
+
+    },
+    "첫 화부터" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From Ep. 1"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "消去"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第1話から"
           }
         }
       }
     },
-    "첫 화부터": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "From Ep. 1"
+    "최근 %lld일" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last %lld days"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "第1話から"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直近%lld日"
           }
         }
       }
     },
-    "최근 %lld일": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Last %lld days"
+    "최근 검색" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recent searches"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "直近%lld日"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近の検索"
           }
         }
       }
     },
-    "최근 검색": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recent searches"
+    "최신" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Latest"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "最近の検索"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最新"
           }
         }
       }
     },
-    "최신": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Latest"
+    "추천" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For You"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "最新"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "おすすめ"
           }
         }
       }
     },
-    "추천 %lld / %lld": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "For you %lld / %lld"
+    "추천 %lld / %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For you %lld / %lld"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "おすすめ %lld / %lld"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "おすすめ %lld / %lld"
           }
         }
       }
     },
-    "추천 작가": {
-      "extractionState": "stale",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Suggested authors"
+    "추천 작가" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suggested authors"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "おすすめの作家"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "おすすめの作家"
           }
         }
       }
     },
-    "취소": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cancel"
+    "취소" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キャンセル"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キャンセル"
           }
         }
       }
     },
-    "커버": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cover"
+    "커버" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cover"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "カバー"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カバー"
           }
         }
       }
+    },
+    "커버 이미지 추가" : {
+
     },
-    "커버 추가": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Add cover"
+    "커버 추가" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add cover"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "カバーを追加"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カバーを追加"
           }
         }
       }
     },
-    "켜짐": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "On"
+    "켜짐" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オン"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オン"
           }
         }
       }
+    },
+    "코드 복사" : {
+
+    },
+    "코드 블록" : {
+
     },
-    "코드 블록": {},
-    "코드가 올바르지 않습니다.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "That code isn't right."
+    "코드가 올바르지 않습니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That code isn't right."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コードが正しくありません。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コードが正しくありません。"
           }
         }
       }
     },
-    "키보드 내리기": {},
-    "탈퇴": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Delete"
+    "키보드 내리기" : {
+
+    },
+    "탈퇴" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "削除"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "削除"
           }
         }
       }
     },
-    "탈퇴하지 못했습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Could not delete the account"
+    "탈퇴하지 못했습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not delete the account"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "削除できませんでした"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "削除できませんでした"
           }
         }
       }
     },
-    "태그": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tags"
+    "태그" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tags"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "タグ"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タグ"
           }
         }
       }
     },
-    "태그 (쉼표로 구분)": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tags (comma separated)"
+    "태그 (쉼표로 구분)" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tags (comma separated)"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "タグ（カンマ区切り）"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タグ（カンマ区切り）"
           }
         }
       }
+    },
+    "태그 구독" : {
+
+    },
+    "태그 더 보기" : {
+
+    },
+    "태그 입력 후 추가 (쉼표로 여러 개)" : {
+
     },
-    "팔로우": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Follow"
+    "태그 추가" : {
+
+    },
+    "태그를 구독하면 그 태그의 새 글이 구독함에 모여요." : {
+
+    },
+    "태블릿" : {
+
+    },
+    "탭하면 대표로 · ✕ 로 삭제" : {
+
+    },
+    "팔로우" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Follow"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フォロー"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォロー"
           }
         }
       }
     },
-    "팔로우 +%lld": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "+%lld follows"
+    "팔로우 +%lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+%lld follows"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フォロー +%lld"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォロー +%lld"
           }
         }
       }
+    },
+    "팔로우를 반영하지 못했습니다" : {
+
     },
-    "팔로우를 반영하지 못했습니다": {},
-    "팔로우하면 새 글을 피드에서 받아볼 수 있어요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Follow to see new posts in your feed."
+    "팔로우하면 새 글을 피드에서 받아볼 수 있어요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Follow to see new posts in your feed."
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フォローすると新しい記事をフィードで受け取れます。"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォローすると新しい記事をフィードで受け取れます。"
           }
         }
       }
     },
-    "팔로워": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Followers"
+    "팔로워" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Followers"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フォロワー"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォロワー"
           }
         }
       }
     },
-    "팔로워 %lld": {
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld follower"
+    "팔로워 %lld" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld follower"
                 }
               },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld followers"
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld followers"
                 }
               }
             }
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フォロワー %lld"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォロワー %lld"
           }
         }
       }
     },
-    "팔로잉": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Following"
+    "팔로잉" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Following"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フォロー中"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォロー中"
           }
         }
       }
     },
-    "편집": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Edit"
+    "편집" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "編集"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "編集"
           }
         }
       }
     },
-    "푸시 알림": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Push Notifications"
+    "푸시 알림" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Push Notifications"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "プッシュ通知"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プッシュ通知"
           }
         }
       }
     },
-    "피드": {},
-    "확인": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "OK"
+    "프로필 편집" : {
+
+    },
+    "피드" : {
+
+    },
+    "하이라이트" : {
+
+    },
+    "하이라이트는 kurl 계정에 저장됩니다." : {
+
+    },
+    "하이라이트한 구절이 없습니다" : {
+
+    },
+    "확인" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "OK"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
           }
         }
       }
     },
-    "회원 탈퇴": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Delete account"
+    "회원 탈퇴" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete account"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アカウントを削除"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アカウントを削除"
           }
         }
       }
     },
-    "회차 목록 접기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Collapse episode list"
+    "회차 목록 접기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collapse episode list"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "回の一覧をたたむ"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回の一覧をたたむ"
           }
         }
       }
     },
-    "회차 목록 펼치기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Expand episode list"
+    "회차 목록 펼치기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Expand episode list"
           }
         },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "回の一覧をひらく"
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "回の一覧をひらく"
           }
         }
       }
+    },
+    "회차별 완주" : {
+
     }
   },
-  "version": "1.0"
+  "version" : "1.0"
 }

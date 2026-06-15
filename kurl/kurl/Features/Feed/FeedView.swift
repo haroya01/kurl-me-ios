@@ -72,7 +72,9 @@ struct FeedView: View {
                 // ZStack 중첩(중앙 스위처 + 우단 벨)은 375pt 기기에서 겹쳤다 — 압축 가능한
                 // HStack 으로. 한 영역의 유리 둘은 컨테이너 하나로 묶는다(§1.4).
                 GlassEffectContainer(spacing: GlassTokens.clusterSpacing) {
-                    HStack(spacing: 10) {
+                    // spacing 0 — 좌우 Spacer 가 중앙 정렬을 맡고, 고정 10pt 간격은 네 탭이
+                    // 좁은 기기에서 넘쳐 캡슐을 줄바꿈시키던 폭을 잡아먹었다(되돌려 길쭉하게).
+                    HStack(spacing: 0) {
                         // 오른쪽 벨과 같은 폭의 투명 균형추 — 스위처가 화면 정중앙에 오게(벨이
                         // 한쪽으로만 밀던 것 보정). 벨이 흐름 안에 남아 좁은 기기 겹침도 없다.
                         if AuthStore.shared.isSignedIn {
