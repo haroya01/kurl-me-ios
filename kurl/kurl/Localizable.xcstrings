@@ -4,114 +4,114 @@
     "" : {
 
     },
-    "읽을수록 좋아집니다" : {
+    "좋아한 글은 내 라이브러리에 쌓여요" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "It gets better the more you read"
+            "value" : "Posts you like collect in your library"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "読むほど良くなります"
+            "value" : "いいねした記事はライブラリに集まります"
           }
         }
       }
     },
-    "로그인하면 읽은 글을 따라 추천이 쌓입니다." : {
+    "이 글에 생각을 남겨보세요" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sign in and your recommendations build from what you read."
+            "value" : "Leave your thoughts on this post"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ログインすると、読んだ記事から推薦が育ちます。"
+            "value" : "この記事に感想を残しましょう"
           }
         }
       }
     },
-    "팔로우한 글이 여기 모입니다" : {
+    "시리즈 새 글을 놓치지 않게" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Where the writers you follow gather"
+            "value" : "So you don't miss new posts in this series"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "フォローした書き手がここに集まります"
+            "value" : "シリーズの新着を見逃さないように"
           }
         }
       }
     },
-    "로그인하면 팔로우한 작가의 새 글이 도착합니다." : {
+    "이 작가의 새 글을 피드에서 받기" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sign in and new posts from writers you follow land here."
+            "value" : "Get this writer's new posts in your feed"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ログインすると、フォロー中の書き手の新着が届きます。"
+            "value" : "この書き手の新着をフィードで受け取る"
           }
         }
       }
     },
-    "아직은 고를 거리가 적어요" : {
+    "이 태그의 새 글을 구독함에 모으기" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Not much to pick from yet"
+            "value" : "Gather this tag's new posts in your inbox"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "まだ選べる記事が少なめです"
+            "value" : "このタグの新着を受信箱に集める"
           }
         }
       }
     },
-    "몇 편 읽고 나면 취향이 잡힙니다." : {
+    "읽을수록 정확해지는 추천 받기" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Read a few and your taste comes into focus."
+            "value" : "Get recommendations that sharpen as you read"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "何本か読むと、好みが見えてきます。"
+            "value" : "読むほど精度が上がる推薦を受け取る"
           }
         }
       }
     },
-    "첫 글이 올라오면 여기에서 만나요." : {
+    "팔로우한 작가의 새 글 모아 보기" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The first posts will show up here."
+            "value" : "See new posts from writers you follow"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "最初の記事がここに表示されます。"
+            "value" : "フォロー中の書き手の新着をまとめて見る"
           }
         }
       }
@@ -1791,8 +1791,21 @@
         }
       }
     },
-    "로그인하면 읽은 글과 관심 주제를 바탕으로 맞춤 글을 추천해 드려요." : {
-
+    "로그인하면 읽은 글을 따라 추천이 쌓입니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in and your recommendations build from what you read."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログインすると、読んだ記事から推薦が育ちます。"
+          }
+        }
+      }
     },
     "로그인하면 취향에 맞는 글을 추천해 드려요." : {
 
@@ -1801,6 +1814,7 @@
 
     },
     "로그인하면 팔로우한 작가와 구독한 시리즈의 새 글이 여기에 모여요." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1812,6 +1826,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ログインすると、フォロー中の作家と購読中のシリーズの新着記事がここに集まります。"
+          }
+        }
+      }
+    },
+    "로그인하면 팔로우한 작가의 새 글이 도착합니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in and new posts from writers you follow land here."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログインすると、フォロー中の書き手の新着が届きます。"
           }
         }
       }
@@ -1949,6 +1979,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "名刺"
+          }
+        }
+      }
+    },
+    "몇 편 읽고 나면 취향이 잡힙니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read a few and your taste comes into focus."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "何本か読むと、好みが見えてきます。"
           }
         }
       }
@@ -2807,6 +2853,22 @@
     "아직 팔로워가 없어요" : {
 
     },
+    "아직은 고를 거리가 적어요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not much to pick from yet"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだ選べる記事が少なめです"
+          }
+        }
+      }
+    },
     "알 수 없는 사용자" : {
       "localizations" : {
         "en" : {
@@ -3345,6 +3407,22 @@
     },
     "읽는 시간 약 %lld분" : {
 
+    },
+    "읽을수록 좋아집니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It gets better the more you read"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読むほど良くなります"
+          }
+        }
+      }
     },
     "읽음 처리하지 못했습니다" : {
 
@@ -3932,6 +4010,22 @@
     "첫 글을 시작하세요" : {
 
     },
+    "첫 글이 올라오면 여기에서 만나요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The first posts will show up here."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最初の記事がここに表示されます。"
+          }
+        }
+      }
+    },
     "첫 번째 태그가 대표 — 카드·글 위에 카테고리로 보입니다. (발행 시 1개 필수)" : {
 
     },
@@ -4275,6 +4369,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "フォローすると新しい記事をフィードで受け取れます。"
+          }
+        }
+      }
+    },
+    "팔로우한 글이 여기 모입니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Where the writers you follow gather"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォローした書き手がここに集まります"
           }
         }
       }

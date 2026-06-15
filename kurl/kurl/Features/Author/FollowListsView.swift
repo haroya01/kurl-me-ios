@@ -70,7 +70,7 @@ struct FollowListsView: View {
         .navigationTitle(username)
         .navigationBarTitleDisplayMode(.inline)
         .task(id: tab) { await reload() }
-        .loginPrompt(isPresented: $showLoginPrompt, message: "팔로우하면 새 글을 피드에서 받아볼 수 있어요.")
+        .loginPrompt(isPresented: $showLoginPrompt, message: "이 작가의 새 글을 피드에서 받기")
     }
 
     private func row(_ user: FollowUser) -> some View {

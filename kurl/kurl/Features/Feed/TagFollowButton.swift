@@ -59,7 +59,7 @@ struct TagFollowButton: View {
         }
         .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
         .task { await model.hydrate() }
-        .loginPrompt(isPresented: $showLoginPrompt, message: "태그를 구독하면 그 태그의 새 글이 구독함에 모여요.") {
+        .loginPrompt(isPresented: $showLoginPrompt, message: "이 태그의 새 글을 구독함에 모으기") {
             await model.hydrate()
         }
     }

@@ -46,7 +46,7 @@ struct FollowButton: View {
         }
         .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
         .task { await model.hydrate() }
-        .loginPrompt(isPresented: $showLoginPrompt, message: "팔로우하면 새 글을 피드에서 받아볼 수 있어요.") {
+        .loginPrompt(isPresented: $showLoginPrompt, message: "이 작가의 새 글을 피드에서 받기") {
             await model.hydrate()
         }
     }

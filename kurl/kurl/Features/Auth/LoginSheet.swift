@@ -15,37 +15,28 @@ struct LoginSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @ScaledMetric(relativeTo: .title3) private var titleSize: CGFloat = 22
-    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
-    @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
-    @State private var contentHeight: CGFloat = 380
+    @State private var contentHeight: CGFloat = 340
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // 작은 브랜드 마크 — 시트가 "kurl 의 것"임을 한눈에.
             KurlMark(drawn: [true, true, true])
                 .frame(width: 40, height: 24)
-                .padding(.bottom, 14)
+                .padding(.bottom, 16)
 
-            Text("kurl 계정으로 이어집니다")
+            // 안내 문구가 곧 제목 — "계정으로 이어집니다" 류 보일러플레이트·"안전하게
+            // 진행됩니다" 류 과잉 안심을 걷고, 그 순간의 행동 가치 한 줄만 남긴다.
+            Text(message)
                 .font(.system(size: titleSize, weight: .bold))
                 .foregroundStyle(Palette.ink)
-
-            Text(message)
-                .font(.system(size: 15 * unit))
-                .foregroundStyle(Palette.secondary)
-                .lineSpacing(4)
-                .padding(.top, 8)
+                .fixedSize(horizontal: false, vertical: true)
+                .lineSpacing(2)
 
             AuthProviderButtons {
                 await onSignedIn()
                 dismiss()
             }
-            .padding(.top, 22)
-
-            Text("로그인은 시스템 브라우저에서 안전하게 진행됩니다.")
-                .font(.system(size: 12 * metaUnit))
-                .foregroundStyle(Palette.secondary)
-                .padding(.top, 12)
+            .padding(.top, 24)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, Metrics.gutter)

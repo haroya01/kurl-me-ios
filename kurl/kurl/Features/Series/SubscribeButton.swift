@@ -42,7 +42,7 @@ struct SubscribeButton: View {
         }
         .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
         .task { await model.hydrate() }
-        .loginPrompt(isPresented: $showLoginPrompt, message: "구독하면 시리즈에 새 글이 올라올 때 알 수 있어요.") {
+        .loginPrompt(isPresented: $showLoginPrompt, message: "시리즈 새 글을 놓치지 않게") {
             await model.hydrate()
         }
     }

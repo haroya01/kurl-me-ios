@@ -1075,7 +1075,7 @@ struct GlassCommentBar: View {
                 onDone()
             }
         }
-        .loginPrompt(isPresented: $showLoginPrompt, message: "댓글은 kurl 계정으로 남겨집니다.")
+        .loginPrompt(isPresented: $showLoginPrompt, message: "이 글에 생각을 남겨보세요")
     }
 
     private var canSend: Bool {

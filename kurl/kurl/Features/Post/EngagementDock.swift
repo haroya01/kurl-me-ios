@@ -31,7 +31,7 @@ struct EngagementDock: View {
         }
         .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
         .task(id: AuthStore.shared.isSignedIn) { await model.hydrate() }
-        .loginPrompt(isPresented: $showLoginPrompt, message: "좋아요와 북마크는 kurl 계정으로 이어집니다.") {
+        .loginPrompt(isPresented: $showLoginPrompt, message: "좋아한 글은 내 라이브러리에 쌓여요") {
             await model.hydrate()
         }
     }
