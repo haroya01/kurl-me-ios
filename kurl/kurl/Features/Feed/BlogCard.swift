@@ -166,26 +166,23 @@ struct BlogCard: View {
     }
 }
 
-/// featured(오늘의 글) 신호 — 그린 점 + 라벨. cover 위에선 흰 pill 로 가독 확보.
+/// featured(오늘의 글) 신호 — 위계는 큰 제목(typeScale .featured)이 지므로 라벨은 조용한 eyebrow.
+/// 초록 점은 빼고 muted 로(초록=주액션·데이터 전용). cover 위에선 흰 pill 로 가독 확보.
 private struct FeaturedBadge: View {
     let over: Bool
 
     var body: some View {
-        HStack(spacing: 5) {
-            Circle()
-                .fill(Palette.accent)
-                .frame(width: 6, height: 6)
-            Text("오늘의 글")
-                .font(.system(size: 11, weight: .semibold))
-        }
-        .foregroundStyle(over ? Color(hex: 0x0F172A) : Palette.link)
-        .padding(.horizontal, over ? 9 : 0)
-        .padding(.vertical, over ? 4 : 0)
-        .background {
-            if over {
-                Capsule().fill(.white.opacity(0.9))
+        Text("오늘의 글")
+            .font(.system(size: 11, weight: .semibold))
+            .tracking(0.4)
+            .foregroundStyle(over ? Color(hex: 0x0F172A) : Palette.secondary)
+            .padding(.horizontal, over ? 9 : 0)
+            .padding(.vertical, over ? 4 : 0)
+            .background {
+                if over {
+                    Capsule().fill(.white.opacity(0.9))
+                }
             }
-        }
     }
 }
 
@@ -210,7 +207,7 @@ private struct CardMeta: View {
                 HStack(spacing: 3) {
                     Image(systemName: "heart")
                         .font(.system(size: 10))
-                        .foregroundStyle(over ? tone : Palette.accentMarker)
+                        .foregroundStyle(tone)
                     Text("\(item.likeCount)")
                 }
             }

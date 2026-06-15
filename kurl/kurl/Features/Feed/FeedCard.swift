@@ -19,7 +19,8 @@ struct FeedRow: View {
                 if featured {
                     Text("오늘의 글")
                         .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Palette.link)
+                        .tracking(0.4)
+                        .foregroundStyle(Palette.secondary)
                 }
                 if let tag = item.tags.first {
                     Text("#\(tag)")
