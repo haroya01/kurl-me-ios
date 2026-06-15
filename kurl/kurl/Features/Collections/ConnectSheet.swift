@@ -2,8 +2,9 @@
 //  ConnectSheet.swift
 //  kurl
 //
-//  "연결" — §0의 동사. 글/하이라이트/노트를 컬렉션에 잇는다(broadcast 아님). 여러 컬렉션에
-//  동시에, 그리고 "왜 이었는지" 한 줄(선택). 백엔드 `POST /collections/{id}/connections`.
+//  "연결" — §0의 동사. 글/하이라이트/노트를 컬렉션에 잇는다(broadcast 아님).
+//  2단계 뎁스: ① 어디에 남길까요(컬렉션 고르기) → ② 추가(왜 한 줄 + 확정).
+//  "왜 한 줄"이 단순 북마크와 컬렉션을 가르는 영혼이라, 고른 뒤의 집중된 한 순간으로 둔다.
 //
 
 import SwiftUI
@@ -24,19 +25,29 @@ struct ConnectSheet: View {
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("어디에 이을까요")
-                .typeScale(.titleSmall)
-                .foregroundStyle(Palette.ink)
-                .padding(.top, 26)
+        NavigationStack {
+            step1
+                .navigationTitle("어디에 남길까요?")
+                .navigationBarTitleDisplayMode(.inline)
+        }
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+        .background(Palette.readingBg)
+        .task { await loadCollections() }
+    }
 
-            targetPreview.padding(.top, 12)
-            whyField.padding(.top, 14)
-            Hairline().padding(.top, 16)
+    private func loadCollections() async {
+        collections = (try? await CollectionsAPI.mine()) ?? []
+        loading = false
+    }
 
+    // MARK: ① 어디에 남길까요 — 컬렉션 고르기
+
+    private var step1: some View {
+        VStack(spacing: 0) {
             if loading {
                 ProgressView().tint(Palette.accent)
-                    .frame(maxWidth: .infinity, minHeight: 160)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
@@ -49,48 +60,27 @@ struct ConnectSheet: View {
                 }
                 .scrollIndicators(.hidden)
             }
-
-            connectButton
+            nextButton
         }
         .padding(.horizontal, Metrics.gutter)
         .padding(.bottom, 16)
-        .presentationDetents([.large])
-        .presentationDragIndicator(.visible)
-        .background(Palette.readingBg)
-        .task { await loadCollections() }
     }
 
-    private func loadCollections() async {
-        collections = (try? await CollectionsAPI.mine()) ?? []
-        loading = false
-    }
-
-    // MARK: 무엇을 잇나 — 작은 프리뷰
-
-    private var targetPreview: some View {
-        HStack(spacing: 8) {
-            // 회색 칩 대신 조용한 eyebrow 라벨 — 종류는 글자만으로 충분히 읽힌다.
-            Text(targetKind)
-                .font(.system(size: 11 * metaUnit, weight: .bold))
-                .tracking(0.4)
-                .foregroundStyle(Palette.faint)
-            Text(targetTitle)
-                .font(.system(size: 15 * unit, weight: .medium))
-                .foregroundStyle(Palette.ink)
-                .lineLimit(1)
-            Spacer(minLength: 0)
+    private var nextButton: some View {
+        NavigationLink {
+            step2
+        } label: {
+            Text(selected.isEmpty ? "컬렉션을 골라주세요" : "다음")
+                .font(.system(size: 16 * unit, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .glassCapsule(prominent: true)
         }
-    }
-
-    private var whyField: some View {
-        // 회색 채움 박스 대신 밑줄 한 줄 — 입력이되 종이 위에 글자가 그대로 앉는다.
-        VStack(alignment: .leading, spacing: 9) {
-            TextField("왜 잇는지 한 줄 (선택)", text: $why, axis: .vertical)
-                .lineLimit(1...3)
-                .font(.system(size: 15 * unit))
-                .foregroundStyle(Palette.ink)
-            Hairline()
-        }
+        .buttonStyle(.plain)
+        .disabled(selected.isEmpty)
+        .opacity(selected.isEmpty ? 0.5 : 1)
+        .padding(.top, 12)
     }
 
     private func collectionRow(_ c: CollectionSummary) -> some View {
@@ -142,8 +132,81 @@ struct ConnectSheet: View {
         .buttonStyle(RowButtonStyle())
     }
 
+    // MARK: ② 추가 — 왜 한 줄 + 확정
+
+    private var step2: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            targetPreview.padding(.top, 18)
+
+            // "왜"가 자기 화면을 얻는다 — 고른 뒤의 집중된 한 순간(§0 큐레이션 영혼).
+            Text("왜 이었나요")
+                .font(.system(size: 13 * metaUnit, weight: .bold))
+                .tracking(0.4)
+                .foregroundStyle(Palette.faint)
+                .padding(.top, 24)
+                .padding(.bottom, 10)
+            whyField
+
+            Text("\(selected.count)개 컬렉션에 추가됩니다.")
+                .font(.system(size: 12 * metaUnit))
+                .foregroundStyle(Palette.faint)
+                .padding(.top, 12)
+
+            Spacer(minLength: 0)
+            addButton
+        }
+        .padding(.horizontal, Metrics.gutter)
+        .padding(.bottom, 16)
+        .navigationTitle("추가")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var targetPreview: some View {
+        HStack(spacing: 8) {
+            Text(targetKind)
+                .font(.system(size: 11 * metaUnit, weight: .bold))
+                .tracking(0.4)
+                .foregroundStyle(Palette.faint)
+            Text(targetTitle)
+                .font(.system(size: 15 * unit, weight: .medium))
+                .foregroundStyle(Palette.ink)
+                .lineLimit(2)
+            Spacer(minLength: 0)
+        }
+    }
+
+    private var whyField: some View {
+        // 회색 채움 박스 대신 밑줄 한 줄 — 입력이되 종이 위에 글자가 그대로 앉는다.
+        VStack(alignment: .leading, spacing: 9) {
+            TextField("한 줄 (선택)", text: $why, axis: .vertical)
+                .lineLimit(1...4)
+                .font(.system(size: 16 * unit))
+                .foregroundStyle(Palette.ink)
+            Hairline()
+        }
+    }
+
+    private var addButton: some View {
+        Button {
+            Task { await connectAll() }
+        } label: {
+            Group {
+                if saving { ProgressView().tint(.white) } else { Text("추가") }
+            }
+            .font(.system(size: 16 * unit, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .glassCapsule(prominent: true)
+        }
+        .buttonStyle(.plain)
+        .disabled(saving)
+        .padding(.top, 12)
+    }
+
+    // MARK: 동작
+
     private func createAndSelect() async {
-        // 빈 이름의 즉석 컬렉션은 막고, 대상 제목에서 한 단어를 따 기본 이름으로.
         let name = targetTitle.isEmpty ? String(localized: "새 컬렉션") : targetTitle
         guard let created = try? await CollectionsAPI.create(
             title: name, description: nil, visibility: .private)
@@ -153,29 +216,6 @@ struct ConnectSheet: View {
         }
         collections.insert(created, at: 0)
         selected.insert(created.id)
-    }
-
-    private var connectButton: some View {
-        Button {
-            Task { await connectAll() }
-        } label: {
-            Group {
-                if saving {
-                    ProgressView().tint(.white)
-                } else {
-                    Text(selected.isEmpty ? "컬렉션을 골라주세요" : "연결")
-                }
-            }
-            .font(.system(size: 16 * unit, weight: .semibold))
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .glassCapsule(prominent: true)
-        }
-        .buttonStyle(.plain)
-        .disabled(selected.isEmpty || saving)
-        .opacity(selected.isEmpty ? 0.5 : 1)
-        .padding(.top, 12)
     }
 
     private func connectAll() async {
@@ -192,11 +232,10 @@ struct ConnectSheet: View {
                 failures += 1
             }
         }
-        if failures > 0 {
-            ToastCenter.shared.show(String(localized: "일부 연결에 실패했습니다"))
-        } else {
-            ToastCenter.shared.show(String(localized: "연결했어요"))
-        }
+        ToastCenter.shared.show(
+            failures > 0
+                ? String(localized: "일부 연결에 실패했습니다")
+                : String(localized: "추가했어요"))
         dismiss()
     }
 }
