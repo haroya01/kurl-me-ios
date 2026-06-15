@@ -69,9 +69,9 @@ enum Palette {
     // 950/900 톤 레이어링과 대칭). 순백은 글 상세 본문·에디터 캔버스만 쓴다.
     static let pageBg = Color(light: 0xF8FAFC, dark: 0x020617)
 
-    // 읽기 면(글 상세 본문·에디터 캔버스) = slate-50 — pageBg 와 같은 종이 톤이라 본문 위
-    // 흰 카드("이 작가의 다른 글" 등)가 "종이 위 종이"가 되지 않고 뜬다. 다크는 OLED 순흑.
-    static let readingBg = Color(light: 0xF8FAFC, dark: 0x000000)
+    // 읽기 면(글 상세 본문·에디터 캔버스·발견 덱) = 순백. 종이 세계의 본문은 흰 종이,
+    // 카드(browse)는 slate-50 pageBg 위에서 뜬다(§1). 다크는 OLED 순흑.
+    static let readingBg = Color(light: 0xFFFFFF, dark: 0x000000)
 
     // 카드 (browse 면 전용 — 읽기 면은 여전히 flat 행)
     static let cardBg = Color(light: 0xFFFFFF, dark: 0x0F172A)     // white / slate-900
