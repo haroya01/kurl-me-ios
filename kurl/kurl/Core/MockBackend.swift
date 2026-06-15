@@ -331,6 +331,55 @@ enum MockBackend {
     /// 옵셔널 문자열을 JSON 값으로 — nil 은 NSNull(JSONSerialization 호환).
     private static func orNull(_ v: String?) -> Any { v.map { $0 as Any } ?? NSNull() }
 
+    private static func curator(_ id: Int64, _ username: String) -> [String: Any] {
+        ["id": id, "username": username, "bio": NSNull(), "avatarUrl": NSNull()]
+    }
+
+    /// 발견 흐름 목 — 팔로우한 큐레이터(minji·sori)가 공개 컬렉션에 최근 이은 것.
+    private static func discoverFeedMock() -> [[String: Any]] {
+        [
+            [
+                "id": 1, "curator": curator(2, "minji"),
+                "collectionId": 101, "collectionTitle": "느린 사고",
+                "why": "구현보다 경계를 먼저 세우는 사람의 기록. 두고두고 다시 본다.",
+                "connectedAt": iso(Date().addingTimeInterval(-3600)),
+                "blockType": "POST", "title": "헥사고날로 갈아탄 지 석 달",
+                "excerpt": "결론부터 적는다. 다시 돌아가라면 또 갈아탄다.",
+                "slug": "hexagonal-after-3-months", "username": "honggildong",
+                "quote": NSNull(), "body": NSNull(),
+            ],
+            [
+                "id": 2, "curator": curator(3, "sori"),
+                "collectionId": 201, "collectionTitle": "오늘의 문장",
+                "why": "덜어내기에 대해 이보다 정확한 한 줄을 못 봤다.",
+                "connectedAt": iso(Date().addingTimeInterval(-7200)),
+                "blockType": "HIGHLIGHT", "title": "토큰이 사라진 밤",
+                "excerpt": NSNull(), "slug": "the-night-tokens-vanished",
+                "username": "honggildong",
+                "quote": "좋은 추상은 더 지울 게 없을 때 완성된다.", "body": NSNull(),
+            ],
+            [
+                "id": 3, "curator": curator(2, "minji"),
+                "collectionId": 102, "collectionTitle": "경계 긋기",
+                "why": NSNull(),
+                "connectedAt": iso(Date().addingTimeInterval(-86_400)),
+                "blockType": "NOTE", "title": NSNull(), "excerpt": NSNull(),
+                "slug": NSNull(), "username": NSNull(), "quote": NSNull(),
+                "body": "결정을 미루는 건 게으름이 아니라, 더 나은 질문을 기다리는 일일 때가 있다.",
+            ],
+            [
+                "id": 4, "curator": curator(3, "sori"),
+                "collectionId": 202, "collectionTitle": "다시 읽고 싶은",
+                "why": "레이어링을 관심사 분리로 읽어낸 글. 코드에도 그대로 적용된다.",
+                "connectedAt": iso(Date().addingTimeInterval(-172_800)),
+                "blockType": "POST", "title": "유리 위에 유리를 얹지 않기",
+                "excerpt": "겹치는 순간 둘 다 탁해진다. 레이어는 하나씩.",
+                "slug": "liquid-glass-without-glass-on-glass", "username": "honggildong",
+                "quote": NSNull(), "body": NSNull(),
+            ],
+        ]
+    }
+
     private static func collectionSummary(_ c: MockCollection) -> [String: Any] {
         [
             "id": c.id, "title": c.title,
@@ -362,6 +411,13 @@ enum MockBackend {
     /// 처리하면 응답 바디, 아니면 nil → 실네트워크로.
     static func respond(path: String, method: String, body: Data?) -> Data? {
         let parts = path.split(separator: "/").map(String.init)
+
+        // 발견 — 팔로우한 큐레이터의 연결 흐름(Phase 2).
+        if method == "GET", parts == ["feed", "connections"] {
+            return json([
+                "items": discoverFeedMock(), "page": 0, "size": 20, "hasNext": false,
+            ])
+        }
 
         // 컬렉션 — 내 목록 / 상세 / 생성 / 연결 / 연결끊기 / 삭제.
         if method == "GET", parts == ["users", "me", "collections"] {

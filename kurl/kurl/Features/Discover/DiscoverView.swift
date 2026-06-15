@@ -10,7 +10,9 @@
 import SwiftUI
 
 struct DiscoverView: View {
-    @State private var events = CollectionsMock.discoverFeed
+    @State private var events: [ConnectionEvent] = []
+    @State private var loading = true
+    @State private var failed = false
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
@@ -19,12 +21,21 @@ struct DiscoverView: View {
             ReadingColumn(spacing: 0) {
                 // 콘텐츠가 edge-to-edge로 흐른다 — 피드 탭과 같은 결(고정 "발견" 타이틀 ❌).
                 Color.clear.frame(height: 8)
-                LazyVStack(spacing: 0) {
-                    ForEach(Array(events.enumerated()), id: \.element.id) { index, event in
-                        ConnectionEventCard(event: event)
-                            .modifier(QuietAppear(index: index))
-                        if index < events.count - 1 {
-                            Hairline().padding(.vertical, 10)
+                if loading {
+                    ProgressView().tint(Palette.accent)
+                        .frame(maxWidth: .infinity, minHeight: 320)
+                } else if failed {
+                    failedState
+                } else if events.isEmpty {
+                    emptyState
+                } else {
+                    LazyVStack(spacing: 0) {
+                        ForEach(Array(events.enumerated()), id: \.element.id) { index, event in
+                            ConnectionEventCard(event: event)
+                                .modifier(QuietAppear(index: index))
+                            if index < events.count - 1 {
+                                Hairline().padding(.vertical, 10)
+                            }
                         }
                     }
                 }
@@ -33,7 +44,43 @@ struct DiscoverView: View {
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: CollectionRef.self) { CollectionDetailView(collectionId: $0.id) }
             .navigationDestination(for: Route.self) { RouteView(route: $0) }
+            .task { await load() }
+            .refreshable { await load() }
         }
+    }
+
+    private func load() async {
+        failed = false
+        do {
+            events = try await CollectionsAPI.discoverFeed()
+            loading = false
+        } catch {
+            loading = false
+            if events.isEmpty { failed = true }
+        }
+    }
+
+    // 콜드스타트 — 팔로우가 없으면 백엔드가 빈 피드를 준다. 막다른 길이 아니라 작가 찾기로.
+    private var emptyState: some View {
+        ContentUnavailableView {
+            Label("아직 흐를 게 없어요", systemImage: "sparkles")
+        } description: {
+            Text("작가를 팔로우하면, 그들이 컬렉션에 이은 글이 여기에 흘러요.")
+        } actions: {
+            Button("읽을 글 찾기") { TabRouter.shared.selection = 0 }
+                .foregroundStyle(Palette.accent)
+        }
+        .padding(.top, 80)
+    }
+
+    private var failedState: some View {
+        ContentUnavailableView {
+            Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
+        } actions: {
+            Button("다시 시도") { Task { loading = true; await load() } }
+                .foregroundStyle(Palette.accent)
+        }
+        .padding(.top, 80)
     }
 }
 
@@ -51,10 +98,12 @@ private struct ConnectionEventCard: View {
                 Text(event.curator.username)
                     .font(.system(size: 13 * metaUnit, weight: .semibold))
                     .foregroundStyle(Palette.secondary)
-                Text("·").foregroundStyle(Palette.faint)
-                Text(event.connectedAt.relativeShort)
-                    .font(.system(size: 13 * metaUnit))
-                    .foregroundStyle(Palette.faint)
+                if let at = event.connectedAt {
+                    Text("·").foregroundStyle(Palette.faint)
+                    Text(at.relativeShort)
+                        .font(.system(size: 13 * metaUnit))
+                        .foregroundStyle(Palette.faint)
+                }
                 Spacer(minLength: 0)
             }
 

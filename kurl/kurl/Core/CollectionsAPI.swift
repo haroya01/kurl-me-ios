@@ -15,6 +15,13 @@ enum CollectionsAPI {
         try await client.get("/users/me/collections", authenticated: true)
     }
 
+    /// 발견 — 내가 팔로우한 큐레이터들의 공개 컬렉션 연결 흐름(최신순). 팔로우 0이면 빈 배열.
+    static func discoverFeed() async throws -> [ConnectionEvent] {
+        let view: DiscoverFeedResponse = try await client.get(
+            "/feed/connections", authenticated: true)
+        return view.items
+    }
+
     /// 컬렉션 상세 — 연결된 블록(글·하이라이트·노트) 해석 포함.
     static func detail(id: Int64) async throws -> CollectionDetail {
         try await client.get("/collections/\(id)", authenticated: true)
