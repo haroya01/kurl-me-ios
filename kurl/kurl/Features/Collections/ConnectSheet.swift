@@ -68,13 +68,12 @@ struct ConnectSheet: View {
     // MARK: 무엇을 잇나 — 작은 프리뷰
 
     private var targetPreview: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
+            // 회색 칩 대신 조용한 eyebrow 라벨 — 종류는 글자만으로 충분히 읽힌다.
             Text(targetKind)
-                .font(.system(size: 11 * metaUnit, weight: .semibold))
-                .foregroundStyle(Palette.chipText)
-                .padding(.horizontal, 9)
-                .padding(.vertical, 4)
-                .background(Palette.chipBg, in: Capsule())
+                .font(.system(size: 11 * metaUnit, weight: .bold))
+                .tracking(0.4)
+                .foregroundStyle(Palette.faint)
             Text(targetTitle)
                 .font(.system(size: 15 * unit, weight: .medium))
                 .foregroundStyle(Palette.ink)

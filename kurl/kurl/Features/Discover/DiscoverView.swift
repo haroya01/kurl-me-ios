@@ -213,7 +213,8 @@ struct BlockPreview: View {
             .buttonStyle(.plain)
 
         case let .note(body):
-            // 노트 = 붙잡은 생각. 흰 카드도 인용도 아닌, 부드러운 틴트 패널(보더 ❌).
+            // 노트 = 붙잡은 생각. 회색 박스 없이 바로 본문 — 글(카드)·하이라이트(그린 룰)와
+            // 실루엣으로 구분되고, 노트는 가장 조용하게 종이 위에 그대로 앉는다.
             VStack(alignment: .leading, spacing: 8) {
                 kindTag("노트", icon: "text.quote")
                 Text(body)
@@ -223,8 +224,6 @@ struct BlockPreview: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(14)
-            .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous))
         }
     }
 
