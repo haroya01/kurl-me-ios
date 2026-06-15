@@ -289,7 +289,7 @@ struct PostDetailView: View {
                 EngagementDock(
                     postId: detail.post.id, initialLikeCount: detail.post.likeCount,
                     offlineRef: (username: detail.author.username, slug: detail.post.slug),
-                    connectTarget: (title: detail.post.title, username: detail.author.username)
+                    connectTarget: (title: detail.post.title, postId: detail.post.id)
                 )
                 .padding(.trailing, 14)
                 .padding(.bottom, 10)

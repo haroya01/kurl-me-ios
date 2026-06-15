@@ -3,7 +3,7 @@
 //  kurl
 //
 //  "연결" — §0의 동사. 글/하이라이트/노트를 컬렉션에 잇는다(broadcast 아님). 여러 컬렉션에
-//  동시에, 그리고 "왜 이었는지" 한 줄(선택). 가볍고 조용하게(docs/collections-design.md).
+//  동시에, 그리고 "왜 이었는지" 한 줄(선택). 백엔드 `POST /collections/{id}/connections`.
 //
 
 import SwiftUI
@@ -11,10 +11,14 @@ import SwiftUI
 struct ConnectSheet: View {
     let targetKind: LocalizedStringKey
     let targetTitle: String
+    let blockType: ConnectionBlockKind
+    let refId: Int64
 
     @State private var why = ""
     @State private var selected: Set<Int64> = []
-    @State private var collections = CollectionsMock.mine
+    @State private var collections: [CollectionSummary] = []
+    @State private var loading = true
+    @State private var saving = false
     @Environment(\.dismiss) private var dismiss
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
@@ -26,24 +30,25 @@ struct ConnectSheet: View {
                 .foregroundStyle(Palette.ink)
                 .padding(.top, 26)
 
-            targetPreview
-                .padding(.top, 12)
-
-            whyField
-                .padding(.top, 14)
-
+            targetPreview.padding(.top, 12)
+            whyField.padding(.top, 14)
             Hairline().padding(.top, 16)
 
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(collections) { c in
-                        collectionRow(c)
-                        Hairline()
+            if loading {
+                ProgressView().tint(Palette.accent)
+                    .frame(maxWidth: .infinity, minHeight: 160)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 0) {
+                        ForEach(collections) { c in
+                            collectionRow(c)
+                            Hairline()
+                        }
+                        newCollectionRow
                     }
-                    newCollectionRow
                 }
+                .scrollIndicators(.hidden)
             }
-            .scrollIndicators(.hidden)
 
             connectButton
         }
@@ -52,6 +57,12 @@ struct ConnectSheet: View {
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .background(Palette.readingBg)
+        .task { await loadCollections() }
+    }
+
+    private func loadCollections() async {
+        collections = (try? await CollectionsAPI.mine()) ?? []
+        loading = false
     }
 
     // MARK: 무엇을 잇나 — 작은 프리뷰
@@ -71,8 +82,6 @@ struct ConnectSheet: View {
             Spacer(minLength: 0)
         }
     }
-
-    // MARK: 왜 이었는지 — 한 줄(선택). 컬렉션의 목소리.
 
     private var whyField: some View {
         TextField("왜 잇는지 한 줄 (선택)", text: $why, axis: .vertical)
@@ -103,7 +112,6 @@ struct ConnectSheet: View {
                     .foregroundStyle(Palette.faint)
                 }
                 Spacer(minLength: 0)
-                // 선택 = 그린 체크(주액션이라 초록 허용, §10). 미선택 = 빈 원.
                 Image(systemName: selected.contains(c.id) ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 20 * unit))
                     .foregroundStyle(selected.contains(c.id) ? Palette.accent : Palette.faint)
@@ -116,11 +124,7 @@ struct ConnectSheet: View {
 
     private var newCollectionRow: some View {
         Button {
-            let new = CollectionSummary(
-                id: Int64(900 + collections.count), title: "새 컬렉션",
-                blurb: nil, visibility: .private, curator: CollectionsMock.hong, items: [])
-            collections.append(new)
-            selected.insert(new.id)
+            Task { await createAndSelect() }
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: "plus")
@@ -138,20 +142,61 @@ struct ConnectSheet: View {
         .buttonStyle(RowButtonStyle())
     }
 
+    private func createAndSelect() async {
+        // 빈 이름의 즉석 컬렉션은 막고, 대상 제목에서 한 단어를 따 기본 이름으로.
+        let name = targetTitle.isEmpty ? String(localized: "새 컬렉션") : targetTitle
+        guard let created = try? await CollectionsAPI.create(
+            title: name, description: nil, visibility: .private)
+        else {
+            ToastCenter.shared.show(String(localized: "컬렉션을 만들지 못했습니다"))
+            return
+        }
+        collections.insert(created, at: 0)
+        selected.insert(created.id)
+    }
+
     private var connectButton: some View {
         Button {
-            dismiss()
+            Task { await connectAll() }
         } label: {
-            Text(selected.isEmpty ? "컬렉션을 골라주세요" : "연결")
-                .font(.system(size: 16 * unit, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .glassCapsule(prominent: true)
+            Group {
+                if saving {
+                    ProgressView().tint(.white)
+                } else {
+                    Text(selected.isEmpty ? "컬렉션을 골라주세요" : "연결")
+                }
+            }
+            .font(.system(size: 16 * unit, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .glassCapsule(prominent: true)
         }
         .buttonStyle(.plain)
-        .disabled(selected.isEmpty)
+        .disabled(selected.isEmpty || saving)
         .opacity(selected.isEmpty ? 0.5 : 1)
         .padding(.top, 12)
+    }
+
+    private func connectAll() async {
+        saving = true
+        defer { saving = false }
+        let line = why.trimmingCharacters(in: .whitespacesAndNewlines)
+        var failures = 0
+        for collectionId in selected {
+            do {
+                try await CollectionsAPI.connect(
+                    collectionId: collectionId, blockType: blockType, refId: refId,
+                    why: line.isEmpty ? nil : line)
+            } catch {
+                failures += 1
+            }
+        }
+        if failures > 0 {
+            ToastCenter.shared.show(String(localized: "일부 연결에 실패했습니다"))
+        } else {
+            ToastCenter.shared.show(String(localized: "연결했어요"))
+        }
+        dismiss()
     }
 }

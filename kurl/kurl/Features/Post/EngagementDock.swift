@@ -17,13 +17,13 @@ struct EngagementDock: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var glassNS
 
-    /// "연결" 시트가 잇는 대상(글 제목·작가). 없으면 연결 버튼을 감춘다.
-    private let connectTarget: (title: String, username: String)?
+    /// "연결" 시트가 잇는 대상(글 제목·글 id). 없으면 연결 버튼을 감춘다.
+    private let connectTarget: (title: String, postId: Int64)?
 
     init(
         postId: Int64, initialLikeCount: Int64,
         offlineRef: (username: String, slug: String)? = nil,
-        connectTarget: (title: String, username: String)? = nil
+        connectTarget: (title: String, postId: Int64)? = nil
     ) {
         self.connectTarget = connectTarget
         _model = State(
@@ -48,7 +48,9 @@ struct EngagementDock: View {
         }
         .sheet(isPresented: $showConnect) {
             if let target = connectTarget {
-                ConnectSheet(targetKind: "글", targetTitle: target.title)
+                ConnectSheet(
+                    targetKind: "글", targetTitle: target.title,
+                    blockType: .post, refId: target.postId)
             }
         }
     }

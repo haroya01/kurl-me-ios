@@ -272,11 +272,150 @@ enum MockBackend {
             ])),
     ]
 
+    // MARK: 컬렉션(연결 그래프) 목 상태
+
+    struct MockConnection {
+        let id: Int64
+        let blockType: String
+        let why: String?
+        var title: String?
+        var excerpt: String?
+        var slug: String?
+        var username: String?
+        var quote: String?
+        var body: String?
+    }
+    struct MockCollection {
+        let id: Int64
+        var title: String
+        var description: String?
+        var visibility: String
+        var connections: [MockConnection]
+    }
+
+    static var collections: [MockCollection] = [
+        MockCollection(
+            id: 101, title: "느린 사고", description: "빨리 답하지 않고 오래 머문 글들.", visibility: "PUBLIC",
+            connections: [
+                MockConnection(
+                    id: 501, blockType: "HIGHLIGHT", why: "추상이 먼저가 아니라 경계가 먼저라는 한 문장. 여기서 시작.",
+                    title: "헥사고날로 갈아탄 지 석 달", slug: "hexagonal-after-3-months",
+                    username: "honggildong", quote: "경계를 먼저 긋고, 구현은 그 바깥으로 민다."),
+                MockConnection(
+                    id: 502, blockType: "POST", why: "더 지울 게 없을 때 완성된다 — 느린 사고의 다른 얼굴.",
+                    title: "토큰이 사라진 밤", excerpt: "디자인 토큰을 지웠더니 오히려 화면이 선명해졌다.",
+                    slug: "the-night-tokens-vanished", username: "honggildong"),
+                MockConnection(
+                    id: 503, blockType: "NOTE", why: nil,
+                    body: "결정을 미루는 건 게으름이 아니라, 더 나은 질문을 기다리는 일일 때가 있다."),
+            ]),
+        MockCollection(
+            id: 102, title: "경계 긋기", description: "도메인·관계·코드에서 선을 긋는 법.", visibility: "PRIVATE",
+            connections: [
+                MockConnection(
+                    id: 511, blockType: "POST", why: "레이어의 경계 = 관심사의 경계.",
+                    title: "유리 위에 유리를 얹지 않기", excerpt: "겹치는 순간 둘 다 탁해진다. 레이어는 하나씩.",
+                    slug: "liquid-glass-without-glass-on-glass", username: "honggildong"),
+            ]),
+        MockCollection(
+            id: 103, title: "다시 읽고 싶은", description: nil, visibility: "UNLISTED",
+            connections: [
+                MockConnection(
+                    id: 521, blockType: "NOTE", why: nil,
+                    body: "좋은 글은 두 번째 읽을 때 다른 문장이 밑줄 쳐진다."),
+            ]),
+    ]
+    static var nextCollectionId: Int64 = 110
+    static var nextConnectionId: Int64 = 600
+
+    /// 옵셔널 문자열을 JSON 값으로 — nil 은 NSNull(JSONSerialization 호환).
+    private static func orNull(_ v: String?) -> Any { v.map { $0 as Any } ?? NSNull() }
+
+    private static func collectionSummary(_ c: MockCollection) -> [String: Any] {
+        [
+            "id": c.id, "title": c.title,
+            "description": orNull(c.description),
+            "visibility": c.visibility, "count": c.connections.count,
+            "updatedAt": iso(Date()),
+        ]
+    }
+
+    private static func collectionDetail(_ c: MockCollection) -> [String: Any] {
+        [
+            "id": c.id, "title": c.title,
+            "description": orNull(c.description),
+            "visibility": c.visibility, "curatorUsername": myUsername,
+            "connections": c.connections.map { conn in
+                [
+                    "id": conn.id, "blockType": conn.blockType,
+                    "why": orNull(conn.why), "connectedAt": iso(Date()),
+                    "title": orNull(conn.title), "excerpt": orNull(conn.excerpt),
+                    "slug": orNull(conn.slug), "username": orNull(conn.username),
+                    "quote": orNull(conn.quote), "body": orNull(conn.body),
+                ]
+            },
+        ]
+    }
+
     // MARK: 라우팅
 
     /// 처리하면 응답 바디, 아니면 nil → 실네트워크로.
     static func respond(path: String, method: String, body: Data?) -> Data? {
         let parts = path.split(separator: "/").map(String.init)
+
+        // 컬렉션 — 내 목록 / 상세 / 생성 / 연결 / 연결끊기 / 삭제.
+        if method == "GET", parts == ["users", "me", "collections"] {
+            return json(collections.map(collectionSummary))
+        }
+        if parts.first == "collections" {
+            if method == "POST", parts.count == 1 {
+                let req = decode(body)
+                let c = MockCollection(
+                    id: nextCollectionId,
+                    title: req["title"] as? String ?? "새 컬렉션",
+                    description: req["description"] as? String,
+                    visibility: req["visibility"] as? String ?? "PRIVATE",
+                    connections: [])
+                nextCollectionId += 1
+                collections.insert(c, at: 0)
+                return json(collectionSummary(c))
+            }
+            if parts.count >= 2, let cid = Int64(parts[1]),
+               let idx = collections.firstIndex(where: { $0.id == cid }) {
+                if method == "GET", parts.count == 2 {
+                    return json(collectionDetail(collections[idx]))
+                }
+                if method == "DELETE", parts.count == 2 {
+                    collections.remove(at: idx)
+                    return json([:] as [String: Any])
+                }
+                if method == "POST", parts.count == 3, parts[2] == "connections" {
+                    let req = decode(body)
+                    let type = req["blockType"] as? String ?? "POST"
+                    let why = req["why"] as? String
+                    var conn = MockConnection(
+                        id: nextConnectionId, blockType: type, why: why)
+                    switch type {
+                    case "NOTE": conn.body = "연결한 노트"
+                    case "HIGHLIGHT":
+                        conn.quote = "연결한 하이라이트"
+                        conn.title = "원문 글"
+                        conn.username = myUsername
+                    default:
+                        conn.title = "연결한 글"
+                        conn.username = myUsername
+                    }
+                    nextConnectionId += 1
+                    collections[idx].connections.append(conn)
+                    return json([:] as [String: Any])
+                }
+                if method == "DELETE", parts.count == 4, parts[2] == "connections",
+                   let connId = Int64(parts[3]) {
+                    collections[idx].connections.removeAll { $0.id == connId }
+                    return json([:] as [String: Any])
+                }
+            }
+        }
 
         if method == "GET", parts == ["users", "me"] {
             return json([

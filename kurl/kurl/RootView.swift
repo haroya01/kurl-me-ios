@@ -88,16 +88,18 @@ struct RootView: View {
             // 컬렉션 프로토타입 — 계정 탭 안 푸시라 simctl 로 못 띄운다, 검증 진입로.
             NavigationStack { CollectionsListView() }
         } else if Config.launchValue(after: "--screen") == "collection-detail" {
-            // 컬렉션 상세 — 목록 탭으로만 들어가 simctl 로 못 띄운다, 검증 진입로.
+            // 컬렉션 상세 — 목록 탭으로만 들어가 simctl 로 못 띄운다, 검증 진입로(목 백엔드 id).
             NavigationStack {
-                CollectionDetailView(collection: CollectionsMock.slowThinking)
+                CollectionDetailView(collectionId: 101)
                     .navigationDestination(for: Route.self) { RouteView(route: $0) }
             }
         } else if Config.launchValue(after: "--screen") == "connect" {
             // "연결" 시트 — 인게이지에서만 떠 simctl 로 못 띄운다, 검증 진입로.
             Color(uiColor: .systemBackground).ignoresSafeArea()
                 .sheet(isPresented: .constant(true)) {
-                    ConnectSheet(targetKind: "글", targetTitle: "헥사고날로 갈아탄 지 석 달")
+                    ConnectSheet(
+                        targetKind: "글", targetTitle: "헥사고날로 갈아탄 지 석 달",
+                        blockType: .post, refId: 9002)
                 }
         } else {
             tabs

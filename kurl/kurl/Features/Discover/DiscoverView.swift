@@ -31,7 +31,7 @@ struct DiscoverView: View {
             }
             // 고정 스트립 대신 콘텐츠가 유리 크롬 밑으로 흐른다 — 상단 라벨은 탭바 아이콘이 맡는다.
             .toolbar(.hidden, for: .navigationBar)
-            .navigationDestination(for: CollectionSummary.self) { CollectionDetailView(collection: $0) }
+            .navigationDestination(for: CollectionRef.self) { CollectionDetailView(collectionId: $0.id) }
             .navigationDestination(for: Route.self) { RouteView(route: $0) }
         }
     }
@@ -60,7 +60,7 @@ private struct ConnectionEventCard: View {
 
             // 컬렉션 eyebrow — "…에 연결" 이라는 동사를 탭 가능한 채널 칩으로. 한 연결에서
             // 그 채널 전체로 이어지는 문(§0 connect). 초록은 데이터 링크라 link 톤 허용.
-            NavigationLink(value: collectionTarget) {
+            NavigationLink(value: CollectionRef(id: event.collectionId)) {
                 HStack(spacing: 4) {
                     Image(systemName: "square.grid.2x2")
                         .font(.system(size: 10 * metaUnit, weight: .bold))
@@ -91,11 +91,6 @@ private struct ConnectionEventCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 14)
-    }
-
-    // 프로토타입 — 흐름의 컬렉션을 목 상세로 잇는다(슬러그 매칭 대신 대표 컬렉션).
-    private var collectionTarget: CollectionSummary {
-        CollectionsMock.mine.first { $0.id == event.collectionId } ?? CollectionsMock.slowThinking
     }
 }
 
