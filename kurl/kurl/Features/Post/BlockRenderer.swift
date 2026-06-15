@@ -439,7 +439,7 @@ private struct ListBlockView: View {
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
                     Text(ordered ? "\(index + 1)." : "•")
                         .font(.system(size: bodySize))
-                        .foregroundStyle(Palette.accentMarker)
+                        .foregroundStyle(Palette.secondary)
                         .monospacedDigit()
                     Text(inline(item))
                         .font(.system(size: bodySize))
