@@ -17,6 +17,10 @@ struct BlockView: View {
     /// 첫 문단이면 lead — 한 호흡 큰 도입으로 독자를 들인다(에디토리얼 마스트헤드의 일부).
     var isLead = false
 
+    /// 본 글(단독 상세)에서만 주입 — 있으면 문단이 선택→하이라이트 + 공개 하이라이트 페인트를
+    /// 띄운다. 없으면(발견 덱 임베드·프리뷰) 종전 SwiftUI Text 그대로.
+    @Environment(\.postHighlightStore) private var highlightStore
+
     // 읽기 타입 스케일(§ 타이포 시스템) — 한국어 기준으로 자간·행간을 함께 설계한다.
     // 제목류는 클수록 더 조여(−tracking) 디스플레이의 무게를, 본문은 행간으로 숨을 준다.
     @ScaledMetric(relativeTo: .body) private var bodySize: CGFloat = 18
@@ -30,11 +34,30 @@ struct BlockView: View {
         // 첫 문단(lead)은 한 단계 크고 진하게 — 글 입구의 도입 호흡.
         case .paragraph:
             let size = isLead ? bodySize + 2 : bodySize
-            inline(block.content ?? "")
-                .font(.system(size: size))
-                .lineSpacing(size * (isLead ? 0.6 : 0.68))
-                .foregroundStyle(isLead ? Palette.heading : Palette.body)
+            let lineSpacing = size * (isLead ? 0.6 : 0.68)
+            let color = isLead ? Palette.heading : Palette.body
+            // 본 글이면 선택 가능한 문단(UITextView) — 길게 눌러 하이라이트, 공개 하이라이트 페인트.
+            // 임베드·프리뷰(store 없음)는 종전 Text 경로 그대로(블래스트 레이디어스 최소화).
+            if let store = highlightStore, let order = block.blockOrder {
+                SelectableProseText(
+                    raw: block.content ?? "",
+                    fontSize: size,
+                    textColor: color,
+                    lineSpacing: lineSpacing,
+                    highlightQuotes: store.quotes(forBlock: order),
+                    onHighlight: { start, end, quote in
+                        store.create(
+                            blockOrder: order, startOffset: start, endOffset: end, quote: quote)
+                    }
+                )
                 .padding(.bottom, isLead ? 20 : 18)
+            } else {
+                inline(block.content ?? "")
+                    .font(.system(size: size))
+                    .lineSpacing(lineSpacing)
+                    .foregroundStyle(color)
+                    .padding(.bottom, isLead ? 20 : 18)
+            }
 
         // 헤딩 = 크기·자간·위 여백을 함께 — 한글은 볼드 대비가 약해 굵기만으론 위계가 안 선다.
         // 클수록 자간을 더 조여(−0.5 → −0.4 → −0.25) 디스플레이의 단단함을 만든다.
