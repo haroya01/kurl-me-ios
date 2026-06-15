@@ -310,36 +310,58 @@ enum CardQuickActions {
 }
 
 extension View {
-    /// browse 카드 공용 — 길게 누르면 열지 않고 좋아요·북마크·작가·공유.
-    /// VoiceOver 에선 같은 행동이 로터 커스텀 액션으로 — 컨텍스트 메뉴는 발견이 어렵다.
+    /// browse 카드 공용 — 길게 누르면 열지 않고 좋아요·북마크·연결·작가·공유.
     func cardQuickActions(_ item: FeedItem) -> some View {
-        accessibilityAction(named: Text("좋아요")) {
-            CardQuickActions.like(item)
-        }
-        .accessibilityAction(named: Text("북마크")) {
-            CardQuickActions.bookmark(item)
-        }
-        .contextMenu {
-            Button {
-                CardQuickActions.like(item)
-            } label: {
-                Label("좋아요", systemImage: "heart")
+        modifier(CardQuickActionsModifier(item: item))
+    }
+}
+
+/// 카드 롱프레스 퀵액션. "컬렉션에 연결"이 시트를 띄워야 해 @State 를 들 수 있는 modifier 로.
+/// 연결은 다른 사람 글·내 글 어디서든 — 피드에서 글을 열지 않고 그 자리에서 잇는다(§0).
+private struct CardQuickActionsModifier: ViewModifier {
+    let item: FeedItem
+    @State private var showConnect = false
+
+    func body(content: Content) -> some View {
+        content
+            .accessibilityAction(named: Text("좋아요")) { CardQuickActions.like(item) }
+            .accessibilityAction(named: Text("북마크")) { CardQuickActions.bookmark(item) }
+            .accessibilityAction(named: Text("컬렉션에 연결")) {
+                if AuthStore.shared.isSignedIn { showConnect = true }
             }
-            Button {
-                CardQuickActions.bookmark(item)
-            } label: {
-                let on = BookmarkStore.shared.contains(item.id)
-                Label(on ? "북마크 해제" : "북마크", systemImage: on ? "bookmark.slash" : "bookmark")
-            }
-            NavigationLink(value: Route.author(username: item.author.username)) {
-                Label("작가 블로그", systemImage: "person.crop.circle")
-            }
-            if let url = CardQuickActions.shareURL(item) {
-                ShareLink(item: url) {
-                    Label("공유", systemImage: "square.and.arrow.up")
+            .contextMenu {
+                Button {
+                    CardQuickActions.like(item)
+                } label: {
+                    Label("좋아요", systemImage: "heart")
+                }
+                Button {
+                    CardQuickActions.bookmark(item)
+                } label: {
+                    let on = BookmarkStore.shared.contains(item.id)
+                    Label(on ? "북마크 해제" : "북마크", systemImage: on ? "bookmark.slash" : "bookmark")
+                }
+                if AuthStore.shared.isSignedIn {
+                    Button {
+                        showConnect = true
+                    } label: {
+                        Label("컬렉션에 연결", systemImage: "rectangle.stack.badge.plus")
+                    }
+                }
+                NavigationLink(value: Route.author(username: item.author.username)) {
+                    Label("작가 블로그", systemImage: "person.crop.circle")
+                }
+                if let url = CardQuickActions.shareURL(item) {
+                    ShareLink(item: url) {
+                        Label("공유", systemImage: "square.and.arrow.up")
+                    }
                 }
             }
-        }
+            .sheet(isPresented: $showConnect) {
+                ConnectSheet(
+                    targetKind: "글", targetTitle: item.title,
+                    blockType: .post, refId: item.id)
+            }
     }
 }
 

@@ -83,13 +83,14 @@ struct ConnectSheet: View {
     }
 
     private var whyField: some View {
-        TextField("왜 잇는지 한 줄 (선택)", text: $why, axis: .vertical)
-            .lineLimit(1...3)
-            .font(.system(size: 15 * unit))
-            .foregroundStyle(Palette.ink)
-            .padding(.horizontal, 13)
-            .padding(.vertical, 11)
-            .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: 12))
+        // 회색 채움 박스 대신 밑줄 한 줄 — 입력이되 종이 위에 글자가 그대로 앉는다.
+        VStack(alignment: .leading, spacing: 9) {
+            TextField("왜 잇는지 한 줄 (선택)", text: $why, axis: .vertical)
+                .lineLimit(1...3)
+                .font(.system(size: 15 * unit))
+                .foregroundStyle(Palette.ink)
+            Hairline()
+        }
     }
 
     private func collectionRow(_ c: CollectionSummary) -> some View {
