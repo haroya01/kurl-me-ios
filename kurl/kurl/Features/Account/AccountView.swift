@@ -239,6 +239,8 @@ struct AccountView: View {
             libraryRow("구독한 시리즈", icon: "square.stack.3d.up") { SubscribedSeriesView() }
             Hairline()
             libraryRow("내 하이라이트", icon: "highlighter") { MyHighlightsView() }
+            Hairline()
+            libraryRow("읽기 기록", icon: "clock") { MyReadingHistoryView() }
 
             Hairline()
                 .padding(.top, 24)

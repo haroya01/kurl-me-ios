@@ -1,0 +1,143 @@
+//
+//  MyReadingHistoryView.swift
+//  kurl
+//
+
+import SwiftUI
+
+/// 읽기 기록 — 내가 읽은 글을 최신순으로. 행 탭 = 그 글로, 행 끝 × = 한 건 잊기, 상단 = 전체 지우기.
+/// 사적 기록이라 본인만 본다(서재의 다른 면과 같은 글 행 문법, 무한 스크롤).
+struct MyReadingHistoryView: View {
+    @State private var items: [ReadingHistoryEntry] = []
+    @State private var page = 0
+    @State private var hasNext = false
+    @State private var loading = false
+    @State private var loadedOnce = false
+    @State private var confirmClear = false
+    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+
+    var body: some View {
+        ReadingColumn(spacing: 0) {
+            if loading && items.isEmpty {
+                ProgressView().tint(Palette.accent)
+                    .frame(maxWidth: .infinity, minHeight: 240)
+            } else if loadedOnce && items.isEmpty {
+                ContentUnavailableView {
+                    Label("아직 읽기 기록이 없어요", systemImage: "clock")
+                } description: {
+                    Text("글을 읽으면 여기에 기록돼요. 기록은 나만 봅니다.")
+                } actions: {
+                    Button("발견에서 읽을 글 찾기") { TabRouter.shared.selection = 1 }
+                        .foregroundStyle(Palette.accent)
+                }
+                .padding(.top, 56)
+            } else {
+                LazyVStack(spacing: 0) {
+                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                        row(item)
+                            .modifier(QuietAppear(index: index))
+                            .task {
+                                if index == items.count - 1 { await loadMore() }
+                            }
+                        if index < items.count - 1 { Hairline() }
+                    }
+                    if hasNext {
+                        ProgressView().tint(Palette.accent)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 18)
+                    }
+                }
+            }
+        }
+        .navigationTitle("읽기 기록")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if !items.isEmpty {
+                ToolbarItem(placement: .primaryAction) {
+                    Button("지우기") { confirmClear = true }
+                        .tint(.brand)
+                }
+            }
+        }
+        .confirmationDialog(
+            "전체 기록을 지울까요?", isPresented: $confirmClear, titleVisibility: .visible
+        ) {
+            Button("기록 지우기", role: .destructive) { clearAll() }
+        }
+        .task { await reload() }
+        .refreshable { await reload() }
+    }
+
+    private func row(_ item: ReadingHistoryEntry) -> some View {
+        HStack(spacing: 11) {
+            NavigationLink(value: Route.post(username: item.username, slug: item.slug)) {
+                HStack(spacing: 11) {
+                    AvatarView(author: item.asAuthor, size: 40)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(item.title)
+                            .font(.system(size: 15 * unit, weight: .semibold))
+                            .foregroundStyle(Palette.ink)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                        Text("@\(item.username)")
+                            .font(.system(size: 12 * unit))
+                            .foregroundStyle(Palette.secondary)
+                            .lineLimit(1)
+                    }
+                    Spacer(minLength: 8)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(RowButtonStyle())
+
+            Button {
+                forget(item)
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Palette.secondary)
+                    .expandTapTarget(8)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("기록에서 지우기")
+        }
+        .padding(.vertical, 10)
+    }
+
+    private func reload() async {
+        loading = true
+        page = 0
+        if let res = try? await ReadingHistoryAPI.list(page: 0) {
+            items = res.items
+            hasNext = res.hasNext
+        } else {
+            items = []
+            hasNext = false
+        }
+        loading = false
+        loadedOnce = true
+    }
+
+    private func loadMore() async {
+        guard hasNext, !loading else { return }
+        loading = true
+        if let res = try? await ReadingHistoryAPI.list(page: page + 1) {
+            items += res.items
+            page = res.page
+            hasNext = res.hasNext
+        }
+        loading = false
+    }
+
+    /// 낙관적 — 즉시 빼고 서버에 알린다(실패해도 읽기 흐름을 끊지 않는다).
+    private func forget(_ item: ReadingHistoryEntry) {
+        items.removeAll { $0.postId == item.postId }
+        Task { try? await ReadingHistoryAPI.forget(postId: item.postId) }
+    }
+
+    private func clearAll() {
+        items = []
+        hasNext = false
+        Task { try? await ReadingHistoryAPI.clear() }
+    }
+}

@@ -342,6 +342,11 @@ struct PostDetailView: View {
             highlights = store
             await store.load()
         }
+        // 읽기 기록 비콘 — 로그인 독자가 글을 열면 계정에 기록(기기를 넘어 이어진다). 익명은 기록 없음.
+        .task(id: loadedPostId) {
+            guard !embedded, let id = loadedPostId, AuthStore.shared.isSignedIn else { return }
+            await ReadingHistoryAPI.record(postId: id)
+        }
         // 미로그인 사용자가 하이라이트를 시도하면 — 댓글·팔로우와 같은 공용 로그인 시트.
         .loginPrompt(
             isPresented: Binding(
