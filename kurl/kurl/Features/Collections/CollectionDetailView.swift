@@ -78,11 +78,6 @@ struct CollectionDetailView: View {
                 .frame(width: 2)
 
             VStack(alignment: .leading, spacing: 9) {
-                Text(item.block.kindLabel)
-                    .font(.system(size: 11 * metaUnit, weight: .semibold))
-                    .tracking(0.4)
-                    .foregroundStyle(Palette.faint)
-
                 if let why = item.why {
                     // 큐레이터의 한 줄 — 왜 이걸 여기 이었나. 이 컬렉션의 목소리.
                     Text(why)
@@ -91,76 +86,10 @@ struct CollectionDetailView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                blockView(item.block)
+                // 종류별 다른 실루엣(글 카드·하이라이트 인용·노트 패널) — 발견 흐름과 같은 얼굴.
+                BlockPreview(block: item.block)
             }
         }
         .padding(.vertical, 16)
-    }
-
-    @ViewBuilder
-    private func blockView(_ block: ConnectionBlock) -> some View {
-        switch block {
-        case let .post(title, excerpt, username, slug, tags):
-            NavigationLink(value: Route.post(username: username, slug: slug)) {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(title)
-                        .typeScale(.titleSmall)
-                        .foregroundStyle(Palette.ink)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                    Text(excerpt)
-                        .font(.system(size: 14 * unit))
-                        .foregroundStyle(Palette.secondary)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                    if let tag = tags.first {
-                        Text("#\(tag)")
-                            .font(.system(size: 12 * metaUnit, weight: .medium))
-                            .foregroundStyle(Palette.secondary)
-                            .padding(.top, 1)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(13)
-                .background(Palette.cardBg, in: RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous)
-                        .strokeBorder(Palette.cardBorder, lineWidth: 1))
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(CardButtonStyle())
-
-        case let .highlight(quote, postTitle, username, slug):
-            NavigationLink(value: Route.post(username: username, slug: slug)) {
-                VStack(alignment: .leading, spacing: 7) {
-                    // 본문에서 칠한 그린 워시를 그대로 — 하이라이트는 어디서든 같은 얼굴.
-                    Text(quote)
-                        .font(.system(size: 15 * unit))
-                        .foregroundStyle(Palette.body)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
-                        .background(Palette.accent.opacity(0.16), in: RoundedRectangle(cornerRadius: 6))
-                    Text(postTitle)
-                        .font(.system(size: 13 * metaUnit, weight: .medium))
-                        .foregroundStyle(Palette.secondary)
-                        .lineLimit(1)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-        case let .note(body):
-            // 노트 = 제목 없는 생각 한 줄. 컬렉션이 집·맥락을 준다.
-            Text(body)
-                .font(.system(size: 16 * unit))
-                .foregroundStyle(Palette.body)
-                .lineSpacing(4)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
     }
 }

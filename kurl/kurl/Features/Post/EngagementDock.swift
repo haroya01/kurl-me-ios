@@ -13,10 +13,19 @@ import SwiftUI
 struct EngagementDock: View {
     @State private var model: EngagementModel
     @State private var showLoginPrompt = false
+    @State private var showConnect = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var glassNS
 
-    init(postId: Int64, initialLikeCount: Int64, offlineRef: (username: String, slug: String)? = nil) {
+    /// "연결" 시트가 잇는 대상(글 제목·작가). 없으면 연결 버튼을 감춘다.
+    private let connectTarget: (title: String, username: String)?
+
+    init(
+        postId: Int64, initialLikeCount: Int64,
+        offlineRef: (username: String, slug: String)? = nil,
+        connectTarget: (title: String, username: String)? = nil
+    ) {
+        self.connectTarget = connectTarget
         _model = State(
             initialValue: EngagementModel(
                 postId: postId, likeCount: initialLikeCount, offlineRef: offlineRef))
@@ -25,6 +34,9 @@ struct EngagementDock: View {
     var body: some View {
         GlassEffectContainer(spacing: GlassTokens.clusterSpacing) {
             VStack(spacing: 12) {
+                // 연결 = §0의 핵심 동사. 좋아요·북마크와 나란히 1급 인게이지로 둔다 —
+                // 읽다가 그 자리에서 컬렉션에 잇는다(쉽고 명확한 만들기 경로).
+                if connectTarget != nil { connect }
                 like
                 bookmark
             }
@@ -34,6 +46,29 @@ struct EngagementDock: View {
         .loginPrompt(isPresented: $showLoginPrompt, message: "좋아한 글은 내 라이브러리에 쌓여요") {
             await model.hydrate()
         }
+        .sheet(isPresented: $showConnect) {
+            if let target = connectTarget {
+                ConnectSheet(targetKind: "글", targetTitle: target.title)
+            }
+        }
+    }
+
+    private var connect: some View {
+        Button {
+            guard AuthStore.shared.isSignedIn else { showLoginPrompt = true; return }
+            showConnect = true
+        } label: {
+            Image(systemName: "rectangle.stack.badge.plus")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.primary)
+                .frame(width: 52, height: 52)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .glassCapsule(prominent: false)
+        .glassEffectID("connect", in: glassNS)
+        .glassEffectTransition(.materialize)
+        .accessibilityLabel(Text("컬렉션에 연결"))
     }
 
     private var like: some View {

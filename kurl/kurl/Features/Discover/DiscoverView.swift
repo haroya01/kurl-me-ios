@@ -121,7 +121,9 @@ private struct ConnectionEventCard: View {
     }
 }
 
-/// 연결된 블록 미리보기 — 글 미니카드 · 하이라이트 그린워시 · 노트. 컬렉션 상세와 같은 얼굴.
+/// 연결된 블록 — 종류마다 *다른 실루엣*으로 한눈에 구분된다(같은 리듬 반복 = 단조의 원인).
+/// 글 = 흰 보더 카드(읽을 아티팩트) · 하이라이트 = 그린 좌측 룰 인용(뽑은 구절) ·
+/// 노트 = 부드러운 틴트 패널(붙잡은 생각). 발견 흐름·컬렉션 상세가 이 하나를 공유한다.
 struct BlockPreview: View {
     let block: ConnectionBlock
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
@@ -130,8 +132,10 @@ struct BlockPreview: View {
     var body: some View {
         switch block {
         case let .post(title, excerpt, username, slug, tags):
+            // 글 = 흰 종이 카드. 셋 중 가장 무거운 아티팩트 — 읽으러 들어가는 곳.
             NavigationLink(value: Route.post(username: username, slug: slug)) {
-                VStack(alignment: .leading, spacing: 5) {
+                VStack(alignment: .leading, spacing: 6) {
+                    kindTag("글", icon: "doc.text")
                     Text(title)
                         .typeScale(.titleSmall)
                         .foregroundStyle(Palette.ink)
@@ -151,7 +155,7 @@ struct BlockPreview: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(13)
+                .padding(14)
                 .background(Palette.cardBg, in: RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous)
@@ -161,20 +165,25 @@ struct BlockPreview: View {
             .buttonStyle(CardButtonStyle())
 
         case let .highlight(quote, postTitle, username, slug):
+            // 하이라이트 = 인용. 카드 박스가 아니라 그린 좌측 룰 + 큰 구절 — 본문에서 뽑힌 결.
             NavigationLink(value: Route.post(username: username, slug: slug)) {
-                VStack(alignment: .leading, spacing: 7) {
-                    Text(quote)
-                        .font(.system(size: 15 * unit))
-                        .foregroundStyle(Palette.body)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
-                        .background(Palette.accent.opacity(0.16), in: RoundedRectangle(cornerRadius: 6))
-                    Text(postTitle)
-                        .font(.system(size: 13 * metaUnit, weight: .medium))
-                        .foregroundStyle(Palette.secondary)
-                        .lineLimit(1)
+                HStack(alignment: .top, spacing: 12) {
+                    RoundedRectangle(cornerRadius: 1.5)
+                        .fill(Palette.accent)
+                        .frame(width: 3)
+                    VStack(alignment: .leading, spacing: 8) {
+                        kindTag("하이라이트", icon: "quote.opening")
+                        Text(quote)
+                            .font(.system(size: 18 * unit, weight: .medium))
+                            .foregroundStyle(Palette.body)
+                            .lineSpacing(4)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(postTitle)
+                            .font(.system(size: 13 * metaUnit, weight: .medium))
+                            .foregroundStyle(Palette.faint)
+                            .lineLimit(1)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
@@ -182,13 +191,31 @@ struct BlockPreview: View {
             .buttonStyle(.plain)
 
         case let .note(body):
-            Text(body)
-                .font(.system(size: 16 * unit))
-                .foregroundStyle(Palette.body)
-                .lineSpacing(4)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            // 노트 = 붙잡은 생각. 흰 카드도 인용도 아닌, 부드러운 틴트 패널(보더 ❌).
+            VStack(alignment: .leading, spacing: 8) {
+                kindTag("노트", icon: "text.quote")
+                Text(body)
+                    .font(.system(size: 17 * unit))
+                    .foregroundStyle(Palette.body)
+                    .lineSpacing(5)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(14)
+            .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous))
         }
+    }
+
+    // 종류 꼬리표 — 작고 흐린 한 점. 실루엣이 1차 신호, 이건 확인 사살.
+    private func kindTag(_ label: LocalizedStringKey, icon: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 9 * metaUnit, weight: .bold))
+            Text(label)
+                .font(.system(size: 11 * metaUnit, weight: .bold))
+                .tracking(0.4)
+        }
+        .foregroundStyle(Palette.faint)
     }
 }
 

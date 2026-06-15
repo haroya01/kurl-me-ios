@@ -288,7 +288,8 @@ struct PostDetailView: View {
                !(endVisible && scrollable) {
                 EngagementDock(
                     postId: detail.post.id, initialLikeCount: detail.post.likeCount,
-                    offlineRef: (username: detail.author.username, slug: detail.post.slug)
+                    offlineRef: (username: detail.author.username, slug: detail.post.slug),
+                    connectTarget: (title: detail.post.title, username: detail.author.username)
                 )
                 .padding(.trailing, 14)
                 .padding(.bottom, 10)
