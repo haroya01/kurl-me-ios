@@ -616,6 +616,47 @@ enum MockBackend {
             ])
         }
 
+        if method == "GET", parts == ["feed", "for-you"] {
+            return json([
+                "items": [
+                    feedItem(id: 9002, title: "발행된 목 글", slug: "p-mock-2"),
+                    feedItem(id: 9101, title: "헥사고날로 가는 길", slug: "hexagonal-road"),
+                ],
+                "page": 0, "size": 20, "hasNext": false,
+            ])
+        }
+
+        if method == "GET", parts == ["users", "me", "highlights"] {
+            return json([
+                ["id": 5001, "quote": "경계를 먼저 긋고, 구현은 그 바깥으로 민다.", "blockOrder": 2,
+                 "postUsername": "honggildong", "postSlug": "p-mock-2", "postTitle": "발행된 목 글",
+                 "createdAt": iso(Date().addingTimeInterval(-7200))],
+                ["id": 5002, "quote": "좋은 추상은 더 지울 게 없을 때 완성된다.", "blockOrder": 5,
+                 "postUsername": "honggildong", "postSlug": "p-mock-1", "postTitle": "목 초안 — 헥사고날 정리",
+                 "createdAt": iso(Date().addingTimeInterval(-172_800))],
+            ])
+        }
+
+        if method == "GET", parts == ["users", "me", "reading-history"] {
+            return json([
+                "items": [
+                    ["postId": 9002, "username": "honggildong", "avatarUrl": NSNull(),
+                     "title": "발행된 목 글", "slug": "p-mock-2", "excerpt": "목 발췌",
+                     "ogImageUrl": NSNull(), "readAt": iso(Date().addingTimeInterval(-3600))],
+                    ["postId": 9101, "username": "haneul", "avatarUrl": NSNull(),
+                     "title": "좋은 글쓰기의 조건", "slug": "good-writing", "excerpt": "문장은 짧게, 생각은 깊게.",
+                     "ogImageUrl": NSNull(), "readAt": iso(Date().addingTimeInterval(-90_000))],
+                ],
+                "page": 0, "size": 20, "hasNext": false,
+            ])
+        }
+
+        // 읽기 기록 한 건 잊기 / 전체 지우기 — UI 가 낙관적으로 처리하므로 204 만 돌려준다.
+        if method == "DELETE", parts.count >= 3, parts[0] == "users", parts[1] == "me",
+            parts[2] == "reading-history" {
+            return Data()
+        }
+
         if parts.count == 3, parts[0] == "comments", parts[2] == "like" {
             let cid = Int64(parts[1]) ?? 0
             if method == "POST" { likedComments.insert(cid) }

@@ -276,7 +276,8 @@ struct AccountView: View {
             HStack(spacing: 10) {
                 Image(systemName: icon)
                     .font(.system(size: 14 * unit))
-                    .foregroundStyle(Palette.accentMarker)
+                    // 서재 행 아이콘 = 네비 어포던스일 뿐 — 초록은 주액션 전용이라 중립(§10 색 규율).
+                    .foregroundStyle(Palette.secondary)
                     .frame(width: 22 * unit)
                 Text(title)
                     .font(.system(size: 15 * unit, weight: .medium))
