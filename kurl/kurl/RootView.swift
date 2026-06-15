@@ -123,7 +123,7 @@ struct RootView: View {
             }
             .accessibilityLabel(Text("피드"))
             Tab("", systemImage: "safari", value: 1) {
-                DiscoverDeckView()
+                DiscoverView()
             }
             .accessibilityLabel(Text("발견"))
             Tab("", systemImage: "square.and.pencil", value: 2) {
