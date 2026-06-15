@@ -59,6 +59,8 @@ final class AuthStore {
     private init() {
         if Config.useMocks {
             // 목 모드 = 항상 로그인된 상태. Keychain·네트워크를 건드리지 않는다.
+            // `--logged-out` = 로그아웃 게이트(추천·구독함) 스크린샷 검증용 진입로.
+            if ProcessInfo.processInfo.arguments.contains("--logged-out") { return }
             isSignedIn = true
             me = Me(id: 1, email: "mock@kurl.me", username: "honggildong", avatarUrl: nil, role: "ADMIN")
             return

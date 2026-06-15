@@ -4,6 +4,118 @@
     "" : {
 
     },
+    "읽을수록 좋아집니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It gets better the more you read"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読むほど良くなります"
+          }
+        }
+      }
+    },
+    "로그인하면 읽은 글을 따라 추천이 쌓입니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in and your recommendations build from what you read."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログインすると、読んだ記事から推薦が育ちます。"
+          }
+        }
+      }
+    },
+    "팔로우한 글이 여기 모입니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Where the writers you follow gather"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォローした書き手がここに集まります"
+          }
+        }
+      }
+    },
+    "로그인하면 팔로우한 작가의 새 글이 도착합니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in and new posts from writers you follow land here."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログインすると、フォロー中の書き手の新着が届きます。"
+          }
+        }
+      }
+    },
+    "아직은 고를 거리가 적어요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not much to pick from yet"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだ選べる記事が少なめです"
+          }
+        }
+      }
+    },
+    "몇 편 읽고 나면 취향이 잡힙니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read a few and your taste comes into focus."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "何本か読むと、好みが見えてきます。"
+          }
+        }
+      }
+    },
+    "첫 글이 올라오면 여기에서 만나요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The first posts will show up here."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最初の記事がここに表示されます。"
+          }
+        }
+      }
+    },
     "·" : {
 
     },

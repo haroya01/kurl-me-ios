@@ -55,6 +55,9 @@ enum MockBackend {
     private static var nextNoteId: Int64 = 9600
     private static var likedNotes: Set<Int64> = []
 
+    /// `--empty-feeds` = 구독함·추천을 빈 응답으로 — 빈 안내 화면 검증용.
+    private static let emptyFeeds = ProcessInfo.processInfo.arguments.contains("--empty-feeds")
+
     private static var nextId: Int64 = 9100
     private static var likes: [Int64: (count: Int64, liked: Bool)] = [:]
     private static var bookmarks: Set<Int64> = []
@@ -610,20 +613,17 @@ enum MockBackend {
         }
 
         if method == "GET", parts == ["feed", "following"] {
-            return json([
-                "items": [feedItem(id: 9002, title: "발행된 목 글", slug: "p-mock-2")],
-                "page": 0, "size": 20, "hasNext": false,
-            ])
+            // `--empty-feeds` = 빈 구독함/추천 안내 화면 스크린샷 검증용.
+            let items = emptyFeeds ? [] : [feedItem(id: 9002, title: "발행된 목 글", slug: "p-mock-2")]
+            return json(["items": items, "page": 0, "size": 20, "hasNext": false])
         }
 
         if method == "GET", parts == ["feed", "for-you"] {
-            return json([
-                "items": [
-                    feedItem(id: 9002, title: "발행된 목 글", slug: "p-mock-2"),
-                    feedItem(id: 9101, title: "헥사고날로 가는 길", slug: "hexagonal-road"),
-                ],
-                "page": 0, "size": 20, "hasNext": false,
-            ])
+            let items = emptyFeeds ? [] : [
+                feedItem(id: 9002, title: "발행된 목 글", slug: "p-mock-2"),
+                feedItem(id: 9101, title: "헥사고날로 가는 길", slug: "hexagonal-road"),
+            ]
+            return json(["items": items, "page": 0, "size": 20, "hasNext": false])
         }
 
         if method == "GET", parts == ["users", "me", "highlights"] {

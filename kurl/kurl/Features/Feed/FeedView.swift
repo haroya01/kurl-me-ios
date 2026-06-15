@@ -263,17 +263,17 @@ struct FeedPage: View {
     }
 
     private var followingGate: some View {
-        ContentUnavailableView {
-            Label(source == .forYou ? "추천" : "팔로잉",
-                  systemImage: source == .forYou ? "sparkles" : "person.2")
-        } description: {
-            Text(source == .forYou
-                ? "로그인하면 읽은 글과 관심 주제를 바탕으로 맞춤 글을 추천해 드려요."
-                : "로그인하면 팔로우한 작가와 구독한 시리즈의 새 글이 여기에 모여요.")
-        } actions: {
-            Button("로그인") { showLoginSheet = true }
-                .foregroundStyle(Palette.accent)
-        }
+        FeedPlaceholder(
+            eyebrow: source == .forYou ? "추천" : "구독함",
+            title: source == .forYou ? "읽을수록 좋아집니다" : "팔로우한 글이 여기 모입니다",
+            message: source == .forYou
+                ? "로그인하면 읽은 글을 따라 추천이 쌓입니다."
+                : "로그인하면 팔로우한 작가의 새 글이 도착합니다.",
+            actionTitle: "로그인",
+            prominent: true,
+            action: { showLoginSheet = true }
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .loginPrompt(
             isPresented: $showLoginSheet,
             message: source == .forYou
@@ -306,23 +306,25 @@ struct FeedPage: View {
                 }
                 if model.items.isEmpty {
                     if source == .following {
-                        ContentUnavailableView {
-                            Label("구독함이 비어 있어요", systemImage: "tray")
-                        } description: {
-                            Text("작가를 팔로우하면 새 글이 여기 도착해요.")
-                        } actions: {
-                            Button("발견에서 작가 찾기") { TabRouter.shared.selection = 1 }
-                                .foregroundStyle(Palette.accent)
-                        }
-                            .padding(.top, 80)
+                        FeedPlaceholder(
+                            eyebrow: "구독함",
+                            title: "구독함이 비어 있어요",
+                            message: "작가를 팔로우하면 새 글이 여기 도착해요.",
+                            actionTitle: "발견에서 작가 찾기",
+                            action: { TabRouter.shared.selection = 1 }
+                        )
+                        .padding(.top, 64)
                     } else {
-                        ContentUnavailableView {
-                            Label("아직 글이 없습니다", systemImage: "doc.text")
-                        } actions: {
-                            Button("발견에서 읽을 글 찾기") { TabRouter.shared.selection = 1 }
-                                .foregroundStyle(Palette.accent)
-                        }
-                            .padding(.top, 80)
+                        FeedPlaceholder(
+                            eyebrow: source == .forYou ? "추천" : "최신",
+                            title: source == .forYou ? "아직은 고를 거리가 적어요" : "아직 글이 없습니다",
+                            message: source == .forYou
+                                ? "몇 편 읽고 나면 취향이 잡힙니다."
+                                : "첫 글이 올라오면 여기에서 만나요.",
+                            actionTitle: "발견에서 읽을 글 찾기",
+                            action: { TabRouter.shared.selection = 1 }
+                        )
+                        .padding(.top, 64)
                     }
                 }
             }
@@ -344,6 +346,80 @@ struct FeedPage: View {
         } actions: {
             Button("다시 시도") { Task { await model.reload() } }
                 .foregroundStyle(Palette.accent)
+        }
+    }
+}
+
+/// 비어있음·로그아웃 안내 — 스톡 ContentUnavailableView(큰 SF 심볼 + 가운데 설명문)의
+/// 기성품 인상을 걷고, 종이 본문 결의 조용한 면으로 다시 짠다. 브랜드 마크 한 점 +
+/// 섹션 라벨 + 제목 + 한 줄 + 단일 주액션. 로그인 게이트만 그린 유리 캡슐(§1.4 종이 위
+/// 로그인 CTA), 빈 피드 안내는 조용한 그린 텍스트로 — 초록 과용을 피한다(§10 색 규율).
+private struct FeedPlaceholder: View {
+    let eyebrow: LocalizedStringKey
+    let title: LocalizedStringKey
+    let message: LocalizedStringKey
+    let actionTitle: LocalizedStringKey
+    var prominent: Bool = false
+    let action: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // 빈 면에도 남는 브랜드 사인 — 형광 아닌 옅은 잉크(RailHeading 마커와 같은 중립).
+            KurlMark(drawn: [true, true, true], tint: Palette.hairlineStrong)
+                .frame(width: 46, height: 28)
+                .accessibilityHidden(true)
+                .padding(.bottom, 24)
+
+            Text(eyebrow)
+                .typeScale(.eyebrow)
+                .foregroundStyle(Palette.secondary)
+                .padding(.bottom, 10)
+
+            Text(title)
+                .typeScale(.featured)
+                .foregroundStyle(Palette.ink)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.bottom, 9)
+
+            Text(message)
+                .font(.system(size: 15))
+                .foregroundStyle(Palette.secondary)
+                .multilineTextAlignment(.center)
+                .lineSpacing(3)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: 272)
+                .padding(.bottom, 22)
+
+            actionButton
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, Metrics.gutter)
+    }
+
+    @ViewBuilder private var actionButton: some View {
+        if prominent {
+            Button(action: action) {
+                Text(actionTitle)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 12)
+                    .glassCapsule(prominent: true)
+            }
+            .buttonStyle(.plain)
+        } else {
+            Button(action: action) {
+                HStack(spacing: 3) {
+                    Text(actionTitle)
+                        .font(.system(size: 15, weight: .semibold))
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 12, weight: .semibold))
+                }
+                .foregroundStyle(Palette.accent)
+                .expandTapTarget(8)
+            }
+            .buttonStyle(.plain)
         }
     }
 }
