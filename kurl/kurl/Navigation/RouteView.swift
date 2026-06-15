@@ -21,6 +21,10 @@ struct RouteView: View {
             SeriesDetailView(username: username, slug: slug)
         case let .tag(tag):
             TagFeedView(tag: tag)
+        case let .followers(username):
+            FollowListsView(username: username, tab: .followers)
+        case let .following(username):
+            FollowListsView(username: username, tab: .following)
         }
     }
 }

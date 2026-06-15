@@ -121,8 +121,11 @@ struct AuthorBlogView: View {
                     .lineSpacing(4)
                     .padding(.top, 12)
             }
+            // 탭 가능한 "팔로워 N · 팔로잉 N" — 각각 해당 목록으로(Medium 문법).
+            FollowCountsLink(username: view.author.username)
+                .padding(.top, 12)
             HStack(spacing: 10) {
-                FollowButton(username: view.author.username)
+                FollowButton(username: view.author.username, showCount: false)
                 Spacer(minLength: 0)
                 // 명함(u/ — 링크 모음·소셜)으로 가는 문 — 블로그와 같은 정체의 다른 얼굴.
                 Button {
