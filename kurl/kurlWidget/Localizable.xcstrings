@@ -14,6 +14,18 @@
             "state": "translated",
             "value": "kurl 分析"
           }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phân tích kurl"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kurl विश्लेषण"
+          }
         }
       }
     },
@@ -29,6 +41,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "累計閲覧"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tổng lượt xem"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कुल व्यूज़"
           }
         }
       }
@@ -46,6 +70,18 @@
             "state": "translated",
             "value": "公開記事"
           }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã đăng"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "प्रकाशित"
+          }
         }
       }
     },
@@ -61,6 +97,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "ブログ分析"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phân tích blog"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ब्लॉग विश्लेषण"
           }
         }
       }
@@ -78,6 +126,18 @@
             "state": "translated",
             "value": "アプリで分析を一度開くと\nここに指標が表示されます。"
           }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mở Phân tích trong ứng dụng một lần\nrồi số liệu của bạn sẽ hiện ở đây."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ऐप में विश्लेषण एक बार खोलें\nऔर आपके आँकड़े यहाँ दिखेंगे."
+          }
         }
       }
     },
@@ -93,6 +153,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "閲覧"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "lượt xem"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "व्यूज़"
           }
         }
       }
@@ -110,6 +182,18 @@
             "state": "translated",
             "value": "いいね"
           }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lượt thích"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पसंद"
+          }
         }
       }
     },
@@ -125,6 +209,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "直近%lld日の閲覧"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lượt xem, %lld ngày qua"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "व्यूज़, पिछले %lld दिन"
           }
         }
       }
@@ -142,6 +238,18 @@
             "state": "translated",
             "value": "最近の閲覧数と累計指標をホーム画面で。"
           }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lượt xem gần đây và số liệu tích lũy ngay trên Màn hình chính."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "हाल के व्यूज़ और कुल आँकड़े आपकी होम स्क्रीन पर."
+          }
         }
       }
     },
@@ -157,6 +265,18 @@
           "stringUnit": {
             "state": "translated",
             "value": "フォロワー"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Người theo dõi"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ॉलोअर"
           }
         }
       }

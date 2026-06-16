@@ -54,7 +54,7 @@ enum Config {
 
     /// UI 로케일 (ja/ko/en). 시스템 우선 언어를 따르되 미지원이면 ko 로 떨어진다.
     static var preferredLanguageTag: String {
-        let supported = ["ja", "ko", "en"]
+        let supported = ["ja", "ko", "en", "vi", "hi"]
         for code in Locale.preferredLanguages {
             let base = String(code.prefix(2))
             if supported.contains(base) { return base }
