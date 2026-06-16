@@ -74,7 +74,7 @@ struct SeriesDetailView: View {
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(Palette.faint)
                 }
-                .font(.system(size: 14))
+                .typeScale(.meta)
                 .foregroundStyle(Palette.secondary)
                 .contentShape(Rectangle())
             }
@@ -197,8 +197,6 @@ private struct EpisodeRow: View {
     let post: PostListItem
     let state: EpisodeState
 
-    @ScaledMetric(relativeTo: .headline) private var titleUnit: CGFloat = 1
-
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
             marker
@@ -221,9 +219,8 @@ private struct EpisodeRow: View {
                 }
                 if let excerpt = post.excerpt, !excerpt.isEmpty {
                     Text(excerpt)
-                        .font(.system(size: 14 * titleUnit))
+                        .typeScale(.lede)
                         .foregroundStyle(Palette.secondary)
-                        .lineSpacing(3)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)

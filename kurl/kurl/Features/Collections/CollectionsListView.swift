@@ -112,7 +112,7 @@ struct CollectionsListView: View {
                 Text("·").foregroundStyle(Palette.faint)
                 Text("\(c.count)개")
             }
-            .font(.system(size: 12 * metaUnit, weight: .medium))
+            .typeScale(.meta)
             .foregroundStyle(Palette.faint)
             .padding(.top, 2)
         }

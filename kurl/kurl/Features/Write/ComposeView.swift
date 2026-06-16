@@ -569,7 +569,7 @@ struct ComposeView: View {
                         Image(systemName: "photo.badge.plus")
                             .font(.system(size: 22 * unit, weight: .regular))
                         Text("커버 이미지 추가")
-                            .font(.system(size: 14 * unit, weight: .medium))
+                            .typeScale(.meta)
                     }
                     .foregroundStyle(Palette.secondary)
                 }
@@ -631,7 +631,7 @@ struct ComposeView: View {
                     Image(systemName: "clock")
                         .font(.system(size: 13 * unit, weight: .semibold))
                     Text(scheduleSummary)
-                        .font(.system(size: 14 * unit, weight: .semibold))
+                        .typeScale(.meta)
                         .contentTransition(.numericText())
                 }
                 .foregroundStyle(Palette.link)

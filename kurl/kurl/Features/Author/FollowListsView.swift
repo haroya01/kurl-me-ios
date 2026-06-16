@@ -151,7 +151,7 @@ struct FollowCountsLink: View {
             .buttonStyle(.plain)
             Spacer(minLength: 0)
         }
-        .font(.system(size: 13))
+        .typeScale(.meta)
         .foregroundStyle(Palette.secondary)
         .opacity(followers == nil ? 0 : 1)
         .animation(.snappy(duration: 0.2), value: followers)

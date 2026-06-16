@@ -16,7 +16,6 @@ struct CollectionDetailView: View {
     @State private var showEdit = false
     @State private var showDeleteConfirm = false
     @Environment(\.dismiss) private var dismiss
-    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
     /// 내 컬렉션일 때만 수정·삭제·끊기 — 남의 공개 컬렉션은 보기만.
@@ -150,7 +149,7 @@ struct CollectionDetailView: View {
                 Text("·").foregroundStyle(Palette.faint)
                 Text("\(detail.connections.count)개")
             }
-            .font(.system(size: 13 * metaUnit, weight: .medium))
+            .typeScale(.meta)
             .foregroundStyle(Palette.secondary)
             .padding(.top, 2)
         }
@@ -170,7 +169,7 @@ struct CollectionDetailView: View {
             VStack(alignment: .leading, spacing: 9) {
                 if let why = item.why {
                     Text(why)
-                        .font(.system(size: 15 * unit, weight: .medium))
+                        .typeScale(.body)
                         .foregroundStyle(Palette.ink)
                         .fixedSize(horizontal: false, vertical: true)
                 }
