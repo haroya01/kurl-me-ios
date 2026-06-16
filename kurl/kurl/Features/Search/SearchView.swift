@@ -224,14 +224,14 @@ struct SearchView: View {
                                             .foregroundStyle(Palette.ink)
                                         if let bio = suggestion.author.bio, !bio.isEmpty {
                                             Text(bio)
-                                                .font(.system(size: 13))
+                                                .typeScale(.lede)
                                                 .foregroundStyle(Palette.secondary)
                                                 .lineLimit(1)
                                         }
                                     }
                                     Spacer()
                                     Text("글 \(suggestion.postCount)")
-                                        .font(.system(size: 12))
+                                        .typeScale(.meta)
                                         .foregroundStyle(Palette.secondary)
                                     Image(systemName: "chevron.right")
                                         .font(.system(size: 11, weight: .semibold))
@@ -346,7 +346,7 @@ struct SearchView: View {
                                                 .foregroundStyle(Palette.ink)
                                             if let bio = suggestion.author.bio, !bio.isEmpty {
                                                 Text(bio)
-                                                    .font(.system(size: 13))
+                                                    .typeScale(.lede)
                                                     .foregroundStyle(Palette.secondary)
                                                     .lineLimit(1)
                                             }

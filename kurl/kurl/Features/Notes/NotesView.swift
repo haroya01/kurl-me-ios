@@ -222,18 +222,17 @@ private struct NoteRowView: View {
                 VStack(alignment: .leading, spacing: 5) {
                     HStack(spacing: 6) {
                         Text(note.author.username)
-                            .font(.system(size: 14, weight: .semibold))
+                            .typeScale(.meta)
                             .foregroundStyle(Palette.ink)
                         if let date = note.createdAt {
                             Text(date.relativeShort)
-                                .font(.system(size: 12))
+                                .typeScale(.meta)
                                 .foregroundStyle(Palette.secondary)
                         }
                         Spacer(minLength: 0)
                     }
                     Text(note.body)
-                        .font(.system(size: 15))
-                        .lineSpacing(6)
+                        .typeScale(.body)
                         .foregroundStyle(Palette.body)
                         .fixedSize(horizontal: false, vertical: true)
                 }

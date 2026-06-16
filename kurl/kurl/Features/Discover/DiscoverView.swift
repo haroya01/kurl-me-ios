@@ -96,12 +96,12 @@ private struct ConnectionEventCard: View {
             HStack(spacing: 7) {
                 AvatarView(author: event.curator, size: 22)
                 Text(event.curator.username)
-                    .font(.system(size: 13 * metaUnit, weight: .semibold))
+                    .typeScale(.meta)
                     .foregroundStyle(Palette.secondary)
                 if let at = event.connectedAt {
                     Text("·").foregroundStyle(Palette.faint)
                     Text(at.relativeShort)
-                        .font(.system(size: 13 * metaUnit))
+                        .typeScale(.meta)
                         .foregroundStyle(Palette.faint)
                 }
                 Spacer(minLength: 0)
@@ -114,7 +114,7 @@ private struct ConnectionEventCard: View {
                     Image(systemName: "square.grid.2x2")
                         .font(.system(size: 10 * metaUnit, weight: .bold))
                     Text(event.collectionTitle)
-                        .font(.system(size: 12 * metaUnit, weight: .bold))
+                        .typeScale(.eyebrow)
                         .tracking(0.3)
                     Text("에 연결")
                         .font(.system(size: 12 * metaUnit, weight: .medium))
@@ -148,7 +148,6 @@ private struct ConnectionEventCard: View {
 /// 노트 = 부드러운 틴트 패널(붙잡은 생각). 발견 흐름·컬렉션 상세가 이 하나를 공유한다.
 struct BlockPreview: View {
     let block: ConnectionBlock
-    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
     var body: some View {
@@ -164,14 +163,14 @@ struct BlockPreview: View {
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                     Text(excerpt)
-                        .font(.system(size: 14 * unit))
+                        .typeScale(.lede)
                         .foregroundStyle(Palette.secondary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                     if let tag = tags.first {
                         Text("#\(tag)")
-                            .font(.system(size: 12 * metaUnit, weight: .medium))
+                            .typeScale(.meta)
                             .foregroundStyle(Palette.secondary)
                             .padding(.top, 1)
                     }
@@ -196,13 +195,12 @@ struct BlockPreview: View {
                     VStack(alignment: .leading, spacing: 8) {
                         kindTag("하이라이트", icon: "quote.opening")
                         Text(quote)
-                            .font(.system(size: 18 * unit, weight: .medium))
+                            .typeScale(.body)
                             .foregroundStyle(Palette.body)
-                            .lineSpacing(4)
                             .multilineTextAlignment(.leading)
                             .fixedSize(horizontal: false, vertical: true)
                         Text(postTitle)
-                            .font(.system(size: 13 * metaUnit, weight: .medium))
+                            .typeScale(.meta)
                             .foregroundStyle(Palette.faint)
                             .lineLimit(1)
                     }
@@ -218,9 +216,8 @@ struct BlockPreview: View {
             VStack(alignment: .leading, spacing: 8) {
                 kindTag("노트", icon: "text.quote")
                 Text(body)
-                    .font(.system(size: 17 * unit))
+                    .typeScale(.body)
                     .foregroundStyle(Palette.body)
-                    .lineSpacing(5)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)

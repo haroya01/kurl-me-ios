@@ -132,7 +132,7 @@ struct CollectionDetailView: View {
 
             if let blurb = detail.blurb {
                 Text(blurb)
-                    .font(.system(size: 15 * unit))
+                    .typeScale(.lede)
                     .foregroundStyle(Palette.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

@@ -96,7 +96,7 @@ struct ConnectSheet: View {
                     // 안에 뭐가 들었는지 한 줄 — 어디 넣을지 떠올리게. 비었으면 개수만.
                     if !c.preview.isEmpty {
                         Text(c.preview.joined(separator: " · "))
-                            .font(.system(size: 13 * metaUnit))
+                            .typeScale(.lede)
                             .foregroundStyle(Palette.secondary)
                             .lineLimit(1)
                             .truncationMode(.tail)
@@ -148,7 +148,7 @@ struct ConnectSheet: View {
 
             // "왜"가 자기 화면을 얻는다 — 고른 뒤의 집중된 한 순간(§0 큐레이션 영혼).
             Text("왜 이었나요")
-                .font(.system(size: 13 * metaUnit, weight: .bold))
+                .typeScale(.eyebrow)
                 .tracking(0.4)
                 .foregroundStyle(Palette.faint)
                 .padding(.top, 24)
@@ -156,7 +156,7 @@ struct ConnectSheet: View {
             whyField
 
             Text("\(selected.count)개 컬렉션에 추가됩니다.")
-                .font(.system(size: 12 * metaUnit))
+                .typeScale(.footnote)
                 .foregroundStyle(Palette.faint)
                 .padding(.top, 12)
 

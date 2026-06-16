@@ -38,7 +38,7 @@ struct FollowButton: View {
 
             if showCount, let count = model.followerCount {
                 Text("팔로워 \(count)")
-                    .font(.system(size: 13))
+                    .typeScale(.meta)
                     .foregroundStyle(Palette.secondary)
                     .contentTransition(.numericText())
                     .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: count)
