@@ -55,6 +55,15 @@ struct SelectableProseText: UIViewRepresentable {
         let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleTap(_:)))
         tap.cancelsTouchesInView = false
         tv.addGestureRecognizer(tap)
+        // 롱프레스 = 문장 스냅(결정 B). 우리 편집 메뉴를 그 자리에 띄운다.
+        let menu = UIEditMenuInteraction(delegate: context.coordinator)
+        tv.addInteraction(menu)
+        tv.highlightMenuInteraction = menu
+        let longPress = UILongPressGestureRecognizer(
+            target: context.coordinator, action: #selector(Coordinator.handleLongPress(_:)))
+        longPress.minimumPressDuration = 0.4
+        longPress.delegate = context.coordinator
+        tv.addGestureRecognizer(longPress)
         return tv
     }
 
@@ -111,8 +120,10 @@ struct SelectableProseText: UIViewRepresentable {
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
-    final class Coordinator: NSObject, UITextViewDelegate {
+    final class Coordinator: NSObject, UITextViewDelegate, UIGestureRecognizerDelegate,
+        UIEditMenuInteractionDelegate {
         /// 선택 편집 메뉴에 "하이라이트"·"메모"를 맨 앞에 더한다(복사 등 기본 항목은 그대로).
+        /// 더블탭/드래그(기본 편집 메뉴) 경로.
         func textView(
             _ textView: UITextView, editMenuForTextIn range: NSRange,
             suggestedActions: [UIMenuElement]
@@ -120,24 +131,88 @@ struct SelectableProseText: UIViewRepresentable {
             guard range.length > 0, let tv = textView as? ProseTextView else {
                 return UIMenu(children: suggestedActions)
             }
-            let quote = (textView.text as NSString).substring(with: range)
+            return UIMenu(children: highlightActions(tv: tv, range: range) + suggestedActions)
+        }
+
+        /// 선택 구간의 "하이라이트"·"메모" 액션 — 더블탭(기본 메뉴)과 롱프레스(문장 스냅, 우리
+        /// UIEditMenuInteraction)가 공유한다. quote 는 호출 시점에 굳혀 둔다(선택이 바뀌어도 일관).
+        private func highlightActions(tv: ProseTextView, range: NSRange) -> [UIMenuElement] {
+            let quote = (tv.text as NSString).substring(with: range)
+            let after = NSRange(location: range.location + range.length, length: 0)
             var actions: [UIMenuElement] = []
             if let onHighlight = tv.onHighlight {
                 actions.append(UIAction(title: String(localized: "하이라이트"), image: UIImage(systemName: "highlighter")) { _ in
                     onHighlight(range.location, range.location + range.length, quote)
-                    textView.selectedRange = NSRange(location: range.location + range.length, length: 0)
-                    textView.resignFirstResponder()
+                    tv.selectedRange = after
+                    tv.resignFirstResponder()
                 })
             }
             if let onNote = tv.onHighlightNote {
                 actions.append(UIAction(title: String(localized: "메모"), image: UIImage(systemName: "text.bubble")) { _ in
                     onNote(range.location, range.location + range.length, quote)
-                    textView.selectedRange = NSRange(location: range.location + range.length, length: 0)
-                    textView.resignFirstResponder()
+                    tv.selectedRange = after
+                    tv.resignFirstResponder()
                 })
             }
-            return UIMenu(children: actions + suggestedActions)
+            return actions
         }
+
+        // MARK: 롱프레스 = 문장 스냅 (결정 B)
+
+        /// 길게 누르면 그 지점이 속한 문장 전체를 선택하고, 우리 편집 메뉴를 그 자리에 띄운다.
+        /// 더블탭(단어)·드래그(임의 범위)는 UITextView 기본 동작 그대로.
+        @objc func handleLongPress(_ g: UILongPressGestureRecognizer) {
+            guard g.state == .began, let tv = g.view as? ProseTextView,
+                  tv.onHighlight != nil || tv.onHighlightNote != nil else { return }
+            let ns = tv.text as NSString
+            guard ns.length > 0 else { return }
+            let lm = tv.layoutManager
+            var point = g.location(in: tv)
+            point.x -= tv.textContainerInset.left
+            point.y -= tv.textContainerInset.top
+            let glyph = lm.glyphIndex(for: point, in: tv.textContainer)
+            let charIndex = min(lm.characterIndexForGlyph(at: glyph), ns.length - 1)
+            let range = Self.sentenceRange(in: ns, around: charIndex)
+            guard range.length > 0 else { return }
+            tv.becomeFirstResponder()
+            tv.selectedRange = range
+            let cfg = UIEditMenuConfiguration(identifier: nil, sourcePoint: g.location(in: tv))
+            tv.highlightMenuInteraction?.presentEditMenu(with: cfg)
+        }
+
+        /// 인덱스가 속한 문장 범위 — 끝의 공백·줄바꿈은 떼어 선택이 다음 문장으로 새지 않게.
+        static func sentenceRange(in text: NSString, around index: Int) -> NSRange {
+            var result = NSRange(location: index, length: 0)
+            text.enumerateSubstrings(
+                in: NSRange(location: 0, length: text.length), options: .bySentences
+            ) { _, sub, _, stop in
+                if index >= sub.location, index < sub.location + sub.length {
+                    result = sub
+                    stop.pointee = true
+                }
+            }
+            while result.length > 0 {
+                let c = text.character(at: result.location + result.length - 1)
+                if c == 0x20 || c == 0x09 || c == 0x0A || c == 0x0D { result.length -= 1 } else { break }
+            }
+            return result
+        }
+
+        /// 롱프레스로 띄운 우리 메뉴 — 현재(문장) 선택에 하이라이트/메모 + 기본 항목.
+        func editMenuInteraction(
+            _ interaction: UIEditMenuInteraction, menuFor configuration: UIEditMenuConfiguration,
+            suggestedActions: [UIMenuElement]
+        ) -> UIMenu? {
+            guard let tv = interaction.view as? ProseTextView, tv.selectedRange.length > 0 else {
+                return UIMenu(children: suggestedActions)
+            }
+            return UIMenu(children: highlightActions(tv: tv, range: tv.selectedRange) + suggestedActions)
+        }
+
+        /// 우리 롱프레스가 UITextView 기본 제스처와 함께 인식되게(기본 selection 과 경쟁 안 함).
+        func gestureRecognizer(
+            _ g: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
+        ) -> Bool { true }
 
         /// 칠해진 하이라이트를 탭 → 그 스레드 열기. 글자 위가 아닌 탭(빈 줄·여백)은 무시.
         @objc func handleTap(_ gesture: UITapGestureRecognizer) {
@@ -204,4 +279,6 @@ final class ProseTextView: UITextView {
     var onHighlightNote: ((_ startOffset: Int, _ endOffset: Int, _ quote: String) -> Void)?
     var onOpenThread: ((_ highlightId: Int64) -> Void)?
     var marks: [SelectableProseText.Mark] = []
+    /// 롱프레스(문장 스냅)가 띄우는 편집 메뉴 인터랙션.
+    var highlightMenuInteraction: UIEditMenuInteraction?
 }

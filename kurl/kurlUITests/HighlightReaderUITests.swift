@@ -138,6 +138,29 @@ final class HighlightReaderUITests: XCTestCase {
         shot("2-connect-sheet")
     }
 
+    /// 롱프레스 = 문장 스냅(결정 B) — 칠 안 된 문단 중반을 길게 누르면 그 문장이 선택되고
+    /// 우리 편집 메뉴(하이라이트/메모)가 뜬다. 선택 범위는 스크린샷으로 눈 검증.
+    func testLongPressSnapsToSentence() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--post", "honggildong/hexagonal-after-3-months"]
+        app.launch()
+
+        let paragraph = app.textViews.containing(
+            NSPredicate(format: "value CONTAINS %@", "레이어드 구조로 3년을")).firstMatch
+        XCTAssertTrue(paragraph.waitForExistence(timeout: 15), "둘째 문단 없음")
+        // 첫 줄 시작("레이어드 구조로 3년을")은 다중블록 하이라이트라 탭→스레드가 가로챈다.
+        // 칠 안 된 문단 중반을 길게 눌러 문장 스냅을 시험.
+        paragraph.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 0.7)
+        Thread.sleep(forTimeInterval: 0.6)
+        shot("1-longpress-sentence-menu")
+
+        let highlightItem = app.menuItems["하이라이트"]
+        XCTAssertTrue(highlightItem.waitForExistence(timeout: 4), "롱프레스 후 '하이라이트' 메뉴가 안 뜸")
+        highlightItem.tap()
+        Thread.sleep(forTimeInterval: 0.8)
+        shot("2-longpress-highlighted")
+    }
+
     /// 첫 코치 — "탭하면 대화" 안내 배너(--force-coach 로 플래그 무시하고 결정적으로).
     func testHighlightTapCoach() throws {
         let app = XCUIApplication()
