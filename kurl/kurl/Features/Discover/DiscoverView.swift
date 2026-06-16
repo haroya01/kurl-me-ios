@@ -185,7 +185,8 @@ struct BlockPreview: View {
 
         case let .highlight(quote, postTitle, username, slug):
             // 하이라이트 = 인용. 카드 박스가 아니라 그린 좌측 룰 + 큰 구절 — 본문에서 뽑힌 결.
-            NavigationLink(value: Route.post(username: username, slug: slug)) {
+            // 탭 = 글의 *그 문장*으로 딥링크(스크롤+깜빡), 글 맨 위가 아니라.
+            NavigationLink(value: Route.postFocusQuote(username: username, slug: slug, quote: quote)) {
                 HStack(alignment: .top, spacing: 12) {
                     RoundedRectangle(cornerRadius: 1.5)
                         .fill(Palette.accent)

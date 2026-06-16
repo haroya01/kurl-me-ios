@@ -19,9 +19,12 @@ struct PostDetailView: View {
     /// 커버의 세이프에어리어 침범은 덱의 것이 아니므로 끄고, 조회 비콘도 덱의 체류
     /// 판정에 맡긴다(여러 장이 lazy 로 살아 있어 load 시점 비콘은 부풀려진다).
     private let embedded: Bool
+    /// 발견 딥링크 — 이 구절이 든 블록으로 스크롤해 잠깐 강조한다(없으면 평소대로 위에서부터 읽기).
+    private let focusQuote: String?
 
-    init(username: String, slug: String, embedded: Bool = false) {
+    init(username: String, slug: String, embedded: Bool = false, focusQuote: String? = nil) {
         self.embedded = embedded
+        self.focusQuote = focusQuote
         _model = State(initialValue: PostDetailViewModel(
             username: username, slug: slug, recordsView: !embedded))
     }
@@ -59,6 +62,10 @@ struct PostDetailView: View {
     /// 하이라이트가 "탭하면 대화"라는 걸 처음 한 번만 알려주는 코치(§10 조용히, 5초 후 사라짐).
     @State private var showHighlightCoach = false
     private static let highlightCoachKey = "seenHighlightTapCoach"
+
+    /// 발견 딥링크 도착 시 그 블록을 잠깐 강조했다 사라지는 플래시. didFocus = 1회만.
+    @State private var flashBlockId: Int?
+    @State private var didFocus = false
 
     /// 떠 있는 유리 독 — 글 끝(컴포저·다음 글 큐 영역)에 닿으면 materialize 로 물러나
     /// 입력을 가리지 않는다. 후퇴는 "스크롤 여유가 충분한 글"에만 — 한 화면 남짓 글은
@@ -364,6 +371,8 @@ struct PostDetailView: View {
             guard !embedded, let id = loadedPostId, AuthStore.shared.isSignedIn else { return }
             await ReadingHistoryAPI.record(postId: id)
         }
+        // 발견 피드의 하이라이트 카드로 들어오면 — 그 구절이 든 블록으로 스크롤 + 잠깐 강조(1회).
+        .task(id: loadedPostId) { await focusOnQuoteIfNeeded(proxy) }
         // 미로그인 사용자가 하이라이트를 시도하면 — 댓글·팔로우와 같은 공용 로그인 시트.
         .loginPrompt(
             isPresented: Binding(
@@ -440,6 +449,24 @@ struct PostDetailView: View {
     private var loadedPostId: Int64? {
         if case .loaded(let detail) = model.phase { return detail.post.id }
         return nil
+    }
+
+    /// 발견 딥링크 — 구절이 든 블록으로 스크롤하고 잠깐 강조했다 사라진다. 공개 하이라이트는 이미
+    /// 그 자리에 그린으로 칠해져 있어, 도착하면 그 문장에 바로 안착한다. 한 글에 한 번만.
+    private func focusOnQuoteIfNeeded(_ proxy: ScrollViewProxy) async {
+        guard !didFocus, let quote = focusQuote, !quote.isEmpty,
+              case .loaded(let detail) = model.phase else { return }
+        let needle = String(quote.prefix(16))
+        guard let block = detail.blocks.first(where: { ($0.content ?? "").contains(needle) })
+        else { return }
+        didFocus = true
+        try? await Task.sleep(for: .milliseconds(420))  // 레이아웃·하이라이트 페인트 후
+        withAnimation(.easeInOut(duration: 0.55)) {
+            proxy.scrollTo(block.id, anchor: UnitPoint(x: 0, y: 0.18))
+        }
+        withAnimation(.easeOut(duration: 0.35)) { flashBlockId = block.id }
+        try? await Task.sleep(for: .milliseconds(1300))
+        withAnimation(.easeIn(duration: 0.7)) { flashBlockId = nil }
     }
 
     /// 본문 헤딩(H1~H3) 목차 — 텍스트·앵커 id(블록 id)·들여쓰기 레벨.
@@ -519,6 +546,10 @@ struct PostDetailView: View {
             ForEach(Array(detail.blocks.enumerated()), id: \.offset) { index, block in
                 BlockView(block: block, isLead: index == leadIndex)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    // 딥링크 도착 시 잠깐 강조(그린 워시) — 그 문장이 "여기야" 신호.
+                    .background(
+                        flashBlockId == block.id ? Palette.accent.opacity(0.10) : Color.clear,
+                        in: RoundedRectangle(cornerRadius: 8))
                     // 목차가 이 블록으로 점프할 수 있게 앵커 — 헤딩만 쓰지만 전부 달아도 무해.
                     .id(block.id)
             }
