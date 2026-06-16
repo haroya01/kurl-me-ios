@@ -354,6 +354,24 @@ struct PostDetailView: View {
                 get: { highlights?.loginPrompt ?? false },
                 set: { highlights?.loginPrompt = $0 }),
             message: "하이라이트는 kurl 계정에 저장됩니다.")
+        // 칠해진 하이라이트 탭 → 답글 스레드.
+        .sheet(isPresented: Binding(
+            get: { highlights?.threadHighlightId != nil },
+            set: { if !$0 { highlights?.threadHighlightId = nil } })) {
+            if let store = highlights, let id = store.threadHighlightId, let hl = store.highlight(id: id) {
+                HighlightThreadSheet(highlight: hl, store: store)
+            }
+        }
+        // 선택→"메모" → 여백 노트와 함께 하이라이트 생성.
+        .sheet(item: Binding(
+            get: { highlights?.noteDraft },
+            set: { highlights?.noteDraft = $0 })) { draft in
+            HighlightNoteComposerSheet(draft: draft) { note in
+                highlights?.create(
+                    blockOrder: draft.blockOrder, startOffset: draft.startOffset,
+                    endOffset: draft.endOffset, quote: draft.quote, note: note)
+            }
+        }
         }
     }
 

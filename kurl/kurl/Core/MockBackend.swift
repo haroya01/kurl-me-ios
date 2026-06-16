@@ -56,6 +56,29 @@ enum MockBackend {
     private static var likedNotes: Set<Int64> = []
     private static var shortSeq = 0
 
+    // 리더 소셜 하이라이트 + 답글 스레드 — 본 글 리더의 칠하기·탭→스레드·메모·답글 왕복을 검증.
+    // 긴 글 픽스처(blockOrder=1 문단 중간)에 메모와 답글을 미리 깔아 둔다.
+    private static var highlightRows: [[String: Any]] = [
+        ["id": 6001,
+         "author": ["id": 2, "username": "haruka", "bio": NSNull(), "avatarUrl": NSNull()],
+         "blockOrder": 1, "startOffset": 10, "endOffset": 25,
+         "quote": "다시 돌아가라면 또 갈아탄다",
+         "note": "이 결정에 가장 공감 — 첫 두 주 비용을 미리 알았어야 했다는 대목.",
+         "createdAt": iso(Date().addingTimeInterval(-9_000))],
+    ]
+    private static var highlightReplies: [Int: [[String: Any]]] = [
+        6001: [
+            ["id": 7001, "author": ["id": 1, "username": "honggildong", "bio": NSNull(), "avatarUrl": NSNull()],
+             "body": "저도요. 작게 시작했어야 했다는 데 200% 동의합니다.",
+             "createdAt": iso(Date().addingTimeInterval(-7_000))],
+            ["id": 7002, "author": ["id": 3, "username": "reader_kim", "bio": NSNull(), "avatarUrl": NSNull()],
+             "body": "첫 두 주 비용을 어떻게 줄였는지 더 듣고 싶어요.",
+             "createdAt": iso(Date().addingTimeInterval(-3_000))],
+        ]
+    ]
+    private static var nextHighlightId = 6100
+    private static var nextHighlightReplyId = 7100
+
     /// `--empty-feeds` = 구독함·추천을 빈 응답으로 — 빈 안내 화면 검증용.
     private static let emptyFeeds = ProcessInfo.processInfo.arguments.contains("--empty-feeds")
 
@@ -847,6 +870,64 @@ enum MockBackend {
                 feedItem(id: 9101, title: "헥사고날로 가는 길", slug: "hexagonal-road"),
             ]
             return json(["items": items, "page": 0, "size": 20, "hasNext": false])
+        }
+
+        // 공개 하이라이트 목록(+replyCount) — 본 글 리더가 문단에 칠한다.
+        if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "posts",
+           parts[3] == "highlights" {
+            let items = highlightRows.map { row -> [String: Any] in
+                var x = row
+                x["replyCount"] = highlightReplies[(row["id"] as? Int) ?? -1]?.count ?? 0
+                return x
+            }
+            return json(items)
+        }
+        // 하이라이트 생성(+선택적 메모) — 작성자는 나.
+        if method == "POST", parts.count == 3, parts[0] == "posts", parts[2] == "highlights" {
+            let req = decode(body)
+            nextHighlightId += 1
+            let row: [String: Any] = [
+                "id": nextHighlightId,
+                "author": ["id": 1, "username": myUsername, "bio": NSNull(), "avatarUrl": NSNull()],
+                "blockOrder": req["blockOrder"] as? Int ?? 0,
+                "startOffset": req["startOffset"] as? Int ?? 0,
+                "endOffset": req["endOffset"] as? Int ?? 0,
+                "quote": req["quote"] as? String ?? "",
+                "note": req["note"] ?? NSNull(),
+                "createdAt": iso(Date()),
+            ]
+            highlightRows.append(row)
+            return json(row)
+        }
+        // 하이라이트 삭제.
+        if method == "DELETE", parts.count == 2, parts[0] == "highlights", let hid = Int(parts[1]) {
+            highlightRows.removeAll { ($0["id"] as? Int) == hid }
+            highlightReplies[hid] = nil
+            return json([:] as [String: Any])
+        }
+        // 답글 — 목록 / 작성 / 삭제.
+        if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "highlights",
+           parts[3] == "replies", let hid = Int(parts[2]) {
+            return json(highlightReplies[hid] ?? [])
+        }
+        if method == "POST", parts.count == 3, parts[0] == "highlights", parts[2] == "replies",
+           let hid = Int(parts[1]) {
+            let req = decode(body)
+            nextHighlightReplyId += 1
+            let reply: [String: Any] = [
+                "id": nextHighlightReplyId,
+                "author": ["id": 1, "username": myUsername, "bio": NSNull(), "avatarUrl": NSNull()],
+                "body": req["body"] as? String ?? "",
+                "createdAt": iso(Date()),
+            ]
+            highlightReplies[hid, default: []].append(reply)
+            return json(reply)
+        }
+        if method == "DELETE", parts.count == 2, parts[0] == "highlight-replies", let rid = Int(parts[1]) {
+            for (hid, list) in highlightReplies {
+                highlightReplies[hid] = list.filter { ($0["id"] as? Int) != rid }
+            }
+            return json([:] as [String: Any])
         }
 
         if method == "GET", parts == ["users", "me", "highlights"] {
