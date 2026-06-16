@@ -946,6 +946,10 @@ enum MockBackend {
                 ["id": 5002, "quote": "좋은 추상은 더 지울 게 없을 때 완성된다.", "blockOrder": 5,
                  "postUsername": "honggildong", "postSlug": "p-mock-1", "postTitle": "목 초안 — 헥사고날 정리",
                  "createdAt": iso(Date().addingTimeInterval(-172_800))],
+                // 같은 글(p-mock-2)에 둘째 구절 — 글별 그룹(한 헤더 아래 여러 구절)을 그려보기 위함.
+                ["id": 5003, "quote": "테스트가 빨라지면 설계가 빨라진다.", "blockOrder": 7,
+                 "postUsername": "honggildong", "postSlug": "p-mock-2", "postTitle": "발행된 목 글",
+                 "createdAt": iso(Date().addingTimeInterval(-10_000))],
             ])
         }
 
