@@ -19,6 +19,9 @@ final class PostHighlightStore {
     var threadHighlightId: Int64?
     /// 메모와 함께 하이라이트할 선택 구간 — 뷰가 메모 입력 시트를 띄운다.
     var noteDraft: NoteDraft?
+    /// 컬렉션에 연결할 하이라이트 — 스레드 시트가 닫힌 뒤 뷰(PostDetailView)가 ConnectSheet 를 띄운다
+    /// (시트 위 시트 대신 present-after-dismiss 로 안정).
+    var connectTarget: HighlightView?
 
     /// 메모 입력 시트를 구동하는 선택 구간.
     struct NoteDraft: Identifiable {

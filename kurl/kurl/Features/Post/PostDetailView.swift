@@ -56,6 +56,10 @@ struct PostDetailView: View {
     /// 끝까지 읽으면 마크가 완성되는 한 번의 모먼트(완독). 위로 다시 올라가면 재무장.
     @State private var readComplete = false
 
+    /// 하이라이트가 "탭하면 대화"라는 걸 처음 한 번만 알려주는 코치(§10 조용히, 5초 후 사라짐).
+    @State private var showHighlightCoach = false
+    private static let highlightCoachKey = "seenHighlightTapCoach"
+
     /// 떠 있는 유리 독 — 글 끝(컴포저·다음 글 큐 영역)에 닿으면 materialize 로 물러나
     /// 입력을 가리지 않는다. 후퇴는 "스크롤 여유가 충분한 글"에만 — 한 화면 남짓 글은
     /// 시작부터 끝이 보여 독이 영영 안 뜨는 회귀가 있었다(여유 120pt 미만이면 항상 유지).
@@ -342,6 +346,18 @@ struct PostDetailView: View {
             let store = PostHighlightStore(postId: id)
             highlights = store
             await store.load()
+            // 대화가 달린 하이라이트가 있는 글에서, 처음 한 번만 "탭하면 열려요" 코치.
+            // `--force-coach`(목 전용) = 플래그 무시하고 매번 — UI 테스트 결정성 진입로.
+            let forceCoach = Config.useMocks
+                && ProcessInfo.processInfo.arguments.contains("--force-coach")
+            let hasThreaded = store.highlights.contains {
+                ($0.note?.isEmpty == false) || $0.replyCount > 0
+            }
+            if !embedded, hasThreaded,
+               forceCoach || !UserDefaults.standard.bool(forKey: Self.highlightCoachKey) {
+                if !forceCoach { UserDefaults.standard.set(true, forKey: Self.highlightCoachKey) }
+                withAnimation(.snappy) { showHighlightCoach = true }
+            }
         }
         // 읽기 기록 비콘 — 로그인 독자가 글을 열면 계정에 기록(기기를 넘어 이어진다). 익명은 기록 없음.
         .task(id: loadedPostId) {
@@ -362,6 +378,16 @@ struct PostDetailView: View {
                 HighlightThreadSheet(highlight: hl, store: store)
             }
         }
+        // 스레드에서 "컬렉션에 연결" → 닫힌 뒤 여기서 ConnectSheet(왜 한 줄)로 그래프에 잇는다.
+        .sheet(isPresented: Binding(
+            get: { highlights?.connectTarget != nil },
+            set: { if !$0 { highlights?.connectTarget = nil } })) {
+            if let hl = highlights?.connectTarget {
+                ConnectSheet(
+                    targetKind: "하이라이트", targetTitle: hl.quote,
+                    blockType: .highlight, refId: hl.id)
+            }
+        }
         // 선택→"메모" → 여백 노트와 함께 하이라이트 생성.
         .sheet(item: Binding(
             get: { highlights?.noteDraft },
@@ -372,7 +398,37 @@ struct PostDetailView: View {
                     endOffset: draft.endOffset, quote: draft.quote, note: note)
             }
         }
+        .overlay(alignment: .bottom) {
+            if showHighlightCoach { highlightCoach }
         }
+        }
+    }
+
+    /// 첫 1회 — 하이라이트가 "탭하면 대화·메모"라는 걸 조용히 알려준다. 탭하거나 5초 지나면 사라진다.
+    private var highlightCoach: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "hand.tap")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Palette.accent)
+            Text("밑줄 친 문장을 탭하면 메모·대화가 열려요")
+                .typeScale(.meta)
+                .foregroundStyle(Palette.body)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+        .background(.regularMaterial, in: Capsule())
+        .overlay(Capsule().strokeBorder(Palette.hairline, lineWidth: 1))
+        .shadow(color: .black.opacity(0.12), radius: 14, y: 6)
+        .padding(.bottom, 40)
+        .padding(.horizontal, Metrics.gutter)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .onTapGesture { withAnimation(.snappy) { showHighlightCoach = false } }
+        .task {
+            try? await Task.sleep(for: .seconds(5))
+            withAnimation(.snappy) { showHighlightCoach = false }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
     }
 
     private var loadedTitle: String {

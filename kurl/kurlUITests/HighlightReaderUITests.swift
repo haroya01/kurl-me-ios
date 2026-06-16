@@ -100,4 +100,54 @@ final class HighlightReaderUITests: XCTestCase {
             }
         }
     }
+
+    /// 스레드 시트의 "컬렉션에 연결" → ConnectSheet(왜 한 줄) — 리더에서 연결 그래프로 흐르는 고리.
+    func testConnectHighlightFromThread() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--post", "honggildong/hexagonal-after-3-months"]
+        app.launch()
+
+        let paragraph = app.textViews.containing(
+            NSPredicate(format: "value CONTAINS %@", "돌아가라면")).firstMatch
+        XCTAssertTrue(paragraph.waitForExistence(timeout: 15), "첫 문단 없음")
+        paragraph.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.16)).tap()
+
+        let nav = app.navigationBars["하이라이트"]
+        if !nav.waitForExistence(timeout: 6) {
+            paragraph.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)).tap()
+            _ = nav.waitForExistence(timeout: 6)
+        }
+        XCTAssertTrue(nav.exists, "하이라이트 스레드가 안 열림")
+        let connect = nav.buttons["connectHighlightButton"]
+        XCTAssertTrue(connect.waitForExistence(timeout: 4), "스레드에 '컬렉션에 연결' 버튼이 없음")
+        shot("1-thread-with-connect")
+        // SwiftUI 툴바 버튼은 접근성 트리가 중첩돼 firstMatch 탭이 헛돈다 — 네비바 우측을 좌표로.
+        if connect.isHittable {
+            connect.tap()
+        } else {
+            nav.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+        }
+
+        // ConnectSheet — Are.na "어디에 남길까요"(컬렉션 고르기) 진입.
+        let picker = app.staticTexts["어디에 남길까요?"]
+        let pickerNav = app.navigationBars["어디에 남길까요?"]
+        XCTAssertTrue(
+            picker.waitForExistence(timeout: 6) || pickerNav.waitForExistence(timeout: 2),
+            "ConnectSheet(어디에 남길까요?)가 안 뜸")
+        Thread.sleep(forTimeInterval: 0.6)
+        shot("2-connect-sheet")
+    }
+
+    /// 첫 코치 — "탭하면 대화" 안내 배너(--force-coach 로 플래그 무시하고 결정적으로).
+    func testHighlightTapCoach() throws {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "--mocks", "--post", "honggildong/hexagonal-after-3-months", "--force-coach",
+        ]
+        app.launch()
+        let coach = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS '탭하면'")).firstMatch
+        XCTAssertTrue(coach.waitForExistence(timeout: 15), "코치 배너가 안 뜸")
+        shot("coach")
+    }
 }

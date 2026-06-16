@@ -20,6 +20,9 @@ struct HighlightThreadSheet: View {
     @State private var text = ""
     @State private var busy = false
 
+    /// 연결은 서버에 자리잡은(양수 id) 하이라이트만 — 낙관적 생성 직후(음수 id)는 refId 가 없다.
+    private var canConnect: Bool { highlight.id > 0 && AuthStore.shared.isSignedIn }
+
     private var hasOpener: Bool { (highlight.note?.isEmpty == false) }
 
     var body: some View {
@@ -76,7 +79,27 @@ struct HighlightThreadSheet: View {
             .safeAreaInset(edge: .bottom) { composer }
             .navigationTitle("하이라이트")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("닫기") { dismiss() } } }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("닫기") { dismiss() } }
+                if canConnect {
+                    // 이 문장을 내 컬렉션(연결 그래프)에 노드로 — 발견 피드로 흐르는 진입점.
+                    // 시트 위 시트를 피해 닫고 나서 부모가 ConnectSheet 를 띄운다(present-after-dismiss).
+                    ToolbarItem(placement: .primaryAction) {
+                        Button {
+                            let target = highlight
+                            dismiss()
+                            Task { @MainActor in
+                                try? await Task.sleep(for: .milliseconds(350))
+                                store.connectTarget = target
+                            }
+                        } label: {
+                            Image(systemName: "rectangle.stack.badge.plus")
+                        }
+                        .accessibilityLabel(Text("컬렉션에 연결"))
+                        .accessibilityIdentifier("connectHighlightButton")
+                    }
+                }
+            }
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
