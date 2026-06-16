@@ -382,12 +382,12 @@ enum MockBackend {
             [
                 "id": 2, "curator": curator(3, "sori"),
                 "collectionId": 201, "collectionTitle": "오늘의 문장",
-                "why": "덜어내기에 대해 이보다 정확한 한 줄을 못 봤다.",
+                "why": "재현 안 되는 버그 앞에서 나도 늘 이 문장을 떠올린다.",
                 "connectedAt": iso(Date().addingTimeInterval(-7200)),
                 "blockType": "HIGHLIGHT", "title": "토큰이 사라진 밤",
                 "excerpt": NSNull(), "slug": "the-night-tokens-vanished",
                 "username": "honggildong",
-                "quote": "좋은 추상은 더 지울 게 없을 때 완성된다.", "body": NSNull(),
+                "quote": "재현이 안 되는 버그는 대개 타이밍 버그다.", "body": NSNull(),
             ],
             [
                 "id": 3, "curator": curator(2, "minji"),

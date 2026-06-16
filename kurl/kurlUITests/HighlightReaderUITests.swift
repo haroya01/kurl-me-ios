@@ -161,6 +161,26 @@ final class HighlightReaderUITests: XCTestCase {
         shot("2-longpress-highlighted")
     }
 
+    /// 발견 피드의 하이라이트 카드 탭 → 글의 *그 문장*으로 딥링크(스크롤+깜빡). 스샷으로 안착 확인.
+    func testDiscoverHighlightDeepLink() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "discover"]
+        app.launch()
+
+        let needle = "재현이 안 되는 버그"
+        let card = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", needle)).firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 15), "발견 피드에 하이라이트 카드가 없음")
+        shot("1-discover-highlight-card")
+        card.tap()
+
+        // 글이 열리고 그 구절 블록으로 스크롤된다(공개 하이라이트가 이미 그 자리에 칠해져 있어 안착).
+        let quoteOnPost = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS %@", needle)).firstMatch
+        XCTAssertTrue(quoteOnPost.waitForExistence(timeout: 10), "딥링크 후 대상 구절이 안 보임")
+        Thread.sleep(forTimeInterval: 1.0)  // 스크롤+플래시 안착
+        shot("2-deeplinked-to-quote")
+    }
+
     /// 첫 코치 — "탭하면 대화" 안내 배너(--force-coach 로 플래그 무시하고 결정적으로).
     func testHighlightTapCoach() throws {
         let app = XCUIApplication()
