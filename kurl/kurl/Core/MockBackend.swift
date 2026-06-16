@@ -321,6 +321,7 @@ enum MockBackend {
         var title: String
         var description: String?
         var visibility: String
+        var kind: String = "COLLECTION"
         var connections: [MockConnection]
     }
 
@@ -355,6 +356,28 @@ enum MockBackend {
                     id: 521, blockType: "NOTE", why: nil,
                     body: "좋은 글은 두 번째 읽을 때 다른 문장이 밑줄 쳐진다."),
             ]),
+        // PATH(reading path) — 여러 글의 문장을 가로질러 하나의 논증으로 엮는다. why 가 문장과 문장을 잇는 흐름.
+        // 인용은 실제 목 글 블록에 있는 문장이라 탭하면 그 지점으로 딥링크된다.
+        MockCollection(
+            id: 104, title: "경계를 긋는다는 것", description: "왜 경계가 먼저인가 — 세 문장으로.",
+            visibility: "PUBLIC", kind: "PATH",
+            connections: [
+                MockConnection(
+                    id: 531, blockType: "HIGHLIGHT", why: "출발은 늘 여기다 — 경계가 없으면 변경이 전역이 된다.",
+                    title: "헥사고날로 갈아탄 지 석 달, 무엇이 남았나",
+                    slug: "hexagonal-after-3-months", username: "honggildong",
+                    quote: "경계가 없으면 모든 변경이 전역 변경이 된다."),
+                MockConnection(
+                    id: 532, blockType: "HIGHLIGHT", why: "그 경계를 긋느라 갈아탔고, 후회는 없다.",
+                    title: "헥사고날로 갈아탄 지 석 달, 무엇이 남았나",
+                    slug: "hexagonal-after-3-months", username: "honggildong",
+                    quote: "다시 돌아가라면 또 갈아탄다"),
+                MockConnection(
+                    id: 533, blockType: "HIGHLIGHT", why: "경계가 약하면 결국 타이밍이 샌다 — 같은 이야기의 다른 얼굴.",
+                    title: "토큰이 사라진 밤",
+                    slug: "the-night-tokens-vanished", username: "honggildong",
+                    quote: "재현이 안 되는 버그는 대개 타이밍 버그다."),
+            ]),
     ]
     static var nextCollectionId: Int64 = 110
     static var nextConnectionId: Int64 = 600
@@ -382,6 +405,7 @@ enum MockBackend {
             [
                 "id": 2, "curator": curator(3, "sori"),
                 "collectionId": 201, "collectionTitle": "오늘의 문장",
+                "collectionKind": "PATH",
                 "why": "재현 안 되는 버그 앞에서 나도 늘 이 문장을 떠올린다.",
                 "connectedAt": iso(Date().addingTimeInterval(-7200)),
                 "blockType": "HIGHLIGHT", "title": "토큰이 사라진 밤",
@@ -423,7 +447,7 @@ enum MockBackend {
         return [
             "id": c.id, "title": c.title,
             "description": orNull(c.description),
-            "visibility": c.visibility, "count": c.connections.count,
+            "visibility": c.visibility, "kind": c.kind, "count": c.connections.count,
             "updatedAt": iso(Date()), "preview": Array(preview),
         ]
     }
@@ -432,7 +456,7 @@ enum MockBackend {
         [
             "id": c.id, "title": c.title,
             "description": orNull(c.description),
-            "visibility": c.visibility, "curatorUsername": myUsername,
+            "visibility": c.visibility, "kind": c.kind, "curatorUsername": myUsername,
             "connections": c.connections.map { conn in
                 [
                     "id": conn.id, "blockType": conn.blockType,
@@ -481,6 +505,7 @@ enum MockBackend {
                     title: req["title"] as? String ?? "새 컬렉션",
                     description: req["description"] as? String,
                     visibility: req["visibility"] as? String ?? "PRIVATE",
+                    kind: req["kind"] as? String ?? "COLLECTION",
                     connections: [])
                 nextCollectionId += 1
                 collections.insert(c, at: 0)
@@ -526,6 +551,19 @@ enum MockBackend {
                 if method == "DELETE", parts.count == 4, parts[2] == "connections",
                    let connId = Int64(parts[3]) {
                     collections[idx].connections.removeAll { $0.id == connId }
+                    return json([:] as [String: Any])
+                }
+                // 길(PATH) 순서 재배치 — 연결 id 전체를 주어진 순서대로.
+                if method == "PUT", parts.count == 4, parts[2] == "connections", parts[3] == "order" {
+                    let req = decode(body)
+                    let ids = (req["connectionIds"] as? [Any] ?? [])
+                        .compactMap { ($0 as? NSNumber)?.int64Value }
+                    let byId = Dictionary(
+                        uniqueKeysWithValues: collections[idx].connections.map { ($0.id, $0) })
+                    let reordered = ids.compactMap { byId[$0] }
+                    if reordered.count == collections[idx].connections.count {
+                        collections[idx].connections = reordered
+                    }
                     return json([:] as [String: Any])
                 }
             }
@@ -917,6 +955,14 @@ enum MockBackend {
         if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "highlights",
            parts[3] == "replies", let hid = Int(parts[2]) {
             return json(highlightReplies[hid] ?? [])
+        }
+        // "이 문장이 속한 길" — 이 하이라이트를 담은 공개 길/컬렉션(목: PATH 104 + 컬렉션 101).
+        if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "highlights",
+           parts[3] == "collections" {
+            let containing = collections.filter {
+                $0.visibility == "PUBLIC" && [104, 101].contains($0.id)
+            }
+            return json(containing.map(collectionSummary))
         }
         if method == "POST", parts.count == 3, parts[0] == "highlights", parts[2] == "replies",
            let hid = Int(parts[1]) {

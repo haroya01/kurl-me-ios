@@ -27,15 +27,30 @@ enum CollectionsAPI {
         try await client.get("/collections/\(id)", authenticated: true)
     }
 
-    /// 새 컬렉션 — 생성된 요약을 그대로 돌려받는다(count 0).
+    /// "이 문장이 속한 길" — 이 하이라이트를 담은 공개 컬렉션/길(최근순). 미로그인도 본다(A 척추 발견 고리).
+    static func collectionsContaining(highlightId: Int64) async throws -> [CollectionSummary] {
+        try await client.get("/public/highlights/\(highlightId)/collections")
+    }
+
+    /// 새 컬렉션/길 — 생성된 요약을 그대로 돌려받는다(count 0). kind=path 면 reading path.
     @discardableResult
     static func create(
-        title: String, description: String?, visibility: CollectionVisibility
+        title: String, description: String?, visibility: CollectionVisibility,
+        kind: CollectionKind = .collection
     ) async throws -> CollectionSummary {
         try await client.post(
             "/collections",
-            body: CreateCollectionBody(
-                title: title, description: description, visibility: visibility.rawValue),
+            body: NewCollectionBody(
+                title: title, description: description, visibility: visibility.rawValue,
+                kind: kind.rawValue),
+            authenticated: true)
+    }
+
+    /// 길(PATH)의 연결 순서 재배치 — 연결 id 전체를 원하는 순서대로. 논증의 흐름을 짠다(204).
+    static func reorder(collectionId: Int64, connectionIds: [Int64]) async throws {
+        try await client.putVoid(
+            "/collections/\(collectionId)/connections/order",
+            body: ReorderBody(connectionIds: connectionIds),
             authenticated: true)
     }
 
@@ -72,15 +87,28 @@ enum CollectionsAPI {
         try await client.deleteVoid("/collections/\(id)", authenticated: true)
     }
 
+    /// 수정 바디 — kind 는 보내지 않는다(생성 시 고정, edit 엔드포인트는 kind 모름).
     private struct CreateCollectionBody: Encodable {
         let title: String
         let description: String?
         let visibility: String
     }
 
+    /// 생성 바디 — kind 포함(COLLECTION | PATH).
+    private struct NewCollectionBody: Encodable {
+        let title: String
+        let description: String?
+        let visibility: String
+        let kind: String
+    }
+
     private struct ConnectBlockBody: Encodable {
         let blockType: ConnectionBlockKind
         let refId: Int64
         let why: String?
+    }
+
+    private struct ReorderBody: Encodable {
+        let connectionIds: [Int64]
     }
 }

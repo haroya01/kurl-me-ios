@@ -101,6 +101,16 @@ struct APIClient {
         return try decode(data)
     }
 
+    /// JSON 바디 PUT, 응답 없음(204) — 순서 재배치처럼 본문만 보내고 결과를 안 받는 자리.
+    func putVoid<B: Encodable>(
+        _ path: String,
+        body: B,
+        authenticated: Bool = false
+    ) async throws {
+        let request = try makeRequest(path: path, query: [:], method: "PUT", body: try encode(body))
+        _ = try await perform(request, authenticated: authenticated)
+    }
+
     /// JSON 바디 PUT (본문 교체 등).
     func put<B: Encodable, T: Decodable>(
         _ path: String,

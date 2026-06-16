@@ -15,6 +15,7 @@ struct CollectionDetailView: View {
     @State private var failed = false
     @State private var showEdit = false
     @State private var showDeleteConfirm = false
+    @State private var showReorder = false
     @Environment(\.dismiss) private var dismiss
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
@@ -31,12 +32,18 @@ struct CollectionDetailView: View {
             } else if let detail {
                 header(detail)
                 Hairline().padding(.bottom, 4)
-                LazyVStack(spacing: 0) {
-                    ForEach(Array(detail.connections.enumerated()), id: \.element.id) { index, item in
-                        connectionCell(item)
-                            .modifier(QuietAppear(index: index))
-                        if index < detail.connections.count - 1 {
-                            Hairline().padding(.leading, 14)
+                if detail.kind == .path {
+                    // PATH = reading path. 리스트가 아니라 순번으로 잇는 가이드 워크(문장→왜→문장).
+                    pathWalk(detail)
+                } else {
+                    LazyVStack(spacing: 0) {
+                        ForEach(Array(detail.connections.enumerated()), id: \.element.id) {
+                            index, item in
+                            connectionCell(item)
+                                .modifier(QuietAppear(index: index))
+                            if index < detail.connections.count - 1 {
+                                Hairline().padding(.leading, 14)
+                            }
                         }
                     }
                 }
@@ -59,10 +66,17 @@ struct CollectionDetailView: View {
                         } label: {
                             Label("수정", systemImage: "pencil")
                         }
+                        if detail.kind == .path, detail.connections.count > 1 {
+                            Button {
+                                showReorder = true
+                            } label: {
+                                Label("순서 편집", systemImage: "arrow.up.arrow.down")
+                            }
+                        }
                         Button(role: .destructive) {
                             showDeleteConfirm = true
                         } label: {
-                            Label("컬렉션 삭제", systemImage: "trash")
+                            Label(detail.kind == .path ? "길 삭제" : "컬렉션 삭제", systemImage: "trash")
                         }
                     } label: {
                         Image(systemName: "ellipsis")
@@ -80,6 +94,11 @@ struct CollectionDetailView: View {
                     id: detail.id, initialTitle: detail.title, initialBlurb: detail.blurb,
                     initialVisibility: detail.visibility
                 ) { Task { await load() } }
+            }
+        }
+        .sheet(isPresented: $showReorder) {
+            if let detail {
+                PathReorderSheet(detail: detail) { Task { await load() } }
             }
         }
         .alert("이 컬렉션을 삭제할까요?", isPresented: $showDeleteConfirm) {
@@ -184,6 +203,58 @@ struct CollectionDetailView: View {
                     Task { await disconnect(item) }
                 } label: {
                     Label("연결 끊기", systemImage: "link.badge.plus")
+                }
+            }
+        }
+    }
+
+    // MARK: 길(PATH) — 순번으로 잇는 가이드 워크. 큐레이터의 "왜"가 문장과 문장을 잇는 흐름.
+
+    private func pathWalk(_ detail: CollectionDetail) -> some View {
+        LazyVStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(detail.connections.enumerated()), id: \.element.id) { index, item in
+                pathStepCell(index: index, total: detail.connections.count, item: item)
+                    .modifier(QuietAppear(index: index))
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    private func pathStepCell(index: Int, total: Int, item: ConnectionItem) -> some View {
+        HStack(alignment: .top, spacing: 14) {
+            // 순번 노드 + 다음 문장으로 잇는 세로 선 — "걷는다"는 신호.
+            VStack(spacing: 0) {
+                Text("\(index + 1)")
+                    .font(.system(size: 12 * metaUnit, weight: .bold))
+                    .foregroundStyle(Palette.accent)
+                    .frame(width: 26, height: 26)
+                    .background(Circle().fill(Palette.accent.opacity(0.12)))
+                if index < total - 1 {
+                    Rectangle()
+                        .fill(Palette.hairlineStrong)
+                        .frame(width: 2)
+                        .frame(maxHeight: .infinity)
+                }
+            }
+            VStack(alignment: .leading, spacing: 10) {
+                if let why = item.why {
+                    // 큐레이터가 앞 문장에서 잇는 말 = 흐름의 목소리.
+                    Text(why)
+                        .typeScale(.body)
+                        .foregroundStyle(Palette.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                BlockPreview(block: item.block)
+            }
+            .padding(.bottom, index < total - 1 ? 24 : 8)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contextMenu {
+            if isOwner {
+                Button(role: .destructive) {
+                    Task { await disconnect(item) }
+                } label: {
+                    Label("이 문장 빼기", systemImage: "minus.circle")
                 }
             }
         }

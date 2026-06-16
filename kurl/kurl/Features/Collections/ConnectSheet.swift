@@ -56,6 +56,7 @@ struct ConnectSheet: View {
                             Hairline()
                         }
                         newCollectionRow
+                        newPathRow
                     }
                 }
                 .scrollIndicators(.hidden)
@@ -102,6 +103,14 @@ struct ConnectSheet: View {
                             .truncationMode(.tail)
                     }
                     HStack(spacing: 5) {
+                        if c.kind == .path {
+                            Image(systemName: "arrow.turn.down.right")
+                                .font(.system(size: 10 * metaUnit, weight: .bold))
+                                .foregroundStyle(Palette.accent)
+                            Text("길")
+                                .foregroundStyle(Palette.accent)
+                            Text("·")
+                        }
                         Image(systemName: c.visibility.icon)
                             .font(.system(size: 10 * metaUnit, weight: .medium))
                         Text("\(c.count)개")
@@ -132,6 +141,30 @@ struct ConnectSheet: View {
                 Text("새 컬렉션 만들기")
                     .font(.system(size: 15 * unit, weight: .medium))
                     .foregroundStyle(Palette.ink)
+                Spacer(minLength: 0)
+            }
+            .padding(.vertical, 13)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(RowButtonStyle())
+    }
+
+    /// 새 길(PATH) 만들기 — 순서로 엮는 reading path. 문장을 가로질러 하나의 흐름으로.
+    private var newPathRow: some View {
+        Button {
+            Task { await createAndSelect(kind: .path) }
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "arrow.turn.down.right")
+                    .font(.system(size: 14 * unit, weight: .semibold))
+                    .foregroundStyle(Palette.accent)
+                    .frame(width: 22)
+                Text("새 길 만들기")
+                    .font(.system(size: 15 * unit, weight: .medium))
+                    .foregroundStyle(Palette.ink)
+                Text("순서로 엮기")
+                    .typeScale(.meta)
+                    .foregroundStyle(Palette.faint)
                 Spacer(minLength: 0)
             }
             .padding(.vertical, 13)
@@ -214,12 +247,13 @@ struct ConnectSheet: View {
 
     // MARK: 동작
 
-    private func createAndSelect() async {
-        let name = targetTitle.isEmpty ? String(localized: "새 컬렉션") : targetTitle
+    private func createAndSelect(kind: CollectionKind = .collection) async {
+        let fallback = kind == .path ? String(localized: "새 길") : String(localized: "새 컬렉션")
+        let name = targetTitle.isEmpty ? fallback : targetTitle
         guard let created = try? await CollectionsAPI.create(
-            title: name, description: nil, visibility: .private)
+            title: name, description: nil, visibility: .private, kind: kind)
         else {
-            ToastCenter.shared.show(String(localized: "컬렉션을 만들지 못했습니다"))
+            ToastCenter.shared.show(String(localized: "만들지 못했습니다"))
             return
         }
         collections.insert(created, at: 0)

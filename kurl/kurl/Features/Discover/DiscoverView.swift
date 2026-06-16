@@ -109,12 +109,15 @@ private struct ConnectionEventCard: View {
             // 그 채널 전체로 이어지는 문(§0 connect). 초록은 데이터 링크라 link 톤 허용.
             NavigationLink(value: CollectionRef(id: event.collectionId)) {
                 HStack(spacing: 4) {
-                    Image(systemName: "square.grid.2x2")
-                        .font(.system(size: 10 * metaUnit, weight: .bold))
+                    Image(
+                        systemName: event.collectionKind == .path
+                            ? "arrow.turn.down.right" : "square.grid.2x2"
+                    )
+                    .font(.system(size: 10 * metaUnit, weight: .bold))
                     Text(event.collectionTitle)
                         .typeScale(.eyebrow)
                         .tracking(0.3)
-                    Text("에 연결")
+                    Text(event.collectionKind == .path ? "길에 엮음" : "에 연결")
                         .typeScale(.meta)
                         .foregroundStyle(Palette.faint)
                 }
