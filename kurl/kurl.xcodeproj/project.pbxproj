@@ -224,6 +224,8 @@
 				en,
 				ja,
 				ko,
+				vi,
+				hi,
 				Base,
 			);
 			mainGroup = D3696C732FD48A89006D9F90;
