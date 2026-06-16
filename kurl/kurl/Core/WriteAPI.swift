@@ -53,6 +53,14 @@ enum WriteAPI {
         try await client.post("/posts/\(postId)/publish", body: EmptyBody(), authenticated: true)
     }
 
+    /// 본문에 붙여넣은 외부 URL 을 kurl 단축링크로. 응답의 shortUrl(전체 주소)만 채택한다.
+    static func shorten(_ url: String) async throws -> String {
+        struct Body: Encodable { let url: String }
+        struct Response: Decodable { let shortUrl: String }
+        let res: Response = try await client.post("/links", body: Body(url: url), authenticated: true)
+        return res.shortUrl
+    }
+
     /// 메타데이터 부분 수정 — 백엔드 PATCH 는 null 필드를 무시하므로 바뀐 것만 보낸다.
     /// slug 는 절대 보내지 않는다(발행 후 frozen — 웹에서만 관리).
     @discardableResult

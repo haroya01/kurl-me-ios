@@ -1,125 +1,27 @@
 {
   "sourceLanguage" : "ko",
   "strings" : {
-    "" : {},
-    "좋아한 글은 내 라이브러리에 쌓여요" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Posts you like collect in your library"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "いいねした記事はライブラリに集まります"
-          }
-        }
-      }
+    "" : {
+
     },
-    "이 글에 생각을 남겨보세요" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Leave your thoughts on this post"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "この記事に感想を残しましょう"
-          }
-        }
-      }
+    "·" : {
+
     },
-    "시리즈 새 글을 놓치지 않게" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "So you don't miss new posts in this series"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "シリーズの新着を見逃さないように"
-          }
-        }
-      }
+    "· 지금" : {
+
     },
-    "이 작가의 새 글을 피드에서 받기" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Get this writer's new posts in your feed"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "この書き手の新着をフィードで受け取る"
-          }
-        }
-      }
+    "@%@" : {
+
     },
-    "이 태그의 새 글을 구독함에 모으기" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gather this tag's new posts in your inbox"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "このタグの新着を受信箱に集める"
-          }
-        }
-      }
+    "#%@" : {
+
     },
-    "읽을수록 정확해지는 추천 받기" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Get recommendations that sharpen as you read"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "読むほど精度が上がる推薦を受け取る"
-          }
-        }
-      }
+    "%@" : {
+
     },
-    "팔로우한 작가의 새 글 모아 보기" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "See new posts from writers you follow"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "フォロー中の書き手の新着をまとめて見る"
-          }
-        }
-      }
+    "%@ — 대표로 지정" : {
+
     },
-    "·" : {},
-    "· 지금" : {},
-    "@%@" : {},
-    "#%@" : {},
-    "%@" : {},
-    "%@ — 대표로 지정" : {},
     "%@ · %lld편" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -147,8 +49,12 @@
         }
       }
     },
-    "%@ 님의 첫 글" : {},
-    "%@ 발행 예정" : {},
+    "%@ 님의 첫 글" : {
+
+    },
+    "%@ 발행 예정" : {
+
+    },
     "%@ 삭제" : {
       "localizations" : {
         "en" : {
@@ -165,9 +71,15 @@
         }
       }
     },
-    "%@ 신고합니다. 검토 후 조치됩니다." : {},
-    "%@, 다음 읽을 글" : {},
-    "%@, 읽음" : {},
+    "%@ 신고합니다. 검토 후 조치됩니다." : {
+
+    },
+    "%@, 다음 읽을 글" : {
+
+    },
+    "%@, 읽음" : {
+
+    },
     "%@님에게 답글" : {
       "localizations" : {
         "en" : {
@@ -184,8 +96,12 @@
         }
       }
     },
-    "%@님의 글 전체 보기" : {},
-    "%@님의 블로그" : {},
+    "%@님의 글 전체 보기" : {
+
+    },
+    "%@님의 블로그" : {
+
+    },
     "%@님이 글을 좋아합니다" : {
       "localizations" : {
         "en" : {
@@ -298,8 +214,12 @@
         }
       }
     },
-    "%lld" : {},
-    "%lld." : {},
+    "%lld" : {
+
+    },
+    "%lld." : {
+
+    },
     "%lld/%lld" : {
       "localizations" : {
         "ko" : {
@@ -310,7 +230,41 @@
         }
       }
     },
-    "%lld분 읽기" : {},
+    "%lld개" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld items"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld件"
+          }
+        }
+      }
+    },
+    "%lld개 컬렉션에 추가됩니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adding to %lld collections."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld個のコレクションに追加されます。"
+          }
+        }
+      }
+    },
+    "%lld분 읽기" : {
+
+    },
     "%lld일" : {
       "localizations" : {
         "en" : {
@@ -387,7 +341,9 @@
         }
       }
     },
-    "%lld편 모두 읽음" : {},
+    "%lld편 모두 읽음" : {
+
+    },
     "%lld편 중 %lld편 읽음" : {
       "localizations" : {
         "ko" : {
@@ -398,8 +354,12 @@
         }
       }
     },
-    "•" : {},
-    "000000" : {},
+    "•" : {
+
+    },
+    "000000" : {
+
+    },
     "2단계 인증" : {
       "localizations" : {
         "en" : {
@@ -433,7 +393,9 @@
         }
       }
     },
-    "API / 설정" : {},
+    "API / 설정" : {
+
+    },
     "Apple로 로그인" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -451,7 +413,9 @@
         }
       }
     },
-    "EP %lld" : {},
+    "EP %lld" : {
+
+    },
     "Google로 계속하기" : {
       "localizations" : {
         "en" : {
@@ -485,9 +449,12 @@
         }
       }
     },
-    "kurl 계정으로 이어집니다" : {},
-    "kurl.me/u/" : {},
-    "kurl.me/u/ 주소에 쓰여요. 나중에 바꿀 수 있어요." : {},
+    "kurl.me/u/" : {
+
+    },
+    "kurl.me/u/ 주소에 쓰여요. 나중에 바꿀 수 있어요." : {
+
+    },
     "kurl에 로그인" : {
       "localizations" : {
         "en" : {
@@ -504,7 +471,9 @@
         }
       }
     },
-    "username" : {},
+    "username" : {
+
+    },
     "v%lld — %@" : {
       "localizations" : {
         "ko" : {
@@ -515,8 +484,12 @@
         }
       }
     },
-    "Vimeo 동영상 재생" : {},
-    "YouTube 동영상 재생" : {},
+    "Vimeo 동영상 재생" : {
+
+    },
+    "YouTube 동영상 재생" : {
+
+    },
     "개인정보처리방침" : {
       "localizations" : {
         "en" : {
@@ -629,7 +602,41 @@
         }
       }
     },
-    "고유 방문" : {},
+    "고유 방문" : {
+
+    },
+    "공개" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Public"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公開"
+          }
+        }
+      }
+    },
+    "공개 범위" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Visibility"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "公開範囲"
+          }
+        }
+      }
+    },
     "공유" : {
       "localizations" : {
         "en" : {
@@ -646,7 +653,9 @@
         }
       }
     },
-    "관리자 진단" : {},
+    "관리자 진단" : {
+
+    },
     "구독" : {
       "localizations" : {
         "en" : {
@@ -679,8 +688,12 @@
         }
       }
     },
-    "구독을 반영하지 못했습니다" : {},
-    "구독자" : {},
+    "구독을 반영하지 못했습니다" : {
+
+    },
+    "구독자" : {
+
+    },
     "구독자 %lld" : {
       "localizations" : {
         "en" : {
@@ -710,6 +723,7 @@
       }
     },
     "구독하면 시리즈에 새 글이 올라올 때 알 수 있어요." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -789,8 +803,12 @@
         }
       }
     },
-    "국가" : {},
-    "굵게" : {},
+    "국가" : {
+
+    },
+    "굵게" : {
+
+    },
     "글" : {
       "localizations" : {
         "en" : {
@@ -951,8 +969,44 @@
         }
       }
     },
-    "글을 읽다 마음에 닿는 문장을 길게 눌러 하이라이트해 보세요." : {},
-    "글을 읽으면 여기에 기록돼요. 기록은 나만 봅니다." : {},
+    "글을 읽다 마음에 닿는 것을 주제로 이어 보세요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connect what resonates as you read, by theme."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読みながら心に響いたものをテーマでつないでみましょう。"
+          }
+        }
+      }
+    },
+    "글을 읽다 마음에 닿는 문장을 길게 눌러 하이라이트해 보세요." : {
+
+    },
+    "글을 읽다 우하단 연결 버튼으로 이 컬렉션에 이어 보세요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use the connect button while reading to add to this collection."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読みながら右下の接続ボタンでこのコレクションに追加しましょう。"
+          }
+        }
+      }
+    },
+    "글을 읽으면 여기에 기록돼요. 기록은 나만 봅니다." : {
+
+    },
     "글이 없습니다" : {
       "localizations" : {
         "en" : {
@@ -969,9 +1023,15 @@
         }
       }
     },
-    "기기" : {},
-    "기록 지우기" : {},
-    "기록에서 지우기" : {},
+    "기기" : {
+
+    },
+    "기록 지우기" : {
+
+    },
+    "기록에서 지우기" : {
+
+    },
     "꺼짐" : {
       "localizations" : {
         "en" : {
@@ -988,7 +1048,9 @@
         }
       }
     },
-    "날짜" : {},
+    "날짜" : {
+
+    },
     "내 계정" : {
       "localizations" : {
         "en" : {
@@ -1120,7 +1182,9 @@
         }
       }
     },
-    "내부" : {},
+    "내부" : {
+
+    },
     "넘겨서 다음 글" : {
       "localizations" : {
         "en" : {
@@ -1249,7 +1313,9 @@
         }
       }
     },
-    "뉴스레터" : {},
+    "뉴스레터" : {
+
+    },
     "다시 시도" : {
       "localizations" : {
         "en" : {
@@ -1299,7 +1365,9 @@
         }
       }
     },
-    "다음 글 — %@" : {},
+    "다음 글 — %@" : {
+
+    },
     "다음 편" : {
       "localizations" : {
         "en" : {
@@ -1332,8 +1400,12 @@
         }
       }
     },
-    "다음 화 %lld%%" : {},
-    "다음 화로 %lld퍼센트 이어 읽음" : {},
+    "다음 화 %lld%%" : {
+
+    },
+    "다음 화로 %lld퍼센트 이어 읽음" : {
+
+    },
     "닫기" : {
       "localizations" : {
         "en" : {
@@ -1346,6 +1418,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "閉じる"
+          }
+        }
+      }
+    },
+    "담긴 연결도 함께 사라져요. 연결된 글·노트 자체는 지워지지 않아요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Its connections go too. The posts and notes themselves stay."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "含まれる接続も消えます。つないだ記事・ノート自体は削除されません。"
           }
         }
       }
@@ -1398,9 +1486,15 @@
         }
       }
     },
-    "대표" : {},
-    "대표 태그 %@" : {},
-    "대표 태그를 1개 이상 정하면 발행할 수 있어요." : {},
+    "대표" : {
+
+    },
+    "대표 태그 %@" : {
+
+    },
+    "대표 태그를 1개 이상 정하면 발행할 수 있어요." : {
+
+    },
     "댓글 %lld" : {
       "localizations" : {
         "en" : {
@@ -1433,7 +1527,9 @@
         }
       }
     },
-    "댓글 더 보기" : {},
+    "댓글 더 보기" : {
+
+    },
     "댓글 보내기" : {
       "localizations" : {
         "en" : {
@@ -1500,6 +1596,7 @@
       }
     },
     "댓글은 kurl 계정으로 남겨집니다." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1547,7 +1644,9 @@
         }
       }
     },
-    "데스크톱" : {},
+    "데스크톱" : {
+
+    },
     "덱 섞기" : {
       "localizations" : {
         "en" : {
@@ -1564,8 +1663,12 @@
         }
       }
     },
-    "독자" : {},
-    "둘러보기" : {},
+    "독자" : {
+
+    },
+    "둘러보기" : {
+
+    },
     "로그아웃" : {
       "localizations" : {
         "en" : {
@@ -1614,7 +1717,9 @@
         }
       }
     },
-    "로그인 없이 둘러보기" : {},
+    "로그인 없이 둘러보기" : {
+
+    },
     "로그인 응답을 처리하지 못했습니다." : {
       "localizations" : {
         "en" : {
@@ -1727,8 +1832,6 @@
         }
       }
     },
-    "로그인하면 취향에 맞는 글을 추천해 드려요." : {},
-    "로그인하면 팔로우한 작가와 구독한 시리즈의 새 글이 여기 모여요." : {},
     "로그인하면 팔로우한 작가와 구독한 시리즈의 새 글이 여기에 모여요." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1810,8 +1913,28 @@
         }
       }
     },
-    "리스트" : {},
-    "링크" : {},
+    "리스트" : {
+
+    },
+    "링크" : {
+
+    },
+    "링크 공유" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlisted"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リンク共有"
+          }
+        }
+      }
+    },
     "링크 클릭" : {
       "localizations" : {
         "en" : {
@@ -1940,7 +2063,9 @@
         }
       }
     },
-    "모바일" : {},
+    "모바일" : {
+
+    },
     "목록을 불러오지 못했습니다" : {
       "localizations" : {
         "en" : {
@@ -1957,7 +2082,9 @@
         }
       }
     },
-    "목차" : {},
+    "목차" : {
+
+    },
     "미리보기" : {
       "localizations" : {
         "en" : {
@@ -1974,7 +2101,9 @@
         }
       }
     },
-    "반영하지 못했습니다" : {},
+    "반영하지 못했습니다" : {
+
+    },
     "발견" : {
       "localizations" : {
         "en" : {
@@ -2151,7 +2280,9 @@
         }
       }
     },
-    "변경" : {},
+    "변경" : {
+
+    },
     "복구 코드" : {
       "localizations" : {
         "en" : {
@@ -2200,8 +2331,12 @@
         }
       }
     },
-    "복사" : {},
-    "복사됨" : {},
+    "복사" : {
+
+    },
+    "복사됨" : {
+
+    },
     "복원" : {
       "localizations" : {
         "en" : {
@@ -2251,7 +2386,9 @@
         }
       }
     },
-    "봇" : {},
+    "봇" : {
+
+    },
     "북마크" : {
       "localizations" : {
         "en" : {
@@ -2284,9 +2421,15 @@
         }
       }
     },
-    "북마크됨" : {},
-    "북마크를 반영하지 못했습니다" : {},
-    "북마크를 해제했습니다" : {},
+    "북마크됨" : {
+
+    },
+    "북마크를 반영하지 못했습니다" : {
+
+    },
+    "북마크를 해제했습니다" : {
+
+    },
     "북마크에 추가했습니다" : {
       "localizations" : {
         "en" : {
@@ -2383,11 +2526,37 @@
         }
       }
     },
-    "사람" : {},
-    "사용자 이름" : {},
-    "사용자 이름을 정해 주세요" : {},
-    "사용할 수 없는 이름이에요." : {},
-    "사진 변경" : {},
+    "비공개" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Private"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "非公開"
+          }
+        }
+      }
+    },
+    "사람" : {
+
+    },
+    "사용자 이름" : {
+
+    },
+    "사용자 이름을 정해 주세요" : {
+
+    },
+    "사용할 수 없는 이름이에요." : {
+
+    },
+    "사진 변경" : {
+
+    },
     "삭제" : {
       "localizations" : {
         "en" : {
@@ -2404,7 +2573,9 @@
         }
       }
     },
-    "삭제하지 못했습니다" : {},
+    "삭제하지 못했습니다" : {
+
+    },
     "새 글" : {
       "localizations" : {
         "en" : {
@@ -2421,9 +2592,47 @@
         }
       }
     },
-    "새 글 쓰기" : {},
-    "새 시리즈" : {},
-    "새 시리즈 만들기…" : {},
+    "새 글 쓰기" : {
+
+    },
+    "새 시리즈" : {
+
+    },
+    "새 시리즈 만들기…" : {
+
+    },
+    "새 컬렉션" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New collection"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しいコレクション"
+          }
+        }
+      }
+    },
+    "새 컬렉션 만들기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New collection"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しいコレクションを作る"
+          }
+        }
+      }
+    },
     "서버 오류 (%lld)" : {
       "localizations" : {
         "en" : {
@@ -2456,7 +2665,9 @@
         }
       }
     },
-    "선택" : {},
+    "선택" : {
+
+    },
     "선택한 시각에 자동으로 발행됩니다." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2490,7 +2701,9 @@
         }
       }
     },
-    "소개" : {},
+    "소개" : {
+
+    },
     "소개글" : {
       "localizations" : {
         "en" : {
@@ -2523,9 +2736,47 @@
         }
       }
     },
-    "소셜" : {},
-    "숨김 해제" : {},
-    "숨김을 해제했습니다" : {},
+    "소셜" : {
+
+    },
+    "수정" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "編集"
+          }
+        }
+      }
+    },
+    "수정하지 못했습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't save changes"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "変更を保存できませんでした"
+          }
+        }
+      }
+    },
+    "숨김 해제" : {
+
+    },
+    "숨김을 해제했습니다" : {
+
+    },
     "시리즈" : {
       "localizations" : {
         "en" : {
@@ -2574,6 +2825,22 @@
         }
       }
     },
+    "시리즈 새 글을 놓치지 않게" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "So you don't miss new posts in this series"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "シリーズの新着を見逃さないように"
+          }
+        }
+      }
+    },
     "시리즈 없음" : {
       "localizations" : {
         "en" : {
@@ -2618,13 +2885,27 @@
         }
       }
     },
-    "시리즈 제목" : {},
-    "시리즈를 만들지 못했습니다" : {},
-    "시작하기" : {},
-    "신고" : {},
-    "신고 사유를 선택하세요" : {},
-    "신고가 접수되었습니다" : {},
-    "신고를 보내지 못했습니다" : {},
+    "시리즈 제목" : {
+
+    },
+    "시리즈를 만들지 못했습니다" : {
+
+    },
+    "시작하기" : {
+
+    },
+    "신고" : {
+
+    },
+    "신고 사유를 선택하세요" : {
+
+    },
+    "신고가 접수되었습니다" : {
+
+    },
+    "신고를 보내지 못했습니다" : {
+
+    },
     "아직 글이 없습니다" : {
       "localizations" : {
         "en" : {
@@ -2707,9 +2988,63 @@
         }
       }
     },
-    "아직 읽기 기록이 없어요" : {},
-    "아직 팔로우하는 사람이 없어요" : {},
-    "아직 팔로워가 없어요" : {},
+    "아직 연결된 글이 없어요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing connected yet"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだ接続された項目がありません"
+          }
+        }
+      }
+    },
+    "아직 읽기 기록이 없어요" : {
+
+    },
+    "아직 컬렉션이 없어요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No collections yet"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだコレクションがありません"
+          }
+        }
+      }
+    },
+    "아직 팔로우하는 사람이 없어요" : {
+
+    },
+    "아직 팔로워가 없어요" : {
+
+    },
+    "아직 흐를 게 없어요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing flowing yet"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだ流れるものがありません"
+          }
+        }
+      }
+    },
     "아직은 고를 거리가 적어요" : {
       "localizations" : {
         "en" : {
@@ -2824,7 +3159,73 @@
         }
       }
     },
-    "영문 소문자·숫자·_ 3~16자, 첫 글자는 영문이나 숫자" : {},
+    "어디에 남길까요?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Where to save?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "どこに残しますか？"
+          }
+        }
+      }
+    },
+    "에 연결" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "· connected"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "に追加"
+          }
+        }
+      }
+    },
+    "연결 끊기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disconnect"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "接続を外す"
+          }
+        }
+      }
+    },
+    "연결을 끊지 못했습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't disconnect"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "接続を外せませんでした"
+          }
+        }
+      }
+    },
+    "영문 소문자·숫자·_ 3~16자, 첫 글자는 영문이나 숫자" : {
+
+    },
     "예약" : {
       "localizations" : {
         "en" : {
@@ -2905,7 +3306,9 @@
         }
       }
     },
-    "예약하지 못했습니다" : {},
+    "예약하지 못했습니다" : {
+
+    },
     "오늘의 글" : {
       "localizations" : {
         "en" : {
@@ -2922,7 +3325,9 @@
         }
       }
     },
-    "오프라인" : {},
+    "오프라인" : {
+
+    },
     "오프라인 사본 — 연결되면 최신으로 갱신됩니다" : {
       "localizations" : {
         "en" : {
@@ -2955,6 +3360,22 @@
         }
       }
     },
+    "왜 이었나요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Why this?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "なぜつないだか"
+          }
+        }
+      }
+    },
     "유입 경로" : {
       "localizations" : {
         "en" : {
@@ -2971,7 +3392,9 @@
         }
       }
     },
-    "유입 채널" : {},
+    "유입 채널" : {
+
+    },
     "응답을 읽지 못했습니다." : {
       "localizations" : {
         "en" : {
@@ -2988,11 +3411,37 @@
         }
       }
     },
-    "이 글 분석" : {},
-    "이 글 편집" : {},
-    "이 글을" : {},
-    "이 글이 들어갈 새 시리즈를 만듭니다. 제목은 나중에 시리즈에서 바꿀 수 있어요." : {},
-    "이 댓글을" : {},
+    "이 글 분석" : {
+
+    },
+    "이 글 편집" : {
+
+    },
+    "이 글에 생각을 남겨보세요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave your thoughts on this post"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この記事に感想を残しましょう"
+          }
+        }
+      }
+    },
+    "이 글을" : {
+
+    },
+    "이 글이 들어갈 새 시리즈를 만듭니다. 제목은 나중에 시리즈에서 바꿀 수 있어요." : {
+
+    },
+    "이 댓글을" : {
+
+    },
     "이 댓글을 삭제할까요?" : {
       "localizations" : {
         "en" : {
@@ -3041,7 +3490,9 @@
         }
       }
     },
-    "이 작가를" : {},
+    "이 작가를" : {
+
+    },
     "이 작가의 다른 글" : {
       "localizations" : {
         "en" : {
@@ -3058,11 +3509,69 @@
         }
       }
     },
-    "이 태그 숨기기" : {},
-    "이 태그를 숨겼습니다" : {},
-    "이 태그의 글이 아직 없어요." : {},
-    "이렇게 보여요" : {},
-    "이미 사용 중인 이름이에요." : {},
+    "이 작가의 새 글을 피드에서 받기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get this writer's new posts in your feed"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この書き手の新着をフィードで受け取る"
+          }
+        }
+      }
+    },
+    "이 컬렉션을 삭제할까요?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete this collection?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このコレクションを削除しますか？"
+          }
+        }
+      }
+    },
+    "이 태그 숨기기" : {
+
+    },
+    "이 태그를 숨겼습니다" : {
+
+    },
+    "이 태그의 글이 아직 없어요." : {
+
+    },
+    "이 태그의 새 글을 구독함에 모으기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gather this tag's new posts in your inbox"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このタグの新着を受信箱に集める"
+          }
+        }
+      }
+    },
+    "이렇게 보여요" : {
+
+    },
+    "이미 사용 중인 이름이에요." : {
+
+    },
     "이미지" : {
       "localizations" : {
         "en" : {
@@ -3111,7 +3620,9 @@
         }
       }
     },
-    "이어 읽기 — %lld편" : {},
+    "이어 읽기 — %lld편" : {
+
+    },
     "이용약관" : {
       "localizations" : {
         "en" : {
@@ -3145,7 +3656,9 @@
         }
       }
     },
-    "이전 이름은 30일간 예약돼 기존 링크가 바로 깨지지 않아요." : {},
+    "이전 이름은 30일간 예약돼 기존 링크가 바로 깨지지 않아요." : {
+
+    },
     "인기" : {
       "localizations" : {
         "en" : {
@@ -3178,8 +3691,12 @@
         }
       }
     },
-    "인라인 코드" : {},
-    "인용" : {},
+    "인라인 코드" : {
+
+    },
+    "인용" : {
+
+    },
     "인증 앱 코드 사용" : {
       "localizations" : {
         "en" : {
@@ -3212,11 +3729,85 @@
         }
       }
     },
-    "일별 %@" : {},
-    "일별 %@ 추이" : {},
-    "읽고, 쓰고, 모으는 곳." : {},
-    "읽기 기록" : {},
-    "읽는 시간 약 %lld분" : {},
+    "일별 %@" : {
+
+    },
+    "일별 %@ 추이" : {
+
+    },
+    "일부 연결에 실패했습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some connections failed"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一部の接続に失敗しました"
+          }
+        }
+      }
+    },
+    "읽고 생각한 것을 주제로 잇는 곳." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Where you connect what you read and think, by theme."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読んで考えたことをテーマでつなぐ場所。"
+          }
+        }
+      }
+    },
+    "읽고, 쓰고, 모으는 곳." : {
+
+    },
+    "읽기 기록" : {
+
+    },
+    "읽는 시간 약 %lld분" : {
+
+    },
+    "읽을 글 찾기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find something to read"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読む記事を探す"
+          }
+        }
+      }
+    },
+    "읽을수록 정확해지는 추천 받기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get recommendations that sharpen as you read"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読むほど精度が上がる推薦を受け取る"
+          }
+        }
+      }
+    },
     "읽을수록 좋아집니다" : {
       "localizations" : {
         "en" : {
@@ -3233,7 +3824,9 @@
         }
       }
     },
-    "읽음 처리하지 못했습니다" : {},
+    "읽음 처리하지 못했습니다" : {
+
+    },
     "읽지 않음" : {
       "localizations" : {
         "en" : {
@@ -3314,7 +3907,9 @@
         }
       }
     },
-    "자기소개를 적어보세요" : {},
+    "자기소개를 적어보세요" : {
+
+    },
     "작가" : {
       "localizations" : {
         "en" : {
@@ -3363,6 +3958,22 @@
         }
       }
     },
+    "작가를 팔로우하면, 그들이 컬렉션에 이은 글이 여기에 흘러요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Follow writers and what they connect to collections flows here."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書き手をフォローすると、彼らがコレクションにつないだ記事がここに流れます。"
+          }
+        }
+      }
+    },
     "잘못된 요청입니다." : {
       "localizations" : {
         "en" : {
@@ -3395,7 +4006,9 @@
         }
       }
     },
-    "저장 상태 보기" : {},
+    "저장 상태 보기" : {
+
+    },
     "저장됨 %@" : {
       "localizations" : {
         "en" : {
@@ -3460,9 +4073,15 @@
         }
       }
     },
-    "전체 기록을 지울까요?" : {},
-    "전체 미리보기" : {},
-    "전체 보기" : {},
+    "전체 기록을 지울까요?" : {
+
+    },
+    "전체 미리보기" : {
+
+    },
+    "전체 보기" : {
+
+    },
     "정말 탈퇴할까요?" : {
       "localizations" : {
         "en" : {
@@ -3560,7 +4179,9 @@
         }
       }
     },
-    "제목을 적어 주세요" : {},
+    "제목을 적어 주세요" : {
+
+    },
     "조회" : {
       "localizations" : {
         "en" : {
@@ -3577,7 +4198,9 @@
         }
       }
     },
-    "조회 %lld" : {},
+    "조회 %lld" : {
+
+    },
     "좋아요" : {
       "localizations" : {
         "en" : {
@@ -3594,7 +4217,9 @@
         }
       }
     },
-    "좋아요 %lld" : {},
+    "좋아요 %lld" : {
+
+    },
     "좋아요 취소" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3612,7 +4237,9 @@
         }
       }
     },
-    "좋아요를 반영하지 못했습니다" : {},
+    "좋아요를 반영하지 못했습니다" : {
+
+    },
     "좋아요와 북마크, 구독, 그리고 글쓰기까지 — 웹과 같은 계정 하나로 이어집니다." : {
       "localizations" : {
         "en" : {
@@ -3630,6 +4257,7 @@
       }
     },
     "좋아요와 북마크는 kurl 계정으로 이어집니다." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3689,6 +4317,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "いいねしました"
+          }
+        }
+      }
+    },
+    "좋아한 글은 내 라이브러리에 쌓여요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posts you like collect in your library"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "いいねした記事はライブラリに集まります"
           }
         }
       }
@@ -3790,9 +4434,15 @@
         }
       }
     },
-    "직접" : {},
-    "처음부터 다시" : {},
-    "첫 글을 시작하세요" : {},
+    "직접" : {
+
+    },
+    "처음부터 다시" : {
+
+    },
+    "첫 글을 시작하세요" : {
+
+    },
     "첫 글이 올라오면 여기에서 만나요." : {
       "localizations" : {
         "en" : {
@@ -3809,7 +4459,9 @@
         }
       }
     },
-    "첫 번째 태그가 대표 — 카드·글 위에 카테고리로 보입니다. (발행 시 1개 필수)" : {},
+    "첫 번째 태그가 대표 — 카드·글 위에 카테고리로 보입니다. (발행 시 1개 필수)" : {
+
+    },
     "첫 화부터" : {
       "localizations" : {
         "en" : {
@@ -3870,6 +4522,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最新"
+          }
+        }
+      }
+    },
+    "추가" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "追加"
+          }
+        }
+      }
+    },
+    "추가했어요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Added"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "追加しました"
           }
         }
       }
@@ -3956,7 +4640,9 @@
         }
       }
     },
-    "커버 이미지 추가" : {},
+    "커버 이미지 추가" : {
+
+    },
     "커버 추가" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3970,6 +4656,150 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "カバーを追加"
+          }
+        }
+      }
+    },
+    "컬렉션" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collections"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コレクション"
+          }
+        }
+      }
+    },
+    "컬렉션 관리" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manage collection"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コレクションの管理"
+          }
+        }
+      }
+    },
+    "컬렉션 삭제" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete collection"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コレクションを削除"
+          }
+        }
+      }
+    },
+    "컬렉션 수정" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit collection"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コレクションを編集"
+          }
+        }
+      }
+    },
+    "컬렉션 이름" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collection name"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コレクション名"
+          }
+        }
+      }
+    },
+    "컬렉션에 연결" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add to collection"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コレクションに追加"
+          }
+        }
+      }
+    },
+    "컬렉션을 골라주세요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a collection"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コレクションを選んでください"
+          }
+        }
+      }
+    },
+    "컬렉션을 만들지 못했습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't create the collection"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コレクションを作成できませんでした"
+          }
+        }
+      }
+    },
+    "컬렉션을 삭제하지 못했습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't delete the collection"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コレクションを削除できませんでした"
           }
         }
       }
@@ -3990,8 +4820,12 @@
         }
       }
     },
-    "코드 복사" : {},
-    "코드 블록" : {},
+    "코드 복사" : {
+
+    },
+    "코드 블록" : {
+
+    },
     "코드가 올바르지 않습니다." : {
       "localizations" : {
         "en" : {
@@ -4008,7 +4842,9 @@
         }
       }
     },
-    "키보드 내리기" : {},
+    "키보드 내리기" : {
+
+    },
     "탈퇴" : {
       "localizations" : {
         "en" : {
@@ -4074,13 +4910,24 @@
         }
       }
     },
-    "태그 구독" : {},
-    "태그 더 보기" : {},
-    "태그 입력 후 추가 (쉼표로 여러 개)" : {},
-    "태그 추가" : {},
-    "태그를 구독하면 그 태그의 새 글이 구독함에 모여요." : {},
-    "태블릿" : {},
-    "탭하면 대표로 · ✕ 로 삭제" : {},
+    "태그 구독" : {
+
+    },
+    "태그 더 보기" : {
+
+    },
+    "태그 입력 후 추가 (쉼표로 여러 개)" : {
+
+    },
+    "태그 추가" : {
+
+    },
+    "태블릿" : {
+
+    },
+    "탭하면 대표로 · ✕ 로 삭제" : {
+
+    },
     "팔로우" : {
       "localizations" : {
         "en" : {
@@ -4113,8 +4960,11 @@
         }
       }
     },
-    "팔로우를 반영하지 못했습니다" : {},
+    "팔로우를 반영하지 못했습니다" : {
+
+    },
     "팔로우하면 새 글을 피드에서 받아볼 수 있어요." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4142,6 +4992,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "フォローした書き手がここに集まります"
+          }
+        }
+      }
+    },
+    "팔로우한 작가의 새 글 모아 보기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See new posts from writers you follow"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォロー中の書き手の新着をまとめて見る"
           }
         }
       }
@@ -4238,8 +5104,12 @@
         }
       }
     },
-    "프로필 편집" : {},
-    "피드" : {},
+    "프로필 편집" : {
+
+    },
+    "피드" : {
+
+    },
     "하이라이트" : {
       "localizations" : {
         "en" : {
@@ -4256,8 +5126,28 @@
         }
       }
     },
-    "하이라이트는 kurl 계정에 저장됩니다." : {},
-    "하이라이트한 구절이 없습니다" : {},
+    "하이라이트는 kurl 계정에 저장됩니다." : {
+
+    },
+    "하이라이트한 구절이 없습니다" : {
+
+    },
+    "한 줄 (선택)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A line (optional)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一言（任意）"
+          }
+        }
+      }
+    },
     "확인" : {
       "localizations" : {
         "en" : {
@@ -4322,614 +5212,8 @@
         }
       }
     },
-    "회차별 완주" : {},
-    "공개 범위" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Visibility"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "公開範囲"
-          }
-        }
-      }
-    },
-    "공개" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Public"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "公開"
-          }
-        }
-      }
-    },
-    "비공개" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Private"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "非公開"
-          }
-        }
-      }
-    },
-    "링크 공유" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unlisted"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "リンク共有"
-          }
-        }
-      }
-    },
-    "어디에 남길까요?" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Where to save?"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "どこに残しますか？"
-          }
-        }
-      }
-    },
-    "한 줄 (선택)" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A line (optional)"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "一言（任意）"
-          }
-        }
-      }
-    },
-    "왜 이었나요" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Why this?"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "なぜつないだか"
-          }
-        }
-      }
-    },
-    "추가" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "追加"
-          }
-        }
-      }
-    },
-    "추가했어요" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Added"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "追加しました"
-          }
-        }
-      }
-    },
-    "컬렉션을 골라주세요" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose a collection"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "コレクションを選んでください"
-          }
-        }
-      }
-    },
-    "%lld개 컬렉션에 추가됩니다." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Adding to %lld collections."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld個のコレクションに追加されます。"
-          }
-        }
-      }
-    },
-    "새 컬렉션 만들기" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "New collection"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "新しいコレクションを作る"
-          }
-        }
-      }
-    },
-    "새 컬렉션" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "New collection"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "新しいコレクション"
-          }
-        }
-      }
-    },
-    "컬렉션 이름" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Collection name"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "コレクション名"
-          }
-        }
-      }
-    },
-    "컬렉션을 만들지 못했습니다" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Couldn't create the collection"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "コレクションを作成できませんでした"
-          }
-        }
-      }
-    },
-    "일부 연결에 실패했습니다" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Some connections failed"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "一部の接続に失敗しました"
-          }
-        }
-      }
-    },
-    "컬렉션" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Collections"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "コレクション"
-          }
-        }
-      }
-    },
-    "읽고 생각한 것을 주제로 잇는 곳." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Where you connect what you read and think, by theme."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "読んで考えたことをテーマでつなぐ場所。"
-          }
-        }
-      }
-    },
-    "아직 컬렉션이 없어요" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No collections yet"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "まだコレクションがありません"
-          }
-        }
-      }
-    },
-    "글을 읽다 마음에 닿는 것을 주제로 이어 보세요." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Connect what resonates as you read, by theme."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "読みながら心に響いたものをテーマでつないでみましょう。"
-          }
-        }
-      }
-    },
-    "수정" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Edit"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "編集"
-          }
-        }
-      }
-    },
-    "컬렉션 삭제" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete collection"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "コレクションを削除"
-          }
-        }
-      }
-    },
-    "컬렉션 관리" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Manage collection"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "コレクションの管理"
-          }
-        }
-      }
-    },
-    "이 컬렉션을 삭제할까요?" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Delete this collection?"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "このコレクションを削除しますか？"
-          }
-        }
-      }
-    },
-    "담긴 연결도 함께 사라져요. 연결된 글·노트 자체는 지워지지 않아요." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Its connections go too. The posts and notes themselves stay."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "含まれる接続も消えます。つないだ記事・ノート自体は削除されません。"
-          }
-        }
-      }
-    },
-    "연결 끊기" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Disconnect"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "接続を外す"
-          }
-        }
-      }
-    },
-    "연결을 끊지 못했습니다" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Couldn't disconnect"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "接続を外せませんでした"
-          }
-        }
-      }
-    },
-    "컬렉션을 삭제하지 못했습니다" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Couldn't delete the collection"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "コレクションを削除できませんでした"
-          }
-        }
-      }
-    },
-    "아직 연결된 글이 없어요" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nothing connected yet"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "まだ接続された項目がありません"
-          }
-        }
-      }
-    },
-    "글을 읽다 우하단 연결 버튼으로 이 컬렉션에 이어 보세요." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Use the connect button while reading to add to this collection."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "読みながら右下の接続ボタンでこのコレクションに追加しましょう。"
-          }
-        }
-      }
-    },
-    "컬렉션 수정" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Edit collection"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "コレクションを編集"
-          }
-        }
-      }
-    },
-    "수정하지 못했습니다" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Couldn't save changes"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "変更を保存できませんでした"
-          }
-        }
-      }
-    },
-    "컬렉션에 연결" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add to collection"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "コレクションに追加"
-          }
-        }
-      }
-    },
-    "에 연결" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "· connected"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "に追加"
-          }
-        }
-      }
-    },
-    "아직 흐를 게 없어요" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nothing flowing yet"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "まだ流れるものがありません"
-          }
-        }
-      }
-    },
-    "작가를 팔로우하면, 그들이 컬렉션에 이은 글이 여기에 흘러요." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Follow writers and what they connect to collections flows here."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "書き手をフォローすると、彼らがコレクションにつないだ記事がここに流れます。"
-          }
-        }
-      }
-    },
-    "읽을 글 찾기" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Find something to read"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "読む記事を探す"
-          }
-        }
-      }
-    },
-    "%lld개" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld items"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld件"
-          }
-        }
-      }
+    "회차별 완주" : {
+
     }
   },
   "version" : "1.0"

@@ -54,6 +54,7 @@ enum MockBackend {
     ]
     private static var nextNoteId: Int64 = 9600
     private static var likedNotes: Set<Int64> = []
+    private static var shortSeq = 0
 
     /// `--empty-feeds` = 구독함·추천을 빈 응답으로 — 빈 안내 화면 검증용.
     private static let emptyFeeds = ProcessInfo.processInfo.arguments.contains("--empty-feeds")
@@ -419,6 +420,17 @@ enum MockBackend {
     /// 처리하면 응답 바디, 아니면 nil → 실네트워크로.
     static func respond(path: String, method: String, body: Data?) -> Data? {
         let parts = path.split(separator: "/").map(String.init)
+
+        // 본문 링크 단축 — 붙여넣은 URL 을 kurl 짧은 링크로(POST /links).
+        if method == "POST", parts == ["links"] {
+            shortSeq += 1
+            let code = "mk\(shortSeq)"
+            return json([
+                "shortCode": code,
+                "shortUrl": "https://kurl.me/\(code)",
+                "claimToken": NSNull(),
+            ])
+        }
 
         // 발견 — 팔로우한 큐레이터의 연결 흐름(Phase 2).
         if method == "GET", parts == ["feed", "connections"] {

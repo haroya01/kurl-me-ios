@@ -85,6 +85,11 @@ struct ComposeView: View {
     @State private var scheduleError: String?
     @State private var showRevisions = false
 
+    // 링크 추가 다이얼로그 — 본문에 `(url)` 리터럴을 떨구지 않고 주소를 받아서 넣는다.
+    @State private var showLinkDialog = false
+    @State private var linkURL = ""
+    @State private var linkLabel = ""
+
     /// 방금 발행한 글의 slug — 셀레브레이션의 "글 보기" 한 틱이 이걸 들고 라이브로 보낸다.
     @State private var publishedSlug: String?
 
@@ -165,6 +170,19 @@ struct ComposeView: View {
             Button("확인", role: .cancel) {}
         } message: {
             Text(errorMessage ?? "")
+        }
+        // 링크 추가 — 주소만 받아 본문에 `[라벨](주소)` 로. 본문에 `(url)` 가 보이지 않는다.
+        .alert("링크 추가", isPresented: $showLinkDialog) {
+            TextField("https://example.com", text: $linkURL)
+                .textInputAutocapitalization(.never)
+                .keyboardType(.URL)
+                .autocorrectionDisabled()
+            Button("추가") { confirmLink() }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text(linkLabel.isEmpty
+                ? "주소를 붙여넣거나 입력하세요."
+                : "‘\(linkLabel)’에 연결할 주소를 입력하세요.")
         }
     }
 
@@ -906,14 +924,48 @@ struct ComposeView: View {
         case .list: editorController.applyLinePrefix("- ")
         case .bold: editorController.wrapSelection("**")
         case .inlineCode: editorController.wrapSelection("`")
-        case .codeBlock: editorController.insertFence()
-        case .link: editorController.insertLink()
+        case .codeBlock: editorController.toggleCodeBlock()
+        case .link: presentLinkDialog()
         case .image: showBodyImagePicker = true
         }
         // 프로그램 삽입은 delegate 를 거치지 않는다 — 바인딩(자동저장 시그니처) 수동 동기화.
-        if action != .image {
+        // .image·.link 는 비동기(피커·다이얼로그)라 각자 끝낼 때 동기화한다.
+        if action != .image, action != .link {
             markdown = editorController.currentText
         }
+    }
+
+    /// 링크 버튼 — 선택을 라벨 후보로 들고, 클립보드에 URL 이 있으면 미리 채워 다이얼로그를 연다.
+    /// 어르신도 "주소 붙여넣고 추가"만 하면 되게 — 본문에 `(url)` 가 보이지 않는다.
+    private func presentLinkDialog() {
+        linkLabel = editorController.beginLinkInsertion()
+        if let clip = UIPasteboard.general.string, Self.looksLikeURL(clip) {
+            linkURL = clip.trimmingCharacters(in: .whitespacesAndNewlines)
+        } else {
+            linkURL = ""
+        }
+        showLinkDialog = true
+    }
+
+    private func confirmLink() {
+        editorController.commitLink(label: linkLabel, url: Self.normalizedURL(linkURL))
+        markdown = editorController.currentText
+        editorController.focus() // 키보드·스니펫 바를 다시 불러 흐름이 끊기지 않게.
+    }
+
+    private static func looksLikeURL(_ s: String) -> Bool {
+        let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !t.isEmpty, !t.contains(" "), !t.contains("\n"), t.count <= 2000 else { return false }
+        if t.hasPrefix("http://") || t.hasPrefix("https://") { return true }
+        return t.contains(".")
+    }
+
+    /// 스킴이 없으면 https 를 붙인다 — "example.com" 만 적어도 살아있는 링크가 되게.
+    private static func normalizedURL(_ s: String) -> String {
+        let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !t.isEmpty else { return t }
+        if t.hasPrefix("http://") || t.hasPrefix("https://") || t.hasPrefix("mailto:") { return t }
+        return "https://\(t)"
     }
 
     /// 본문 이미지 — 골라서 업로드되면 커서 자리에 `![](url)` 한 줄로 들어간다.
