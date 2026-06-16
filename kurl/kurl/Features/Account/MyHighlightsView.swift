@@ -9,6 +9,7 @@ import SwiftUI
 /// 서재의 다른 면(북마크·좋아요·구독)과 같은 글 행 문법.
 struct MyHighlightsView: View {
     @State private var items: [MyHighlightView] = []
+    @State private var connectTarget: MyHighlightView?
     @State private var loading = true
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
 
@@ -61,6 +62,13 @@ struct MyHighlightsView: View {
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(RowButtonStyle())
+                        .contextMenu {
+                            Button {
+                                connectTarget = item
+                            } label: {
+                                Label("컬렉션에 연결", systemImage: "rectangle.stack.badge.plus")
+                            }
+                        }
                         .modifier(QuietAppear(index: index))
                         if index < items.count - 1 { Hairline() }
                     }
@@ -69,6 +77,11 @@ struct MyHighlightsView: View {
         }
         .navigationTitle("내 하이라이트")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $connectTarget) { h in
+            ConnectSheet(
+                targetKind: "하이라이트", targetTitle: h.quote,
+                blockType: .highlight, refId: h.id)
+        }
         .task {
             items = (try? await HighlightsAPI.mine()) ?? []
             loading = false

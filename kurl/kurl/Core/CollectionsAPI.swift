@@ -39,6 +39,18 @@ enum CollectionsAPI {
             authenticated: true)
     }
 
+    /// 컬렉션 수정 — 이름·소개·공개 범위. 갱신된 요약을 돌려받는다.
+    @discardableResult
+    static func edit(
+        id: Int64, title: String, description: String?, visibility: CollectionVisibility
+    ) async throws -> CollectionSummary {
+        try await client.put(
+            "/collections/\(id)",
+            body: CreateCollectionBody(
+                title: title, description: description, visibility: visibility.rawValue),
+            authenticated: true)
+    }
+
     /// 블록을 컬렉션에 연결(멱등). 본문 응답 없음(201).
     static func connect(
         collectionId: Int64, blockType: ConnectionBlockKind, refId: Int64, why: String?

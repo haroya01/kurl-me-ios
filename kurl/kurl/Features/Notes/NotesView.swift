@@ -121,6 +121,7 @@ final class NotesViewModel {
 struct NotesPage: View {
     let active: Bool
     @State private var model = NotesViewModel()
+    @State private var connectNote: Note?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -151,6 +152,10 @@ struct NotesPage: View {
         }
         .navigationTitle("노트")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $connectNote) { n in
+            ConnectSheet(
+                targetKind: "노트", targetTitle: n.body, blockType: .note, refId: n.id)
+        }
         .task { await model.loadInitial() }
     }
 
@@ -159,6 +164,15 @@ struct NotesPage: View {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(model.items.enumerated()), id: \.element.id) { index, note in
                     NoteRowView(model: model, note: note)
+                        .contextMenu {
+                            if AuthStore.shared.isSignedIn {
+                                Button {
+                                    connectNote = note
+                                } label: {
+                                    Label("컬렉션에 연결", systemImage: "rectangle.stack.badge.plus")
+                                }
+                            }
+                        }
                         .modifier(QuietAppear(index: index))
                         .transition(
                             reduceMotion

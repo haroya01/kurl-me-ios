@@ -449,6 +449,14 @@ enum MockBackend {
                 if method == "GET", parts.count == 2 {
                     return json(collectionDetail(collections[idx]))
                 }
+                if method == "PUT", parts.count == 2 {
+                    let req = decode(body)
+                    collections[idx].title = req["title"] as? String ?? collections[idx].title
+                    collections[idx].description = req["description"] as? String
+                    collections[idx].visibility =
+                        req["visibility"] as? String ?? collections[idx].visibility
+                    return json(collectionSummary(collections[idx]))
+                }
                 if method == "DELETE", parts.count == 2 {
                     collections.remove(at: idx)
                     return json([:] as [String: Any])

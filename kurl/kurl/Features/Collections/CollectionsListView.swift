@@ -12,6 +12,8 @@ struct CollectionsListView: View {
     @State private var loading = true
     @State private var failed = false
     @State private var showCreate = false
+    /// 상세에서 삭제·수정하고 돌아오면 목록이 스테일 — 재진입 시 조용히 다시 읽는다.
+    @State private var loadedOnce = false
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
@@ -61,7 +63,13 @@ struct CollectionsListView: View {
         }
         .navigationDestination(for: CollectionRef.self) { CollectionDetailView(collectionId: $0.id) }
         .navigationDestination(for: Route.self) { RouteView(route: $0) }
-        .task { await load() }
+        .task {
+            guard !loadedOnce else { return }
+            loadedOnce = true
+            await load()
+        }
+        // 상세에서 삭제·수정 후 돌아오면 새로 읽는다(스피너 없이 제자리 갱신).
+        .onAppear { if loadedOnce { Task { await load() } } }
         .refreshable { await load() }
     }
 
@@ -206,6 +214,93 @@ struct CreateCollectionSheet: View {
             dismiss()
         } catch {
             ToastCenter.shared.show(String(localized: "컬렉션을 만들지 못했습니다"))
+        }
+    }
+}
+
+/// 컬렉션 수정 — 이름 + 공개 범위. 소개(blurb)는 보존해 함께 보낸다.
+struct EditCollectionSheet: View {
+    let id: Int64
+    let initialBlurb: String?
+    let onSaved: () -> Void
+
+    @State private var title: String
+    @State private var visibility: CollectionVisibility
+    @State private var saving = false
+    @Environment(\.dismiss) private var dismiss
+    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+
+    init(
+        id: Int64, initialTitle: String, initialBlurb: String?,
+        initialVisibility: CollectionVisibility, onSaved: @escaping () -> Void
+    ) {
+        self.id = id
+        self.initialBlurb = initialBlurb
+        self.onSaved = onSaved
+        _title = State(initialValue: initialTitle)
+        _visibility = State(initialValue: initialVisibility)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("컬렉션 수정")
+                .typeScale(.titleSmall)
+                .foregroundStyle(Palette.ink)
+                .padding(.top, 26)
+
+            // 회색 채움 박스 대신 밑줄 — 입력이되 박스 없이(§10).
+            VStack(alignment: .leading, spacing: 9) {
+                TextField("컬렉션 이름", text: $title)
+                    .font(.system(size: 17 * unit))
+                    .foregroundStyle(Palette.ink)
+                Hairline()
+            }
+            .padding(.top, 18)
+
+            Picker("공개 범위", selection: $visibility) {
+                ForEach([CollectionVisibility.private, .unlisted, .public], id: \.self) { v in
+                    Text(v.label).tag(v)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.top, 16)
+
+            Spacer(minLength: 0)
+
+            Button {
+                Task { await save() }
+            } label: {
+                Group {
+                    if saving { ProgressView().tint(.white) } else { Text("저장") }
+                }
+                .font(.system(size: 16 * unit, weight: .semibold))
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .glassCapsule(prominent: true)
+            }
+            .buttonStyle(.plain)
+            .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || saving)
+            .opacity(title.trimmingCharacters(in: .whitespaces).isEmpty ? 0.5 : 1)
+            .padding(.bottom, 16)
+        }
+        .padding(.horizontal, Metrics.gutter)
+        .presentationDetents([.height(280)])
+        .presentationDragIndicator(.visible)
+        .background(Palette.readingBg)
+    }
+
+    private func save() async {
+        saving = true
+        defer { saving = false }
+        do {
+            try await CollectionsAPI.edit(
+                id: id, title: title.trimmingCharacters(in: .whitespaces),
+                description: initialBlurb, visibility: visibility)
+            onSaved()
+            dismiss()
+        } catch {
+            ToastCenter.shared.show(String(localized: "수정하지 못했습니다"))
         }
     }
 }
