@@ -106,4 +106,50 @@ final class CollectionPathUITests: XCTestCase {
             "새 길 생성 후 선택 안 됨")
         shot("5-new-path-created")
     }
+
+    /// Stage 4a — 발견 피드에서 PATH 연결이 '길에 엮음'으로 구분된다.
+    func testDiscoverMarksPathConnections() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "discover"]
+        app.launch()
+
+        XCTAssertTrue(
+            app.descendants(matching: .any)
+                .matching(NSPredicate(format: "label CONTAINS '길에 엮음'")).firstMatch
+                .waitForExistence(timeout: 15),
+            "발견 피드에 '길에 엮음' 표시가 없음")
+        shot("6-discover-path-card")
+    }
+
+    /// Stage 4b — 하이라이트 스레드에 '이 문장이 속한 길' 섹션이 뜨고, 길을 탭하면 가이드 워크로.
+    func testThreadShowsContainingPaths() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--post", "honggildong/hexagonal-after-3-months"]
+        app.launch()
+
+        let paragraph = app.textViews.containing(
+            NSPredicate(format: "value CONTAINS %@", "돌아가라면")).firstMatch
+        XCTAssertTrue(paragraph.waitForExistence(timeout: 15), "첫 문단 없음")
+        paragraph.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.16)).tap()
+        XCTAssertTrue(
+            app.navigationBars["하이라이트"].waitForExistence(timeout: 6), "스레드가 안 열림")
+
+        // '이 문장이 속한 길' 섹션 + 길 제목(컬렉션 104 = '경계를 긋는다는 것').
+        let section = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS '이 문장이 속한 길'")).firstMatch
+        XCTAssertTrue(section.waitForExistence(timeout: 6), "'이 문장이 속한 길' 섹션이 없음")
+        shot("7-thread-containing-paths")
+        let pathTitle = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS '경계를 긋는다는 것'")).firstMatch
+        if pathTitle.waitForExistence(timeout: 4) {
+            pathTitle.tap()
+            // 길로 진입 — 워크 첫 인용(상단, 렌더됨)으로 확인. 3번째는 medium 시트 밖이라 lazy 미렌더.
+            XCTAssertTrue(
+                app.descendants(matching: .any)
+                    .matching(NSPredicate(format: "label CONTAINS '경계가 없으면'")).firstMatch
+                    .waitForExistence(timeout: 8),
+                "길 탭 후 가이드 워크가 안 열림")
+            shot("8-path-from-thread")
+        }
+    }
 }

@@ -19,6 +19,8 @@ struct HighlightThreadSheet: View {
     @State private var replies: [HighlightReplyView] = []
     @State private var text = ""
     @State private var busy = false
+    /// 이 문장이 속한 공개 길/컬렉션 — A 척추 발견 고리(한 문장 → 그것이 엮인 길들로).
+    @State private var inCollections: [CollectionSummary] = []
 
     /// 연결은 서버에 자리잡은(양수 id) 하이라이트만 — 낙관적 생성 직후(음수 id)는 refId 가 없다.
     private var canConnect: Bool { highlight.id > 0 && AuthStore.shared.isSignedIn }
@@ -73,7 +75,33 @@ struct HighlightThreadSheet: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 28)
                     }
+
+                    // ── 이 문장이 속한 길 — 한 문장에서 그것이 엮인 길/컬렉션으로(A 척추 발견 고리).
+                    if !inCollections.isEmpty {
+                        Rectangle()
+                            .fill(Palette.hairline)
+                            .frame(height: 1)
+                            .padding(.horizontal, Metrics.gutter)
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("이 문장이 속한 길")
+                                .typeScale(.eyebrow)
+                                .tracking(0.4)
+                                .foregroundStyle(Palette.faint)
+                            ForEach(inCollections) { c in
+                                NavigationLink(value: CollectionRef(id: c.id)) {
+                                    containingRow(c)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.horizontal, Metrics.gutter)
+                        .padding(.top, 22)
+                        .padding(.bottom, 8)
+                    }
                 }
+            }
+            .navigationDestination(for: CollectionRef.self) {
+                CollectionDetailView(collectionId: $0.id)
             }
             .scrollIndicators(.hidden)
             .safeAreaInset(edge: .bottom) { composer }
@@ -104,6 +132,7 @@ struct HighlightThreadSheet: View {
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
         .task { await loadReplies() }
+        .task { await loadContainingCollections() }
     }
 
     /// 한 사람의 기여 = 아바타 + (이름·시각) + 본문, 바짝 뭉쳐 한 덩어리로(근접 그룹핑).
@@ -192,6 +221,33 @@ struct HighlightThreadSheet: View {
 
     private func loadReplies() async {
         replies = (try? await HighlightsAPI.replies(highlightId: highlight.id)) ?? []
+    }
+
+    private func loadContainingCollections() async {
+        guard highlight.id > 0 else { return }  // 낙관 생성 직후(음수 id)는 서버에 없다.
+        inCollections =
+            (try? await CollectionsAPI.collectionsContaining(highlightId: highlight.id)) ?? []
+    }
+
+    /// "이 문장이 속한 길" 한 줄 — 길 글리프(또는 컬렉션) + 제목 + 담긴 수.
+    private func containingRow(_ c: CollectionSummary) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: c.kind == .path ? "arrow.turn.down.right" : "square.grid.2x2")
+                .font(.system(size: 12 * metaUnit, weight: .bold))
+                .foregroundStyle(Palette.accent)
+            Text(c.title)
+                .typeScale(.body)
+                .foregroundStyle(Palette.ink)
+                .lineLimit(1)
+            Spacer(minLength: 6)
+            Text("\(c.count)")
+                .typeScale(.meta)
+                .foregroundStyle(Palette.faint)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 11 * metaUnit, weight: .semibold))
+                .foregroundStyle(Palette.faint)
+        }
+        .contentShape(Rectangle())
     }
 
     private func submit() {

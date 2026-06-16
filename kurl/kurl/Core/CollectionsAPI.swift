@@ -27,6 +27,11 @@ enum CollectionsAPI {
         try await client.get("/collections/\(id)", authenticated: true)
     }
 
+    /// "이 문장이 속한 길" — 이 하이라이트를 담은 공개 컬렉션/길(최근순). 미로그인도 본다(A 척추 발견 고리).
+    static func collectionsContaining(highlightId: Int64) async throws -> [CollectionSummary] {
+        try await client.get("/public/highlights/\(highlightId)/collections")
+    }
+
     /// 새 컬렉션/길 — 생성된 요약을 그대로 돌려받는다(count 0). kind=path 면 reading path.
     @discardableResult
     static func create(

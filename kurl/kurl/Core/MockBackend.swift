@@ -405,6 +405,7 @@ enum MockBackend {
             [
                 "id": 2, "curator": curator(3, "sori"),
                 "collectionId": 201, "collectionTitle": "오늘의 문장",
+                "collectionKind": "PATH",
                 "why": "재현 안 되는 버그 앞에서 나도 늘 이 문장을 떠올린다.",
                 "connectedAt": iso(Date().addingTimeInterval(-7200)),
                 "blockType": "HIGHLIGHT", "title": "토큰이 사라진 밤",
@@ -954,6 +955,14 @@ enum MockBackend {
         if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "highlights",
            parts[3] == "replies", let hid = Int(parts[2]) {
             return json(highlightReplies[hid] ?? [])
+        }
+        // "이 문장이 속한 길" — 이 하이라이트를 담은 공개 길/컬렉션(목: PATH 104 + 컬렉션 101).
+        if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "highlights",
+           parts[3] == "collections" {
+            let containing = collections.filter {
+                $0.visibility == "PUBLIC" && [104, 101].contains($0.id)
+            }
+            return json(containing.map(collectionSummary))
         }
         if method == "POST", parts.count == 3, parts[0] == "highlights", parts[2] == "replies",
            let hid = Int(parts[1]) {

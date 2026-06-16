@@ -173,12 +173,13 @@ struct ConnectionEvent: Decodable, Identifiable, Hashable {
     let curator: Author
     let collectionTitle: String
     let collectionId: Int64
+    let collectionKind: CollectionKind
     let block: ConnectionBlock
     let why: String?
     let connectedAt: Date?
 
     private enum CodingKeys: String, CodingKey {
-        case id, curator, collectionId, collectionTitle, why, connectedAt
+        case id, curator, collectionId, collectionTitle, collectionKind, why, connectedAt
         case blockType, title, excerpt, slug, username, quote, body
     }
 
@@ -188,6 +189,9 @@ struct ConnectionEvent: Decodable, Identifiable, Hashable {
         curator = try c.decode(Author.self, forKey: .curator)
         collectionId = try c.decode(Int64.self, forKey: .collectionId)
         collectionTitle = try c.decode(String.self, forKey: .collectionTitle)
+        collectionKind = CollectionKind(
+            rawValue: try c.decodeIfPresent(String.self, forKey: .collectionKind) ?? "")
+            ?? .collection
         why = try c.decodeIfPresent(String.self, forKey: .why)
         connectedAt = try c.decodeIfPresent(Date.self, forKey: .connectedAt)
         let type = try c.decode(String.self, forKey: .blockType)
