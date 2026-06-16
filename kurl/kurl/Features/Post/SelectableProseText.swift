@@ -71,10 +71,15 @@ struct SelectableProseText: UIViewRepresentable {
         let wash = UIColor(Palette.accent).withAlphaComponent(0.18)
         for mark in highlights {
             var painted_range: NSRange?
-            // 정밀: 저장된 오프셋이 이 렌더 텍스트에 들어맞으면 그 span 을 그대로 칠한다(서식 교차 포함).
-            if mark.start >= 0, mark.start < mark.end, mark.end <= total {
-                painted_range = NSRange(location: mark.start, length: mark.end - mark.start)
-            } else if !mark.quote.isEmpty {
+            // 정밀: 저장된 오프셋이 이 렌더 텍스트에 들어맞으면 그 span 을 칠한다(서식 교차 포함).
+            // end 는 본문 길이로 clamp — 다중 블록의 "이 블록 끝까지"(Int.max)를 처리한다.
+            if mark.start >= 0, mark.start < total {
+                let end = min(mark.end, total)
+                if mark.start < end {
+                    painted_range = NSRange(location: mark.start, length: end - mark.start)
+                }
+            }
+            if painted_range == nil, !mark.quote.isEmpty {
                 // 폴백: 오프셋이 본문 수정으로 어긋났을 때 인용 텍스트로.
                 let range = hay.range(of: mark.quote)
                 if range.location != NSNotFound { painted_range = range }
