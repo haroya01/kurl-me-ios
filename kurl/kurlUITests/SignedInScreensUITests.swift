@@ -61,6 +61,40 @@ final class SignedInScreensUITests: XCTestCase {
         shoot("my-highlights")
     }
 
+    /// 내 하이라이트 조직화 — 같은 글의 구절이 한 헤더 아래 묶이고, 검색이 글/구절을 좁힌다.
+    func testMyHighlightsGroupAndSearch() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "account"]
+        app.launch()
+
+        let row = rowButton(app, contains: "내 하이라이트")
+        XCTAssertTrue(row.waitForExistence(timeout: 12), "서재에 '내 하이라이트' 행이 없음")
+        if !row.isHittable { app.swipeUp() }
+        row.tap()
+
+        // 글별 그룹 — 두 글 헤더가 보인다.
+        let group2 = app.buttons.matching(NSPredicate(format: "label CONTAINS '발행된 목 글'")).firstMatch
+        let group1 = app.buttons.matching(NSPredicate(format: "label CONTAINS '헥사고날 정리'")).firstMatch
+        XCTAssertTrue(group2.waitForExistence(timeout: 8), "글 그룹 헤더(발행된 목 글)가 없음")
+        XCTAssertTrue(group1.waitForExistence(timeout: 4), "글 그룹 헤더(목 초안)가 없음")
+        shoot("my-highlights-grouped")
+
+        // 검색 — "추상" 으로 좁히면 그 구절의 글 그룹만 남는다.
+        let search = app.searchFields.firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 4), "검색 필드가 없음")
+        search.tap()
+        search.typeText("추상")
+        Thread.sleep(forTimeInterval: 0.7)
+        XCTAssertTrue(
+            app.buttons.matching(NSPredicate(format: "label CONTAINS '헥사고날 정리'")).firstMatch
+                .waitForExistence(timeout: 4),
+            "검색 결과에 매칭 글 그룹이 없음")
+        XCTAssertFalse(
+            app.buttons.matching(NSPredicate(format: "label CONTAINS '발행된 목 글'")).firstMatch.exists,
+            "검색 후에도 매칭 안 되는 글 그룹이 남음")
+        shoot("my-highlights-search")
+    }
+
     func testReadingHistory() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "account"]
