@@ -321,6 +321,7 @@ enum MockBackend {
         var title: String
         var description: String?
         var visibility: String
+        var kind: String = "COLLECTION"
         var connections: [MockConnection]
     }
 
@@ -354,6 +355,28 @@ enum MockBackend {
                 MockConnection(
                     id: 521, blockType: "NOTE", why: nil,
                     body: "좋은 글은 두 번째 읽을 때 다른 문장이 밑줄 쳐진다."),
+            ]),
+        // PATH(reading path) — 여러 글의 문장을 가로질러 하나의 논증으로 엮는다. why 가 문장과 문장을 잇는 흐름.
+        // 인용은 실제 목 글 블록에 있는 문장이라 탭하면 그 지점으로 딥링크된다.
+        MockCollection(
+            id: 104, title: "경계를 긋는다는 것", description: "왜 경계가 먼저인가 — 세 문장으로.",
+            visibility: "PUBLIC", kind: "PATH",
+            connections: [
+                MockConnection(
+                    id: 531, blockType: "HIGHLIGHT", why: "출발은 늘 여기다 — 경계가 없으면 변경이 전역이 된다.",
+                    title: "헥사고날로 갈아탄 지 석 달, 무엇이 남았나",
+                    slug: "hexagonal-after-3-months", username: "honggildong",
+                    quote: "경계가 없으면 모든 변경이 전역 변경이 된다."),
+                MockConnection(
+                    id: 532, blockType: "HIGHLIGHT", why: "그 경계를 긋느라 갈아탔고, 후회는 없다.",
+                    title: "헥사고날로 갈아탄 지 석 달, 무엇이 남았나",
+                    slug: "hexagonal-after-3-months", username: "honggildong",
+                    quote: "다시 돌아가라면 또 갈아탄다"),
+                MockConnection(
+                    id: 533, blockType: "HIGHLIGHT", why: "경계가 약하면 결국 타이밍이 샌다 — 같은 이야기의 다른 얼굴.",
+                    title: "토큰이 사라진 밤",
+                    slug: "the-night-tokens-vanished", username: "honggildong",
+                    quote: "재현이 안 되는 버그는 대개 타이밍 버그다."),
             ]),
     ]
     static var nextCollectionId: Int64 = 110
@@ -423,7 +446,7 @@ enum MockBackend {
         return [
             "id": c.id, "title": c.title,
             "description": orNull(c.description),
-            "visibility": c.visibility, "count": c.connections.count,
+            "visibility": c.visibility, "kind": c.kind, "count": c.connections.count,
             "updatedAt": iso(Date()), "preview": Array(preview),
         ]
     }
@@ -432,7 +455,7 @@ enum MockBackend {
         [
             "id": c.id, "title": c.title,
             "description": orNull(c.description),
-            "visibility": c.visibility, "curatorUsername": myUsername,
+            "visibility": c.visibility, "kind": c.kind, "curatorUsername": myUsername,
             "connections": c.connections.map { conn in
                 [
                     "id": conn.id, "blockType": conn.blockType,

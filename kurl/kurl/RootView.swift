@@ -89,8 +89,10 @@ struct RootView: View {
             NavigationStack { CollectionsListView() }
         } else if Config.launchValue(after: "--screen") == "collection-detail" {
             // 컬렉션 상세 — 목록 탭으로만 들어가 simctl 로 못 띄운다, 검증 진입로(목 백엔드 id).
+            // `--collection <id>` 로 특정 컬렉션(예: PATH 104) 지정, 없으면 101.
             NavigationStack {
-                CollectionDetailView(collectionId: 101)
+                CollectionDetailView(
+                    collectionId: Int64(Config.launchValue(after: "--collection") ?? "") ?? 101)
                     .navigationDestination(for: Route.self) { RouteView(route: $0) }
             }
         } else if Config.launchValue(after: "--screen") == "connect" {

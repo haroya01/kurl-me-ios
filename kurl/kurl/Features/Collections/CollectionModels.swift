@@ -29,6 +29,13 @@ enum CollectionVisibility: String, Hashable {
     }
 }
 
+/// 컬렉션 종류 — collection(주제 묶음) | path(순서로 엮은 reading path, A 척추). path 는 리스트가 아니라
+/// 가이드 워크(문장→왜→문장)로 읽는다. 백엔드 `CollectionKind` 와 같은 와이어 값.
+enum CollectionKind: String, Hashable, Encodable {
+    case collection = "COLLECTION"
+    case path = "PATH"
+}
+
 /// 컬렉션에 "연결"된 한 블록 — 글·하이라이트·노트. 같은 것이 여러 컬렉션에 걸릴 수 있다.
 enum ConnectionBlock: Hashable {
     case post(title: String, excerpt: String, username: String, slug: String, tags: [String])
@@ -92,12 +99,13 @@ struct CollectionSummary: Decodable, Identifiable, Hashable {
     let title: String
     let blurb: String?
     let visibility: CollectionVisibility
+    let kind: CollectionKind
     let count: Int
     /// 최근 담긴 항목 라벨 몇 개 — "안에 뭐가 들었는지" 떠올리게(어디 넣을지 결정 보조).
     let preview: [String]
 
     private enum CodingKeys: String, CodingKey {
-        case id, title, description, visibility, count, preview
+        case id, title, description, visibility, kind, count, preview
     }
 
     init(from decoder: Decoder) throws {
@@ -107,16 +115,22 @@ struct CollectionSummary: Decodable, Identifiable, Hashable {
         blurb = try c.decodeIfPresent(String.self, forKey: .description)
         let vis = try c.decode(String.self, forKey: .visibility)
         visibility = CollectionVisibility(rawValue: vis) ?? .private
+        kind = CollectionKind(rawValue: try c.decodeIfPresent(String.self, forKey: .kind) ?? "")
+            ?? .collection
         count = try c.decode(Int.self, forKey: .count)
         preview = try c.decodeIfPresent([String].self, forKey: .preview) ?? []
     }
 
     /// 로컬 생성(낙관) — 새 컬렉션을 목록에 즉시 끼워 넣을 때.
-    init(id: Int64, title: String, blurb: String?, visibility: CollectionVisibility, count: Int) {
+    init(
+        id: Int64, title: String, blurb: String?, visibility: CollectionVisibility,
+        kind: CollectionKind = .collection, count: Int
+    ) {
         self.id = id
         self.title = title
         self.blurb = blurb
         self.visibility = visibility
+        self.kind = kind
         self.count = count
         self.preview = []
     }
@@ -128,11 +142,12 @@ struct CollectionDetail: Decodable, Identifiable, Hashable {
     let title: String
     let blurb: String?
     let visibility: CollectionVisibility
+    let kind: CollectionKind
     let curatorUsername: String?
     let connections: [ConnectionItem]
 
     private enum CodingKeys: String, CodingKey {
-        case id, title, description, visibility, curatorUsername, connections
+        case id, title, description, visibility, kind, curatorUsername, connections
     }
 
     init(from decoder: Decoder) throws {
@@ -142,6 +157,8 @@ struct CollectionDetail: Decodable, Identifiable, Hashable {
         blurb = try c.decodeIfPresent(String.self, forKey: .description)
         let vis = try c.decode(String.self, forKey: .visibility)
         visibility = CollectionVisibility(rawValue: vis) ?? .private
+        kind = CollectionKind(rawValue: try c.decodeIfPresent(String.self, forKey: .kind) ?? "")
+            ?? .collection
         curatorUsername = try c.decodeIfPresent(String.self, forKey: .curatorUsername)
         connections = try c.decodeIfPresent([ConnectionItem].self, forKey: .connections) ?? []
     }
