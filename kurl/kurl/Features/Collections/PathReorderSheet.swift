@@ -1,0 +1,87 @@
+//
+//  PathReorderSheet.swift
+//  kurl
+//
+//  길(PATH)의 연결 순서를 드래그로 짠다 — PATH 에선 이 순서가 곧 논증의 흐름이다(A 척추 Stage 3).
+//  네이티브 List `.onMove` 로 끌어 옮기고, 저장 시 백엔드 reorder(연결 id 전체 순서) 한 번.
+//
+
+import SwiftUI
+
+struct PathReorderSheet: View {
+    let detail: CollectionDetail
+    let onSaved: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var items: [ConnectionItem]
+    @State private var saving = false
+
+    init(detail: CollectionDetail, onSaved: @escaping () -> Void) {
+        self.detail = detail
+        self.onSaved = onSaved
+        _items = State(initialValue: detail.connections)
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                    row(index: index, item: item)
+                }
+                .onMove { from, to in items.move(fromOffsets: from, toOffset: to) }
+            }
+            .environment(\.editMode, .constant(.active))
+            .listStyle(.plain)
+            .navigationTitle("순서 편집")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("저장") { Task { await save() } }.disabled(saving)
+                }
+            }
+        }
+    }
+
+    private func row(index: Int, item: ConnectionItem) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text("\(index + 1)")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(Palette.accent)
+            VStack(alignment: .leading, spacing: 3) {
+                if let why = item.why, !why.isEmpty {
+                    Text(why)
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.secondary)
+                        .lineLimit(1)
+                }
+                Text(label(item))
+                    .typeScale(.body)
+                    .foregroundStyle(Palette.ink)
+                    .lineLimit(2)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func label(_ item: ConnectionItem) -> String {
+        switch item.block {
+        case let .highlight(quote, _, _, _): return quote
+        case let .post(title, _, _, _, _): return title
+        case let .note(body): return body
+        }
+    }
+
+    private func save() async {
+        saving = true
+        do {
+            try await CollectionsAPI.reorder(
+                collectionId: detail.id, connectionIds: items.map(\.id))
+            onSaved()
+            dismiss()
+        } catch {
+            saving = false
+            ToastCenter.shared.show(String(localized: "순서를 저장하지 못했습니다"))
+        }
+    }
+}

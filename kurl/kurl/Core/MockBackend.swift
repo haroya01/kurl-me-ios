@@ -504,6 +504,7 @@ enum MockBackend {
                     title: req["title"] as? String ?? "새 컬렉션",
                     description: req["description"] as? String,
                     visibility: req["visibility"] as? String ?? "PRIVATE",
+                    kind: req["kind"] as? String ?? "COLLECTION",
                     connections: [])
                 nextCollectionId += 1
                 collections.insert(c, at: 0)
@@ -549,6 +550,19 @@ enum MockBackend {
                 if method == "DELETE", parts.count == 4, parts[2] == "connections",
                    let connId = Int64(parts[3]) {
                     collections[idx].connections.removeAll { $0.id == connId }
+                    return json([:] as [String: Any])
+                }
+                // 길(PATH) 순서 재배치 — 연결 id 전체를 주어진 순서대로.
+                if method == "PUT", parts.count == 4, parts[2] == "connections", parts[3] == "order" {
+                    let req = decode(body)
+                    let ids = (req["connectionIds"] as? [Any] ?? [])
+                        .compactMap { ($0 as? NSNumber)?.int64Value }
+                    let byId = Dictionary(
+                        uniqueKeysWithValues: collections[idx].connections.map { ($0.id, $0) })
+                    let reordered = ids.compactMap { byId[$0] }
+                    if reordered.count == collections[idx].connections.count {
+                        collections[idx].connections = reordered
+                    }
                     return json([:] as [String: Any])
                 }
             }

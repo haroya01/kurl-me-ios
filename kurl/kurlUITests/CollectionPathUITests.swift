@@ -58,4 +58,52 @@ final class CollectionPathUITests: XCTestCase {
             shot("2-deeplinked-from-path")
         }
     }
+
+    /// Stage 3 — 길 주인이 순서 편집 시트를 열어 저장(드래그 reorder → reorder API).
+    func testPathReorderSheetOpensAndSaves() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--screen", "collection-detail", "--collection", "104"]
+        app.launch()
+
+        let manage = app.buttons["컬렉션 관리"]
+        XCTAssertTrue(manage.waitForExistence(timeout: 15), "owner 관리 메뉴가 없음")
+        manage.tap()
+        let reorder = app.buttons["순서 편집"]
+        XCTAssertTrue(reorder.waitForExistence(timeout: 5), "순서 편집 항목이 없음")
+        reorder.tap()
+
+        XCTAssertTrue(
+            app.navigationBars["순서 편집"].waitForExistence(timeout: 5), "순서 편집 시트가 안 뜸")
+        shot("3-reorder-sheet")
+        let save = app.buttons["저장"]
+        XCTAssertTrue(save.waitForExistence(timeout: 3))
+        save.tap()
+        // 저장 후 길 상세로 복귀.
+        XCTAssertTrue(
+            app.descendants(matching: .any)
+                .matching(NSPredicate(format: "label CONTAINS '경계를 긋는다는 것'")).firstMatch
+                .waitForExistence(timeout: 6),
+            "저장 후 길 상세 복귀 실패")
+    }
+
+    /// Stage 3 — 연결 시트가 '새 길 만들기'(PATH)를 제공하고, 누르면 길이 만들어져 선택된다.
+    func testConnectSheetOffersNewPath() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--screen", "connect"]
+        app.launch()
+
+        XCTAssertTrue(
+            app.navigationBars["어디에 남길까요?"].waitForExistence(timeout: 15), "연결 시트가 안 뜸")
+        let newPath =
+            app.buttons.matching(NSPredicate(format: "label CONTAINS '새 길 만들기'")).firstMatch
+        XCTAssertTrue(newPath.waitForExistence(timeout: 5), "'새 길 만들기'가 없음")
+        shot("4-connect-new-path")
+        newPath.tap()
+        // 길이 생성·선택되어 '다음'이 활성.
+        XCTAssertTrue(
+            app.buttons.matching(NSPredicate(format: "label CONTAINS '다음'")).firstMatch
+                .waitForExistence(timeout: 5),
+            "새 길 생성 후 선택 안 됨")
+        shot("5-new-path-created")
+    }
 }

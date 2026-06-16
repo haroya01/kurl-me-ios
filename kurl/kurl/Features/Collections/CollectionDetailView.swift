@@ -15,6 +15,7 @@ struct CollectionDetailView: View {
     @State private var failed = false
     @State private var showEdit = false
     @State private var showDeleteConfirm = false
+    @State private var showReorder = false
     @Environment(\.dismiss) private var dismiss
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
@@ -65,10 +66,17 @@ struct CollectionDetailView: View {
                         } label: {
                             Label("수정", systemImage: "pencil")
                         }
+                        if detail.kind == .path, detail.connections.count > 1 {
+                            Button {
+                                showReorder = true
+                            } label: {
+                                Label("순서 편집", systemImage: "arrow.up.arrow.down")
+                            }
+                        }
                         Button(role: .destructive) {
                             showDeleteConfirm = true
                         } label: {
-                            Label("컬렉션 삭제", systemImage: "trash")
+                            Label(detail.kind == .path ? "길 삭제" : "컬렉션 삭제", systemImage: "trash")
                         }
                     } label: {
                         Image(systemName: "ellipsis")
@@ -86,6 +94,11 @@ struct CollectionDetailView: View {
                     id: detail.id, initialTitle: detail.title, initialBlurb: detail.blurb,
                     initialVisibility: detail.visibility
                 ) { Task { await load() } }
+            }
+        }
+        .sheet(isPresented: $showReorder) {
+            if let detail {
+                PathReorderSheet(detail: detail) { Task { await load() } }
             }
         }
         .alert("이 컬렉션을 삭제할까요?", isPresented: $showDeleteConfirm) {
