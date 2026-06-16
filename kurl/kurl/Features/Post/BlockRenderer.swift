@@ -48,7 +48,12 @@ struct BlockView: View {
                     onHighlight: { start, end, quote in
                         store.create(
                             blockOrder: order, startOffset: start, endOffset: end, quote: quote)
-                    }
+                    },
+                    onHighlightNote: { start, end, quote in
+                        store.noteDraft = PostHighlightStore.NoteDraft(
+                            blockOrder: order, startOffset: start, endOffset: end, quote: quote)
+                    },
+                    onOpenThread: { id in store.threadHighlightId = id }
                 )
                 .padding(.bottom, isLead ? 20 : 18)
             } else {
