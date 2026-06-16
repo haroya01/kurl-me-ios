@@ -22,9 +22,14 @@ final class PostHighlightStore {
         highlights = (try? await HighlightsAPI.list(postId: postId)) ?? []
     }
 
-    /// 이 문단(blockOrder)에 칠할 인용들 — 웹과 같은 인용-검색 페인트지만 블록 한정이라 더 정확.
-    func quotes(forBlock blockOrder: Int) -> [String] {
-        highlights.compactMap { $0.blockOrder == blockOrder ? $0.quote : nil }
+    /// 이 문단(blockOrder)에 칠할 하이라이트 — 저장된 오프셋(startOffset/endOffset)을 그대로 넘겨
+    /// 정밀하게 칠하게 한다. 오프셋이 없으면 -1 로 인용 폴백을 태운다.
+    func marks(forBlock blockOrder: Int) -> [SelectableProseText.Mark] {
+        highlights.compactMap { h in
+            guard h.blockOrder == blockOrder else { return nil }
+            return SelectableProseText.Mark(
+                start: h.startOffset ?? -1, end: h.endOffset ?? -1, quote: h.quote)
+        }
     }
 
     /// 선택 구간을 하이라이트 — 미로그인이면 로그인 유도. 로그인 상태면 낙관적으로 즉시 칠하고

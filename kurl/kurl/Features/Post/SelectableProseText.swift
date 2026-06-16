@@ -18,8 +18,16 @@ struct SelectableProseText: UIViewRepresentable {
     let fontSize: CGFloat
     let textColor: Color
     let lineSpacing: CGFloat
-    /// 이 문단에 칠할 인용들(블록 한정 인용-검색).
-    let highlightQuotes: [String]
+    /// 이 문단에 칠할 하이라이트 — 저장된 오프셋으로 정밀하게(같은 문장 반복·서식 교차에도 정확),
+    /// 오프셋이 본문 수정으로 어긋나면 인용 텍스트로 폴백.
+    let highlights: [Mark]
+
+    /// 칠할 한 span — 렌더된 본문 텍스트 기준 문자 오프셋 [start, end) + 폴백용 인용.
+    struct Mark: Equatable {
+        let start: Int
+        let end: Int
+        let quote: String
+    }
     /// 선택→하이라이트 콜백. nil 이면 메뉴에 항목을 넣지 않는다(게이트 없는 면).
     let onHighlight: ((_ startOffset: Int, _ endOffset: Int, _ quote: String) -> Void)?
 
@@ -47,11 +55,20 @@ struct SelectableProseText: UIViewRepresentable {
             raw, fontSize: fontSize, color: UIColor(textColor), lineSpacing: lineSpacing)
         let painted = NSMutableAttributedString(attributedString: base)
         let hay = painted.string as NSString
+        let total = painted.length
         let wash = UIColor(Palette.accent).withAlphaComponent(0.18)
-        for quote in highlightQuotes where !quote.isEmpty {
-            let range = hay.range(of: quote)
-            if range.location != NSNotFound {
-                painted.addAttribute(.backgroundColor, value: wash, range: range)
+        for mark in highlights {
+            // 정밀: 저장된 오프셋이 이 렌더 텍스트에 들어맞으면 그 span 을 그대로 칠한다(서식 교차 포함).
+            if mark.start >= 0, mark.start < mark.end, mark.end <= total {
+                painted.addAttribute(
+                    .backgroundColor, value: wash,
+                    range: NSRange(location: mark.start, length: mark.end - mark.start))
+            } else if !mark.quote.isEmpty {
+                // 폴백: 오프셋이 본문 수정으로 어긋났을 때 인용 텍스트로.
+                let range = hay.range(of: mark.quote)
+                if range.location != NSNotFound {
+                    painted.addAttribute(.backgroundColor, value: wash, range: range)
+                }
             }
         }
         tv.attributedText = painted

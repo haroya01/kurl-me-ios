@@ -44,7 +44,7 @@ struct BlockView: View {
                     fontSize: size,
                     textColor: color,
                     lineSpacing: lineSpacing,
-                    highlightQuotes: store.quotes(forBlock: order),
+                    highlights: store.marks(forBlock: order),
                     onHighlight: { start, end, quote in
                         store.create(
                             blockOrder: order, startOffset: start, endOffset: end, quote: quote)
