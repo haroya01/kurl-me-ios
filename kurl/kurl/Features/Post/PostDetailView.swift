@@ -444,7 +444,7 @@ struct PostDetailView: View {
                 Image(systemName: "wifi.slash")
                     .font(.system(size: 11 * metaUnit, weight: .semibold))
                 Text("오프라인 사본 — 연결되면 최신으로 갱신됩니다")
-                    .font(.system(size: 12 * metaUnit, weight: .medium))
+                    .typeScale(.footnote)
             }
             .foregroundStyle(Palette.secondary)
             .padding(.horizontal, 10)
@@ -500,7 +500,7 @@ struct PostDetailView: View {
                     .foregroundStyle(pullProgress > 0.97 ? Palette.link : Palette.faint)
                     .rotationEffect(.degrees(reduceMotion ? 0 : 180 * pullProgress))
                 Text("계속 당기면 다음 글")
-                    .font(.system(size: 12 * metaUnit))
+                    .typeScale(.footnote)
                     .foregroundStyle(Palette.secondary)
                 Text(next.title)
                     .font(.system(size: 14 * unit, weight: .semibold))
@@ -547,7 +547,7 @@ struct PostDetailView: View {
                             .foregroundStyle(Palette.ink)
                         if let bio = author.bio, !bio.isEmpty {
                             Text(bio)
-                                .font(.system(size: 13 * unit))
+                                .typeScale(.lede)
                                 .foregroundStyle(Palette.secondary)
                                 .lineLimit(2)
                         }
@@ -616,7 +616,7 @@ struct PostDetailView: View {
                 // 여기선 muted — 대문자 트래킹으로 위계를 세우고 색은 빼는 절제(§10 색 규율).
                 NavigationLink(value: Route.tag(kicker)) {
                     Text(kicker.uppercased())
-                        .font(.system(size: 12 * metaUnit, weight: .semibold))
+                        .typeScale(.eyebrow)
                         .tracking(0.8)
                         .foregroundStyle(Palette.secondary)
                         .expandTapTarget(6)
@@ -636,12 +636,12 @@ struct PostDetailView: View {
                 HStack(spacing: 9) {
                     AvatarView(author: detail.author, size: 28)
                     Text(detail.author.username)
-                        .font(.system(size: 14 * unit, weight: .semibold))
+                        .typeScale(.meta)
                         .foregroundStyle(Palette.ink)
                     if let date = detail.post.publishedAt {
                         Text("·").foregroundStyle(Palette.faint)
                         Text(date.mediumDate)
-                            .font(.system(size: 13 * unit))
+                            .typeScale(.meta)
                             .foregroundStyle(Palette.secondary)
                     }
                     // 탭 가능한 행이라는 신호 — 어포던스 없는 링크는 없는 링크다.
@@ -660,7 +660,7 @@ struct PostDetailView: View {
                     Image(systemName: "book")
                         .font(.system(size: 11 * metaUnit, weight: .medium))
                     Text("\(minutes)분 읽기")
-                        .font(.system(size: 12 * metaUnit, weight: .medium))
+                        .typeScale(.footnote)
                 }
                 .foregroundStyle(Palette.faint)
                 .padding(.top, 7)
@@ -701,7 +701,7 @@ struct PostDetailView: View {
 
             VStack(alignment: .leading, spacing: 7) {
                 Text(post.title)
-                    .font(.system(size: 15 * unit, weight: .semibold))
+                    .typeScale(.titleSmall)
                     .foregroundStyle(Palette.ink)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
@@ -719,7 +719,7 @@ struct PostDetailView: View {
                         }
                     }
                 }
-                .font(.system(size: 12 * metaUnit))
+                .typeScale(.meta)
                 .foregroundStyle(Palette.secondary)
             }
             .padding(13)
@@ -835,8 +835,6 @@ struct CommentRow: View {
     @State private var showReport = false
     @State private var likeTaps = 0
     @State private var deleteFailed = false
-    @ScaledMetric(relativeTo: .subheadline) private var bodySize: CGFloat = 14
-    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -863,7 +861,7 @@ struct CommentRow: View {
                 HStack(spacing: 6) {
                     NavigationLink(value: Route.author(username: comment.author.username)) {
                         Text(comment.author.username)
-                            .font(.system(size: 14 * unit, weight: .semibold))
+                            .typeScale(.meta)
                             .foregroundStyle(Palette.ink)
                     }
                     .buttonStyle(.plain)
@@ -877,7 +875,7 @@ struct CommentRow: View {
                     }
                     if let date = comment.createdAt {
                         Text(date.relativeShort)
-                            .font(.system(size: 12 * metaUnit))
+                            .typeScale(.meta)
                             .foregroundStyle(Palette.secondary)
                     }
                     Spacer(minLength: 0)
@@ -909,8 +907,7 @@ struct CommentRow: View {
                     }
                 }
                 Text(comment.body)
-                    .font(.system(size: bodySize))
-                    .lineSpacing(2)
+                    .typeScale(.body)
                     .foregroundStyle(Palette.body)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)

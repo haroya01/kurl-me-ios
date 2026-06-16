@@ -13,8 +13,6 @@ struct DiscoverView: View {
     @State private var events: [ConnectionEvent] = []
     @State private var loading = true
     @State private var failed = false
-    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
-    @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
     var body: some View {
         NavigationStack {
@@ -117,7 +115,7 @@ private struct ConnectionEventCard: View {
                         .typeScale(.eyebrow)
                         .tracking(0.3)
                     Text("에 연결")
-                        .font(.system(size: 12 * metaUnit, weight: .medium))
+                        .typeScale(.meta)
                         .foregroundStyle(Palette.faint)
                 }
                 .foregroundStyle(Palette.link)

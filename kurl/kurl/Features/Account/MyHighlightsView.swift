@@ -11,7 +11,6 @@ struct MyHighlightsView: View {
     @State private var items: [MyHighlightView] = []
     @State private var connectTarget: MyHighlightView?
     @State private var loading = true
-    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
 
     var body: some View {
         ReadingColumn(spacing: 0) {
@@ -36,7 +35,7 @@ struct MyHighlightsView: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 // 그은 구절 — 본문에서 칠한 그린 워시를 그대로 한 줄로.
                                 Text(item.quote)
-                                    .font(.system(size: 15 * unit))
+                                    .typeScale(.body)
                                     .foregroundStyle(Palette.body)
                                     .lineLimit(3)
                                     .multilineTextAlignment(.leading)
@@ -55,7 +54,7 @@ struct MyHighlightsView: View {
                                         .foregroundStyle(Palette.secondary)
                                         .lineLimit(1)
                                 }
-                                .font(.system(size: 13 * unit, weight: .medium))
+                                .typeScale(.meta)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.vertical, 14)

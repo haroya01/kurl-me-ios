@@ -33,7 +33,7 @@ struct HighlightThreadSheet: View {
                                 .fill(Palette.accent)
                                 .frame(width: 3)
                             Text(highlight.quote)
-                                .font(.system(size: 15 * unit))
+                                .typeScale(.lede)
                                 .foregroundStyle(Palette.secondary)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -96,11 +96,11 @@ struct HighlightThreadSheet: View {
                         Circle().fill(Palette.accent).frame(width: 5, height: 5)
                     }
                     Text("@\(author?.username ?? "?")")
-                        .font(.system(size: 13.5 * metaUnit, weight: .semibold))
+                        .typeScale(.meta)
                         .foregroundStyle(Palette.ink)
                     if let date {
                         Text(date.formatted(.dateTime.month().day()))
-                            .font(.system(size: 12 * metaUnit))
+                            .typeScale(.meta)
                             .foregroundStyle(Palette.secondary)
                     }
                     Spacer(minLength: 0)
@@ -116,7 +116,7 @@ struct HighlightThreadSheet: View {
                     }
                 }
                 Text(text)
-                    .font(.system(size: 15 * unit))
+                    .typeScale(.body)
                     .foregroundStyle(Palette.body)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -219,7 +219,7 @@ struct HighlightNoteComposerSheet: View {
                         .fill(Palette.accent)
                         .frame(width: 3)
                     Text(draft.quote)
-                        .font(.system(size: 14 * unit))
+                        .typeScale(.lede)
                         .foregroundStyle(Palette.secondary)
                         .lineLimit(3)
                         .fixedSize(horizontal: false, vertical: true)

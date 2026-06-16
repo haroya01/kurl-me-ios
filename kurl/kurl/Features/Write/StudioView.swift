@@ -227,7 +227,7 @@ struct StudioView: View {
                 Text(date.relativeShort).foregroundStyle(Palette.secondary)
             }
         }
-        .font(.system(size: 12 * metaUnit, weight: .medium))
+        .typeScale(.meta)
     }
 
     /// 빈 상태 — 막다른 길 금지(AGENTS 폴리시). 인사 + 또렷한 시작 버튼.
@@ -317,11 +317,11 @@ struct StudioView: View {
                                 in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                         VStack(alignment: .leading, spacing: 2) {
                             Text(series.title)
-                                .font(.system(size: 15 * unit, weight: .semibold))
+                                .typeScale(.titleSmall)
                                 .foregroundStyle(Palette.ink)
                                 .lineLimit(1)
                             Text("\(series.postCount)편")
-                                .font(.system(size: 12 * metaUnit))
+                                .typeScale(.meta)
                                 .foregroundStyle(Palette.secondary)
                         }
                         Spacer(minLength: 0)

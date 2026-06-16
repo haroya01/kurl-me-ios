@@ -383,10 +383,9 @@ private struct FeedPlaceholder: View {
                 .padding(.bottom, 9)
 
             Text(message)
-                .font(.system(size: 15))
+                .typeScale(.lede)
                 .foregroundStyle(Palette.secondary)
                 .multilineTextAlignment(.center)
-                .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: 272)
                 .padding(.bottom, 22)

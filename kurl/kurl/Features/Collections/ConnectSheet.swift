@@ -106,7 +106,7 @@ struct ConnectSheet: View {
                             .font(.system(size: 10 * metaUnit, weight: .medium))
                         Text("\(c.count)개")
                     }
-                    .font(.system(size: 12 * metaUnit, weight: .medium))
+                    .typeScale(.meta)
                     .foregroundStyle(Palette.faint)
                 }
                 Spacer(minLength: 0)

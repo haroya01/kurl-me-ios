@@ -180,7 +180,7 @@ struct AccountView: View {
                             .tracking(-0.2)
                             .foregroundStyle(.primary)
                         Text(auth.me?.email ?? "")
-                            .font(.system(size: 13 * unit))
+                            .typeScale(.meta)
                             .foregroundStyle(.secondary)
                     }
                     Spacer(minLength: 0)

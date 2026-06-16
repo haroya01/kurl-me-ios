@@ -14,7 +14,6 @@ struct MyReadingHistoryView: View {
     @State private var loading = false
     @State private var loadedOnce = false
     @State private var confirmClear = false
-    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
 
     var body: some View {
         ReadingColumn(spacing: 0) {
@@ -75,12 +74,12 @@ struct MyReadingHistoryView: View {
                     AvatarView(author: item.asAuthor, size: 40)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(item.title)
-                            .font(.system(size: 15 * unit, weight: .semibold))
+                            .typeScale(.titleSmall)
                             .foregroundStyle(Palette.ink)
                             .lineLimit(2)
                             .multilineTextAlignment(.leading)
                         Text("@\(item.username)")
-                            .font(.system(size: 12 * unit))
+                            .typeScale(.meta)
                             .foregroundStyle(Palette.secondary)
                             .lineLimit(1)
                     }

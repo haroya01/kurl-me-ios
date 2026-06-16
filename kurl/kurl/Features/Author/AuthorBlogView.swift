@@ -109,7 +109,7 @@ struct AuthorBlogView: View {
                             Text("시리즈 \(series.count)")
                         }
                     }
-                    .font(.system(size: 13))
+                    .typeScale(.meta)
                     .foregroundStyle(Palette.secondary)
                 }
                 Spacer(minLength: 0)
@@ -175,7 +175,7 @@ struct AuthorBlogView: View {
                                         .multilineTextAlignment(.leading)
                                     Spacer(minLength: 0)
                                     Text("\(item.postCount)편")
-                                        .font(.system(size: 12))
+                                        .typeScale(.meta)
                                         .foregroundStyle(Palette.secondary)
                                 }
                                 .padding(13)

@@ -10,7 +10,6 @@ import SwiftUI
 struct BookmarksView: View {
     @State private var items: [BookmarkItem] = []
     @State private var loading = true
-    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
 
     private var offline: OfflineStore { .shared }
 
@@ -57,7 +56,7 @@ struct BookmarksView: View {
                                             .accessibilityLabel("오프라인 저장됨")
                                         }
                                     }
-                                    .font(.system(size: 13 * unit))
+                                    .typeScale(.meta)
                                 }
                                 Spacer(minLength: 0)
                                 Image(systemName: "bookmark.fill")
@@ -135,7 +134,6 @@ struct LikedPostsView: View {
 struct SubscribedSeriesView: View {
     @State private var items: [PublicSeriesCard] = []
     @State private var loading = true
-    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
 
     var body: some View {
         ReadingColumn(spacing: 0) {
@@ -169,7 +167,7 @@ struct SubscribedSeriesView: View {
                                     }
                                     Text("\(card.postCount)편")
                                 }
-                                .font(.system(size: 13 * unit))
+                                .typeScale(.meta)
                                 .foregroundStyle(Palette.secondary)
                             }
                             Spacer()

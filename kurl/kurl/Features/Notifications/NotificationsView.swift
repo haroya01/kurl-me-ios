@@ -121,7 +121,7 @@ struct NotificationsView: View {
                 }
                 if let date = n.createdAt {
                     Text(date.relativeShort)
-                        .font(.system(size: 12 * unit))
+                        .typeScale(.meta)
                         .foregroundStyle(Palette.secondary)
                 }
             }

@@ -112,7 +112,7 @@ struct SearchView: View {
                                                     }
                                                 }
                                             }
-                                            .font(.system(size: 11))
+                                            .typeScale(.meta)
                                             .foregroundStyle(Palette.secondary)
                                         }
                                         .padding(14)
@@ -247,7 +247,7 @@ struct SearchView: View {
 
                 if popularTags.isEmpty, suggestedAuthors.isEmpty, recents.isEmpty {
                     Text("제목과 내용으로 글을 검색합니다.")
-                        .font(.system(size: 14))
+                        .typeScale(.footnote)
                         .foregroundStyle(Palette.secondary)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.top, 80)
