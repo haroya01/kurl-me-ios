@@ -216,42 +216,36 @@ struct AccountView: View {
             }
             .padding(.top, 10)
 
-            // 프로필 편집 — 소개글·아바타. 명함(테마·소셜)은 웹 u/ 의 것이라 여기선 안 건드린다.
-            libraryRow("프로필 편집", icon: "person.crop.circle") {
+            // 프로필 편집 — 정체(계정) 묶음의 마지막 행. 명함(테마·소셜)은 웹 u/ 의 것이라 여기선 안 건드린다.
+            libraryRow("프로필 편집") {
                 ProfileEditView(currentAvatarUrl: auth.me?.avatarUrl)
             }
-            .padding(.top, 18)
+            .padding(.top, 20)
 
-            // 노트(짧은 글) — 1급 피드 탭에서 강등, 여기서 들어간다.
-            RailHeading("둘러보기")
-                .padding(.top, 28)
-                .padding(.bottom, 4)
-            libraryRow("노트", icon: "text.bubble") { NotesPage(active: true) }
-
-            // 서재 — 행동(좋아요·북마크·구독)의 모아 보기.
+            // 서재 — 내가 모은 것(노트·북마크·좋아요·구독·하이라이트·컬렉션·기록)을 한 목록으로.
+            // 한 항목짜리 「둘러보기」 섹션을 없애고 노트를 여기로 합쳤다(근접 그룹핑).
             RailHeading("서재")
-                .padding(.top, 28)
-                .padding(.bottom, 4)
-            libraryRow("북마크", icon: "bookmark") { BookmarksView() }
+                .padding(.top, 32)
+                .padding(.bottom, 2)
+            libraryRow("북마크") { BookmarksView() }
             Hairline()
-            libraryRow("좋아요한 글", icon: "heart") { LikedPostsView() }
+            libraryRow("좋아요한 글") { LikedPostsView() }
             Hairline()
-            libraryRow("구독한 시리즈", icon: "square.stack.3d.up") { SubscribedSeriesView() }
+            libraryRow("구독한 시리즈") { SubscribedSeriesView() }
             Hairline()
-            libraryRow("내 하이라이트", icon: "highlighter") { MyHighlightsView() }
+            libraryRow("내 하이라이트") { MyHighlightsView() }
             Hairline()
-            libraryRow("컬렉션", icon: "square.grid.2x2") { CollectionsListView() }
+            libraryRow("컬렉션") { CollectionsListView() }
             Hairline()
-            libraryRow("읽기 기록", icon: "clock") { MyReadingHistoryView() }
-
+            libraryRow("읽기 기록") { MyReadingHistoryView() }
             Hairline()
-                .padding(.top, 24)
+            libraryRow("노트") { NotesPage(active: true) }
 
             Button("로그아웃", role: .destructive) {
                 auth.signOut()
             }
             .font(.system(size: 15 * unit))
-            .padding(.top, 18)
+            .padding(.top, 30)
         }
         .task { await auth.loadMe() }
     }
@@ -269,27 +263,24 @@ struct AccountView: View {
         .contentShape(Capsule())
     }
 
+    /// 서재·계정 행 — 아이콘 없이 라벨 타이포로(설정 템플릿 탈피), 셰브론은 흐린 한 점의 어포던스로만.
+    /// 행끼리는 Hairline 로 묶어 "한 덩어리 목록"으로 읽힌다.
     private func libraryRow(
-        _ title: LocalizedStringKey, icon: String, @ViewBuilder destination: @escaping () -> some View
+        _ title: LocalizedStringKey, @ViewBuilder destination: @escaping () -> some View
     ) -> some View {
         NavigationLink {
             destination()
         } label: {
             HStack(spacing: 10) {
-                Image(systemName: icon)
-                    .font(.system(size: 14 * unit))
-                    // 서재 행 아이콘 = 네비 어포던스일 뿐 — 초록은 주액션 전용이라 중립(§10 색 규율).
-                    .foregroundStyle(Palette.secondary)
-                    .frame(width: 22 * unit)
                 Text(title)
-                    .font(.system(size: 15 * unit, weight: .medium))
+                    .font(.system(size: 16 * unit))
                     .foregroundStyle(Palette.ink)
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 12 * metaUnit, weight: .semibold))
-                    .foregroundStyle(Palette.secondary)
+                    .font(.system(size: 12 * metaUnit, weight: .medium))
+                    .foregroundStyle(Palette.faint)
             }
-            .padding(.vertical, 13)
+            .padding(.vertical, 14)
             .contentShape(Rectangle())
         }
         .buttonStyle(RowButtonStyle())
