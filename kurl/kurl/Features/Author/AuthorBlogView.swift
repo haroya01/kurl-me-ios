@@ -116,9 +116,8 @@ struct AuthorBlogView: View {
             }
             if let bio = view.author.bio, !bio.isEmpty {
                 Text(bio)
-                    .font(.system(size: 15))
+                    .typeScale(.lede)
                     .foregroundStyle(Palette.secondary)
-                    .lineSpacing(4)
                     .padding(.top, 12)
             }
             // 탭 가능한 "팔로워 N · 팔로잉 N" — 각각 해당 목록으로(Medium 문법).

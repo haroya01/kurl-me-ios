@@ -14,13 +14,12 @@ struct CollectionsListView: View {
     @State private var showCreate = false
     /// 상세에서 삭제·수정하고 돌아오면 목록이 스테일 — 재진입 시 조용히 다시 읽는다.
     @State private var loadedOnce = false
-    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
     var body: some View {
         ReadingColumn(spacing: 0) {
             Text("읽고 생각한 것을 주제로 잇는 곳.")
-                .font(.system(size: 14 * metaUnit))
+                .typeScale(.lede)
                 .foregroundStyle(Palette.secondary)
                 .padding(.top, 4)
                 .padding(.bottom, 18)
@@ -93,14 +92,14 @@ struct CollectionsListView: View {
 
             if let blurb = c.blurb {
                 Text(blurb)
-                    .font(.system(size: 14 * unit))
+                    .typeScale(.lede)
                     .foregroundStyle(Palette.secondary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             } else if !c.preview.isEmpty {
                 // 소개가 없으면 안에 든 것으로 — 어디든 "뭐가 들었는지"가 보이게.
                 Text(c.preview.joined(separator: " · "))
-                    .font(.system(size: 14 * unit))
+                    .typeScale(.lede)
                     .foregroundStyle(Palette.secondary)
                     .lineLimit(1)
                     .truncationMode(.tail)

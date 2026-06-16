@@ -235,7 +235,7 @@ struct ComposeView: View {
                 .accessibilityLabel(Text("저장 상태 보기"))
                 .popover(isPresented: $showSaveStatus) {
                     Text("저장됨 \(at.formatted(date: .omitted, time: .shortened))")
-                        .font(.system(size: 13 * metaUnit))
+                        .typeScale(.meta)
                         .foregroundStyle(Palette.secondary)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 11)
@@ -383,7 +383,7 @@ struct ComposeView: View {
                     // 비활성엔 이유를 — 흐린 버튼만 보여주고 침묵하지 않는다.
                     if let reason = publishBlockReason {
                         Text(reason)
-                            .font(.system(size: 12 * metaUnit))
+                            .typeScale(.footnote)
                             .foregroundStyle(Palette.secondary)
                     }
 
@@ -459,7 +459,7 @@ struct ComposeView: View {
                 .fill(Palette.accentMarker)
                 .frame(width: 3, height: 12 * metaUnit)
             Text(text)
-                .font(.system(size: 13 * unit, weight: .semibold))
+                .typeScale(.eyebrow)
                 .foregroundStyle(Palette.heading)
         }
     }
@@ -494,7 +494,7 @@ struct ComposeView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 if !excerpt.trimmingCharacters(in: .whitespaces).isEmpty {
                     Text(excerpt)
-                        .font(.system(size: 14 * unit))
+                        .typeScale(.lede)
                         .foregroundStyle(Palette.secondary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
@@ -505,10 +505,10 @@ struct ComposeView: View {
                             author: Author(id: me.id ?? 0, username: username, bio: nil, avatarUrl: me.avatarUrl),
                             size: 20)
                         Text(username)
-                            .font(.system(size: 13 * metaUnit, weight: .medium))
+                            .typeScale(.meta)
                             .foregroundStyle(Palette.ink)
                         Text("· 지금")
-                            .font(.system(size: 13 * metaUnit))
+                            .typeScale(.meta)
                             .foregroundStyle(Palette.secondary)
                     }
                     .padding(.top, 2)
@@ -588,7 +588,7 @@ struct ComposeView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(label)
-                .font(.system(size: 13 * unit, weight: .semibold))
+                .typeScale(.eyebrow)
                 .foregroundStyle(Palette.heading)
             content()
         }
@@ -1091,7 +1091,6 @@ private struct RevisionsSheet: View {
     let onRestored: (String) -> Void
 
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
-    @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
     @Environment(\.dismiss) private var dismiss
     @State private var revisions: [PostRevision] = []
     @State private var loading = true
@@ -1115,7 +1114,7 @@ private struct RevisionsSheet: View {
                                     .lineLimit(1)
                                 if let date = revision.createdAt {
                                     Text(date.formatted(date: .abbreviated, time: .shortened))
-                                        .font(.system(size: 12 * metaUnit))
+                                        .typeScale(.meta)
                                         .foregroundStyle(Palette.secondary)
                                 }
                             }
@@ -1201,7 +1200,7 @@ private struct TagsField: View {
 
             if tags.isEmpty {
                 Text("첫 번째 태그가 대표 — 카드·글 위에 카테고리로 보입니다. (발행 시 1개 필수)")
-                    .font(.system(size: 12 * metaUnit))
+                    .typeScale(.footnote)
                     .foregroundStyle(Palette.secondary)
             } else {
                 FlowLayout(spacing: 8) {
@@ -1210,7 +1209,7 @@ private struct TagsField: View {
                     }
                 }
                 Text("탭하면 대표로 · ✕ 로 삭제")
-                    .font(.system(size: 11 * metaUnit))
+                    .typeScale(.footnote)
                     .foregroundStyle(Palette.faint)
             }
         }
@@ -1352,7 +1351,7 @@ private struct PublishCelebrationView: View {
                             .foregroundStyle(Palette.ink)
                         if let subtitle {
                             Text(subtitle)
-                                .font(.system(size: 13, weight: .medium))
+                                .typeScale(.meta)
                                 .foregroundStyle(Palette.secondary)
                         }
                     }

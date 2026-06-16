@@ -230,7 +230,7 @@ private struct EpisodeRow: View {
                 }
                 if let date = post.publishedAt {
                     Text(date.relativeShort)
-                        .font(.system(size: 12))
+                        .typeScale(.meta)
                         .foregroundStyle(Palette.faint)
                         .padding(.top, 1)
                 }

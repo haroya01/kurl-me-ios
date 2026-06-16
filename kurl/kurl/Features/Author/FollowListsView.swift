@@ -83,7 +83,7 @@ struct FollowListsView: View {
                     .lineLimit(1)
                 if let bio = user.bio, !bio.isEmpty {
                     Text(bio)
-                        .font(.system(size: 13))
+                        .typeScale(.lede)
                         .foregroundStyle(Palette.secondary)
                         .lineLimit(1)
                 }

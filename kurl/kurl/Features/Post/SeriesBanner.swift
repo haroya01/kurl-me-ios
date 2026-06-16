@@ -23,7 +23,7 @@ struct SeriesBanner: View {
             NavigationLink(value: Route.series(username: username, slug: nav.slug)) {
                 HStack(spacing: 8) {
                     Text(nav.title)
-                        .font(.system(size: 15, weight: .semibold))
+                        .typeScale(.titleSmall)
                         .foregroundStyle(Palette.heading)
                         .lineLimit(1)
                     Spacer(minLength: 8)
@@ -155,7 +155,7 @@ struct SeriesNextCard: View {
                 NavigationLink(value: Route.post(username: username, slug: next.slug)) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("다음 편")
-                            .font(.system(size: 12, weight: .semibold))
+                            .typeScale(.eyebrow)
                             .foregroundStyle(Palette.link)
                         HStack(alignment: .center, spacing: 12) {
                             VStack(alignment: .leading, spacing: 3) {
@@ -163,7 +163,7 @@ struct SeriesNextCard: View {
                                     .font(.system(size: 12).monospacedDigit())
                                     .foregroundStyle(Palette.faint)
                                 Text(next.title)
-                                    .font(.system(size: 17, weight: .semibold))
+                                    .typeScale(.titleSmall)
                                     .foregroundStyle(Palette.ink)
                                     .lineLimit(2)
                                     .multilineTextAlignment(.leading)

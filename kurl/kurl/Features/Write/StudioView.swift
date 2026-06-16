@@ -154,7 +154,7 @@ struct StudioView: View {
         .padding(.bottom, 12)
         if filtered.isEmpty {
             Text(filter == .draft ? "임시저장한 글이 없습니다." : "발행한 글이 없습니다.")
-                .font(.system(size: 14 * unit))
+                .typeScale(.lede)
                 .foregroundStyle(Palette.secondary)
                 .padding(.top, 24)
         }
@@ -188,7 +188,7 @@ struct StudioView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 if let excerpt = post.excerpt, !excerpt.isEmpty {
                     Text(excerpt)
-                        .font(.system(size: 14))
+                        .typeScale(.lede)
                         .foregroundStyle(Palette.secondary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
@@ -243,7 +243,7 @@ struct StudioView: View {
                     .font(.system(size: 19 * unit, weight: .bold))
                     .foregroundStyle(Palette.ink)
                 Text("마크다운으로 쓰면 웹과 똑같이 발행됩니다.")
-                    .font(.system(size: 14 * unit))
+                    .typeScale(.lede)
                     .foregroundStyle(Palette.secondary)
                     .multilineTextAlignment(.center)
             }
@@ -300,7 +300,7 @@ struct StudioView: View {
             Hairline()
             if seriesLoaded, seriesList.isEmpty {
                 Text("아직 시리즈가 없습니다. 발행 시트에서 글을 시리즈로 묶어 보세요.")
-                    .font(.system(size: 14 * unit))
+                    .typeScale(.lede)
                     .foregroundStyle(Palette.secondary)
                     .padding(.top, 24)
             }
@@ -360,7 +360,7 @@ struct StudioView: View {
                     .foregroundStyle(Palette.ink)
                     .padding(.top, 12)
                 Text("마크다운으로 쓰면 웹과 똑같이 발행됩니다.")
-                    .font(.system(size: 15 * unit))
+                    .typeScale(.lede)
                     .foregroundStyle(Palette.secondary)
                     .padding(.top, 6)
                 // Apple/Google 버튼 한 쌍은 공유 컴포넌트 — 계정 탭·웰컴·로그인 시트와 같은 출처.
