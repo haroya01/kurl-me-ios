@@ -147,7 +147,7 @@ struct MutedChip: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: 13, weight: .medium))
+            .typeScale(.meta)
             .foregroundStyle(Palette.secondary)
     }
 }

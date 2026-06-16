@@ -35,7 +35,7 @@ struct FeedRow: View {
 
                 if let excerpt = item.excerpt, !excerpt.isEmpty {
                     Text(excerpt)
-                        .font(.system(size: 14))
+                        .typeScale(.lede)
                         .foregroundStyle(Palette.secondary)
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
@@ -155,7 +155,7 @@ struct MetaRow: View {
                     .labelStyle(.titleAndIcon)
             }
         }
-        .font(.system(size: 13))
+        .typeScale(.meta)
         .foregroundStyle(Palette.secondary)
     }
 
