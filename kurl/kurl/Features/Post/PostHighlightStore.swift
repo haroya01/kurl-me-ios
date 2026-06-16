@@ -38,15 +38,30 @@ final class PostHighlightStore {
     func highlight(id: Int64) -> HighlightView? { highlights.first { $0.id == id } }
 
     /// 이 문단(blockOrder)에 칠할 하이라이트 — 저장된 오프셋으로 정밀하게, 메모/답글이 있으면 강조 밑줄.
+    /// 다중 블록(endBlockOrder > blockOrder)은 시작 블록 꼬리·중간 블록 전체·끝 블록 머리로 나눠 칠한다
+    /// (Int.max = 이 블록 끝까지, 뷰에서 본문 길이로 clamp).
     func marks(forBlock blockOrder: Int) -> [SelectableProseText.Mark] {
         highlights.compactMap { h in
-            guard h.blockOrder == blockOrder else { return nil }
-            return SelectableProseText.Mark(
-                id: h.id,
-                start: h.startOffset ?? -1,
-                end: h.endOffset ?? -1,
-                quote: h.quote,
-                hasThread: (h.note?.isEmpty == false) || h.replyCount > 0)
+            let startBO = h.blockOrder ?? -1
+            let endBO = h.endBlockOrder ?? startBO
+            guard startBO >= 0, blockOrder >= startBO, blockOrder <= endBO else { return nil }
+            let hasThread = (h.note?.isEmpty == false) || h.replyCount > 0
+            let start: Int
+            let end: Int
+            if endBO <= startBO {
+                start = h.startOffset ?? -1
+                end = h.endOffset ?? -1
+            } else if blockOrder == startBO {
+                start = h.startOffset ?? 0
+                end = Int.max
+            } else if blockOrder == endBO {
+                start = 0
+                end = h.endOffset ?? 0
+            } else {
+                start = 0
+                end = Int.max
+            }
+            return SelectableProseText.Mark(id: h.id, start: start, end: end, quote: h.quote, hasThread: hasThread)
         }
     }
 
@@ -59,16 +74,17 @@ final class PostHighlightStore {
         }
         let trimmed = note?.trimmingCharacters(in: .whitespacesAndNewlines)
         let memo = (trimmed?.isEmpty == false) ? trimmed : nil
+        // iOS 선택은 블록 단위(문단별 UITextView)라 생성은 늘 단일 블록 — endBlockOrder == blockOrder.
         let optimistic = HighlightView(
             id: -Int64(highlights.count + 1), author: nil, blockOrder: blockOrder,
-            startOffset: startOffset, endOffset: endOffset, quote: quote,
+            endBlockOrder: blockOrder, startOffset: startOffset, endOffset: endOffset, quote: quote,
             note: memo, replyCount: 0, createdAt: nil)
         highlights.append(optimistic)
         Task {
             _ = try? await HighlightsAPI.create(
                 postId: postId,
                 NewHighlight(
-                    blockOrder: blockOrder, startOffset: startOffset,
+                    blockOrder: blockOrder, endBlockOrder: blockOrder, startOffset: startOffset,
                     endOffset: endOffset, quote: quote, note: memo))
             await load()
         }

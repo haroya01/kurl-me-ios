@@ -55,7 +55,9 @@ struct HighlightView: Decodable, Identifiable, Hashable {
     let id: Int64
     /// 누가 그었는지 — 공개 면이라 attribution. 낙관적 추가분은 nil.
     let author: Author?
+    /// 시작 블록. 끝 블록(endBlockOrder)이 다르면 문단을 가로지르는 다중 블록 하이라이트.
     let blockOrder: Int?
+    let endBlockOrder: Int?
     let startOffset: Int?
     let endOffset: Int?
     let quote: String
@@ -69,6 +71,7 @@ struct HighlightView: Decodable, Identifiable, Hashable {
 /// 생성 페이로드 — 블록 인덱스 + 문자 오프셋 + 인용문 + 선택적 메모.
 struct NewHighlight: Encodable {
     let blockOrder: Int
+    var endBlockOrder: Int
     let startOffset: Int
     let endOffset: Int
     let quote: String
@@ -79,6 +82,7 @@ struct NewHighlight: Encodable {
 struct HighlightRef: Decodable {
     let id: Int64
     let blockOrder: Int?
+    let endBlockOrder: Int?
     let startOffset: Int?
     let endOffset: Int?
     let quote: String

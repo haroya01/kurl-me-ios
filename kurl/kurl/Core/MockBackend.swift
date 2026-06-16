@@ -65,6 +65,13 @@ enum MockBackend {
          "quote": "다시 돌아가라면 또 갈아탄다",
          "note": "이 결정에 가장 공감 — 첫 두 주 비용을 미리 알았어야 했다는 대목.",
          "createdAt": iso(Date().addingTimeInterval(-9_000))],
+        // 다중 블록 — 첫 문단 중간부터 둘째 문단 머리까지 가로지른다(④-2 렌더 검증).
+        ["id": 6002,
+         "author": ["id": 3, "username": "reader_kim", "bio": NSNull(), "avatarUrl": NSNull()],
+         "blockOrder": 1, "endBlockOrder": 2, "startOffset": 30, "endOffset": 18,
+         "quote": "다만 첫 두 주에 들인 비용을 미리 알았다면, 훨씬 더 작게 시작했을 것이다. 레이어드 구조로 3년을",
+         "note": NSNull(),
+         "createdAt": iso(Date().addingTimeInterval(-5_000))],
     ]
     private static var highlightReplies: [Int: [[String: Any]]] = [
         6001: [
@@ -890,6 +897,7 @@ enum MockBackend {
                 "id": nextHighlightId,
                 "author": ["id": 1, "username": myUsername, "bio": NSNull(), "avatarUrl": NSNull()],
                 "blockOrder": req["blockOrder"] as? Int ?? 0,
+                "endBlockOrder": req["endBlockOrder"] as? Int ?? (req["blockOrder"] as? Int ?? 0),
                 "startOffset": req["startOffset"] as? Int ?? 0,
                 "endOffset": req["endOffset"] as? Int ?? 0,
                 "quote": req["quote"] as? String ?? "",
