@@ -18,7 +18,6 @@ struct BlogCard: View {
     let item: FeedItem
     var featured = false
 
-    @ScaledMetric(relativeTo: .headline) private var titleUnit: CGFloat = 1
     @Environment(\.colorScheme) private var colorScheme
 
     /// 카드 모서리 — 유리 시대의 연속 곡률(§1.5). 하단 유리 띠와 반드시 같은 값.
@@ -142,9 +141,8 @@ struct BlogCard: View {
                 .fixedSize(horizontal: false, vertical: true)
             if let excerpt = item.excerpt, !excerpt.isEmpty {
                 Text(excerpt)
-                    .font(.system(size: 13.5 * titleUnit))
+                    .typeScale(.lede)
                     .foregroundStyle(Palette.secondary)
-                    .lineSpacing(4)
                     .lineLimit(4)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
@@ -212,7 +210,7 @@ private struct CardMeta: View {
                 }
             }
         }
-        .font(.system(size: 12))
+        .typeScale(.meta)
         .foregroundStyle(tone)
     }
 

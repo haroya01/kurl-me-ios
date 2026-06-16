@@ -95,6 +95,7 @@ extension ShapeStyle where Self == Color {
 /// 소유하므로 여기 두지 않는다 — 이 사다리는 "제목의 목소리"만 책임진다.
 /// 색은 호출측이 따로 입힌다(.foregroundStyle) — 토큰은 글자꼴·자간만.
 enum TypeRole {
+    // 제목 사다리
     case display      // 글 상세 제목 — 읽기면 마스트헤드
     case masthead     // 시리즈/스튜디오 섹션 제목, 에디터 제목
     case name         // 작가 프로필 이름
@@ -102,6 +103,11 @@ enum TypeRole {
     case title        // 피드·카드·목록 표준 제목
     case titleSmall   // 에피소드·소형 카드 제목
     case eyebrow      // 섹션 라벨(RailHeading)
+    // 본문 사다리 — 발췌·본문·메타도 토큰으로(raw size 산발 방지가 "에디토리얼"의 핵심 레버).
+    case lede         // 발췌·소개 한 단락(카드·행 제목 아래)
+    case body         // 컴포넌트 본문(댓글·노트·답글 본문)
+    case meta         // 작가·날짜·카운트 등 메타
+    case footnote     // 가장 작은 힌트·캡션
 
     var size: CGFloat {
         switch self {
@@ -112,6 +118,10 @@ enum TypeRole {
         case .title: return 18
         case .titleSmall: return 16
         case .eyebrow: return 13
+        case .body: return 15.5
+        case .lede: return 14.5
+        case .meta: return 12.5
+        case .footnote: return 11.5
         }
     }
 
@@ -119,10 +129,12 @@ enum TypeRole {
         switch self {
         case .display, .masthead, .name, .featured, .eyebrow: return .bold
         case .title, .titleSmall: return .semibold
+        case .meta: return .medium
+        case .lede, .body, .footnote: return .regular
         }
     }
 
-    /// 클수록 더 조인다 — 큰 제목의 헐거운 기본 자간이 "에디토리얼"을 깬다.
+    /// 클수록 더 조인다 — 큰 제목의 헐거운 기본 자간이 "에디토리얼"을 깬다. 본문은 거의 안 건드린다.
     var tracking: CGFloat {
         switch self {
         case .display: return -0.6
@@ -130,7 +142,17 @@ enum TypeRole {
         case .name, .featured: return -0.4
         case .title: return -0.3
         case .titleSmall: return -0.25
-        case .eyebrow: return 0
+        case .lede, .body: return -0.1
+        case .eyebrow, .meta, .footnote: return 0
+        }
+    }
+
+    /// 본문 사다리만 행간을 갖는다 — 읽기 호흡(제목은 0).
+    var lineSpacing: CGFloat {
+        switch self {
+        case .lede: return 3.5
+        case .body: return 4.5
+        default: return 0
         }
     }
 
@@ -141,7 +163,9 @@ enum TypeRole {
         case .masthead, .name: return .title
         case .featured: return .title2
         case .title, .titleSmall: return .headline
-        case .eyebrow: return .footnote
+        case .body: return .callout
+        case .lede: return .subheadline
+        case .eyebrow, .meta, .footnote: return .caption
         }
     }
 }
@@ -160,6 +184,7 @@ private struct TypeScaleModifier: ViewModifier {
         content
             .font(.system(size: size, weight: role.weight))
             .tracking(role.tracking)
+            .lineSpacing(role.lineSpacing)
     }
 }
 
