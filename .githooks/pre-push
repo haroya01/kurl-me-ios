@@ -1,0 +1,42 @@
+#!/bin/sh
+#
+# 푸시 전 스냅샷 회귀 가드(②층). 종이/토큰/타이포 픽셀이 바뀌면 푸시를 막는다.
+# 클라우드 CI 는 Xcode 27 베타가 GitHub 러너에 없어 못 돌리므로, 이 로컬 훅이 그 자리를 맡는다.
+#
+# 설치(1회, repo 루트): git config core.hooksPath .githooks
+# 우회: git push --no-verify
+# 레퍼런스 갱신(의도된 시각 변경): SNAPSHOT_RECORD=1 로 재실행 후 PNG 커밋.
+# 빠르게: 스냅샷 스위트만(kurlTests, ~0.1s/장). 느린 XCUITest 는 릴리즈 전 수동.
+
+DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode-27-beta.app/Contents/Developer}"
+export DEVELOPER_DIR
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+LOG=/tmp/kurl_prepush.log
+
+# Xcode 27 베타 toolchain 없으면(다른 머신/CI) 조용히 통과.
+[ -d "$DEVELOPER_DIR" ] || { echo "↷ pre-push: Xcode 27 베타 없음 — 가드 건너뜀"; exit 0; }
+
+# 레퍼런스를 구운 환경(iOS 26)에서 돌려야 픽셀이 맞는다. 부팅된 iOS-26 iPhone 시뮬을 동적으로
+# 찾는다(UDID 는 머신마다 다름). 없으면 건너뜀(훅에서 부팅은 느림/플레이키 — 시뮬 켜고 다시 푸시).
+SIM_ID="${KURL_SNAPSHOT_SIM:-}"
+[ -n "$SIM_ID" ] || SIM_ID=$(xcrun simctl list devices booted --json 2>/dev/null | python3 -c "
+import json, sys
+for rt, devs in json.load(sys.stdin).get('devices', {}).items():
+    if 'iOS-26' in rt:
+        for v in devs:
+            if 'iPhone' in v.get('name', '') and v.get('state') == 'Booted':
+                print(v['udid']); sys.exit()
+" 2>/dev/null)
+[ -n "$SIM_ID" ] || { echo "↷ pre-push: 부팅된 iOS-26 iPhone 시뮬 없음 — 가드 건너뜀(시뮬 켜고 푸시하면 검증)"; exit 0; }
+
+echo "▶ pre-push: 스냅샷 회귀 테스트(kurlTests, sim $SIM_ID)…"
+if xcodebuild test -project "$ROOT/kurl/kurl.xcodeproj" -scheme kurlTests \
+     -destination "platform=iOS Simulator,id=$SIM_ID" -quiet >"$LOG" 2>&1; then
+  echo "✓ 스냅샷 통과 — 푸시 진행"
+  exit 0
+else
+  echo "✗ 스냅샷 실패 — 시각 회귀 의심. 로그: $LOG"
+  echo "  의도된 변경이면: SNAPSHOT_RECORD=1 xcodebuild test -scheme kurlTests -destination 'platform=iOS Simulator,id=$SIM_ID' 후 PNG 커밋"
+  echo "  급하면 우회: git push --no-verify"
+  exit 1
+fi
