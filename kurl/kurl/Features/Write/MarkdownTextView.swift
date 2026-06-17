@@ -311,6 +311,16 @@ final class MarkdownEditorController {
         insertBlock("\n![](\(url))\n", caretOffsetFromStart: nil)
     }
 
+    /// GFM 표 골격 — 백엔드 마크다운→블록이 TABLE 로 변환, 리더(TableBlockView)가 렌더. 첫 셀에 커서.
+    func insertTable() {
+        insertBlock("\n| 제목 | 제목 |\n| --- | --- |\n| 내용 | 내용 |\n", caretOffsetFromStart: 3)
+    }
+
+    /// 단독 줄 동영상 URL — 백엔드가 EMBED 블록으로(YouTube/Vimeo), 리더(EmbedBlockView)가 플레이어로.
+    func insertVideoEmbed(url: String) {
+        insertBlock("\n\(url)\n", caretOffsetFromStart: nil)
+    }
+
     private func insertBlock(_ snippet: String, caretOffsetFromStart: Int?) {
         guard let textView, textView.markedTextRange == nil,
               let selected = textView.selectedTextRange

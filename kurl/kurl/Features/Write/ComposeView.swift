@@ -87,6 +87,8 @@ struct ComposeView: View {
     @State private var showLinkDialog = false
     @State private var linkURL = ""
     @State private var linkLabel = ""
+    @State private var showVideoDialog = false
+    @State private var videoURL = ""
 
     /// 방금 발행한 글의 slug — 셀레브레이션의 "글 보기" 한 틱이 이걸 들고 라이브로 보낸다.
     @State private var publishedSlug: String?
@@ -180,6 +182,17 @@ struct ComposeView: View {
             Text(linkLabel.isEmpty
                 ? "주소를 붙여넣거나 입력하세요."
                 : "‘\(linkLabel)’에 연결할 주소를 입력하세요.")
+        }
+        // 동영상 추가 — YouTube/Vimeo 주소를 한 줄로 넣으면 발행 시 플레이어로(EMBED).
+        .alert("동영상 추가", isPresented: $showVideoDialog) {
+            TextField("https://youtu.be/…", text: $videoURL)
+                .textInputAutocapitalization(.never)
+                .keyboardType(.URL)
+                .autocorrectionDisabled()
+            Button("추가") { confirmVideo() }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("YouTube·Vimeo 주소를 붙여넣거나 입력하세요.")
         }
     }
 
@@ -957,12 +970,14 @@ struct ComposeView: View {
         case .strikethrough: editorController.wrapSelection("~~")
         case .inlineCode: editorController.wrapSelection("`")
         case .codeBlock: editorController.toggleCodeBlock()
+        case .table: editorController.insertTable()
         case .link: presentLinkDialog()
+        case .video: presentVideoDialog()
         case .image: showBodyImagePicker = true
         }
         // 프로그램 삽입은 delegate 를 거치지 않는다 — 바인딩(자동저장 시그니처) 수동 동기화.
-        // .image·.link 는 비동기(피커·다이얼로그)라 각자 끝낼 때 동기화한다.
-        if action != .image, action != .link {
+        // .image·.link·.video 는 비동기(피커·다이얼로그)라 각자 끝낼 때 동기화한다.
+        if action != .image, action != .link, action != .video {
             markdown = editorController.currentText
         }
     }
@@ -983,6 +998,24 @@ struct ComposeView: View {
         editorController.commitLink(label: linkLabel, url: Self.normalizedURL(linkURL))
         markdown = editorController.currentText
         editorController.focus() // 키보드·스니펫 바를 다시 불러 흐름이 끊기지 않게.
+    }
+
+    /// 동영상 버튼 — 클립보드에 URL 이 있으면 미리 채워 다이얼로그를 연다.
+    private func presentVideoDialog() {
+        if let clip = UIPasteboard.general.string, Self.looksLikeURL(clip) {
+            videoURL = clip.trimmingCharacters(in: .whitespacesAndNewlines)
+        } else {
+            videoURL = ""
+        }
+        showVideoDialog = true
+    }
+
+    private func confirmVideo() {
+        let url = Self.normalizedURL(videoURL)
+        guard !url.isEmpty else { return }
+        editorController.insertVideoEmbed(url: url)
+        markdown = editorController.currentText
+        editorController.focus()
     }
 
     private static func looksLikeURL(_ s: String) -> Bool {
@@ -1045,7 +1078,8 @@ private struct MarkdownSnippetBar: View {
     // 순서 = 자주 쓰는 것 먼저(좁은 화면 가로 스크롤에서 앞쪽이 보임) — 이미지가 맨 끝이라 화면 밖으로
     // 잘려 안 보이던 발견성 문제를 고친다. 표준 md 만(형광펜·콜아웃 같은 비표준은 여전히 제외).
     enum Action: CaseIterable {
-        case heading, bold, italic, list, link, image, quote, orderedList, inlineCode, codeBlock, strikethrough
+        case heading, bold, italic, list, link, image, video, table, quote, orderedList, inlineCode,
+            codeBlock, strikethrough
 
         var icon: String {
             switch self {
@@ -1055,6 +1089,8 @@ private struct MarkdownSnippetBar: View {
             case .list: "list.bullet"
             case .link: "link"
             case .image: "photo"
+            case .video: "play.rectangle"
+            case .table: "tablecells"
             case .quote: "text.quote"
             case .orderedList: "list.number"
             case .inlineCode: "chevron.left.forwardslash.chevron.right"
@@ -1071,6 +1107,8 @@ private struct MarkdownSnippetBar: View {
             case .list: "글머리 목록"
             case .link: "링크"
             case .image: "이미지"
+            case .video: "동영상"
+            case .table: "표"
             case .quote: "인용"
             case .orderedList: "번호 목록"
             case .inlineCode: "인라인 코드"
