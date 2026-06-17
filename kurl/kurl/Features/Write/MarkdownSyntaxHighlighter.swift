@@ -252,7 +252,9 @@ enum MarkdownSyntaxHighlighter {
         static let link = make("\\[([^\\]\\n]+)\\]\\([^)\\n]+\\)")
         // 선택적 캡션(표준 image title `"…"`)까지 한 매치로 — 캡션 있는 이미지도 본문에서
         // 마크다운을 숨기고 썸네일만 보이게(없으면 마크다운 원문이 그대로 노출되던 버그).
-        static let image = make("!\\[[^\\]\\n]*\\]\\(([^)\\s]+)(?:\\s+\"[^\"]*\")?\\)")
+        // 캡션 안에 줄바꿈을 금지해(미닫힌 따옴표가 다음 줄들을 통째로 삼켜 본문이 사라지지 않게)
+        // 전체 문서를 한 번에 훑어도 한 줄을 넘지 않는다.
+        static let image = make("!\\[[^\\]\\n]*\\]\\(([^)\\s]+)(?:[ \\t]+\"[^\"\\n]*\")?\\)")
 
         static func make(_ pattern: String) -> NSRegularExpression {
             // 패턴은 컴파일타임 상수 — 실패할 수 없다.

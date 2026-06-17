@@ -383,17 +383,16 @@ final class MarkdownEditorController {
     // 캐럿이 표 안에 들어오면 컴포즈가 컨텍스트 바를 띄우고, 그 버튼이 이 메서드들을 부른다.
     // 표 전체를 한 번에 다시 그려(셀 정렬 정규화) 손으로 `|` 를 칠 일이 없게 한다.
 
-    /// 캐럿이 GFM 표 안에 있는가 — 컨텍스트 표 편집 바의 노출 조건.
-    func isCaretInTable() -> Bool {
-        guard let textView, textView.markedTextRange == nil else { return false }
-        return tableBlock(in: textView) != nil
-    }
-
     /// 캐럿 위치의 성격(표/이미지/그 외) — 컴포즈가 띄울 컨텍스트 바를 고른다.
     func caretContext() -> EditorCaretContext {
         guard let textView, textView.markedTextRange == nil else { return .none }
-        if tableBlock(in: textView) != nil { return .table }
-        if imageOnCaretLine(in: textView) != nil { return .image }
+        let ns = textView.text as NSString
+        guard ns.length > 0 else { return .none }
+        let caret = NSRange(location: min(textView.selectedRange.location, ns.length), length: 0)
+        let line = ns.substring(with: ns.lineRange(for: caret))
+        // 매 커서 이동마다 전체 문서를 훑지 않게 — 캐럿 줄에 '|'·'!' 가 있을 때만 정밀 판별한다.
+        if line.contains("|"), tableBlock(in: textView) != nil { return .table }
+        if line.contains("!"), imageOnCaretLine(in: textView) != nil { return .image }
         return .none
     }
 
@@ -401,20 +400,64 @@ final class MarkdownEditorController {
         var charRange: NSRange  // 표 전체를 덮는 치환 범위(마지막 줄바꿈 제외)
         var startLocation: Int  // = charRange.location
         var header: [String]
+        var separator: [String]  // 정렬 토큰(---·:--·--:·:-:) — op 뒤에도 보존한다.
         var body: [[String]]
         var caretLine: Int  // 블록 내 줄 인덱스(0=헤더, 1=구분선, 2+=본문)
         var caretColumn: Int  // 캐럿이 놓인 셀 인덱스
-        var columnCount: Int { max(1, header.count) }
+        // 가장 넓은 행 기준 — 헤더가 본문보다 좁아도 본문 칸을 잃지 않게.
+        var columnCount: Int {
+            max(1, max(header.count, separator.count), body.map(\.count).max() ?? 0)
+        }
+    }
+
+    /// '\\|' 로 이스케이프된 파이프는 가르지 않고, 칸 안에서는 리터럴 '|' 로 되돌린다.
+    private func splitUnescapedPipes(_ line: String) -> [String] {
+        var cells: [String] = []
+        var cur = ""
+        var escaped = false
+        for ch in line {
+            if escaped {
+                if ch == "|" { cur.append("|") } else { cur.append("\\"); cur.append(ch) }
+                escaped = false
+            } else if ch == "\\" {
+                escaped = true
+            } else if ch == "|" {
+                cells.append(cur)
+                cur = ""
+            } else {
+                cur.append(ch)
+            }
+        }
+        if escaped { cur.append("\\") }
+        cells.append(cur)
+        return cells
+    }
+
+    /// 줄 안에서 이스케이프되지 않은 '|' 개수 — 선두 파이프 보정 판단용.
+    private func countUnescapedPipes(_ s: String) -> Int {
+        var n = 0
+        var escaped = false
+        for ch in s {
+            if escaped { escaped = false } else if ch == "\\" { escaped = true } else if ch == "|" {
+                n += 1
+            }
+        }
+        return n
     }
 
     /// 표 한 줄을 셀 배열로 — 선두·말미 파이프가 만드는 빈 칸은 떨군다.
     private func tableCells(_ line: String) -> [String] {
-        var parts = line.components(separatedBy: "|").map {
-            $0.trimmingCharacters(in: .whitespaces)
-        }
+        var parts = splitUnescapedPipes(line).map { $0.trimmingCharacters(in: .whitespaces) }
         if parts.first == "" { parts.removeFirst() }
         if parts.last == "" { parts.removeLast() }
         return parts
+    }
+
+    /// 부족한 칸은 채우고 넘치는 칸은 자른다 — op 전 모든 행을 같은 폭으로 정규화.
+    private func padded(_ cells: [String], to n: Int, fill: String = "") -> [String] {
+        var c = cells
+        while c.count < n { c.append(fill) }
+        return Array(c.prefix(n))
     }
 
     /// `| --- | :--: |` 같은 정렬 구분선인가.
@@ -425,6 +468,7 @@ final class MarkdownEditorController {
     }
 
     /// 캐럿이 속한 표 블록을 찾아 헤더·본문·캐럿 위치를 파싱한다. 표가 아니면 nil.
+    /// 코드 펜스(```) 안의 파이프 줄은 표로 보지 않는다(하이라이터 styleLines 와 같은 규칙).
     private func tableBlock(in textView: UITextView) -> TableBlock? {
         let ns = textView.text as NSString
         guard ns.length > 0 else { return nil }
@@ -437,46 +481,62 @@ final class MarkdownEditorController {
             ranges.append(range)
         }
         guard !subs.isEmpty else { return nil }
-        let caretIdx = ranges.firstIndex { caret <= $0.location + $0.length } ?? (ranges.count - 1)
-        func isTableLine(_ s: String) -> Bool {
-            s.contains("|") && !s.trimmingCharacters(in: .whitespaces).isEmpty
+        // 코드 펜스 안 줄(펜스 마커 포함)은 표 후보에서 제외한다.
+        var fenced = [Bool](repeating: false, count: subs.count)
+        var inFence = false
+        for i in subs.indices {
+            if subs[i].trimmingCharacters(in: .whitespaces).hasPrefix("```") {
+                fenced[i] = true
+                inFence.toggle()
+            } else {
+                fenced[i] = inFence
+            }
         }
-        guard isTableLine(subs[caretIdx]) else { return nil }
+        let caretIdx = ranges.firstIndex { caret <= $0.location + $0.length } ?? (ranges.count - 1)
+        func isTableLine(_ i: Int) -> Bool {
+            !fenced[i] && subs[i].contains("|")
+                && !subs[i].trimmingCharacters(in: .whitespaces).isEmpty
+        }
+        guard isTableLine(caretIdx) else { return nil }
         var start = caretIdx
         var end = caretIdx
-        while start > 0, isTableLine(subs[start - 1]) { start -= 1 }
-        while end < subs.count - 1, isTableLine(subs[end + 1]) { end += 1 }
+        while start > 0, isTableLine(start - 1) { start -= 1 }
+        while end < subs.count - 1, isTableLine(end + 1) { end += 1 }
         // GFM 표 = 최소 2줄 + 둘째 줄이 정렬 구분선.
         guard end - start >= 1, isSeparatorRow(subs[start + 1]) else { return nil }
         let loc = ranges[start].location
         let endLoc = ranges[end].location + ranges[end].length
         let header = tableCells(subs[start])
+        let separator = tableCells(subs[start + 1])
         let body = (start + 2 <= end) ? (start + 2...end).map { tableCells(subs[$0]) } : []
-        // 캐럿 셀 인덱스 = 줄 안 캐럿 앞 '|' 개수 - 1(선두 파이프 보정).
+        // 캐럿 셀 인덱스 — 줄에 선두 파이프가 있으면 한 칸 보정, 없으면(파이프리스 표) 보정하지 않는다.
         let lineStart = ranges[caretIdx].location
         let inLine = max(0, caret - lineStart)
         let line = subs[caretIdx] as NSString
         let prefix = line.substring(to: min(inLine, line.length))
-        let pipes = prefix.reduce(0) { $1 == "|" ? $0 + 1 : $0 }
+        let pipes = countUnescapedPipes(prefix)
+        let hasLeadingPipe = subs[caretIdx].trimmingCharacters(in: .whitespaces).hasPrefix("|")
         return TableBlock(
             charRange: NSRange(location: loc, length: endLoc - loc),
             startLocation: loc,
             header: header,
+            separator: separator,
             body: body,
             caretLine: caretIdx - start,
-            caretColumn: max(0, pipes - 1))
+            caretColumn: hasLeadingPipe ? max(0, pipes - 1) : pipes)
     }
 
-    /// 헤더·본문을 정규화된 GFM 표 줄 배열로 — 모든 셀을 ` | ` 로 가지런히, 빈 셀은 공칸.
-    private func renderTable(header: [String], body: [[String]]) -> [String] {
-        let n = max(1, header.count)
+    /// 헤더·본문을 정규화된 GFM 표 줄 배열로 — 칸을 ` | ` 로 가지런히, 정렬 토큰은 보존,
+    /// 셀 안 리터럴 '|' 는 '\\|' 로 다시 이스케이프한다. 폭은 가장 넓은 행 기준.
+    private func renderTable(header: [String], separator: [String], body: [[String]]) -> [String] {
+        let n = max(1, max(header.count, separator.count), body.map(\.count).max() ?? 0)
         func row(_ cells: [String]) -> String {
-            var c = cells
-            while c.count < n { c.append("") }
-            return "| " + c.prefix(n).joined(separator: " | ") + " |"
+            let c = padded(cells, to: n).map { $0.replacingOccurrences(of: "|", with: "\\|") }
+            return "| " + c.joined(separator: " | ") + " |"
         }
+        let sep = padded(separator, to: n, fill: "---").map { $0.isEmpty ? "---" : $0 }
         var lines = [row(header)]
-        lines.append("| " + Array(repeating: "---", count: n).joined(separator: " | ") + " |")
+        lines.append("| " + sep.joined(separator: " | ") + " |")
         lines += body.map(row)
         return lines
     }
@@ -531,20 +591,23 @@ final class MarkdownEditorController {
         let idx = min(block.caretLine < 2 ? 0 : block.caretLine - 1, body.count)
         body.insert(Array(repeating: "", count: block.columnCount), at: idx)
         applyTable(
-            block, lines: renderTable(header: block.header, body: body),
+            block,
+            lines: renderTable(header: block.header, separator: block.separator, body: body),
             caretLine: 2 + idx, caretColumn: 0)
     }
 
-    /// 맨 끝에 빈 열을 더하고, 그 새 열로 커서를 옮긴다.
+    /// 맨 끝에 빈 열을 더하고, 그 새 열로 커서를 옮긴다. 모든 행을 같은 폭으로 맞춘 뒤 더한다.
     func addTableColumn() {
         guard let textView, textView.markedTextRange == nil,
             let block = tableBlock(in: textView)
         else { return }
-        let header = block.header + [""]
-        let body = block.body.map { $0 + [""] }
+        let n = block.columnCount
+        let header = padded(block.header, to: n) + [""]
+        let separator = padded(block.separator, to: n, fill: "---") + ["---"]
+        let body = block.body.map { padded($0, to: n) + [""] }
         applyTable(
-            block, lines: renderTable(header: header, body: body),
-            caretLine: block.caretLine == 1 ? 0 : block.caretLine, caretColumn: header.count - 1)
+            block, lines: renderTable(header: header, separator: separator, body: body),
+            caretLine: block.caretLine == 1 ? 0 : block.caretLine, caretColumn: n)
     }
 
     /// 캐럿이 놓인 본문 행을 지운다(헤더·구분선은 보호 — 그 자리에선 무동작).
@@ -556,9 +619,17 @@ final class MarkdownEditorController {
         let removeAt = block.caretLine - 2
         guard removeAt < body.count else { return }
         body.remove(at: removeAt)
-        let caretLine = body.isEmpty ? 1 : 2 + min(removeAt, body.count - 1)
+        let caretLine: Int
+        if body.isEmpty {
+            // 본문이 비면 빈 행 하나를 남겨 캐럿이 구분선(---)에 갇히지 않게.
+            body.append(Array(repeating: "", count: block.columnCount))
+            caretLine = 2
+        } else {
+            caretLine = 2 + min(removeAt, body.count - 1)
+        }
         applyTable(
-            block, lines: renderTable(header: block.header, body: body),
+            block,
+            lines: renderTable(header: block.header, separator: block.separator, body: body),
             caretLine: caretLine, caretColumn: 0)
     }
 
@@ -567,16 +638,19 @@ final class MarkdownEditorController {
         guard let textView, textView.markedTextRange == nil,
             let block = tableBlock(in: textView), block.columnCount >= 2
         else { return }
-        let col = min(block.caretColumn, block.columnCount - 1)
-        var header = block.header
+        let n = block.columnCount
+        let col = min(block.caretColumn, n - 1)
+        var header = padded(block.header, to: n)
         header.remove(at: col)
+        var separator = padded(block.separator, to: n, fill: "---")
+        separator.remove(at: col)
         let body = block.body.map { row -> [String] in
-            var r = row
-            if col < r.count { r.remove(at: col) }
+            var r = padded(row, to: n)
+            r.remove(at: col)
             return r
         }
         applyTable(
-            block, lines: renderTable(header: header, body: body),
+            block, lines: renderTable(header: header, separator: separator, body: body),
             caretLine: block.caretLine == 1 ? 0 : block.caretLine,
             caretColumn: min(col, max(0, header.count - 1)))
     }
@@ -681,8 +755,11 @@ final class MarkdownEditorController {
             let range = textView.textRange(from: s, to: e)
         else { return }
         textView.replace(range, withText: md)
-        // 마크다운은 숨겨져 보이지 않으므로 커서는 줄 머리에 둔다(편집 바가 계속 이 이미지를 가리키게).
-        textView.selectedRange = NSRange(location: content.location, length: 0)
+        // 줄 끝(숨겨진 마크다운 바깥)에 커서를 둔다 — 줄 머리에 두면 이어 친 글자가 `!` 앞에 박혀
+        // 이미지가 깨졌다. 캐럿은 여전히 이 이미지 줄이라 편집 바도 계속 이 이미지를 가리킨다.
+        let caret = content.location + (md as NSString).length
+        let limit = (textView.text as NSString).length
+        textView.selectedRange = NSRange(location: min(caret, limit), length: 0)
         MarkdownSyntaxHighlighter.apply(to: textView)
     }
 

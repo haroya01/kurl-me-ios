@@ -1295,7 +1295,7 @@ private struct MarkdownSnippetBar: View {
 private struct TableActionBar: View {
     let perform: (Action) -> Void
 
-    /// 아이콘만 키운다 — 44pt 터치 타깃은 작은 글자 설정에서도 줄이지 않는다.
+    /// 아이콘·라벨을 함께 키운다(Dynamic Type) — 44pt 터치 타깃 프레임만 그대로 둔다.
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
 
     // 추가(행→열) 먼저, 삭제(행→열) 뒤. 라벨의 행/열로 구분하므로 +/− 아이콘만으로 충분하다.
@@ -1320,6 +1320,15 @@ private struct TableActionBar: View {
         }
 
         var isDestructive: Bool { self == .deleteRow || self == .deleteColumn }
+
+        // 삭제는 즉시·비가역이라 VoiceOver 가 결과를 알리도록 힌트를 단다(색은 §10 대로 조용히).
+        var hint: LocalizedStringKey {
+            switch self {
+            case .deleteRow: "이 행을 지웁니다"
+            case .deleteColumn: "이 열을 지웁니다"
+            default: ""
+            }
+        }
     }
 
     var body: some View {
@@ -1343,6 +1352,7 @@ private struct TableActionBar: View {
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel(Text(action.label))
+                        .accessibilityHint(Text(action.hint))
                     }
                 }
                 .padding(.horizontal, 4)
@@ -1380,7 +1390,11 @@ private struct ImageActionBar: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 0) {
                     ForEach(widths, id: \.action) { item in
-                        let active = item.value == selectedWidth
+                        // full 은 iOS 리더에서 wide 와 같게 그려지므로 와이드 칸으로 활성 표시한다
+                        // (웹·리비전에서 들어온 «full» 이미지도 선택 상태가 비지 않게).
+                        let active =
+                            item.value == selectedWidth
+                            || (item.action == .wide && selectedWidth == "full")
                         Button {
                             perform(item.action)
                         } label: {
@@ -1403,7 +1417,9 @@ private struct ImageActionBar: View {
                     Divider().frame(height: 22).padding(.horizontal, 4)
 
                     barButton("캡션", icon: "text.bubble", tint: Palette.ink) { perform(.caption) }
-                    barButton("삭제", icon: "trash", tint: Palette.secondary) { perform(.delete) }
+                    barButton(
+                        "삭제", icon: "trash", tint: Palette.secondary, hint: "이 이미지를 지웁니다"
+                    ) { perform(.delete) }
                 }
                 .padding(.horizontal, 4)
             }
@@ -1414,7 +1430,8 @@ private struct ImageActionBar: View {
     }
 
     private func barButton(
-        _ label: LocalizedStringKey, icon: String, tint: Color, action: @escaping () -> Void
+        _ label: LocalizedStringKey, icon: String, tint: Color, hint: LocalizedStringKey = "",
+        action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
             HStack(spacing: 5) {
@@ -1430,6 +1447,7 @@ private struct ImageActionBar: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text(label))
+        .accessibilityHint(Text(hint))
     }
 }
 
