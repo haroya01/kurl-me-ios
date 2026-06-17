@@ -64,23 +64,42 @@ struct StateView<Value, Content: View>: View {
     @ViewBuilder var content: (Value) -> Content
 
     var body: some View {
-        switch state {
-        case .idle, .loading:
-            KurlLoadingMark()
-                .frame(maxWidth: .infinity, minHeight: 280)
-        case .loaded(let value):
-            content(value)
-        case .failed(let message):
-            ContentUnavailableView {
-                Label(String(localized: "불러오지 못했습니다"), systemImage: "wifi.exclamationmark")
-            } description: {
-                Text(message)
-            } actions: {
-                if let retry {
-                    Button(String(localized: "다시 시도"), action: retry)
-                        .foregroundStyle(Palette.accent)
+        // 로딩→완료(→실패)가 뚝 바뀌지 않고 부드럽게 교차 페이드된다 — 첫 화면(스플래시)의 결을
+        // StateView 를 쓰는 모든 면에 한 번에 입힌다. opacity 크로스페이드는 reduce-motion 에서도
+        // 안전한 표현(슬라이드/스케일과 달리).
+        ZStack {
+            switch state {
+            case .idle, .loading:
+                KurlLoadingMark()
+                    .frame(maxWidth: .infinity, minHeight: 280)
+                    .transition(.opacity)
+            case .loaded(let value):
+                content(value)
+                    .transition(.opacity)
+            case .failed(let message):
+                ContentUnavailableView {
+                    Label(String(localized: "불러오지 못했습니다"), systemImage: "wifi.exclamationmark")
+                } description: {
+                    Text(message)
+                } actions: {
+                    if let retry {
+                        Button(String(localized: "다시 시도"), action: retry)
+                            .foregroundStyle(Palette.accent)
+                    }
                 }
+                .transition(.opacity)
             }
+        }
+        .animation(.easeOut(duration: 0.3), value: phase)
+    }
+
+    /// 페이즈 키 — 같은 값 안의 변화(예: loaded 값 갱신)엔 재페이드하지 않고, 로딩↔완료↔실패
+    /// 전환에서만 크로스페이드한다.
+    private var phase: Int {
+        switch state {
+        case .idle, .loading: return 0
+        case .loaded: return 1
+        case .failed: return 2
         }
     }
 }

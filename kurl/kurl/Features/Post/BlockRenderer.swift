@@ -408,10 +408,11 @@ private struct ImageBlockView: View {
     var body: some View {
         VStack(spacing: 12) {
             if let url = URL(string: payload.url) {
-                AsyncImage(url: url) { phase in
+                // 로드되면 즉시 pop 하지 않고 마크 플레이스홀더에서 부드럽게 페이드인 — 본문 읽기 흐름을 끊지 않는다.
+                AsyncImage(url: url, transaction: Transaction(animation: .easeOut(duration: 0.35))) { phase in
                     switch phase {
                     case .success(let image):
-                        image.resizable().scaledToFit()
+                        image.resizable().scaledToFit().transition(.opacity)
                     case .failure:
                         // 로드 실패 — 무한 스피너 대신 또렷한 안내(다시 시도는 글 새로고침으로).
                         RoundedRectangle(cornerRadius: 16)
@@ -431,6 +432,7 @@ private struct ImageBlockView: View {
                             .fill(Palette.hairline)
                             .frame(height: 200)
                             .overlay(KurlLoadingMark())
+                            .transition(.opacity)
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 16))
