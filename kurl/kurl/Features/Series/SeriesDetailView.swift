@@ -27,7 +27,7 @@ struct SeriesDetailView: View {
                         Text(message)
                     } actions: {
                         Button("다시 시도") { Task { await load() } }
-                            .foregroundStyle(Palette.accent)
+                            .foregroundStyle(Palette.link)
                     }
                     .padding(.top, 80)
                 case .loaded(let detail):
@@ -41,10 +41,16 @@ struct SeriesDetailView: View {
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
         .background(Palette.pageBg)
-        .navigationTitle("시리즈")
+        // 로드되면 시리즈 제목으로 — 스크롤 시 크롬이 맥락을 다시 세운다. 로딩/실패는 일반 라벨.
+        .navigationTitle(navTitle)
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
+    }
+
+    private var navTitle: String {
+        if case .loaded(let detail) = phase { return detail.series.title }
+        return "시리즈"
     }
 
     @ViewBuilder
@@ -146,6 +152,8 @@ struct SeriesDetailView: View {
                                 : (readCount > 0 && firstUnread == index ? .next : .unread))
                     }
                     .buttonStyle(RowButtonStyle())
+                    // 카탈로그 행도 피드/검색과 같은 입장(QuietAppear)을 의도적으로 공유 — 목차가
+                    // 한 화씩 조용히 차오르는 게 "순서대로 읽는 책장" 결과 맞닿는다(§10.7).
                     .modifier(QuietAppear(index: index))
                     if index < posts.count - 1 { Hairline() }
                 }
@@ -155,32 +163,43 @@ struct SeriesDetailView: View {
     }
 
     /// 본문 시작 문 — 안 읽었으면 첫 화, 읽다 말았으면 첫 미독 회차, 다 읽었으면 처음부터.
+    /// 의도(kind)를 명시해 둬 라벨·아이콘이 아이콘 문자열 비교로 갈리지 않게 한다.
     private struct SeriesAction {
+        enum Kind { case start, resume(Int), restart }
         let post: PostListItem
-        let icon: String
-        let episode: Int?  // 이어 읽기일 때만 회차 번호
+        let kind: Kind
+
+        var icon: String {
+            switch kind {
+            case .start: return "book"
+            case .resume: return "book.fill"
+            case .restart: return "arrow.counterclockwise"
+            }
+        }
     }
 
     private func seriesAction(posts: [PostListItem], readCount: Int, firstUnread: Int?) -> SeriesAction? {
         guard let first = posts.first else { return nil }
         if readCount == 0 {
-            return SeriesAction(post: first, icon: "book", episode: nil)
+            return SeriesAction(post: first, kind: .start)
         }
         if let i = firstUnread {
-            return SeriesAction(post: posts[i], icon: "book.fill", episode: i + 1)
+            return SeriesAction(post: posts[i], kind: .resume(i + 1))
         }
-        return SeriesAction(post: first, icon: "arrow.counterclockwise", episode: nil)
+        return SeriesAction(post: first, kind: .restart)
     }
 
     @ViewBuilder
     private func actionLabel(_ action: SeriesAction) -> some View {
-        if let episode = action.episode {
-            Text("이어 읽기 — \(episode)편")
-        } else if action.icon == "arrow.counterclockwise" {
-            Text("처음부터 다시")
-        } else {
-            Text("첫 화부터")
+        Group {
+            switch action.kind {
+            case .start: Text("첫 화부터")
+            case .resume(let episode): Text("이어 읽기 — \(episode)편")
+            case .restart: Text("처음부터 다시")
+            }
         }
+        .lineLimit(1)
+        .minimumScaleFactor(0.85)
     }
 
     private func load() async {

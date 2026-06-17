@@ -12,6 +12,7 @@ struct MyReadingHistoryView: View {
     @State private var page = 0
     @State private var hasNext = false
     @State private var loading = false
+    @State private var loadingMore = false
     @State private var loadedOnce = false
     @State private var confirmClear = false
 
@@ -40,7 +41,7 @@ struct MyReadingHistoryView: View {
                             }
                         if index < items.count - 1 { Hairline() }
                     }
-                    if hasNext {
+                    if loadingMore {
                         ProgressView().tint(Palette.accent)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 18)
@@ -105,6 +106,7 @@ struct MyReadingHistoryView: View {
 
     private func reload() async {
         loading = true
+        loadingMore = false
         page = 0
         if let res = try? await ReadingHistoryAPI.list(page: 0) {
             items = res.items
@@ -118,14 +120,15 @@ struct MyReadingHistoryView: View {
     }
 
     private func loadMore() async {
-        guard hasNext, !loading else { return }
-        loading = true
+        guard hasNext, !loading, !loadingMore else { return }
+        loadingMore = true
         if let res = try? await ReadingHistoryAPI.list(page: page + 1) {
             items += res.items
             page = res.page
             hasNext = res.hasNext
         }
-        loading = false
+        // 실패하면 hasNext 는 그대로 둬서 마지막 행이 다시 보일 때 재시도된다.
+        loadingMore = false
     }
 
     /// 낙관적 — 즉시 빼되 실패하면 스냅샷으로 되돌린다(사적 기록이라 조용히 사라지면 오해한다).

@@ -139,6 +139,8 @@ struct FollowListsView: View {
 /// tappable, 실패 땐 숫자 자리에 "—" 플레이스홀더 + 재시도. FollowButton 과 별개의 공개 status GET.
 struct FollowCountsLink: View {
     let username: String
+    /// 호출측이 작가 로드 때 이미 받아 둔 수 — 같은 status GET 을 또 치지 않도록 시드.
+    var initialStatus: InteractionsAPI.FollowStatus?
     @State private var followers: Int64?
     @State private var followingCount: Int64?
     @State private var failed = false
@@ -170,7 +172,15 @@ struct FollowCountsLink: View {
         // 로딩 첫 프레임만 숨겨 0→실제값 깜빡임을 막고(실패 땐 플레이스홀더로 보여 줌), 링크 탭은 죽이지 않는다.
         .opacity(followers == nil && !failed ? 0 : 1)
         .animation(.snappy(duration: 0.2), value: followers)
-        .task { await load() }
+        .task {
+            // 시드를 받았으면 그 값으로 그리고 GET 을 건너뛴다(작가 페이지가 이미 한 번 받아 둠).
+            if let seed = initialStatus {
+                followers = seed.followerCount
+                followingCount = seed.followingCount
+            } else {
+                await load()
+            }
+        }
     }
 
     private func load() async {
@@ -204,6 +214,8 @@ private struct RowFollowToggle: View {
     let onNeedLogin: () -> Void
     @State private var following: Bool
     @State private var busy = false
+    /// 햅틱 트리거 — 되돌림이 아닌 사용자 토글에만 증가(헤더 FollowButton 과 같은 어휘).
+    @State private var userToggleCount = 0
 
     init(username: String, initialFollowing: Bool, onNeedLogin: @escaping () -> Void) {
         self.username = username
@@ -229,6 +241,7 @@ private struct RowFollowToggle: View {
             .buttonStyle(.plain)
             .glassCapsule(prominent: !following)
             .disabled(busy)
+            .sensoryFeedback(.impact(weight: .light), trigger: userToggleCount)
         }
     }
 
@@ -239,6 +252,7 @@ private struct RowFollowToggle: View {
         }
         guard !busy else { return }
         busy = true
+        userToggleCount += 1
         let target = !following
         following = target
         Task {

@@ -153,6 +153,8 @@ struct RootView: View {
         .modifier(ToastHost())
         // 관리자만 — 기기를 흔들면 현재 API·앱·유저·기기 진단 화면이 뜬다.
         .sheet(isPresented: $showDebug) { AdminDebugView() }
+        // 관리자 흔들기가 잡혔다는 확인 — 비관리자 흔들기는 showDebug 가 안 서 조용히 무시된다.
+        .sensoryFeedback(trigger: showDebug) { _, now in now ? .success : nil }
         .onShake {
             guard AuthStore.shared.me?.isAdmin == true else { return }
             showDebug = true

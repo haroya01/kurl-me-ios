@@ -39,8 +39,6 @@ struct ComposeView: View {
     @State private var postId: Int64?
     @State private var status = "DRAFT"
     @State private var busy = false
-    /// 발행·예약 성공의 보상 박자 — 트리거 전용 카운터.
-    @State private var publishCelebration = 0
     /// 발행 성공 모먼트(전체화면 블룸) 표시.
     @State private var celebrating = false
     /// 예약 발행 모먼트 = 같은 마크 환호지만 "예약되었습니다" + 발행 예정 시각, "글 보기"는 없음(아직 비공개).
@@ -124,7 +122,6 @@ struct ComposeView: View {
         .navigationBarTitleDisplayMode(.inline)
         // 쓰는 동안 탭 5개가 떠 있을 이유가 없다 — 에디터는 풀스크린 몰입.
         .toolbar(.hidden, for: .tabBar)
-        .sensoryFeedback(.success, trigger: publishCelebration)
         .toolbar { toolbarContent }
         .task {
             await loadExisting()
@@ -315,7 +312,7 @@ struct ComposeView: View {
                         .padding(.vertical, 11)
                         .background(
                             Palette.chipBg,
-                            in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            in: RoundedRectangle(cornerRadius: Metrics.radiusControl, style: .continuous))
                     }
                     .modifier(QuietAppear(index: 2))
 
@@ -435,6 +432,8 @@ struct ComposeView: View {
                 if celebrating {
                     PublishCelebrationView(
                         title: celebrationIsSchedule ? "예약되었습니다" : "발행되었습니다",
+                        announcement: String(
+                            localized: celebrationIsSchedule ? "예약되었습니다" : "발행되었습니다"),
                         subtitle: celebrationSubtitle,
                         onView: celebrationIsSchedule ? nil : publishedSlug.map { slug in
                             { showPublish = false; dismiss(); onOpenPublished?(slug) }
@@ -638,7 +637,7 @@ struct ComposeView: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 11)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radiusControl, style: .continuous))
 
                 Spacer()
             }
@@ -658,8 +657,12 @@ struct ComposeView: View {
                     Button("취소") { showSchedule = false }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("예약") { Task { await scheduleNow() } }
-                        .disabled(busy)
+                    // 예약은 저장→예약 두 왕복이라 잠시 걸린다 — 본 에디터 툴바처럼 스피너로 진행을 보인다.
+                    if busy {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Button("예약") { Task { await scheduleNow() } }
+                    }
                 }
             }
         }
@@ -860,8 +863,8 @@ struct ComposeView: View {
             let scheduled = try await WriteAPI.schedule(postId: postId, at: scheduleDate)
             status = scheduled.status
             onSaved()
-            publishCelebration += 1
             // 예약도 발행과 같은 마크 환호로 — 보조줄에 발행 예정 시각, "글 보기"는 없음.
+            // 성공 햅틱은 모먼트의 playHaptics() 한 곳에서만 운다(이중 박자 방지).
             celebrationIsSchedule = true
             celebrationSubtitle = String(localized: "\(scheduleSummary) 발행 예정")
             showSchedule = false
@@ -876,7 +879,8 @@ struct ComposeView: View {
         guard let item = coverItem, !uploadingCover else { return }
         uploadingCover = true
         Task {
-            defer { uploadingCover = false }
+            // 같은 사진을 다시 골라 재시도할 수 있게 선택을 비운다(onChange 재발화).
+            defer { uploadingCover = false; coverItem = nil }
             do {
                 let id = try await ensurePost()
                 guard let data = try await item.loadTransferable(type: Data.self),
@@ -1210,7 +1214,7 @@ private struct TagsField: View {
             }
             .padding(.horizontal, 13)
             .padding(.vertical, 11)
-            .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radiusControl, style: .continuous))
 
             if tags.isEmpty {
                 Text("첫 번째 태그가 대표 — 카드·글 위에 카테고리로 보입니다. (발행 시 1개 필수)")
@@ -1324,6 +1328,8 @@ private struct FlowLayout: Layout {
 private struct PublishCelebrationView: View {
     /// 발행=「발행되었습니다」, 예약=「예약되었습니다」. 보조줄(예약 시각 등)은 있을 때만.
     var title: LocalizedStringKey = "발행되었습니다"
+    /// VoiceOver 로 읽어줄 성공 문구(title 의 해석본) — 오버레이가 타이머로 사라지기 전에 말해진다.
+    var announcement: String = String(localized: "발행되었습니다")
     var subtitle: String? = nil
     /// "글 보기" 한 틱 — 있으면 버튼을 띄우고 자동 닫힘을 늦춘다(탭할 시간을 준다).
     var onView: (() -> Void)? = nil
@@ -1415,9 +1421,15 @@ private struct PublishCelebrationView: View {
                 actionsShown = true
             }
             playHaptics()
+            // 오버레이가 타이머로 사라지므로 성공을 음성으로 확실히 알린다(보조줄 있으면 함께).
+            let voiceOver = UIAccessibility.isVoiceOverRunning
+            let spoken = subtitle.map { "\(announcement). \($0)" } ?? announcement
+            AccessibilityNotification.Announcement(spoken).post()
             Task {
                 // "글 보기"가 있으면 탭할 시간을 주고(4s), 없으면 짧게 닫는다.
-                let hold: Double = reduceMotion ? 1.2 : (onView != nil ? 4.0 : 1.7)
+                // VoiceOver 면 안내가 끝나도록 더 붙잡는다 — 사라지기 전에 다 읽히게.
+                var hold: Double = reduceMotion ? 1.2 : (onView != nil ? 4.0 : 1.7)
+                if voiceOver { hold = max(hold, onView != nil ? 6.0 : 4.0) }
                 try? await Task.sleep(for: .seconds(hold))
                 guard !handled else { return }
                 handled = true

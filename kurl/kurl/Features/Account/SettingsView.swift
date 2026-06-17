@@ -49,6 +49,14 @@ struct SettingsView: View {
             }
             .buttonStyle(RowButtonStyle())
             .task { await reloadPushStatus() }
+            if pushStatus == .denied {
+                // 끈 뒤엔 시트가 안 뜨고 화살표가 시스템 설정으로 점프한다 — 그 점프를 미리 알린다.
+                Text("시스템 설정에서 켤 수 있어요")
+                    .typeScale(.footnote)
+                    .foregroundStyle(Palette.secondary)
+                    .padding(.leading, 32)
+                    .padding(.bottom, 4)
+            }
 
             RailHeading("정책")
                 .padding(.top, 28)

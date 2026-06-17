@@ -10,6 +10,7 @@ import SwiftUI
 struct BookmarksView: View {
     @State private var items: [BookmarkItem] = []
     @State private var loading = true
+    @State private var failed = false
 
     private var offline: OfflineStore { .shared }
 
@@ -18,6 +19,8 @@ struct BookmarksView: View {
             if loading {
                 ProgressView().tint(Palette.accent)
                     .frame(maxWidth: .infinity, minHeight: 240)
+            } else if failed {
+                LibraryFailedState { Task { loading = true; await load() } }
             } else if items.isEmpty {
                 ContentUnavailableView {
                     Label("북마크한 글이 없습니다", systemImage: "bookmark")
@@ -76,14 +79,19 @@ struct BookmarksView: View {
         }
         .navigationTitle("북마크")
         .navigationBarTitleDisplayMode(.inline)
-        .task {
-            items = (try? await LibraryAPI.bookmarks()) ?? []
+        .task { await load() }
+        .refreshable { await load() }
+    }
+
+    private func load() async {
+        failed = false
+        do {
+            items = try await LibraryAPI.bookmarks()
             loading = false
             await offline.reconcile(bookmarks: items.map { ($0.username, $0.slug) })
-        }
-        .refreshable {
-            items = (try? await LibraryAPI.bookmarks()) ?? items
-            await offline.reconcile(bookmarks: items.map { ($0.username, $0.slug) })
+        } catch {
+            loading = false
+            if items.isEmpty { failed = true }
         }
     }
 }
@@ -92,12 +100,15 @@ struct BookmarksView: View {
 struct LikedPostsView: View {
     @State private var items: [FeedItem] = []
     @State private var loading = true
+    @State private var failed = false
 
     var body: some View {
         ReadingColumn(spacing: 0) {
             if loading {
                 ProgressView().tint(Palette.accent)
                     .frame(maxWidth: .infinity, minHeight: 240)
+            } else if failed {
+                LibraryFailedState { Task { loading = true; await load() } }
             } else if items.isEmpty {
                 ContentUnavailableView {
                     Label("좋아요한 글이 없습니다", systemImage: "heart")
@@ -122,11 +133,19 @@ struct LikedPostsView: View {
         }
         .navigationTitle("좋아요한 글")
         .navigationBarTitleDisplayMode(.inline)
-        .task {
-            items = (try? await LibraryAPI.likedPosts()) ?? []
+        .task { await load() }
+        .refreshable { await load() }
+    }
+
+    private func load() async {
+        failed = false
+        do {
+            items = try await LibraryAPI.likedPosts()
             loading = false
+        } catch {
+            loading = false
+            if items.isEmpty { failed = true }
         }
-        .refreshable { items = (try? await LibraryAPI.likedPosts()) ?? items }
     }
 }
 
@@ -134,12 +153,15 @@ struct LikedPostsView: View {
 struct SubscribedSeriesView: View {
     @State private var items: [PublicSeriesCard] = []
     @State private var loading = true
+    @State private var failed = false
 
     var body: some View {
         ReadingColumn(spacing: 0) {
             if loading {
                 ProgressView().tint(Palette.accent)
                     .frame(maxWidth: .infinity, minHeight: 240)
+            } else if failed {
+                LibraryFailedState { Task { loading = true; await load() } }
             } else if items.isEmpty {
                 ContentUnavailableView {
                     Label("구독한 시리즈가 없습니다", systemImage: "square.stack.3d.up")
@@ -182,10 +204,33 @@ struct SubscribedSeriesView: View {
         }
         .navigationTitle("구독한 시리즈")
         .navigationBarTitleDisplayMode(.inline)
-        .task {
-            items = (try? await LibraryAPI.subscribedSeries()) ?? []
+        .task { await load() }
+        .refreshable { await load() }
+    }
+
+    private func load() async {
+        failed = false
+        do {
+            items = try await LibraryAPI.subscribedSeries()
             loading = false
+        } catch {
+            loading = false
+            if items.isEmpty { failed = true }
         }
-        .refreshable { items = (try? await LibraryAPI.subscribedSeries()) ?? items }
+    }
+}
+
+/// 세 라이브러리 목록이 공유하는 실패 상태 — 빈 200 과 구분되는 네트워크 오류 표시.
+private struct LibraryFailedState: View {
+    let retry: () -> Void
+
+    var body: some View {
+        ContentUnavailableView {
+            Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
+        } actions: {
+            Button("다시 시도", action: retry)
+                .foregroundStyle(Palette.accent)
+        }
+        .padding(.top, 60)
     }
 }

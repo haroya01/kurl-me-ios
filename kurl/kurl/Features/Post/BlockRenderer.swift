@@ -206,7 +206,7 @@ private struct CodeBlockView: View {
                 if let language {
                     Text(language.uppercased())
                         .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(Palette.codeText.opacity(0.55))
+                        .foregroundStyle(Palette.codeText.opacity(0.7)) // codeBg 위 ≥4.5:1
                 }
                 Spacer(minLength: 0)
                 Button(action: copy) {
@@ -254,17 +254,17 @@ private struct CodeBlockView: View {
 
 // MARK: 경량 구문 하이라이트 — IDE 처럼 색을 입히되 서드파티 없이 한 패스 스캐너로.
 
-/// slate-900 위에서 또렷한, 절제된 다크 테마. 문자열은 브랜드 그린 계열로 묶고
-/// 나머지는 IDE 관습 색(키워드 핑크·숫자 앰버·타입 스카이·주석 muted slate).
-/// 언어를 정확히 파싱하지 않는다 — 문자열·주석·숫자·식별자(키워드/타입) 수준의
-/// 범용 토큰만 칠해 어떤 언어든 "코드처럼" 보이게 한다(과채색보다 안전 우선).
+/// slate-900 위에서 또렷한, 절제된 다크 테마. 색은 `Palette.code*`(§색 규율의 유일한
+/// 다색 예외) 에서 다스리고 여기선 참조만 한다. 언어를 정확히 파싱하지 않는다 —
+/// 문자열·주석·숫자·식별자(키워드/타입) 수준의 범용 토큰만 칠해 어떤 언어든
+/// "코드처럼" 보이게 한다(과채색보다 안전 우선).
 private enum CodeSyntax {
     static let plain = Palette.codeText
-    static let comment = Color(hex: 0x7C8BA3)
-    static let keyword = Color(hex: 0xF472B6)
-    static let string = Color(hex: 0x6EE7B7)
-    static let number = Color(hex: 0xFCD34D)
-    static let type = Color(hex: 0x7DD3FC)
+    static let comment = Palette.codeComment
+    static let keyword = Palette.codeKeyword
+    static let string = Palette.codeString
+    static let number = Palette.codeNumber
+    static let type = Palette.codeType
 
     /// 여러 언어 키워드의 합집합 — 식별자로 쓰일 일이 드문 예약어만(과채색 방지).
     static let keywords: Set<String> = [

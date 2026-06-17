@@ -12,7 +12,6 @@ struct StudioView: View {
     private var auth: AuthStore { .shared }
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @ScaledMetric(relativeTo: .title3) private var titleSize: CGFloat = 22
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
     @State private var section: StudioSection = .posts
@@ -166,7 +165,6 @@ struct StudioView: View {
                     postRow(post)
                 }
                 .buttonStyle(RowButtonStyle())
-                .modifier(QuietAppear(index: index))
                 if index < filtered.count - 1 { Hairline() }
             }
         }
@@ -240,7 +238,7 @@ struct StudioView: View {
                 .background(Palette.accent.opacity(0.10), in: Circle())
             VStack(spacing: 6) {
                 Text(auth.me?.username.map { "\($0) 님의 첫 글" } ?? "첫 글을 시작하세요")
-                    .font(.system(size: 19 * unit, weight: .bold))
+                    .typeScale(.title)
                     .foregroundStyle(Palette.ink)
                 Text("마크다운으로 쓰면 웹과 똑같이 발행됩니다.")
                     .typeScale(.lede)
@@ -333,7 +331,6 @@ struct StudioView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(RowButtonStyle())
-                .modifier(QuietAppear(index: index))
                 .disabled((auth.me?.username ?? "").isEmpty)
                 if index < seriesList.count - 1 { Hairline() }
             }
@@ -356,7 +353,7 @@ struct StudioView: View {
                 RailHeading("글쓰기")
                     .padding(.top, 28)
                 Text("로그인하고 글을 쓰세요")
-                    .font(.system(size: titleSize, weight: .bold))
+                    .typeScale(.featured)
                     .foregroundStyle(Palette.ink)
                     .padding(.top, 12)
                 Text("마크다운으로 쓰면 웹과 똑같이 발행됩니다.")

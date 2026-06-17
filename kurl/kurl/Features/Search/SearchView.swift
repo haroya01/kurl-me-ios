@@ -26,6 +26,7 @@ struct SearchView: View {
 
     // 대기 화면의 출발점들 — 최근 검색은 기기 로컬, 트렌딩·태그·작가는 공개 API 1회 캐시.
     @State private var recents: [String] = SearchRecents.load()
+    @State private var confirmingClear = false
     @State private var trending: [FeedItem] = []
     @State private var popularTags: [TagCount] = []
     @State private var suggestedAuthors: [SuggestedAuthor] = []
@@ -67,10 +68,25 @@ struct SearchView: View {
             .searchable(text: $query, prompt: "글 검색")
             // 태그·작가 갈래는 결과에서도 쓰므로 phase 와 무관하게 한 번 받아 둔다.
             .task { await loadDiscovery() }
+            // `--query <term>` — simctl 은 터치를 못 넣으니, 결과·갈래·페이지네이션·무결과까지
+            // 손 안 대고 닿는 검증 진입로(DEBUG 전용).
+            .task {
+                // 텍스트만 세팅 — 검색은 onChange→scheduleSearch 가 소유한다(최근 칩과 같은 경로).
+                if let term = Config.launchValue(after: "--query"), query.isEmpty {
+                    query = term
+                }
+            }
         }
         .onChange(of: query) { _, newValue in scheduleSearch(newValue) }
         .onChange(of: recents) { SearchRecents.save(recents) }
         .onSubmit(of: .search) { runSearch(query) }
+        // 검색 결과 도착·최근 삭제는 손끝으로도 알린다 — 토글 버튼들과 같은 가벼운 임팩트.
+        .sensoryFeedback(.impact(weight: .light), trigger: activeQuery)
+        .sensoryFeedback(.impact(weight: .light), trigger: recents)
+        .confirmationDialog("최근 검색을 모두 지울까요?", isPresented: $confirmingClear, titleVisibility: .visible) {
+            Button("지우기", role: .destructive) { recents = [] }
+            Button("취소", role: .cancel) {}
+        }
         // 첫 `.task` 가 실패하면 레일이 영구 빈 화면으로 굳는다 — 포그라운드 복귀 때
         // 빈 갈래만 다시 받아 자가치유(loadDiscovery 가 멱등이라 안전).
         .onChange(of: scenePhase) { _, newPhase in
@@ -90,8 +106,8 @@ struct SearchView: View {
                         HStack {
                             RailHeading("최근 검색")
                             Spacer()
-                            Button("지우기") { recents = [] }
-                                .font(.system(size: 12))
+                            Button("지우기") { confirmingClear = true }
+                                .typeScale(.meta)
                                 .foregroundStyle(Palette.secondary)
                         }
                         ScrollView(.horizontal, showsIndicators: false) {
@@ -99,8 +115,8 @@ struct SearchView: View {
                                 ForEach(recents, id: \.self) { term in
                                     HStack(spacing: 6) {
                                         Button {
+                                            // 텍스트만 세팅 — 검색은 onChange→scheduleSearch 가 소유한다(중복 실행 금지).
                                             query = term
-                                            runSearch(term)
                                         } label: {
                                             Text(term)
                                                 .font(.system(size: 13, weight: .medium))
@@ -511,7 +527,9 @@ struct SearchView: View {
             guard myGen == generation else { return }
             page += 1
             hasNext = result.hasNext
-            phase = .loaded(current + result.items)
+            // 서버 페이지가 겹쳐 와도 같은 id 카드가 두 번 박히지 않게 — 기존 id 와 겹치는 건 버린다.
+            let seen = Set(current.map(\.id))
+            phase = .loaded(current + result.items.filter { !seen.contains($0.id) })
         }
     }
 }

@@ -18,13 +18,12 @@ struct FeedRow: View {
             VStack(alignment: .leading, spacing: 6) {
                 if featured {
                     Text("오늘의 글")
-                        .font(.system(size: 11, weight: .bold))
-                        .tracking(0.4)
+                        .typeScale(.eyebrow)
                         .foregroundStyle(Palette.secondary)
                 }
                 if let tag = item.tags.first {
                     Text("#\(tag)")
-                        .font(.system(size: 12, weight: .medium))
+                        .typeScale(.meta)
                         .foregroundStyle(Palette.secondary)
                 }
                 Text(item.title)
@@ -74,7 +73,7 @@ struct PostRow: View {
                 }
                 if let tag = item.tags.first {
                     Text("#\(tag)")
-                        .font(.system(size: 12, weight: .medium))
+                        .typeScale(.meta)
                         .foregroundStyle(Palette.secondary)
                 }
             }
@@ -110,33 +109,43 @@ final class PostReadStore {
     static let shared = PostReadStore()
 
     private static let key = "postReadIds"
-    private var ids: Set<Int64>
+    private static let cap = 600
+    // 단일 진실원 = 메모리. order 가 최근순(오래된 것 앞) 링버퍼이고, lookup 은 set 으로 O(1).
+    // 둘은 항상 같이 갱신 — 쓸 때 UserDefaults 를 되읽지 않는다(과거 분기 원인).
+    private var order: [Int64]
+    private var lookup: Set<Int64>
 
     private init() {
-        let stored = (UserDefaults.standard.array(forKey: Self.key) as? [NSNumber]) ?? []
-        ids = Set(stored.map(\.int64Value))
+        let stored = ((UserDefaults.standard.array(forKey: Self.key) as? [NSNumber]) ?? [])
+            .map(\.int64Value)
+        order = stored
+        lookup = Set(stored)
         // 검증용 시드 — 목 모드에서 시리즈 진행/체크 상태를 그려보기 위함(`--seed-read 8001,8002`).
         if Config.useMocks, let seed = Config.launchValue(after: "--seed-read") {
-            ids.formUnion(seed.split(separator: ",").compactMap { Int64($0) })
+            for id in seed.split(separator: ",").compactMap({ Int64($0) }) where lookup.insert(id).inserted {
+                order.append(id)
+            }
         }
     }
 
-    func isRead(_ id: Int64) -> Bool { ids.contains(id) }
+    func isRead(_ id: Int64) -> Bool { lookup.contains(id) }
 
     func markRead(_ id: Int64) {
-        guard !ids.contains(id) else { return }
-        ids.insert(id)
-        var stored = ((UserDefaults.standard.array(forKey: Self.key) as? [NSNumber]) ?? [])
-            .map(\.int64Value)
-        stored.append(id)
-        if stored.count > 600 { stored.removeFirst(stored.count - 600) }
-        UserDefaults.standard.set(stored.map(NSNumber.init(value:)), forKey: Self.key)
+        guard lookup.insert(id).inserted else { return }
+        order.append(id)
+        if order.count > Self.cap {
+            let dropped = order.prefix(order.count - Self.cap)
+            lookup.subtract(dropped)
+            order.removeFirst(order.count - Self.cap)
+        }
+        UserDefaults.standard.set(order.map(NSNumber.init(value:)), forKey: Self.key)
     }
 
     /// 로그아웃 시 — 읽음 기록은 기기 로컬이라 계정 전환 시 비워야 다음 사용자가 이전
     /// 사용자의 읽음·시리즈 진행 상태를 물려받지 않는다.
     func reset() {
-        ids = []
+        order = []
+        lookup = []
         UserDefaults.standard.removeObject(forKey: Self.key)
     }
 }

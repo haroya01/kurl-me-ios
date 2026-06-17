@@ -54,7 +54,6 @@ final class AuthStore {
     /// 되살리지 못하게(adopt 직전 epoch 일치 확인) 막는 단조 가드.
     @ObservationIgnored private var sessionEpoch = 0
     @ObservationIgnored private var activeSession: ASWebAuthenticationSession?
-    @ObservationIgnored private var appleDelegate: AppleAuthDelegate?
     @ObservationIgnored private let presenter = WebAuthPresenter()
 
     private static let accessAccount = "access-token"
@@ -145,27 +144,6 @@ final class AuthStore {
             adopt(TokenPair(accessToken: access, refreshToken: refresh))
             return .signedIn
         }
-    }
-
-    /// 버튼이 없는 자리(좋아요·팔로우 알럿 등)의 Apple 로그인 — 시스템 시트를 직접 띄운다.
-    func signInWithApple() async throws -> SignInOutcome {
-        let raw = Self.randomNonce()
-        let request = ASAuthorizationAppleIDProvider().createRequest()
-        request.requestedScopes = [.email]
-        request.nonce = Self.sha256Hex(raw)
-        let result: Result<ASAuthorization, Error> = await withCheckedContinuation { continuation in
-            let delegate = AppleAuthDelegate { [weak self] result in
-                Task { @MainActor in self?.appleDelegate = nil }
-                continuation.resume(returning: result)
-            }
-            // 시트가 떠 있는 동안 delegate 를 강하게 쥔다 — activeSession 과 같은 이유.
-            appleDelegate = delegate
-            let controller = ASAuthorizationController(authorizationRequests: [request])
-            controller.delegate = delegate
-            controller.presentationContextProvider = delegate
-            controller.performRequests()
-        }
-        return try await completeApple(result, rawNonce: raw)
     }
 
     private static func randomNonce() -> String {
@@ -290,38 +268,6 @@ final class AuthStore {
 
 private final class WebAuthPresenter: NSObject, ASWebAuthenticationPresentationContextProviding {
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
-        MainActor.assumeIsolated {
-            UIApplication.shared.connectedScenes
-                .compactMap { ($0 as? UIWindowScene)?.keyWindow }
-                .first ?? ASPresentationAnchor()
-        }
-    }
-}
-
-/// 프로그램 경로 Apple 로그인의 delegate + 프레젠테이션 앵커.
-private final class AppleAuthDelegate: NSObject, ASAuthorizationControllerDelegate,
-    ASAuthorizationControllerPresentationContextProviding {
-
-    private let completion: (Result<ASAuthorization, Error>) -> Void
-
-    init(completion: @escaping (Result<ASAuthorization, Error>) -> Void) {
-        self.completion = completion
-    }
-
-    func authorizationController(
-        controller: ASAuthorizationController,
-        didCompleteWithAuthorization authorization: ASAuthorization
-    ) {
-        completion(.success(authorization))
-    }
-
-    func authorizationController(
-        controller: ASAuthorizationController, didCompleteWithError error: any Error
-    ) {
-        completion(.failure(error))
-    }
-
-    func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
         MainActor.assumeIsolated {
             UIApplication.shared.connectedScenes
                 .compactMap { ($0 as? UIWindowScene)?.keyWindow }

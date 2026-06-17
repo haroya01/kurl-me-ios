@@ -16,6 +16,9 @@ struct PathReorderSheet: View {
     @State private var items: [ConnectionItem]
     @State private var saving = false
 
+    // 순서가 그대로면 저장은 무의미한 POST + reload — 막아 둔다(미로딩 빈 길도 여기서 걸린다).
+    private var reordered: Bool { items.map(\.id) != detail.connections.map(\.id) }
+
     init(detail: CollectionDetail, onSaved: @escaping () -> Void) {
         self.detail = detail
         self.onSaved = onSaved
@@ -37,7 +40,7 @@ struct PathReorderSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("저장") { Task { await save() } }.disabled(saving)
+                    Button("저장") { Task { await save() } }.disabled(saving || !reordered)
                 }
             }
         }

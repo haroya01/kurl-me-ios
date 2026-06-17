@@ -72,7 +72,7 @@ struct WelcomeView: View {
                     .buttonStyle(.plain)
                 }
                 .padding(16)
-                .glassEffect(.regular, in: .rect(cornerRadius: 30))
+                .glassEffect(.regular, in: .rect(cornerRadius: GlassTokens.panelRadius))
                 .opacity(actionsVisible ? 1 : 0)
                 .offset(y: actionsVisible ? 0 : 14)
             }

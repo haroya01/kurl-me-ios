@@ -231,6 +231,7 @@ final class ToastCenter {
 /// 루트(탭바 위)에 한 번만 부착한다.
 struct ToastHost: ViewModifier {
     private var center: ToastCenter { .shared }
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     func body(content: Content) -> some View {
         content.overlay(alignment: .bottom) {
@@ -243,10 +244,10 @@ struct ToastHost: ViewModifier {
                     .glassEffect(.regular, in: .capsule)
                     .padding(.bottom, 74)
                     .allowsHitTesting(false)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .animation(.snappy(duration: 0.25), value: center.message)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: center.message)
     }
 }
 

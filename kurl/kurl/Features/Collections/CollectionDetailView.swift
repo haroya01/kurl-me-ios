@@ -94,8 +94,8 @@ struct CollectionDetailView: View {
         .sheet(isPresented: $showEdit) {
             if let detail {
                 EditCollectionSheet(
-                    id: detail.id, initialTitle: detail.title, initialBlurb: detail.blurb,
-                    initialVisibility: detail.visibility
+                    id: detail.id, kind: detail.kind, initialTitle: detail.title,
+                    initialBlurb: detail.blurb, initialVisibility: detail.visibility
                 ) { Task { await load() } }
             }
         }
@@ -236,12 +236,14 @@ struct CollectionDetailView: View {
     private func pathStepCell(index: Int, total: Int, item: ConnectionItem) -> some View {
         HStack(alignment: .top, spacing: 14) {
             // 순번 노드 + 다음 문장으로 잇는 세로 선 — "걷는다"는 신호.
+            // 순번 칩은 구조 신호일 뿐 — 초록은 주액션·데이터 전용이라 중립(잉크)으로 가라앉힌다(RailHeading 규율).
             VStack(spacing: 0) {
                 Text("\(index + 1)")
-                    .font(.system(size: 12 * metaUnit, weight: .bold))
-                    .foregroundStyle(Palette.accent)
+                    .typeScale(.meta)
+                    .fontWeight(.bold)
+                    .foregroundStyle(Palette.heading)
                     .frame(width: 26, height: 26)
-                    .background(Circle().fill(Palette.accent.opacity(0.12)))
+                    .background(Circle().fill(Palette.hairlineStrong))
                 if index < total - 1 {
                     Rectangle()
                         .fill(Palette.hairlineStrong)

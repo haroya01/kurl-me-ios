@@ -17,8 +17,9 @@ struct FollowButton: View {
     /// 본인 작가 페이지/내 글에선 self-follow 가 무의미 — 버튼을 숨긴다.
     private let username: String
 
-    init(username: String, showCount: Bool = true) {
-        _model = State(initialValue: FollowModel(username: username))
+    /// 호출측이 작가 로드 때 이미 받아 둔 follow status — 같은 GET 을 또 치지 않도록 시드.
+    init(username: String, showCount: Bool = true, initialStatus: InteractionsAPI.FollowStatus? = nil) {
+        _model = State(initialValue: FollowModel(username: username, seed: initialStatus))
         self.showCount = showCount
         self.username = username
     }
@@ -57,7 +58,7 @@ struct FollowButton: View {
             }
         }
         .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
-        .task { await model.hydrate() }
+        .task { await model.hydrateIfNeeded() }
         .loginPrompt(isPresented: $showLoginPrompt, message: "이 작가의 새 글을 피드에서 받기") {
             await model.hydrate()
         }
@@ -82,11 +83,24 @@ final class FollowModel {
     /// 햅틱 트리거 — hydrate 가 아닌 사용자 토글에만 증가.
     private(set) var userToggleCount = 0
     private(set) var followerCount: Int64?
+    /// 호출측이 시드를 줬는지 — 줬다면 등장 시 같은 GET 을 또 치지 않는다.
+    private var seeded: Bool
 
     private let username: String
 
-    init(username: String) {
+    init(username: String, seed: InteractionsAPI.FollowStatus? = nil) {
         self.username = username
+        self.seeded = seed != nil
+        if let seed {
+            following = seed.following
+            followerCount = seed.followerCount
+        }
+    }
+
+    /// 시드를 받았으면 첫 hydrate 를 건너뛴다(작가 페이지가 이미 한 번 받아 둠).
+    func hydrateIfNeeded() async {
+        if seeded { return }
+        await hydrate()
     }
 
     /// 비로그인도 팔로워 수는 공개 — following 만 로그인 상태에서 의미.

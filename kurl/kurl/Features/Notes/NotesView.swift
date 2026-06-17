@@ -49,6 +49,8 @@ final class NotesViewModel {
             items = view.items
             hasNext = view.hasNext
             countOverride = [:]
+            // 첫 페이지는 합집합이 아니라 교체 — 새로고침으로 사라진 노트의 좋아요가 남지 않게.
+            likedIds = []
             phase = .loaded(true)
             await hydrateLikes(for: view.items)
         } catch {
@@ -262,7 +264,8 @@ private struct NoteRowView: View {
                     }
                     // 카운트는 메타 사다리로 — raw 12pt 산발 종식(Dynamic Type 도 따라온다). 하트는 자체 size 유지.
                     .typeScale(.meta)
-                    .foregroundStyle(model.isLiked(note) ? Palette.link : Palette.secondary)
+                    // 종이 위 비텍스트 마커라 accent(600) — link(700)는 텍스트/인라인 CTA 자리.
+                    .foregroundStyle(model.isLiked(note) ? Palette.accent : Palette.secondary)
                     .expandTapTarget()
                 }
                 .buttonStyle(.plain)
@@ -310,7 +313,9 @@ private struct NoteComposerBar: View {
             if body_.count > 400 {
                 Text("\(500 - body_.count)")
                     .font(.system(size: 11).monospacedDigit())
-                    .foregroundStyle(body_.count > 500 ? Palette.danger : Palette.secondary)
+                    // 초과는 색이 아니라 무게로 — slate 사다리 안에서 ink+semibold (그린 외 단독 색 금지).
+                    .foregroundStyle(body_.count > 500 ? Palette.ink : Palette.secondary)
+                    .fontWeight(body_.count > 500 ? .semibold : .regular)
             }
             Button {
                 send()
@@ -339,7 +344,7 @@ private struct NoteComposerBar: View {
         }
         .padding(.horizontal, 15)
         .padding(.vertical, 11)
-        .glassEffect(.regular, in: .rect(cornerRadius: 24))
+        .glassEffect(.regular, in: .rect(cornerRadius: GlassTokens.panelRadius))
         .padding(.horizontal, 10)
         .padding(.bottom, 6)
         .sensoryFeedback(.success, trigger: sentCount)

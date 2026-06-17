@@ -228,7 +228,8 @@ struct PostDetailView: View {
                                         proxy.scrollTo(h.id, anchor: UnitPoint(x: 0, y: 0.08))
                                     }
                                 } label: {
-                                    Text(String(repeating: "   ", count: h.level - 1) + h.title)
+                                    // 들여쓰기는 비분리 공백 — 메뉴가 선행 일반 공백을 트리밍해 레벨이 뭉개졌다.
+                                    Text(String(repeating: "\u{00A0}\u{00A0}\u{00A0}", count: h.level - 1) + h.title)
                                 }
                             }
                         } label: {
@@ -295,7 +296,8 @@ struct PostDetailView: View {
         .overlay(alignment: .bottomTrailing) {
             // 단독·덱 임베드 공통의 단일 인게이지 문법 — 임베드별 인라인 줄을 두지 않는다.
             // 덱에선 장마다 제 페이지 안에 떠서 페이지와 함께 밀려 나간다.
-            if case .loaded(let detail) = model.phase, !keyboardUp,
+            // 컴포저가 깨어나는 즉시 물러난다 — keyboardUp(키보드 알림)은 한 박자 늦어 잠깐 겹쳤다.
+            if case .loaded(let detail) = model.phase, !(keyboardUp || composerActive),
                !(endVisible && scrollable) {
                 EngagementDock(
                     postId: detail.post.id, initialLikeCount: detail.post.likeCount,
@@ -591,7 +593,7 @@ struct PostDetailView: View {
                     .typeScale(.footnote)
                     .foregroundStyle(Palette.secondary)
                 Text(next.title)
-                    .font(.system(size: 14 * unit, weight: .semibold))
+                    .typeScale(.titleSmall)
                     .foregroundStyle(Palette.ink)
                     .lineLimit(1)
                     .opacity(0.6 + 0.4 * pullProgress)
@@ -631,7 +633,7 @@ struct PostDetailView: View {
                     AvatarView(author: author, size: 46)
                     VStack(alignment: .leading, spacing: 3) {
                         Text(author.username)
-                            .font(.system(size: 16 * unit, weight: .semibold))
+                            .typeScale(.titleSmall)
                             .foregroundStyle(Palette.ink)
                         if let bio = author.bio, !bio.isEmpty {
                             Text(bio)
@@ -843,7 +845,7 @@ struct PostDetailView: View {
         .overlay(alignment: .topLeading) {
             if let tag = post.tags.first {
                 Text("#\(tag)")
-                    .font(.system(size: 11, weight: .semibold))
+                    .typeScale(.footnote)
                     .foregroundStyle(Palette.secondary)
                     .lineLimit(1)
                     .padding(.horizontal, 8)

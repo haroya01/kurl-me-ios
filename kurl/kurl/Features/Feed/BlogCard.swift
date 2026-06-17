@@ -81,7 +81,7 @@ struct BlogCard: View {
                         // 칩처럼 보이면 칩처럼 동작해야 한다 — 탭 = 태그 피드.
                         NavigationLink(value: Route.tag(tag)) {
                             Text("#\(tag)")
-                                .font(.system(size: 12, weight: .medium))
+                                .typeScale(.meta)
                                 .foregroundStyle(.white)
                                 .expandTapTarget(8)
                         }
@@ -125,7 +125,7 @@ struct BlogCard: View {
                     if let tag = item.tags.first {
                         NavigationLink(value: Route.tag(tag)) {
                             Text("#\(tag)")
-                                .font(.system(size: 12, weight: .medium))
+                                .typeScale(.meta)
                                 .foregroundStyle(Palette.secondary)
                                 .expandTapTarget(8)
                         }
@@ -173,7 +173,7 @@ private struct FeaturedBadge: View {
         Text("오늘의 글")
             .font(.system(size: 11, weight: .semibold))
             .tracking(0.4)
-            .foregroundStyle(over ? Color(hex: 0x0F172A) : Palette.secondary)
+            .foregroundStyle(over ? Palette.ink : Palette.secondary)
             .padding(.horizontal, over ? 9 : 0)
             .padding(.vertical, over ? 4 : 0)
             .background {

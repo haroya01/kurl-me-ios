@@ -86,6 +86,10 @@ struct DiscoverDeckView: View {
     @State private var currentId: Int64?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var shuffleCount = 0
+    /// 위치 칩의 비텍스트 마커(sparkles)도 footnote 라벨과 함께 커지게 — 산발 고정 크기 종식.
+    @ScaledMetric(relativeTo: .caption) private var markerUnit: CGFloat = 1
+    /// scrollPosition 의 첫 비-nil 배정(초기 착지)은 스와이프가 아니다 — 진짜 넘김만 힌트를 끈다.
+    @State private var hasNavigated = false
     /// 첫 만남 1회 — "이건 추천 덱이고, 넘기면 다음 글"이라는 걸 눈으로 알려준다.
     @AppStorage("deckSwipeHintSeen") private var swipeHintSeen = false
 
@@ -107,7 +111,12 @@ struct DiscoverDeckView: View {
                             .foregroundStyle(Palette.accent)
                     }
                 case .loaded:
-                    deck
+                    // 인증 피드가 빈 덱을 줄 수 있다 — 빈 페이지형 면 대신 막다른 길 금지(작가 찾기로).
+                    if model.deck.isEmpty {
+                        emptyDeck
+                    } else {
+                        deck
+                    }
                 }
             }
             .task { await model.load() }
@@ -137,6 +146,10 @@ struct DiscoverDeckView: View {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         shuffleCount += 1
+                        // 셔플로 떨궈진 글을 가리키는 stale currentId 가 공유·위치 칩을 잠깐 지운다 —
+                        // nil 로 리셋해 `?? deck.first` 폴백이 즉시 받게 한다.
+                        currentId = nil
+                        hasNavigated = false
                         Task { await model.reshuffle() }
                     } label: {
                         Image(systemName: "shuffle")
@@ -152,6 +165,17 @@ struct DiscoverDeckView: View {
             // 섞기·공유만 유리로 떠 있고, 커버는 상단까지 꽉 찬다.
             .toolbarBackground(.hidden, for: .navigationBar)
             .navigationDestination(for: Route.self) { RouteView(route: $0) }
+        }
+    }
+
+    private var emptyDeck: some View {
+        ContentUnavailableView {
+            Label("읽을 글이 없어요", systemImage: "sparkles")
+        } description: {
+            Text("작가를 팔로우하면, 그들의 글이 이 덱에 흘러요.")
+        } actions: {
+            Button("다시 섞기") { Task { await model.reshuffle() } }
+                .foregroundStyle(Palette.accent)
         }
     }
 
@@ -198,12 +222,13 @@ struct DiscoverDeckView: View {
             if let item = currentItem, let idx = model.deck.firstIndex(of: item) {
                 HStack(spacing: 5) {
                     Image(systemName: "sparkles")
-                        .font(.system(size: 9, weight: .semibold))
+                        .font(.system(size: 9 * markerUnit, weight: .semibold))
                         .foregroundStyle(Palette.accent)
                     Text("추천 \(idx + 1) / \(model.deck.count)")
                         .contentTransition(.numericText())
                         .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: idx)
-                        .font(.system(size: 11, weight: .semibold).monospacedDigit())
+                        .typeScale(.footnote)
+                        .monospacedDigit()
                         .foregroundStyle(.secondary)
                 }
                 .padding(.horizontal, 11)
@@ -226,7 +251,8 @@ struct DiscoverDeckView: View {
             }
         }
         .onChange(of: currentId) {
-            // 한 장이라도 넘겼으면 배운 것 — 힌트는 다시 안 나온다.
+            // 첫 비-nil 배정은 초기 착지일 뿐 — 두 번째 변화(진짜 넘김)부터 배운 것으로 친다.
+            guard hasNavigated else { hasNavigated = true; return }
             swipeHintSeen = true
         }
         // 장이 바뀔 때마다 체류 비콘 무장 — 2.5초 안에 넘기면 sleep 취소 → 미집계.
@@ -243,6 +269,7 @@ struct DiscoverDeckView: View {
 /// 첫 스와이프나 3초 뒤 영원히 사라진다. reduce-motion 이면 정지 상태로만.
 private struct DeckSwipeHint: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .footnote) private var chevronUnit: CGFloat = 1
     @State private var phase = false
 
     var body: some View {
@@ -250,18 +277,18 @@ private struct DeckSwipeHint: View {
             HStack(spacing: 2) {
                 ForEach(0..<3, id: \.self) { index in
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.system(size: 15 * chevronUnit, weight: .semibold))
                         .foregroundStyle(.primary)
                         .opacity(phase ? (index == 0 ? 1 : 0.35) : (index == 2 ? 1 : 0.35))
                 }
             }
             Text("넘겨서 다음 글")
-                .font(.system(size: 11, weight: .medium))
+                .typeScale(.footnote)
                 .foregroundStyle(.secondary)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .glassEffect(.regular, in: .rect(cornerRadius: 14))
+        .glassEffect(.regular, in: .rect(cornerRadius: Metrics.radiusMini))
         .onAppear {
             guard !reduceMotion else { return }
             withAnimation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true)) {

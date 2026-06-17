@@ -112,11 +112,15 @@ struct ChooseUsernameView: View {
                 await AuthStore.shared.loadMe()
                 onDone()
             } catch {
-                if case APIError.http(let status) = error {
+                switch error {
+                case APIError.http(let status):
                     serverError = status == 409
                         ? String(localized: "이미 사용 중인 이름이에요.")
                         : String(localized: "사용할 수 없는 이름이에요.")
-                } else {
+                case APIError.transport:
+                    // 통신 실패는 입력 잘못이 아니므로 다시 시도를 분명히 — 버튼이 곧 재시도다.
+                    serverError = String(localized: "네트워크에 연결할 수 없어요. 다시 시도해 주세요.")
+                default:
                     serverError = (error as? APIError)?.localizedDescription
                         ?? error.localizedDescription
                 }

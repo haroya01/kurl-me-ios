@@ -18,12 +18,15 @@ struct NotificationsView: View {
     @State private var markAllPulse = 0
     /// refresh 가 in-flight loadMore 의 스테일 응답을 폐기하기 위한 세대 토큰.
     @State private var epoch = 0
-    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+    @State private var showLoginSheet = false
 
     var body: some View {
         ReadingColumn(spacing: 0) {
-            if loading {
-                ProgressView().tint(Palette.accent)
+            if !AuthStore.shared.isSignedIn {
+                // 알림은 인증 피드 — 비로그인은 네트워크 에러가 아니라 로그인 게이트로(막다른 길 금지).
+                loggedOutGate
+            } else if loading {
+                KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 240)
             } else if items.isEmpty, let loadError {
                 ContentUnavailableView {
@@ -65,9 +68,24 @@ struct NotificationsView: View {
                 .disabled(items.allSatisfy(\.read))
             }
         }
-        .task { await load() }
+        .task(id: AuthStore.shared.isSignedIn) { await load() }
         .refreshable { await load() }
         .sensoryFeedback(.success, trigger: markAllPulse)
+    }
+
+    // 비로그인 게이트 — 알림은 인증 피드라, 로그인하면 흐른다고 안내(발견·피드 로그아웃 결과와 동일 문법).
+    private var loggedOutGate: some View {
+        FeedPlaceholder(
+            eyebrow: "알림",
+            title: "내 알림을 받으려면",
+            message: "로그인하면 좋아요·댓글·팔로우·새 글 알림이 여기에 모여요.",
+            actionTitle: "로그인",
+            prominent: true,
+            action: { showLoginSheet = true }
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.top, 80)
+        .loginPrompt(isPresented: $showLoginSheet, message: "내 알림 받기")
     }
 
     @ViewBuilder
@@ -111,14 +129,16 @@ struct NotificationsView: View {
                 size: 30)
             VStack(alignment: .leading, spacing: 3) {
                 Text(headline(n))
-                    .font(.system(size: 14 * unit, weight: n.read ? .regular : .medium))
+                    .typeScale(.body)
+                    // 안 읽은 줄만 한 단계 굵게 — 눈이 그쪽으로 가게(읽은 줄은 §body 기본 regular).
+                    .fontWeight(n.read ? .regular : .medium)
                     // 읽은 알림은 한 톤 가라앉혀 — 안 읽은 줄로 눈이 가게.
                     .foregroundStyle(n.read ? Palette.secondary : Palette.ink)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
                 if let subtitle = n.postTitle ?? n.seriesTitle {
                     Text(subtitle)
-                        .font(.system(size: 13 * unit))
+                        .typeScale(.lede)
                         .foregroundStyle(Palette.secondary)
                         .lineLimit(1)
                 }
@@ -193,6 +213,13 @@ struct NotificationsView: View {
     }
 
     private func load() async {
+        // 비로그인이면 인증 엔드포인트를 때리지 않는다 — 401→영구 재시도 데드엔드 방지(게이트가 화면을 맡는다).
+        guard AuthStore.shared.isSignedIn else {
+            items = []
+            loadError = nil
+            loading = false
+            return
+        }
         epoch += 1
         let myEpoch = epoch
         do {

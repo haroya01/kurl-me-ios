@@ -12,9 +12,12 @@ struct AuthorBlogView: View {
 
     @State private var phase: LoadState<PublicPostListView> = .idle
     @State private var series: [SeriesListItem] = []
+    /// 작가 로드 때 한 번 받아 두는 follow status — 헤더의 팔로우 버튼·카운트 링크가 공유한다(중복 GET 제거).
+    @State private var followStatus: InteractionsAPI.FollowStatus?
     @State private var showCard = false
     @State private var showNavTitle = false
     @State private var showReport = false
+    @ScaledMetric(relativeTo: .body) private var navUnit: CGFloat = 1
 
     /// 로드된 작가 id — 신고 대상. 내가 아닐 때만 신고를 노출한다.
     private var author: Author? {
@@ -63,7 +66,7 @@ struct AuthorBlogView: View {
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Text(username)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 16 * navUnit, weight: .semibold))
                     .opacity(showNavTitle ? 1 : 0)
             }
             if let author, !isOwnAuthor {
@@ -121,10 +124,10 @@ struct AuthorBlogView: View {
                     .padding(.top, 12)
             }
             // 탭 가능한 "팔로워 N · 팔로잉 N" — 각각 해당 목록으로(Medium 문법).
-            FollowCountsLink(username: view.author.username)
+            FollowCountsLink(username: view.author.username, initialStatus: followStatus)
                 .padding(.top, 12)
             HStack(spacing: 10) {
-                FollowButton(username: view.author.username, showCount: false)
+                FollowButton(username: view.author.username, showCount: false, initialStatus: followStatus)
                 Spacer(minLength: 0)
                 // 명함(u/ — 링크 모음·소셜)으로 가는 문 — 블로그와 같은 정체의 다른 얼굴.
                 Button {
@@ -142,7 +145,8 @@ struct AuthorBlogView: View {
                     .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
-                .glassEffect(.regular.interactive(), in: .capsule)
+                // 중성 보조 캡슐 — 투명도 감소 시 Palette.cardBg 솔리드로 떨어진다(§1.7).
+                .glassCapsule(prominent: false)
             }
             .padding(.top, 14)
         }
@@ -245,6 +249,10 @@ struct AuthorBlogView: View {
         phase = .loading
         do {
             let view = try await BlogAPI.authorPosts(username: username)
+            // 본인 페이지는 팔로우 표면이 안 떠 status 가 필요 없다 — 그 외에만 한 번 받아 두 컴포넌트에 시드.
+            if AuthStore.shared.me?.username != username {
+                followStatus = try? await InteractionsAPI.followStatus(username: username)
+            }
             phase = .loaded(view)
             series = (try? await BlogAPI.authorSeries(username: username))?.series ?? []
         } catch {

@@ -234,12 +234,14 @@ struct PostAnalyticsView: View {
 
     private func load() async {
         if case .idle = phase { phase = .loading }
-        async let statsReq = AnalyticsAPI.readStats(postId: post.postId)
+        // 독자 분석은 기간과 무관 — 한 번만 가져온다(윈도우 칩 전환마다 재요청 금지).
+        let statsReq: Task<PostReadStats, Error>? =
+            readStats == nil ? Task { try await AnalyticsAPI.readStats(postId: post.postId) } : nil
         do {
             phase = .loaded(try await AnalyticsAPI.postAnalytics(postId: post.postId, days: days))
         } catch {
             phase = .failed(error.localizedDescription)
         }
-        readStats = try? await statsReq
+        if let statsReq { readStats = try? await statsReq.value }
     }
 }

@@ -74,6 +74,22 @@ struct PublicPostDetail: Decodable {
     let post: PostListItem
     let blocks: [PostBlock]
     let series: PostSeriesNav?
+
+    private enum CodingKeys: String, CodingKey {
+        case author, post, blocks, series
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        author = try container.decode(Author.self, forKey: .author)
+        post = try container.decode(PostListItem.self, forKey: .post)
+        series = try container.decodeIfPresent(PostSeriesNav.self, forKey: .series)
+        // 디코드 순서를 안정 식별자로 못박는다 — blockOrder 가 nil 이어도 id 가 매 렌더 흔들리지 않게.
+        let raw = try container.decode([PostBlock].self, forKey: .blocks)
+        blocks = raw.enumerated().map { index, block in
+            block.withDecodeIndex(index)
+        }
+    }
 }
 
 struct PostBlock: Decodable, Identifiable {
@@ -81,9 +97,21 @@ struct PostBlock: Decodable, Identifiable {
     let content: String?
     let blockOrder: Int?
     let cta: CtaInfo?
+    /// 디코드 시점에 배열 인덱스로 박는 안정 식별자. blockOrder 가 nil 이어도 TOC 점프·딥링크가 안 깨진다.
+    private(set) var decodeIndex: Int = 0
 
-    var id: Int { blockOrder ?? UUID().hashValue }
+    private enum CodingKeys: String, CodingKey {
+        case type, content, blockOrder, cta
+    }
+
+    var id: Int { blockOrder ?? decodeIndex }
     var kind: BlockKind { BlockKind(rawValue: type) ?? .unknown }
+
+    func withDecodeIndex(_ index: Int) -> PostBlock {
+        var copy = self
+        copy.decodeIndex = index
+        return copy
+    }
 }
 
 struct CtaInfo: Decodable, Hashable {

@@ -11,7 +11,9 @@ import Security
 enum Keychain {
     private static let service = "me.kurl.app"
 
-    static func save(_ value: String, account: String) {
+    /// 토큰 쓰기 실패는 다음 refresh 에서 세션 유실로 이어지므로 호출부가 알아챌 수 있게 성공 여부를 돌려준다.
+    @discardableResult
+    static func save(_ value: String, account: String) -> Bool {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -21,12 +23,17 @@ enum Keychain {
             kSecValueData as String: Data(value.utf8),
             kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
         ]
-        let status = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
+        var status = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
         if status == errSecItemNotFound {
             var add = query
             attributes.forEach { add[$0.key] = $0.value }
-            SecItemAdd(add as CFDictionary, nil)
+            status = SecItemAdd(add as CFDictionary, nil)
         }
+        if status != errSecSuccess {
+            assertionFailure("Keychain save failed for \(account): \(status)")
+            return false
+        }
+        return true
     }
 
     static func load(account: String) -> String? {

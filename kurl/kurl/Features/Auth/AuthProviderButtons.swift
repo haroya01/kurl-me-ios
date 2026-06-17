@@ -190,8 +190,6 @@ struct TwoFactorSheet: View {
                 .font(.system(size: 13 * unit))
                 .foregroundStyle(Palette.link)
                 .padding(.top, 14)
-
-                Spacer()
             }
             .padding(.horizontal, Metrics.gutter)
             .navigationTitle("2단계 인증")
@@ -202,7 +200,8 @@ struct TwoFactorSheet: View {
                 }
             }
         }
-        .presentationDetents([.medium])
+        // 키보드가 올라오면 .medium 이 답답해지니 .large 로 늘릴 수 있게 둔다.
+        .presentationDetents([.medium, .large])
         // 검증 중 드래그로 시트가 닫혀 무음 중단되는 것을 막는다 — 취소는 명시적 "취소" 버튼으로만.
         .interactiveDismissDisabled(isVerifying)
     }

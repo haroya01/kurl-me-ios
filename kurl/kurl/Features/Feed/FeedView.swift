@@ -232,6 +232,8 @@ struct FeedPage: View {
     @State private var model: FeedViewModel
     /// 구독함 게이트의 로그인 — 다른 인게이지 면과 같은 정식 로그인 시트로.
     @State private var showLoginSheet = false
+    /// 직전 로그인 상태 — 실제 인증 전환에서만 리셋한다(첫 로드 헛 epoch·빈 깜빡임 방지).
+    @State private var wasSignedIn = AuthStore.shared.isSignedIn
 
     init(source: FeedSource, active: Bool, zoom: Namespace.ID) {
         self.source = source
@@ -258,15 +260,15 @@ struct FeedPage: View {
             }
         }
         // 인증 전환을 task id 로 관찰 — 로그아웃 상태의 401 failed 고착과
-        // 계정 전환 후 이전 계정 피드 잔존을 모두 해소한다.
+        // 계정 전환 후 이전 계정 피드 잔존을 모두 해소한다. 단 실제 전환에서만
+        // 리셋한다(첫 발화는 초기값이라 헛 epoch·빈 깜빡임이 된다).
         .task(id: AuthStore.shared.isSignedIn) {
-            if source.requiresAuth {
-                guard AuthStore.shared.isSignedIn else {
-                    model.resetForAuthChange()
-                    return
-                }
+            let signedIn = AuthStore.shared.isSignedIn
+            if signedIn != wasSignedIn {
+                wasSignedIn = signedIn
                 model.resetForAuthChange()
             }
+            guard !source.requiresAuth || signedIn else { return }
             await model.loadInitial()
         }
     }
@@ -420,11 +422,12 @@ struct FeedPlaceholder: View {
             Button(action: action) {
                 HStack(spacing: 3) {
                     Text(actionTitle)
-                        .font(.system(size: 15, weight: .semibold))
+                        .typeScale(.meta)
                     Image(systemName: "arrow.right")
                         .font(.system(size: 12, weight: .semibold))
                 }
-                .foregroundStyle(Palette.accent)
+                // 텍스트/인라인 CTA = link(700), accent(600)는 비텍스트 마커 몫(§10.3).
+                .foregroundStyle(Palette.link)
                 .expandTapTarget(8)
             }
             .buttonStyle(.plain)
@@ -437,7 +440,7 @@ struct RowButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .background(
-                RoundedRectangle(cornerRadius: 10)
+                RoundedRectangle(cornerRadius: Metrics.radiusControl)
                     .fill(configuration.isPressed ? Palette.rowHighlight : .clear)
                     .padding(.horizontal, -10)
             )

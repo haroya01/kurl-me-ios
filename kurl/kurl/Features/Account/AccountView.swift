@@ -188,7 +188,8 @@ struct AccountView: View {
                     Spacer(minLength: 0)
                     Image(systemName: "chevron.right")
                         .font(.system(size: 13 * metaUnit, weight: .semibold))
-                        .foregroundStyle(Palette.secondary)
+                        // 유리 위 — 바로 위 이메일 줄처럼 시맨틱 색으로 vibrancy를 받는다(§1 규칙2).
+                        .foregroundStyle(.secondary)
                 }
                 .padding(18)
                 .glassEffect(.regular, in: .rect(cornerRadius: GlassTokens.panelRadius))
@@ -199,22 +200,25 @@ struct AccountView: View {
             .padding(.top, 16)
 
             // 내 페이지의 두 얼굴 — 블로그(글)와 명함(링크 모음). 같은 정체, 다른 문.
-            HStack(spacing: 10) {
-                NavigationLink(value: Route.author(username: auth.me?.username ?? "")) {
-                    pageChip("내 블로그", systemImage: "book")
-                }
-                .buttonStyle(.plain)
-                .glassEffect(.regular.interactive(), in: .capsule)
-                .disabled((auth.me?.username ?? "").isEmpty)
+            // 나란한 유리 캡슐 둘은 컨테이너로 묶어야 가까워질 때 녹아 붙는다(§1 규칙4).
+            GlassEffectContainer(spacing: 10) {
+                HStack(spacing: 10) {
+                    NavigationLink(value: Route.author(username: auth.me?.username ?? "")) {
+                        pageChip("내 블로그", systemImage: "book")
+                    }
+                    .buttonStyle(.plain)
+                    .glassEffect(.regular.interactive(), in: .capsule)
+                    .disabled((auth.me?.username ?? "").isEmpty)
 
-                Button {
-                    showCard = true
-                } label: {
-                    pageChip("내 명함", systemImage: "person.crop.rectangle")
+                    Button {
+                        showCard = true
+                    } label: {
+                        pageChip("내 명함", systemImage: "person.crop.rectangle")
+                    }
+                    .buttonStyle(.plain)
+                    .glassEffect(.regular.interactive(), in: .capsule)
+                    .disabled((auth.me?.username ?? "").isEmpty)
                 }
-                .buttonStyle(.plain)
-                .glassEffect(.regular.interactive(), in: .capsule)
-                .disabled((auth.me?.username ?? "").isEmpty)
             }
             .padding(.top, 10)
 

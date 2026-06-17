@@ -199,7 +199,7 @@ struct HighlightThreadSheet: View {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.system(size: 30 * unit))
                         .foregroundStyle(canSend ? Palette.accent : Palette.faint)
-                        .symbolEffect(.bounce, value: busy)
+                        .symbolEffect(.bounce, value: reduceMotion ? false : busy)
                 }
                 .buttonStyle(.plain)
                 .disabled(!canSend || busy)

@@ -85,7 +85,12 @@ struct SelectableProseText: UIViewRepresentable {
             if mark.start >= 0, mark.start < total {
                 let end = min(mark.end, total)
                 if mark.start < end {
-                    painted_range = NSRange(location: mark.start, length: end - mark.start)
+                    let candidate = NSRange(location: mark.start, length: end - mark.start)
+                    // 오프셋이 본문 수정으로 밀렸으면 같은 위치에 다른 글자가 온다 — 인용과
+                    // 대조해 어긋나면 정밀 경로를 버리고 폴백으로 강등(엉뚱한 span 칠 방지).
+                    if mark.quote.isEmpty || hay.substring(with: candidate) == mark.quote {
+                        painted_range = candidate
+                    }
                 }
             }
             if painted_range == nil, !mark.quote.isEmpty {

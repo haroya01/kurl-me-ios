@@ -161,13 +161,14 @@ struct CreateCollectionSheet: View {
                 .foregroundStyle(Palette.ink)
                 .padding(.top, 26)
 
-            TextField("컬렉션 이름", text: $title)
-                .font(.system(size: 16 * unit))
-                .foregroundStyle(Palette.ink)
-                .padding(.horizontal, 13)
-                .padding(.vertical, 12)
-                .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: 12))
-                .padding(.top, 16)
+            // 회색 채움 박스 대신 밑줄 — 수정 시트(EditCollectionSheet)와 같은 입력 문법(§10).
+            VStack(alignment: .leading, spacing: 9) {
+                TextField("컬렉션 이름", text: $title)
+                    .font(.system(size: 17 * unit))
+                    .foregroundStyle(Palette.ink)
+                Hairline()
+            }
+            .padding(.top, 18)
 
             Picker("공개 범위", selection: $visibility) {
                 ForEach([CollectionVisibility.private, .unlisted, .public], id: \.self) { v in
@@ -218,8 +219,10 @@ struct CreateCollectionSheet: View {
 }
 
 /// 컬렉션 수정 — 이름 + 공개 범위. 소개(blurb)는 보존해 함께 보낸다.
+/// 길(PATH)이면 제목·플레이스홀더를 "길"로 — 삭제 라벨과 어휘를 맞춘다.
 struct EditCollectionSheet: View {
     let id: Int64
+    let kind: CollectionKind
     let initialBlurb: String?
     let onSaved: () -> Void
 
@@ -230,10 +233,11 @@ struct EditCollectionSheet: View {
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
 
     init(
-        id: Int64, initialTitle: String, initialBlurb: String?,
+        id: Int64, kind: CollectionKind, initialTitle: String, initialBlurb: String?,
         initialVisibility: CollectionVisibility, onSaved: @escaping () -> Void
     ) {
         self.id = id
+        self.kind = kind
         self.initialBlurb = initialBlurb
         self.onSaved = onSaved
         _title = State(initialValue: initialTitle)
@@ -242,14 +246,14 @@ struct EditCollectionSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("컬렉션 수정")
+            Text(kind == .path ? "길 수정" : "컬렉션 수정")
                 .typeScale(.titleSmall)
                 .foregroundStyle(Palette.ink)
                 .padding(.top, 26)
 
             // 회색 채움 박스 대신 밑줄 — 입력이되 박스 없이(§10).
             VStack(alignment: .leading, spacing: 9) {
-                TextField("컬렉션 이름", text: $title)
+                TextField(kind == .path ? "길 이름" : "컬렉션 이름", text: $title)
                     .font(.system(size: 17 * unit))
                     .foregroundStyle(Palette.ink)
                 Hairline()

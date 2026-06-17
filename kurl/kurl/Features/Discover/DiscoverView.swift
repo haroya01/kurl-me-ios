@@ -93,7 +93,7 @@ struct DiscoverView: View {
             Text("작가를 팔로우하면, 그들이 컬렉션에 이은 글이 여기에 흘러요.")
         } actions: {
             Button("읽을 글 찾기") { TabRouter.shared.selection = 0 }
-                .foregroundStyle(Palette.accent)
+                .foregroundStyle(Palette.link)
         }
         .padding(.top, 80)
     }
@@ -103,7 +103,7 @@ struct DiscoverView: View {
             Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
         } actions: {
             Button("다시 시도") { Task { loading = true; await load() } }
-                .foregroundStyle(Palette.accent)
+                .foregroundStyle(Palette.link)
         }
         .padding(.top, 80)
     }
@@ -257,8 +257,7 @@ struct BlockPreview: View {
             Image(systemName: icon)
                 .font(.system(size: 9 * metaUnit, weight: .bold))
             Text(label)
-                .font(.system(size: 11 * metaUnit, weight: .bold))
-                .tracking(0.4)
+                .typeScale(.footnote)
         }
         .foregroundStyle(Palette.faint)
     }

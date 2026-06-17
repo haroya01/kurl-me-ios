@@ -86,6 +86,15 @@ enum Palette {
     static let codeText = Color(hex: 0xF1F5F9)      // slate-100
     static let inlineCodeBg = Color(light: 0xF1F5F9, dark: 0x1E293B)
     static let inlineCodeText = Color(light: 0x065F46, dark: 0x6EE7B7) // accent-800/300
+
+    // 구문 하이라이트 — §색 규율의 *유일한* 허용 다색 예외(어두운 codeBg 한정).
+    // 문자열은 브랜드 그린 계열로 묶고 나머지는 IDE 관습색. 인라인 매직 헥스가 아니라
+    // 여기서 한 곳으로 다스린다(흩어진 색 산포 금지).
+    static let codeComment = Color(hex: 0x7C8BA3)   // muted slate
+    static let codeKeyword = Color(hex: 0xF472B6)
+    static let codeString = Color(hex: 0x6EE7B7)    // accent-300 계열
+    static let codeNumber = Color(hex: 0xFCD34D)
+    static let codeType = Color(hex: 0x7DD3FC)
 }
 
 extension ShapeStyle where Self == Color {

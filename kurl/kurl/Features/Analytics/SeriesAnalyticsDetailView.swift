@@ -151,7 +151,7 @@ struct SeriesAnalyticsDetailView: View {
                             Text("다음 화 \(pct)%")
                         }
                         .font(.system(size: 12 * metaUnit, weight: .medium))
-                        .foregroundStyle(pct >= 50 ? Palette.accentMarker : Palette.secondary)
+                        .foregroundStyle(Palette.secondary)
                         .accessibilityLabel(Text("다음 화로 \(pct)퍼센트 이어 읽음"))
                     }
                 }

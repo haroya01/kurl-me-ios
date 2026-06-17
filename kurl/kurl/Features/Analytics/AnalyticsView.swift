@@ -157,28 +157,27 @@ struct AnalyticsView: View {
                 RailHeading("최근 \(overview.windowDays)일")
                 Spacer()
                 // 기간은 서버가 받는 파라미터 — 30일 고정 리포트를 끝낸다.
-                GlassEffectContainer(spacing: 0) {  // 0 = 닿을 때만 — 칩이 서로 녹아 붙지 않게
-                    HStack(spacing: 8) {
-                        ForEach([7, 30, 90], id: \.self) { option in
-                            Button {
-                                changeWindow(option)
-                            } label: {
-                                Text("\(option)일")
-                                    .font(.system(
-                                        size: 12 * metaUnit,
-                                        weight: days == option ? .semibold : .regular))
-                                    .foregroundStyle(
-                                        days == option
-                                            ? AnyShapeStyle(Color(uiColor: .systemBackground))
-                                            : AnyShapeStyle(.secondary))
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 6)
-                                    .contentShape(Capsule())
-                            }
-                            .buttonStyle(.plain)
-                            .selectorPill(selected: days == option)
-                            .accessibilityAddTraits(days == option ? [.isSelected] : [])
+                // 칩은 중립 잉크 알약(유리 아님) — 유리 컨테이너 없이 담백한 줄로 둔다.
+                HStack(spacing: 8) {
+                    ForEach([7, 30, 90], id: \.self) { option in
+                        Button {
+                            changeWindow(option)
+                        } label: {
+                            Text("\(option)일")
+                                .font(.system(
+                                    size: 12 * metaUnit,
+                                    weight: days == option ? .semibold : .regular))
+                                .foregroundStyle(
+                                    days == option
+                                        ? AnyShapeStyle(Color(uiColor: .systemBackground))
+                                        : AnyShapeStyle(.secondary))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .contentShape(Capsule())
                         }
+                        .buttonStyle(.plain)
+                        .selectorPill(selected: days == option)
+                        .accessibilityAddTraits(days == option ? [.isSelected] : [])
                     }
                 }
             }
@@ -222,13 +221,11 @@ struct AnalyticsView: View {
             HStack(alignment: .center) {
                 RailHeading("글별 성과")
                 Spacer()
-                // 정렬 = 유리 칩 클러스터 — 가까이 붙어 서로 녹아 보이는 컨트롤 군.
-                GlassEffectContainer(spacing: 0) {  // 0 = 닿을 때만 — 칩이 서로 녹아 붙지 않게
-                    HStack(spacing: 8) {
-                        sortChip("조회", key: "views")
-                        sortChip("좋아요", key: "likes")
-                        sortChip("최신", key: "recent")
-                    }
+                // 정렬 칩도 중립 잉크 알약 — 유리 컨테이너 없이 담백한 줄로 둔다.
+                HStack(spacing: 8) {
+                    sortChip("조회", key: "views")
+                    sortChip("좋아요", key: "likes")
+                    sortChip("최신", key: "recent")
                 }
             }
             .padding(.top, 24)
