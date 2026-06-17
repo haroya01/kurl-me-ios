@@ -7,10 +7,20 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		04147625300C869C640ADAC5 /* SnapshotSamplesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 479E161D9E2882B60F5B2EA3 /* SnapshotSamplesTests.swift */; };
+		C3BF9305E467C9F295C69974 /* SnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = 866D5741CA182CC42D365DD5 /* SnapshotTesting */; };
+		C3C9FDE5254137DAB5A65AB0 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 39C7AB90AF0314D69BB840C3 /* Foundation.framework */; };
 		D400000000000000000000AC /* kurlWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D400000000000000000000A1 /* kurlWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		C16E2BA59829912412AA4923 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D3696C742FD48A89006D9F90 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D3696C7B2FD48A89006D9F90;
+			remoteInfo = kurl;
+		};
 		D400000000000000000000AA /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = D3696C742FD48A89006D9F90 /* Project object */;
@@ -42,6 +52,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		39C7AB90AF0314D69BB840C3 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		479E161D9E2882B60F5B2EA3 /* SnapshotSamplesTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SnapshotSamplesTests.swift; path = SnapshotSamplesTests.swift; sourceTree = "<group>"; };
+		5226FDED204BF66D262A0C1D /* kurlTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = kurlTests.xctest; path = kurlTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D3696C7C2FD48A89006D9F90 /* kurl.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = kurl.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D400000000000000000000A1 /* kurlWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = kurlWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		D500000000000000000000B1 /* kurlUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = kurlUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -60,6 +73,8 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		D3696C7E2FD48A89006D9F90 /* kurl */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = kurl;
 			sourceTree = "<group>";
 		};
@@ -73,12 +88,23 @@
 		};
 		D500000000000000000000B4 /* kurlUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
 			path = kurlUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		BDC0C1888EB74E29D834FDB5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C3C9FDE5254137DAB5A65AB0 /* Foundation.framework in Frameworks */,
+				C3BF9305E467C9F295C69974 /* SnapshotTesting in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		D3696C792FD48A89006D9F90 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -103,6 +129,22 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		000D7650E2C1B9AADE9F5506 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				39C7AB90AF0314D69BB840C3 /* Foundation.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
+		8BC6B003A66B4459134CD8F9 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				000D7650E2C1B9AADE9F5506 /* iOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		D3696C732FD48A89006D9F90 = {
 			isa = PBXGroup;
 			children = (
@@ -110,6 +152,8 @@
 				D400000000000000000000A2 /* kurlWidget */,
 				D500000000000000000000B4 /* kurlUITests */,
 				D3696C7D2FD48A89006D9F90 /* Products */,
+				8BC6B003A66B4459134CD8F9 /* Frameworks */,
+				E9FEEA2BA22342C871A72312 /* kurlTests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -119,13 +163,44 @@
 				D3696C7C2FD48A89006D9F90 /* kurl.app */,
 				D400000000000000000000A1 /* kurlWidgetExtension.appex */,
 				D500000000000000000000B1 /* kurlUITests.xctest */,
+				5226FDED204BF66D262A0C1D /* kurlTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		E9FEEA2BA22342C871A72312 /* kurlTests */ = {
+			isa = PBXGroup;
+			children = (
+				479E161D9E2882B60F5B2EA3 /* SnapshotSamplesTests.swift */,
+			);
+			name = kurlTests;
+			path = kurlTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		2A8089AAE8A270D01EC4791A /* kurlTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 265691AE948B4F88D5A84DEF /* Build configuration list for PBXNativeTarget "kurlTests" */;
+			buildPhases = (
+				7E75AB7D91A3C36F9C33792E /* Sources */,
+				BDC0C1888EB74E29D834FDB5 /* Frameworks */,
+				BADD00CA80736F655ABF0F91 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A5768BB5B4985160AD088624 /* PBXTargetDependency */,
+			);
+			name = kurlTests;
+			packageProductDependencies = (
+				866D5741CA182CC42D365DD5 /* SnapshotTesting */,
+			);
+			productName = kurlTests;
+			productReference = 5226FDED204BF66D262A0C1D /* kurlTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		D3696C7B2FD48A89006D9F90 /* kurl */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = D3696C872FD48A8B006D9F90 /* Build configuration list for PBXNativeTarget "kurl" */;
@@ -144,8 +219,6 @@
 				D3696C7E2FD48A89006D9F90 /* kurl */,
 			);
 			name = kurl;
-			packageProductDependencies = (
-			);
 			productName = kurl;
 			productReference = D3696C7C2FD48A89006D9F90 /* kurl.app */;
 			productType = "com.apple.product-type.application";
@@ -166,8 +239,6 @@
 				D400000000000000000000A2 /* kurlWidget */,
 			);
 			name = kurlWidgetExtension;
-			packageProductDependencies = (
-			);
 			productName = kurlWidgetExtension;
 			productReference = D400000000000000000000A1 /* kurlWidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
@@ -189,8 +260,6 @@
 				D500000000000000000000B4 /* kurlUITests */,
 			);
 			name = kurlUITests;
-			packageProductDependencies = (
-			);
 			productName = kurlUITests;
 			productReference = D500000000000000000000B1 /* kurlUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
@@ -230,6 +299,9 @@
 			);
 			mainGroup = D3696C732FD48A89006D9F90;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				D4ECD9E0695008F890684813 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D3696C7D2FD48A89006D9F90 /* Products */;
 			projectDirPath = "";
@@ -238,11 +310,19 @@
 				D3696C7B2FD48A89006D9F90 /* kurl */,
 				D400000000000000000000A6 /* kurlWidgetExtension */,
 				D500000000000000000000B5 /* kurlUITests */,
+				2A8089AAE8A270D01EC4791A /* kurlTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		BADD00CA80736F655ABF0F91 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		D3696C7A2FD48A89006D9F90 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -267,6 +347,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		7E75AB7D91A3C36F9C33792E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				04147625300C869C640ADAC5 /* SnapshotSamplesTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		D3696C782FD48A89006D9F90 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -291,6 +379,12 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		A5768BB5B4985160AD088624 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = kurl;
+			target = D3696C7B2FD48A89006D9F90 /* kurl */;
+			targetProxy = C16E2BA59829912412AA4923 /* PBXContainerItemProxy */;
+		};
 		D400000000000000000000AB /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = D400000000000000000000A6 /* kurlWidgetExtension */;
@@ -304,6 +398,23 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		804272E4D3D419EFE0046DA5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 5R78H9H4YU;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = focustime.kurlTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/kurl.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)kurl";
+			};
+			name = Debug;
+		};
 		D3696C852FD48A8B006D9F90 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -579,9 +690,36 @@
 			};
 			name = Release;
 		};
+		E82B28DB5E25B140AC2394B4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 5R78H9H4YU;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = focustime.kurlTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/kurl.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)kurl";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		265691AE948B4F88D5A84DEF /* Build configuration list for PBXNativeTarget "kurlTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E82B28DB5E25B140AC2394B4 /* Release */,
+				804272E4D3D419EFE0046DA5 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		D3696C772FD48A89006D9F90 /* Build configuration list for PBXProject "kurl" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -619,6 +757,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		D4ECD9E0695008F890684813 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pointfreeco/swift-snapshot-testing";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.17.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		866D5741CA182CC42D365DD5 /* SnapshotTesting */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D4ECD9E0695008F890684813 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */;
+			productName = SnapshotTesting;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = D3696C742FD48A89006D9F90 /* Project object */;
 }
