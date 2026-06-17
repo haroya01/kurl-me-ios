@@ -32,6 +32,11 @@ struct ComposeView: View {
     @State private var editorFocused = false
     /// 캐럿이 표 안에 있는가 — 그때만 행·열 편집 바를 마크다운 바 위에 띄운다.
     @State private var caretInTable = false
+    /// 캐럿이 이미지 줄에 있는가 — 그때만 폭·캡션·삭제 편집 바를 띄운다.
+    @State private var caretOnImage = false
+    /// 이미 넣은 이미지의 캡션을 고치는 알럿.
+    @State private var showEditImageCaption = false
+    @State private var editImageCaptionText = ""
 
     @State private var title = ""
     @State private var tags: [String] = []
@@ -126,6 +131,14 @@ struct ComposeView: View {
                         TableActionBar(perform: applyTableAction)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
+                    // 캐럿이 이미지 줄일 때만 — 폭·캡션을 바꾸고 지운다(마크다운을 건드리지 않고).
+                    if caretOnImage {
+                        ImageActionBar(
+                            selectedWidth: editorController.currentImageWidth(),
+                            perform: applyImageAction
+                        )
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
                     MarkdownSnippetBar(perform: applySnippet) { editorController.dismissKeyboard() }
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -133,6 +146,7 @@ struct ComposeView: View {
         }
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: editorFocused)
         .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: caretInTable)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: caretOnImage)
         .navigationTitle(existing == nil ? "새 글" : "편집")
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
@@ -216,6 +230,14 @@ struct ComposeView: View {
         } message: {
             Text("이미지 아래에 보일 설명 — 비워도 됩니다.")
         }
+        // 이미 넣은 이미지의 캡션 고치기 — 이미지 편집 바의 ‘캡션’ 버튼이 연다.
+        .alert("캡션", isPresented: $showEditImageCaption) {
+            TextField("이미지 설명", text: $editImageCaptionText)
+            Button("저장") { confirmEditImageCaption() }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("이미지 아래에 보일 설명 — 비우면 캡션이 사라집니다.")
+        }
     }
 
     // MARK: 메타 영역 — 캔버스엔 제목뿐. 태그·소개글·시리즈·커버는 발행 시트의 일.
@@ -236,9 +258,15 @@ struct ComposeView: View {
             text: $markdown, controller: editorController,
             onFocusChange: { focused in
                 editorFocused = focused
-                if !focused { caretInTable = false }
+                if !focused {
+                    caretInTable = false
+                    caretOnImage = false
+                }
             },
-            onContextChange: { inTable in caretInTable = inTable })
+            onContextChange: { ctx in
+                caretInTable = ctx == .table
+                caretOnImage = ctx == .image
+            })
         .padding(.horizontal, Metrics.gutter - 4)
         .overlay(alignment: .topLeading) {
             if markdown.isEmpty {
@@ -1011,8 +1039,15 @@ struct ComposeView: View {
             action != .video {
             markdown = editorController.currentText
         }
-        // 표를 막 넣었으면 곧장 컨텍스트 바가 뜨도록(델리게이트 selection 콜백을 안 거치므로 수동).
-        caretInTable = editorController.isCaretInTable()
+        // 표·이미지를 막 넣었으면 곧장 컨텍스트 바가 뜨도록(델리게이트 콜백을 안 거치므로 수동).
+        refreshCaretContext()
+    }
+
+    /// 프로그램 삽입/치환 뒤 캐럿 위치의 성격을 다시 읽어 컨텍스트 바를 켜고 끈다.
+    private func refreshCaretContext() {
+        let ctx = editorController.caretContext()
+        caretInTable = ctx == .table
+        caretOnImage = ctx == .image
     }
 
     /// 표 편집 바 → 컨트롤러. 행·열을 늘리고 줄인 뒤 바인딩·컨텍스트를 동기화한다.
@@ -1024,7 +1059,31 @@ struct ComposeView: View {
         case .deleteColumn: editorController.deleteTableColumn()
         }
         markdown = editorController.currentText
-        caretInTable = editorController.isCaretInTable()
+        refreshCaretContext()
+        editorController.focus()
+    }
+
+    /// 이미지 편집 바 → 컨트롤러. 폭·캡션을 바꾸거나 지운다. 캡션은 알럿을 거친다.
+    private func applyImageAction(_ action: ImageActionBar.Action) {
+        switch action {
+        case .standard: editorController.setImageWidth(nil)
+        case .wide: editorController.setImageWidth("wide")
+        case .half: editorController.setImageWidth("half")
+        case .caption:
+            editImageCaptionText = editorController.currentImageCaption()
+            showEditImageCaption = true
+            return  // 알럿 확인에서 동기화한다.
+        case .delete: editorController.removeImage()
+        }
+        markdown = editorController.currentText
+        refreshCaretContext()
+        editorController.focus()
+    }
+
+    private func confirmEditImageCaption() {
+        editorController.setImageCaption(editImageCaptionText)
+        markdown = editorController.currentText
+        refreshCaretContext()
         editorController.focus()
     }
 
@@ -1292,6 +1351,85 @@ private struct TableActionBar: View {
             .glassEffect(.regular.interactive(), in: .capsule)
         }
         .padding(.horizontal, Metrics.gutter)
+    }
+}
+
+/// 이미지 편집 바 — 캐럿이 이미지 줄에 있을 때만 뜬다. 폭(기본/와이드/하프)을 한 탭으로 바꾸고,
+/// 캡션을 고치고, 지운다. 마크다운(`![…](…)`)은 보이지 않으므로 손댈 일이 없다.
+private struct ImageActionBar: View {
+    let selectedWidth: String?
+    let perform: (Action) -> Void
+
+    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+
+    enum Action: Identifiable, Hashable {
+        case standard, wide, half, caption, delete
+        var id: Self { self }
+    }
+
+    private var widths: [(action: Action, label: LocalizedStringKey, icon: String, value: String?)] {
+        [
+            (.standard, "기본", "rectangle.center.inset.filled", nil),
+            (.wide, "와이드", "rectangle", "wide"),
+            (.half, "하프", "rectangle.split.2x1", "half"),
+        ]
+    }
+
+    var body: some View {
+        GlassEffectContainer(spacing: 0) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 0) {
+                    ForEach(widths, id: \.action) { item in
+                        let active = item.value == selectedWidth
+                        Button {
+                            perform(item.action)
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: item.icon)
+                                    .font(.system(size: 12 * unit, weight: .semibold))
+                                Text(item.label)
+                                    .font(.system(size: 13 * unit, weight: active ? .semibold : .medium))
+                            }
+                            .foregroundStyle(active ? Palette.link : Palette.secondary)
+                            .padding(.horizontal, 13)
+                            .frame(height: 44)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(Text(item.label))
+                        .accessibilityAddTraits(active ? .isSelected : [])
+                    }
+
+                    Divider().frame(height: 22).padding(.horizontal, 4)
+
+                    barButton("캡션", icon: "text.bubble", tint: Palette.ink) { perform(.caption) }
+                    barButton("삭제", icon: "trash", tint: Palette.secondary) { perform(.delete) }
+                }
+                .padding(.horizontal, 4)
+            }
+            .frame(height: 44)
+            .glassEffect(.regular.interactive(), in: .capsule)
+        }
+        .padding(.horizontal, Metrics.gutter)
+    }
+
+    private func barButton(
+        _ label: LocalizedStringKey, icon: String, tint: Color, action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.system(size: 12 * unit, weight: .semibold))
+                Text(label)
+                    .font(.system(size: 13 * unit, weight: .medium))
+            }
+            .foregroundStyle(tint)
+            .padding(.horizontal, 13)
+            .frame(height: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(label))
     }
 }
 

@@ -61,8 +61,8 @@ struct MarkdownTextView: UIViewRepresentable {
     @Binding var text: String
     let controller: MarkdownEditorController
     var onFocusChange: (Bool) -> Void
-    /// 캐럿이 표 안/밖으로 들고날 때 — 컴포즈가 표 편집 컨텍스트 바를 켜고 끈다.
-    var onContextChange: (Bool) -> Void = { _ in }
+    /// 캐럿 위치의 성격이 바뀔 때 — 컴포즈가 표/이미지 편집 컨텍스트 바를 켜고 끈다.
+    var onContextChange: (EditorCaretContext) -> Void = { _ in }
 
     func makeUIView(context: Context) -> UITextView {
         let textView = MarkdownInputTextView()
@@ -146,18 +146,18 @@ struct MarkdownTextView: UIViewRepresentable {
             lastEditorText = textView.text
             // 치는 즉시 렌더 — 조합이 끝난 글자부터 제목·굵게 등으로 입혀진다.
             MarkdownSyntaxHighlighter.apply(to: textView)
-            parent.onContextChange(parent.controller.isCaretInTable())
+            parent.onContextChange(parent.controller.caretContext())
         }
 
-        // 커서가 움직일 때마다 표 안/밖 여부를 컴포즈에 알린다(표 편집 바 토글).
+        // 커서가 움직일 때마다 캐럿 위치의 성격(표/이미지)을 컴포즈에 알린다(컨텍스트 바 토글).
         func textViewDidChangeSelection(_ textView: UITextView) {
             guard textView.markedTextRange == nil else { return }
-            parent.onContextChange(parent.controller.isCaretInTable())
+            parent.onContextChange(parent.controller.caretContext())
         }
 
         func textViewDidBeginEditing(_ textView: UITextView) {
             parent.onFocusChange(true)
-            parent.onContextChange(parent.controller.isCaretInTable())
+            parent.onContextChange(parent.controller.caretContext())
         }
 
         func textViewDidEndEditing(_ textView: UITextView) {
@@ -168,6 +168,9 @@ struct MarkdownTextView: UIViewRepresentable {
         }
     }
 }
+
+/// 캐럿이 놓인 곳의 성격 — 컴포즈가 그에 맞는 컨텍스트 편집 바(표/이미지)를 띄운다.
+enum EditorCaretContext { case none, table, image }
 
 /// 스니펫 바 → 캔버스 다리. 커서/선택 기준 삽입을 UIKit 의 진짜 커서로 수행한다.
 /// 모든 동작은 undo 스택을 보존하고(`replace(_:withText:)`), 조합 중에는 거부한다.
@@ -386,6 +389,14 @@ final class MarkdownEditorController {
         return tableBlock(in: textView) != nil
     }
 
+    /// 캐럿 위치의 성격(표/이미지/그 외) — 컴포즈가 띄울 컨텍스트 바를 고른다.
+    func caretContext() -> EditorCaretContext {
+        guard let textView, textView.markedTextRange == nil else { return .none }
+        if tableBlock(in: textView) != nil { return .table }
+        if imageOnCaretLine(in: textView) != nil { return .image }
+        return .none
+    }
+
     private struct TableBlock {
         var charRange: NSRange  // 표 전체를 덮는 치환 범위(마지막 줄바꿈 제외)
         var startLocation: Int  // = charRange.location
@@ -568,6 +579,111 @@ final class MarkdownEditorController {
             block, lines: renderTable(header: header, body: body),
             caretLine: block.caretLine == 1 ? 0 : block.caretLine,
             caretColumn: min(col, max(0, header.count - 1)))
+    }
+
+    // MARK: 이미지 편집 — 넣은 뒤에도 마크다운을 건드리지 않고 폭·캡션을 바꾸고 지운다.
+    // 캐럿이 이미지 줄에 있으면 컴포즈가 이미지 편집 바(기본/와이드/하프·캡션·삭제)를 띄운다.
+
+    private struct ImageOnLine {
+        var lineRange: NSRange  // 줄 전체(줄바꿈 포함) — 삭제용
+        var contentRange: NSRange  // 줄바꿈 제외 — 치환용
+        var width: String?  // nil·wide·full·half
+        var alt: String
+        var url: String
+        var caption: String
+    }
+
+    /// 표준 image + 선택적 폭 마커(«…»)·캡션(title)을 한 줄에서 통째로 파싱.
+    private static let imageLineRegex = try! NSRegularExpression(
+        pattern: "^\\s*!\\[(?:«(wide|full|half)»\\s*)?([^\\]\\n]*)\\]\\(([^)\\s]+)(?:\\s+\"([^\"]*)\")?\\)\\s*$")
+
+    private func imageOnCaretLine(in textView: UITextView) -> ImageOnLine? {
+        let ns = textView.text as NSString
+        guard ns.length > 0 else { return nil }
+        let caret = min(textView.selectedRange.location, ns.length)
+        let lineRange = ns.lineRange(for: NSRange(location: caret, length: 0))
+        // 줄바꿈을 떼어 치환 범위(content)를 만든다.
+        var contentLen = lineRange.length
+        while contentLen > 0 {
+            let c = ns.substring(with: NSRange(location: lineRange.location + contentLen - 1, length: 1))
+            if c == "\n" || c == "\r" { contentLen -= 1 } else { break }
+        }
+        let contentRange = NSRange(location: lineRange.location, length: contentLen)
+        let content = ns.substring(with: contentRange) as NSString
+        guard
+            let m = Self.imageLineRegex.firstMatch(
+                in: content as String, range: NSRange(location: 0, length: content.length))
+        else { return nil }
+        func group(_ i: Int) -> String? {
+            let r = m.range(at: i)
+            return r.location == NSNotFound ? nil : content.substring(with: r)
+        }
+        guard let url = group(3) else { return nil }
+        return ImageOnLine(
+            lineRange: lineRange, contentRange: contentRange,
+            width: group(1), alt: group(2) ?? "", url: url, caption: group(4) ?? "")
+    }
+
+    private func buildImageMarkdown(width: String?, alt: String, url: String, caption: String) -> String {
+        let marker = width.map { "«\($0)» " } ?? ""
+        let cap =
+            caption.isEmpty ? "" : " \"\(caption.replacingOccurrences(of: "\"", with: "'"))\""
+        return "![\(marker)\(alt)](\(url)\(cap))"
+    }
+
+    func currentImageWidth() -> String? {
+        guard let textView else { return nil }
+        return imageOnCaretLine(in: textView)?.width
+    }
+
+    func currentImageCaption() -> String {
+        guard let textView else { return "" }
+        return imageOnCaretLine(in: textView)?.caption ?? ""
+    }
+
+    /// 캐럿이 놓인 이미지의 폭을 바꾼다(nil=기본). 폭만 바꾸고 캡션·대체텍스트는 보존.
+    func setImageWidth(_ width: String?) {
+        guard let textView, textView.markedTextRange == nil,
+            let img = imageOnCaretLine(in: textView)
+        else { return }
+        let md = buildImageMarkdown(width: width, alt: img.alt, url: img.url, caption: img.caption)
+        replaceImage(in: textView, content: img.contentRange, with: md)
+    }
+
+    /// 캐럿이 놓인 이미지의 캡션을 바꾼다(빈 문자열=캡션 제거).
+    func setImageCaption(_ caption: String) {
+        guard let textView, textView.markedTextRange == nil,
+            let img = imageOnCaretLine(in: textView)
+        else { return }
+        let trimmed = caption.trimmingCharacters(in: .whitespacesAndNewlines)
+        let md = buildImageMarkdown(width: img.width, alt: img.alt, url: img.url, caption: trimmed)
+        replaceImage(in: textView, content: img.contentRange, with: md)
+    }
+
+    /// 캐럿이 놓인 이미지 줄을 통째로 지운다.
+    func removeImage() {
+        guard let textView, textView.markedTextRange == nil,
+            let img = imageOnCaretLine(in: textView)
+        else { return }
+        guard let s = textView.position(from: textView.beginningOfDocument, offset: img.lineRange.location),
+            let e = textView.position(from: s, offset: img.lineRange.length),
+            let range = textView.textRange(from: s, to: e)
+        else { return }
+        textView.replace(range, withText: "")
+        let limit = (textView.text as NSString).length
+        textView.selectedRange = NSRange(location: min(img.lineRange.location, limit), length: 0)
+        MarkdownSyntaxHighlighter.apply(to: textView)
+    }
+
+    private func replaceImage(in textView: UITextView, content: NSRange, with md: String) {
+        guard let s = textView.position(from: textView.beginningOfDocument, offset: content.location),
+            let e = textView.position(from: s, offset: content.length),
+            let range = textView.textRange(from: s, to: e)
+        else { return }
+        textView.replace(range, withText: md)
+        // 마크다운은 숨겨져 보이지 않으므로 커서는 줄 머리에 둔다(편집 바가 계속 이 이미지를 가리키게).
+        textView.selectedRange = NSRange(location: content.location, length: 0)
+        MarkdownSyntaxHighlighter.apply(to: textView)
     }
 
     private func insertBlock(_ snippet: String, caretOffsetFromStart: Int?) {

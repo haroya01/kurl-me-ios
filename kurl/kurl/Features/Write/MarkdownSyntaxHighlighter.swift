@@ -250,7 +250,9 @@ enum MarkdownSyntaxHighlighter {
         static let italic = make("(?<![*\\w])\\*([^*\\n]+)\\*(?![*\\w])")
         static let strike = make("~~([^~\\n]+)~~")
         static let link = make("\\[([^\\]\\n]+)\\]\\([^)\\n]+\\)")
-        static let image = make("!\\[[^\\]\\n]*\\]\\(([^)\\s]+)\\)")
+        // 선택적 캡션(표준 image title `"…"`)까지 한 매치로 — 캡션 있는 이미지도 본문에서
+        // 마크다운을 숨기고 썸네일만 보이게(없으면 마크다운 원문이 그대로 노출되던 버그).
+        static let image = make("!\\[[^\\]\\n]*\\]\\(([^)\\s]+)(?:\\s+\"[^\"]*\")?\\)")
 
         static func make(_ pattern: String) -> NSRegularExpression {
             // 패턴은 컴파일타임 상수 — 실패할 수 없다.
