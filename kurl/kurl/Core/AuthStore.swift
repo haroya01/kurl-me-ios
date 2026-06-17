@@ -260,6 +260,7 @@ final class AuthStore {
     private func tearDownSessionState() {
         BookmarkStore.shared.reset()
         PostReadStore.shared.reset()
+        BlockStore.shared.reset()
         OfflineStore.shared.removeAll()
         AnalyticsSnapshot.clear()
         WidgetCenter.shared.reloadAllTimelines()

@@ -53,8 +53,8 @@
 
 /* Begin PBXFileReference section */
 		39C7AB90AF0314D69BB840C3 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
-		479E161D9E2882B60F5B2EA3 /* SnapshotSamplesTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SnapshotSamplesTests.swift; path = SnapshotSamplesTests.swift; sourceTree = "<group>"; };
-		5226FDED204BF66D262A0C1D /* kurlTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = kurlTests.xctest; path = kurlTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		479E161D9E2882B60F5B2EA3 /* SnapshotSamplesTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SnapshotSamplesTests.swift; sourceTree = "<group>"; };
+		5226FDED204BF66D262A0C1D /* kurlTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = kurlTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D3696C7C2FD48A89006D9F90 /* kurl.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = kurl.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D400000000000000000000A1 /* kurlWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = kurlWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		D500000000000000000000B1 /* kurlUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = kurlUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -73,8 +73,6 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		D3696C7E2FD48A89006D9F90 /* kurl */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = kurl;
 			sourceTree = "<group>";
 		};
@@ -88,8 +86,6 @@
 		};
 		D500000000000000000000B4 /* kurlUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
 			path = kurlUITests;
 			sourceTree = "<group>";
 		};
@@ -173,7 +169,6 @@
 			children = (
 				479E161D9E2882B60F5B2EA3 /* SnapshotSamplesTests.swift */,
 			);
-			name = kurlTests;
 			path = kurlTests;
 			sourceTree = "<group>";
 		};

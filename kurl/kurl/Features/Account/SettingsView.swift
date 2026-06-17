@@ -81,6 +81,27 @@ struct SettingsView: View {
             .padding(.vertical, 13)
 
             if auth.isSignedIn {
+                RailHeading("안전")
+                    .padding(.top, 28)
+                    .padding(.bottom, 4)
+                NavigationLink {
+                    BlockedUsersView()
+                } label: {
+                    HStack(spacing: 10) {
+                        settingIcon("hand.raised")
+                        Text("차단한 사용자")
+                            .typeScale(.body)
+                            .foregroundStyle(Palette.ink)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Palette.faint)
+                    }
+                    .padding(.vertical, 13)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
                 Hairline()
                     .padding(.top, 16)
                 Button(role: .destructive) {

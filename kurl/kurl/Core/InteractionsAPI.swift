@@ -159,5 +159,28 @@ enum InteractionsAPI {
             authenticated: signedIn)
     }
 
+    // MARK: 차단(block) — App Store 1.2(UGC). 차단하면 그 사용자의 글·댓글·노트를 더는 안 본다.
+
+    struct BlockedUser: Decodable, Identifiable {
+        let id: Int64
+        let username: String
+        let avatarUrl: String?
+    }
+
+    /// 작가 차단 — `PUT /users/{username}/block`(204, 멱등).
+    static func block(username: String) async throws {
+        try await client.putVoid("/users/\(username)/block", authenticated: true)
+    }
+
+    /// 차단 해제 — `DELETE /users/{username}/block`(204).
+    static func unblock(username: String) async throws {
+        try await client.deleteVoid("/users/\(username)/block", authenticated: true)
+    }
+
+    /// 내가 차단한 사용자 목록 — 관리 화면 + 클라이언트 콘텐츠 필터의 소스.
+    static func listBlocked() async throws -> [BlockedUser] {
+        try await client.get("/users/me/blocks", authenticated: true)
+    }
+
     private struct Empty: Encodable {}
 }

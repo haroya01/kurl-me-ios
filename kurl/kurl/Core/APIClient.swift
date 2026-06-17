@@ -111,6 +111,12 @@ struct APIClient {
         _ = try await perform(request, authenticated: authenticated)
     }
 
+    /// 바디·응답 없는 PUT (204) — 멱등 토글 온(차단 등).
+    func putVoid(_ path: String, authenticated: Bool = false) async throws {
+        let request = try makeRequest(path: path, query: [:], method: "PUT")
+        _ = try await perform(request, authenticated: authenticated)
+    }
+
     /// JSON 바디 PUT (본문 교체 등).
     func put<B: Encodable, T: Decodable>(
         _ path: String,

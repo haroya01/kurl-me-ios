@@ -880,12 +880,18 @@ struct PostDetailView: View {
             } else {
                 RailHeading("댓글 \(model.comments.count)")
                 // 대화는 가벼운 행으로 — 스레드 사이만 헤어라인으로 나눈다(박스 카드 ❌).
-                let threads = model.comments.filter { $0.parentId == nil }
+                // 차단한 작가의 댓글·답글은 숨긴다(App Store 1.2 — 차단 = 그 사용자 콘텐츠 안 보임).
+                let threads = model.comments.filter {
+                    $0.parentId == nil && !BlockStore.shared.isBlocked($0.author.username)
+                }
                 ForEach(Array(threads.enumerated()), id: \.element.id) { index, parent in
                     CommentThread(
                         model: model,
                         comment: parent,
-                        replies: model.comments.filter { $0.parentId == parent.id },
+                        replies: model.comments.filter {
+                            $0.parentId == parent.id
+                                && !BlockStore.shared.isBlocked($0.author.username)
+                        },
                         replyTo: $replyTo,
                         postAuthorId: authorId)
                     if index < threads.count - 1 { Hairline() }

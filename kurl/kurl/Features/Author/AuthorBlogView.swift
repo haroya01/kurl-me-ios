@@ -17,6 +17,7 @@ struct AuthorBlogView: View {
     @State private var showCard = false
     @State private var showNavTitle = false
     @State private var showReport = false
+    @State private var showBlockConfirm = false
     @ScaledMetric(relativeTo: .body) private var navUnit: CGFloat = 1
 
     /// 로드된 작가 id — 신고 대상. 내가 아닐 때만 신고를 노출한다.
@@ -72,6 +73,21 @@ struct AuthorBlogView: View {
             if let author, !isOwnAuthor {
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
+                        if BlockStore.shared.isBlocked(id: author.id) {
+                            Button {
+                                Task {
+                                    try? await BlockStore.shared.unblock(
+                                        id: author.id, username: author.username)
+                                    ToastCenter.shared.show(String(localized: "차단을 해제했어요"))
+                                }
+                            } label: {
+                                Label("차단 해제", systemImage: "hand.raised.slash")
+                            }
+                        } else {
+                            Button(role: .destructive) { showBlockConfirm = true } label: {
+                                Label("차단", systemImage: "hand.raised")
+                            }
+                        }
                         Button(role: .destructive) { showReport = true } label: {
                             Label("신고", systemImage: "flag")
                         }
@@ -85,10 +101,33 @@ struct AuthorBlogView: View {
             }
         }
         .reportDialog(isPresented: $showReport, subjectType: "USER", subjectId: author?.id ?? 0)
+        .confirmationDialog(
+            "\(author?.username ?? "") 님을 차단할까요?", isPresented: $showBlockConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("차단", role: .destructive) {
+                guard let a = author else { return }
+                Task {
+                    do {
+                        try await BlockStore.shared.block(id: a.id, username: a.username)
+                        ToastCenter.shared.show(
+                            String(localized: "차단했어요 — 이 작가의 글·댓글이 숨겨집니다"))
+                    } catch {
+                        ToastCenter.shared.show(String(localized: "차단하지 못했어요"))
+                    }
+                }
+            }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("차단하면 이 작가의 글·댓글·노트가 더는 보이지 않습니다.")
+        }
         .toolbarBackground(showNavTitle ? .automatic : .hidden, for: .navigationBar)
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
-        .task { await load() }
+        .task {
+            await load()
+            await BlockStore.shared.hydrateIfNeeded()
+        }
     }
 
     @ViewBuilder

@@ -47,6 +47,7 @@ struct BlogCard: View {
             PostPeek.remember(
                 username: item.author.username, slug: item.slug, cover: item.ogImageUrl)
             Task { await BookmarkStore.shared.hydrateIfNeeded() }
+            Task { await BlockStore.shared.hydrateIfNeeded() }
         }
     }
 
