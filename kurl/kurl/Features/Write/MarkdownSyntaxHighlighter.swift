@@ -141,12 +141,15 @@ enum MarkdownSyntaxHighlighter {
 
     /// "- " · "* " · "1. " 형태의 줄머리 길이(공백 포함). 아니면 nil.
     private static func listMarkerLength(_ line: String) -> Int? {
-        if line.hasPrefix("- ") || line.hasPrefix("* ") { return 2 }
+        // 선행 공백(중첩 들여쓰기)을 건너뛴 뒤 마커 — 들여쓴 하위 항목도 마커가 강조된다.
+        let lead = line.prefix(while: { $0 == " " }).count
+        let body = line.dropFirst(lead)
+        if body.hasPrefix("- ") || body.hasPrefix("* ") { return lead + 2 }
         // 1. / 12. 처럼 숫자 + 점 + 공백
-        let digits = line.prefix(while: { $0.isNumber }).count
+        let digits = body.prefix(while: { $0.isNumber }).count
         if digits >= 1 {
-            let rest = line.dropFirst(digits)
-            if rest.first == ".", rest.dropFirst().first == " " { return digits + 2 }
+            let rest = body.dropFirst(digits)
+            if rest.first == ".", rest.dropFirst().first == " " { return lead + digits + 2 }
         }
         return nil
     }

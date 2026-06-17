@@ -154,15 +154,21 @@ struct BlockView: View {
         return Text(raw)
     }
 
-    private func parseListItems(_ content: String?) -> [String] {
+    private func parseListItems(_ content: String?) -> [ListItem] {
         guard let content, !content.isEmpty else { return [] }
         if let data = content.data(using: .utf8),
            let array = try? JSONDecoder().decode([String].self, from: data) {
-            return array
+            return array.map { ListItem(depth: 0, text: $0) }
         }
         return content
             .split(separator: "\n", omittingEmptySubsequences: true)
-            .map { line in
+            .map { rawLine in
+                let line = String(rawLine)
+                // 선행 공백/탭으로 중첩 깊이 — 2칸(또는 탭 1)을 한 단계, 최대 4단계.
+                var lead = 0
+                for ch in line {
+                    if ch == " " { lead += 1 } else if ch == "\t" { lead += 2 } else { break }
+                }
                 var s = line.trimmingCharacters(in: .whitespaces)
                 for marker in ["- ", "* ", "+ "] where s.hasPrefix(marker) {
                     s.removeFirst(marker.count)
@@ -170,7 +176,7 @@ struct BlockView: View {
                 if let dot = s.firstIndex(of: "."), s[..<dot].allSatisfy(\.isNumber) {
                     s = String(s[s.index(after: dot)...]).trimmingCharacters(in: .whitespaces)
                 }
-                return s
+                return ListItem(depth: min(4, lead / 2), text: s)
             }
     }
 }
@@ -453,8 +459,14 @@ private struct ImageBlockView: View {
 
 // MARK: 리스트 블록 — 마커 그린
 
+/// 리스트 항목 — 중첩 깊이(들여쓰기)와 텍스트. 0 = 최상위.
+private struct ListItem {
+    let depth: Int
+    let text: String
+}
+
 private struct ListBlockView: View {
-    let items: [String]
+    let items: [ListItem]
     let ordered: Bool
 
     @ScaledMetric(relativeTo: .body) private var bodySize: CGFloat = 18
@@ -463,19 +475,30 @@ private struct ListBlockView: View {
         VStack(alignment: .leading, spacing: 9) {
             ForEach(Array(items.enumerated()), id: \.offset) { index, item in
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
-                    Text(ordered ? "\(index + 1)." : "•")
+                    Text(marker(item, index: index))
                         .font(.system(size: bodySize))
                         .foregroundStyle(Palette.secondary)
                         .monospacedDigit()
-                    Text(inline(item))
+                    Text(inline(item.text))
                         .font(.system(size: bodySize))
                         .lineSpacing(bodySize * 0.5)
                         .foregroundStyle(Palette.body)
                 }
+                .padding(.leading, CGFloat(item.depth) * 18) // 중첩 들여쓰기
             }
         }
         .padding(.top, 2)
         .padding(.bottom, 14)
+    }
+
+    // 중첩 단계별 글머리(•→◦→▪). 번호 목록은 그대로 번호(중첩 번호 재시작은 생략).
+    private func marker(_ item: ListItem, index: Int) -> String {
+        if ordered { return "\(index + 1)." }
+        switch item.depth {
+        case 0: return "•"
+        case 1: return "◦"
+        default: return "▪"
+        }
     }
 
     private func inline(_ raw: String) -> AttributedString {

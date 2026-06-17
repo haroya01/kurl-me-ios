@@ -971,6 +971,8 @@ struct ComposeView: View {
         case .inlineCode: editorController.wrapSelection("`")
         case .codeBlock: editorController.toggleCodeBlock()
         case .table: editorController.insertTable()
+        case .indent: editorController.indentLine()
+        case .outdent: editorController.outdentLine()
         case .link: presentLinkDialog()
         case .video: presentVideoDialog()
         case .image: showBodyImagePicker = true
@@ -1078,8 +1080,8 @@ private struct MarkdownSnippetBar: View {
     // 순서 = 자주 쓰는 것 먼저(좁은 화면 가로 스크롤에서 앞쪽이 보임) — 이미지가 맨 끝이라 화면 밖으로
     // 잘려 안 보이던 발견성 문제를 고친다. 표준 md 만(형광펜·콜아웃 같은 비표준은 여전히 제외).
     enum Action: CaseIterable {
-        case heading, bold, italic, list, link, image, video, table, quote, orderedList, inlineCode,
-            codeBlock, strikethrough
+        case heading, bold, italic, list, orderedList, indent, outdent, link, image, video, table,
+            quote, inlineCode, codeBlock, strikethrough
 
         var icon: String {
             switch self {
@@ -1087,12 +1089,14 @@ private struct MarkdownSnippetBar: View {
             case .bold: "bold"
             case .italic: "italic"
             case .list: "list.bullet"
+            case .orderedList: "list.number"
+            case .indent: "increase.indent"
+            case .outdent: "decrease.indent"
             case .link: "link"
             case .image: "photo"
             case .video: "play.rectangle"
             case .table: "tablecells"
             case .quote: "text.quote"
-            case .orderedList: "list.number"
             case .inlineCode: "chevron.left.forwardslash.chevron.right"
             case .codeBlock: "curlybraces"
             case .strikethrough: "strikethrough"
@@ -1105,12 +1109,14 @@ private struct MarkdownSnippetBar: View {
             case .bold: "굵게"
             case .italic: "기울임"
             case .list: "글머리 목록"
+            case .orderedList: "번호 목록"
+            case .indent: "들여쓰기"
+            case .outdent: "내어쓰기"
             case .link: "링크"
             case .image: "이미지"
             case .video: "동영상"
             case .table: "표"
             case .quote: "인용"
-            case .orderedList: "번호 목록"
             case .inlineCode: "인라인 코드"
             case .codeBlock: "코드 블록"
             case .strikethrough: "취소선"
