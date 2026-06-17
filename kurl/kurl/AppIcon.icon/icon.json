@@ -7,7 +7,9 @@
     },
     {
       "appearance" : "dark",
-      "value" : "automatic"
+      "value" : {
+        "solid" : "srgb:0.04314,0.05490,0.07843,1.00000"
+      }
     },
     {
       "appearance" : "tinted",
