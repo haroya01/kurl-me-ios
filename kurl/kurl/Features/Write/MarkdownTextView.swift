@@ -85,10 +85,17 @@ struct MarkdownTextView: UIViewRepresentable {
     }
 
     func updateUIView(_ textView: UITextView, context: Context) {
-        // 조합 중 덮어쓰기 = 조합 파괴. 외부 변경(리비전 복원·정규화)은 조합이 끝난 뒤에만.
-        guard textView.text != text, textView.markedTextRange == nil else { return }
+        // 외부(리비전 복원·기존 글 로드)에서 온 변경만 반영한다. 조합 중 덮어쓰기 = 조합 파괴.
+        // text == 코디네이터가 마지막으로 내보낸 값(lastEditorText)이면 무시 — 한글 IME 조합이
+        // 커밋되는 순간 바인딩이 textViewDidChange 직전까지 잠깐 옛 값으로 뒤처지는데, 그 창에
+        // (매 입력마다 도는) @State 재렌더가 끼어들면 옛(짧은) 값으로 textView 를 덮어써 본문이
+        // 통째로 사라졌다. 에디터가 만든 값의 메아리는 건너뛰고, 진짜 외부 변경만 적용한다.
+        guard textView.text != text, textView.markedTextRange == nil,
+            text != context.coordinator.lastEditorText
+        else { return }
         let caret = textView.selectedRange
         textView.text = text
+        context.coordinator.lastEditorText = text
         let limit = (text as NSString).length
         textView.selectedRange = NSRange(location: min(caret.location, limit), length: 0)
         MarkdownSyntaxHighlighter.apply(to: textView)
@@ -100,15 +107,20 @@ struct MarkdownTextView: UIViewRepresentable {
 
     final class Coordinator: NSObject, UITextViewDelegate {
         private let parent: MarkdownTextView
+        /// 에디터가 마지막으로 바인딩에 내보낸 본문 — updateUIView 가 이 값(자기 메아리/조합 커밋
+        /// 직전 뒤처진 값)으로 textView 를 되덮는 걸 막는다(데이터 손실 레이스 가드).
+        var lastEditorText: String
 
         init(_ parent: MarkdownTextView) {
             self.parent = parent
+            self.lastEditorText = parent.text
         }
 
         func textViewDidChange(_ textView: UITextView) {
             // 조합 중간값은 바인딩에 흘리지 않는다 — 자동저장 시그니처가 조합 글자로 출렁이지 않게.
             guard textView.markedTextRange == nil else { return }
             parent.text = textView.text
+            lastEditorText = textView.text
             // 치는 즉시 렌더 — 조합이 끝난 글자부터 제목·굵게 등으로 입혀진다.
             MarkdownSyntaxHighlighter.apply(to: textView)
         }
@@ -120,6 +132,7 @@ struct MarkdownTextView: UIViewRepresentable {
         func textViewDidEndEditing(_ textView: UITextView) {
             // 끝나는 시점에 마지막 조합분을 확정 반영.
             parent.text = textView.text
+            lastEditorText = textView.text
             parent.onFocusChange(false)
         }
     }
