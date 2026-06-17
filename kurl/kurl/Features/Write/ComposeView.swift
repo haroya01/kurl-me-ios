@@ -285,6 +285,13 @@ struct ComposeView: View {
 
     /// 발행 준비 — 캔버스에서 걷어낸 메타데이터(태그·소개글·시리즈·커버)가 모이는 자리.
     /// 미발행 글은 [지금 발행]이 주행동, 발행된 글은 같은 시트가 "글 정보" 저장 모드로 선다.
+    // 글자 수(공백 제외) + 읽는 시간 ≈ 한글 500자/분. 마크다운 기호가 약간 섞이지만 분량 가늠용.
+    private var readStats: String {
+        let chars = markdown.filter { !$0.isWhitespace }.count
+        let minutes = max(1, Int((Double(chars) / 500.0).rounded()))
+        return "\(chars)자 · 약 \(minutes)분 읽기"
+    }
+
     private var publishSheet: some View {
         NavigationStack {
             ScrollView {
@@ -294,6 +301,10 @@ struct ComposeView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         sectionLabel("이렇게 보여요")
                         publishPreview
+                        // 분량 감각 — 독자가 보는 읽는 시간·글자 수(작성 도구의 기본 피드백).
+                        Text(readStats)
+                            .font(.system(size: 12.5 * metaUnit))
+                            .foregroundStyle(Palette.secondary)
                     }
                     .modifier(QuietAppear(index: 0))
 
@@ -940,7 +951,10 @@ struct ComposeView: View {
         case .heading: editorController.applyLinePrefix("# ")
         case .quote: editorController.applyLinePrefix("> ")
         case .list: editorController.applyLinePrefix("- ")
+        case .orderedList: editorController.applyLinePrefix("1. ")
         case .bold: editorController.wrapSelection("**")
+        case .italic: editorController.wrapSelection("*")
+        case .strikethrough: editorController.wrapSelection("~~")
         case .inlineCode: editorController.wrapSelection("`")
         case .codeBlock: editorController.toggleCodeBlock()
         case .link: presentLinkDialog()
@@ -1028,19 +1042,24 @@ private struct MarkdownSnippetBar: View {
     /// 아이콘만 키운다 — 44pt 터치 타깃 프레임은 작은 글자 설정에서도 줄이지 않는다.
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
 
+    // 순서 = 자주 쓰는 것 먼저(좁은 화면 가로 스크롤에서 앞쪽이 보임) — 이미지가 맨 끝이라 화면 밖으로
+    // 잘려 안 보이던 발견성 문제를 고친다. 표준 md 만(형광펜·콜아웃 같은 비표준은 여전히 제외).
     enum Action: CaseIterable {
-        case heading, bold, inlineCode, codeBlock, quote, list, link, image
+        case heading, bold, italic, list, link, image, quote, orderedList, inlineCode, codeBlock, strikethrough
 
         var icon: String {
             switch self {
             case .heading: "number"
             case .bold: "bold"
-            case .inlineCode: "chevron.left.forwardslash.chevron.right"
-            case .codeBlock: "curlybraces"
-            case .quote: "text.quote"
+            case .italic: "italic"
             case .list: "list.bullet"
             case .link: "link"
             case .image: "photo"
+            case .quote: "text.quote"
+            case .orderedList: "list.number"
+            case .inlineCode: "chevron.left.forwardslash.chevron.right"
+            case .codeBlock: "curlybraces"
+            case .strikethrough: "strikethrough"
             }
         }
 
@@ -1048,12 +1067,15 @@ private struct MarkdownSnippetBar: View {
             switch self {
             case .heading: "제목"
             case .bold: "굵게"
-            case .inlineCode: "인라인 코드"
-            case .codeBlock: "코드 블록"
-            case .quote: "인용"
-            case .list: "리스트"
+            case .italic: "기울임"
+            case .list: "글머리 목록"
             case .link: "링크"
             case .image: "이미지"
+            case .quote: "인용"
+            case .orderedList: "번호 목록"
+            case .inlineCode: "인라인 코드"
+            case .codeBlock: "코드 블록"
+            case .strikethrough: "취소선"
             }
         }
     }

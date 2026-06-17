@@ -172,22 +172,53 @@ final class MarkdownEditorController {
         MarkdownSyntaxHighlighter.apply(to: textView)
     }
 
-    /// 선택이 있으면 감싸고, 없으면 쌍만 넣고 커서를 그 사이에 둔다.
+    /// 선택이 있으면 감싼다. 선택이 없으면 커서가 닿은 단어를 감싸고, 닿은 단어도 없으면
+    /// 자리표시자("텍스트")를 넣고 선택 상태로 둔다 — 빈 마커(예: ****)만 본문에 남아 렌더가
+    /// 안 되고 평문 위에 기호가 떠 "고장난 것처럼" 보이던 마찰을 없앤다.
     func wrapSelection(_ fix: String) {
-        guard let textView, textView.markedTextRange == nil,
-              let selected = textView.selectedTextRange
+        guard let textView, textView.markedTextRange == nil else { return }
+        var range = textView.selectedRange
+        if range.length == 0, let word = currentWordRange(in: textView, around: range.location) {
+            range = word
+        }
+        let ns = textView.text as NSString
+        var inner = range.length > 0 ? ns.substring(with: range) : ""
+        let placeholder = inner.isEmpty
+        if placeholder { inner = String(localized: "텍스트") }
+
+        guard let start = textView.position(from: textView.beginningOfDocument, offset: range.location),
+              let end = textView.position(from: start, offset: range.length),
+              let textRange = textView.textRange(from: start, to: end)
         else { return }
-        let original = textView.text(in: selected) ?? ""
-        let fixLength = (fix as NSString).length
-        let start = textView.selectedRange.location
-        textView.replace(selected, withText: fix + original + fix)
-        if original.isEmpty {
-            textView.selectedRange = NSRange(location: start + fixLength, length: 0)
+        let fixLen = (fix as NSString).length
+        let innerLen = (inner as NSString).length
+        textView.replace(textRange, withText: fix + inner + fix)
+
+        // 자리표시자는 선택해 둬서 바로 쳐서 덮어쓰게, 단어를 감쌌으면 닫는 마커 뒤로 커서를 둔다.
+        if placeholder,
+           let s = textView.position(from: textView.beginningOfDocument, offset: range.location + fixLen),
+           let e = textView.position(from: s, offset: innerLen),
+           let sel = textView.textRange(from: s, to: e) {
+            textView.selectedTextRange = sel
         } else {
-            textView.selectedRange = NSRange(
-                location: start + fixLength * 2 + (original as NSString).length, length: 0)
+            textView.selectedRange = NSRange(location: range.location + fixLen * 2 + innerLen, length: 0)
         }
         MarkdownSyntaxHighlighter.apply(to: textView)
+    }
+
+    /// 커서가 닿은(또는 직전) 단어 범위 — 공백·줄바꿈 사이의 연속 문자. 없으면 nil.
+    private func currentWordRange(in textView: UITextView, around loc: Int) -> NSRange? {
+        let ns = textView.text as NSString
+        guard ns.length > 0 else { return nil }
+        let seps = CharacterSet.whitespacesAndNewlines
+        func isSep(_ i: Int) -> Bool {
+            ns.substring(with: NSRange(location: i, length: 1)).rangeOfCharacter(from: seps) != nil
+        }
+        var lo = min(loc, ns.length)
+        var hi = lo
+        while lo > 0, !isSep(lo - 1) { lo -= 1 }
+        while hi < ns.length, !isSep(hi) { hi += 1 }
+        return hi > lo ? NSRange(location: lo, length: hi - lo) : nil
     }
 
     func insertFence() {
