@@ -67,7 +67,7 @@ struct ConnectSheet: View {
     private var step1: some View {
         VStack(spacing: 0) {
             if loading {
-                ProgressView().tint(Palette.accent)
+                KurlLoadingMark()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if failed {
                 failedState

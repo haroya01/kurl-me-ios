@@ -30,7 +30,7 @@ struct CollectionDetailView: View {
     var body: some View {
         ReadingColumn(spacing: 0) {
             if loading {
-                ProgressView().tint(Palette.accent)
+                KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 280)
             } else if let detail {
                 header(detail)

@@ -25,7 +25,7 @@ struct CollectionsListView: View {
                 .padding(.bottom, 18)
 
             if loading {
-                ProgressView().tint(Palette.accent)
+                KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 240)
             } else if failed {
                 failedState

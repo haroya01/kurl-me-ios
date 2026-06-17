@@ -1118,7 +1118,7 @@ private struct RevisionsSheet: View {
         NavigationStack {
             Group {
                 if loading {
-                    ProgressView().tint(Palette.accent)
+                    KurlLoadingMark()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if revisions.isEmpty {
                     ContentUnavailableView("리비전이 없습니다", systemImage: "clock.arrow.circlepath")

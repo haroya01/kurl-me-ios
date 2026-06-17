@@ -312,7 +312,7 @@ struct FeedPage: View {
                     .task { await model.loadMoreIfNeeded(current: item) }
                 }
                 if model.isLoadingMore {
-                    ProgressView().tint(Palette.accent)
+                    KurlLoadingMark()
                         .frame(maxWidth: .infinity).padding(.vertical, 18)
                 }
                 if model.items.isEmpty {

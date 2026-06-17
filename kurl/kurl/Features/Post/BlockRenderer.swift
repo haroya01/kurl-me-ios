@@ -430,7 +430,7 @@ private struct ImageBlockView: View {
                         RoundedRectangle(cornerRadius: 16)
                             .fill(Palette.hairline)
                             .frame(height: 200)
-                            .overlay(ProgressView().tint(Palette.accent))
+                            .overlay(KurlLoadingMark())
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 16))

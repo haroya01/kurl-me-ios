@@ -111,7 +111,7 @@ struct NotificationsView: View {
             if index < items.count - 1 { Hairline() }
         }
         if loadingMore {
-            ProgressView().tint(Palette.accent)
+            KurlLoadingMark()
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
         }

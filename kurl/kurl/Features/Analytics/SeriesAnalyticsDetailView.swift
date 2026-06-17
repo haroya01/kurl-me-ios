@@ -23,7 +23,7 @@ struct SeriesAnalyticsDetailView: View {
         ReadingColumn(spacing: 0) {
             switch phase {
             case .idle, .loading:
-                ProgressView().tint(Palette.accent)
+                KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 280)
             case .failed(let message):
                 ContentUnavailableView {

@@ -190,7 +190,7 @@ struct NotesPage: View {
                     if index < model.items.count - 1 { Hairline() }
                 }
                 if model.isLoadingMore {
-                    ProgressView().tint(Palette.accent)
+                    KurlLoadingMark()
                         .frame(maxWidth: .infinity).padding(.vertical, 14)
                 }
                 if model.items.isEmpty {

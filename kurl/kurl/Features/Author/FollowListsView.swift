@@ -37,7 +37,7 @@ struct FollowListsView: View {
                 .padding(.bottom, 8)
 
             if loading && items.isEmpty {
-                ProgressView().tint(Palette.accent)
+                KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 240)
             } else if loadedOnce && items.isEmpty {
                 ContentUnavailableView {
@@ -60,7 +60,7 @@ struct FollowListsView: View {
                         if index < items.count - 1 { Hairline() }
                     }
                     if hasNext {
-                        ProgressView().tint(Palette.accent)
+                        KurlLoadingMark()
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 18)
                     }

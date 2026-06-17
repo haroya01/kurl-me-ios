@@ -47,7 +47,7 @@ struct MyHighlightsView: View {
     var body: some View {
         ReadingColumn(spacing: 0) {
             if loading {
-                ProgressView().tint(Palette.accent)
+                KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 240)
             } else if items.isEmpty {
                 ContentUnavailableView {

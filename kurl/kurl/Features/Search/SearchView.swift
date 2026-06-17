@@ -39,7 +39,7 @@ struct SearchView: View {
                 case .idle:
                     idleState
                 case .loading:
-                    ProgressView().tint(Palette.accent)
+                    KurlLoadingMark()
                         .frame(maxWidth: .infinity, minHeight: 280)
                 case .loaded(let items):
                     results(items)
@@ -430,7 +430,7 @@ struct SearchView: View {
                         }
                     }
                     if loadingMore {
-                        ProgressView().tint(Palette.accent)
+                        KurlLoadingMark()
                             .frame(maxWidth: .infinity).padding(.vertical, 18)
                     }
                 }

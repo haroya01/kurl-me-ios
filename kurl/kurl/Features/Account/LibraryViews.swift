@@ -17,7 +17,7 @@ struct BookmarksView: View {
     var body: some View {
         ReadingColumn(spacing: 0) {
             if loading {
-                ProgressView().tint(Palette.accent)
+                KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 240)
             } else if failed {
                 LibraryFailedState { Task { loading = true; await load() } }
@@ -105,7 +105,7 @@ struct LikedPostsView: View {
     var body: some View {
         ReadingColumn(spacing: 0) {
             if loading {
-                ProgressView().tint(Palette.accent)
+                KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 240)
             } else if failed {
                 LibraryFailedState { Task { loading = true; await load() } }
@@ -158,7 +158,7 @@ struct SubscribedSeriesView: View {
     var body: some View {
         ReadingColumn(spacing: 0) {
             if loading {
-                ProgressView().tint(Palette.accent)
+                KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 240)
             } else if failed {
                 LibraryFailedState { Task { loading = true; await load() } }

@@ -25,7 +25,7 @@ struct DiscoverView: View {
                     // 재시도가 아니라 로그인 게이트로(막다른 길 금지).
                     loggedOutGate
                 } else if loading {
-                    ProgressView().tint(Palette.accent)
+                    KurlLoadingMark()
                         .frame(maxWidth: .infinity, minHeight: 320)
                 } else if failed {
                     failedState

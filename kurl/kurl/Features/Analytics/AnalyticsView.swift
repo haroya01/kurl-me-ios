@@ -42,7 +42,7 @@ struct AnalyticsView: View {
         ReadingColumn(spacing: 0) {
             switch phase {
             case .idle, .loading:
-                ProgressView().tint(Palette.accent)
+                KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 280)
             case .failed(let message):
                 ContentUnavailableView {
@@ -272,7 +272,7 @@ struct AnalyticsView: View {
                     loadMorePosts()
                 } label: {
                     if loadingMorePosts {
-                        ProgressView().tint(Palette.accent)
+                        KurlLoadingMark()
                     } else {
                         Text("더 보기")
                             .font(.system(size: 13 * unit, weight: .medium))

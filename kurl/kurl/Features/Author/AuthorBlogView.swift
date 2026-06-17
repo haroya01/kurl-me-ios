@@ -35,7 +35,7 @@ struct AuthorBlogView: View {
             LazyVStack(alignment: .leading, spacing: 0) {
                 switch phase {
                 case .idle, .loading:
-                    ProgressView().tint(Palette.accent)
+                    KurlLoadingMark()
                         .frame(maxWidth: .infinity, minHeight: 320)
                 case .failed(let message):
                     ContentUnavailableView {

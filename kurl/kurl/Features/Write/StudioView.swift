@@ -100,7 +100,7 @@ struct StudioView: View {
         ReadingColumn(spacing: 0) {
             switch phase {
             case .idle, .loading:
-                ProgressView().tint(Palette.accent)
+                KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 240)
             case .failed(let message):
                 ContentUnavailableView {

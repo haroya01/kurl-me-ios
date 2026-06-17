@@ -14,7 +14,7 @@ struct BlockedUsersView: View {
         ReadingColumn(spacing: 0) {
             Color.clear.frame(height: 8)
             if loading && BlockStore.shared.blocked.isEmpty {
-                ProgressView().tint(Palette.accent)
+                KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 240)
             } else if BlockStore.shared.blocked.isEmpty {
                 ContentUnavailableView {

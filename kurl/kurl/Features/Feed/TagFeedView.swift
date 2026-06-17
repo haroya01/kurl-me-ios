@@ -24,7 +24,7 @@ struct TagFeedView: View {
                 masthead
                 switch phase {
                 case .idle, .loading:
-                    ProgressView().tint(Palette.accent)
+                    KurlLoadingMark()
                         .frame(maxWidth: .infinity, minHeight: 280)
                 case .failed(let message):
                     ContentUnavailableView {
@@ -66,7 +66,7 @@ struct TagFeedView: View {
                         }
                     }
                     if loadingMore {
-                        ProgressView().tint(Palette.accent)
+                        KurlLoadingMark()
                             .frame(maxWidth: .infinity).padding(.vertical, 18)
                     }
                 }
