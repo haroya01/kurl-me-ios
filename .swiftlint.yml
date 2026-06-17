@@ -1,0 +1,26 @@
+# kurl-ios SwiftLint — AGENTS.md 디자인 계약(§색 규율·§1.5 반경)을 코드로 강제하는 가드레일.
+# "규율은 있는데 lint 강제장치가 없어 새던" 드리프트를 PR/푸시에서 막는다.
+#
+# 도입 전략: 우선 커스텀 디자인 룰만 켠다(빌트인 스타일 룰 line_length 등은 기존 코드를
+# 폭격하므로 점진 확대). 새 위반만 잡히도록 — 현재 raw .red 위반 0건이라 즉시 그린.
+
+only_rules:
+  - custom_rules
+
+included:
+  - kurl/kurl
+excluded:
+  - kurl/kurlWidget
+
+custom_rules:
+  brand_no_raw_red:
+    name: "raw .red 금지 (그린 외 단독 색)"
+    regex: '(foregroundStyle|foregroundColor|\.fill|\.tint|\.stroke|\.background)\(\s*\.red\b|Color\.red\b|Color\(\s*\.red\s*\)|UIColor\.red\b'
+    message: "에러·파괴·한도초과 텍스트는 Palette.danger, 그 외는 슬레이트 사다리 — raw .red 금지(AGENTS §색 규율)."
+    severity: error
+
+  brand_magic_corner_radius:
+    name: "매직넘버 반경 금지"
+    regex: 'cornerRadius:\s*([3-9]\b|[1-9][0-9])'
+    message: "반경은 Metrics(radiusCard 20·radiusMini 16·radiusControl 12·radiusThumb 8)·GlassTokens.panelRadius 토큰으로(AGENTS §1.5). 장식용 1·2 는 허용."
+    severity: warning

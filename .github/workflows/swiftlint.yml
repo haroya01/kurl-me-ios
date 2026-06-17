@@ -1,0 +1,22 @@
+name: SwiftLint
+
+# 디자인 계약 가드레일 — .swift 변경·룰 변경 시 자동 lint. error(raw .red 등) 나면 빨간불.
+on:
+  push:
+    paths:
+      - 'kurl/**/*.swift'
+      - '.swiftlint.yml'
+      - '.github/workflows/swiftlint.yml'
+  pull_request:
+    paths:
+      - 'kurl/**/*.swift'
+      - '.swiftlint.yml'
+
+jobs:
+  swiftlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: SwiftLint
+        uses: norio-nomura/action-swiftlint@3.2.2
+        # 커스텀 룰은 순수 regex라 Linux 도커에서 동작. error만 잡으면 실패(warning은 어노테이션).
