@@ -308,7 +308,17 @@ final class MarkdownEditorController {
     }
 
     func insertImageMarkdown(url: String) {
-        insertBlock("\n![](\(url))\n", caretOffsetFromStart: nil)
+        insertImage(url: url, width: nil, caption: nil)
+    }
+
+    /// 폭(«wide»/«half» 마커, alt 위치)·캡션(표준 image title)을 담아 이미지 삽입. 백엔드가
+    /// width·caption 으로 파싱, 리더가 그대로 렌더.
+    func insertImage(url: String, width: String?, caption: String?) {
+        let marker = width.map { "«\($0)» " } ?? ""
+        let cap =
+            (caption?.isEmpty == false)
+            ? " \"\(caption!.replacingOccurrences(of: "\"", with: "'"))\"" : ""
+        insertBlock("\n![\(marker)](\(url)\(cap))\n", caretOffsetFromStart: nil)
     }
 
     /// GFM 표 골격 — 백엔드 마크다운→블록이 TABLE 로 변환, 리더(TableBlockView)가 렌더. 첫 셀에 커서.
@@ -319,6 +329,41 @@ final class MarkdownEditorController {
     /// 단독 줄 동영상 URL — 백엔드가 EMBED 블록으로(YouTube/Vimeo), 리더(EmbedBlockView)가 플레이어로.
     func insertVideoEmbed(url: String) {
         insertBlock("\n\(url)\n", caretOffsetFromStart: nil)
+    }
+
+    /// 현재 줄 맨 앞에 2칸 들여쓰기 — 리스트 항목을 한 단계 안으로(중첩). 리더가 깊이대로 렌더.
+    func indentLine() {
+        guard let textView, textView.markedTextRange == nil else { return }
+        let ns = textView.text as NSString
+        let caret = textView.selectedRange
+        let lineStart = ns.lineRange(for: NSRange(location: min(caret.location, ns.length), length: 0)).location
+        guard let pos = textView.position(from: textView.beginningOfDocument, offset: lineStart),
+            let range = textView.textRange(from: pos, to: pos)
+        else { return }
+        textView.replace(range, withText: "  ")
+        textView.selectedRange = NSRange(location: caret.location + 2, length: 0)
+        MarkdownSyntaxHighlighter.apply(to: textView)
+    }
+
+    /// 현재 줄 앞 들여쓰기 한 단계(최대 2칸) 제거.
+    func outdentLine() {
+        guard let textView, textView.markedTextRange == nil else { return }
+        let ns = textView.text as NSString
+        let caret = textView.selectedRange
+        let lineStart = ns.lineRange(for: NSRange(location: min(caret.location, ns.length), length: 0)).location
+        var remove = 0
+        while remove < 2, lineStart + remove < ns.length,
+            ns.substring(with: NSRange(location: lineStart + remove, length: 1)) == " " {
+            remove += 1
+        }
+        guard remove > 0,
+            let start = textView.position(from: textView.beginningOfDocument, offset: lineStart),
+            let end = textView.position(from: start, offset: remove),
+            let range = textView.textRange(from: start, to: end)
+        else { return }
+        textView.replace(range, withText: "")
+        textView.selectedRange = NSRange(location: max(lineStart, caret.location - remove), length: 0)
+        MarkdownSyntaxHighlighter.apply(to: textView)
     }
 
     private func insertBlock(_ snippet: String, caretOffsetFromStart: Int?) {

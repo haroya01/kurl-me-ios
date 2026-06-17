@@ -69,6 +69,10 @@ struct ComposeView: View {
     @State private var showBodyImagePicker = false
     @State private var bodyImageItem: PhotosPickerItem?
     @State private var uploadingBodyImage = false
+    @State private var pendingImageWidth: String?
+    @State private var pendingImageURL: String?
+    @State private var showImageCaption = false
+    @State private var imageCaptionText = ""
 
     // 시트
     @State private var showPublish = false
@@ -193,6 +197,14 @@ struct ComposeView: View {
             Button("취소", role: .cancel) {}
         } message: {
             Text("YouTube·Vimeo 주소를 붙여넣거나 입력하세요.")
+        }
+        // 이미지 캡션(선택) — 업로드 직후. 비워두면 캡션 없이 삽입.
+        .alert("캡션 (선택)", isPresented: $showImageCaption) {
+            TextField("이미지 설명", text: $imageCaptionText)
+            Button("추가") { confirmImageInsert() }
+            Button("건너뛰기", role: .cancel) { confirmImageInsert() }
+        } message: {
+            Text("이미지 아래에 보일 설명 — 비워도 됩니다.")
         }
     }
 
@@ -975,11 +987,14 @@ struct ComposeView: View {
         case .outdent: editorController.outdentLine()
         case .link: presentLinkDialog()
         case .video: presentVideoDialog()
-        case .image: showBodyImagePicker = true
+        case .image: pendingImageWidth = nil; showBodyImagePicker = true
+        case .imageWide: pendingImageWidth = "wide"; showBodyImagePicker = true
+        case .imageHalf: pendingImageWidth = "half"; showBodyImagePicker = true
         }
         // 프로그램 삽입은 delegate 를 거치지 않는다 — 바인딩(자동저장 시그니처) 수동 동기화.
-        // .image·.link·.video 는 비동기(피커·다이얼로그)라 각자 끝낼 때 동기화한다.
-        if action != .image, action != .link, action != .video {
+        // 이미지·.link·.video 는 비동기(피커·다이얼로그)라 각자 끝낼 때 동기화한다.
+        if action != .image, action != .imageWide, action != .imageHalf, action != .link,
+            action != .video {
             markdown = editorController.currentText
         }
     }
@@ -1020,6 +1035,18 @@ struct ComposeView: View {
         editorController.focus()
     }
 
+    /// 업로드된 이미지를 폭(pendingImageWidth)·캡션(선택)과 함께 삽입. 캡션 비우면 캡션 없이.
+    private func confirmImageInsert() {
+        guard let url = pendingImageURL else { return }
+        let caption = imageCaptionText.trimmingCharacters(in: .whitespacesAndNewlines)
+        editorController.insertImage(
+            url: url, width: pendingImageWidth, caption: caption.isEmpty ? nil : caption)
+        markdown = editorController.currentText
+        pendingImageURL = nil
+        pendingImageWidth = nil
+        editorController.focus()
+    }
+
     private static func looksLikeURL(_ s: String) -> Bool {
         let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !t.isEmpty, !t.contains(" "), !t.contains("\n"), t.count <= 2000 else { return false }
@@ -1050,8 +1077,10 @@ struct ComposeView: View {
                       let jpeg = image.jpegData(compressionQuality: 0.88)
                 else { return }
                 let uploaded = try await WriteAPI.uploadImage(postId: id, jpegData: jpeg)
-                editorController.insertImageMarkdown(url: uploaded.url)
-                markdown = editorController.currentText
+                // 업로드 완료 → 캡션(선택) 다이얼로그를 띄우고, 확인 시 폭·캡션과 함께 삽입.
+                pendingImageURL = uploaded.url
+                imageCaptionText = ""
+                showImageCaption = true
                 // 커버가 비어 있으면 본문 첫 이미지를 기본 커버로 — 이미지 있는 글이
                 // 커버 없이 발행되지 않게(작성자는 발행 폼에서 언제든 바꿀 수 있다).
                 if coverUrl == nil {
@@ -1080,8 +1109,8 @@ private struct MarkdownSnippetBar: View {
     // 순서 = 자주 쓰는 것 먼저(좁은 화면 가로 스크롤에서 앞쪽이 보임) — 이미지가 맨 끝이라 화면 밖으로
     // 잘려 안 보이던 발견성 문제를 고친다. 표준 md 만(형광펜·콜아웃 같은 비표준은 여전히 제외).
     enum Action: CaseIterable {
-        case heading, bold, italic, list, orderedList, indent, outdent, link, image, video, table,
-            quote, inlineCode, codeBlock, strikethrough
+        case heading, bold, italic, list, orderedList, indent, outdent, link, image, imageWide,
+            imageHalf, video, table, quote, inlineCode, codeBlock, strikethrough
 
         var icon: String {
             switch self {
@@ -1094,6 +1123,8 @@ private struct MarkdownSnippetBar: View {
             case .outdent: "decrease.indent"
             case .link: "link"
             case .image: "photo"
+            case .imageWide: "rectangle"
+            case .imageHalf: "rectangle.split.2x1"
             case .video: "play.rectangle"
             case .table: "tablecells"
             case .quote: "text.quote"
@@ -1114,6 +1145,8 @@ private struct MarkdownSnippetBar: View {
             case .outdent: "내어쓰기"
             case .link: "링크"
             case .image: "이미지"
+            case .imageWide: "와이드 이미지"
+            case .imageHalf: "이미지(하프)"
             case .video: "동영상"
             case .table: "표"
             case .quote: "인용"

@@ -397,12 +397,16 @@ private enum CodeSyntax {
 private struct ImagePayload {
     var url: String
     var caption: String?
+    var width: String? // "wide" / "full" = 컬럼보다 넓게(블리드), "half" = 좁게. 없으면 기본.
 
     static func decode(_ content: String?) -> ImagePayload {
         guard let content, let data = content.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-        else { return ImagePayload(url: content ?? "", caption: nil) }
-        return ImagePayload(url: json["url"] as? String ?? "", caption: json["caption"] as? String)
+        else { return ImagePayload(url: content ?? "", caption: nil, width: nil) }
+        return ImagePayload(
+            url: json["url"] as? String ?? "",
+            caption: json["caption"] as? String,
+            width: json["width"] as? String)
     }
 }
 
@@ -445,6 +449,12 @@ private struct ImageBlockView: View {
                 .accessibilityLabel(Text(
                     payload.caption?.isEmpty == false
                         ? payload.caption! : String(localized: "본문 이미지")))
+                // 폭: half = 좁게 중앙, wide/full = 컬럼 밖으로 블리드, 기본 = 컬럼 전폭.
+                .frame(maxWidth: payload.width == "half" ? 320 : .infinity)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(
+                    .horizontal,
+                    payload.width == "wide" || payload.width == "full" ? -Metrics.gutter : 0)
             }
             if let caption = payload.caption, !caption.isEmpty {
                 Text(caption)
