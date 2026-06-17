@@ -30,6 +30,8 @@ struct ComposeView: View {
     /// 한글 조합 깨짐을 피해 FocusState 대신 delegate 콜백으로 추적한다.
     @State private var editorController = MarkdownEditorController()
     @State private var editorFocused = false
+    /// 캐럿이 표 안에 있는가 — 그때만 행·열 편집 바를 마크다운 바 위에 띄운다.
+    @State private var caretInTable = false
 
     @State private var title = ""
     @State private var tags: [String] = []
@@ -118,11 +120,19 @@ struct ComposeView: View {
         // 키보드 위에 뜨는 유리 마크다운 바 — 캔버스는 종이, 크롬은 유리(AGENTS.md §1).
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if editorFocused {
-                MarkdownSnippetBar(perform: applySnippet) { editorController.dismissKeyboard() }
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                VStack(spacing: 8) {
+                    // 캐럿이 표 안일 때만 — 마크다운을 몰라도 행·열을 늘리고 줄인다.
+                    if caretInTable {
+                        TableActionBar(perform: applyTableAction)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+                    MarkdownSnippetBar(perform: applySnippet) { editorController.dismissKeyboard() }
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: editorFocused)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: caretInTable)
         .navigationTitle(existing == nil ? "새 글" : "편집")
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
@@ -222,9 +232,13 @@ struct ComposeView: View {
     }
 
     private var editor: some View {
-        MarkdownTextView(text: $markdown, controller: editorController) { focused in
-            editorFocused = focused
-        }
+        MarkdownTextView(
+            text: $markdown, controller: editorController,
+            onFocusChange: { focused in
+                editorFocused = focused
+                if !focused { caretInTable = false }
+            },
+            onContextChange: { inTable in caretInTable = inTable })
         .padding(.horizontal, Metrics.gutter - 4)
         .overlay(alignment: .topLeading) {
             if markdown.isEmpty {
@@ -997,6 +1011,21 @@ struct ComposeView: View {
             action != .video {
             markdown = editorController.currentText
         }
+        // 표를 막 넣었으면 곧장 컨텍스트 바가 뜨도록(델리게이트 selection 콜백을 안 거치므로 수동).
+        caretInTable = editorController.isCaretInTable()
+    }
+
+    /// 표 편집 바 → 컨트롤러. 행·열을 늘리고 줄인 뒤 바인딩·컨텍스트를 동기화한다.
+    private func applyTableAction(_ action: TableActionBar.Action) {
+        switch action {
+        case .addRow: editorController.addTableRow()
+        case .addColumn: editorController.addTableColumn()
+        case .deleteRow: editorController.deleteTableRow()
+        case .deleteColumn: editorController.deleteTableColumn()
+        }
+        markdown = editorController.currentText
+        caretInTable = editorController.isCaretInTable()
+        editorController.focus()
     }
 
     /// 링크 버튼 — 선택을 라벨 후보로 들고, 클립보드에 URL 이 있으면 미리 채워 다이얼로그를 연다.
@@ -1199,6 +1228,70 @@ private struct MarkdownSnippetBar: View {
         .padding(.horizontal, Metrics.gutter)
         .padding(.top, 6)
         .padding(.bottom, 8)
+    }
+}
+
+/// 표 편집 바 — 캐럿이 표 안에 있을 때만 마크다운 바 위에 뜬다. 행·열을 한 번 탭으로 늘리고
+/// 줄여, 손으로 `|` 를 칠 일이 없게 한다.
+private struct TableActionBar: View {
+    let perform: (Action) -> Void
+
+    /// 아이콘만 키운다 — 44pt 터치 타깃은 작은 글자 설정에서도 줄이지 않는다.
+    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+
+    // 추가(행→열) 먼저, 삭제(행→열) 뒤. 라벨의 행/열로 구분하므로 +/− 아이콘만으로 충분하다.
+    enum Action: CaseIterable, Identifiable {
+        case addRow, addColumn, deleteRow, deleteColumn
+        var id: Self { self }
+
+        var symbol: String {
+            switch self {
+            case .addRow, .addColumn: "plus"
+            case .deleteRow, .deleteColumn: "minus"
+            }
+        }
+
+        var label: LocalizedStringKey {
+            switch self {
+            case .addRow: "행 추가"
+            case .addColumn: "열 추가"
+            case .deleteRow: "행 삭제"
+            case .deleteColumn: "열 삭제"
+            }
+        }
+
+        var isDestructive: Bool { self == .deleteRow || self == .deleteColumn }
+    }
+
+    var body: some View {
+        GlassEffectContainer(spacing: 0) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 0) {
+                    ForEach(Action.allCases) { action in
+                        Button {
+                            perform(action)
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: action.symbol)
+                                    .font(.system(size: 12 * unit, weight: .bold))
+                                Text(action.label)
+                                    .font(.system(size: 13 * unit, weight: .medium))
+                            }
+                            .foregroundStyle(action.isDestructive ? Palette.secondary : Palette.ink)
+                            .padding(.horizontal, 14)
+                            .frame(height: 44)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(Text(action.label))
+                    }
+                }
+                .padding(.horizontal, 4)
+            }
+            .frame(height: 44)
+            .glassEffect(.regular.interactive(), in: .capsule)
+        }
+        .padding(.horizontal, Metrics.gutter)
     }
 }
 

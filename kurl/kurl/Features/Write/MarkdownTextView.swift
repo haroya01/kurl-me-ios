@@ -61,6 +61,8 @@ struct MarkdownTextView: UIViewRepresentable {
     @Binding var text: String
     let controller: MarkdownEditorController
     var onFocusChange: (Bool) -> Void
+    /// 캐럿이 표 안/밖으로 들고날 때 — 컴포즈가 표 편집 컨텍스트 바를 켜고 끈다.
+    var onContextChange: (Bool) -> Void = { _ in }
 
     func makeUIView(context: Context) -> UITextView {
         let textView = MarkdownInputTextView()
@@ -144,10 +146,18 @@ struct MarkdownTextView: UIViewRepresentable {
             lastEditorText = textView.text
             // 치는 즉시 렌더 — 조합이 끝난 글자부터 제목·굵게 등으로 입혀진다.
             MarkdownSyntaxHighlighter.apply(to: textView)
+            parent.onContextChange(parent.controller.isCaretInTable())
+        }
+
+        // 커서가 움직일 때마다 표 안/밖 여부를 컴포즈에 알린다(표 편집 바 토글).
+        func textViewDidChangeSelection(_ textView: UITextView) {
+            guard textView.markedTextRange == nil else { return }
+            parent.onContextChange(parent.controller.isCaretInTable())
         }
 
         func textViewDidBeginEditing(_ textView: UITextView) {
             parent.onFocusChange(true)
+            parent.onContextChange(parent.controller.isCaretInTable())
         }
 
         func textViewDidEndEditing(_ textView: UITextView) {
@@ -364,6 +374,200 @@ final class MarkdownEditorController {
         textView.replace(range, withText: "")
         textView.selectedRange = NSRange(location: max(lineStart, caret.location - remove), length: 0)
         MarkdownSyntaxHighlighter.apply(to: textView)
+    }
+
+    // MARK: 표 편집 — 마크다운을 몰라도 행·열을 늘리고 줄인다.
+    // 캐럿이 표 안에 들어오면 컴포즈가 컨텍스트 바를 띄우고, 그 버튼이 이 메서드들을 부른다.
+    // 표 전체를 한 번에 다시 그려(셀 정렬 정규화) 손으로 `|` 를 칠 일이 없게 한다.
+
+    /// 캐럿이 GFM 표 안에 있는가 — 컨텍스트 표 편집 바의 노출 조건.
+    func isCaretInTable() -> Bool {
+        guard let textView, textView.markedTextRange == nil else { return false }
+        return tableBlock(in: textView) != nil
+    }
+
+    private struct TableBlock {
+        var charRange: NSRange  // 표 전체를 덮는 치환 범위(마지막 줄바꿈 제외)
+        var startLocation: Int  // = charRange.location
+        var header: [String]
+        var body: [[String]]
+        var caretLine: Int  // 블록 내 줄 인덱스(0=헤더, 1=구분선, 2+=본문)
+        var caretColumn: Int  // 캐럿이 놓인 셀 인덱스
+        var columnCount: Int { max(1, header.count) }
+    }
+
+    /// 표 한 줄을 셀 배열로 — 선두·말미 파이프가 만드는 빈 칸은 떨군다.
+    private func tableCells(_ line: String) -> [String] {
+        var parts = line.components(separatedBy: "|").map {
+            $0.trimmingCharacters(in: .whitespaces)
+        }
+        if parts.first == "" { parts.removeFirst() }
+        if parts.last == "" { parts.removeLast() }
+        return parts
+    }
+
+    /// `| --- | :--: |` 같은 정렬 구분선인가.
+    private func isSeparatorRow(_ line: String) -> Bool {
+        let t = line.trimmingCharacters(in: .whitespaces)
+        guard t.contains("-") else { return false }
+        return t.allSatisfy { "|:- ".contains($0) }
+    }
+
+    /// 캐럿이 속한 표 블록을 찾아 헤더·본문·캐럿 위치를 파싱한다. 표가 아니면 nil.
+    private func tableBlock(in textView: UITextView) -> TableBlock? {
+        let ns = textView.text as NSString
+        guard ns.length > 0 else { return nil }
+        let caret = min(textView.selectedRange.location, ns.length)
+        var subs: [String] = []
+        var ranges: [NSRange] = []
+        ns.enumerateSubstrings(in: NSRange(location: 0, length: ns.length), options: .byLines) {
+            sub, range, _, _ in
+            subs.append(sub ?? "")
+            ranges.append(range)
+        }
+        guard !subs.isEmpty else { return nil }
+        let caretIdx = ranges.firstIndex { caret <= $0.location + $0.length } ?? (ranges.count - 1)
+        func isTableLine(_ s: String) -> Bool {
+            s.contains("|") && !s.trimmingCharacters(in: .whitespaces).isEmpty
+        }
+        guard isTableLine(subs[caretIdx]) else { return nil }
+        var start = caretIdx
+        var end = caretIdx
+        while start > 0, isTableLine(subs[start - 1]) { start -= 1 }
+        while end < subs.count - 1, isTableLine(subs[end + 1]) { end += 1 }
+        // GFM 표 = 최소 2줄 + 둘째 줄이 정렬 구분선.
+        guard end - start >= 1, isSeparatorRow(subs[start + 1]) else { return nil }
+        let loc = ranges[start].location
+        let endLoc = ranges[end].location + ranges[end].length
+        let header = tableCells(subs[start])
+        let body = (start + 2 <= end) ? (start + 2...end).map { tableCells(subs[$0]) } : []
+        // 캐럿 셀 인덱스 = 줄 안 캐럿 앞 '|' 개수 - 1(선두 파이프 보정).
+        let lineStart = ranges[caretIdx].location
+        let inLine = max(0, caret - lineStart)
+        let line = subs[caretIdx] as NSString
+        let prefix = line.substring(to: min(inLine, line.length))
+        let pipes = prefix.reduce(0) { $1 == "|" ? $0 + 1 : $0 }
+        return TableBlock(
+            charRange: NSRange(location: loc, length: endLoc - loc),
+            startLocation: loc,
+            header: header,
+            body: body,
+            caretLine: caretIdx - start,
+            caretColumn: max(0, pipes - 1))
+    }
+
+    /// 헤더·본문을 정규화된 GFM 표 줄 배열로 — 모든 셀을 ` | ` 로 가지런히, 빈 셀은 공칸.
+    private func renderTable(header: [String], body: [[String]]) -> [String] {
+        let n = max(1, header.count)
+        func row(_ cells: [String]) -> String {
+            var c = cells
+            while c.count < n { c.append("") }
+            return "| " + c.prefix(n).joined(separator: " | ") + " |"
+        }
+        var lines = [row(header)]
+        lines.append("| " + Array(repeating: "---", count: n).joined(separator: " | ") + " |")
+        lines += body.map(row)
+        return lines
+    }
+
+    /// 렌더된 줄 배열에서 (줄·셀) 위치의 셀 본문 시작 오프셋 — 캐럿을 그 셀 머리에 놓기 위함.
+    private func cellOffset(lines: [String], line: Int, column: Int) -> Int {
+        var off = 0
+        for i in 0..<min(max(0, line), lines.count) { off += (lines[i] as NSString).length + 1 }
+        guard line >= 0, line < lines.count else { return off }
+        let ns = lines[line] as NSString
+        var found = 0
+        var search = NSRange(location: 0, length: ns.length)
+        var cellStart = ns.length
+        while true {
+            let r = ns.range(of: "| ", options: [], range: search)
+            if r.location == NSNotFound { break }
+            if found == column {
+                cellStart = r.location + 2
+                break
+            }
+            found += 1
+            let next = r.location + r.length
+            search = NSRange(location: next, length: ns.length - next)
+        }
+        return off + min(cellStart, ns.length)
+    }
+
+    private func applyTable(
+        _ block: TableBlock, lines: [String], caretLine: Int, caretColumn: Int
+    ) {
+        guard let textView else { return }
+        let serialized = lines.joined(separator: "\n")
+        guard
+            let s = textView.position(
+                from: textView.beginningOfDocument, offset: block.charRange.location),
+            let e = textView.position(from: s, offset: block.charRange.length),
+            let range = textView.textRange(from: s, to: e)
+        else { return }
+        textView.replace(range, withText: serialized)
+        let caret = block.startLocation + cellOffset(lines: lines, line: caretLine, column: caretColumn)
+        let limit = (textView.text as NSString).length
+        textView.selectedRange = NSRange(location: min(caret, limit), length: 0)
+        MarkdownSyntaxHighlighter.apply(to: textView)
+    }
+
+    /// 캐럿이 놓인 행 바로 아래에 빈 행을 끼우고, 새 행 첫 칸으로 커서를 옮긴다.
+    func addTableRow() {
+        guard let textView, textView.markedTextRange == nil,
+            let block = tableBlock(in: textView)
+        else { return }
+        var body = block.body
+        let idx = min(block.caretLine < 2 ? 0 : block.caretLine - 1, body.count)
+        body.insert(Array(repeating: "", count: block.columnCount), at: idx)
+        applyTable(
+            block, lines: renderTable(header: block.header, body: body),
+            caretLine: 2 + idx, caretColumn: 0)
+    }
+
+    /// 맨 끝에 빈 열을 더하고, 그 새 열로 커서를 옮긴다.
+    func addTableColumn() {
+        guard let textView, textView.markedTextRange == nil,
+            let block = tableBlock(in: textView)
+        else { return }
+        let header = block.header + [""]
+        let body = block.body.map { $0 + [""] }
+        applyTable(
+            block, lines: renderTable(header: header, body: body),
+            caretLine: block.caretLine == 1 ? 0 : block.caretLine, caretColumn: header.count - 1)
+    }
+
+    /// 캐럿이 놓인 본문 행을 지운다(헤더·구분선은 보호 — 그 자리에선 무동작).
+    func deleteTableRow() {
+        guard let textView, textView.markedTextRange == nil,
+            let block = tableBlock(in: textView), block.caretLine >= 2, !block.body.isEmpty
+        else { return }
+        var body = block.body
+        let removeAt = block.caretLine - 2
+        guard removeAt < body.count else { return }
+        body.remove(at: removeAt)
+        let caretLine = body.isEmpty ? 1 : 2 + min(removeAt, body.count - 1)
+        applyTable(
+            block, lines: renderTable(header: block.header, body: body),
+            caretLine: caretLine, caretColumn: 0)
+    }
+
+    /// 캐럿이 놓인 열을 모든 행에서 지운다(마지막 한 열은 보호).
+    func deleteTableColumn() {
+        guard let textView, textView.markedTextRange == nil,
+            let block = tableBlock(in: textView), block.columnCount >= 2
+        else { return }
+        let col = min(block.caretColumn, block.columnCount - 1)
+        var header = block.header
+        header.remove(at: col)
+        let body = block.body.map { row -> [String] in
+            var r = row
+            if col < r.count { r.remove(at: col) }
+            return r
+        }
+        applyTable(
+            block, lines: renderTable(header: header, body: body),
+            caretLine: block.caretLine == 1 ? 0 : block.caretLine,
+            caretColumn: min(col, max(0, header.count - 1)))
     }
 
     private func insertBlock(_ snippet: String, caretOffsetFromStart: Int?) {
