@@ -64,6 +64,9 @@ enum Palette {
     static let link = Color(light: 0x047857, dark: 0x34D399) // accent-700/400
     static let accentFill = Color(hex: 0x047857)    // 흰 라벨 채움 = accent-700 (WCAG 4.5:1)
 
+    // 오류·파괴·한도초과 텍스트 — 흩어진 raw `.red` 종식. 양 모드 본문 위 WCAG AA(≥4.5:1).
+    static let danger = Color(light: 0xDC2626, dark: 0xF87171) // red-600/400
+
     // 페이지 배경. 다크 = slate-950(웹과 동일 휴). 라이트는 순백이 아니라 slate-50 —
     // 무보더 흰 카드가 "종이 위 종이"로 떠야 화이트가 비어 보이지 않는다(다크의
     // 950/900 톤 레이어링과 대칭). 순백은 글 상세 본문·에디터 캔버스만 쓴다.

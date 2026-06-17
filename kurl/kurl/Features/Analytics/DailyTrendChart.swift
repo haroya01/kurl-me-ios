@@ -71,11 +71,13 @@ struct DailyTrendChart: View {
             }
         }
         .chartXSelection(value: $selectedDate)
+        // 기간(7/30/90일)을 바꾸면 옛 날짜를 가리키던 스크럽 선택이 남아 엉뚱한 값을 띄운다 — 데이터가 갈리면 초기화.
+        .onChange(of: data.map(\.date)) { selectedDate = nil }
         .chartXAxis {
             AxisMarks(values: .automatic(desiredCount: 4)) { _ in
                 AxisValueLabel(format: .dateTime.month(.defaultDigits).day())
                     .font(.system(size: 10))
-                    .foregroundStyle(Palette.faint)
+                    .foregroundStyle(Palette.secondary)
             }
         }
         .chartYAxis {
@@ -83,7 +85,7 @@ struct DailyTrendChart: View {
                 AxisGridLine().foregroundStyle(Palette.hairline)
                 AxisValueLabel()
                     .font(.system(size: 10))
-                    .foregroundStyle(Palette.faint)
+                    .foregroundStyle(Palette.secondary)
             }
         }
         .frame(height: 150)

@@ -132,6 +132,13 @@ final class PostReadStore {
         if stored.count > 600 { stored.removeFirst(stored.count - 600) }
         UserDefaults.standard.set(stored.map(NSNumber.init(value:)), forKey: Self.key)
     }
+
+    /// 로그아웃 시 — 읽음 기록은 기기 로컬이라 계정 전환 시 비워야 다음 사용자가 이전
+    /// 사용자의 읽음·시리즈 진행 상태를 물려받지 않는다.
+    func reset() {
+        ids = []
+        UserDefaults.standard.removeObject(forKey: Self.key)
+    }
 }
 
 /// 작가 · 날짜 · (좋아요 >0) 한 줄 메타 — slate-500.

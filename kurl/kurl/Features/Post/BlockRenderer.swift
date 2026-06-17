@@ -403,16 +403,35 @@ private struct ImagePayload {
 private struct ImageBlockView: View {
     let payload: ImagePayload
 
+    @ScaledMetric(relativeTo: .caption) private var captionSize: CGFloat = 13
+
     var body: some View {
         VStack(spacing: 12) {
             if let url = URL(string: payload.url) {
-                AsyncImage(url: url) { image in
-                    image.resizable().scaledToFit()
-                } placeholder: {
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Palette.hairline)
-                        .frame(height: 200)
-                        .overlay(ProgressView().tint(Palette.accent))
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFit()
+                    case .failure:
+                        // 로드 실패 — 무한 스피너 대신 또렷한 안내(다시 시도는 글 새로고침으로).
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Palette.hairline)
+                            .frame(height: 200)
+                            .overlay {
+                                VStack(spacing: 6) {
+                                    Image(systemName: "photo")
+                                        .font(.system(size: 22))
+                                    Text("이미지를 불러오지 못했어요")
+                                        .typeScale(.meta)
+                                }
+                                .foregroundStyle(Palette.secondary)
+                            }
+                    default:
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Palette.hairline)
+                            .frame(height: 200)
+                            .overlay(ProgressView().tint(Palette.accent))
+                    }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .accessibilityLabel(Text(
@@ -421,7 +440,7 @@ private struct ImageBlockView: View {
             }
             if let caption = payload.caption, !caption.isEmpty {
                 Text(caption)
-                    .font(.system(size: 13))
+                    .font(.system(size: captionSize))
                     .foregroundStyle(Palette.secondary)
                     .multilineTextAlignment(.center)
             }
@@ -467,6 +486,8 @@ private struct ListBlockView: View {
 private struct TableBlockView: View {
     let markdown: String
 
+    @ScaledMetric(relativeTo: .callout) private var cellSize: CGFloat = 15
+
     private var rows: [[String]] {
         markdown
             .split(separator: "\n", omittingEmptySubsequences: true)
@@ -488,7 +509,7 @@ private struct TableBlockView: View {
                     GridRow {
                         ForEach(Array(cells.enumerated()), id: \.offset) { _, cell in
                             Text(cell)
-                                .font(.system(size: 15, weight: index == 0 ? .semibold : .regular))
+                                .font(.system(size: cellSize, weight: index == 0 ? .semibold : .regular))
                                 .foregroundStyle(index == 0 ? Palette.ink : Palette.body)
                                 .padding(.vertical, 8)
                         }
@@ -541,13 +562,15 @@ private struct EmbedBlockView: View {
 private struct EmbedLinkCard: View {
     let payload: EmbedPayload
 
+    @ScaledMetric(relativeTo: .callout) private var labelSize: CGFloat = 14
+
     var body: some View {
         if let url = URL(string: payload.url) {
             Link(destination: url) {
                 HStack(spacing: 8) {
                     Image(systemName: "link").font(.system(size: 13))
                     Text(payload.provider ?? payload.url)
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.system(size: labelSize, weight: .medium))
                         .lineLimit(1)
                     Spacer()
                     Image(systemName: "arrow.up.right").font(.system(size: 12))
@@ -681,11 +704,13 @@ private enum VimeoRef {
 private struct CtaBlockView: View {
     let cta: CtaInfo
 
+    @ScaledMetric(relativeTo: .headline) private var labelSize: CGFloat = 15
+
     var body: some View {
         if let url = URL(string: cta.url) {
             Link(destination: url) {
                 Text(cta.label)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: labelSize, weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)

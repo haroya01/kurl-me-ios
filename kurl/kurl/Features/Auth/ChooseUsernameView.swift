@@ -64,7 +64,7 @@ struct ChooseUsernameView: View {
 
                 Group {
                     if let serverError {
-                        Text(serverError).foregroundStyle(.red)
+                        Text(serverError).foregroundStyle(Palette.danger)
                     } else if !trimmed.isEmpty && !valid {
                         Text("영문 소문자·숫자·_ 3~16자, 첫 글자는 영문이나 숫자")
                             .foregroundStyle(Palette.secondary)

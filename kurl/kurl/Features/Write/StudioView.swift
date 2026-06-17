@@ -88,7 +88,7 @@ struct StudioView: View {
             switch section {
             case .posts: postsSection.transition(.opacity)
             case .series: seriesSection.transition(.opacity)
-            case .analytics: AnalyticsView(embedded: true).transition(.opacity)
+            case .analytics: AnalyticsView(embedded: true, onCompose: { composing = true }).transition(.opacity)
             }
         }
         // 분면 교체는 한 호흡 크로스페이드. 세그먼트 자체는 내비바(헤더)에 산다.

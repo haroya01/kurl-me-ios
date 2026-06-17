@@ -25,6 +25,12 @@ final class BookmarkStore {
         if on { ids.insert(id) } else { ids.remove(id) }
     }
 
+    /// 로그아웃 시 — 다음 로그인 사용자가 이전 사용자의 북마크 표식을 보지 않게.
+    func reset() {
+        ids = []
+        hydrated = false
+    }
+
     /// 카드가 처음 뜰 때 한 번 — 로그아웃이면 비우고, 로그인 후 첫 호출에만 목록을 받는다.
     func hydrateIfNeeded() async {
         guard AuthStore.shared.isSignedIn else {

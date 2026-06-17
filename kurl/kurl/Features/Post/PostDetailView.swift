@@ -224,7 +224,7 @@ struct PostDetailView: View {
                         Menu {
                             ForEach(headings, id: \.id) { h in
                                 Button {
-                                    withAnimation(.easeInOut(duration: 0.3)) {
+                                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.3)) {
                                         proxy.scrollTo(h.id, anchor: UnitPoint(x: 0, y: 0.08))
                                     }
                                 } label: {
@@ -363,7 +363,7 @@ struct PostDetailView: View {
             if !embedded, hasThreaded,
                forceCoach || !UserDefaults.standard.bool(forKey: Self.highlightCoachKey) {
                 if !forceCoach { UserDefaults.standard.set(true, forKey: Self.highlightCoachKey) }
-                withAnimation(.snappy) { showHighlightCoach = true }
+                withAnimation(reduceMotion ? nil : .snappy) { showHighlightCoach = true }
             }
         }
         // 읽기 기록 비콘 — 로그인 독자가 글을 열면 계정에 기록(기기를 넘어 이어진다). 익명은 기록 없음.
@@ -431,10 +431,10 @@ struct PostDetailView: View {
         .padding(.bottom, 40)
         .padding(.horizontal, Metrics.gutter)
         .transition(.move(edge: .bottom).combined(with: .opacity))
-        .onTapGesture { withAnimation(.snappy) { showHighlightCoach = false } }
+        .onTapGesture { withAnimation(reduceMotion ? nil : .snappy) { showHighlightCoach = false } }
         .task {
             try? await Task.sleep(for: .seconds(5))
-            withAnimation(.snappy) { showHighlightCoach = false }
+            withAnimation(reduceMotion ? nil : .snappy) { showHighlightCoach = false }
         }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
@@ -461,12 +461,13 @@ struct PostDetailView: View {
         else { return }
         didFocus = true
         try? await Task.sleep(for: .milliseconds(420))  // 레이아웃·하이라이트 페인트 후
-        withAnimation(.easeInOut(duration: 0.55)) {
+        // reduce-motion = 스크롤·플래시 모두 즉시(스밈·페이드 없이) — 도착은 하되 움직임은 끈다.
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.55)) {
             proxy.scrollTo(block.id, anchor: UnitPoint(x: 0, y: 0.18))
         }
-        withAnimation(.easeOut(duration: 0.35)) { flashBlockId = block.id }
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.35)) { flashBlockId = block.id }
         try? await Task.sleep(for: .milliseconds(1300))
-        withAnimation(.easeIn(duration: 0.7)) { flashBlockId = nil }
+        withAnimation(reduceMotion ? nil : .easeIn(duration: 0.7)) { flashBlockId = nil }
     }
 
     /// 본문 헤딩(H1~H3) 목차 — 텍스트·앵커 id(블록 id)·들여쓰기 레벨.
@@ -749,7 +750,7 @@ struct PostDetailView: View {
                     Text("\(minutes)분 읽기")
                         .typeScale(.footnote)
                 }
-                .foregroundStyle(Palette.faint)
+                .foregroundStyle(Palette.secondary)
                 .padding(.top, 7)
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel(Text("읽는 시간 약 \(minutes)분"))
@@ -760,8 +761,13 @@ struct PostDetailView: View {
     }
 
     /// 본문 글자 수로 읽는 시간 추정 — 한국어 ≈ 분당 500자, 최소 1분. 본문 없으면 nil.
+    /// 산문(문단·헤딩·인용)만 센다 — 코드·리스트·임베드·표의 content 는 JSON 직렬화라
+    /// 글자 수가 부풀어 읽는 시간이 엉뚱해진다.
     private func readingMinutes(_ blocks: [PostBlock]) -> Int? {
-        let chars = blocks.reduce(0) { $0 + ($1.content?.count ?? 0) }
+        let prose: Set<BlockKind> = [.paragraph, .h1, .h2, .h3, .quote]
+        let chars = blocks.reduce(0) { sum, block in
+            prose.contains(block.kind) ? sum + (block.content?.count ?? 0) : sum
+        }
         guard chars > 0 else { return nil }
         return max(1, Int((Double(chars) / 500.0).rounded()))
     }
@@ -922,6 +928,7 @@ struct CommentRow: View {
     @State private var showReport = false
     @State private var likeTaps = 0
     @State private var deleteFailed = false
+    @State private var showLoginPrompt = false
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -1001,7 +1008,11 @@ struct CommentRow: View {
                     .textSelection(.enabled)
                 HStack(spacing: 16) {
                     Button {
-                        guard AuthStore.shared.isSignedIn else { return }
+                        // 미로그인은 침묵 대신 로그인 유도 — 컴포저·하이라이트와 같은 공용 시트.
+                        guard AuthStore.shared.isSignedIn else {
+                            showLoginPrompt = true
+                            return
+                        }
                         likeTaps += 1
                         Task { await model.toggleCommentLike(comment) }
                     } label: {
@@ -1053,6 +1064,7 @@ struct CommentRow: View {
             Button("확인", role: .cancel) {}
         }
         .reportDialog(isPresented: $showReport, subjectType: "COMMENT", subjectId: comment.id)
+        .loginPrompt(isPresented: $showLoginPrompt, message: "이 댓글에 공감하려면 로그인하세요")
     }
 }
 
@@ -1128,7 +1140,7 @@ struct GlassCommentBar: View {
             if sendFailed {
                 Text("전송하지 못했습니다 — 다시 시도해 주세요.")
                     .font(.system(size: 12 * metaUnit))
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Palette.danger)
             }
             HStack(alignment: .bottom, spacing: 10) {
                 TextField(

@@ -60,7 +60,7 @@ struct ProfileEditView: View {
                 }
                 .font(.system(size: 15))
                 if let usernameError {
-                    Text(usernameError).font(.caption).foregroundStyle(.red)
+                    Text(usernameError).font(.caption).foregroundStyle(Palette.danger)
                 } else if usernameChanged {
                     Text("이전 이름은 30일간 예약돼 기존 링크가 바로 깨지지 않아요.")
                         .font(.caption).foregroundStyle(Palette.secondary)
@@ -74,7 +74,7 @@ struct ProfileEditView: View {
                     Spacer()
                     Text("\(bio.count)/\(bioLimit)")
                         .font(.caption.monospacedDigit())
-                        .foregroundStyle(bio.count > bioLimit ? .red : .secondary)
+                        .foregroundStyle(bio.count > bioLimit ? Palette.danger : Palette.secondary)
                 }
             }
         }
@@ -164,12 +164,14 @@ struct ProfileEditView: View {
         Task {
             defer { saving = false }
             do {
-                if let img = newAvatar, let jpeg = img.jpegData(compressionQuality: 0.85) {
-                    _ = try await ProfileAPI.uploadAvatar(jpegData: jpeg)
-                }
+                // 프로필 PUT 을 먼저 — 거절(중복·형식)나면 아바타는 손대지 않는다.
                 try await ProfileAPI.update(
                     username: usernameChanged ? trimmedUsername : nil,
                     bio: bio.trimmingCharacters(in: .whitespacesAndNewlines))
+                if let img = newAvatar, let jpeg = img.jpegData(compressionQuality: 0.85) {
+                    _ = try await ProfileAPI.uploadAvatar(jpegData: jpeg)
+                    newAvatar = nil  // 성공 — 재시도해도 다시 안 올린다.
+                }
                 await AuthStore.shared.loadMe()
                 onSaved()
                 dismiss()

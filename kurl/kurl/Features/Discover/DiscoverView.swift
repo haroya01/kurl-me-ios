@@ -13,13 +13,18 @@ struct DiscoverView: View {
     @State private var events: [ConnectionEvent] = []
     @State private var loading = true
     @State private var failed = false
+    @State private var showLoginSheet = false
 
     var body: some View {
         NavigationStack {
             ReadingColumn(spacing: 0) {
                 // 콘텐츠가 edge-to-edge로 흐른다 — 피드 탭과 같은 결(고정 "발견" 타이틀 ❌).
                 Color.clear.frame(height: 8)
-                if loading {
+                if !AuthStore.shared.isSignedIn {
+                    // 발견 = 팔로우한 큐레이터의 연결 피드(인증 필요). 비로그인은 401 무한
+                    // 재시도가 아니라 로그인 게이트로(막다른 길 금지).
+                    loggedOutGate
+                } else if loading {
                     ProgressView().tint(Palette.accent)
                         .frame(maxWidth: .infinity, minHeight: 320)
                 } else if failed {
@@ -42,12 +47,19 @@ struct DiscoverView: View {
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: CollectionRef.self) { CollectionDetailView(collectionId: $0.id) }
             .navigationDestination(for: Route.self) { RouteView(route: $0) }
-            .task { await load() }
+            .task(id: AuthStore.shared.isSignedIn) { await load() }
             .refreshable { await load() }
         }
     }
 
     private func load() async {
+        // 비로그인이면 인증 엔드포인트를 때리지 않는다 — 401→영구 재시도 데드엔드 방지.
+        guard AuthStore.shared.isSignedIn else {
+            events = []
+            failed = false
+            loading = false
+            return
+        }
         failed = false
         do {
             events = try await CollectionsAPI.discoverFeed()
@@ -56,6 +68,21 @@ struct DiscoverView: View {
             loading = false
             if events.isEmpty { failed = true }
         }
+    }
+
+    // 비로그인 게이트 — 발견은 인증 피드라, 로그인하면 흐른다고 안내(FeedView 로그아웃 결과와 동일 문법).
+    private var loggedOutGate: some View {
+        FeedPlaceholder(
+            eyebrow: "발견",
+            title: "큐레이터를 따라 읽기",
+            message: "로그인하면 팔로우한 큐레이터가 컬렉션에 이은 글이 여기에 흘러요.",
+            actionTitle: "로그인",
+            prominent: true,
+            action: { showLoginSheet = true }
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.top, 80)
+        .loginPrompt(isPresented: $showLoginSheet, message: "팔로우한 큐레이터의 연결 흐름 받기")
     }
 
     // 콜드스타트 — 팔로우가 없으면 백엔드가 빈 피드를 준다. 막다른 길이 아니라 작가 찾기로.
@@ -85,7 +112,6 @@ struct DiscoverView: View {
 /// 큐레이터 연결 한 장 — 누가(아바타+이름) → 어느 컬렉션에 → [왜 한 줄] → 블록.
 private struct ConnectionEventCard: View {
     let event: ConnectionEvent
-    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
     var body: some View {
@@ -130,9 +156,8 @@ private struct ConnectionEventCard: View {
             // 가장 또렷한 신호. 없으면(이유 안 단 연결) 블록이 곧장 히어로가 된다.
             if let why = event.why {
                 Text(why)
-                    .font(.system(size: 17 * unit, weight: .medium))
+                    .typeScale(.body)
                     .foregroundStyle(Palette.ink)
-                    .lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)
             }
 

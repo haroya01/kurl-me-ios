@@ -23,6 +23,7 @@ struct AuthProviderButtons: View {
     var body: some View {
         VStack(spacing: 10) {
             // Apple 버튼은 시스템 소유 모양(브랜딩 규정) — 유리를 입히지 않고 캡슐만 맞춘다.
+            // 시스템 버튼엔 스피너를 못 얹으니, 진행 중엔 흐리고 입력을 막아 이중탭을 가둔다(Google 경로와 동일 상태).
             SignInWithAppleButton(.continue) { request in
                 appleNonce = AuthStore.prepareAppleRequest(request)
             } onCompletion: { result in
@@ -31,6 +32,8 @@ struct AuthProviderButtons: View {
             .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
             .frame(height: 48)
             .clipShape(Capsule())
+            .disabled(isSigningIn)
+            .opacity(isSigningIn ? 0.6 : 1)
 
             // Google 버튼도 브랜딩 규정 — 중립 면 + 4색 "G" 로고 + 정해진 문구(초록 캡슐 X).
             Button {
@@ -91,7 +94,10 @@ struct AuthProviderButtons: View {
     }
 
     private func finishApple(_ result: Result<ASAuthorization, Error>) {
+        guard !isSigningIn else { return }
+        isSigningIn = true
         Task {
+            defer { isSigningIn = false }
             do {
                 if try await AuthStore.shared.completeApple(result, rawNonce: appleNonce)
                     == .twoFactorRequired {
@@ -132,7 +138,7 @@ struct TwoFactorSheet: View {
     @State private var code = ""
     @State private var useRecovery = false
     @State private var isVerifying = false
-    @State private var failed = false
+    @State private var errorText: String?
 
     var body: some View {
         NavigationStack {
@@ -149,22 +155,28 @@ struct TwoFactorSheet: View {
                     .font(.system(size: 22 * unit, weight: .medium, design: .monospaced))
                     .padding(.top, 14)
 
-                if failed {
-                    Text("코드가 올바르지 않습니다.")
+                if let errorText {
+                    Text(errorText)
                         .font(.system(size: 13 * unit))
-                        .foregroundStyle(.red)
+                        .foregroundStyle(Palette.danger)
                         .padding(.top, 8)
                 }
 
                 Button {
                     verify()
                 } label: {
-                    Text("확인")
-                        .font(.system(size: 15 * unit, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 48)
-                        .background(GlassTokens.prominentTint, in: Capsule())
+                    Group {
+                        if isVerifying {
+                            ProgressView().controlSize(.small).tint(.white)
+                        } else {
+                            Text("확인")
+                                .font(.system(size: 15 * unit, weight: .semibold))
+                                .foregroundStyle(.white)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .background(GlassTokens.prominentTint, in: Capsule())
                 }
                 .buttonStyle(.plain)
                 .disabled(code.isEmpty || isVerifying)
@@ -173,7 +185,7 @@ struct TwoFactorSheet: View {
                 Button(useRecovery ? "인증 앱 코드 사용" : "복구 코드 사용") {
                     useRecovery.toggle()
                     code = ""
-                    failed = false
+                    errorText = nil
                 }
                 .font(.system(size: 13 * unit))
                 .foregroundStyle(Palette.link)
@@ -191,19 +203,29 @@ struct TwoFactorSheet: View {
             }
         }
         .presentationDetents([.medium])
+        // 검증 중 드래그로 시트가 닫혀 무음 중단되는 것을 막는다 — 취소는 명시적 "취소" 버튼으로만.
+        .interactiveDismissDisabled(isVerifying)
     }
 
     private func verify() {
         guard !isVerifying else { return }
         isVerifying = true
-        failed = false
+        errorText = nil
         Task {
             defer { isVerifying = false }
             do {
                 try await AuthStore.shared.completeTwoFactor(code: code, recovery: useRecovery)
                 dismiss()
             } catch {
-                failed = true
+                // 코드 거절(4xx)과 일시 장애(네트워크·서버)를 갈라 보여준다 — 둘 다 "코드 오류"로 묻지 않는다.
+                if case APIError.http(let status) = error, (400...422).contains(status) {
+                    errorText = useRecovery
+                        ? String(localized: "복구 코드가 올바르지 않습니다.")
+                        : String(localized: "코드가 올바르지 않습니다.")
+                } else {
+                    errorText = (error as? APIError)?.localizedDescription
+                        ?? String(localized: "확인하지 못했습니다. 잠시 후 다시 시도해 주세요.")
+                }
             }
         }
     }

@@ -130,21 +130,28 @@ struct SeriesDetailView: View {
         .padding(.vertical, 16)
 
         // 화별 목차 — 읽은 회차는 체크, 다음 읽을 회차는 표시. 카탈로그(번호 매긴 글 행).
-        LazyVStack(spacing: 0) {
-            ForEach(Array(posts.enumerated()), id: \.element.id) { index, post in
-                NavigationLink(value: Route.post(username: username, slug: post.slug)) {
-                    EpisodeRow(
-                        number: index + 1, post: post,
-                        state: readFlags[index]
-                            ? .read
-                            : (readCount > 0 && firstUnread == index ? .next : .unread))
+        // 공개글이 0편이면 죽은 본문 대신 — 작가의 다른 글로 가는 문을 둔다(빈 면도 길을 낸다).
+        if posts.isEmpty {
+            EmptySeries(author: detail.author)
+                .padding(.top, 56)
+                .padding(.bottom, 40)
+        } else {
+            LazyVStack(spacing: 0) {
+                ForEach(Array(posts.enumerated()), id: \.element.id) { index, post in
+                    NavigationLink(value: Route.post(username: username, slug: post.slug)) {
+                        EpisodeRow(
+                            number: index + 1, post: post,
+                            state: readFlags[index]
+                                ? .read
+                                : (readCount > 0 && firstUnread == index ? .next : .unread))
+                    }
+                    .buttonStyle(RowButtonStyle())
+                    .modifier(QuietAppear(index: index))
+                    if index < posts.count - 1 { Hairline() }
                 }
-                .buttonStyle(RowButtonStyle())
-                .modifier(QuietAppear(index: index))
-                if index < posts.count - 1 { Hairline() }
             }
+            .padding(.bottom, 40)
         }
-        .padding(.bottom, 40)
     }
 
     /// 본문 시작 문 — 안 읽었으면 첫 화, 읽다 말았으면 첫 미독 회차, 다 읽었으면 처음부터.
@@ -196,6 +203,8 @@ private struct EpisodeRow: View {
     let number: Int
     let post: PostListItem
     let state: EpisodeState
+    // 마커 숫자·표지 원 — 큰 글씨에서 번호가 원을 넘치지 않게 프레임도 같이 큰다.
+    @ScaledMetric(relativeTo: .footnote) private var markerUnit: CGFloat = 1
 
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
@@ -245,21 +254,22 @@ private struct EpisodeRow: View {
         switch state {
         case .read:
             Image(systemName: "checkmark")
-                .font(.system(size: 14, weight: .bold))
+                .font(.system(size: 14 * markerUnit, weight: .bold))
                 .foregroundStyle(Palette.accentMarker)
-                .frame(width: 32, height: 32)
+                .frame(width: 32 * markerUnit, height: 32 * markerUnit)
                 .background(Palette.accent.opacity(0.12), in: Circle())
         case .next:
             Text("\(number)")
-                .font(.system(size: 15, weight: .bold).monospacedDigit())
+                .font(.system(size: 15 * markerUnit, weight: .bold).monospacedDigit())
+                // 흰 라벨 채움 = accent-700(WCAG 4.5:1) — 600은 흰 글자 대비 미달(§10.3).
                 .foregroundStyle(.white)
-                .frame(width: 32, height: 32)
-                .background(Palette.accent, in: Circle())
+                .frame(width: 32 * markerUnit, height: 32 * markerUnit)
+                .background(Palette.accentFill, in: Circle())
         case .unread:
             Text("\(number)")
-                .font(.system(size: 15, weight: .bold).monospacedDigit())
+                .font(.system(size: 15 * markerUnit, weight: .bold).monospacedDigit())
                 .foregroundStyle(Palette.accentMarker)
-                .frame(width: 32, height: 32)
+                .frame(width: 32 * markerUnit, height: 32 * markerUnit)
                 .background(Palette.accent.opacity(0.10), in: Circle())
         }
     }
@@ -271,5 +281,53 @@ private struct EpisodeRow: View {
         case .next: return Text("\(base), 다음 읽을 글")
         case .unread: return Text(base)
         }
+    }
+}
+
+/// 공개 회차가 0편인 시리즈 — 빈 본문 대신 작가 면으로 가는 문(FeedPlaceholder 와 같은 언어).
+/// 닫힌 막다른 길이 아니라 작가의 다른 글로 이어주는 게 핵심이라 CTA = NavigationLink.
+private struct EmptySeries: View {
+    let author: Author
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // 빈 면의 브랜드 사인 — 형광 아닌 옅은 잉크(FeedPlaceholder 와 동일).
+            KurlMark(drawn: [true, true, true], tint: Palette.hairlineStrong)
+                .frame(width: 46, height: 28)
+                .accessibilityHidden(true)
+                .padding(.bottom, 24)
+
+            Text("준비 중")
+                .typeScale(.eyebrow)
+                .foregroundStyle(Palette.secondary)
+                .padding(.bottom, 10)
+
+            Text("아직 공개된 회차가 없어요")
+                .typeScale(.featured)
+                .foregroundStyle(Palette.ink)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.bottom, 9)
+
+            Text("첫 화가 올라오면 여기에서 순서대로 읽을 수 있어요.")
+                .typeScale(.lede)
+                .foregroundStyle(Palette.secondary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: 272)
+                .padding(.bottom, 22)
+
+            NavigationLink(value: Route.author(username: author.username)) {
+                Text("\(author.username)의 다른 글")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 22)
+                    .padding(.vertical, 12)
+                    .glassCapsule(prominent: true)
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, Metrics.gutter)
     }
 }

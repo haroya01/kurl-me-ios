@@ -143,10 +143,10 @@ struct ComposeView: View {
         .photosPicker(isPresented: $showBodyImagePicker, selection: $bodyImageItem, matching: .images)
         .onChange(of: bodyImageItem) { uploadBodyImage() }
         .onDisappear {
-            // 디바운스 창에 걸린 마지막 변경을 버리지 않는다 — 즉시 1회 저장.
+            // 디바운스 창에 걸린 마지막 변경을 버리지 않는다 — 즉시 1회 저장(자동저장이므로 조용히).
             autosaveTask?.cancel()
             if canSave, signature != lastSavedSignature {
-                Task { await save(publish: false) }
+                Task { await save(publish: false, silent: true) }
             }
         }
         // 발행 준비 = 살아있는 카드 미리보기 폼(전체 화면). 미리보기·예약은 이 폼 위에
@@ -744,11 +744,13 @@ struct ComposeView: View {
         autosaveTask = Task {
             try? await Task.sleep(for: .seconds(2))
             guard !Task.isCancelled else { return }
-            await save(publish: false)
+            await save(publish: false, silent: true)
         }
     }
 
-    private func save(publish: Bool) async {
+    /// silent = 자동저장(디바운스·이탈) — 실패해도 타이핑 위로 모달을 띄우지 않고 토스트로만
+    /// 알리고 디바운스를 재무장한다. 명시 저장(버튼·발행·예약)은 silent=false 로 모달을 띄운다.
+    private func save(publish: Bool, silent: Bool = false) async {
         guard !busy, canSave else { return }
         guard publish || signature != lastSavedSignature else { return }
         busy = true
@@ -790,7 +792,13 @@ struct ComposeView: View {
                 celebrating = true
             }
         } catch {
-            errorMessage = error.localizedDescription
+            if silent {
+                // 자동저장 실패는 조용히 — 토스트만 남기고 다음 변경 때 다시 무장한다.
+                ToastCenter.shared.show(String(localized: "자동저장에 실패했어요"))
+                scheduleAutosave()
+            } else {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 
@@ -825,6 +833,11 @@ struct ComposeView: View {
             } else {
                 resolved = (try? await WriteAPI.myPosts())?
                     .first(where: { $0.id == postId })?.slug ?? ""
+            }
+            // slug 미해결이면 깨진 URL(.../p/username/?preview=…)을 열지 않는다 — 잠시 후 재시도.
+            guard !resolved.isEmpty else {
+                ToastCenter.shared.show(String(localized: "미리보기를 준비 중이에요. 잠시 후 다시 시도해 주세요."))
+                return
             }
             if let url = try? await WriteAPI.previewURL(slug: resolved, postId: postId) {
                 // 외부 사파리로 내쫓지 않는다 — 발행 전 확인은 인앱 시트로.
@@ -876,7 +889,8 @@ struct ComposeView: View {
                 lastSavedAt = Date()
                 onSaved()
             } catch {
-                errorMessage = error.localizedDescription
+                // 커버 업로드는 타이핑 곁에서 도는 자동 동작 — 실패해도 모달 대신 토스트로.
+                ToastCenter.shared.show(String(localized: "커버 이미지를 올리지 못했습니다"))
             }
         }
     }
@@ -1210,7 +1224,7 @@ private struct TagsField: View {
                 }
                 Text("탭하면 대표로 · ✕ 로 삭제")
                     .typeScale(.footnote)
-                    .foregroundStyle(Palette.faint)
+                    .foregroundStyle(Palette.secondary)
             }
         }
     }

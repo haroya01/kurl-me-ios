@@ -70,7 +70,10 @@ struct FollowListsView: View {
         .navigationTitle(username)
         .navigationBarTitleDisplayMode(.inline)
         .task(id: tab) { await reload() }
-        .loginPrompt(isPresented: $showLoginPrompt, message: "이 작가의 새 글을 피드에서 받기")
+        .loginPrompt(isPresented: $showLoginPrompt, message: "이 작가의 새 글을 피드에서 받기") {
+            // 로그인 후 followedByMe 시드가 stale — 목록을 다시 받아 행 토글을 새로 시드.
+            await reload()
+        }
     }
 
     private func row(_ user: FollowUser) -> some View {
@@ -78,7 +81,7 @@ struct FollowListsView: View {
             AvatarView(author: user.asAuthor, size: 44)
             VStack(alignment: .leading, spacing: 2) {
                 Text(user.username)
-                    .font(.system(size: 15, weight: .semibold))
+                    .typeScale(.titleSmall)
                     .foregroundStyle(Palette.ink)
                     .lineLimit(1)
                 if let bio = user.bio, !bio.isEmpty {
@@ -132,11 +135,13 @@ struct FollowListsView: View {
 }
 
 /// 탭 가능한 "팔로워 N · 팔로잉 N" — 작가 헤더에 들어가 각 숫자가 해당 목록으로 민다.
-/// 로딩 전엔 투명(0 깜빡임 방지). FollowButton 과 별개의 공개 status GET 한 번.
+/// 숫자 GET 이 실패해도 목록 진입로는 살아 있어야 한다(유일한 문) — 그래서 링크는 항상
+/// tappable, 실패 땐 숫자 자리에 "—" 플레이스홀더 + 재시도. FollowButton 과 별개의 공개 status GET.
 struct FollowCountsLink: View {
     let username: String
     @State private var followers: Int64?
     @State private var followingCount: Int64?
+    @State private var failed = false
 
     var body: some View {
         HStack(spacing: 8) {
@@ -149,23 +154,40 @@ struct FollowCountsLink: View {
                 countLabel("팔로잉", followingCount)
             }
             .buttonStyle(.plain)
+            if failed {
+                Button { Task { await load() } } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Palette.link)
+                        .expandTapTarget(8)
+                }
+                .buttonStyle(.plain)
+            }
             Spacer(minLength: 0)
         }
         .typeScale(.meta)
         .foregroundStyle(Palette.secondary)
-        .opacity(followers == nil ? 0 : 1)
+        // 로딩 첫 프레임만 숨겨 0→실제값 깜빡임을 막고(실패 땐 플레이스홀더로 보여 줌), 링크 탭은 죽이지 않는다.
+        .opacity(followers == nil && !failed ? 0 : 1)
         .animation(.snappy(duration: 0.2), value: followers)
-        .task {
-            if let status = try? await InteractionsAPI.followStatus(username: username) {
-                followers = status.followerCount
-                followingCount = status.followingCount
-            }
+        .task { await load() }
+    }
+
+    private func load() async {
+        failed = false
+        do {
+            let status = try await InteractionsAPI.followStatus(username: username)
+            followers = status.followerCount
+            followingCount = status.followingCount
+        } catch {
+            // 숫자만 못 받았을 뿐 — 링크는 살려 두고, 숫자 자리엔 플레이스홀더 + 재시도.
+            if followers == nil { failed = true }
         }
     }
 
     private func countLabel(_ label: String, _ count: Int64?) -> some View {
         HStack(spacing: 4) {
-            Text("\(label) \(count ?? 0)")
+            Text(count.map { "\(label) \($0)" } ?? "\(label) —")
                 .contentTransition(.numericText())
             Image(systemName: "chevron.right")
                 .font(.system(size: 9, weight: .semibold))
@@ -202,6 +224,7 @@ private struct RowFollowToggle: View {
                     .padding(.horizontal, 13)
                     .padding(.vertical, 6)
                     .contentShape(Capsule())
+                    .expandTapTarget(8)  // 캡슐 높이 ~25pt → 탭 영역만 44pt 로(시각 크기 유지)
             }
             .buttonStyle(.plain)
             .glassCapsule(prominent: !following)

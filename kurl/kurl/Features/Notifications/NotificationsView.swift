@@ -16,6 +16,8 @@ struct NotificationsView: View {
     @State private var loadError: String?
     /// "모두 읽음" 성공 햅틱 트리거 — 글 완독 성공 햅틱과 같은 결의 확인음.
     @State private var markAllPulse = 0
+    /// refresh 가 in-flight loadMore 의 스테일 응답을 폐기하기 위한 세대 토큰.
+    @State private var epoch = 0
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
 
     var body: some View {
@@ -110,7 +112,8 @@ struct NotificationsView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(headline(n))
                     .font(.system(size: 14 * unit, weight: n.read ? .regular : .medium))
-                    .foregroundStyle(Palette.ink)
+                    // 읽은 알림은 한 톤 가라앉혀 — 안 읽은 줄로 눈이 가게.
+                    .foregroundStyle(n.read ? Palette.secondary : Palette.ink)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
                 if let subtitle = n.postTitle ?? n.seriesTitle {
@@ -164,9 +167,19 @@ struct NotificationsView: View {
 
     private func markRead(_ n: AppNotification) {
         guard !n.read else { return }
-        Task { try? await NotificationsAPI.markRead(id: n.id) }
-        if let idx = items.firstIndex(where: { $0.id == n.id }) {
-            items[idx] = asRead(items[idx])
+        // 낙관적으로 점을 끄되, 서버 실패 시 그 줄만 되돌린다 — 거짓 성공을 만들지 않는다.
+        guard let idx = items.firstIndex(where: { $0.id == n.id }) else { return }
+        let snapshot = items[idx]
+        items[idx] = asRead(snapshot)
+        Task {
+            do {
+                try await NotificationsAPI.markRead(id: n.id)
+            } catch {
+                if let cur = items.firstIndex(where: { $0.id == n.id }) {
+                    items[cur] = snapshot
+                }
+                ToastCenter.shared.show(String(localized: "읽음 처리하지 못했습니다"))
+            }
         }
     }
 
@@ -180,13 +193,17 @@ struct NotificationsView: View {
     }
 
     private func load() async {
+        epoch += 1
+        let myEpoch = epoch
         do {
             let page = try await NotificationsAPI.list()
+            guard myEpoch == epoch else { return }
             items = page.items
             nextCursor = page.nextCursor
             hasMore = page.hasMore
             loadError = nil
         } catch {
+            guard myEpoch == epoch else { return }
             // 실패가 빈 상태로 위장하지 않게 — 이미 보이던 목록은 보존한다.
             if items.isEmpty { loadError = error.localizedDescription }
         }
@@ -197,7 +214,10 @@ struct NotificationsView: View {
         guard hasMore, !loadingMore, let cursor = nextCursor else { return }
         loadingMore = true
         defer { loadingMore = false }
+        let myEpoch = epoch
         if let page = try? await NotificationsAPI.list(before: cursor) {
+            // refresh 가 끼어들었으면 이 응답은 옛 세대 — 버린다(append 도 커서 갱신도 없음).
+            guard myEpoch == epoch else { return }
             items += page.items
             nextCursor = page.nextCursor
             hasMore = page.hasMore

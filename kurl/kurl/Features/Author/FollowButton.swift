@@ -14,13 +14,24 @@ struct FollowButton: View {
 
     /// 옆에 "팔로워 N"을 붙일지 — 작가 헤더처럼 탭 가능한 카운트 행이 따로 있으면 끈다.
     private let showCount: Bool
+    /// 본인 작가 페이지/내 글에선 self-follow 가 무의미 — 버튼을 숨긴다.
+    private let username: String
 
     init(username: String, showCount: Bool = true) {
         _model = State(initialValue: FollowModel(username: username))
         self.showCount = showCount
+        self.username = username
     }
 
     var body: some View {
+        if AuthStore.shared.me?.username == username {
+            EmptyView()
+        } else {
+            content
+        }
+    }
+
+    private var content: some View {
         HStack(spacing: 12) {
             Button {
                 toggle()
@@ -31,6 +42,7 @@ struct FollowButton: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
                     .contentShape(Capsule())
+                    .expandTapTarget(6)  // 캡슐 높이 ~33pt → 탭 영역만 44pt 로(시각 크기 유지)
             }
             .buttonStyle(.plain)
             .glassCapsule(prominent: !model.following)

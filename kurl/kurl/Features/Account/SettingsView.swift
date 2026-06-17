@@ -32,12 +32,12 @@ struct SettingsView: View {
                 HStack(spacing: 10) {
                     settingIcon("bell.badge")
                     Text("푸시 알림")
-                        .font(.system(size: 15))
+                        .typeScale(.body)
                         .foregroundStyle(Palette.ink)
                     Spacer()
                     if let label = pushStatusLabel {
                         Text(label)
-                            .font(.system(size: 14))
+                            .typeScale(.meta)
                             .foregroundStyle(Palette.secondary)
                     }
                     Image(systemName: pushStatus == .notDetermined ? "chevron.right" : "arrow.up.right")
@@ -63,7 +63,7 @@ struct SettingsView: View {
             HStack(spacing: 10) {
                 settingIcon("info.circle")
                 Text("버전")
-                    .font(.system(size: 15))
+                    .typeScale(.body)
                     .foregroundStyle(Palette.ink)
                 Spacer()
                 Text(Self.version)
@@ -88,7 +88,7 @@ struct SettingsView: View {
                                 .frame(width: 22)
                         }
                         Text("회원 탈퇴")
-                            .font(.system(size: 15))
+                            .typeScale(.body)
                     }
                     .contentShape(Rectangle())
                 }
@@ -120,6 +120,8 @@ struct SettingsView: View {
         }
         .alert("탈퇴하지 못했습니다", isPresented: $deleteFailed) {
             Button("확인", role: .cancel) {}
+        } message: {
+            Text("잠시 후 다시 시도해 주세요.")
         }
     }
 
@@ -160,7 +162,7 @@ struct SettingsView: View {
             HStack(spacing: 10) {
                 settingIcon(icon)
                 Text(title)
-                    .font(.system(size: 15))
+                    .typeScale(.body)
                     .foregroundStyle(Palette.ink)
                 Spacer()
                 Image(systemName: "arrow.up.right")
@@ -188,6 +190,8 @@ struct SettingsView: View {
             do {
                 try await AuthAPI.deleteAccount()
                 auth.signOut()
+                // 토스트는 루트(ToastHost)에 떠 dismiss 뒤에도 살아남는다 — 화면이 사라져 무피드백이던 자리.
+                ToastCenter.shared.show(String(localized: "계정을 삭제했습니다"))
                 dismiss()
             } catch {
                 deleteFailed = true

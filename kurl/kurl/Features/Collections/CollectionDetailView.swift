@@ -11,6 +11,9 @@ import SwiftUI
 struct CollectionDetailView: View {
     let collectionId: Int64
     @State private var detail: CollectionDetail?
+    // 연결 목록은 detail 에서 떼어 따로 둔다 — 끊기를 낙관(즉시 제거)하고 실패 시 되돌리기 위해.
+    @State private var connections: [ConnectionItem] = []
+    @State private var disconnects = 0
     @State private var loading = true
     @State private var failed = false
     @State private var showEdit = false
@@ -34,20 +37,20 @@ struct CollectionDetailView: View {
                 Hairline().padding(.bottom, 4)
                 if detail.kind == .path {
                     // PATH = reading path. 리스트가 아니라 순번으로 잇는 가이드 워크(문장→왜→문장).
-                    pathWalk(detail)
+                    pathWalk()
                 } else {
                     LazyVStack(spacing: 0) {
-                        ForEach(Array(detail.connections.enumerated()), id: \.element.id) {
+                        ForEach(Array(connections.enumerated()), id: \.element.id) {
                             index, item in
                             connectionCell(item)
                                 .modifier(QuietAppear(index: index))
-                            if index < detail.connections.count - 1 {
+                            if index < connections.count - 1 {
                                 Hairline().padding(.leading, 14)
                             }
                         }
                     }
                 }
-                if detail.connections.isEmpty {
+                if connections.isEmpty {
                     emptyState
                 }
             } else if failed {
@@ -66,7 +69,7 @@ struct CollectionDetailView: View {
                         } label: {
                             Label("수정", systemImage: "pencil")
                         }
-                        if detail.kind == .path, detail.connections.count > 1 {
+                        if detail.kind == .path, connections.count > 1 {
                             Button {
                                 showReorder = true
                             } label: {
@@ -107,14 +110,22 @@ struct CollectionDetailView: View {
         } message: {
             Text("담긴 연결도 함께 사라져요. 연결된 글·노트 자체는 지워지지 않아요.")
         }
+        .sensoryFeedback(.impact(weight: .light), trigger: disconnects)
         .task { await load() }
     }
 
+    /// 끊기는 낙관 — 즉시 빼고(점프·지연 없이) 실패하면 자리째 되돌린다. reload 없음.
     private func disconnect(_ item: ConnectionItem) async {
+        guard let idx = connections.firstIndex(where: { $0.id == item.id }) else { return }
+        let snapshot = connections
+        _ = withAnimation(.snappy(duration: 0.25)) {
+            connections.remove(at: idx)
+        }
         do {
             try await CollectionsAPI.disconnect(collectionId: collectionId, connectionId: item.id)
-            await load()
+            disconnects += 1
         } catch {
+            withAnimation(.snappy(duration: 0.25)) { connections = snapshot }
             ToastCenter.shared.show(String(localized: "연결을 끊지 못했습니다"))
         }
     }
@@ -131,7 +142,9 @@ struct CollectionDetailView: View {
     private func load() async {
         failed = false
         do {
-            detail = try await CollectionsAPI.detail(id: collectionId)
+            let fresh = try await CollectionsAPI.detail(id: collectionId)
+            detail = fresh
+            connections = fresh.connections
             loading = false
         } catch {
             loading = false
@@ -166,7 +179,7 @@ struct CollectionDetailView: View {
                     .font(.system(size: 11 * metaUnit, weight: .medium))
                 Text(detail.visibility.label)
                 Text("·").foregroundStyle(Palette.faint)
-                Text("\(detail.connections.count)개")
+                Text("\(connections.count)개")
             }
             .typeScale(.meta)
             .foregroundStyle(Palette.secondary)
@@ -210,10 +223,10 @@ struct CollectionDetailView: View {
 
     // MARK: 길(PATH) — 순번으로 잇는 가이드 워크. 큐레이터의 "왜"가 문장과 문장을 잇는 흐름.
 
-    private func pathWalk(_ detail: CollectionDetail) -> some View {
+    private func pathWalk() -> some View {
         LazyVStack(alignment: .leading, spacing: 0) {
-            ForEach(Array(detail.connections.enumerated()), id: \.element.id) { index, item in
-                pathStepCell(index: index, total: detail.connections.count, item: item)
+            ForEach(Array(connections.enumerated()), id: \.element.id) { index, item in
+                pathStepCell(index: index, total: connections.count, item: item)
                     .modifier(QuietAppear(index: index))
             }
         }

@@ -73,6 +73,8 @@ struct AccountView: View {
                         }
                         .tint(.brand)
                         .accessibilityLabel("알림")
+                        .accessibilityValue(
+                            unreadCount > 0 ? Text("읽지 않음 \(unreadCount)") : Text(""))
                         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: unreadCount > 0)
                     }
                 }

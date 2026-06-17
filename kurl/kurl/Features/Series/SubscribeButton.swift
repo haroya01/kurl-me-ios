@@ -27,6 +27,7 @@ struct SubscribeButton: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
                     .contentShape(Capsule())
+                    .expandTapTarget()  // 캡슐 시각 높이 ~30pt → 탭 영역만 44pt 로(시각 크기 유지)
             }
             .buttonStyle(.plain)
             .glassCapsule(prominent: !model.subscribed)

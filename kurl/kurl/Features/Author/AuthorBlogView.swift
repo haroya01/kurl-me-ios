@@ -169,7 +169,7 @@ struct AuthorBlogView: View {
                                     KurlMark(drawn: [true, true, true])
                                         .frame(width: 18, height: 11)
                                     Text(item.title)
-                                        .font(.system(size: 14, weight: .semibold))
+                                        .typeScale(.titleSmall)
                                         .foregroundStyle(Palette.ink)
                                         .lineLimit(2)
                                         .multilineTextAlignment(.leading)
@@ -199,16 +199,42 @@ struct AuthorBlogView: View {
         }
 
         RailHeading("글").padding(.bottom, 4)
-        // 작가 글 목록 = 카탈로그(작가의 책장) — 카드가 아니라 깔끔한 글 행(PostRow).
-        // 발견·검색·태그만 카드, 읽기·카탈로그 면은 행(3원칙 표준).
-        LazyVStack(spacing: 0) {
-            ForEach(Array(view.posts.enumerated()), id: \.element.id) { index, post in
-                NavigationLink(value: Route.post(username: username, slug: post.slug)) {
-                    PostRow(item: post)
+        if view.posts.isEmpty {
+            // 0편 = 헤딩 아래 빈 공간 대신 자리표 — 내 페이지면 글쓰기로, 남의 페이지면 그냥 안내.
+            if isOwnAuthor {
+                FeedPlaceholder(
+                    eyebrow: "내 블로그",
+                    title: "아직 발행한 글이 없어요",
+                    message: "첫 글을 발행하면 여기 카탈로그로 쌓입니다.",
+                    actionTitle: "글쓰기",
+                    prominent: true,
+                    action: { TabRouter.shared.selection = 2 }
+                )
+                .padding(.top, 48)
+                .padding(.bottom, 8)
+            } else {
+                FeedPlaceholder(
+                    eyebrow: "작가",
+                    title: "아직 발행한 글이 없어요",
+                    message: "이 작가의 첫 글이 올라오면 여기에서 만나요.",
+                    actionTitle: "발견에서 읽을 글 찾기",
+                    action: { TabRouter.shared.selection = 1 }
+                )
+                .padding(.top, 48)
+                .padding(.bottom, 8)
+            }
+        } else {
+            // 작가 글 목록 = 카탈로그(작가의 책장) — 카드가 아니라 깔끔한 글 행(PostRow).
+            // 발견·검색·태그만 카드, 읽기·카탈로그 면은 행(3원칙 표준).
+            LazyVStack(spacing: 0) {
+                ForEach(Array(view.posts.enumerated()), id: \.element.id) { index, post in
+                    NavigationLink(value: Route.post(username: username, slug: post.slug)) {
+                        PostRow(item: post)
+                    }
+                    .buttonStyle(RowButtonStyle())
+                    .modifier(QuietAppear(index: index))
+                    if index < view.posts.count - 1 { Hairline() }
                 }
-                .buttonStyle(RowButtonStyle())
-                .modifier(QuietAppear(index: index))
-                if index < view.posts.count - 1 { Hairline() }
             }
         }
         Color.clear.frame(height: 40)

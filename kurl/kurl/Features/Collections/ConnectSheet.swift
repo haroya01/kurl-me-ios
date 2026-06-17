@@ -19,7 +19,12 @@ struct ConnectSheet: View {
     @State private var selected: Set<Int64> = []
     @State private var collections: [CollectionSummary] = []
     @State private var loading = true
+    @State private var failed = false
     @State private var saving = false
+    @State private var showCreate = false
+    /// 성공 햅틱 트리거 — 만들기·연결이 끝나면 +1(§10 살아 있는 절제).
+    @State private var didConnect = 0
+    @State private var didCreate = 0
     @Environment(\.dismiss) private var dismiss
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
@@ -33,12 +38,28 @@ struct ConnectSheet: View {
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .background(Palette.readingBg)
+        .sheet(isPresented: $showCreate) {
+            CreateCollectionSheet { created in
+                collections.insert(created, at: 0)
+                selected.insert(created.id)
+                didCreate += 1
+            }
+        }
+        .sensoryFeedback(.success, trigger: didConnect)
+        .sensoryFeedback(.success, trigger: didCreate)
         .task { await loadCollections() }
     }
 
     private func loadCollections() async {
-        collections = (try? await CollectionsAPI.mine()) ?? []
-        loading = false
+        failed = false
+        do {
+            collections = try await CollectionsAPI.mine()
+            loading = false
+        } catch {
+            loading = false
+            // 빈 계정과 헷갈리지 않게 — 못 읽었으면 "다시 시도"를 띄운다(형제 failedState).
+            if collections.isEmpty { failed = true }
+        }
     }
 
     // MARK: ① 어디에 남길까요 — 컬렉션 고르기
@@ -48,6 +69,8 @@ struct ConnectSheet: View {
             if loading {
                 ProgressView().tint(Palette.accent)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if failed {
+                failedState
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
@@ -61,10 +84,20 @@ struct ConnectSheet: View {
                 }
                 .scrollIndicators(.hidden)
             }
-            nextButton
+            if !failed { nextButton }
         }
         .padding(.horizontal, Metrics.gutter)
         .padding(.bottom, 16)
+    }
+
+    private var failedState: some View {
+        ContentUnavailableView {
+            Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
+        } actions: {
+            Button("다시 시도") { Task { loading = true; await loadCollections() } }
+                .foregroundStyle(Palette.accent)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var nextButton: some View {
@@ -131,7 +164,7 @@ struct ConnectSheet: View {
 
     private var newCollectionRow: some View {
         Button {
-            Task { await createAndSelect() }
+            showCreate = true
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: "plus")
@@ -152,7 +185,7 @@ struct ConnectSheet: View {
     /// 새 길(PATH) 만들기 — 순서로 엮는 reading path. 문장을 가로질러 하나의 흐름으로.
     private var newPathRow: some View {
         Button {
-            Task { await createAndSelect(kind: .path) }
+            Task { await createPathAndSelect() }
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: "arrow.turn.down.right")
@@ -190,7 +223,7 @@ struct ConnectSheet: View {
 
             Text("\(selected.count)개 컬렉션에 추가됩니다.")
                 .typeScale(.footnote)
-                .foregroundStyle(Palette.faint)
+                .foregroundStyle(Palette.secondary)
                 .padding(.top, 12)
 
             Spacer(minLength: 0)
@@ -207,7 +240,7 @@ struct ConnectSheet: View {
             Text(targetKind)
                 .font(.system(size: 11 * metaUnit, weight: .bold))
                 .tracking(0.4)
-                .foregroundStyle(Palette.faint)
+                .foregroundStyle(Palette.secondary)
             Text(targetTitle)
                 .font(.system(size: 15 * unit, weight: .medium))
                 .foregroundStyle(Palette.ink)
@@ -247,37 +280,42 @@ struct ConnectSheet: View {
 
     // MARK: 동작
 
-    private func createAndSelect(kind: CollectionKind = .collection) async {
-        let fallback = kind == .path ? String(localized: "새 길") : String(localized: "새 컬렉션")
-        let name = targetTitle.isEmpty ? fallback : targetTitle
+    /// 새 길(PATH) 만들기 — 길은 타깃 글을 첫 마디로 출발하니 그 제목을 시작 이름으로.
+    private func createPathAndSelect() async {
+        let name = targetTitle.isEmpty ? String(localized: "새 길") : targetTitle
         guard let created = try? await CollectionsAPI.create(
-            title: name, description: nil, visibility: .private, kind: kind)
+            title: name, description: nil, visibility: .private, kind: .path)
         else {
             ToastCenter.shared.show(String(localized: "만들지 못했습니다"))
             return
         }
         collections.insert(created, at: 0)
         selected.insert(created.id)
+        didCreate += 1
     }
 
     private func connectAll() async {
         saving = true
         defer { saving = false }
         let line = why.trimmingCharacters(in: .whitespacesAndNewlines)
-        var failures = 0
+        var stillFailing: Set<Int64> = []
         for collectionId in selected {
             do {
                 try await CollectionsAPI.connect(
                     collectionId: collectionId, blockType: blockType, refId: refId,
                     why: line.isEmpty ? nil : line)
             } catch {
-                failures += 1
+                stillFailing.insert(collectionId)
             }
         }
-        ToastCenter.shared.show(
-            failures > 0
-                ? String(localized: "일부 연결에 실패했습니다")
-                : String(localized: "추가했어요"))
-        dismiss()
+        if stillFailing.isEmpty {
+            didConnect += 1
+            ToastCenter.shared.show(String(localized: "추가했어요"))
+            dismiss()
+            return
+        }
+        // 일부만 실패 — 시트를 닫지 않고 실패한 컬렉션과 쓴 "왜"를 그대로 둔다(다시 시도).
+        selected = stillFailing
+        ToastCenter.shared.show(String(localized: "일부 연결에 실패했습니다"))
     }
 }

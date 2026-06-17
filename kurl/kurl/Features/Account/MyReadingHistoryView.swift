@@ -128,15 +128,36 @@ struct MyReadingHistoryView: View {
         loading = false
     }
 
-    /// 낙관적 — 즉시 빼고 서버에 알린다(실패해도 읽기 흐름을 끊지 않는다).
+    /// 낙관적 — 즉시 빼되 실패하면 스냅샷으로 되돌린다(사적 기록이라 조용히 사라지면 오해한다).
     private func forget(_ item: ReadingHistoryEntry) {
+        let snapshot = items
         items.removeAll { $0.postId == item.postId }
-        Task { try? await ReadingHistoryAPI.forget(postId: item.postId) }
+        Task {
+            do {
+                try await ReadingHistoryAPI.forget(postId: item.postId)
+            } catch {
+                items = snapshot
+                ToastCenter.shared.show(String(localized: "기록을 지우지 못했습니다"))
+            }
+        }
     }
 
+    /// 전체 삭제도 같은 규칙 — 페이지 상태까지 함께 스냅샷.
     private func clearAll() {
+        let snapshot = items
+        let hadNext = hasNext
+        let prevPage = page
         items = []
         hasNext = false
-        Task { try? await ReadingHistoryAPI.clear() }
+        Task {
+            do {
+                try await ReadingHistoryAPI.clear()
+            } catch {
+                items = snapshot
+                hasNext = hadNext
+                page = prevPage
+                ToastCenter.shared.show(String(localized: "기록을 지우지 못했습니다"))
+            }
+        }
     }
 }

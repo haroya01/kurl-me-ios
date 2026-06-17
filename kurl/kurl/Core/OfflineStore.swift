@@ -58,6 +58,14 @@ final class OfflineStore {
         cachedKeys.remove("\(username)/\(slug)")
     }
 
+    /// 로그아웃 시 전부 폐기 — 다른 계정이 이 기기의 오프라인 사본을 열지 못하게(프라이버시).
+    func removeAll() {
+        let files = (try? FileManager.default.contentsOfDirectory(
+            at: directory, includingPropertiesForKeys: nil)) ?? []
+        for url in files { try? FileManager.default.removeItem(at: url) }
+        cachedKeys = []
+    }
+
     /// 없으면 받아서 저장 — 카드 컨텍스트 메뉴·구독함 프리페치·서재 reconcile 의 공용 경로.
     func download(username: String, slug: String) async {
         guard !contains(username: username, slug: slug) else { return }

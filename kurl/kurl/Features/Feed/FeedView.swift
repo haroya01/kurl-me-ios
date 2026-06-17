@@ -39,6 +39,8 @@ struct FeedView: View {
 
     /// 알림은 리텐션 루프의 심장인데 계정 탭 안 2뎁스였다 — 첫 화면에 벨을 둔다.
     @State private var unreadCount: Int64 = 0
+    /// 벨 → 알림. isPresented 바인딩이라 pop 시 onChange 가 미읽음을 다시 읽는다(계정 탭과 동일).
+    @State private var showNotifications = false
 
     /// 좌우 스와이프 인터랙티브 — 손가락을 따라 화면이 슬라이드되어 "넘기는 중"이 느껴진다.
     /// dragX = 현재 끌린 거리(현재 페이지 오프셋), 인접 페이지는 한 폭 옆에서 따라 들어온다.
@@ -86,8 +88,8 @@ struct FeedView: View {
                         }
                         Spacer(minLength: 0)
                         if AuthStore.shared.isSignedIn {
-                            NavigationLink {
-                                NotificationsView()
+                            Button {
+                                showNotifications = true
                             } label: {
                                 Image(systemName: "bell")
                                     .font(.system(size: 15, weight: .semibold))
@@ -141,6 +143,13 @@ struct FeedView: View {
                 } else {
                     RouteView(route: route)
                 }
+            }
+            .navigationDestination(isPresented: $showNotifications) {
+                NotificationsView()
+            }
+            .onChange(of: showNotifications) { _, open in
+                // 알림에서 돌아오면 미읽음 점 갱신 — 모두 읽었는데 점이 남지 않게(계정 탭과 동일).
+                if !open { Task { await refreshUnread() } }
             }
         }
     }
@@ -354,7 +363,7 @@ struct FeedPage: View {
 /// 기성품 인상을 걷고, 종이 본문 결의 조용한 면으로 다시 짠다. 브랜드 마크 한 점 +
 /// 섹션 라벨 + 제목 + 한 줄 + 단일 주액션. 로그인 게이트만 그린 유리 캡슐(§1.4 종이 위
 /// 로그인 CTA), 빈 피드 안내는 조용한 그린 텍스트로 — 초록 과용을 피한다(§10 색 규율).
-private struct FeedPlaceholder: View {
+struct FeedPlaceholder: View {
     let eyebrow: LocalizedStringKey
     let title: LocalizedStringKey
     let message: LocalizedStringKey

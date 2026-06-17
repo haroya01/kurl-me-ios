@@ -17,6 +17,8 @@ struct SeriesBanner: View {
     @State private var episodes: [PostListItem]?
     @State private var loadFailed = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    // 핵심 읽기면이라 고정 pt 금지 — typeScale 못 쓰는 자리(monospacedDigit·소형 라벨)는 배수로 키운다.
+    @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -28,7 +30,7 @@ struct SeriesBanner: View {
                         .lineLimit(1)
                     Spacer(minLength: 8)
                     Text(verbatim: String(format: "%02d / %02d", nav.position, nav.total))
-                        .font(.system(size: 12).monospacedDigit())
+                        .font(.system(size: 12 * metaUnit).monospacedDigit())
                         .foregroundStyle(Palette.secondary)
                 }
                 .contentShape(Rectangle())
@@ -55,9 +57,9 @@ struct SeriesBanner: View {
             } label: {
                 HStack(spacing: 4) {
                     Text("이 시리즈의 글")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: 13 * metaUnit, weight: .medium))
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.system(size: 10 * metaUnit, weight: .semibold))
                         .rotationEffect(.degrees(expanded ? 180 : 0))
                 }
                 .foregroundStyle(expanded ? Palette.link : Palette.secondary)
@@ -98,7 +100,7 @@ struct SeriesBanner: View {
             }
         } else if loadFailed {
             Text("목록을 불러오지 못했습니다")
-                .font(.system(size: 13))
+                .font(.system(size: 13 * metaUnit))
                 .foregroundStyle(Palette.secondary)
                 .padding(.vertical, 6)
         } else {
@@ -111,10 +113,10 @@ struct SeriesBanner: View {
     private func episodeRow(index: Int, title: String, current: Bool) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(verbatim: String(format: "%02d", index + 1))
-                .font(.system(size: 11).monospacedDigit())
+                .font(.system(size: 11 * metaUnit).monospacedDigit())
                 .foregroundStyle(current ? Palette.link : Palette.secondary)
             Text(title)
-                .font(.system(size: 13, weight: current ? .semibold : .regular))
+                .font(.system(size: 13 * metaUnit, weight: current ? .semibold : .regular))
                 .foregroundStyle(current ? Palette.link : Palette.body)
                 .lineLimit(1)
             Spacer(minLength: 0)
@@ -146,6 +148,8 @@ struct SeriesNextCard: View {
     let nav: PostSeriesNav
     let username: String
 
+    @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Hairline()
@@ -160,8 +164,8 @@ struct SeriesNextCard: View {
                         HStack(alignment: .center, spacing: 12) {
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(verbatim: String(format: "%02d", nav.position + 1))
-                                    .font(.system(size: 12).monospacedDigit())
-                                    .foregroundStyle(Palette.faint)
+                                    .font(.system(size: 12 * metaUnit).monospacedDigit())
+                                    .foregroundStyle(Palette.secondary)
                                 Text(next.title)
                                     .typeScale(.titleSmall)
                                     .foregroundStyle(Palette.ink)
@@ -170,7 +174,7 @@ struct SeriesNextCard: View {
                             }
                             Spacer(minLength: 8)
                             Image(systemName: "arrow.right")
-                                .font(.system(size: 16, weight: .medium))
+                                .font(.system(size: 16 * metaUnit, weight: .medium))
                                 .foregroundStyle(Palette.faint)
                         }
                     }
@@ -188,7 +192,7 @@ struct SeriesNextCard: View {
 
             NavigationLink(value: Route.series(username: username, slug: nav.slug)) {
                 Text("시리즈 전체 보기 (\(nav.total)편)")
-                    .font(.system(size: 13))
+                    .font(.system(size: 13 * metaUnit))
                     .foregroundStyle(Palette.secondary)
                     .expandTapTarget()
             }

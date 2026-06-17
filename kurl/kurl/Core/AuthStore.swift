@@ -9,6 +9,7 @@ import Foundation
 import Observation
 import Security
 import UIKit
+import WidgetKit
 
 enum AuthError: LocalizedError {
     /// 사용자가 브라우저 시트를 직접 닫음 — UI 는 조용히 무시한다.
@@ -49,6 +50,9 @@ final class AuthStore {
     @ObservationIgnored private var refreshToken: String?
     @ObservationIgnored private var pendingChallenge: String?
     @ObservationIgnored private var refreshTask: Task<Void, Error>?
+    /// 세션 세대 — forgetSession 마다 증가. 비행 중이던 refresh 가 로그아웃 뒤에 토큰을
+    /// 되살리지 못하게(adopt 직전 epoch 일치 확인) 막는 단조 가드.
+    @ObservationIgnored private var sessionEpoch = 0
     @ObservationIgnored private var activeSession: ASWebAuthenticationSession?
     @ObservationIgnored private var appleDelegate: AppleAuthDelegate?
     @ObservationIgnored private let presenter = WebAuthPresenter()
@@ -207,9 +211,13 @@ final class AuthStore {
             return try await running.value
         }
         guard let current = refreshToken else { throw AuthError.notSignedIn }
+        let epoch = sessionEpoch
         let task = Task<Void, Error> {
             do {
-                adopt(try await AuthAPI.refresh(refreshToken: current))
+                let pair = try await AuthAPI.refresh(refreshToken: current)
+                // 리프레시 도중 로그아웃(forgetSession)이 끼었으면 토큰을 되살리지 않는다.
+                guard epoch == sessionEpoch else { throw AuthError.notSignedIn }
+                adopt(pair)
             } catch APIError.http(let status) where status == 401 {
                 // 리프레시 토큰 자체가 죽음 — 로컬 세션 폐기 (다른 기기 세션은 서버가 유지)
                 forgetSession()
@@ -256,6 +264,8 @@ final class AuthStore {
     }
 
     private func forgetSession() {
+        // 세대를 올려 비행 중 refresh 의 adopt 를 무효화(토큰 부활 레이스 차단).
+        sessionEpoch &+= 1
         accessToken = nil
         refreshToken = nil
         pendingChallenge = nil
@@ -263,6 +273,18 @@ final class AuthStore {
         isSignedIn = false
         Keychain.delete(account: Self.accessAccount)
         Keychain.delete(account: Self.refreshAccount)
+        tearDownSessionState()
+    }
+
+    /// 로그아웃 시 기기 로컬에 남은 *이전 계정* 자취를 전부 폐기한다 — 같은 기기에서 다른
+    /// 계정으로 로그인했을 때 A 의 오프라인 사본·읽음 기록·북마크·분석 위젯이 B 에게 보이지
+    /// 않게(프라이버시). refresh 토큰이 죽어 세션이 끊긴 경로(refreshTokens 401)도 여기를 탄다.
+    private func tearDownSessionState() {
+        BookmarkStore.shared.reset()
+        PostReadStore.shared.reset()
+        OfflineStore.shared.removeAll()
+        AnalyticsSnapshot.clear()
+        WidgetCenter.shared.reloadAllTimelines()
     }
 }
 

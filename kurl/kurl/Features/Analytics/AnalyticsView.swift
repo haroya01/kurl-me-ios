@@ -11,6 +11,8 @@ import SwiftUI
 struct AnalyticsView: View {
     /// 스튜디오 분면으로 품길 때 true — 내비 타이틀을 건드리지 않는다(스튜디오 소유).
     var embedded = false
+    /// 0편 빈 상태의 "첫 글" CTA — 컴포저는 스튜디오 소유라 닫고 위임한다(StudioView 가 띄운다).
+    var onCompose: () -> Void = {}
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .title3) private var heroSize: CGFloat = 40
@@ -127,12 +129,25 @@ struct AnalyticsView: View {
 
     @ViewBuilder
     private func content(_ overview: AuthorAnalyticsOverview) -> some View {
-        hero(overview)
-        lifetime(overview)
-        postPerformanceSection
-        seriesSection
-        referrers(overview)
-        Color.clear.frame(height: 32)
+        // 0편이면 지표가 전부 0인 벽 — 막다른 길 대신 첫 글로 잇는다(AGENTS 빈 상태 폴리시).
+        if overview.publishedPosts == 0 {
+            FeedPlaceholder(
+                eyebrow: "분석",
+                title: "발행하면 여기 쌓입니다",
+                message: "첫 글이 나가면 조회·팔로우·유입 추이가 매일 채워집니다.",
+                actionTitle: "새 글 쓰기",
+                prominent: true,
+                action: onCompose
+            )
+            .padding(.top, 72)
+        } else {
+            hero(overview)
+            lifetime(overview)
+            postPerformanceSection
+            seriesSection
+            referrers(overview)
+            Color.clear.frame(height: 32)
+        }
     }
 
     @ViewBuilder

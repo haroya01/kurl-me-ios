@@ -55,6 +55,9 @@ final class NotesViewModel {
             if items.isEmpty {
                 phase = .failed(
                     (error as? APIError)?.localizedDescription ?? error.localizedDescription)
+            } else {
+                // 이미 글이 떠 있으면 화면을 비우지 않는다 — 무음 실패 대신 토스트로 알린다.
+                ToastCenter.shared.show(String(localized: "새로고침하지 못했습니다"))
             }
         }
     }
@@ -102,6 +105,9 @@ final class NotesViewModel {
     func publish(body: String) async throws {
         let created = try await NoteAPI.create(body: body)
         withAnimation(.snappy(duration: 0.3)) {
+            // .loading/.failed 면 list 가 안 떠 삽입한 노트가 안 보이고 성공 햅틱만 거짓으로 울린다 —
+            // 삽입 전에 .loaded 로 올려 방금 쓴 글이 곧장 보이게.
+            phase = .loaded(true)
             items.insert(created, at: 0)
         }
     }
@@ -144,7 +150,8 @@ struct NotesPage: View {
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if active, AuthStore.shared.isSignedIn {
+            // 컴포저는 list 가 떴을 때만 — 로딩 마크·실패 화면 위에 떠서 안 보이는 곳에 글을 쓰지 않게.
+            if active, AuthStore.shared.isSignedIn, case .loaded = model.phase {
                 NoteComposerBar { body in
                     try await model.publish(body: body)
                 }
@@ -249,10 +256,12 @@ private struct NoteRowView: View {
                                 .bounce, value: reduceMotion ? false : model.isLiked(note))
                         if model.displayLikeCount(note) > 0 {
                             Text("\(model.displayLikeCount(note))")
-                                .font(.system(size: 12).monospacedDigit())
+                                .monospacedDigit()
                                 .contentTransition(.numericText())
                         }
                     }
+                    // 카운트는 메타 사다리로 — raw 12pt 산발 종식(Dynamic Type 도 따라온다). 하트는 자체 size 유지.
+                    .typeScale(.meta)
                     .foregroundStyle(model.isLiked(note) ? Palette.link : Palette.secondary)
                     .expandTapTarget()
                 }
@@ -301,7 +310,7 @@ private struct NoteComposerBar: View {
             if body_.count > 400 {
                 Text("\(500 - body_.count)")
                     .font(.system(size: 11).monospacedDigit())
-                    .foregroundStyle(body_.count > 500 ? .red : Palette.secondary)
+                    .foregroundStyle(body_.count > 500 ? Palette.danger : Palette.secondary)
             }
             Button {
                 send()

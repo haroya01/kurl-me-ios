@@ -160,7 +160,8 @@ struct HighlightThreadSheet: View {
                         Button { remove(replyId) } label: {
                             Image(systemName: "trash")
                                 .font(.system(size: 12 * metaUnit))
-                                .foregroundStyle(Palette.faint)
+                                .foregroundStyle(Palette.secondary)
+                                .expandTapTarget()  // 12pt 아이콘 → 44pt 터치 타깃
                         }
                         .buttonStyle(.plain)
                         .disabled(busy)
