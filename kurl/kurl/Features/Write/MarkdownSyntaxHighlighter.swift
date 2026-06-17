@@ -117,7 +117,11 @@ enum MarkdownSyntaxHighlighter {
             guard urlRange.location != NSNotFound else { return }
             let urlString = ns.substring(with: urlRange)
             storage.addAttribute(.kurlImageURL, value: urlString, range: match.range)
-            dim(storage, match.range)
+            // 마크다운(`![](url)`)은 숨긴다 — 에디터엔 사진만 보이게(WYSIWYG처럼). 원문 텍스트는
+            // 그대로 남아 자동저장·동기화는 불변. 투명색 + 1pt 폰트로 그 줄을 거의 0 높이로 접어,
+            // 아래 예약 공간(paragraphSpacing)에 그려지는 이미지만 남는다.
+            storage.addAttribute(.foregroundColor, value: UIColor.clear, range: match.range)
+            storage.addAttribute(.font, value: UIFont.systemFont(ofSize: 1), range: match.range)
             let para = ns.paragraphRange(for: match.range)
             let ps = NSMutableParagraphStyle()
             // 로드 전엔 placeholder, 로드 후엔 실제 비율 높이(onImageLoad 가 재하이라이트로 갱신).
