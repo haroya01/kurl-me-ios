@@ -38,6 +38,7 @@ enum MarkdownSyntaxHighlighter {
         storage.beginEditing()
         storage.setAttributes(base, range: full)
         styleLines(storage, ns)
+        applyImages(storage, ns)
         storage.endEditing()
         // 속성만 바꿔 길이는 그대로지만, 캐럿을 한 번 더 못박아 둔다.
         if selected.location <= ns.length {
@@ -99,6 +100,24 @@ enum MarkdownSyntaxHighlighter {
             }
 
             applyInline(storage, ns, lineRange)
+        }
+    }
+
+    /// `![alt](url)` — URL 표식(.kurlImageURL)을 붙이고 마크다운 문법은 흐리게, 그 줄 아래에
+    /// 썸네일 높이만큼 paragraphSpacing 으로 공간을 확보한다(레이아웃 매니저가 그 자리에 그린다).
+    /// 본문 텍스트(`![](url)`)는 그대로 남아 마크다운 원문·자동저장이 깨지지 않는다.
+    private static func applyImages(_ storage: NSTextStorage, _ ns: NSString) {
+        let full = NSRange(location: 0, length: ns.length)
+        Regex.image.enumerateMatches(in: ns as String, range: full) { match, _, _ in
+            guard let match else { return }
+            let urlRange = match.range(at: 1)
+            guard urlRange.location != NSNotFound else { return }
+            storage.addAttribute(.kurlImageURL, value: ns.substring(with: urlRange), range: match.range)
+            dim(storage, match.range)
+            let para = ns.paragraphRange(for: match.range)
+            let ps = NSMutableParagraphStyle()
+            ps.paragraphSpacing = MarkdownImage.thumbHeight
+            storage.addAttribute(.paragraphStyle, value: ps, range: para)
         }
     }
 
@@ -217,6 +236,7 @@ enum MarkdownSyntaxHighlighter {
         static let italic = make("(?<![*\\w])\\*([^*\\n]+)\\*(?![*\\w])")
         static let strike = make("~~([^~\\n]+)~~")
         static let link = make("\\[([^\\]\\n]+)\\]\\([^)\\n]+\\)")
+        static let image = make("!\\[[^\\]\\n]*\\]\\(([^)\\s]+)\\)")
 
         static func make(_ pattern: String) -> NSRegularExpression {
             // 패턴은 컴파일타임 상수 — 실패할 수 없다.

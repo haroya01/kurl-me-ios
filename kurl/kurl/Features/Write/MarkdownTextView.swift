@@ -11,6 +11,21 @@ import UIKit
 final class MarkdownInputTextView: UITextView {
     var onPasteURL: ((_ url: String, _ range: NSRange) -> Void)?
 
+    /// TextKit 1 스택을 직접 구성 — 커스텀 NSLayoutManager 가 `![](url)` 줄 아래 예약 공간에
+    /// 실제 이미지 썸네일을 그린다(본문 텍스트는 마크다운 원문 그대로 유지 → 자동저장·동기화 불변).
+    init() {
+        let storage = NSTextStorage()
+        let layout = MarkdownImageLayoutManager()
+        storage.addLayoutManager(layout)
+        let container = NSTextContainer(size: CGSize(width: 0, height: CGFloat.greatestFiniteMagnitude))
+        container.widthTracksTextView = true
+        layout.addTextContainer(container)
+        super.init(frame: .zero, textContainer: container)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) not used") }
+
     override func paste(_ sender: Any?) {
         if markedTextRange == nil,
             let raw = UIPasteboard.general.string,
@@ -299,5 +314,83 @@ final class MarkdownEditorController {
         let offset = caretOffsetFromStart ?? (snippet as NSString).length
         textView.selectedRange = NSRange(location: start + offset, length: 0)
         MarkdownSyntaxHighlighter.apply(to: textView)
+    }
+}
+
+// MARK: 인라인 이미지 썸네일 — `![](url)` 아래 실제 이미지를 그린다(원문 텍스트는 그대로).
+
+extension NSAttributedString.Key {
+    /// 이미지 마크다운 범위에 붙는 표식 — 값은 이미지 URL 문자열. 레이아웃 매니저가 이 줄 아래에 썸네일을 그린다.
+    static let kurlImageURL = NSAttributedString.Key("kurlImageURL")
+}
+
+enum MarkdownImage {
+    /// `![](url)` 줄 아래 확보하는 썸네일 높이(하이라이터의 paragraphSpacing 과 같은 값이어야 함).
+    static let thumbHeight: CGFloat = 180
+}
+
+/// URL → UIImage 메모리 캐시 + 비동기 로더. 로드되면 onLoad 로 해당 줄만 다시 그리게 한다.
+final class ImageThumbCache {
+    static let shared = ImageThumbCache()
+    private let cache = NSCache<NSURL, UIImage>()
+    private var loading = Set<NSURL>()
+
+    /// 캐시에 있으면 즉시 반환, 없으면 비동기로 받아 캐시 후 onLoad 호출(메인 스레드).
+    func image(for url: URL, onLoad: @escaping () -> Void) -> UIImage? {
+        let key = url as NSURL
+        if let img = cache.object(forKey: key) { return img }
+        guard !loading.contains(key) else { return nil }
+        loading.insert(key)
+        URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.loading.remove(key)
+                if let data, let img = UIImage(data: data) {
+                    self.cache.setObject(img, forKey: key)
+                    onLoad()
+                }
+            }
+        }.resume()
+        return nil
+    }
+}
+
+/// `.kurlImageURL` 표식이 붙은 줄 아래(예약된 paragraphSpacing 공간)에 이미지 썸네일을 그린다.
+final class MarkdownImageLayoutManager: NSLayoutManager {
+    override func drawBackground(forGlyphRange glyphsToShow: NSRange, at origin: CGPoint) {
+        super.drawBackground(forGlyphRange: glyphsToShow, at: origin)
+        guard let storage = textStorage, let container = textContainers.first else { return }
+        let charRange = characterRange(forGlyphRange: glyphsToShow, actualGlyphRange: nil)
+        storage.enumerateAttribute(.kurlImageURL, in: charRange, options: []) { value, range, _ in
+            guard let str = value as? String, let url = URL(string: str) else { return }
+            let gr = glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+            let used = boundingRect(forGlyphRange: gr, in: container)
+            let pad: CGFloat = 6
+            let box = CGRect(
+                x: origin.x + used.minX,
+                y: origin.y + used.maxY + pad,
+                width: max(0, container.size.width - used.minX - pad),
+                height: MarkdownImage.thumbHeight - pad * 2)
+            guard box.width > 1, let ctx = UIGraphicsGetCurrentContext() else { return }
+            let img = ImageThumbCache.shared.image(for: url) { [weak self] in
+                self?.invalidateDisplay(forCharacterRange: range)
+            }
+            ctx.saveGState()
+            let clip = UIBezierPath(roundedRect: box, cornerRadius: 12)
+            clip.addClip()
+            if let img {
+                // aspect-fill
+                let scale = max(box.width / img.size.width, box.height / img.size.height)
+                let size = CGSize(width: img.size.width * scale, height: img.size.height * scale)
+                let drawRect = CGRect(
+                    x: box.midX - size.width / 2, y: box.midY - size.height / 2,
+                    width: size.width, height: size.height)
+                img.draw(in: drawRect)
+            } else {
+                UIColor.secondarySystemFill.setFill()
+                clip.fill()
+            }
+            ctx.restoreGState()
+        }
     }
 }
