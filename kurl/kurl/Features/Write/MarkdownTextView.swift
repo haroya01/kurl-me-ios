@@ -21,6 +21,12 @@ final class MarkdownInputTextView: UITextView {
         container.widthTracksTextView = true
         layout.addTextContainer(container)
         super.init(frame: .zero, textContainer: container)
+        // 이미지가 로드돼 실제 비율을 알게 되면 하이라이트를 다시 돌려 줄 아래 예약 높이를 비율에 맞춘다
+        // (로드 전엔 placeholder 높이 → 로드 후 세로/가로 비율대로 재배치).
+        layout.onImageLoad = { [weak self] in
+            guard let self else { return }
+            MarkdownSyntaxHighlighter.apply(to: self)
+        }
     }
 
     @available(*, unavailable)
@@ -325,8 +331,23 @@ extension NSAttributedString.Key {
 }
 
 enum MarkdownImage {
-    /// `![](url)` 줄 아래 확보하는 썸네일 높이(하이라이터의 paragraphSpacing 과 같은 값이어야 함).
-    static let thumbHeight: CGFloat = 180
+    static let topPad: CGFloat = 6      // 마크다운 텍스트 줄과 이미지 사이
+    static let bottomGap: CGFloat = 12  // 이미지와 다음 문단 사이
+    static let maxHeight: CGFloat = 420 // 아주 긴 세로 이미지가 화면을 다 먹지 않게 상한
+    static let placeholderHeight: CGFloat = 200 // 로드 전(비율 모름) 임시 높이
+
+    /// 로드된 이미지의 실제 비율로 표시 높이 — 세로·가로 모두 잘림 없이 전체가 보이게(상한만 적용).
+    static func imageHeight(for url: URL, width: CGFloat) -> CGFloat {
+        guard width > 1, let size = ImageThumbCache.shared.cachedSize(for: url),
+            size.width > 1, size.height > 1
+        else { return placeholderHeight }
+        return min(maxHeight, max(80, width * size.height / size.width))
+    }
+
+    /// paragraphSpacing 으로 예약할 총 높이(위·아래 여백 포함).
+    static func reservedHeight(for url: URL, width: CGFloat) -> CGFloat {
+        topPad + imageHeight(for: url, width: width) + bottomGap
+    }
 }
 
 /// URL → UIImage 메모리 캐시 + 비동기 로더. 로드되면 onLoad 로 해당 줄만 다시 그리게 한다.
@@ -353,42 +374,52 @@ final class ImageThumbCache {
         }.resume()
         return nil
     }
+
+    /// 로드돼 캐시된 이미지의 원본 크기(비율 계산용). 없으면 nil.
+    func cachedSize(for url: URL) -> CGSize? {
+        cache.object(forKey: url as NSURL)?.size
+    }
 }
 
-/// `.kurlImageURL` 표식이 붙은 줄 아래(예약된 paragraphSpacing 공간)에 이미지 썸네일을 그린다.
+/// `.kurlImageURL` 표식이 붙은 줄 아래(예약된 paragraphSpacing 공간)에 이미지를 그린다(aspect-fit).
 final class MarkdownImageLayoutManager: NSLayoutManager {
+    /// 이미지가 로드돼 실제 비율을 알게 되면 호출 — 호스트가 하이라이트를 다시 돌려 높이를 비율에 맞춘다.
+    var onImageLoad: (() -> Void)?
+
     override func drawBackground(forGlyphRange glyphsToShow: NSRange, at origin: CGPoint) {
         super.drawBackground(forGlyphRange: glyphsToShow, at: origin)
         guard let storage = textStorage, let container = textContainers.first else { return }
         let charRange = characterRange(forGlyphRange: glyphsToShow, actualGlyphRange: nil)
+        let pad = container.lineFragmentPadding
+        let availWidth = max(0, container.size.width - pad * 2)
         storage.enumerateAttribute(.kurlImageURL, in: charRange, options: []) { value, range, _ in
             guard let str = value as? String, let url = URL(string: str) else { return }
             let gr = glyphRange(forCharacterRange: range, actualCharacterRange: nil)
             let used = boundingRect(forGlyphRange: gr, in: container)
-            let pad: CGFloat = 6
+            let h = MarkdownImage.imageHeight(for: url, width: availWidth)
             let box = CGRect(
-                x: origin.x + used.minX,
-                y: origin.y + used.maxY + pad,
-                width: max(0, container.size.width - used.minX - pad),
-                height: MarkdownImage.thumbHeight - pad * 2)
+                x: origin.x + pad,
+                y: origin.y + used.maxY + MarkdownImage.topPad,
+                width: availWidth,
+                height: h)
             guard box.width > 1, let ctx = UIGraphicsGetCurrentContext() else { return }
             let img = ImageThumbCache.shared.image(for: url) { [weak self] in
                 self?.invalidateDisplay(forCharacterRange: range)
+                self?.onImageLoad?() // 실제 비율 반영해 높이 재계산
             }
             ctx.saveGState()
-            let clip = UIBezierPath(roundedRect: box, cornerRadius: 12)
-            clip.addClip()
+            UIBezierPath(roundedRect: box, cornerRadius: 12).addClip()
             if let img {
-                // aspect-fill
-                let scale = max(box.width / img.size.width, box.height / img.size.height)
+                // aspect-fit — 세로/가로 모두 잘리지 않고 전체가 보이게.
+                let scale = min(box.width / img.size.width, box.height / img.size.height)
                 let size = CGSize(width: img.size.width * scale, height: img.size.height * scale)
-                let drawRect = CGRect(
-                    x: box.midX - size.width / 2, y: box.midY - size.height / 2,
-                    width: size.width, height: size.height)
-                img.draw(in: drawRect)
+                img.draw(
+                    in: CGRect(
+                        x: box.midX - size.width / 2, y: box.midY - size.height / 2,
+                        width: size.width, height: size.height))
             } else {
                 UIColor.secondarySystemFill.setFill()
-                clip.fill()
+                UIBezierPath(roundedRect: box, cornerRadius: 12).fill()
             }
             ctx.restoreGState()
         }
