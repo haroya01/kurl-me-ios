@@ -501,67 +501,64 @@ private struct FeedSeriesCard: View {
 
     private func episodePage(index i: Int, ep: SeriesPostRef) -> some View {
         ZStack(alignment: .topLeading) {
-            // 종이 + 그린 틴트 그라디언트(대각).
+            // 종이 + 아주 옅은 그린(accent-50→accent-100) 대각 그라디언트 — 웹 EP_GRADS 대응.
             LinearGradient(
-                colors: [Palette.cardBg, Palette.accent.opacity(0.07), Palette.accent.opacity(0.16)],
+                colors: [Palette.cardBg, Palette.accent.opacity(0.05), Palette.accent.opacity(0.10)],
                 startPoint: .topLeading, endPoint: .bottomTrailing
             )
-            // 우상단에서 번지는 부드러운 그린 글로우 — 종이에 빛이 도는 듯한 깊이(과하지 않게).
-            RadialGradient(
-                colors: [Palette.accent.opacity(0.14), .clear],
-                center: .topTrailing, startRadius: 6, endRadius: 240
-            )
-            // 카드 몸통을 채우는 거대한 흐린 mono 번호 — 우상단에서 비껴 잘리는 그래픽.
+            // 우상단에서 비껴 잘리는 거대한 흐린 mono 번호(웹: 148px·accent-600/9%) — 무이미지 장의 표지 아트.
             Text(String(format: "%02d", i + 1))
-                .font(.system(size: 190, weight: .bold, design: .monospaced))
-                .foregroundStyle(Palette.accent.opacity(0.12))
+                .font(.system(size: 148, weight: .bold, design: .monospaced))
+                .tracking(-4)
+                .foregroundStyle(Palette.accent.opacity(0.09))
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                .offset(x: 30, y: -26)
+                .offset(x: 14, y: -28)
                 .allowsHitTesting(false)
 
             VStack(alignment: .leading, spacing: 0) {
-                // 시리즈 정체 — 마크 + 시리즈명.
+                // 시리즈 정체 — 마크 + 시리즈명(웹: 12px semibold).
                 HStack(spacing: 6) {
                     KurlMark(drawn: [true, true, true], tint: Palette.accent)
                         .frame(width: 16, height: 10)
                     Text(series.title)
-                        .font(.system(size: 12.5, weight: .semibold))
-                        .tracking(0.3)
+                        .font(.system(size: 12, weight: .semibold))
+                        .tracking(0.4)
                         .foregroundStyle(Palette.ink)
                         .lineLimit(1)
                 }
                 Spacer(minLength: 0)
-                // 에피소드 번호(+총).
+                // 에피소드 번호 01 / 04 (웹: 34px accent-700 + 15px slate-500).
                 (Text(String(format: "%02d", i + 1))
-                    .font(.system(size: 36, weight: .bold, design: .monospaced))
+                    .font(.system(size: 34, weight: .bold, design: .monospaced))
                     .foregroundStyle(Palette.link)
                     + Text(" / \(String(format: "%02d", series.postCount))")
                     .font(.system(size: 15, weight: .bold, design: .monospaced))
                     .foregroundStyle(Palette.secondary))
                     .lineLimit(1)
+                // 에피소드 제목(웹: 18px bold, 3줄).
                 Text(ep.title)
-                    .font(.system(size: 19, weight: .bold))
+                    .font(.system(size: 18, weight: .bold))
                     .tracking(-0.3)
                     .foregroundStyle(Palette.ink)
-                    .lineLimit(2)
+                    .lineLimit(3)
                     .multilineTextAlignment(.leading)
-                    .padding(.top, 7)
+                    .padding(.top, 6)
                 HStack(spacing: 6) {
                     AvatarView(author: author, size: 18)
                     Text(author.username)
-                        .font(.system(size: 12.5, weight: .medium))
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(Palette.secondary)
                         .lineLimit(1)
                     if let date = series.lastPublishedAt {
                         Text("·").foregroundStyle(Palette.faint)
                         Text(date.relativeShort)
-                            .font(.system(size: 12.5))
+                            .font(.system(size: 12))
                             .foregroundStyle(Palette.secondary)
                     }
                 }
-                .padding(.top, 11)
+                .padding(.top, 9)
             }
-            .padding(18)
+            .padding(16)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .allowsHitTesting(false)
         }
