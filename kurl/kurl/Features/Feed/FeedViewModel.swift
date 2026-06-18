@@ -38,6 +38,8 @@ final class FeedViewModel {
     private(set) var items: [FeedItem] = []
     private(set) var phase: LoadState<[FeedItem]> = .idle
     private(set) var isLoadingMore = false
+    /// 최신 피드에 끼워 넣을 발견 시리즈 한 장(웹 메인 피드의 시리즈 카드와 같은 자리). 그 외 정렬은 nil.
+    private(set) var series: PublicSeriesCard?
 
     private var page = 0
     private var hasNext = true
@@ -67,6 +69,7 @@ final class FeedViewModel {
     func resetForAuthChange() {
         epoch += 1
         items = []
+        series = nil
         page = 0
         hasNext = true
         phase = .idle
@@ -93,6 +96,14 @@ final class FeedViewModel {
                     for (username, slug) in head {
                         await OfflineStore.shared.download(username: username, slug: slug)
                     }
+                }
+            }
+            // 최신 피드엔 발견 시리즈 한 장을 끼워 넣는다(웹 메인 피드 패리티) — 본 피드를 막지 않게 곁에서.
+            if source == .recent {
+                Task { @MainActor [weak self] in
+                    let fetched = try? await BlogAPI.discoverSeries(limit: 4)
+                    guard let self, myEpoch == self.epoch else { return }
+                    self.series = fetched?.first
                 }
             }
         } catch {

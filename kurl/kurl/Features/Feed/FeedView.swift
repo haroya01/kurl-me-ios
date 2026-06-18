@@ -310,6 +310,18 @@ struct FeedPage: View {
                     .modifier(QuietAppear(index: index))
                     .modifier(CardScrollFade())
                     .task { await model.loadMoreIfNeeded(current: item) }
+
+                    // 최신 피드 4번째 글 뒤에 발견 시리즈 한 장(웹 메인 피드와 같은 자리). 글이 적으면 끝에.
+                    if source == .recent, let series = model.series,
+                        index == min(3, model.items.count - 1),
+                        let author = series.author, !author.username.isEmpty {
+                        NavigationLink(value: Route.series(username: author.username, slug: series.slug)) {
+                            FeedSeriesCard(series: series, author: author)
+                        }
+                        .buttonStyle(CardButtonStyle())
+                        .modifier(QuietAppear(index: index))
+                        .modifier(CardScrollFade())
+                    }
                 }
                 if model.isLoadingMore {
                     KurlLoadingMark()
@@ -432,6 +444,71 @@ struct FeedPlaceholder: View {
             }
             .buttonStyle(.plain)
         }
+    }
+}
+
+/// 최신 피드에 끼워 넣는 발견 시리즈 한 장 — 웹 메인 피드의 시리즈 카드 대응.
+/// 제목·작가·편수 + 첫 에피소드 두 줄. 탭하면 시리즈 상세로.
+private struct FeedSeriesCard: View {
+    let series: PublicSeriesCard
+    let author: Author
+    @Environment(\.colorScheme) private var colorScheme
+    @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(Palette.accentMarker)
+                    .frame(width: 3, height: 12 * metaUnit)
+                Text("시리즈")
+                    .typeScale(.eyebrow)
+                    .foregroundStyle(Palette.link)
+            }
+            Text(series.title)
+                .typeScale(.titleSmall)
+                .foregroundStyle(Palette.ink)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+            HStack(spacing: 7) {
+                AvatarView(author: author, size: 20)
+                Text(author.username)
+                    .typeScale(.meta)
+                    .foregroundStyle(Palette.ink)
+                Text("·").foregroundStyle(Palette.faint)
+                Text("\(series.postCount)편")
+                    .typeScale(.meta)
+                    .foregroundStyle(Palette.secondary)
+            }
+            if !series.posts.isEmpty {
+                VStack(alignment: .leading, spacing: 5) {
+                    ForEach(Array(series.posts.prefix(2).enumerated()), id: \.offset) { idx, ep in
+                        HStack(spacing: 8) {
+                            Text(String(format: "%02d", idx + 1))
+                                .typeScale(.meta)
+                                .foregroundStyle(Palette.link)
+                                .monospacedDigit()
+                            Text(ep.title)
+                                .typeScale(.meta)
+                                .foregroundStyle(Palette.secondary)
+                                .lineLimit(1)
+                        }
+                    }
+                }
+                .padding(.top, 2)
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            Palette.cardBg, in: RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
+        .overlay {
+            if colorScheme == .dark {
+                RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous)
+                    .strokeBorder(Palette.cardBorder, lineWidth: 1)
+            }
+        }
+        .cardShadow()
     }
 }
 

@@ -883,6 +883,32 @@ enum MockBackend {
             ])
         }
 
+        // 발견 시리즈 — 최신 피드에 끼워 넣는 시리즈 카드(웹 메인 피드 패리티)의 소스.
+        if method == "GET", parts == ["public", "series"] {
+            return json([
+                [
+                    "id": 1,
+                    "author": ["id": 1, "username": "honggildong", "bio": NSNull(), "avatarUrl": NSNull()],
+                    "slug": "hexagonal", "title": "헥사고날 전환기", "postCount": 6,
+                    "lastPublishedAt": iso(Date().addingTimeInterval(-86_400)),
+                    "posts": [
+                        ["slug": "ep-1", "title": "포트와 어댑터"],
+                        ["slug": "ep-2", "title": "도메인을 안으로"],
+                    ],
+                ],
+                [
+                    "id": 2,
+                    "author": ["id": 2, "username": "narae", "bio": NSNull(), "avatarUrl": NSNull()],
+                    "slug": "liquid-glass", "title": "iOS 앱 만들기", "postCount": 3,
+                    "lastPublishedAt": iso(Date().addingTimeInterval(-3 * 86_400)),
+                    "posts": [
+                        ["slug": "e1", "title": "리퀴드 글래스, 종이 본문"],
+                        ["slug": "e2", "title": "탭바와 몰입"],
+                    ],
+                ],
+            ])
+        }
+
         if method == "GET", parts == ["bookmarks"] {
             return json([
                 ["id": 9002, "username": "honggildong", "title": "발행된 목 글", "slug": "p-mock-2"],
