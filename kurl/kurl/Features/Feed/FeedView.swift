@@ -312,15 +312,13 @@ struct FeedPage: View {
                     .task { await model.loadMoreIfNeeded(current: item) }
 
                     // 최신 피드 4번째 글 뒤에 발견 시리즈 한 장(웹 메인 피드와 같은 자리). 글이 적으면 끝에.
+                    // 카드가 자체 내비(시리즈)·넘김을 들고 있어 바깥 NavigationLink 로 감싸지 않는다.
                     if source == .recent, let series = model.series,
                         index == min(3, model.items.count - 1),
                         let author = series.author, !author.username.isEmpty {
-                        NavigationLink(value: Route.series(username: author.username, slug: series.slug)) {
-                            FeedSeriesCard(series: series, author: author)
-                        }
-                        .buttonStyle(CardButtonStyle())
-                        .modifier(QuietAppear(index: index))
-                        .modifier(CardScrollFade())
+                        FeedSeriesCard(series: series, author: author)
+                            .modifier(QuietAppear(index: index))
+                            .modifier(CardScrollFade())
                     }
                 }
                 if model.isLoadingMore {
@@ -447,68 +445,120 @@ struct FeedPlaceholder: View {
     }
 }
 
-/// 최신 피드에 끼워 넣는 발견 시리즈 한 장 — 웹 메인 피드의 시리즈 카드 대응.
-/// 제목·작가·편수 + 첫 에피소드 두 줄. 탭하면 시리즈 상세로.
+/// 최신 피드에 끼워 넣는 발견 시리즈 한 장 — 웹 DiscoverySeriesCard 대응. 4:5 "에피소드 페이지":
+/// 종이 + 미묘한 그린 그라디언트, 우상단을 비껴 잘리는 거대한 흐린 mono 번호, 위에 마크+시리즈명,
+/// 아래에 01/04 + 에피소드 제목 + 작가·날짜. 우측 모서리로 한 장씩 넘긴다. 카드 탭은 시리즈 상세.
 private struct FeedSeriesCard: View {
     let series: PublicSeriesCard
     let author: Author
-    @Environment(\.colorScheme) private var colorScheme
-    @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var idx = 0
+
+    private var posts: [SeriesPostRef] { Array(series.posts.prefix(4)) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 6) {
-                RoundedRectangle(cornerRadius: 1)
-                    .fill(Palette.accentMarker)
-                    .frame(width: 3, height: 12 * metaUnit)
-                Text("시리즈")
-                    .typeScale(.eyebrow)
-                    .foregroundStyle(Palette.link)
+        let n = max(posts.count, 1)
+        ZStack(alignment: .topTrailing) {
+            // 에피소드 페이지들 — 앞장만 보이고 넘김은 크로스페이드.
+            ForEach(Array(posts.enumerated()), id: \.offset) { i, ep in
+                episodePage(index: i, ep: ep)
+                    .opacity(i == idx ? 1 : 0)
             }
-            Text(series.title)
-                .typeScale(.titleSmall)
-                .foregroundStyle(Palette.ink)
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
-            HStack(spacing: 7) {
-                AvatarView(author: author, size: 20)
-                Text(author.username)
-                    .typeScale(.meta)
-                    .foregroundStyle(Palette.ink)
-                Text("·").foregroundStyle(Palette.faint)
-                Text("\(series.postCount)편")
-                    .typeScale(.meta)
-                    .foregroundStyle(Palette.secondary)
+            // 카드 전체 탭 → 시리즈 상세(투명 링크가 비주얼 위에 깔린다).
+            NavigationLink(value: Route.series(username: author.username, slug: series.slug)) {
+                Color.clear.contentShape(Rectangle())
             }
-            if !series.posts.isEmpty {
-                VStack(alignment: .leading, spacing: 5) {
-                    ForEach(Array(series.posts.prefix(2).enumerated()), id: \.offset) { idx, ep in
-                        HStack(spacing: 8) {
-                            Text(String(format: "%02d", idx + 1))
-                                .typeScale(.meta)
-                                .foregroundStyle(Palette.link)
-                                .monospacedDigit()
-                            Text(ep.title)
-                                .typeScale(.meta)
-                                .foregroundStyle(Palette.secondary)
-                                .lineLimit(1)
-                        }
+            .buttonStyle(.plain)
+            // 우측 모서리 한 장 넘김(여러 편일 때만) — 링크 위에 올려 그 영역만 가로챈다.
+            if n > 1 {
+                Button {
+                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.45)) {
+                        idx = (idx + 1) % n
                     }
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(Palette.secondary)
+                        .frame(width: 48)
+                        .frame(maxHeight: .infinity)
+                        .contentShape(Rectangle())
                 }
-                .padding(.top, 2)
+                .buttonStyle(.plain)
+                .accessibilityLabel("다음 편")
             }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            Palette.cardBg, in: RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
+        .aspectRatio(4.0 / 5.0, contentMode: .fit)
+        .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
         .overlay {
-            if colorScheme == .dark {
-                RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous)
-                    .strokeBorder(Palette.cardBorder, lineWidth: 1)
-            }
+            RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous)
+                .strokeBorder(Palette.cardBorder, lineWidth: 1)
         }
         .cardShadow()
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text("시리즈 \(series.title), \(series.postCount)편"))
+    }
+
+    private func episodePage(index i: Int, ep: SeriesPostRef) -> some View {
+        ZStack(alignment: .topLeading) {
+            // 종이 + 미묘한 그린 틴트 그라디언트.
+            LinearGradient(
+                colors: [Palette.cardBg, Palette.accent.opacity(0.06), Palette.accent.opacity(0.12)],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+            // 거대한 흐린 mono 번호 — 우상단에서 비껴 잘리는 워터마크.
+            Text(String(format: "%02d", i + 1))
+                .font(.system(size: 148, weight: .bold, design: .monospaced))
+                .foregroundStyle(Palette.accent.opacity(0.10))
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                .offset(x: 24, y: -36)
+                .allowsHitTesting(false)
+
+            VStack(alignment: .leading, spacing: 0) {
+                // 시리즈 정체 — 마크 + 시리즈명.
+                HStack(spacing: 6) {
+                    KurlMark(drawn: [true, true, true], tint: Palette.accent)
+                        .frame(width: 16, height: 10)
+                    Text(series.title)
+                        .font(.system(size: 12, weight: .semibold))
+                        .tracking(0.3)
+                        .foregroundStyle(Palette.ink)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+                // 에피소드 번호(+총).
+                (Text(String(format: "%02d", i + 1))
+                    .font(.system(size: 34, weight: .bold, design: .monospaced))
+                    .foregroundColor(Palette.link)
+                    + Text(" / \(String(format: "%02d", series.postCount))")
+                    .font(.system(size: 15, weight: .bold, design: .monospaced))
+                    .foregroundColor(Palette.secondary))
+                    .lineLimit(1)
+                Text(ep.title)
+                    .font(.system(size: 18, weight: .bold))
+                    .tracking(-0.2)
+                    .foregroundStyle(Palette.ink)
+                    .lineLimit(3)
+                    .multilineTextAlignment(.leading)
+                    .padding(.top, 8)
+                HStack(spacing: 6) {
+                    AvatarView(author: author, size: 18)
+                    Text(author.username)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Palette.secondary)
+                        .lineLimit(1)
+                    if let date = series.lastPublishedAt {
+                        Text("·").foregroundStyle(Palette.faint)
+                        Text(date.relativeShort)
+                            .font(.system(size: 12))
+                            .foregroundStyle(Palette.secondary)
+                    }
+                }
+                .padding(.top, 10)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .allowsHitTesting(false)
+        }
     }
 }
 
