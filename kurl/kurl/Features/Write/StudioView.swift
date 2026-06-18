@@ -212,9 +212,16 @@ struct StudioView: View {
 
     /// 상태 점 + (발행 외엔) 라벨 + 날짜. 점 색이 상태를 인코딩한다(초록=라이브, 흐림=초안).
     private func statusEyebrow(_ post: MyPost) -> some View {
-        let dotColor: Color = post.isDraft ? Palette.faint : (post.isScheduled ? Palette.link : Palette.accentMarker)
-        let label: String? = post.isDraft ? String(localized: "임시저장")
-            : (post.isScheduled ? String(localized: "예약됨") : nil)
+        let dotColor: Color =
+            post.isDraft ? Palette.faint
+            : post.isScheduled ? Palette.link
+            : post.isUnpublished ? Palette.secondary
+            : Palette.accentMarker
+        let label: String? =
+            post.isDraft ? String(localized: "임시저장")
+            : post.isScheduled ? String(localized: "예약됨")
+            : post.isUnpublished ? String(localized: "비공개")
+            : nil
         return HStack(spacing: 5) {
             Circle().fill(dotColor).frame(width: 5, height: 5)
             if let label {
@@ -240,7 +247,7 @@ struct StudioView: View {
                 Text(auth.me?.username.map { "\($0) 님의 첫 글" } ?? "첫 글을 시작하세요")
                     .typeScale(.title)
                     .foregroundStyle(Palette.ink)
-                Text("마크다운으로 쓰면 웹과 똑같이 발행됩니다.")
+                Text("도구 막대로 제목·이미지·표를 넣어 웹과 똑같이 발행돼요.")
                     .typeScale(.lede)
                     .foregroundStyle(Palette.secondary)
                     .multilineTextAlignment(.center)

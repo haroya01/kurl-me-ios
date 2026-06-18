@@ -34,6 +34,8 @@ struct ComposeView: View {
     @State private var caretInTable = false
     /// 캐럿이 이미지 줄에 있는가 — 그때만 폭·캡션·삭제 편집 바를 띄운다.
     @State private var caretOnImage = false
+    /// 캐럿이 단독 URL(임베드) 줄에 있는가 — 그때만 교체·삭제 바를 띄운다.
+    @State private var caretOnVideo = false
     /// 이미 넣은 이미지의 캡션을 고치는 알럿.
     @State private var showEditImageCaption = false
     @State private var editImageCaptionText = ""
@@ -62,9 +64,16 @@ struct ComposeView: View {
     @State private var lastSavedAt: Date?
     /// 마지막 자동저장이 실패했는가 — 정직한 '저장 실패' 표시(조용히 재시도 중).
     @State private var autosaveFailed = false
+    /// 발행 폼 안에서의 발행/저장 실패 — fullScreenCover 라 루트 알럿이 가려져 폼에 따로 띄운다.
+    @State private var publishSheetError: String?
     @State private var showSaveStatus = false
     @State private var autosaveTask: Task<Void, Never>?
     @State private var createTask: Task<Int64, Error>?
+
+    // 마지막으로 서버에 반영된 메타 — 바뀐 필드만 PATCH 해 다른 기기(웹)의 동시 편집을 덮지 않는다.
+    @State private var savedTitle = ""
+    @State private var savedExcerpt = ""
+    @State private var savedTags: [String] = []
 
     // 시리즈
     @State private var seriesList: [MySeries] = []
@@ -96,6 +105,8 @@ struct ComposeView: View {
         let url: URL
         var id: String { url.absoluteString }
     }
+    /// 발행 폼(fullScreenCover) 안에서 여는 미리보기 — 루트 ⋯ 미리보기(previewItem)와 분리.
+    @State private var formPreviewItem: PreviewItem?
     @State private var showSchedule = false
     @State private var scheduleDate = Date().addingTimeInterval(3600)
     @State private var scheduleError: String?
@@ -146,6 +157,11 @@ struct ComposeView: View {
                         )
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
+                    // 캐럿이 단독 URL(임베드) 줄일 때만 — 교체·삭제.
+                    if caretOnVideo {
+                        VideoActionBar(perform: applyVideoAction)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
                     MarkdownSnippetBar(perform: applySnippet) { editorController.dismissKeyboard() }
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -154,6 +170,7 @@ struct ComposeView: View {
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: editorFocused)
         .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: caretInTable)
         .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: caretOnImage)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: caretOnVideo)
         .navigationTitle(existing == nil ? "새 글" : "편집")
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
@@ -233,11 +250,16 @@ struct ComposeView: View {
         } message: {
             Text("YouTube·Vimeo 주소를 붙여넣거나 입력하세요.")
         }
-        // 이미지 캡션(선택) — 업로드 직후. 비워두면 캡션 없이 삽입.
+        // 이미지 캡션(선택) — 업로드 직후. 캡션 없이 넣거나(건너뛰기), 잘못 고른 사진이면 취소.
         .alert("캡션 (선택)", isPresented: $showImageCaption) {
             TextField("이미지 설명", text: $imageCaptionText)
             Button("추가") { confirmImageInsert() }
-            Button("건너뛰기", role: .cancel) { confirmImageInsert() }
+            Button("건너뛰기") { confirmImageInsert() }
+            Button("취소", role: .cancel) {
+                // 잘못 고른 사진 — 본문에 넣지 않고 버린다.
+                pendingImageURL = nil
+                pendingImageWidth = nil
+            }
         } message: {
             Text("이미지 아래에 보일 설명 — 비워도 됩니다.")
         }
@@ -272,11 +294,13 @@ struct ComposeView: View {
                 if !focused {
                     caretInTable = false
                     caretOnImage = false
+                    caretOnVideo = false
                 }
             },
             onContextChange: { ctx in
                 caretInTable = ctx == .table
                 caretOnImage = ctx == .image
+                caretOnVideo = ctx == .video
             })
         .padding(.horizontal, Metrics.gutter - 4)
         .overlay(alignment: .topLeading) {
@@ -346,7 +370,7 @@ struct ComposeView: View {
         ToolbarItemGroup(placement: .primaryAction) {
             Button("저장") { Task { await save(publish: false) } }
                 .disabled(!canSave || busy)
-            if status != "PUBLISHED" {
+            if isPrePublish {
                 // 발행 = 즉시 쏘지 않는다 — 발행 시트에서 메타데이터를 갖추는 마지막 한 박자.
                 Button("발행") { showPublish = true }
                     .font(.body.weight(.semibold))
@@ -365,12 +389,12 @@ struct ComposeView: View {
                     Label("미리보기", systemImage: "safari")
                 }
                 .disabled(postId == nil)
-                if status == "PUBLISHED" {
-                    // 발행된 글의 태그·소개글·시리즈·커버 편집 — 같은 시트, 저장 모드.
+                if !isPrePublish {
+                    // 발행·비공개 글의 태그·소개글·시리즈·커버 편집(+비공개는 다시 게시) — 같은 시트.
                     Button {
                         showPublish = true
                     } label: {
-                        Label("글 정보…", systemImage: "info.circle")
+                        Label(status == "UNPUBLISHED" ? "다시 게시…" : "글 정보…", systemImage: "info.circle")
                     }
                 }
                 Button {
@@ -481,11 +505,13 @@ struct ComposeView: View {
                         if !willPublish { showPublish = false }
                         Task { await save(publish: willPublish) }
                     } label: {
-                        Text(status != "PUBLISHED" ? "지금 발행" : "저장")
+                        Text(primaryPublishLabel)
                             .font(.system(size: 15 * unit, weight: .semibold))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
-                            .frame(height: 48)
+                            // 높이 고정(48)이 큰 글자에서 라벨을 잘랐다 — 패딩 + 최소높이로 캡슐이 따라 자란다.
+                            .padding(.vertical, 14)
+                            .frame(minHeight: 48)
                             .background(GlassTokens.prominentTint, in: Capsule())
                     }
                     .buttonStyle(.plain)
@@ -507,7 +533,7 @@ struct ComposeView: View {
                         .foregroundStyle(Palette.link)
                         .disabled(postId == nil)
 
-                        if status != "PUBLISHED" {
+                        if isPrePublish {
                             Button("예약 발행…") {
                                 // 컴포즈를 오래 열어둬 기본 예약 시각이 지났으면 다시 한 시간 뒤로 클램프.
                                 if scheduleDate <= Date() {
@@ -534,7 +560,7 @@ struct ComposeView: View {
                 .padding(.bottom, 6)
                 .background(.bar)
             }
-            .navigationTitle(status != "PUBLISHED" ? "발행 준비" : "글 정보")
+            .navigationTitle(publishSheetTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -549,8 +575,19 @@ struct ComposeView: View {
             } message: {
                 Text("이 글이 들어갈 새 시리즈를 만듭니다. 제목은 나중에 시리즈에서 바꿀 수 있어요.")
             }
-            // 미리보기·예약은 폼 위에 직접 — 폼을 잃지 않는다.
-            .sheet(item: $previewItem) { item in
+            // 발행/저장 실패는 폼 자체에 — 루트 알럿은 fullScreenCover 뒤에 가린다.
+            .alert(
+                "문제가 생겼어요",
+                isPresented: .init(
+                    get: { publishSheetError != nil }, set: { if !$0 { publishSheetError = nil } })
+            ) {
+                Button("확인", role: .cancel) {}
+            } message: {
+                Text(publishSheetError ?? "")
+            }
+            // 미리보기·예약은 폼 위에 직접 — 폼을 잃지 않는다. 폼 전용 상태(formPreviewItem)로,
+            // 루트의 ⋯ 미리보기와 같은 바인딩을 공유해 두 presenter 가 동시에 뜨던 것을 막는다.
+            .sheet(item: $formPreviewItem) { item in
                 SafariView(url: item.url).ignoresSafeArea()
             }
             .sheet(isPresented: $showSchedule) { scheduleSheet }
@@ -805,11 +842,13 @@ struct ComposeView: View {
     private var schedulePresets: [(label: String, date: Date)] {
         let cal = Calendar.current
         let now = Date()
+        // picker 하한(지금+5분)과 같은 바닥 — 프리셋이 picker 가 거부할 시각을 고르지 못하게.
+        let floor = now.addingTimeInterval(300)
         func at(_ base: Date, _ hour: Int) -> Date? {
             cal.date(bySettingHour: hour, minute: 0, second: 0, of: base)
         }
         var out: [(String, Date)] = []
-        if let d = at(now, 19), d > now { out.append(("오늘 저녁 7시", d)) }
+        if let d = at(now, 19), d > floor { out.append(("오늘 저녁 7시", d)) }
         if let tomorrow = cal.date(byAdding: .day, value: 1, to: now), let d = at(tomorrow, 9) {
             out.append(("내일 아침 9시", d))
         }
@@ -836,6 +875,22 @@ struct ComposeView: View {
 
     /// 발행은 대표 태그(첫 태그) 1개가 필수 — 초안 저장(canSave)과는 분리한다.
     private var canPublish: Bool { canSave && !tags.isEmpty }
+
+    /// 한 번도 공개된 적 없는 글(초안·예약) — '발행 준비/지금 발행/예약' 표면을 띄운다.
+    /// PUBLISHED 는 '글 정보' 저장, UNPUBLISHED(웹에서 내린 글)는 '다시 게시'로 다룬다.
+    private var isPrePublish: Bool { status == "DRAFT" || status == "SCHEDULED" }
+
+    private var primaryPublishLabel: String {
+        isPrePublish
+            ? String(localized: "지금 발행")
+            : status == "UNPUBLISHED" ? String(localized: "다시 게시") : String(localized: "저장")
+    }
+
+    private var publishSheetTitle: String {
+        isPrePublish
+            ? String(localized: "발행 준비")
+            : status == "UNPUBLISHED" ? String(localized: "다시 게시") : String(localized: "글 정보")
+    }
 
     /// 발행 버튼이 흐릴 때의 이유 한 줄 — 침묵하지 않는다.
     private var publishBlockReason: String? {
@@ -883,6 +938,9 @@ struct ComposeView: View {
         title = post.title
         tags = post.tags ?? []
         excerpt = post.excerpt ?? ""
+        savedTitle = title
+        savedTags = tags
+        savedExcerpt = excerpt
         coverUrl = post.ogImageUrl
         seriesId = post.seriesId
         savedSeriesId = post.seriesId
@@ -903,6 +961,9 @@ struct ComposeView: View {
             title = post.title
             tags = post.tags ?? []
             excerpt = post.excerpt ?? ""
+            savedTitle = title
+            savedTags = tags
+            savedExcerpt = excerpt
             coverUrl = post.ogImageUrl
             seriesId = post.seriesId
             savedSeriesId = post.seriesId
@@ -953,7 +1014,9 @@ struct ComposeView: View {
         // 명시 저장·발행이면 아직 +/Enter 안 누른 입력 중 태그도 포함한다(유실 방지).
         if !silent {
             let pending = tagDraft.trimmingCharacters(in: .whitespaces)
-            if !pending.isEmpty, !tags.contains(pending) {
+            // 대소문자 무시 중복 검사 — TagsField.commit 과 같은 규칙(중복 태그 방지).
+            if !pending.isEmpty,
+                !tags.contains(where: { $0.caseInsensitiveCompare(pending) == .orderedSame }) {
                 tags.append(pending)
                 tagDraft = ""
             }
@@ -970,12 +1033,20 @@ struct ComposeView: View {
             if markdown == canonical || signature == lastSavedSignature {
                 markdown = canonical
             }
-            try await WriteAPI.updateMetadata(
-                postId: id,
-                title: title.trimmingCharacters(in: .whitespaces),
-                excerpt: excerpt,
-                tags: tags
-            )
+            // 바뀐 메타 필드만 PATCH — 본문만 고쳤는데 제목·태그·소개글을 매번 덮어써
+            // 다른 기기(웹)의 동시 편집을 지우던 것을 막는다(null=무변경 계약 이용).
+            let newTitle = title.trimmingCharacters(in: .whitespaces)
+            if newTitle != savedTitle || excerpt != savedExcerpt || tags != savedTags {
+                try await WriteAPI.updateMetadata(
+                    postId: id,
+                    title: newTitle != savedTitle ? newTitle : nil,
+                    excerpt: excerpt != savedExcerpt ? excerpt : nil,
+                    tags: tags != savedTags ? tags : nil
+                )
+                savedTitle = newTitle
+                savedExcerpt = excerpt
+                savedTags = tags
+            }
             if seriesId != savedSeriesId {
                 try await WriteAPI.assign(postId: id, from: savedSeriesId, to: seriesId)
                 savedSeriesId = seriesId
@@ -1004,6 +1075,9 @@ struct ComposeView: View {
                 autosaveFailed = true
                 ToastCenter.shared.show(String(localized: "자동저장에 실패했어요"))
                 scheduleAutosave()
+            } else if showPublish, !showSchedule {
+                // 발행 폼은 fullScreenCover 라 루트의 에러 알럿이 가려진다 — 폼 자체에 띄운다.
+                publishSheetError = error.localizedDescription
             } else {
                 errorMessage = error.localizedDescription
             }
@@ -1049,7 +1123,12 @@ struct ComposeView: View {
             }
             if let url = try? await WriteAPI.previewURL(slug: resolved, postId: postId) {
                 // 외부 사파리로 내쫓지 않는다 — 발행 전 확인은 인앱 시트로.
-                previewItem = PreviewItem(url: url)
+                // 발행 폼이 떠 있으면 폼 전용 presenter 로(루트와 같은 바인딩 공유 충돌 방지).
+                if showPublish {
+                    formPreviewItem = PreviewItem(url: url)
+                } else {
+                    previewItem = PreviewItem(url: url)
+                }
             } else {
                 // username 미해결 등으로 URL 을 못 만들면 깨진 페이지 대신 안내한다.
                 ToastCenter.shared.show(String(localized: "미리보기를 준비 중이에요. 잠시 후 다시 시도해 주세요."))
@@ -1059,6 +1138,11 @@ struct ComposeView: View {
 
     private func scheduleNow() async {
         guard let postId, !busy else { return }
+        // 예약도 발행이다 — 즉시 발행과 같은 대표 태그 규칙을 강제(둘이 어긋나지 않게).
+        guard !tags.isEmpty else {
+            scheduleError = String(localized: "대표 태그를 1개 이상 정하면 예약할 수 있어요.")
+            return
+        }
         // 제출 시점에 다시 검증 — 시트를 오래 열어두면 고른 시각이 이미 지났을 수 있다(picker 의
         // `in: Date()...` 는 렌더 시점만 제약). 저장→예약 2왕복 지연까지 감안해 1분 여유를 둔다.
         guard scheduleDate > Date().addingTimeInterval(60) else {
@@ -1191,6 +1275,7 @@ struct ComposeView: View {
         let ctx = editorController.caretContext()
         caretInTable = ctx == .table
         caretOnImage = ctx == .image
+        caretOnVideo = ctx == .video
     }
 
     /// 표 편집 바 → 컨트롤러. 행·열을 늘리고 줄인 뒤 바인딩·컨텍스트를 동기화한다.
@@ -1238,6 +1323,26 @@ struct ComposeView: View {
 
     private func confirmEditImageCaption() {
         editorController.setImageCaption(editImageCaptionText)
+        syncMarkdownFromEditor()
+        refreshCaretContext()
+        editorController.focus()
+    }
+
+    /// 임베드(동영상) 편집 바 → 컨트롤러. 줄을 지우거나(삭제) 새 주소로 바꾼다(교체).
+    private func applyVideoAction(_ action: VideoActionBar.Action) {
+        switch action {
+        case .replace:
+            // 현재 임베드 줄을 지우고 그 자리에 새 주소를 받는다.
+            editorController.removeEmbedLine()
+            syncMarkdownFromEditor()
+            refreshCaretContext()
+            presentVideoDialog()
+            return
+        case .delete:
+            if editorController.removeEmbedLine() {
+                showUndoToast(String(localized: "동영상을 지웠어요"))
+            }
+        }
         syncMarkdownFromEditor()
         refreshCaretContext()
         editorController.focus()
@@ -1330,10 +1435,16 @@ struct ComposeView: View {
                 // 조용히 바꾸지 않고 한 번 알린다(의외의 커버 방지) + 본문 저장 표시는 안 건드린다.
                 if coverUrl == nil {
                     coverUrl = uploaded.url
-                    try? await WriteAPI.updateCover(postId: id, url: uploaded.url, key: uploaded.key)
-                    onSaved()
-                    ToastCenter.shared.show(
-                        String(localized: "첫 이미지를 커버로 설정했어요 — 발행 시트에서 바꿀 수 있어요"))
+                    do {
+                        try await WriteAPI.updateCover(postId: id, url: uploaded.url, key: uploaded.key)
+                        onSaved()
+                        ToastCenter.shared.show(
+                            String(localized: "첫 이미지를 커버로 설정했어요 — 발행 시트에서 바꿀 수 있어요"))
+                    } catch {
+                        // 실패를 삼키지 않는다 — coverUrl 은 그대로 둬 발행 시트에 보이고, 다시 지정을 권한다.
+                        ToastCenter.shared.show(
+                            String(localized: "커버를 저장하지 못했어요 — 발행 시트에서 다시 지정해 주세요"))
+                    }
                 }
             } catch {
                 ToastCenter.shared.show(String(localized: "이미지를 올리지 못했습니다"))
@@ -1606,6 +1717,53 @@ private struct ImageActionBar: View {
         .buttonStyle(.plain)
         .accessibilityLabel(Text(label))
         .accessibilityHint(Text(hint))
+    }
+}
+
+/// 임베드(동영상) 편집 바 — 캐럿이 단독 URL 줄에 있을 때만 뜬다. 주소를 바꾸거나 지운다.
+private struct VideoActionBar: View {
+    let perform: (Action) -> Void
+
+    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+
+    enum Action: CaseIterable, Identifiable {
+        case replace, delete
+        var id: Self { self }
+        var symbol: String { self == .replace ? "arrow.triangle.2.circlepath" : "trash" }
+        var label: LocalizedStringKey { self == .replace ? "주소 바꾸기" : "삭제" }
+        var hint: LocalizedStringKey { self == .delete ? "이 동영상을 지웁니다" : "" }
+    }
+
+    var body: some View {
+        GlassEffectContainer(spacing: 0) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 0) {
+                    ForEach(Action.allCases) { action in
+                        Button {
+                            perform(action)
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: action.symbol)
+                                    .font(.system(size: 12 * unit, weight: .semibold))
+                                Text(action.label)
+                                    .font(.system(size: 13 * unit, weight: .medium))
+                            }
+                            .foregroundStyle(action == .delete ? Palette.secondary : Palette.ink)
+                            .padding(.horizontal, 14)
+                            .frame(height: 44)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(Text(action.label))
+                        .accessibilityHint(Text(action.hint))
+                    }
+                }
+                .padding(.horizontal, 4)
+            }
+            .frame(height: 44)
+            .glassEffect(.regular.interactive(), in: .capsule)
+        }
+        .padding(.horizontal, Metrics.gutter)
     }
 }
 

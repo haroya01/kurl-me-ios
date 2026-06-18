@@ -243,4 +243,7 @@ struct MyPost: Decodable, Identifiable, Hashable {
 
     var isDraft: Bool { status == "DRAFT" }
     var isScheduled: Bool { status == "SCHEDULED" }
+    var isPublished: Bool { status == "PUBLISHED" }
+    /// 웹에서 비공개로 내린 글 — 앱은 이 상태를 몰라 '라이브'로 잘못 표시하던 갭을 메운다.
+    var isUnpublished: Bool { status == "UNPUBLISHED" }
 }

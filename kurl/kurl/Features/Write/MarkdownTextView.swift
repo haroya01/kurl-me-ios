@@ -151,10 +151,15 @@ struct MarkdownTextView: UIViewRepresentable {
         func textViewDidChange(_ textView: UITextView) {
             // 조합 중간값은 바인딩에 흘리지 않는다 — 자동저장 시그니처가 조합 글자로 출렁이지 않게.
             guard textView.markedTextRange == nil else { return }
+            // 변경 크기 — 작은 in-place 편집이면 캐럿 문단만 다시 칠해 긴 글 타이핑 지연을 없앤다.
+            let delta = abs((textView.text as NSString).length - (lastEditorText as NSString).length)
             parent.text = textView.text
             lastEditorText = textView.text
-            // 치는 즉시 렌더 — 조합이 끝난 글자부터 제목·굵게 등으로 입혀진다.
-            MarkdownSyntaxHighlighter.apply(to: textView)
+            // 치는 즉시 렌더 — 조합이 끝난 글자부터 제목·굵게 등으로 입혀진다. 큰 변경(붙여넣기 등)이나
+            // 빠른 경로가 거부(펜스·구조)하면 전체 패스로 떨어진다.
+            if delta > 2 || !MarkdownSyntaxHighlighter.applyEditedParagraph(to: textView) {
+                MarkdownSyntaxHighlighter.apply(to: textView)
+            }
             parent.onContextChange(parent.controller.caretContext())
             // 입력이 다시 시작되면 '실행취소' 토스트는 거둔다(엉뚱한 대상 undo 방지).
             ToastCenter.shared.dismissActionToast()
@@ -181,7 +186,7 @@ struct MarkdownTextView: UIViewRepresentable {
 }
 
 /// 캐럿이 놓인 곳의 성격 — 컴포즈가 그에 맞는 컨텍스트 편집 바(표/이미지)를 띄운다.
-enum EditorCaretContext { case none, table, image }
+enum EditorCaretContext { case none, table, image, video }
 
 /// 스니펫 바 → 캔버스 다리. 커서/선택 기준 삽입을 UIKit 의 진짜 커서로 수행한다.
 /// 모든 동작은 undo 스택을 보존하고(`replace(_:withText:)`), 조합 중에는 거부한다.
@@ -412,17 +417,29 @@ final class MarkdownEditorController {
     // 캐럿이 표 안에 들어오면 컴포즈가 컨텍스트 바를 띄우고, 그 버튼이 이 메서드들을 부른다.
     // 표 전체를 한 번에 다시 그려(셀 정렬 정규화) 손으로 `|` 를 칠 일이 없게 한다.
 
-    /// 캐럿 위치의 성격(표/이미지/그 외) — 컴포즈가 띄울 컨텍스트 바를 고른다.
+    /// (문서 길이, 캐럿 줄 시작) 동일하면 컨텍스트 재계산을 건너뛰는 캐시 — 같은 줄 안 커서 이동마다
+    /// 전체 문서를 다시 훑지 않게(파이프 든 산문 줄에서 특히).
+    private var contextCache: (length: Int, lineLocation: Int, context: EditorCaretContext)?
+
+    /// 캐럿 위치의 성격(표/이미지/동영상/그 외) — 컴포즈가 띄울 컨텍스트 바를 고른다.
     func caretContext() -> EditorCaretContext {
         guard let textView, textView.markedTextRange == nil else { return .none }
         let ns = textView.text as NSString
         guard ns.length > 0 else { return .none }
         let caret = NSRange(location: min(textView.selectedRange.location, ns.length), length: 0)
-        let line = ns.substring(with: ns.lineRange(for: caret))
-        // 매 커서 이동마다 전체 문서를 훑지 않게 — 캐럿 줄에 '|'·'!' 가 있을 때만 정밀 판별한다.
-        if line.contains("|"), tableBlock(in: textView) != nil { return .table }
-        if line.contains("!"), imageOnCaretLine(in: textView) != nil { return .image }
-        return .none
+        let lineRange = ns.lineRange(for: caret)
+        if let c = contextCache, c.length == ns.length, c.lineLocation == lineRange.location {
+            return c.context
+        }
+        let line = ns.substring(with: lineRange)
+        // 매 커서 이동마다 전체 문서를 훑지 않게 — 캐럿 줄에 '|'·'!'·'://' 가 있을 때만 정밀 판별한다.
+        let result: EditorCaretContext =
+            (line.contains("|") && tableBlock(in: textView) != nil) ? .table
+            : (line.contains("!") && imageOnCaretLine(in: textView) != nil) ? .image
+            : (line.contains("://") && embedLineRange(in: textView) != nil) ? .video
+            : .none
+        contextCache = (ns.length, lineRange.location, result)
+        return result
     }
 
     private struct TableBlock {
@@ -604,7 +621,10 @@ final class MarkdownEditorController {
             let e = textView.position(from: s, offset: block.charRange.length),
             let range = textView.textRange(from: s, to: e)
         else { return }
+        // 별도 undo 그룹으로 — '실행취소' 토스트가 직전 타이핑까지 한꺼번에 되돌리지 않게.
+        textView.undoManager?.beginUndoGrouping()
         textView.replace(range, withText: serialized)
+        textView.undoManager?.endUndoGrouping()
         let caret = block.startLocation + cellOffset(lines: lines, line: caretLine, column: caretColumn)
         let limit = (textView.text as NSString).length
         textView.selectedRange = NSRange(location: min(caret, limit), length: 0)
@@ -777,7 +797,10 @@ final class MarkdownEditorController {
             let e = textView.position(from: s, offset: img.lineRange.length),
             let range = textView.textRange(from: s, to: e)
         else { return false }
+        // 별도 undo 그룹으로 — '실행취소' 토스트가 직전 타이핑까지 한꺼번에 되돌리지 않게.
+        textView.undoManager?.beginUndoGrouping()
         textView.replace(range, withText: "")
+        textView.undoManager?.endUndoGrouping()
         let limit = (textView.text as NSString).length
         textView.selectedRange = NSRange(location: min(img.lineRange.location, limit), length: 0)
         MarkdownSyntaxHighlighter.apply(to: textView)
@@ -789,6 +812,42 @@ final class MarkdownEditorController {
     func undoLastEdit() -> Bool {
         guard let textView, let undo = textView.undoManager, undo.canUndo else { return false }
         undo.undo()
+        MarkdownSyntaxHighlighter.apply(to: textView)
+        return true
+    }
+
+    // MARK: 동영상/임베드 줄 — 단독 URL 줄(백엔드가 EMBED 로 렌더). 편집 바로 지우거나 바꾼다.
+
+    /// 캐럿 줄이 단독 http(s) URL(임베드)이면 그 줄 범위를 돌려준다.
+    private func embedLineRange(in textView: UITextView) -> NSRange? {
+        let ns = textView.text as NSString
+        guard ns.length > 0 else { return nil }
+        let caret = min(textView.selectedRange.location, ns.length)
+        let lineRange = ns.lineRange(for: NSRange(location: caret, length: 0))
+        let content = ns.substring(with: lineRange).trimmingCharacters(in: .whitespacesAndNewlines)
+        let t = content.hasPrefix("<") && content.hasSuffix(">")
+            ? String(content.dropFirst().dropLast()) : content
+        guard (t.hasPrefix("http://") || t.hasPrefix("https://")),
+            !t.contains(" "), !t.contains("\n"), t.contains(".")
+        else { return nil }
+        return lineRange
+    }
+
+    /// 캐럿이 놓인 임베드 줄을 통째로 지운다. 지웠으면 true.
+    @discardableResult
+    func removeEmbedLine() -> Bool {
+        guard let textView, textView.markedTextRange == nil,
+            let lineRange = embedLineRange(in: textView)
+        else { return false }
+        guard let s = textView.position(from: textView.beginningOfDocument, offset: lineRange.location),
+            let e = textView.position(from: s, offset: lineRange.length),
+            let range = textView.textRange(from: s, to: e)
+        else { return false }
+        textView.undoManager?.beginUndoGrouping()
+        textView.replace(range, withText: "")
+        textView.undoManager?.endUndoGrouping()
+        let limit = (textView.text as NSString).length
+        textView.selectedRange = NSRange(location: min(lineRange.location, limit), length: 0)
         MarkdownSyntaxHighlighter.apply(to: textView)
         return true
     }
@@ -849,22 +908,36 @@ enum MarkdownImage {
 /// URL → UIImage 메모리 캐시 + 비동기 로더. 로드되면 onLoad 로 해당 줄만 다시 그리게 한다.
 final class ImageThumbCache {
     static let shared = ImageThumbCache()
-    private let cache = NSCache<NSURL, UIImage>()
+    // 디코드된 원본을 무제한 쌓지 않게 한도를 둔다 — 이미지 많은 글에서 메모리가 폭주하지 않게.
+    private let cache: NSCache<NSURL, UIImage> = {
+        let c = NSCache<NSURL, UIImage>()
+        c.countLimit = 40
+        c.totalCostLimit = 64 * 1024 * 1024
+        return c
+    }()
     private var loading = Set<NSURL>()
+    /// 404·비이미지 등 실패한 URL — 다시 받지 않는다(매 리드로우/키 입력마다의 요청 폭주 차단).
+    private var failed = Set<NSURL>()
 
     /// 캐시에 있으면 즉시 반환, 없으면 비동기로 받아 캐시 후 onLoad 호출(메인 스레드).
     func image(for url: URL, onLoad: @escaping () -> Void) -> UIImage? {
         let key = url as NSURL
         if let img = cache.object(forKey: key) { return img }
-        guard !loading.contains(key) else { return nil }
+        guard !loading.contains(key), !failed.contains(key) else { return nil }
         loading.insert(key)
-        URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
+        URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
             DispatchQueue.main.async {
                 guard let self else { return }
                 self.loading.remove(key)
-                if let data, let img = UIImage(data: data) {
-                    self.cache.setObject(img, forKey: key)
+                let statusOK =
+                    (response as? HTTPURLResponse).map { (200..<300).contains($0.statusCode) } ?? true
+                if error == nil, statusOK, let data, let img = UIImage(data: data) {
+                    let cost = Int(img.size.width * img.size.height * img.scale * img.scale * 4)
+                    self.cache.setObject(img, forKey: key, cost: cost)
                     onLoad()
+                } else {
+                    // 부정 결과를 기억해 같은 깨진 URL 을 반복해서 다시 받지 않는다.
+                    self.failed.insert(key)
                 }
             }
         }.resume()

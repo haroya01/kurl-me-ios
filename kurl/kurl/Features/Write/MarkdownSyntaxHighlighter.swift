@@ -37,11 +37,8 @@ enum MarkdownSyntaxHighlighter {
         let selected = textView.selectedRange
         storage.beginEditing()
         storage.setAttributes(base, range: full)
-        styleLines(storage, ns)
-        let pad = textView.textContainer.lineFragmentPadding
-        let cw = textView.textContainer.size.width
-        let avail = max(0, (cw.isFinite && cw > 1 ? cw : textView.bounds.width) - pad * 2)
-        applyImages(storage, ns, width: avail)
+        styleLines(storage, ns, in: full, startInFence: false, startMarker: nil)
+        applyImages(storage, ns, in: full, width: availableWidth(textView))
         storage.endEditing()
         // 속성만 바꿔 길이는 그대로지만, 캐럿을 한 번 더 못박아 둔다.
         if selected.location <= ns.length {
@@ -51,20 +48,78 @@ enum MarkdownSyntaxHighlighter {
         textView.typingAttributes = base
     }
 
+    /// 매 키 입력마다 전체 문서를 다시 칠하지 않게 — 캐럿이 놓인 문단만 다시 입힌다.
+    /// 펜스(코드블록)·구조가 걸린 입력은 안전하게 false 를 돌려 호출측이 전체 패스를 돌게 한다.
+    /// 평범한 본문 타이핑(긴 글)에서 매 글자마다의 O(문서) 작업을 없애는 빠른 경로다.
+    static func applyEditedParagraph(to textView: UITextView) -> Bool {
+        guard textView.markedTextRange == nil else { return false }
+        let ns = textView.text as NSString
+        guard ns.length > 0 else { return false }
+        let caret = min(textView.selectedRange.location, ns.length)
+        let para = ns.paragraphRange(for: NSRange(location: caret, length: 0))
+        // 백틱·물결이 있으면(펜스 토글·인라인 코드·취소선) 아래 줄 상태나 범위가 흔들릴 수 있어 전체 패스로.
+        let paraStr = ns.substring(with: para)
+        if paraStr.contains("`") || paraStr.contains("~") { return false }
+        // 문단이 코드펜스 안이면 전체 패스로(코드색 유지) — 앞쪽 펜스 마커만 싸게 센다(정규식 없음).
+        if fenceOpen(before: para.location, ns: ns) { return false }
+        let storage = textView.textStorage
+        let selected = textView.selectedRange
+        storage.beginEditing()
+        storage.setAttributes(baseAttributes(), range: para)
+        styleLines(storage, ns, in: para, startInFence: false, startMarker: nil)
+        applyImages(storage, ns, in: para, width: availableWidth(textView))
+        storage.endEditing()
+        if selected.location <= ns.length { textView.selectedRange = selected }
+        textView.typingAttributes = baseAttributes()
+        return true
+    }
+
+    private static func availableWidth(_ textView: UITextView) -> CGFloat {
+        let pad = textView.textContainer.lineFragmentPadding
+        let cw = textView.textContainer.size.width
+        return max(0, (cw.isFinite && cw > 1 ? cw : textView.bounds.width) - pad * 2)
+    }
+
+    /// location 앞까지 ```·~~~ 펜스를 세어 그 지점이 코드펜스 안인지(정규식 없이) 판정.
+    private static func fenceOpen(before location: Int, ns: NSString) -> Bool {
+        var marker: Character?
+        ns.enumerateSubstrings(in: NSRange(location: 0, length: location), options: [.byLines]) {
+            line, _, _, _ in
+            let t = (line ?? "").trimmingCharacters(in: .whitespaces)
+            let fc: Character? = t.hasPrefix("```") ? "`" : (t.hasPrefix("~~~") ? "~" : nil)
+            if let fc {
+                if marker == nil { marker = fc } else if marker == fc { marker = nil }
+            }
+        }
+        return marker != nil
+    }
+
     // MARK: 줄 단위 — 헤딩·인용·리스트·코드펜스
 
-    private static func styleLines(_ storage: NSTextStorage, _ ns: NSString) {
-        var inFence = false
-        ns.enumerateSubstrings(
-            in: NSRange(location: 0, length: ns.length), options: [.byLines]
-        ) { line, lineRange, _, _ in
+    private static func styleLines(
+        _ storage: NSTextStorage, _ ns: NSString, in range: NSRange,
+        startInFence: Bool, startMarker: Character?
+    ) {
+        var inFence = startInFence
+        var fenceMarker = startMarker
+        ns.enumerateSubstrings(in: range, options: [.byLines]) { line, lineRange, _, _ in
             guard let line else { return }
 
-            // ``` 코드펜스 — 펜스 줄과 그 안쪽을 어두운 코드 박스로(발행면과 같은 모습). 펜스는 흐린 라벨.
-            if line.hasPrefix("```") {
+            // ```·~~~ 코드펜스 — 펜스 줄과 그 안쪽을 어두운 코드 박스로(발행면과 같은 모습). 펜스는
+            // 흐린 라벨. 여는 마커(`/~)를 기억해 같은 마커로만 닫는다(백엔드와 같은 규칙). 선행 공백 허용.
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            let fenceChar: Character? =
+                trimmed.hasPrefix("```") ? "`" : (trimmed.hasPrefix("~~~") ? "~" : nil)
+            if let fc = fenceChar, fenceMarker == nil || fenceMarker == fc {
                 storage.addAttribute(.backgroundColor, value: UIColor(Palette.codeBg), range: lineRange)
                 storage.addAttribute(.foregroundColor, value: UIColor(Palette.codeText).withAlphaComponent(0.5), range: lineRange)
-                inFence.toggle()
+                if fenceMarker == nil {
+                    fenceMarker = fc
+                    inFence = true
+                } else {
+                    fenceMarker = nil
+                    inFence = false
+                }
                 return
             }
             if inFence {
@@ -102,6 +157,14 @@ enum MarkdownSyntaxHighlighter {
                 storage.addAttribute(.foregroundColor, value: UIColor(Palette.accentMarker), range: markerRange)
             }
 
+            // 단독 URL 줄 — 발행 시 임베드(동영상·카드)가 된다. 에디터에선 링크색+밑줄로 표시해
+            // 평범한 평문 URL 이 아니라 미디어가 될 줄임을 알린다(편집 바도 이 줄에서 뜬다).
+            if isStandaloneURL(line) {
+                storage.addAttribute(.foregroundColor, value: UIColor(Palette.link), range: lineRange)
+                storage.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: lineRange)
+                return
+            }
+
             applyInline(storage, ns, lineRange)
         }
     }
@@ -109,26 +172,37 @@ enum MarkdownSyntaxHighlighter {
     /// `![alt](url)` — URL 표식(.kurlImageURL)을 붙이고 마크다운 문법은 흐리게, 그 줄 아래에
     /// 썸네일 높이만큼 paragraphSpacing 으로 공간을 확보한다(레이아웃 매니저가 그 자리에 그린다).
     /// 본문 텍스트(`![](url)`)는 그대로 남아 마크다운 원문·자동저장이 깨지지 않는다.
-    private static func applyImages(_ storage: NSTextStorage, _ ns: NSString, width: CGFloat) {
-        let full = NSRange(location: 0, length: ns.length)
-        Regex.image.enumerateMatches(in: ns as String, range: full) { match, _, _ in
-            guard let match else { return }
-            let urlRange = match.range(at: 1)
-            guard urlRange.location != NSNotFound else { return }
-            let urlString = ns.substring(with: urlRange)
-            storage.addAttribute(.kurlImageURL, value: urlString, range: match.range)
-            // 마크다운(`![](url)`)은 숨긴다 — 에디터엔 사진만 보이게(WYSIWYG처럼). 원문 텍스트는
-            // 그대로 남아 자동저장·동기화는 불변. 투명색 + 1pt 폰트로 그 줄을 거의 0 높이로 접어,
-            // 아래 예약 공간(paragraphSpacing)에 그려지는 이미지만 남는다.
-            storage.addAttribute(.foregroundColor, value: UIColor.clear, range: match.range)
-            storage.addAttribute(.font, value: UIFont.systemFont(ofSize: 1), range: match.range)
-            let para = ns.paragraphRange(for: match.range)
-            let ps = NSMutableParagraphStyle()
-            // 로드 전엔 placeholder, 로드 후엔 실제 비율 높이(onImageLoad 가 재하이라이트로 갱신).
-            ps.paragraphSpacing =
-                URL(string: urlString).map { MarkdownImage.reservedHeight(for: $0, width: width) }
-                ?? MarkdownImage.placeholderHeight
-            storage.addAttribute(.paragraphStyle, value: ps, range: para)
+    private static func applyImages(
+        _ storage: NSTextStorage, _ ns: NSString, in range: NSRange, width: CGFloat
+    ) {
+        // 한 줄이 오롯이 이미지(들)일 때만 숨기고 썸네일을 그린다 — 백엔드는 그럴 때만 IMAGE 블록을
+        // 만들고, 텍스트와 같은 줄에 섞인 이미지는 평문으로 렌더하므로 에디터도 마크다운을 남긴다.
+        ns.enumerateSubstrings(in: range, options: [.byLines]) { line, lineRange, _, _ in
+            guard let line, line.contains("![") else { return }
+            let lineNS = line as NSString
+            let stripped = Regex.image.stringByReplacingMatches(
+                in: line, options: [], range: NSRange(location: 0, length: lineNS.length),
+                withTemplate: "")
+            guard stripped.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+            Regex.image.enumerateMatches(in: ns as String, range: lineRange) { match, _, _ in
+                guard let match else { return }
+                let urlRange = match.range(at: 1)
+                guard urlRange.location != NSNotFound else { return }
+                let urlString = ns.substring(with: urlRange)
+                storage.addAttribute(.kurlImageURL, value: urlString, range: match.range)
+                // 마크다운(`![](url)`)은 숨긴다 — 에디터엔 사진만 보이게(WYSIWYG처럼). 원문 텍스트는
+                // 그대로 남아 자동저장·동기화는 불변. 투명색 + 1pt 폰트로 그 줄을 거의 0 높이로 접어,
+                // 아래 예약 공간(paragraphSpacing)에 그려지는 이미지만 남는다.
+                storage.addAttribute(.foregroundColor, value: UIColor.clear, range: match.range)
+                storage.addAttribute(.font, value: UIFont.systemFont(ofSize: 1), range: match.range)
+                let para = ns.paragraphRange(for: match.range)
+                let ps = NSMutableParagraphStyle()
+                // 로드 전엔 placeholder, 로드 후엔 실제 비율 높이(onImageLoad 가 재하이라이트로 갱신).
+                ps.paragraphSpacing =
+                    URL(string: urlString).map { MarkdownImage.reservedHeight(for: $0, width: width) }
+                    ?? MarkdownImage.placeholderHeight
+                storage.addAttribute(.paragraphStyle, value: ps, range: para)
+            }
         }
     }
 
@@ -141,6 +215,14 @@ enum MarkdownSyntaxHighlighter {
         // 흐린 마커(#... + 공백 하나)는 색만 죽이고 크기는 유지해 본문 정렬을 안 깬다.
         let markerLen = min(level + 1, lineRange.length)
         dim(storage, NSRange(location: lineRange.location, length: markerLen))
+    }
+
+    /// 줄 전체가 단독 http(s) URL(또는 `<url>`)인가 — 백엔드가 EMBED 로 만드는 줄.
+    private static func isStandaloneURL(_ line: String) -> Bool {
+        var t = line.trimmingCharacters(in: .whitespaces)
+        if t.hasPrefix("<"), t.hasSuffix(">") { t = String(t.dropFirst().dropLast()) }
+        guard t.hasPrefix("http://") || t.hasPrefix("https://") else { return false }
+        return !t.contains(" ") && t.contains(".")
     }
 
     /// "- " · "* " · "1. " 형태의 줄머리 길이(공백 포함). 아니면 nil.
