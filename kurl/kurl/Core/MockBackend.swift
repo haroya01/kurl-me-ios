@@ -892,8 +892,12 @@ enum MockBackend {
                     "slug": "hexagonal", "title": "헥사고날 전환기", "postCount": 6,
                     "lastPublishedAt": iso(Date().addingTimeInterval(-86_400)),
                     "posts": [
-                        ["slug": "ep-1", "title": "포트와 어댑터"],
-                        ["slug": "ep-2", "title": "도메인을 안으로"],
+                        // 앞장은 사진 커버(사진 변형), 뒷장은 무이미지(종이 변형) — 둘 다 확인용.
+                        [
+                            "slug": "ep-1", "title": "포트와 어댑터",
+                            "ogImageUrl": "https://picsum.photos/seed/hexa1/900/1100",
+                        ],
+                        ["slug": "ep-2", "title": "도메인을 안으로", "ogImageUrl": NSNull()],
                     ],
                 ],
                 [
@@ -902,8 +906,11 @@ enum MockBackend {
                     "slug": "liquid-glass", "title": "iOS 앱 만들기", "postCount": 3,
                     "lastPublishedAt": iso(Date().addingTimeInterval(-3 * 86_400)),
                     "posts": [
-                        ["slug": "e1", "title": "리퀴드 글래스, 종이 본문"],
-                        ["slug": "e2", "title": "탭바와 몰입"],
+                        [
+                            "slug": "e1", "title": "리퀴드 글래스, 종이 본문",
+                            "ogImageUrl": "https://picsum.photos/seed/glass2/900/1100",
+                        ],
+                        ["slug": "e2", "title": "탭바와 몰입", "ogImageUrl": NSNull()],
                     ],
                 ],
             ])

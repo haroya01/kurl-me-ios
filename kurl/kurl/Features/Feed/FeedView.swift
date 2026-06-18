@@ -500,46 +500,66 @@ private struct FeedSeriesCard: View {
     }
 
     private func episodePage(index i: Int, ep: SeriesPostRef) -> some View {
-        ZStack(alignment: .topLeading) {
-            // 종이 + 아주 옅은 그린(accent-50→accent-100) 대각 그라디언트 — 웹 EP_GRADS 대응.
-            LinearGradient(
-                colors: [Palette.cardBg, Palette.accent.opacity(0.05), Palette.accent.opacity(0.10)],
-                startPoint: .topLeading, endPoint: .bottomTrailing
-            )
-            // 우상단에서 비껴 잘리는 거대한 흐린 mono 번호(웹: 148px·accent-600/9%) — 무이미지 장의 표지 아트.
-            Text(String(format: "%02d", i + 1))
-                .font(.system(size: 148, weight: .bold, design: .monospaced))
-                .tracking(-4)
-                .foregroundStyle(Palette.accent.opacity(0.09))
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                .offset(x: 14, y: -28)
-                .allowsHitTesting(false)
+        let imageURL = ep.ogImageUrl.flatMap { $0.isEmpty ? nil : URL(string: $0) }
+        let onImage = imageURL != nil
+        return ZStack(alignment: .topLeading) {
+            if let url = imageURL {
+                // 사진 커버 변형 — 에피소드 사진 + 상하 스크림 위 흰 글씨(웹 이미지 장 대응).
+                Color.clear.overlay {
+                    AsyncImage(url: url) { img in
+                        img.resizable().scaledToFill()
+                    } placeholder: {
+                        Palette.accent.opacity(0.12)
+                    }
+                }
+                .clipped()
+                LinearGradient(
+                    stops: [
+                        .init(color: .black.opacity(0.32), location: 0),
+                        .init(color: .clear, location: 0.34),
+                        .init(color: .black.opacity(0.66), location: 1.0),
+                    ], startPoint: .top, endPoint: .bottom)
+            } else {
+                // 종이 변형 — 아주 옅은 그린(accent-50→accent-100) 대각 그라디언트(웹 EP_GRADS).
+                LinearGradient(
+                    colors: [
+                        Palette.cardBg, Palette.accent.opacity(0.05), Palette.accent.opacity(0.10),
+                    ], startPoint: .topLeading, endPoint: .bottomTrailing)
+                // 우상단에서 비껴 잘리는 거대한 흐린 mono 번호(웹: 148px·accent-600/9%).
+                Text(String(format: "%02d", i + 1))
+                    .font(.system(size: 148, weight: .bold, design: .monospaced))
+                    .tracking(-4)
+                    .foregroundStyle(Palette.accent.opacity(0.09))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                    .offset(x: 14, y: -28)
+                    .allowsHitTesting(false)
+            }
 
             VStack(alignment: .leading, spacing: 0) {
                 // 시리즈 정체 — 마크 + 시리즈명(웹: 12px semibold).
                 HStack(spacing: 6) {
-                    KurlMark(drawn: [true, true, true], tint: Palette.accent)
+                    KurlMark(drawn: [true, true, true], tint: onImage ? .white : Palette.accent)
                         .frame(width: 16, height: 10)
                     Text(series.title)
                         .font(.system(size: 12, weight: .semibold))
                         .tracking(0.4)
-                        .foregroundStyle(Palette.ink)
+                        .foregroundStyle(onImage ? Color.white : Palette.ink)
                         .lineLimit(1)
                 }
                 Spacer(minLength: 0)
                 // 에피소드 번호 01 / 04 (웹: 34px accent-700 + 15px slate-500).
                 (Text(String(format: "%02d", i + 1))
                     .font(.system(size: 34, weight: .bold, design: .monospaced))
-                    .foregroundStyle(Palette.link)
+                    .foregroundStyle(onImage ? Color.white : Palette.link)
                     + Text(" / \(String(format: "%02d", series.postCount))")
                     .font(.system(size: 15, weight: .bold, design: .monospaced))
-                    .foregroundStyle(Palette.secondary))
+                    .foregroundStyle(onImage ? Color.white.opacity(0.75) : Palette.secondary))
                     .lineLimit(1)
                 // 에피소드 제목(웹: 18px bold, 3줄).
                 Text(ep.title)
                     .font(.system(size: 18, weight: .bold))
                     .tracking(-0.3)
-                    .foregroundStyle(Palette.ink)
+                    .foregroundStyle(onImage ? Color.white : Palette.ink)
                     .lineLimit(3)
                     .multilineTextAlignment(.leading)
                     .padding(.top, 6)
@@ -547,13 +567,13 @@ private struct FeedSeriesCard: View {
                     AvatarView(author: author, size: 18)
                     Text(author.username)
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(Palette.secondary)
+                        .foregroundStyle(onImage ? Color.white.opacity(0.9) : Palette.secondary)
                         .lineLimit(1)
                     if let date = series.lastPublishedAt {
-                        Text("·").foregroundStyle(Palette.faint)
+                        Text("·").foregroundStyle(onImage ? Color.white.opacity(0.6) : Palette.faint)
                         Text(date.relativeShort)
                             .font(.system(size: 12))
-                            .foregroundStyle(Palette.secondary)
+                            .foregroundStyle(onImage ? Color.white.opacity(0.9) : Palette.secondary)
                     }
                 }
                 .padding(.top, 9)

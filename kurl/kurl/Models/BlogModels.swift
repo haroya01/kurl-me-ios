@@ -158,6 +158,8 @@ struct PostSeriesNav: Decodable, Hashable {
 struct SeriesPostRef: Decodable, Hashable {
     let slug: String
     let title: String
+    /// 에피소드 커버(있으면 시리즈 카드가 사진 변형으로 그린다). 백엔드가 안 주면 nil → 종이 변형.
+    let ogImageUrl: String?
 }
 
 struct PublicSeriesCard: Decodable, Identifiable {
