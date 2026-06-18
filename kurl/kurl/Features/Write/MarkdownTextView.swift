@@ -151,6 +151,8 @@ struct MarkdownTextView: UIViewRepresentable {
         func textViewDidChange(_ textView: UITextView) {
             // 조합 중간값은 바인딩에 흘리지 않는다 — 자동저장 시그니처가 조합 글자로 출렁이지 않게.
             guard textView.markedTextRange == nil else { return }
+            // 본문이 바뀌었으니 컨텍스트 캐시를 버린다 — 같은 길이·같은 줄 시작의 편집에서도 정확하게.
+            parent.controller.invalidateContextCache()
             // 변경 크기 — 작은 in-place 편집이면 캐럿 문단만 다시 칠해 긴 글 타이핑 지연을 없앤다.
             let delta = abs((textView.text as NSString).length - (lastEditorText as NSString).length)
             parent.text = textView.text
@@ -418,8 +420,12 @@ final class MarkdownEditorController {
     // 표 전체를 한 번에 다시 그려(셀 정렬 정규화) 손으로 `|` 를 칠 일이 없게 한다.
 
     /// (문서 길이, 캐럿 줄 시작) 동일하면 컨텍스트 재계산을 건너뛰는 캐시 — 같은 줄 안 커서 이동마다
-    /// 전체 문서를 다시 훑지 않게(파이프 든 산문 줄에서 특히).
+    /// 전체 문서를 다시 훑지 않게(파이프 든 산문 줄에서 특히). 본문이 바뀌면 무효화해(같은 길이·같은
+    /// 줄 시작이라도 내용이 달라질 수 있으므로) 순수 커서 이동에서만 단축되게 한다.
     private var contextCache: (length: Int, lineLocation: Int, context: EditorCaretContext)?
+
+    /// 본문 편집이 일어났을 때 컨텍스트 캐시를 버린다(coordinator 가 매 변경마다 호출).
+    func invalidateContextCache() { contextCache = nil }
 
     /// 캐럿 위치의 성격(표/이미지/동영상/그 외) — 컴포즈가 띄울 컨텍스트 바를 고른다.
     func caretContext() -> EditorCaretContext {
@@ -935,8 +941,9 @@ final class ImageThumbCache {
                     let cost = Int(img.size.width * img.size.height * img.scale * img.scale * 4)
                     self.cache.setObject(img, forKey: key, cost: cost)
                     onLoad()
-                } else {
-                    // 부정 결과를 기억해 같은 깨진 URL 을 반복해서 다시 받지 않는다.
+                } else if error == nil {
+                    // 응답은 왔지만 비-2xx 거나 디코드 실패 = 확정적 실패만 블랙리스트한다.
+                    // 전송 오류(error != nil, 오프라인 등)는 일시적일 수 있어 넣지 않는다(다음 리드로우 재시도).
                     self.failed.insert(key)
                 }
             }

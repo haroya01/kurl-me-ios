@@ -94,6 +94,8 @@ struct ComposeView: View {
     @State private var uploadingBodyImage = false
     @State private var pendingImageWidth: String?
     @State private var pendingImageURL: String?
+    /// 업로드된 본문 이미지의 키 — 본문에 실제로 넣을 때(취소 아님)만 커버로 쓰기 위해 보관.
+    @State private var pendingImageKey: String?
     @State private var showImageCaption = false
     @State private var imageCaptionText = ""
 
@@ -256,9 +258,10 @@ struct ComposeView: View {
             Button("추가") { confirmImageInsert() }
             Button("건너뛰기") { confirmImageInsert() }
             Button("취소", role: .cancel) {
-                // 잘못 고른 사진 — 본문에 넣지 않고 버린다.
+                // 잘못 고른 사진 — 본문에 넣지 않고 버린다(커버로도 쓰지 않는다).
                 pendingImageURL = nil
                 pendingImageWidth = nil
+                pendingImageKey = nil
             }
         } message: {
             Text("이미지 아래에 보일 설명 — 비워도 됩니다.")
@@ -1391,9 +1394,30 @@ struct ComposeView: View {
         editorController.insertImage(
             url: url, width: pendingImageWidth, caption: caption.isEmpty ? nil : caption)
         syncMarkdownFromEditor()
+        // 본문에 실제로 넣은 지금에서야 — 커버가 비어 있으면 이 이미지를 기본 커버로(취소면 안 거침).
+        maybeSetCoverFromBodyImage(url: url, key: pendingImageKey)
         pendingImageURL = nil
         pendingImageWidth = nil
+        pendingImageKey = nil
         editorController.focus()
+    }
+
+    /// 커버가 비어 있으면 방금 본문에 넣은 이미지를 기본 커버로 — 이미지 글이 커버 없이 발행되지
+    /// 않게(작성자는 발행 시트에서 언제든 바꾼다). 본문 저장 표시는 건드리지 않는다.
+    private func maybeSetCoverFromBodyImage(url: String, key: String?) {
+        guard coverUrl == nil, let postId, let key else { return }
+        coverUrl = url
+        Task {
+            do {
+                try await WriteAPI.updateCover(postId: postId, url: url, key: key)
+                onSaved()
+                ToastCenter.shared.show(
+                    String(localized: "첫 이미지를 커버로 설정했어요 — 발행 시트에서 바꿀 수 있어요"))
+            } catch {
+                ToastCenter.shared.show(
+                    String(localized: "커버를 저장하지 못했어요 — 발행 시트에서 다시 지정해 주세요"))
+            }
+        }
     }
 
     private static func looksLikeURL(_ s: String) -> Bool {
@@ -1426,26 +1450,12 @@ struct ComposeView: View {
                       let jpeg = image.jpegData(compressionQuality: 0.88)
                 else { return }
                 let uploaded = try await WriteAPI.uploadImage(postId: id, jpegData: jpeg)
-                // 업로드 완료 → 캡션(선택) 다이얼로그를 띄우고, 확인 시 폭·캡션과 함께 삽입.
+                // 업로드 완료 → 캡션(선택) 다이얼로그. 커버 자동지정은 '추가/건너뛰기'로 본문에 실제로
+                // 넣을 때(confirmImageInsert)만 — 취소로 버리면 커버가 되지 않게 키만 보관해 둔다.
                 pendingImageURL = uploaded.url
+                pendingImageKey = uploaded.key
                 imageCaptionText = ""
                 showImageCaption = true
-                // 커버가 비어 있으면 본문 첫 이미지를 기본 커버로 — 이미지 있는 글이
-                // 커버 없이 발행되지 않게(작성자는 발행 폼에서 언제든 바꿀 수 있다).
-                // 조용히 바꾸지 않고 한 번 알린다(의외의 커버 방지) + 본문 저장 표시는 안 건드린다.
-                if coverUrl == nil {
-                    coverUrl = uploaded.url
-                    do {
-                        try await WriteAPI.updateCover(postId: id, url: uploaded.url, key: uploaded.key)
-                        onSaved()
-                        ToastCenter.shared.show(
-                            String(localized: "첫 이미지를 커버로 설정했어요 — 발행 시트에서 바꿀 수 있어요"))
-                    } catch {
-                        // 실패를 삼키지 않는다 — coverUrl 은 그대로 둬 발행 시트에 보이고, 다시 지정을 권한다.
-                        ToastCenter.shared.show(
-                            String(localized: "커버를 저장하지 못했어요 — 발행 시트에서 다시 지정해 주세요"))
-                    }
-                }
             } catch {
                 ToastCenter.shared.show(String(localized: "이미지를 올리지 못했습니다"))
             }
