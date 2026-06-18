@@ -12,6 +12,7 @@ struct StudioView: View {
     private var auth: AuthStore { .shared }
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
     @State private var section: StudioSection = .posts
@@ -125,6 +126,10 @@ struct StudioView: View {
             await load()
         }
         .refreshable { await load() }
+        // 앱으로 돌아오면 목록을 새로고침 — 예약→발행 전환·다른 기기 편집이 묵은 채로 남지 않게.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active, auth.isSignedIn { Task { await load() } }
+        }
     }
 
     /// 글이 쌓이면 초안 찾기가 스크롤 사냥이 된다 — 임시/발행 한 번에 거르는 칩.
