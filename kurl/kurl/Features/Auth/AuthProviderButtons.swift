@@ -217,7 +217,7 @@ struct TwoFactorSheet: View {
                 dismiss()
             } catch {
                 // 코드 거절(4xx)과 일시 장애(네트워크·서버)를 갈라 보여준다 — 둘 다 "코드 오류"로 묻지 않는다.
-                if case APIError.http(let status) = error, (400...422).contains(status) {
+                if let status = (error as? APIError)?.statusCode, (400...422).contains(status) {
                     errorText = useRecovery
                         ? String(localized: "복구 코드가 올바르지 않습니다.")
                         : String(localized: "코드가 올바르지 않습니다.")

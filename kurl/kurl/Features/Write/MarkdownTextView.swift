@@ -156,6 +156,8 @@ struct MarkdownTextView: UIViewRepresentable {
             // 치는 즉시 렌더 — 조합이 끝난 글자부터 제목·굵게 등으로 입혀진다.
             MarkdownSyntaxHighlighter.apply(to: textView)
             parent.onContextChange(parent.controller.caretContext())
+            // 입력이 다시 시작되면 '실행취소' 토스트는 거둔다(엉뚱한 대상 undo 방지).
+            ToastCenter.shared.dismissActionToast()
         }
 
         // 커서가 움직일 때마다 캐럿 위치의 성격(표/이미지)을 컴포즈에 알린다(컨텍스트 바 토글).

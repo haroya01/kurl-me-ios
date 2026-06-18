@@ -25,6 +25,15 @@ enum APIError: LocalizedError {
         case .transport: return String(localized: "네트워크에 연결할 수 없습니다.")
         }
     }
+
+    /// .http·.server 공통 HTTP 상태 코드 — 호출측이 두 케이스를 따로 풀지 않게(409·400 분기 등).
+    var statusCode: Int? {
+        switch self {
+        case .http(let status): return status
+        case .server(let status, _, _): return status
+        default: return nil
+        }
+    }
 }
 
 /// 백엔드 ProblemDetails.of 가 내는 본문 — title/detail/code 만 골라 읽는다.

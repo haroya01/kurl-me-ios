@@ -183,7 +183,7 @@ struct ProfileEditView: View {
 
     /// 서버 거절을 사람 말로 — 409=중복, 400=형식. 그 외는 일반 메시지.
     private func usernameSaveError(_ error: Error) -> String {
-        if case APIError.http(let status) = error {
+        if let status = (error as? APIError)?.statusCode {
             switch status {
             case 409: return String(localized: "이미 사용 중인 이름이에요.")
             case 400: return String(localized: "사용할 수 없는 이름이에요.")

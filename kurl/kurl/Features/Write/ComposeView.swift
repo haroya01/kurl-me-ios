@@ -194,6 +194,9 @@ struct ComposeView: View {
         .sheet(isPresented: $showRevisions) {
             RevisionsSheet(postId: postId) { restored in
                 markdown = restored
+                // 복원 본문을 곧장 '저장됨'으로 맞춰(동기) 2초 디바운스가 복원본문+옛메타로
+                // 저장하는 창을 닫는다. 메타는 syncAfterRestore 가 마저 맞춘다.
+                lastSavedSignature = signature
                 Task { await syncAfterRestore() }
             }
         }
@@ -287,6 +290,8 @@ struct ComposeView: View {
                     .allowsHitTesting(false)
             }
         }
+        // 잠금은 캔버스(텍스트뷰)에만 — 아래 다시-시도 오버레이는 disabled 서브트리 밖이라 탭이 살아 있다.
+        .disabled(loadFailed)
         // 본문 로드 실패 시 — 에디터를 잠그고 다시 시도를 권한다(빈 본문 덮어쓰기 방지).
         .overlay {
             if loadFailed {
@@ -308,7 +313,6 @@ struct ComposeView: View {
                 .background(Palette.readingBg)
             }
         }
-        .disabled(loadFailed)
     }
 
     @ToolbarContentBuilder
@@ -890,6 +894,8 @@ struct ComposeView: View {
     /// 리비전 복원 후 — 서버가 본문(과 메타)을 바꿨으므로 화면 상태 전체를 다시 읽어 맞춘다.
     /// 안 그러면 복원 본문 + 복원 전 메타가 섞여 다음 저장에서 덮인다.
     private func syncAfterRestore() async {
+        // 메타를 읽어오는 동안 디바운스가 끼어들지 못하게 먼저 취소한다.
+        autosaveTask?.cancel()
         if let postId,
             let post = (try? await WriteAPI.myPosts())?.first(where: { $0.id == postId }) {
             title = post.title
@@ -909,13 +915,14 @@ struct ComposeView: View {
     /// 다시 시도 경로를 연다 — 빈 본문이 첫 저장으로 원본을 덮어쓰지 못하게(데이터 손실 방지).
     private func reloadBody(postId: Int64) async {
         loadFailed = false
+        errorMessage = nil
         do {
             markdown = try await WriteAPI.markdown(postId: postId)
             lastSavedSignature = signature
             bodyLoaded = true
         } catch {
+            // 전용 잠금·다시시도 오버레이가 사유를 설명하므로 모달 알럿은 띄우지 않는다(이중 알림 방지).
             loadFailed = true
-            errorMessage = error.localizedDescription
         }
     }
 

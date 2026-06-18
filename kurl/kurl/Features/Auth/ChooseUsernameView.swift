@@ -113,8 +113,8 @@ struct ChooseUsernameView: View {
                 onDone()
             } catch {
                 switch error {
-                case APIError.http(let status):
-                    serverError = status == 409
+                case let api as APIError where api.statusCode != nil:
+                    serverError = api.statusCode == 409
                         ? String(localized: "이미 사용 중인 이름이에요.")
                         : String(localized: "사용할 수 없는 이름이에요.")
                 case APIError.transport:

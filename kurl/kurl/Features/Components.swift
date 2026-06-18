@@ -256,6 +256,14 @@ final class ToastCenter {
         clear()
     }
 
+    /// 사용자가 다시 입력을 시작하면 '실행취소' 류 동작 토스트는 거둔다 — 그 사이 친 글자를
+    /// undo 가 엉뚱하게 되돌리지 않게(동작 없는 평범한 토스트는 그대로 둔다).
+    func dismissActionToast() {
+        guard actionLabel != nil else { return }
+        dismissTask?.cancel()
+        clear()
+    }
+
     private func clear() {
         message = nil
         actionLabel = nil
