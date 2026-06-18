@@ -23,8 +23,49 @@ struct SettingsView: View {
 
     var body: some View {
         ReadingColumn(spacing: 0) {
+            if auth.isSignedIn {
+                // 계정 관리 — 내 계정 화면이 블로그가 되면서 프로필 편집·로그아웃이 이리로 모인다.
+                RailHeading("계정")
+                    .padding(.top, 24)
+                    .padding(.bottom, 4)
+                NavigationLink {
+                    ProfileEditView(currentAvatarUrl: auth.me?.avatarUrl)
+                } label: {
+                    HStack(spacing: 10) {
+                        settingIcon("person.crop.circle")
+                        Text("프로필 편집")
+                            .typeScale(.body)
+                            .foregroundStyle(Palette.ink)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Palette.faint)
+                    }
+                    .padding(.vertical, 13)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                Hairline()
+                Button(role: .destructive) {
+                    auth.signOut()
+                    dismiss()
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "rectangle.portrait.and.arrow.right")
+                            .font(.system(size: 14))
+                            .frame(width: 22)
+                        Text("로그아웃")
+                            .typeScale(.body)
+                        Spacer()
+                    }
+                    .padding(.vertical, 13)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(RowButtonStyle())
+            }
+
             RailHeading("알림")
-                .padding(.top, 24)
+                .padding(.top, auth.isSignedIn ? 28 : 24)
                 .padding(.bottom, 4)
             // 미결정이면 여기서 권한 시트까지. 한 번 결정된 뒤의 변경은 시스템 설정 영역이다 —
             // 시트를 다시 띄울 수 없으므로 가짜 토글 대신 딥링크로 보낸다.

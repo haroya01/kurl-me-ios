@@ -134,7 +134,7 @@ struct AuthorBlogView: View {
     private func content(_ view: PublicPostListView) -> some View {
         // 정체 헤더 = 작가 랜딩 마스트헤드(태그·시리즈와 같은 family — eyebrow + 히어로).
         VStack(alignment: .leading, spacing: 0) {
-            RailHeading("작가")
+            RailHeading(isOwnAuthor ? "내 블로그" : "작가")
                 .padding(.top, 8)
                 .padding(.bottom, 14)
             HStack(alignment: .center, spacing: 14) {

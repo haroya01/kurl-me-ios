@@ -5,8 +5,8 @@
 
 import SwiftUI
 
-/// 계정 탭 — 조용한 웹로그 톤 그대로. 로그아웃 상태는 한 단락 + 로그인 두 줄(Apple/Google),
-/// 로그인 상태는 정체(아바타·이름·이메일)와 로그아웃만. 기능 나열식 설정 화면 금지.
+/// 계정 탭 — 들어오면 내 블로그(내가 발행한 글)가 바로 뜬다. 서재(내가 모은 것)는 오른쪽 헤더
+/// 버튼으로, 설정·프로필·로그아웃은 왼쪽 톱니(SettingsView)로. 로그아웃 상태는 로그인 패널.
 struct AccountView: View {
     private var auth: AuthStore { .shared }
 
@@ -15,35 +15,25 @@ struct AccountView: View {
     @ScaledMetric(relativeTo: .title3) private var titleSize: CGFloat = 24
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
-    @State private var showCard = false
     @State private var showNotifications = false
     @State private var unreadCount: Int64 = 0
 
     var body: some View {
         NavigationStack {
-            ReadingColumn(spacing: 0) {
-                Group {
-                    if auth.isSignedIn {
-                        signedIn
-                            .transition(.opacity.combined(with: .offset(y: 7)))
+            Group {
+                if auth.isSignedIn {
+                    if let username = auth.me?.username, !username.isEmpty {
+                        // 내 계정 = 내 블로그 — 들어오면 내가 발행한 글이 바로 뜬다.
+                        AuthorBlogView(username: username)
                     } else {
-                        signedOut
-                            .transition(.opacity)
+                        // me 로딩 중 — 잠깐의 빈자리를 막다른 길로 두지 않는다.
+                        KurlLoadingMark()
+                            .frame(maxWidth: .infinity, minHeight: 320)
                     }
-                }
-                // 로그인 성공은 의미 있는 순간 — 정체 카드가 한 호흡 착지한다.
-                .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: auth.isSignedIn)
-                // 정체 패널(유리)이 설 자리 — 옅은 브랜드 안개가 유리 뒤로 흐른다.
-                // (ReadingColumn 의 pageBg 안쪽이어야 보인다. 가터를 음수로 물려 전폭.)
-                .background(alignment: .top) {
-                    BrandMist()
-                        .frame(height: 300)
-                        .mask(LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom))
-                        .padding(.horizontal, -Metrics.gutter)
+                } else {
+                    signedOutColumn
                 }
             }
-            .navigationTitle("내 계정")
-            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     NavigationLink {
@@ -55,6 +45,16 @@ struct AccountView: View {
                     .accessibilityLabel("설정")
                 }
                 if auth.isSignedIn {
+                    // 서재 — 내가 모은 것(북마크·좋아요·구독·하이라이트·컬렉션·기록·노트).
+                    ToolbarItem(placement: .primaryAction) {
+                        NavigationLink {
+                            LibraryView()
+                        } label: {
+                            Image(systemName: "books.vertical")
+                        }
+                        .tint(.brand)
+                        .accessibilityLabel("서재")
+                    }
                     ToolbarItem(placement: .primaryAction) {
                         Button {
                             showNotifications = true
@@ -103,6 +103,7 @@ struct AccountView: View {
             }
             .navigationDestination(for: Route.self) { RouteView(route: $0) }
             .task {
+                await auth.loadMe()
                 if auth.isSignedIn {
                     unreadCount = (try? await NotificationsAPI.unreadCount()) ?? 0
                 }
@@ -111,15 +112,21 @@ struct AccountView: View {
                 }
             }
         }
-        // 명함은 웹의 것을 그대로 — u/ 페이지(테마·소셜·방문 통계)를 인앱으로 연다.
-        .sheet(isPresented: $showCard) {
-            if let username = auth.me?.username,
-               let url = URL(
-                   string: "\(Config.apiBase)/\(Config.preferredLanguageTag)/u/\(username)") {
-                SafariView(url: url)
-                    .ignoresSafeArea()
-            }
+    }
+
+    /// 로그아웃 상태 — 안개 위 로그인 패널. 블로그가 없으니 계정 탭은 로그인부터.
+    private var signedOutColumn: some View {
+        ReadingColumn(spacing: 0) {
+            signedOut
+                .background(alignment: .top) {
+                    BrandMist()
+                        .frame(height: 300)
+                        .mask(LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom))
+                        .padding(.horizontal, -Metrics.gutter)
+                }
         }
+        .navigationTitle("내 계정")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     // MARK: 로그아웃 상태
@@ -157,140 +164,6 @@ struct AccountView: View {
         }
     }
 
-    // MARK: 로그인 상태
-
-    private var signedIn: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            RailHeading("계정")
-                .padding(.top, 28)
-
-            // 정체 카드 — 안개 위에 뜬 유리 한 장. 탭하면 내 공개 프로필(블로그)로.
-            NavigationLink(value: Route.author(username: auth.me?.username ?? "")) {
-                HStack(spacing: 13) {
-                    AvatarView(
-                        author: Author(
-                            id: 0,
-                            username: auth.me?.username ?? "kurl",
-                            bio: nil,
-                            avatarUrl: auth.me?.avatarUrl
-                        ),
-                        size: 56
-                    )
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(auth.me?.username ?? "kurl")
-                            .font(.system(size: 18 * unit, weight: .semibold))
-                            .tracking(-0.2)
-                            .foregroundStyle(.primary)
-                        Text(auth.me?.email ?? "")
-                            .typeScale(.meta)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer(minLength: 0)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 13 * metaUnit, weight: .semibold))
-                        // 유리 위 — 바로 위 이메일 줄처럼 시맨틱 색으로 vibrancy를 받는다(§1 규칙2).
-                        .foregroundStyle(.secondary)
-                }
-                .padding(18)
-                .glassEffect(.regular, in: .rect(cornerRadius: GlassTokens.panelRadius))
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .disabled((auth.me?.username ?? "").isEmpty)
-            .padding(.top, 16)
-
-            // 내 페이지의 두 얼굴 — 블로그(글)와 명함(링크 모음). 같은 정체, 다른 문.
-            // 나란한 유리 캡슐 둘은 컨테이너로 묶어야 가까워질 때 녹아 붙는다(§1 규칙4).
-            GlassEffectContainer(spacing: 10) {
-                HStack(spacing: 10) {
-                    NavigationLink(value: Route.author(username: auth.me?.username ?? "")) {
-                        pageChip("내 블로그", systemImage: "book")
-                    }
-                    .buttonStyle(.plain)
-                    .glassEffect(.regular.interactive(), in: .capsule)
-                    .disabled((auth.me?.username ?? "").isEmpty)
-
-                    Button {
-                        showCard = true
-                    } label: {
-                        pageChip("내 명함", systemImage: "person.crop.rectangle")
-                    }
-                    .buttonStyle(.plain)
-                    .glassEffect(.regular.interactive(), in: .capsule)
-                    .disabled((auth.me?.username ?? "").isEmpty)
-                }
-            }
-            .padding(.top, 10)
-
-            // 프로필 편집 — 정체(계정) 묶음의 마지막 행. 명함(테마·소셜)은 웹 u/ 의 것이라 여기선 안 건드린다.
-            libraryRow("프로필 편집") {
-                ProfileEditView(currentAvatarUrl: auth.me?.avatarUrl)
-            }
-            .padding(.top, 20)
-
-            // 서재 — 내가 모은 것(노트·북마크·좋아요·구독·하이라이트·컬렉션·기록)을 한 목록으로.
-            // 한 항목짜리 「둘러보기」 섹션을 없애고 노트를 여기로 합쳤다(근접 그룹핑).
-            RailHeading("서재")
-                .padding(.top, 32)
-                .padding(.bottom, 2)
-            libraryRow("북마크") { BookmarksView() }
-            Hairline()
-            libraryRow("좋아요한 글") { LikedPostsView() }
-            Hairline()
-            libraryRow("구독한 시리즈") { SubscribedSeriesView() }
-            Hairline()
-            libraryRow("내 하이라이트") { MyHighlightsView() }
-            Hairline()
-            libraryRow("컬렉션") { CollectionsListView() }
-            Hairline()
-            libraryRow("읽기 기록") { MyReadingHistoryView() }
-            Hairline()
-            libraryRow("노트") { NotesPage(active: true) }
-
-            Button("로그아웃", role: .destructive) {
-                auth.signOut()
-            }
-            .font(.system(size: 15 * unit))
-            .padding(.top, 30)
-        }
-        .task { await auth.loadMe() }
-    }
-
-    private func pageChip(_ title: LocalizedStringKey, systemImage: String) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: systemImage)
-                .font(.system(size: 13 * unit, weight: .semibold))
-            Text(title)
-                .font(.system(size: 14 * unit, weight: .semibold))
-        }
-        .foregroundStyle(.primary)
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 11)
-        .contentShape(Capsule())
-    }
-
-    /// 서재·계정 행 — 아이콘 없이 라벨 타이포로(설정 템플릿 탈피), 셰브론은 흐린 한 점의 어포던스로만.
-    /// 행끼리는 Hairline 로 묶어 "한 덩어리 목록"으로 읽힌다.
-    private func libraryRow(
-        _ title: LocalizedStringKey, @ViewBuilder destination: @escaping () -> some View
-    ) -> some View {
-        NavigationLink {
-            destination()
-        } label: {
-            HStack(spacing: 10) {
-                Text(title)
-                    .font(.system(size: 16 * unit))
-                    .foregroundStyle(Palette.ink)
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12 * metaUnit, weight: .medium))
-                    .foregroundStyle(Palette.faint)
-            }
-            .padding(.vertical, 14)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(RowButtonStyle())
-    }
 }
 
 #Preview {
