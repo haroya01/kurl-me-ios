@@ -232,18 +232,34 @@ extension Date {
 final class ToastCenter {
     static let shared = ToastCenter()
     private(set) var message: String?
+    /// 선택적 동작(예: 실행취소) — 있으면 토스트에 버튼이 뜨고 조금 더 오래 떠 있는다.
+    private(set) var actionLabel: String?
+    private var action: (() -> Void)?
     private var dismissTask: Task<Void, Never>?
 
-    func show(_ message: String) {
+    func show(_ message: String, actionLabel: String? = nil, action: (() -> Void)? = nil) {
         self.message = message
+        self.actionLabel = actionLabel
+        self.action = action
         // 시각 전용 채널이면 낙관 토글 실패를 VoiceOver 가 영영 모른다 — 같은 문장을 낭독으로.
         AccessibilityNotification.Announcement(message).post()
         dismissTask?.cancel()
         dismissTask = Task {
-            try? await Task.sleep(for: .seconds(2.4))
+            try? await Task.sleep(for: .seconds(actionLabel == nil ? 2.4 : 4.5))
             guard !Task.isCancelled else { return }
-            self.message = nil
+            self.clear()
         }
+    }
+
+    func runAction() {
+        action?()
+        clear()
+    }
+
+    private func clear() {
+        message = nil
+        actionLabel = nil
+        action = nil
     }
 }
 
@@ -255,15 +271,24 @@ struct ToastHost: ViewModifier {
     func body(content: Content) -> some View {
         content.overlay(alignment: .bottom) {
             if let message = center.message {
-                Text(message)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.primary)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .glassEffect(.regular, in: .capsule)
-                    .padding(.bottom, 74)
-                    .allowsHitTesting(false)
-                    .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
+                HStack(spacing: 14) {
+                    Text(message)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.primary)
+                    if let label = center.actionLabel {
+                        Button(label) { center.runAction() }
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Palette.link)
+                            .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .glassEffect(.regular, in: .capsule)
+                .padding(.bottom, 74)
+                // 동작 버튼이 있을 때만 탭을 받는다(평소 토스트는 통과시켜 밑을 가리지 않음).
+                .allowsHitTesting(center.actionLabel != nil)
+                .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
             }
         }
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: center.message)

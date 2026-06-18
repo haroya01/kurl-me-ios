@@ -102,6 +102,15 @@ struct MarkdownTextView: UIViewRepresentable {
                 textView.selectedRange = NSRange(
                     location: range.location + (short as NSString).length, length: 0)
                 coordinator.textViewDidChange(textView)
+                // 조용히 바꾸지 않는다 — 단축됐음을 알리고 원래 주소로 되돌릴 길을 준다.
+                ToastCenter.shared.show(
+                    String(localized: "kurl 링크로 단축했어요"),
+                    actionLabel: String(localized: "되돌리기")
+                ) { [weak textView] in
+                    guard let textView, let undo = textView.undoManager, undo.canUndo else { return }
+                    undo.undo()
+                    coordinator.textViewDidChange(textView)
+                }
             }
         }
         return textView
@@ -182,6 +191,10 @@ final class MarkdownEditorController {
 
     var currentText: String { textView?.text ?? "" }
 
+    /// 한글 등 조합(IME)이 진행 중인가 — 진행 중이면 프로그램 삽입·바인딩 동기화를 보류한다
+    /// (조합 중간 글자가 바인딩으로 새 자동저장 시그니처가 출렁이는 것을 막는다).
+    var isComposing: Bool { textView?.markedTextRange != nil }
+
     func focus() {
         textView?.becomeFirstResponder()
     }
@@ -211,11 +224,14 @@ final class MarkdownEditorController {
     /// 안 되고 평문 위에 기호가 떠 "고장난 것처럼" 보이던 마찰을 없앤다.
     func wrapSelection(_ fix: String) {
         guard let textView, textView.markedTextRange == nil else { return }
+        let ns = textView.text as NSString
         var range = textView.selectedRange
-        if range.length == 0, let word = currentWordRange(in: textView, around: range.location) {
+        // 닿은 단어를 감싸는 건 ASCII 단어에서만 — 한글·CJK 는 띄어쓰기가 없어 한 '단어'가
+        // 문장 전체가 되므로(굵게 한 번에 전체가 굵어짐) 자리표시자 경로로 넘긴다.
+        if range.length == 0, let word = currentWordRange(in: textView, around: range.location),
+            !Self.containsCJK(ns.substring(with: word)) {
             range = word
         }
-        let ns = textView.text as NSString
         var inner = range.length > 0 ? ns.substring(with: range) : ""
         let placeholder = inner.isEmpty
         if placeholder { inner = String(localized: "텍스트") }
@@ -253,6 +269,17 @@ final class MarkdownEditorController {
         while lo > 0, !isSep(lo - 1) { lo -= 1 }
         while hi < ns.length, !isSep(hi) { hi += 1 }
         return hi > lo ? NSRange(location: lo, length: hi - lo) : nil
+    }
+
+    /// 한글·CJK·가나가 섞였는가 — 띄어쓰기로 단어를 가를 수 없는 글자(자동 단어 감싸기 제외용).
+    private static func containsCJK(_ s: String) -> Bool {
+        s.unicodeScalars.contains { sc in
+            (0xAC00...0xD7A3).contains(sc.value)  // 한글 음절
+                || (0x1100...0x11FF).contains(sc.value)  // 한글 자모
+                || (0x3130...0x318F).contains(sc.value)  // 한글 호환 자모
+                || (0x3040...0x30FF).contains(sc.value)  // 히라가나·가타카나
+                || (0x4E00...0x9FFF).contains(sc.value)  // CJK 통합 한자
+        }
     }
 
     func insertFence() {
@@ -610,14 +637,15 @@ final class MarkdownEditorController {
             caretLine: block.caretLine == 1 ? 0 : block.caretLine, caretColumn: n)
     }
 
-    /// 캐럿이 놓인 본문 행을 지운다(헤더·구분선은 보호 — 그 자리에선 무동작).
-    func deleteTableRow() {
+    /// 캐럿이 놓인 본문 행을 지운다(헤더·구분선은 보호 — 그 자리에선 무동작). 지웠으면 true.
+    @discardableResult
+    func deleteTableRow() -> Bool {
         guard let textView, textView.markedTextRange == nil,
             let block = tableBlock(in: textView), block.caretLine >= 2, !block.body.isEmpty
-        else { return }
+        else { return false }
         var body = block.body
         let removeAt = block.caretLine - 2
-        guard removeAt < body.count else { return }
+        guard removeAt < body.count else { return false }
         body.remove(at: removeAt)
         let caretLine: Int
         if body.isEmpty {
@@ -631,13 +659,15 @@ final class MarkdownEditorController {
             block,
             lines: renderTable(header: block.header, separator: block.separator, body: body),
             caretLine: caretLine, caretColumn: 0)
+        return true
     }
 
-    /// 캐럿이 놓인 열을 모든 행에서 지운다(마지막 한 열은 보호).
-    func deleteTableColumn() {
+    /// 캐럿이 놓인 열을 모든 행에서 지운다(마지막 한 열은 보호). 지웠으면 true.
+    @discardableResult
+    func deleteTableColumn() -> Bool {
         guard let textView, textView.markedTextRange == nil,
             let block = tableBlock(in: textView), block.columnCount >= 2
-        else { return }
+        else { return false }
         let n = block.columnCount
         let col = min(block.caretColumn, n - 1)
         var header = padded(block.header, to: n)
@@ -653,6 +683,7 @@ final class MarkdownEditorController {
             block, lines: renderTable(header: header, separator: separator, body: body),
             caretLine: block.caretLine == 1 ? 0 : block.caretLine,
             caretColumn: min(col, max(0, header.count - 1)))
+        return true
     }
 
     // MARK: 이미지 편집 — 넣은 뒤에도 마크다운을 건드리지 않고 폭·캡션을 바꾸고 지운다.
@@ -734,19 +765,30 @@ final class MarkdownEditorController {
         replaceImage(in: textView, content: img.contentRange, with: md)
     }
 
-    /// 캐럿이 놓인 이미지 줄을 통째로 지운다.
-    func removeImage() {
+    /// 캐럿이 놓인 이미지 줄을 통째로 지운다. 지웠으면 true.
+    @discardableResult
+    func removeImage() -> Bool {
         guard let textView, textView.markedTextRange == nil,
             let img = imageOnCaretLine(in: textView)
-        else { return }
+        else { return false }
         guard let s = textView.position(from: textView.beginningOfDocument, offset: img.lineRange.location),
             let e = textView.position(from: s, offset: img.lineRange.length),
             let range = textView.textRange(from: s, to: e)
-        else { return }
+        else { return false }
         textView.replace(range, withText: "")
         let limit = (textView.text as NSString).length
         textView.selectedRange = NSRange(location: min(img.lineRange.location, limit), length: 0)
         MarkdownSyntaxHighlighter.apply(to: textView)
+        return true
+    }
+
+    /// 마지막 편집을 시스템 undo 스택으로 되돌린다(삭제 토스트의 '실행취소'). 되돌렸으면 true.
+    @discardableResult
+    func undoLastEdit() -> Bool {
+        guard let textView, let undo = textView.undoManager, undo.canUndo else { return false }
+        undo.undo()
+        MarkdownSyntaxHighlighter.apply(to: textView)
+        return true
     }
 
     private func replaceImage(in textView: UITextView, content: NSRange, with md: String) {

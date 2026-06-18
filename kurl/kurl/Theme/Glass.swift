@@ -52,6 +52,8 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable>: View {
     var bare = false
     @Namespace private var ns
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// 14pt 고정이 Dynamic Type 를 무시하던 것 — 텍스트 스타일에 묶어 글자 크기 설정을 따른다.
+    @ScaledMetric(relativeTo: .subheadline) private var labelSize: CGFloat = 14
 
     var body: some View {
         // 높이 ≈ 40pt — 헤더 영역의 유리 원형 버튼(벨 등)과 같은 키로 맞춘다.
@@ -62,7 +64,7 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable>: View {
                     selection = item
                 } label: {
                     Text(label(item))
-                        .font(.system(size: 14, weight: active ? .semibold : .medium))
+                        .font(.system(size: labelSize, weight: active ? .semibold : .medium))
                         // 네 탭(최신·인기·추천·구독함)이 좁은 기기에서 줄바꿈돼 캡슐이 두꺼운
                         // 덩어리가 되던 것 — 한 줄 고정 + 긴 로케일(영어 Trending 등)은 살짝
                         // 축소해 잘림 없이 길쭉한 알약 유지.

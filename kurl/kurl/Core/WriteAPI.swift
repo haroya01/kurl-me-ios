@@ -18,7 +18,8 @@ enum WriteAPI {
             let title: String
             let languageTag: String
         }
-        let slug = "p-\(Int(Date().timeIntervalSince1970))"
+        // 초 단위만 쓰면 같은 1초에 두 초안이 같은 slug 로 충돌(SLUG_CONFLICT)한다 — 무작위 토큰을 붙인다.
+        let slug = "p-\(Int(Date().timeIntervalSince1970))-\(Int.random(in: 100...999))"
         return try await client.post(
             "/posts",
             body: Body(slug: slug, title: title, languageTag: Config.preferredLanguageTag),
@@ -89,7 +90,10 @@ enum WriteAPI {
         struct Response: Decodable { let token: String }
         let res: Response = try await client.post(
             "/posts/\(postId)/preview-token", body: EmptyBody(), authenticated: true)
-        let username = await AuthStore.shared.me?.username ?? ""
+        // username 이 아직 안 실렸으면 /p//slug 처럼 깨진 URL 을 만들지 않는다 — nil 을 돌려 호출측이 건너뛴다.
+        guard let username = await AuthStore.shared.me?.username, !username.isEmpty else {
+            return nil
+        }
         let locale = Config.preferredLanguageTag
         return URL(string: "\(Config.apiBase)/\(locale)/p/\(username)/\(slug)?preview=\(res.token)")
     }

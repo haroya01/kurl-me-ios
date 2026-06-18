@@ -10,6 +10,9 @@ import Foundation
 enum APIError: LocalizedError {
     case invalidURL
     case http(status: Int)
+    /// 서버가 RFC-7807 ProblemDetail 로 보낸 사람이 읽을 수 있는 사유(detail) + 기계 코드.
+    /// 작성 흐름의 알럿이 "서버 오류 (400)" 대신 실제 메시지를 보여줄 수 있게 한다.
+    case server(status: Int, code: String?, detail: String)
     case decoding(Error)
     case transport(Error)
 
@@ -17,10 +20,18 @@ enum APIError: LocalizedError {
         switch self {
         case .invalidURL: return String(localized: "잘못된 요청입니다.")
         case .http(let status): return String(localized: "서버 오류 (\(status))")
+        case .server(_, _, let detail): return detail
         case .decoding: return String(localized: "응답을 읽지 못했습니다.")
         case .transport: return String(localized: "네트워크에 연결할 수 없습니다.")
         }
     }
+}
+
+/// 백엔드 ProblemDetails.of 가 내는 본문 — title/detail/code 만 골라 읽는다.
+private struct ProblemDetailBody: Decodable {
+    let title: String?
+    let detail: String?
+    let code: String?
 }
 
 struct APIClient {
@@ -247,6 +258,16 @@ struct APIClient {
             throw APIError.http(status: -1)
         }
         guard (200..<300).contains(http.statusCode) else {
+            // 401 은 리프레시 로직(get/send 의 catch)이 가로채야 하므로 그대로 둔다.
+            if http.statusCode == 401 {
+                throw APIError.http(status: 401)
+            }
+            // 서버가 ProblemDetail 로 사유를 줬으면 그 사람이 읽을 메시지를 그대로 올린다.
+            if let problem = try? JSONDecoder().decode(ProblemDetailBody.self, from: data),
+                let detail = (problem.detail ?? problem.title)?
+                    .trimmingCharacters(in: .whitespacesAndNewlines), !detail.isEmpty {
+                throw APIError.server(status: http.statusCode, code: problem.code, detail: detail)
+            }
             throw APIError.http(status: http.statusCode)
         }
         return data

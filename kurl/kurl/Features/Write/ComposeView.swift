@@ -53,8 +53,15 @@ struct ComposeView: View {
     @State private var celebrationSubtitle: String?
     @State private var errorMessage: String?
     @State private var loaded = false
+    /// 기존 글 본문을 서버에서 성공적으로 읽었는가 — 읽기 전엔 저장(전체 교체)을 절대 보내지 않는다.
+    /// 새 글은 읽을 본문이 없으므로 곧장 true. 로드 실패 시 false 로 남아 빈 본문 덮어쓰기를 막는다.
+    @State private var bodyLoaded = false
+    /// 기존 글 본문 로드가 실패했는가 — 에디터를 잠그고 다시 시도 안내를 띄운다.
+    @State private var loadFailed = false
     @State private var lastSavedSignature: String?
     @State private var lastSavedAt: Date?
+    /// 마지막 자동저장이 실패했는가 — 정직한 '저장 실패' 표시(조용히 재시도 중).
+    @State private var autosaveFailed = false
     @State private var showSaveStatus = false
     @State private var autosaveTask: Task<Void, Never>?
     @State private var createTask: Task<Int64, Error>?
@@ -187,11 +194,12 @@ struct ComposeView: View {
         .sheet(isPresented: $showRevisions) {
             RevisionsSheet(postId: postId) { restored in
                 markdown = restored
-                lastSavedSignature = signature
+                Task { await syncAfterRestore() }
             }
         }
+        // 저장·발행·예약·미리보기 모두 이 알럿을 쓰므로 제목은 중립으로 — 본문에 서버가 준 사유를 보인다.
         .alert(
-            "저장하지 못했습니다",
+            "문제가 생겼어요",
             isPresented: .init(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })
         ) {
             Button("확인", role: .cancel) {}
@@ -269,8 +277,9 @@ struct ComposeView: View {
             })
         .padding(.horizontal, Metrics.gutter - 4)
         .overlay(alignment: .topLeading) {
-            if markdown.isEmpty {
-                Text("마크다운으로 쓰세요 — #, >, -, ```, 이미지·URL 한 줄이면 카드가 됩니다.")
+            // 마크다운 지식을 요구하지 않는다 — 탭하면 도구 막대가 떠서 제목·목록·이미지·표를 넣는다.
+            if markdown.isEmpty, !loadFailed {
+                Text("여기를 탭해 본문을 쓰세요 — 제목·목록·이미지·표·링크는 아래 도구 막대로 넣어요.")
                     .font(.system(size: 14 * unit))
                     .foregroundStyle(Palette.faint)
                     .padding(.horizontal, Metrics.gutter)
@@ -278,27 +287,50 @@ struct ComposeView: View {
                     .allowsHitTesting(false)
             }
         }
+        // 본문 로드 실패 시 — 에디터를 잠그고 다시 시도를 권한다(빈 본문 덮어쓰기 방지).
+        .overlay {
+            if loadFailed {
+                VStack(spacing: 12) {
+                    Image(systemName: "arrow.clockwise.circle")
+                        .font(.system(size: 30 * unit))
+                        .foregroundStyle(Palette.secondary)
+                    Text("본문을 불러오지 못했어요")
+                        .font(.system(size: 15 * unit, weight: .medium))
+                        .foregroundStyle(Palette.ink)
+                    Button("다시 시도") {
+                        guard let id = postId else { return }
+                        Task { await reloadBody(postId: id) }
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(GlassTokens.prominentTint)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Palette.readingBg)
+            }
+        }
+        .disabled(loadFailed)
     }
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
-            // 저장 상태는 평소엔 조용한 체크 아이콘 하나 — 탭하면 마지막 저장 시각을 팝오버로.
-            // (항상 떠 있던 "저장됨 오후 X:XX" 텍스트가 중요도에 비해 과했다.)
+            // 저장 상태를 정직하게 — 저장됨(체크)·미저장(점선)·저장 실패(구름!) 를 구분한다.
+            // 커버만 올린 걸 "저장됨"으로 속이지 않게(본문 dirty 면 점선).
             if busy {
                 ProgressView().controlSize(.small)
-            } else if let at = lastSavedAt {
+            } else if lastSavedAt != nil || saveStatusVisible {
+                let dirty = signature != lastSavedSignature
                 Button {
                     showSaveStatus = true
                 } label: {
-                    Image(systemName: "checkmark.circle")
+                    Image(systemName: saveStatusIcon)
                         .font(.system(size: 15 * metaUnit))
                         .foregroundStyle(Palette.secondary)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(Text("저장 상태 보기"))
                 .popover(isPresented: $showSaveStatus) {
-                    Text("저장됨 \(at.formatted(date: .omitted, time: .shortened))")
+                    Text(saveStatusText(dirty: dirty))
                         .typeScale(.meta)
                         .foregroundStyle(Palette.secondary)
                         .padding(.horizontal, 16)
@@ -472,13 +504,26 @@ struct ComposeView: View {
                         .disabled(postId == nil)
 
                         if status != "PUBLISHED" {
-                            Button("예약 발행…") { showSchedule = true }
+                            Button("예약 발행…") {
+                                // 컴포즈를 오래 열어둬 기본 예약 시각이 지났으면 다시 한 시간 뒤로 클램프.
+                                if scheduleDate <= Date() {
+                                    scheduleDate = Date().addingTimeInterval(3600)
+                                }
+                                showSchedule = true
+                            }
                                 .font(.system(size: 13 * unit))
                                 .foregroundStyle(Palette.link)
                                 .disabled(postId == nil)
                         }
                     }
                     .frame(maxWidth: .infinity)
+
+                    // 첫 저장 전(postId 없음)엔 미리보기·예약이 흐리다 — 이유를 한 줄로(침묵하지 않는다).
+                    if postId == nil, canSave {
+                        Text("저장되면 미리보기·예약할 수 있어요.")
+                            .typeScale(.footnote)
+                            .foregroundStyle(Palette.secondary)
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
@@ -517,8 +562,13 @@ struct ComposeView: View {
                             { showPublish = false; dismiss(); onOpenPublished?(slug) }
                         }
                     ) {
-                        ToastCenter.shared.show(
-                            String(localized: celebrationIsSchedule ? "예약되었습니다" : "발행되었습니다"))
+                        // 예약은 모먼트가 사라진 뒤에도 발행 예정 시각을 토스트에 남긴다.
+                        let toast =
+                            celebrationIsSchedule
+                            ? (celebrationSubtitle.map { "예약됨 · \($0)" }
+                                ?? String(localized: "예약되었습니다"))
+                            : String(localized: "발행되었습니다")
+                        ToastCenter.shared.show(toast)
                         showPublish = false
                         dismiss()
                     }
@@ -700,7 +750,7 @@ struct ComposeView: View {
                     .sensoryFeedback(.selection, trigger: scheduleDate)
                 }
 
-                DatePicker("발행 시각", selection: $scheduleDate, in: Date()...)
+                DatePicker("발행 시각", selection: $scheduleDate, in: Date().addingTimeInterval(300)...)
                     .datePickerStyle(.graphical)
 
                 // 무엇이 정해졌는지 한 줄로 — 그래프 픽커만으론 결정이 흐릿했다.
@@ -775,7 +825,8 @@ struct ComposeView: View {
     // MARK: 상태
 
     private var canSave: Bool {
-        !title.trimmingCharacters(in: .whitespaces).isEmpty
+        bodyLoaded
+            && !title.trimmingCharacters(in: .whitespaces).isEmpty
             && !markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
@@ -796,11 +847,35 @@ struct ComposeView: View {
             .joined(separator: "\u{1F}")
     }
 
+    /// 저장 상태 표시를 띄울 조건 — 저장 이력이 있거나, 실패했거나, 저장할 미저장 변경이 있을 때.
+    private var saveStatusVisible: Bool {
+        lastSavedAt != nil || autosaveFailed || (canSave && signature != lastSavedSignature)
+    }
+
+    private var saveStatusIcon: String {
+        if autosaveFailed { return "exclamationmark.icloud" }
+        if signature != lastSavedSignature { return "circle.dotted" }
+        return "checkmark.circle"
+    }
+
+    private func saveStatusText(dirty: Bool) -> String {
+        if autosaveFailed { return String(localized: "저장하지 못했어요 — 자동으로 다시 시도해요") }
+        if dirty { return String(localized: "미저장 — 곧 저장돼요") }
+        if let at = lastSavedAt {
+            return String(localized: "저장됨 \(at.formatted(date: .omitted, time: .shortened))")
+        }
+        return String(localized: "저장 전")
+    }
+
     private func loadExisting() async {
         guard !loaded else { return }
         loaded = true
         seriesList = (try? await WriteAPI.mySeries()) ?? []
-        guard let post = existing else { return }
+        // 새 글은 읽을 본문이 없다 — 곧장 편집·저장 가능.
+        guard let post = existing else {
+            bodyLoaded = true
+            return
+        }
         title = post.title
         tags = post.tags ?? []
         excerpt = post.excerpt ?? ""
@@ -809,10 +884,37 @@ struct ComposeView: View {
         savedSeriesId = post.seriesId
         postId = post.id
         status = post.status
+        await reloadBody(postId: post.id)
+    }
+
+    /// 리비전 복원 후 — 서버가 본문(과 메타)을 바꿨으므로 화면 상태 전체를 다시 읽어 맞춘다.
+    /// 안 그러면 복원 본문 + 복원 전 메타가 섞여 다음 저장에서 덮인다.
+    private func syncAfterRestore() async {
+        if let postId,
+            let post = (try? await WriteAPI.myPosts())?.first(where: { $0.id == postId }) {
+            title = post.title
+            tags = post.tags ?? []
+            excerpt = post.excerpt ?? ""
+            coverUrl = post.ogImageUrl
+            seriesId = post.seriesId
+            savedSeriesId = post.seriesId
+            status = post.status
+        }
+        lastSavedSignature = signature
+        autosaveFailed = false
+        onSaved()
+    }
+
+    /// 기존 글 본문을 읽어 에디터에 채운다. 실패하면 loadFailed 로 표시해 에디터를 잠그고
+    /// 다시 시도 경로를 연다 — 빈 본문이 첫 저장으로 원본을 덮어쓰지 못하게(데이터 손실 방지).
+    private func reloadBody(postId: Int64) async {
+        loadFailed = false
         do {
-            markdown = try await WriteAPI.markdown(postId: post.id)
+            markdown = try await WriteAPI.markdown(postId: postId)
             lastSavedSignature = signature
+            bodyLoaded = true
         } catch {
+            loadFailed = true
             errorMessage = error.localizedDescription
         }
     }
@@ -833,6 +935,14 @@ struct ComposeView: View {
     /// 알리고 디바운스를 재무장한다. 명시 저장(버튼·발행·예약)은 silent=false 로 모달을 띄운다.
     private func save(publish: Bool, silent: Bool = false) async {
         guard !busy, canSave else { return }
+        // 명시 저장·발행이면 아직 +/Enter 안 누른 입력 중 태그도 포함한다(유실 방지).
+        if !silent {
+            let pending = tagDraft.trimmingCharacters(in: .whitespaces)
+            if !pending.isEmpty, !tags.contains(pending) {
+                tags.append(pending)
+                tagDraft = ""
+            }
+        }
         guard publish || signature != lastSavedSignature else { return }
         busy = true
         defer { busy = false }
@@ -862,6 +972,7 @@ struct ComposeView: View {
             }
             lastSavedSignature = snapshot
             lastSavedAt = Date()
+            autosaveFailed = false
             onSaved()
             // 스냅샷 이후 입력이 있었으면 디바운스를 다시 무장한다.
             if signature != snapshot { scheduleAutosave() }
@@ -874,7 +985,8 @@ struct ComposeView: View {
             }
         } catch {
             if silent {
-                // 자동저장 실패는 조용히 — 토스트만 남기고 다음 변경 때 다시 무장한다.
+                // 자동저장 실패는 조용히 — 토스트 + 정직한 '저장 실패' 표시를 남기고 다음 변경 때 다시 무장한다.
+                autosaveFailed = true
                 ToastCenter.shared.show(String(localized: "자동저장에 실패했어요"))
                 scheduleAutosave()
             } else {
@@ -923,12 +1035,21 @@ struct ComposeView: View {
             if let url = try? await WriteAPI.previewURL(slug: resolved, postId: postId) {
                 // 외부 사파리로 내쫓지 않는다 — 발행 전 확인은 인앱 시트로.
                 previewItem = PreviewItem(url: url)
+            } else {
+                // username 미해결 등으로 URL 을 못 만들면 깨진 페이지 대신 안내한다.
+                ToastCenter.shared.show(String(localized: "미리보기를 준비 중이에요. 잠시 후 다시 시도해 주세요."))
             }
         }
     }
 
     private func scheduleNow() async {
         guard let postId, !busy else { return }
+        // 제출 시점에 다시 검증 — 시트를 오래 열어두면 고른 시각이 이미 지났을 수 있다(picker 의
+        // `in: Date()...` 는 렌더 시점만 제약). 저장→예약 2왕복 지연까지 감안해 1분 여유를 둔다.
+        guard scheduleDate > Date().addingTimeInterval(60) else {
+            scheduleError = String(localized: "발행 시각은 지금부터 조금 뒤여야 해요. 다시 골라 주세요.")
+            return
+        }
         // 저장이 자체 busy 를 관리하므로 먼저 끝낸다 — busy 선점은 저장 스킵을 만든다.
         await save(publish: false)
         guard signature == lastSavedSignature else {
@@ -968,7 +1089,7 @@ struct ComposeView: View {
                 let uploaded = try await WriteAPI.uploadImage(postId: id, jpegData: jpeg)
                 try await WriteAPI.updateCover(postId: id, url: uploaded.url, key: uploaded.key)
                 coverUrl = uploaded.url
-                lastSavedAt = Date()
+                // 커버만 올린 것 — 본문 저장 표시(lastSavedAt)는 건드리지 않는다(거짓 "저장됨" 방지).
                 onSaved()
             } catch {
                 // 커버 업로드는 타이핑 곁에서 도는 자동 동작 — 실패해도 모달 대신 토스트로.
@@ -1037,10 +1158,17 @@ struct ComposeView: View {
         // 이미지·.link·.video 는 비동기(피커·다이얼로그)라 각자 끝낼 때 동기화한다.
         if action != .image, action != .imageWide, action != .imageHalf, action != .link,
             action != .video {
-            markdown = editorController.currentText
+            syncMarkdownFromEditor()
         }
         // 표·이미지를 막 넣었으면 곧장 컨텍스트 바가 뜨도록(델리게이트 콜백을 안 거치므로 수동).
         refreshCaretContext()
+    }
+
+    /// 프로그램 삽입·치환 결과를 바인딩으로 동기화 — 단, 한글 조합(IME) 중이면 보류한다
+    /// (조합 중간 글자가 바인딩에 새어 자동저장 시그니처가 출렁이지 않게).
+    private func syncMarkdownFromEditor() {
+        guard !editorController.isComposing else { return }
+        markdown = editorController.currentText
     }
 
     /// 프로그램 삽입/치환 뒤 캐럿 위치의 성격을 다시 읽어 컨텍스트 바를 켜고 끈다.
@@ -1055,12 +1183,24 @@ struct ComposeView: View {
         switch action {
         case .addRow: editorController.addTableRow()
         case .addColumn: editorController.addTableColumn()
-        case .deleteRow: editorController.deleteTableRow()
-        case .deleteColumn: editorController.deleteTableColumn()
+        case .deleteRow:
+            if editorController.deleteTableRow() { showUndoToast(String(localized: "행을 지웠어요")) }
+        case .deleteColumn:
+            if editorController.deleteTableColumn() { showUndoToast(String(localized: "열을 지웠어요")) }
         }
-        markdown = editorController.currentText
+        syncMarkdownFromEditor()
         refreshCaretContext()
         editorController.focus()
+    }
+
+    /// 삭제처럼 비가역적으로 보이는 동작 뒤 '실행취소' 토스트 — 시스템 undo 로 되돌린다.
+    private func showUndoToast(_ message: String) {
+        ToastCenter.shared.show(message, actionLabel: String(localized: "실행취소")) {
+            if editorController.undoLastEdit() {
+                syncMarkdownFromEditor()
+                refreshCaretContext()
+            }
+        }
     }
 
     /// 이미지 편집 바 → 컨트롤러. 폭·캡션을 바꾸거나 지운다. 캡션은 알럿을 거친다.
@@ -1073,16 +1213,17 @@ struct ComposeView: View {
             editImageCaptionText = editorController.currentImageCaption()
             showEditImageCaption = true
             return  // 알럿 확인에서 동기화한다.
-        case .delete: editorController.removeImage()
+        case .delete:
+            if editorController.removeImage() { showUndoToast(String(localized: "이미지를 지웠어요")) }
         }
-        markdown = editorController.currentText
+        syncMarkdownFromEditor()
         refreshCaretContext()
         editorController.focus()
     }
 
     private func confirmEditImageCaption() {
         editorController.setImageCaption(editImageCaptionText)
-        markdown = editorController.currentText
+        syncMarkdownFromEditor()
         refreshCaretContext()
         editorController.focus()
     }
@@ -1101,7 +1242,7 @@ struct ComposeView: View {
 
     private func confirmLink() {
         editorController.commitLink(label: linkLabel, url: Self.normalizedURL(linkURL))
-        markdown = editorController.currentText
+        syncMarkdownFromEditor()
         editorController.focus() // 키보드·스니펫 바를 다시 불러 흐름이 끊기지 않게.
     }
 
@@ -1119,7 +1260,7 @@ struct ComposeView: View {
         let url = Self.normalizedURL(videoURL)
         guard !url.isEmpty else { return }
         editorController.insertVideoEmbed(url: url)
-        markdown = editorController.currentText
+        syncMarkdownFromEditor()
         editorController.focus()
     }
 
@@ -1129,7 +1270,7 @@ struct ComposeView: View {
         let caption = imageCaptionText.trimmingCharacters(in: .whitespacesAndNewlines)
         editorController.insertImage(
             url: url, width: pendingImageWidth, caption: caption.isEmpty ? nil : caption)
-        markdown = editorController.currentText
+        syncMarkdownFromEditor()
         pendingImageURL = nil
         pendingImageWidth = nil
         editorController.focus()
@@ -1171,11 +1312,13 @@ struct ComposeView: View {
                 showImageCaption = true
                 // 커버가 비어 있으면 본문 첫 이미지를 기본 커버로 — 이미지 있는 글이
                 // 커버 없이 발행되지 않게(작성자는 발행 폼에서 언제든 바꿀 수 있다).
+                // 조용히 바꾸지 않고 한 번 알린다(의외의 커버 방지) + 본문 저장 표시는 안 건드린다.
                 if coverUrl == nil {
                     coverUrl = uploaded.url
                     try? await WriteAPI.updateCover(postId: id, url: uploaded.url, key: uploaded.key)
-                    lastSavedAt = Date()
                     onSaved()
+                    ToastCenter.shared.show(
+                        String(localized: "첫 이미지를 커버로 설정했어요 — 발행 시트에서 바꿀 수 있어요"))
                 }
             } catch {
                 ToastCenter.shared.show(String(localized: "이미지를 올리지 못했습니다"))
@@ -1525,7 +1668,8 @@ private struct RevisionsSheet: View {
                 onRestored(restored)
                 dismiss()
             } catch {
-                // 복원 실패 — 시트는 열어두고 버튼만 다시 살린다.
+                // 복원 실패 — 시트는 열어두고 버튼만 다시 살리되, 침묵하지 않고 알린다.
+                ToastCenter.shared.show(String(localized: "복원하지 못했어요"))
             }
         }
     }
@@ -1696,6 +1840,13 @@ private struct PublishCelebrationView: View {
             Rectangle()
                 .fill(.ultraThinMaterial)
                 .ignoresSafeArea()
+                // 탭하면 바로 이어간다 — 읽고 있던 작성자를 벽시계가 먼저 닫지 않게(조기 종료도 허용).
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    guard !handled else { return }
+                    handled = true
+                    onDone()
+                }
             if !reduceMotion {
                 ConfettiBurst(active: bloom)
                     .allowsHitTesting(false)
@@ -1774,9 +1925,9 @@ private struct PublishCelebrationView: View {
             let spoken = subtitle.map { "\(announcement). \($0)" } ?? announcement
             AccessibilityNotification.Announcement(spoken).post()
             Task {
-                // "글 보기"가 있으면 탭할 시간을 주고(4s), 없으면 짧게 닫는다.
-                // VoiceOver 면 안내가 끝나도록 더 붙잡는다 — 사라지기 전에 다 읽히게.
-                var hold: Double = reduceMotion ? 1.2 : (onView != nil ? 4.0 : 1.7)
+                // "글 보기"가 있으면 탭할 시간을 주고(4s), 예약은 발행 예정 시각을 읽을 시간을
+                // 줘야 하므로 더 길게(3s). VoiceOver 면 안내가 끝나도록 더 붙잡는다.
+                var hold: Double = reduceMotion ? 2.0 : (onView != nil ? 4.0 : 3.0)
                 if voiceOver { hold = max(hold, onView != nil ? 6.0 : 4.0) }
                 try? await Task.sleep(for: .seconds(hold))
                 guard !handled else { return }
