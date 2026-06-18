@@ -896,6 +896,8 @@ struct ComposeView: View {
     private func syncAfterRestore() async {
         // 메타를 읽어오는 동안 디바운스가 끼어들지 못하게 먼저 취소한다.
         autosaveTask?.cancel()
+        // 네트워크 왕복 사이에 사용자가 본문을 더 칠 수 있다 — 진입 시점 본문을 떠 둔다.
+        let bodyAtRestore = markdown
         if let postId,
             let post = (try? await WriteAPI.myPosts())?.first(where: { $0.id == postId }) {
             title = post.title
@@ -906,8 +908,14 @@ struct ComposeView: View {
             savedSeriesId = post.seriesId
             status = post.status
         }
-        lastSavedSignature = signature
-        autosaveFailed = false
+        if markdown == bodyAtRestore {
+            // 복원 후 본문에 손대지 않았으면 깨끗한 상태로.
+            lastSavedSignature = signature
+            autosaveFailed = false
+        } else {
+            // await 사이에 본문을 더 쳤다 — 깨끗하다고 표시하지 않고 그 입력을 저장하도록 디바운스를 무장(유실 방지).
+            scheduleAutosave()
+        }
         onSaved()
     }
 
