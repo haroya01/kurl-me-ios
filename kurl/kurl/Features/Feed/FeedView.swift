@@ -487,7 +487,8 @@ private struct FeedSeriesCard: View {
                 .accessibilityLabel("다음 편")
             }
         }
-        .aspectRatio(4.0 / 5.0, contentMode: .fit)
+        // 1열 피드에서 4:5 는 너무 길었다 — 정사각으로 낮춰 키를 줄인다(디자인은 그대로).
+        .aspectRatio(1.0, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous)
@@ -500,17 +501,22 @@ private struct FeedSeriesCard: View {
 
     private func episodePage(index i: Int, ep: SeriesPostRef) -> some View {
         ZStack(alignment: .topLeading) {
-            // 종이 + 미묘한 그린 틴트 그라디언트.
+            // 종이 + 그린 틴트 그라디언트(대각).
             LinearGradient(
-                colors: [Palette.cardBg, Palette.accent.opacity(0.06), Palette.accent.opacity(0.12)],
+                colors: [Palette.cardBg, Palette.accent.opacity(0.07), Palette.accent.opacity(0.16)],
                 startPoint: .topLeading, endPoint: .bottomTrailing
             )
-            // 거대한 흐린 mono 번호 — 우상단에서 비껴 잘리는 워터마크.
+            // 우상단에서 번지는 부드러운 그린 글로우 — 종이에 빛이 도는 듯한 깊이(과하지 않게).
+            RadialGradient(
+                colors: [Palette.accent.opacity(0.14), .clear],
+                center: .topTrailing, startRadius: 6, endRadius: 240
+            )
+            // 카드 몸통을 채우는 거대한 흐린 mono 번호 — 우상단에서 비껴 잘리는 그래픽.
             Text(String(format: "%02d", i + 1))
-                .font(.system(size: 148, weight: .bold, design: .monospaced))
-                .foregroundStyle(Palette.accent.opacity(0.10))
+                .font(.system(size: 190, weight: .bold, design: .monospaced))
+                .foregroundStyle(Palette.accent.opacity(0.12))
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                .offset(x: 24, y: -36)
+                .offset(x: 30, y: -26)
                 .allowsHitTesting(false)
 
             VStack(alignment: .leading, spacing: 0) {
@@ -519,7 +525,7 @@ private struct FeedSeriesCard: View {
                     KurlMark(drawn: [true, true, true], tint: Palette.accent)
                         .frame(width: 16, height: 10)
                     Text(series.title)
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(size: 12.5, weight: .semibold))
                         .tracking(0.3)
                         .foregroundStyle(Palette.ink)
                         .lineLimit(1)
@@ -527,35 +533,35 @@ private struct FeedSeriesCard: View {
                 Spacer(minLength: 0)
                 // 에피소드 번호(+총).
                 (Text(String(format: "%02d", i + 1))
-                    .font(.system(size: 34, weight: .bold, design: .monospaced))
-                    .foregroundColor(Palette.link)
+                    .font(.system(size: 36, weight: .bold, design: .monospaced))
+                    .foregroundStyle(Palette.link)
                     + Text(" / \(String(format: "%02d", series.postCount))")
                     .font(.system(size: 15, weight: .bold, design: .monospaced))
-                    .foregroundColor(Palette.secondary))
+                    .foregroundStyle(Palette.secondary))
                     .lineLimit(1)
                 Text(ep.title)
-                    .font(.system(size: 18, weight: .bold))
-                    .tracking(-0.2)
+                    .font(.system(size: 19, weight: .bold))
+                    .tracking(-0.3)
                     .foregroundStyle(Palette.ink)
-                    .lineLimit(3)
+                    .lineLimit(2)
                     .multilineTextAlignment(.leading)
-                    .padding(.top, 8)
+                    .padding(.top, 7)
                 HStack(spacing: 6) {
                     AvatarView(author: author, size: 18)
                     Text(author.username)
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.system(size: 12.5, weight: .medium))
                         .foregroundStyle(Palette.secondary)
                         .lineLimit(1)
                     if let date = series.lastPublishedAt {
                         Text("·").foregroundStyle(Palette.faint)
                         Text(date.relativeShort)
-                            .font(.system(size: 12))
+                            .font(.system(size: 12.5))
                             .foregroundStyle(Palette.secondary)
                     }
                 }
-                .padding(.top, 10)
+                .padding(.top, 11)
             }
-            .padding(16)
+            .padding(18)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .allowsHitTesting(false)
         }
