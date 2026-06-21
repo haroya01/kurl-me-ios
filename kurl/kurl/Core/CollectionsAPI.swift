@@ -32,6 +32,17 @@ enum CollectionsAPI {
         try await client.get("/public/highlights/\(highlightId)/collections")
     }
 
+    /// "이것과 이어진 것" — 이 블록과 같은 공개 컬렉션에 함께 놓인 다른 블록들(공동 등장 큰 순). 미로그인도 본다.
+    /// blockType = "POST" | "HIGHLIGHT" | "NOTE".
+    static func relatedBlocks(blockType: String, refId: Int64) async throws -> [RelatedBlock] {
+        try await client.get("/public/graph/blocks/\(blockType)/\(refId)/related")
+    }
+
+    /// "취향이 겹치는 큐레이터" — 같은 블록을 자기 공개 컬렉션에도 엮은 다른 큐레이터들(겹침 큰 순). 미로그인도 본다.
+    static func kindredCurators(username: String) async throws -> [KindredCurator] {
+        try await client.get("/public/profiles/\(username)/kindred")
+    }
+
     /// 새 컬렉션/길 — 생성된 요약을 그대로 돌려받는다(count 0). kind=path 면 reading path.
     @discardableResult
     static func create(

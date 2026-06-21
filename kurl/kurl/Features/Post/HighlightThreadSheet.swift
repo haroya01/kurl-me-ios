@@ -21,6 +21,8 @@ struct HighlightThreadSheet: View {
     @State private var busy = false
     /// 이 문장이 속한 공개 길/컬렉션 — A 척추 발견 고리(한 문장 → 그것이 엮인 길들로).
     @State private var inCollections: [CollectionSummary] = []
+    /// 이 문장과 같은 공개 컬렉션에 함께 놓인 다른 블록 — "이것과 이어진 것"(공동 등장 발견 고리).
+    @State private var related: [RelatedBlock] = []
 
     /// 연결은 서버에 자리잡은(양수 id) 하이라이트만 — 낙관적 생성 직후(음수 id)는 refId 가 없다.
     private var canConnect: Bool { highlight.id > 0 && AuthStore.shared.isSignedIn }
@@ -98,11 +100,33 @@ struct HighlightThreadSheet: View {
                         .padding(.top, 22)
                         .padding(.bottom, 8)
                     }
+
+                    // ── 이것과 이어진 것 — 같은 공개 컬렉션에 함께 놓인 다른 블록(공동 등장). 한 문장에서
+                    // 큐레이터가 곁에 엮은 글·문장·노트로 — connect not broadcast 발견 고리.
+                    if !related.isEmpty {
+                        Rectangle()
+                            .fill(Palette.hairline)
+                            .frame(height: 1)
+                            .padding(.horizontal, Metrics.gutter)
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("이것과 이어진 것")
+                                .typeScale(.eyebrow)
+                                .tracking(0.4)
+                                .foregroundStyle(Palette.faint)
+                            ForEach(related) { item in
+                                BlockPreview(block: item.block)
+                            }
+                        }
+                        .padding(.horizontal, Metrics.gutter)
+                        .padding(.top, 22)
+                        .padding(.bottom, 8)
+                    }
                 }
             }
             .navigationDestination(for: CollectionRef.self) {
                 CollectionDetailView(collectionId: $0.id)
             }
+            .navigationDestination(for: Route.self) { RouteView(route: $0) }
             .scrollIndicators(.hidden)
             .safeAreaInset(edge: .bottom) { composer }
             .navigationTitle("하이라이트")
@@ -133,6 +157,7 @@ struct HighlightThreadSheet: View {
         .presentationDragIndicator(.visible)
         .task { await loadReplies() }
         .task { await loadContainingCollections() }
+        .task { await loadRelated() }
     }
 
     /// 한 사람의 기여 = 아바타 + (이름·시각) + 본문, 바짝 뭉쳐 한 덩어리로(근접 그룹핑).
@@ -228,6 +253,13 @@ struct HighlightThreadSheet: View {
         guard highlight.id > 0 else { return }  // 낙관 생성 직후(음수 id)는 서버에 없다.
         inCollections =
             (try? await CollectionsAPI.collectionsContaining(highlightId: highlight.id)) ?? []
+    }
+
+    private func loadRelated() async {
+        guard highlight.id > 0 else { return }
+        related =
+            (try? await CollectionsAPI.relatedBlocks(blockType: "HIGHLIGHT", refId: highlight.id))
+            ?? []
     }
 
     /// "이 문장이 속한 길" 한 줄 — 길 글리프(또는 컬렉션) + 제목 + 담긴 수.

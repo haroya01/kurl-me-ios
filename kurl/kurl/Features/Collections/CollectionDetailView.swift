@@ -13,6 +13,8 @@ struct CollectionDetailView: View {
     @State private var detail: CollectionDetail?
     // 연결 목록은 detail 에서 떼어 따로 둔다 — 끊기를 낙관(즉시 제거)하고 실패 시 되돌리기 위해.
     @State private var connections: [ConnectionItem] = []
+    // 이 컬렉션을 엮은 큐레이터와 취향이 겹치는(같은 것을 엮은) 사람들 — 팔로우 아닌 큐레이션으로 잇는 발견.
+    @State private var kindred: [KindredCurator] = []
     @State private var disconnects = 0
     @State private var loading = true
     @State private var failed = false
@@ -52,6 +54,9 @@ struct CollectionDetailView: View {
                 }
                 if connections.isEmpty {
                     emptyState
+                }
+                if !kindred.isEmpty {
+                    kindredSection()
                 }
             } else if failed {
                 failedState
@@ -146,10 +151,60 @@ struct CollectionDetailView: View {
             detail = fresh
             connections = fresh.connections
             loading = false
+            if let username = fresh.curatorUsername {
+                kindred = (try? await CollectionsAPI.kindredCurators(username: username)) ?? []
+            }
         } catch {
             loading = false
             if detail == nil { failed = true }
         }
+    }
+
+    // MARK: 취향이 겹치는 큐레이터 — 같은 것을 엮은 사람들로 잇는 발견(connect not broadcast)
+
+    private func kindredSection() -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Hairline().padding(.vertical, 8)
+            Text("취향이 겹치는 큐레이터")
+                .typeScale(.eyebrow)
+                .tracking(0.4)
+                .foregroundStyle(Palette.faint)
+                .padding(.bottom, 6)
+            ForEach(Array(kindred.enumerated()), id: \.element.id) { index, item in
+                NavigationLink(value: Route.author(username: item.curator.username)) {
+                    kindredRow(item)
+                }
+                .buttonStyle(.plain)
+                if index < kindred.count - 1 {
+                    Hairline().padding(.leading, 55)
+                }
+            }
+        }
+        .padding(.top, 8)
+    }
+
+    private func kindredRow(_ item: KindredCurator) -> some View {
+        HStack(spacing: 11) {
+            AvatarView(author: item.curator, size: 44)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("@\(item.curator.username)")
+                    .typeScale(.titleSmall)
+                    .foregroundStyle(Palette.ink)
+                    .lineLimit(1)
+                if let bio = item.curator.bio, !bio.isEmpty {
+                    Text(bio)
+                        .typeScale(.lede)
+                        .foregroundStyle(Palette.secondary)
+                        .lineLimit(1)
+                }
+            }
+            Spacer(minLength: 8)
+            Text("\(item.sharedItems)개 함께 엮음")
+                .typeScale(.meta)
+                .foregroundStyle(Palette.faint)
+        }
+        .padding(.vertical, 10)
+        .contentShape(Rectangle())
     }
 
     // MARK: 헤더

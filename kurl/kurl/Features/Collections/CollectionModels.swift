@@ -224,3 +224,53 @@ struct DiscoverFeedResponse: Decodable {
 struct CollectionRef: Hashable {
     let id: Int64
 }
+
+// MARK: 큐레이션 그래프 — 공동 등장 + 취향 겹침
+
+/// "이것과 이어진 것" — 같은 공개 컬렉션에 함께 놓인 다른 블록(자기 제외). 백엔드 `RelatedBlockView`.
+/// `sharedCount` = 함께 놓인 공개 컬렉션 수(사람이 손으로 엮은 공동 등장 가중치). 평면 블록 필드를
+/// `ConnectionBlock` enum 으로 접어 디코드한다(ConnectionItem 과 같은 결).
+struct RelatedBlock: Decodable, Identifiable, Hashable {
+    let block: ConnectionBlock
+    let blockType: String
+    let refId: Int64
+    let sharedCount: Int
+
+    var id: String { "\(blockType)_\(refId)" }
+
+    private enum CodingKeys: String, CodingKey {
+        case blockType, refId, title, excerpt, slug, username, quote, body, sharedCount
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        blockType = try c.decode(String.self, forKey: .blockType)
+        refId = try c.decode(Int64.self, forKey: .refId)
+        sharedCount = try c.decodeIfPresent(Int.self, forKey: .sharedCount) ?? 0
+        let title = try c.decodeIfPresent(String.self, forKey: .title) ?? ""
+        let username = try c.decodeIfPresent(String.self, forKey: .username) ?? ""
+        let slug = try c.decodeIfPresent(String.self, forKey: .slug) ?? ""
+        switch blockType {
+        case "POST":
+            block = .post(
+                title: title,
+                excerpt: try c.decodeIfPresent(String.self, forKey: .excerpt) ?? "",
+                username: username, slug: slug, tags: [])
+        case "HIGHLIGHT":
+            block = .highlight(
+                quote: try c.decodeIfPresent(String.self, forKey: .quote) ?? "",
+                postTitle: title, username: username, slug: slug)
+        default:  // NOTE
+            block = .note(body: try c.decodeIfPresent(String.self, forKey: .body) ?? "")
+        }
+    }
+}
+
+/// "취향이 겹치는 큐레이터" — 같은 블록을 자기 공개 컬렉션에도 엮은 다른 큐레이터. `sharedItems` = 겹치는
+/// 블록 수. 팔로우가 아니라 *무엇을 엮었나* 로 잇는 발견(connect not broadcast). 백엔드 `KindredCuratorView`.
+struct KindredCurator: Decodable, Identifiable, Hashable {
+    let curator: Author
+    let sharedItems: Int
+
+    var id: Int64 { curator.id }
+}
