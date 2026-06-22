@@ -66,4 +66,30 @@ final class TableMarkdownTests: XCTestCase {
         let rows = TableMarkdown.rows("a | b | c")
         XCTAssertEqual(rows, [["a", "b", "c"]])
     }
+
+    func testReadsColumnAlignmentsFromSeparator() {
+        let md = """
+        | A | B | C |
+        | :--- | :---: | ---: |
+        | 1 | 2 | 3 |
+        """
+        // 구분선 토큰이 열 정렬을 정한다 — 왼쪽·가운데·오른쪽.
+        XCTAssertEqual(TableMarkdown.columnAlignments(md), [.leading, .center, .trailing])
+    }
+
+    func testNoSeparatorMeansNoAlignments() {
+        // 구분선 없는 표는 정렬 지정이 없다(호출측 기본 = 왼쪽).
+        XCTAssertEqual(TableMarkdown.columnAlignments("| a | b |\n| 1 | 2 |"), [])
+    }
+
+    func testAlignmentsIgnoreEmptyCellRows() {
+        let md = """
+        | A | B |
+        | --- | ---: |
+        | a ||
+        """
+        // 빈 셀 행은 구분선으로 오인하지 않는다 — 정렬은 진짜 구분선에서만 나온다.
+        XCTAssertEqual(TableMarkdown.columnAlignments(md), [.leading, .trailing])
+        XCTAssertEqual(TableMarkdown.rows(md).count, 2)
+    }
 }

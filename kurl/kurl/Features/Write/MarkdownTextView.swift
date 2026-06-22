@@ -437,6 +437,18 @@ struct MarkdownTextView: UIViewRepresentable {
 /// 캐럿이 놓인 곳의 성격 — 컴포즈가 그에 맞는 컨텍스트 편집 바(표/이미지/목록)를 띄운다.
 enum EditorCaretContext { case none, table, image, video, list }
 
+/// 표 열 정렬 — GFM 구분선 토큰으로 인코딩된다(웹 에디터와 같은 규약, 마크다운 왕복).
+enum TableColumnAlign {
+    case left, center, right
+    var separatorToken: String {
+        switch self {
+        case .left: ":---"
+        case .center: ":---:"
+        case .right: "---:"
+        }
+    }
+}
+
 /// 스니펫 바 → 캔버스 다리. 커서/선택 기준 삽입을 UIKit 의 진짜 커서로 수행한다.
 /// 모든 동작은 undo 스택을 보존하고(`replace(_:withText:)`), 조합 중에는 거부한다.
 @MainActor
@@ -1134,6 +1146,23 @@ final class MarkdownEditorController {
             block, lines: renderTable(header: header, separator: separator, body: body),
             caretLine: block.caretLine == 1 ? (block.body.isEmpty ? 0 : 2) : block.caretLine,
             caretColumn: min(col, max(0, header.count - 1)))
+        return true
+    }
+
+    /// 캐럿이 놓인 열의 정렬을 바꾼다 — GFM 구분선 토큰(`:---` · `:---:` · `---:`)을 재작성한다.
+    /// renderTable 이 구분선 토큰을 보존하므로 본문은 그대로, 정렬만 마크다운에 반영된다. 바꿨으면 true.
+    @discardableResult
+    func setTableColumnAlign(_ align: TableColumnAlign) -> Bool {
+        guard let textView, textView.markedTextRange == nil,
+            let block = tableBlock(in: textView)
+        else { return false }
+        let n = block.columnCount
+        let col = min(block.caretColumn, n - 1)
+        var separator = padded(block.separator, to: n, fill: "---")
+        separator[col] = align.separatorToken
+        applyTable(
+            block, lines: renderTable(header: block.header, separator: separator, body: block.body),
+            caretLine: block.caretLine, caretColumn: col)
         return true
     }
 

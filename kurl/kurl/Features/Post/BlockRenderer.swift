@@ -586,6 +586,33 @@ enum TableMarkdown {
             return Array(row.prefix(columnCount))
         }
     }
+
+    enum ColumnAlignment {
+        case leading, center, trailing
+    }
+
+    /// GFM 구분선 행에서 열 정렬을 읽는다 — `:---` 왼쪽 · `:---:` 가운데 · `---:` 오른쪽.
+    /// 구분선이 없으면 빈 배열(호출측이 전부 왼쪽 기본으로 처리). 빈 셀 보존과는 독립.
+    static func columnAlignments(_ markdown: String) -> [ColumnAlignment] {
+        for line in markdown.split(separator: "\n", omittingEmptySubsequences: true) {
+            var parts = line.split(separator: "|", omittingEmptySubsequences: false)
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+            if parts.first == "" { parts.removeFirst() }
+            if parts.last == "" { parts.removeLast() }
+            let isSeparator = !parts.isEmpty && parts.allSatisfy { token in
+                token.contains("-") && token.allSatisfy { "-: ".contains($0) }
+            }
+            guard isSeparator else { continue }
+            return parts.map { token in
+                let leadingColon = token.hasPrefix(":")
+                let trailingColon = token.hasSuffix(":")
+                if leadingColon && trailingColon { return .center }
+                if trailingColon { return .trailing }
+                return .leading
+            }
+        }
+        return []
+    }
 }
 
 private struct TableBlockView: View {
@@ -598,16 +625,37 @@ private struct TableBlockView: View {
 
     private var overflowing: Bool { contentWidth > viewportWidth + 1 }
 
+    private func textAlign(_ col: Int, _ aligns: [TableMarkdown.ColumnAlignment]) -> TextAlignment {
+        switch col < aligns.count ? aligns[col] : .leading {
+        case .center: .center
+        case .trailing: .trailing
+        case .leading: .leading
+        }
+    }
+
+    private func gridAlign(_ col: Int, _ aligns: [TableMarkdown.ColumnAlignment]) -> HorizontalAlignment {
+        switch col < aligns.count ? aligns[col] : .leading {
+        case .center: .center
+        case .trailing: .trailing
+        case .leading: .leading
+        }
+    }
+
     var body: some View {
         let rows = TableMarkdown.rows(markdown)
+        // 열 정렬은 구분선 토큰에서 읽는다 — 셀 폭은 콘텐츠대로 두고(넘치면 가로 스크롤+페이드)
+        // 정렬만 열 단위로 건다. 폭 고정(웹 table-layout:fixed)은 좁은 화면에서 표를 뭉갠다.
+        let aligns = TableMarkdown.columnAlignments(markdown)
         ScrollView(.horizontal, showsIndicators: false) {
             Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 0) {
                 ForEach(Array(rows.enumerated()), id: \.offset) { index, cells in
                     GridRow {
-                        ForEach(Array(cells.enumerated()), id: \.offset) { _, cell in
+                        ForEach(Array(cells.enumerated()), id: \.offset) { col, cell in
                             Text(cell)
                                 .font(.system(size: cellSize, weight: index == 0 ? .semibold : .regular))
                                 .foregroundStyle(index == 0 ? Palette.ink : Palette.body)
+                                .multilineTextAlignment(textAlign(col, aligns))
+                                .gridColumnAlignment(gridAlign(col, aligns))
                                 .padding(.vertical, 8)
                         }
                     }
