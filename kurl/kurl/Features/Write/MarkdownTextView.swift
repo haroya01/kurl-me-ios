@@ -747,6 +747,12 @@ final class MarkdownEditorController {
         insertBlock("\n\n| 제목 | 제목 |\n| --- | --- |\n| 내용 | 내용 |\n\n", caretOffsetFromStart: 4)
     }
 
+    /// 구분선(thematic break) — 단독 줄 `---` 을 백엔드가 DIVIDER 블록으로, 리더가 가로줄로 렌더.
+    /// 앞뒤 빈 줄로 띄워 앞 문단의 setext 제목 밑줄로 오인되지 않게 한다.
+    func insertDivider() {
+        insertBlock("\n\n---\n\n", caretOffsetFromStart: nil)
+    }
+
     /// 단독 줄 동영상 URL — 백엔드가 EMBED 블록으로(YouTube/Vimeo), 리더(EmbedBlockView)가 플레이어로.
     func insertVideoEmbed(url: String) {
         // 빈 줄로 띄워 URL 이 제 문단에 홀로 서게 한다 — 안 그러면 앞뒤 산문과 한 문단으로 묶여
