@@ -1238,10 +1238,10 @@ struct ComposeView: View {
 
     private func applySnippet(_ action: MarkdownSnippetBar.Action) {
         switch action {
-        case .heading: editorController.applyLinePrefix("# ")
-        case .quote: editorController.applyLinePrefix("> ")
-        case .list: editorController.applyLinePrefix("- ")
-        case .orderedList: editorController.applyLinePrefix("1. ")
+        case .heading: editorController.cycleHeading()
+        case .quote: editorController.toggleLinePrefix("> ")
+        case .list: editorController.toggleLinePrefix("- ")
+        case .orderedList: editorController.toggleLinePrefix("1. ")
         case .bold: editorController.wrapSelection("**")
         case .italic: editorController.wrapSelection("*")
         case .strikethrough: editorController.wrapSelection("~~")

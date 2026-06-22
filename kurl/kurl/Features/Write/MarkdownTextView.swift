@@ -212,56 +212,171 @@ final class MarkdownEditorController {
         textView?.resignFirstResponder()
     }
 
-    /// 커서가 속한 줄 맨 앞에 줄머리(#·>·-)를 붙인다.
-    func applyLinePrefix(_ prefix: String) {
+    /// 커서가 놓인 줄의 제목 단계를 순환한다 — 본문 → H1(#) → H2(##) → H3(###) → 본문.
+    /// 기존 줄머리(`# `·`## `·`### `)를 걷어내고 다음 단계로 다시 써, applyLinePrefix 가
+    /// 무턱대고 앞에 덧붙여 `# # ` 가 쌓이던(H2·H3 가 끝내 안 만들어지던) 문제를 없앤다.
+    func cycleHeading() {
         guard let textView, textView.markedTextRange == nil else { return }
-        let nsText = textView.text as NSString
+        let ns = textView.text as NSString
         let caret = textView.selectedRange
-        let lineStart = nsText.lineRange(for: NSRange(location: caret.location, length: 0)).location
-        guard let lineStartPosition = textView.position(
-            from: textView.beginningOfDocument, offset: lineStart),
-            let range = textView.textRange(from: lineStartPosition, to: lineStartPosition)
+        let lineRange = ns.lineRange(for: NSRange(location: min(caret.location, ns.length), length: 0))
+        // 줄바꿈을 뗀 줄 본문 범위(치환 대상).
+        var contentLen = lineRange.length
+        while contentLen > 0 {
+            let c = ns.substring(with: NSRange(location: lineRange.location + contentLen - 1, length: 1))
+            if c == "\n" || c == "\r" { contentLen -= 1 } else { break }
+        }
+        let contentRange = NSRange(location: lineRange.location, length: contentLen)
+        let line = ns.substring(with: contentRange)
+
+        // 현재 단계를 하이라이터와 같은 기준으로 읽는다 — `#`·`##`·`###` 뒤에 공백(또는 줄 끝).
+        // 그 ATX 마커(해시들 + 뒤 공백)만 떼고 본문은 보존한다(`#태그`처럼 공백 없는 해시는 본문).
+        let hashes = line.prefix(while: { $0 == "#" }).count
+        let isHeading = hashes >= 1 && hashes <= 3
+            && (line.count == hashes || line.dropFirst(hashes).first == " ")
+        var bodyIdx = line.index(line.startIndex, offsetBy: hashes)
+        while bodyIdx < line.endIndex, line[bodyIdx] == " " || line[bodyIdx] == "\t" {
+            bodyIdx = line.index(after: bodyIdx)
+        }
+        let body = isHeading ? String(line[bodyIdx...]) : line
+        let oldMarkerLen = isHeading ? line.distance(from: line.startIndex, to: bodyIdx) : 0
+
+        let current = isHeading ? hashes : 0
+        let next = current >= 3 ? 0 : current + 1
+        let marker = next == 0 ? "" : String(repeating: "#", count: next) + " "
+        let newLine = marker + body
+
+        guard let s = textView.position(from: textView.beginningOfDocument, offset: contentRange.location),
+            let e = textView.position(from: s, offset: contentRange.length),
+            let range = textView.textRange(from: s, to: e)
         else { return }
-        textView.replace(range, withText: prefix)
-        textView.selectedRange = NSRange(
-            location: caret.location + (prefix as NSString).length, length: 0)
+        textView.replace(range, withText: newLine)
+        // 본문 안의 상대 캐럿을 보존한다(마커 길이 변화만큼만 보정).
+        let caretInBody = max(0, caret.location - contentRange.location - oldMarkerLen)
+        let newCaret = contentRange.location + (marker as NSString).length + caretInBody
+        let limit = (textView.text as NSString).length
+        textView.selectedRange = NSRange(location: min(newCaret, limit), length: 0)
         MarkdownSyntaxHighlighter.apply(to: textView)
     }
 
-    /// 선택이 있으면 감싼다. 선택이 없으면 커서가 닿은 단어를 감싸고, 닿은 단어도 없으면
-    /// 자리표시자("텍스트")를 넣고 선택 상태로 둔다 — 빈 마커(예: ****)만 본문에 남아 렌더가
-    /// 안 되고 평문 위에 기호가 떠 "고장난 것처럼" 보이던 마찰을 없앤다.
+    /// 줄머리 블록 마커(인용 `> `·글머리 `- `·번호 `1. `)를 토글한다. 같은 마커면 떼고(끄기),
+    /// 다른 블록 마커가 있으면 바꾸고, 없으면 붙인다 — 예전 applyLinePrefix 가 무조건 앞에 덧대
+    /// `> > `·`- - ` 가 쌓이고, 끌 수도 바꿀 수도 없던 문제를 없앤다. 여러 줄을 선택했으면
+    /// 각 줄에 적용한다(문단 → 목록/인용; 모든 줄에 마커가 있으면 모두에서 뗀다).
+    func toggleLinePrefix(_ marker: String) {
+        guard let textView, textView.markedTextRange == nil else { return }
+        let ns = textView.text as NSString
+        let sel = textView.selectedRange
+        let blockRange = ns.lineRange(for: sel)
+        let blockText = ns.substring(with: blockRange)
+        let trailingNewline = blockText.hasSuffix("\n")
+        let core = trailingNewline ? String(blockText.dropLast()) : blockText
+        let lines = core.components(separatedBy: "\n")
+
+        let known = ["> ", "- ", "* ", "1. "]
+        func currentMarker(_ line: String) -> String? { known.first { line.hasPrefix($0) } }
+        let nonEmpty = lines.filter { !$0.isEmpty }
+        // 단일 줄은 그 줄에 이 마커가 있을 때만 끈다. 여러 줄은 (빈 줄 빼고) 모두 있을 때만 끈다.
+        let turnOff = lines.count > 1
+            ? (!nonEmpty.isEmpty && nonEmpty.allSatisfy { $0.hasPrefix(marker) })
+            : (currentMarker(lines.first ?? "") == marker)
+
+        let newLines = lines.map { line -> String in
+            if line.isEmpty, lines.count > 1 { return line }  // 여러 줄 적용 때 빈 줄은 그대로(빈 글머리 방지).
+            if let cur = currentMarker(line) {
+                let body = String(line.dropFirst(cur.count))
+                return turnOff ? body : marker + body  // 끄기 또는 다른 마커로 교체.
+            }
+            return turnOff ? line : marker + line
+        }
+        let newText = newLines.joined(separator: "\n") + (trailingNewline ? "\n" : "")
+
+        guard let s = textView.position(from: textView.beginningOfDocument, offset: blockRange.location),
+            let e = textView.position(from: s, offset: blockRange.length),
+            let range = textView.textRange(from: s, to: e)
+        else { return }
+        textView.replace(range, withText: newText)
+
+        let limit = (textView.text as NSString).length
+        if sel.length == 0 {
+            // 단일 캐럿: 그 줄에서의 상대 위치를 보존(마커 길이 변화만 보정).
+            let oldMarkerLen = currentMarker(lines.first ?? "").map { ($0 as NSString).length } ?? 0
+            let newMarkerLen = turnOff ? 0 : (marker as NSString).length
+            let caretInBody = max(0, sel.location - blockRange.location - oldMarkerLen)
+            textView.selectedRange = NSRange(location: min(blockRange.location + newMarkerLen + caretInBody, limit), length: 0)
+        } else {
+            // 선택 적용: 바뀐 블록 전체를 다시 선택해 무엇이 바뀌었는지 보인다.
+            textView.selectedRange = NSRange(
+                location: blockRange.location, length: min((newText as NSString).length, limit - blockRange.location))
+        }
+        MarkdownSyntaxHighlighter.apply(to: textView)
+    }
+
+    /// 선택(또는 닿은 단어/어절)을 강조 마커로 감싼다. 이미 감싸여 있으면 벗긴다(토글) —
+    /// 예전엔 다시 누르면 마커가 겹쳐 `~~~~…~~~~`(취소선 렌더 안 됨)·`*…*`→`**…**`(기울임이
+    /// 굵게로 뒤집힘) 같은 깨진 출력이 났다. 선택이 없고 빈 줄이면 자리표시자("텍스트")를 넣고 선택해 둔다.
     func wrapSelection(_ fix: String) {
         guard let textView, textView.markedTextRange == nil else { return }
         let ns = textView.text as NSString
         var range = textView.selectedRange
-        // 닿은 단어를 감싸는 건 ASCII 단어에서만 — 한글·CJK 는 띄어쓰기가 없어 한 '단어'가
-        // 문장 전체가 되므로(굵게 한 번에 전체가 굵어짐) 자리표시자 경로로 넘긴다.
-        if range.length == 0, let word = currentWordRange(in: textView, around: range.location),
-            !Self.containsCJK(ns.substring(with: word)) {
+        // 선택이 없으면 닿은 단어/어절(공백 사이 연속 문자)을 감싼다 — 한글도 띄어쓰기로 갈리므로
+        // 어절 단위로 감싼다(예전엔 CJK 를 제외해, 캐럿이 단어 가운데면 `굵**텍스트**게`로 쪼개졌다).
+        if range.length == 0, let word = currentWordRange(in: textView, around: range.location) {
             range = word
         }
+        let fixLen = (fix as NSString).length
+
+        // 이미 감싸여 있으면 벗긴다(토글). (a) 마커가 범위 바로 바깥, (b) 범위 자체가 `fix…fix` 를 포함.
+        if range.length > 0 {
+            if range.location >= fixLen, range.location + range.length + fixLen <= ns.length,
+                ns.substring(with: NSRange(location: range.location - fixLen, length: fixLen)) == fix,
+                ns.substring(with: NSRange(location: range.location + range.length, length: fixLen)) == fix {
+                let inner = ns.substring(with: range)
+                replaceAndSelect(
+                    in: textView,
+                    NSRange(location: range.location - fixLen, length: fixLen + range.length + fixLen),
+                    with: inner)
+                return
+            }
+            let innerStr = ns.substring(with: range) as NSString
+            if innerStr.length >= 2 * fixLen, innerStr.hasPrefix(fix), innerStr.hasSuffix(fix) {
+                let stripped = innerStr.substring(with: NSRange(location: fixLen, length: innerStr.length - 2 * fixLen))
+                replaceAndSelect(in: textView, range, with: stripped)
+                return
+            }
+        }
+
         var inner = range.length > 0 ? ns.substring(with: range) : ""
-        let placeholder = inner.isEmpty
-        if placeholder { inner = String(localized: "텍스트") }
+        if inner.isEmpty { inner = String(localized: "텍스트") }
 
         guard let start = textView.position(from: textView.beginningOfDocument, offset: range.location),
               let end = textView.position(from: start, offset: range.length),
               let textRange = textView.textRange(from: start, to: end)
         else { return }
-        let fixLen = (fix as NSString).length
-        let innerLen = (inner as NSString).length
         textView.replace(textRange, withText: fix + inner + fix)
 
-        // 자리표시자는 선택해 둬서 바로 쳐서 덮어쓰게, 단어를 감쌌으면 닫는 마커 뒤로 커서를 둔다.
-        if placeholder,
-           let s = textView.position(from: textView.beginningOfDocument, offset: range.location + fixLen),
+        // 감싼 내용(자리표시자 포함)을 선택해 둔다 — 바로 덮어쓰거나 다시 눌러 토글(벗기기)할 수 있게.
+        let innerLen = (inner as NSString).length
+        if let s = textView.position(from: textView.beginningOfDocument, offset: range.location + fixLen),
            let e = textView.position(from: s, offset: innerLen),
            let sel = textView.textRange(from: s, to: e) {
             textView.selectedTextRange = sel
         } else {
             textView.selectedRange = NSRange(location: range.location + fixLen * 2 + innerLen, length: 0)
         }
+        MarkdownSyntaxHighlighter.apply(to: textView)
+    }
+
+    /// NSRange 를 텍스트로 치환하고(undo 보존) 그 결과를 선택해 둔다 — wrapSelection 의 벗기기 경로용.
+    private func replaceAndSelect(in textView: UITextView, _ nsRange: NSRange, with text: String) {
+        guard let s = textView.position(from: textView.beginningOfDocument, offset: nsRange.location),
+            let e = textView.position(from: s, offset: nsRange.length),
+            let r = textView.textRange(from: s, to: e),
+            let selEnd = textView.position(from: s, offset: (text as NSString).length),
+            let sel = textView.textRange(from: s, to: selEnd)
+        else { return }
+        textView.replace(r, withText: text)
+        textView.selectedTextRange = sel
         MarkdownSyntaxHighlighter.apply(to: textView)
     }
 
@@ -278,17 +393,6 @@ final class MarkdownEditorController {
         while lo > 0, !isSep(lo - 1) { lo -= 1 }
         while hi < ns.length, !isSep(hi) { hi += 1 }
         return hi > lo ? NSRange(location: lo, length: hi - lo) : nil
-    }
-
-    /// 한글·CJK·가나가 섞였는가 — 띄어쓰기로 단어를 가를 수 없는 글자(자동 단어 감싸기 제외용).
-    private static func containsCJK(_ s: String) -> Bool {
-        s.unicodeScalars.contains { sc in
-            (0xAC00...0xD7A3).contains(sc.value)  // 한글 음절
-                || (0x1100...0x11FF).contains(sc.value)  // 한글 자모
-                || (0x3130...0x318F).contains(sc.value)  // 한글 호환 자모
-                || (0x3040...0x30FF).contains(sc.value)  // 히라가나·가타카나
-                || (0x4E00...0x9FFF).contains(sc.value)  // CJK 통합 한자
-        }
     }
 
     func insertFence() {
@@ -367,17 +471,23 @@ final class MarkdownEditorController {
         let cap =
             (caption?.isEmpty == false)
             ? " \"\(caption!.replacingOccurrences(of: "\"", with: "'"))\"" : ""
-        insertBlock("\n![\(marker)](\(url)\(cap))\n", caretOffsetFromStart: nil)
+        // 빈 줄로 위아래를 띄운다 — 안 그러면 바로 다음 줄(산문)이 이미지와 한 문단으로 묶여
+        // 독립 이미지 블록이 아니라 인라인 이미지로 렌더될 수 있다.
+        insertBlock("\n\n![\(marker)](\(url)\(cap))\n\n", caretOffsetFromStart: nil)
     }
 
     /// GFM 표 골격 — 백엔드 마크다운→블록이 TABLE 로 변환, 리더(TableBlockView)가 렌더. 첫 셀에 커서.
     func insertTable() {
-        insertBlock("\n| 제목 | 제목 |\n| --- | --- |\n| 내용 | 내용 |\n", caretOffsetFromStart: 3)
+        // 표 앞뒤를 빈 줄로 띄운다 — 표 바로 다음에 산문이 붙으면 GFM 파서가 그 줄을 표의
+        // 유령 행으로 빨아들여(에디터엔 평문, 발행본엔 표 안 행으로) 어긋난다.
+        insertBlock("\n\n| 제목 | 제목 |\n| --- | --- |\n| 내용 | 내용 |\n\n", caretOffsetFromStart: 4)
     }
 
     /// 단독 줄 동영상 URL — 백엔드가 EMBED 블록으로(YouTube/Vimeo), 리더(EmbedBlockView)가 플레이어로.
     func insertVideoEmbed(url: String) {
-        insertBlock("\n\(url)\n", caretOffsetFromStart: nil)
+        // 빈 줄로 띄워 URL 이 제 문단에 홀로 서게 한다 — 안 그러면 앞뒤 산문과 한 문단으로 묶여
+        // 임베드(플레이어)가 아니라 평범한 인라인 링크로 렌더된다.
+        insertBlock("\n\n\(url)\n\n", caretOffsetFromStart: nil)
     }
 
     /// 현재 줄 맨 앞에 2칸 들여쓰기 — 리스트 항목을 한 단계 안으로(중첩). 리더가 깊이대로 렌더.
