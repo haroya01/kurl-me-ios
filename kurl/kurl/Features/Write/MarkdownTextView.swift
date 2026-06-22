@@ -789,7 +789,7 @@ final class MarkdownEditorController {
         let body = block.body.map { padded($0, to: n) + [""] }
         applyTable(
             block, lines: renderTable(header: header, separator: separator, body: body),
-            caretLine: block.caretLine == 1 ? 0 : block.caretLine, caretColumn: n)
+            caretLine: block.caretLine == 1 ? (block.body.isEmpty ? 0 : 2) : block.caretLine, caretColumn: n)
     }
 
     /// 캐럿이 놓인 본문 행을 지운다(헤더·구분선은 보호 — 그 자리에선 무동작). 지웠으면 true.
@@ -836,7 +836,7 @@ final class MarkdownEditorController {
         }
         applyTable(
             block, lines: renderTable(header: header, separator: separator, body: body),
-            caretLine: block.caretLine == 1 ? 0 : block.caretLine,
+            caretLine: block.caretLine == 1 ? (block.body.isEmpty ? 0 : 2) : block.caretLine,
             caretColumn: min(col, max(0, header.count - 1)))
         return true
     }
