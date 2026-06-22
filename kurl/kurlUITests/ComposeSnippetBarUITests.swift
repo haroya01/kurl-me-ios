@@ -5,7 +5,7 @@
 
 import XCTest
 
-/// 에디터 유리 스니펫 바 — 포커스 시 등장 + 커서 기준 삽입 회귀 가드.
+/// 에디터 유리 스니펫 바 — 포커스 시 등장 + 커서 기준 삽입·토글 회귀 가드.
 /// simctl 은 키보드/탭을 못 넣으니 이 경로의 자동화는 XCUITest 가 유일하다.
 final class ComposeSnippetBarUITests: XCTestCase {
 
@@ -13,24 +13,99 @@ final class ComposeSnippetBarUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    func testSnippetBarInsertsMarkdown() throws {
+    /// 컴포즈를 열고 본문 캔버스에 포커스가 간(스니펫 바가 뜬) 상태로 만든다.
+    private func launchFocusedEditor() -> (XCUIApplication, XCUIElement) {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "write", "--open", "compose", "--focus", "editor"]
         app.launch()
-
-        let bold = app.buttons["굵게"]
-        XCTAssertTrue(bold.waitForExistence(timeout: 10), "에디터 포커스에도 스니펫 바가 안 뜸")
-
+        XCTAssertTrue(app.buttons["굵게"].waitForExistence(timeout: 12), "에디터 포커스에도 스니펫 바가 안 뜸")
         let editor = app.textViews.firstMatch
         XCTAssertTrue(editor.waitForExistence(timeout: 3), "본문 캔버스 없음")
+        editor.tap()
+        return (app, editor)
+    }
 
-        // 빈 본문에서 굵게 = 쌍 삽입(커서는 그 사이) → 줄머리 = 줄 맨 앞에 "# ".
+    private func value(_ editor: XCUIElement) -> String { (editor.value as? String) ?? "" }
+
+    func testSnippetBarInsertsMarkdown() throws {
+        let (app, editor) = launchFocusedEditor()
+        let bold = app.buttons["굵게"]
+
+        // 빈 본문에서 굵게 = 쌍 삽입. 빈 선택이면 자리표시자를 넣고 선택해 둔다("**…**").
+        // 자리표시자 문자열(로케일)에 묶이지 않게 결과를 그대로 들고 제목 단계만 검증한다.
         bold.tap()
-        XCTAssertEqual(editor.value as? String, "****", "굵게 쌍 삽입 실패")
-        app.buttons["제목"].tap()
-        XCTAssertEqual(editor.value as? String, "# ****", "줄머리 삽입 실패")
+        let afterBold = value(editor)
+        XCTAssertTrue(afterBold.hasPrefix("**") && afterBold.hasSuffix("**"), "굵게 쌍 삽입 실패: \(afterBold)")
+
+        // 제목 버튼은 한 줄에서 단계를 순환한다 — 본문 → # → ## → ### → 본문.
+        // 예전엔 매 탭이 무턱대고 "# "를 덧붙여 "# # …"가 쌓이고 H2·H3가 끝내 안 만들어졌다.
+        let heading = app.buttons["제목"]
+        heading.tap()
+        XCTAssertEqual(value(editor), "# \(afterBold)", "H1 삽입 실패")
+        heading.tap()
+        XCTAssertEqual(value(editor), "## \(afterBold)", "H2로 올라가지 못함(단계 중복 prepend 회귀)")
+        heading.tap()
+        XCTAssertEqual(value(editor), "### \(afterBold)", "H3로 올라가지 못함")
+        heading.tap()
+        XCTAssertEqual(value(editor), afterBold, "###에서 본문으로 해제되지 못함")
 
         app.buttons["키보드 내리기"].tap()
         XCTAssertTrue(bold.waitForNonExistence(timeout: 4), "포커스 해제에도 바가 남음")
+    }
+
+    /// 인용·글머리·번호 줄머리는 토글이다 — 다시 누르면 꺼지고, 다른 줄머리를 누르면 바뀐다.
+    /// 예전엔 무조건 앞에 덧대 "> > " · "- - " · "1. 1. "가 쌓이고, 끌 수도 바꿀 수도 없었다.
+    func testLinePrefixToggleAndSwap() throws {
+        let (app, editor) = launchFocusedEditor()
+        editor.typeText("text")
+
+        let list = app.buttons["글머리 목록"]
+        list.tap()
+        XCTAssertEqual(value(editor), "- text", "글머리 추가 실패")
+        list.tap()
+        XCTAssertEqual(value(editor), "text", "글머리 토글 해제 실패(중복 '- - ' 회귀)")
+
+        let quote = app.buttons["인용"]
+        quote.tap()
+        XCTAssertEqual(value(editor), "> text", "인용 추가 실패")
+
+        // 인용 → 번호 목록으로 '바꾸기'(쌓기 아님): "1. text" 이어야 한다("1. > text" 면 회귀).
+        app.buttons["번호 목록"].tap()
+        XCTAssertEqual(value(editor), "1. text", "줄머리 교체 실패(마커가 쌓임)")
+        app.buttons["번호 목록"].tap()
+        XCTAssertEqual(value(editor), "text", "번호 목록 토글 해제 실패")
+    }
+
+    /// 굵게·취소선은 토글이다 — 감싼 뒤 다시 누르면 벗겨진다. 예전엔 마커가 겹쳐
+    /// "**term**" → "****term****"(에디터 깨짐) · "~~x~~" → "~~~~x~~~~"(취소선 렌더 안 됨)가 났다.
+    func testEmphasisToggleOff() throws {
+        let (app, editor) = launchFocusedEditor()
+
+        // 선택이 없어도 캐럿이 닿은 단어(어절)를 감싼다.
+        editor.typeText("term")
+        let bold = app.buttons["굵게"]
+        bold.tap()
+        XCTAssertEqual(value(editor), "**term**", "단어 굵게 감싸기 실패")
+        bold.tap()
+        XCTAssertEqual(value(editor), "term", "굵게 토글 해제 실패('****term****' 회귀)")
+
+        let strike = app.buttons["취소선"]
+        strike.tap()
+        XCTAssertEqual(value(editor), "~~term~~", "취소선 감싸기 실패")
+        strike.tap()
+        XCTAssertEqual(value(editor), "term", "취소선 토글 해제 실패('~~~~term~~~~' 회귀)")
+    }
+
+    /// 표는 앞뒤가 빈 줄로 격리돼야 한다 — 안 그러면 표 다음 산문이 GFM 파서에서 표의 유령 행으로
+    /// 빨려 들어가 에디터(평문)와 발행본(표 안 행)이 어긋난다.
+    func testTableIsolatedByBlankLines() throws {
+        let (app, editor) = launchFocusedEditor()
+        editor.typeText("intro")
+        app.buttons["표"].tap()
+
+        let v = value(editor)
+        XCTAssertTrue(v.contains("\n\n| 제목 | 제목 |"), "표 앞에 빈 줄이 없음: \(v)")
+        XCTAssertTrue(v.contains("| 내용 | 내용 |\n\n") || v.hasSuffix("| 내용 | 내용 |\n"),
+            "표 뒤에 빈 줄이 없음: \(v)")
     }
 }
