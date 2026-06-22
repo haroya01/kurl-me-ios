@@ -105,12 +105,32 @@ enum MarkdownSyntaxHighlighter {
     ) {
         var inFence = startInFence
         var fenceMarker = startMarker
+        // 번호 목록 순번 추적 — 같은 깊이의 연속 번호 항목을 1,2,3…로 그려 발행본과 일치시킨다
+        // (원문이 "1. 1. 1." 이어도 발행본은 1,2,3 으로 재번호하므로 에디터도 그렇게 보여야 한다).
+        var orderedRun: (lead: Int, n: Int)?
         ns.enumerateSubstrings(in: range, options: [.byLines]) { line, lineRange, _, _ in
             guard let line else { return }
             // 커서가 놓인 줄(활성)이면 마커를 노출(흐리게)해 편집 가능; 아니면 숨겨 렌더된 모습으로.
             let reveal = NSIntersectionRange(lineRange, activePara).length > 0
                 || (activePara.location >= lineRange.location
                     && activePara.location <= lineRange.location + lineRange.length)
+
+            // 이 줄이 번호 항목이면 순번을 잇고, 아니면(코드펜스 안 포함) 연속을 끊는다.
+            let lead0 = line.prefix(while: { $0 == " " }).count
+            let body0 = line.dropFirst(lead0)
+            let digits0 = body0.prefix(while: { $0.isNumber })
+            let isOrdered = !inFence && !digits0.isEmpty && body0.dropFirst(digits0.count).hasPrefix(". ")
+            var orderedOrdinal: Int?
+            if isOrdered {
+                if let run = orderedRun, run.lead == lead0 {
+                    orderedRun = (lead0, run.n + 1)
+                } else {
+                    orderedRun = (lead0, Int(digits0) ?? 1)  // 첫 항목의 시작 번호를 존중.
+                }
+                orderedOrdinal = orderedRun?.n
+            } else {
+                orderedRun = nil
+            }
 
             // ```·~~~ 코드펜스 — 펜스 줄과 그 안쪽을 어두운 코드 박스로(발행면과 같은 모습). 펜스는
             // 흐린 라벨. 여는 마커(`/~)를 기억해 같은 마커로만 닫는다(백엔드와 같은 규칙). 선행 공백 허용.
@@ -166,16 +186,9 @@ enum MarkdownSyntaxHighlighter {
                 if reveal {
                     storage.addAttribute(.foregroundColor, value: UIColor(Palette.accentMarker), range: markerRange)
                 } else {
-                    let lead = line.prefix(while: { $0 == " " }).count
-                    let body = line.dropFirst(lead)
-                    let bullet: String
-                    if body.hasPrefix("- ") || body.hasPrefix("* ") {
-                        bullet = "•"
-                    } else {
-                        let digits = body.prefix(while: { $0.isNumber })
-                        bullet = digits.isEmpty ? "•" : "\(digits)."
-                    }
-                    let textIndent = CGFloat(lead) * 7 + 20
+                    // 번호 항목이면 순번(1,2,3…), 아니면 불릿(•).
+                    let bullet = orderedOrdinal.map { "\($0)." } ?? "•"
+                    let textIndent = CGFloat(lead0) * 7 + 20
                     let ps = NSMutableParagraphStyle()
                     ps.firstLineHeadIndent = textIndent
                     ps.headIndent = textIndent
@@ -295,6 +308,21 @@ enum MarkdownSyntaxHighlighter {
                     range: ns.paragraphRange(for: NSRange(location: startLoc, length: 0)))
                 storage.addAttribute(.kurlTableMarkdown, value: ns.substring(with: region),
                     range: NSRange(location: startLoc, length: 1))
+            } else if active {
+                // 편집 중: 값 없는 구분선(---) 줄은 숨기고(구조 편집은 행/열 바로), 나머지 파이프는 흐리게 —
+                // "표가 코드로 변한" 느낌 대신 "칸을 편집한다"로 읽히게.
+                let sep = lines[i + 1].range
+                storage.addAttribute(.foregroundColor, value: UIColor.clear, range: sep)
+                storage.addAttribute(.font, value: UIFont.systemFont(ofSize: 0.01), range: sep)
+                var loc = startLoc
+                while loc < endLoc {
+                    if !NSLocationInRange(loc, sep),
+                        ns.substring(with: NSRange(location: loc, length: 1)) == "|" {
+                        storage.addAttribute(.foregroundColor, value: UIColor(Palette.faint),
+                            range: NSRange(location: loc, length: 1))
+                    }
+                    loc += 1
+                }
             }
             i = end + 1
         }

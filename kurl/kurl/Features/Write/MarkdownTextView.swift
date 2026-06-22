@@ -27,10 +27,53 @@ final class MarkdownInputTextView: UITextView {
             guard let self else { return }
             MarkdownSyntaxHighlighter.apply(to: self)
         }
+        // 그려진 표(그리드)는 실제 글자가 없는 예약 공간이라 기본 탭이 엉뚱한 곳(헤더 끝·표 뒤 빈 줄)에
+        // 커서를 떨군다. 이 탭 인식기가 그리드 안 탭을 잡아 해당 행으로 커서를 넣어 편집 모드로 들어가게 한다.
+        let tap = UITapGestureRecognizer(target: self, action: #selector(handleGridTap(_:)))
+        tap.delegate = self
+        addGestureRecognizer(tap)
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) not used") }
+
+    /// 그려진 표 그리드 안을 탭하면 해당 행으로 커서를 넣어(원시 마크다운이 드러나며 편집) 준다.
+    @objc private func handleGridTap(_ g: UITapGestureRecognizer) {
+        let storage = textStorage
+        guard storage.length > 0 else { return }
+        let loc = g.location(in: self)
+        let p = CGPoint(x: loc.x - textContainerInset.left, y: loc.y - textContainerInset.top)
+        let pad = textContainer.lineFragmentPadding
+        let availWidth = max(0, textContainer.size.width - pad * 2)
+        let font = UIFontMetrics(forTextStyle: .body).scaledFont(for: .monospacedSystemFont(ofSize: 16, weight: .regular))
+        let rowH = MarkdownTable.rowHeight(font)
+        var targetCaret: Int?
+        storage.enumerateAttribute(.kurlTableMarkdown, in: NSRange(location: 0, length: storage.length), options: []) { value, range, stop in
+            guard let md = value as? String, let parsed = MarkdownTable.parse(md) else { return }
+            let gr = layoutManager.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+            let used = layoutManager.boundingRect(forGlyphRange: gr, in: textContainer)
+            let gridTop = used.maxY + MarkdownTable.topPad
+            let gridRect = CGRect(x: pad, y: gridTop, width: availWidth, height: CGFloat(parsed.rowCount) * rowH)
+            guard gridRect.contains(p) else { return }
+            // 탭한 y → 시각 행. 0=헤더(원문 0줄), 1+=본문(원문에선 구분선 1줄을 건너뛰므로 +1).
+            let row = min(parsed.rowCount - 1, max(0, Int((p.y - gridTop) / rowH)))
+            let mdLine = row == 0 ? 0 : row + 1
+            let regionStr = (self.text as NSString).substring(with: NSRange(location: range.location, length: (md as NSString).length))
+            let mdLines = regionStr.components(separatedBy: "\n")
+            var off = 0
+            for k in 0..<min(mdLine, mdLines.count) { off += (mdLines[k] as NSString).length + 1 }
+            targetCaret = range.location + off
+            stop.pointee = true
+        }
+        guard let caret = targetCaret else { return }
+        // 기본 탭 처리(엉뚱한 커서 배치) 다음에 덮어쓰도록 다음 루프에서 적용 → 해당 행이 활성화돼 드러난다.
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            if !self.isFirstResponder { self.becomeFirstResponder() }
+            let limit = (self.text as NSString).length
+            self.selectedRange = NSRange(location: min(caret, limit), length: 0)
+        }
+    }
 
     override func paste(_ sender: Any?) {
         if markedTextRange == nil,
@@ -52,6 +95,12 @@ final class MarkdownInputTextView: UITextView {
         else { return nil }
         return t
     }
+}
+
+extension MarkdownInputTextView: UIGestureRecognizerDelegate {
+    // 표 그리드 탭 인식기가 UITextView 기본 탭과 함께 동작하게(둘 다 발화, 그리드 안에서만 우리가 덮어씀).
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool { true }
 }
 
 /// 마크다운 캔버스 — SwiftUI `TextEditor(text:selection:)` 는 한글 같은 조합형(IME)
@@ -188,6 +237,88 @@ struct MarkdownTextView: UIViewRepresentable {
                 lastActiveParaStart = start
                 MarkdownSyntaxHighlighter.apply(to: textView)
             }
+        }
+
+        /// 프로그램 편집 중 재진입 가드(아래 replace 가 이 델리게이트를 다시 부를 가능성 차단).
+        private var editingProgrammatically = false
+
+        /// Enter = 목록 이어가기(빈 항목이면 목록 종료), Backspace = 줄머리 마커 통째 삭제(한 번에 강등).
+        /// 마크다운을 몰라도 목록을 자연스럽게 만들고, 숨은 마커를 한 글자씩 갉아 블록이 슬그머니 바뀌는 걸 막는다.
+        func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
+            guard !editingProgrammatically, textView.markedTextRange == nil,
+                range.location <= (textView.text as NSString).length
+            else { return true }
+            let ns = textView.text as NSString
+            let lineRange = ns.lineRange(for: NSRange(location: range.location, length: 0))
+            let lineStart = lineRange.location
+            var content = ns.substring(with: lineRange)
+            while content.hasSuffix("\n") || content.hasSuffix("\r") { content.removeLast() }
+
+            // 엔터: 현재 줄이 목록이면 이어가거나(본문 있음) 종료(빈 항목).
+            if text == "\n", range.length == 0, let m = Self.listMarker(content) {
+                let body = content.dropFirst(min(m.length, content.count))
+                if body.trimmingCharacters(in: .whitespaces).isEmpty {
+                    // 빈 항목에서 엔터 = 목록 종료(마커 제거).
+                    replaceProgrammatically(textView, NSRange(location: lineStart, length: m.length), with: "", caret: lineStart)
+                } else {
+                    // 다음 항목 마커를 만들어 이어간다(번호는 +1, 들여쓰기 유지).
+                    let nextMarker = m.isOrdered ? "\(m.num + 1). " : m.marker
+                    let insert = "\n" + String(repeating: " ", count: m.lead) + nextMarker
+                    replaceProgrammatically(textView, NSRange(location: range.location, length: 0), with: insert,
+                        caret: range.location + (insert as NSString).length)
+                }
+                return false
+            }
+
+            // 백스페이스로 줄머리(#·>·-·1.) 마커의 마지막 칸을 지우려 하면 = 마커 전체를 한 번에 지워 통째 강등.
+            if text.isEmpty, range.length == 1, let markerLen = Self.leadingMarkerLength(content),
+                range.location == lineStart + markerLen - 1 {
+                replaceProgrammatically(textView, NSRange(location: lineStart, length: markerLen), with: "", caret: lineStart)
+                return false
+            }
+            return true
+        }
+
+        /// undo 보존 replace + 캐럿 지정 + 바인딩·재렌더 동기화. 재진입 가드로 감싼다.
+        private func replaceProgrammatically(_ textView: UITextView, _ nsRange: NSRange, with str: String, caret: Int) {
+            guard let s = textView.position(from: textView.beginningOfDocument, offset: nsRange.location),
+                let e = textView.position(from: s, offset: nsRange.length),
+                let r = textView.textRange(from: s, to: e)
+            else { return }
+            editingProgrammatically = true
+            textView.replace(r, withText: str)
+            let limit = (textView.text as NSString).length
+            textView.selectedRange = NSRange(location: min(caret, limit), length: 0)
+            editingProgrammatically = false
+            parent.text = textView.text
+            lastEditorText = textView.text
+            MarkdownSyntaxHighlighter.apply(to: textView)
+            lastActiveParaStart = activeParaStart(textView)
+            parent.onContextChange(parent.controller.caretContext())
+        }
+
+        /// 줄머리 목록 마커 정보(들여쓰기·길이·번호 여부·다음 마커 번호).
+        private static func listMarker(_ content: String) -> (lead: Int, length: Int, isOrdered: Bool, num: Int, marker: String)? {
+            let lead = content.prefix(while: { $0 == " " }).count
+            let body = content.dropFirst(lead)
+            if body.hasPrefix("- ") { return (lead, lead + 2, false, 0, "- ") }
+            if body.hasPrefix("* ") { return (lead, lead + 2, false, 0, "* ") }
+            let digits = body.prefix(while: { $0.isNumber })
+            if !digits.isEmpty, body.dropFirst(digits.count).hasPrefix(". ") {
+                let n = Int(digits) ?? 1
+                return (lead, lead + digits.count + 2, true, n, "\(n). ")
+            }
+            return nil
+        }
+
+        /// 줄머리 블록 마커(제목·인용·목록) 전체 길이 — 백스페이스 원샷 삭제용.
+        private static func leadingMarkerLength(_ content: String) -> Int? {
+            let lead = content.prefix(while: { $0 == " " }).count
+            let body = content.dropFirst(lead)
+            let hashes = body.prefix(while: { $0 == "#" }).count
+            if hashes >= 1, hashes <= 3, body.dropFirst(hashes).first == " " { return lead + hashes + 1 }
+            if body.hasPrefix("> ") { return lead + 2 }
+            return listMarker(content)?.length
         }
 
         func textViewDidBeginEditing(_ textView: UITextView) {
@@ -1263,6 +1394,13 @@ final class MarkdownImageLayoutManager: NSLayoutManager {
             grid.addLine(to: CGPoint(x: x, y: top.y + totalH))
         }
         grid.stroke()
+
+        // 편집 가능 단서 — 우상단에 연필. 정적인 이미지가 아니라 "탭하면 고친다"로 읽히게.
+        if let pencil = UIImage(systemName: "square.and.pencil")?
+            .withConfiguration(UIImage.SymbolConfiguration(pointSize: 12, weight: .regular))
+            .withTintColor(UIColor(Palette.secondary), renderingMode: .alwaysOriginal) {
+            pencil.draw(at: CGPoint(x: top.x + width - pencil.size.width - 6, y: top.y + 5))
+        }
         ctx.restoreGState()
     }
 }

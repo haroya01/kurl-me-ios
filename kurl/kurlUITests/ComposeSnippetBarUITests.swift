@@ -59,7 +59,7 @@ final class ComposeSnippetBarUITests: XCTestCase {
         let (app, editor) = launchFocusedEditor()
         editor.typeText("text")
 
-        let list = app.buttons["글머리 목록"]
+        let list = app.buttons["목록"]
         list.tap()
         XCTAssertEqual(value(editor), "- text", "글머리 추가 실패")
         list.tap()
@@ -69,11 +69,11 @@ final class ComposeSnippetBarUITests: XCTestCase {
         quote.tap()
         XCTAssertEqual(value(editor), "> text", "인용 추가 실패")
 
-        // 인용 → 번호 목록으로 '바꾸기'(쌓기 아님): "1. text" 이어야 한다("1. > text" 면 회귀).
-        app.buttons["번호 목록"].tap()
+        // 인용 → 번호으로 '바꾸기'(쌓기 아님): "1. text" 이어야 한다("1. > text" 면 회귀).
+        app.buttons["번호"].tap()
         XCTAssertEqual(value(editor), "1. text", "줄머리 교체 실패(마커가 쌓임)")
-        app.buttons["번호 목록"].tap()
-        XCTAssertEqual(value(editor), "text", "번호 목록 토글 해제 실패")
+        app.buttons["번호"].tap()
+        XCTAssertEqual(value(editor), "text", "번호 토글 해제 실패")
     }
 
     /// 굵게·취소선은 토글이다 — 감싼 뒤 다시 누르면 벗겨진다. 예전엔 마커가 겹쳐
@@ -107,5 +107,25 @@ final class ComposeSnippetBarUITests: XCTestCase {
         XCTAssertTrue(v.contains("\n\n| 제목 | 제목 |"), "표 앞에 빈 줄이 없음: \(v)")
         XCTAssertTrue(v.contains("| 내용 | 내용 |\n\n") || v.hasSuffix("| 내용 | 내용 |\n"),
             "표 뒤에 빈 줄이 없음: \(v)")
+    }
+
+    /// 목록에서 Enter = 다음 항목 자동(번호는 +1), 빈 항목에서 Enter = 목록 종료.
+    /// 일반 사용자가 매번 도구 막대를 다시 누르지 않고 목록을 만들 수 있어야 한다.
+    func testReturnContinuesList() throws {
+        let (app, editor) = launchFocusedEditor()
+        editor.typeText("사과")
+        app.buttons["목록"].tap()
+        XCTAssertEqual(value(editor), "- 사과", "글머리 추가 실패")
+        editor.typeText("\n")
+        XCTAssertEqual(value(editor), "- 사과\n- ", "Enter 가 다음 글머리를 안 만듦")
+        editor.typeText("바나나\n")
+        XCTAssertEqual(value(editor), "- 사과\n- 바나나\n- ", "둘째 항목 후 Enter 실패")
+        editor.typeText("\n")
+        XCTAssertEqual(value(editor), "- 사과\n- 바나나\n", "빈 항목 Enter 가 목록을 안 끝냄")
+
+        // 번호 목록은 다음 항목이 +1 로.
+        app.buttons["번호"].tap()
+        editor.typeText("하나\n")
+        XCTAssertTrue(value(editor).hasSuffix("1. 하나\n2. "), "번호 목록 자동 증가 실패: \(value(editor))")
     }
 }

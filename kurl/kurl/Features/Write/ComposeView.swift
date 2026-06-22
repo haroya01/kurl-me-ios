@@ -309,7 +309,7 @@ struct ComposeView: View {
         .overlay(alignment: .topLeading) {
             // 마크다운 지식을 요구하지 않는다 — 탭하면 도구 막대가 떠서 제목·목록·이미지·표를 넣는다.
             if markdown.isEmpty, !loadFailed {
-                Text("여기를 탭해 본문을 쓰세요 — 제목·목록·이미지·표·링크는 아래 도구 막대로 넣어요.")
+                Text("여기를 탭하면 아래에 도구 막대가 나타나요 — 제목·목록·사진·표·링크를 넣을 수 있어요.")
                     .font(.system(size: 14 * unit))
                     .foregroundStyle(Palette.faint)
                     .padding(.horizontal, Metrics.gutter)
@@ -1252,14 +1252,11 @@ struct ComposeView: View {
         case .outdent: editorController.outdentLine()
         case .link: presentLinkDialog()
         case .video: presentVideoDialog()
-        case .image: pendingImageWidth = nil; showBodyImagePicker = true
-        case .imageWide: pendingImageWidth = "wide"; showBodyImagePicker = true
-        case .imageHalf: pendingImageWidth = "half"; showBodyImagePicker = true
+        case .image: pendingImageWidth = nil; showBodyImagePicker = true  // 폭은 넣은 뒤 이미지 편집 바에서.
         }
         // 프로그램 삽입은 delegate 를 거치지 않는다 — 바인딩(자동저장 시그니처) 수동 동기화.
         // 이미지·.link·.video 는 비동기(피커·다이얼로그)라 각자 끝낼 때 동기화한다.
-        if action != .image, action != .imageWide, action != .imageHalf, action != .link,
-            action != .video {
+        if action != .image, action != .link, action != .video {
             syncMarkdownFromEditor()
         }
         // 표·이미지를 막 넣었으면 곧장 컨텍스트 바가 뜨도록(델리게이트 콜백을 안 거치므로 수동).
@@ -1475,9 +1472,11 @@ private struct MarkdownSnippetBar: View {
 
     // 순서 = 자주 쓰는 것 먼저(좁은 화면 가로 스크롤에서 앞쪽이 보임) — 이미지가 맨 끝이라 화면 밖으로
     // 잘려 안 보이던 발견성 문제를 고친다. 표준 md 만(형광펜·콜아웃 같은 비표준은 여전히 제외).
+    // 순서 = 일반 사용자가 자주 쓰는 것 먼저(좁은 화면에서 앞쪽이 보임). 이미지는 한 버튼으로 — 폭(와이드·하프)은
+    // 넣은 뒤 이미지 편집 바에서 고른다(넣기 전 셋 중 고르라는 혼란 제거).
     enum Action: CaseIterable {
-        case heading, bold, italic, list, orderedList, indent, outdent, link, image, imageWide,
-            imageHalf, video, table, quote, inlineCode, codeBlock, strikethrough
+        case heading, bold, italic, list, orderedList, link, image, table, quote,
+            indent, outdent, video, strikethrough, inlineCode, codeBlock
 
         var icon: String {
             switch self {
@@ -1486,18 +1485,16 @@ private struct MarkdownSnippetBar: View {
             case .italic: "italic"
             case .list: "list.bullet"
             case .orderedList: "list.number"
-            case .indent: "increase.indent"
-            case .outdent: "decrease.indent"
             case .link: "link"
             case .image: "photo"
-            case .imageWide: "rectangle"
-            case .imageHalf: "rectangle.split.2x1"
-            case .video: "play.rectangle"
             case .table: "tablecells"
             case .quote: "text.quote"
+            case .indent: "increase.indent"
+            case .outdent: "decrease.indent"
+            case .video: "play.rectangle"
+            case .strikethrough: "strikethrough"
             case .inlineCode: "chevron.left.forwardslash.chevron.right"
             case .codeBlock: "curlybraces"
-            case .strikethrough: "strikethrough"
             }
         }
 
@@ -1506,20 +1503,18 @@ private struct MarkdownSnippetBar: View {
             case .heading: "제목"
             case .bold: "굵게"
             case .italic: "기울임"
-            case .list: "글머리 목록"
-            case .orderedList: "번호 목록"
-            case .indent: "들여쓰기"
-            case .outdent: "내어쓰기"
+            case .list: "목록"
+            case .orderedList: "번호"
             case .link: "링크"
-            case .image: "이미지"
-            case .imageWide: "와이드 이미지"
-            case .imageHalf: "이미지(하프)"
-            case .video: "동영상"
+            case .image: "사진"
             case .table: "표"
             case .quote: "인용"
-            case .inlineCode: "인라인 코드"
-            case .codeBlock: "코드 블록"
+            case .indent: "들여쓰기"
+            case .outdent: "내어쓰기"
+            case .video: "동영상"
             case .strikethrough: "취소선"
+            case .inlineCode: "코드"
+            case .codeBlock: "코드 블록"
             }
         }
     }
@@ -1536,11 +1531,18 @@ private struct MarkdownSnippetBar: View {
                             Button {
                                 perform(action)
                             } label: {
-                                Image(systemName: action.icon)
-                                    .font(.system(size: 15 * unit, weight: .medium))
-                                    .foregroundStyle(.primary)
-                                    .frame(width: 44, height: 44)
-                                    .contentShape(Rectangle())
+                                // 아이콘 + 작은 라벨 — 마크다운을 몰라도 무슨 버튼인지 읽히게(자매 바와 동일 패턴).
+                                VStack(spacing: 2) {
+                                    Image(systemName: action.icon)
+                                        .font(.system(size: 15 * unit, weight: .medium))
+                                    Text(action.label)
+                                        .font(.system(size: 9.5 * unit, weight: .medium))
+                                        .lineLimit(1)
+                                }
+                                .foregroundStyle(.primary)
+                                .frame(minWidth: 44, minHeight: 44)
+                                .padding(.horizontal, 7)
+                                .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                             .accessibilityLabel(Text(action.label))
