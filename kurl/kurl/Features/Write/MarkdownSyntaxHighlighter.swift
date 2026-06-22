@@ -35,10 +35,12 @@ enum MarkdownSyntaxHighlighter {
         }
         let storage = textView.textStorage
         let selected = textView.selectedRange
+        let active = activeParagraph(ns, selected)
         storage.beginEditing()
         storage.setAttributes(base, range: full)
-        styleLines(storage, ns, in: full, startInFence: false, startMarker: nil)
+        styleLines(storage, ns, in: full, activePara: active, startInFence: false, startMarker: nil)
         applyImages(storage, ns, in: full, width: availableWidth(textView))
+        applyTables(storage, ns, in: full, activePara: active)
         storage.endEditing()
         // 속성만 바꿔 길이는 그대로지만, 캐럿을 한 번 더 못박아 둔다.
         if selected.location <= ns.length {
@@ -66,7 +68,8 @@ enum MarkdownSyntaxHighlighter {
         let selected = textView.selectedRange
         storage.beginEditing()
         storage.setAttributes(baseAttributes(), range: para)
-        styleLines(storage, ns, in: para, startInFence: false, startMarker: nil)
+        // 빠른 경로는 캐럿이 놓인 문단만 칠한다 — 그 문단이 곧 활성 문단이므로 마커를 노출(편집 가능).
+        styleLines(storage, ns, in: para, activePara: para, startInFence: false, startMarker: nil)
         applyImages(storage, ns, in: para, width: availableWidth(textView))
         storage.endEditing()
         if selected.location <= ns.length { textView.selectedRange = selected }
@@ -97,13 +100,17 @@ enum MarkdownSyntaxHighlighter {
     // MARK: 줄 단위 — 헤딩·인용·리스트·코드펜스
 
     private static func styleLines(
-        _ storage: NSTextStorage, _ ns: NSString, in range: NSRange,
+        _ storage: NSTextStorage, _ ns: NSString, in range: NSRange, activePara: NSRange,
         startInFence: Bool, startMarker: Character?
     ) {
         var inFence = startInFence
         var fenceMarker = startMarker
         ns.enumerateSubstrings(in: range, options: [.byLines]) { line, lineRange, _, _ in
             guard let line else { return }
+            // 커서가 놓인 줄(활성)이면 마커를 노출(흐리게)해 편집 가능; 아니면 숨겨 렌더된 모습으로.
+            let reveal = NSIntersectionRange(lineRange, activePara).length > 0
+                || (activePara.location >= lineRange.location
+                    && activePara.location <= lineRange.location + lineRange.length)
 
             // ```·~~~ 코드펜스 — 펜스 줄과 그 안쪽을 어두운 코드 박스로(발행면과 같은 모습). 펜스는
             // 흐린 라벨. 여는 마커(`/~)를 기억해 같은 마커로만 닫는다(백엔드와 같은 규칙). 선행 공백 허용.
@@ -131,8 +138,8 @@ enum MarkdownSyntaxHighlighter {
             // # / ## / ### + 공백 → 제목(크게·굵게). 마커는 흐리게.
             let hashes = line.prefix(while: { $0 == "#" }).count
             if hashes >= 1, hashes <= 3, line.dropFirst(hashes).first == " " {
-                applyHeading(storage, lineRange, level: hashes)
-                applyInline(storage, ns, lineRange) // 제목 안의 **굵게** 등도 살려둔다(크기 유지).
+                applyHeading(storage, lineRange, level: hashes, reveal: reveal)
+                applyInline(storage, ns, lineRange, reveal: reveal) // 제목 안의 **굵게** 등도 살려둔다(크기 유지).
                 return
             }
 
@@ -146,15 +153,37 @@ enum MarkdownSyntaxHighlighter {
                 storage.addAttribute(.paragraphStyle, value: quoteStyle, range: lineRange)
                 storage.addAttribute(.backgroundColor, value: UIColor(Palette.accent).withAlphaComponent(0.10), range: lineRange)
                 storage.addAttribute(.foregroundColor, value: UIColor(Palette.secondary), range: lineRange)
-                dim(storage, NSRange(location: lineRange.location, length: min(2, lineRange.length)))
-                applyInline(storage, ns, lineRange)
+                // 인용 마커("> ")는 숨긴다 — 그린 틴트 패널·들여쓰기가 인용임을 보여주므로 마커는 군더더기.
+                marker(storage, NSRange(location: lineRange.location, length: min(2, lineRange.length)), reveal: reveal)
+                applyInline(storage, ns, lineRange, reveal: reveal)
                 return
             }
 
-            // -, * 글머리 / 1. 번호 리스트 → 마커만 강조색.
+            // -, * 글머리 / 1. 번호 리스트. 활성 줄이면 마커를 강조색(원시 편집), 아니면 마커를 숨기고
+            // 불릿/번호를 그려 본문을 행잉 인덴트로 들인다(레이아웃 매니저가 그림).
             if let markerLen = listMarkerLength(line) {
                 let markerRange = NSRange(location: lineRange.location, length: min(markerLen, lineRange.length))
-                storage.addAttribute(.foregroundColor, value: UIColor(Palette.accentMarker), range: markerRange)
+                if reveal {
+                    storage.addAttribute(.foregroundColor, value: UIColor(Palette.accentMarker), range: markerRange)
+                } else {
+                    let lead = line.prefix(while: { $0 == " " }).count
+                    let body = line.dropFirst(lead)
+                    let bullet: String
+                    if body.hasPrefix("- ") || body.hasPrefix("* ") {
+                        bullet = "•"
+                    } else {
+                        let digits = body.prefix(while: { $0.isNumber })
+                        bullet = digits.isEmpty ? "•" : "\(digits)."
+                    }
+                    let textIndent = CGFloat(lead) * 7 + 20
+                    let ps = NSMutableParagraphStyle()
+                    ps.firstLineHeadIndent = textIndent
+                    ps.headIndent = textIndent
+                    storage.addAttribute(.paragraphStyle, value: ps, range: lineRange)
+                    storage.addAttribute(.foregroundColor, value: UIColor.clear, range: markerRange)
+                    storage.addAttribute(.font, value: UIFont.systemFont(ofSize: 0.01), range: markerRange)
+                    storage.addAttribute(.kurlListBullet, value: bullet, range: NSRange(location: lineRange.location, length: 1))
+                }
             }
 
             // 단독 URL 줄 — 발행 시 임베드(동영상·카드)가 된다. 에디터에선 링크색+밑줄로 표시해
@@ -165,8 +194,15 @@ enum MarkdownSyntaxHighlighter {
                 return
             }
 
-            applyInline(storage, ns, lineRange)
+            applyInline(storage, ns, lineRange, reveal: reveal)
         }
+    }
+
+    /// 캐럿(또는 선택)이 놓인 문단 범위 — 그 문단의 마크다운 마커는 노출하고 나머지는 숨긴다.
+    private static func activeParagraph(_ ns: NSString, _ selected: NSRange) -> NSRange {
+        let loc = min(max(0, selected.location), ns.length)
+        let len = min(max(0, selected.length), ns.length - loc)
+        return ns.paragraphRange(for: NSRange(location: loc, length: len))
     }
 
     /// `![alt](url)` — URL 표식(.kurlImageURL)을 붙이고 마크다운 문법은 흐리게, 그 줄 아래에
@@ -206,15 +242,73 @@ enum MarkdownSyntaxHighlighter {
         }
     }
 
-    private static func applyHeading(_ storage: NSTextStorage, _ lineRange: NSRange, level: Int) {
+    // MARK: 표 — 캐럿이 표 밖일 때 진짜 그리드로(원시 텍스트 0폭 숨김 + 예약공간에 레이아웃 매니저가 그림).
+
+    /// 줄에 이스케이프되지 않은 `|` 가 있는가(표 줄 후보).
+    private static func hasUnescapedPipe(_ s: String) -> Bool {
+        var esc = false
+        for ch in s {
+            if esc { esc = false } else if ch == "\\" { esc = true } else if ch == "|" { return true }
+        }
+        return false
+    }
+
+    /// `| --- | :--: |` 같은 GFM 정렬 구분선인가.
+    private static func isSeparatorRow(_ line: String) -> Bool {
+        let t = line.trimmingCharacters(in: .whitespaces)
+        return t.contains("-") && t.allSatisfy { "|:- ".contains($0) }
+    }
+
+    private static func applyTables(_ storage: NSTextStorage, _ ns: NSString, in range: NSRange, activePara: NSRange) {
+        var lines: [(text: String, range: NSRange)] = []
+        ns.enumerateSubstrings(in: range, options: [.byLines]) { sub, r, _, _ in lines.append((sub ?? "", r)) }
+        guard !lines.isEmpty else { return }
+        // 코드펜스 안 줄은 표로 보지 않는다.
+        var fenced = [Bool](repeating: false, count: lines.count)
+        var inFence = false
+        for i in lines.indices {
+            let t = lines[i].text.trimmingCharacters(in: .whitespaces)
+            if t.hasPrefix("```") || t.hasPrefix("~~~") { fenced[i] = true; inFence.toggle() } else { fenced[i] = inFence }
+        }
+        func isTableLine(_ i: Int) -> Bool {
+            !fenced[i] && hasUnescapedPipe(lines[i].text) && !lines[i].text.trimmingCharacters(in: .whitespaces).isEmpty
+        }
+        var i = 0
+        while i < lines.count {
+            // GFM 표 = 파이프 줄 + 둘째 줄이 정렬 구분선.
+            guard isTableLine(i), i + 1 < lines.count, isTableLine(i + 1), isSeparatorRow(lines[i + 1].text)
+            else { i += 1; continue }
+            var end = i + 1
+            while end + 1 < lines.count, isTableLine(end + 1) { end += 1 }
+            let startLoc = lines[i].range.location
+            let endLoc = lines[end].range.location + lines[end].range.length
+            let region = NSRange(location: startLoc, length: endLoc - startLoc)
+            // 캐럿이 표 안이면 원시 마크다운 그대로(편집). 밖이면 숨기고 그리드를 예약·표식.
+            let active = NSIntersectionRange(region, activePara).length > 0
+                || (activePara.location >= startLoc && activePara.location <= endLoc)
+            if !active, let parsed = MarkdownTable.parse(ns.substring(with: region)) {
+                storage.addAttribute(.foregroundColor, value: UIColor.clear, range: region)
+                storage.addAttribute(.font, value: UIFont.systemFont(ofSize: 0.01), range: region)
+                let ps = NSMutableParagraphStyle()
+                ps.paragraphSpacing = MarkdownTable.gridHeight(rowCount: parsed.rowCount, font: bodyFont())
+                storage.addAttribute(.paragraphStyle, value: ps,
+                    range: ns.paragraphRange(for: NSRange(location: startLoc, length: 0)))
+                storage.addAttribute(.kurlTableMarkdown, value: ns.substring(with: region),
+                    range: NSRange(location: startLoc, length: 1))
+            }
+            i = end + 1
+        }
+    }
+
+    private static func applyHeading(_ storage: NSTextStorage, _ lineRange: NSRange, level: Int, reveal: Bool) {
         let size: CGFloat = level == 1 ? 25 : level == 2 ? 21 : 18
         let font = UIFontMetrics(forTextStyle: .body)
             .scaledFont(for: .monospacedSystemFont(ofSize: size, weight: .bold))
         storage.addAttribute(.font, value: font, range: lineRange)
         storage.addAttribute(.foregroundColor, value: UIColor(Palette.ink), range: lineRange)
-        // 흐린 마커(#... + 공백 하나)는 색만 죽이고 크기는 유지해 본문 정렬을 안 깬다.
+        // 마커("#... " + 공백)는 활성 줄에선 흐리게(편집), 아니면 숨겨 제목만 보이게.
         let markerLen = min(level + 1, lineRange.length)
-        dim(storage, NSRange(location: lineRange.location, length: markerLen))
+        marker(storage, NSRange(location: lineRange.location, length: markerLen), reveal: reveal)
     }
 
     /// 줄 전체가 단독 http(s) URL(또는 `<url>`)인가 — 백엔드가 EMBED 로 만드는 줄.
@@ -242,40 +336,40 @@ enum MarkdownSyntaxHighlighter {
 
     // MARK: 인라인 — `코드` · **굵게** · *기울임* · ~~취소선~~ · [라벨](url)
 
-    private static func applyInline(_ storage: NSTextStorage, _ ns: NSString, _ range: NSRange) {
+    private static func applyInline(_ storage: NSTextStorage, _ ns: NSString, _ range: NSRange, reveal: Bool) {
         var codeRanges: [NSRange] = []
 
-        // `inline code` — 먼저. 안쪽은 코드색, 백틱은 흐리게. 이 범위 안의 강조는 무시한다.
+        // `inline code` — 먼저. 안쪽은 코드색, 백틱은 숨김/노출. 이 범위 안의 강조는 무시한다.
         enumerate(Regex.code, ns, range) { m in
             let inner = m.range(at: 1)
             storage.addAttribute(.foregroundColor, value: UIColor(Palette.inlineCodeText), range: inner)
             storage.addAttribute(.backgroundColor, value: UIColor(Palette.inlineCodeBg), range: inner)
-            dimMarkersAround(storage, full: m.range, inner: inner)
+            markersAround(storage, full: m.range, inner: inner, reveal: reveal)
             codeRanges.append(m.range)
         }
 
-        // [라벨](url) — 라벨은 링크색, 괄호·url 은 흐리게.
+        // [라벨](url) — 라벨은 링크색, 괄호·url 은 숨김/노출.
         enumerate(Regex.link, ns, range) { m in
             if intersectsAny(m.range, codeRanges) { return }
             storage.addAttribute(.foregroundColor, value: UIColor(Palette.link), range: m.range(at: 1))
-            // 라벨을 뺀 나머지([ ] ( url ))는 흐리게.
-            dim(storage, NSRange(location: m.range.location, length: m.range(at: 1).location - m.range.location))
+            // 라벨을 뺀 나머지([ ] ( url ))는 숨김/노출.
+            marker(storage, NSRange(location: m.range.location, length: m.range(at: 1).location - m.range.location), reveal: reveal)
             let labelEnd = m.range(at: 1).location + m.range(at: 1).length
-            dim(storage, NSRange(location: labelEnd, length: m.range.location + m.range.length - labelEnd))
+            marker(storage, NSRange(location: labelEnd, length: m.range.location + m.range.length - labelEnd), reveal: reveal)
         }
 
         // **굵게**
         enumerate(Regex.bold, ns, range) { m in
             if intersectsAny(m.range, codeRanges) { return }
             addTrait(storage, .traitBold, range: m.range(at: 1))
-            dimMarkersAround(storage, full: m.range, inner: m.range(at: 1))
+            markersAround(storage, full: m.range, inner: m.range(at: 1), reveal: reveal)
         }
 
         // *기울임* (단일 별표만 — ** 는 위에서 처리)
         enumerate(Regex.italic, ns, range) { m in
             if intersectsAny(m.range, codeRanges) { return }
             addTrait(storage, .traitItalic, range: m.range(at: 1))
-            dimMarkersAround(storage, full: m.range, inner: m.range(at: 1))
+            markersAround(storage, full: m.range, inner: m.range(at: 1), reveal: reveal)
         }
 
         // ~~취소선~~
@@ -283,7 +377,7 @@ enum MarkdownSyntaxHighlighter {
             if intersectsAny(m.range, codeRanges) { return }
             storage.addAttribute(.strikethroughStyle, value: NSUnderlineStyle.single.rawValue, range: m.range(at: 1))
             storage.addAttribute(.foregroundColor, value: UIColor(Palette.secondary), range: m.range(at: 1))
-            dimMarkersAround(storage, full: m.range, inner: m.range(at: 1))
+            markersAround(storage, full: m.range, inner: m.range(at: 1), reveal: reveal)
         }
     }
 
@@ -294,11 +388,22 @@ enum MarkdownSyntaxHighlighter {
         storage.addAttribute(.foregroundColor, value: UIColor(Palette.faint), range: range)
     }
 
-    /// full 범위에서 inner 를 뺀 좌우(마커)를 흐리게.
-    private static func dimMarkersAround(_ storage: NSTextStorage, full: NSRange, inner: NSRange) {
-        dim(storage, NSRange(location: full.location, length: inner.location - full.location))
+    /// 마크다운 마커를 활성 줄에선 흐리게(편집), 아니면 거의 0 폭으로 숨긴다(WYSIWYG).
+    private static func marker(_ storage: NSTextStorage, _ range: NSRange, reveal: Bool) {
+        guard range.length > 0 else { return }
+        if reveal {
+            dim(storage, range)
+        } else {
+            storage.addAttribute(.foregroundColor, value: UIColor.clear, range: range)
+            storage.addAttribute(.font, value: UIFont.systemFont(ofSize: 0.01), range: range)
+        }
+    }
+
+    /// full 범위에서 inner 를 뺀 좌우(마커)를 숨김/노출.
+    private static func markersAround(_ storage: NSTextStorage, full: NSRange, inner: NSRange, reveal: Bool) {
+        marker(storage, NSRange(location: full.location, length: inner.location - full.location), reveal: reveal)
         let innerEnd = inner.location + inner.length
-        dim(storage, NSRange(location: innerEnd, length: full.location + full.length - innerEnd))
+        marker(storage, NSRange(location: innerEnd, length: full.location + full.length - innerEnd), reveal: reveal)
     }
 
     /// 기존 폰트(헤딩이면 헤딩 폰트)를 보존한 채 굵게/기울임 트레잇만 더한다.

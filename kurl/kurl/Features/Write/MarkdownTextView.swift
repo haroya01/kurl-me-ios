@@ -142,10 +142,19 @@ struct MarkdownTextView: UIViewRepresentable {
         /// 에디터가 마지막으로 바인딩에 내보낸 본문 — updateUIView 가 이 값(자기 메아리/조합 커밋
         /// 직전 뒤처진 값)으로 textView 를 되덮는 걸 막는다(데이터 손실 레이스 가드).
         var lastEditorText: String
+        /// 마지막으로 마커를 노출했던 활성 문단의 시작 위치 — 캐럿이 다른 문단으로 옮겨갈 때만
+        /// 다시 칠해(떠난 줄은 마커 숨김, 새 줄은 노출) 매 커서 이동마다의 재렌더를 피한다.
+        private var lastActiveParaStart = -1
 
         init(_ parent: MarkdownTextView) {
             self.parent = parent
             self.lastEditorText = parent.text
+        }
+
+        /// 캐럿이 놓인 문단의 시작 위치.
+        private func activeParaStart(_ textView: UITextView) -> Int {
+            let ns = textView.text as NSString
+            return ns.paragraphRange(for: NSRange(location: min(textView.selectedRange.location, ns.length), length: 0)).location
         }
 
         func textViewDidChange(_ textView: UITextView) {
@@ -162,6 +171,8 @@ struct MarkdownTextView: UIViewRepresentable {
             if delta > 2 || !MarkdownSyntaxHighlighter.applyEditedParagraph(to: textView) {
                 MarkdownSyntaxHighlighter.apply(to: textView)
             }
+            // 방금 친 줄이 활성 문단 — 다음 커서 이동 비교 기준을 여기에 맞춰 둔다(중복 재렌더 방지).
+            lastActiveParaStart = activeParaStart(textView)
             parent.onContextChange(parent.controller.caretContext())
             // 입력이 다시 시작되면 '실행취소' 토스트는 거둔다(엉뚱한 대상 undo 방지).
             ToastCenter.shared.dismissActionToast()
@@ -171,6 +182,12 @@ struct MarkdownTextView: UIViewRepresentable {
         func textViewDidChangeSelection(_ textView: UITextView) {
             guard textView.markedTextRange == nil else { return }
             parent.onContextChange(parent.controller.caretContext())
+            // 캐럿이 다른 문단으로 옮겨가면 다시 칠한다 — 떠난 줄은 마커를 숨기고, 새 줄은 노출(편집).
+            let start = activeParaStart(textView)
+            if start != lastActiveParaStart {
+                lastActiveParaStart = start
+                MarkdownSyntaxHighlighter.apply(to: textView)
+            }
         }
 
         func textViewDidBeginEditing(_ textView: UITextView) {
@@ -999,6 +1016,64 @@ final class MarkdownEditorController {
 extension NSAttributedString.Key {
     /// 이미지 마크다운 범위에 붙는 표식 — 값은 이미지 URL 문자열. 레이아웃 매니저가 이 줄 아래에 썸네일을 그린다.
     static let kurlImageURL = NSAttributedString.Key("kurlImageURL")
+    /// 표 영역 첫 글자에 붙는 표식 — 값은 그 표의 원시 마크다운. 캐럿이 표 밖일 때 레이아웃 매니저가
+    /// 이 자리에 진짜 그리드를 그린다(원시 텍스트는 0폭으로 숨김). 캐럿이 표 안이면 표식을 안 붙여 원시 편집.
+    static let kurlTableMarkdown = NSAttributedString.Key("kurlTableMarkdown")
+    /// 목록 줄 첫 글자에 붙는 표식 — 값은 그릴 불릿/번호("•"·"1."). 캐럿이 그 줄 밖일 때 원시 마커("- ")는
+    /// 0폭으로 숨기고 행잉 인덴트로 본문을 들이며, 레이아웃 매니저가 이 자리에 불릿/번호를 그린다.
+    static let kurlListBullet = NSAttributedString.Key("kurlListBullet")
+}
+
+/// 본문에 진짜 그리드로 그리는 표(WYSIWYG) — 캐럿이 표 밖일 때만. 원시 `| … |`·`---` 는 0폭으로 숨기고
+/// 예약된 paragraphSpacing 공간에 레이아웃 매니저가 셀 테두리+내용을 그린다(이미지 썸네일과 같은 방식).
+enum MarkdownTable {
+    static let cellPadH: CGFloat = 10
+    static let cellPadV: CGFloat = 7
+    static let topPad: CGFloat = 6
+    static let bottomGap: CGFloat = 12
+
+    struct Parsed {
+        var header: [String]
+        var rows: [[String]]
+        var cols: Int
+        var rowCount: Int { 1 + rows.count }  // 헤더 + 본문
+    }
+
+    /// 표 영역 마크다운(헤더\n구분선\n본문…) → 셀. 구분선(`---`) 줄은 건너뛴다.
+    static func parse(_ md: String) -> Parsed? {
+        let lines = md.components(separatedBy: "\n")
+            .filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        guard lines.count >= 2 else { return nil }
+        let header = cells(lines[0])
+        let rows = lines.count > 2 ? lines[2...].map(cells) : []
+        let cols = max(header.count, rows.map(\.count).max() ?? 0)
+        guard cols > 0 else { return nil }
+        return Parsed(header: header, rows: rows, cols: cols)
+    }
+
+    /// 한 줄 → 셀들. 선두·말미 파이프가 만드는 빈 칸은 떨군다. `\|` 이스케이프는 리터럴 `|`.
+    static func cells(_ line: String) -> [String] {
+        var out: [String] = []
+        var cur = ""
+        var esc = false
+        for ch in line {
+            if esc { cur.append(ch == "|" ? "|" : ch); esc = false }
+            else if ch == "\\" { esc = true }
+            else if ch == "|" { out.append(cur.trimmingCharacters(in: .whitespaces)); cur = "" }
+            else { cur.append(ch) }
+        }
+        out.append(cur.trimmingCharacters(in: .whitespaces))
+        if out.first == "" { out.removeFirst() }
+        if out.last == "" { out.removeLast() }
+        return out
+    }
+
+    static func rowHeight(_ font: UIFont) -> CGFloat { font.lineHeight + cellPadV * 2 }
+
+    /// 표 밖 줄들 아래에 예약할 그리드 총 높이(위·아래 여백 포함).
+    static func gridHeight(rowCount: Int, font: UIFont) -> CGFloat {
+        topPad + CGFloat(max(1, rowCount)) * rowHeight(font) + bottomGap
+    }
 }
 
 enum MarkdownImage {
@@ -1078,6 +1153,30 @@ final class MarkdownImageLayoutManager: NSLayoutManager {
         let charRange = characterRange(forGlyphRange: glyphsToShow, actualGlyphRange: nil)
         let pad = container.lineFragmentPadding
         let availWidth = max(0, container.size.width - pad * 2)
+
+        // 목록 — 원시 마커("- ")가 숨겨진 자리에 불릿/번호를 그린다(본문은 행잉 인덴트로 들어가 있음).
+        storage.enumerateAttribute(.kurlListBullet, in: charRange, options: []) { value, range, _ in
+            guard let bullet = value as? String else { return }
+            let gr = glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+            let line = lineFragmentUsedRect(forGlyphAt: gr.location, effectiveRange: nil)
+            let indent = (storage.attribute(.paragraphStyle, at: range.location, effectiveRange: nil)
+                as? NSParagraphStyle)?.headIndent ?? 20
+            let font = UIFontMetrics(forTextStyle: .body).scaledFont(for: .monospacedSystemFont(ofSize: 16, weight: .regular))
+            let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: UIColor(Palette.accentMarker)]
+            let size = (bullet as NSString).size(withAttributes: attrs)
+            let x = origin.x + pad + max(0, indent - size.width - 6)
+            let y = origin.y + line.minY + (line.height - size.height) / 2
+            (bullet as NSString).draw(at: CGPoint(x: x, y: y), withAttributes: attrs)
+        }
+
+        // 표 — 캐럿이 밖일 때(표식이 붙어 있을 때) 진짜 그리드로 그린다(원시 텍스트는 0폭으로 숨겨짐).
+        storage.enumerateAttribute(.kurlTableMarkdown, in: charRange, options: []) { value, range, _ in
+            guard let md = value as? String, let parsed = MarkdownTable.parse(md) else { return }
+            let gr = glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+            let used = boundingRect(forGlyphRange: gr, in: container)
+            drawTable(parsed, at: CGPoint(x: origin.x + pad, y: origin.y + used.maxY + MarkdownTable.topPad), width: availWidth)
+        }
+
         storage.enumerateAttribute(.kurlImageURL, in: charRange, options: []) { value, range, _ in
             guard let str = value as? String, let url = URL(string: str) else { return }
             let gr = glyphRange(forCharacterRange: range, actualCharacterRange: nil)
@@ -1109,5 +1208,61 @@ final class MarkdownImageLayoutManager: NSLayoutManager {
             }
             ctx.restoreGState()
         }
+    }
+
+    /// 예약된 공간에 표 그리드(테두리 + 셀 내용)를 그린다 — 발행본 TableBlockView 와 같은 모습.
+    private func drawTable(_ t: MarkdownTable.Parsed, at top: CGPoint, width: CGFloat) {
+        guard width > 1, t.cols > 0, let ctx = UIGraphicsGetCurrentContext() else { return }
+        let font = UIFontMetrics(forTextStyle: .body).scaledFont(for: .monospacedSystemFont(ofSize: 16, weight: .regular))
+        let headFont = UIFontMetrics(forTextStyle: .body).scaledFont(for: .monospacedSystemFont(ofSize: 16, weight: .semibold))
+        let rowH = MarkdownTable.rowHeight(font)
+        let colW = width / CGFloat(t.cols)
+        let totalH = CGFloat(t.rowCount) * rowH
+
+        ctx.saveGState()
+        // 헤더 배경(옅게) — 발행본처럼 헤더를 구분.
+        UIColor(Palette.chipBg).setFill()
+        UIBezierPath(rect: CGRect(x: top.x, y: top.y, width: width, height: rowH)).fill()
+
+        func drawRow(_ cells: [String], y: CGFloat, head: Bool) {
+            for c in 0..<t.cols {
+                let text = c < cells.count ? cells[c] : ""
+                guard !text.isEmpty else { continue }
+                let para = NSMutableParagraphStyle()
+                para.lineBreakMode = .byTruncatingTail
+                (text as NSString).draw(
+                    in: CGRect(
+                        x: top.x + CGFloat(c) * colW + MarkdownTable.cellPadH,
+                        y: y + MarkdownTable.cellPadV,
+                        width: max(0, colW - MarkdownTable.cellPadH * 2),
+                        height: rowH - MarkdownTable.cellPadV * 2),
+                    withAttributes: [
+                        .font: head ? headFont : font,
+                        .foregroundColor: UIColor(head ? Palette.heading : Palette.body),
+                        .paragraphStyle: para,
+                    ])
+            }
+        }
+        drawRow(t.header, y: top.y, head: true)
+        for (i, row) in t.rows.enumerated() {
+            drawRow(row, y: top.y + CGFloat(i + 1) * rowH, head: false)
+        }
+
+        // 그리드 선(하어라인).
+        UIColor(Palette.hairline).setStroke()
+        let grid = UIBezierPath()
+        grid.lineWidth = 1
+        for r in 0...t.rowCount {
+            let y = top.y + CGFloat(r) * rowH
+            grid.move(to: CGPoint(x: top.x, y: y))
+            grid.addLine(to: CGPoint(x: top.x + width, y: y))
+        }
+        for c in 0...t.cols {
+            let x = top.x + CGFloat(c) * colW
+            grid.move(to: CGPoint(x: x, y: top.y))
+            grid.addLine(to: CGPoint(x: x, y: top.y + totalH))
+        }
+        grid.stroke()
+        ctx.restoreGState()
     }
 }
