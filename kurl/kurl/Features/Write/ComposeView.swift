@@ -1049,7 +1049,7 @@ struct ComposeView: View {
         guard !busy, canSave else { return }
         // 명시 저장·발행이면 아직 +/Enter 안 누른 입력 중 태그도 포함한다(유실 방지).
         if !silent {
-            let pending = tagDraft.trimmingCharacters(in: .whitespaces)
+            let pending = normalizedTag(tagDraft)
             // 대소문자 무시 중복 검사 — TagsField.commit 과 같은 규칙(중복 태그 방지).
             if !pending.isEmpty,
                 !tags.contains(where: { $0.caseInsensitiveCompare(pending) == .orderedSame }) {
@@ -2149,6 +2149,16 @@ private struct RevisionsSheet: View {
     }
 }
 
+/// 태그 정규화 — '#' 제거(태그는 해시태그가 아니라 주제어) + 공백 트림 + 최대 길이 캡
+/// (백엔드 PostEntity.MAX_TAG_LENGTH = 40 과 정합). 빈 입력이면 빈 문자열을 돌려준다.
+private func normalizedTag(_ raw: String) -> String {
+    String(
+        raw.replacingOccurrences(of: "#", with: "")
+            .trimmingCharacters(in: .whitespaces)
+            .prefix(40)
+    )
+}
+
 /// 대표 태그 칩 에디터 — 입력해서 칩으로 쌓고, 첫 칩이 "대표"(카드·글 위 카테고리).
 /// 비대표 칩을 탭하면 대표로 끌어올리고, ✕ 로 지운다. 발행은 대표 1개가 필수.
 private struct TagsField: View {
@@ -2167,6 +2177,8 @@ private struct TagsField: View {
                     .submitLabel(.done)
                     .onSubmit { commit() }
                     .onChange(of: draft) { _, value in
+                        // '#'는 태그에서 못 쓰게 — 입력 즉시 제거(태그는 해시태그가 아니라 주제어).
+                        if value.contains("#") { draft = value.replacingOccurrences(of: "#", with: "") }
                         if value.contains(",") { commit() } // 쉼표 입력 즉시 칩으로.
                     }
                 Button { commit() } label: {
@@ -2240,7 +2252,7 @@ private struct TagsField: View {
     private func commit() {
         let parts = draft
             .split(whereSeparator: { $0 == "," })
-            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .map { normalizedTag(String($0)) }
             .filter { !$0.isEmpty }
         for part in parts where !tags.contains(where: { $0.caseInsensitiveCompare(part) == .orderedSame }) {
             tags.append(part)
