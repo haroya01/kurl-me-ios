@@ -26,14 +26,14 @@ struct FeedRow: View {
                         .typeScale(.meta)
                         .foregroundStyle(Palette.secondary)
                 }
-                Text(item.title)
+                Text(item.title.cleanedPreview)
                     .typeScale(featured ? .featured : .title)
                     .foregroundStyle(Palette.ink)
                     .lineLimit(featured ? 3 : 2)
                     .fixedSize(horizontal: false, vertical: true)
 
                 if let excerpt = item.excerpt, !excerpt.isEmpty {
-                    Text(excerpt)
+                    Text(excerpt.cleanedPreview)
                         .typeScale(.lede)
                         .foregroundStyle(Palette.secondary)
                         .lineLimit(2)
@@ -84,13 +84,13 @@ struct PostRow: View {
                         .foregroundStyle(Palette.secondary)
                 }
             }
-            Text(item.title)
+            Text(item.title.cleanedPreview)
                 .typeScale(.title)
                 .foregroundStyle(Palette.ink)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
             if let excerpt = item.excerpt, !excerpt.isEmpty {
-                Text(excerpt)
+                Text(excerpt.cleanedPreview)
                     .typeScale(.lede)
                     .foregroundStyle(Palette.secondary)
                     .lineLimit(2)
@@ -184,5 +184,26 @@ struct MetaRow: View {
 
     private var dot: some View {
         Text("·").foregroundStyle(Palette.faint)
+    }
+}
+
+extension String {
+    /// 카드 미리보기(제목·요약)용 마크다운 정리 — 웹 cleanPreview 와 같은 규칙. 저장된 excerpt 에
+    /// WYSIWYG 가 남긴 raw md 가 안 새게: 이스케이프(\[ \] \* …) 해제 · 선두 heading(#) 제거 ·
+    /// 링크는 라벨만 · 강조 기호 제거. '#'은 단어 시작에서만 떼서 "C#"·"a#b"는 보존.
+    var cleanedPreview: String {
+        var s = self
+        let steps: [(String, String)] = [
+            (#"\\([^\sA-Za-z0-9])"#, "$1"),
+            (#"(^|\s)#{1,6}(?=\S)"#, "$1"),
+            (#"!\[[^\]]*\]\([^)]*\)"#, ""),
+            (#"\[([^\]]*)\]\([^)]*\)"#, "$1"),
+            (#"[*_`~]+"#, ""),
+            (#"\s+"#, " "),
+        ]
+        for (pattern, template) in steps {
+            s = s.replacingOccurrences(of: pattern, with: template, options: .regularExpression)
+        }
+        return s.trimmingCharacters(in: .whitespaces)
     }
 }
