@@ -304,7 +304,8 @@ struct ComposeView: View {
                 caretInTable = ctx == .table
                 caretOnImage = ctx == .image
                 caretOnVideo = ctx == .video
-            })
+            },
+            onPasteImageURL: { url in importPastedImage(url) })
         .padding(.horizontal, Metrics.gutter - 4)
         .overlay(alignment: .topLeading) {
             // 마크다운 지식을 요구하지 않는다 — 탭하면 도구 막대가 떠서 제목·목록·이미지·표를 넣는다.
@@ -1430,6 +1431,22 @@ struct ComposeView: View {
         guard !t.isEmpty else { return t }
         if t.hasPrefix("http://") || t.hasPrefix("https://") || t.hasPrefix("mailto:") { return t }
         return "https://\(t)"
+    }
+
+    /// 붙여넣은 외부 이미지 URL — 우리 버킷으로 재호스팅(원본 만료·핫링크 차단에도 안 깨지게)한 뒤 본문에
+    /// `![](url)` 한 줄로 넣는다. 재호스팅 실패 시 원본 URL 그대로 넣어도 백엔드가 IMAGE 블록으로 렌더한다.
+    private func importPastedImage(_ original: String) {
+        ToastCenter.shared.show(String(localized: "이미지 가져오는 중…"))
+        Task {
+            var finalURL = original
+            if let id = try? await ensurePost(),
+                let hosted = try? await WriteAPI.importImage(postId: id, url: original) {
+                finalURL = hosted
+            }
+            editorController.insertImageMarkdown(url: finalURL)
+            syncMarkdownFromEditor()
+            editorController.focus()
+        }
     }
 
     /// 본문 이미지 — 골라서 업로드되면 커서 자리에 `![](url)` 한 줄로 들어간다.
