@@ -203,6 +203,16 @@ enum WriteAPI {
         return (commit.imageUrl, commit.key)
     }
 
+    /// 붙여넣은 외부 이미지 URL 을 서버가 우리 버킷으로 재호스팅 — 핫링크는 원본 만료/차단 시 발행 후
+    /// 깨지므로. 응답은 업로드와 같은 모양(imageUrl·key). 본문엔 imageUrl 만 `![](…)` 로 넣는다.
+    static func importImage(postId: Int64, url: String) async throws -> String {
+        struct Body: Encodable { let url: String }
+        struct Response: Decodable { let imageUrl: String; let key: String }
+        let res: Response = try await client.post(
+            "/posts/\(postId)/images/import", body: Body(url: url), authenticated: true)
+        return res.imageUrl
+    }
+
     @discardableResult
     static func updateCover(postId: Int64, url: String, key: String) async throws -> MyPost {
         struct Body: Encodable { let ogImageUrl: String, ogImageKey: String }
