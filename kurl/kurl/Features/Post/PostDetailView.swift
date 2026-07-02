@@ -47,8 +47,9 @@ struct PostDetailView: View {
     /// 내 글을 볼 때만 뜨는 작가 동작 — 편집(에디터)·분석(이 글 성과).
     @State private var editingOwnPost = false
     @State private var showOwnAnalytics = false
-    /// 남의 글 신고(더 보기 메뉴).
+    /// 남의 글 신고·작가 차단(더 보기 메뉴).
     @State private var showReport = false
+    @State private var showBlockConfirm = false
     /// 손가락이 실제로 당기는 중일 때만 true — 플릭 관성의 바운스가 임계를 넘어도
     /// 다음 글로 튕겨가지 않게 한다.
     @State private var fingerDown = false
@@ -276,10 +277,26 @@ struct PostDetailView: View {
                         .tint(.brand)
                         .accessibilityLabel("이 글 편집")
                     }
-                } else if loadedPostId != nil {
-                    // 남의 글이면 — 더 보기 메뉴에 신고(UGC 신고 경로).
+                } else if loadedPostId != nil, let author = loadedAuthor {
+                    // 남의 글이면 — 더 보기 메뉴에 차단·신고(작가 프로필과 같은 문법). 차단을 여기
+                    // 두어 거슬리는 글을 만난 자리에서 바로 처리하게 하고, 한 항목뿐이던 메뉴도 채운다.
                     ToolbarItem(placement: .primaryAction) {
                         Menu {
+                            if BlockStore.shared.isBlocked(id: author.id) {
+                                Button {
+                                    Task {
+                                        try? await BlockStore.shared.unblock(
+                                            id: author.id, username: author.username)
+                                        ToastCenter.shared.show(String(localized: "차단을 해제했어요"))
+                                    }
+                                } label: {
+                                    Label("차단 해제", systemImage: "hand.raised.slash")
+                                }
+                            } else {
+                                Button(role: .destructive) { showBlockConfirm = true } label: {
+                                    Label("차단", systemImage: "hand.raised")
+                                }
+                            }
                             Button(role: .destructive) { showReport = true } label: {
                                 Label("신고", systemImage: "flag")
                             }
@@ -293,6 +310,9 @@ struct PostDetailView: View {
             }
         }
         .reportDialog(isPresented: $showReport, subjectType: "POST", subjectId: loadedPostId ?? 0)
+        .blockDialog(
+            isPresented: $showBlockConfirm,
+            username: loadedAuthor?.username ?? "", userId: loadedAuthor?.id ?? 0)
         // 스크롤로 제목이 스밀 때까지는 내비바 배경을 숨긴다 — 커버 유무와 무관하게.
         // (무커버 글 진입 때 .automatic 의 반투명 내비바가 상단에 "투명한 박스"로 떴던 것 제거.)
         .toolbarBackground(
@@ -457,6 +477,12 @@ struct PostDetailView: View {
     /// 로드된 글의 id — 읽음 기록(완독·짧은 글 체류)의 키. 로딩 중엔 nil 이라 안 찍힌다.
     private var loadedPostId: Int64? {
         if case .loaded(let detail) = model.phase { return detail.post.id }
+        return nil
+    }
+
+    /// 로드된 글의 작가 — 남의 글일 때 차단 대상.
+    private var loadedAuthor: Author? {
+        if case .loaded(let detail) = model.phase { return detail.author }
         return nil
     }
 
@@ -947,6 +973,7 @@ struct CommentRow: View {
 
     @State private var confirmDelete = false
     @State private var showReport = false
+    @State private var showBlockConfirm = false
     @State private var likeTaps = 0
     @State private var deleteFailed = false
     @State private var showLoginPrompt = false
@@ -1006,8 +1033,23 @@ struct CommentRow: View {
                         .buttonStyle(.plain)
                         .accessibilityLabel("댓글 삭제")
                     } else {
-                        // 남의 댓글 — 더 보기 메뉴에 신고(subjectType=COMMENT).
+                        // 남의 댓글 — 더 보기 메뉴에 차단·신고(글·작가 프로필과 같은 문법).
                         Menu {
+                            if BlockStore.shared.isBlocked(id: comment.author.id) {
+                                Button {
+                                    Task {
+                                        try? await BlockStore.shared.unblock(
+                                            id: comment.author.id, username: comment.author.username)
+                                        ToastCenter.shared.show(String(localized: "차단을 해제했어요"))
+                                    }
+                                } label: {
+                                    Label("차단 해제", systemImage: "hand.raised.slash")
+                                }
+                            } else {
+                                Button(role: .destructive) { showBlockConfirm = true } label: {
+                                    Label("차단", systemImage: "hand.raised")
+                                }
+                            }
                             Button(role: .destructive) { showReport = true } label: {
                                 Label("신고", systemImage: "flag")
                             }
@@ -1085,6 +1127,9 @@ struct CommentRow: View {
             Button("확인", role: .cancel) {}
         }
         .reportDialog(isPresented: $showReport, subjectType: "COMMENT", subjectId: comment.id)
+        .blockDialog(
+            isPresented: $showBlockConfirm,
+            username: comment.author.username, userId: comment.author.id)
         .loginPrompt(isPresented: $showLoginPrompt, message: "이 댓글에 공감하려면 로그인하세요")
     }
 }

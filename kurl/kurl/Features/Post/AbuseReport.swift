@@ -30,6 +30,29 @@ enum ReportReason: String, CaseIterable, Identifiable {
 }
 
 extension View {
+    /// 차단 확인 다이얼로그 — 작가 프로필·글·댓글 어디서나 같은 문법(차단 = 그 사용자 콘텐츠 숨김).
+    /// 파괴적 동작이라 한 번 되묻고, BlockStore 가 낙관적으로 숨긴 뒤 토스트로 알린다.
+    func blockDialog(isPresented: Binding<Bool>, username: String, userId: Int64) -> some View {
+        confirmationDialog(
+            "\(username) 님을 차단할까요?", isPresented: isPresented, titleVisibility: .visible
+        ) {
+            Button("차단", role: .destructive) {
+                Task {
+                    do {
+                        try await BlockStore.shared.block(id: userId, username: username)
+                        ToastCenter.shared.show(
+                            String(localized: "차단했어요 — 이 사용자의 글·댓글이 숨겨집니다"))
+                    } catch {
+                        ToastCenter.shared.show(String(localized: "차단하지 못했어요"))
+                    }
+                }
+            }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("차단하면 이 사용자의 글·댓글·노트가 더는 보이지 않습니다.")
+        }
+    }
+
     /// 신고 사유 선택 다이얼로그 — 글/작가 어디서나 같은 문법. 접수되면 토스트로 알린다.
     /// 익명도 가능(서버 permitAll). subjectType = "POST" | "USER".
     func reportDialog(isPresented: Binding<Bool>, subjectType: String, subjectId: Int64) -> some View {

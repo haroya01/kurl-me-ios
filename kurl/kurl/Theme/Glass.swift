@@ -99,7 +99,22 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable>: View {
             if bare {
                 row // 내비바 유리가 배경 — 자기 유리는 얹지 않는다.
             } else {
-                row.glassEffect(.regular.interactive(), in: .capsule)
+                row
+                    .glassEffect(.regular.interactive(), in: .capsule)
+                    // 위쪽 모서리에 빛 한 가닥(아래로 사라지는 림) — 종이 위에서 판판하던 캡슐이
+                    // "유리 한 겹"으로 읽히게 하는 글래스모피즘 신호. 히트테스트는 건드리지 않는다.
+                    .overlay {
+                        Capsule()
+                            .strokeBorder(
+                                LinearGradient(
+                                    colors: [.white.opacity(0.5), .white.opacity(0.04)],
+                                    startPoint: .top, endPoint: .bottom),
+                                lineWidth: 0.8)
+                            .allowsHitTesting(false)
+                    }
+                    // 콘텐츠 위로 떠 있는 크롬 — 닿는 면 한 겹 + 옅은 앰비언트로 종이에서 들어 올린다.
+                    .shadow(color: .black.opacity(0.05), radius: 1.5, y: 1)
+                    .shadow(color: .black.opacity(0.08), radius: 12, y: 5)
             }
         }
         // 분면 선택 = selection 햅틱 — 토글(.impact)·결과(.success)와 구분되는 세 번째 어휘.
