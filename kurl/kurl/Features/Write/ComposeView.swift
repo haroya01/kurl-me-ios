@@ -2062,6 +2062,8 @@ private struct PublishCelebrationView: View {
     var onView: (() -> Void)? = nil
     let onDone: () -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .title3) private var titleSize: CGFloat = 19
+    @ScaledMetric(relativeTo: .headline) private var actionSize: CGFloat = 15
     @State private var bloom = false
     @State private var marked = false
     /// 발행 순간의 서명 — 브랜드 마크가 스플래시처럼 줄별로 그려진다(체크 대신).
@@ -2101,7 +2103,7 @@ private struct PublishCelebrationView: View {
                     .opacity(marked ? 1 : 0)
                     VStack(spacing: 5) {
                         Text(title)
-                            .font(.system(size: 19, weight: .bold))
+                            .font(.system(size: titleSize, weight: .bold))
                             .foregroundStyle(Palette.ink)
                         if let subtitle {
                             Text(subtitle)
@@ -2120,7 +2122,7 @@ private struct PublishCelebrationView: View {
                         onView()
                     } label: {
                         Text("글 보기")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.system(size: actionSize, weight: .semibold))
                             .foregroundStyle(.white)
                             .padding(.horizontal, 20)
                             .padding(.vertical, 10)
