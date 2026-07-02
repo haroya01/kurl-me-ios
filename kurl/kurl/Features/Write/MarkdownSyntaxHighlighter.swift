@@ -163,17 +163,18 @@ enum MarkdownSyntaxHighlighter {
                 return
             }
 
-            // > 인용 → 들여쓰기 + 옅은 그린 패널 + 인용색, 마커 흐리게. 발행본(좌측 그린 바 인용구)의
-            // 에디터 대응 — 예전엔 글자색만 secondary 로 바꿔 평문과 구분이 안 갔다(인용 친 게 안 보임).
-            // 헤딩(크기)·코드(박스)처럼 인용도 한눈에 블록으로 읽히게 들여쓰기+그린 틴트를 더한다.
+            // > 인용 → 들여쓰기 + 왼쪽 강조 바 + 인용색, 마커 흐리게. 발행본(BlockRenderer .quote 의
+            // 좌측 그린 바 인용구)의 에디터 대응 — 줄 전체를 칠하던 옛 그린 배경은 "인용"이 아니라
+            // "형광펜 칠한 줄"로 읽혀 어긋났다. 리더와 같은 문법(왼쪽 바 + 들여쓰기 + 흐린 글자)으로 맞춘다.
             if line == ">" || line.hasPrefix("> ") {
                 let quoteStyle = NSMutableParagraphStyle()
-                quoteStyle.firstLineHeadIndent = 14
-                quoteStyle.headIndent = 14
+                quoteStyle.firstLineHeadIndent = 20  // 리더 padding.leading 20 과 같은 들여쓰기.
+                quoteStyle.headIndent = 20
                 storage.addAttribute(.paragraphStyle, value: quoteStyle, range: lineRange)
-                storage.addAttribute(.backgroundColor, value: UIColor(Palette.accent).withAlphaComponent(0.10), range: lineRange)
                 storage.addAttribute(.foregroundColor, value: UIColor(Palette.secondary), range: lineRange)
-                // 인용 마커("> ")는 숨긴다 — 그린 틴트 패널·들여쓰기가 인용임을 보여주므로 마커는 군더더기.
+                // 왼쪽 강조 바 — 레이아웃 매니저가 이 줄(들) 왼단에 그린다(리더의 accentSoft 바와 동일).
+                storage.addAttribute(.kurlQuoteBar, value: true, range: lineRange)
+                // 인용 마커("> ")는 숨긴다 — 왼쪽 바·들여쓰기가 인용임을 보여주므로 마커는 군더더기.
                 marker(storage, NSRange(location: lineRange.location, length: min(2, lineRange.length)), reveal: reveal)
                 applyInline(storage, ns, lineRange, reveal: reveal)
                 return

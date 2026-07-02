@@ -262,12 +262,12 @@ struct StudioView: View {
             } label: {
                 Text("새 글 쓰기")
                     .font(.system(size: 15 * unit, weight: .semibold))
-                    .foregroundStyle(.white)
                     .padding(.horizontal, 24)
                     .frame(height: 46)
-                    .background(GlassTokens.prominentTint, in: Capsule())
             }
-            .buttonStyle(.plain)
+            // 툴바의 ‘새 글’·컴포즈의 발행과 같은 prominent 유리 문법(종이 위 그린 유리 캡슐).
+            .buttonStyle(.glassProminent)
+            .tint(GlassTokens.prominentTint)
             .padding(.top, 2)
         }
         .frame(maxWidth: .infinity)

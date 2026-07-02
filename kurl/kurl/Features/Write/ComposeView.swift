@@ -36,7 +36,14 @@ struct ComposeView: View {
     @State private var caretOnImage = false
     /// 캐럿이 단독 URL(임베드) 줄에 있는가 — 그때만 교체·삭제 바를 띄운다.
     @State private var caretOnVideo = false
-    /// 이미 넣은 이미지의 캡션을 고치는 알럿.
+    /// 캐럿이 목록 줄에 있는가 — 그때만 들여쓰기/내어쓰기 바를 띄운다(목록 밖에선 감춰 소음을 줄인다).
+    @State private var caretInList = false
+    /// 내어쓰기 가능 여부(선행 공백이 있을 때만) — 목록 바의 '내어쓰기' 비활성 상태에 반영.
+    @State private var caretCanOutdent = false
+    /// 실행취소/다시실행 가능 여부 — 스니펫 바의 버튼 비활성 상태에 라이브로 반영.
+    @State private var canUndo = false
+    @State private var canRedo = false
+    /// 이미 넣은 이미지의 캡션을 고치는 시트.
     @State private var showEditImageCaption = false
     @State private var editImageCaptionText = ""
 
@@ -88,16 +95,10 @@ struct ComposeView: View {
     @State private var coverItem: PhotosPickerItem?
     @State private var uploadingCover = false
 
-    // 본문 이미지 — 스니펫 바의 사진 버튼이 연다. 업로드 후 커서 자리에 마크다운 삽입.
+    // 본문 이미지 — 스니펫 바의 사진 버튼이 연다. 업로드되면 곧장 커서 자리에 삽입(막는 캡션 다이얼로그 없이).
     @State private var showBodyImagePicker = false
     @State private var bodyImageItem: PhotosPickerItem?
     @State private var uploadingBodyImage = false
-    @State private var pendingImageWidth: String?
-    @State private var pendingImageURL: String?
-    /// 업로드된 본문 이미지의 키 — 본문에 실제로 넣을 때(취소 아님)만 커버로 쓰기 위해 보관.
-    @State private var pendingImageKey: String?
-    @State private var showImageCaption = false
-    @State private var imageCaptionText = ""
 
     // 시트
     @State private var showPublish = false
@@ -164,7 +165,16 @@ struct ComposeView: View {
                         VideoActionBar(perform: applyVideoAction)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
-                    MarkdownSnippetBar(perform: applySnippet) { editorController.dismissKeyboard() }
+                    // 캐럿이 목록 줄일 때만 — 들여쓰기/내어쓰기(목록 밖에선 스니펫 바에서 감춰 소음을 줄였다).
+                    if caretInList {
+                        ListActionBar(canOutdent: caretCanOutdent, perform: applyListAction)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+                    MarkdownSnippetBar(
+                        canUndo: canUndo, canRedo: canRedo,
+                        undo: performUndo, redo: performRedo,
+                        perform: applySnippet
+                    ) { editorController.dismissKeyboard() }
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
@@ -173,6 +183,7 @@ struct ComposeView: View {
         .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: caretInTable)
         .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: caretOnImage)
         .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: caretOnVideo)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: caretInList)
         .navigationTitle(existing == nil ? "새 글" : "편집")
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
@@ -252,27 +263,11 @@ struct ComposeView: View {
         } message: {
             Text("YouTube·Vimeo 주소를 붙여넣거나 입력하세요.")
         }
-        // 이미지 캡션(선택) — 업로드 직후. 캡션 없이 넣거나(건너뛰기), 잘못 고른 사진이면 취소.
-        .alert("캡션 (선택)", isPresented: $showImageCaption) {
-            TextField("이미지 설명", text: $imageCaptionText)
-            Button("추가") { confirmImageInsert() }
-            Button("건너뛰기") { confirmImageInsert() }
-            Button("취소", role: .cancel) {
-                // 잘못 고른 사진 — 본문에 넣지 않고 버린다(커버로도 쓰지 않는다).
-                pendingImageURL = nil
-                pendingImageWidth = nil
-                pendingImageKey = nil
+        // 이미 넣은 이미지의 캡션 고치기 — 이미지 편집 바의 ‘캡션’ 버튼이 연다(막는 알럿 대신 종이 시트).
+        .sheet(isPresented: $showEditImageCaption) {
+            ImageCaptionSheet(initial: editImageCaptionText) { text in
+                confirmEditImageCaption(text)
             }
-        } message: {
-            Text("이미지 아래에 보일 설명 — 비워도 됩니다.")
-        }
-        // 이미 넣은 이미지의 캡션 고치기 — 이미지 편집 바의 ‘캡션’ 버튼이 연다.
-        .alert("캡션", isPresented: $showEditImageCaption) {
-            TextField("이미지 설명", text: $editImageCaptionText)
-            Button("저장") { confirmEditImageCaption() }
-            Button("취소", role: .cancel) {}
-        } message: {
-            Text("이미지 아래에 보일 설명 — 비우면 캡션이 사라집니다.")
         }
     }
 
@@ -298,12 +293,17 @@ struct ComposeView: View {
                     caretInTable = false
                     caretOnImage = false
                     caretOnVideo = false
+                    caretInList = false
                 }
             },
             onContextChange: { ctx in
                 caretInTable = ctx == .table
                 caretOnImage = ctx == .image
                 caretOnVideo = ctx == .video
+                caretInList = ctx == .list
+                caretCanOutdent = editorController.currentLineIndentSpaces() > 0
+                canUndo = editorController.canUndo
+                canRedo = editorController.canRedo
             },
             onPasteImageURL: { url in importPastedImage(url) },
             onPasteImages: { images in uploadPastedImages(images) })
@@ -311,7 +311,7 @@ struct ComposeView: View {
         .overlay(alignment: .topLeading) {
             // 마크다운 지식을 요구하지 않는다 — 탭하면 도구 막대가 떠서 제목·목록·이미지·표를 넣는다.
             if markdown.isEmpty, !loadFailed {
-                Text("여기를 탭하면 아래에 도구 막대가 나타나요 — 제목·목록·사진·표·링크를 넣을 수 있어요.")
+                Text("여기를 탭해 시작하세요 — 아래 도구 막대로 제목·사진·목록·표를 넣어요.")
                     .font(.system(size: 14 * unit))
                     .foregroundStyle(Palette.faint)
                     .padding(.horizontal, Metrics.gutter)
@@ -1250,11 +1250,9 @@ struct ComposeView: View {
         case .inlineCode: editorController.wrapSelection("`")
         case .codeBlock: editorController.toggleCodeBlock()
         case .table: editorController.insertTable()
-        case .indent: editorController.indentLine()
-        case .outdent: editorController.outdentLine()
         case .link: presentLinkDialog()
         case .video: presentVideoDialog()
-        case .image: pendingImageWidth = nil; showBodyImagePicker = true  // 폭은 넣은 뒤 이미지 편집 바에서.
+        case .image: showBodyImagePicker = true  // 폭은 넣은 뒤 이미지 편집 바에서.
         }
         // 프로그램 삽입은 delegate 를 거치지 않는다 — 바인딩(자동저장 시그니처) 수동 동기화.
         // 이미지·.link·.video 는 비동기(피커·다이얼로그)라 각자 끝낼 때 동기화한다.
@@ -1278,6 +1276,10 @@ struct ComposeView: View {
         caretInTable = ctx == .table
         caretOnImage = ctx == .image
         caretOnVideo = ctx == .video
+        caretInList = ctx == .list
+        caretCanOutdent = editorController.currentLineIndentSpaces() > 0
+        canUndo = editorController.canUndo
+        canRedo = editorController.canRedo
     }
 
     /// 표 편집 바 → 컨트롤러. 행·열을 늘리고 줄인 뒤 바인딩·컨텍스트를 동기화한다.
@@ -1292,6 +1294,36 @@ struct ComposeView: View {
         }
         syncMarkdownFromEditor()
         refreshCaretContext()
+        editorController.focus()
+    }
+
+    /// 목록 바 → 컨트롤러. 들여쓰기/내어쓰기(현재 줄 또는 선택)를 한 뒤 바인딩·컨텍스트를 동기화한다.
+    private func applyListAction(_ action: ListActionBar.Action) {
+        switch action {
+        case .indent: editorController.indentLine()
+        case .outdent: editorController.outdentLine()
+        }
+        syncMarkdownFromEditor()
+        refreshCaretContext()
+        editorController.focus()
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()  // 깊이가 바뀐 걸 촉감으로.
+    }
+
+    /// 실행취소 — 시스템 undo 스택을 되돌리고 바인딩·컨텍스트·버튼 상태를 동기화한다.
+    private func performUndo() {
+        if editorController.undoLastEdit() {
+            syncMarkdownFromEditor()
+            refreshCaretContext()
+        }
+        editorController.focus()
+    }
+
+    /// 다시실행 — 방금 되돌린 편집을 다시 적용한다.
+    private func performRedo() {
+        if editorController.redoLastEdit() {
+            syncMarkdownFromEditor()
+            refreshCaretContext()
+        }
         editorController.focus()
     }
 
@@ -1323,8 +1355,8 @@ struct ComposeView: View {
         editorController.focus()
     }
 
-    private func confirmEditImageCaption() {
-        editorController.setImageCaption(editImageCaptionText)
+    private func confirmEditImageCaption(_ text: String) {
+        editorController.setImageCaption(text)
         syncMarkdownFromEditor()
         refreshCaretContext()
         editorController.focus()
@@ -1383,21 +1415,6 @@ struct ComposeView: View {
         guard !url.isEmpty else { return }
         editorController.insertVideoEmbed(url: url)
         syncMarkdownFromEditor()
-        editorController.focus()
-    }
-
-    /// 업로드된 이미지를 폭(pendingImageWidth)·캡션(선택)과 함께 삽입. 캡션 비우면 캡션 없이.
-    private func confirmImageInsert() {
-        guard let url = pendingImageURL else { return }
-        let caption = imageCaptionText.trimmingCharacters(in: .whitespacesAndNewlines)
-        editorController.insertImage(
-            url: url, width: pendingImageWidth, caption: caption.isEmpty ? nil : caption)
-        syncMarkdownFromEditor()
-        // 본문에 실제로 넣은 지금에서야 — 커버가 비어 있으면 이 이미지를 기본 커버로(취소면 안 거침).
-        maybeSetCoverFromBodyImage(url: url, key: pendingImageKey)
-        pendingImageURL = nil
-        pendingImageWidth = nil
-        pendingImageKey = nil
         editorController.focus()
     }
 
@@ -1482,7 +1499,8 @@ struct ComposeView: View {
         }
     }
 
-    /// 본문 이미지 — 골라서 업로드되면 커서 자리에 `![](url)` 한 줄로 들어간다.
+    /// 본문 이미지 — 골라서 업로드되면 곧장 커서 자리에 `![](url)` 한 줄로 들어간다(막는 캡션 다이얼로그 없이,
+    /// 클립보드 붙여넣기 경로와 동일). 캡션은 넣은 뒤 이미지 편집 바의 ‘캡션’으로 붙인다.
     private func uploadBodyImage() {
         guard let item = bodyImageItem, !uploadingBodyImage else { return }
         uploadingBodyImage = true
@@ -1497,12 +1515,12 @@ struct ComposeView: View {
                       let jpeg = image.jpegData(compressionQuality: 0.88)
                 else { return }
                 let uploaded = try await WriteAPI.uploadImage(postId: id, jpegData: jpeg)
-                // 업로드 완료 → 캡션(선택) 다이얼로그. 커버 자동지정은 '추가/건너뛰기'로 본문에 실제로
-                // 넣을 때(confirmImageInsert)만 — 취소로 버리면 커버가 되지 않게 키만 보관해 둔다.
-                pendingImageURL = uploaded.url
-                pendingImageKey = uploaded.key
-                imageCaptionText = ""
-                showImageCaption = true
+                editorController.insertImageMarkdown(url: uploaded.url)
+                syncMarkdownFromEditor()
+                // 커버가 비어 있으면 이 첫 이미지를 기본 커버로(발행 시트에서 언제든 바꾼다).
+                maybeSetCoverFromBodyImage(url: uploaded.url, key: uploaded.key)
+                refreshCaretContext()
+                editorController.focus()
             } catch {
                 ToastCenter.shared.show(String(localized: "이미지를 올리지 못했습니다"))
             }
@@ -1514,19 +1532,22 @@ struct ComposeView: View {
 /// 표준 md 만 — 비표준 문법 버튼은 두지 않는다(웹 에디터와 같은 경계).
 /// 좁은 화면에선 스니펫 캡슐이 가로 스크롤되고 터치 타깃 44pt 는 줄이지 않는다.
 private struct MarkdownSnippetBar: View {
+    let canUndo: Bool
+    let canRedo: Bool
+    let undo: () -> Void
+    let redo: () -> Void
     let perform: (Action) -> Void
     let dismiss: () -> Void
 
     /// 아이콘만 키운다 — 44pt 터치 타깃 프레임은 작은 글자 설정에서도 줄이지 않는다.
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
 
-    // 순서 = 자주 쓰는 것 먼저(좁은 화면 가로 스크롤에서 앞쪽이 보임) — 이미지가 맨 끝이라 화면 밖으로
-    // 잘려 안 보이던 발견성 문제를 고친다. 표준 md 만(형광펜·콜아웃 같은 비표준은 여전히 제외).
-    // 순서 = 일반 사용자가 자주 쓰는 것 먼저(좁은 화면에서 앞쪽이 보임). 이미지는 한 버튼으로 — 폭(와이드·하프)은
-    // 넣은 뒤 이미지 편집 바에서 고른다(넣기 전 셋 중 고르라는 혼란 제거).
+    // 순서 = 일반 사용자가 자주 쓰는 것 먼저(좁은 화면 가로 스크롤에서 앞쪽이 보임). 표준 md 만(형광펜·콜아웃
+    // 같은 비표준은 제외). 이미지는 한 버튼 — 폭(와이드·하프)은 넣은 뒤 이미지 편집 바에서 고른다.
+    // 들여쓰기/내어쓰기는 여기서 뺐다 — 목록 줄일 때만 뜨는 전용 바(ListActionBar)로 옮겨 소음을 줄였다.
     enum Action: CaseIterable {
         case heading, bold, italic, list, orderedList, link, image, table, quote,
-            indent, outdent, video, strikethrough, inlineCode, codeBlock
+            video, strikethrough, inlineCode, codeBlock
 
         var icon: String {
             switch self {
@@ -1539,8 +1560,6 @@ private struct MarkdownSnippetBar: View {
             case .image: "photo"
             case .table: "tablecells"
             case .quote: "text.quote"
-            case .indent: "increase.indent"
-            case .outdent: "decrease.indent"
             case .video: "play.rectangle"
             case .strikethrough: "strikethrough"
             case .inlineCode: "chevron.left.forwardslash.chevron.right"
@@ -1559,8 +1578,6 @@ private struct MarkdownSnippetBar: View {
             case .image: "사진"
             case .table: "표"
             case .quote: "인용"
-            case .indent: "들여쓰기"
-            case .outdent: "내어쓰기"
             case .video: "동영상"
             case .strikethrough: "취소선"
             case .inlineCode: "코드"
@@ -1575,6 +1592,14 @@ private struct MarkdownSnippetBar: View {
         // (닿을 때만 융합) 두고 간격을 벌려 또렷한 두 컨트롤로 분리한다.
         GlassEffectContainer(spacing: 0) {
             HStack(spacing: 14) {
+                // 실행취소·다시실행 — 고정 리딩(스크롤 안 됨). 가능 여부를 라이브로 비활성 반영한다.
+                HStack(spacing: 0) {
+                    undoRedoButton("실행취소", icon: "arrow.uturn.backward", enabled: canUndo, action: undo)
+                    undoRedoButton("다시실행", icon: "arrow.uturn.forward", enabled: canRedo, action: redo)
+                }
+                .frame(height: 44)
+                .glassEffect(.regular.interactive(), in: .capsule)
+
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 0) {
                         ForEach(Action.allCases, id: \.self) { action in
@@ -1618,6 +1643,22 @@ private struct MarkdownSnippetBar: View {
         .padding(.horizontal, Metrics.gutter)
         .padding(.top, 6)
         .padding(.bottom, 8)
+    }
+
+    /// 실행취소/다시실행 버튼 — 44pt 터치 타깃. 비활성이면 눌리지 않고 흐려진다(disabled 가 딤 처리).
+    private func undoRedoButton(
+        _ label: LocalizedStringKey, icon: String, enabled: Bool, action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 15 * unit, weight: .medium))
+                .foregroundStyle(.primary)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
+        .accessibilityLabel(Text(label))
     }
 }
 
@@ -1826,6 +1867,107 @@ private struct VideoActionBar: View {
             .glassEffect(.regular.interactive(), in: .capsule)
         }
         .padding(.horizontal, Metrics.gutter)
+    }
+}
+
+/// 목록 들여쓰기 바 — 캐럿이 목록 줄에 있을 때만 마크다운 바 위에 뜬다. 현재 줄(또는 선택)을 2칸씩
+/// 들이거나 내어, 손으로 공백을 세지 않게 한다. 내어쓰기는 선행 공백이 있을 때만 활성.
+private struct ListActionBar: View {
+    let canOutdent: Bool
+    let perform: (Action) -> Void
+
+    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+
+    enum Action: CaseIterable, Identifiable {
+        case outdent, indent
+        var id: Self { self }
+        var symbol: String { self == .indent ? "increase.indent" : "decrease.indent" }
+        var label: LocalizedStringKey { self == .indent ? "들여쓰기" : "내어쓰기" }
+    }
+
+    var body: some View {
+        GlassEffectContainer(spacing: 0) {
+            HStack(spacing: 0) {
+                barButton(.outdent, enabled: canOutdent)
+                barButton(.indent, enabled: true)
+            }
+            .frame(height: 44)
+            .glassEffect(.regular.interactive(), in: .capsule)
+        }
+        .padding(.horizontal, Metrics.gutter)
+    }
+
+    private func barButton(_ action: Action, enabled: Bool) -> some View {
+        Button {
+            perform(action)
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: action.symbol)
+                    .font(.system(size: 12 * unit, weight: .semibold))
+                Text(action.label)
+                    .font(.system(size: 13 * unit, weight: .medium))
+            }
+            .foregroundStyle(enabled ? Palette.ink : Palette.faint)
+            .padding(.horizontal, 14)
+            .frame(height: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
+        .accessibilityLabel(Text(action.label))
+    }
+}
+
+/// 이미지 캡션 편집 — 이미지 편집 바의 ‘캡션’이 여는 종이 시트(막는 알럿 대신). 짧은 높이로 떠서
+/// 본문을 잃지 않고, 저장하면 캡션만 바뀐다. 비우면 캡션이 사라진다.
+private struct ImageCaptionSheet: View {
+    let initial: String
+    let onSave: (String) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @FocusState private var focused: Bool
+    @State private var draft = ""
+    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("이미지 아래에 보일 설명 — 비우면 캡션이 사라져요.")
+                    .typeScale(.meta)
+                    .foregroundStyle(Palette.secondary)
+                TextField("이미지 설명", text: $draft, axis: .vertical)
+                    .font(.system(size: 16 * unit))
+                    .lineLimit(1...3)
+                    .focused($focused)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .background(
+                        Palette.chipBg,
+                        in: RoundedRectangle(cornerRadius: Metrics.radiusControl, style: .continuous))
+                Spacer(minLength: 0)
+            }
+            .padding(Metrics.gutter)
+            .navigationTitle("캡션")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("취소") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("저장") {
+                        onSave(draft)
+                        dismiss()
+                    }
+                    .font(.body.weight(.semibold))
+                }
+            }
+        }
+        .presentationDetents([.height(210)])
+        .presentationDragIndicator(.visible)
+        .onAppear {
+            draft = initial
+            focused = true
+        }
     }
 }
 
