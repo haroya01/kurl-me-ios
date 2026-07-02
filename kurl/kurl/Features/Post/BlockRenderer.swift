@@ -89,8 +89,10 @@ struct BlockView: View {
                 .padding(.top, 16).padding(.bottom, 2)
 
         case .quote:
+            // 이탤릭 없음 — 한글엔 진짜 기울임꼴이 없어 합성 오블리크가 지저분하다(웹 결정 미러).
+            // 위계는 그린 좌측 룰 + secondary 색 + 넉넉한 행간으로 세운다.
             inline(block.content ?? "")
-                .font(.system(size: bodySize).italic())
+                .font(.system(size: bodySize))
                 .lineSpacing(bodySize * 0.6)
                 .foregroundStyle(Palette.secondary)
                 .padding(.leading, 20)
@@ -414,6 +416,8 @@ private struct ImageBlockView: View {
     let payload: ImagePayload
 
     @ScaledMetric(relativeTo: .caption) private var captionSize: CGFloat = 13
+    /// 탭하면 전체 화면 뷰어로 — 커버·본문 이미지 모두 이 경로를 탄다.
+    @State private var showLightbox = false
 
     var body: some View {
         VStack(spacing: 12) {
@@ -455,6 +459,14 @@ private struct ImageBlockView: View {
                 .padding(
                     .horizontal,
                     payload.width == "wide" || payload.width == "full" ? -Metrics.gutter : 0)
+                // 탭 = 전체 화면으로 크게 보기(핀치·팬·닫기).
+                .contentShape(Rectangle())
+                .onTapGesture { showLightbox = true }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityHint(Text("두 번 탭하면 크게 봅니다"))
+                .fullScreenCover(isPresented: $showLightbox) {
+                    ImageLightbox(url: url, caption: payload.caption)
+                }
             }
             if let caption = payload.caption, !caption.isEmpty {
                 Text(caption)
@@ -522,6 +534,11 @@ private struct TableBlockView: View {
     let markdown: String
 
     @ScaledMetric(relativeTo: .callout) private var cellSize: CGFloat = 15
+    // 콘텐츠 폭 > 뷰포트 폭이면 표가 가로로 넘친다 — 그때만 오른쪽에 페이드로 "더 있음"을 알린다.
+    @State private var contentWidth: CGFloat = 0
+    @State private var viewportWidth: CGFloat = 0
+
+    private var overflowing: Bool { contentWidth > viewportWidth + 1 }
 
     private var rows: [[String]] {
         markdown
@@ -553,6 +570,19 @@ private struct TableBlockView: View {
                         .fill(index == 0 ? Palette.hairlineStrong : Palette.hairline)
                         .frame(height: index == 0 ? 2 : 1)
                 }
+            }
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { contentWidth = $0 }
+        }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { viewportWidth = $0 }
+        // 넘칠 때만 오른쪽 가장자리 페이드 — 읽기면 바탕색으로 스러지게 해 "옆으로 더" 어포던스를 준다.
+        .overlay(alignment: .trailing) {
+            if overflowing {
+                LinearGradient(
+                    colors: [Palette.readingBg.opacity(0), Palette.readingBg],
+                    startPoint: .leading, endPoint: .trailing)
+                    .frame(width: 28)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
             }
         }
         .padding(.vertical, 6)
@@ -594,31 +624,83 @@ private struct EmbedBlockView: View {
     }
 }
 
+/// 링크 카드 — 파비콘 + 정리된 host + 제목으로 "어디로 가는 링크"인지 한눈에.
+/// 제목·파비콘은 블록이 이미 가진 값(provider·url)만으로 — 별도 메타 fetch 없음(파비콘 하나만).
 private struct EmbedLinkCard: View {
     let payload: EmbedPayload
 
     @ScaledMetric(relativeTo: .callout) private var labelSize: CGFloat = 14
 
+    /// www. 를 뗀 표시용 도메인. host 를 못 뽑으면 원문 URL 그대로.
+    private var host: String {
+        guard let raw = URL(string: payload.url)?.host, !raw.isEmpty else { return payload.url }
+        return raw.hasPrefix("www.") ? String(raw.dropFirst(4)) : raw
+    }
+
+    /// 제목 = provider(있으면), 없으면 도메인. 도메인은 두 번째 줄에서 다시 세운다.
+    private var title: String {
+        if let provider = payload.provider?.trimmingCharacters(in: .whitespaces), !provider.isEmpty {
+            return provider
+        }
+        return host
+    }
+
+    /// 제목이 도메인 그 자체면 둘째 줄은 생략(같은 글자 반복 금지).
+    private var subtitle: String? { title == host ? nil : host }
+
+    private var faviconURL: URL? {
+        URL(string: "https://icons.duckduckgo.com/ip3/\(host).ico")
+    }
+
     var body: some View {
         if let url = URL(string: payload.url) {
             Link(destination: url) {
-                HStack(spacing: 8) {
-                    Image(systemName: "link").font(.system(size: 13))
-                    Text(payload.provider ?? payload.url)
-                        .font(.system(size: labelSize, weight: .medium))
-                        .lineLimit(1)
-                    Spacer()
-                    Image(systemName: "arrow.up.right").font(.system(size: 12))
+                HStack(spacing: 12) {
+                    favicon
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(title)
+                            .font(.system(size: labelSize, weight: .semibold))
+                            .foregroundStyle(Palette.ink)
+                            .lineLimit(1)
+                        if let subtitle {
+                            Text(subtitle)
+                                .typeScale(.footnote)
+                                .foregroundStyle(Palette.secondary)
+                                .lineLimit(1)
+                        }
+                    }
+                    Spacer(minLength: 8)
+                    Image(systemName: "arrow.up.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Palette.faint)
                 }
-                .foregroundStyle(Palette.link)
                 .padding(14)
                 .frame(maxWidth: .infinity)
                 .overlay(
-                    RoundedRectangle(cornerRadius: Metrics.radiusControl).strokeBorder(Palette.hairlineStrong, lineWidth: 1)
+                    RoundedRectangle(cornerRadius: Metrics.radiusControl)
+                        .strokeBorder(Palette.hairlineStrong, lineWidth: 1)
                 )
             }
+            .buttonStyle(.plain)
             .padding(.vertical, 6)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(Text("\(title), \(host) 링크 열기"))
         }
+    }
+
+    /// 파비콘 — 로드되면 사이트 아이콘, 실패·로딩 중엔 조용한 지구본 글리프로 폴백.
+    private var favicon: some View {
+        AsyncImage(url: faviconURL) { phase in
+            if case .success(let image) = phase {
+                image.resizable().scaledToFit()
+            } else {
+                Image(systemName: "globe")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Palette.secondary)
+            }
+        }
+        .frame(width: 20, height: 20)
+        .clipShape(RoundedRectangle(cornerRadius: 2))
     }
 }
 
