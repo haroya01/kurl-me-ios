@@ -250,8 +250,9 @@ struct FeedPage: View {
             } else {
             switch model.phase {
             case .idle, .loading:
-                KurlLoadingMark()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                // 콜드 로딩은 중앙 마크 대신 카드 그리드 스켈레톤 — 실제 리스트와 같은 레이아웃이라
+                // 카드가 착지해도 위치가 안 튄다(중앙→상단 점프 제거). 첫 장은 커버(피처드) 모양.
+                FeedSkeleton(leadingCover: source == .recent)
             case .failed(let message):
                 failed(message)
             case .loaded:
@@ -455,6 +456,13 @@ private struct FeedSeriesCard: View {
     let author: Author
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var idx = 0
+    // 하드코딩 크기가 Dynamic Type 를 무시하던 것 — 텍스트 스타일에 묶어 글자 크기 설정을 따른다.
+    // (우상단의 148pt 장식 mono 번호만 고정 — 레이아웃을 이루는 배경 장식이라 스케일 제외.)
+    @ScaledMetric(relativeTo: .caption) private var seriesNameSize: CGFloat = 12
+    @ScaledMetric(relativeTo: .title) private var epNumSize: CGFloat = 34
+    @ScaledMetric(relativeTo: .footnote) private var epTotalSize: CGFloat = 15
+    @ScaledMetric(relativeTo: .headline) private var epTitleSize: CGFloat = 18
+    @ScaledMetric(relativeTo: .caption) private var metaSize: CGFloat = 12
 
     private var posts: [SeriesPostRef] { Array(series.posts.prefix(4)) }
 
@@ -543,7 +551,7 @@ private struct FeedSeriesCard: View {
                     KurlMark(drawn: [true, true, true], tint: onImage ? .white : Palette.accent)
                         .frame(width: 16, height: 10)
                     Text(series.title)
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.system(size: seriesNameSize, weight: .semibold))
                         .tracking(0.4)
                         .foregroundStyle(onImage ? Color.white : Palette.ink)
                         .lineLimit(1)
@@ -551,15 +559,15 @@ private struct FeedSeriesCard: View {
                 Spacer(minLength: 0)
                 // 에피소드 번호 01 / 04 (웹: 34px accent-700 + 15px slate-500).
                 (Text(String(format: "%02d", i + 1))
-                    .font(.system(size: 34, weight: .bold, design: .monospaced))
+                    .font(.system(size: epNumSize, weight: .bold, design: .monospaced))
                     .foregroundStyle(onImage ? Color.white : Palette.link)
                     + Text(" / \(String(format: "%02d", series.postCount))")
-                    .font(.system(size: 15, weight: .bold, design: .monospaced))
+                    .font(.system(size: epTotalSize, weight: .bold, design: .monospaced))
                     .foregroundStyle(onImage ? Color.white.opacity(0.75) : Palette.secondary))
                     .lineLimit(1)
                 // 에피소드 제목(웹: 18px bold, 3줄).
                 Text(ep.title)
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.system(size: epTitleSize, weight: .bold))
                     .tracking(-0.3)
                     .foregroundStyle(onImage ? Color.white : Palette.ink)
                     .lineLimit(3)
@@ -568,13 +576,13 @@ private struct FeedSeriesCard: View {
                 HStack(spacing: 6) {
                     AvatarView(author: author, size: 18)
                     Text(author.username)
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.system(size: metaSize, weight: .medium))
                         .foregroundStyle(onImage ? Color.white.opacity(0.9) : Palette.secondary)
                         .lineLimit(1)
                     if let date = series.lastPublishedAt {
                         Text("·").foregroundStyle(onImage ? Color.white.opacity(0.6) : Palette.faint)
                         Text(date.relativeShort)
-                            .font(.system(size: 12))
+                            .font(.system(size: metaSize))
                             .foregroundStyle(onImage ? Color.white.opacity(0.9) : Palette.secondary)
                     }
                 }
@@ -598,5 +606,108 @@ struct RowButtonStyle: ButtonStyle {
             )
             .contentShape(Rectangle())
             .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+    }
+}
+
+/// 콜드 로딩 스켈레톤 — 피드·검색 결과가 뜰 자리에 카드 그리드 모양 자리표시를 그린다.
+/// 실제 리스트와 같은 간격·컬럼이라 카드가 착지해도 위치가 안 튄다(중앙 마크→상단 카드 점프 제거).
+/// 글/시리즈/작가 단일 로드엔 쓰지 않는다(그쪽은 브랜드 마크 유지).
+struct FeedSkeleton: View {
+    /// recent 피드는 첫 장이 피처드 커버라 커버 모양으로, 그 외는 전부 종이 카드 모양.
+    var leadingCover = false
+    var count = 5
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 16) {
+                ForEach(0..<count, id: \.self) { i in
+                    SkeletonCard(cover: leadingCover && i == 0)
+                }
+            }
+            .padding(.vertical, 16)
+            .frame(maxWidth: Metrics.readingColumn)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, Metrics.gutter)
+        }
+        .scrollDisabled(true)
+        .allowsHitTesting(false)
+        .accessibilityLabel(Text("불러오는 중"))
+    }
+}
+
+/// 한 장의 카드 자리표시 — 커버(4:3 한 덩어리) 또는 종이(태그·제목·발췌·메타 바). 절제된 shimmer.
+private struct SkeletonCard: View {
+    let cover: Bool
+
+    var body: some View {
+        Group {
+            if cover {
+                RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous)
+                    .fill(Palette.hairlineStrong)
+                    .aspectRatio(4.0 / 3.0, contentMode: .fit)
+            } else {
+                VStack(alignment: .leading, spacing: 11) {
+                    bar(0.4, 13)                         // 태그
+                    bar(0.92, 19)                        // 제목 1
+                    bar(0.66, 19)                        // 제목 2
+                    bar(0.98, 14).padding(.top, 2)       // 발췌 1
+                    bar(0.55, 14)                        // 발췌 2
+                    HStack(spacing: 8) {                 // 메타
+                        Circle().fill(Palette.hairlineStrong).frame(width: 16, height: 16)
+                        bar(0.3, 12)
+                    }
+                    .padding(.top, 2)
+                }
+                .padding(18)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    Palette.cardBg,
+                    in: RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous)
+                        .strokeBorder(Palette.cardBorder.opacity(0.6), lineWidth: 1)
+                }
+            }
+        }
+        .modifier(SkeletonShimmer())
+    }
+
+    private func bar(_ widthFraction: CGFloat, _ height: CGFloat) -> some View {
+        GeometryReader { geo in
+            Capsule()
+                .fill(Palette.hairlineStrong)
+                .frame(width: geo.size.width * widthFraction, height: height)
+        }
+        .frame(height: height)
+    }
+}
+
+/// 절제된 shimmer — 옅은 빛 띠가 카드를 한 번씩 느리게 쓸고 지나간다. Reduce Motion 이면 정지.
+private struct SkeletonShimmer: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var travel = false
+
+    func body(content: Content) -> some View {
+        content
+            .overlay {
+                if !reduceMotion {
+                    GeometryReader { geo in
+                        let w = geo.size.width
+                        LinearGradient(
+                            colors: [.clear, Color.white.opacity(0.45), .clear],
+                            startPoint: .leading, endPoint: .trailing)
+                            .frame(width: w * 0.55)
+                            .offset(x: travel ? w * 1.1 : -w * 0.65)
+                    }
+                    .allowsHitTesting(false)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
+            .onAppear {
+                guard !reduceMotion else { return }
+                withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: false)) {
+                    travel = true
+                }
+            }
     }
 }
