@@ -90,9 +90,9 @@ struct EngagementDock: View {
                 }
             }
             .foregroundStyle(model.liked ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
-            .frame(width: 52)
-            .frame(minHeight: 52)
-            .padding(.vertical, model.likeCount > 0 ? 7 : 0)
+            // 고정 52 원판 — 카운트가 0→1 로 뜰 때 캡슐이 커지며 독 전체가 밀려 재배치되던
+            // "좋아요 시 UI 깨짐"의 원인. 하트+숫자는 이 안에 들어오므로 크기를 고정한다.
+            .frame(width: 52, height: 52)
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)

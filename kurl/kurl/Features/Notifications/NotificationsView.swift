@@ -19,6 +19,8 @@ struct NotificationsView: View {
     /// refresh 가 in-flight loadMore 의 스테일 응답을 폐기하기 위한 세대 토큰.
     @State private var epoch = 0
     @State private var showLoginSheet = false
+    /// 헤드라인 본문 크기 — 작가 이름만 굵게 얹되 Dynamic Type 를 따른다(§body 15.5).
+    @ScaledMetric(relativeTo: .callout) private var headlineSize: CGFloat = 15.5
 
     var body: some View {
         ReadingColumn(spacing: 0) {
@@ -126,55 +128,69 @@ struct NotificationsView: View {
     }
 
     private func row(_ n: AppNotification) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            Circle()
-                .fill(n.read ? Color.clear : Palette.accent)
-                .frame(width: 6, height: 6)
-                .padding(.top, 7)
+        HStack(alignment: .top, spacing: 12) {
+            // 아바타 = 피드와 같은 문법(0.5px 링). 미읽음은 아바타 우하단의 그린 점 하나로 —
+            // 왼쪽 점 칸을 없애 행이 조여지고, 초록은 행당 한 점만(§10 색 규율).
             AvatarView(
                 author: Author(
                     id: 0, username: n.actorUsername ?? "?", bio: nil, avatarUrl: n.actorAvatarUrl),
-                size: 30)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(headline(n))
-                    .typeScale(.body)
-                    // 안 읽은 줄만 한 단계 굵게 — 눈이 그쪽으로 가게(읽은 줄은 §body 기본 regular).
-                    .fontWeight(n.read ? .regular : .medium)
-                    // 읽은 알림은 한 톤 가라앉혀 — 안 읽은 줄로 눈이 가게.
-                    .foregroundStyle(n.read ? Palette.secondary : Palette.ink)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
+                size: 38)
+                .overlay(alignment: .bottomTrailing) {
+                    if !n.read {
+                        Circle()
+                            .fill(Palette.accent)
+                            .frame(width: 10, height: 10)
+                            .overlay(Circle().strokeBorder(Palette.readingBg, lineWidth: 2))
+                            .offset(x: 1, y: 1)
+                    }
+                }
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                // 한 줄에 문장 + 오른쪽 끝 상대시간(행마다 시간이 한 열로 정렬돼 훑기 쉽게).
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    headline(n)
+                        .font(.system(size: headlineSize))
+                        .tracking(-0.1)
+                        // 읽은 알림은 한 톤 가라앉혀 — 안 읽은 줄로 눈이 가게. 이름은 이미 semibold.
+                        .foregroundStyle(n.read ? Palette.secondary : Palette.ink)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 4)
+                    if let date = n.createdAt {
+                        Text(date.relativeShort)
+                            .typeScale(.footnote)
+                            .foregroundStyle(Palette.faint)
+                            .fixedSize()
+                    }
+                }
                 if let subtitle = n.postTitle ?? n.seriesTitle {
                     Text(subtitle)
-                        .typeScale(.lede)
+                        .typeScale(.meta)
                         .foregroundStyle(Palette.secondary)
                         .lineLimit(1)
                 }
-                if let date = n.createdAt {
-                    Text(date.relativeShort)
-                        .typeScale(.meta)
-                        .foregroundStyle(Palette.secondary)
-                }
             }
-            Spacer(minLength: 0)
         }
-        .padding(.vertical, 12)
+        .padding(.vertical, 11)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
         .accessibilityValue(n.read ? Text(verbatim: "") : Text("읽지 않음"))
     }
 
-    private func headline(_ n: AppNotification) -> LocalizedStringKey {
-        let actor = n.actorUsername ?? String(localized: "알 수 없는 사용자")
+    /// 헤드라인 — 작가 이름만 semibold 로 얹어 위계를 세운다(색·크기는 호출측). 지역화 키는
+    /// 이름을 Text 로 끼워도 "%@…" 그대로라 ko/ja 번역이 유지된다.
+    private func headline(_ n: AppNotification) -> Text {
+        let actor = Text(n.actorUsername ?? String(localized: "알 수 없는 사용자"))
+            .fontWeight(.semibold)
         switch n.type {
-        case "LIKE": return "\(actor)님이 글을 좋아합니다"
-        case "COMMENT": return "\(actor)님이 댓글을 남겼습니다"
-        case "REPLY": return "\(actor)님이 답글을 남겼습니다"
-        case "FOLLOW": return "\(actor)님이 팔로우하기 시작했습니다"
-        case "SERIES_SUBSCRIBE": return "\(actor)님이 시리즈를 구독합니다"
-        case "NEW_POST": return "\(actor)님이 새 글을 발행했습니다"
-        case "MENTION": return "\(actor)님이 회원님을 언급했습니다"
-        default: return "\(actor)"
+        case "LIKE": return Text("\(actor)님이 글을 좋아합니다")
+        case "COMMENT": return Text("\(actor)님이 댓글을 남겼습니다")
+        case "REPLY": return Text("\(actor)님이 답글을 남겼습니다")
+        case "FOLLOW": return Text("\(actor)님이 팔로우하기 시작했습니다")
+        case "SERIES_SUBSCRIBE": return Text("\(actor)님이 시리즈를 구독합니다")
+        case "NEW_POST": return Text("\(actor)님이 새 글을 발행했습니다")
+        case "MENTION": return Text("\(actor)님이 회원님을 언급했습니다")
+        default: return actor
         }
     }
 
