@@ -116,6 +116,10 @@ struct PostDetailView: View {
         }
         .scrollIndicators(.hidden)
         .scrollDismissesKeyboard(.interactively)
+        // 컴포저 밖(본문)을 탭하면 키보드를 내린다 — 빈 컴포저는 그대로 닫히고(초안이 있으면
+        // 바는 남아 지킨다). 탭만 잡는 simultaneous 라 스크롤·보내기·첨부 탭은 그대로.
+        .simultaneousGesture(
+            composerActive ? TapGesture().onEnded { dismissComposerEditing() } : nil)
         .scrollEdgeEffectStyle(.soft, for: .bottom)
         // 제목이 내비바로 스밀 때까지(showNavTitle) 상단 엣지 효과를 끈다 — 투명 헤더 위
         // 제목이 깔끔히 떠 있게. 덱(임베드)은 항상 끈다.
@@ -218,9 +222,17 @@ struct PostDetailView: View {
             // 임베드 시 내비바는 호스트(발견)의 것 — 여러 장이 동시에 살아 있어
             // principal/공유를 끼우면 서로 싸운다.
             if !embedded {
+                ToolbarItem(placement: .principal) {
+                    Text(loadedTitle)
+                        .font(.system(size: 16 * unit, weight: .semibold))
+                        .lineLimit(1)
+                        .opacity(showNavTitle ? 1 : 0)
+                }
                 // 헤딩 2개 이상이면 목차 — 탭하면 그 자리로 스크롤(웹 post-toc 의 네이티브 번역).
+                // 제목·왼쪽은 깔끔히 두고 목차는 우측 크롬으로. 항해 보조라 액션 클러스터(공유·
+                // 분석·편집)와는 ToolbarSpacer 로 유리 그룹을 나눠 제 몫으로 읽히게 한다.
                 if headings.count >= 2 {
-                    ToolbarItem(placement: .topBarLeading) {
+                    ToolbarItem(placement: .primaryAction) {
                         Menu {
                             ForEach(headings, id: \.id) { h in
                                 Button {
@@ -238,12 +250,7 @@ struct PostDetailView: View {
                         .tint(.brand)
                         .accessibilityLabel("목차")
                     }
-                }
-                ToolbarItem(placement: .principal) {
-                    Text(loadedTitle)
-                        .font(.system(size: 16 * unit, weight: .semibold))
-                        .lineLimit(1)
-                        .opacity(showNavTitle ? 1 : 0)
+                    ToolbarSpacer(.fixed, placement: .primaryAction)
                 }
                 ToolbarItem(placement: .primaryAction) {
                     if let shareURL {
@@ -517,6 +524,12 @@ struct PostDetailView: View {
         guard case .loaded(let detail) = model.phase else { return nil }
         return URL(
             string: "\(Config.apiBase)/\(Config.preferredLanguageTag)/p/\(detail.author.username)/\(detail.post.slug)")
+    }
+
+    /// 본문 탭 시 키보드 사임 — GlassCommentBar 의 focus 변화가 이어받아 빈 컴포저를 닫는다.
+    private func dismissComposerEditing() {
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 
     // 읽기 흐름 우선: 커버 → 제목 → 작가 한 줄 → 본문. 태그와 좋아요는 다 읽은 뒤
@@ -1150,7 +1163,9 @@ struct GlassCommentBar: View {
                     .font(.system(size: 12 * metaUnit))
                     .foregroundStyle(Palette.danger)
             }
-            HStack(alignment: .bottom, spacing: 10) {
+            // 한 줄일 때 입력칸이 보내기 버튼(34pt)보다 낮게 깔려 위에 빈 띠가 생기던 것 —
+            // 가운데 정렬로 입력칸이 버튼과 나란히 올라와 키보드 바로 위에 딱 붙는다.
+            HStack(alignment: .center, spacing: 10) {
                 TextField(
                     replyTo == nil ? "댓글을 남겨보세요" : "답글을 남겨보세요",
                     text: $body_, axis: .vertical

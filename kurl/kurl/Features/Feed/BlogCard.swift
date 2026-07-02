@@ -31,6 +31,9 @@ struct BlogCard: View {
                 textCard
             }
         }
+        // 카드 전체를 한 장의 탭 면으로 — 커버 하단 타이포 띠가 탭에서 빠져(제목·메타를 눌러도
+        // 글이 안 열림) 있던 것을 카드 전면 히트 셰이프로 묶는다(태그 칩은 자기 링크 유지).
+        .contentShape(.rect)
         // 북마크한 글이면 우상단에 북마크 표식 — 피드에서 "이미 담아 둔 글"이 한눈에 보인다.
         .overlay(alignment: .topTrailing) {
             if BookmarkStore.shared.contains(item.id) {
@@ -265,8 +268,12 @@ private struct CoverBandSurface: ViewModifier {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     private var shape: UnevenRoundedRectangle {
+        // 하단은 카드 곡률(20)을 따르고, 사진과 만나는 위쪽 모서리도 각지지 않게 살짝 둥글린다
+        // (radiusMini) — 유리 띠가 종이 위 알약처럼 얹히도록.
         UnevenRoundedRectangle(
-            cornerRadii: .init(bottomLeading: BlogCard.radius, bottomTrailing: BlogCard.radius),
+            cornerRadii: .init(
+                topLeading: Metrics.radiusMini, bottomLeading: BlogCard.radius,
+                bottomTrailing: BlogCard.radius, topTrailing: Metrics.radiusMini),
             style: .continuous)
     }
 
