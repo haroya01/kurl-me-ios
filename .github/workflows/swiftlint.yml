@@ -18,5 +18,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: SwiftLint
-        uses: norio-nomura/action-swiftlint@3.2.2
+        uses: norio-nomura/action-swiftlint@3.2.1
         # 커스텀 룰은 순수 regex라 Linux 도커에서 동작. error만 잡으면 실패(warning은 어노테이션).
