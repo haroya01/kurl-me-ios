@@ -222,9 +222,17 @@ struct PostDetailView: View {
             // 임베드 시 내비바는 호스트(발견)의 것 — 여러 장이 동시에 살아 있어
             // principal/공유를 끼우면 서로 싸운다.
             if !embedded {
+                ToolbarItem(placement: .principal) {
+                    Text(loadedTitle)
+                        .font(.system(size: 16 * unit, weight: .semibold))
+                        .lineLimit(1)
+                        .opacity(showNavTitle ? 1 : 0)
+                }
                 // 헤딩 2개 이상이면 목차 — 탭하면 그 자리로 스크롤(웹 post-toc 의 네이티브 번역).
+                // 제목·왼쪽은 깔끔히 두고 목차는 우측 크롬으로. 항해 보조라 액션 클러스터(공유·
+                // 분석·편집)와는 ToolbarSpacer 로 유리 그룹을 나눠 제 몫으로 읽히게 한다.
                 if headings.count >= 2 {
-                    ToolbarItem(placement: .topBarLeading) {
+                    ToolbarItem(placement: .primaryAction) {
                         Menu {
                             ForEach(headings, id: \.id) { h in
                                 Button {
@@ -242,12 +250,7 @@ struct PostDetailView: View {
                         .tint(.brand)
                         .accessibilityLabel("목차")
                     }
-                }
-                ToolbarItem(placement: .principal) {
-                    Text(loadedTitle)
-                        .font(.system(size: 16 * unit, weight: .semibold))
-                        .lineLimit(1)
-                        .opacity(showNavTitle ? 1 : 0)
+                    ToolbarSpacer(.fixed, placement: .primaryAction)
                 }
                 ToolbarItem(placement: .primaryAction) {
                     if let shareURL {
