@@ -33,7 +33,7 @@ struct BookmarksView: View {
                 .padding(.top, 60)
             } else {
                 // 북마크 = 카탈로그(오프라인 책장) — 카드가 아니라 깔끔한 글 행(3원칙 표준).
-                // 오프라인 저장분은 메타에 ⤓ 배지로, 끝에 북마크 글리프.
+                // 화면 제목이 이미 "북마크"라 행마다 북마크 글리프는 중복 — 오프라인 저장분만 메타에 ⤓ 배지로.
                 LazyVStack(spacing: 0) {
                     ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                         NavigationLink(value: Route.post(username: item.username, slug: item.slug)) {
@@ -62,10 +62,6 @@ struct BookmarksView: View {
                                     .typeScale(.meta)
                                 }
                                 Spacer(minLength: 0)
-                                Image(systemName: "bookmark.fill")
-                                    .font(.system(size: 13))
-                                    .foregroundStyle(Palette.accentMarker.opacity(0.85))
-                                    .accessibilityHidden(true)
                             }
                             .padding(.vertical, 14)
                             .contentShape(Rectangle())

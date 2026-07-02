@@ -45,10 +45,17 @@ struct FeedRow: View {
             }
 
             if let urlString = item.ogImageUrl, let url = URL(string: urlString) {
-                AsyncImage(url: url) { image in
-                    image.resizable().scaledToFill()
-                } placeholder: {
-                    Rectangle().fill(Palette.hairline)
+                AsyncImage(url: url) { phase in
+                    if case .success(let image) = phase {
+                        image.resizable().scaledToFill()
+                    } else {
+                        // 로딩·실패 공통 — 맨 회색 면 대신 옅은 kurl 마크 워터마크(otherPostCover 와 같은 언어).
+                        ZStack {
+                            Palette.hairline
+                            KurlMark(drawn: [true, true, true], tint: Palette.hairlineStrong)
+                                .frame(width: 30, height: 18)
+                        }
+                    }
                 }
                 .frame(width: 96, height: 72)
                 .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
