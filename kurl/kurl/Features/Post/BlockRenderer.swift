@@ -242,8 +242,8 @@ private struct CodeBlockView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .background(Palette.codeBg, in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Palette.hairlineStrong.opacity(0.4), lineWidth: 1))
+        .background(Palette.codeBg, in: RoundedRectangle(cornerRadius: Metrics.radiusControl))
+        .overlay(RoundedRectangle(cornerRadius: Metrics.radiusControl).strokeBorder(Palette.hairlineStrong.opacity(0.4), lineWidth: 1))
         .padding(.top, 4)
         .padding(.bottom, 16)
     }
@@ -425,7 +425,7 @@ private struct ImageBlockView: View {
                         image.resizable().scaledToFit().transition(.opacity)
                     case .failure:
                         // 로드 실패 — 무한 스피너 대신 또렷한 안내(다시 시도는 글 새로고침으로).
-                        RoundedRectangle(cornerRadius: 16)
+                        RoundedRectangle(cornerRadius: Metrics.radiusMini)
                             .fill(Palette.hairline)
                             .frame(height: 200)
                             .overlay {
@@ -438,14 +438,14 @@ private struct ImageBlockView: View {
                                 .foregroundStyle(Palette.secondary)
                             }
                     default:
-                        RoundedRectangle(cornerRadius: 16)
+                        RoundedRectangle(cornerRadius: Metrics.radiusMini)
                             .fill(Palette.hairline)
                             .frame(height: 200)
                             .overlay(KurlLoadingMark())
                             .transition(.opacity)
                     }
                 }
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusMini))
                 .accessibilityLabel(Text(
                     payload.caption?.isEmpty == false
                         ? payload.caption! : String(localized: "본문 이미지")))
@@ -614,7 +614,7 @@ private struct EmbedLinkCard: View {
                 .padding(14)
                 .frame(maxWidth: .infinity)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 12).strokeBorder(Palette.hairlineStrong, lineWidth: 1)
+                    RoundedRectangle(cornerRadius: Metrics.radiusControl).strokeBorder(Palette.hairlineStrong, lineWidth: 1)
                 )
             }
             .padding(.vertical, 6)
@@ -749,7 +749,7 @@ private struct CtaBlockView: View {
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(Palette.accentFill, in: RoundedRectangle(cornerRadius: 12))
+                    .background(Palette.accentFill, in: RoundedRectangle(cornerRadius: Metrics.radiusControl))
             }
             .padding(.vertical, 6)
         }

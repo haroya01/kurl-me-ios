@@ -382,6 +382,8 @@ struct FeedPlaceholder: View {
     let actionTitle: LocalizedStringKey
     var prominent: Bool = false
     let action: () -> Void
+    /// 주액션 라벨도 시스템 글자 크기를 따른다(제목·설명은 이미 typeScale 로 스케일).
+    @ScaledMetric(relativeTo: .headline) private var actionSize: CGFloat = 15
 
     var body: some View {
         VStack(spacing: 0) {
@@ -421,7 +423,7 @@ struct FeedPlaceholder: View {
         if prominent {
             Button(action: action) {
                 Text(actionTitle)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: actionSize, weight: .semibold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 22)
                     .padding(.vertical, 12)

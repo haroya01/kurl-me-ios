@@ -235,11 +235,26 @@ extension View {
 }
 
 /// 카드 press — 행 하이라이트 대신 카드가 살짝 가라앉았다 스프링으로 돌아온다.
+/// reduce-motion 이면 스프링 바운스를 걷고 조용한 딤으로만 눌린다(§1.6 모핑·바운스 끔).
 struct CardButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.975 : 1)
-            .animation(.spring(response: 0.32, dampingFraction: 0.72), value: configuration.isPressed)
+        Press(configuration: configuration)
+    }
+
+    private struct Press: View {
+        let configuration: ButtonStyleConfiguration
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+        var body: some View {
+            configuration.label
+                .scaleEffect(configuration.isPressed && !reduceMotion ? 0.975 : 1)
+                .opacity(configuration.isPressed && reduceMotion ? 0.82 : 1)
+                .animation(
+                    reduceMotion
+                        ? .easeOut(duration: 0.12)
+                        : .spring(response: 0.32, dampingFraction: 0.72),
+                    value: configuration.isPressed)
+        }
     }
 }
 

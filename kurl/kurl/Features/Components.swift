@@ -275,17 +275,19 @@ final class ToastCenter {
 struct ToastHost: ViewModifier {
     private var center: ToastCenter { .shared }
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// 유리 캡슐의 한 줄 — 13pt 를 바닥으로 시스템 글자 크기 설정을 따른다(고정 크기 우회 종식).
+    @ScaledMetric(relativeTo: .footnote) private var textSize: CGFloat = 13
 
     func body(content: Content) -> some View {
         content.overlay(alignment: .bottom) {
             if let message = center.message {
                 HStack(spacing: 14) {
                     Text(message)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: textSize, weight: .medium))
                         .foregroundStyle(.primary)
                     if let label = center.actionLabel {
                         Button(label) { center.runAction() }
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: textSize, weight: .semibold))
                             .foregroundStyle(Palette.link)
                             .buttonStyle(.plain)
                     }

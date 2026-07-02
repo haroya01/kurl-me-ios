@@ -39,8 +39,16 @@ struct NotificationsView: View {
                 }
                 .padding(.top, 60)
             } else if items.isEmpty {
-                ContentUnavailableView("알림이 없습니다", systemImage: "bell")
-                    .padding(.top, 60)
+                // 막다른 길 금지 — 알림은 사람을 팔로우하고 반응하면 흐른다. 발견으로 이어준다.
+                ContentUnavailableView {
+                    Label("아직 알림이 없어요", systemImage: "bell")
+                } description: {
+                    Text("팔로우한 작가의 새 글·좋아요·댓글 소식이 여기 모여요.")
+                } actions: {
+                    Button("발견에서 작가 찾기") { TabRouter.shared.selection = 1 }
+                        .foregroundStyle(Palette.accent)
+                }
+                .padding(.top, 60)
             } else {
                 list
             }

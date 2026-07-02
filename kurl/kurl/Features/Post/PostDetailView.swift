@@ -911,7 +911,7 @@ struct PostDetailView: View {
                     }
                     .padding(.horizontal, 13)
                     .padding(.vertical, 11)
-                    .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: 12))
+                    .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radiusControl))
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -1186,7 +1186,7 @@ struct GlassCommentBar: View {
         }
         .padding(.horizontal, 15)
         .padding(.vertical, 11)
-        .glassEffect(.regular, in: .rect(cornerRadius: 24))
+        .glassEffect(.regular, in: .rect(cornerRadius: GlassTokens.panelRadius))
         .padding(.horizontal, 10)
         .padding(.bottom, 6)
         .onAppear { focused = true }
