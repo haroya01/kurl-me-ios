@@ -69,6 +69,20 @@ final class MarkdownInputTextView: UITextView {
             targetCaret = range.location + off
             stop.pointee = true
         }
+        // 그려진 이미지 썸네일을 탭하면 그 이미지 줄로 커서를 넣는다 — 폭·캡션·삭제 편집 바가 뜨게(표와 대칭).
+        // 마크다운(`![](…)`)이 0폭으로 숨겨져 있어 사진을 탭해도 커서가 안 걸리던 사각을 없앤다.
+        if targetCaret == nil {
+            storage.enumerateAttribute(.kurlImageURL, in: NSRange(location: 0, length: storage.length), options: []) { value, range, stop in
+                guard let str = value as? String, let url = URL(string: str) else { return }
+                let gr = layoutManager.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+                let used = layoutManager.boundingRect(forGlyphRange: gr, in: textContainer)
+                let imgTop = used.maxY + MarkdownImage.topPad
+                let imgRect = CGRect(x: pad, y: imgTop, width: availWidth, height: MarkdownImage.imageHeight(for: url, width: availWidth))
+                guard imgRect.contains(p) else { return }
+                targetCaret = range.location
+                stop.pointee = true
+            }
+        }
         guard let caret = targetCaret else { return }
         // 기본 탭 처리(엉뚱한 커서 배치) 다음에 덮어쓰도록 다음 루프에서 적용 → 해당 행이 활성화돼 드러난다.
         DispatchQueue.main.async { [weak self] in
@@ -160,6 +174,8 @@ struct MarkdownTextView: UIViewRepresentable {
         textView.adjustsFontForContentSizeCategory = true
         textView.backgroundColor = .clear
         textView.textColor = UIColor(Palette.body)
+        // 캐럿·선택 강조를 브랜드 그린으로 — 종이 위에서 캐럿이 또렷하고, 선택도 브랜드 색을 입는다.
+        textView.tintColor = UIColor(Palette.accent)
         textView.alwaysBounceVertical = true
         textView.keyboardDismissMode = .interactive
         textView.autocapitalizationType = .none
@@ -380,8 +396,8 @@ struct MarkdownTextView: UIViewRepresentable {
     }
 }
 
-/// 캐럿이 놓인 곳의 성격 — 컴포즈가 그에 맞는 컨텍스트 편집 바(표/이미지)를 띄운다.
-enum EditorCaretContext { case none, table, image, video }
+/// 캐럿이 놓인 곳의 성격 — 컴포즈가 그에 맞는 컨텍스트 편집 바(표/이미지/목록)를 띄운다.
+enum EditorCaretContext { case none, table, image, video, list }
 
 /// 스니펫 바 → 캔버스 다리. 커서/선택 기준 삽입을 UIKit 의 진짜 커서로 수행한다.
 /// 모든 동작은 undo 스택을 보존하고(`replace(_:withText:)`), 조합 중에는 거부한다.
@@ -683,9 +699,14 @@ final class MarkdownEditorController {
         insertBlock("\n\n\(url)\n\n", caretOffsetFromStart: nil)
     }
 
-    /// 현재 줄 맨 앞에 2칸 들여쓰기 — 리스트 항목을 한 단계 안으로(중첩). 리더가 깊이대로 렌더.
+    /// 현재 줄(또는 선택에 걸친 모든 줄) 맨 앞에 2칸 들여쓰기 — 리스트 항목을 한 단계 안으로(중첩).
+    /// 리더가 깊이대로 렌더. 선택이 여러 줄이면 각 줄에 2칸을 더하고 블록 전체를 다시 선택한다.
     func indentLine() {
         guard let textView, textView.markedTextRange == nil else { return }
+        if textView.selectedRange.length > 0 {
+            transformSelectedLines(textView) { $0.isEmpty ? $0 : "  " + $0 }
+            return
+        }
         let ns = textView.text as NSString
         let caret = textView.selectedRange
         let lineStart = ns.lineRange(for: NSRange(location: min(caret.location, ns.length), length: 0)).location
@@ -697,9 +718,13 @@ final class MarkdownEditorController {
         MarkdownSyntaxHighlighter.apply(to: textView)
     }
 
-    /// 현재 줄 앞 들여쓰기 한 단계(최대 2칸) 제거.
+    /// 현재 줄(또는 선택에 걸친 모든 줄) 앞 들여쓰기 한 단계(최대 2칸) 제거.
     func outdentLine() {
         guard let textView, textView.markedTextRange == nil else { return }
+        if textView.selectedRange.length > 0 {
+            transformSelectedLines(textView) { Self.dropLeadingSpaces($0, upTo: 2) }
+            return
+        }
         let ns = textView.text as NSString
         let caret = textView.selectedRange
         let lineStart = ns.lineRange(for: NSRange(location: min(caret.location, ns.length), length: 0)).location
@@ -715,6 +740,34 @@ final class MarkdownEditorController {
         else { return }
         textView.replace(range, withText: "")
         textView.selectedRange = NSRange(location: max(lineStart, caret.location - remove), length: 0)
+        MarkdownSyntaxHighlighter.apply(to: textView)
+    }
+
+    /// 선행 공백을 최대 n칸 뗀다(내어쓰기 한 단계).
+    private static func dropLeadingSpaces(_ line: String, upTo n: Int) -> String {
+        var removed = 0
+        var s = Substring(line)
+        while removed < n, s.first == " " { s = s.dropFirst(); removed += 1 }
+        return String(s)
+    }
+
+    /// 선택에 걸친 각 줄을 변환하고(들여쓰기/내어쓰기) 바뀐 블록 전체를 다시 선택한다 — 무엇이 바뀌었는지 보이게.
+    private func transformSelectedLines(_ textView: UITextView, _ transform: (String) -> String) {
+        let ns = textView.text as NSString
+        let block = ns.lineRange(for: textView.selectedRange)
+        let text = ns.substring(with: block)
+        let hadTrailingNewline = text.hasSuffix("\n")
+        let core = hadTrailingNewline ? String(text.dropLast()) : text
+        let newCore = core.components(separatedBy: "\n").map(transform).joined(separator: "\n")
+        let newText = newCore + (hadTrailingNewline ? "\n" : "")
+        guard let s = textView.position(from: textView.beginningOfDocument, offset: block.location),
+            let e = textView.position(from: s, offset: block.length),
+            let r = textView.textRange(from: s, to: e)
+        else { return }
+        textView.replace(r, withText: newText)
+        let limit = (textView.text as NSString).length
+        textView.selectedRange = NSRange(
+            location: block.location, length: min((newText as NSString).length, limit - block.location))
         MarkdownSyntaxHighlighter.apply(to: textView)
     }
 
@@ -742,13 +795,37 @@ final class MarkdownEditorController {
         }
         let line = ns.substring(with: lineRange)
         // 매 커서 이동마다 전체 문서를 훑지 않게 — 캐럿 줄에 '|'·'!'·'://' 가 있을 때만 정밀 판별한다.
+        // 목록은 줄머리만 보면 되므로(문서 스캔 없이) 마지막에 싸게 판정한다.
         let result: EditorCaretContext =
             (line.contains("|") && tableBlock(in: textView) != nil) ? .table
             : (line.contains("!") && imageOnCaretLine(in: textView) != nil) ? .image
             : (line.contains("://") && embedLineRange(in: textView) != nil) ? .video
+            : Self.isListLine(line) ? .list
             : .none
         contextCache = (ns.length, lineRange.location, result)
         return result
+    }
+
+    /// 줄머리가 글머리(`- `·`* `) 또는 번호(`1. `) 목록인가 — 들여쓰기 바를 띄울지 판정.
+    static func isListLine(_ line: String) -> Bool {
+        let body = line.drop(while: { $0 == " " })
+        if body.hasPrefix("- ") || body.hasPrefix("* ") { return true }
+        let digits = body.prefix(while: { $0.isNumber })
+        return !digits.isEmpty && body.dropFirst(digits.count).hasPrefix(". ")
+    }
+
+    /// 캐럿 줄의 선행 공백 칸 수 — 내어쓰기 가능 여부(depth 0 이면 비활성) 판정용.
+    func currentLineIndentSpaces() -> Int {
+        guard let textView else { return 0 }
+        let ns = textView.text as NSString
+        let caret = min(textView.selectedRange.location, ns.length)
+        let lineStart = ns.lineRange(for: NSRange(location: caret, length: 0)).location
+        var n = 0
+        while lineStart + n < ns.length,
+            ns.substring(with: NSRange(location: lineStart + n, length: 1)) == " " {
+            n += 1
+        }
+        return n
     }
 
     private struct TableBlock {
@@ -1125,6 +1202,19 @@ final class MarkdownEditorController {
         return true
     }
 
+    /// 방금 되돌린 편집을 다시 적용한다(에디터 크롬의 '다시실행'). 다시 했으면 true.
+    @discardableResult
+    func redoLastEdit() -> Bool {
+        guard let textView, let undo = textView.undoManager, undo.canRedo else { return false }
+        undo.redo()
+        MarkdownSyntaxHighlighter.apply(to: textView)
+        return true
+    }
+
+    /// 실행취소/다시실행 가능 여부 — 스니펫 바의 버튼 비활성 상태를 라이브로 반영한다.
+    var canUndo: Bool { textView?.undoManager?.canUndo ?? false }
+    var canRedo: Bool { textView?.undoManager?.canRedo ?? false }
+
     // MARK: 동영상/임베드 줄 — 단독 URL 줄(백엔드가 EMBED 로 렌더). 편집 바로 지우거나 바꾼다.
 
     /// 캐럿 줄이 단독 http(s) URL(임베드)이면 그 줄 범위를 돌려준다.
@@ -1198,6 +1288,8 @@ extension NSAttributedString.Key {
     /// 목록 줄 첫 글자에 붙는 표식 — 값은 그릴 불릿/번호("•"·"1."). 캐럿이 그 줄 밖일 때 원시 마커("- ")는
     /// 0폭으로 숨기고 행잉 인덴트로 본문을 들이며, 레이아웃 매니저가 이 자리에 불릿/번호를 그린다.
     static let kurlListBullet = NSAttributedString.Key("kurlListBullet")
+    /// 인용(`> `) 줄에 붙는 표식 — 레이아웃 매니저가 그 줄(들) 왼단에 강조 바를 그린다(리더 .quote 와 같은 문법).
+    static let kurlQuoteBar = NSAttributedString.Key("kurlQuoteBar")
 }
 
 /// 본문에 진짜 그리드로 그리는 표(WYSIWYG) — 캐럿이 표 밖일 때만. 원시 `| … |`·`---` 는 0폭으로 숨기고
@@ -1283,14 +1375,21 @@ final class ImageThumbCache {
         return c
     }()
     private var loading = Set<NSURL>()
-    /// 404·비이미지 등 실패한 URL — 다시 받지 않는다(매 리드로우/키 입력마다의 요청 폭주 차단).
-    private var failed = Set<NSURL>()
+    /// URL 별 시도 횟수 — 실패해도 곧바로 영구 블랙리스트하지 않고 백오프로 몇 번 더 받아본다.
+    /// 갓 업로드한 이미지는 S3/CDN 전파가 늦어 첫 GET 이 404·오류일 수 있는데(그새 본문엔 이미 넣음),
+    /// 예전엔 그 한 번의 비-2xx 로 URL 을 영구 블랙리스트해 썸네일이 끝내 안 뜨던(첨부해도 안 보이던) 버그가 있었다.
+    private var attempts: [NSURL: Int] = [:]
+    private static let maxAttempts = 5
+    /// 재시도 백오프(초) — 전파 지연을 흡수한다. 시도가 늘수록 간격을 벌려 요청 폭주를 막는다.
+    private static let backoff: [TimeInterval] = [0.5, 1.2, 2.5, 5.0]
 
     /// 캐시에 있으면 즉시 반환, 없으면 비동기로 받아 캐시 후 onLoad 호출(메인 스레드).
+    /// 실패(전송오류·비-2xx·디코드 실패)면 백오프 뒤 onLoad 로 리드로우를 유도해(→ 재호출) 최대 maxAttempts 회 재시도.
     func image(for url: URL, onLoad: @escaping () -> Void) -> UIImage? {
         let key = url as NSURL
         if let img = cache.object(forKey: key) { return img }
-        guard !loading.contains(key), !failed.contains(key) else { return nil }
+        // 로딩 중이거나 재시도 한도를 소진했으면 새 요청을 걸지 않는다(리드로우마다의 폭주 차단).
+        guard !loading.contains(key), (attempts[key] ?? 0) < Self.maxAttempts else { return nil }
         loading.insert(key)
         URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
             DispatchQueue.main.async {
@@ -1301,11 +1400,16 @@ final class ImageThumbCache {
                 if error == nil, statusOK, let data, let img = UIImage(data: data) {
                     let cost = Int(img.size.width * img.size.height * img.scale * img.scale * 4)
                     self.cache.setObject(img, forKey: key, cost: cost)
+                    self.attempts[key] = nil
                     onLoad()
-                } else if error == nil {
-                    // 응답은 왔지만 비-2xx 거나 디코드 실패 = 확정적 실패만 블랙리스트한다.
-                    // 전송 오류(error != nil, 오프라인 등)는 일시적일 수 있어 넣지 않는다(다음 리드로우 재시도).
-                    self.failed.insert(key)
+                } else {
+                    // 실패 — 한 번 더 세고, 한도 안이면 백오프 뒤 리드로우를 부른다(→ image(for:) 재호출 → 다음 시도).
+                    let n = (self.attempts[key] ?? 0) + 1
+                    self.attempts[key] = n
+                    if n < Self.maxAttempts {
+                        let delay = Self.backoff[min(n - 1, Self.backoff.count - 1)]
+                        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: onLoad)
+                    }
                 }
             }
         }.resume()
@@ -1329,6 +1433,22 @@ final class MarkdownImageLayoutManager: NSLayoutManager {
         let charRange = characterRange(forGlyphRange: glyphsToShow, actualGlyphRange: nil)
         let pad = container.lineFragmentPadding
         let availWidth = max(0, container.size.width - pad * 2)
+
+        // 인용 — 왼단에 강조 바를 그린다(리더 BlockRenderer .quote 의 accentSoft 바와 같은 문법).
+        // 줄 전체 범위에 표식이 붙어 있어 boundingRect 이 줄바꿈 포함 여러 시각 줄의 높이를 덮는다.
+        storage.enumerateAttribute(.kurlQuoteBar, in: charRange, options: []) { value, range, _ in
+            guard value != nil, let ctx = UIGraphicsGetCurrentContext() else { return }
+            let gr = glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+            let used = boundingRect(forGlyphRange: gr, in: container)
+            let bar = CGRect(
+                x: origin.x + pad + 4, y: origin.y + used.minY + 1,
+                width: 3, height: max(0, used.height - 2))
+            guard bar.height > 1 else { return }
+            ctx.saveGState()
+            UIColor(Palette.accentSoft).setFill()
+            UIBezierPath(roundedRect: bar, cornerRadius: 1.5).fill()
+            ctx.restoreGState()
+        }
 
         // 목록 — 원시 마커("- ")가 숨겨진 자리에 불릿/번호를 그린다(본문은 행잉 인덴트로 들어가 있음).
         storage.enumerateAttribute(.kurlListBullet, in: charRange, options: []) { value, range, _ in
@@ -1379,8 +1499,14 @@ final class MarkdownImageLayoutManager: NSLayoutManager {
                         x: box.midX - size.width / 2, y: box.midY - size.height / 2,
                         width: size.width, height: size.height))
             } else {
+                // 로딩 중(또는 재시도 대기) — 빈 회색 칸이 "안 떴다"로 읽히지 않게 사진 아이콘을 얹어 자리를 잡는다.
                 UIColor.secondarySystemFill.setFill()
                 UIBezierPath(roundedRect: box, cornerRadius: 12).fill()
+                if let icon = UIImage(systemName: "photo")?
+                    .withConfiguration(UIImage.SymbolConfiguration(pointSize: 30, weight: .regular))
+                    .withTintColor(UIColor(Palette.secondary), renderingMode: .alwaysOriginal) {
+                    icon.draw(at: CGPoint(x: box.midX - icon.size.width / 2, y: box.midY - icon.size.height / 2))
+                }
             }
             ctx.restoreGState()
         }
