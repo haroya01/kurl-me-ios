@@ -551,7 +551,7 @@ struct PostDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     // 딥링크 도착 시 잠깐 강조(그린 워시) — 그 문장이 "여기야" 신호.
                     .background(
-                        flashBlockId == block.id ? Palette.accent.opacity(0.10) : Color.clear,
+                        flashBlockId == block.id ? Palette.highlightFlash : Color.clear,
                         in: RoundedRectangle(cornerRadius: 8))
                     // 목차가 이 블록으로 점프할 수 있게 앵커 — 헤딩만 쓰지만 전부 달아도 무해.
                     .id(block.id)

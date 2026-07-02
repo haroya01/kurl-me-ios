@@ -136,7 +136,7 @@ struct MyHighlightsView: View {
                 .padding(.horizontal, 8)
                 .padding(.vertical, 5)
                 .background(
-                    Palette.accent.opacity(0.16),
+                    Palette.highlightWash,
                     in: RoundedRectangle(cornerRadius: Metrics.radiusThumb))
                 .padding(.vertical, 9)
                 .frame(maxWidth: .infinity, alignment: .leading)

@@ -77,7 +77,7 @@ struct SelectableProseText: UIViewRepresentable {
         let painted = NSMutableAttributedString(attributedString: base)
         let hay = painted.string as NSString
         let total = painted.length
-        let wash = UIColor(Palette.accent).withAlphaComponent(0.18)
+        let wash = UIColor(Palette.highlightWash)
         for mark in highlights {
             var painted_range: NSRange?
             // 정밀: 저장된 오프셋이 이 렌더 텍스트에 들어맞으면 그 span 을 칠한다(서식 교차 포함).
@@ -103,7 +103,7 @@ struct SelectableProseText: UIViewRepresentable {
             // 메모/답글이 있는 하이라이트엔 강조 밑줄 — "탭하면 대화" 신호.
             if mark.hasThread {
                 painted.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: range)
-                painted.addAttribute(.underlineColor, value: UIColor(Palette.accent), range: range)
+                painted.addAttribute(.underlineColor, value: UIColor(Palette.highlightUnderline), range: range)
             }
         }
         tv.attributedText = painted
