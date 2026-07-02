@@ -305,7 +305,8 @@ struct ComposeView: View {
                 caretOnImage = ctx == .image
                 caretOnVideo = ctx == .video
             },
-            onPasteImageURL: { url in importPastedImage(url) })
+            onPasteImageURL: { url in importPastedImage(url) },
+            onPasteImages: { images in uploadPastedImages(images) })
         .padding(.horizontal, Metrics.gutter - 4)
         .overlay(alignment: .topLeading) {
             // 마크다운 지식을 요구하지 않는다 — 탭하면 도구 막대가 떠서 제목·목록·이미지·표를 넣는다.
@@ -1446,6 +1447,38 @@ struct ComposeView: View {
             editorController.insertImageMarkdown(url: finalURL)
             syncMarkdownFromEditor()
             editorController.focus()
+        }
+    }
+
+    /// 클립보드 이미지 붙여넣기 — 스크린샷·노션 등에서 복사한 이미지 바이트를 순서대로 업로드해 커서
+    /// 자리에 넣는다. 사진 선택과 달리 여러 장이 한 번에 올 수 있어 캡션 다이얼로그는 생략한다
+    /// (캡션은 이미지 컨텍스트 바로 나중에 붙일 수 있다).
+    private func uploadPastedImages(_ images: [UIImage]) {
+        guard !images.isEmpty, !uploadingBodyImage else { return }
+        uploadingBodyImage = true
+        ToastCenter.shared.show(String(localized: "이미지 올리는 중…"))
+        Task {
+            defer { uploadingBodyImage = false }
+            var failed = 0
+            for image in images {
+                guard let jpeg = image.jpegData(compressionQuality: 0.88) else {
+                    failed += 1
+                    continue
+                }
+                do {
+                    let id = try await ensurePost()
+                    let uploaded = try await WriteAPI.uploadImage(postId: id, jpegData: jpeg)
+                    editorController.insertImageMarkdown(url: uploaded.url)
+                    maybeSetCoverFromBodyImage(url: uploaded.url, key: uploaded.key)
+                } catch {
+                    failed += 1
+                }
+            }
+            syncMarkdownFromEditor()
+            editorController.focus()
+            if failed > 0 {
+                ToastCenter.shared.show(String(localized: "이미지 \(failed)장을 올리지 못했습니다"))
+            }
         }
     }
 
