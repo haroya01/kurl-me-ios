@@ -1375,14 +1375,21 @@ final class ImageThumbCache {
         return c
     }()
     private var loading = Set<NSURL>()
-    /// 404·비이미지 등 실패한 URL — 다시 받지 않는다(매 리드로우/키 입력마다의 요청 폭주 차단).
-    private var failed = Set<NSURL>()
+    /// URL 별 시도 횟수 — 실패해도 곧바로 영구 블랙리스트하지 않고 백오프로 몇 번 더 받아본다.
+    /// 갓 업로드한 이미지는 S3/CDN 전파가 늦어 첫 GET 이 404·오류일 수 있는데(그새 본문엔 이미 넣음),
+    /// 예전엔 그 한 번의 비-2xx 로 URL 을 영구 블랙리스트해 썸네일이 끝내 안 뜨던(첨부해도 안 보이던) 버그가 있었다.
+    private var attempts: [NSURL: Int] = [:]
+    private static let maxAttempts = 5
+    /// 재시도 백오프(초) — 전파 지연을 흡수한다. 시도가 늘수록 간격을 벌려 요청 폭주를 막는다.
+    private static let backoff: [TimeInterval] = [0.5, 1.2, 2.5, 5.0]
 
     /// 캐시에 있으면 즉시 반환, 없으면 비동기로 받아 캐시 후 onLoad 호출(메인 스레드).
+    /// 실패(전송오류·비-2xx·디코드 실패)면 백오프 뒤 onLoad 로 리드로우를 유도해(→ 재호출) 최대 maxAttempts 회 재시도.
     func image(for url: URL, onLoad: @escaping () -> Void) -> UIImage? {
         let key = url as NSURL
         if let img = cache.object(forKey: key) { return img }
-        guard !loading.contains(key), !failed.contains(key) else { return nil }
+        // 로딩 중이거나 재시도 한도를 소진했으면 새 요청을 걸지 않는다(리드로우마다의 폭주 차단).
+        guard !loading.contains(key), (attempts[key] ?? 0) < Self.maxAttempts else { return nil }
         loading.insert(key)
         URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
             DispatchQueue.main.async {
@@ -1393,11 +1400,16 @@ final class ImageThumbCache {
                 if error == nil, statusOK, let data, let img = UIImage(data: data) {
                     let cost = Int(img.size.width * img.size.height * img.scale * img.scale * 4)
                     self.cache.setObject(img, forKey: key, cost: cost)
+                    self.attempts[key] = nil
                     onLoad()
-                } else if error == nil {
-                    // 응답은 왔지만 비-2xx 거나 디코드 실패 = 확정적 실패만 블랙리스트한다.
-                    // 전송 오류(error != nil, 오프라인 등)는 일시적일 수 있어 넣지 않는다(다음 리드로우 재시도).
-                    self.failed.insert(key)
+                } else {
+                    // 실패 — 한 번 더 세고, 한도 안이면 백오프 뒤 리드로우를 부른다(→ image(for:) 재호출 → 다음 시도).
+                    let n = (self.attempts[key] ?? 0) + 1
+                    self.attempts[key] = n
+                    if n < Self.maxAttempts {
+                        let delay = Self.backoff[min(n - 1, Self.backoff.count - 1)]
+                        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: onLoad)
+                    }
                 }
             }
         }.resume()
@@ -1487,8 +1499,14 @@ final class MarkdownImageLayoutManager: NSLayoutManager {
                         x: box.midX - size.width / 2, y: box.midY - size.height / 2,
                         width: size.width, height: size.height))
             } else {
+                // 로딩 중(또는 재시도 대기) — 빈 회색 칸이 "안 떴다"로 읽히지 않게 사진 아이콘을 얹어 자리를 잡는다.
                 UIColor.secondarySystemFill.setFill()
                 UIBezierPath(roundedRect: box, cornerRadius: 12).fill()
+                if let icon = UIImage(systemName: "photo")?
+                    .withConfiguration(UIImage.SymbolConfiguration(pointSize: 30, weight: .regular))
+                    .withTintColor(UIColor(Palette.secondary), renderingMode: .alwaysOriginal) {
+                    icon.draw(at: CGPoint(x: box.midX - icon.size.width / 2, y: box.midY - icon.size.height / 2))
+                }
             }
             ctx.restoreGState()
         }

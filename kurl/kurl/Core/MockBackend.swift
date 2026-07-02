@@ -11,6 +11,10 @@ import Foundation
 @MainActor
 enum MockBackend {
 
+    /// 목 모드에서 이미지 업로드가 돌려주는, 실제로 로드되는 이미지 URL(첨부→표시 검증이 가능하게).
+    static let mockUploadedImageURL =
+        "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=1200&q=80"
+
     // MARK: 상태
 
     private struct MockPost {
@@ -1163,13 +1167,14 @@ enum MockBackend {
         if method == "POST", parts.count == 4, parts[0] == "posts", parts[2] == "images", parts[3] == "presign" {
             return json([
                 "uploadUrl": "https://mock-upload.invalid/put",
-                "publicUrl": "https://cdn.kurl.me/mock-cover.jpg",
+                // 실제로 로드되는 이미지 — 예전 cdn.kurl.me/mock-cover.jpg 는 404 라 목 모드에서 썸네일이 안 떴다.
+                "publicUrl": Self.mockUploadedImageURL,
                 "key": "mock/cover.jpg", "contentType": "image/jpeg", "maxBytes": 5_242_880,
             ])
         }
 
         if method == "POST", parts.count == 4, parts[0] == "posts", parts[2] == "images", parts[3] == "commit" {
-            return json(["imageUrl": "https://cdn.kurl.me/mock-cover.jpg", "key": "mock/cover.jpg"])
+            return json(["imageUrl": Self.mockUploadedImageURL, "key": "mock/cover.jpg"])
         }
 
         return nil
