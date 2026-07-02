@@ -12,6 +12,8 @@ final class MarkdownInputTextView: UITextView {
     var onPasteURL: ((_ url: String, _ range: NSRange) -> Void)?
     /// 붙여넣은 단일 URL 이 이미지 파일을 가리킬 때 — 단축 대신 호스트가 재호스팅 후 `![](url)` 로 넣는다.
     var onPasteImageURL: ((_ url: String) -> Void)?
+    /// 클립보드에 이미지 바이트가 실려 있을 때(스크린샷·노션 이미지 복사 등) — 호스트가 업로드 후 `![](url)` 로 넣는다.
+    var onPasteImages: ((_ images: [UIImage]) -> Void)?
 
     /// TextKit 1 스택을 직접 구성 — 커스텀 NSLayoutManager 가 `![](url)` 줄 아래 예약 공간에
     /// 실제 이미지 썸네일을 그린다(본문 텍스트는 마크다운 원문 그대로 유지 → 자동저장·동기화 불변).
@@ -78,6 +80,15 @@ final class MarkdownInputTextView: UITextView {
     }
 
     override func paste(_ sender: Any?) {
+        // 이미지 바이트가 실려 있으면 텍스트 표현보다 이미지를 우선한다 — 기본 붙여넣기는 이미지를
+        // 버리고 빈 텍스트/객체 치환문자만 남긴다.
+        if markedTextRange == nil, let onPasteImages, UIPasteboard.general.hasImages {
+            let images = UIPasteboard.general.images ?? []
+            if !images.isEmpty {
+                onPasteImages(images)
+                return
+            }
+        }
         if markedTextRange == nil,
             let raw = UIPasteboard.general.string,
             let url = Self.singleURL(in: raw) {
@@ -92,6 +103,14 @@ final class MarkdownInputTextView: UITextView {
             return
         }
         super.paste(sender)
+    }
+
+    // 클립보드가 이미지뿐이면 기본 UITextView 는 '붙여넣기' 메뉴를 감춘다 — 이미지 훅이 있을 땐 살린다.
+    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+        if action == #selector(paste(_:)), onPasteImages != nil, UIPasteboard.general.hasImages {
+            return true
+        }
+        return super.canPerformAction(action, withSender: sender)
     }
 
     /// 공백·줄바꿈 없는 단일 http(s) URL 만. 본문 문단 통째 붙여넣기는 그대로 둔다.
@@ -131,6 +150,8 @@ struct MarkdownTextView: UIViewRepresentable {
     var onContextChange: (EditorCaretContext) -> Void = { _ in }
     /// 붙여넣은 이미지 URL — 컴포즈가 재호스팅(필요 시 초안 생성) 후 `![](url)` 로 본문에 넣는다.
     var onPasteImageURL: (String) -> Void = { _ in }
+    /// 클립보드 이미지 바이트 붙여넣기 — 컴포즈가 업로드 후 `![](url)` 로 본문에 넣는다.
+    var onPasteImages: ([UIImage]) -> Void = { _ in }
 
     func makeUIView(context: Context) -> UITextView {
         let textView = MarkdownInputTextView()
@@ -154,6 +175,8 @@ struct MarkdownTextView: UIViewRepresentable {
 
         // 붙여넣은 이미지 URL → 호스트(컴포즈)가 재호스팅 후 본문에 이미지로 넣는다.
         textView.onPasteImageURL = onPasteImageURL
+        // 클립보드 이미지 바이트 → 호스트(컴포즈)가 업로드 후 본문에 이미지로 넣는다.
+        textView.onPasteImages = onPasteImages
 
         // 붙여넣은 URL → kurl 단축링크. 원문을 먼저 넣어 즉시 반응하고, 단축되면 그 자리만 교체한다
         // (그 사이 사용자가 더 입력해 범위가 바뀌었으면 건너뛴다 — 손실 없이 원문 유지).
