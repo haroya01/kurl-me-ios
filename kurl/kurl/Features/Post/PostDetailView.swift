@@ -1115,13 +1115,15 @@ struct CommentRow: View {
                 .padding(.top, 1)
             }
         }
-        .confirmationDialog("이 댓글을 삭제할까요?", isPresented: $confirmDelete, titleVisibility: .visible) {
+        // 알럿(중앙 모달) — confirmationDialog 은 regular width·세로 모두 부리 팝오버로 새어 나갔다.
+        .alert("이 댓글을 삭제할까요?", isPresented: $confirmDelete) {
             Button("삭제", role: .destructive) {
                 Task {
                     do { try await model.deleteComment(comment) }
                     catch { deleteFailed = true }
                 }
             }
+            Button("취소", role: .cancel) {}
         }
         .alert("삭제하지 못했습니다", isPresented: $deleteFailed) {
             Button("확인", role: .cancel) {}

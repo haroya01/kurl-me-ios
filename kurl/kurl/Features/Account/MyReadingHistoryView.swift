@@ -59,10 +59,10 @@ struct MyReadingHistoryView: View {
                 }
             }
         }
-        .confirmationDialog(
-            "전체 기록을 지울까요?", isPresented: $confirmClear, titleVisibility: .visible
-        ) {
+        // 알럿(중앙 모달) — confirmationDialog 은 regular width·세로 모두 부리 팝오버로 새어 나갔다.
+        .alert("전체 기록을 지울까요?", isPresented: $confirmClear) {
             Button("기록 지우기", role: .destructive) { clearAll() }
+            Button("취소", role: .cancel) {}
         }
         .task { await reload() }
         .refreshable { await reload() }
