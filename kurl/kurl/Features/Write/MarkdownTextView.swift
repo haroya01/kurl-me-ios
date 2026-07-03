@@ -689,6 +689,9 @@ final class MarkdownEditorController {
     func insertTable() {
         // 표 앞뒤를 빈 줄로 띄운다 — 표 바로 다음에 산문이 붙으면 GFM 파서가 그 줄을 표의
         // 유령 행으로 빨아들여(에디터엔 평문, 발행본엔 표 안 행으로) 어긋난다.
+        // 캐럿은 첫 셀에 둔다(offset 4 = "\n\n| " 다음) — 넣자마자 첫 칸을 바로 친다. 활성(편집) 중에도
+        // applyTables 가 파이프를 흐리게·구분선을 숨겨(빠른 경로도 이제 전체 패스로 넘김) "코드"가 아니라
+        // 조용한 표 구조로 읽히고, 캐럿이 표를 벗어나면 곧장 진짜 그리드로 전환된다.
         insertBlock("\n\n| 제목 | 제목 |\n| --- | --- |\n| 내용 | 내용 |\n\n", caretOffsetFromStart: 4)
     }
 

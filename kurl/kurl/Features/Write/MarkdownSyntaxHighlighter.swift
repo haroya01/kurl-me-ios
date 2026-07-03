@@ -60,8 +60,10 @@ enum MarkdownSyntaxHighlighter {
         let caret = min(textView.selectedRange.location, ns.length)
         let para = ns.paragraphRange(for: NSRange(location: caret, length: 0))
         // 백틱·물결이 있으면(펜스 토글·인라인 코드·취소선) 아래 줄 상태나 범위가 흔들릴 수 있어 전체 패스로.
+        // 파이프('|')도 전체 패스로 — 빠른 경로는 표(applyTables)를 돌지 않아 셀을 칠 때마다 원시 파이프가
+        // 밝게 튀고 구분선이 잠깐 드러났다. 표 줄은 전체 패스로 넘겨 파이프를 흐리게·구분선을 계속 숨긴다.
         let paraStr = ns.substring(with: para)
-        if paraStr.contains("`") || paraStr.contains("~") { return false }
+        if paraStr.contains("`") || paraStr.contains("~") || paraStr.contains("|") { return false }
         // 문단이 코드펜스 안이면 전체 패스로(코드색 유지) — 앞쪽 펜스 마커만 싸게 센다(정규식 없음).
         if fenceOpen(before: para.location, ns: ns) { return false }
         let storage = textView.textStorage
