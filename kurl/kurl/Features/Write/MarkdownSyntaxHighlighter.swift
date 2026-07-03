@@ -176,8 +176,10 @@ enum MarkdownSyntaxHighlighter {
                 storage.addAttribute(.foregroundColor, value: UIColor(Palette.secondary), range: lineRange)
                 // 왼쪽 강조 바 — 레이아웃 매니저가 이 줄(들) 왼단에 그린다(리더의 accentSoft 바와 동일).
                 storage.addAttribute(.kurlQuoteBar, value: true, range: lineRange)
-                // 인용 마커("> ")는 숨긴다 — 왼쪽 바·들여쓰기가 인용임을 보여주므로 마커는 군더더기.
-                marker(storage, NSRange(location: lineRange.location, length: min(2, lineRange.length)), reveal: reveal)
+                // 인용 마커("> ")는 활성 줄에서도 숨긴다(reveal 무시) — 리더처럼 인용을 "직접 쓰는" 모습이 되게.
+                // 바+들여쓰기가 인용임을 보여주므로 마커는 군더더기. 편집은 그대로: 인용 본문 첫 글자에서
+                // 백스페이스 = 통강등(shouldChangeTextIn), 0폭 마커는 캐럿을 본문 앞(lineStart+2)에 자연히 둔다.
+                marker(storage, NSRange(location: lineRange.location, length: min(2, lineRange.length)), reveal: false)
                 applyInline(storage, ns, lineRange, reveal: reveal)
                 return
             }
