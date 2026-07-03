@@ -3,7 +3,19 @@
   "strings" : {
     "" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ""
+          }
+        },
         "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ""
+          }
+        },
+        "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : ""
@@ -19,7 +31,19 @@
     },
     "·" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "·"
+          }
+        },
         "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "·"
+          }
+        },
+        "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "·"
@@ -35,10 +59,22 @@
     },
     "· 지금" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "· now"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "· अभी"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "· たった今"
           }
         },
         "vi" : {
@@ -50,11 +86,48 @@
       }
     },
     "‘%@’에 연결할 주소를 입력하세요." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter the address to connect to ‘%@’."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "‘%@’ से जोड़ने के लिए पता दर्ज करें."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」に連携するアドレスを入力してください。"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nhập địa chỉ để kết nối với ‘%@’."
+          }
+        }
+      }
     },
     "@%@" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "@%@"
+          }
+        },
         "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "@%@"
+          }
+        },
+        "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "@%@"
@@ -70,7 +143,19 @@
     },
     "#%@" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "#%@"
+          }
+        },
         "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "#%@"
+          }
+        },
+        "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "#%@"
@@ -86,7 +171,19 @@
     },
     "%@" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@"
+          }
+        },
         "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@"
+          }
+        },
+        "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@"
@@ -102,10 +199,22 @@
     },
     "%@ — 대표로 지정" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ — set as primary"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ — मुख्य के रूप में सेट करें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ — メインに設定"
           }
         },
         "vi" : {
@@ -147,7 +256,19 @@
     },
     "%@ %lld" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$lld"
+          }
+        },
         "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$lld"
+          }
+        },
+        "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ %2$lld"
@@ -169,10 +290,22 @@
     },
     "%@ 님의 첫 글" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@’s first post"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ की पहली पोस्ट"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@さんの最初の記事"
           }
         },
         "vi" : {
@@ -185,10 +318,22 @@
     },
     "%@ 발행 예정" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scheduled for %@"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ को प्रकाशित होगा"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@に公開予定"
           }
         },
         "vi" : {
@@ -229,10 +374,22 @@
     },
     "%@ 신고합니다. 검토 후 조치됩니다." : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reporting %@. We’ll act on it after review."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ की रिपोर्ट कर रहे हैं. समीक्षा के बाद कार्रवाई होगी."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@を報告します。確認のうえ対応します。"
           }
         },
         "vi" : {
@@ -245,10 +402,22 @@
     },
     "%@, 다음 읽을 글" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, read next"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@, आगे पढ़ने के लिए"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@、次に読む記事"
           }
         },
         "vi" : {
@@ -261,10 +430,22 @@
     },
     "%@, 읽음" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@, read"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@, पढ़ा गया"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@、既読"
           }
         },
         "vi" : {
@@ -305,10 +486,22 @@
     },
     "%@님의 글 전체 보기" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See all of %@’s posts"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ की सभी पोस्ट देखें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@さんの記事をすべて見る"
           }
         },
         "vi" : {
@@ -321,10 +514,22 @@
     },
     "%@님의 블로그" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@’s blog"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ का ब्लॉग"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@さんのブログ"
           }
         },
         "vi" : {
@@ -533,7 +738,19 @@
     },
     "%lld" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld"
+          }
+        },
         "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld"
+          }
+        },
+        "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld"
@@ -549,7 +766,19 @@
     },
     "%lld." : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld."
+          }
+        },
         "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld."
+          }
+        },
+        "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld."
@@ -565,7 +794,19 @@
     },
     "%lld/%lld" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld/%2$lld"
+          }
+        },
         "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld/%2$lld"
+          }
+        },
+        "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$lld/%2$lld"
@@ -643,10 +884,22 @@
     },
     "%lld분 읽기" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld min read"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld मिनट पढ़ना"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld分で読む"
           }
         },
         "vi" : {
@@ -801,10 +1054,22 @@
     },
     "%lld편 모두 읽음" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All %lld read"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "सभी %lld भाग पढ़े गए"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld編すべて既読"
           }
         },
         "vi" : {
@@ -817,10 +1082,22 @@
     },
     "%lld편 중 %lld편 읽음" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$lld of %1$lld read"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$lld में से %2$lld भाग पढ़े गए"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld編中%2$lld編を既読"
           }
         },
         "ko" : {
@@ -839,7 +1116,19 @@
     },
     "•" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "•"
+          }
+        },
         "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "•"
+          }
+        },
+        "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "•"
@@ -855,7 +1144,19 @@
     },
     "000000" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "000000"
+          }
+        },
         "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "000000"
+          }
+        },
+        "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "000000"
@@ -928,10 +1229,22 @@
     },
     "API / 설정" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API / Settings"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "API / सेटिंग्स"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "API / 設定"
           }
         },
         "vi" : {
@@ -973,7 +1286,19 @@
     },
     "EP %lld" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EP %lld"
+          }
+        },
         "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EP %lld"
+          }
+        },
+        "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "EP %lld"
@@ -1045,11 +1370,48 @@
       }
     },
     "https://example.com" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "https://example.com"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "https://example.com"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "https://example.com"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "https://example.com"
+          }
+        }
+      }
     },
     "kurl.me/u/" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "kurl.me/u/"
+          }
+        },
         "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "kurl.me/u/"
+          }
+        },
+        "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "kurl.me/u/"
@@ -1065,10 +1427,22 @@
     },
     "kurl.me/u/ 주소에 쓰여요. 나중에 바꿀 수 있어요." : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used in your kurl.me/u/ address. You can change it later."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "kurl.me/u/ पते में इस्तेमाल होता है. बाद में बदला जा सकता है."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "kurl.me/u/ のアドレスに使われます。あとで変更できます。"
           }
         },
         "vi" : {
@@ -1109,7 +1483,19 @@
     },
     "username" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "username"
+          }
+        },
         "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "username"
+          }
+        },
+        "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "username"
@@ -1125,7 +1511,19 @@
     },
     "v%lld — %@" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "v%1$lld — %2$@"
+          }
+        },
         "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "v%1$lld — %2$@"
+          }
+        },
+        "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "v%1$lld — %2$@"
@@ -1147,10 +1545,22 @@
     },
     "Vimeo 동영상 재생" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play Vimeo video"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Vimeo वीडियो चलाएँ"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vimeo動画を再生"
           }
         },
         "vi" : {
@@ -1163,10 +1573,22 @@
     },
     "YouTube 동영상 재생" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Play YouTube video"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "YouTube वीडियो चलाएँ"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "YouTube動画を再生"
           }
         },
         "vi" : {
@@ -1375,10 +1797,22 @@
     },
     "고유 방문" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unique visits"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "अद्वितीय विज़िट"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ユニーク訪問"
           }
         },
         "vi" : {
@@ -1475,10 +1909,22 @@
     },
     "관리자 진단" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Admin diagnostics"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "व्यवस्थापक निदान"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理者診断"
           }
         },
         "vi" : {
@@ -1547,10 +1993,22 @@
     },
     "구독을 반영하지 못했습니다" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t update the subscription"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "सब्सक्रिप्शन लागू नहीं हो सका"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購読を反映できませんでした"
           }
         },
         "vi" : {
@@ -1563,10 +2021,22 @@
     },
     "구독자" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subscribers"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "सब्सक्राइबर"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購読者"
           }
         },
         "vi" : {
@@ -1777,14 +2247,51 @@
       }
     },
     "구절·글 검색" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search quotes and posts"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "उद्धरण और पोस्ट खोजें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "引用・記事を検索"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tìm trích dẫn và bài viết"
+          }
+        }
+      }
     },
     "국가" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Country"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "देश"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "国"
           }
         },
         "vi" : {
@@ -1797,10 +2304,22 @@
     },
     "굵게" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bold"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "मोटा"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "太字"
           }
         },
         "vi" : {
@@ -2121,10 +2640,22 @@
     },
     "글을 읽다 마음에 닿는 문장을 길게 눌러 하이라이트해 보세요." : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "While reading, press and hold a sentence that resonates to highlight it."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "पढ़ते हुए जो वाक्य दिल को छुए, उसे देर तक दबाकर हाइलाइट करें."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読んでいて心に響いた文を長押しするとハイライトできます。"
           }
         },
         "vi" : {
@@ -2165,10 +2696,22 @@
     },
     "글을 읽으면 여기에 기록돼요. 기록은 나만 봅니다." : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posts you read are logged here. Only you can see this."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "पढ़ी गई पोस्ट यहाँ दर्ज होती हैं. यह रिकॉर्ड केवल आप देख सकते हैं."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読んだ記事はここに記録されます。記録はあなただけが見られます。"
           }
         },
         "vi" : {
@@ -2209,10 +2752,22 @@
     },
     "기기" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Device"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "डिवाइस"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デバイス"
           }
         },
         "vi" : {
@@ -2225,10 +2780,22 @@
     },
     "기록 지우기" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear history"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "रिकॉर्ड मिटाएँ"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "履歴を消去"
           }
         },
         "vi" : {
@@ -2241,10 +2808,22 @@
     },
     "기록에서 지우기" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove from history"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "रिकॉर्ड से हटाएँ"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "履歴から削除"
           }
         },
         "vi" : {
@@ -2256,13 +2835,88 @@
       }
     },
     "길" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Path"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "राह"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "道"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đường"
+          }
+        }
+      }
     },
     "길 삭제" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete path"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "राह हटाएँ"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "道を削除"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xóa đường"
+          }
+        }
+      }
     },
     "길에 엮음" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "· woven into a path"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "· राह में पिरोया"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "に編む"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "· đan vào đường"
+          }
+        }
+      }
     },
     "꺼짐" : {
       "localizations" : {
@@ -2294,10 +2948,22 @@
     },
     "날짜" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Date"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "तारीख़"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日付"
           }
         },
         "vi" : {
@@ -2537,10 +3203,22 @@
     },
     "내부" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Internal"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "आंतरिक"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "内部"
           }
         },
         "vi" : {
@@ -2777,10 +3455,22 @@
     },
     "뉴스레터" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Newsletter"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "न्यूज़लेटर"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ニュースレター"
           }
         },
         "vi" : {
@@ -2878,10 +3568,22 @@
     },
     "다음 글 — %@" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next post — %@"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "अगली पोस्ट — %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次の記事 — %@"
           }
         },
         "vi" : {
@@ -2950,10 +3652,22 @@
     },
     "다음 화 %lld%%" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next part %lld%%"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "अगला भाग %lld%%"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次の回 %lld%%"
           }
         },
         "vi" : {
@@ -2966,10 +3680,22 @@
     },
     "다음 화로 %lld퍼센트 이어 읽음" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continued %lld percent into the next part"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "अगले भाग तक %lld प्रतिशत पढ़ा गया"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次の回へ%lldパーセント読み進めました"
           }
         },
         "vi" : {
@@ -3065,13 +3791,88 @@
       }
     },
     "답글 남기기…" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave a reply…"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "जवाब लिखें…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "返信を書く…"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Viết trả lời…"
+          }
+        }
+      }
     },
     "답글 보내기" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send reply"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "जवाब भेजें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "返信を送信"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gửi trả lời"
+          }
+        }
+      }
     },
     "답글 삭제" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete reply"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "जवाब हटाएँ"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "返信を削除"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xóa trả lời"
+          }
+        }
+      }
     },
     "답글 취소" : {
       "localizations" : {
@@ -3131,10 +3932,22 @@
     },
     "대표" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Primary"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "मुख्य"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メイン"
           }
         },
         "vi" : {
@@ -3147,10 +3960,22 @@
     },
     "대표 태그 %@" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Primary tag %@"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "मुख्य टैग %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メインタグ %@"
           }
         },
         "vi" : {
@@ -3163,10 +3988,22 @@
     },
     "대표 태그를 1개 이상 정하면 발행할 수 있어요." : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set at least one primary tag to publish."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "कम से कम एक मुख्य टैग चुनने पर प्रकाशित कर सकते हैं."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メインタグを1つ以上決めると公開できます。"
           }
         },
         "vi" : {
@@ -3235,10 +4072,22 @@
     },
     "댓글 더 보기" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See more comments"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "और टिप्पणियाँ देखें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コメントをもっと見る"
           }
         },
         "vi" : {
@@ -3449,10 +4298,22 @@
     },
     "데스크톱" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desktop"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "डेस्कटॉप"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "デスクトップ"
           }
         },
         "vi" : {
@@ -3493,10 +4354,22 @@
     },
     "독자" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Readers"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "पाठक"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読者"
           }
         },
         "vi" : {
@@ -3510,10 +4383,22 @@
     "둘러보기" : {
       "extractionState" : "stale",
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browse"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "ब्राउज़ करें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "見て回る"
           }
         },
         "vi" : {
@@ -3610,10 +4495,22 @@
     },
     "로그인 없이 둘러보기" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browse without signing in"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "साइन इन किए बिना ब्राउज़ करें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログインせずに見て回る"
           }
         },
         "vi" : {
@@ -3877,6 +4774,34 @@
         }
       }
     },
+    "로그인하면 팔로우한 큐레이터가 컬렉션에 이은 글이 여기에 흘러요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in and posts the curators you follow connect into collections will flow here."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "साइन इन करें, फिर आप जिन क्यूरेटर को फ़ॉलो करते हैं उन्होंने कलेक्शन में जो पोस्ट जोड़ी हैं वे यहाँ बहकर आएँगी।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログインすると、フォロー中のキュレーターがコレクションにつないだ記事がここに流れてきます。"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đăng nhập để những bài viết mà các nhà tuyển chọn bạn theo dõi kết nối vào bộ sưu tập sẽ chảy về đây."
+          }
+        }
+      }
+    },
     "리비전" : {
       "localizations" : {
         "en" : {
@@ -3963,10 +4888,22 @@
     },
     "리스트" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "List"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "सूची"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リスト"
           }
         },
         "vi" : {
@@ -3979,10 +4916,22 @@
     },
     "링크" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "लिंक"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リンク"
           }
         },
         "vi" : {
@@ -4022,7 +4971,32 @@
       }
     },
     "링크 추가" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add link"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "लिंक जोड़ें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リンクを追加"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thêm liên kết"
+          }
+        }
+      }
     },
     "링크 클릭" : {
       "localizations" : {
@@ -4165,13 +5139,88 @@
       }
     },
     "만들지 못했습니다" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t create"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "बनाया नहीं जा सका"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作成できませんでした"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không thể tạo"
+          }
+        }
+      }
     },
     "메모" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "नोट"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモ"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ghi chú"
+          }
+        }
+      }
     },
     "메모 추가" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add note"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "नोट जोड़ें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メモを追加"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thêm ghi chú"
+          }
+        }
+      }
     },
     "명함" : {
       "localizations" : {
@@ -4259,10 +5308,22 @@
     },
     "모바일" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mobile"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "मोबाइल"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モバイル"
           }
         },
         "vi" : {
@@ -4303,10 +5364,22 @@
     },
     "목차" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contents"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "विषय-सूची"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目次"
           }
         },
         "vi" : {
@@ -4346,14 +5419,51 @@
       }
     },
     "밑줄 친 문장을 탭하면 메모·대화가 열려요" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap an underlined sentence to open notes and replies"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "रेखांकित वाक्य पर टैप करने पर नोट और बातचीत खुलती है"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下線のある文をタップするとメモや会話が開きます"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chạm vào câu được gạch chân để mở ghi chú và trò chuyện"
+          }
+        }
+      }
     },
     "반영하지 못했습니다" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t update"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "लागू नहीं हो सका"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "反映できませんでした"
           }
         },
         "vi" : {
@@ -4674,10 +5784,22 @@
     },
     "변경" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "बदलें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "変更"
           }
         },
         "vi" : {
@@ -4774,10 +5896,22 @@
     },
     "복사" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "कॉपी करें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コピー"
           }
         },
         "vi" : {
@@ -4790,10 +5924,22 @@
     },
     "복사됨" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copied"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "कॉपी किया गया"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コピーしました"
           }
         },
         "vi" : {
@@ -4891,10 +6037,22 @@
     },
     "봇" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bot"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "बॉट"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ボット"
           }
         },
         "vi" : {
@@ -4963,10 +6121,22 @@
     },
     "북마크됨" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bookmarked"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "बुकमार्क किया गया"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブックマーク済み"
           }
         },
         "vi" : {
@@ -4979,10 +6149,22 @@
     },
     "북마크를 반영하지 못했습니다" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t update the bookmark"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "बुकमार्क लागू नहीं हो सका"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブックマークを反映できませんでした"
           }
         },
         "vi" : {
@@ -4995,10 +6177,22 @@
     },
     "북마크를 해제했습니다" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bookmark removed"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "बुकमार्क हटा दिया गया"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブックマークを外しました"
           }
         },
         "vi" : {
@@ -5207,10 +6401,22 @@
     },
     "사람" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "People"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "लोग"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "人"
           }
         },
         "vi" : {
@@ -5223,10 +6429,22 @@
     },
     "사용자 이름" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Username"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "उपयोक्तानाम"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ユーザー名"
           }
         },
         "vi" : {
@@ -5239,10 +6457,22 @@
     },
     "사용자 이름을 정해 주세요" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a username"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "अपना उपयोक्तानाम चुनें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ユーザー名を決めてください"
           }
         },
         "vi" : {
@@ -5255,10 +6485,22 @@
     },
     "사용할 수 없는 이름이에요." : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That name isn’t available."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "यह नाम उपलब्ध नहीं है."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "その名前は使えません。"
           }
         },
         "vi" : {
@@ -5271,10 +6513,22 @@
     },
     "사진 변경" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change photo"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "फ़ोटो बदलें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "写真を変更"
           }
         },
         "vi" : {
@@ -5315,10 +6569,22 @@
     },
     "삭제하지 못했습니다" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t delete"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "हटाया नहीं जा सका"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "削除できませんでした"
           }
         },
         "vi" : {
@@ -5359,10 +6625,22 @@
     },
     "새 글 쓰기" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write a new post"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "नई पोस्ट लिखें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しい記事を書く"
           }
         },
         "vi" : {
@@ -5374,17 +6652,79 @@
       }
     },
     "새 길" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New path"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "नई राह"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しい道"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đường mới"
+          }
+        }
+      }
     },
     "새 길 만들기" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create a new path"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "नई राह बनाएँ"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しい道を作成"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tạo đường mới"
+          }
+        }
+      }
     },
     "새 시리즈" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New series"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "नई सीरीज़"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しいシリーズ"
           }
         },
         "vi" : {
@@ -5397,10 +6737,22 @@
     },
     "새 시리즈 만들기…" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Create a new series…"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "नई सीरीज़ बनाएँ…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しいシリーズを作成…"
           }
         },
         "vi" : {
@@ -5525,10 +6877,22 @@
     },
     "선택" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "चुनें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択"
           }
         },
         "vi" : {
@@ -5598,10 +6962,22 @@
     },
     "소개" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "परिचय"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "紹介"
           }
         },
         "vi" : {
@@ -5670,10 +7046,22 @@
     },
     "소셜" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Social"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "सोशल"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ソーシャル"
           }
         },
         "vi" : {
@@ -5741,20 +7129,107 @@
       }
     },
     "순서 편집" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reorder"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "क्रम बदलें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "並べ替え"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sắp xếp lại"
+          }
+        }
+      }
     },
     "순서로 엮기" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ordered"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "क्रम में"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "順序あり"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "có thứ tự"
+          }
+        }
+      }
     },
     "순서를 저장하지 못했습니다" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t save the order"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "क्रम सहेजा नहीं जा सका"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "並び順を保存できませんでした"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không thể lưu thứ tự"
+          }
+        }
+      }
     },
     "숨김 해제" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unhide"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "अनहाइड करें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "非表示を解除"
           }
         },
         "vi" : {
@@ -5767,10 +7242,22 @@
     },
     "숨김을 해제했습니다" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unhidden"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "अनहाइड कर दिया गया"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "非表示を解除しました"
           }
         },
         "vi" : {
@@ -5981,10 +7468,22 @@
     },
     "시리즈 제목" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Series title"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "सीरीज़ का शीर्षक"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "シリーズのタイトル"
           }
         },
         "vi" : {
@@ -5997,10 +7496,22 @@
     },
     "시리즈를 만들지 못했습니다" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t create the series"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "सीरीज़ नहीं बनाई जा सकी"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "シリーズを作成できませんでした"
           }
         },
         "vi" : {
@@ -6013,10 +7524,22 @@
     },
     "시작하기" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get started"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "शुरू करें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "始める"
           }
         },
         "vi" : {
@@ -6029,10 +7552,22 @@
     },
     "신고" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Report"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "रिपोर्ट करें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "報告"
           }
         },
         "vi" : {
@@ -6045,10 +7580,22 @@
     },
     "신고 사유를 선택하세요" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a reason for reporting"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "रिपोर्ट का कारण चुनें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "報告する理由を選択してください"
           }
         },
         "vi" : {
@@ -6061,10 +7608,22 @@
     },
     "신고가 접수되었습니다" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your report has been received"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "रिपोर्ट प्राप्त हो गई"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "報告を受け付けました"
           }
         },
         "vi" : {
@@ -6077,10 +7636,22 @@
     },
     "신고를 보내지 못했습니다" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t send the report"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "रिपोर्ट भेजी नहीं जा सकी"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "報告を送信できませんでした"
           }
         },
         "vi" : {
@@ -6263,10 +7834,22 @@
     },
     "아직 읽기 기록이 없어요" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No reading history yet"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "अभी तक कोई पढ़ने का रिकॉर्ड नहीं"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだ読書履歴がありません"
           }
         },
         "vi" : {
@@ -6307,10 +7890,22 @@
     },
     "아직 팔로우하는 사람이 없어요" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You’re not following anyone yet"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "अभी तक आप किसी को फ़ॉलो नहीं करते"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだ誰もフォローしていません"
           }
         },
         "vi" : {
@@ -6323,10 +7918,22 @@
     },
     "아직 팔로워가 없어요" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No followers yet"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "अभी तक कोई फ़ॉलोअर नहीं"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだフォロワーがいません"
           }
         },
         "vi" : {
@@ -6647,6 +8254,34 @@
         }
       }
     },
+    "연결 발견" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Discover connections"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कनेक्शन खोजें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "つながりを見つける"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Khám phá kết nối"
+          }
+        }
+      }
+    },
     "연결을 끊지 못했습니다" : {
       "localizations" : {
         "en" : {
@@ -6677,10 +8312,22 @@
     },
     "영문 소문자·숫자·_ 3~16자, 첫 글자는 영문이나 숫자" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lowercase letters, numbers, and _, 3–16 characters; first character a letter or number"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "अंग्रेज़ी छोटे अक्षर, अंक, _ — 3~16 अक्षर; पहला अक्षर अक्षर या अंक हो"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "英小文字・数字・_ の3〜16文字、最初の文字は英字か数字"
           }
         },
         "vi" : {
@@ -6833,10 +8480,22 @@
     },
     "예약하지 못했습니다" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t schedule"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "शेड्यूल नहीं किया जा सका"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "予約できませんでした"
           }
         },
         "vi" : {
@@ -6877,10 +8536,22 @@
     },
     "오프라인" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offline"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "ऑफ़लाइन"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オフライン"
           }
         },
         "vi" : {
@@ -7005,10 +8676,22 @@
     },
     "유입 채널" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Traffic source"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "आगमन चैनल"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "流入チャネル"
           }
         },
         "vi" : {
@@ -7049,10 +8732,22 @@
     },
     "이 글 분석" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Analyze this post"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "इस पोस्ट का विश्लेषण"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この記事の分析"
           }
         },
         "vi" : {
@@ -7065,10 +8760,22 @@
     },
     "이 글 편집" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit this post"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "इस पोस्ट को संपादित करें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この記事を編集"
           }
         },
         "vi" : {
@@ -7109,10 +8816,22 @@
     },
     "이 글을" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "this post"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "इस पोस्ट को"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この記事を"
           }
         },
         "vi" : {
@@ -7125,10 +8844,22 @@
     },
     "이 글이 들어갈 새 시리즈를 만듭니다. 제목은 나중에 시리즈에서 바꿀 수 있어요." : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Creates a new series for this post. You can change the title later in the series."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "इस पोस्ट के लिए एक नई सीरीज़ बनाता है. शीर्षक बाद में सीरीज़ में बदला जा सकता है."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この記事を入れる新しいシリーズを作成します。タイトルはあとでシリーズで変更できます。"
           }
         },
         "vi" : {
@@ -7141,10 +8872,22 @@
     },
     "이 댓글을" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "this comment"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "इस टिप्पणी को"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このコメントを"
           }
         },
         "vi" : {
@@ -7212,13 +8955,88 @@
       }
     },
     "이 문장 빼기" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove this sentence"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "यह वाक्य हटाएँ"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この文を外す"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bỏ câu này"
+          }
+        }
+      }
     },
     "이 문장이 속한 길" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paths this sentence belongs to"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "वे राहें जिनसे यह वाक्य जुड़ा है"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この文が属する道"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Những đường mà câu này thuộc về"
+          }
+        }
+      }
     },
     "이 부분에 대한 메모를 남겨보세요" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave a note about this part"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "इस हिस्से के बारे में नोट लिखें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この部分についてメモを残しましょう"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Để lại ghi chú về phần này"
+          }
+        }
+      }
     },
     "이 시리즈의 글" : {
       "localizations" : {
@@ -7250,10 +9068,22 @@
     },
     "이 작가를" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "this author"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "इस लेखक को"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この作者を"
           }
         },
         "vi" : {
@@ -7350,10 +9180,22 @@
     },
     "이 태그 숨기기" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide this tag"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "इस टैग को छिपाएँ"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このタグを非表示"
           }
         },
         "vi" : {
@@ -7366,10 +9208,22 @@
     },
     "이 태그를 숨겼습니다" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag hidden"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "इस टैग को छिपा दिया गया"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タグを非表示にしました"
           }
         },
         "vi" : {
@@ -7382,10 +9236,22 @@
     },
     "이 태그의 글이 아직 없어요." : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No posts with this tag yet."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "इस टैग की अभी तक कोई पोस्ट नहीं."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このタグの記事はまだありません。"
           }
         },
         "vi" : {
@@ -7426,10 +9292,22 @@
     },
     "이렇게 보여요" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Here’s how it looks"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "ऐसा दिखता है"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "こう表示されます"
           }
         },
         "vi" : {
@@ -7442,10 +9320,22 @@
     },
     "이미 사용 중인 이름이에요." : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That name is already taken."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "यह नाम पहले से इस्तेमाल में है."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "その名前はすでに使われています。"
           }
         },
         "vi" : {
@@ -7542,10 +9432,22 @@
     },
     "이어 읽기 — %lld편" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep reading — %lld parts"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "पढ़ना जारी रखें — भाग %lld"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "続きを読む — %lld編"
           }
         },
         "vi" : {
@@ -7615,10 +9517,22 @@
     },
     "이전 이름은 30일간 예약돼 기존 링크가 바로 깨지지 않아요." : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your old name is reserved for 30 days, so existing links won’t break right away."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "पुराना नाम 30 दिनों के लिए सुरक्षित रहता है, ताकि मौजूदा लिंक तुरंत न टूटें."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以前の名前は30日間予約されるため、既存のリンクがすぐに切れることはありません。"
           }
         },
         "vi" : {
@@ -7687,10 +9601,22 @@
     },
     "인라인 코드" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inline code"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "इनलाइन कोड"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "インラインコード"
           }
         },
         "vi" : {
@@ -7703,10 +9629,22 @@
     },
     "인용" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quote"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "उद्धरण"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "引用"
           }
         },
         "vi" : {
@@ -7775,10 +9713,22 @@
     },
     "일별 %@" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daily %@"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "दैनिक %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日別 %@"
           }
         },
         "vi" : {
@@ -7791,10 +9741,22 @@
     },
     "일별 %@ 추이" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Daily %@ trend"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "दैनिक %@ रुझान"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日別 %@ の推移"
           }
         },
         "vi" : {
@@ -7863,10 +9825,22 @@
     },
     "읽고, 쓰고, 모으는 곳." : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A place to read, write, and collect."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "पढ़ने, लिखने और संजोने की जगह."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読んで、書いて、集める場所。"
           }
         },
         "vi" : {
@@ -7879,10 +9853,22 @@
     },
     "읽기 기록" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reading history"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "पढ़ने का रिकॉर्ड"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読書履歴"
           }
         },
         "vi" : {
@@ -7895,10 +9881,22 @@
     },
     "읽는 시간 약 %lld분" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About %lld min read"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "पढ़ने का समय लगभग %lld मिनट"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読了まで約%lld分"
           }
         },
         "vi" : {
@@ -7995,10 +9993,22 @@
     },
     "읽음으로 바꾸지 못했어요" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t mark as read"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "पढ़ा हुआ चिह्नित नहीं किया जा सका"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "既読にできませんでした"
           }
         },
         "vi" : {
@@ -8151,10 +10161,22 @@
     },
     "자기소개를 적어보세요" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write a short bio"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "अपना परिचय लिखें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自己紹介を書いてみましょう"
           }
         },
         "vi" : {
@@ -8335,10 +10357,22 @@
     },
     "저장 상태 보기" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View save status"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "सहेजने की स्थिति देखें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存状態を見る"
           }
         },
         "vi" : {
@@ -8463,10 +10497,22 @@
     },
     "전체 기록을 지울까요?" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear your entire history?"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "क्या पूरा रिकॉर्ड मिटाना चाहते हैं?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべての履歴を消去しますか？"
           }
         },
         "vi" : {
@@ -8479,10 +10525,22 @@
     },
     "전체 미리보기" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Full preview"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "पूरा पूर्वावलोकन"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全体をプレビュー"
           }
         },
         "vi" : {
@@ -8495,10 +10553,22 @@
     },
     "전체 보기" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See all"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "सभी देखें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべて見る"
           }
         },
         "vi" : {
@@ -8680,10 +10750,22 @@
     },
     "제목을 적어 주세요" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a title"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "शीर्षक लिखें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトルを入力してください"
           }
         },
         "vi" : {
@@ -8724,10 +10806,22 @@
     },
     "조회 %lld" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld views"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld व्यूज़"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld回表示"
           }
         },
         "vi" : {
@@ -8768,10 +10862,22 @@
     },
     "좋아요 %lld" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld likes"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld पसंद"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "いいね %lld"
           }
         },
         "vi" : {
@@ -8813,10 +10919,22 @@
     },
     "좋아요를 반영하지 못했습니다" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t update the like"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "पसंद लागू नहीं हो सकी"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "いいねを反映できませんでした"
           }
         },
         "vi" : {
@@ -8997,7 +11115,32 @@
       }
     },
     "주소를 붙여넣거나 입력하세요." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paste or type an address."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "पता चिपकाएँ या टाइप करें."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アドレスを貼り付けるか入力してください。"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dán hoặc nhập địa chỉ."
+          }
+        }
+      }
     },
     "주제" : {
       "extractionState" : "stale",
@@ -9170,10 +11313,22 @@
     },
     "직접" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Direct"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "सीधे"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "直接"
           }
         },
         "vi" : {
@@ -9186,10 +11341,22 @@
     },
     "처음부터 다시" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start over"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "शुरू से फिर"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最初からやり直す"
           }
         },
         "vi" : {
@@ -9202,10 +11369,22 @@
     },
     "첫 글을 시작하세요" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start your first post"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "अपनी पहली पोस्ट शुरू करें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最初の記事を始めましょう"
           }
         },
         "vi" : {
@@ -9245,14 +11424,51 @@
       }
     },
     "첫 답글을 남겨보세요." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Be the first to reply."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "पहला जवाब आप दें."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最初の返信を書いてみましょう。"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hãy là người trả lời đầu tiên."
+          }
+        }
+      }
     },
     "첫 번째 태그가 대표 — 카드·글 위에 카테고리로 보입니다. (발행 시 1개 필수)" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The first tag is primary — it shows as the category above cards and posts. (One required to publish)"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "पहला टैग मुख्य होता है — कार्ड और पोस्ट के ऊपर श्रेणी के रूप में दिखता है. (प्रकाशन के लिए 1 आवश्यक)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最初のタグがメイン — カードや記事の上にカテゴリーとして表示されます。（公開時は1つ必須）"
           }
         },
         "vi" : {
@@ -9575,10 +11791,22 @@
     },
     "커버 이미지 추가" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add cover image"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "कवर इमेज जोड़ें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カバー画像を追加"
           }
         },
         "vi" : {
@@ -9900,10 +12128,22 @@
     },
     "코드 복사" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy code"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "कोड कॉपी करें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コードをコピー"
           }
         },
         "vi" : {
@@ -9916,10 +12156,22 @@
     },
     "코드 블록" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Code block"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "कोड ब्लॉक"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コードブロック"
           }
         },
         "vi" : {
@@ -9960,10 +12212,22 @@
     },
     "키보드 내리기" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dismiss keyboard"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "कीबोर्ड छिपाएँ"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キーボードを閉じる"
           }
         },
         "vi" : {
@@ -10089,10 +12353,22 @@
     },
     "태그 구독" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subscribe to tag"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "टैग सब्सक्राइब करें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タグを購読"
           }
         },
         "vi" : {
@@ -10105,10 +12381,22 @@
     },
     "태그 더 보기" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "See more tags"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "और टैग देखें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タグをもっと見る"
           }
         },
         "vi" : {
@@ -10121,10 +12409,22 @@
     },
     "태그 입력 후 추가 (쉼표로 여러 개)" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type a tag and add it (commas for multiple)"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "टैग लिखकर जोड़ें (अल्पविराम से कई)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タグを入力して追加（カンマで複数）"
           }
         },
         "vi" : {
@@ -10137,10 +12437,22 @@
     },
     "태그 추가" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add tag"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "टैग जोड़ें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タグを追加"
           }
         },
         "vi" : {
@@ -10153,10 +12465,22 @@
     },
     "태블릿" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tablet"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "टैबलेट"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タブレット"
           }
         },
         "vi" : {
@@ -10169,10 +12493,22 @@
     },
     "탭하면 대표로 · ✕ 로 삭제" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap to make primary · ✕ to remove"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "टैप करके मुख्य बनाएँ · ✕ से हटाएँ"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タップでメインに · ✕ で削除"
           }
         },
         "vi" : {
@@ -10241,10 +12577,22 @@
     },
     "팔로우를 반영하지 못했습니다" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t update the follow"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "फ़ॉलो लागू नहीं हो सका"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォローを反映できませんでした"
           }
         },
         "vi" : {
@@ -10336,6 +12684,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Xem bài mới từ tác giả bạn theo dõi"
+          }
+        }
+      }
+    },
+    "팔로우한 큐레이터의 연결 흐름 받기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get the connection feed from curators you follow"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आप जिन क्यूरेटर को फ़ॉलो करते हैं उनकी कनेक्शन फ़ीड पाएँ"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォロー中のキュレーターのつながりを受け取る"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nhận dòng kết nối từ các nhà tuyển chọn bạn theo dõi"
           }
         }
       }
@@ -10512,10 +12888,22 @@
     },
     "프로필 편집" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit profile"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "प्रोफ़ाइल संपादित करें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プロフィールを編集"
           }
         },
         "vi" : {
@@ -10528,10 +12916,22 @@
     },
     "피드" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feed"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "फ़ीड"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フィード"
           }
         },
         "vi" : {
@@ -10572,10 +12972,22 @@
     },
     "하이라이트는 kurl 계정에 저장됩니다." : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Highlights are saved to your kurl account."
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "हाइलाइट आपके kurl खाते में सहेजे जाते हैं."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ハイライトはkurlアカウントに保存されます。"
           }
         },
         "vi" : {
@@ -10588,10 +13000,22 @@
     },
     "하이라이트한 구절이 없습니다" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No highlighted passages"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "कोई हाइलाइट किया गया अंश नहीं"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ハイライトした一節はありません"
           }
         },
         "vi" : {
@@ -10744,10 +13168,22 @@
     },
     "회차별 완주" : {
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completion by part"
+          }
+        },
         "hi" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "एपिसोड के अनुसार पूर्णता"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "話ごとの完読"
           }
         },
         "vi" : {
