@@ -275,7 +275,8 @@ struct BlockPreview: View {
 }
 
 /// 미리보기 카드의 조용한 인게이지 — 좋아요 여부(하트 표식)와 북마크(그 자리 토글).
-/// 카드는 종이 세계(§1.5)라 유리 없이 종이 문법: 채워짐/빔 심볼 한둘, 그린은 켜진 상태에만 한 가닥.
+/// 카드는 종이 세계(§1.5)라 유리 없이 종이 문법: 채워짐/빔 심볼 한둘. 행당 그린 액센트 ≤1 —
+/// 그린은 행동 가능한 북마크(켜짐)만 가져가고, 좋아요 표식은 채워진 모양으로만 말한다.
 /// 연결 응답엔 postId 가 없어 스토어로 여부를 대조하고, 북마크를 켤 때만 상세로 id 를 푼다.
 /// 북마크 = 낙관 토글(즉시 반영 → 실패 시 원상복구 + 토스트) + 가벼운 햅틱, 비로그인이면 그 자리 로그인.
 private struct PostPreviewEngagement: View {
@@ -292,10 +293,11 @@ private struct PostPreviewEngagement: View {
     var body: some View {
         HStack(spacing: 12) {
             if liked {
-                // 좋아요 여부 = 조용한 표식(끄기/켜기는 상세의 독이 든다). 켜졌을 때만 한 가닥 그린.
+                // 좋아요 여부 = 조용한 표식(끄기/켜기는 상세의 독이 든다). 그린은 북마크가 가져가므로
+                // 여기선 무채색(secondary) — 채워진 하트 모양만으로 "좋아요함"을 말한다.
                 Image(systemName: "heart.fill")
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Palette.link)
+                    .foregroundStyle(Palette.secondary)
                     .transition(reduceMotion ? .opacity : .scale(scale: 0.6).combined(with: .opacity))
                     .accessibilityLabel(Text("좋아요한 글"))
             }
