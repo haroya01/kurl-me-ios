@@ -41,7 +41,9 @@ struct SeriesDetailView: View {
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
         .background(Palette.pageBg)
-        // 로드되면 시리즈 제목으로 — 스크롤 시 크롬이 맥락을 다시 세운다. 로딩/실패는 일반 라벨.
+        // 로드되면 마스트헤드 H1 이 제목의 유일한 주인 — 상단 바 제목을 비워 같은 제목이
+        // 두 번 겹치지 않게 한다(웹 시리즈 뷰처럼 마스트헤드가 스크롤로 조용히 물러난다).
+        // 로딩·실패엔 마스트헤드가 없으니 일반 라벨로 맥락을 세운다.
         .navigationTitle(navTitle)
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
@@ -49,7 +51,7 @@ struct SeriesDetailView: View {
     }
 
     private var navTitle: String {
-        if case .loaded(let detail) = phase { return detail.series.title }
+        if case .loaded = phase { return "" }
         return "시리즈"
     }
 
@@ -61,81 +63,9 @@ struct SeriesDetailView: View {
         let readCount = readFlags.filter { $0 }.count
         let firstUnread = readFlags.firstIndex(of: false)
 
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 7) {
-                KurlMark(drawn: [true, true, true])
-                    .frame(width: 18, height: 11)
-                RailHeading("시리즈")
-            }
-            Text(detail.series.title)
-                .typeScale(.masthead)
-                .foregroundStyle(Palette.ink)
-            NavigationLink(value: Route.author(username: detail.author.username)) {
-                HStack(spacing: 6) {
-                    Text(detail.author.username)
-                        .fontWeight(.medium)
-                    Text("·").foregroundStyle(Palette.faint)
-                    Text("\(posts.count)편")
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(Palette.faint)
-                }
-                .typeScale(.meta)
-                .foregroundStyle(Palette.secondary)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
+        masthead(detail: detail, posts: posts, readCount: readCount, firstUnread: firstUnread)
 
-            // 읽기 진행 — 시작한 시리즈에만(0이면 '첫 화부터'가 곧 시작 CTA). 그린 마커
-            // 진행 막대 + 'N편 중 M편 읽음'. 배너 스테퍼와 같은 언어로 "어디까지 왔나"를 세운다.
-            if readCount > 0 {
-                VStack(alignment: .leading, spacing: 6) {
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            Capsule().fill(Palette.hairlineStrong)
-                            Capsule().fill(Palette.accentMarker)
-                                .frame(
-                                    width: geo.size.width
-                                        * CGFloat(readCount) / CGFloat(max(posts.count, 1)))
-                        }
-                    }
-                    .frame(height: 4)
-                    Text(readCount == posts.count
-                         ? "\(posts.count)편 모두 읽음"
-                         : "\(posts.count)편 중 \(readCount)편 읽음")
-                        .font(.system(size: 12).monospacedDigit())
-                        .foregroundStyle(Palette.secondary)
-                }
-                .padding(.top, 12)
-                .accessibilityElement(children: .combine)
-            }
-
-            HStack(spacing: 12) {
-                SubscribeButton(seriesId: detail.series.id)
-                Spacer(minLength: 0)
-                // 시리즈의 본업은 순서대로 읽기 — 읽은 데까지 이어서, 안 시작했으면 첫 화로.
-                if let action = seriesAction(posts: posts, readCount: readCount, firstUnread: firstUnread) {
-                    NavigationLink(value: Route.post(username: username, slug: action.post.slug)) {
-                        HStack(spacing: 5) {
-                            Image(systemName: action.icon)
-                                .font(.system(size: 12, weight: .semibold))
-                            actionLabel(action)
-                        }
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.primary)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .contentShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    .glassEffect(.regular.interactive(), in: .capsule)
-                }
-            }
-            .padding(.top, 8)
-        }
-        .padding(.vertical, 16)
-
-        // 화별 목차 — 읽은 회차는 체크, 다음 읽을 회차는 표시. 카탈로그(번호 매긴 글 행).
+        // 화별 목차 — 읽은 회차는 체크, 다음 읽을 회차는 번호가 밝아진다. 카탈로그(번호 매긴 글 행).
         // 공개글이 0편이면 죽은 본문 대신 — 작가의 다른 글로 가는 문을 둔다(빈 면도 길을 낸다).
         if posts.isEmpty {
             EmptySeries(author: detail.author)
@@ -159,6 +89,133 @@ struct SeriesDetailView: View {
                 }
             }
             .padding(.bottom, 40)
+        }
+    }
+
+    /// 에디토리얼 마스트헤드 — 시리즈 정체(제목·작가·규모·주제)를 세우고, 구분선 아래에
+    /// "이어서 읽기" 한 동작으로 목차를 연다. 종이 세계라 유리는 컨트롤(구독·읽기 캡슐)에만.
+    @ViewBuilder
+    private func masthead(
+        detail: PublicSeriesDetail, posts: [PostListItem], readCount: Int, firstUnread: Int?
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 7) {
+                KurlMark(drawn: [true, true, true])
+                    .frame(width: 18, height: 11)
+                    .accessibilityHidden(true)
+                Text("시리즈")
+                    .typeScale(.eyebrow)
+                    .foregroundStyle(Palette.heading)
+                    .accessibilityAddTraits(.isHeader)
+            }
+
+            Text(detail.series.title)
+                .typeScale(.masthead)
+                .foregroundStyle(Palette.ink)
+                .padding(.top, 10)
+
+            // 작가 = 여백의 서명. 아바타 + 이름 한 줄이 시리즈의 주인을 세운다(웹 좌측 레일 번역).
+            NavigationLink(value: Route.author(username: detail.author.username)) {
+                HStack(spacing: 8) {
+                    AvatarView(author: detail.author, size: 22)
+                    Text(detail.author.username)
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.body)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Palette.faint)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 12)
+
+            // 규모·주제 — 번호를 전면에(몇 편짜리 여정인지)와 태그 한 가닥. 회색 칩 없이 글자만(§10).
+            scopeLine(posts: posts, tags: detail.series.tags)
+                .padding(.top, 7)
+
+            // 구독 = 관계(새 글 알림). 읽기(주행동)와 색을 다투지 않게 여기선 가라앉힌 보조 유리로.
+            SubscribeButton(seriesId: detail.series.id, emphasis: .secondary)
+                .padding(.top, 16)
+
+            Hairline()
+                .padding(.top, 18)
+
+            // 이어서 읽기 블록 — 진행 막대 + 주행동 하나로 "어디까지 왔고, 어디서 잇는지"를 묶는다.
+            continueBlock(posts: posts, readCount: readCount, firstUnread: firstUnread)
+                .padding(.top, 18)
+        }
+        .padding(.top, 8)
+        .padding(.bottom, 22)
+    }
+
+    /// 규모 + 주제 한 줄. 총 편수는 시리즈의 뼈대(몇 편짜리 여정인지), 태그는 눌러 그 주제 피드로.
+    @ViewBuilder
+    private func scopeLine(posts: [PostListItem], tags: [String]) -> some View {
+        HStack(spacing: 8) {
+            Text("\(posts.count)편")
+                .typeScale(.meta)
+                .foregroundStyle(Palette.secondary)
+            // 최대 세 개까지 — 좁은 폭에서 마스트헤드가 태그로 넘치지 않게.
+            ForEach(tags.prefix(3), id: \.self) { tag in
+                Text(verbatim: "·")
+                    .typeScale(.meta)
+                    .foregroundStyle(Palette.faint)
+                NavigationLink(value: Route.tag(tag)) {
+                    Text(verbatim: "#\(tag)")
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.secondary)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .lineLimit(1)
+    }
+
+    /// 진행 막대 + 주행동. 시작 전이면 막대 없이 '첫 화부터'만, 읽는 중이면 진행 위에 '이어 읽기'.
+    @ViewBuilder
+    private func continueBlock(posts: [PostListItem], readCount: Int, firstUnread: Int?) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            if readCount > 0 {
+                VStack(alignment: .leading, spacing: 7) {
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(Palette.hairlineStrong)
+                            Capsule().fill(Palette.accentMarker)
+                                .frame(
+                                    width: geo.size.width
+                                        * CGFloat(readCount) / CGFloat(max(posts.count, 1)))
+                        }
+                    }
+                    .frame(height: 4)
+                    Text(readCount == posts.count
+                         ? "\(posts.count)편 모두 읽음"
+                         : "\(posts.count)편 중 \(readCount)편 읽음")
+                        .font(.system(size: 12).monospacedDigit())
+                        .foregroundStyle(Palette.secondary)
+                }
+                .accessibilityElement(children: .combine)
+            }
+
+            // 시리즈의 본업은 순서대로 읽기 — 읽은 데까지 이어서, 안 시작했으면 첫 화로.
+            // 주행동이라 그린 유리 캡슐(흰 라벨). 화면에 그린 primary 는 이 하나뿐이게 한다.
+            if let action = seriesAction(posts: posts, readCount: readCount, firstUnread: firstUnread) {
+                NavigationLink(value: Route.post(username: username, slug: action.post.slug)) {
+                    HStack(spacing: 7) {
+                        Image(systemName: action.icon)
+                            .font(.system(size: 13, weight: .semibold))
+                        actionLabel(action)
+                    }
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 11)
+                    .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .glassCapsule(prominent: true)
+            }
         }
     }
 
@@ -216,18 +273,21 @@ struct SeriesDetailView: View {
 /// 회차의 읽기 상태 — 읽음(체크)·다음 읽을 차례·아직 안 읽음.
 private enum EpisodeState { case read, next, unread }
 
-/// 시리즈 한 화 = 번호 매긴 목차 행. 표지 = 읽음이면 체크, 다음이면 채운 번호, 아직이면 옅은 번호.
+/// 시리즈 한 화 = 번호 매긴 목차 행. 왼쪽 뼈대(spine) = 웹로그 관용의 모노 두 자리 번호(01·02…),
+/// 읽음이면 체크로 접히고 다음 읽을 회차만 그린으로 밝아진다 — 원(테두리) 없이 번호가 앞에 선다.
 /// 카탈로그(순서대로 읽는 책장)라 카드가 아니라 깔끔한 글 행(3원칙 표준).
 private struct EpisodeRow: View {
     let number: Int
     let post: PostListItem
     let state: EpisodeState
-    // 마커 숫자·표지 원 — 큰 글씨에서 번호가 원을 넘치지 않게 프레임도 같이 큰다.
-    @ScaledMetric(relativeTo: .footnote) private var markerUnit: CGFloat = 1
+    // 큰 글씨에서도 뼈대 번호가 제목과 함께 커지게(고정 pt 우회).
+    @ScaledMetric(relativeTo: .footnote) private var spineUnit: CGFloat = 1
 
     var body: some View {
-        HStack(alignment: .top, spacing: 14) {
-            marker
+        HStack(alignment: .top, spacing: 16) {
+            spine
+                .frame(width: 24 * spineUnit, alignment: .leading)
+                .padding(.top, 3)
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
                     Text(post.title)
@@ -269,27 +329,22 @@ private struct EpisodeRow: View {
     }
 
     @ViewBuilder
-    private var marker: some View {
+    private var spine: some View {
         switch state {
         case .read:
+            // 다 읽은 회차 = 접힌 체크. 그린 과용을 걷어내려 마커색이 아닌 옅은 잉크로 물러앉힌다.
             Image(systemName: "checkmark")
-                .font(.system(size: 14 * markerUnit, weight: .bold))
-                .foregroundStyle(Palette.accentMarker)
-                .frame(width: 32 * markerUnit, height: 32 * markerUnit)
-                .background(Palette.accent.opacity(0.12), in: Circle())
+                .font(.system(size: 13 * spineUnit, weight: .bold))
+                .foregroundStyle(Palette.faint)
         case .next:
-            Text("\(number)")
-                .font(.system(size: 15 * markerUnit, weight: .bold).monospacedDigit())
-                // 흰 라벨 채움 = accent-700(WCAG 4.5:1) — 600은 흰 글자 대비 미달(§10.3).
-                .foregroundStyle(.white)
-                .frame(width: 32 * markerUnit, height: 32 * markerUnit)
-                .background(Palette.accentFill, in: Circle())
+            // 지금 이어 읽을 회차 = 그린으로 밝아지는 번호(화면에서 이 번호 하나만 형광).
+            Text(String(format: "%02d", number))
+                .font(.system(size: 15 * spineUnit, weight: .bold).monospacedDigit())
+                .foregroundStyle(Palette.link)
         case .unread:
-            Text("\(number)")
-                .font(.system(size: 15 * markerUnit, weight: .bold).monospacedDigit())
-                .foregroundStyle(Palette.accentMarker)
-                .frame(width: 32 * markerUnit, height: 32 * markerUnit)
-                .background(Palette.accent.opacity(0.10), in: Circle())
+            Text(String(format: "%02d", number))
+                .font(.system(size: 15 * spineUnit, weight: .medium).monospacedDigit())
+                .foregroundStyle(Palette.secondary)
         }
     }
 
