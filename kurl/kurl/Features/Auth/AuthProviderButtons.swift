@@ -19,6 +19,13 @@ struct AuthProviderButtons: View {
     @State private var appleNonce = ""
     @State private var showTwoFactor = false
     @State private var errorMessage: String?
+    @State private var legalLink: LegalLink?
+
+    /// 인앱 사파리로 열 약관·방침 링크 — 로그인 흐름을 앱 밖으로 내보내지 않는다.
+    private struct LegalLink: Identifiable {
+        let url: URL
+        var id: String { url.absoluteString }
+    }
 
     var body: some View {
         VStack(spacing: 10) {
@@ -58,6 +65,10 @@ struct AuthProviderButtons: View {
             .buttonStyle(.plain)
             .disabled(isSigningIn)
             .accessibilityLabel(Text("Google로 계속하기"))
+
+            // 약관 동의 — Apple/Google 로그인은 계정 생성이라 약관·방침을 로그인 지점에 노출한다(App Review 5.1.1).
+            legalConsent
+                .padding(.top, 6)
         }
         .sheet(isPresented: $showTwoFactor, onDismiss: { Task { await notifyIfSignedIn() } }) {
             TwoFactorSheet()
@@ -72,6 +83,31 @@ struct AuthProviderButtons: View {
         } message: {
             Text(errorMessage ?? "")
         }
+    }
+
+    /// 로그인 버튼 아래 약관·방침 한 줄 — 탭하면 인앱 사파리로 해당 웹 페이지(로케일별)가 열린다.
+    /// 계정 설정 "정책" 항목과 같은 URL(웹과 단일 원문)을 쓴다.
+    private var legalConsent: some View {
+        let base = Config.apiBase.absoluteString
+        let loc = Config.preferredLanguageTag
+        let terms = "\(base)/\(loc)/terms"
+        let privacy = "\(base)/\(loc)/privacy"
+        let md = String(localized: "계속하면 [이용약관](\(terms))과 [개인정보 처리방침](\(privacy))에 동의하는 것으로 간주됩니다.")
+        let text = (try? AttributedString(markdown: md)) ?? AttributedString(md)
+        return Text(text)
+            .typeScale(.footnote)
+            .foregroundStyle(Palette.secondary)
+            .tint(Palette.link)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityHint(Text("이용약관과 개인정보 처리방침을 엽니다"))
+            // 약관·방침은 외부 Safari 로 나가지 않고 앱 안 인앱 브라우저로 — 로그인 흐름을 끊지 않는다.
+            .environment(\.openURL, OpenURLAction { url in
+                legalLink = LegalLink(url: url)
+                return .handled
+            })
+            .sheet(item: $legalLink) { SafariView(url: $0.url).ignoresSafeArea() }
     }
 
     private func startSignIn() {

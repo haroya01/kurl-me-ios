@@ -1,6 +1,34 @@
 {
   "sourceLanguage" : "ko",
   "strings" : {
+    "계속하면 [이용약관](%@)과 [개인정보 처리방침](%@)에 동의하는 것으로 간주됩니다." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "By continuing, you agree to our [Terms of Service](%@) and [Privacy Policy](%@)."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "जारी रखने पर आप हमारी [सेवा की शर्तों](%@) और [गोपनीयता नीति](%@) से सहमत होते हैं।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "続行すると[利用規約](%@)と[プライバシーポリシー](%@)に同意したものとみなされます。"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Khi tiếp tục, bạn đồng ý với [Điều khoản dịch vụ](%@) và [Chính sách bảo mật](%@)."
+          }
+        }
+      }
+    },
     "북마크한 글은 내 서재에 모여요" : {
       "localizations" : {
         "en" : {
