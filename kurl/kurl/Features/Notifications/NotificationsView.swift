@@ -70,7 +70,7 @@ struct NotificationsView: View {
                             markAllPulse += 1
                         } catch {
                             // 실패했는데 점만 사라지는 거짓 성공을 만들지 않는다.
-                            ToastCenter.shared.show(String(localized: "읽음 처리하지 못했습니다"))
+                            ToastCenter.shared.show(String(localized: "읽음으로 바꾸지 못했어요"))
                         }
                     }
                 }
@@ -183,13 +183,13 @@ struct NotificationsView: View {
         let actor = Text(n.actorUsername ?? String(localized: "알 수 없는 사용자"))
             .fontWeight(.semibold)
         switch n.type {
-        case "LIKE": return Text("\(actor)님이 글을 좋아합니다")
-        case "COMMENT": return Text("\(actor)님이 댓글을 남겼습니다")
-        case "REPLY": return Text("\(actor)님이 답글을 남겼습니다")
-        case "FOLLOW": return Text("\(actor)님이 팔로우하기 시작했습니다")
-        case "SERIES_SUBSCRIBE": return Text("\(actor)님이 시리즈를 구독합니다")
-        case "NEW_POST": return Text("\(actor)님이 새 글을 발행했습니다")
-        case "MENTION": return Text("\(actor)님이 회원님을 언급했습니다")
+        case "LIKE": return Text("\(actor)님이 글을 좋아해요")
+        case "COMMENT": return Text("\(actor)님이 댓글을 남겼어요")
+        case "REPLY": return Text("\(actor)님이 답글을 남겼어요")
+        case "FOLLOW": return Text("\(actor)님이 팔로우했어요")
+        case "SERIES_SUBSCRIBE": return Text("\(actor)님이 시리즈를 구독했어요")
+        case "NEW_POST": return Text("\(actor)님이 새 글을 올렸어요")
+        case "MENTION": return Text("\(actor)님이 나를 언급했어요")
         default: return actor
         }
     }
@@ -222,7 +222,7 @@ struct NotificationsView: View {
                 if let cur = items.firstIndex(where: { $0.id == n.id }) {
                     items[cur] = snapshot
                 }
-                ToastCenter.shared.show(String(localized: "읽음 처리하지 못했습니다"))
+                ToastCenter.shared.show(String(localized: "읽음으로 바꾸지 못했어요"))
             }
         }
     }
