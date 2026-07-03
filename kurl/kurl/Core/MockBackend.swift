@@ -922,13 +922,20 @@ enum MockBackend {
 
         if method == "GET", parts == ["bookmarks"] {
             return json([
+                // 발견 흐름에도 뜨는 글 — 미리보기 카드가 담긴 상태(채워진 북마크)로 보이게.
+                ["id": 8201, "username": "honggildong", "title": "헥사고날로 갈아탄 지 석 달",
+                 "slug": "hexagonal-after-3-months"],
                 ["id": 9002, "username": "honggildong", "title": "발행된 목 글", "slug": "p-mock-2"],
                 ["id": 9001, "username": "honggildong", "title": "목 초안 — 헥사고날 정리", "slug": "p-mock-1"],
             ])
         }
 
         if method == "GET", parts == ["users", "me", "likes"] {
-            return json([feedItem(id: 9002, title: "발행된 목 글", slug: "p-mock-2")])
+            return json([
+                // 발견 흐름에도 뜨는 글 — 미리보기 카드에 내 좋아요 표식이 보이게.
+                feedItem(id: 8201, title: "헥사고날로 갈아탄 지 석 달", slug: "hexagonal-after-3-months"),
+                feedItem(id: 9002, title: "발행된 목 글", slug: "p-mock-2"),
+            ])
         }
 
         if method == "GET", parts == ["users", "me", "subscribed-series"] {

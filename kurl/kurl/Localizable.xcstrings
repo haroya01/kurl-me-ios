@@ -1,6 +1,34 @@
 {
   "sourceLanguage" : "ko",
   "strings" : {
+    "북마크한 글은 내 서재에 모여요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Posts you bookmark collect in your library"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "बुकमार्क की गई पोस्ट आपकी लाइब्रेरी में जमा होती हैं"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ブックマークした記事はライブラリに集まります"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bài bạn đánh dấu sẽ gom vào thư viện của bạn"
+          }
+        }
+      }
+    },
     "" : {
       "localizations" : {
         "en" : {

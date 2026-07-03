@@ -161,7 +161,7 @@ private struct ConnectionEventCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            BlockPreview(block: event.block)
+            BlockPreview(block: event.block, showsEngagement: true)
                 .padding(.top, 2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -174,6 +174,9 @@ private struct ConnectionEventCard: View {
 /// 노트 = 부드러운 틴트 패널(붙잡은 생각). 발견 흐름·컬렉션 상세가 이 하나를 공유한다.
 struct BlockPreview: View {
     let block: ConnectionBlock
+    /// 발견 흐름의 글 미리보기에만 켠다 — 내 좋아요 표식 + 그 자리 북마크 토글. 컬렉션 상세·
+    /// 하이라이트 스레드가 쓰는 같은 컴포넌트는 기본 꺼짐(표식 없이 조용히).
+    var showsEngagement = false
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
     var body: some View {
@@ -210,6 +213,14 @@ struct BlockPreview: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(CardButtonStyle())
+            // 종이 카드 위 조용한 인게이지 표식 — 카드 우상단(BlogCard 북마크 표식과 같은 자리).
+            // 유리 없이 종이 문법(§1.5): 좋아요 여부는 표식, 북마크는 그 자리 토글. 버튼이 제 탭을
+            // 삼켜 카드 열기와 겹치지 않는다.
+            .overlay(alignment: .topTrailing) {
+                if showsEngagement {
+                    PostPreviewEngagement(username: username, slug: slug)
+                }
+            }
 
         case let .highlight(quote, postTitle, username, slug):
             // 하이라이트 = 인용. 카드 박스가 아니라 그린 좌측 룰 + 큰 구절 — 본문에서 뽑힌 결.
@@ -260,6 +271,94 @@ struct BlockPreview: View {
                 .typeScale(.footnote)
         }
         .foregroundStyle(Palette.faint)
+    }
+}
+
+/// 미리보기 카드의 조용한 인게이지 — 좋아요 여부(하트 표식)와 북마크(그 자리 토글).
+/// 카드는 종이 세계(§1.5)라 유리 없이 종이 문법: 채워짐/빔 심볼 한둘, 그린은 켜진 상태에만 한 가닥.
+/// 연결 응답엔 postId 가 없어 스토어로 여부를 대조하고, 북마크를 켤 때만 상세로 id 를 푼다.
+/// 북마크 = 낙관 토글(즉시 반영 → 실패 시 원상복구 + 토스트) + 가벼운 햅틱, 비로그인이면 그 자리 로그인.
+private struct PostPreviewEngagement: View {
+    let username: String
+    let slug: String
+
+    @State private var showLoginPrompt = false
+    @State private var toggleTick = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var liked: Bool { LikeStore.shared.contains(username: username, slug: slug) }
+    private var bookmarked: Bool { BookmarkStore.shared.contains(username: username, slug: slug) }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            if liked {
+                // 좋아요 여부 = 조용한 표식(끄기/켜기는 상세의 독이 든다). 켜졌을 때만 한 가닥 그린.
+                Image(systemName: "heart.fill")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Palette.link)
+                    .transition(reduceMotion ? .opacity : .scale(scale: 0.6).combined(with: .opacity))
+                    .accessibilityLabel(Text("좋아요한 글"))
+            }
+            Button {
+                toggleBookmark()
+            } label: {
+                Image(systemName: bookmarked ? "bookmark.fill" : "bookmark")
+                    .font(.system(size: 13, weight: .semibold))
+                    .symbolEffect(.bounce, value: reduceMotion ? false : bookmarked)
+                    .foregroundStyle(bookmarked ? Palette.accent : Palette.faint)
+                    // 44pt 터치 타깃(§2) — 보이는 글리프는 작아도 누를 곳은 넉넉히.
+                    .frame(width: 44, height: 44)
+                    .contentShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text(bookmarked ? "북마크됨" : "북마크"))
+            .accessibilityAddTraits(bookmarked ? [.isSelected] : [])
+        }
+        .padding(.trailing, 4)
+        .padding(.top, 2)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: liked)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: bookmarked)
+        .sensoryFeedback(.impact(weight: .light), trigger: toggleTick)
+        .task(id: AuthStore.shared.isSignedIn) {
+            await BookmarkStore.shared.hydrateIfNeeded()
+            await LikeStore.shared.hydrateIfNeeded()
+        }
+        .loginPrompt(isPresented: $showLoginPrompt, message: "북마크한 글은 내 서재에 모여요")
+    }
+
+    private func toggleBookmark() {
+        guard AuthStore.shared.isSignedIn else {
+            showLoginPrompt = true
+            return
+        }
+        toggleTick += 1
+        let knownId = BookmarkStore.shared.postId(username: username, slug: slug)
+        let target = !bookmarked
+        // 낙관 — 응답 전에 표식부터 뒤집는다(id 는 아직 모를 수 있어 nil 로 여부만 표시).
+        BookmarkStore.shared.set(username: username, slug: slug, id: knownId, on: target)
+        Task {
+            do {
+                let id: Int64
+                if let knownId {
+                    id = knownId
+                } else {
+                    // 연결 미리보기엔 postId 가 없다 — 켤 때 한 번만 상세로 id 를 푼다(탭 1회당 1콜).
+                    id = try await BlogAPI.postDetail(username: username, slug: slug).post.id
+                }
+                let status = try await InteractionsAPI.setBookmark(postId: id, on: target)
+                BookmarkStore.shared.set(username: username, slug: slug, id: id, on: status.bookmarked)
+                // 북마크 = 오프라인 보장 — 켜지면 기기 사본 확보(서재 위젯 스냅샷까지), 꺼지면 정리.
+                // 기존 북마크 플로우와 같은 경로라 OfflineStore·위젯이 자동으로 맞는다.
+                if status.bookmarked {
+                    await OfflineStore.shared.download(username: username, slug: slug)
+                } else {
+                    OfflineStore.shared.remove(username: username, slug: slug)
+                }
+            } catch {
+                BookmarkStore.shared.set(username: username, slug: slug, id: knownId, on: !target)
+                ToastCenter.shared.show(String(localized: "북마크를 반영하지 못했습니다"))
+            }
+        }
     }
 }
 

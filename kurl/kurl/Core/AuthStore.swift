@@ -259,6 +259,7 @@ final class AuthStore {
     /// 않게(프라이버시). refresh 토큰이 죽어 세션이 끊긴 경로(refreshTokens 401)도 여기를 탄다.
     private func tearDownSessionState() {
         BookmarkStore.shared.reset()
+        LikeStore.shared.reset()
         PostReadStore.shared.reset()
         BlockStore.shared.reset()
         OfflineStore.shared.removeAll()

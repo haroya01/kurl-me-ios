@@ -163,6 +163,22 @@ final class EngagementModel {
         self.offlineRef = offlineRef
     }
 
+    /// 발견 미리보기는 postId 없이 username/slug 로 여부를 대조한다 — 독의 토글도 ref 로 함께
+    /// 반영해 상세에서 담은 글이 미리보기 카드에도 곧바로 채워지게(단일 진실원).
+    private func syncBookmarkStore(on: Bool) {
+        if let ref = offlineRef {
+            BookmarkStore.shared.set(username: ref.username, slug: ref.slug, id: postId, on: on)
+        } else {
+            BookmarkStore.shared.set(postId, on: on)
+        }
+    }
+
+    private func syncLikeStore(on: Bool) {
+        if let ref = offlineRef {
+            LikeStore.shared.set(username: ref.username, slug: ref.slug, on: on)
+        }
+    }
+
     /// 로그인 상태일 때만 내 상태(liked/bookmarked)를 서버에서 가져온다.
     /// 응답 적용 전 세대 검사 — 비행 중 사용자가 토글했으면 스테일 스냅샷을 버린다.
     func hydrate() async {
@@ -175,11 +191,12 @@ final class EngagementModel {
         if let like = try? await InteractionsAPI.likeStatus(postId: postId), gen == userToggleCount {
             liked = like.liked
             likeCount = like.likeCount
+            syncLikeStore(on: like.liked)
         }
         if let bookmark = try? await InteractionsAPI.bookmarkStatus(postId: postId),
            gen == userToggleCount {
             bookmarked = bookmark.bookmarked
-            BookmarkStore.shared.set(postId, on: bookmark.bookmarked)
+            syncBookmarkStore(on: bookmark.bookmarked)
         }
     }
 
@@ -189,16 +206,19 @@ final class EngagementModel {
         let target = !liked
         liked = target
         likeCount += target ? 1 : -1
+        syncLikeStore(on: target)
         do {
             let status = try await InteractionsAPI.setLike(postId: postId, on: target)
             // 연타로 더 새 토글이 나갔으면 이 echo 는 스테일 — 버린다.
             guard gen == userToggleCount else { return }
             liked = status.liked
             likeCount = status.likeCount
+            syncLikeStore(on: status.liked)
         } catch {
             guard gen == userToggleCount else { return }
             liked = !target
             likeCount += target ? -1 : 1
+            syncLikeStore(on: !target)
             throw error
         }
     }
@@ -208,12 +228,12 @@ final class EngagementModel {
         let gen = userToggleCount
         let target = !bookmarked
         bookmarked = target
-        BookmarkStore.shared.set(postId, on: target)
+        syncBookmarkStore(on: target)
         do {
             let status = try await InteractionsAPI.setBookmark(postId: postId, on: target)
             guard gen == userToggleCount else { return }
             bookmarked = status.bookmarked
-            BookmarkStore.shared.set(postId, on: status.bookmarked)
+            syncBookmarkStore(on: status.bookmarked)
             // 북마크 = 오프라인 보장 — 켜지면 기기 사본 확보, 꺼지면 정리.
             if let ref = offlineRef {
                 if status.bookmarked {

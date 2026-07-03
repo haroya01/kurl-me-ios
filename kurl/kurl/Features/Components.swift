@@ -317,6 +317,8 @@ enum CardQuickActions {
             done: String(localized: "좋아요했습니다")
         ) {
             _ = try await InteractionsAPI.setLike(postId: item.id, on: true)
+            // 발견 미리보기의 내 좋아요 표식과 어긋나지 않게 함께 반영(멱등 켜기).
+            LikeStore.shared.set(username: item.author.username, slug: item.slug, on: true)
         }
     }
 
@@ -329,7 +331,8 @@ enum CardQuickActions {
                 : String(localized: "북마크를 해제했습니다")
         ) {
             _ = try await InteractionsAPI.setBookmark(postId: item.id, on: target)
-            BookmarkStore.shared.set(item.id, on: target)
+            BookmarkStore.shared.set(
+                username: item.author.username, slug: item.slug, id: item.id, on: target)
             // 북마크 = 오프라인 보장 — 카드에서 켜면 기기 사본을 따라 받고, 끄면 정리한다.
             if target {
                 await OfflineStore.shared.download(username: item.author.username, slug: item.slug)
