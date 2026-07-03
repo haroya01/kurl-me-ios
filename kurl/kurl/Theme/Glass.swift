@@ -43,7 +43,8 @@ private struct GlassCapsule: ViewModifier {
 // MARK: 떠 있는 유리 세그먼트 — 피드 소스 전환
 
 /// 상단 고정 스트립을 대체하는 떠 있는 유리 캡슐. 콘텐츠는 이 밑으로 흐른다.
-/// 활성 thumb 은 그린 700 채움(흰 라벨 규칙) — matchedGeometry 로 액체처럼 미끄러진다.
+/// 위계는 색 채움이 아니라 무게+잉크 대비가 진다 — 선택 알약은 유리 위로 살짝 들린 중립
+/// 표면이고, matchedGeometry 로 오버슈트 없이 조용히 활주한다.
 struct GlassSegmentSwitcher<T: Hashable & Identifiable>: View {
     let items: [T]
     @Binding var selection: T
@@ -71,29 +72,31 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable>: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
                         .fixedSize(horizontal: false, vertical: true)
-                        // 선택=중립 잉크 알약 + 반전 라벨(배경색). 형광 초록 candy를 걷는다(§10 색 규율).
-                        .foregroundStyle(active
-                            ? AnyShapeStyle(Color(uiColor: .systemBackground))
-                            : AnyShapeStyle(.secondary))
+                        // 위계는 무게+잉크 대비가 진다 — 선택=.primary, 비선택=.secondary. 유리 위
+                        // 글자는 시맨틱 스타일이라 vibrancy 가 가독을 만든다(§1.2, slate 고정색 금지).
+                        .foregroundStyle(active ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
                         .padding(.horizontal, 13)
                         .padding(.vertical, bare ? 6 : 8)
                         .background {
                             if active {
+                                // 선택 알약 = 유리 위로 살짝 들린 중립 표면(라이트 slate-200·다크 slate-700).
+                                // 잉크 반전 슬래브의 소란을 걷고 은은한 lift 만 남긴다 — 위계는 라벨이 진다.
                                 Capsule()
-                                    .fill(Palette.ink)
+                                    .fill(Palette.hairlineStrong)
                                     .matchedGeometryEffect(id: "thumb", in: ns)
                             }
                         }
                         .contentShape(Capsule())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(SegmentPressStyle())
                 .accessibilityAddTraits(active ? [.isSelected] : [])
             }
         }
         .padding(bare ? 0 : 4)
-        // 알약(thumb)은 selection 이 어떻게 바뀌든(탭이든 스와이프든) 항상 미끄러진다 —
-        // 호출측 withAnimation 에 기대지 않고 자체 애니메이션으로 matchedGeometry 를 굴린다.
-        .animation(reduceMotion ? nil : .snappy(duration: 0.28), value: selection)
+        // 알약은 selection 이 어떻게 바뀌든(탭이든 스와이프든) 항상 미끄러진다 — 호출측
+        // withAnimation 에 기대지 않고 자체 애니메이션으로 matchedGeometry 를 굴린다. 스프링
+        // 오버슈트 없이 조용히 활주하도록 bounce 0 인 smooth 커브로 민다(§10.7 조용함).
+        .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: selection)
 
         return Group {
             if bare {
@@ -119,6 +122,31 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable>: View {
         }
         // 분면 선택 = selection 햅틱 — 토글(.impact)·결과(.success)와 구분되는 세 번째 어휘.
         .sensoryFeedback(.selection, trigger: selection)
+    }
+}
+
+/// 세그먼트 탭의 눌림 피드백 — 카드 press(스케일+스프링)와 같은 어휘의 작은 판. 좁은 타깃이라
+/// 조금 더 눌러(0.94) 손끝에 잡히게 하고, reduce-motion 이면 스케일 대신 옅은 흐림으로 답한다.
+/// 랜딩 tick 은 스위처의 selection 햅틱이 맡는다(press-down 햅틱은 중복이라 얹지 않는다).
+private struct SegmentPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        Press(configuration: configuration)
+    }
+
+    private struct Press: View {
+        let configuration: ButtonStyleConfiguration
+        @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+        var body: some View {
+            configuration.label
+                .scaleEffect(configuration.isPressed && !reduceMotion ? 0.94 : 1)
+                .opacity(configuration.isPressed && reduceMotion ? 0.7 : 1)
+                .animation(
+                    reduceMotion
+                        ? .easeOut(duration: 0.12)
+                        : .spring(response: 0.32, dampingFraction: 0.72),
+                    value: configuration.isPressed)
+        }
     }
 }
 
