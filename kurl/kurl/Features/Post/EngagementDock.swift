@@ -32,7 +32,11 @@ struct EngagementDock: View {
     }
 
     var body: some View {
-        GlassEffectContainer(spacing: GlassTokens.clusterSpacing) {
+        // spacing 0 — 연결·좋아요·북마크는 성격이 다른 독립 컨트롤이라 서로 녹아 붙으면 안 된다.
+        // clusterSpacing(18) 안에선 하트를 누르는 순간 인터랙티브 유리가 부풀어 세 디스크가 한
+        // 캡슐로 이어 붙어(누른 버튼이 이웃까지 함께 반응) 버튼 독립성이 깨졌다. 0 = 실제로 닿을
+        // 때만 녹인다(작성 도구줄·분석 칩과 같은 규율).
+        GlassEffectContainer(spacing: 0) {
             VStack(spacing: 12) {
                 // 연결 = §0의 핵심 동사. 좋아요·북마크와 나란히 1급 인게이지로 둔다 —
                 // 읽다가 그 자리에서 컬렉션에 잇는다(쉽고 명확한 만들기 경로).
