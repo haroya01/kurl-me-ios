@@ -689,12 +689,10 @@ final class MarkdownEditorController {
     func insertTable() {
         // 표 앞뒤를 빈 줄로 띄운다 — 표 바로 다음에 산문이 붙으면 GFM 파서가 그 줄을 표의
         // 유령 행으로 빨아들여(에디터엔 평문, 발행본엔 표 안 행으로) 어긋난다.
-        let table = "| 제목 | 제목 |\n| --- | --- |\n| 내용 | 내용 |"
-        // 삽입 즉시 "표"로 보이게 — 캐럿을 표 아래 빈 줄에 둔다. 캐럿이 표 안이면 원시 마크다운(파이프)이
-        // 드러나 코드처럼 읽히지만, 밖이면 레이아웃 매니저가 곧장 진짜 그리드를 그린다. 셀은 탭해서 채운다
-        // (그려진 그리드를 탭하면 그 셀로 커서가 들어가 편집 모드가 된다 — handleGridTap).
-        let caretOffset = ("\n\n" + table + "\n").utf16.count
-        insertBlock("\n\n" + table + "\n\n", caretOffsetFromStart: caretOffset)
+        // 캐럿은 첫 셀에 둔다(offset 4 = "\n\n| " 다음) — 넣자마자 첫 칸을 바로 친다. 활성(편집) 중에도
+        // applyTables 가 파이프를 흐리게·구분선을 숨겨(빠른 경로도 이제 전체 패스로 넘김) "코드"가 아니라
+        // 조용한 표 구조로 읽히고, 캐럿이 표를 벗어나면 곧장 진짜 그리드로 전환된다.
+        insertBlock("\n\n| 제목 | 제목 |\n| --- | --- |\n| 내용 | 내용 |\n\n", caretOffsetFromStart: 4)
     }
 
     /// 단독 줄 동영상 URL — 백엔드가 EMBED 블록으로(YouTube/Vimeo), 리더(EmbedBlockView)가 플레이어로.
