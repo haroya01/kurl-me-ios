@@ -74,7 +74,7 @@ struct DiscoverView: View {
     private var loggedOutGate: some View {
         FeedPlaceholder(
             eyebrow: "발견",
-            title: "큐레이터를 따라 읽기",
+            title: "연결 발견",
             message: "로그인하면 팔로우한 큐레이터가 컬렉션에 이은 글이 여기에 흘러요.",
             actionTitle: "로그인",
             prominent: true,
