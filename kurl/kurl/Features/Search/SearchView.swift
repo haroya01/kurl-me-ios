@@ -83,7 +83,8 @@ struct SearchView: View {
         // 검색 결과 도착·최근 삭제는 손끝으로도 알린다 — 토글 버튼들과 같은 가벼운 임팩트.
         .sensoryFeedback(.impact(weight: .light), trigger: activeQuery)
         .sensoryFeedback(.impact(weight: .light), trigger: recents)
-        .confirmationDialog("최근 검색을 모두 지울까요?", isPresented: $confirmingClear, titleVisibility: .visible) {
+        // 알럿(중앙 모달) — confirmationDialog 은 regular width·세로 모두 부리 팝오버로 새어 나갔다.
+        .alert("최근 검색을 모두 지울까요?", isPresented: $confirmingClear) {
             Button("지우기", role: .destructive) { recents = [] }
             Button("취소", role: .cancel) {}
         }

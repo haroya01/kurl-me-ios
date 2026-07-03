@@ -16,7 +16,6 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @State private var confirmDelete = false
-    @State private var finalConfirmDelete = false
     @State private var deleting = false
     @State private var deleteFailed = false
     @State private var pushStatus: UNAuthorizationStatus = .notDetermined
@@ -175,18 +174,16 @@ struct SettingsView: View {
                 Task { await reloadPushStatus() }
             }
         }
-        .confirmationDialog(
-            "계정을 삭제할까요?", isPresented: $confirmDelete, titleVisibility: .visible
-        ) {
-            Button("계속", role: .destructive) { finalConfirmDelete = true }
-        } message: {
-            Text("글·시리즈·댓글이 모두 삭제 대상이 됩니다.")
-        }
-        .alert("정말 탈퇴할까요?", isPresented: $finalConfirmDelete) {
+        // 회원 탈퇴 확인 — 두 단계 확인을 한 알럿으로 합쳤다. confirmationDialog 은 세로·가로·iPad
+        // 어디서나 부리 팝오버로 바뀌어 트리거와 무관한 화면 중앙에 붕 떴다. 알럿은 항상 중앙 모달이라
+        // 새지 않는다. 파괴적 동작이라 결과·불가역을 한 번에 알리고 되묻는다(탈퇴 = destructive).
+        .alert("정말 탈퇴할까요?", isPresented: $confirmDelete) {
             Button("탈퇴", role: .destructive) { deleteAccount() }
             Button("취소", role: .cancel) {}
         } message: {
-            Text("이 동작은 되돌릴 수 없습니다.")
+            Text("글·시리즈·댓글이 모두 삭제 대상이 됩니다.")
+                + Text(verbatim: "\n")
+                + Text("이 동작은 되돌릴 수 없습니다.")
         }
         .alert("탈퇴하지 못했습니다", isPresented: $deleteFailed) {
             Button("확인", role: .cancel) {}
