@@ -10,5 +10,6 @@ import WidgetKit
 struct KurlWidgetBundle: WidgetBundle {
     var body: some Widget {
         AnalyticsWidget()
+        LibraryWidget()
     }
 }

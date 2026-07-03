@@ -22,6 +22,9 @@ final class OfflineStore {
 
     private let directory: URL
 
+    /// reconcile 처럼 사본을 여러 번 바꾸는 경로에선 위젯 스냅샷 갱신을 잠깐 미루고 끝에 한 번만.
+    private var widgetSyncSuspended = false
+
     private init() {
         let base = FileManager.default.urls(
             for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -51,11 +54,13 @@ final class OfflineStore {
         cachedKeys.insert("\(username)/\(slug)")
         prefetchImages(from: raw)
         evictIfNeeded()
+        syncWidgetSnapshot()
     }
 
     func remove(username: String, slug: String) {
         try? FileManager.default.removeItem(at: fileURL(username: username, slug: slug))
         cachedKeys.remove("\(username)/\(slug)")
+        syncWidgetSnapshot()
     }
 
     /// 로그아웃 시 전부 폐기 — 다른 계정이 이 기기의 오프라인 사본을 열지 못하게(프라이버시).
@@ -64,6 +69,8 @@ final class OfflineStore {
             at: directory, includingPropertiesForKeys: nil)) ?? []
         for url in files { try? FileManager.default.removeItem(at: url) }
         cachedKeys = []
+        // 로그아웃 = 위젯의 서재도 비운다(다른 계정이 이 기기 홈 화면에서 제목을 못 보게).
+        LibrarySnapshot.clear()
     }
 
     /// 없으면 받아서 저장 — 카드 컨텍스트 메뉴·구독함 프리페치·서재 reconcile 의 공용 경로.
@@ -78,6 +85,12 @@ final class OfflineStore {
     /// 서재 동기화 — 서버 북마크 목록이 진실. 빠진 사본은 받고, 풀린 북마크의 사본은 지운다.
     /// (웹에서 북마크한 글도 앱을 열면 기기로 따라온다.)
     func reconcile(bookmarks: [(username: String, slug: String)]) async {
+        // 여러 사본을 지우고 받는 동안엔 위젯 스냅샷을 미뤘다가(중간 상태 안 새기고) 끝에 한 번.
+        widgetSyncSuspended = true
+        defer {
+            widgetSyncSuspended = false
+            syncWidgetSnapshot()
+        }
         let wanted = Set(bookmarks.map { "\($0.username)/\($0.slug)" })
         for key in cachedKeys.subtracting(wanted) {
             let parts = key.split(separator: "/", maxSplits: 1).map(String.init)
@@ -89,6 +102,42 @@ final class OfflineStore {
     }
 
     // MARK: 내부
+
+    /// 위젯 "서재" 스냅샷을 다시 쓴다 — 오프라인 사본에서 제목·작가만 꺼내 App Group 에 남긴다.
+    /// 파일 IO·디코드는 메인 밖에서(사본이 120개까지라 열람 hitch 방지), 최근 저장 순으로 정렬.
+    private func syncWidgetSnapshot() {
+        guard !widgetSyncSuspended else { return }
+        let keys = cachedKeys
+        let directory = self.directory
+        Task.detached(priority: .utility) {
+            let items: [LibrarySnapshot.Item] = keys.compactMap { key -> LibrarySnapshot.Item? in
+                let parts = key.split(separator: "/", maxSplits: 1).map(String.init)
+                guard parts.count == 2 else { return nil }
+                let url = directory.appendingPathComponent("\(parts[0])__\(parts[1]).json")
+                // 블록·날짜를 건드리지 않는 최소 디코딩 — 서버 날짜 포맷과 무관하고 큰 본문을 통째로 안 판다.
+                guard let data = try? Data(contentsOf: url),
+                      let probe = try? JSONDecoder().decode(LibraryCardProbe.self, from: data)
+                else { return nil }
+                let savedAt = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?
+                    .contentModificationDate ?? .distantPast
+                return LibrarySnapshot.Item(
+                    username: probe.author.username,
+                    title: probe.post.title,
+                    slug: probe.post.slug,
+                    savedAt: savedAt)
+            }
+            .sorted { $0.savedAt > $1.savedAt }
+            LibrarySnapshot.save(items: items, totalCount: keys.count)
+        }
+    }
+
+    /// 오프라인 사본에서 위젯에 필요한 것만 꺼내는 최소 디코딩(블록·날짜 무시).
+    private struct LibraryCardProbe: Decodable {
+        struct Author: Decodable { let username: String }
+        struct Post: Decodable { let title: String; let slug: String }
+        let author: Author
+        let post: Post
+    }
 
     private func fileURL(username: String, slug: String) -> URL {
         directory.appendingPathComponent("\(username)__\(slug).json")
