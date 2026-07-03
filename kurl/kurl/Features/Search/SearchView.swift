@@ -39,8 +39,8 @@ struct SearchView: View {
                 case .idle:
                     idleState
                 case .loading:
-                    KurlLoadingMark()
-                        .frame(maxWidth: .infinity, minHeight: 280)
+                    // 결과 카드가 뜰 자리에 카드 그리드 스켈레톤(피드와 같은 문법) — 중앙 마크→상단 카드 점프 제거.
+                    FeedSkeleton()
                 case .loaded(let items):
                     results(items)
                 case .failed(let message):

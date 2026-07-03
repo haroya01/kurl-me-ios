@@ -101,26 +101,9 @@ struct AuthorBlogView: View {
             }
         }
         .reportDialog(isPresented: $showReport, subjectType: "USER", subjectId: author?.id ?? 0)
-        .confirmationDialog(
-            "\(author?.username ?? "") 님을 차단할까요?", isPresented: $showBlockConfirm,
-            titleVisibility: .visible
-        ) {
-            Button("차단", role: .destructive) {
-                guard let a = author else { return }
-                Task {
-                    do {
-                        try await BlockStore.shared.block(id: a.id, username: a.username)
-                        ToastCenter.shared.show(
-                            String(localized: "차단했어요 — 이 작가의 글·댓글이 숨겨집니다"))
-                    } catch {
-                        ToastCenter.shared.show(String(localized: "차단하지 못했어요"))
-                    }
-                }
-            }
-            Button("취소", role: .cancel) {}
-        } message: {
-            Text("차단하면 이 작가의 글·댓글·노트가 더는 보이지 않습니다.")
-        }
+        .blockDialog(
+            isPresented: $showBlockConfirm,
+            username: author?.username ?? "", userId: author?.id ?? 0)
         .toolbarBackground(showNavTitle ? .automatic : .hidden, for: .navigationBar)
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
