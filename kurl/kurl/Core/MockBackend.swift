@@ -76,6 +76,14 @@ enum MockBackend {
          "quote": "다만 첫 두 주에 들인 비용을 미리 알았다면, 훨씬 더 작게 시작했을 것이다. 레이어드 구조로 3년을",
          "note": NSNull(),
          "createdAt": iso(Date().addingTimeInterval(-5_000))],
+        // 내가 그은 것(author=나) — 리더에서 '내 하이라이트 삭제'를 검증할 앵커(다른 문단, 다른 테스트와
+        // 무충돌). 문단 전체를 덮어(중앙 어디를 탭해도 마크에 맞게) 스크롤 위치에 덜 민감하게 한다.
+        ["id": 6003,
+         "author": ["id": 1, "username": myUsername, "bio": NSNull(), "avatarUrl": NSNull()],
+         "blockOrder": 6, "startOffset": 0, "endOffset": 112,
+         "quote": "이름이 곧 경계였다. 포트 이름을 짓다 보면 '이건 도메인이 알 바 아니다' 싶은 것이 드러난다. 그걸 바깥으로 밀어내는 게 작업의 절반이었다. 나머지 절반은 그 결정을 팀이 납득하게 만드는 일이었고.",
+         "note": "포트 이름 짓기가 설계의 절반이라는 대목, 두고두고 곱씹는다.",
+         "createdAt": iso(Date().addingTimeInterval(-4_000))],
     ]
     private static var highlightReplies: [Int: [[String: Any]]] = [
         6001: [

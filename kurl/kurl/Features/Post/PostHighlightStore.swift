@@ -92,6 +92,24 @@ final class PostHighlightStore {
             await load()
         }
     }
+
+    /// 내가 그은 하이라이트 삭제 — 낙관적으로 즉시 본문에서 걷어내(마크가 사라진다) 실패하면 자리째
+    /// 되살린다. 성공 여부를 돌려줘 호출부(스레드 시트)가 닫기·토스트를 정한다.
+    @discardableResult
+    func delete(id: Int64) async -> Bool {
+        guard let idx = highlights.firstIndex(where: { $0.id == id }) else { return false }
+        let snapshot = highlights
+        withAnimation(.snappy(duration: 0.25)) {
+            highlights.remove(at: idx)
+        }
+        do {
+            try await HighlightsAPI.delete(id: id)
+            return true
+        } catch {
+            withAnimation(.snappy(duration: 0.25)) { highlights = snapshot }
+            return false
+        }
+    }
 }
 
 private struct PostHighlightStoreKey: EnvironmentKey {

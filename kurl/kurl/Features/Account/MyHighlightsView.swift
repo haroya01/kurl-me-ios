@@ -11,6 +11,8 @@ import SwiftUI
 struct MyHighlightsView: View {
     @State private var items: [MyHighlightView] = []
     @State private var connectTarget: MyHighlightView?
+    @State private var pendingDelete: MyHighlightView?
+    @State private var showDeleteConfirm = false
     @State private var loading = true
     @State private var query = ""
 
@@ -87,6 +89,12 @@ struct MyHighlightsView: View {
             loading = false
         }
         .refreshable { items = (try? await HighlightsAPI.mine()) ?? items }
+        .alert("이 하이라이트를 삭제할까요?", isPresented: $showDeleteConfirm, presenting: pendingDelete) { item in
+            Button("삭제", role: .destructive) { delete(item) }
+            Button("취소", role: .cancel) {}
+        } message: { _ in
+            Text("메모나 답글이 딸려 있으면 함께 사라져요. 되돌릴 수 없어요.")
+        }
     }
 
     // MARK: 글 묶음
@@ -146,6 +154,29 @@ struct MyHighlightsView: View {
         .contextMenu {
             Button { connectTarget = item } label: {
                 Label("컬렉션에 연결", systemImage: "rectangle.stack.badge.plus")
+            }
+            Button(role: .destructive) {
+                pendingDelete = item
+                showDeleteConfirm = true
+            } label: {
+                Label("하이라이트 삭제", systemImage: "trash")
+            }
+        }
+    }
+
+    /// 그은 구절 삭제 — 낙관적으로 목록에서 즉시 빼고, 실패하면 자리째 되돌리고 토스트로 알린다.
+    private func delete(_ item: MyHighlightView) {
+        guard let idx = items.firstIndex(where: { $0.id == item.id }) else { return }
+        let snapshot = items
+        withAnimation(.snappy(duration: 0.25)) {
+            items.remove(at: idx)
+        }
+        Task {
+            do {
+                try await HighlightsAPI.delete(id: item.id)
+            } catch {
+                withAnimation(.snappy(duration: 0.25)) { items = snapshot }
+                ToastCenter.shared.show(String(localized: "하이라이트를 삭제하지 못했습니다"))
             }
         }
     }

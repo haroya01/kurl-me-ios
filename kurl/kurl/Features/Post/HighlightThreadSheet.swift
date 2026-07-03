@@ -19,6 +19,7 @@ struct HighlightThreadSheet: View {
     @State private var replies: [HighlightReplyView] = []
     @State private var text = ""
     @State private var busy = false
+    @State private var showDeleteConfirm = false
     /// 이 문장이 속한 공개 길/컬렉션 — A 척추 발견 고리(한 문장 → 그것이 엮인 길들로).
     @State private var inCollections: [CollectionSummary] = []
     /// 이 문장과 같은 공개 컬렉션에 함께 놓인 다른 블록 — "이것과 이어진 것"(공동 등장 발견 고리).
@@ -26,6 +27,15 @@ struct HighlightThreadSheet: View {
 
     /// 연결은 서버에 자리잡은(양수 id) 하이라이트만 — 낙관적 생성 직후(음수 id)는 refId 가 없다.
     private var canConnect: Bool { highlight.id > 0 && AuthStore.shared.isSignedIn }
+
+    /// 내가 그은 하이라이트만 삭제 가능 — 서버에 자리잡은(양수 id) 것에 한해 소유 검사.
+    private var isMine: Bool {
+        guard highlight.id > 0, let myId = AuthStore.shared.me?.id else { return false }
+        return highlight.author?.id == myId
+    }
+
+    /// 메모나 답글이 딸렸는지 — 삭제 확인 문구에서 "함께 사라져요" 고지를 켠다.
+    private var hasThread: Bool { (highlight.note?.isEmpty == false) || highlight.replyCount > 0 }
 
     private var hasOpener: Bool { (highlight.note?.isEmpty == false) }
 
@@ -133,17 +143,33 @@ struct HighlightThreadSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("닫기") { dismiss() } }
-                if canConnect {
-                    // 이 문장을 내 컬렉션(연결 그래프)에 노드로 — 발견 피드로 흐르는 진입점.
+                if isMine {
+                    // 내 하이라이트 — 연결과 삭제를 한 메뉴로(컬렉션 상세와 같은 ellipsis 관리 문법).
+                    ToolbarItem(placement: .primaryAction) {
+                        Menu {
+                            Button {
+                                startConnect()
+                            } label: {
+                                Label("컬렉션에 연결", systemImage: "rectangle.stack.badge.plus")
+                            }
+                            Button(role: .destructive) {
+                                showDeleteConfirm = true
+                            } label: {
+                                Label("하이라이트 삭제", systemImage: "trash")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis")
+                        }
+                        .tint(.brand)
+                        .accessibilityLabel(Text("하이라이트 관리"))
+                        .accessibilityIdentifier("highlightManageMenu")
+                    }
+                } else if canConnect {
+                    // 남의 문장 — 내 컬렉션(연결 그래프)에 노드로 잇는 진입점.
                     // 시트 위 시트를 피해 닫고 나서 부모가 ConnectSheet 를 띄운다(present-after-dismiss).
                     ToolbarItem(placement: .primaryAction) {
                         Button {
-                            let target = highlight
-                            dismiss()
-                            Task { @MainActor in
-                                try? await Task.sleep(for: .milliseconds(350))
-                                store.connectTarget = target
-                            }
+                            startConnect()
                         } label: {
                             Image(systemName: "rectangle.stack.badge.plus")
                         }
@@ -151,6 +177,14 @@ struct HighlightThreadSheet: View {
                         .accessibilityIdentifier("connectHighlightButton")
                     }
                 }
+            }
+            .alert("이 하이라이트를 삭제할까요?", isPresented: $showDeleteConfirm) {
+                Button("삭제", role: .destructive) { performDelete() }
+                Button("취소", role: .cancel) {}
+            } message: {
+                Text(hasThread
+                    ? "남긴 메모와 답글도 함께 사라져요. 되돌릴 수 없어요."
+                    : "삭제하면 되돌릴 수 없어요.")
             }
         }
         .presentationDetents([.medium, .large])
@@ -308,6 +342,30 @@ struct HighlightThreadSheet: View {
             try? await HighlightsAPI.deleteReply(id: id)
             await loadReplies()
             await store.load()
+        }
+    }
+
+    /// 이 문장을 내 컬렉션(연결 그래프)에 노드로 — 시트 위 시트를 피해 닫은 뒤 부모가 띄운다.
+    private func startConnect() {
+        let target = highlight
+        dismiss()
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(350))
+            store.connectTarget = target
+        }
+    }
+
+    /// 삭제 확정 — 스토어가 낙관적으로 본문에서 걷어내고, 성공하면 시트를 닫는다. 실패하면
+    /// 스토어가 마크를 되살리고 토스트로 알린다.
+    private func performDelete() {
+        busy = true
+        Task {
+            defer { busy = false }
+            if await store.delete(id: highlight.id) {
+                dismiss()
+            } else {
+                ToastCenter.shared.show(String(localized: "하이라이트를 삭제하지 못했습니다"))
+            }
         }
     }
 }
