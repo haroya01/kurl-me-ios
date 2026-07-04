@@ -109,8 +109,12 @@ struct ProfileEditView: View {
             if let newAvatar {
                 Image(uiImage: newAvatar).resizable().scaledToFill()
             } else if let url = currentAvatarUrl, let u = URL(string: url) {
-                AsyncImage(url: u) { $0.resizable().scaledToFill() } placeholder: {
-                    Circle().fill(Palette.hairline)
+                RemoteImage(url: u) { phase in
+                    if case .success(let image) = phase {
+                        image.resizable().scaledToFill()
+                    } else {
+                        Circle().fill(Palette.hairline)
+                    }
                 }
             } else {
                 Circle().fill(Palette.chipBg)

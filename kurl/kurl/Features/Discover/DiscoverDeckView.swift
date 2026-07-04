@@ -84,6 +84,8 @@ final class DiscoverDeckModel {
 struct DiscoverDeckView: View {
     @State private var model = DiscoverDeckModel()
     @State private var currentId: Int64?
+    /// 살아 있는(진짜 상세가 그려진) 장 — 현재 ±1 을 미리 깨우고, 한 번 깨어난 장은 유지한다.
+    @State private var aliveIds: Set<Int64> = []
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var shuffleCount = 0
     /// 위치 칩의 비텍스트 마커(sparkles)도 footnote 라벨과 함께 커지게 — 산발 고정 크기 종식.
@@ -150,6 +152,7 @@ struct DiscoverDeckView: View {
                         // nil 로 리셋해 `?? deck.first` 폴백이 즉시 받게 한다.
                         currentId = nil
                         hasNavigated = false
+                        aliveIds = []
                         Task { await model.reshuffle() }
                     } label: {
                         Image(systemName: "shuffle")
@@ -184,6 +187,15 @@ struct DiscoverDeckView: View {
         return model.deck.first { $0.id == id }
     }
 
+    /// 현재 장과 양옆을 alive 집합에 편입 — 스와이프가 시작되기 전에 옆 장이 이미 그려져 있게.
+    private func wakeNeighbors() {
+        guard !model.deck.isEmpty else { return }
+        let index = model.deck.firstIndex { $0.id == (currentId ?? model.deck.first?.id) } ?? 0
+        for i in max(0, index - 1)...min(model.deck.count - 1, index + 1) {
+            aliveIds.insert(model.deck[i].id)
+        }
+    }
+
     /// 네이티브 공유 시트용 공개 URL — 글 상세와 같은 주소.
     private var currentShareURL: URL? {
         guard let item = currentItem else { return nil }
@@ -193,11 +205,22 @@ struct DiscoverDeckView: View {
 
     private var deck: some View {
         ScrollView(.horizontal) {
-            LazyHStack(spacing: 0) {
+            // Lazy 대신 손수 깨우는 HStack — lazy 는 옆 장을 스와이프가 시작된 뒤에야 만들기
+            // 때문에, 넘기는 손 밑에서 로딩 중인 장이 보였다. 여기서는 현재 ±1 장을 미리
+            // 깨워(alive) 넘기는 순간 이미 완성돼 있고, 한 번 깨어난 장은 계속 살려 둬 되돌아가도
+            // 읽던 자리·이미지가 그대로다(lazy 의 유지 특성과 동일 — 회귀 없음).
+            HStack(spacing: 0) {
                 ForEach(model.deck) { item in
-                    PostDetailView(
-                        username: item.author.username, slug: item.slug, embedded: true
-                    )
+                    Group {
+                        if aliveIds.contains(item.id) {
+                            PostDetailView(
+                                username: item.author.username, slug: item.slug, embedded: true
+                            )
+                            .task { await model.loadMoreIfNeeded(current: item) }
+                        } else {
+                            Color.clear
+                        }
+                    }
                     .containerRelativeFrame(.horizontal)
                     // 덱의 깊이 — 넘기는 동안 옆 장은 한 겹 뒤로 물러났다(축소+가라앉음) 떠오른다.
                     // 읽기 폭은 안 깎는다(착지하면 풀스크린). reduce-motion 이면 정지.
@@ -207,11 +230,14 @@ struct DiscoverDeckView: View {
                             .opacity(reduceMotion ? 1 : (phase.isIdentity ? 1 : 0.55))
                             .offset(y: reduceMotion ? 0 : (phase.isIdentity ? 0 : 14))
                     }
-                    .task { await model.loadMoreIfNeeded(current: item) }
                 }
             }
             .scrollTargetLayout()
         }
+        // 착지할 때마다 현재 ±1 장을 깨운다(첫 렌더 포함). 덱이 늘어나거나(더 불러오기)
+        // 섞여도(reshuffle) 같은 경로로 갱신된다.
+        .onChange(of: currentId, initial: true) { wakeNeighbors() }
+        .onChange(of: model.deck) { wakeNeighbors() }
         .scrollTargetBehavior(.paging)
         .scrollPosition(id: $currentId)
         .scrollIndicators(.hidden)

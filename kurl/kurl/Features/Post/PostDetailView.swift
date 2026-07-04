@@ -819,7 +819,7 @@ struct PostDetailView: View {
         VStack(alignment: .leading, spacing: 0) {
             Group {
                 if let cover = post.ogImageUrl, let url = URL(string: cover) {
-                    AsyncImage(url: url) { phase in
+                    RemoteImage(url: url) { phase in
                         if case .success(let image) = phase {
                             image.resizable().scaledToFill()
                         } else {

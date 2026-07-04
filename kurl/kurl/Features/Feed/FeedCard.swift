@@ -45,7 +45,7 @@ struct FeedRow: View {
             }
 
             if let urlString = item.ogImageUrl, let url = URL(string: urlString) {
-                AsyncImage(url: url) { phase in
+                RemoteImage(url: url) { phase in
                     if case .success(let image) = phase {
                         image.resizable().scaledToFill()
                     } else {

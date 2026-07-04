@@ -58,9 +58,10 @@ struct ImageLightbox: View {
     }
 
     private var imageLayer: some View {
-        AsyncImage(
+        // 본문에서 이미 로드한 이미지는 캐시 히트 — 뷰어가 재다운로드 없이 즉시 열린다.
+        RemoteImage(
             url: url,
-            transaction: Transaction(animation: reduceMotion ? nil : .easeOut(duration: 0.3))
+            animation: reduceMotion ? nil : .easeOut(duration: 0.3)
         ) { phase in
             switch phase {
             case .success(let image):

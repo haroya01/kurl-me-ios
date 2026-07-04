@@ -422,8 +422,8 @@ private struct ImageBlockView: View {
     var body: some View {
         VStack(spacing: 12) {
             if let url = URL(string: payload.url) {
-                // 로드되면 즉시 pop 하지 않고 마크 플레이스홀더에서 부드럽게 페이드인 — 본문 읽기 흐름을 끊지 않는다.
-                AsyncImage(url: url, transaction: Transaction(animation: .easeOut(duration: 0.35))) { phase in
+                // 첫 로드만 마크 플레이스홀더에서 부드럽게 페이드인 — 이미 본 이미지(캐시)는 즉시 그려진다.
+                RemoteImage(url: url, animation: .easeOut(duration: 0.35)) { phase in
                     switch phase {
                     case .success(let image):
                         image.resizable().scaledToFit().transition(.opacity)
@@ -690,7 +690,7 @@ private struct EmbedLinkCard: View {
 
     /// 파비콘 — 로드되면 사이트 아이콘, 실패·로딩 중엔 조용한 지구본 글리프로 폴백.
     private var favicon: some View {
-        AsyncImage(url: faviconURL) { phase in
+        RemoteImage(url: faviconURL) { phase in
             if case .success(let image) = phase {
                 image.resizable().scaledToFit()
             } else {
@@ -741,10 +741,12 @@ private struct InlineVideoEmbed: View {
     private var posterView: some View {
         ZStack {
             if let poster {
-                AsyncImage(url: poster) { image in
-                    image.resizable().scaledToFill()
-                } placeholder: {
-                    Palette.codeBg
+                RemoteImage(url: poster) { phase in
+                    if case .success(let image) = phase {
+                        image.resizable().scaledToFill()
+                    } else {
+                        Palette.codeBg
+                    }
                 }
             } else {
                 Palette.codeBg
