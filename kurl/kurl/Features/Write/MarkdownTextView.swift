@@ -255,6 +255,10 @@ struct MarkdownTextView: UIViewRepresentable {
         /// 마지막으로 마커를 노출했던 활성 문단의 시작 위치 — 캐럿이 다른 문단으로 옮겨갈 때만
         /// 다시 칠해(떠난 줄은 마커 숨김, 새 줄은 노출) 매 커서 이동마다의 재렌더를 피한다.
         private var lastActiveParaStart = -1
+        /// 다음 didChange 에서 전체 패스를 강제 — 펜스 마커 줄을 건드리거나 파이프를 지우는 편집은
+        /// 영향이 캐럿 문단 밖(펜스 아래 코드색·표의 나머지 줄)까지 미쳐, 국소 경로가 낡은 스타일을
+        /// 남길 수 있다(shouldChangeTextIn 이 pre-edit 내용을 보고 표시해 둔다).
+        private var pendingFullHighlight = false
 
         init(_ parent: MarkdownTextView) {
             self.parent = parent
@@ -270,15 +274,24 @@ struct MarkdownTextView: UIViewRepresentable {
         func textViewDidChange(_ textView: UITextView) {
             // 조합 중간값은 바인딩에 흘리지 않는다 — 자동저장 시그니처가 조합 글자로 출렁이지 않게.
             guard textView.markedTextRange == nil else { return }
+            // 조합이 끝난 첫 변경 — 조합 중 도착해 보류된 블록(업로드 완료 이미지 등)을 먼저 넣는다.
+            parent.controller.flushPendingBlocks()
             // 본문이 바뀌었으니 컨텍스트 캐시를 버린다 — 같은 길이·같은 줄 시작의 편집에서도 정확하게.
             parent.controller.invalidateContextCache()
             // 변경 크기 — 작은 in-place 편집이면 캐럿 문단만 다시 칠해 긴 글 타이핑 지연을 없앤다.
             let delta = abs((textView.text as NSString).length - (lastEditorText as NSString).length)
             parent.text = textView.text
             lastEditorText = textView.text
-            // 치는 즉시 렌더 — 조합이 끝난 글자부터 제목·굵게 등으로 입혀진다. 큰 변경(붙여넣기 등)이나
-            // 빠른 경로가 거부(펜스·구조)하면 전체 패스로 떨어진다.
-            if delta > 2 || !MarkdownSyntaxHighlighter.applyEditedParagraph(to: textView) {
+            let forceFull = pendingFullHighlight
+            pendingFullHighlight = false
+            // 치는 즉시 렌더 — 조합이 끝난 글자부터 제목·굵게 등으로 입혀진다. 큰 변경(붙여넣기 등)과
+            // 구조를 바꾸는 편집만 전체 패스, 펜스 안·표 안 타이핑은 그 블록만 국소로 다시 칠한다
+            // (예전엔 백틱·파이프가 있는 줄의 타이핑이 매 키 입력마다 전문서 재하이라이트였다).
+            if forceFull || delta > 2 {
+                MarkdownSyntaxHighlighter.apply(to: textView)
+            } else if !MarkdownSyntaxHighlighter.applyEditedParagraph(to: textView),
+                !MarkdownSyntaxHighlighter.applyFenceInteriorEdit(to: textView),
+                !MarkdownSyntaxHighlighter.applyTableRegionEdit(to: textView) {
                 MarkdownSyntaxHighlighter.apply(to: textView)
             }
             // 방금 친 줄이 활성 문단 — 다음 커서 이동 비교 기준을 여기에 맞춰 둔다(중복 재렌더 방지).
@@ -291,12 +304,23 @@ struct MarkdownTextView: UIViewRepresentable {
         // 커서가 움직일 때마다 캐럿 위치의 성격(표/이미지)을 컴포즈에 알린다(컨텍스트 바 토글).
         func textViewDidChangeSelection(_ textView: UITextView) {
             guard textView.markedTextRange == nil else { return }
+            // 조합이 텍스트 변경 없이 끝나는 경로(탭으로 캐럿만 이동 등) — 보류 블록을 여기서도 넣는다.
+            if parent.controller.flushPendingBlocks() {
+                textViewDidChange(textView) // 바인딩·하이라이트·컨텍스트를 한 번에 동기화.
+                return
+            }
             parent.onContextChange(parent.controller.caretContext())
             // 캐럿이 다른 문단으로 옮겨가면 다시 칠한다 — 떠난 줄은 마커를 숨기고, 새 줄은 노출(편집).
+            // 전문서 재하이라이트 대신 그 두 문단만 국소로 다시 칠한다(긴 글 커서 이동 버벅임 방지).
+            // 선택(길이>0)은 여러 문단의 마커를 한꺼번에 노출해야 할 수 있어 전체 패스로 둔다.
             let start = activeParaStart(textView)
             if start != lastActiveParaStart {
+                let previous = lastActiveParaStart
                 lastActiveParaStart = start
-                MarkdownSyntaxHighlighter.apply(to: textView)
+                if previous < 0 || textView.selectedRange.length > 0
+                    || !MarkdownSyntaxHighlighter.applyCaretMove(to: textView, fromParagraphAt: previous) {
+                    MarkdownSyntaxHighlighter.apply(to: textView)
+                }
             }
         }
 
@@ -336,6 +360,19 @@ struct MarkdownTextView: UIViewRepresentable {
                 range.location == lineStart + markerLen - 1 {
                 replaceProgrammatically(textView, NSRange(location: lineStart, length: markerLen), with: "", caret: lineStart)
                 return false
+            }
+
+            // 펜스 마커 줄(```·~~~)을 건드리거나 파이프·펜스 문자를 지우는 편집은 캐럿 문단 밖
+            // (펜스 아래 코드색·표의 나머지 줄)까지 모습을 바꾼다 — 편집 후 문단만 보는 국소 경로가
+            // 낡은 스타일을 남기지 않게, 다음 didChange 에서 전체 패스를 돌도록 표시해 둔다.
+            let trimmedLine = content.trimmingCharacters(in: .whitespaces)
+            if trimmedLine.hasPrefix("```") || trimmedLine.hasPrefix("~~~") {
+                pendingFullHighlight = true
+            } else if range.length > 0, range.location + range.length <= ns.length {
+                let removed = ns.substring(with: range)
+                if removed.contains("`") || removed.contains("~") || removed.contains("|") {
+                    pendingFullHighlight = true
+                }
             }
             return true
         }
@@ -388,7 +425,8 @@ struct MarkdownTextView: UIViewRepresentable {
         }
 
         func textViewDidEndEditing(_ textView: UITextView) {
-            // 끝나는 시점에 마지막 조합분을 확정 반영.
+            // 끝나는 시점에 마지막 조합분을 확정 반영. 조합 중 보류된 블록도 여기서 마저 넣는다.
+            parent.controller.flushPendingBlocks()
             parent.text = textView.text
             lastEditorText = textView.text
             parent.onFocusChange(false)
@@ -406,6 +444,8 @@ final class MarkdownEditorController {
     weak var textView: UITextView?
     /// 링크 다이얼로그가 뜨는 동안 보관하는 삽입 위치(시트가 뜨며 selection 이 흐려져도 제자리에 넣는다).
     private var pendingLinkRange: NSRange?
+    /// 조합(IME) 중 도착한 블록 삽입(업로드 완료 이미지 등) — 조합이 끝나면 코디네이터가 flush 한다.
+    private var pendingBlocks: [(snippet: String, caretOffsetFromStart: Int?)] = []
 
     var currentText: String { textView?.text ?? "" }
 
@@ -1269,14 +1309,29 @@ final class MarkdownEditorController {
     }
 
     private func insertBlock(_ snippet: String, caretOffsetFromStart: Int?) {
-        guard let textView, textView.markedTextRange == nil,
-              let selected = textView.selectedTextRange
-        else { return }
+        guard let textView else { return }
+        // 조합(IME) 중엔 프로그램 삽입이 조합을 깨뜨린다 — 버리는 대신 보류해 두고 조합이 끝나는
+        // 즉시 넣는다(업로드가 끝난 시점에 한글을 치고 있으면 이미지가 본문에서 조용히 증발하던 버그).
+        guard textView.markedTextRange == nil else {
+            pendingBlocks.append((snippet, caretOffsetFromStart))
+            return
+        }
+        guard let selected = textView.selectedTextRange else { return }
         let start = textView.selectedRange.location
         textView.replace(selected, withText: snippet)
         let offset = caretOffsetFromStart ?? (snippet as NSString).length
         textView.selectedRange = NSRange(location: start + offset, length: 0)
         MarkdownSyntaxHighlighter.apply(to: textView)
+    }
+
+    /// 조합이 끝난 시점(코디네이터의 델리게이트 콜백)에 보류된 블록을 순서대로 넣는다. 넣었으면 true.
+    @discardableResult
+    func flushPendingBlocks() -> Bool {
+        guard !pendingBlocks.isEmpty, let textView, textView.markedTextRange == nil else { return false }
+        let queued = pendingBlocks
+        pendingBlocks.removeAll() // 삽입이 델리게이트를 재귀시켜도 같은 블록이 다시 흐르지 않게 먼저 비운다.
+        for block in queued { insertBlock(block.snippet, caretOffsetFromStart: block.caretOffsetFromStart) }
+        return true
     }
 }
 
@@ -1385,12 +1440,22 @@ final class ImageThumbCache {
     private static let maxAttempts = 5
     /// 재시도 백오프(초) — 전파 지연을 흡수한다. 시도가 늘수록 간격을 벌려 요청 폭주를 막는다.
     private static let backoff: [TimeInterval] = [0.5, 1.2, 2.5, 5.0]
+    /// 재시도 소진 시각 — 쿨다운이 지나면 카운터를 리셋해 다시 받아본다. CDN 전파가 백오프 합계
+    /// (~9초)보다 늦은 이미지가 앱 재시작 전까지 placeholder 로 굳지 않게(싱글톤이라 리셋 경로가 없었다).
+    private var exhaustedAt: [NSURL: Date] = [:]
+    private static let retryCooldown: TimeInterval = 60
 
     /// 캐시에 있으면 즉시 반환, 없으면 비동기로 받아 캐시 후 onLoad 호출(메인 스레드).
     /// 실패(전송오류·비-2xx·디코드 실패)면 백오프 뒤 onLoad 로 리드로우를 유도해(→ 재호출) 최대 maxAttempts 회 재시도.
     func image(for url: URL, onLoad: @escaping () -> Void) -> UIImage? {
         let key = url as NSURL
         if let img = cache.object(forKey: key) { return img }
+        // 소진된 URL 도 쿨다운이 지나면 다시 시도한다 — 소진이 영구 블랙리스트가 되지 않게.
+        if (attempts[key] ?? 0) >= Self.maxAttempts,
+            let when = exhaustedAt[key], Date().timeIntervalSince(when) >= Self.retryCooldown {
+            attempts[key] = nil
+            exhaustedAt[key] = nil
+        }
         // 로딩 중이거나 재시도 한도를 소진했으면 새 요청을 걸지 않는다(리드로우마다의 폭주 차단).
         guard !loading.contains(key), (attempts[key] ?? 0) < Self.maxAttempts else { return nil }
         loading.insert(key)
@@ -1404,6 +1469,7 @@ final class ImageThumbCache {
                     let cost = Int(img.size.width * img.size.height * img.scale * img.scale * 4)
                     self.cache.setObject(img, forKey: key, cost: cost)
                     self.attempts[key] = nil
+                    self.exhaustedAt[key] = nil
                     onLoad()
                 } else {
                     // 실패 — 한 번 더 세고, 한도 안이면 백오프 뒤 리드로우를 부른다(→ image(for:) 재호출 → 다음 시도).
@@ -1412,6 +1478,12 @@ final class ImageThumbCache {
                     if n < Self.maxAttempts {
                         let delay = Self.backoff[min(n - 1, Self.backoff.count - 1)]
                         DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: onLoad)
+                    } else {
+                        // 소진 — 쿨다운 뒤 리드로우를 한 번 걸어 재시도 사이클을 다시 연다
+                        // (에디터가 닫혔으면 onLoad 의 weak 참조가 풀려 아무 일도 없다).
+                        self.exhaustedAt[key] = Date()
+                        DispatchQueue.main.asyncAfter(
+                            deadline: .now() + Self.retryCooldown, execute: onLoad)
                     }
                 }
             }

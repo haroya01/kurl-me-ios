@@ -14,6 +14,7 @@ struct MyHighlightsView: View {
     @State private var pendingDelete: MyHighlightView?
     @State private var showDeleteConfirm = false
     @State private var loading = true
+    @State private var failed = false
     @State private var query = ""
 
     /// 같은 글의 구절을 한 묶음으로 — 첫 등장 순서(최근순)를 보존한다.
@@ -51,6 +52,15 @@ struct MyHighlightsView: View {
             if loading {
                 KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 240)
+            } else if failed {
+                // 실패는 빈 200 과 구분 — 서재 형제 화면들의 실패 상태와 같은 문법.
+                ContentUnavailableView {
+                    Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
+                } actions: {
+                    Button("다시 시도") { Task { loading = true; await load() } }
+                        .foregroundStyle(Palette.accent)
+                }
+                .padding(.top, 60)
             } else if items.isEmpty {
                 ContentUnavailableView {
                     Label("하이라이트한 구절이 없습니다", systemImage: "highlighter")
@@ -84,16 +94,25 @@ struct MyHighlightsView: View {
                 targetKind: "하이라이트", targetTitle: h.quote,
                 blockType: .highlight, refId: h.id)
         }
-        .task {
-            items = (try? await HighlightsAPI.mine()) ?? []
-            loading = false
-        }
-        .refreshable { items = (try? await HighlightsAPI.mine()) ?? items }
+        .task { await load() }
+        .refreshable { await load() }
         .alert("이 하이라이트를 삭제할까요?", isPresented: $showDeleteConfirm, presenting: pendingDelete) { item in
             Button("삭제", role: .destructive) { delete(item) }
             Button("취소", role: .cancel) {}
         } message: { _ in
             Text("메모나 답글이 딸려 있으면 함께 사라져요. 되돌릴 수 없어요.")
+        }
+    }
+
+    /// 실패를 빈 배열로 삼키지 않는다 — 이미 목록이 있으면 유지하고, 빈 화면일 때만 실패 상태로.
+    private func load() async {
+        failed = false
+        do {
+            items = try await HighlightsAPI.mine()
+            loading = false
+        } catch {
+            loading = false
+            if items.isEmpty { failed = true }
         }
     }
 

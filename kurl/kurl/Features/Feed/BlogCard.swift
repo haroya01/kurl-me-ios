@@ -45,10 +45,7 @@ struct BlogCard: View {
                     .accessibilityLabel("북마크됨")
             }
         }
-        // 이 카드로 들어갈 때 상세가 첫 프레임부터 커버를 깔도록 미리 기억해 둔다.
         .onAppear {
-            PostPeek.remember(
-                username: item.author.username, slug: item.slug, cover: item.ogImageUrl)
             Task { await BookmarkStore.shared.hydrateIfNeeded() }
             Task { await BlockStore.shared.hydrateIfNeeded() }
         }

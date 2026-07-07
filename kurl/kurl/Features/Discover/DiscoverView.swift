@@ -14,6 +14,9 @@ struct DiscoverView: View {
     @State private var loading = true
     @State private var failed = false
     @State private var showLoginSheet = false
+    /// 직전 로그인 상태 — 재-appear 재발화와 실제 인증 전환을 구분한다(FeedView 와 같은 문법).
+    @State private var wasSignedIn = AuthStore.shared.isSignedIn
+    @State private var hasLoaded = false
 
     var body: some View {
         NavigationStack {
@@ -47,7 +50,16 @@ struct DiscoverView: View {
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: CollectionRef.self) { CollectionDetailView(collectionId: $0.id) }
             .navigationDestination(for: Route.self) { RouteView(route: $0) }
-            .task(id: AuthStore.shared.isSignedIn) { await load() }
+            // .task 는 재-appear(탭 전환·글에서 pop 복귀)마다 재발화한다 — 첫 진입과 실제
+            // 인증 전환에서만 요청(FeedViewModel.loadInitial 의 idle 가드와 같은 문법).
+            // 명시적 갱신은 refreshable 이 맡는다.
+            .task(id: AuthStore.shared.isSignedIn) {
+                let signedIn = AuthStore.shared.isSignedIn
+                if hasLoaded, signedIn == wasSignedIn { return }
+                wasSignedIn = signedIn
+                hasLoaded = true
+                await load()
+            }
             .refreshable { await load() }
         }
     }
@@ -61,12 +73,19 @@ struct DiscoverView: View {
             return
         }
         failed = false
+        // 빈 목록에서 시작하는 fetch(첫 진입·로그인 직후)는 로딩으로 — 응답 전에
+        // 콜드스타트 빈 상태가 먼저 뜨지 않게. 목록이 있으면 조용히 갱신.
+        if events.isEmpty { loading = true }
         do {
             events = try await CollectionsAPI.discoverFeed()
             loading = false
         } catch {
             loading = false
-            if events.isEmpty { failed = true }
+            if events.isEmpty {
+                failed = true
+            } else {
+                ToastCenter.shared.show(String(localized: "새로고침하지 못했습니다"))
+            }
         }
     }
 
@@ -102,7 +121,7 @@ struct DiscoverView: View {
         ContentUnavailableView {
             Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
         } actions: {
-            Button("다시 시도") { Task { loading = true; await load() } }
+            Button("다시 시도") { Task { await load() } }
                 .foregroundStyle(Palette.link)
         }
         .padding(.top, 80)

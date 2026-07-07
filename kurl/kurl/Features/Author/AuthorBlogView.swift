@@ -18,6 +18,7 @@ struct AuthorBlogView: View {
     @State private var showNavTitle = false
     @State private var showReport = false
     @State private var showBlockConfirm = false
+    @Environment(\.scenePhase) private var scenePhase
     @ScaledMetric(relativeTo: .body) private var navUnit: CGFloat = 1
 
     /// 로드된 작가 id — 신고 대상. 내가 아닐 때만 신고를 노출한다.
@@ -110,6 +111,15 @@ struct AuthorBlogView: View {
         .task {
             await load()
             await BlockStore.shared.hydrateIfNeeded()
+        }
+        .refreshable { await load() }
+        // 계정 탭은 상주 임베드라 세션 내내 살아 있다 — 앱 복귀 때 내 블로그를 조용히
+        // 갱신해 발행·프로필 수정이 묵지 않게(남의 페이지는 당겨서 새로고침으로 충분).
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active, case .loaded = phase,
+               AuthStore.shared.me?.username == username {
+                Task { await load() }
+            }
         }
     }
 
@@ -267,17 +277,24 @@ struct AuthorBlogView: View {
     }
 
     private func load() async {
-        if case .loaded = phase { return }
-        phase = .loading
+        // 이미 로드된 화면은 유지한 채 조용히 다시 받는다 — 당겨서 새로고침·재방문·복귀.
+        if case .loaded = phase {} else { phase = .loading }
         do {
-            let view = try await BlogAPI.authorPosts(username: username)
+            // 글·시리즈를 병렬로 받아 한 호흡에 반영 — 시리즈 레일이 뒤늦게 끼어들며
+            // 글 목록을 밀어내지 않고, 첫 페인트도 직렬 왕복만큼 빨라진다.
+            async let viewReq = BlogAPI.authorPosts(username: username)
+            async let seriesReq = BlogAPI.authorSeries(username: username)
             // 본인 페이지는 팔로우 표면이 안 떠 status 가 필요 없다 — 그 외에만 한 번 받아 두 컴포넌트에 시드.
             if AuthStore.shared.me?.username != username {
-                followStatus = try? await InteractionsAPI.followStatus(username: username)
+                async let statusReq = InteractionsAPI.followStatus(username: username)
+                followStatus = try? await statusReq
             }
+            let view = try await viewReq
+            series = (try? await seriesReq)?.series ?? series
             phase = .loaded(view)
-            series = (try? await BlogAPI.authorSeries(username: username))?.series ?? []
         } catch {
+            // 보이던 화면을 에러로 대체하지 않는다 — 비었을 때만 실패 표시.
+            if case .loaded = phase { return }
             phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
         }
     }

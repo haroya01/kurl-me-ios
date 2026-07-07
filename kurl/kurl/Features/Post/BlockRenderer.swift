@@ -412,6 +412,21 @@ private struct ImagePayload {
     }
 }
 
+/// 한 번 그린 본문 이미지의 실제 비율(가로/세로) 세션 캐시. 블록 payload 에 원본 크기가
+/// 없어 처음 보는 이미지는 비율을 모른다 — 재로드(캐시 축출 후 재방문)만이라도 정확한
+/// 높이를 예약해, 로드되는 순간 읽던 본문이 밀리지 않게 한다.
+@MainActor
+private enum ImageRatioCache {
+    private static var ratios: [URL: CGFloat] = [:]
+
+    static func ratio(for url: URL) -> CGFloat? { ratios[url] }
+
+    static func record(_ size: CGSize, for url: URL) {
+        guard size.width > 0, size.height > 0 else { return }
+        ratios[url] = size.width / size.height
+    }
+}
+
 private struct ImageBlockView: View {
     let payload: ImagePayload
 
@@ -427,11 +442,15 @@ private struct ImageBlockView: View {
                     switch phase {
                     case .success(let image):
                         image.resizable().scaledToFit().transition(.opacity)
+                            .onAppear {
+                                // 실제 비율을 기억 — 다음 로드의 placeholder 가 정확한 높이를 잡는다.
+                                if let loaded = RemoteImageCache.shared.cached(url) {
+                                    ImageRatioCache.record(loaded.size, for: url)
+                                }
+                            }
                     case .failure:
                         // 로드 실패 — 무한 스피너 대신 또렷한 안내(다시 시도는 글 새로고침으로).
-                        RoundedRectangle(cornerRadius: Metrics.radiusMini)
-                            .fill(Palette.hairline)
-                            .frame(height: 200)
+                        reservedBox(for: url)
                             .overlay {
                                 VStack(spacing: 6) {
                                     Image(systemName: "photo")
@@ -442,9 +461,7 @@ private struct ImageBlockView: View {
                                 .foregroundStyle(Palette.secondary)
                             }
                     default:
-                        RoundedRectangle(cornerRadius: Metrics.radiusMini)
-                            .fill(Palette.hairline)
-                            .frame(height: 200)
+                        reservedBox(for: url)
                             .overlay(KurlLoadingMark())
                             .transition(.opacity)
                     }
@@ -476,6 +493,14 @@ private struct ImageBlockView: View {
             }
         }
         .padding(.vertical, 6)
+    }
+
+    /// 로드 전·실패 자리 — 고정 높이 대신 실제 비율(모르면 사진 일반형 4:3)로 컬럼폭 기준
+    /// 높이를 예약한다. 고정 200pt 는 성공 시 자연 비율과의 차이만큼 아래 본문을 밀었다.
+    private func reservedBox(for url: URL) -> some View {
+        RoundedRectangle(cornerRadius: Metrics.radiusMini)
+            .fill(Palette.hairline)
+            .aspectRatio(ImageRatioCache.ratio(for: url) ?? 4.0 / 3.0, contentMode: .fit)
     }
 }
 
@@ -736,6 +761,9 @@ private struct InlineVideoEmbed: View {
                 .strokeBorder(Palette.hairlineStrong.opacity(0.5), lineWidth: 1)
         )
         .padding(.vertical, 8)
+        // 화면을 벗어나면(스크롤 이탈·다른 글 푸시) 포스터로 되돌린다 —
+        // 웹뷰가 내려가며 재생이 멎고, lazy 재생성 때 autoplay 재로드도 없다.
+        .onDisappear { playing = false }
     }
 
     private var posterView: some View {
@@ -781,6 +809,12 @@ private struct WebVideoPlayer: UIViewRepresentable {
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {}
+
+    // 뷰 트리에서 내려갈 때 명시적으로 정지 — 제거만으로는 오디오가 이어질 수 있다.
+    static func dismantleUIView(_ webView: WKWebView, coordinator: ()) {
+        webView.pauseAllMediaPlayback()
+        webView.stopLoading()
+    }
 }
 
 /// 유튜브 URL → 영상 id. watch?v= · youtu.be/ · /embed/ · /shorts/ · /v/ 를 모두 받는다.

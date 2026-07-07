@@ -18,6 +18,9 @@ struct NotificationsView: View {
     @State private var markAllPulse = 0
     /// refresh 가 in-flight loadMore 의 스테일 응답을 폐기하기 위한 세대 토큰.
     @State private var epoch = 0
+    /// 마지막 load 시점의 로그인 상태 — 행 push 후 pop-back 이 .task 를 재시작해도
+    /// 같은 상태면 재fetch 하지 않아 쌓인 페이지·스크롤 위치를 보존한다.
+    @State private var loadedForSignIn: Bool?
     @State private var showLoginSheet = false
     /// 헤드라인 본문 크기 — 작가 이름만 굵게 얹되 Dynamic Type 를 따른다(§body 15.5).
     @ScaledMetric(relativeTo: .callout) private var headlineSize: CGFloat = 15.5
@@ -78,7 +81,14 @@ struct NotificationsView: View {
                 .disabled(items.allSatisfy(\.read))
             }
         }
-        .task(id: AuthStore.shared.isSignedIn) { await load() }
+        .task(id: AuthStore.shared.isSignedIn) {
+            // 로그인 상태가 바뀌었을 때만 자동 로드 — pop-back 재시작은 통과시킨다.
+            // 명시적 갱신은 refreshable·다시 시도 버튼이 맡는다.
+            let signedIn = AuthStore.shared.isSignedIn
+            guard loadedForSignIn != signedIn else { return }
+            loadedForSignIn = signedIn
+            await load()
+        }
         .refreshable { await load() }
         .sensoryFeedback(.success, trigger: markAllPulse)
     }

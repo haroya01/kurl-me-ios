@@ -38,6 +38,8 @@ final class FeedViewModel {
     private(set) var items: [FeedItem] = []
     private(set) var phase: LoadState<[FeedItem]> = .idle
     private(set) var isLoadingMore = false
+    /// 다음 페이지 실패 — 트리거인 아이템별 .task 가 1회성이라 조용히 끝난 피드처럼 보인다. footer 재시도의 신호.
+    private(set) var loadMoreFailed = false
     /// 최신 피드에 끼워 넣을 발견 시리즈 한 장(웹 메인 피드의 시리즈 카드와 같은 자리). 그 외 정렬은 nil.
     private(set) var series: PublicSeriesCard?
 
@@ -72,19 +74,21 @@ final class FeedViewModel {
         series = nil
         page = 0
         hasNext = true
+        loadMoreFailed = false
         phase = .idle
     }
 
     func reload() async {
         epoch += 1
         let myEpoch = epoch
-        page = 0
-        hasNext = true
         if items.isEmpty { phase = .loading }
         do {
             let view = try await fetch(page: 0)
             guard myEpoch == epoch else { return }
+            // 페이지네이터 리셋은 성공 시에만 — fetch 전에 리셋하면 실패 후 loadMore 가 이미 있는 페이지를 다시 붙인다.
+            page = 0
             hasNext = view.hasNext
+            loadMoreFailed = false
             withAnimation(.easeInOut(duration: 0.2)) {
                 items = view.items
                 phase = .loaded(items)
@@ -109,14 +113,19 @@ final class FeedViewModel {
         } catch {
             if items.isEmpty {
                 phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
+            } else {
+                // 무음이면 이전 데이터를 최신으로 오인한다 — 스피너만 닫히지 않게 한 줄.
+                ToastCenter.shared.show(String(localized: "새로고침하지 못했습니다"))
             }
         }
     }
 
     func loadMoreIfNeeded(current item: FeedItem) async {
         guard hasNext, !isLoadingMore else { return }
-        guard let last = items.last, last.id == item.id else { return }
+        // 마지막 카드에서만 발화하면 페이지 경계마다 스피너를 본다 — 태그 피드처럼 5개 선행.
+        guard items.suffix(5).contains(where: { $0.id == item.id }) else { return }
         isLoadingMore = true
+        loadMoreFailed = false
         defer { isLoadingMore = false }
         let myEpoch = epoch
         page += 1
@@ -124,12 +133,21 @@ final class FeedViewModel {
             let view = try await fetch(page: page)
             // reload 가 끼어들었으면 이 응답은 옛 세대 — 버린다(append 도 page 복원도 없음).
             guard myEpoch == epoch else { return }
-            items.append(contentsOf: view.items)
+            // 서버 페이지가 겹쳐 와도 같은 id 카드가 두 번 박히지 않게 — 기존 id 와 겹치는 건 버린다.
+            let seen = Set(items.map(\.id))
+            items.append(contentsOf: view.items.filter { !seen.contains($0.id) })
             hasNext = view.hasNext
             phase = .loaded(items)
         } catch {
             guard myEpoch == epoch else { return }
             page = max(0, page - 1)
+            loadMoreFailed = true
         }
+    }
+
+    /// footer '다시 시도' — 아이템별 .task 는 1회성이라 실패 뒤 같은 화면에선 재발화가 없다.
+    func retryLoadMore() async {
+        guard let last = items.last else { return }
+        await loadMoreIfNeeded(current: last)
     }
 }

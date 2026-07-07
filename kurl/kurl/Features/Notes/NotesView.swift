@@ -40,12 +40,11 @@ final class NotesViewModel {
     func reload() async {
         epoch += 1
         let myEpoch = epoch
-        page = 0
-        hasNext = true
         if items.isEmpty { phase = .loading }
         do {
             let view = try await NoteAPI.feed(page: 0)
             guard myEpoch == epoch else { return }
+            page = 0
             items = view.items
             hasNext = view.hasNext
             countOverride = [:]
@@ -73,7 +72,8 @@ final class NotesViewModel {
             guard myEpoch == epoch else { return }
             page += 1
             hasNext = view.hasNext
-            items.append(contentsOf: view.items)
+            let seen = Set(items.map(\.id))
+            items.append(contentsOf: view.items.filter { !seen.contains($0.id) })
             await hydrateLikes(for: view.items)
         }
     }

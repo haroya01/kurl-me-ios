@@ -497,7 +497,10 @@ struct SearchView: View {
     private func search(_ text: String) async {
         generation += 1
         let myGen = generation
-        phase = .loading
+        // 결과를 보다가 검색어를 다듬는 경우엔 이전 결과를 그대로 둔다 — 스켈레톤으로
+        // 갈아치우면 ScrollView identity 가 깨져 매번 깜빡이고 보던 위치가 사라진다.
+        // 스켈레톤은 보여줄 결과가 아예 없는 첫 검색에만.
+        if case .loaded = phase {} else { phase = .loading }
         recordRecent(text)
         do {
             let result = try await BlogAPI.feed(query: text, page: 0, size: 30)
@@ -507,7 +510,9 @@ struct SearchView: View {
             hasNext = result.hasNext
             phase = .loaded(result.items)
         } catch {
-            guard myGen == generation else { return }
+            // 재검색·클리어의 cancel() 은 URLError(.cancelled)→APIError.transport 로 올라온다 —
+            // 취소를 '네트워크 오류'로 둔갑시키거나 클리어가 세운 .idle 을 덮지 않게 여기서 버린다.
+            guard !Task.isCancelled, myGen == generation else { return }
             phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
         }
     }

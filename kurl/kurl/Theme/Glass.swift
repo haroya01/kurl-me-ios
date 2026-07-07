@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import Combine
 
 // MARK: 유리 캡슐 토글 — 팔로우·구독·정렬 칩이 공유하는 문법
 
@@ -175,17 +176,26 @@ struct GlassFAB: View {
 // MARK: 조용한 그린 안개 — 유리가 설 수 있는 배경
 
 /// 유리는 뒤에 흐르는 것이 있을 때만 유리다 — 빈 종이 위 유리 패널(계정 정체 카드)이
-/// 설 자리를 만드는, 아주 옅은 브랜드 그린 메시. reduce-motion 이면 정지.
+/// 설 자리를 만드는, 아주 옅은 브랜드 그린 메시. reduce-motion 이면 정지,
+/// 저전력 모드·씬 비활성이면 마지막 프레임에서 멈춘다(장식이 배터리를 태우지 않게).
 struct BrandMist: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
 
     var body: some View {
         if reduceTransparency { Color.clear } else { mist }
     }
 
+    /// 화면이 실제로 앞에 있고 여유 전력이 있을 때만 흐른다 — 앱 스위처·컨트롤 센터
+    /// 뒤에서까지 20fps 재렌더를 돌릴 이유가 없다.
+    private var paused: Bool {
+        reduceMotion || lowPower || scenePhase != .active
+    }
+
     private var mist: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 20.0, paused: reduceMotion)) { context in
+        TimelineView(.animation(minimumInterval: 1.0 / 20.0, paused: paused)) { context in
             let t = reduceMotion ? 0 : context.date.timeIntervalSinceReferenceDate * 0.18
             MeshGradient(
                 width: 3, height: 3,
@@ -205,5 +215,12 @@ struct BrandMist: View {
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+        // 저전력 전환 알림은 임의 스레드에서 오므로 메인으로 옮겨 다시 읽는다.
+        .onReceive(
+            NotificationCenter.default.publisher(for: .NSProcessInfoPowerStateDidChange)
+                .receive(on: DispatchQueue.main)
+        ) { _ in
+            lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
+        }
     }
 }

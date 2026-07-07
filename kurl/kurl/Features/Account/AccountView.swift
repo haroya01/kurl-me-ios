@@ -16,7 +16,10 @@ struct AccountView: View {
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
     @State private var showNotifications = false
-    @State private var unreadCount: Int64 = 0
+    // 피드 탭 벨과 UnreadStore 공유 — 각자 fetch 해 같은 GET 이 2회 나가지 않게.
+    private var unreadCount: Int64 { UnreadStore.shared.count }
+    // me 로드가 실패했는가 — 로그인 상태의 스피너가 재시도 없는 막다른 길이 되지 않게.
+    @State private var meLoadFailed = false
 
     var body: some View {
         NavigationStack {
@@ -25,6 +28,16 @@ struct AccountView: View {
                     if let username = auth.me?.username, !username.isEmpty {
                         // 내 계정 = 내 블로그 — 들어오면 내가 발행한 글이 바로 뜬다.
                         AuthorBlogView(username: username)
+                    } else if meLoadFailed {
+                        // me 로드 실패(오프라인 등) — StateView 실패 상태와 같은 결의 재시도 길.
+                        ContentUnavailableView {
+                            Label(String(localized: "불러오지 못했습니다"), systemImage: "wifi.exclamationmark")
+                        } actions: {
+                            Button(String(localized: "다시 시도")) {
+                                Task { await reloadMe() }
+                            }
+                            .foregroundStyle(Palette.accent)
+                        }
                     } else {
                         // me 로딩 중 — 잠깐의 빈자리를 막다른 길로 두지 않는다.
                         KurlLoadingMark()
@@ -85,33 +98,40 @@ struct AccountView: View {
             .onChange(of: showNotifications) { _, open in
                 // 알림에서 돌아오면 미읽음 점 갱신 — 모두 읽었는데 점이 남지 않게.
                 if !open, auth.isSignedIn {
-                    Task { unreadCount = (try? await NotificationsAPI.unreadCount()) ?? 0 }
+                    Task { await UnreadStore.shared.refresh() }
                 }
             }
-            .onChange(of: auth.isSignedIn) { _, signedIn in
-                if signedIn {
-                    Task { unreadCount = (try? await NotificationsAPI.unreadCount()) ?? 0 }
-                } else {
-                    unreadCount = 0
-                }
+            .onChange(of: auth.isSignedIn) { _, _ in
+                Task { await UnreadStore.shared.refresh() }
             }
             .onChange(of: scenePhase) { _, newPhase in
                 // 며칠 만에 돌아와도 미읽음 점이 그제 상태로 남지 않게.
                 if newPhase == .active, auth.isSignedIn {
-                    Task { unreadCount = (try? await NotificationsAPI.unreadCount()) ?? unreadCount }
+                    Task { await UnreadStore.shared.refresh() }
+                    // 오프라인에서 me 로드가 비었으면 복귀 시 다시 채운다.
+                    if auth.me == nil {
+                        Task { await reloadMe() }
+                    }
                 }
             }
             .navigationDestination(for: Route.self) { RouteView(route: $0) }
             .task {
-                await auth.loadMe()
+                await reloadMe()
                 if auth.isSignedIn {
-                    unreadCount = (try? await NotificationsAPI.unreadCount()) ?? 0
+                    await UnreadStore.shared.refresh()
                 }
                 if Config.consumeLaunchValue(after: "--open") == "notifications" {
                     showNotifications = true
                 }
             }
         }
+    }
+
+    /// me 로드 + 실패 판정 — 로그인인데 me 가 비면 실패로 보고 재시도 화면을 연다.
+    private func reloadMe() async {
+        meLoadFailed = false
+        await auth.loadMe()
+        meLoadFailed = auth.isSignedIn && auth.me == nil
     }
 
     /// 로그아웃 상태 — 안개 위 로그인 패널. 블로그가 없으니 계정 탭은 로그인부터.

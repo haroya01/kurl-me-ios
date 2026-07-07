@@ -135,17 +135,19 @@ enum WriteAPI {
     }
 
     /// 시리즈 멤버십은 전체 교체(PUT postIds) — 지정/해제는 현재 목록을 읽어 더하고 빼서 보낸다.
+    /// 넣기(new)를 먼저 커밋한다 — 서버 멤버십은 글당 단일 seriesId 라 넣기가 old 이탈을 겸하므로,
+    /// 뒤 단계가 실패해도 글이 무소속으로 남지 않는다(빼기 먼저면 중간 실패 시 어느 시리즈에도 없게 된다).
     static func assign(postId: Int64, from oldSeriesId: Int64?, to newSeriesId: Int64?) async throws {
         guard oldSeriesId != newSeriesId else { return }
-        if let old = oldSeriesId {
-            var ids = try await memberIds(seriesId: old)
-            ids.removeAll { $0 == postId }
-            try await setMembers(seriesId: old, postIds: ids)
-        }
         if let new = newSeriesId {
             var ids = try await memberIds(seriesId: new)
             if !ids.contains(postId) { ids.append(postId) }
             try await setMembers(seriesId: new, postIds: ids)
+        }
+        if let old = oldSeriesId {
+            var ids = try await memberIds(seriesId: old)
+            ids.removeAll { $0 == postId }
+            try await setMembers(seriesId: old, postIds: ids)
         }
     }
 

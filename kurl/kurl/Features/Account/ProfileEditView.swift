@@ -3,6 +3,7 @@
 //  kurl
 //
 
+import ImageIO
 import PhotosUI
 import SwiftUI
 
@@ -16,6 +17,7 @@ struct ProfileEditView: View {
     @State private var username = ""
     @State private var initialUsername = ""
     @State private var bio = ""
+    @State private var bioLoaded = false
     @State private var loaded = false
     @State private var pickerItem: PhotosPickerItem?
     @State private var newAvatar: UIImage?
@@ -70,6 +72,17 @@ struct ProfileEditView: View {
             Section("소개") {
                 TextField("자기소개를 적어보세요", text: $bio, axis: .vertical)
                     .lineLimit(3...6)
+                if loaded && !bioLoaded {
+                    HStack(spacing: 6) {
+                        Text("기존 소개글을 불러오지 못했어요.")
+                            .font(.caption)
+                            .foregroundStyle(Palette.secondary)
+                        Button("다시 불러오기") { Task { await loadBio() } }
+                            .font(.caption)
+                            .buttonStyle(.plain)
+                            .foregroundStyle(Palette.link)
+                    }
+                }
                 HStack {
                     Spacer()
                     Text("\(bio.count)/\(bioLimit)")
@@ -141,25 +154,38 @@ struct ProfileEditView: View {
         let current = AuthStore.shared.me?.username ?? ""
         username = current
         initialUsername = current
-        bio = (try? await ProfileAPI.myBio()) ?? ""
+        await loadBio()
         loaded = true
     }
 
-    private func loadPicked(_ item: PhotosPickerItem?) async {
-        guard let item, let data = try? await item.loadTransferable(type: Data.self),
-              let img = UIImage(data: data) else { return }
-        newAvatar = downsample(img, maxSide: 512)
+    /// 실패와 "원래 빈 소개"를 구분한다 — 실패를 "" 로 뭉개면 저장 때 서버 소개글이 지워진다.
+    private func loadBio() async {
+        do {
+            bio = try await ProfileAPI.myBio() ?? ""
+            bioLoaded = true
+        } catch {
+            bioLoaded = false
+        }
     }
 
-    /// 아바타는 작게 — 512px 한 변으로 줄여 업로드(불필요한 대용량 차단).
-    private func downsample(_ image: UIImage, maxSide: CGFloat) -> UIImage {
-        let longest = max(image.size.width, image.size.height)
-        guard longest > maxSide else { return image }
-        let scale = maxSide / longest
-        let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
-        return UIGraphicsImageRenderer(size: size).image { _ in
-            image.draw(in: CGRect(origin: .zero, size: size))
-        }
+    private func loadPicked(_ item: PhotosPickerItem?) async {
+        guard let item, let data = try? await item.loadTransferable(type: Data.self) else { return }
+        guard let img = await Self.downsample(data, maxSide: 512) else { return }
+        newAvatar = img
+    }
+
+    /// 아바타는 작게 — 512px 한 변으로 줄여 업로드(불필요한 대용량 차단). 고해상도 원본이
+    /// 메인 스레드를 막지 않게 nonisolated + ImageIO 썸네일(전체 디코드 없음)로 처리한다.
+    private nonisolated static func downsample(_ data: Data, maxSide: CGFloat) async -> UIImage? {
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,  // EXIF 회전 반영
+            kCGImageSourceThumbnailMaxPixelSize: maxSide,
+        ]
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let thumbnail = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
+        else { return nil }
+        return UIImage(cgImage: thumbnail)
     }
 
     private func save() {
@@ -169,9 +195,11 @@ struct ProfileEditView: View {
             defer { saving = false }
             do {
                 // 프로필 PUT 을 먼저 — 거절(중복·형식)나면 아바타는 손대지 않는다.
+                // 소개글 로드에 실패했고 직접 쓴 것도 없으면 bio 는 보내지 않는다(서버 값 보존).
+                let trimmedBio = bio.trimmingCharacters(in: .whitespacesAndNewlines)
                 try await ProfileAPI.update(
                     username: usernameChanged ? trimmedUsername : nil,
-                    bio: bio.trimmingCharacters(in: .whitespacesAndNewlines))
+                    bio: bioLoaded || !trimmedBio.isEmpty ? trimmedBio : nil)
                 if let img = newAvatar, let jpeg = img.jpegData(compressionQuality: 0.85) {
                     _ = try await ProfileAPI.uploadAvatar(jpegData: jpeg)
                     newAvatar = nil  // 성공 — 재시도해도 다시 안 올린다.

@@ -214,19 +214,41 @@ final class AuthStore {
         let device = Config.useMocks ? nil : PushRegistrar.storedToken
         forgetSession()
         Task {
-            if let device, let access {
+            // logout 으로 폐기할 refresh — 아래에서 재발급이 일어나면 회전된 쪽으로 바뀐다.
+            var refreshToRevoke = refresh
+            if let device {
                 // 디바이스 등록 해제 — 로그아웃한 계정의 푸시가 이 기기로 오지 않게.
-                try? await AuthAPI.unregisterDevice(token: device, bearer: access)
+                // 명시 bearer 경로엔 401 리프레시 재시도가 없어서, 스냅샷 access 가
+                // 이미 만료면 조용히 실패하고 등록이 서버에 남는다. 그 경우에만
+                // 스냅샷 refresh 로 새 쌍을 직접 받아 한 번 재시도한다 — adopt 하지
+                // 않으므로 로그아웃 뒤 세션이 되살아나지는 않는다.
+                var accessExpired = access == nil
+                if let access {
+                    do {
+                        try await AuthAPI.unregisterDevice(token: device, bearer: access)
+                    } catch APIError.http(let status) where status == 401 {
+                        accessExpired = true
+                    } catch {
+                        // 그 외 실패(오프라인 등)는 재발급으로 낫지 않는다 — 기존처럼 포기.
+                    }
+                }
+                if accessExpired, let refresh,
+                   let pair = try? await AuthAPI.refresh(refreshToken: refresh) {
+                    refreshToRevoke = pair.refreshToken
+                    try? await AuthAPI.unregisterDevice(token: device, bearer: pair.accessToken)
+                }
             }
-            if let refresh {
-                try? await AuthAPI.logout(refreshToken: refresh)
+            if let refreshToRevoke {
+                try? await AuthAPI.logout(refreshToken: refreshToRevoke)
             }
         }
     }
 
     func loadMe() async {
         guard isSignedIn else { return }
-        me = try? await AuthAPI.me()
+        // me 요청 실패(오프라인 등) 시 기존 me 를 nil 로 덮어쓰지 않는다 — isOwnPost 등
+        // 소유 판정 붕괴로 내 글 편집·분석이 사라지는 부수 피해 방지.
+        if let fresh = try? await AuthAPI.me() { me = fresh }
     }
 
     private func adopt(_ pair: TokenPair) {
