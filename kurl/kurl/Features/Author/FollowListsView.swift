@@ -19,10 +19,16 @@ struct FollowListsView: View {
 
     @State private var tab: FollowTab
     @State private var items: [FollowUser] = []
+    /// 지금 보이는 items 가 어느 탭 응답인지 — 실패 시 이전 탭 목록을 새 탭에 남겨두지 않기 위한 표식.
+    @State private var itemsTab: FollowTab?
     @State private var page = 0
     @State private var hasNext = false
     @State private var loading = false
     @State private var loadedOnce = false
+    /// 네트워크 실패 — 빈 200 과 구분해 재시도를 노출한다(빈 상태 위장 방지).
+    @State private var failed = false
+    /// 세대 토큰 — 탭 전환으로 끼어든 reload 뒤에 도착한 옛 응답을 버린다.
+    @State private var epoch = 0
     @State private var showLoginPrompt = false
 
     init(username: String, tab: FollowTab) {
@@ -39,6 +45,14 @@ struct FollowListsView: View {
             if loading && items.isEmpty {
                 KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 240)
+            } else if failed {
+                ContentUnavailableView {
+                    Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
+                } actions: {
+                    Button("다시 시도") { Task { await reload() } }
+                        .foregroundStyle(Palette.accent)
+                }
+                .padding(.top, 56)
             } else if loadedOnce && items.isEmpty {
                 ContentUnavailableView {
                     Label(
@@ -70,6 +84,7 @@ struct FollowListsView: View {
         .navigationTitle(username)
         .navigationBarTitleDisplayMode(.inline)
         .task(id: tab) { await reload() }
+        .refreshable { await reload() }
         .loginPrompt(isPresented: $showLoginPrompt, message: "이 작가의 새 글을 피드에서 받기") {
             // 로그인 후 followedByMe 시드가 stale — 목록을 다시 받아 행 토글을 새로 시드.
             await reload()
@@ -103,14 +118,30 @@ struct FollowListsView: View {
 
     private func reload() async {
         loading = true
-        page = 0
+        failed = false
+        epoch += 1
+        let myEpoch = epoch
         do {
             let res = try await fetch(page: 0)
+            guard myEpoch == epoch else { return }
             items = res.items
+            itemsTab = tab
+            page = 0
             hasNext = res.hasNext
         } catch {
-            items = []
-            hasNext = false
+            // 탭 전환의 .task(id:) 취소 — 새 탭 reload 가 화면을 맡으니 상태를 건드리지 않는다
+            // (여기서 비우면 다음 응답까지 빈 상태 문구가 깜빡인다). URLSession 취소는
+            // APIError.transport 로 감싸여 올라오므로 오류 타입 대신 Task.isCancelled 로 판별.
+            if Task.isCancelled || error is CancellationError { return }
+            guard myEpoch == epoch else { return }
+            // 같은 탭의 재조회(당겨서 새로고침·로그인 후) 실패면 보이던 목록을 보존하고,
+            // 그 외엔 빈 상태로 위장하는 대신 재시도를 노출한다.
+            if itemsTab != tab || items.isEmpty {
+                items = []
+                itemsTab = nil
+                hasNext = false
+                failed = true
+            }
         }
         loading = false
         loadedOnce = true
@@ -119,7 +150,12 @@ struct FollowListsView: View {
     private func loadMore() async {
         guard hasNext, !loading else { return }
         loading = true
-        if let res = try? await fetch(page: page + 1) {
+        let myEpoch = epoch
+        let res = try? await fetch(page: page + 1)
+        // reload 가 끼어들었으면 옛 세대 응답 — 목록도 loading 도 건드리지 않고 버린다
+        // (다른 탭 행이 이어붙거나 page 를 되감는 오염 방지).
+        guard myEpoch == epoch else { return }
+        if let res {
             items += res.items
             page = res.page
             hasNext = res.hasNext
@@ -211,6 +247,9 @@ struct FollowCountsLink: View {
 /// 내 행이면 숨기고, 비로그인 탭은 공용 로그인 시트로 올린다. 낙관, 실패 시 되돌리고 토스트.
 private struct RowFollowToggle: View {
     let username: String
+    /// State(initialValue:) 는 행 identity(user.id) 첫 생성에만 먹는다 — reload 가 items 를
+    /// 갈아끼워도 기존 행은 재시드되지 않으므로 onChange 재동기화용으로 시드를 들고 있는다.
+    let initialFollowing: Bool
     let onNeedLogin: () -> Void
     @State private var following: Bool
     @State private var busy = false
@@ -219,6 +258,7 @@ private struct RowFollowToggle: View {
 
     init(username: String, initialFollowing: Bool, onNeedLogin: @escaping () -> Void) {
         self.username = username
+        self.initialFollowing = initialFollowing
         self.onNeedLogin = onNeedLogin
         _following = State(initialValue: initialFollowing)
     }
@@ -242,6 +282,12 @@ private struct RowFollowToggle: View {
             .glassCapsule(prominent: !following)
             .disabled(busy)
             .sensoryFeedback(.impact(weight: .light), trigger: userToggleCount)
+            .onChange(of: initialFollowing) { _, seed in
+                // 재조회(로그인 후 등)가 새 followedByMe 를 내려주면 재동기화 —
+                // 단 낙관 토글 비행 중엔 setFollow 응답이 최종 진실이라 덮지 않는다.
+                guard !busy else { return }
+                following = seed
+            }
         }
     }
 

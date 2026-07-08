@@ -14,6 +14,7 @@ struct MyReadingHistoryView: View {
     @State private var loading = false
     @State private var loadingMore = false
     @State private var loadedOnce = false
+    @State private var failed = false
     @State private var confirmClear = false
 
     var body: some View {
@@ -21,6 +22,15 @@ struct MyReadingHistoryView: View {
             if loading && items.isEmpty {
                 KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 240)
+            } else if failed && items.isEmpty {
+                // 빈 200 과 구분되는 네트워크 오류 — 사적 기록이라 "없어요"로 위장하면 삭제로 오해한다.
+                ContentUnavailableView {
+                    Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
+                } actions: {
+                    Button("다시 시도") { Task { await reload() } }
+                        .foregroundStyle(Palette.accent)
+                }
+                .padding(.top, 60)
             } else if loadedOnce && items.isEmpty {
                 ContentUnavailableView {
                     Label("아직 읽기 기록이 없어요", systemImage: "clock")
@@ -107,13 +117,15 @@ struct MyReadingHistoryView: View {
     private func reload() async {
         loading = true
         loadingMore = false
-        page = 0
-        if let res = try? await ReadingHistoryAPI.list(page: 0) {
+        failed = false
+        do {
+            let res = try await ReadingHistoryAPI.list(page: 0)
+            page = 0
             items = res.items
             hasNext = res.hasNext
-        } else {
-            items = []
-            hasNext = false
+        } catch {
+            // 실패는 빈 결과가 아니다 — 떠 있던 목록·페이지 상태는 보존하고, 처음부터 실패면 재시도 상태.
+            if items.isEmpty { failed = true }
         }
         loading = false
         loadedOnce = true

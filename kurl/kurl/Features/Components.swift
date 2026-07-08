@@ -210,14 +210,20 @@ struct AvatarView: View {
 // MARK: 상대 시간
 
 extension Date {
-    var relativeShort: String {
+    // 생성 시 로케일 데이터를 로드해 비싸다 — 목록 행마다 만들지 않게 캐시.
+    // 스레드 안전하지 않은 클래스라 메인 액터(뷰 body)로 묶는다.
+    @MainActor private static let relativeShortFormatter: RelativeDateTimeFormatter = {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        return formatter
+    }()
+
+    @MainActor var relativeShort: String {
         // 1분 미만은 "0초 후" 같은 미래형 라운딩이 나온다 — 방금 전으로 바닥을 깐다.
         if abs(timeIntervalSinceNow) < 60 {
             return String(localized: "방금 전")
         }
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .short
-        return formatter.localizedString(for: self, relativeTo: Date())
+        return Self.relativeShortFormatter.localizedString(for: self, relativeTo: Date())
     }
 
     var mediumDate: String {

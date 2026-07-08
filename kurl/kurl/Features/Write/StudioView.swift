@@ -16,6 +16,9 @@ struct StudioView: View {
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
     @State private var section: StudioSection = .posts
+    /// 한 번이라도 방문한 분면 — switch 로 갈아끼우면 뷰가 파괴돼 `.task` 가 전환마다
+    /// 재발화(분석은 스피너부터 다시)하므로, 방문한 분면은 상주시키고 opacity 만 굴린다.
+    @State private var visited: Set<StudioSection> = []
     @State private var phase: LoadState<[MyPost]> = .idle
     @State private var filter: HubFilter = .all
     @State private var seriesList: [MySeries] = []
@@ -84,15 +87,32 @@ struct StudioView: View {
     // MARK: 스튜디오 3분면
 
     private var studio: some View {
-        Group {
-            switch section {
-            case .posts: postsSection.transition(.opacity)
-            case .series: seriesSection.transition(.opacity)
-            case .analytics: AnalyticsView(embedded: true, onCompose: { composing = true }).transition(.opacity)
+        ZStack {
+            ForEach(StudioSection.allCases) { pane in
+                if pane == section || visited.contains(pane) {
+                    paneView(pane)
+                        .opacity(pane == section ? 1 : 0)
+                        .allowsHitTesting(pane == section)
+                        .accessibilityHidden(pane != section)
+                        .transition(.opacity)
+                }
             }
         }
         // 분면 교체는 한 호흡 크로스페이드. 세그먼트 자체는 내비바(헤더)에 산다.
         .animation(reduceMotion ? nil : .snappy(duration: 0.28), value: section)
+        .onChange(of: section) { old, new in
+            visited.insert(old)
+            visited.insert(new)
+        }
+    }
+
+    @ViewBuilder
+    private func paneView(_ pane: StudioSection) -> some View {
+        switch pane {
+        case .posts: postsSection
+        case .series: seriesSection
+        case .analytics: AnalyticsView(embedded: true, onCompose: { composing = true })
+        }
     }
 
     // MARK: 글
@@ -122,7 +142,7 @@ struct StudioView: View {
             }
         }
         .task {
-            await auth.loadMe() // 빈 상태 인사("…님의 첫 글")용.
+            if auth.me == nil { await auth.loadMe() } // 빈 상태 인사("…님의 첫 글")용.
             await load()
         }
         .refreshable { await load() }
@@ -200,7 +220,9 @@ struct StudioView: View {
             }
             Spacer(minLength: 0)
             if let cover = post.ogImageUrl, let url = URL(string: cover) {
-                AsyncImage(url: url) { phase in
+                // AsyncImage 는 행이 재생성되면 캐시 히트여도 placeholder 부터 다시 밟는다
+                // — 앱 공통 RemoteImage(메모리 캐시)로 첫 프레임부터 완성본.
+                RemoteImage(url: url) { phase in
                     if case .success(let image) = phase {
                         image.resizable().scaledToFill()
                     } else {
@@ -348,7 +370,7 @@ struct StudioView: View {
             }
         }
         .task {
-            await auth.loadMe()
+            if auth.me == nil { await auth.loadMe() } // 행 링크의 username 용.
             seriesList = (try? await WriteAPI.mySeries()) ?? []
             seriesLoaded = true
         }

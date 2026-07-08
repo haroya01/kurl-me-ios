@@ -25,6 +25,9 @@ struct ImageLightbox: View {
     @GestureState private var drag: CGSize = .zero
     /// 열릴 때 한 호흡 떠오르는 materialize(§10.7). reduce-motion 이면 즉시.
     @State private var appeared = false
+    /// 팬 경계 계산용 실측 — scaledToFit 된 이미지 크기(scaleEffect 는 레이아웃 불변)와 컨테이너 크기.
+    @State private var fittedSize: CGSize = .zero
+    @State private var containerSize: CGSize = .zero
 
     private let maxScale: CGFloat = 4
 
@@ -48,6 +51,7 @@ struct ImageLightbox: View {
 
             imageLayer
         }
+        .onGeometryChange(for: CGSize.self) { $0.size } action: { containerSize = $0 }
         .overlay(alignment: .topTrailing) { closeButton }
         .overlay(alignment: .bottom) { captionBar }
         .statusBarHidden(true)
@@ -68,6 +72,7 @@ struct ImageLightbox: View {
                 image
                     .resizable()
                     .scaledToFit()
+                    .onGeometryChange(for: CGSize.self) { $0.size } action: { fittedSize = $0 }
                     .scaleEffect(zoomed ? min(maxScale, liveScale) : 1)
                     .offset(liveOffset)
                     .gesture(dragGesture)
@@ -102,13 +107,30 @@ struct ImageLightbox: View {
         return CGSize(width: drag.width * 0.4, height: max(0, drag.height))
     }
 
+    /// 팬 이동을 이미지가 컨테이너 밖으로 완전히 벗어나지 않는 범위로 제한.
+    /// 렌더 크기(fittedSize × 커밋 배율)와 컨테이너 차의 절반이 각 축 한계 — 작은 축은 0(중앙 고정).
+    private func clampedOffset(_ proposed: CGSize, scale: CGFloat) -> CGSize {
+        let maxX = max(0, (fittedSize.width * scale - containerSize.width) / 2)
+        let maxY = max(0, (fittedSize.height * scale - containerSize.height) / 2)
+        return CGSize(
+            width: min(maxX, max(-maxX, proposed.width)),
+            height: min(maxY, max(-maxY, proposed.height))
+        )
+    }
+
     private var dragGesture: some Gesture {
         DragGesture()
             .updating($drag) { value, state, _ in state = value.translation }
             .onEnded { value in
                 if zoomed {
-                    offset.width += value.translation.width
-                    offset.height += value.translation.height
+                    // 클램프 없이 누적하면 이미지가 화면 밖에 고정돼 복귀 제스처가 닿지 않는다 → 가시 범위로 스냅백.
+                    let proposed = CGSize(
+                        width: offset.width + value.translation.width,
+                        height: offset.height + value.translation.height
+                    )
+                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.28)) {
+                        offset = clampedOffset(proposed, scale: scale)
+                    }
                 } else if value.translation.height > 120 || value.predictedEndTranslation.height > 320 {
                     close()
                 }
@@ -120,7 +142,14 @@ struct ImageLightbox: View {
             .updating($pinch) { value, state, _ in state = value.magnification }
             .onEnded { value in
                 scale = min(maxScale, max(1, scale * value.magnification))
-                if scale <= 1 { offset = .zero }
+                if scale <= 1 {
+                    offset = .zero
+                } else {
+                    // 축소로 가시 범위가 줄면 기존 이동이 경계를 넘으므로 다시 클램프.
+                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.28)) {
+                        offset = clampedOffset(offset, scale: scale)
+                    }
+                }
             }
     }
 

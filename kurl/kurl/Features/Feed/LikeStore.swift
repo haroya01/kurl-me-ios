@@ -17,6 +17,7 @@ final class LikeStore {
 
     private(set) var refs: Set<String> = []
     private var hydrated = false
+    private var hydrating = false
 
     private init() {}
 
@@ -36,17 +37,22 @@ final class LikeStore {
         hydrated = false
     }
 
-    /// 미리보기가 처음 뜰 때 한 번 — 로그아웃이면 비우고, 로그인 후 첫 호출에만 목록을 받는다.
+    /// 미리보기가 처음 뜰 때 한 번 — 로그아웃이면 비우고, 로그인 후 첫 성공까지 목록을 받는다.
+    /// hydrated 는 성공 시에만 서므로 첫 요청이 실패해도 다음 호출이 자연 재시도한다
+    /// (동시 호출 중복 요청은 hydrating 으로 막는다).
     func hydrateIfNeeded() async {
         guard AuthStore.shared.isSignedIn else {
-            refs = []
-            hydrated = false
+            // 카드 등장마다 불리는데 @Observable 은 같은 값 대입도 mutation 으로 발화해
+            // refs 를 보는 미리보기 전부를 무효화한다 — 이미 빈 상태면 대입을 생략.
+            if !refs.isEmpty || hydrated { reset() }
             return
         }
-        guard !hydrated else { return }
-        hydrated = true
+        guard !hydrated, !hydrating else { return }
+        hydrating = true
+        defer { hydrating = false }
         if let items = try? await LibraryAPI.likedPosts() {
             refs = Set(items.map { Self.key($0.author.username, $0.slug) })
+            hydrated = true
         }
     }
 

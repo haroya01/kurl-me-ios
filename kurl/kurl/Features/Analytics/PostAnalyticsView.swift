@@ -12,6 +12,8 @@ struct PostAnalyticsView: View {
 
     @State private var phase: LoadState<PostAnalyticsDetail> = .idle
     @State private var days = 30
+    /// 기간 칩 연타 경쟁 가드 — 요청 시점 세대를 캡처해 늦게 도착한 옛 기간 응답을 버린다.
+    @State private var loadGeneration = 0
     /// 독자 분석(고유·유입·국가·기기) — 기간과 무관한 전체. 실패해도 화면은 산다.
     @State private var readStats: PostReadStats?
 
@@ -233,13 +235,18 @@ struct PostAnalyticsView: View {
     }
 
     private func load() async {
+        loadGeneration += 1
+        let generation = loadGeneration
         if case .idle = phase { phase = .loading }
         // 독자 분석은 기간과 무관 — 한 번만 가져온다(윈도우 칩 전환마다 재요청 금지).
         let statsReq: Task<PostReadStats, Error>? =
             readStats == nil ? Task { try await AnalyticsAPI.readStats(postId: post.postId) } : nil
         do {
-            phase = .loaded(try await AnalyticsAPI.postAnalytics(postId: post.postId, days: days))
+            let detail = try await AnalyticsAPI.postAnalytics(postId: post.postId, days: days)
+            guard generation == loadGeneration else { return }
+            phase = .loaded(detail)
         } catch {
+            guard generation == loadGeneration else { return }
             phase = .failed(error.localizedDescription)
         }
         if let statsReq { readStats = try? await statsReq.value }

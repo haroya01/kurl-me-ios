@@ -18,6 +18,8 @@ struct SeriesAnalyticsDetailView: View {
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
     @State private var phase: LoadState<SeriesAnalyticsDetail> = .idle
     @State private var days = 30
+    /// 기간 칩 연타 경쟁 가드 — 요청 시점 세대를 캡처해 늦게 도착한 옛 기간 응답을 버린다.
+    @State private var loadGeneration = 0
 
     var body: some View {
         ReadingColumn(spacing: 0) {
@@ -47,11 +49,15 @@ struct SeriesAnalyticsDetailView: View {
     }
 
     private func load() async {
+        loadGeneration += 1
+        let generation = loadGeneration
         if case .idle = phase { phase = .loading }
         do {
             let detail = try await AnalyticsAPI.seriesDetail(seriesId: seriesId, days: days)
+            guard generation == loadGeneration else { return }
             withAnimation(reduceMotion ? nil : .snappy(duration: 0.3)) { phase = .loaded(detail) }
         } catch {
+            guard generation == loadGeneration else { return }
             phase = .failed(error.localizedDescription)
         }
     }

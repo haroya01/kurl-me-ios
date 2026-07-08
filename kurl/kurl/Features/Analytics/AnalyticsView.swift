@@ -24,6 +24,7 @@ struct AnalyticsView: View {
     @State private var loadingMorePosts = false
     @State private var series: [SeriesAnalyticsRow] = []
     @State private var days = 30
+    @State private var loadGeneration = 0
     @State private var selectedPost: TopPostView?
     @State private var selectedSeries: SeriesAnalyticsRow?
 
@@ -69,6 +70,9 @@ struct AnalyticsView: View {
     }
 
     private func load() async {
+        // 기간 칩 연타로 요청이 겹치면 마지막 것만 반영 — 늦게 온 옛 기간 응답이 덮는 것 방지.
+        loadGeneration += 1
+        let generation = loadGeneration
         if case .idle = phase { phase = .loading }
         do {
             async let overviewReq = AnalyticsAPI.overview(days: days)
@@ -77,6 +81,7 @@ struct AnalyticsView: View {
             let overview = try await overviewReq
             let nextPerformance = try? await performanceReq
             let nextSeries = (try? await seriesReq) ?? []
+            guard generation == loadGeneration else { return }
             // 트랜잭션 밖 교체는 numericText·차트 보간을 전부 죽인다 — 한 호흡에 굴린다.
             withAnimation(reduceMotion ? nil : .snappy(duration: 0.3)) {
                 performance = nextPerformance
@@ -85,6 +90,7 @@ struct AnalyticsView: View {
             }
             AnalyticsSnapshot.save(from: overview)
         } catch {
+            guard generation == loadGeneration else { return }
             phase = .failed(error.localizedDescription)
         }
     }

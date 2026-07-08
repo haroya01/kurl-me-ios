@@ -3,6 +3,7 @@
 //  kurl
 //
 
+import ImageIO
 import PhotosUI
 import SwiftUI
 import UIKit
@@ -71,6 +72,8 @@ struct ComposeView: View {
     @State private var lastSavedAt: Date?
     /// 마지막 자동저장이 실패했는가 — 정직한 '저장 실패' 표시(조용히 재시도 중).
     @State private var autosaveFailed = false
+    /// 연속 자동저장 실패 횟수 — 재시도 간격 백오프 계산용(성공하면 리셋).
+    @State private var autosaveRetryStreak = 0
     /// 발행 폼 안에서의 발행/저장 실패 — fullScreenCover 라 루트 알럿이 가려져 폼에 따로 띄운다.
     @State private var publishSheetError: String?
     @State private var showSaveStatus = false
@@ -309,8 +312,19 @@ struct ComposeView: View {
             onPasteImages: { images in uploadPastedImages(images) })
         .padding(.horizontal, Metrics.gutter - 4)
         .overlay(alignment: .topLeading) {
-            // 마크다운 지식을 요구하지 않는다 — 탭하면 도구 막대가 떠서 제목·목록·이미지·표를 넣는다.
-            if markdown.isEmpty, !loadFailed {
+            // 본문 로드 중엔 입력을 권하지 않는다 — '탭해 시작' 대신 로딩을 보인다.
+            if bodyLoading {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text("본문을 불러오는 중이에요…")
+                        .font(.system(size: 14 * unit))
+                        .foregroundStyle(Palette.faint)
+                }
+                .padding(.horizontal, Metrics.gutter)
+                .padding(.top, 12)
+                .allowsHitTesting(false)
+            } else if markdown.isEmpty, !loadFailed {
+                // 마크다운 지식을 요구하지 않는다 — 탭하면 도구 막대가 떠서 제목·목록·이미지·표를 넣는다.
                 Text("여기를 탭해 시작하세요 — 아래 도구 막대로 제목·사진·목록·표를 넣어요.")
                     .font(.system(size: 14 * unit))
                     .foregroundStyle(Palette.faint)
@@ -320,7 +334,8 @@ struct ComposeView: View {
             }
         }
         // 잠금은 캔버스(텍스트뷰)에만 — 아래 다시-시도 오버레이는 disabled 서브트리 밖이라 탭이 살아 있다.
-        .disabled(loadFailed)
+        // 본문 로드 중에도 잠근다 — 로드 창에서 친 입력이 서버 본문으로 덮여 유실되는 것 방지.
+        .disabled(loadFailed || bodyLoading)
         // 본문 로드 실패 시 — 에디터를 잠그고 다시 시도를 권한다(빈 본문 덮어쓰기 방지).
         .overlay {
             if loadFailed {
@@ -644,6 +659,8 @@ struct ComposeView: View {
                 coverArea
             }
             .buttonStyle(.plain)
+            // 업로드가 도는 동안엔 재선택을 막는다 — 안 그러면 두 번째 선택이 조용히 버려진다(스피너로 진행을 보인다).
+            .disabled(uploadingCover)
 
             VStack(alignment: .leading, spacing: 8) {
                 if let tag = tags.first {
@@ -715,10 +732,12 @@ struct ComposeView: View {
                     ProgressView().controlSize(.small)
                 }
             } else if let coverUrl, let url = URL(string: coverUrl) {
-                AsyncImage(url: url) { image in
-                    image.resizable().scaledToFill()
-                } placeholder: {
-                    Rectangle().fill(Palette.hairline)
+                RemoteImage(url: url) { phase in
+                    if case .success(let image) = phase {
+                        image.resizable().scaledToFill()
+                    } else {
+                        Rectangle().fill(Palette.hairline)
+                    }
                 }
                 .overlay(alignment: .bottomTrailing) {
                     HStack(spacing: 4) {
@@ -878,6 +897,9 @@ struct ComposeView: View {
             && !markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    /// 기존 글 본문을 아직 읽는 중 — 이 동안 캔버스를 잠근다(이때 친 입력은 서버 본문 도착에 덮인다).
+    private var bodyLoading: Bool { existing != nil && !bodyLoaded && !loadFailed }
+
     /// 발행은 대표 태그(첫 태그) 1개가 필수 — 초안 저장(canSave)과는 분리한다.
     private var canPublish: Bool { canSave && !tags.isEmpty }
 
@@ -934,24 +956,26 @@ struct ComposeView: View {
     private func loadExisting() async {
         guard !loaded else { return }
         loaded = true
-        seriesList = (try? await WriteAPI.mySeries()) ?? []
-        // 새 글은 읽을 본문이 없다 — 곧장 편집·저장 가능.
-        guard let post = existing else {
+        // 시리즈 목록은 발행 시트에서나 쓴다 — 본문 GET 과 독립이라 병렬로(본문 첫 페인트를 안 막게).
+        async let series = WriteAPI.mySeries()
+        if let post = existing {
+            title = post.title
+            tags = post.tags ?? []
+            excerpt = post.excerpt ?? ""
+            savedTitle = title
+            savedTags = tags
+            savedExcerpt = excerpt
+            coverUrl = post.ogImageUrl
+            seriesId = post.seriesId
+            savedSeriesId = post.seriesId
+            postId = post.id
+            status = post.status
+            await reloadBody(postId: post.id)
+        } else {
+            // 새 글은 읽을 본문이 없다 — 곧장 편집·저장 가능.
             bodyLoaded = true
-            return
         }
-        title = post.title
-        tags = post.tags ?? []
-        excerpt = post.excerpt ?? ""
-        savedTitle = title
-        savedTags = tags
-        savedExcerpt = excerpt
-        coverUrl = post.ogImageUrl
-        seriesId = post.seriesId
-        savedSeriesId = post.seriesId
-        postId = post.id
-        status = post.status
-        await reloadBody(postId: post.id)
+        seriesList = (try? await series) ?? []
     }
 
     /// 리비전 복원 후 — 서버가 본문(과 메타)을 바꿨으므로 화면 상태 전체를 다시 읽어 맞춘다.
@@ -990,9 +1014,15 @@ struct ComposeView: View {
     private func reloadBody(postId: Int64) async {
         loadFailed = false
         errorMessage = nil
+        // 로드 중 캔버스는 잠그지만(bodyLoading) 리비전 복원 등 다른 경로가 본문을 바꿀 수 있다 —
+        // 진입 시점 본문을 떠 두고, 왕복 사이 바뀌었으면 서버 본문으로 덮지 않는다(입력 유실 방지).
+        let bodyAtEntry = markdown
         do {
-            markdown = try await WriteAPI.markdown(postId: postId)
-            lastSavedSignature = signature
+            let body = try await WriteAPI.markdown(postId: postId)
+            if markdown == bodyAtEntry {
+                markdown = body
+                lastSavedSignature = signature
+            }
             bodyLoaded = true
         } catch {
             // 전용 잠금·다시시도 오버레이가 사유를 설명하므로 모달 알럿은 띄우지 않는다(이중 알림 방지).
@@ -1002,18 +1032,19 @@ struct ComposeView: View {
 
     // MARK: 저장
 
-    private func scheduleAutosave() {
+    /// 기본 2초 = 입력 디바운스. 실패 재시도는 백오프한 간격을 넘겨 온다.
+    private func scheduleAutosave(after delay: Duration = .seconds(2)) {
         autosaveTask?.cancel()
         guard canSave, signature != lastSavedSignature else { return }
         autosaveTask = Task {
-            try? await Task.sleep(for: .seconds(2))
+            try? await Task.sleep(for: delay)
             guard !Task.isCancelled else { return }
             await save(publish: false, silent: true)
         }
     }
 
-    /// silent = 자동저장(디바운스·이탈) — 실패해도 타이핑 위로 모달을 띄우지 않고 토스트로만
-    /// 알리고 디바운스를 재무장한다. 명시 저장(버튼·발행·예약)은 silent=false 로 모달을 띄운다.
+    /// silent = 자동저장(디바운스·이탈) — 실패해도 타이핑 위로 모달을 띄우지 않고 첫 실패에만
+    /// 토스트로 알린 뒤 백오프 간격으로 재무장한다. 명시 저장(버튼·발행·예약)은 silent=false 로 모달을 띄운다.
     private func save(publish: Bool, silent: Bool = false) async {
         guard !busy, canSave else { return }
         // 명시 저장·발행이면 아직 +/Enter 안 누른 입력 중 태그도 포함한다(유실 방지).
@@ -1064,6 +1095,7 @@ struct ComposeView: View {
             lastSavedSignature = snapshot
             lastSavedAt = Date()
             autosaveFailed = false
+            autosaveRetryStreak = 0
             onSaved()
             // 스냅샷 이후 입력이 있었으면 디바운스를 다시 무장한다.
             if signature != snapshot { scheduleAutosave() }
@@ -1076,10 +1108,17 @@ struct ComposeView: View {
             }
         } catch {
             if silent {
-                // 자동저장 실패는 조용히 — 토스트 + 정직한 '저장 실패' 표시를 남기고 다음 변경 때 다시 무장한다.
+                // 자동저장 실패는 조용히 — 토스트(+VoiceOver 낭독)는 첫 실패에만 한 번.
+                // 지속 상태는 saveStatusIcon 배지가 보여주므로 재시도마다 다시 알리지 않는다.
+                if !autosaveFailed {
+                    ToastCenter.shared.show(String(localized: "자동저장에 실패했어요"))
+                }
                 autosaveFailed = true
-                ToastCenter.shared.show(String(localized: "자동저장에 실패했어요"))
-                scheduleAutosave()
+                // 재시도는 지수 백오프(4초→8초→…→60초 상한) — 오프라인에서 2초 간격 무한 폭주 방지.
+                // 새 입력이 오면 onChange 가 기본 2초 디바운스로 다시 앞당긴다.
+                autosaveRetryStreak += 1
+                let backoff = min(60, 2 << min(autosaveRetryStreak, 5))
+                scheduleAutosave(after: .seconds(backoff))
             } else if showPublish, !showSchedule {
                 // 발행 폼은 fullScreenCover 라 루트의 에러 알럿이 가려진다 — 폼 자체에 띄운다.
                 publishSheetError = error.localizedDescription
@@ -1158,6 +1197,9 @@ struct ComposeView: View {
         await save(publish: false)
         guard signature == lastSavedSignature else {
             scheduleError = errorMessage ?? String(localized: "저장하지 못했습니다")
+            // save 실패가 루트 errorMessage 에 남긴 알럿을 소비한다 —
+            // 안 그러면 발행 폼을 닫을 때 같은 에러가 루트 알럿으로 한 번 더 뜬다.
+            errorMessage = nil
             return
         }
         busy = true
@@ -1187,8 +1229,7 @@ struct ComposeView: View {
             do {
                 let id = try await ensurePost()
                 guard let data = try await item.loadTransferable(type: Data.self),
-                      let image = UIImage(data: data),
-                      let jpeg = image.jpegData(compressionQuality: 0.88)
+                      let jpeg = await Self.encodeUploadJPEG(from: data)
                 else { return }
                 let uploaded = try await WriteAPI.uploadImage(postId: id, jpegData: jpeg)
                 try await WriteAPI.updateCover(postId: id, url: uploaded.url, key: uploaded.key)
@@ -1471,14 +1512,19 @@ struct ComposeView: View {
     /// 자리에 넣는다. 사진 선택과 달리 여러 장이 한 번에 올 수 있어 캡션 다이얼로그는 생략한다
     /// (캡션은 이미지 컨텍스트 바로 나중에 붙일 수 있다).
     private func uploadPastedImages(_ images: [UIImage]) {
-        guard !images.isEmpty, !uploadingBodyImage else { return }
+        guard !images.isEmpty else { return }
+        guard !uploadingBodyImage else {
+            // 앞 이미지가 올라가는 중엔 조용히 버리지 않고 알린다 — 스피너가 사라진 뒤 다시.
+            ToastCenter.shared.show(String(localized: "이미지를 올리는 중이에요 — 잠시 후 다시 시도해 주세요"))
+            return
+        }
         uploadingBodyImage = true
         ToastCenter.shared.show(String(localized: "이미지 올리는 중…"))
         Task {
             defer { uploadingBodyImage = false }
             var failed = 0
             for image in images {
-                guard let jpeg = image.jpegData(compressionQuality: 0.88) else {
+                guard let jpeg = await Self.encodeUploadJPEG(from: image) else {
                     failed += 1
                     continue
                 }
@@ -1502,7 +1548,13 @@ struct ComposeView: View {
     /// 본문 이미지 — 골라서 업로드되면 곧장 커서 자리에 `![](url)` 한 줄로 들어간다(막는 캡션 다이얼로그 없이,
     /// 클립보드 붙여넣기 경로와 동일). 캡션은 넣은 뒤 이미지 편집 바의 ‘캡션’으로 붙인다.
     private func uploadBodyImage() {
-        guard let item = bodyImageItem, !uploadingBodyImage else { return }
+        guard let item = bodyImageItem else { return }
+        guard !uploadingBodyImage else {
+            // 앞 이미지가 올라가는 중 — 조용히 버리지 않고 알린 뒤, 같은 사진을 다시 고를 수 있게 선택을 비운다.
+            bodyImageItem = nil
+            ToastCenter.shared.show(String(localized: "이미지를 올리는 중이에요 — 잠시 후 다시 시도해 주세요"))
+            return
+        }
         uploadingBodyImage = true
         bodyImageItem = nil
         ToastCenter.shared.show(String(localized: "이미지 올리는 중…"))
@@ -1511,8 +1563,7 @@ struct ComposeView: View {
             do {
                 let id = try await ensurePost()
                 guard let data = try await item.loadTransferable(type: Data.self),
-                      let image = UIImage(data: data),
-                      let jpeg = image.jpegData(compressionQuality: 0.88)
+                      let jpeg = await Self.encodeUploadJPEG(from: data)
                 else { return }
                 let uploaded = try await WriteAPI.uploadImage(postId: id, jpegData: jpeg)
                 editorController.insertImageMarkdown(url: uploaded.url)
@@ -1525,6 +1576,52 @@ struct ComposeView: View {
                 ToastCenter.shared.show(String(localized: "이미지를 올리지 못했습니다"))
             }
         }
+    }
+
+    // MARK: 업로드 JPEG 인코딩 — 메인 액터 밖
+
+    /// 업로드 이미지 최대 변(px) — 원본 화소(12~48MP) 그대로 인코딩·전송하지 않는다.
+    private static let uploadImageMaxSide: CGFloat = 2048
+
+    /// 피커 바이트 → 업로드 JPEG. 풀사이즈 디코드·재인코딩은 수백 ms 라 메인 밖에서 돌린다
+    /// (타이핑·캐럿 프리즈 방지). ImageIO 썸네일이라 원본 비트맵을 통째로 메모리에 펴지 않는다.
+    private static func encodeUploadJPEG(from data: Data) async -> Data? {
+        let maxSide = uploadImageMaxSide
+        return await Task.detached(priority: .userInitiated) { () -> Data? in
+            let sourceOptions = [kCGImageSourceShouldCache: false] as [CFString: Any] as CFDictionary
+            guard let source = CGImageSourceCreateWithData(data as CFData, sourceOptions) else {
+                return nil
+            }
+            let thumbnailOptions = [
+                kCGImageSourceCreateThumbnailFromImageAlways: true,
+                // EXIF 회전을 픽셀에 구워 넣는다 — 회전 메타를 잃어도 사진이 눕지 않게.
+                kCGImageSourceCreateThumbnailWithTransform: true,
+                kCGImageSourceThumbnailMaxPixelSize: maxSide,
+            ] as [CFString: Any] as CFDictionary
+            guard let scaled = CGImageSourceCreateThumbnailAtIndex(source, 0, thumbnailOptions)
+            else { return nil }
+            return UIImage(cgImage: scaled).jpegData(compressionQuality: 0.88)
+        }.value
+    }
+
+    /// 클립보드 이미지 → 업로드 JPEG(같은 규칙) — 붙여넣기는 바이트가 아니라 UIImage 로 온다.
+    private static func encodeUploadJPEG(from image: UIImage) async -> Data? {
+        let maxSide = uploadImageMaxSide
+        return await Task.detached(priority: .userInitiated) { () -> Data? in
+            let width = image.size.width * image.scale
+            let height = image.size.height * image.scale
+            let longest = max(width, height)
+            guard longest > maxSide else { return image.jpegData(compressionQuality: 0.88) }
+            let size = CGSize(
+                width: (width * maxSide / longest).rounded(.down),
+                height: (height * maxSide / longest).rounded(.down))
+            let format = UIGraphicsImageRendererFormat()
+            format.scale = 1
+            let scaled = UIGraphicsImageRenderer(size: size, format: format).image { _ in
+                image.draw(in: CGRect(origin: .zero, size: size))
+            }
+            return scaled.jpegData(compressionQuality: 0.88)
+        }.value
     }
 }
 

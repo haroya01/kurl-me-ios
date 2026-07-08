@@ -13,15 +13,27 @@ import SwiftUI
 struct DailyTrendChart: View {
     let points: [AuthorAnalyticsOverview.DailyPoint]
     /// 접근성·오디오 그래프에 쓰는 지표 이름(기본 "조회"). 구독자 추이면 "구독자".
-    var metricName: String = String(localized: "조회")
+    let metricName: String
+
+    /// day 파싱을 마친 점. tuple 대신 Equatable 구조체라 onChange(of: data) 비교가 재할당 없이 된다.
+    private struct ChartPoint: Equatable {
+        let date: Date
+        let views: Int64
+    }
+
+    // 스크럽 중 chartXSelection 이 매 프레임 body 를 다시 돌리는데, day 는 DateFormatter
+    // 파싱이라 computed 로 두면 프레임당 창 크기(최대 90일)×접근 횟수만큼 재파싱한다 — init 에서 한 번만.
+    private let data: [ChartPoint]
 
     @State private var selectedDate: Date?
 
-    private var data: [(date: Date, views: Int64)] {
-        points.compactMap { p in p.day.map { (date: $0, views: p.views) } }
+    init(points: [AuthorAnalyticsOverview.DailyPoint], metricName: String = String(localized: "조회")) {
+        self.points = points
+        self.metricName = metricName
+        self.data = points.compactMap { p in p.day.map { ChartPoint(date: $0, views: p.views) } }
     }
 
-    private var selected: (date: Date, views: Int64)? {
+    private var selected: ChartPoint? {
         guard let selectedDate else { return nil }
         return data.min {
             abs($0.date.timeIntervalSince(selectedDate)) < abs($1.date.timeIntervalSince(selectedDate))
@@ -72,7 +84,7 @@ struct DailyTrendChart: View {
         }
         .chartXSelection(value: $selectedDate)
         // 기간(7/30/90일)을 바꾸면 옛 날짜를 가리키던 스크럽 선택이 남아 엉뚱한 값을 띄운다 — 데이터가 갈리면 초기화.
-        .onChange(of: data.map(\.date)) { selectedDate = nil }
+        .onChange(of: data) { selectedDate = nil }
         .chartXAxis {
             AxisMarks(values: .automatic(desiredCount: 4)) { _ in
                 AxisValueLabel(format: .dateTime.month(.defaultDigits).day())

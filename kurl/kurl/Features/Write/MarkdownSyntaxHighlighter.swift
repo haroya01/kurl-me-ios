@@ -79,14 +79,14 @@ enum MarkdownSyntaxHighlighter {
         return true
     }
 
-    private static func availableWidth(_ textView: UITextView) -> CGFloat {
+    static func availableWidth(_ textView: UITextView) -> CGFloat {
         let pad = textView.textContainer.lineFragmentPadding
         let cw = textView.textContainer.size.width
         return max(0, (cw.isFinite && cw > 1 ? cw : textView.bounds.width) - pad * 2)
     }
 
     /// location 앞까지 ```·~~~ 펜스를 세어 그 지점이 코드펜스 안인지(정규식 없이) 판정.
-    private static func fenceOpen(before location: Int, ns: NSString) -> Bool {
+    static func fenceOpen(before location: Int, ns: NSString) -> Bool {
         var marker: Character?
         ns.enumerateSubstrings(in: NSRange(location: 0, length: location), options: [.byLines]) {
             line, _, _, _ in
@@ -101,7 +101,7 @@ enum MarkdownSyntaxHighlighter {
 
     // MARK: 줄 단위 — 헤딩·인용·리스트·코드펜스
 
-    private static func styleLines(
+    static func styleLines(
         _ storage: NSTextStorage, _ ns: NSString, in range: NSRange, activePara: NSRange,
         startInFence: Bool, startMarker: Character?
     ) {
@@ -226,7 +226,7 @@ enum MarkdownSyntaxHighlighter {
     /// `![alt](url)` — URL 표식(.kurlImageURL)을 붙이고 마크다운 문법은 흐리게, 그 줄 아래에
     /// 썸네일 높이만큼 paragraphSpacing 으로 공간을 확보한다(레이아웃 매니저가 그 자리에 그린다).
     /// 본문 텍스트(`![](url)`)는 그대로 남아 마크다운 원문·자동저장이 깨지지 않는다.
-    private static func applyImages(
+    static func applyImages(
         _ storage: NSTextStorage, _ ns: NSString, in range: NSRange, width: CGFloat
     ) {
         // 한 줄이 오롯이 이미지(들)일 때만 숨기고 썸네일을 그린다 — 백엔드는 그럴 때만 IMAGE 블록을
@@ -277,7 +277,7 @@ enum MarkdownSyntaxHighlighter {
         return t.contains("-") && t.allSatisfy { "|:- ".contains($0) }
     }
 
-    private static func applyTables(_ storage: NSTextStorage, _ ns: NSString, in range: NSRange, activePara: NSRange) {
+    static func applyTables(_ storage: NSTextStorage, _ ns: NSString, in range: NSRange, activePara: NSRange) {
         var lines: [(text: String, range: NSRange)] = []
         ns.enumerateSubstrings(in: range, options: [.byLines]) { sub, r, _, _ in lines.append((sub ?? "", r)) }
         guard !lines.isEmpty else { return }

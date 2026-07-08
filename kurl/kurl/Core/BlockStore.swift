@@ -19,29 +19,41 @@ final class BlockStore {
     /// 관리 화면(차단 해제)용 — 서버 기준 최신순.
     private(set) var blocked: [InteractionsAPI.BlockedUser] = []
     private var hydrated = false
+    private var hydrating = false
 
     private init() {}
 
     func isBlocked(_ username: String) -> Bool { blockedUsernames.contains(username) }
     func isBlocked(id: Int64) -> Bool { blockedIds.contains(id) }
 
-    /// 처음 필요할 때 한 번 — 로그아웃이면 비우고, 로그인 후 첫 호출에만 목록을 받는다.
+    /// 처음 필요할 때 한 번 — 로그아웃이면 비우고, 로그인 후 첫 성공까지 목록을 받는다.
+    /// hydrated 는 성공 시에만 서므로 첫 요청이 실패해도 다음 호출이 자연 재시도한다
+    /// (동시 호출 중복 요청은 hydrating 으로 막는다).
     func hydrateIfNeeded() async {
         guard AuthStore.shared.isSignedIn else {
-            reset()
+            // 이미 빈 상태면 @Observable 무효화를 피해 대입을 생략.
+            if !blockedUsernames.isEmpty || !blockedIds.isEmpty || !blocked.isEmpty || hydrated {
+                reset()
+            }
             return
         }
-        guard !hydrated else { return }
-        hydrated = true
+        guard !hydrated, !hydrating else { return }
+        hydrating = true
+        defer { hydrating = false }
         await reload()
     }
 
-    func reload() async {
+    /// 성공하면 true, 실패(전송오류 등)면 false — 호출부가 '실패'와 '빈 목록'을 구분할 수 있게.
+    @discardableResult
+    func reload() async -> Bool {
         if let items = try? await InteractionsAPI.listBlocked() {
             blocked = items
             blockedUsernames = Set(items.map(\.username))
             blockedIds = Set(items.map(\.id))
+            hydrated = true
+            return true
         }
+        return false
     }
 
     /// 차단 — 낙관적으로 목록에 넣고(콘텐츠 즉시 숨김), 실패하면 되돌린다.

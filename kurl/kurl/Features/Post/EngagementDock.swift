@@ -247,7 +247,7 @@ final class EngagementModel {
         } catch {
             guard gen == userToggleCount else { return }
             bookmarked = !target
-            BookmarkStore.shared.set(postId, on: !target)
+            syncBookmarkStore(on: !target)
             throw error
         }
     }

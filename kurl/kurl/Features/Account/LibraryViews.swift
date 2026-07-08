@@ -11,6 +11,8 @@ struct BookmarksView: View {
     @State private var items: [BookmarkItem] = []
     @State private var loading = true
     @State private var failed = false
+    /// 서버 목록 실패 → 기기 사본 목록으로 대신 세운 상태 — 성공 로드가 오면 풀린다.
+    @State private var offlineFallback = false
 
     private var offline: OfflineStore { .shared }
 
@@ -32,6 +34,19 @@ struct BookmarksView: View {
                 }
                 .padding(.top, 60)
             } else {
+                if offlineFallback {
+                    // 기기 사본 목록 렌더 중 — 상세의 오프라인 배너와 같은 조용한 한 줄.
+                    HStack(spacing: 6) {
+                        Image(systemName: "wifi.slash")
+                        Text("오프라인 — 기기에 저장된 사본만 보여요")
+                    }
+                    .typeScale(.footnote)
+                    .foregroundStyle(Palette.secondary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
+                    .background(Palette.hairline, in: Capsule())
+                    .padding(.top, 14)
+                }
                 // 북마크 = 카탈로그(오프라인 책장) — 카드가 아니라 깔끔한 글 행(3원칙 표준).
                 // 화면 제목이 이미 "북마크"라 행마다 북마크 글리프는 중복 — 오프라인 저장분만 메타에 ⤓ 배지로.
                 LazyVStack(spacing: 0) {
@@ -83,13 +98,47 @@ struct BookmarksView: View {
         failed = false
         do {
             items = try await LibraryAPI.bookmarks()
+            offlineFallback = false
             loading = false
             await offline.reconcile(bookmarks: items.map { ($0.username, $0.slug) })
         } catch {
             loading = false
-            if items.isEmpty { failed = true }
+            guard items.isEmpty else { return }
+            // 서버 목록 실패여도 기기 사본이 있으면 데드엔드 대신 사본 목록 —
+            // "북마크 = 오프라인 보장"이 목록 진입로에서도 지켜진다(행 탭 = 기존 사본 렌더 폴백).
+            let cached = offlineItems()
+            if cached.isEmpty {
+                failed = true
+            } else {
+                items = cached
+                offlineFallback = true
+            }
         }
     }
+
+    /// 기기 사본만으로 세우는 대체 목록 — 사본 JSON 에서 행에 필요한 것만 최소 디코딩.
+    private func offlineItems() -> [BookmarkItem] {
+        offline.cachedKeys.compactMap { key -> BookmarkItem? in
+            let parts = key.split(separator: "/", maxSplits: 1).map(String.init)
+            guard parts.count == 2,
+                  let data = offline.data(username: parts[0], slug: parts[1]),
+                  let probe = try? JSONDecoder().decode(OfflineCopyProbe.self, from: data)
+            else { return nil }
+            return BookmarkItem(
+                id: probe.post.id, username: probe.author.username,
+                title: probe.post.title, slug: probe.post.slug)
+        }
+        // 사본 집합엔 서버의 북마크 순서가 없다 — 새로고침마다 안 흔들리게 제목순으로 고정.
+        .sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
+    }
+}
+
+/// 기기 사본에서 목록 행에 필요한 것만 꺼내는 최소 디코딩(블록·날짜 무시).
+private struct OfflineCopyProbe: Decodable {
+    struct Author: Decodable { let username: String }
+    struct Post: Decodable { let id: Int64; let title: String; let slug: String }
+    let author: Author
+    let post: Post
 }
 
 /// 좋아요한 글 — 피드와 같은 행 문법.

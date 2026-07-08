@@ -19,6 +19,7 @@ struct HighlightThreadSheet: View {
     @State private var replies: [HighlightReplyView] = []
     @State private var text = ""
     @State private var busy = false
+    @State private var sendFailed = false
     @State private var showDeleteConfirm = false
     /// 이 문장이 속한 공개 길/컬렉션 — A 척추 발견 고리(한 문장 → 그것이 엮인 길들로).
     @State private var inCollections: [CollectionSummary] = []
@@ -247,6 +248,14 @@ struct HighlightThreadSheet: View {
     private var composer: some View {
         VStack(spacing: 0) {
             Rectangle().fill(Palette.hairline).frame(height: 1)
+            if sendFailed {
+                Text("전송하지 못했습니다 — 다시 시도해 주세요.")
+                    .font(.system(size: 12 * metaUnit))
+                    .foregroundStyle(Palette.danger)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, Metrics.gutter)
+                    .padding(.top, 10)
+            }
             HStack(alignment: .bottom, spacing: 10) {
                 TextField("답글 남기기…", text: $text, axis: .vertical)
                     .font(.system(size: 15 * unit))
@@ -280,7 +289,10 @@ struct HighlightThreadSheet: View {
     }
 
     private func loadReplies() async {
-        replies = (try? await HighlightsAPI.replies(highlightId: highlight.id)) ?? []
+        // 재조회 실패가 이미 떠 있는 스레드를 지우지 않도록 — 성공했을 때만 교체.
+        if let fetched = try? await HighlightsAPI.replies(highlightId: highlight.id) {
+            replies = fetched
+        }
     }
 
     private func loadContainingCollections() async {
@@ -326,12 +338,17 @@ struct HighlightThreadSheet: View {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !busy else { return }
         busy = true
+        sendFailed = false
         Task {
             defer { busy = false }
-            _ = try? await HighlightsAPI.reply(highlightId: highlight.id, body: trimmed)
-            text = ""
-            await loadReplies()
-            await store.load() // replyCount 갱신 → 본문 밑줄 표식
+            do {
+                _ = try await HighlightsAPI.reply(highlightId: highlight.id, body: trimmed)
+                text = ""
+                await loadReplies()
+                await store.load() // replyCount 갱신 → 본문 밑줄 표식
+            } catch {
+                sendFailed = true // 입력은 보존 — 실패를 보이게.
+            }
         }
     }
 
@@ -339,9 +356,13 @@ struct HighlightThreadSheet: View {
         busy = true
         Task {
             defer { busy = false }
-            try? await HighlightsAPI.deleteReply(id: id)
-            await loadReplies()
-            await store.load()
+            do {
+                try await HighlightsAPI.deleteReply(id: id)
+                await loadReplies()
+                await store.load()
+            } catch {
+                ToastCenter.shared.show(String(localized: "답글을 삭제하지 못했습니다"))
+            }
         }
     }
 

@@ -38,7 +38,8 @@ struct FeedView: View {
     @Environment(\.scenePhase) private var scenePhase
 
     /// 알림은 리텐션 루프의 심장인데 계정 탭 안 2뎁스였다 — 첫 화면에 벨을 둔다.
-    @State private var unreadCount: Int64 = 0
+    /// 카운트는 계정 탭 벨과 UnreadStore 공유 — 각자 fetch 해 같은 GET 이 2회 나가지 않게.
+    private var unreadCount: Int64 { UnreadStore.shared.count }
     /// 벨 → 알림. isPresented 바인딩이라 pop 시 onChange 가 미읽음을 다시 읽는다(계정 탭과 동일).
     @State private var showNotifications = false
 
@@ -155,7 +156,7 @@ struct FeedView: View {
     }
 
     private func page(for tab: FeedTab) -> some View {
-        FeedPage(source: tab.source, active: tab == selection, zoom: zoomNS)
+        FeedPage(source: tab.source, active: tab == selection, warm: pageVisible(tab), zoom: zoomNS)
     }
 
     private var selectionIndex: Int { FeedTab.allCases.firstIndex(of: selection) ?? 0 }
@@ -216,11 +217,7 @@ struct FeedView: View {
     }
 
     private func refreshUnread() async {
-        guard AuthStore.shared.isSignedIn else {
-            unreadCount = 0
-            return
-        }
-        unreadCount = (try? await NotificationsAPI.unreadCount()) ?? unreadCount
+        await UnreadStore.shared.refresh()
     }
 }
 
@@ -228,16 +225,22 @@ struct FeedView: View {
 struct FeedPage: View {
     let source: FeedSource
     let active: Bool
+    /// 선택 ±1(곧 보일 수 있는 페이지)만 true — 이때만 첫 로드를 발화한다. ZStack 상주라
+    /// 숨은 페이지의 .task 도 기동 즉시 돌아 4개 피드가 전부 fetch(구독함은 오프라인
+    /// 다운로드까지 연쇄)하며 첫 화면 로딩과 대역폭을 다투던 것.
+    let warm: Bool
     let zoom: Namespace.ID
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var model: FeedViewModel
     /// 구독함 게이트의 로그인 — 다른 인게이지 면과 같은 정식 로그인 시트로.
     @State private var showLoginSheet = false
     /// 직전 로그인 상태 — 실제 인증 전환에서만 리셋한다(첫 로드 헛 epoch·빈 깜빡임 방지).
     @State private var wasSignedIn = AuthStore.shared.isSignedIn
 
-    init(source: FeedSource, active: Bool, zoom: Namespace.ID) {
+    init(source: FeedSource, active: Bool, warm: Bool, zoom: Namespace.ID) {
         self.source = source
         self.active = active
+        self.warm = warm
         self.zoom = zoom
         _model = State(initialValue: FeedViewModel(source: source))
     }
@@ -263,13 +266,16 @@ struct FeedPage: View {
         // 인증 전환을 task id 로 관찰 — 로그아웃 상태의 401 failed 고착과
         // 계정 전환 후 이전 계정 피드 잔존을 모두 해소한다. 단 실제 전환에서만
         // 리셋한다(첫 발화는 초기값이라 헛 epoch·빈 깜빡임이 된다).
-        .task(id: AuthStore.shared.isSignedIn) {
+        // warm 도 id 에 묶어 페이지가 선택 ±1 로 들어오는 시점에 재발화 — 리셋은 숨어
+        // 있어도 즉시(이전 계정 잔상 방지), fetch 는 warm 일 때만(loadInitial 은 idle
+        // 가드라 재발화는 무해).
+        .task(id: [warm, AuthStore.shared.isSignedIn]) {
             let signedIn = AuthStore.shared.isSignedIn
             if signedIn != wasSignedIn {
                 wasSignedIn = signedIn
                 model.resetForAuthChange()
             }
-            guard !source.requiresAuth || signedIn else { return }
+            guard warm, !source.requiresAuth || signedIn else { return }
             await model.loadInitial()
         }
     }
@@ -326,6 +332,24 @@ struct FeedPage: View {
                     KurlLoadingMark()
                         .frame(maxWidth: .infinity).padding(.vertical, 18)
                 }
+                if model.loadMoreFailed {
+                    // 아이템별 .task 는 1회성 — 실패로 소진되면 이 버튼이 유일한 재진입로다.
+                    Button {
+                        Task { await model.retryLoadMore() }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text("더 불러오지 못했습니다 — 다시 시도")
+                                .typeScale(.meta)
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundStyle(Palette.link)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 18)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
                 if model.items.isEmpty {
                     if source == .following {
                         FeedPlaceholder(
@@ -354,6 +378,9 @@ struct FeedPage: View {
             .frame(maxWidth: Metrics.readingColumn)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, Metrics.gutter)
+            // 발견 시리즈는 본 피드 반영 뒤 별도로 도착한다(피드를 막지 않는 설계) — 카드 한 장
+            // 높이가 리스트 중간에 순간 끼어들어 아래를 보던 화면이 튀던 것을 애니메이트로 밀어낸다.
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: model.series?.id)
         }
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
@@ -456,6 +483,10 @@ private struct FeedSeriesCard: View {
     let author: Author
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var idx = 0
+    // 모든 장이 ZStack 에 살아 있어(크로스페이드용) 숨은 장의 커버까지 즉시 받게 된다 —
+    // 커버 로드는 현재 장 + 다음 장만 켜고, 한 번 켠 장은 유지해 페이드아웃 중
+    // 이미지가 placeholder 로 되돌아가지 않게 한다.
+    @State private var imagePages: Set<Int> = [0, 1]
     // 하드코딩 크기가 Dynamic Type 를 무시하던 것 — 텍스트 스타일에 묶어 글자 크기 설정을 따른다.
     // (우상단의 148pt 장식 mono 번호만 고정 — 레이아웃을 이루는 배경 장식이라 스케일 제외.)
     @ScaledMetric(relativeTo: .caption) private var seriesNameSize: CGFloat = 12
@@ -468,11 +499,14 @@ private struct FeedSeriesCard: View {
 
     var body: some View {
         let n = max(posts.count, 1)
+        // 새로고침이 series 를 편수 적은 것으로 교체해도 @State idx 는 살아남는다 — 범위 밖이면
+        // 모든 장이 opacity 0(빈 카드)이 되므로 표시 인덱스를 클램프해 항상 한 장은 보이게.
+        let shown = min(idx, n - 1)
         ZStack(alignment: .topTrailing) {
             // 에피소드 페이지들 — 앞장만 보이고 넘김은 크로스페이드.
             ForEach(Array(posts.enumerated()), id: \.offset) { i, ep in
-                episodePage(index: i, ep: ep)
-                    .opacity(i == idx ? 1 : 0)
+                episodePage(index: i, ep: ep, loadImage: imagePages.contains(i))
+                    .opacity(i == shown ? 1 : 0)
             }
             // 카드 전체 탭 → 시리즈 상세(투명 링크가 비주얼 위에 깔린다).
             NavigationLink(value: Route.series(username: author.username, slug: series.slug)) {
@@ -482,8 +516,12 @@ private struct FeedSeriesCard: View {
             // 우측 모서리 한 장 넘김(여러 편일 때만) — 링크 위에 올려 그 영역만 가로챈다.
             if n > 1 {
                 Button {
+                    // 넘길 대상 장(+그 다음 장) 커버를 미리 켜 크로스페이드가 빈 채로 뜨지 않게.
+                    let next = (shown + 1) % n
+                    imagePages.insert(next)
+                    if next + 1 < n { imagePages.insert(next + 1) }
                     withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.45)) {
-                        idx = (idx + 1) % n
+                        idx = next
                     }
                 } label: {
                     Image(systemName: "chevron.right")
@@ -509,19 +547,24 @@ private struct FeedSeriesCard: View {
         .accessibilityLabel(Text("시리즈 \(series.title), \(series.postCount)편"))
     }
 
-    private func episodePage(index i: Int, ep: SeriesPostRef) -> some View {
+    private func episodePage(index i: Int, ep: SeriesPostRef, loadImage: Bool) -> some View {
         let imageURL = ep.ogImageUrl.flatMap { $0.isEmpty ? nil : URL(string: $0) }
         let onImage = imageURL != nil
         return ZStack(alignment: .topLeading) {
             if let url = imageURL {
                 // 사진 커버 변형 — 에피소드 사진 + 상하 스크림 위 흰 글씨(웹 이미지 장 대응).
+                // 숨은 뒷장은 loadImage 가 켜질 때만 RemoteImage 를 만든다 — 안 보는 커버를 미리 안 받게.
                 Color.clear.overlay {
-                    RemoteImage(url: url) { phase in
-                        if case .success(let img) = phase {
-                            img.resizable().scaledToFill()
-                        } else {
-                            Palette.accent.opacity(0.12)
+                    if loadImage {
+                        RemoteImage(url: url) { phase in
+                            if case .success(let img) = phase {
+                                img.resizable().scaledToFill()
+                            } else {
+                                Palette.accent.opacity(0.12)
+                            }
                         }
+                    } else {
+                        Palette.accent.opacity(0.12)
                     }
                 }
                 .clipped()

@@ -22,6 +22,7 @@ final class BookmarkStore {
     /// "username/slug" → postId — postId 를 모르는 미리보기가 여부·id 를 함께 대조한다.
     private var refToId: [String: Int64] = [:]
     private var hydrated = false
+    private var hydrating = false
 
     private init() {}
 
@@ -32,8 +33,11 @@ final class BookmarkStore {
     }
 
     /// 아는 postId — 미리보기의 북마크 토글이 끌 때(이미 담긴 글) 상세 재조회 없이 바로 쓴다.
+    /// 낙관 켜기 직후의 자리값(id 미상)은 nil — 그대로 반환하면 sentinel 이 실제 id 로 서버에
+    /// 나가므로, 호출부가 상세 조회로 id 를 푼 뒤 보내게 한다.
     func postId(username: String, slug: String) -> Int64? {
-        refToId[Self.key(username, slug)]
+        guard let mapped = refToId[Self.key(username, slug)], mapped != Self.unknownId else { return nil }
+        return mapped
     }
 
     func set(_ id: Int64, on: Bool) {
@@ -67,21 +71,27 @@ final class BookmarkStore {
         hydrated = false
     }
 
-    /// 카드가 처음 뜰 때 한 번 — 로그아웃이면 비우고, 로그인 후 첫 호출에만 목록을 받는다.
+    /// 카드가 처음 뜰 때 한 번 — 로그아웃이면 비우고, 로그인 후 첫 성공까지 목록을 받는다.
+    /// hydrated 는 성공 시에만 서므로 첫 요청이 실패해도 다음 호출이 자연 재시도한다
+    /// (동시 호출 중복 요청은 hydrating 으로 막는다).
     func hydrateIfNeeded() async {
         guard AuthStore.shared.isSignedIn else {
-            ids = []
-            refToId = [:]
-            hydrated = false
+            // 카드 등장마다 불리는데 @Observable 은 같은 값 대입도 mutation 으로 발화해
+            // ids 를 보는 카드 전부를 무효화한다 — 이미 빈 상태면 대입을 생략.
+            if !ids.isEmpty || !refToId.isEmpty || hydrated {
+                reset()
+            }
             return
         }
-        guard !hydrated else { return }
-        hydrated = true
+        guard !hydrated, !hydrating else { return }
+        hydrating = true
+        defer { hydrating = false }
         if let items = try? await LibraryAPI.bookmarks() {
             ids = Set(items.map(\.id))
             refToId = Dictionary(
                 items.map { (Self.key($0.username, $0.slug), $0.id) },
                 uniquingKeysWith: { first, _ in first })
+            hydrated = true
         }
     }
 

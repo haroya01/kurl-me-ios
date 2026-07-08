@@ -35,7 +35,10 @@ final class PostHighlightStore {
     init(postId: Int64) { self.postId = postId }
 
     func load() async {
-        highlights = (try? await HighlightsAPI.list(postId: postId)) ?? []
+        // 실패 시 기존 배열 유지 — 빈 배열로 갈면 화면에 칠해진 마크(남들 공개 하이라이트 포함)가 전부 사라진다.
+        if let fresh = try? await HighlightsAPI.list(postId: postId) {
+            highlights = fresh
+        }
     }
 
     func highlight(id: Int64) -> HighlightView? { highlights.first { $0.id == id } }
@@ -69,7 +72,8 @@ final class PostHighlightStore {
     }
 
     /// 선택 구간을 하이라이트(+선택적 공개 메모) — 미로그인이면 로그인 유도. 로그인 상태면 낙관적으로
-    /// 즉시 칠하고 서버 echo 로 진짜 id·attribution 을 채운다(실패해도 읽기를 끊지 않는다).
+    /// 즉시 칠하고 서버 echo 로 진짜 id·attribution 을 채운다. 실패하면 낙관 마크를 걷어내고
+    /// 토스트로 알린다(삭제와 같은 문법) — 무음이면 메모까지 소리 없이 유실된다.
     func create(blockOrder: Int, startOffset: Int, endOffset: Int, quote: String, note: String? = nil) {
         guard AuthStore.shared.isSignedIn else {
             loginPrompt = true
@@ -84,12 +88,27 @@ final class PostHighlightStore {
             note: memo, replyCount: 0, createdAt: nil)
         highlights.append(optimistic)
         Task {
-            _ = try? await HighlightsAPI.create(
-                postId: postId,
-                NewHighlight(
-                    blockOrder: blockOrder, endBlockOrder: blockOrder, startOffset: startOffset,
-                    endOffset: endOffset, quote: quote, note: memo))
-            await load()
+            do {
+                let echo = try await HighlightsAPI.create(
+                    postId: postId,
+                    NewHighlight(
+                        blockOrder: blockOrder, endBlockOrder: blockOrder, startOffset: startOffset,
+                        endOffset: endOffset, quote: quote, note: memo))
+                // 낙관 항목을 echo 로 교체 — 뒤의 재조회가 실패해도 진짜 id 라 스레드·삭제가 동작한다.
+                if let idx = highlights.firstIndex(where: { $0.id == optimistic.id }) {
+                    highlights[idx] = HighlightView(
+                        id: echo.id, author: nil, blockOrder: echo.blockOrder,
+                        endBlockOrder: echo.endBlockOrder, startOffset: echo.startOffset,
+                        endOffset: echo.endOffset, quote: echo.quote, note: echo.note,
+                        replyCount: 0, createdAt: echo.createdAt)
+                }
+                await load()
+            } catch {
+                withAnimation(.snappy(duration: 0.25)) {
+                    highlights.removeAll { $0.id == optimistic.id }
+                }
+                ToastCenter.shared.show(String(localized: "하이라이트를 저장하지 못했습니다"))
+            }
         }
     }
 

@@ -9,6 +9,8 @@ import SwiftUI
 /// 해제하면 목록에서 즉시 빠지고, 그 작가의 콘텐츠도 다시 보인다.
 struct BlockedUsersView: View {
     @State private var loading = true
+    /// 로드 실패 — 빈 목록과 구분해야 '차단자 없음'으로 위장하지 않는다(해제하러 온 사용자의 막다른 길 방지).
+    @State private var failed = false
 
     var body: some View {
         ReadingColumn(spacing: 0) {
@@ -16,6 +18,16 @@ struct BlockedUsersView: View {
             if loading && BlockStore.shared.blocked.isEmpty {
                 KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 240)
+            } else if failed && BlockStore.shared.blocked.isEmpty {
+                ContentUnavailableView {
+                    Label(String(localized: "불러오지 못했습니다"), systemImage: "wifi.exclamationmark")
+                } description: {
+                    Text("연결을 확인하고 다시 시도해 주세요.")
+                } actions: {
+                    Button(String(localized: "다시 시도")) { Task { await load() } }
+                        .foregroundStyle(Palette.accent)
+                }
+                .padding(.top, 60)
             } else if BlockStore.shared.blocked.isEmpty {
                 ContentUnavailableView {
                     Label("차단한 사용자가 없어요", systemImage: "hand.raised")
@@ -35,10 +47,16 @@ struct BlockedUsersView: View {
         }
         .navigationTitle("차단한 사용자")
         .navigationBarTitleDisplayMode(.inline)
-        .task {
-            await BlockStore.shared.reload()
-            loading = false
-        }
+        .task { await load() }
+    }
+
+    private func load() async {
+        loading = true
+        failed = false
+        // 이미 받아둔 목록이 있으면 실패해도 stale 목록을 유지한다 — failed 는 목록이 빌 때만 화면에 뜬다.
+        let ok = await BlockStore.shared.reload()
+        failed = !ok
+        loading = false
     }
 
     private func row(_ u: InteractionsAPI.BlockedUser) -> some View {

@@ -53,12 +53,17 @@ struct PostDetailView: View {
     /// 손가락이 실제로 당기는 중일 때만 true — 플릭 관성의 바운스가 임계를 넘어도
     /// 다음 글로 튕겨가지 않게 한다.
     @State private var fingerDown = false
-    /// 바닥 너머 당김의 진행도(0~1, 임계 90pt) — 큐의 셰브론·제목이 손가락을 따라온다.
-    @State private var pullProgress: CGFloat = 0
-    /// 읽기 진행도(0~1). 시그니처 = 이 진행을 kurl 3-bar 마크가 왼쪽부터 그려지며 표현한다.
-    @State private var readProgress: CGFloat = 0
+    /// 스크롤 진행(읽기·당김) — 매 프레임 갱신되는 값이라 @State 로 두면 상세 body 전체가
+    /// 프레임마다 재평가된다(블록 트리 재구성·목차 재순회). 진행을 그리는 잎 뷰만 구독하도록
+    /// @Observable 참조로 분리해 부모 무효화를 끊는다.
+    @State private var scrollProgress = ScrollProgress()
     /// 끝까지 읽으면 마크가 완성되는 한 번의 모먼트(완독). 위로 다시 올라가면 재무장.
     @State private var readComplete = false
+
+    /// 본문 파생값(목차·읽는 시간) — body 재평가마다 전 블록을 다시 순회하지 않게
+    /// 로드 시 1회 계산해 둔다(오프라인 사본 → 온라인 갱신 포함).
+    @State private var headings: [(id: Int, title: String, level: Int)] = []
+    @State private var readingMinutes: Int?
 
     /// 하이라이트가 "탭하면 대화"라는 걸 처음 한 번만 알려주는 코치(§10 조용히, 5초 후 사라짐).
     @State private var showHighlightCoach = false
@@ -83,8 +88,14 @@ struct PostDetailView: View {
     /// 임베드(덱)는 만들지 않아 종전 렌더 그대로다.
     @State private var highlights: PostHighlightStore?
 
-    var body: some View {
-        ScrollViewReader { proxy in
+    /// 읽기 기록 비콘을 이미 보낸 글 id — pop-back 으로 task 가 재시작돼도 재전송하지 않는다.
+    @State private var recordedHistoryId: Int64?
+
+    // 상세 body 는 모디파이어 사슬이 길어 하나의 식으로는 타입 검사 예산을 넘는다 —
+    // ScrollView + 스크롤/툴바 계열을 scrollBody 로 잘라 불투명 경계(some View)를 만들고,
+    // 나머지(시트·태스크·오버레이)는 body 에서 이어 붙여 두 개의 작은 식으로 나눈다.
+    @ViewBuilder
+    private func scrollBody(_ proxy: ScrollViewProxy) -> some View {
         ScrollView {
             VStack(spacing: 0) {
                 switch model.phase {
@@ -147,6 +158,10 @@ struct PostDetailView: View {
         .onChange(of: replyTo) { _, target in
             if target != nil { composerActive = true }
         }
+        // 목차·읽는 시간 재계산 — 오프라인 사본 → 온라인 갱신은 글 id 가 그대로라
+        // (isOfflineCopy 만 바뀐다) 두 트리거를 함께 둔다.
+        .onChange(of: loadedPostId) { refreshDerivedContent() }
+        .onChange(of: model.isOfflineCopy) { refreshDerivedContent() }
         // 키보드 위에 붙는 유리 댓글 바 — safeAreaInset 이 키보드를 따라 위치를 보장한다.
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if composerActive {
@@ -179,7 +194,10 @@ struct PostDetailView: View {
                 nextFetched = true
                 Task { await loadAuthorContext() }
             }
-            pullProgress = remaining < 0 ? min(1, -remaining / 90) : 0
+            // 같은 값(평소엔 0) 재대입도 @Observable 은 통지한다 — 일반 스크롤 내내
+            // 큐가 헛되이 다시 그려지지 않게 변할 때만 쓴다.
+            let pull = remaining < 0 ? min(1, -remaining / 90) : 0
+            if scrollProgress.pull != pull { scrollProgress.pull = pull }
             if remaining < -90, fingerDown, nextPost != nil, !showNext {
                 showNext = true
             }
@@ -191,7 +209,7 @@ struct PostDetailView: View {
             let scrolled = geometry.contentOffset.y + geometry.contentInsets.top
             return min(1, max(0, scrolled / total))
         } action: { _, progress in
-            readProgress = progress
+            scrollProgress.read = progress
             // 완독 모먼트 — 거의 끝(0.985)에 닿으면 마크 완성 한 번. 0.9 아래로 되돌아가면 재무장.
             if progress >= 0.985, !readComplete {
                 readComplete = true
@@ -219,96 +237,12 @@ struct PostDetailView: View {
                 PostAnalyticsView(post: topPost(from: detail))
             }
         }
-        .toolbar {
-            // 임베드 시 내비바는 호스트(발견)의 것 — 여러 장이 동시에 살아 있어
-            // principal/공유를 끼우면 서로 싸운다.
-            if !embedded {
-                ToolbarItem(placement: .principal) {
-                    Text(loadedTitle)
-                        .font(.system(size: 16 * unit, weight: .semibold))
-                        .lineLimit(1)
-                        .opacity(showNavTitle ? 1 : 0)
-                }
-                // 헤딩 2개 이상이면 목차 — 탭하면 그 자리로 스크롤(웹 post-toc 의 네이티브 번역).
-                // 제목·왼쪽은 깔끔히 두고 목차는 우측 크롬으로. 항해 보조라 액션 클러스터(공유·
-                // 분석·편집)와는 ToolbarSpacer 로 유리 그룹을 나눠 제 몫으로 읽히게 한다.
-                if headings.count >= 2 {
-                    ToolbarItem(placement: .primaryAction) {
-                        Menu {
-                            ForEach(headings, id: \.id) { h in
-                                Button {
-                                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.3)) {
-                                        proxy.scrollTo(h.id, anchor: UnitPoint(x: 0, y: 0.08))
-                                    }
-                                } label: {
-                                    // 들여쓰기는 비분리 공백 — 메뉴가 선행 일반 공백을 트리밍해 레벨이 뭉개졌다.
-                                    Text(String(repeating: "\u{00A0}\u{00A0}\u{00A0}", count: h.level - 1) + h.title)
-                                }
-                            }
-                        } label: {
-                            Image(systemName: "list.bullet")
-                        }
-                        .tint(.brand)
-                        .accessibilityLabel("목차")
-                    }
-                    ToolbarSpacer(.fixed, placement: .primaryAction)
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    if let shareURL {
-                        ShareLink(item: shareURL) {
-                            Image(systemName: "square.and.arrow.up")
-                        }
-                        .accessibilityLabel(Text("공유"))
-                    }
-                }
-                // 내 글이면 — 읽으면서 바로 편집·분석으로 갈 수 있게 작가 동작을 같이 노출.
-                if isOwnPost {
-                    ToolbarItem(placement: .primaryAction) {
-                        Button { showOwnAnalytics = true } label: {
-                            Image(systemName: "chart.bar")
-                        }
-                        .tint(.brand)
-                        .accessibilityLabel("이 글 분석")
-                    }
-                    ToolbarItem(placement: .primaryAction) {
-                        Button { editingOwnPost = true } label: {
-                            Image(systemName: "pencil")
-                        }
-                        .tint(.brand)
-                        .accessibilityLabel("이 글 편집")
-                    }
-                } else if loadedPostId != nil, let author = loadedAuthor {
-                    // 남의 글이면 — 더 보기 메뉴에 차단·신고(작가 프로필과 같은 문법). 차단을 여기
-                    // 두어 거슬리는 글을 만난 자리에서 바로 처리하게 하고, 한 항목뿐이던 메뉴도 채운다.
-                    ToolbarItem(placement: .primaryAction) {
-                        Menu {
-                            if BlockStore.shared.isBlocked(id: author.id) {
-                                Button {
-                                    Task {
-                                        try? await BlockStore.shared.unblock(
-                                            id: author.id, username: author.username)
-                                        ToastCenter.shared.show(String(localized: "차단을 해제했어요"))
-                                    }
-                                } label: {
-                                    Label("차단 해제", systemImage: "hand.raised.slash")
-                                }
-                            } else {
-                                Button(role: .destructive) { showBlockConfirm = true } label: {
-                                    Label("차단", systemImage: "hand.raised")
-                                }
-                            }
-                            Button(role: .destructive) { showReport = true } label: {
-                                Label("신고", systemImage: "flag")
-                            }
-                        } label: {
-                            Image(systemName: "ellipsis")
-                        }
-                        .tint(.brand)
-                        .accessibilityLabel("더 보기")
-                    }
-                }
-            }
-        }
+        .toolbar { detailToolbar(proxy) }
+    }
+
+    var body: some View {
+        ScrollViewReader { proxy in
+        scrollBody(proxy)
         .reportDialog(isPresented: $showReport, subjectType: "POST", subjectId: loadedPostId ?? 0)
         .blockDialog(
             isPresented: $showBlockConfirm,
@@ -324,8 +258,10 @@ struct PostDetailView: View {
             // 단독·덱 임베드 공통의 단일 인게이지 문법 — 임베드별 인라인 줄을 두지 않는다.
             // 덱에선 장마다 제 페이지 안에 떠서 페이지와 함께 밀려 나간다.
             // 컴포저가 깨어나는 즉시 물러난다 — keyboardUp(키보드 알림)은 한 박자 늦어 잠깐 겹쳤다.
-            if case .loaded(let detail) = model.phase, !(keyboardUp || composerActive),
-               !(endVisible && scrollable) {
+            // 숨김은 opacity 로만 — hierarchy 에서 빼면 독의 @State 모델이 새로 만들어져
+            // 숨김↔표시 사이클마다 hydrate GET 2건이 재발사되고 좋아요가 잠깐 꺼져 깜빡였다.
+            if case .loaded(let detail) = model.phase {
+                let dockHidden = keyboardUp || composerActive || (endVisible && scrollable)
                 EngagementDock(
                     postId: detail.post.id, initialLikeCount: detail.post.likeCount,
                     offlineRef: (username: detail.author.username, slug: detail.post.slug),
@@ -333,7 +269,9 @@ struct PostDetailView: View {
                 )
                 .padding(.trailing, 14)
                 .padding(.bottom, 10)
-                .transition(.opacity)
+                .opacity(dockHidden ? 0 : 1)
+                .allowsHitTesting(!dockHidden)
+                .accessibilityHidden(dockHidden)
             }
         }
         // 읽기 진행 = 상단 가는 막대(내비바 아래 한 줄). 왼쪽부터 그린으로 찬다 — 떠 있는
@@ -341,14 +279,7 @@ struct PostDetailView: View {
         // 덱: 장 상단부터. 단독: 제목이 내비바로 스민 뒤(showNavTitle). 충분히 긴 글에만.
         .overlay(alignment: .top) {
             if scrollable, embedded || showNavTitle {
-                GeometryReader { geo in
-                    Capsule()
-                        .fill(Palette.accent)
-                        .frame(width: geo.size.width * min(1, max(0, readProgress)), height: 3)
-                }
-                .frame(height: 3)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
+                ReadProgressBar(progress: scrollProgress)
             }
         }
         // 완독 = 결과 햅틱 한 번(.success). trigger 닫힘(되돌아감)엔 울리지 않게 완료에만.
@@ -379,25 +310,20 @@ struct PostDetailView: View {
                 highlights = nil
                 return
             }
+            // 푸시로 가려졌다 pop 되면 id 그대로여도 task 가 재시작된다 — 이미 세운 store 를
+            // 새로 만들면 칠이 지워졌다 재로드까지 깜빡이므로 그대로 둔다.
+            guard highlights?.postId != id else { return }
             let store = PostHighlightStore(postId: id)
             highlights = store
             await store.load()
-            // 대화가 달린 하이라이트가 있는 글에서, 처음 한 번만 "탭하면 열려요" 코치.
-            // `--force-coach`(목 전용) = 플래그 무시하고 매번 — UI 테스트 결정성 진입로.
-            let forceCoach = Config.useMocks
-                && ProcessInfo.processInfo.arguments.contains("--force-coach")
-            let hasThreaded = store.highlights.contains {
-                ($0.note?.isEmpty == false) || $0.replyCount > 0
-            }
-            if !embedded, hasThreaded,
-               forceCoach || !UserDefaults.standard.bool(forKey: Self.highlightCoachKey) {
-                if !forceCoach { UserDefaults.standard.set(true, forKey: Self.highlightCoachKey) }
-                withAnimation(reduceMotion ? nil : .snappy) { showHighlightCoach = true }
-            }
+            maybeShowHighlightCoach(store)
         }
         // 읽기 기록 비콘 — 로그인 독자가 글을 열면 계정에 기록(기기를 넘어 이어진다). 익명은 기록 없음.
+        // 가드 = pop-back task 재시작마다 재전송하지 않게(didFocus 와 같은 1회 패턴).
         .task(id: loadedPostId) {
-            guard !embedded, let id = loadedPostId, AuthStore.shared.isSignedIn else { return }
+            guard !embedded, let id = loadedPostId, AuthStore.shared.isSignedIn,
+                  recordedHistoryId != id else { return }
+            recordedHistoryId = id
             await ReadingHistoryAPI.record(postId: id)
         }
         // 발견 피드의 하이라이트 카드로 들어오면 — 그 구절이 든 블록으로 스크롤 + 잠깐 강조(1회).
@@ -439,6 +365,100 @@ struct PostDetailView: View {
         .overlay(alignment: .bottom) {
             if showHighlightCoach { highlightCoach }
         }
+        }
+    }
+
+    /// 상세 내비바 — 제목·목차·공유·작가 동작(편집/분석)·남의 글 더보기(차단/신고).
+    /// 임베드(덱)는 호스트 내비바를 쓰므로 비운다.
+    @ToolbarContentBuilder
+    private func detailToolbar(_ proxy: ScrollViewProxy) -> some ToolbarContent {
+        // 임베드 시 내비바는 호스트(발견)의 것 — 여러 장이 동시에 살아 있어
+        // principal/공유를 끼우면 서로 싸운다.
+        if !embedded {
+            ToolbarItem(placement: .principal) {
+                Text(loadedTitle)
+                    .font(.system(size: 16 * unit, weight: .semibold))
+                    .lineLimit(1)
+                    .opacity(showNavTitle ? 1 : 0)
+            }
+            // 헤딩 2개 이상이면 목차 — 탭하면 그 자리로 스크롤(웹 post-toc 의 네이티브 번역).
+            // 제목·왼쪽은 깔끔히 두고 목차는 우측 크롬으로. 항해 보조라 액션 클러스터(공유·
+            // 분석·편집)와는 ToolbarSpacer 로 유리 그룹을 나눠 제 몫으로 읽히게 한다.
+            if headings.count >= 2 {
+                ToolbarItem(placement: .primaryAction) {
+                    Menu {
+                        ForEach(headings, id: \.id) { h in
+                            Button {
+                                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.3)) {
+                                    proxy.scrollTo(h.id, anchor: UnitPoint(x: 0, y: 0.08))
+                                }
+                            } label: {
+                                // 들여쓰기는 비분리 공백 — 메뉴가 선행 일반 공백을 트리밍해 레벨이 뭉개졌다.
+                                Text(String(repeating: "\u{00A0}\u{00A0}\u{00A0}", count: h.level - 1) + h.title)
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "list.bullet")
+                    }
+                    .tint(.brand)
+                    .accessibilityLabel("목차")
+                }
+                ToolbarSpacer(.fixed, placement: .primaryAction)
+            }
+            ToolbarItem(placement: .primaryAction) {
+                if let shareURL {
+                    ShareLink(item: shareURL) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .accessibilityLabel(Text("공유"))
+                }
+            }
+            // 내 글이면 — 읽으면서 바로 편집·분석으로 갈 수 있게 작가 동작을 같이 노출.
+            if isOwnPost {
+                ToolbarItem(placement: .primaryAction) {
+                    Button { showOwnAnalytics = true } label: {
+                        Image(systemName: "chart.bar")
+                    }
+                    .tint(.brand)
+                    .accessibilityLabel("이 글 분석")
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Button { editingOwnPost = true } label: {
+                        Image(systemName: "pencil")
+                    }
+                    .tint(.brand)
+                    .accessibilityLabel("이 글 편집")
+                }
+            } else if loadedPostId != nil, let author = loadedAuthor {
+                // 남의 글이면 — 더 보기 메뉴에 차단·신고(작가 프로필과 같은 문법). 차단을 여기
+                // 두어 거슬리는 글을 만난 자리에서 바로 처리하게 하고, 한 항목뿐이던 메뉴도 채운다.
+                ToolbarItem(placement: .primaryAction) {
+                    Menu {
+                        if BlockStore.shared.isBlocked(id: author.id) {
+                            Button {
+                                Task {
+                                    try? await BlockStore.shared.unblock(
+                                        id: author.id, username: author.username)
+                                    ToastCenter.shared.show(String(localized: "차단을 해제했어요"))
+                                }
+                            } label: {
+                                Label("차단 해제", systemImage: "hand.raised.slash")
+                            }
+                        } else {
+                            Button(role: .destructive) { showBlockConfirm = true } label: {
+                                Label("차단", systemImage: "hand.raised")
+                            }
+                        }
+                        Button(role: .destructive) { showReport = true } label: {
+                            Label("신고", systemImage: "flag")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                    }
+                    .tint(.brand)
+                    .accessibilityLabel("더 보기")
+                }
+            }
         }
     }
 
@@ -505,10 +525,35 @@ struct PostDetailView: View {
         withAnimation(reduceMotion ? nil : .easeIn(duration: 0.7)) { flashBlockId = nil }
     }
 
+    /// 대화가 달린 하이라이트가 있는 글에서, 처음 한 번만 "탭하면 열려요" 코치(§10 조용히).
+    /// `--force-coach`(목 전용) = 플래그 무시하고 매번 — UI 테스트 결정성 진입로.
+    private func maybeShowHighlightCoach(_ store: PostHighlightStore) {
+        let forceCoach = Config.useMocks
+            && ProcessInfo.processInfo.arguments.contains("--force-coach")
+        let hasThreaded = store.highlights.contains {
+            ($0.note?.isEmpty == false) || $0.replyCount > 0
+        }
+        guard !embedded, hasThreaded,
+              forceCoach || !UserDefaults.standard.bool(forKey: Self.highlightCoachKey)
+        else { return }
+        if !forceCoach { UserDefaults.standard.set(true, forKey: Self.highlightCoachKey) }
+        withAnimation(reduceMotion ? nil : .snappy) { showHighlightCoach = true }
+    }
+
+    /// 본문 파생값(목차·읽는 시간) 1회 계산 — 로드/오프라인 갱신 시점에만 전 블록을 순회한다.
+    private func refreshDerivedContent() {
+        guard case .loaded(let detail) = model.phase else {
+            headings = []
+            readingMinutes = nil
+            return
+        }
+        headings = Self.extractHeadings(detail.blocks)
+        readingMinutes = Self.estimateReadingMinutes(detail.blocks)
+    }
+
     /// 본문 헤딩(H1~H3) 목차 — 텍스트·앵커 id(블록 id)·들여쓰기 레벨.
-    private var headings: [(id: Int, title: String, level: Int)] {
-        guard case .loaded(let detail) = model.phase else { return [] }
-        return detail.blocks.compactMap { block in
+    private static func extractHeadings(_ blocks: [PostBlock]) -> [(id: Int, title: String, level: Int)] {
+        blocks.compactMap { block in
             let level: Int
             switch block.kind {
             case .h1: level = 1
@@ -609,7 +654,7 @@ struct PostDetailView: View {
         authorCard(detail.author)
         comments(authorId: detail.author.id)
         if embedded, let next = nextPost {
-            nextPostCue(next)
+            NextPostCue(next: next, progress: scrollProgress) { showNext = true }
         }
         Color.clear.frame(height: 56)
             .onScrollVisibilityChange(threshold: 0.2) { visible in
@@ -617,45 +662,30 @@ struct PostDetailView: View {
             }
     }
 
-    /// 본문 끝의 조용한 신호 — 더 당기면 이 작가의 다음 글로 이어진다.
-    /// 탭해도 간다: 짧은 글은 러버밴드가 없어 당김이 성립하지 않는다.
-    private func nextPostCue(_ next: PostListItem) -> some View {
-        Button {
-            showNext = true
-        } label: {
-            VStack(spacing: 5) {
-                Image(systemName: "chevron.compact.down")
-                    .font(.system(size: 16 * unit, weight: .semibold))
-                    .foregroundStyle(pullProgress > 0.97 ? Palette.link : Palette.faint)
-                    .rotationEffect(.degrees(reduceMotion ? 0 : 180 * pullProgress))
-                Text("계속 당기면 다음 글")
-                    .typeScale(.footnote)
-                    .foregroundStyle(Palette.secondary)
-                Text(next.title)
-                    .typeScale(.titleSmall)
-                    .foregroundStyle(Palette.ink)
-                    .lineLimit(1)
-                    .opacity(0.6 + 0.4 * pullProgress)
-                    .offset(y: reduceMotion ? 0 : 5 * (1 - pullProgress))
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.top, 18)
-            .contentShape(Rectangle())
+    /// 작가 글 목록 1회 로드 — 글 끝 작가 카드(다른 글)와 덱의 다음 글 큐가 함께 쓴다.
+    /// isEmpty 가드는 뷰 인스턴스 로컬이라 작가 레일로 같은 작가 글을 이어 읽으면
+    /// 푸시되는 상세마다 전체 목록을 재요청했다 — 세션 캐시로 상세끼리 공유한다.
+    private func loadAuthorContext() async {
+        guard authorPosts.isEmpty else { return }
+        if let cached = AuthorPostsCache.get(model.username) {
+            applyAuthorPosts(cached)
+            return
         }
-        .buttonStyle(.plain)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("다음 글 — \(next.title)")
+        guard let list = try? await BlogAPI.authorPosts(username: model.username) else {
+            // 실패 시 프리페치 플래그를 되돌려 다시 바닥에 닿을 때 재시도되게 —
+            // 안 그러면 한 번 삐끗한 장에서 다음 글 큐가 영영 안 뜬다.
+            nextFetched = false
+            return
+        }
+        AuthorPostsCache.set(model.username, posts: list.posts)
+        applyAuthorPosts(list.posts)
     }
 
-    /// 작가 글 목록 1회 로드 — 글 끝 작가 카드(다른 글)와 덱의 다음 글 큐가 함께 쓴다.
-    private func loadAuthorContext() async {
-        guard authorPosts.isEmpty,
-              let list = try? await BlogAPI.authorPosts(username: model.username)
-        else { return }
-        authorPosts = list.posts
-        if let idx = list.posts.firstIndex(where: { $0.slug == model.slug }),
-           idx + 1 < list.posts.count {
-            nextPost = list.posts[idx + 1]
+    private func applyAuthorPosts(_ posts: [PostListItem]) {
+        authorPosts = posts
+        if let idx = posts.firstIndex(where: { $0.slug == model.slug }),
+           idx + 1 < posts.count {
+            nextPost = posts[idx + 1]
         }
     }
 
@@ -784,7 +814,7 @@ struct PostDetailView: View {
             .padding(.top, 14)
 
             // 읽는 시간 — 글 입구에서 "얼마나 걸릴지" 한 호흡(에디토리얼 마스트헤드 메타).
-            if let minutes = readingMinutes(detail.blocks) {
+            if let minutes = readingMinutes {
                 HStack(spacing: 5) {
                     Image(systemName: "book")
                         .font(.system(size: 11 * metaUnit, weight: .medium))
@@ -804,7 +834,7 @@ struct PostDetailView: View {
     /// 본문 글자 수로 읽는 시간 추정 — 한국어 ≈ 분당 500자, 최소 1분. 본문 없으면 nil.
     /// 산문(문단·헤딩·인용)만 센다 — 코드·리스트·임베드·표의 content 는 JSON 직렬화라
     /// 글자 수가 부풀어 읽는 시간이 엉뚱해진다.
-    private func readingMinutes(_ blocks: [PostBlock]) -> Int? {
+    private static func estimateReadingMinutes(_ blocks: [PostBlock]) -> Int? {
         let prose: Set<BlockKind> = [.paragraph, .h1, .h2, .h3, .quote]
         let chars = blocks.reduce(0) { sum, block in
             prose.contains(block.kind) ? sum + (block.content?.count ?? 0) : sum
@@ -905,7 +935,7 @@ struct PostDetailView: View {
                     withAnimation(.snappy(duration: 0.25)) { commentsExpanded = true }
                 } label: {
                     HStack(spacing: 8) {
-                        RailHeading("댓글 \(model.comments.count)")
+                        RailHeading(model.commentsFailed ? "댓글" : "댓글 \(model.comments.count)")
                         Spacer()
                         Image(systemName: "chevron.down")
                             .font(.system(size: 12 * metaUnit, weight: .semibold))
@@ -917,7 +947,23 @@ struct PostDetailView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("댓글 \(model.comments.count) 펼치기")
             } else {
-                RailHeading("댓글 \(model.comments.count)")
+                RailHeading(model.commentsFailed ? "댓글" : "댓글 \(model.comments.count)")
+                if model.commentsFailed {
+                    Button {
+                        Task { await model.reloadComments() }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 12 * metaUnit, weight: .semibold))
+                            Text("댓글을 불러오지 못했습니다 — 다시 시도")
+                                .typeScale(.footnote)
+                        }
+                        .foregroundStyle(Palette.secondary)
+                        .padding(.vertical, 6)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
                 // 대화는 가벼운 행으로 — 스레드 사이만 헤어라인으로 나눈다(박스 카드 ❌).
                 // 차단한 작가의 댓글·답글은 숨긴다(App Store 1.2 — 차단 = 그 사용자 콘텐츠 안 보임).
                 let threads = model.comments.filter {
@@ -959,6 +1005,73 @@ struct PostDetailView: View {
             }
         }
         .padding(.vertical, 16)
+    }
+}
+
+/// 스크롤 진행(읽기 0~1 · 바닥 너머 당김 0~1)의 전용 저장소. 매 프레임 갱신되는 값이라
+/// @Observable 로 두어 이 값을 읽는 잎 뷰(진행 막대·다음 글 큐)만 다시 그려지고,
+/// 상세 body 전체는 프레임 단위 무효화에서 벗어난다.
+@MainActor
+@Observable
+private final class ScrollProgress {
+    /// 읽기 진행도(0~1) — 상단 가는 막대가 왼쪽부터 그린으로 찬다.
+    var read: CGFloat = 0
+    /// 바닥 너머 당김의 진행도(0~1, 임계 90pt) — 큐의 셰브론·제목이 손가락을 따라온다.
+    var pull: CGFloat = 0
+}
+
+/// 읽기 진행 막대(내비바 아래 한 줄) — 매 프레임 값은 이 잎 뷰만 구독한다.
+private struct ReadProgressBar: View {
+    let progress: ScrollProgress
+
+    var body: some View {
+        GeometryReader { geo in
+            Capsule()
+                .fill(Palette.accent)
+                .frame(width: geo.size.width * min(1, max(0, progress.read)), height: 3)
+        }
+        .frame(height: 3)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+/// 본문 끝의 조용한 신호 — 더 당기면 이 작가의 다음 글로 이어진다.
+/// 탭해도 간다: 짧은 글은 러버밴드가 없어 당김이 성립하지 않는다.
+private struct NextPostCue: View {
+    let next: PostListItem
+    let progress: ScrollProgress
+    let onAdvance: () -> Void
+
+    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        Button {
+            onAdvance()
+        } label: {
+            VStack(spacing: 5) {
+                Image(systemName: "chevron.compact.down")
+                    .font(.system(size: 16 * unit, weight: .semibold))
+                    .foregroundStyle(progress.pull > 0.97 ? Palette.link : Palette.faint)
+                    .rotationEffect(.degrees(reduceMotion ? 0 : 180 * progress.pull))
+                Text("계속 당기면 다음 글")
+                    .typeScale(.footnote)
+                    .foregroundStyle(Palette.secondary)
+                Text(next.title)
+                    .typeScale(.titleSmall)
+                    .foregroundStyle(Palette.ink)
+                    .lineLimit(1)
+                    .opacity(0.6 + 0.4 * progress.pull)
+                    .offset(y: reduceMotion ? 0 : 5 * (1 - progress.pull))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 18)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("다음 글 — \(next.title)")
     }
 }
 
@@ -1312,19 +1425,22 @@ struct FlowTags: View {
     }
 }
 
-/// 피드 카드 → 글 상세로 넘기는 가벼운 커버 힌트. 카드가 화면에 뜰 때 자기 커버를
-/// 기억해 두면, 그 글로 들어갈 때 상세가 로딩 첫 프레임부터 커버를 깔아 zoom 전환이
-/// 빈 막(반투명 내비바)이 아니라 사진으로 착지한다.
+/// 작가 글 목록의 세션 캐시 — 작가 레일로 같은 작가의 글을 이어 읽을 때, 푸시되는
+/// 상세마다 전체 목록 GET 이 반복되지 않게 상세끼리 공유한다. TTL 이 지나면 다시
+/// 받아 새 글·삭제를 따라간다.
 @MainActor
-enum PostPeek {
-    private static var covers: [String: String] = [:]
+enum AuthorPostsCache {
+    private static var entries: [String: (posts: [PostListItem], at: Date)] = [:]
+    private static let ttl: TimeInterval = 300
 
-    static func remember(username: String, slug: String, cover: String?) {
-        guard let cover, !cover.isEmpty else { return }
-        covers["\(username)/\(slug)"] = cover
+    static func get(_ username: String) -> [PostListItem]? {
+        guard let entry = entries[username], Date().timeIntervalSince(entry.at) < ttl
+        else { return nil }
+        return entry.posts
     }
 
-    static func cover(username: String, slug: String) -> String? {
-        covers["\(username)/\(slug)"]
+    static func set(_ username: String, posts: [PostListItem]) {
+        entries = entries.filter { Date().timeIntervalSince($0.value.at) < ttl }
+        entries[username] = (posts, Date())
     }
 }

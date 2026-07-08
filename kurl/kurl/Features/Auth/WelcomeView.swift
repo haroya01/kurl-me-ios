@@ -23,6 +23,7 @@ struct WelcomeView: View {
     var onSignedIn: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @State private var wordVisible = false
     @State private var taglineVisible = false
@@ -91,12 +92,18 @@ struct WelcomeView: View {
     private var livingMesh: some View {
         ZStack {
             Color(uiColor: .systemBackground)
-            TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: reduceMotion)) { context in
+            // 진폭이 초저속(sin t*0.22)이라 12fps 로도 육안 동일 — 30fps 는 과잉이었다.
+            // 스플래시에 덮여 있는 동안(!revealed)·씬 비활성엔 멈춰 배터리를 태우지 않는다(BrandMist 와 동일 규칙).
+            TimelineView(.animation(minimumInterval: 1.0 / 12.0, paused: meshPaused)) { context in
                 let t = context.date.timeIntervalSinceReferenceDate
                 MeshGradient(width: 3, height: 3, points: meshPoints(t), colors: meshColors)
             }
         }
         .ignoresSafeArea()
+    }
+
+    private var meshPaused: Bool {
+        reduceMotion || !revealed || scenePhase != .active
     }
 
     /// 가운데 점을 아주 느린 사인으로 흔든다 — 글로우가 숨쉬듯 움직인다(반경 작게).
