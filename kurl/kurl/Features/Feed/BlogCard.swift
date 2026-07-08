@@ -60,10 +60,12 @@ struct BlogCard: View {
         Color.clear
             .aspectRatio(4.0 / 3.0, contentMode: .fit)
             .overlay {
-                AsyncImage(url: url) { image in
-                    image.resizable().scaledToFill()
-                } placeholder: {
-                    Rectangle().fill(Palette.hairline)
+                RemoteImage(url: url) { phase in
+                    if case .success(let image) = phase {
+                        image.resizable().scaledToFill()
+                    } else {
+                        Rectangle().fill(Palette.hairline)
+                    }
                 }
                 // 톤 하모나이즈: 저채도 + 그린 베일 — 피드의 사진들이 한 결로 가라앉는다(#692-693).
                 .saturation(0.85)

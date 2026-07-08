@@ -516,10 +516,12 @@ private struct FeedSeriesCard: View {
             if let url = imageURL {
                 // 사진 커버 변형 — 에피소드 사진 + 상하 스크림 위 흰 글씨(웹 이미지 장 대응).
                 Color.clear.overlay {
-                    AsyncImage(url: url) { img in
-                        img.resizable().scaledToFill()
-                    } placeholder: {
-                        Palette.accent.opacity(0.12)
+                    RemoteImage(url: url) { phase in
+                        if case .success(let img) = phase {
+                            img.resizable().scaledToFill()
+                        } else {
+                            Palette.accent.opacity(0.12)
+                        }
                     }
                 }
                 .clipped()

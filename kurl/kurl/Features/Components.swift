@@ -180,10 +180,12 @@ struct AvatarView: View {
     var body: some View {
         Group {
             if let urlString = author.avatarUrl, let url = URL(string: urlString) {
-                AsyncImage(url: url) { image in
-                    image.resizable().scaledToFill()
-                } placeholder: {
-                    initials
+                RemoteImage(url: url) { phase in
+                    if case .success(let image) = phase {
+                        image.resizable().scaledToFill()
+                    } else {
+                        initials
+                    }
                 }
             } else {
                 initials

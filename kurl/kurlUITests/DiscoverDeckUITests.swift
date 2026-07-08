@@ -66,4 +66,37 @@ final class DiscoverDeckUITests: XCTestCase {
         pushed.lifetime = .keepAlways
         add(pushed)
     }
+
+    /// keep-alive 회귀 — 세 장 앞까지 갔다 돌아와도 장이 파괴·재생성되지 않아야 한다.
+    /// 파괴되면 스크롤이 맨 위로 리셋돼 바닥의 접힌 댓글 행이 사라진다(= 되돌아올 때마다 리로드).
+    func testDeckKeepsCardStateAcrossSwipes() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--screen", "deck"]
+        app.launch()
+
+        // 첫 장을 바닥까지 — 접힌 댓글 행이 설 때까지 내린다.
+        let collapsed = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH '댓글'")).firstMatch
+        _ = collapsed.waitForExistence(timeout: 15)
+        var swipes = 0
+        while !(collapsed.exists && collapsed.isHittable), swipes < 14 {
+            app.swipeUp(velocity: .fast)
+            swipes += 1
+        }
+        XCTAssertTrue(collapsed.exists, "덱 첫 장에 접힌 댓글 행이 없음")
+
+        // 다음 장으로 넘어갔다가 되돌아온다.
+        for _ in 0..<3 { app.swipeLeft(); Thread.sleep(forTimeInterval: 0.8) }
+        for _ in 0..<3 { app.swipeRight(); Thread.sleep(forTimeInterval: 0.8) }
+
+        // 살아 있었다면 읽던 자리(바닥) 그대로 — 리셋됐다면 맨 위라 댓글 행이 화면에 없다.
+        XCTAssertTrue(
+            collapsed.exists && collapsed.isHittable,
+            "되돌아온 장이 맨 위로 리셋됨 — 덱 keep-alive 실패")
+
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        attachment.name = "deck-return-position-kept"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
 }

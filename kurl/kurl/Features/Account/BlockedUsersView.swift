@@ -67,10 +67,12 @@ struct BlockedUsersView: View {
     @ViewBuilder
     private func avatar(_ url: String?) -> some View {
         if let url, let parsed = URL(string: url) {
-            AsyncImage(url: parsed) { img in
-                img.resizable().scaledToFill()
-            } placeholder: {
-                Circle().fill(Palette.hairline)
+            RemoteImage(url: parsed) { phase in
+                if case .success(let img) = phase {
+                    img.resizable().scaledToFill()
+                } else {
+                    Circle().fill(Palette.hairline)
+                }
             }
             .frame(width: 36, height: 36)
             .clipShape(Circle())
