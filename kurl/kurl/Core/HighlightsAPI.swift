@@ -48,6 +48,14 @@ enum HighlightsAPI {
     static func deleteReply(id: Int64) async throws {
         try await client.deleteVoid("/highlight-replies/\(id)", authenticated: true)
     }
+
+    /// 인증 — 팔로우한 큐레이터가 최근 칠한 공개 하이라이트 피드(최신순, 페이지). "남들 하이라이트" 발견 표면.
+    static func feed(page: Int = 0, size: Int = 20) async throws -> HighlightFeedPage {
+        try await client.get(
+            "/highlights/feed",
+            query: ["page": String(page), "size": String(size)],
+            authenticated: true)
+    }
 }
 
 /// 공개·attributed 하이라이트 — 누가 어느 구간(블록 + 문자 오프셋 + 인용)을 그었나 + 공개 메모 + 답글 수.
@@ -107,4 +115,32 @@ struct MyHighlightView: Decodable, Identifiable, Hashable {
     let postSlug: String
     let postTitle: String
     let createdAt: Date?
+}
+
+/// "남들 하이라이트" 피드 한 항목 — 팔로우한 큐레이터가 그은 구절 + 원문 참조(구절로 이동)·메모·답글 수.
+struct HighlightFeedItemView: Decodable, Identifiable, Hashable {
+    let id: Int64
+    let postId: Int64
+    /// 누가 칠했나 — 큐레이터(하이라이트 작성자). 글 작가와 다를 수 있다.
+    let curator: Author?
+    let postSlug: String
+    let postTitle: String
+    /// 글을 쓴 사람(큐레이터가 아니라).
+    let postAuthorUsername: String?
+    let blockOrder: Int?
+    let endBlockOrder: Int?
+    let startOffset: Int?
+    let endOffset: Int?
+    let quote: String
+    let note: String?
+    let createdAt: Date?
+    let replyCount: Int
+}
+
+/// GET /highlights/feed 한 페이지.
+struct HighlightFeedPage: Decodable {
+    let items: [HighlightFeedItemView]
+    let page: Int
+    let size: Int
+    let hasNext: Bool
 }
