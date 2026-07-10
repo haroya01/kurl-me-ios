@@ -103,6 +103,12 @@ struct RootView: View {
                         targetKind: "글", targetTitle: "헥사고날로 갈아탄 지 석 달",
                         blockType: .post, refId: 9002)
                 }
+        } else if Config.launchValue(after: "--screen") == "businesscard" {
+            // 명함(/u) 인앱 웹뷰 — 블로그 헤더에서 푸시로만 들어가 simctl 로 못 띄운다 — 검증 진입로.
+            NavigationStack {
+                BusinessCardView(username: Config.launchValue(after: "--author") ?? "kurl")
+                    .navigationDestination(for: Route.self) { RouteView(route: $0) }
+            }
         } else if Config.launchValue(after: "--screen") == "highlights" {
             // 내 하이라이트(서재)는 계정 탭 서재 안 푸시라 simctl 로 못 띄운다 — 검증 진입로.
             NavigationStack {

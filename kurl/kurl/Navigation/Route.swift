@@ -13,6 +13,8 @@ enum Route: Hashable {
     /// 글의 특정 구절로 딥링크 — 발견 피드의 하이라이트 카드가 "그 문장"으로 데려간다(스크롤+깜빡).
     case postFocusQuote(username: String, slug: String, quote: String)
     case author(username: String)
+    /// 명함(/u) — 링크인바이오 면. 블로그(/p)와 같은 정체의 다른 얼굴, 앱 안 화면으로 얹는다.
+    case businessCard(username: String)
     case series(username: String, slug: String)
     case tag(String)
     /// 작가의 팔로워 / 팔로잉 목록 — 같은 화면을 미리 고른 탭으로 연다.
