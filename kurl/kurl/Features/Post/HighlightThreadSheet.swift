@@ -201,15 +201,32 @@ struct HighlightThreadSheet: View {
         author: Author?, date: Date?, text: String, isOpener: Bool, replyId: Int64? = nil
     ) -> some View {
         HStack(alignment: .top, spacing: 10) {
-            avatar(author)
+            // 아바타·이름 → 그 사람 프로필(있을 때). 시트 안 스택에 push 된다.
+            if let author {
+                NavigationLink(value: Route.author(username: author.username)) {
+                    avatar(author)
+                }
+                .buttonStyle(.plain)
+            } else {
+                avatar(author)
+            }
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
                     if isOpener {
                         Circle().fill(Palette.accent).frame(width: 5, height: 5)
                     }
-                    Text("@\(author?.username ?? "?")")
-                        .typeScale(.meta)
-                        .foregroundStyle(Palette.ink)
+                    if let author {
+                        NavigationLink(value: Route.author(username: author.username)) {
+                            Text("@\(author.username)")
+                                .typeScale(.meta)
+                                .foregroundStyle(Palette.ink)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        Text("@?")
+                            .typeScale(.meta)
+                            .foregroundStyle(Palette.ink)
+                    }
                     if let date {
                         Text(date.formatted(.dateTime.month().day()))
                             .typeScale(.meta)
