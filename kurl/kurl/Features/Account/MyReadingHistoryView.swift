@@ -80,9 +80,13 @@ struct MyReadingHistoryView: View {
 
     private func row(_ item: ReadingHistoryEntry) -> some View {
         HStack(spacing: 11) {
+            // 아바타 → 작가 프로필(글이 아니라 사람). 제목·핸들 탭은 글로.
+            NavigationLink(value: Route.author(username: item.username)) {
+                AvatarView(author: item.asAuthor, size: 40)
+            }
+            .buttonStyle(.plain)
             NavigationLink(value: Route.post(username: item.username, slug: item.slug)) {
                 HStack(spacing: 11) {
-                    AvatarView(author: item.asAuthor, size: 40)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(item.title)
                             .typeScale(.titleSmall)

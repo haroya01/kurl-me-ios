@@ -137,10 +137,16 @@ private struct ConnectionEventCard: View {
         VStack(alignment: .leading, spacing: 12) {
             // 귀속 = 조용히. 누가·언제만(broadcast 아니라 connect 라는 건 아래 eyebrow 가 말한다).
             HStack(spacing: 7) {
-                AvatarView(author: event.curator, size: 22)
-                Text(event.curator.username)
-                    .typeScale(.meta)
-                    .foregroundStyle(Palette.secondary)
+                // 큐레이터(아바타+이름) → 그 사람 프로필. 컬렉션 eyebrow 와 같은 결의 형제 링크.
+                NavigationLink(value: Route.author(username: event.curator.username)) {
+                    HStack(spacing: 7) {
+                        AvatarView(author: event.curator, size: 22)
+                        Text(event.curator.username)
+                            .typeScale(.meta)
+                            .foregroundStyle(Palette.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
                 if let at = event.connectedAt {
                     Text("·").foregroundStyle(Palette.faint)
                     Text(at.relativeShort)

@@ -111,23 +111,10 @@ struct NotificationsView: View {
     @ViewBuilder
     private var list: some View {
         ForEach(Array(items.enumerated()), id: \.element.id) { index, notification in
-            Group {
-                if let route = route(for: notification) {
-                    NavigationLink(value: route) {
-                        row(notification)
-                    }
-                    .buttonStyle(RowButtonStyle())
-                    .simultaneousGesture(TapGesture().onEnded {
-                        markRead(notification)
-                    })
-                } else {
-                    row(notification)
-                        .onTapGesture { markRead(notification) }
+            notificationRow(notification)
+                .task {
+                    if index >= items.count - 3 { await loadMore() }
                 }
-            }
-            .task {
-                if index >= items.count - 3 { await loadMore() }
-            }
             if index < items.count - 1 { Hairline() }
         }
         if loadingMore {
@@ -137,54 +124,85 @@ struct NotificationsView: View {
         }
     }
 
-    private func row(_ n: AppNotification) -> some View {
+    /// 알림 한 줄 — 아바타는 행위자 프로필로 가는 섬(행 대상과 별개), 본문은 알림 대상(글/시리즈/작가)으로.
+    /// 좋아요·댓글 알림에서 좋아요 누른 사람을 눌러도 글이 아니라 그 사람에게 간다(중첩 앵커 대신 형제 링크).
+    @ViewBuilder
+    private func notificationRow(_ n: AppNotification) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            // 아바타 = 피드와 같은 문법(0.5px 링). 미읽음은 아바타 우하단의 그린 점 하나로 —
-            // 왼쪽 점 칸을 없애 행이 조여지고, 초록은 행당 한 점만(§10 색 규율).
-            AvatarView(
-                author: Author(
-                    id: 0, username: n.actorUsername ?? "?", bio: nil, avatarUrl: n.actorAvatarUrl),
-                size: 38)
-                .overlay(alignment: .bottomTrailing) {
-                    if !n.read {
-                        Circle()
-                            .fill(Palette.accent)
-                            .frame(width: 10, height: 10)
-                            .overlay(Circle().strokeBorder(Palette.readingBg, lineWidth: 2))
-                            .offset(x: 1, y: 1)
-                    }
+            if let actor = n.actorUsername, !actor.isEmpty {
+                NavigationLink(value: Route.author(username: actor)) {
+                    avatarBadge(n)
                 }
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
-                // 한 줄에 문장 + 오른쪽 끝 상대시간(행마다 시간이 한 열로 정렬돼 훑기 쉽게).
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    headline(n)
-                        .font(.system(size: headlineSize))
-                        .tracking(-0.1)
-                        // 읽은 알림은 한 톤 가라앉혀 — 안 읽은 줄로 눈이 가게. 이름은 이미 semibold.
-                        .foregroundStyle(n.read ? Palette.secondary : Palette.ink)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 4)
-                    if let date = n.createdAt {
-                        Text(date.relativeShort)
-                            .typeScale(.footnote)
-                            .foregroundStyle(Palette.faint)
-                            .fixedSize()
+                .buttonStyle(.plain)
+                .simultaneousGesture(TapGesture().onEnded { markRead(n) })
+                .accessibilityLabel(Text("\(actor) 프로필"))
+            } else {
+                avatarBadge(n)
+            }
+            Group {
+                if let route = route(for: n) {
+                    NavigationLink(value: route) {
+                        content(n)
                     }
-                }
-                if let subtitle = n.postTitle ?? n.seriesTitle {
-                    Text(subtitle)
-                        .typeScale(.meta)
-                        .foregroundStyle(Palette.secondary)
-                        .lineLimit(1)
+                    .buttonStyle(RowButtonStyle())
+                    .simultaneousGesture(TapGesture().onEnded { markRead(n) })
+                } else {
+                    content(n)
+                        .onTapGesture { markRead(n) }
                 }
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityValue(n.read ? Text(verbatim: "") : Text("읽지 않음"))
         }
         .padding(.vertical, 11)
+    }
+
+    // 아바타 = 피드와 같은 문법(0.5px 링). 미읽음은 아바타 우하단의 그린 점 하나로 —
+    // 왼쪽 점 칸을 없애 행이 조여지고, 초록은 행당 한 점만(§10 색 규율).
+    private func avatarBadge(_ n: AppNotification) -> some View {
+        AvatarView(
+            author: Author(
+                id: 0, username: n.actorUsername ?? "?", bio: nil, avatarUrl: n.actorAvatarUrl),
+            size: 38)
+            .overlay(alignment: .bottomTrailing) {
+                if !n.read {
+                    Circle()
+                        .fill(Palette.accent)
+                        .frame(width: 10, height: 10)
+                        .overlay(Circle().strokeBorder(Palette.readingBg, lineWidth: 2))
+                        .offset(x: 1, y: 1)
+                }
+            }
+            .accessibilityHidden(true)
+    }
+
+    private func content(_ n: AppNotification) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            // 한 줄에 문장 + 오른쪽 끝 상대시간(행마다 시간이 한 열로 정렬돼 훑기 쉽게).
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                headline(n)
+                    .font(.system(size: headlineSize))
+                    .tracking(-0.1)
+                    // 읽은 알림은 한 톤 가라앉혀 — 안 읽은 줄로 눈이 가게. 이름은 이미 semibold.
+                    .foregroundStyle(n.read ? Palette.secondary : Palette.ink)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 4)
+                if let date = n.createdAt {
+                    Text(date.relativeShort)
+                        .typeScale(.footnote)
+                        .foregroundStyle(Palette.faint)
+                        .fixedSize()
+                }
+            }
+            if let subtitle = n.postTitle ?? n.seriesTitle {
+                Text(subtitle)
+                    .typeScale(.meta)
+                    .foregroundStyle(Palette.secondary)
+                    .lineLimit(1)
+            }
+        }
         .contentShape(Rectangle())
-        .accessibilityElement(children: .combine)
-        .accessibilityValue(n.read ? Text(verbatim: "") : Text("읽지 않음"))
     }
 
     /// 헤드라인 — 작가 이름만 semibold 로 얹어 위계를 세운다(색·크기는 호출측). 지역화 키는
