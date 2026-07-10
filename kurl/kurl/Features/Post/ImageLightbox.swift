@@ -16,6 +16,8 @@ struct ImageLightbox: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// 라이트박스 캡션 — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
+    @ScaledMetric(relativeTo: .footnote) private var captionSize: CGFloat = 13
 
     /// 커밋된 확대율(핀치·더블탭이 끝나면 확정) — 라이브 배율은 pinch 를 곱해 얻는다.
     @State private var scale: CGFloat = 1
@@ -193,7 +195,7 @@ struct ImageLightbox: View {
     private var captionBar: some View {
         if let caption, !caption.isEmpty {
             Text(caption)
-                .font(.system(size: 13))
+                .font(.system(size: captionSize))
                 .foregroundStyle(.white.opacity(0.88))
                 .multilineTextAlignment(.center)
                 .shadow(color: .black.opacity(0.5), radius: 6, y: 1)

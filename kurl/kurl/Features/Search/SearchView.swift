@@ -120,7 +120,7 @@ struct SearchView: View {
                                             query = term
                                         } label: {
                                             Text(term)
-                                                .font(.system(size: 13, weight: .medium))
+                                                .typeScale(.meta)
                                                 .foregroundStyle(Palette.chipText)
                                         }
                                         .buttonStyle(.plain)

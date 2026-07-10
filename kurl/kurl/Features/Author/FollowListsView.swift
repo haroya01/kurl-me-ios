@@ -255,6 +255,8 @@ private struct RowFollowToggle: View {
     @State private var busy = false
     /// 햅틱 트리거 — 되돌림이 아닌 사용자 토글에만 증가(헤더 FollowButton 과 같은 어휘).
     @State private var userToggleCount = 0
+    /// 행 팔로우 알약 라벨(헤더보다 한 급 작은 13) — 사다리 미스매치라 크기 보존 + Dynamic Type.
+    @ScaledMetric(relativeTo: .subheadline) private var labelSize: CGFloat = 13
 
     init(username: String, initialFollowing: Bool, onNeedLogin: @escaping () -> Void) {
         self.username = username
@@ -271,7 +273,7 @@ private struct RowFollowToggle: View {
                 toggle()
             } label: {
                 Text(following ? "팔로잉" : "팔로우")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: labelSize, weight: .semibold))
                     .foregroundStyle(following ? AnyShapeStyle(.primary) : AnyShapeStyle(.white))
                     .padding(.horizontal, 13)
                     .padding(.vertical, 6)

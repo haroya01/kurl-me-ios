@@ -15,6 +15,11 @@ struct DailyTrendChart: View {
     /// 접근성·오디오 그래프에 쓰는 지표 이름(기본 "조회"). 구독자 추이면 "구독자".
     let metricName: String
 
+    // 스크럽 말풍선 라벨 — 사다리 밖 소형 크기라 보존하되 Dynamic Type 는 얹는다.
+    // (차트 축 라벨은 레이아웃을 이루는 고정 소형이라 스케일 제외.)
+    @ScaledMetric(relativeTo: .caption2) private var scrubDateSize: CGFloat = 10
+    @ScaledMetric(relativeTo: .subheadline) private var scrubValueSize: CGFloat = 13
+
     /// day 파싱을 마친 점. tuple 대신 Equatable 구조체라 onChange(of: data) 비교가 재할당 없이 된다.
     private struct ChartPoint: Equatable {
         let date: Date
@@ -66,10 +71,10 @@ struct DailyTrendChart: View {
                     ) {
                         VStack(spacing: 1) {
                             Text(selected.date, format: .dateTime.month().day())
-                                .font(.system(size: 10))
+                                .font(.system(size: scrubDateSize))
                                 .foregroundStyle(Palette.secondary)
                             Text("\(selected.views)")
-                                .font(.system(size: 13, weight: .semibold).monospacedDigit())
+                                .font(.system(size: scrubValueSize, weight: .semibold).monospacedDigit())
                                 .foregroundStyle(Palette.ink)
                         }
                         .padding(.horizontal, 9)

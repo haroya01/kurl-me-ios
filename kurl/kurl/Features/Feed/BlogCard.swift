@@ -171,10 +171,12 @@ struct BlogCard: View {
 /// 초록 점은 빼고 muted 로(초록=주액션·데이터 전용). cover 위에선 흰 pill 로 가독 확보.
 private struct FeaturedBadge: View {
     let over: Bool
+    /// "오늘의 글" 배지 — 사다리에 딱 맞는 롤이 없어(고유 자간) 크기 보존 + Dynamic Type.
+    @ScaledMetric(relativeTo: .caption) private var badgeSize: CGFloat = 11
 
     var body: some View {
         Text("오늘의 글")
-            .font(.system(size: 11, weight: .semibold))
+            .font(.system(size: badgeSize, weight: .semibold))
             .tracking(0.4)
             .foregroundStyle(over ? Palette.ink : Palette.secondary)
             .padding(.horizontal, over ? 9 : 0)

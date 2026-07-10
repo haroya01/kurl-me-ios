@@ -50,6 +50,8 @@ extension View {
 struct AdminDebugView: View {
     @Environment(\.dismiss) private var dismiss
     private var me: Me? { AuthStore.shared.me }
+    /// 디버그 값 행(mono) — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
+    @ScaledMetric(relativeTo: .subheadline) private var rowSize: CGFloat = 13
 
     var body: some View {
         NavigationStack {
@@ -97,7 +99,7 @@ struct AdminDebugView: View {
                 .multilineTextAlignment(.trailing)
                 .textSelection(.enabled)
         }
-        .font(.system(size: 13).monospaced())
+        .font(.system(size: rowSize).monospaced())
     }
 
     private var appVersion: String {

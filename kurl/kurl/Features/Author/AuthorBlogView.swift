@@ -20,6 +20,8 @@ struct AuthorBlogView: View {
     @State private var showBlockConfirm = false
     @Environment(\.scenePhase) private var scenePhase
     @ScaledMetric(relativeTo: .body) private var navUnit: CGFloat = 1
+    /// "명함" 버튼 라벨 — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
+    @ScaledMetric(relativeTo: .headline) private var cardLabelSize: CGFloat = 14
 
     /// 로드된 작가 id — 신고 대상. 내가 아닐 때만 신고를 노출한다.
     private var author: Author? {
@@ -169,7 +171,7 @@ struct AuthorBlogView: View {
                         Image(systemName: "person.crop.rectangle")
                             .font(.system(size: 12, weight: .semibold))
                         Text("명함")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(size: cardLabelSize, weight: .semibold))
                     }
                     .foregroundStyle(.primary)
                     .padding(.horizontal, 14)

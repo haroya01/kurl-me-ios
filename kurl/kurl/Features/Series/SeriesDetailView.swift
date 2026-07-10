@@ -12,6 +12,8 @@ struct SeriesDetailView: View {
     let slug: String
 
     @State private var phase: LoadState<PublicSeriesDetail> = .idle
+    /// 진행률 메타(mono digit) — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
+    @ScaledMetric(relativeTo: .caption) private var progressSize: CGFloat = 12
 
     var body: some View {
         ScrollView {
@@ -192,7 +194,7 @@ struct SeriesDetailView: View {
                     Text(readCount == posts.count
                          ? "\(posts.count)편 모두 읽음"
                          : "\(posts.count)편 중 \(readCount)편 읽음")
-                        .font(.system(size: 12).monospacedDigit())
+                        .font(.system(size: progressSize).monospacedDigit())
                         .foregroundStyle(Palette.secondary)
                 }
                 .accessibilityElement(children: .combine)
@@ -282,6 +284,8 @@ private struct EpisodeRow: View {
     let state: EpisodeState
     // 큰 글씨에서도 뼈대 번호가 제목과 함께 커지게(고정 pt 우회).
     @ScaledMetric(relativeTo: .footnote) private var spineUnit: CGFloat = 1
+    /// "다음" 라벨 — 사다리에 딱 맞는 롤이 없어(고유 자간) 크기 보존 + Dynamic Type.
+    @ScaledMetric(relativeTo: .caption) private var nextSize: CGFloat = 11
 
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
@@ -300,7 +304,7 @@ private struct EpisodeRow: View {
                     if state == .next {
                         // 회색 캡슐 없이 — "다음"은 그린 글자만으로 충분히 읽힌다.
                         Text("다음")
-                            .font(.system(size: 11, weight: .bold))
+                            .font(.system(size: nextSize, weight: .bold))
                             .tracking(0.3)
                             .foregroundStyle(Palette.link)
                     }
@@ -362,6 +366,8 @@ private struct EpisodeRow: View {
 /// 닫힌 막다른 길이 아니라 작가의 다른 글로 이어주는 게 핵심이라 CTA = NavigationLink.
 private struct EmptySeries: View {
     let author: Author
+    /// CTA 라벨 — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
+    @ScaledMetric(relativeTo: .callout) private var ctaSize: CGFloat = 15
 
     var body: some View {
         VStack(spacing: 0) {
@@ -393,7 +399,7 @@ private struct EmptySeries: View {
 
             NavigationLink(value: Route.author(username: author.username)) {
                 Text("\(author.username)의 다른 글")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: ctaSize, weight: .semibold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 22)
                     .padding(.vertical, 12)

@@ -25,6 +25,8 @@ struct WelcomeView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+    /// 워드마크는 사다리 밖 브랜드 자산(고유 자간) — 크기 보존 + Dynamic Type 만 얹는다.
+    @ScaledMetric(relativeTo: .largeTitle) private var wordmarkSize: CGFloat = 36
     @State private var wordVisible = false
     @State private var taglineVisible = false
     @State private var actionsVisible = false
@@ -41,7 +43,7 @@ struct WelcomeView: View {
                     .frame(width: 104, height: 63)
                     .launchMatched("launchMark", in: launchNS, isSource: revealed)
                 Text(verbatim: "kurl")
-                    .font(.system(size: 36, weight: .bold))
+                    .font(.system(size: wordmarkSize, weight: .bold))
                     .tracking(-1.4)
                     .foregroundStyle(Palette.ink)
                     .padding(.top, 18)

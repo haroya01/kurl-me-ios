@@ -299,6 +299,8 @@ private struct NoteComposerBar: View {
     @State private var sending = false
     @State private var sentCount = 0
     @FocusState private var focused: Bool
+    /// 글자수 카운트다운 — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
+    @ScaledMetric(relativeTo: .caption) private var countdownSize: CGFloat = 11
 
     private var trimmed: String {
         body_.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -307,12 +309,12 @@ private struct NoteComposerBar: View {
     var body: some View {
         HStack(alignment: .bottom, spacing: 10) {
             TextField("지금 떠오른 생각은…", text: $body_, axis: .vertical)
-                .font(.system(size: 15))
+                .typeScale(.body)
                 .lineLimit(1...4)
                 .focused($focused)
             if body_.count > 400 {
                 Text("\(500 - body_.count)")
-                    .font(.system(size: 11).monospacedDigit())
+                    .font(.system(size: countdownSize).monospacedDigit())
                     // 초과는 색이 아니라 무게로 — slate 사다리 안에서 ink+semibold (그린 외 단독 색 금지).
                     .foregroundStyle(body_.count > 500 ? Palette.ink : Palette.secondary)
                     .fontWeight(body_.count > 500 ? .semibold : .regular)
