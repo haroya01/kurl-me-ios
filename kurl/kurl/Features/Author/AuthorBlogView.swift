@@ -18,7 +18,6 @@ struct AuthorBlogView: View {
     @State private var showCollectionLogin = false
     /// 작가 로드 때 한 번 받아 두는 follow status — 헤더의 팔로우 버튼·카운트 링크가 공유한다(중복 GET 제거).
     @State private var followStatus: InteractionsAPI.FollowStatus?
-    @State private var showCard = false
     @State private var showNavTitle = false
     @State private var showReport = false
     @State private var showBlockConfirm = false
@@ -166,12 +165,15 @@ struct AuthorBlogView: View {
             FollowCountsLink(username: view.author.username, initialStatus: followStatus)
                 .padding(.top, 12)
             HStack(spacing: 10) {
-                FollowButton(username: view.author.username, showCount: false, initialStatus: followStatus)
+                // 내 블로그면 팔로우 자리는 비운다 — 정체는 위 eyebrow("내 블로그")가 이미 말한다.
+                // 남의 블로그일 때만 팔로우가 서고, 명함은 양쪽 모두 같은 정체의 다른 얼굴로 오른쪽에.
+                if !isOwnAuthor {
+                    FollowButton(username: view.author.username, showCount: false, initialStatus: followStatus)
+                }
                 Spacer(minLength: 0)
                 // 명함(u/ — 링크 모음·소셜)으로 가는 문 — 블로그와 같은 정체의 다른 얼굴.
-                Button {
-                    showCard = true
-                } label: {
+                // 시트 대신 스택 푸시 — 앱 안 화면에 얹혀 뒤로가 자연스럽고 블로그로 되건너기 쉽다.
+                NavigationLink(value: Route.businessCard(username: username)) {
                     HStack(spacing: 5) {
                         Image(systemName: "person.crop.rectangle")
                             .font(.system(size: 12, weight: .semibold))
@@ -190,13 +192,6 @@ struct AuthorBlogView: View {
             .padding(.top, 14)
         }
         .padding(.vertical, 18)
-        .sheet(isPresented: $showCard) {
-            if let url = URL(
-                string: "\(Config.apiBase)/\(Config.preferredLanguageTag)/u/\(username)") {
-                SafariView(url: url)
-                    .ignoresSafeArea()
-            }
-        }
 
         if !series.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
