@@ -9234,6 +9234,34 @@
         }
       }
     },
+    "이 큐레이터가 엮는 길을 따라 읽기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Follow the paths this curator connects"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "इस क्यूरेटर के जोड़े हुए रास्तों को फ़ॉलो करें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このキュレーターがつなぐ道を追って読む"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Theo dõi những lối đi mà người tuyển chọn này kết nối"
+          }
+        }
+      }
+    },
     "이 태그 숨기기" : {
       "localizations" : {
         "en" : {
@@ -12150,6 +12178,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Không thể xóa bộ sưu tập"
+          }
+        }
+      }
+    },
+    "컬렉션을 열려면 로그인하세요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to open collections"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कलेक्शन खोलने के लिए साइन इन करें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コレクションを開くにはログインしてください"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đăng nhập để mở bộ sưu tập"
           }
         }
       }
