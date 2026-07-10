@@ -16,6 +16,8 @@ struct EngagementDock: View {
     @State private var showConnect = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var glassNS
+    /// 좋아요 카운트 — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
+    @ScaledMetric(relativeTo: .caption) private var countSize: CGFloat = 12
 
     /// "연결" 시트가 잇는 대상(글 제목·글 id). 없으면 연결 버튼을 감춘다.
     private let connectTarget: (title: String, postId: Int64)?
@@ -89,7 +91,7 @@ struct EngagementDock: View {
                     .symbolEffect(.bounce, value: reduceMotion ? false : model.liked)
                 if model.likeCount > 0 {
                     Text("\(model.likeCount)")
-                        .font(.system(size: 12, weight: .semibold).monospacedDigit())
+                        .font(.system(size: countSize, weight: .semibold).monospacedDigit())
                         .contentTransition(.numericText())
                 }
             }

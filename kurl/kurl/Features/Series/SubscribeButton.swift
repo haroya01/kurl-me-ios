@@ -16,6 +16,7 @@ struct SubscribeButton: View {
     @State private var showLoginPrompt = false
     private let emphasis: Emphasis
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .headline) private var labelSize: CGFloat = 14
 
     init(seriesId: Int64, emphasis: Emphasis = .primary) {
         _model = State(initialValue: SubscribeModel(seriesId: seriesId))
@@ -41,7 +42,7 @@ struct SubscribeButton: View {
                 toggle()
             } label: {
                 Text(model.subscribed ? "구독 중" : "구독")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: labelSize, weight: .semibold))
                     .foregroundStyle(labelStyle)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)

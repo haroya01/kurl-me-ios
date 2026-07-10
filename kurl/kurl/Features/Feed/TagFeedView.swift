@@ -88,7 +88,7 @@ struct TagFeedView: View {
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Text("#\(tag)")
-                    .font(.system(size: 16, weight: .semibold))
+                    .typeScale(.titleSmall)
                     .opacity(showNavTitle ? 1 : 0)
             }
         }

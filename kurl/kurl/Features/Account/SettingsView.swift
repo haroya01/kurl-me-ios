@@ -18,6 +18,8 @@ struct SettingsView: View {
     @State private var confirmDelete = false
     @State private var deleting = false
     @State private var deleteFailed = false
+    /// 버전 문자열(mono) — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
+    @ScaledMetric(relativeTo: .headline) private var versionSize: CGFloat = 14
     @State private var pushStatus: UNAuthorizationStatus = .notDetermined
 
     var body: some View {
@@ -115,7 +117,7 @@ struct SettingsView: View {
                     .foregroundStyle(Palette.ink)
                 Spacer()
                 Text(Self.version)
-                    .font(.system(size: 14).monospacedDigit())
+                    .font(.system(size: versionSize).monospacedDigit())
                     .foregroundStyle(Palette.secondary)
             }
             .padding(.vertical, 13)

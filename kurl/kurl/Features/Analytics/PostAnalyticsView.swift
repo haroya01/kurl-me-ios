@@ -17,10 +17,18 @@ struct PostAnalyticsView: View {
     /// 독자 분석(고유·유입·국가·기기) — 기간과 무관한 전체. 실패해도 화면은 산다.
     @State private var readStats: PostReadStats?
 
+    // 분석 화면 고유 크기들 — 사다리에 딱 맞는 롤이 없어 크기를 보존하되 Dynamic Type 는 얹는다.
+    @ScaledMetric(relativeTo: .title2) private var postTitleSize: CGFloat = 20
+    @ScaledMetric(relativeTo: .largeTitle) private var bigStatSize: CGFloat = 36
+    @ScaledMetric(relativeTo: .headline) private var linkSize: CGFloat = 14
+    @ScaledMetric(relativeTo: .subheadline) private var sectionTitleSize: CGFloat = 13
+    @ScaledMetric(relativeTo: .subheadline) private var countSize: CGFloat = 13
+    @ScaledMetric(relativeTo: .title3) private var statValueSize: CGFloat = 17
+
     var body: some View {
         ReadingColumn(spacing: 0) {
             Text(post.title)
-                .font(.system(size: 20, weight: .bold))
+                .font(.system(size: postTitleSize, weight: .bold))
                 .tracking(-0.3)
                 .foregroundStyle(Palette.ink)
                 .lineLimit(2)
@@ -84,11 +92,11 @@ struct PostAnalyticsView: View {
 
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             Text(detail.windowViews.formatted())
-                .font(.system(size: 36, weight: .bold).monospacedDigit())
+                .font(.system(size: bigStatSize, weight: .bold).monospacedDigit())
                 .foregroundStyle(Palette.ink)
                 .contentTransition(.numericText())
             Text("조회")
-                .font(.system(size: 15))
+                .typeScale(.body)
                 .foregroundStyle(Palette.secondary)
         }
         .padding(.top, 6)
@@ -123,7 +131,7 @@ struct PostAnalyticsView: View {
             NavigationLink(value: Route.post(username: username, slug: detail.slug)) {
                 HStack(spacing: 6) {
                     Text("글 보기")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(.system(size: linkSize, weight: .medium))
                         .foregroundStyle(Palette.link)
                     Image(systemName: "chevron.right")
                         .font(.system(size: 11, weight: .semibold))
@@ -162,7 +170,7 @@ struct PostAnalyticsView: View {
             let top = Array(items.prefix(5))
             let maxCount = top.map(\.count).max() ?? 1
             Text(title)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: sectionTitleSize, weight: .semibold))
                 .foregroundStyle(Palette.heading)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.top, 18)
@@ -170,7 +178,7 @@ struct PostAnalyticsView: View {
             ForEach(Array(top.enumerated()), id: \.offset) { _, item in
                 HStack(spacing: 10) {
                     Text(item.label)
-                        .font(.system(size: 14))
+                        .typeScale(.lede)
                         .foregroundStyle(Palette.body)
                         .lineLimit(1)
                         .frame(width: 110, alignment: .leading)
@@ -183,7 +191,7 @@ struct PostAnalyticsView: View {
                             .frame(maxHeight: .infinity, alignment: .center)
                     }
                     Text("\(item.count)")
-                        .font(.system(size: 13).monospacedDigit())
+                        .font(.system(size: countSize).monospacedDigit())
                         .foregroundStyle(Palette.secondary)
                 }
                 .frame(height: 26)
@@ -217,12 +225,12 @@ struct PostAnalyticsView: View {
     private func stat(_ label: LocalizedStringKey, _ value: Int64) -> some View {
         VStack(spacing: 4) {
             Text(value.formatted())
-                .font(.system(size: 17, weight: .semibold).monospacedDigit())
+                .font(.system(size: statValueSize, weight: .semibold).monospacedDigit())
                 .foregroundStyle(Palette.ink)
                 .minimumScaleFactor(0.7)
                 .lineLimit(1)
             Text(label)
-                .font(.system(size: 11))
+                .typeScale(.footnote)
                 .foregroundStyle(Palette.secondary)
         }
         .frame(maxWidth: .infinity)

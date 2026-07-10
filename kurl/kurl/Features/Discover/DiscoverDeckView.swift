@@ -90,6 +90,8 @@ struct DiscoverDeckView: View {
     @State private var shuffleCount = 0
     /// 위치 칩의 비텍스트 마커(sparkles)도 footnote 라벨과 함께 커지게 — 산발 고정 크기 종식.
     @ScaledMetric(relativeTo: .caption) private var markerUnit: CGFloat = 1
+    /// 툴바 "발견" 알약 라벨 — 사다리에 딱 맞는 롤이 없어 크기를 보존하되 Dynamic Type 는 얹는다.
+    @ScaledMetric(relativeTo: .headline) private var principalSize: CGFloat = 14
     /// scrollPosition 의 첫 비-nil 배정(초기 착지)은 스와이프가 아니다 — 진짜 넘김만 힌트를 끈다.
     @State private var hasNavigated = false
     /// 첫 만남 1회 — "이건 추천 덱이고, 넘기면 다음 글"이라는 걸 눈으로 알려준다.
@@ -126,7 +128,7 @@ struct DiscoverDeckView: View {
                 // "발견" = 떠 있는 리퀴드 글래스 알약(피드 스위처와 같은 결) — 투명 헤더 위에 얹힌다.
                 ToolbarItem(placement: .principal) {
                     Text("발견")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: principalSize, weight: .semibold))
                         .foregroundStyle(.primary)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 7)

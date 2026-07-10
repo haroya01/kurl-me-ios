@@ -14,6 +14,8 @@ struct PathReorderSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var items: [ConnectionItem]
+    /// 순번 배지 — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
+    @ScaledMetric(relativeTo: .caption) private var indexSize: CGFloat = 12
     @State private var saving = false
 
     // 순서가 그대로면 저장은 무의미한 POST + reload — 막아 둔다(미로딩 빈 길도 여기서 걸린다).
@@ -49,7 +51,7 @@ struct PathReorderSheet: View {
     private func row(index: Int, item: ConnectionItem) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Text("\(index + 1)")
-                .font(.system(size: 12, weight: .bold))
+                .font(.system(size: indexSize, weight: .bold))
                 .foregroundStyle(Palette.accent)
             VStack(alignment: .leading, spacing: 3) {
                 if let why = item.why, !why.isEmpty {

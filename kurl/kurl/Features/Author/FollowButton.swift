@@ -11,6 +11,7 @@ struct FollowButton: View {
     @State private var model: FollowModel
     @State private var showLoginPrompt = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .headline) private var labelSize: CGFloat = 14
 
     /// 옆에 "팔로워 N"을 붙일지 — 작가 헤더처럼 탭 가능한 카운트 행이 따로 있으면 끈다.
     private let showCount: Bool
@@ -38,7 +39,7 @@ struct FollowButton: View {
                 toggle()
             } label: {
                 Text(model.following ? "팔로잉" : "팔로우")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: labelSize, weight: .semibold))
                     .foregroundStyle(model.following ? AnyShapeStyle(.primary) : AnyShapeStyle(.white))
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)

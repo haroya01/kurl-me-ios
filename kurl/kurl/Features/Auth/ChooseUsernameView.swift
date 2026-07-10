@@ -13,6 +13,8 @@ struct ChooseUsernameView: View {
 
     @ScaledMetric(relativeTo: .title2) private var titleSize: CGFloat = 26
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+    /// username 입력 행 — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
+    @ScaledMetric(relativeTo: .headline) private var fieldSize: CGFloat = 16
     @State private var username = ""
     @State private var saving = false
     @State private var serverError: String?
@@ -56,7 +58,7 @@ struct ChooseUsernameView: View {
                             serverError = nil
                         }
                 }
-                .font(.system(size: 16))
+                .font(.system(size: fieldSize))
                 .padding(.vertical, 14)
                 .padding(.horizontal, 16)
                 .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: 14))

@@ -35,7 +35,7 @@ struct ProfileEditView: View {
                         VStack(spacing: 8) {
                             avatarPreview
                             Text("사진 변경")
-                                .font(.system(size: 13, weight: .medium))
+                                .typeScale(.meta)
                                 .foregroundStyle(Palette.link)
                         }
                     }
@@ -60,7 +60,7 @@ struct ProfileEditView: View {
                             if capped != value { username = capped }
                         }
                 }
-                .font(.system(size: 15))
+                .typeScale(.body)
                 if let usernameError {
                     Text(usernameError).font(.caption).foregroundStyle(Palette.danger)
                 } else if usernameChanged {

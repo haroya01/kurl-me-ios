@@ -11,6 +11,7 @@ struct TagFollowButton: View {
     @State private var model: TagFollowModel
     @State private var showLoginPrompt = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .headline) private var labelSize: CGFloat = 14
 
     init(tag: String) {
         _model = State(initialValue: TagFollowModel(tag: tag))
@@ -25,7 +26,7 @@ struct TagFollowButton: View {
                     Image(systemName: model.following ? "checkmark" : "plus")
                         .font(.system(size: 12, weight: .semibold))
                     Text(model.following ? "구독 중" : "구독")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: labelSize, weight: .semibold))
                 }
                 .foregroundStyle(model.following ? AnyShapeStyle(.primary) : AnyShapeStyle(.white))
                 .padding(.horizontal, 16)

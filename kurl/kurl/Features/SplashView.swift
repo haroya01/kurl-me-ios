@@ -16,6 +16,8 @@ struct SplashView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var barsDrawn = [false, false, false]
     @State private var wordVisible = false
+    /// 워드마크는 사다리 밖 브랜드 자산(고유 자간) — 크기 보존 + Dynamic Type 만 얹는다.
+    @ScaledMetric(relativeTo: .largeTitle) private var wordmarkSize: CGFloat = 28
 
     var body: some View {
         ZStack {
@@ -27,7 +29,7 @@ struct SplashView: View {
                     .frame(width: 84, height: 51)
                     .launchMatched("launchMark", in: launchNS)
                 Text(verbatim: "kurl")
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.system(size: wordmarkSize, weight: .bold))
                     .tracking(-1.1)
                     .foregroundStyle(Palette.ink)
                     .opacity(wordVisible ? 1 : 0)
