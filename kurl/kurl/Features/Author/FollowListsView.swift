@@ -179,6 +179,8 @@ struct FollowCountsLink: View {
     var initialStatus: InteractionsAPI.FollowStatus?
     @State private var followers: Int64?
     @State private var followingCount: Int64?
+    /// 작가가 팔로워 수를 숨겼는지 — 켜지면 숫자 없이 라벨만(목록 진입로는 유지).
+    @State private var hidden = false
     @State private var failed = false
 
     var body: some View {
@@ -192,7 +194,7 @@ struct FollowCountsLink: View {
                 countLabel("팔로잉", followingCount)
             }
             .buttonStyle(.plain)
-            if failed {
+            if failed, !hidden {
                 Button { Task { await load() } } label: {
                     Image(systemName: "arrow.clockwise")
                         .font(.system(size: 10, weight: .semibold))
@@ -206,11 +208,13 @@ struct FollowCountsLink: View {
         .typeScale(.meta)
         .foregroundStyle(Palette.secondary)
         // 로딩 첫 프레임만 숨겨 0→실제값 깜빡임을 막고(실패 땐 플레이스홀더로 보여 줌), 링크 탭은 죽이지 않는다.
-        .opacity(followers == nil && !failed ? 0 : 1)
+        // 숨김이면 첫 프레임부터 라벨만 보여야 하므로 감추지 않는다.
+        .opacity(!hidden && followers == nil && !failed ? 0 : 1)
         .animation(.snappy(duration: 0.2), value: followers)
         .task {
             // 시드를 받았으면 그 값으로 그리고 GET 을 건너뛴다(작가 페이지가 이미 한 번 받아 둠).
             if let seed = initialStatus {
+                hidden = seed.hideFollowerCount
                 followers = seed.followerCount
                 followingCount = seed.followingCount
             } else {
@@ -223,6 +227,7 @@ struct FollowCountsLink: View {
         failed = false
         do {
             let status = try await InteractionsAPI.followStatus(username: username)
+            hidden = status.hideFollowerCount
             followers = status.followerCount
             followingCount = status.followingCount
         } catch {
@@ -233,7 +238,8 @@ struct FollowCountsLink: View {
 
     private func countLabel(_ label: String, _ count: Int64?) -> some View {
         HStack(spacing: 4) {
-            Text(count.map { "\(label) \($0)" } ?? "\(label) —")
+            // 숨김이면 숫자 없이 라벨만(목록 링크는 살아 있다). 미로딩은 "—" 플레이스홀더.
+            Text(hidden ? label : (count.map { "\(label) \($0)" } ?? "\(label) —"))
                 .contentTransition(.numericText())
             Image(systemName: "chevron.right")
                 .font(.system(size: 9, weight: .semibold))

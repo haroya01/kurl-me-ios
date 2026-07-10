@@ -22,8 +22,24 @@ enum InteractionsAPI {
 
     struct FollowStatus: Decodable {
         let following: Bool
-        let followerCount: Int64
-        let followingCount: Int64
+        /// 작가가 팔로워 수를 숨기면 서버가 이 키를 빼고 내려준다 → 부재=nil(숫자 감춤).
+        let followerCount: Int64?
+        let followingCount: Int64?
+        /// 숨김 의사 신호 — 카운트가 nil 인 이유가 "숨김"인지 "못 받음"인지 가른다.
+        /// 아직 이 키를 안 내리는 서버(배포 전)를 위해 부재 시 false.
+        let hideFollowerCount: Bool
+
+        enum CodingKeys: String, CodingKey {
+            case following, followerCount, followingCount, hideFollowerCount
+        }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            following = try c.decodeIfPresent(Bool.self, forKey: .following) ?? false
+            followerCount = try c.decodeIfPresent(Int64.self, forKey: .followerCount)
+            followingCount = try c.decodeIfPresent(Int64.self, forKey: .followingCount)
+            hideFollowerCount = try c.decodeIfPresent(Bool.self, forKey: .hideFollowerCount) ?? false
+        }
     }
 
     // MARK: 좋아요

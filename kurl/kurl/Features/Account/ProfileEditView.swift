@@ -18,6 +18,8 @@ struct ProfileEditView: View {
     @State private var initialUsername = ""
     @State private var bio = ""
     @State private var bioLoaded = false
+    @State private var hideFollowerCount = false
+    @State private var initialHideFollowerCount = false
     @State private var loaded = false
     @State private var pickerItem: PhotosPickerItem?
     @State private var newAvatar: UIImage?
@@ -90,6 +92,19 @@ struct ProfileEditView: View {
                         .foregroundStyle(bio.count > bioLimit ? Palette.danger : Palette.secondary)
                 }
             }
+
+            Section {
+                Toggle(isOn: $hideFollowerCount) {
+                    Text("팔로워 수 숨기기")
+                        .typeScale(.body)
+                        .foregroundStyle(Palette.ink)
+                }
+                .tint(Palette.accent)
+                // 현재값을 못 받았으면 잠근다 — 잘못된 기준으로 서버 값을 덮어쓰지 않도록.
+                .disabled(!bioLoaded)
+            } footer: {
+                Text("켜면 내 프로필과 목록에서 팔로워·팔로잉 수가 보이지 않아요. 팔로우는 그대로 돼요.")
+            }
         }
         .navigationTitle("프로필 편집")
         .navigationBarTitleDisplayMode(.inline)
@@ -159,10 +174,14 @@ struct ProfileEditView: View {
     }
 
     /// 실패와 "원래 빈 소개"를 구분한다 — 실패를 "" 로 뭉개면 저장 때 서버 소개글이 지워진다.
+    /// 같은 GET 이 팔로워 숨김 여부도 내려주므로 토글 프리필도 여기서 함께 시드한다.
     private func loadBio() async {
         do {
-            bio = try await ProfileAPI.myBio() ?? ""
+            let profile = try await ProfileAPI.myProfile()
+            bio = profile.bio ?? ""
             bioLoaded = true
+            hideFollowerCount = profile.hideFollowerCount
+            initialHideFollowerCount = profile.hideFollowerCount
         } catch {
             bioLoaded = false
         }
@@ -199,7 +218,9 @@ struct ProfileEditView: View {
                 let trimmedBio = bio.trimmingCharacters(in: .whitespacesAndNewlines)
                 try await ProfileAPI.update(
                     username: usernameChanged ? trimmedUsername : nil,
-                    bio: bioLoaded || !trimmedBio.isEmpty ? trimmedBio : nil)
+                    bio: bioLoaded || !trimmedBio.isEmpty ? trimmedBio : nil,
+                    // 바뀐 값일 때만 — 프리필을 못 받았으면(false 기본) 켠 경우에만 보내 오설정 방지.
+                    hideFollowerCount: hideFollowerCount != initialHideFollowerCount ? hideFollowerCount : nil)
                 if let img = newAvatar, let jpeg = img.jpegData(compressionQuality: 0.85) {
                     _ = try await ProfileAPI.uploadAvatar(jpegData: jpeg)
                     newAvatar = nil  // 성공 — 재시도해도 다시 안 올린다.
