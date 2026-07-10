@@ -252,12 +252,14 @@ struct SearchView: View {
     }
 
     @ViewBuilder private var popularTagsRail: some View {
-        if !popularTags.isEmpty {
+        let renderable = popularTags.filter { ContentValidity.isRenderableTag($0.tag) }
+        if !renderable.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
                 RailHeading("인기 태그")
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        ForEach(popularTags) { tag in
+                        // 불완전 자모·한 글자 부스러기 태그는 인기 태그에서도 거른다.
+                        ForEach(renderable) { tag in
                             NavigationLink(value: Route.tag(tag.tag)) {
                                 MutedChip(text: "#\(tag.tag)")
                             }
@@ -344,7 +346,10 @@ struct SearchView: View {
         guard !q.isEmpty else { return [] }
         var seen = Set<String>()
         var tags: [String] = []
-        for t in [q] + matchedTags.map(\.tag) where seen.insert(t.lowercased()).inserted {
+        // 입력어(q)는 사용자가 직접 친 것이라 그대로 두고(그 태그 피드로 바로 가게),
+        // 겹쳐 붙는 인기 태그만 부스러기를 거른다.
+        let matched = matchedTags.map(\.tag).filter(ContentValidity.isRenderableTag)
+        for t in [q] + matched where seen.insert(t.lowercased()).inserted {
             tags.append(t)
         }
         return tags

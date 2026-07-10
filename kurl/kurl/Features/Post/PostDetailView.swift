@@ -643,7 +643,7 @@ struct PostDetailView: View {
         }
         .padding(.top, 20)
 
-        if !detail.post.tags.isEmpty {
+        if !ContentValidity.renderableTags(detail.post.tags).isEmpty {
             FlowTags(tags: detail.post.tags)
                 .padding(.top, 26)
         }
@@ -651,15 +651,20 @@ struct PostDetailView: View {
         if let nav = detail.series {
             SeriesNextCard(nav: nav, username: detail.author.username)
         }
+        // 글 본문이 끝나고 '끝맺음'(작가 카드·이 작가의 다른 글 레일·댓글)이 시작되는 지점.
+        // 이 감지선이 뷰포트에 들어오면 독이 물러난다 — 떠 있는 독이 추천 레일·작가 카드를
+        // 가리지 않게(§ 표면 매핑: "글 끝에선 후퇴"). 위로 되돌아가 본문으로 오면 다시 뜬다.
+        // 예전엔 맨 밑 감지선에만 반응해 레일·댓글 위로 독이 계속 겹쳤다.
+        Color.clear.frame(height: 1)
+            .onScrollVisibilityChange(threshold: 0.1) { visible in
+                endVisible = visible
+            }
         authorCard(detail.author)
         comments(authorId: detail.author.id)
         if embedded, let next = nextPost {
             NextPostCue(next: next, progress: scrollProgress) { showNext = true }
         }
         Color.clear.frame(height: 56)
-            .onScrollVisibilityChange(threshold: 0.2) { visible in
-                endVisible = visible
-            }
     }
 
     /// 작가 글 목록 1회 로드 — 글 끝 작가 카드(다른 글)와 덱의 다음 글 큐가 함께 쓴다.
@@ -766,7 +771,7 @@ struct PostDetailView: View {
 
     private func header(_ detail: PublicPostDetail) -> some View {
         // 제목 위 카테고리 eyebrow(대표 태그)가 내비바 아래 띠를 매거진 머릿글처럼 채운다.
-        let kicker = detail.post.tags.first
+        let kicker = ContentValidity.renderableTags(detail.post.tags).first
         return VStack(alignment: .leading, spacing: 0) {
             Color.clear.frame(height: kicker != nil ? 6 : 14)
 
@@ -1414,9 +1419,11 @@ struct FlowTags: View {
     let tags: [String]
 
     var body: some View {
+        // 불완전 자모·한 글자 부스러기 태그는 글 끝 태그 줄에서도 거른다.
+        let renderable = ContentValidity.renderableTags(tags)
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                ForEach(tags, id: \.self) { tag in
+                ForEach(renderable, id: \.self) { tag in
                     NavigationLink(value: Route.tag(tag)) { MutedChip(text: "#\(tag)") }
                         .buttonStyle(.plain)
                 }

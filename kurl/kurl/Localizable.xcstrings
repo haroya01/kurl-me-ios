@@ -5362,6 +5362,34 @@
         }
       }
     },
+    "명함을 불러오지 못했습니다" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn't load business card"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "बिज़नेस कार्ड लोड नहीं हो सका"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "名刺を読み込めませんでした"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không thể tải danh thiếp"
+          }
+        }
+      }
+    },
     "몇 편 읽고 나면 취향이 잡힙니다." : {
       "localizations" : {
         "en" : {
@@ -8418,6 +8446,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Không thể ngắt kết nối"
+          }
+        }
+      }
+    },
+    "연결을 확인하고 다시 시도해 주세요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check your connection and try again."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अपना कनेक्शन जांचें और फिर से प्रयास करें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "接続を確認してもう一度お試しください。"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kiểm tra kết nối và thử lại."
           }
         }
       }
