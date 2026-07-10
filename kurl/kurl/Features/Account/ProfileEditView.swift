@@ -85,7 +85,7 @@ struct ProfileEditView: View {
                 }
                 HStack {
                     Spacer()
-                    Text("\(bio.count)/\(bioLimit)")
+                    Text(String(localized: "\(bio.count) / \(bioLimit)자"))
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(bio.count > bioLimit ? Palette.danger : Palette.secondary)
                 }
