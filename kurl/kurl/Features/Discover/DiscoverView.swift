@@ -202,16 +202,17 @@ struct DiscoverView: View {
         .loginPrompt(isPresented: $showLoginSheet, message: "팔로우한 큐레이터의 연결 흐름 받기")
     }
 
-    // 콜드스타트 — 팔로우가 없으면 백엔드가 빈 피드를 준다. 막다른 길이 아니라 작가 찾기로.
+    // 콜드스타트 — 팔로우가 없으면 백엔드가 빈 피드를 준다. 막다른 길이 아니라 작가 찾기로
+    // (다른 빈 면과 같은 언어 = FeedPlaceholder).
     private var emptyState: some View {
-        ContentUnavailableView {
-            Label("아직 흐를 게 없어요", systemImage: "sparkles")
-        } description: {
-            Text("작가를 팔로우하면, 그들이 컬렉션에 이은 글이 여기에 흘러요.")
-        } actions: {
-            Button("읽을 글 찾기") { TabRouter.shared.selection = 0 }
-                .foregroundStyle(Palette.link)
-        }
+        FeedPlaceholder(
+            eyebrow: "발견",
+            title: "아직 흐를 게 없어요",
+            message: "작가를 팔로우하면, 그들이 컬렉션에 이은 글이 여기에 흘러요.",
+            actionTitle: "읽을 글 찾기",
+            action: { TabRouter.shared.selection = 0 }
+        )
+        .frame(maxWidth: .infinity)
         .padding(.top, 80)
     }
 
