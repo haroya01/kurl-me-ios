@@ -13445,6 +13445,510 @@
           }
         }
       }
+    },
+    "%@의 다른 글" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More from %@"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ की और पोस्ट"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@の他の記事"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thêm từ %@"
+          }
+        }
+      }
+    },
+    "‘%@’ 결과가 없어요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No results for ‘%@’"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "‘%@’ के लिए कोई परिणाम नहीं"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」の結果がありません"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Không có kết quả cho ‘%@’"
+          }
+        }
+      }
+    },
+    "다른 낱말로 찾아보거나, 발견 탭에서 읽을 글을 둘러보세요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try a different word, or browse posts to read in Discover."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "कोई और शब्द आज़माएँ, या खोजें में पढ़ने के लिए पोस्ट देखें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "別の言葉で探すか、発見タブで読む記事を見てみましょう。"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thử từ khác, hoặc xem các bài để đọc trong Khám phá."
+          }
+        }
+      }
+    },
+    "다시 섞기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shuffle again"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "फिर से मिलाएँ"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "もう一度シャッフル"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xáo lại"
+          }
+        }
+      }
+    },
+    "로그인하면 제목도 형식도 없이 지금 떠오른 한 줄을 여기에 흘려 둘 수 있어요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to drop a line as it comes here, with no title or format."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "साइन इन करें और बिना शीर्षक या प्रारूप के अभी जो मन में आए वह पंक्ति यहाँ छोड़ें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ログインすると、タイトルも形式もなく今浮かんだ一行をここに置けます。"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đăng nhập để buông một dòng vừa nghĩ đến tại đây, không cần tiêu đề hay định dạng."
+          }
+        }
+      }
+    },
+    "모두 읽음 상태" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All read"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सब पढ़ा गया"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "すべて既読"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đã đọc tất cả"
+          }
+        }
+      }
+    },
+    "발견 탭에서 읽을 글 찾기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find posts to read in Discover"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "खोजें में पढ़ने के लिए पोस्ट खोजें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "発見タブで読む記事を探す"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tìm bài để đọc trong Khám phá"
+          }
+        }
+      }
+    },
+    "새 글이 올라오면 여기에서 순서대로 읽을 수 있어요. 작가를 팔로우하면 첫 글 소식을 받아볼 수 있어요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When a new post goes up, you can read it here in order. Follow the writer to hear about the first one."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "नई पोस्ट आने पर आप उन्हें यहाँ क्रम से पढ़ सकते हैं। लेखक को फ़ॉलो करें और पहली पोस्ट की ख़बर पाएँ।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新しい記事が公開されると、ここで順番に読めます。作家をフォローすると最初の記事のお知らせが届きます。"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Khi có bài mới, bạn có thể đọc theo thứ tự tại đây. Theo dõi tác giả để nhận tin về bài đầu tiên."
+          }
+        }
+      }
+    },
+    "아직 알림이 없어요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No notifications yet"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अभी तक कोई सूचना नहीं"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "まだ通知がありません"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chưa có thông báo nào"
+          }
+        }
+      }
+    },
+    "이 시리즈" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This series"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "यह सिरीज़"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このシリーズ"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Series này"
+          }
+        }
+      }
+    },
+    "읽을 글이 없어요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing to read yet"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "पढ़ने के लिए कुछ नहीं"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読む記事がありません"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chưa có gì để đọc"
+          }
+        }
+      }
+    },
+    "작가를 팔로우하면, 그들의 글이 이 덱에 흘러요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Follow writers, and their posts flow into this deck."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "लेखकों को फ़ॉलो करें, और उनकी पोस्ट इस डेक में आती जाएँगी।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作家をフォローすると、その記事がこのデックに流れます。"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Theo dõi tác giả, và bài của họ sẽ chảy vào bộ bài này."
+          }
+        }
+      }
+    },
+    "제목도 형식도 없이, 지금 떠오른 한 줄을 흘려 두는 자리예요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A place to drop a line as it comes, with no title or format."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "बिना शीर्षक या प्रारूप के, अभी जो मन में आए वह एक पंक्ति छोड़ने की जगह।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトルも形式もなく、今浮かんだ一行をそのまま置く場所です。"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nơi để buông một dòng vừa nghĩ đến, không cần tiêu đề hay định dạng."
+          }
+        }
+      }
+    },
+    "첫 글을 기다리는 중이에요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Waiting for the first post"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "पहली पोस्ट का इंतज़ार है"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最初の記事を待っています"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đang chờ bài viết đầu tiên"
+          }
+        }
+      }
+    },
+    "첫 노트 남기기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave your first note"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अपना पहला नोट छोड़ें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最初のノートを残す"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Để lại ghi chú đầu tiên"
+          }
+        }
+      }
+    },
+    "첫 노트 쓰기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write your first note"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अपना पहला नोट लिखें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最初のノートを書く"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Viết ghi chú đầu tiên"
+          }
+        }
+      }
+    },
+    "첫 생각을 남겨보세요" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leave your first thought"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अपना पहला विचार छोड़ें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最初の思いを残してみましょう"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hãy để lại suy nghĩ đầu tiên"
+          }
+        }
+      }
+    },
+    "팔로우한 작가의 새 글·좋아요·댓글 소식이 여기 모여요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New posts, likes, and comments from writers you follow gather here."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "जिन लेखकों को आप फ़ॉलो करते हैं उनकी नई पोस्ट, लाइक और टिप्पणियाँ यहाँ इकट्ठा होती हैं।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォローした作家の新着記事・いいね・コメントのお知らせがここに集まります。"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bài mới, lượt thích và bình luận từ tác giả bạn theo dõi sẽ tụ về đây."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

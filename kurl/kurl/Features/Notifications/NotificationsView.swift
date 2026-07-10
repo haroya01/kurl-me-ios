@@ -46,16 +46,17 @@ struct NotificationsView: View {
                 }
                 .padding(.top, 60)
             } else if items.isEmpty {
-                // 막다른 길 금지 — 알림은 사람을 팔로우하고 반응하면 흐른다. 발견으로 이어준다.
-                ContentUnavailableView {
-                    Label("아직 알림이 없어요", systemImage: "bell")
-                } description: {
-                    Text("팔로우한 작가의 새 글·좋아요·댓글 소식이 여기 모여요.")
-                } actions: {
-                    Button("발견에서 작가 찾기") { TabRouter.shared.selection = 1 }
-                        .foregroundStyle(Palette.accent)
-                }
-                .padding(.top, 60)
+                // 막다른 길 금지 — 알림은 사람을 팔로우하고 반응하면 흐른다. 발견으로 이어준다
+                // (다른 빈 면과 같은 언어 = FeedPlaceholder).
+                FeedPlaceholder(
+                    eyebrow: "알림",
+                    title: "아직 알림이 없어요",
+                    message: "팔로우한 작가의 새 글·좋아요·댓글 소식이 여기 모여요.",
+                    actionTitle: "발견에서 작가 찾기",
+                    action: { TabRouter.shared.selection = 1 }
+                )
+                .frame(maxWidth: .infinity)
+                .padding(.top, 72)
             } else {
                 list
             }
@@ -65,22 +66,33 @@ struct NotificationsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button("모두 읽음") {
-                    Task {
-                        do {
-                            try await NotificationsAPI.markAllRead()
-                            withAnimation(.easeOut(duration: 0.25)) {
-                                items = items.map(asRead)
+                // 목록이 있고 안 읽은 게 있으면 실행 버튼, 모두 읽었으면 흐린 회색 대신
+                // 체크마크로 "이미 다 읽음"을 분명히 표시한다(비활성이 안 보이던 문제).
+                if !items.isEmpty {
+                    if items.allSatisfy(\.read) {
+                        Label("모두 읽음", systemImage: "checkmark")
+                            .labelStyle(.titleAndIcon)
+                            .font(.system(size: actionSize))
+                            .foregroundStyle(Palette.secondary)
+                            .accessibilityLabel(Text("모두 읽음 상태"))
+                    } else {
+                        Button("모두 읽음") {
+                            Task {
+                                do {
+                                    try await NotificationsAPI.markAllRead()
+                                    withAnimation(.easeOut(duration: 0.25)) {
+                                        items = items.map(asRead)
+                                    }
+                                    markAllPulse += 1
+                                } catch {
+                                    // 실패했는데 점만 사라지는 거짓 성공을 만들지 않는다.
+                                    ToastCenter.shared.show(String(localized: "읽음으로 바꾸지 못했어요"))
+                                }
                             }
-                            markAllPulse += 1
-                        } catch {
-                            // 실패했는데 점만 사라지는 거짓 성공을 만들지 않는다.
-                            ToastCenter.shared.show(String(localized: "읽음으로 바꾸지 못했어요"))
                         }
+                        .font(.system(size: actionSize))
                     }
                 }
-                .font(.system(size: actionSize))
-                .disabled(items.allSatisfy(\.read))
             }
         }
         .task(id: AuthStore.shared.isSignedIn) {

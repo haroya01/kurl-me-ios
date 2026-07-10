@@ -130,6 +130,9 @@ struct NotesPage: View {
     let active: Bool
     @State private var model = NotesViewModel()
     @State private var connectNote: Note?
+    @State private var showLoginSheet = false
+    /// 빈 상태 CTA → 하단 컴포저 포커스. 값이 바뀔 때마다 컴포저가 필드를 연다.
+    @State private var focusComposer = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -154,7 +157,7 @@ struct NotesPage: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             // 컴포저는 list 가 떴을 때만 — 로딩 마크·실패 화면 위에 떠서 안 보이는 곳에 글을 쓰지 않게.
             if active, AuthStore.shared.isSignedIn, case .loaded = model.phase {
-                NoteComposerBar { body in
+                NoteComposerBar(focusSignal: focusComposer) { body in
                     try await model.publish(body: body)
                 }
             }
@@ -165,6 +168,7 @@ struct NotesPage: View {
             ConnectSheet(
                 targetKind: "노트", targetTitle: n.body, blockType: .note, refId: n.id)
         }
+        .loginPrompt(isPresented: $showLoginSheet, message: "첫 노트 남기기")
         .task { await model.loadInitial() }
     }
 
@@ -194,10 +198,29 @@ struct NotesPage: View {
                         .frame(maxWidth: .infinity).padding(.vertical, 14)
                 }
                 if model.items.isEmpty {
-                    ContentUnavailableView(
-                        "아직 노트가 없습니다", systemImage: "text.bubble",
-                        description: Text("지금 떠오른 생각을 첫 노트로 남겨보세요."))
-                        .padding(.top, 80)
+                    // 막다른 길 금지 — 빈 노트 피드는 곧장 첫 글로 이어준다. 로그인 상태면 하단
+                    // 컴포저를 열고, 아니면 로그인 시트로(FeedPlaceholder 와 같은 언어).
+                    if AuthStore.shared.isSignedIn {
+                        FeedPlaceholder(
+                            eyebrow: "노트",
+                            title: "첫 생각을 남겨보세요",
+                            message: "제목도 형식도 없이, 지금 떠오른 한 줄을 흘려 두는 자리예요.",
+                            actionTitle: "첫 노트 쓰기",
+                            prominent: true,
+                            action: { focusComposer += 1 }
+                        )
+                        .padding(.top, 72)
+                    } else {
+                        FeedPlaceholder(
+                            eyebrow: "노트",
+                            title: "첫 생각을 남겨보세요",
+                            message: "로그인하면 제목도 형식도 없이 지금 떠오른 한 줄을 여기에 흘려 둘 수 있어요.",
+                            actionTitle: "로그인",
+                            prominent: true,
+                            action: { showLoginSheet = true }
+                        )
+                        .padding(.top, 72)
+                    }
                 }
             }
             .padding(.vertical, 14)
@@ -293,6 +316,8 @@ private struct NoteRowView: View {
 
 /// 노트 작성 — 키보드 위 유리 바(댓글 바와 같은 문법). 500자 제한, 보내면 맨 위에 꽂힌다.
 private struct NoteComposerBar: View {
+    /// 빈 상태 CTA 가 이 값을 올리면 필드에 포커스를 준다(초기 0 은 무시).
+    var focusSignal: Int = 0
     let publish: (String) async throws -> Void
 
     @State private var body_ = ""
@@ -350,6 +375,10 @@ private struct NoteComposerBar: View {
         .padding(.horizontal, 10)
         .padding(.bottom, 6)
         .sensoryFeedback(.success, trigger: sentCount)
+        // 빈 상태 CTA → 컴포저 열기(값 변화만, 첫 렌더의 0 은 통과시키지 않는다).
+        .onChange(of: focusSignal) { _, newValue in
+            if newValue > 0 { focused = true }
+        }
     }
 
     private var canSend: Bool {

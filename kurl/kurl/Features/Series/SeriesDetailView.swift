@@ -377,19 +377,19 @@ private struct EmptySeries: View {
                 .accessibilityHidden(true)
                 .padding(.bottom, 24)
 
-            Text("준비 중")
+            Text("이 시리즈")
                 .typeScale(.eyebrow)
                 .foregroundStyle(Palette.secondary)
                 .padding(.bottom, 10)
 
-            Text("아직 공개된 회차가 없어요")
+            Text("첫 글을 기다리는 중이에요")
                 .typeScale(.featured)
                 .foregroundStyle(Palette.ink)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.bottom, 9)
 
-            Text("첫 화가 올라오면 여기에서 순서대로 읽을 수 있어요.")
+            Text("새 글이 올라오면 여기에서 순서대로 읽을 수 있어요. 작가를 팔로우하면 첫 글 소식을 받아볼 수 있어요.")
                 .typeScale(.lede)
                 .foregroundStyle(Palette.secondary)
                 .multilineTextAlignment(.center)

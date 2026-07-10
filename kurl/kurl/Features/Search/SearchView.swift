@@ -450,7 +450,17 @@ struct SearchView: View {
     /// 폴백으로만 스톡 빈 상태를 둔다.
     @ViewBuilder private var noResults: some View {
         if trending.isEmpty, popularTags.isEmpty, suggestedAuthors.isEmpty {
-            ContentUnavailableView.search(text: query)
+            // 발견 레일까지 못 받은 드문 경우 — 스톡 회색 말풍선 대신 대기화면과 같은 언어로
+            // 발견 탭으로 이어준다(막다른 길 금지).
+            FeedPlaceholder(
+                eyebrow: "검색",
+                title: "‘\(query)’ 결과가 없어요",
+                message: "다른 낱말로 찾아보거나, 발견 탭에서 읽을 글을 둘러보세요.",
+                actionTitle: "발견 탭에서 읽을 글 찾기",
+                action: { TabRouter.shared.selection = 1 }
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.top, 80)
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 26) {
