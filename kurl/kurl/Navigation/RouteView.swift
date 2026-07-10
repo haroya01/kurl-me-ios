@@ -19,6 +19,8 @@ struct RouteView: View {
             PostDetailView(username: username, slug: slug, focusQuote: quote)
         case let .author(username):
             AuthorBlogView(username: username)
+        case let .businessCard(username):
+            BusinessCardView(username: username)
         case let .series(username, slug):
             SeriesDetailView(username: username, slug: slug)
         case let .tag(tag):
