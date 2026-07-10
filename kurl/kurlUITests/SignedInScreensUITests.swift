@@ -35,6 +35,14 @@ final class SignedInScreensUITests: XCTestCase {
         app.buttons.matching(NSPredicate(format: "label CONTAINS %@", label)).firstMatch
     }
 
+    /// 계정 탭 = 내 블로그. 서재(북마크·하이라이트·기록·노트)는 오른쪽 헤더의 책 버튼으로 들어간다.
+    /// 하이라이트·읽기 기록·노트 행은 이 서재 목록 안에 있어, 먼저 서재를 열어야 도달한다.
+    private func openLibrary(_ app: XCUIApplication) {
+        let library = app.buttons["서재"].firstMatch
+        XCTAssertTrue(library.waitForExistence(timeout: 12), "계정 탭에 서재 버튼이 없음")
+        library.tap()
+    }
+
     func testForYouFeed() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks"]
@@ -52,6 +60,7 @@ final class SignedInScreensUITests: XCTestCase {
         app.launchArguments = ["--mocks", "--tab", "account"]
         app.launch()
 
+        openLibrary(app)
         let row = rowButton(app, contains: "내 하이라이트")
         XCTAssertTrue(row.waitForExistence(timeout: 12), "서재에 '내 하이라이트' 행이 없음")
         if !row.isHittable { app.swipeUp() }
@@ -67,6 +76,7 @@ final class SignedInScreensUITests: XCTestCase {
         app.launchArguments = ["--mocks", "--tab", "account"]
         app.launch()
 
+        openLibrary(app)
         let row = rowButton(app, contains: "내 하이라이트")
         XCTAssertTrue(row.waitForExistence(timeout: 12), "서재에 '내 하이라이트' 행이 없음")
         if !row.isHittable { app.swipeUp() }
@@ -100,6 +110,7 @@ final class SignedInScreensUITests: XCTestCase {
         app.launchArguments = ["--mocks", "--tab", "account"]
         app.launch()
 
+        openLibrary(app)
         let row = rowButton(app, contains: "읽기 기록")
         XCTAssertTrue(row.waitForExistence(timeout: 12), "서재에 '읽기 기록' 행이 없음")
         if !row.isHittable { app.swipeUp() }

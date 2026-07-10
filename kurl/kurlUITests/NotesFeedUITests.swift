@@ -18,7 +18,11 @@ final class NotesFeedUITests: XCTestCase {
         app.launchArguments = ["--mocks", "--tab", "account"]
         app.launch()
 
-        // 노트는 1급 피드 탭에서 강등 — 내 계정 '둘러보기'의 진입으로 들어간다.
+        // 노트는 1급 피드 탭에서 강등 — 내 계정의 서재(헤더 책 버튼) 안 목록으로 들어간다.
+        let library = app.buttons["서재"].firstMatch
+        XCTAssertTrue(library.waitForExistence(timeout: 12), "계정 탭에 서재 버튼이 없음")
+        library.tap()
+
         let entry = app.buttons
             .matching(NSPredicate(format: "label CONTAINS '노트'")).firstMatch
         var tries = 0

@@ -23,9 +23,11 @@ final class OfflineReadingUITests: XCTestCase {
         let title = app.staticTexts["오프라인 사본 검증 글"].firstMatch
         XCTAssertTrue(title.waitForExistence(timeout: 10), "기기 사본이 본문으로 서지 않음")
 
-        let body = app.staticTexts
-            .matching(NSPredicate(format: "label CONTAINS '비행기 모드에서도'")).firstMatch
-        XCTAssertTrue(body.exists, "사본 본문 블록이 렌더되지 않음")
+        // 본문 문단은 선택 가능한 UITextView(SelectableProseText)라 staticText 가 아니라
+        // textView 로 잡힌다 — 텍스트는 value 로 노출된다.
+        let body = app.textViews
+            .matching(NSPredicate(format: "value CONTAINS '비행기 모드에서도'")).firstMatch
+        XCTAssertTrue(body.waitForExistence(timeout: 5), "사본 본문 블록이 렌더되지 않음")
 
         let badge = app.staticTexts
             .matching(NSPredicate(format: "label CONTAINS '연결되면 최신으로'")).firstMatch
