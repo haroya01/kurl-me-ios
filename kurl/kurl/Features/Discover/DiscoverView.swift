@@ -9,6 +9,19 @@
 
 import SwiftUI
 
+/// 발견 표면 두 흐름 — 큐레이터 연결 · 남들 하이라이트.
+private enum DiscoverTab: String, CaseIterable, Identifiable {
+    case connections
+    case highlights
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .connections: String(localized: "연결")
+        case .highlights: String(localized: "하이라이트")
+        }
+    }
+}
+
 struct DiscoverView: View {
     @State private var events: [ConnectionEvent] = []
     @State private var loading = true
@@ -17,6 +30,12 @@ struct DiscoverView: View {
     /// 직전 로그인 상태 — 재-appear 재발화와 실제 인증 전환을 구분한다(FeedView 와 같은 문법).
     @State private var wasSignedIn = AuthStore.shared.isSignedIn
     @State private var hasLoaded = false
+    /// 발견 표면 두 흐름: 큐레이터 연결 / 남들 하이라이트.
+    @State private var tab: DiscoverTab = .connections
+    @State private var highlights: [HighlightFeedItemView] = []
+    @State private var hlLoading = true
+    @State private var hlFailed = false
+    @State private var hlLoaded = false
 
     var body: some View {
         NavigationStack {
@@ -24,25 +43,17 @@ struct DiscoverView: View {
                 // 콘텐츠가 edge-to-edge로 흐른다 — 피드 탭과 같은 결(고정 "발견" 타이틀 ❌).
                 Color.clear.frame(height: 8)
                 if !AuthStore.shared.isSignedIn {
-                    // 발견 = 팔로우한 큐레이터의 연결 피드(인증 필요). 비로그인은 401 무한
+                    // 발견 = 팔로우한 큐레이터의 연결/하이라이트 피드(인증 필요). 비로그인은 401 무한
                     // 재시도가 아니라 로그인 게이트로(막다른 길 금지).
                     loggedOutGate
-                } else if loading {
-                    KurlLoadingMark()
-                        .frame(maxWidth: .infinity, minHeight: 320)
-                } else if failed {
-                    failedState
-                } else if events.isEmpty {
-                    emptyState
                 } else {
-                    LazyVStack(spacing: 0) {
-                        ForEach(Array(events.enumerated()), id: \.element.id) { index, event in
-                            ConnectionEventCard(event: event)
-                                .modifier(QuietAppear(index: index))
-                            if index < events.count - 1 {
-                                Hairline().padding(.vertical, 10)
-                            }
-                        }
+                    // 발견 표면 = 큐레이터 연결(누가 무엇을 이었나) · 남들 하이라이트(누가 무엇을 밑줄 쳤나)
+                    // 두 흐름을 떠 있는 유리 세그먼트로 — FeedView 의 최신·인기·팔로잉과 같은 문법.
+                    GlassSegmentSwitcher(items: DiscoverTab.allCases, selection: $tab) { $0.label }
+                        .padding(.bottom, 14)
+                    switch tab {
+                    case .connections: connectionsContent
+                    case .highlights: highlightsContent
                     }
                 }
             }
@@ -60,7 +71,69 @@ struct DiscoverView: View {
                 hasLoaded = true
                 await load()
             }
-            .refreshable { await load() }
+            .task(id: tab) { if tab == .highlights { await loadHighlights() } }
+            .refreshable {
+                if tab == .connections { await load() } else { await loadHighlights(force: true) }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var connectionsContent: some View {
+        if loading {
+            KurlLoadingMark()
+                .frame(maxWidth: .infinity, minHeight: 320)
+        } else if failed {
+            failedState
+        } else if events.isEmpty {
+            emptyState
+        } else {
+            LazyVStack(spacing: 0) {
+                ForEach(Array(events.enumerated()), id: \.element.id) { index, event in
+                    ConnectionEventCard(event: event)
+                        .modifier(QuietAppear(index: index))
+                    if index < events.count - 1 {
+                        Hairline().padding(.vertical, 10)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var highlightsContent: some View {
+        if hlLoading {
+            KurlLoadingMark()
+                .frame(maxWidth: .infinity, minHeight: 320)
+        } else if hlFailed {
+            ContentUnavailableView {
+                Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
+            } actions: {
+                Button("다시 시도") { Task { await loadHighlights(force: true) } }
+                    .foregroundStyle(Palette.link)
+            }
+            .padding(.top, 60)
+        } else if highlights.isEmpty {
+            // 막다른 길 금지 — 팔로우한 큐레이터가 밑줄 치면 흐른다. 연결 흐름으로 이어준다.
+            ContentUnavailableView {
+                Label("아직 하이라이트가 없어요", systemImage: "highlighter")
+            } description: {
+                Text("팔로우한 큐레이터가 글에서 밑줄 친 문장이 여기에 모여요.")
+            } actions: {
+                Button("연결 흐름 보기") { tab = .connections }
+                    .foregroundStyle(Palette.link)
+            }
+            .padding(.top, 60)
+        } else {
+            LazyVStack(spacing: 0) {
+                ForEach(Array(highlights.enumerated()), id: \.element.id) { index, item in
+                    HighlightFeedCard(item: item)
+                        .modifier(QuietAppear(index: index))
+                    if index < highlights.count - 1 {
+                        Hairline().padding(.vertical, 10)
+                    }
+                }
+            }
         }
     }
 
@@ -83,6 +156,31 @@ struct DiscoverView: View {
             loading = false
             if events.isEmpty {
                 failed = true
+            } else {
+                ToastCenter.shared.show(String(localized: "새로고침하지 못했습니다"))
+            }
+        }
+    }
+
+    /// "남들 하이라이트" 피드 로드 — 이미 받았으면 탭 재전환 시 재fetch 안 함(refreshable 만 force).
+    private func loadHighlights(force: Bool = false) async {
+        guard AuthStore.shared.isSignedIn else {
+            highlights = []
+            hlFailed = false
+            hlLoading = false
+            return
+        }
+        if hlLoaded, !force, !highlights.isEmpty { return }
+        hlFailed = false
+        if highlights.isEmpty { hlLoading = true }
+        do {
+            highlights = try await HighlightsAPI.feed().items
+            hlLoaded = true
+            hlLoading = false
+        } catch {
+            hlLoading = false
+            if highlights.isEmpty {
+                hlFailed = true
             } else {
                 ToastCenter.shared.show(String(localized: "새로고침하지 못했습니다"))
             }
@@ -386,6 +484,98 @@ private struct PostPreviewEngagement: View {
                 ToastCenter.shared.show(String(localized: "북마크를 반영하지 못했습니다"))
             }
         }
+    }
+}
+
+/// "남들 하이라이트" 한 장 — 큐레이터(아바타+이름)가 그은 구절 + 원문 참조. 구절 탭 = 원문의 그 문장으로.
+private struct HighlightFeedCard: View {
+    let item: HighlightFeedItemView
+    @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // 누가 칠했나 = 조용히(아바타+이름 → 프로필, 형제 링크). 우측에 답글 수(있으면).
+            HStack(spacing: 7) {
+                if let curator = item.curator {
+                    NavigationLink(value: Route.author(username: curator.username)) {
+                        HStack(spacing: 7) {
+                            AvatarView(author: curator, size: 22)
+                            Text(curator.username)
+                                .typeScale(.meta)
+                                .foregroundStyle(Palette.secondary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+                if let at = item.createdAt {
+                    Text("·").foregroundStyle(Palette.faint)
+                    Text(at.relativeShort)
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.faint)
+                }
+                Spacer(minLength: 0)
+                if item.replyCount > 0 {
+                    HStack(spacing: 3) {
+                        Image(systemName: "bubble.left")
+                            .font(.system(size: 10 * metaUnit))
+                        Text("\(item.replyCount)")
+                    }
+                    .typeScale(.meta)
+                    .foregroundStyle(Palette.faint)
+                }
+            }
+
+            // 구절 + 글 참조 → 원문의 그 구절로(postFocusQuote). 큐레이터 링크와 형제(중첩 아님).
+            if let author = item.postAuthorUsername {
+                NavigationLink(
+                    value: Route.postFocusQuote(username: author, slug: item.postSlug, quote: item.quote)
+                ) {
+                    quoteBody(author: author)
+                }
+                .buttonStyle(.plain)
+            } else {
+                quoteBody(author: nil)
+            }
+        }
+    }
+
+    private func quoteBody(author: String?) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // 그은 구절 — 본문에서 칠한 그린 워시를 그대로(내 하이라이트 서재와 같은 문법).
+            Text(item.quote)
+                .typeScale(.lede)
+                .foregroundStyle(Palette.body)
+                .lineLimit(4)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(
+                    Palette.accent.opacity(0.16),
+                    in: RoundedRectangle(cornerRadius: Metrics.radiusThumb))
+            // 큐레이터의 여백 메모(있으면).
+            if let note = item.note, !note.isEmpty {
+                Text(note)
+                    .typeScale(.body)
+                    .foregroundStyle(Palette.secondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            // 어느 글에서 — 제목 · @작가.
+            HStack(spacing: 4) {
+                Text(item.postTitle)
+                    .typeScale(.meta)
+                    .foregroundStyle(Palette.ink)
+                    .lineLimit(1)
+                if let author {
+                    Text("·").foregroundStyle(Palette.faint)
+                    Text("@\(author)")
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.secondary)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
     }
 }
 
