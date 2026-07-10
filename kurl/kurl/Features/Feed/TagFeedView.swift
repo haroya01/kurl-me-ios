@@ -39,11 +39,11 @@ struct TagFeedView: View {
                 case .loaded(let items):
                     if items.isEmpty {
                         ContentUnavailableView {
-                            Label("글이 없습니다", systemImage: "tray")
+                            Label("글이 없어요", systemImage: "tray")
                         } description: {
                             Text("이 태그의 글이 아직 없어요.")
                         } actions: {
-                            Button("발견에서 읽을 글 찾기") { TabRouter.shared.selection = 1 }
+                            Button("발견 탭에서 읽을 글 찾기") { TabRouter.shared.selection = 1 }
                                 .foregroundStyle(Palette.accent)
                         }
                         .padding(.top, 60)

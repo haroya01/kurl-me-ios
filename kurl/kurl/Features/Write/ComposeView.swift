@@ -1162,7 +1162,7 @@ struct ComposeView: View {
             }
             // slug 미해결이면 깨진 URL(.../p/username/?preview=…)을 열지 않는다 — 잠시 후 재시도.
             guard !resolved.isEmpty else {
-                ToastCenter.shared.show(String(localized: "미리보기를 준비 중이에요. 잠시 후 다시 시도해 주세요."))
+                ToastCenter.shared.show(String(localized: "미리보기를 여는 중이에요. 잠시 후 다시 시도해 주세요."))
                 return
             }
             if let url = try? await WriteAPI.previewURL(slug: resolved, postId: postId) {
@@ -1175,7 +1175,7 @@ struct ComposeView: View {
                 }
             } else {
                 // username 미해결 등으로 URL 을 못 만들면 깨진 페이지 대신 안내한다.
-                ToastCenter.shared.show(String(localized: "미리보기를 준비 중이에요. 잠시 후 다시 시도해 주세요."))
+                ToastCenter.shared.show(String(localized: "미리보기를 여는 중이에요. 잠시 후 다시 시도해 주세요."))
             }
         }
     }
