@@ -15,6 +15,11 @@ enum CollectionsAPI {
         try await client.get("/users/me/collections", authenticated: true)
     }
 
+    /// 한 큐레이터의 공개 컬렉션 목록(최근 손댄 순) — 남의 프로필에서 엮은 길들을 본다. 미로그인도 본다.
+    static func publicByUsername(_ username: String) async throws -> [CollectionSummary] {
+        try await client.get("/public/profiles/\(username)/collections")
+    }
+
     /// 발견 — 내가 팔로우한 큐레이터들의 공개 컬렉션 연결 흐름(최신순). 팔로우 0이면 빈 배열.
     static func discoverFeed() async throws -> [ConnectionEvent] {
         let view: DiscoverFeedResponse = try await client.get(

@@ -820,6 +820,13 @@ enum MockBackend {
             ])
         }
 
+        // 공개 작가 컬렉션 목록 — 프로필 컬렉션 레일의 소스(PUBLIC 만, 최근 손댄 순).
+        if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "profiles",
+           parts[3] == "collections" {
+            let publicOnly = collections.filter { $0.visibility == "PUBLIC" }
+            return json(publicOnly.map(collectionSummary))
+        }
+
         // 공개 작가 시리즈 목록.
         if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "profiles",
            parts[3] == "series" {

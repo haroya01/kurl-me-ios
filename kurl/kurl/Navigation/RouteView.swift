@@ -27,6 +27,8 @@ struct RouteView: View {
             FollowListsView(username: username, tab: .followers)
         case let .following(username):
             FollowListsView(username: username, tab: .following)
+        case let .collection(id):
+            CollectionDetailView(collectionId: id)
         }
     }
 }

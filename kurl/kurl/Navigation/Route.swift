@@ -18,4 +18,6 @@ enum Route: Hashable {
     /// 작가의 팔로워 / 팔로잉 목록 — 같은 화면을 미리 고른 탭으로 연다.
     case followers(username: String)
     case following(username: String)
+    /// 공개 컬렉션 상세 — 작가 프로필의 컬렉션 레일에서 엮은 길로 들어간다.
+    case collection(id: Int64)
 }

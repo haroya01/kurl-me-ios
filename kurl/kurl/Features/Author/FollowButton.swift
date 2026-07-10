@@ -60,7 +60,7 @@ struct FollowButton: View {
         }
         .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
         .task { await model.hydrateIfNeeded() }
-        .loginPrompt(isPresented: $showLoginPrompt, message: "이 작가의 새 글을 피드에서 받기") {
+        .loginPrompt(isPresented: $showLoginPrompt, message: "이 큐레이터가 엮는 길을 따라 읽기") {
             await model.hydrate()
         }
     }

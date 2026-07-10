@@ -12,6 +12,10 @@ struct AuthorBlogView: View {
 
     @State private var phase: LoadState<PublicPostListView> = .idle
     @State private var series: [SeriesListItem] = []
+    /// 이 작가가 공개로 엮은 컬렉션(길) — 큐레이션을 프로필 표면으로. 미로그인도 목록은 본다.
+    @State private var collections: [CollectionSummary] = []
+    /// 미로그인이 컬렉션을 누르면 — 상세는 인증 면이라 로그인으로 잇는다(막다른 길 금지).
+    @State private var showCollectionLogin = false
     /// 작가 로드 때 한 번 받아 두는 follow status — 헤더의 팔로우 버튼·카운트 링크가 공유한다(중복 GET 제거).
     @State private var followStatus: InteractionsAPI.FollowStatus?
     @State private var showCard = false
@@ -103,6 +107,7 @@ struct AuthorBlogView: View {
                 }
             }
         }
+        .loginPrompt(isPresented: $showCollectionLogin, message: "컬렉션을 열려면 로그인하세요")
         .reportDialog(isPresented: $showReport, subjectType: "USER", subjectId: author?.id ?? 0)
         .blockDialog(
             isPresented: $showBlockConfirm,
@@ -236,6 +241,11 @@ struct AuthorBlogView: View {
             .padding(.bottom, 18)
         }
 
+        if !collections.isEmpty {
+            collectionsRail
+                .padding(.bottom, 18)
+        }
+
         RailHeading("글").padding(.bottom, 4)
         if view.posts.isEmpty {
             // 0편 = 헤딩 아래 빈 공간 대신 자리표 — 내 페이지면 글쓰기로, 남의 페이지면 그냥 안내.
@@ -278,6 +288,60 @@ struct AuthorBlogView: View {
         Color.clear.frame(height: 40)
     }
 
+    // 공개 컬렉션 레일 — 시리즈 레일과 같은 문법(가로 책장). 큐레이션(엮은 길)을 프로필 표면으로.
+    // 상세는 인증 면이라 미로그인 탭은 로그인으로 잇는다(막다른 길 금지).
+    private var collectionsRail: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            RailHeading("컬렉션")
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(collections) { item in
+                        if AuthStore.shared.isSignedIn {
+                            NavigationLink(value: Route.collection(id: item.id)) {
+                                collectionCard(item)
+                            }
+                            .buttonStyle(CardButtonStyle())
+                            .modifier(CardScrollFade(axis: .horizontal))
+                        } else {
+                            Button { showCollectionLogin = true } label: {
+                                collectionCard(item)
+                            }
+                            .buttonStyle(CardButtonStyle())
+                            .modifier(CardScrollFade(axis: .horizontal))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func collectionCard(_ item: CollectionSummary) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Image(systemName: item.kind == .path ? "point.topleft.down.to.point.bottomright.curvepath"
+                : "square.stack")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Palette.secondary)
+            Text(item.title)
+                .typeScale(.titleSmall)
+                .foregroundStyle(Palette.ink)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+            Spacer(minLength: 0)
+            Text("\(item.count)개")
+                .typeScale(.meta)
+                .foregroundStyle(Palette.secondary)
+        }
+        .padding(13)
+        .frame(width: 148, height: 108, alignment: .topLeading)
+        .background(
+            Palette.cardBg,
+            in: RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous)
+                .strokeBorder(Palette.cardBorder, lineWidth: 1))
+        .contentShape(Rectangle())
+    }
+
     private func load() async {
         // 이미 로드된 화면은 유지한 채 조용히 다시 받는다 — 당겨서 새로고침·재방문·복귀.
         if case .loaded = phase {} else { phase = .loading }
@@ -286,6 +350,8 @@ struct AuthorBlogView: View {
             // 글 목록을 밀어내지 않고, 첫 페인트도 직렬 왕복만큼 빨라진다.
             async let viewReq = BlogAPI.authorPosts(username: username)
             async let seriesReq = BlogAPI.authorSeries(username: username)
+            // 공개 컬렉션도 같은 호흡에 — 실패해도(없거나 오류) 조용히 빈 채로 두고 나머지를 그린다.
+            async let collectionsReq = CollectionsAPI.publicByUsername(username)
             // 본인 페이지는 팔로우 표면이 안 떠 status 가 필요 없다 — 그 외에만 한 번 받아 두 컴포넌트에 시드.
             if AuthStore.shared.me?.username != username {
                 async let statusReq = InteractionsAPI.followStatus(username: username)
@@ -293,6 +359,7 @@ struct AuthorBlogView: View {
             }
             let view = try await viewReq
             series = (try? await seriesReq)?.series ?? series
+            collections = (try? await collectionsReq) ?? collections
             phase = .loaded(view)
         } catch {
             // 보이던 화면을 에러로 대체하지 않는다 — 비었을 때만 실패 표시.
