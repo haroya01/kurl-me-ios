@@ -50,7 +50,7 @@ struct FollowButton: View {
             .glassCapsule(prominent: !model.following)
             .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: model.following)
 
-            if showCount, let count = model.followerCount {
+            if showCount, !model.hideFollowerCount, let count = model.followerCount {
                 Text("팔로워 \(count)")
                     .typeScale(.meta)
                     .foregroundStyle(Palette.secondary)
@@ -84,6 +84,8 @@ final class FollowModel {
     /// 햅틱 트리거 — hydrate 가 아닌 사용자 토글에만 증가.
     private(set) var userToggleCount = 0
     private(set) var followerCount: Int64?
+    /// 작가가 팔로워 수를 숨겼는지 — 카운트를 서버가 내려도 이 플래그가 켜지면 감춘다.
+    private(set) var hideFollowerCount = false
     /// 호출측이 시드를 줬는지 — 줬다면 등장 시 같은 GET 을 또 치지 않는다.
     private var seeded: Bool
 
@@ -95,6 +97,7 @@ final class FollowModel {
         if let seed {
             following = seed.following
             followerCount = seed.followerCount
+            hideFollowerCount = seed.hideFollowerCount
         }
     }
 
@@ -110,6 +113,7 @@ final class FollowModel {
         if let status = try? await InteractionsAPI.followStatus(username: username), gen == userToggleCount {
             following = status.following
             followerCount = status.followerCount
+            hideFollowerCount = status.hideFollowerCount
         }
     }
 
@@ -126,6 +130,7 @@ final class FollowModel {
             guard gen == userToggleCount else { return }
             following = status.following
             followerCount = status.followerCount
+            hideFollowerCount = status.hideFollowerCount
         } catch {
             guard gen == userToggleCount else { return }
             await hydrate()

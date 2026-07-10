@@ -109,6 +109,7 @@ enum MockBackend {
     private static var followedTags: Set<String> = ["아키텍처"]
     private static var hiddenTags: Set<String> = []
     private static var myBio = "경계를 긋는 사람. 헥사고날·도메인 모델링."
+    private static var myHideFollowerCount = false
     private static var myUsername = "honggildong"
 
     // MARK: 긴 글 픽스처
@@ -618,8 +619,12 @@ enum MockBackend {
                    !u.isEmpty {
                     myUsername = u.lowercased()
                 }
+                if let hide = req["hideFollowerCount"] as? Bool { myHideFollowerCount = hide }
             }
-            return json(["username": myUsername, "bio": myBio, "theme": "light", "socials": NSNull()])
+            return json([
+                "username": myUsername, "bio": myBio, "theme": "light", "socials": NSNull(),
+                "hideFollowerCount": myHideFollowerCount,
+            ])
         }
         if method == "POST", parts == ["users", "me", "avatar", "presigned-url"] {
             return json([
@@ -781,7 +786,14 @@ enum MockBackend {
             if method == "PUT" { if !state.following { state.count += 1 }; state.following = true }
             if method == "DELETE" { if state.following { state.count -= 1 }; state.following = false }
             follows[username] = state
-            return json(["following": state.following, "followerCount": state.count, "followingCount": 5])
+            // 내 프로필 토글이 켜져 있으면 내 작가 페이지에선 카운트 키를 빼고 플래그만 내린다(실서버 계약).
+            let hidden = username == myUsername && myHideFollowerCount
+            var payload: [String: Any] = ["following": state.following, "hideFollowerCount": hidden]
+            if !hidden {
+                payload["followerCount"] = state.count
+                payload["followingCount"] = 5
+            }
+            return json(payload)
         }
 
         if parts.count == 3, parts[0] == "series", parts[2] == "subscription" {

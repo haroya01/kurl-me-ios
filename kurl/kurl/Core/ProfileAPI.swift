@@ -12,21 +12,40 @@ enum ProfileAPI {
 
     private struct ProfileBio: Decodable { let bio: String? }
 
-    /// 편집 폼 프리필용 — 현재 소개글. MyProfile 전체 중 bio 만 디코드(나머지 무시).
-    static func myBio() async throws -> String? {
-        let p: ProfileBio = try await client.get("/users/me/profile", authenticated: true)
-        return p.bio
+    /// 편집 폼 프리필 — 소개글 + 프라이버시 토글 현재값. MyProfile 전체 중 필요한 필드만 디코드.
+    struct EditPrefill: Decodable {
+        let bio: String?
+        /// 아직 이 키를 안 내리는 서버(배포 전)를 위해 부재 시 false.
+        let hideFollowerCount: Bool
+
+        enum CodingKeys: String, CodingKey { case bio, hideFollowerCount }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            bio = try c.decodeIfPresent(String.self, forKey: .bio)
+            hideFollowerCount = try c.decodeIfPresent(Bool.self, forKey: .hideFollowerCount) ?? false
+        }
+    }
+
+    /// 편집 폼 프리필용 — 현재 소개글 + 팔로워 수 숨김 여부.
+    static func myProfile() async throws -> EditPrefill {
+        try await client.get("/users/me/profile", authenticated: true)
     }
 
     /// 부분 PUT — 보낸 필드만 바뀐다(nil=인코딩에서 생략 → 서버는 미변경). 그래서 username·bio
     /// 만 넘겨도 theme·socials(명함) 설정은 보존된다. username 검증·중복·이전 이름 유예는 서버 몫.
-    static func update(username: String? = nil, bio: String? = nil) async throws {
+    static func update(
+        username: String? = nil, bio: String? = nil, hideFollowerCount: Bool? = nil
+    ) async throws {
         struct Body: Encodable {
             let username: String?
             let bio: String?
+            let hideFollowerCount: Bool?
         }
         let _: ProfileBio = try await client.put(
-            "/users/me/profile", body: Body(username: username, bio: bio), authenticated: true)
+            "/users/me/profile",
+            body: Body(username: username, bio: bio, hideFollowerCount: hideFollowerCount),
+            authenticated: true)
     }
 
     /// 아바타 업로드 — presign → S3 직행 PUT → commit. 반환 = 공개 avatarUrl.
