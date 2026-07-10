@@ -47,7 +47,10 @@ struct kurlApp: App {
                 // 첫 실행 1회, 비로그인일 때만 웰컴. 게스트를 고르면 플래그가 서고 다시 안 뜬다.
                 // (`--screen welcome` 은 simctl 터치 불가 우회 — 스크린샷 검증 진입로.)
                 let forceWelcome = Config.launchValue(after: "--screen") == "welcome"
-                showWelcome = forceWelcome || (!hasCompletedWelcome && !AuthStore.shared.isSignedIn)
+                // 검증용 딥링크(--post 등)는 목적지가 명확하니 웰컴 막을 띄우지 않는다 —
+                // 안 그러면 웰컴이 목적 화면을 덮어 터치를 삼킨다.
+                showWelcome = forceWelcome
+                    || (!hasCompletedWelcome && !AuthStore.shared.isSignedIn && !Config.hasDeepLinkEntry)
                 // 마크 드로잉(~0.4s)+워드마크(~0.8s)가 끝나고 한 박자 머문 뒤 걷는다.
                 try? await Task.sleep(for: .seconds(reduceMotion ? 0.6 : 1.6))
                 // 막이 걷히며 마크가 스플래시 자리에서 웰컴 자리로 글라이드한다(matched). 같은

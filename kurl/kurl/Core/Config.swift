@@ -52,6 +52,21 @@ enum Config {
         return value
     }
 
+    /// 특정 화면으로 바로 진입하는 검증용 딥링크 인자가 붙었는가 — `--post`·`--author`·
+    /// `--series`·`--tag`·`--screen`. 이런 진입은 목적지가 명확하므로 첫 실행 웰컴 막을 띄우지
+    /// 않는다(웰컴이 목적 화면을 덮어 터치를 삼키던 문제). DEBUG 전용.
+    static var hasDeepLinkEntry: Bool {
+        #if DEBUG
+        let flags = ["--post", "--author", "--series", "--tag"]
+        if flags.contains(where: { launchValue(after: $0) != nil }) { return true }
+        // `--screen welcome` 은 웰컴 자체를 강제하는 진입이라 제외한다.
+        if let screen = launchValue(after: "--screen"), screen != "welcome" { return true }
+        return false
+        #else
+        return false
+        #endif
+    }
+
     /// UI 로케일 (ja/ko/en). 시스템 우선 언어를 따르되 미지원이면 ko 로 떨어진다.
     static var preferredLanguageTag: String {
         let supported = ["ja", "ko", "en", "vi", "hi"]
