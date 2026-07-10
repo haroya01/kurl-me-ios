@@ -177,7 +177,7 @@ struct StudioView: View {
         .padding(.top, 4)
         .padding(.bottom, 12)
         if filtered.isEmpty {
-            Text(filter == .draft ? "임시저장한 글이 없습니다." : "발행한 글이 없습니다.")
+            Text(filter == .draft ? "아직 임시저장한 글이 없어요" : "아직 발행한 글이 없어요")
                 .typeScale(.lede)
                 .foregroundStyle(Palette.secondary)
                 .padding(.top, 24)
@@ -331,7 +331,7 @@ struct StudioView: View {
                 .padding(.bottom, 8)
             Hairline()
             if seriesLoaded, seriesList.isEmpty {
-                Text("아직 시리즈가 없습니다. 발행 시트에서 글을 시리즈로 묶어 보세요.")
+                Text("아직 시리즈가 없어요. 발행 시트에서 글을 시리즈로 묶어 보세요.")
                     .typeScale(.lede)
                     .foregroundStyle(Palette.secondary)
                     .padding(.top, 24)
