@@ -14229,6 +14229,62 @@
           }
         }
       }
+    },
+    "팔로워 수 숨기기" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide follower count"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "फ़ॉलोअर संख्या छिपाएँ"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォロワー数を非表示"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ẩn số người theo dõi"
+          }
+        }
+      }
+    },
+    "켜면 내 프로필과 목록에서 팔로워·팔로잉 수가 보이지 않아요. 팔로우는 그대로 돼요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When on, follower and following counts stay hidden on your profile and lists. Following still works."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "चालू करने पर आपकी प्रोफ़ाइल और सूचियों में फ़ॉलोअर और फ़ॉलोइंग संख्या छिपी रहती है। फ़ॉलो करना पहले जैसा चलता रहता है।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オンにすると、プロフィールと一覧でフォロワー・フォロー数が表示されません。フォローはそのまま使えます。"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Khi bật, số người theo dõi và đang theo dõi sẽ được ẩn trên hồ sơ và danh sách của bạn. Việc theo dõi vẫn hoạt động."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
