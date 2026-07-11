@@ -40,6 +40,9 @@ struct SeriesReorderSheet: View {
                     }
                     .environment(\.editMode, .constant(.active))
                     .listStyle(.plain)
+                    // 시스템 회색 대신 브랜드 종이(§1) — 수정 시트(EditSeriesSheet)와 같은 면.
+                    .scrollContentBackground(.hidden)
+                    .background(Palette.readingBg)
                 }
             }
             .navigationTitle("순서 편집")
