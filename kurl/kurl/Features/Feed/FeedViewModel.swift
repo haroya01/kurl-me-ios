@@ -45,6 +45,11 @@ final class FeedViewModel {
     /// 최신 피드에 몇 칸마다 인터리브할 공개 연결 이벤트(웹 #828 미러) — 비로그인도 흐른다. 게이트 없는
     /// 공개 표면이라 실패는 조용히 빈 배열(피드를 막지 않게). 그 외 정렬은 빈 배열.
     private(set) var connectionEvents: [ConnectionEvent] = []
+    /// 카드별 "이 글이 담긴 곳"(소속 공개 컬렉션) — 보이는 카드 id 를 모아 배치로 한 번에 긁는다(per-card 요청
+    /// 금지). 담긴 곳 있는 글만 값을 갖고, 카드는 값이 있을 때만 소속 한 올을 그린다. 게이트 없는 공개
+    /// 표면이라 실패는 조용히 흡수한다(피드를 막지 않게). id 를 이미 물어봤으면 다시 묻지 않는다.
+    private(set) var belonging: [Int64: [CollectionSummary]] = [:]
+    private var belongingAsked: Set<Int64> = []
 
     private var page = 0
     private var hasNext = true
@@ -76,6 +81,8 @@ final class FeedViewModel {
         items = []
         series = nil
         connectionEvents = []
+        belonging = [:]
+        belongingAsked = []
         page = 0
         hasNext = true
         loadMoreFailed = false
@@ -98,6 +105,9 @@ final class FeedViewModel {
                 items = view.items.filter(\.isRenderableCard)
                 phase = .loaded(items)
             }
+            // 새로 들어온 피드는 소속을 다시 묻는다 — 이전 세대의 물어본 표식을 비우고 배치로 긁는다.
+            belongingAsked = []
+            loadBelonging(for: items, epoch: myEpoch)
             // 구독함 머리쪽은 조용히 기기로 — 도착한 글은 지하철에서도 읽혀야 한다.
             if source == .following {
                 let head = view.items.prefix(10).map { ($0.author.username, $0.slug) }
@@ -148,13 +158,33 @@ final class FeedViewModel {
             // 서버 페이지가 겹쳐 와도 같은 id 카드가 두 번 박히지 않게 — 기존 id 와 겹치는 건 버린다.
             // 빈 콘텐츠 카드도 함께 거른다(reload 와 같은 가드).
             let seen = Set(items.map(\.id))
-            items.append(contentsOf: view.items.filter { !seen.contains($0.id) && $0.isRenderableCard })
+            let fresh = view.items.filter { !seen.contains($0.id) && $0.isRenderableCard }
+            items.append(contentsOf: fresh)
             hasNext = view.hasNext
             phase = .loaded(items)
+            // 다음 페이지 카드들의 소속도 곁에서 배치로 — 이미 물어본 id 는 method 안에서 걸러진다.
+            loadBelonging(for: fresh, epoch: myEpoch)
         } catch {
             guard myEpoch == epoch else { return }
             page = max(0, page - 1)
             loadMoreFailed = true
+        }
+    }
+
+    /// 카드 소속 배치 — 아직 안 물어본 글 id 를 모아 한 요청(상한 50, 넘으면 나눠서)으로 소속 공개 컬렉션을
+    /// 긁는다. 시리즈·연결 흐름과 같은 결로 곁에서 도착한다(본 피드를 막지 않음). 게이트 없는 공개 표면이라
+    /// 실패는 조용히 흡수. 세대 토큰으로 스테일 응답을 버린다(reload 가 끼어들면 폐기).
+    private func loadBelonging(for newItems: [FeedItem], epoch myEpoch: Int) {
+        let ask = newItems.map(\.id).filter { belongingAsked.insert($0).inserted }
+        guard !ask.isEmpty else { return }
+        Task { @MainActor [weak self] in
+            for chunk in stride(from: 0, to: ask.count, by: 50).map({ Array(ask[$0..<min($0 + 50, ask.count)]) }) {
+                let rows = (try? await CollectionsAPI.publicPostCollectionsBatch(ids: chunk)) ?? []
+                guard let self, myEpoch == self.epoch else { return }
+                for row in rows where !row.collections.isEmpty {
+                    self.belonging[row.postId] = row.collections
+                }
+            }
         }
     }
 

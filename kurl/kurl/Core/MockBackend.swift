@@ -532,6 +532,37 @@ enum MockBackend {
         ]
     }
 
+    /// 카드 소속 배치 목 — 잘 알려진 목 피드 글 id 에 소속 공개 컬렉션을 매핑한다. 한 컬렉션(단수 카피)과
+    /// 여러 컬렉션(복수 "외 N개") 두 경우를 다 그려 보이게 섞는다. 소속 없는 글은 여기 없다(호출측은 빈 배열).
+    private static func postCollectionsMock() -> [[String: Any]] {
+        func c(_ id: Int64, _ title: String, _ kind: String, _ count: Int, _ preview: [String]) -> [String: Any] {
+            [
+                "id": id, "title": title, "description": NSNull(),
+                "visibility": "PUBLIC", "kind": kind, "count": count,
+                "updatedAt": iso(Date()), "preview": preview,
+            ]
+        }
+        return [
+            // 여러 컬렉션에 걸린 글 — "외 N개" 복수 카피.
+            ["postId": 8201, "collections": [
+                c(101, "경계를 긋는 법", "COLLECTION", 12, ["헥사고날로 갈아탄 지 석 달", "포트 이름 짓기"]),
+                c(104, "다시 읽는 아키텍처", "PATH", 5, ["레이어드의 값", "의존 방향 뒤집기"]),
+                c(107, "회고 모음", "COLLECTION", 8, []),
+            ]],
+            // 한 컬렉션에만 걸린 글 — 단수 카피.
+            ["postId": 9101, "collections": [
+                c(101, "경계를 긋는 법", "COLLECTION", 12, ["헥사고날로 갈아탄 지 석 달"]),
+            ]],
+            ["postId": 9102, "collections": [
+                c(112, "디버깅 야간 로그", "COLLECTION", 6, ["토큰이 사라진 밤"]),
+                c(104, "다시 읽는 아키텍처", "PATH", 5, []),
+            ]],
+            ["postId": 9002, "collections": [
+                c(101, "경계를 긋는 법", "COLLECTION", 12, []),
+            ]],
+        ]
+    }
+
     private static func collectionDetail(_ c: MockCollection) -> [String: Any] {
         [
             "id": c.id, "title": c.title,
@@ -578,6 +609,13 @@ enum MockBackend {
             return json([
                 "items": publicConnectionFeedMock(), "page": 0, "size": 6, "hasNext": false,
             ])
+        }
+
+        // 카드 소속 배치 — 여러 글의 소속 공개 컬렉션을 한 번에(피드 카드 아래 소속 한 올). respond 는 쿼리를
+        // 안 넘겨받으므로(경로만) 잘 알려진 목 피드 글 id 에 고정 소속을 매핑해 카드에 줄이 서게 한다. 담긴 곳
+        // 없는 글은 응답에 없으면 그만(호출측이 빈 배열로 취급) — 여기선 있는 것만 돌려준다.
+        if method == "GET", parts == ["public", "posts", "collections"] {
+            return json(postCollectionsMock())
         }
 
         // 컬렉션 — 내 목록 / 상세 / 생성 / 연결 / 연결끊기 / 삭제.

@@ -136,6 +136,26 @@ struct CollectionSummary: Decodable, Identifiable, Hashable {
     }
 }
 
+/// "이 글이 담긴 곳" — 한 글(postId)이 속한 공개 컬렉션들. 피드 카드 아래 소속 한 올이 읽는다.
+/// 배치 응답 `[{ postId, collections }]` 의 한 줄 — 컬렉션은 `CollectionSummary` 와 같은 와이어(updatedAt 은
+/// 무시). 담긴 곳 없으면 `collections` 는 빈 배열(그러면 카드에 소속 줄이 서지 않는다).
+struct PostCollections: Decodable, Identifiable, Hashable {
+    let postId: Int64
+    let collections: [CollectionSummary]
+
+    var id: Int64 { postId }
+
+    private enum CodingKeys: String, CodingKey {
+        case postId, collections
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        postId = try c.decode(Int64.self, forKey: .postId)
+        collections = try c.decodeIfPresent([CollectionSummary].self, forKey: .collections) ?? []
+    }
+}
+
 /// 컬렉션 상세 — 헤더 + 연결된 블록들. 백엔드 `CollectionDetailView`.
 struct CollectionDetail: Decodable, Identifiable, Hashable {
     let id: Int64

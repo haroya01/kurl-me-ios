@@ -17,6 +17,8 @@ import SwiftUI
 struct BlogCard: View {
     let item: FeedItem
     var featured = false
+    /// 이 글이 담긴 공개 컬렉션(소속 한 올) — 있을 때만 카드 아래 한 줄이 선다. 배치로 채워져 곁에서 도착한다.
+    var belonging: [CollectionSummary] = []
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -104,6 +106,9 @@ struct BlogCard: View {
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                     CardMeta(item: item, over: true)
+                    if !belonging.isEmpty {
+                        BelongingLine(collections: belonging, over: true)
+                    }
                 }
                 .padding(14)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -151,6 +156,10 @@ struct BlogCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             CardMeta(item: item, over: false)
+            if !belonging.isEmpty {
+                BelongingLine(collections: belonging)
+                    .padding(.top, 1)
+            }
         }
         .padding(Metrics.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -222,6 +231,51 @@ private struct CardMeta: View {
     // 유리 띠 + 0.40 스크림 위 12pt — 밝은 커버에서 0.85 는 ~2.3:1 로 깎였다. 텍스트는 순백.
     private var tone: Color { over ? .white : Palette.secondary }
     private var dim: Color { over ? .white.opacity(0.65) : Palette.faint }
+}
+
+/// 소속 한 올 — "이 글이 담긴 곳"(§0 발견 = 큐레이터 연결). 종이 카드 아래 조용한 한 줄:
+/// ↳ 글리프(그린 한 가닥, §10.3 비텍스트 마커 = accent)에 담긴 공개 컬렉션 제목 + 그 외 몇 개.
+/// 같은 글이 여러 컬렉션에 걸려 맥락이 겹친다는 §0 서사를 카드에서 조용히 드러낸다. 소속이 없으면 이 줄은
+/// 그려지지 않는다(호출측 가드). 커버 위(over)에선 유리 규율대로 그린을 빼고 흰 위계만 쓴다(§1.2).
+private struct BelongingLine: View {
+    let collections: [CollectionSummary]
+    var over: Bool = false
+
+    /// ↳ 글리프 — .footnote 옆에서 균형 잡히게 크기 보존 + Dynamic Type.
+    @ScaledMetric(relativeTo: .caption) private var glyph: CGFloat = 10
+
+    private var lead: CollectionSummary? { collections.first }
+
+    var body: some View {
+        if let lead {
+            HStack(alignment: .firstTextBaseline, spacing: 5) {
+                // 그린 한 가닥은 글리프에만(§10.3 비텍스트 마커 = accent 600) — 카피는 조용한 슬레이트로
+                // 흘러 로케일마다 조사·어순이 자연스럽게 붙는다(한 Text = 한 번역 문자열).
+                Image(systemName: "arrow.turn.down.right")
+                    .font(.system(size: glyph, weight: .semibold))
+                    .foregroundStyle(marker)
+                caption(title: lead.title)
+                    .foregroundStyle(textTone)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            .typeScale(.footnote)
+            .accessibilityElement(children: .combine)
+        }
+    }
+
+    /// "'제목'에 담김" / "'제목' 외 N개 컬렉션에 담김" — 한 번역 문자열로, 로케일이 조사·어순을 소유한다.
+    private func caption(title: String) -> Text {
+        let others = collections.count - 1
+        if others == 0 {
+            return Text("‘\(title)’에 담김")
+        }
+        return Text("‘\(title)’ 외 \(others)개 컬렉션에 담김")
+    }
+
+    // 종이 = 그린 한 가닥(글리프=accent 600), 카피는 슬레이트. 커버 위 = 유리 규율상 흰 위계만(§1.2).
+    private var marker: Color { over ? .white : Palette.accent }
+    private var textTone: Color { over ? .white.opacity(0.85) : Palette.secondary }
 }
 
 /// 카드 다층 그림자 — 닿는 면 1px + 멀리 퍼지는 ambient. 라이트의 무보더 카드를
