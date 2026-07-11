@@ -42,6 +42,9 @@ final class FeedViewModel {
     private(set) var loadMoreFailed = false
     /// 최신 피드에 끼워 넣을 발견 시리즈 한 장(웹 메인 피드의 시리즈 카드와 같은 자리). 그 외 정렬은 nil.
     private(set) var series: PublicSeriesCard?
+    /// 최신 피드에 몇 칸마다 인터리브할 공개 연결 이벤트(웹 #828 미러) — 비로그인도 흐른다. 게이트 없는
+    /// 공개 표면이라 실패는 조용히 빈 배열(피드를 막지 않게). 그 외 정렬은 빈 배열.
+    private(set) var connectionEvents: [ConnectionEvent] = []
 
     private var page = 0
     private var hasNext = true
@@ -72,6 +75,7 @@ final class FeedViewModel {
         epoch += 1
         items = []
         series = nil
+        connectionEvents = []
         page = 0
         hasNext = true
         loadMoreFailed = false
@@ -109,6 +113,13 @@ final class FeedViewModel {
                     let fetched = try? await BlogAPI.discoverSeries(limit: 4)
                     guard let self, myEpoch == self.epoch else { return }
                     self.series = fetched?.first
+                }
+                // 공개 연결 흐름도 곁에서 — 비로그인 첫 피드에 몇 칸마다 인터리브(웹 #828 미러).
+                // 게이트 없는 공개 표면이라 실패는 조용히 빈 배열(피드를 막지 않는다).
+                Task { @MainActor [weak self] in
+                    let fetched = (try? await CollectionsAPI.publicConnectionFeed(page: 0, size: 6)) ?? []
+                    guard let self, myEpoch == self.epoch else { return }
+                    self.connectionEvents = fetched
                 }
             }
         } catch {
