@@ -704,7 +704,7 @@ struct ComposeView: View {
                     .padding(.top, 2)
                 }
             }
-            .padding(16)
+            .padding(Metrics.cardPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(Palette.cardBg)
