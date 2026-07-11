@@ -21,7 +21,7 @@ struct FeedRow: View {
                         .typeScale(.eyebrow)
                         .foregroundStyle(Palette.secondary)
                 }
-                if let tag = item.tags.first {
+                if let tag = item.renderableTags.first {
                     Text("#\(tag)")
                         .typeScale(.meta)
                         .foregroundStyle(Palette.secondary)
@@ -78,7 +78,7 @@ struct PostRow: View {
                         .font(.system(size: 10))
                         .foregroundStyle(Palette.accent)
                 }
-                if let tag = item.tags.first {
+                if let tag = ContentValidity.renderableTags(item.tags).first {
                     Text("#\(tag)")
                         .typeScale(.meta)
                         .foregroundStyle(Palette.secondary)

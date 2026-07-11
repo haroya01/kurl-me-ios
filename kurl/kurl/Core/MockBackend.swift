@@ -982,8 +982,14 @@ enum MockBackend {
 
         if method == "GET", parts == ["feed", "for-you"] {
             let items = emptyFeeds ? [] : [
-                feedItem(id: 9002, title: "발행된 목 글", slug: "p-mock-2"),
-                feedItem(id: 9101, title: "헥사고날로 가는 길", slug: "hexagonal-road"),
+                feedItem(id: 9101, title: "헥사고날로 갈아탄 지 석 달, 무엇이 남았나",
+                         slug: "hexagonal-after-3-months",
+                         excerpt: "레이어드를 버린 결정의 회고 — 경계가 준 것과 가져간 것.",
+                         tags: ["아키텍처", "회고"]),
+                feedItem(id: 9102, title: "토큰이 사라진 밤 — 새로고침 회전 레이스를 쫓다",
+                         slug: "the-night-tokens-vanished",
+                         excerpt: "글을 쓰다 로그아웃되는 버그. 범인은 회전하는 리프레시 토큰이었다.",
+                         tags: ["디버깅", "인증"]),
             ]
             return json(["items": items, "page": 0, "size": 20, "hasNext": false])
         }
@@ -1074,7 +1080,8 @@ enum MockBackend {
             return json([
                 "items": [
                     ["postId": 9002, "username": "honggildong", "avatarUrl": NSNull(),
-                     "title": "발행된 목 글", "slug": "p-mock-2", "excerpt": "목 발췌",
+                     "title": "헥사고날로 갈아탄 지 석 달", "slug": "hexagonal-after-3-months",
+                     "excerpt": "레이어드를 버린 결정의 회고 — 경계가 준 것과 가져간 것.",
                      "ogImageUrl": NSNull(), "readAt": iso(Date().addingTimeInterval(-3600))],
                     ["postId": 9101, "username": "haneul", "avatarUrl": NSNull(),
                      "title": "좋은 글쓰기의 조건", "slug": "good-writing", "excerpt": "문장은 짧게, 생각은 깊게.",
@@ -1223,12 +1230,16 @@ enum MockBackend {
     private static var nextSeriesId: Int64 = 100
     private static var likedComments: Set<Int64> = []
 
-    private static func feedItem(id: Int64, title: String, slug: String) -> [String: Any] {
+    private static func feedItem(
+        id: Int64, title: String, slug: String,
+        excerpt: String = "결론부터 적는다. 경계를 먼저 긋고, 구현은 그 바깥으로 민다.",
+        tags: [String] = ["아키텍처"]
+    ) -> [String: Any] {
         [
             "id": id,
             "author": ["id": 1, "username": "honggildong", "bio": NSNull(), "avatarUrl": NSNull()],
-            "slug": slug, "title": title, "excerpt": "목 발췌",
-            "ogImageUrl": NSNull(), "languageTag": "ko", "tags": ["목"],
+            "slug": slug, "title": title, "excerpt": excerpt,
+            "ogImageUrl": NSNull(), "languageTag": "ko", "tags": tags,
             "publishedAt": iso(Date().addingTimeInterval(-3600)),
             "viewCount": 42, "likeCount": 3,
         ]
