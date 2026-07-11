@@ -308,7 +308,10 @@ struct FeedPage: View {
             LazyVStack(alignment: .leading, spacing: 16) {
                 ForEach(Array(model.items.enumerated()), id: \.element.id) { index, item in
                     NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
-                        BlogCard(item: item, featured: index == 0 && source == .recent)
+                        BlogCard(
+                            item: item,
+                            featured: index == 0 && source == .recent,
+                            belonging: model.belonging[item.id] ?? [])
                     }
                     .buttonStyle(CardButtonStyle())
                     .cardQuickActions(item)

@@ -36,6 +36,15 @@ enum CollectionsAPI {
         return view.items
     }
 
+    /// "이 글이 담긴 곳" — 여러 글의 소속 공개 컬렉션을 한 번에(피드 카드 아래 소속 한 올). 게이트 없는
+    /// 공개 표면(미로그인도 본다). 상한 50 — 보이는 카드 id 를 모아 한 요청으로 긁는다(per-card 요청 금지).
+    /// 응답은 요청 순서를 지키고, 담긴 곳 없는 글은 빈 배열. 실패는 호출측에서 조용히 흡수한다(피드를 막지 않게).
+    static func publicPostCollectionsBatch(ids: [Int64]) async throws -> [PostCollections] {
+        guard !ids.isEmpty else { return [] }
+        let capped = ids.prefix(50).map(String.init).joined(separator: ",")
+        return try await client.get("/public/posts/collections", query: ["ids": capped])
+    }
+
     /// 컬렉션 상세 — 연결된 블록(글·하이라이트·노트) 해석 포함.
     static func detail(id: Int64) async throws -> CollectionDetail {
         try await client.get("/collections/\(id)", authenticated: true)

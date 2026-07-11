@@ -14369,6 +14369,62 @@
           }
         }
       }
+    },
+    "‘%@’에 담김" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In ‘%@’"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "‘%@’ में"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」に収録"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trong ‘%@’"
+          }
+        }
+      }
+    },
+    "‘%@’ 외 %lld개 컬렉션에 담김" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In ‘%1$@’ and %2$lld more collections"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "‘%1$@’ और %2$lld अन्य कलेक्शन में"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%1$@」ほか%2$lld個のコレクションに収録"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trong ‘%1$@’ và %2$lld bộ sưu tập khác"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"
