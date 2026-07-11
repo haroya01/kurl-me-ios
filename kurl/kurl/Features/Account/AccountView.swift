@@ -36,7 +36,7 @@ struct AccountView: View {
                             Button(String(localized: "다시 시도")) {
                                 Task { await reloadMe() }
                             }
-                            .foregroundStyle(Palette.accent)
+                            .foregroundStyle(Palette.link)
                         }
                     } else {
                         // me 로딩 중 — 잠깐의 빈자리를 막다른 길로 두지 않는다.

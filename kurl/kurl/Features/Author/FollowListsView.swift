@@ -50,7 +50,7 @@ struct FollowListsView: View {
                     Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
                 } actions: {
                     Button("다시 시도") { Task { await reload() } }
-                        .foregroundStyle(Palette.accent)
+                        .foregroundStyle(Palette.link)
                 }
                 .padding(.top, 56)
             } else if loadedOnce && items.isEmpty {

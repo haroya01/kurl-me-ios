@@ -138,7 +138,7 @@ struct CollectionsListView: View {
             Text("글을 읽다 마음에 닿는 것을 주제로 이어 보세요.")
         } actions: {
             Button("새 컬렉션 만들기") { showCreate = true }
-                .foregroundStyle(Palette.accent)
+                .foregroundStyle(Palette.link)
         }
         .padding(.top, 60)
     }
@@ -148,7 +148,7 @@ struct CollectionsListView: View {
             Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
         } actions: {
             Button("다시 시도") { Task { loading = true; await load() } }
-                .foregroundStyle(Palette.accent)
+                .foregroundStyle(Palette.link)
         }
         .padding(.top, 60)
     }

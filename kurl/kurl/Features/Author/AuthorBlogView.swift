@@ -50,7 +50,7 @@ struct AuthorBlogView: View {
                         Text(message)
                     } actions: {
                         Button("다시 시도") { Task { await load() } }
-                            .foregroundStyle(Palette.accent)
+                            .foregroundStyle(Palette.link)
                     }
                     .padding(.top, 80)
                 case .loaded(let view):

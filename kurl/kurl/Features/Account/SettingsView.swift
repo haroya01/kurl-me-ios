@@ -47,7 +47,7 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.plain)
                 Hairline()
-                Button(role: .destructive) {
+                Button {
                     auth.signOut()
                     dismiss()
                 } label: {
@@ -59,6 +59,7 @@ struct SettingsView: View {
                             .typeScale(.body)
                         Spacer()
                     }
+                    .foregroundStyle(Palette.ink)
                     .padding(.vertical, 13)
                     .contentShape(Rectangle())
                 }

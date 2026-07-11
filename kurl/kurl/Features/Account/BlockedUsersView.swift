@@ -25,7 +25,7 @@ struct BlockedUsersView: View {
                     Text("연결을 확인하고 다시 시도해 주세요.")
                 } actions: {
                     Button(String(localized: "다시 시도")) { Task { await load() } }
-                        .foregroundStyle(Palette.accent)
+                        .foregroundStyle(Palette.link)
                 }
                 .padding(.top, 60)
             } else if BlockStore.shared.blocked.isEmpty {
