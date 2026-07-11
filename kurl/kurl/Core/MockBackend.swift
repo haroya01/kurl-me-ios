@@ -448,6 +448,73 @@ enum MockBackend {
         ]
     }
 
+    /// 공개 연결 흐름 목 — 비로그인 첫 피드에 인터리브할 최근 공개 연결. 세 실루엣(글·하이라이트·노트)이
+    /// 번갈아 오도록 6개, 큐레이터의 산문 why 를 붙여 알고리즘이 아니라 사람의 큐레이션임이 드러나게.
+    private static func publicConnectionFeedMock() -> [[String: Any]] {
+        [
+            [
+                "id": 11, "curator": curator(2, "minji"),
+                "collectionId": 101, "collectionTitle": "느린 사고",
+                "why": "빨리 답하지 않고 오래 머문 글. 세 번째 읽을 때 다른 문장이 밑줄 쳐졌다.",
+                "connectedAt": iso(Date().addingTimeInterval(-1_800)),
+                "blockType": "POST", "title": "헥사고날로 갈아탄 지 석 달",
+                "excerpt": "결론부터 적는다. 다시 돌아가라면 또 갈아탄다.",
+                "slug": "hexagonal-after-3-months", "username": "honggildong",
+                "quote": NSNull(), "body": NSNull(),
+            ],
+            [
+                "id": 12, "curator": curator(3, "sori"),
+                "collectionId": 104, "collectionTitle": "경계를 긋는다는 것",
+                "collectionKind": "PATH",
+                "why": "이 문장 하나로 설계 얘기를 시작하곤 한다. 출발점으로 엮어 둔다.",
+                "connectedAt": iso(Date().addingTimeInterval(-9_000)),
+                "blockType": "HIGHLIGHT", "title": "헥사고날로 갈아탄 지 석 달",
+                "excerpt": NSNull(), "slug": "hexagonal-after-3-months",
+                "username": "honggildong",
+                "quote": "경계가 없으면 모든 변경이 전역 변경이 된다.", "body": NSNull(),
+            ],
+            [
+                "id": 13, "curator": curator(2, "minji"),
+                "collectionId": 103, "collectionTitle": "다시 읽고 싶은",
+                "why": NSNull(),
+                "connectedAt": iso(Date().addingTimeInterval(-43_200)),
+                "blockType": "NOTE", "title": NSNull(), "excerpt": NSNull(),
+                "slug": NSNull(), "username": NSNull(), "quote": NSNull(),
+                "body": "결정을 미루는 건 게으름이 아니라, 더 나은 질문을 기다리는 일일 때가 있다.",
+            ],
+            [
+                "id": 14, "curator": curator(3, "sori"),
+                "collectionId": 102, "collectionTitle": "경계 긋기",
+                "why": "레이어링을 관심사 분리로 읽어낸 글. 코드에도 그대로 옮겨 적는다.",
+                "connectedAt": iso(Date().addingTimeInterval(-86_400)),
+                "blockType": "POST", "title": "유리 위에 유리를 얹지 않기",
+                "excerpt": "겹치는 순간 둘 다 탁해진다. 레이어는 하나씩.",
+                "slug": "liquid-glass-without-glass-on-glass", "username": "honggildong",
+                "quote": NSNull(), "body": NSNull(),
+            ],
+            [
+                "id": 15, "curator": curator(2, "minji"),
+                "collectionId": 104, "collectionTitle": "경계를 긋는다는 것",
+                "collectionKind": "PATH",
+                "why": "재현 안 되는 버그 앞에서 나도 늘 이 문장을 떠올린다.",
+                "connectedAt": iso(Date().addingTimeInterval(-172_800)),
+                "blockType": "HIGHLIGHT", "title": "토큰이 사라진 밤",
+                "excerpt": NSNull(), "slug": "the-night-tokens-vanished",
+                "username": "honggildong",
+                "quote": "재현이 안 되는 버그는 대개 타이밍 버그다.", "body": NSNull(),
+            ],
+            [
+                "id": 16, "curator": curator(3, "sori"),
+                "collectionId": 103, "collectionTitle": "다시 읽고 싶은",
+                "why": NSNull(),
+                "connectedAt": iso(Date().addingTimeInterval(-259_200)),
+                "blockType": "NOTE", "title": NSNull(), "excerpt": NSNull(),
+                "slug": NSNull(), "username": NSNull(), "quote": NSNull(),
+                "body": "좋은 글은 두 번째 읽을 때 다른 문장이 밑줄 쳐진다.",
+            ],
+        ]
+    }
+
     private static func collectionSummary(_ c: MockCollection) -> [String: Any] {
         // 최근 2개 항목 라벨 — 백엔드 preview 와 동일(POST 제목·HIGHLIGHT 인용·NOTE 본문).
         let preview = c.connections.suffix(2).reversed().compactMap { conn -> String? in
@@ -503,6 +570,13 @@ enum MockBackend {
         if method == "GET", parts == ["feed", "connections"] {
             return json([
                 "items": discoverFeedMock(), "page": 0, "size": 20, "hasNext": false,
+            ])
+        }
+
+        // 공개 연결 흐름 — 비로그인 첫 피드에 인터리브. 게이트 없는 공개 표면(미로그인도 본다).
+        if method == "GET", parts == ["public", "feed", "connections"] {
+            return json([
+                "items": publicConnectionFeedMock(), "page": 0, "size": 6, "hasNext": false,
             ])
         }
 

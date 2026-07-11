@@ -27,6 +27,15 @@ enum CollectionsAPI {
         return view.items
     }
 
+    /// 공개 연결 흐름 — 비로그인 첫 피드에 인터리브할 최근 공개 연결(누가 무엇을 어느 컬렉션에 이었나).
+    /// 게이트 없는 공개 엔드포인트라 미로그인도 본다. 실패는 호출측에서 빈 배열로 조용히 흡수한다(피드를 막지 않게).
+    static func publicConnectionFeed(page: Int = 0, size: Int = 6) async throws -> [ConnectionEvent] {
+        let view: DiscoverFeedResponse = try await client.get(
+            "/public/feed/connections",
+            query: ["page": String(page), "size": String(size)])
+        return view.items
+    }
+
     /// 컬렉션 상세 — 연결된 블록(글·하이라이트·노트) 해석 포함.
     static func detail(id: Int64) async throws -> CollectionDetail {
         try await client.get("/collections/\(id)", authenticated: true)

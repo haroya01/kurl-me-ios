@@ -145,6 +145,8 @@ struct FeedView: View {
                     RouteView(route: route)
                 }
             }
+            // 인터리브한 공개 연결 카드의 컬렉션 칩 → 컬렉션 상세(발견 표면과 같은 목적지).
+            .navigationDestination(for: CollectionRef.self) { CollectionDetailView(collectionId: $0.id) }
             .navigationDestination(isPresented: $showNotifications) {
                 NotificationsView()
             }
@@ -327,6 +329,19 @@ struct FeedPage: View {
                             .modifier(QuietAppear(index: index))
                             .modifier(CardScrollFade())
                     }
+
+                    // 공개 연결 흐름을 몇 칸마다 인터리브(웹 #828 미러) — 비로그인 첫 피드에도 흐른다.
+                    // 연결 카드는 종이 본문(§1) — 유리 없이 컬렉션·왜·블록 실루엣만. 첫 인서트 위에만
+                    // 초록 마커 섹션 라벨을 얹어(§10.3 비텍스트 마커=accent) 한 흐름임을 조용히 알린다.
+                    if source == .recent, let slot = connectionSlot(afterIndex: index) {
+                        if slot.isFirst {
+                            connectionHeading
+                                .padding(.top, 2)
+                        }
+                        ConnectionEventCard(event: slot.event)
+                            .modifier(QuietAppear(index: index))
+                            .modifier(CardScrollFade())
+                    }
                 }
                 if model.isLoadingMore {
                     KurlLoadingMark()
@@ -385,6 +400,41 @@ struct FeedPage: View {
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
         .refreshable { await model.reload() }
+    }
+
+    // 공개 연결을 인터리브할 자리 — 시리즈 카드(index 3) 뒤로 충분히 띄워 index 5 부터 5칸마다
+    // 한 장씩(5·10·15…), 이벤트가 남아 있는 동안만. "글 뒤에만" 끼우므로 마지막 글 뒤로는 새지
+    // 않고 항상 다음 글 행이 따라온다(웹 #828 의 "뒤에 실제 행이 있을 때만"과 같은 규칙).
+    private struct ConnectionSlot { let event: ConnectionEvent; let isFirst: Bool }
+
+    private func connectionSlot(afterIndex index: Int) -> ConnectionSlot? {
+        let events = model.connectionEvents
+        guard !events.isEmpty else { return nil }
+        // 시작 5, 간격 5 — (index-5)가 5의 배수이고 시작 이상일 때만 슬롯이 열린다.
+        let start = 5, gap = 5
+        guard index >= start, (index - start) % gap == 0 else { return nil }
+        // 마지막 글 뒤에는 끼우지 않는다 — 연결 카드가 피드 끝에 홀로 매달리지 않게.
+        guard index < model.items.count - 1 else { return nil }
+        let slotOrdinal = (index - start) / gap
+        guard slotOrdinal < events.count else { return nil }
+        return ConnectionSlot(event: events[slotOrdinal], isFirst: slotOrdinal == 0)
+    }
+
+    // "지금 이어지는 것들" — 공개 연결 흐름의 머릿글. RailHeading 은 §10 규율로 마커를 잉크로
+    // 가라앉혔지만, 여기선 이 한 흐름이 사람의 연결임을 알리는 유일한 그린 실이라 §10.3 비텍스트
+    // 마커(accent 600)로 초록 한 점만 허용한다(카드 본문은 종이 그대로).
+    private var connectionHeading: some View {
+        HStack(spacing: 8) {
+            RoundedRectangle(cornerRadius: 1)
+                .fill(Palette.accentMarker)
+                .frame(width: 3, height: 12)
+            Text("지금 이어지는 것들")
+                .typeScale(.eyebrow)
+                .foregroundStyle(Palette.heading)
+            Spacer(minLength: 0)
+        }
+        .accessibilityAddTraits(.isHeader)
+        .modifier(CardScrollFade())
     }
 
     private func failed(_ message: String) -> some View {
