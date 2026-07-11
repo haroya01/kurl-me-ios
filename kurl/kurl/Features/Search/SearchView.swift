@@ -15,6 +15,8 @@ struct SearchView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.scenePhase) private var scenePhase
+    /// 최근 검색 칩의 지우기(×) 아이콘 — 칩 라벨(.meta)과 함께 커지도록 고정 pt 를 우회한다.
+    @ScaledMetric(relativeTo: .caption) private var recentClearSize: CGFloat = 9
 
     // 페이지네이션 — 결과 30개에서 끊기지 않게. generation 은 새 검색이 시작되면
     // 비행 중인 다음-페이지 응답을 버리는 스테일 가드.
@@ -128,7 +130,7 @@ struct SearchView: View {
                                             recents.removeAll { $0 == term }
                                         } label: {
                                             Image(systemName: "xmark")
-                                                .font(.system(size: 9, weight: .semibold))
+                                                .font(.system(size: recentClearSize, weight: .semibold))
                                                 .foregroundStyle(Palette.faint)
                                                 .expandTapTarget(8)
                                         }

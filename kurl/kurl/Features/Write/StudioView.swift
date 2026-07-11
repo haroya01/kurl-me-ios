@@ -27,6 +27,9 @@ struct StudioView: View {
     @State private var editing: MyPost?
     /// 방금 발행한 글 — 셀레브레이션 "글 보기" 가 에디터를 닫고 여기로 이어 보낸다(라이브 상세).
     @State private var justPublished: PublishedRef?
+    /// 파괴적 관리(발행취소·삭제) 확인 대상 — 웹 write 관리와 같은 계약. nil 이면 확인창 닫힘.
+    @State private var unpublishTarget: MyPost?
+    @State private var deleteTarget: MyPost?
 
     var body: some View {
         NavigationStack {
@@ -150,6 +153,32 @@ struct StudioView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active, auth.isSignedIn { Task { await load() } }
         }
+        // 발행 취소 — 되돌릴 수 있는 동작이라 담담한 확인. 성공 시 목록을 다시 읽어 상태(비공개)를 제자리 반영.
+        .alert(
+            "이 글의 발행을 취소할까요?",
+            isPresented: Binding(get: { unpublishTarget != nil },
+                                 set: { if !$0 { unpublishTarget = nil } })
+        ) {
+            Button("발행 취소", role: .destructive) {
+                if let post = unpublishTarget { Task { await unpublish(post) } }
+            }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("글은 남지만 공개 주소가 닫혀 아무도 볼 수 없게 돼요. 언제든 다시 발행할 수 있어요.")
+        }
+        // 삭제 — 되돌릴 수 없는 동작이라 결과를 또렷이 알린다.
+        .alert(
+            "이 글을 삭제할까요?",
+            isPresented: Binding(get: { deleteTarget != nil },
+                                 set: { if !$0 { deleteTarget = nil } })
+        ) {
+            Button("삭제", role: .destructive) {
+                if let post = deleteTarget { Task { await deletePost(post) } }
+            }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("글과 그 안의 내용이 영구히 지워져요. 되돌릴 수 없어요.")
+        }
     }
 
     /// 글이 쌓이면 초안 찾기가 스크롤 사냥이 된다 — 임시/발행 한 번에 거르는 칩.
@@ -184,10 +213,15 @@ struct StudioView: View {
         }
         LazyVStack(spacing: 0) {
             ForEach(Array(filtered.enumerated()), id: \.element.id) { index, post in
+                // 행 탭 = 편집(에디터). 관리(발행취소·삭제)는 우측 ⋯ 메뉴로 — 웹 write 관리와 같은
+                // 계약이라, 글을 내리거나 지우려고 웹으로 건너갈 필요가 없다(감사 갭 ④).
                 Button {
                     editing = post
                 } label: {
-                    postRow(post)
+                    HStack(alignment: .top, spacing: 4) {
+                        postRow(post)
+                        ownerMenu(post)
+                    }
                 }
                 .buttonStyle(RowButtonStyle())
                 if index < filtered.count - 1 { Hairline() }
@@ -245,6 +279,34 @@ struct StudioView: View {
         }
         .padding(.vertical, 16)
         .contentShape(Rectangle())
+    }
+
+    /// 행 우측 ⋯ 관리 메뉴 — 편집(행 탭)과 겹치지 않게 자체 히트 영역을 갖는다.
+    /// 발행취소는 라이브(발행) 글에만(초안·예약·이미 비공개엔 의미 없음), 삭제는 어느 상태든.
+    /// 파괴적 액션이라 SeriesDetail·CommentRow 와 같은 .alert 확인 관용구를 거친다.
+    private func ownerMenu(_ post: MyPost) -> some View {
+        Menu {
+            if post.isPublished {
+                Button(role: .destructive) {
+                    unpublishTarget = post
+                } label: {
+                    Label("발행 취소", systemImage: "eye.slash")
+                }
+            }
+            Button(role: .destructive) {
+                deleteTarget = post
+            } label: {
+                Label("삭제", systemImage: "trash")
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 15 * metaUnit, weight: .semibold))
+                .foregroundStyle(Palette.secondary)
+                .frame(width: 34, height: 34)
+                .contentShape(Rectangle())
+        }
+        .tint(.brand)
+        .accessibilityLabel(Text("\(post.title) 관리"))
     }
 
     /// 상태 점 + (발행 외엔) 라벨 + 날짜. 점 색이 상태를 인코딩한다(초록=라이브, 흐림=초안).
@@ -319,6 +381,28 @@ struct StudioView: View {
 
     private func reloadSoon() {
         Task { await load() }
+    }
+
+    /// 발행 취소 후 목록을 다시 읽어 상태(비공개)를 제자리 반영 — 실패는 화면을 갈아엎지 않고 토스트로.
+    private func unpublish(_ post: MyPost) async {
+        do {
+            try await WriteAPI.unpublish(postId: post.id)
+            ToastCenter.shared.show(String(localized: "발행을 취소했어요"))
+            await load()
+        } catch {
+            ToastCenter.shared.show(String(localized: "발행을 취소하지 못했습니다"))
+        }
+    }
+
+    /// 삭제 후 목록에서 그 글을 즉시 걷어낸다(서버 재확인 겸 load) — 실패는 토스트로 알리고 목록 유지.
+    private func deletePost(_ post: MyPost) async {
+        do {
+            try await WriteAPI.deletePost(postId: post.id)
+            ToastCenter.shared.show(String(localized: "글을 삭제했어요"))
+            await load()
+        } catch {
+            ToastCenter.shared.show(String(localized: "글을 삭제하지 못했습니다"))
+        }
     }
 
     /// 에디터가 "글 보기"로 닫혔다 — 목록을 새로고침하고, 에디터 pop 직후 라이브 상세를 띄운다.

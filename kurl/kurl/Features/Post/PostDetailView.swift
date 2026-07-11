@@ -12,6 +12,7 @@ struct PostDetailView: View {
     @State private var model: PostDetailViewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
@@ -47,6 +48,9 @@ struct PostDetailView: View {
     /// 내 글을 볼 때만 뜨는 작가 동작 — 편집(에디터)·분석(이 글 성과).
     @State private var editingOwnPost = false
     @State private var showOwnAnalytics = false
+    /// 내 글 파괴적 관리(발행취소·삭제) — 웹 write 관리와 같은 계약. 읽던 자리에서 바로 처리한다(감사 갭 ④).
+    @State private var showUnpublishConfirm = false
+    @State private var showDeleteConfirm = false
     /// 남의 글 신고·작가 차단(더 보기 메뉴).
     @State private var showReport = false
     @State private var showBlockConfirm = false
@@ -247,6 +251,21 @@ struct PostDetailView: View {
         .blockDialog(
             isPresented: $showBlockConfirm,
             username: loadedAuthor?.username ?? "", userId: loadedAuthor?.id ?? 0)
+        // 발행 취소 — 되돌릴 수 있는 동작이라 담담한 확인. 성공하면 이 화면은 공개 상태를 벗어나므로
+        // 읽던 자리를 닫고 스튜디오로 돌아간다(비공개 글엔 공개 URL 이 없다).
+        .alert("이 글의 발행을 취소할까요?", isPresented: $showUnpublishConfirm) {
+            Button("발행 취소", role: .destructive) { Task { await unpublishOwnPost() } }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("글은 남지만 공개 주소가 닫혀 아무도 볼 수 없게 돼요. 언제든 다시 발행할 수 있어요.")
+        }
+        // 삭제 — 되돌릴 수 없는 동작. 성공하면 이 상세는 더 존재하지 않으므로 뒤로 돌아간다.
+        .alert("이 글을 삭제할까요?", isPresented: $showDeleteConfirm) {
+            Button("삭제", role: .destructive) { Task { await deleteOwnPost() } }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("글과 그 안의 내용이 영구히 지워져요. 되돌릴 수 없어요.")
+        }
         // 스크롤로 제목이 스밀 때까지는 내비바 배경을 숨긴다 — 커버 유무와 무관하게.
         // (무커버 글 진입 때 .automatic 의 반투명 내비바가 상단에 "투명한 박스"로 떴던 것 제거.)
         .toolbarBackground(
@@ -429,6 +448,22 @@ struct PostDetailView: View {
                     .tint(.brand)
                     .accessibilityLabel("이 글 편집")
                 }
+                // 발행취소·삭제 = 더 보기 메뉴로 — 편집·분석(잦은 동작)과 색을 다투지 않게
+                // 파괴적 관리는 ⋯ 뒤에 둔다(남의 글 차단·신고 메뉴와 같은 자리). 웹 관리와 같은 계약.
+                ToolbarItem(placement: .primaryAction) {
+                    Menu {
+                        Button(role: .destructive) { showUnpublishConfirm = true } label: {
+                            Label("발행 취소", systemImage: "eye.slash")
+                        }
+                        Button(role: .destructive) { showDeleteConfirm = true } label: {
+                            Label("삭제", systemImage: "trash")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                    }
+                    .tint(.brand)
+                    .accessibilityLabel("이 글 관리")
+                }
             } else if loadedPostId != nil, let author = loadedAuthor {
                 // 남의 글이면 — 더 보기 메뉴에 차단·신고(작가 프로필과 같은 문법). 차단을 여기
                 // 두어 거슬리는 글을 만난 자리에서 바로 처리하게 하고, 한 항목뿐이던 메뉴도 채운다.
@@ -572,6 +607,31 @@ struct PostDetailView: View {
         guard let myId = AuthStore.shared.me?.id,
               case .loaded(let detail) = model.phase else { return false }
         return detail.author.id == myId
+    }
+
+    /// 발행 취소 — 라이브 글을 비공개로 내린다. 이 상세는 공개 URL 을 잃으므로 뒤로 돌아간다.
+    /// 실패는 화면을 닫지 않고 토스트로만 알린다(읽던 자리 유지).
+    private func unpublishOwnPost() async {
+        guard let id = loadedPostId else { return }
+        do {
+            try await WriteAPI.unpublish(postId: id)
+            ToastCenter.shared.show(String(localized: "발행을 취소했어요"))
+            dismiss()
+        } catch {
+            ToastCenter.shared.show(String(localized: "발행을 취소하지 못했습니다"))
+        }
+    }
+
+    /// 글 영구 삭제 — 성공하면 이 상세가 더 없으므로 뒤로 돌아간다. 실패는 토스트로만.
+    private func deleteOwnPost() async {
+        guard let id = loadedPostId else { return }
+        do {
+            try await WriteAPI.deletePost(postId: id)
+            ToastCenter.shared.show(String(localized: "글을 삭제했어요"))
+            dismiss()
+        } catch {
+            ToastCenter.shared.show(String(localized: "글을 삭제하지 못했습니다"))
+        }
     }
 
     /// 공개 상세 → 에디터용 MyPost. 본문(markdown)은 에디터가 id 로 다시 받는다.
