@@ -2,21 +2,26 @@
 //  DiscoverView.swift
 //  kurl
 //
-//  발견 = 읽기의 연결 그래프 홈(§0). 1차 표면 = 큐레이터 연결 흐름("누가 무엇을 어느 컬렉션에
-//  이었나 + 왜"). broadcast 아니라 큐레이션을 따라간다(docs/collections-design.md).
+//  발견 = 읽기의 연결 그래프 홈(§0). 발견은 활동 로그가 아니라 *입구 모음* 이다 — "어디로 들어가서
+//  어디로 나가나". 기본 표면 = 지금 열려 있는 길(공개 컬렉션 입구) · 취향이 겹치는 큐레이터(사람 입구).
+//  시간순 "누가 언제 무엇을 이었나" 흐름은 삭제하지 않고 "최근" 탭으로 보존한다(칭찬받은 표면, 회귀 0).
+//  broadcast 아니라 큐레이션을 따라간다(docs/collections-design.md).
 //  (릴스형 몰입 덱 DiscoverDeckView 는 `--screen deck` 으로 주차 — 발견 표면에선 내렸다.)
 //
 
 import SwiftUI
 
-/// 발견 표면 두 흐름 — 큐레이터 연결 · 남들 하이라이트.
+/// 발견 표면 세 흐름 — 입구(길·큐레이터) · 최근(큐레이터 연결 시간순) · 남들 하이라이트.
+/// 입구가 기본: 발견은 "누가 언제"가 아니라 "어디로 들어가나"로 시작한다(§0).
 private enum DiscoverTab: String, CaseIterable, Identifiable {
+    case entrances
     case connections
     case highlights
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .connections: String(localized: "연결")
+        case .entrances: String(localized: "입구")
+        case .connections: String(localized: "최근")
         case .highlights: String(localized: "하이라이트")
         }
     }
@@ -30,8 +35,9 @@ struct DiscoverView: View {
     /// 직전 로그인 상태 — 재-appear 재발화와 실제 인증 전환을 구분한다(FeedView 와 같은 문법).
     @State private var wasSignedIn = AuthStore.shared.isSignedIn
     @State private var hasLoaded = false
-    /// 발견 표면 두 흐름: 큐레이터 연결 / 남들 하이라이트.
-    @State private var tab: DiscoverTab = .connections
+    /// 발견 표면 세 흐름: 입구(길·큐레이터) / 최근(큐레이터 연결 시간순) / 남들 하이라이트.
+    /// 입구가 기본 — 발견은 활동 로그가 아니라 어디로 들어가나로 연다(§0).
+    @State private var tab: DiscoverTab = .entrances
     @State private var highlights: [HighlightFeedItemView] = []
     @State private var hlLoading = true
     @State private var hlFailed = false
@@ -52,6 +58,7 @@ struct DiscoverView: View {
                     GlassSegmentSwitcher(items: DiscoverTab.allCases, selection: $tab) { $0.label }
                         .padding(.bottom, 14)
                     switch tab {
+                    case .entrances: entrancesContent
                     case .connections: connectionsContent
                     case .highlights: highlightsContent
                     }
@@ -73,7 +80,81 @@ struct DiscoverView: View {
             }
             .task(id: tab) { if tab == .highlights { await loadHighlights() } }
             .refreshable {
-                if tab == .connections { await load() } else { await loadHighlights(force: true) }
+                // 입구·최근은 같은 연결 흐름(events)에서 산다 — 둘 다 load() 로 새로고침한다.
+                if tab == .highlights { await loadHighlights(force: true) } else { await load() }
+            }
+        }
+    }
+
+    // MARK: 입구 모음 — 지금 열려 있는 길 · 취향이 겹치는 큐레이터
+
+    /// 지금 열려 있는 길 — 흐름에 나타난 공개 컬렉션을 collectionId 로 중복 제거(첫 등장 순 = 최신순).
+    /// 새 콜 없이 이미 받은 events 에서 입구를 뽑는다(신규 백엔드 0). 발견은 "누가 언제"가 아니라
+    /// 어느 길로 들어가나로 시작한다.
+    private var openPaths: [DiscoverPath] {
+        var seen = Set<Int64>()
+        var out: [DiscoverPath] = []
+        for e in events where seen.insert(e.collectionId).inserted {
+            out.append(
+                DiscoverPath(
+                    id: e.collectionId, title: e.collectionTitle,
+                    kind: e.collectionKind, curatorUsername: e.curator.username))
+        }
+        return out
+    }
+
+    /// 취향이 겹치는 큐레이터 — 흐름에 나타난 큐레이터를 username 으로 중복 제거(첫 등장 순).
+    /// 팔로우한 큐레이터의 연결이 events 에 흐르므로, 이들이 곧 취향 겹치는 사람 입구다(같은 흐름 재사용).
+    private var flowCurators: [Author] {
+        var seen = Set<String>()
+        var out: [Author] = []
+        for e in events where seen.insert(e.curator.username).inserted {
+            out.append(e.curator)
+        }
+        return out
+    }
+
+    @ViewBuilder
+    private var entrancesContent: some View {
+        if loading {
+            KurlLoadingMark()
+                .frame(maxWidth: .infinity, minHeight: 320)
+        } else if failed {
+            failedState
+        } else if openPaths.isEmpty && flowCurators.isEmpty {
+            // 콜드스타트 — 팔로우 0이면 흐를 게 없다. 입구도 최근과 같은 언어로 작가 찾기(막다른 길 금지).
+            emptyState
+        } else {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                if !openPaths.isEmpty {
+                    RailHeading("지금 열려 있는 길")
+                        .padding(.bottom, 12)
+                    ForEach(Array(openPaths.enumerated()), id: \.element.id) { index, path in
+                        NavigationLink(value: CollectionRef(id: path.id)) {
+                            PathEntranceRow(path: path)
+                        }
+                        .buttonStyle(.plain)
+                        .modifier(QuietAppear(index: index))
+                        if index < openPaths.count - 1 {
+                            Hairline().padding(.leading, 47)
+                        }
+                    }
+                }
+                if !flowCurators.isEmpty {
+                    RailHeading("취향이 겹치는 큐레이터")
+                        .padding(.top, openPaths.isEmpty ? 0 : 30)
+                        .padding(.bottom, 12)
+                    ForEach(Array(flowCurators.enumerated()), id: \.element.id) { index, curator in
+                        NavigationLink(value: Route.author(username: curator.username)) {
+                            CuratorEntranceRow(curator: curator)
+                        }
+                        .buttonStyle(.plain)
+                        .modifier(QuietAppear(index: openPaths.count + index))
+                        if index < flowCurators.count - 1 {
+                            Hairline().padding(.leading, 55)
+                        }
+                    }
+                }
             }
         }
     }
@@ -578,6 +659,83 @@ private struct HighlightFeedCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
+    }
+}
+
+// MARK: 입구 — 길 · 큐레이터
+
+/// 발견 입구용 길 한 줄의 값 — 흐름(events)에서 뽑은 공개 컬렉션(collectionId 로 중복 제거).
+/// 백엔드 모델이 아니라 events 를 접어 만든 표시용 값이라 여기 산다.
+private struct DiscoverPath: Identifiable, Hashable {
+    let id: Int64
+    let title: String
+    let kind: CollectionKind
+    let curatorUsername: String
+}
+
+/// 길 입구 한 줄 — 그린 글리프(길=↳ / 컬렉션=그리드) + 제목, 그 아래 @큐레이터. PostEdges 의
+/// pathChip 과 같은 문법(§1 종이·§10.3 비텍스트만 초록). 허영 지표(편수·분) 없이 조용히(§0).
+private struct PathEntranceRow: View {
+    let path: DiscoverPath
+    @ScaledMetric(relativeTo: .caption) private var glyph: CGFloat = 13
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 11) {
+            Image(systemName: path.kind == .path ? "arrow.turn.down.right" : "square.grid.2x2")
+                .font(.system(size: glyph, weight: .semibold))
+                .foregroundStyle(Palette.accent)
+                .frame(width: 24, alignment: .leading)
+                .padding(.top, 2)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(path.title)
+                    .typeScale(.body)
+                    .foregroundStyle(Palette.ink)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                Text("@\(path.curatorUsername)")
+                    .typeScale(.meta)
+                    .foregroundStyle(Palette.faint)
+            }
+            Spacer(minLength: 8)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Palette.faint)
+                .padding(.top, 4)
+        }
+        .padding(.vertical, 10)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// 큐레이터 입구 한 줄 — 아바타 + @이름·소개. PostEdges·컬렉션 상세의 kindred 행과 같은 문법.
+/// 흐름에 나타난 큐레이터가 곧 취향 겹치는 사람 입구 — 겹침 수는 특정 블록 그래프에만 있어 여기선 조용히 뺀다.
+private struct CuratorEntranceRow: View {
+    let curator: Author
+
+    var body: some View {
+        HStack(spacing: 11) {
+            AvatarView(author: curator, size: 44)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("@\(curator.username)")
+                    .typeScale(.titleSmall)
+                    .foregroundStyle(Palette.ink)
+                    .lineLimit(1)
+                if let bio = curator.bio, !bio.isEmpty {
+                    Text(bio)
+                        .typeScale(.lede)
+                        .foregroundStyle(Palette.secondary)
+                        .lineLimit(1)
+                }
+            }
+            Spacer(minLength: 8)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Palette.faint)
+        }
+        .padding(.vertical, 10)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
     }
 }
 
