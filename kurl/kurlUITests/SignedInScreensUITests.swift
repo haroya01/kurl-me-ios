@@ -135,17 +135,23 @@ final class SignedInScreensUITests: XCTestCase {
         if !row.isHittable { app.swipeUp() }
         row.tap()
 
-        // 7타입 토글이 도달했는지 — 목이 꺼둔 '구독 작가의 새 글' 스위치가 off 로 렌더된다.
+        // 7타입 토글이 도달했는지 — 목이 꺼둔 '팔로우한 작가의 새 글' 스위치가 off 로 렌더된다.
         let newPost = app.switches.matching(NSPredicate(format: "label CONTAINS '새 글'")).firstMatch
         XCTAssertTrue(newPost.waitForExistence(timeout: 8), "알림 종류 화면에 토글이 없음")
+        // 목 기본값 = 새 글만 꺼짐. 값까지 확인해 "렌더됨"을 "off 로 렌더됨"으로 좁힌다.
+        XCTAssertEqual(newPost.value as? String, "0", "새 글 토글이 목 기본값(off)으로 렌더되지 않음")
         shoot("notification-preferences")
 
-        // 첫 토글(좋아요)을 눌러 낙관적 반영 — 목이 상태를 받아 되돌림 토스트가 뜨지 않는다.
-        let like = app.switches.matching(NSPredicate(format: "label CONTAINS '좋아요'")).firstMatch
-        if like.waitForExistence(timeout: 4) {
-            like.tap()
-            Thread.sleep(forTimeInterval: 0.4)
-            shoot("notification-preferences-toggled")
-        }
+        // 새 글 토글을 켜 낙관적 반영 — 값이 실제로 off→on 으로 뒤집혔는지 단언(탭이 먹혔음을 증명).
+        // 스위치 요소는 행 라벨(아이콘·제목·설명)까지 감싸 중앙 탭이 라벨에 떨어진다 — 실제 컨트롤이
+        // 있는 오른쪽 끝을 좌표로 눌러 값을 뒤집는다(SwiftUI Toggle + 넓은 라벨의 XCUITest 함정).
+        newPost.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        Thread.sleep(forTimeInterval: 0.4)
+        XCTAssertEqual(newPost.value as? String, "1", "탭 후에도 새 글 토글이 on 으로 뒤집히지 않음")
+        // 목 PUT 은 항상 성공하므로 되돌림 토스트가 떠선 안 된다 — 거짓 성공(값만 바뀌고 저장 실패)을 배제.
+        XCTAssertFalse(
+            app.staticTexts["설정을 저장하지 못했습니다"].exists,
+            "저장 성공인데 되돌림 토스트가 떴음(거짓 성공)")
+        shoot("notification-preferences-toggled")
     }
 }

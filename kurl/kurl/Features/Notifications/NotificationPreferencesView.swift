@@ -16,7 +16,7 @@ extension NotificationKind {
         case .mention: return "멘션"
         case .follow: return "팔로우"
         case .seriesSubscribe: return "시리즈 구독"
-        case .newPost: return "구독 작가의 새 글"
+        case .newPost: return "팔로우한 작가의 새 글"
         }
     }
 
@@ -29,7 +29,7 @@ extension NotificationKind {
         case .mention: return "누가 나를 언급할 때"
         case .follow: return "누가 나를 팔로우할 때"
         case .seriesSubscribe: return "누가 내 시리즈를 구독할 때"
-        case .newPost: return "구독한 작가가 새 글을 발행할 때"
+        case .newPost: return "팔로우한 작가가 새 글을 발행할 때"
         }
     }
 
@@ -41,7 +41,7 @@ extension NotificationKind {
         case .reply: return "arrowshape.turn.up.left"
         case .mention: return "at"
         case .follow: return "person.badge.plus"
-        case .seriesSubscribe: return "square.stack"
+        case .seriesSubscribe: return "books.vertical"
         case .newPost: return "doc.text"
         }
     }
