@@ -37,7 +37,8 @@ enum MockBackend {
                  markdown: "# 헥사고날\n\n포트와 어댑터.", publishedAt: nil, updatedAt: Date(),
                  tags: ["개발"], excerpt: "포트와 어댑터로 다시 그린다."),
         MockPost(id: 9002, slug: "p-mock-2", title: "발행된 목 글", status: "PUBLISHED",
-                 markdown: "# 발행됨\n\n본문.", publishedAt: Date().addingTimeInterval(-86_400), updatedAt: Date()),
+                 markdown: "# 발행됨\n\n본문.", publishedAt: Date().addingTimeInterval(-86_400), updatedAt: Date(),
+                 tags: ["회고", "iOS"], excerpt: "한 달간의 작업을 정리했다."),
     ]
     private struct MockNote {
         var id: Int64
@@ -1305,6 +1306,18 @@ enum MockBackend {
                      "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
                      "seriesId": 1, "seriesSlug": "hexagonal", "seriesTitle": "헥사고날 전환기",
                      "read": true, "createdAt": iso(Date().addingTimeInterval(-172_800))],
+                    ["id": 5, "type": "REPLY", "actorUsername": "reader_kim", "actorAvatarUrl": NSNull(),
+                     "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글", "postAuthorUsername": "honggildong",
+                     "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                     "read": true, "createdAt": iso(Date().addingTimeInterval(-259_200))],
+                    ["id": 6, "type": "MENTION", "actorUsername": "yuki_dev", "actorAvatarUrl": NSNull(),
+                     "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글", "postAuthorUsername": "honggildong",
+                     "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                     "read": true, "createdAt": iso(Date().addingTimeInterval(-345_600))],
+                    ["id": 7, "type": "NEW_POST", "actorUsername": "honggildong", "actorAvatarUrl": NSNull(),
+                     "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글", "postAuthorUsername": "honggildong",
+                     "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                     "read": true, "createdAt": iso(Date().addingTimeInterval(-432_000))],
                 ],
                 "nextCursor": NSNull(), "hasMore": false,
             ])
