@@ -167,6 +167,41 @@ enum WriteAPI {
             "/series/\(seriesId)/posts", body: Body(postIds: postIds), authenticated: true)
     }
 
+    // MARK: 시리즈 관리 (주인 전용 — 웹 관리 화면과 같은 계약)
+
+    /// 시리즈 상세(주인) — 발행 여부와 무관한 회차 전체를 순서대로 준다(reorder 가 이 전부를 다뤄야
+    /// 초안·예약 회차를 떨구지 않는다). 공개 상세(username/slug)와 달리 숫자 id 로 부른다.
+    static func seriesMembers(seriesId: Int64) async throws -> [SeriesMember] {
+        struct Detail: Decodable { let posts: [SeriesMember] }
+        let detail: Detail = try await client.get("/series/\(seriesId)", authenticated: true)
+        return detail.posts
+    }
+
+    /// 이름·주소(slug) 수정 — PATCH 라 바뀐 것만 보낸다(null 은 서버가 무시). 응답의 갱신된 제목을 채택.
+    /// 소개·공개범위 필드는 시리즈에 없다(웹도 동일) — 넣지 않는다.
+    @discardableResult
+    static func updateSeries(id: Int64, title: String?, slug: String?) async throws -> String {
+        struct Body: Encodable { let title: String?; let slug: String? }
+        struct Response: Decodable {
+            struct Series: Decodable { let title: String }
+            let series: Series
+        }
+        let res: Response = try await client.patch(
+            "/series/\(id)", body: Body(title: title, slug: slug), authenticated: true)
+        return res.series.title
+    }
+
+    /// 회차 순서 재배치 — 전체 멤버를 원하는 순서대로 다시 보낸다(리스트 순서 = 회차 순서).
+    /// 세트/재배치가 같은 엔드포인트라, 빠진 회차는 시리즈에서 떨어져 나간다 — 호출측이 전체를 넘긴다.
+    static func reorderSeries(id: Int64, postIds: [Int64]) async throws {
+        try await setMembers(seriesId: id, postIds: postIds)
+    }
+
+    /// 시리즈 삭제 — 회차 글 자체는 남고 시리즈 소속만 풀린다(서버가 series_id 정리 후 행 삭제). 204.
+    static func deleteSeries(id: Int64) async throws {
+        try await client.deleteVoid("/series/\(id)", authenticated: true)
+    }
+
     // MARK: 이미지 업로드 (커버·본문 공용)
 
     /// presign → S3 PUT → commit. JPEG 로 재인코딩해 올린다(HEIC 화이트리스트 이슈 회피).
@@ -230,6 +265,16 @@ struct MySeries: Decodable, Identifiable, Hashable {
     let slug: String
     let title: String
     let postCount: Int
+}
+
+/// 시리즈 회차 한 줄(주인 뷰) — 순서 편집이 다루는 최소 부분집합. 발행 전 회차도 오므로 상태를 함께
+/// 실어 순서 편집 시트가 "초안·예약" 회차를 구분해 보여줄 수 있게 한다(공개 상세엔 발행글만 온다).
+struct SeriesMember: Decodable, Identifiable, Hashable {
+    let id: Int64
+    let title: String
+    let status: String
+
+    var isPublished: Bool { status == "PUBLISHED" }
 }
 
 struct PostRevision: Decodable, Identifiable {
