@@ -54,6 +54,18 @@ enum WriteAPI {
         try await client.post("/posts/\(postId)/publish", body: EmptyBody(), authenticated: true)
     }
 
+    /// 발행 취소 — 라이브 글을 비공개(UNPUBLISHED)로 내린다(웹 관리와 같은 계약). 글은 남고
+    /// 공개 URL 만 닫힌다(삭제와 다르다). 응답의 갱신된 글로 목록·상태 표시를 제자리 맞춘다.
+    @discardableResult
+    static func unpublish(postId: Int64) async throws -> MyPost {
+        try await client.post("/posts/\(postId)/unpublish", body: EmptyBody(), authenticated: true)
+    }
+
+    /// 글 영구 삭제 — 서버가 소유권 확인 후 지운다(204). 되돌릴 수 없으므로 호출측이 확인을 받는다.
+    static func deletePost(postId: Int64) async throws {
+        try await client.deleteVoid("/posts/\(postId)", authenticated: true)
+    }
+
     /// 본문에 붙여넣은 외부 URL 을 kurl 단축링크로. 응답의 shortUrl(전체 주소)만 채택한다.
     static func shorten(_ url: String) async throws -> String {
         struct Body: Encodable { let url: String }

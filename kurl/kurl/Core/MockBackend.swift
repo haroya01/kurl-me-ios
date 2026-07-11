@@ -939,6 +939,20 @@ enum MockBackend {
             return json(postView(posts[idx]))
         }
 
+        // 발행 취소 — 라이브 글을 비공개(UNPUBLISHED)로. 글은 남고 상태만 바뀐다(웹 계약과 동일).
+        if method == "POST", parts.count == 3, parts[0] == "posts", parts[2] == "unpublish" {
+            guard let idx = posts.firstIndex(where: { String($0.id) == parts[1] }) else { return nil }
+            posts[idx].status = "UNPUBLISHED"
+            return json(postView(posts[idx]))
+        }
+
+        // 글 삭제 — 204(빈 응답). 목 저장소에서 그 글을 걷어낸다.
+        if method == "DELETE", parts.count == 2, parts[0] == "posts" {
+            guard let idx = posts.firstIndex(where: { String($0.id) == parts[1] }) else { return nil }
+            posts.remove(at: idx)
+            return json([:])
+        }
+
         if parts.count == 3, parts[0] == "posts", parts[2] == "like" {
             let pid = Int64(parts[1]) ?? 0
             var state = likes[pid] ?? (count: 3, liked: false)

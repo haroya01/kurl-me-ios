@@ -1,6 +1,94 @@
 {
   "sourceLanguage" : "ko",
   "strings" : {
+    "%@ 관리" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Manage %@" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "%@ प्रबंधित करें" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "%@を管理" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Quản lý %@" } }
+      }
+    },
+    "발행 취소" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Unpublish" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "अप्रकाशित करें" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "公開を取り消す" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Hủy đăng" } }
+      }
+    },
+    "발행을 취소했어요" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Unpublished" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "अप्रकाशित कर दिया" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "公開を取り消しました" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Đã hủy đăng" } }
+      }
+    },
+    "발행을 취소하지 못했습니다" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Couldn’t unpublish" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "अप्रकाशित नहीं किया जा सका" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "公開を取り消せませんでした" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Không thể hủy đăng" } }
+      }
+    },
+    "글을 삭제했어요" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Post deleted" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "पोस्ट हटा दी गई" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "記事を削除しました" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Đã xóa bài viết" } }
+      }
+    },
+    "글을 삭제하지 못했습니다" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Couldn’t delete the post" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "पोस्ट हटाई नहीं जा सकी" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "記事を削除できませんでした" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Không thể xóa bài viết" } }
+      }
+    },
+    "글과 그 안의 내용이 영구히 지워져요. 되돌릴 수 없어요." : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "The post and everything in it will be permanently erased. This can’t be undone." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "पोस्ट और उसकी सारी सामग्री स्थायी रूप से मिट जाएगी। इसे पूर्ववत नहीं किया जा सकता।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "記事とその中身が完全に削除されます。元に戻せません。" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Bài viết và mọi nội dung trong đó sẽ bị xóa vĩnh viễn. Không thể hoàn tác." } }
+      }
+    },
+    "글은 남지만 공개 주소가 닫혀 아무도 볼 수 없게 돼요. 언제든 다시 발행할 수 있어요." : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "The post stays, but its public address closes so no one can see it. You can publish it again anytime." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "पोस्ट रहेगी, लेकिन उसका सार्वजनिक पता बंद हो जाएगा ताकि कोई उसे न देख सके। आप इसे कभी भी दोबारा प्रकाशित कर सकते हैं।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "記事は残りますが、公開アドレスが閉じて誰も見られなくなります。いつでも再公開できます。" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Bài viết vẫn còn, nhưng địa chỉ công khai sẽ đóng lại nên không ai xem được. Bạn có thể đăng lại bất cứ lúc nào." } }
+      }
+    },
+    "이 글 관리" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Manage this post" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "यह पोस्ट प्रबंधित करें" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "この記事を管理" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Quản lý bài viết này" } }
+      }
+    },
+    "이 글을 삭제할까요?" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Delete this post?" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "यह पोस्ट हटाएँ?" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "この記事を削除しますか？" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Xóa bài viết này?" } }
+      }
+    },
+    "이 글의 발행을 취소할까요?" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Unpublish this post?" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "यह पोस्ट अप्रकाशित करें?" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "この記事の公開を取り消しますか？" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Hủy đăng bài viết này?" } }
+      }
+    },
     "이 시리즈를 삭제할까요?" : {
       "localizations" : {
         "en" : { "stringUnit" : { "state" : "translated", "value" : "Delete this series?" } },
