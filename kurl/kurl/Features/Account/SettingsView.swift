@@ -99,6 +99,27 @@ struct SettingsView: View {
                     .padding(.leading, 32)
                     .padding(.bottom, 4)
             }
+            if auth.isSignedIn {
+                // 종류별 뮤트는 인증 설정(내 계정에 저장) — 위 푸시 권한(시스템)과 층이 다르다.
+                Hairline()
+                NavigationLink {
+                    NotificationPreferencesView()
+                } label: {
+                    HStack(spacing: 10) {
+                        settingIcon("slider.horizontal.3")
+                        Text("알림 종류")
+                            .typeScale(.body)
+                            .foregroundStyle(Palette.ink)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Palette.faint)
+                    }
+                    .padding(.vertical, 13)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
 
             RailHeading("정책")
                 .padding(.top, 28)

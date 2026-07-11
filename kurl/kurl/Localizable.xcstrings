@@ -1,6 +1,126 @@
 {
   "sourceLanguage" : "ko",
   "strings" : {
+    "댓글" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Comments" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "टिप्पणियाँ" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "コメント" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Bình luận" } }
+      }
+    },
+    "멘션" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Mentions" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "उल्लेख" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "メンション" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Nhắc đến" } }
+      }
+    },
+    "시리즈 구독" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Series subscriptions" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "सीरीज़ सदस्यता" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "シリーズ購読" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Đăng ký series" } }
+      }
+    },
+    "구독 작가의 새 글" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "New posts from writers you follow" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "आपके फ़ॉलो किए लेखकों की नई पोस्ट" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "購読中の作家の新しい記事" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Bài viết mới từ tác giả bạn theo dõi" } }
+      }
+    },
+    "누가 내 글을 좋아할 때" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "When someone likes your post" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "जब कोई आपकी पोस्ट को पसंद करे" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "誰かがあなたの記事にいいねしたとき" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Khi ai đó thích bài viết của bạn" } }
+      }
+    },
+    "누가 내 글에 댓글을 남길 때" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "When someone comments on your post" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "जब कोई आपकी पोस्ट पर टिप्पणी करे" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "誰かがあなたの記事にコメントしたとき" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Khi ai đó bình luận về bài viết của bạn" } }
+      }
+    },
+    "누가 내 댓글에 답글을 남길 때" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "When someone replies to your comment" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "जब कोई आपकी टिप्पणी का जवाब दे" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "誰かがあなたのコメントに返信したとき" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Khi ai đó trả lời bình luận của bạn" } }
+      }
+    },
+    "누가 나를 언급할 때" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "When someone mentions you" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "जब कोई आपका उल्लेख करे" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "誰かがあなたをメンションしたとき" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Khi ai đó nhắc đến bạn" } }
+      }
+    },
+    "누가 나를 팔로우할 때" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "When someone follows you" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "जब कोई आपको फ़ॉलो करे" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "誰かがあなたをフォローしたとき" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Khi ai đó theo dõi bạn" } }
+      }
+    },
+    "누가 내 시리즈를 구독할 때" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "When someone subscribes to your series" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "जब कोई आपकी सीरीज़ की सदस्यता ले" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "誰かがあなたのシリーズを購読したとき" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Khi ai đó đăng ký series của bạn" } }
+      }
+    },
+    "구독한 작가가 새 글을 발행할 때" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "When a writer you follow publishes a new post" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "जब आपका फ़ॉलो किया लेखक नई पोस्ट प्रकाशित करे" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "購読中の作家が新しい記事を公開したとき" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Khi tác giả bạn theo dõi đăng bài mới" } }
+      }
+    },
+    "알림 종류" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Notification types" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "सूचना प्रकार" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "通知の種類" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Loại thông báo" } }
+      }
+    },
+    "끈 종류는 벨과 푸시에 오지 않아요" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Turned-off types won't appear in the bell or push" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "बंद किए गए प्रकार घंटी और पुश में नहीं आएंगे" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "オフにした種類はベルとプッシュに届きません" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Loại đã tắt sẽ không xuất hiện ở chuông và thông báo đẩy" } }
+      }
+    },
+    "잠시 후 다시 시도해 주세요" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Please try again in a moment" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "कृपया थोड़ी देर बाद पुनः प्रयास करें" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "しばらくしてからもう一度お試しください" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Vui lòng thử lại sau giây lát" } }
+      }
+    },
+    "설정을 저장하지 못했습니다" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Couldn't save your setting" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "आपकी सेटिंग सहेजी नहीं जा सकी" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "設定を保存できませんでした" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Không thể lưu cài đặt" } }
+      }
+    },
     "%@ 관리" : {
       "localizations" : {
         "en" : { "stringUnit" : { "state" : "translated", "value" : "Manage %@" } },
