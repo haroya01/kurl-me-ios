@@ -1082,7 +1082,9 @@ enum MockBackend {
             return json([
                 "author": ["id": 1, "username": username, "bio": NSNull(), "avatarUrl": NSNull()],
                 "series": [
-                    "id": 7, "slug": parts[4], "title": "헥사고날 전환기",
+                    // 수정 후 재로드가 새 제목·주소를 반영하게 override 를 우선 읽는다(없으면 기본값).
+                    "id": 7, "slug": seriesTitles[7]?.0 ?? parts[4],
+                    "title": seriesTitles[7]?.1 ?? "헥사고날 전환기",
                     "postCount": titles.count, "tags": ["아키텍처"],
                 ],
                 "posts": posts,
@@ -1374,11 +1376,49 @@ enum MockBackend {
 
         if method == "GET", parts.count == 2, parts[0] == "series" {
             let sid = Int64(parts[1]) ?? 0
+            // 공개 상세(id 7)로 들어온 주인 시리즈 — 순서 편집이 다룰 회차를 그 화면과 같은 6편으로 준다
+            // (초안 한 편 섞어 발행 전 회차 표식까지 확인 가능하게). 나머지 id 는 실제 멤버십을 읽는다.
+            if sid == 7 {
+                let member = seriesFixtureMembers()
+                return json([
+                    "series": ["id": 7, "slug": seriesTitles[7]?.0 ?? "hexagonal",
+                               "title": seriesTitles[7]?.1 ?? "헥사고날 전환기",
+                               "postCount": member.count, "createdAt": iso(Date()), "updatedAt": iso(Date())],
+                    "posts": member,
+                ])
+            }
             let members = (seriesMembers[sid] ?? []).compactMap { id in posts.first { $0.id == id } }
             return json([
-                "series": ["id": sid, "slug": "s", "title": "시리즈", "postCount": members.count, "createdAt": iso(Date()), "updatedAt": iso(Date())],
+                "series": ["id": sid, "slug": seriesTitles[sid]?.0 ?? "s",
+                           "title": seriesTitles[sid]?.1 ?? "시리즈",
+                           "postCount": members.count, "createdAt": iso(Date()), "updatedAt": iso(Date())],
                 "posts": members.map(postView),
             ])
+        }
+
+        // 이름·주소 수정 — PATCH(바뀐 것만 온다). 목은 제목·slug 만 기억해 재로드 시 반영한다.
+        if method == "PATCH", parts.count == 2, parts[0] == "series" {
+            let sid = Int64(parts[1]) ?? 0
+            let req = decode(body)
+            let prev = seriesTitles[sid] ?? (sid == 7 ? "hexagonal" : "s", sid == 7 ? "헥사고날 전환기" : "시리즈")
+            let newSlug = (req["slug"] as? String).map { $0.isEmpty ? prev.0 : $0 } ?? prev.0
+            let newTitle = (req["title"] as? String).map { $0.isEmpty ? prev.1 : $0 } ?? prev.1
+            seriesTitles[sid] = (newSlug, newTitle)
+            return json([
+                "series": ["id": sid, "slug": newSlug, "title": newTitle,
+                           "postCount": seriesMembers[sid]?.count ?? 0,
+                           "createdAt": iso(Date()), "updatedAt": iso(Date())],
+                "posts": [],
+            ])
+        }
+
+        // 시리즈 삭제 — 소속만 풀고 204. 목은 멤버십·제목 override 만 비운다.
+        if method == "DELETE", parts.count == 2, parts[0] == "series" {
+            let sid = Int64(parts[1]) ?? 0
+            for i in posts.indices where posts[i].seriesId == sid { posts[i].seriesId = nil }
+            seriesMembers[sid] = []
+            seriesTitles[sid] = nil
+            return json([:])
         }
 
         if method == "PUT", parts.count == 3, parts[0] == "series", parts[2] == "posts" {
@@ -1413,6 +1453,27 @@ enum MockBackend {
         (2, "ios-build", "iOS 앱 만들기"),
     ]
     private static var seriesMembers: [Int64: [Int64]] = [1: [9002], 2: []]
+    /// 수정으로 바뀐 (slug, title) — 재로드 시 새 이름·주소가 반영되게 override 로 보관(초기값은 nil).
+    private static var seriesTitles: [Int64: (String, String)] = [:]
+    /// 주인 순서 편집이 다룰 회차 6편(공개 상세 id 7 과 같은 목록) — 마지막 한 편은 초안으로 두어
+    /// 발행 전 회차 표식까지 확인 가능하게 한다. `.onMove` 로 순서를 바꾸고 저장해 왕복을 검증한다.
+    private static func seriesFixtureMembers() -> [[String: Any]] {
+        let titles = [
+            "포트와 어댑터", "도메인을 안으로", "의존성 뒤집기",
+            "어댑터 구현", "테스트 전략", "마이그레이션",
+        ]
+        return titles.enumerated().map { i, t in
+            let draft = i == titles.count - 1
+            return [
+                "id": 8001 + i, "slug": "ep-\(i + 1)", "title": t, "status": draft ? "DRAFT" : "PUBLISHED",
+                "languageTag": "ko",
+                "publishedAt": draft ? NSNull() : iso(Date().addingTimeInterval(-Double(titles.count - i) * 86_400)),
+                "scheduledAt": NSNull(), "excerpt": NSNull(), "ogImageUrl": NSNull(),
+                "seriesId": 7, "seriesOrder": i, "viewCount": 42, "likeCount": 5 - i,
+                "tags": ["아키텍처"], "createdAt": iso(Date()), "updatedAt": iso(Date()),
+            ]
+        }
+    }
     private static var createdSeries: [(Int64, String, String)] = []
     private static var nextSeriesId: Int64 = 100
     private static var likedComments: Set<Int64> = []

@@ -1,6 +1,102 @@
 {
   "sourceLanguage" : "ko",
   "strings" : {
+    "이 시리즈를 삭제할까요?" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Delete this series?" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "यह शृंखला हटाएँ?" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "このシリーズを削除しますか？" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Xóa loạt bài này?" } }
+      }
+    },
+    "이미 쓰고 있는 주소예요" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "That address is already in use" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "यह पता पहले से उपयोग में है" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "すでに使われているアドレスです" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Địa chỉ này đã được dùng" } }
+      }
+    },
+    "새로고침하지 못했습니다" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Couldn’t refresh" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "रीफ़्रेश नहीं हो सका" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "更新できませんでした" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Không thể làm mới" } }
+      }
+    },
+    "시리즈 관리" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Manage series" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "शृंखला प्रबंधित करें" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "シリーズを管理" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Quản lý loạt bài" } }
+      }
+    },
+    "시리즈 삭제" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Delete series" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "शृंखला हटाएँ" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "シリーズを削除" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Xóa loạt bài" } }
+      }
+    },
+    "시리즈 수정" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Edit series" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "शृंखला संपादित करें" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "シリーズを編集" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Sửa loạt bài" } }
+      }
+    },
+    "시리즈 이름" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Series name" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "शृंखला का नाम" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "シリーズ名" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Tên loạt bài" } }
+      }
+    },
+    "시리즈 묶음만 풀려요. 회차 글 자체는 지워지지 않아요." : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Only the series grouping is removed. The episode posts themselves aren’t deleted." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "केवल शृंखला समूहन हटता है। एपिसोड की पोस्ट स्वयं नहीं मिटतीं।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "シリーズのまとまりだけが解除されます。各話の記事そのものは削除されません。" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Chỉ nhóm loạt bài bị gỡ. Các bài viết từng phần không bị xóa." } }
+      }
+    },
+    "시리즈를 삭제하지 못했습니다" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Couldn’t delete the series" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "शृंखला हटाई नहीं जा सकी" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "シリーズを削除できませんでした" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Không thể xóa loạt bài" } }
+      }
+    },
+    "주소" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Address" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "पता" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "アドレス" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Địa chỉ" } }
+      }
+    },
+    "초안" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Draft" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "मसौदा" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "下書き" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Bản nháp" } }
+      }
+    },
+    "회차를 불러오지 못했습니다" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Couldn’t load the episodes" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "एपिसोड लोड नहीं हो सके" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "各話を読み込めませんでした" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Không thể tải các phần" } }
+      }
+    },
     "입구" : {
       "localizations" : {
         "en" : {
