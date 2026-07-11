@@ -44,7 +44,7 @@ struct BusinessCardView: View {
                                     isLoading = true
                                     attempt += 1
                                 }
-                                .foregroundStyle(Palette.accent)
+                                .foregroundStyle(Palette.link)
                             }
                         }
                     }
