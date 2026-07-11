@@ -423,21 +423,13 @@ struct FeedPage: View {
         return ConnectionSlot(event: events[slotOrdinal], isFirst: slotOrdinal == 0)
     }
 
-    // "지금 이어지는 것들" — 공개 연결 흐름의 머릿글. RailHeading 은 §10 규율로 마커를 잉크로
-    // 가라앉혔지만, 여기선 이 한 흐름이 사람의 연결임을 알리는 유일한 그린 실이라 §10.3 비텍스트
-    // 마커(accent 600)로 초록 한 점만 허용한다(카드 본문은 종이 그대로).
+    // "지금 이어지는 것들" — 공개 연결 흐름의 머릿글. 형제 발견 머릿글과 같은 RailHeading 로
+    // 맞춘다 — §10 색 규율로 섹션 마커는 잉크로 가라앉힌 지 오래고, 초록은 아래 카드가 제 몫으로
+    // 낸다(연결 칩·하이라이트 룰). 머릿글에까지 초록을 다시 얹으면 그 규율을 되돌리는 셈이다.
     private var connectionHeading: some View {
-        HStack(spacing: 8) {
-            RoundedRectangle(cornerRadius: 1)
-                .fill(Palette.accentMarker)
-                .frame(width: 3, height: 12)
-            Text("지금 이어지는 것들")
-                .typeScale(.eyebrow)
-                .foregroundStyle(Palette.heading)
-            Spacer(minLength: 0)
-        }
-        .accessibilityAddTraits(.isHeader)
-        .modifier(CardScrollFade())
+        RailHeading("지금 이어지는 것들")
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .modifier(CardScrollFade())
     }
 
     private func failed(_ message: String) -> some View {

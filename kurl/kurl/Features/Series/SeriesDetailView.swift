@@ -72,8 +72,11 @@ struct SeriesDetailView: View {
                         } label: {
                             Label("수정", systemImage: "pencil")
                         }
-                        // 순서 편집은 이을 회차가 둘 이상일 때만 — 한 편짜리는 순서가 없다.
-                        if detail.posts.count > 1 {
+                        // 순서 편집 — 주인에겐 항상 연다. 공개 상세(detail.posts)는 발행글만 와서
+                        // "발행 하나 + 초안 여럿" 시리즈는 여기서 편수가 1로 보이지만, 순서 편집 시트는
+                        // 주인 상세를 따로 읽어 초안·예약까지 전부 다룬다 — 발행글 수로 문을 닫으면
+                        // 정작 순서를 짤 회차들이 가려진다. 실제로 한 편뿐이면 시트의 저장이 비활성.
+                        if !detail.posts.isEmpty {
                             Button {
                                 showReorder = true
                             } label: {
