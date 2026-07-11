@@ -14,7 +14,7 @@ struct FollowListsView: View {
     enum FollowTab: String, Identifiable, CaseIterable {
         case followers, following
         var id: String { rawValue }
-        var title: String { self == .followers ? "팔로워" : "팔로잉" }
+        var title: String { self == .followers ? String(localized: "팔로워") : String(localized: "팔로잉") }
     }
 
     @State private var tab: FollowTab
