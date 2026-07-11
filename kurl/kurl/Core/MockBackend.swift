@@ -535,31 +535,81 @@ enum MockBackend {
     /// 카드 소속 배치 목 — 잘 알려진 목 피드 글 id 에 소속 공개 컬렉션을 매핑한다. 한 컬렉션(단수 카피)과
     /// 여러 컬렉션(복수 "외 N개") 두 경우를 다 그려 보이게 섞는다. 소속 없는 글은 여기 없다(호출측은 빈 배열).
     private static func postCollectionsMock() -> [[String: Any]] {
-        func c(_ id: Int64, _ title: String, _ kind: String, _ count: Int, _ preview: [String]) -> [String: Any] {
-            [
+        // 리치 소속(#607) — 큐레이터·순서(position/total)까지. path 는 "N번째 / 전체 M"으로,
+        // collection 은 큐레이터만(순서 없음). curator 없는 것도 하나 섞어 count 폴백을 확인.
+        func c(_ id: Int64, _ title: String, _ kind: String, _ count: Int, _ preview: [String],
+               curator: String? = nil, position: Int? = nil, total: Int? = nil) -> [String: Any] {
+            var d: [String: Any] = [
                 "id": id, "title": title, "description": NSNull(),
                 "visibility": "PUBLIC", "kind": kind, "count": count,
                 "updatedAt": iso(Date()), "preview": preview,
             ]
+            d["curatorUsername"] = curator.map { $0 as Any } ?? NSNull()
+            d["position"] = position.map { $0 as Any } ?? NSNull()
+            d["total"] = total.map { $0 as Any } ?? NSNull()
+            return d
         }
         return [
-            // 여러 컬렉션에 걸린 글 — "외 N개" 복수 카피.
+            // 여러 컬렉션에 걸린 글 — 길(순서 있음)·묶음(큐레이터만)·큐레이터 없는 것 섞음.
             ["postId": 8201, "collections": [
-                c(101, "경계를 긋는 법", "COLLECTION", 12, ["헥사고날로 갈아탄 지 석 달", "포트 이름 짓기"]),
-                c(104, "다시 읽는 아키텍처", "PATH", 5, ["레이어드의 값", "의존 방향 뒤집기"]),
+                c(104, "다시 읽는 아키텍처", "PATH", 5, ["레이어드의 값", "의존 방향 뒤집기"],
+                  curator: "minji", position: 2, total: 4),
+                c(101, "경계를 긋는 법", "COLLECTION", 12, ["헥사고날로 갈아탄 지 석 달", "포트 이름 짓기"],
+                  curator: "sori"),
                 c(107, "회고 모음", "COLLECTION", 8, []),
             ]],
             // 한 컬렉션에만 걸린 글 — 단수 카피.
             ["postId": 9101, "collections": [
-                c(101, "경계를 긋는 법", "COLLECTION", 12, ["헥사고날로 갈아탄 지 석 달"]),
+                c(101, "경계를 긋는 법", "COLLECTION", 12, ["헥사고날로 갈아탄 지 석 달"], curator: "sori"),
             ]],
             ["postId": 9102, "collections": [
-                c(112, "디버깅 야간 로그", "COLLECTION", 6, ["토큰이 사라진 밤"]),
-                c(104, "다시 읽는 아키텍처", "PATH", 5, []),
+                c(112, "디버깅 야간 로그", "COLLECTION", 6, ["토큰이 사라진 밤"], curator: "minji"),
+                c(104, "다시 읽는 아키텍처", "PATH", 5, [], curator: "minji", position: 3, total: 5),
             ]],
             ["postId": 9002, "collections": [
                 c(101, "경계를 긋는 법", "COLLECTION", 12, []),
             ]],
+        ]
+    }
+
+    /// "이어진 것" 목 — 이 글과 같은 공개 컬렉션에 나란히 엮인 다른 블록(공동 등장 큰 순). 세 실루엣
+    /// (글·하이라이트·노트)이 다 나오게 섞어 본문 끝 PostEdges 가 실제로 어떻게 서는지 보이게 한다.
+    private static func relatedBlocksMock() -> [[String: Any]] {
+        [
+            [
+                "blockType": "POST", "refId": 8102, "sharedCount": 4,
+                "title": "유리 위에 유리를 얹지 않기",
+                "excerpt": "겹치는 순간 둘 다 탁해진다. 레이어는 하나씩.",
+                "slug": "liquid-glass-without-glass-on-glass", "username": "honggildong",
+                "quote": NSNull(), "body": NSNull(),
+            ],
+            [
+                "blockType": "HIGHLIGHT", "refId": 7301, "sharedCount": 2,
+                "title": "토큰이 사라진 밤",
+                "excerpt": NSNull(),
+                "slug": "the-night-tokens-vanished", "username": "honggildong",
+                "quote": "재현이 안 되는 버그는 대개 타이밍 버그다.", "body": NSNull(),
+            ],
+        ]
+    }
+
+    /// "이 글을 엮은 사람" 목 — 같은 것을 자기 공개 컬렉션에도 엮은 취향 겹치는 큐레이터(겹침 큰 순).
+    private static func kindredCuratorsMock() -> [[String: Any]] {
+        [
+            [
+                "curator": [
+                    "id": 2, "username": "minji",
+                    "bio": "경계와 느린 사고에 관해 씁니다.", "avatarUrl": NSNull(),
+                ],
+                "sharedItems": 6,
+            ],
+            [
+                "curator": [
+                    "id": 3, "username": "sori",
+                    "bio": NSNull(), "avatarUrl": NSNull(),
+                ],
+                "sharedItems": 4,
+            ],
         ]
     }
 
@@ -616,6 +666,18 @@ enum MockBackend {
         // 없는 글은 응답에 없으면 그만(호출측이 빈 배열로 취급) — 여기선 있는 것만 돌려준다.
         if method == "GET", parts == ["public", "posts", "collections"] {
             return json(postCollectionsMock())
+        }
+
+        // "이어진 것" — 이 블록과 같은 공개 컬렉션에 함께 놓인 다른 블록(본문 끝 PostEdges). 공개 표면.
+        if method == "GET", parts.count == 6, parts[0] == "public", parts[1] == "graph",
+            parts[2] == "blocks", parts[5] == "related" {
+            return json(relatedBlocksMock())
+        }
+
+        // "이 글을 엮은 사람" — 같은 것을 자기 공개 컬렉션에도 엮은 취향 겹치는 큐레이터. 공개 표면.
+        if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "profiles",
+            parts[3] == "kindred" {
+            return json(kindredCuratorsMock())
         }
 
         // 컬렉션 — 내 목록 / 상세 / 생성 / 연결 / 연결끊기 / 삭제.

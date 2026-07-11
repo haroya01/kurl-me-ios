@@ -659,6 +659,13 @@ struct PostDetailView: View {
             .onScrollVisibilityChange(threshold: 0.1) { visible in
                 endVisible = visible
             }
+        // 글 = 엣지가 보이는 노드 — 다 읽은 뒤, 이 글이 놓인 길 · 이어진 것 · 이은 사람으로 나간다.
+        // 엣지가 하나도 없으면 그려지지 않고(막다른 길 방지는 아래 태그 기반 작가 레일이 맡는다),
+        // 덱 임베드는 여러 장이 lazy 로 살아 있어 켜지 않는다(본 글에서만).
+        if !embedded {
+            PostEdges(postId: detail.post.id, authorUsername: detail.author.username)
+                .padding(.top, 10)
+        }
         authorCard(detail.author)
         comments(authorId: detail.author.id)
         if embedded, let next = nextPost {
