@@ -182,8 +182,10 @@ struct SettingsView: View {
                         Text("회원 탈퇴")
                             .typeScale(.body)
                     }
+                    .foregroundStyle(Palette.danger)
                     .contentShape(Rectangle())
                 }
+                .buttonStyle(RowButtonStyle())
                 .padding(.top, 18)
                 .disabled(deleting)
             }
