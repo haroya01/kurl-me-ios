@@ -21,6 +21,9 @@ struct CollectionDetailView: View {
     @State private var showEdit = false
     @State private var showDeleteConfirm = false
     @State private var showReorder = false
+    // 길 이어읽기 기억(기기 로컬) — 스텝을 열면 여기 도달 index 가 오르고, @Observable 이라
+    // 돌아오면 현재 스텝 강조·진행률·연속성 바가 곧바로 갱신된다. 서버 0.
+    @State private var resume = PathResumeStore.shared
     @Environment(\.dismiss) private var dismiss
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
@@ -235,6 +238,13 @@ struct CollectionDetailView: View {
                 Text(detail.visibility.label)
                 Text("·").foregroundStyle(Palette.faint)
                 Text("\(connections.count)개")
+                // 길이면 진행률 한 조각 — "목록"이 아니라 "읽어 내려가는 것"이라는 신호.
+                if detail.kind == .path, let reached = readReached, reached > 0 {
+                    Text("·").foregroundStyle(Palette.faint)
+                    Text("\(reached) / \(connections.count) 읽음")
+                        .foregroundStyle(Palette.link)
+                        .fontWeight(.semibold)
+                }
             }
             .typeScale(.meta)
             .foregroundStyle(Palette.secondary)
@@ -277,31 +287,68 @@ struct CollectionDetailView: View {
     }
 
     // MARK: 길(PATH) — 순번으로 잇는 가이드 워크. 큐레이터의 "왜"가 문장과 문장을 잇는 흐름.
+    //        P2: "목록"이 아니라 "읽는 목적지" — 현재 스텝 강조 + 이어읽기 연속성 + 진행률.
+
+    /// 이 스텝이 열어 읽을 수 있는 목적지인가(글·하이라이트만; 노트는 그 자리 텍스트). 있으면 그 경로.
+    private func readableTarget(_ item: ConnectionItem) -> Route? {
+        switch item.block {
+        case let .post(_, _, username, slug, _):
+            return .post(username: username, slug: slug)
+        case let .highlight(quote, _, username, slug):
+            return .postFocusQuote(username: username, slug: slug, quote: quote)
+        case .note:
+            return nil
+        }
+    }
+
+    /// 기기에 남은 "가장 멀리 걸은 스텝" index — 아직 아무 데도 안 걸었으면 nil.
+    private var furthestReached: Int? { resume.furthestStep(collectionId: collectionId) }
+
+    /// 몇 편까지 읽었나(진행률 숫자) — 도달 index + 1. 헤더 메타가 읽는다.
+    private var readReached: Int? { furthestReached.map { $0 + 1 } }
+
+    /// 지금 "여기서 이어 읽는" 스텝 — 가장 멀리 걸은 다음 칸(마지막까지 걸었으면 마지막). 아직 시작
+    /// 전이면 첫 칸. 시작 전(0)에는 강조를 얹지 않아 첫 진입이 조용하다.
+    private var currentStepIndex: Int? {
+        guard !connections.isEmpty else { return nil }
+        guard let reached = furthestReached else { return nil }  // 시작 전 = 강조 없음
+        return min(reached + 1, connections.count - 1)
+    }
 
     private func pathWalk() -> some View {
-        LazyVStack(alignment: .leading, spacing: 0) {
+        let total = connections.count
+        let current = currentStepIndex
+        return LazyVStack(alignment: .leading, spacing: 0) {
             ForEach(Array(connections.enumerated()), id: \.element.id) { index, item in
-                pathStepCell(index: index, total: connections.count, item: item)
+                pathStepCell(
+                    index: index, total: total, item: item,
+                    isCurrent: index == current,
+                    // 현재 스텝까지는 초록 실이 흐른다(걸어온 길). 그 아래는 아직 회색.
+                    threadFilled: current.map { index < $0 } ?? false)
                     .modifier(QuietAppear(index: index))
             }
         }
         .padding(.top, 4)
     }
 
-    private func pathStepCell(index: Int, total: Int, item: ConnectionItem) -> some View {
+    private func pathStepCell(
+        index: Int, total: Int, item: ConnectionItem, isCurrent: Bool, threadFilled: Bool
+    ) -> some View {
         HStack(alignment: .top, spacing: 14) {
             // 순번 노드 + 다음 문장으로 잇는 세로 선 — "걷는다"는 신호.
             // 순번 칩은 구조 신호일 뿐 — 초록은 주액션·데이터 전용이라 중립(잉크)으로 가라앉힌다(RailHeading 규율).
+            // 예외: *현재 스텝* 하나만 초록 채움 — "지금 여기"라는 진행 데이터라 §10.3 초록 허용.
             VStack(spacing: 0) {
                 Text("\(index + 1)")
                     .typeScale(.meta)
                     .fontWeight(.bold)
-                    .foregroundStyle(Palette.heading)
+                    .foregroundStyle(isCurrent ? Color.white : Palette.heading)
                     .frame(width: 26, height: 26)
-                    .background(Circle().fill(Palette.hairlineStrong))
+                    .background(Circle().fill(isCurrent ? Palette.accentFill : Palette.hairlineStrong))
                 if index < total - 1 {
+                    // 걸어온 구간은 초록 한 올, 아직 안 걸은 구간은 회색.
                     Rectangle()
-                        .fill(Palette.hairlineStrong)
+                        .fill(threadFilled ? Palette.accent : Palette.hairlineStrong)
                         .frame(width: 2)
                         .frame(maxHeight: .infinity)
                 }
@@ -315,6 +362,17 @@ struct CollectionDetailView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 BlockPreview(block: item.block)
+                    // 카드로 스텝을 열어도 이어읽기 위치가 앞으로 — 연속성 바 탭과 같은 신호.
+                    // (BlockPreview 는 공용 컴포넌트라 손대지 않고, 여기서 탭만 얹어 나란히 진행한다.)
+                    .simultaneousGesture(TapGesture().onEnded {
+                        if readableTarget(item) != nil {
+                            resume.advance(collectionId: collectionId, toStep: index)
+                        }
+                    })
+                if isCurrent {
+                    // "지금 여기 · 이어서 읽기" — 목록을 목적지로 만드는 연속성 한 조각.
+                    continuityBar(index: index, total: total, item: item)
+                }
             }
             .padding(.bottom, index < total - 1 ? 24 : 8)
         }
@@ -327,6 +385,62 @@ struct CollectionDetailView: View {
                     Label("이 문장 빼기", systemImage: "minus.circle")
                 }
             }
+        }
+    }
+
+    // MARK: 이어읽기 연속성 바 — "지금 여기 · N/M" + "이어서 N편 읽기" + 계속 → (초록 틴트, 종이 문법)
+
+    @ViewBuilder
+    private func continuityBar(index: Int, total: Int, item: ConnectionItem) -> some View {
+        // 남은 편 수 — 이 칸 포함 끝까지. "이어서 N편 읽기"로 얼마나 남았는지 손에 잡힌다.
+        let remaining = total - index
+        let target = readableTarget(item)
+        let bar = HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text("지금 여기 · \(index + 1) / \(total)")
+                    .typeScale(.footnote)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Palette.link)
+                Text(remaining > 1 ? "이어서 \(remaining)편 읽기" : "마지막 편 읽기")
+                    .typeScale(.body)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Palette.ink)
+            }
+            Spacer(minLength: 8)
+            if target != nil {
+                // 흰 라벨을 받는 accent-700 캡슐 — §10.3 600/700 규칙(흰 글자엔 700).
+                Text("계속 →")
+                    .typeScale(.meta)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Color.white)
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 12)
+                    .background(Capsule().fill(Palette.accentFill))
+            }
+        }
+        .padding(.vertical, 11)
+        .padding(.horizontal, 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            // 초록 틴트 종이 캡슐 — 유리 없이(§1) accent 를 옅게 실어 "지금 여기"를 데운다.
+            RoundedRectangle(cornerRadius: Metrics.radiusControl, style: .continuous)
+                .fill(Palette.accent.opacity(0.07))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Metrics.radiusControl, style: .continuous)
+                        .strokeBorder(Palette.accent.opacity(0.22), lineWidth: 1))
+        )
+        .contentShape(Rectangle())
+
+        if let target {
+            // 탭 = 현재 편으로 들어가 이어 읽는다. 들어간 스텝은 걸은 것으로 표시(다음 진입 시 앞으로).
+            NavigationLink(value: target) { bar }
+                .buttonStyle(.plain)
+                .simultaneousGesture(TapGesture().onEnded {
+                    resume.advance(collectionId: collectionId, toStep: index)
+                })
+                .accessibilityLabel(Text("이어서 읽기 · \(index + 1) / \(total)"))
+        } else {
+            bar
         }
     }
 
