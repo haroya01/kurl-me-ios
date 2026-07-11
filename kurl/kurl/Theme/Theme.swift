@@ -144,8 +144,8 @@ enum TypeRole {
 
     var size: CGFloat {
         switch self {
-        case .display: return 33
-        case .masthead: return 26
+        case .display: return 31
+        case .masthead: return 24.5
         case .name: return 24
         case .featured: return 22
         case .title: return 18
