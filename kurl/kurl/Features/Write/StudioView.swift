@@ -217,6 +217,16 @@ struct StudioView: View {
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+                // 태그가 붙은 글은 종이 위 #태그 한 줄로 — 캡슐 없이 글자만(MutedChip, §10).
+                // 카탈로그에서 주제를 훑게 하는 조용한 정보 밀도(있을 때만, 최대 3개).
+                if let tags = post.tags, !tags.isEmpty {
+                    HStack(spacing: 10) {
+                        ForEach(tags.prefix(3), id: \.self) { tag in
+                            MutedChip(text: "#\(tag)")
+                        }
+                    }
+                    .padding(.top, 1)
+                }
             }
             Spacer(minLength: 0)
             if let cover = post.ogImageUrl, let url = URL(string: cover) {

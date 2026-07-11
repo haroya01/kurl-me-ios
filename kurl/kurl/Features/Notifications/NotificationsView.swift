@@ -173,11 +173,22 @@ struct NotificationsView: View {
 
     // 아바타 = 피드와 같은 문법(0.5px 링). 미읽음은 아바타 우하단의 그린 점 하나로 —
     // 왼쪽 점 칸을 없애 행이 조여지고, 초록은 행당 한 점만(§10 색 규율).
+    // 좌하단엔 알림 종류(좋아요·댓글·팔로우…)를 중립 회색 심볼 배지로 얹어, 행마다
+    // 똑같아 보이던 아바타 목록에서 종류를 한눈에 훑게 한다 — 초록은 미읽음에만 남긴다.
     private func avatarBadge(_ n: AppNotification) -> some View {
         AvatarView(
             author: Author(
                 id: 0, username: n.actorUsername ?? "?", bio: nil, avatarUrl: n.actorAvatarUrl),
             size: 38)
+            .overlay(alignment: .bottomLeading) {
+                Image(systemName: typeIcon(n.type))
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundStyle(Palette.secondary)
+                    .frame(width: 15, height: 15)
+                    .background(Palette.chipBg, in: Circle())
+                    .overlay(Circle().strokeBorder(Palette.readingBg, lineWidth: 1.5))
+                    .offset(x: -2, y: 2)
+            }
             .overlay(alignment: .bottomTrailing) {
                 if !n.read {
                     Circle()
@@ -188,6 +199,20 @@ struct NotificationsView: View {
                 }
             }
             .accessibilityHidden(true)
+    }
+
+    /// 알림 종류 → 조용한 SF 심볼. 헤드라인 문장과 짝이 맞는 중립 글리프(§10: 색 없이 형태로만).
+    private func typeIcon(_ type: String) -> String {
+        switch type {
+        case "LIKE": return "heart.fill"
+        case "COMMENT": return "bubble.left.fill"
+        case "REPLY": return "arrowshape.turn.up.left.fill"
+        case "FOLLOW": return "person.fill.badge.plus"
+        case "SERIES_SUBSCRIBE": return "books.vertical.fill"
+        case "NEW_POST": return "doc.text.fill"
+        case "MENTION": return "at"
+        default: return "bell.fill"
+        }
     }
 
     private func content(_ n: AppNotification) -> some View {
