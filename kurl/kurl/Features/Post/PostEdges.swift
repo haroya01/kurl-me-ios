@@ -98,9 +98,11 @@ struct PostEdges: View {
     /// 길 메타 한 줄 — 큐레이터와 순서를 한 번역 문자열로(로케일이 조사·어순 소유). position/total 이 오면
     /// "@큐레이터 · N번째 / 전체 M", 큐레이터만 있으면 "@큐레이터 · M편", 둘 다 없으면 "M편"으로 폴백.
     private func pathMeta(_ c: CollectionSummary) -> Text {
+        // 전체 편 수 — total 은 글 단위 소속 응답에만 오고(#607), 목록 응답엔 count 만 온다.
+        // total 을 분모로 못 박으면 순서 맥락이 프로덕션에서 통째로 빠지므로 count 로 폴백한다.
         let m = c.total ?? c.count
-        if let curator = c.curatorUsername, let pos = c.position, let total = c.total {
-            return Text("@\(curator) · \(pos)번째 / 전체 \(total)")
+        if let curator = c.curatorUsername, let pos = c.position {
+            return Text("@\(curator) · \(pos)번째 / 전체 \(m)")
         }
         if let curator = c.curatorUsername {
             return Text("@\(curator) · \(m)편")
