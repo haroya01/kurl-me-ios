@@ -301,8 +301,25 @@ struct CollectionDetailView: View {
         }
     }
 
+    /// index 이후(포함) 처음으로 열어 읽을 수 있는 스텝 — 노트에 서면 그 자리엔 열 게 없으니 다음
+    /// 글·하이라이트로 건너뛴다(연속성 바가 노트에서 헛도는 CTA 가 되지 않게). 없으면 nil.
+    private func nextReadableStep(from index: Int) -> (step: Int, target: Route)? {
+        guard index >= 0, index < connections.count else { return nil }
+        for i in index..<connections.count {
+            if let target = readableTarget(connections[i]) {
+                return (i, target)
+            }
+        }
+        return nil
+    }
+
     /// 기기에 남은 "가장 멀리 걸은 스텝" index — 아직 아무 데도 안 걸었으면 nil.
-    private var furthestReached: Int? { resume.furthestStep(collectionId: collectionId) }
+    /// 연결이 빠지거나 재배치되면 저장된 index 가 현재 스텝 수를 넘어 "7 / 5 읽음" 같은 불가능한
+    /// 진행률이 뜬다 — 렌더 시점에 현재 스텝 수로 클램프해 그런 값 자체를 못 만든다.
+    private var furthestReached: Int? {
+        guard !connections.isEmpty else { return nil }
+        return resume.furthestStep(collectionId: collectionId).map { min($0, connections.count - 1) }
+    }
 
     /// 몇 편까지 읽었나(진행률 숫자) — 도달 index + 1. 헤더 메타가 읽는다.
     private var readReached: Int? { furthestReached.map { $0 + 1 } }
@@ -371,7 +388,7 @@ struct CollectionDetailView: View {
                     })
                 if isCurrent {
                     // "지금 여기 · 이어서 읽기" — 목록을 목적지로 만드는 연속성 한 조각.
-                    continuityBar(index: index, total: total, item: item)
+                    continuityBar(index: index, total: total)
                 }
             }
             .padding(.bottom, index < total - 1 ? 24 : 8)
@@ -391,10 +408,12 @@ struct CollectionDetailView: View {
     // MARK: 이어읽기 연속성 바 — "지금 여기 · N/M" + "이어서 N편 읽기" + 계속 → (초록 틴트, 종이 문법)
 
     @ViewBuilder
-    private func continuityBar(index: Int, total: Int, item: ConnectionItem) -> some View {
+    private func continuityBar(index: Int, total: Int) -> some View {
         // 남은 편 수 — 이 칸 포함 끝까지. "이어서 N편 읽기"로 얼마나 남았는지 손에 잡힌다.
         let remaining = total - index
-        let target = readableTarget(item)
+        // 이어 읽을 목적지 — 이 칸이 노트면 그 자리엔 열 게 없으니 다음 글·하이라이트로 건너뛴다.
+        // 뒤로 노트만 남으면 nil — 이때는 탭 가능한 척하는 캡슐을 걷고 조용한 표식만 남긴다.
+        let resumeStep = nextReadableStep(from: index)
         let bar = HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 1) {
                 Text("지금 여기 · \(index + 1) / \(total)")
@@ -407,16 +426,14 @@ struct CollectionDetailView: View {
                     .foregroundStyle(Palette.ink)
             }
             Spacer(minLength: 8)
-            if target != nil {
-                // 흰 라벨을 받는 accent-700 캡슐 — §10.3 600/700 규칙(흰 글자엔 700).
-                Text("계속 →")
-                    .typeScale(.meta)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Color.white)
-                    .padding(.vertical, 6)
-                    .padding(.horizontal, 12)
-                    .background(Capsule().fill(Palette.accentFill))
-            }
+            // 흰 라벨을 받는 accent-700 캡슐 — §10.3 600/700 규칙(흰 글자엔 700).
+            Text("계속 →")
+                .typeScale(.meta)
+                .fontWeight(.semibold)
+                .foregroundStyle(Color.white)
+                .padding(.vertical, 6)
+                .padding(.horizontal, 12)
+                .background(Capsule().fill(Palette.accentFill))
         }
         .padding(.vertical, 11)
         .padding(.horizontal, 14)
@@ -431,16 +448,24 @@ struct CollectionDetailView: View {
         )
         .contentShape(Rectangle())
 
-        if let target {
-            // 탭 = 현재 편으로 들어가 이어 읽는다. 들어간 스텝은 걸은 것으로 표시(다음 진입 시 앞으로).
-            NavigationLink(value: target) { bar }
+        if let resumeStep {
+            // 탭 = 이어 읽을 편으로 들어간다(노트면 다음 글로 건너뛴 자리). 들어간 스텝은 걸은
+            // 것으로 표시 — 다음 진입 시 그 다음 칸이 "지금 여기"가 된다.
+            NavigationLink(value: resumeStep.target) { bar }
                 .buttonStyle(.plain)
                 .simultaneousGesture(TapGesture().onEnded {
-                    resume.advance(collectionId: collectionId, toStep: index)
+                    resume.advance(collectionId: collectionId, toStep: resumeStep.step)
                 })
                 .accessibilityLabel(Text("이어서 읽기 · \(index + 1) / \(total)"))
         } else {
-            bar
+            // 뒤로 노트만 남았다 — 열 게 없으니 "지금 여기"만 조용히 표시(탭 가능한 캡슐 걷어냄).
+            HStack(spacing: 6) {
+                Text("지금 여기 · \(index + 1) / \(total)")
+                    .typeScale(.footnote)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Palette.link)
+                Spacer(minLength: 0)
+            }
         }
     }
 

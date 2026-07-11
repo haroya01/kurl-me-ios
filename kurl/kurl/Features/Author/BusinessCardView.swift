@@ -91,6 +91,7 @@ private struct InlineWebView: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView {
         let webView = WKWebView(frame: .zero)
         webView.navigationDelegate = context.coordinator
+        webView.uiDelegate = context.coordinator
         webView.allowsBackForwardNavigationGestures = false
         webView.isOpaque = false
         webView.backgroundColor = UIColor(Palette.pageBg)
@@ -112,7 +113,7 @@ private struct InlineWebView: UIViewRepresentable {
         webView.stopLoading()
     }
 
-    final class Coordinator: NSObject, WKNavigationDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         private let parent: InlineWebView
         /// 마지막으로 로드한 재시도 세대 — updateUIView 가 중복 로드를 걸지 않게 한다.
         var loadedAttempt = 0
@@ -185,6 +186,19 @@ private struct InlineWebView: UIViewRepresentable {
             withError error: Error
         ) {
             fail()
+        }
+
+        // /u 명함은 링크를 전부 target="_blank" 로 연다 — 새 창을 만들 자리가 없는 인앱 웹뷰라
+        // 이 델리게이트가 없으면 그 탭이 통째로 죽는다(dead tap). 새 창 대신 같은 웹뷰에서 열어
+        // 네비 스택 안에 머물게 한다(별도 창 반환 = nil).
+        func webView(
+            _ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
+            for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures
+        ) -> WKWebView? {
+            if navigationAction.targetFrame == nil {
+                webView.load(navigationAction.request)
+            }
+            return nil
         }
     }
 }

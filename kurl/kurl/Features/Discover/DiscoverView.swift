@@ -313,6 +313,9 @@ struct DiscoverView: View {
 struct ConnectionEventCard: View {
     let event: ConnectionEvent
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
+    /// 비로그인 첫 피드에서도 이 카드가 흐른다 — 이때 컬렉션 칩은 인증 전용 상세(401)로
+    /// 데려가면 막다른 길이라, 정식 로그인 시트로 돌린다(발견 표면은 이미 로그인 뒤라 안 뜬다).
+    @State private var showLoginPrompt = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -339,24 +342,18 @@ struct ConnectionEventCard: View {
 
             // 컬렉션 eyebrow — "…에 연결" 이라는 동사를 탭 가능한 채널 칩으로. 한 연결에서
             // 그 채널 전체로 이어지는 문(§0 connect). 초록은 데이터 링크라 link 톤 허용.
-            NavigationLink(value: CollectionRef(id: event.collectionId)) {
-                HStack(spacing: 4) {
-                    Image(
-                        systemName: event.collectionKind == .path
-                            ? "arrow.turn.down.right" : "square.grid.2x2"
-                    )
-                    .font(.system(size: 10 * metaUnit, weight: .bold))
-                    Text(event.collectionTitle)
-                        .typeScale(.eyebrow)
-                        .tracking(0.3)
-                    Text(event.collectionKind == .path ? "길에 엮음" : "에 연결")
-                        .typeScale(.meta)
-                        .foregroundStyle(Palette.faint)
+            // 로그인 뒤에만 인증 전용 상세로 가고, 비로그인이면 그 자리에서 로그인 시트로 돌린다.
+            if AuthStore.shared.isSignedIn {
+                NavigationLink(value: CollectionRef(id: event.collectionId)) {
+                    collectionChip
                 }
-                .foregroundStyle(Palette.link)
-                .expandTapTarget(6)
+                .buttonStyle(.plain)
+            } else {
+                Button { showLoginPrompt = true } label: {
+                    collectionChip
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
 
             // 큐레이터의 한 줄 = 히어로. 이 흐름이 알고리즘 피드가 아니라 사람의 큐레이션이라는
             // 가장 또렷한 신호. 없으면(이유 안 단 연결) 블록이 곧장 히어로가 된다.
@@ -372,6 +369,26 @@ struct ConnectionEventCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 14)
+        .loginPrompt(isPresented: $showLoginPrompt, message: "큐레이터가 엮은 컬렉션 이어 보기")
+    }
+
+    /// 컬렉션 칩의 겉모습 — 로그인 여부에 따라 링크로도, 로그인 트리거로도 감싼다(모양은 하나).
+    private var collectionChip: some View {
+        HStack(spacing: 4) {
+            Image(
+                systemName: event.collectionKind == .path
+                    ? "arrow.turn.down.right" : "square.grid.2x2"
+            )
+            .font(.system(size: 10 * metaUnit, weight: .bold))
+            Text(event.collectionTitle)
+                .typeScale(.eyebrow)
+                .tracking(0.3)
+            Text(event.collectionKind == .path ? "길에 엮음" : "에 연결")
+                .typeScale(.meta)
+                .foregroundStyle(Palette.faint)
+        }
+        .foregroundStyle(Palette.link)
+        .expandTapTarget(6)
     }
 }
 
