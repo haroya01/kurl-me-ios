@@ -118,4 +118,34 @@ final class SignedInScreensUITests: XCTestCase {
         _ = app.staticTexts["발행된 목 글"].firstMatch.waitForExistence(timeout: 8)
         shoot("reading-history")
     }
+
+    /// 알림 종류별 뮤트 — 계정 톱니(설정) → 알림 종류. 7타입 토글 리스트가 서고, 목은 새 글을
+    /// 꺼둔 채 시작하므로 섞인 상태(켬/끔)가 그대로 보인다.
+    func testNotificationPreferences() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "account"]
+        app.launch()
+
+        let gear = app.buttons["설정"].firstMatch
+        XCTAssertTrue(gear.waitForExistence(timeout: 12), "계정 탭에 설정 버튼이 없음")
+        gear.tap()
+
+        let row = rowButton(app, contains: "알림 종류")
+        XCTAssertTrue(row.waitForExistence(timeout: 8), "설정에 '알림 종류' 행이 없음")
+        if !row.isHittable { app.swipeUp() }
+        row.tap()
+
+        // 7타입 토글이 도달했는지 — 목이 꺼둔 '구독 작가의 새 글' 스위치가 off 로 렌더된다.
+        let newPost = app.switches.matching(NSPredicate(format: "label CONTAINS '새 글'")).firstMatch
+        XCTAssertTrue(newPost.waitForExistence(timeout: 8), "알림 종류 화면에 토글이 없음")
+        shoot("notification-preferences")
+
+        // 첫 토글(좋아요)을 눌러 낙관적 반영 — 목이 상태를 받아 되돌림 토스트가 뜨지 않는다.
+        let like = app.switches.matching(NSPredicate(format: "label CONTAINS '좋아요'")).firstMatch
+        if like.waitForExistence(timeout: 4) {
+            like.tap()
+            Thread.sleep(forTimeInterval: 0.4)
+            shoot("notification-preferences-toggled")
+        }
+    }
 }
