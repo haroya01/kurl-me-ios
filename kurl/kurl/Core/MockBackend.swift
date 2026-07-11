@@ -109,6 +109,11 @@ enum MockBackend {
     private static var subscriptions: [Int64: (subscribed: Bool, count: Int64)] = [:]
     private static var followedTags: Set<String> = ["아키텍처"]
     private static var hiddenTags: Set<String> = []
+    // 알림 종류별 켬/끔 — 하나 꺼둔 채로 시작해 화면이 섞인 상태를 바로 보여준다(기본은 켜짐).
+    private static var blogNotificationPrefs: [String: Bool] = [
+        "LIKE": true, "COMMENT": true, "REPLY": true, "MENTION": true,
+        "FOLLOW": true, "SERIES_SUBSCRIBE": true, "NEW_POST": false,
+    ]
     private static var myBio = "경계를 긋는 사람. 헥사고날·도메인 모델링."
     private static var myHideFollowerCount = false
     private static var myUsername = "honggildong"
@@ -1349,6 +1354,20 @@ enum MockBackend {
 
         if method == "POST", parts == ["notifications", "read-all"] {
             return json(["count": 0])
+        }
+
+        // 알림 종류별 켬/끔 — GET 은 7타입 맵, PUT 은 한 타입씩(웹·앱 공통 계약).
+        if parts == ["notifications", "blog-preferences"] {
+            if method == "PUT" {
+                let req = decode(body)
+                if let type = req["type"] as? String, let enabled = req["enabled"] as? Bool {
+                    blogNotificationPrefs[type] = enabled
+                }
+                return json([:] as [String: Any])
+            }
+            if method == "GET" {
+                return json(blogNotificationPrefs)
+            }
         }
 
         if method == "POST", parts.count == 3, parts[0] == "posts", parts[2] == "preview-token" {
