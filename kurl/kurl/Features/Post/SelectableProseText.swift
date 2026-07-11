@@ -100,11 +100,16 @@ struct SelectableProseText: UIViewRepresentable {
             }
             guard let range = painted_range else { continue }
             painted.addAttribute(.backgroundColor, value: wash, range: range)
-            // 메모/답글이 있는 하이라이트엔 강조 밑줄 — "탭하면 대화" 신호.
-            if mark.hasThread {
-                painted.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: range)
-                painted.addAttribute(.underlineColor, value: UIColor(Palette.highlightUnderline), range: range)
-            }
+            // 낮춘 채움을 얇은 그린 밑줄로 보완 — 모든 하이라이트에 헤어라인 하나(놓칠 곳에서도 표식 유지).
+            // 메모/답글이 달린 건 굵고 진한 밑줄로 올려 "탭하면 대화" 신호를 구분한다.
+            painted.addAttribute(
+                .underlineStyle,
+                value: (mark.hasThread ? NSUnderlineStyle.thick : NSUnderlineStyle.single).rawValue,
+                range: range)
+            painted.addAttribute(
+                .underlineColor,
+                value: UIColor(mark.hasThread ? Palette.highlightUnderlineThread : Palette.highlightUnderline),
+                range: range)
         }
         tv.attributedText = painted
     }
