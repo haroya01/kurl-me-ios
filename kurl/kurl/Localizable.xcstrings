@@ -25,11 +25,11 @@
         "vi" : { "stringUnit" : { "state" : "translated", "value" : "Đăng ký series" } }
       }
     },
-    "구독 작가의 새 글" : {
+    "팔로우한 작가의 새 글" : {
       "localizations" : {
         "en" : { "stringUnit" : { "state" : "translated", "value" : "New posts from writers you follow" } },
         "hi" : { "stringUnit" : { "state" : "translated", "value" : "आपके फ़ॉलो किए लेखकों की नई पोस्ट" } },
-        "ja" : { "stringUnit" : { "state" : "translated", "value" : "購読中の作家の新しい記事" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "フォロー中の作家の新しい記事" } },
         "vi" : { "stringUnit" : { "state" : "translated", "value" : "Bài viết mới từ tác giả bạn theo dõi" } }
       }
     },
@@ -81,11 +81,11 @@
         "vi" : { "stringUnit" : { "state" : "translated", "value" : "Khi ai đó đăng ký series của bạn" } }
       }
     },
-    "구독한 작가가 새 글을 발행할 때" : {
+    "팔로우한 작가가 새 글을 발행할 때" : {
       "localizations" : {
         "en" : { "stringUnit" : { "state" : "translated", "value" : "When a writer you follow publishes a new post" } },
         "hi" : { "stringUnit" : { "state" : "translated", "value" : "जब आपका फ़ॉलो किया लेखक नई पोस्ट प्रकाशित करे" } },
-        "ja" : { "stringUnit" : { "state" : "translated", "value" : "購読中の作家が新しい記事を公開したとき" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "フォロー中の作家が新しい記事を公開したとき" } },
         "vi" : { "stringUnit" : { "state" : "translated", "value" : "Khi tác giả bạn theo dõi đăng bài mới" } }
       }
     },
