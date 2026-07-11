@@ -64,19 +64,27 @@ enum Palette {
     static let link = Color(light: 0x047857, dark: 0x34D399) // accent-700/400
     static let accentFill = Color(hex: 0x047857)    // 흰 라벨 채움 = accent-700 (WCAG 4.5:1)
 
-    // 리더 하이라이트 워시/밑줄/플래시 — 웹(globals.css)과 같은 색 언어. 다크에선 accent-600(#059669)이
-    // 검은 읽기면에 묻혀 안 보이므로 중간톤 accent-500(#10B981)을 살짝 더 실어 칠하고, 본문 슬레이트-300
-    // 글자가 그 위에서 대비를 유지하게(≥8:1). alpha 를 담아야 해서 동적 UIColor 로 직접 짠다.
+    // 리더 하이라이트 워시/밑줄/플래시 — 웹(globals.css)과 같은 색 언어. 형광펜처럼 확 튀던 채움을
+    // 문서적으로 은은하게 낮추고(§10 조용한 웹로그), 낮아진 채움을 얇은 그린 밑줄로 보완해 독자가
+    // 여전히 "그어졌다"고 인지하게 한다. 다크에선 accent-600(#059669)이 검은 읽기면에 묻히므로 중간톤
+    // accent-500(#10B981)을 실어 칠한다. alpha 를 담아야 해서 동적 UIColor 로 직접 짠다.
     static let highlightWash = Color(uiColor: UIColor { trait in
         trait.userInterfaceStyle == .dark
-            ? UIColor(Color(hex: 0x10B981)).withAlphaComponent(0.28)   // accent-500 @ 0.28
-            : UIColor(Color(hex: 0x059669)).withAlphaComponent(0.18)   // accent-600 @ 0.18
+            ? UIColor(Color(hex: 0x10B981)).withAlphaComponent(0.16)   // accent-500 @ 0.16
+            : UIColor(Color(hex: 0x059669)).withAlphaComponent(0.10)   // accent-600 @ 0.10
     })
-    // 메모/답글 있는 하이라이트의 강조 밑줄 — 다크에선 accent-400(#34D399)로 또렷하게.
+    // 모든 하이라이트의 기본 밑줄 — 낮춘 채움만으로 놓칠 수 있는 곳(색 입힌 인라인 위 등)에서도
+    // 표식이 살아남는 얇은 그린 헤어라인. 다크에선 accent-400(#34D399)로 또렷하게.
     static let highlightUnderline = Color(uiColor: UIColor { trait in
         trait.userInterfaceStyle == .dark
-            ? UIColor(Color(hex: 0x34D399)).withAlphaComponent(0.6)
-            : UIColor(Color(hex: 0x059669)).withAlphaComponent(0.6)
+            ? UIColor(Color(hex: 0x34D399)).withAlphaComponent(0.45)
+            : UIColor(Color(hex: 0x059669)).withAlphaComponent(0.4)
+    })
+    // 메모/답글 달린 하이라이트의 밑줄 — 기본보다 굵고 진하게 올려 "대화가 달렸다"를 구분한다.
+    static let highlightUnderlineThread = Color(uiColor: UIColor { trait in
+        trait.userInterfaceStyle == .dark
+            ? UIColor(Color(hex: 0x34D399)).withAlphaComponent(0.75)
+            : UIColor(Color(hex: 0x059669)).withAlphaComponent(0.7)
     })
     // 딥링크 도착 시 잠깐 비추는 블록 플래시 — 워시보다 옅게, 다크는 accent-500 로.
     static let highlightFlash = Color(uiColor: UIColor { trait in
