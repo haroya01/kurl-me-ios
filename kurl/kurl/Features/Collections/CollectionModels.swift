@@ -103,9 +103,17 @@ struct CollectionSummary: Decodable, Identifiable, Hashable {
     let count: Int
     /// 최근 담긴 항목 라벨 몇 개 — "안에 뭐가 들었는지" 떠올리게(어디 넣을지 결정 보조).
     let preview: [String]
+    /// "이 글이 놓인 길"(PostEdges)의 리치 소속 — 이 길을 엮은 큐레이터 · 이 글이 그 안에서 몇 번째(position)
+    /// / 전체 몇 편(total). 글 단위 소속 응답(#607)에만 오고, 다른 목록 표면엔 없어 nil 로 조용히 빠진다.
+    let curatorUsername: String?
+    /// 이 글이 길 안에서 몇 번째인가(1부터). total 과 함께 "N of M"으로 읽힌다. 없으면 count 폴백.
+    let position: Int?
+    /// 이 길의 전체 편 수. count(담긴 수)와 같을 수 있으나, position 과 짝지어 순서 맥락을 준다.
+    let total: Int?
 
     private enum CodingKeys: String, CodingKey {
         case id, title, description, visibility, kind, count, preview
+        case curatorUsername, position, total
     }
 
     init(from decoder: Decoder) throws {
@@ -119,6 +127,9 @@ struct CollectionSummary: Decodable, Identifiable, Hashable {
             ?? .collection
         count = try c.decode(Int.self, forKey: .count)
         preview = try c.decodeIfPresent([String].self, forKey: .preview) ?? []
+        curatorUsername = try c.decodeIfPresent(String.self, forKey: .curatorUsername)
+        position = try c.decodeIfPresent(Int.self, forKey: .position)
+        total = try c.decodeIfPresent(Int.self, forKey: .total)
     }
 
     /// 로컬 생성(낙관) — 새 컬렉션을 목록에 즉시 끼워 넣을 때.
@@ -133,6 +144,9 @@ struct CollectionSummary: Decodable, Identifiable, Hashable {
         self.kind = kind
         self.count = count
         self.preview = []
+        self.curatorUsername = nil
+        self.position = nil
+        self.total = nil
     }
 }
 
