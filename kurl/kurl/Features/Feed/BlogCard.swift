@@ -152,7 +152,7 @@ struct BlogCard: View {
             }
             CardMeta(item: item, over: false)
         }
-        .padding(18)
+        .padding(Metrics.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             Palette.cardBg, in: RoundedRectangle(cornerRadius: Self.radius, style: .continuous))

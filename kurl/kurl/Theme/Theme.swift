@@ -240,6 +240,10 @@ enum Metrics {
     static let radiusControl: CGFloat = 12
     /// 썸네일(행 안의 56×42 등)
     static let radiusThumb: CGFloat = 8
+
+    /// 전폭 종이 카드 내부 여백 — radiusCard 면이 본문을 들이는 정준 인셋.
+    /// 텍스트 카드·발행 미리보기·자리표시가 같은 값을 물어 카드끼리 결이 안 어긋난다.
+    static let cardPadding: CGFloat = 18
 }
 
 /// Liquid Glass 토큰 — "종이 본문, 액체 크롬"(AGENTS.md §1).
