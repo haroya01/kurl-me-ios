@@ -436,7 +436,7 @@ struct ComposeView: View {
     private var readStats: String {
         let chars = markdown.filter { !$0.isWhitespace }.count
         let minutes = max(1, Int((Double(chars) / 500.0).rounded()))
-        return "\(chars)자 · 약 \(minutes)분 읽기"
+        return String(localized: "\(chars)자 · 약 \(minutes)분 읽기")
     }
 
     private var publishSheet: some View {
@@ -872,15 +872,15 @@ struct ComposeView: View {
             cal.date(bySettingHour: hour, minute: 0, second: 0, of: base)
         }
         var out: [(String, Date)] = []
-        if let d = at(now, 19), d > floor { out.append(("오늘 저녁 7시", d)) }
+        if let d = at(now, 19), d > floor { out.append((String(localized: "오늘 저녁 7시"), d)) }
         if let tomorrow = cal.date(byAdding: .day, value: 1, to: now), let d = at(tomorrow, 9) {
-            out.append(("내일 아침 9시", d))
+            out.append((String(localized: "내일 아침 9시"), d))
         }
         var sat = DateComponents()
         sat.weekday = 7 // 토요일
         if let next = cal.nextDate(after: now, matching: sat, matchingPolicy: .nextTime),
            let d = at(next, 10) {
-            out.append(("주말 오전 10시", d))
+            out.append((String(localized: "주말 오전 10시"), d))
         }
         return out
     }
