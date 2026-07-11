@@ -12,8 +12,22 @@ struct SeriesDetailView: View {
     let slug: String
 
     @State private var phase: LoadState<PublicSeriesDetail> = .idle
+    // 관리(주인 전용) — 수정·순서 편집·삭제. 컬렉션 상세와 같은 관리 문법(메뉴 + 시트 + .alert).
+    @State private var showEdit = false
+    @State private var showReorder = false
+    @State private var showDeleteConfirm = false
+    // 수정 후 마스트헤드가 재로드 없이 새 제목을 쓰게 — 저장 성공 시 여기에 얹고, load 는 nil 로 되돌린다.
+    @State private var editedTitle: String?
+    // slug 수정 시 재로드는 이 slug 로 부른다(공개 상세는 username/slug 키라 옛 slug 로는 404).
+    @State private var currentSlug: String?
+    @Environment(\.dismiss) private var dismiss
     /// 진행률 메타(mono digit) — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
     @ScaledMetric(relativeTo: .caption) private var progressSize: CGFloat = 12
+
+    /// 내 시리즈일 때만 관리 — 남의 공개 시리즈는 보기만(컬렉션 상세 isOwner 와 같은 규칙).
+    private func isOwner(_ detail: PublicSeriesDetail) -> Bool {
+        AuthStore.shared.me?.username == detail.author.username
+    }
 
     var body: some View {
         ScrollView {
@@ -49,7 +63,87 @@ struct SeriesDetailView: View {
         .navigationTitle(navTitle)
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if case .loaded(let detail) = phase, isOwner(detail) {
+                ToolbarItem(placement: .primaryAction) {
+                    Menu {
+                        Button {
+                            showEdit = true
+                        } label: {
+                            Label("수정", systemImage: "pencil")
+                        }
+                        // 순서 편집은 이을 회차가 둘 이상일 때만 — 한 편짜리는 순서가 없다.
+                        if detail.posts.count > 1 {
+                            Button {
+                                showReorder = true
+                            } label: {
+                                Label("순서 편집", systemImage: "arrow.up.arrow.down")
+                            }
+                        }
+                        Button(role: .destructive) {
+                            showDeleteConfirm = true
+                        } label: {
+                            Label("시리즈 삭제", systemImage: "trash")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                    }
+                    .tint(.brand)
+                    .accessibilityLabel(Text("시리즈 관리"))
+                }
+            }
+        }
+        .sheet(isPresented: $showEdit) {
+            if case .loaded(let detail) = phase {
+                EditSeriesSheet(
+                    seriesId: detail.series.id,
+                    initialTitle: editedTitle ?? detail.series.title,
+                    initialSlug: detail.series.slug
+                ) { newTitle, newSlug in
+                    // 제목은 제자리 반영(마스트헤드), slug 는 재로드 키로 기억 — 둘 다 서버 재로드로 정합을 맞춘다.
+                    editedTitle = newTitle
+                    currentSlug = newSlug
+                    Task { await reload() }
+                }
+            }
+        }
+        .sheet(isPresented: $showReorder) {
+            if case .loaded(let detail) = phase {
+                SeriesReorderSheet(seriesId: detail.series.id) {
+                    Task { await reload() }
+                }
+            }
+        }
+        .alert("이 시리즈를 삭제할까요?", isPresented: $showDeleteConfirm) {
+            Button("삭제", role: .destructive) { Task { await deleteSeries() } }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("시리즈 묶음만 풀려요. 회차 글 자체는 지워지지 않아요.")
+        }
         .task { await load() }
+    }
+
+    /// 관리(수정·순서·slug)로 상세가 스테일 — 스피너 없이 서버에서 다시 읽어 제자리 갱신한다.
+    /// slug 가 수정으로 바뀌었으면 그 새 slug 로 부른다(공개 상세는 username/slug 키라 옛 slug 는 404).
+    private func reload() async {
+        do {
+            let fresh = try await BlogAPI.seriesDetail(username: username, slug: currentSlug ?? slug)
+            editedTitle = nil
+            phase = .loaded(fresh)
+        } catch {
+            // 재로드 실패는 화면을 갈아엎지 않는다 — 기존 상세를 그대로 두고 조용히 넘어간다.
+            ToastCenter.shared.show(String(localized: "새로고침하지 못했습니다"))
+        }
+    }
+
+    private func deleteSeries() async {
+        guard case .loaded(let detail) = phase else { return }
+        do {
+            try await WriteAPI.deleteSeries(id: detail.series.id)
+            dismiss()
+        } catch {
+            ToastCenter.shared.show(String(localized: "시리즈를 삭제하지 못했습니다"))
+        }
     }
 
     private var navTitle: String {
@@ -111,7 +205,7 @@ struct SeriesDetailView: View {
                     .accessibilityAddTraits(.isHeader)
             }
 
-            Text(detail.series.title)
+            Text(editedTitle ?? detail.series.title)
                 .typeScale(.masthead)
                 .foregroundStyle(Palette.ink)
                 .padding(.top, 10)
