@@ -52,7 +52,7 @@ struct SearchView: View {
                         Text(message)
                     } actions: {
                         Button("다시 시도") { runSearch(query) }
-                            .foregroundStyle(Palette.accent)
+                            .foregroundStyle(Palette.link)
                     }
                 }
             }
