@@ -80,7 +80,7 @@ struct BlogCard: View {
             .overlay(alignment: .topLeading) {
                 HStack(spacing: 8) {
                     if featured { FeaturedBadge(over: true) }
-                    if let tag = item.tags.first {
+                    if let tag = item.renderableTags.first {
                         // 칩처럼 보이면 칩처럼 동작해야 한다 — 탭 = 태그 피드.
                         NavigationLink(value: Route.tag(tag)) {
                             Text("#\(tag)")
@@ -122,10 +122,10 @@ struct BlogCard: View {
 
     private var textCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if featured || item.tags.first != nil {
+            if featured || item.renderableTags.first != nil {
                 HStack(spacing: 8) {
                     if featured { FeaturedBadge(over: false) }
-                    if let tag = item.tags.first {
+                    if let tag = item.renderableTags.first {
                         NavigationLink(value: Route.tag(tag)) {
                             Text("#\(tag)")
                                 .typeScale(.meta)

@@ -90,7 +90,8 @@ final class FeedViewModel {
             hasNext = view.hasNext
             loadMoreFailed = false
             withAnimation(.easeInOut(duration: 0.2)) {
-                items = view.items
+                // 제목이 사실상 빈("ㅇㅇ"·공백) 글은 카드로 그리지 않는다 — 풀 크롬으로 뜨면 피드가 부서져 보인다.
+                items = view.items.filter(\.isRenderableCard)
                 phase = .loaded(items)
             }
             // 구독함 머리쪽은 조용히 기기로 — 도착한 글은 지하철에서도 읽혀야 한다.
@@ -134,8 +135,9 @@ final class FeedViewModel {
             // reload 가 끼어들었으면 이 응답은 옛 세대 — 버린다(append 도 page 복원도 없음).
             guard myEpoch == epoch else { return }
             // 서버 페이지가 겹쳐 와도 같은 id 카드가 두 번 박히지 않게 — 기존 id 와 겹치는 건 버린다.
+            // 빈 콘텐츠 카드도 함께 거른다(reload 와 같은 가드).
             let seen = Set(items.map(\.id))
-            items.append(contentsOf: view.items.filter { !seen.contains($0.id) })
+            items.append(contentsOf: view.items.filter { !seen.contains($0.id) && $0.isRenderableCard })
             hasNext = view.hasNext
             phase = .loaded(items)
         } catch {

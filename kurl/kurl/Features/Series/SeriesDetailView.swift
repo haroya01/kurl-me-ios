@@ -158,8 +158,8 @@ struct SeriesDetailView: View {
             Text("\(posts.count)편")
                 .typeScale(.meta)
                 .foregroundStyle(Palette.secondary)
-            // 최대 세 개까지 — 좁은 폭에서 마스트헤드가 태그로 넘치지 않게.
-            ForEach(tags.prefix(3), id: \.self) { tag in
+            // 최대 세 개까지 — 좁은 폭에서 마스트헤드가 태그로 넘치지 않게(부스러기 태그는 먼저 거른다).
+            ForEach(ContentValidity.renderableTags(tags).prefix(3), id: \.self) { tag in
                 Text(verbatim: "·")
                     .typeScale(.meta)
                     .foregroundStyle(Palette.faint)
