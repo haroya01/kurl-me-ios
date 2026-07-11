@@ -1,6 +1,34 @@
 {
   "sourceLanguage" : "ko",
   "strings" : {
+    "지금 이어지는 것들" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecting now"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अभी जुड़ रहे"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "いま、つながっているもの"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Đang kết nối"
+          }
+        }
+      }
+    },
     "블로그" : {
       "localizations" : {
         "en" : {

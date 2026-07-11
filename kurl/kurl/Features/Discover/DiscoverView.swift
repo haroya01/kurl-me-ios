@@ -228,7 +228,8 @@ struct DiscoverView: View {
 }
 
 /// 큐레이터 연결 한 장 — 누가(아바타+이름) → 어느 컬렉션에 → [왜 한 줄] → 블록.
-private struct ConnectionEventCard: View {
+/// 발견 표면(팔로우 큐레이터 흐름)과 비로그인 첫 피드의 공개 연결 인터리브가 이 하나를 공유한다.
+struct ConnectionEventCard: View {
     let event: ConnectionEvent
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
