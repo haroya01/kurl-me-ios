@@ -217,7 +217,7 @@ enum MockBackend {
                 ["type": "CODE", "content": mockCode("swift", """
                 // 패널은 유리
                 VStack { content }
-                    .glassEffect(.regular, in: .rect(cornerRadius: 20))
+                    .glassEffect(.regular, in: .rect(cornerRadius: Metrics.radiusCard))
 
                 // 그 안의 주행동은 솔리드 캡슐 — 유리 위 유리 금지
                 Button("계속") { go() }

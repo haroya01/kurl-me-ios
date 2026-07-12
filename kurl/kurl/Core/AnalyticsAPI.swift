@@ -73,7 +73,7 @@ struct PostReadStats: Decodable {
     struct ReferrerHostVisit: Decodable, Identifiable { let host: String; let count: Int64; var id: String { host } }
 }
 
-/// GET /posts/{id}/analytics — linkBreakdown 은 아직 안 쓴다(미디코딩 키는 무시됨).
+/// GET /posts/{id}/analytics — 수명 합계 + 윈도우 추이 + 글 안 링크별 클릭 분해.
 struct PostAnalyticsDetail: Decodable {
     let postId: Int64
     let slug: String
@@ -88,6 +88,17 @@ struct PostAnalyticsDetail: Decodable {
     let lifetimeFollows: Int64
     let windowFollows: Int64
     let daily: [AuthorAnalyticsOverview.DailyPoint]
+    /// 글 합계 링크 클릭이 어느 kurl 링크에서 나왔는지 — 클릭 내림차순. 링크가 없으면 빈 배열.
+    let linkBreakdown: [PostLinkClick]
+}
+
+/// 글 안 kurl 링크 하나의 클릭 분해 — 목적지 URL + 짧은 코드 + 클릭 수(웹 글 분석 parity).
+struct PostLinkClick: Decodable, Identifiable {
+    let shortCode: String
+    let destinationUrl: String
+    let clicks: Int64
+
+    var id: String { shortCode }
 }
 
 struct PostPerformanceResult: Decodable {

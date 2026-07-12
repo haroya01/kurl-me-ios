@@ -1564,7 +1564,7 @@ final class MarkdownImageLayoutManager: NSLayoutManager {
                 self?.onImageLoad?() // 실제 비율 반영해 높이 재계산
             }
             ctx.saveGState()
-            UIBezierPath(roundedRect: box, cornerRadius: 12).addClip()
+            UIBezierPath(roundedRect: box, cornerRadius: Metrics.radiusControl).addClip()
             if let img {
                 // aspect-fit — 세로/가로 모두 잘리지 않고 전체가 보이게.
                 let scale = min(box.width / img.size.width, box.height / img.size.height)
@@ -1576,7 +1576,7 @@ final class MarkdownImageLayoutManager: NSLayoutManager {
             } else {
                 // 로딩 중(또는 재시도 대기) — 빈 회색 칸이 "안 떴다"로 읽히지 않게 사진 아이콘을 얹어 자리를 잡는다.
                 UIColor.secondarySystemFill.setFill()
-                UIBezierPath(roundedRect: box, cornerRadius: 12).fill()
+                UIBezierPath(roundedRect: box, cornerRadius: Metrics.radiusControl).fill()
                 if let icon = UIImage(systemName: "photo")?
                     .withConfiguration(UIImage.SymbolConfiguration(pointSize: 30, weight: .regular))
                     .withTintColor(UIColor(Palette.secondary), renderingMode: .alwaysOriginal) {

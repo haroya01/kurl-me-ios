@@ -79,7 +79,7 @@ struct DailyTrendChart: View {
                         }
                         .padding(.horizontal, 9)
                         .padding(.vertical, 5)
-                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Metrics.radiusThumb))
                     }
 
                 PointMark(x: .value("날짜", selected.date), y: .value("조회", selected.views))

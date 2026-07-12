@@ -27,11 +27,11 @@ struct SeriesAnalyticsDetailView: View {
             case .idle, .loading:
                 KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 280)
-            case .failed(let message):
+            case .failed:
                 ContentUnavailableView {
-                    Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
+                    Label("분석을 불러오지 못했습니다", systemImage: "wifi.exclamationmark")
                 } description: {
-                    Text(message)
+                    Text("잠시 후 다시 시도해 주세요.")
                 } actions: {
                     Button("다시 시도") { Task { await load() } }
                         .foregroundStyle(Palette.accent)
@@ -88,14 +88,12 @@ struct SeriesAnalyticsDetailView: View {
                     .font(.system(size: 15 * unit))
                     .foregroundStyle(Palette.secondary)
             }
-            HStack(spacing: 14) {
-                Label("\(detail.series.postCount)편", systemImage: "doc.text")
-                Label("조회 \(detail.series.totalViews)", systemImage: "eye")
-                Label("좋아요 \(detail.series.totalLikes)", systemImage: "heart")
-            }
-            .font(.system(size: 13 * unit))
-            .foregroundStyle(Palette.secondary)
-            .labelStyle(.titleAndIcon)
+            // 헤드라인 보조지표 — 아이콘 군집 대신 담백한 한 줄(§10 절제, 개요·목록과 한 결).
+            MetaLine([
+                "\(detail.series.postCount)편",
+                "조회 \(detail.series.totalViews.formatted())",
+                "좋아요 \(detail.series.totalLikes.formatted())",
+            ])
         }
 
         if !detail.subscriberDaily.isEmpty {
@@ -130,10 +128,10 @@ struct SeriesAnalyticsDetailView: View {
                 }
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 3)
+                        RoundedRectangle(cornerRadius: Metrics.radiusBar)
                             .fill(Palette.hairline)
                             .frame(height: 8)
-                        RoundedRectangle(cornerRadius: 3)
+                        RoundedRectangle(cornerRadius: Metrics.radiusBar)
                             .fill(Palette.accent.opacity(0.85))
                             .frame(
                                 width: max(4, geo.size.width * CGFloat(member.uniqueReaders) / CGFloat(maxReaders)),
