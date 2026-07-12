@@ -961,6 +961,7 @@ struct PostDetailView: View {
                     .typeScale(.titleSmall)
                     .foregroundStyle(Palette.ink)
                     .lineLimit(2)
+                    .minimumScaleFactor(0.7)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 0)

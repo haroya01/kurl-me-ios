@@ -45,13 +45,6 @@ struct AnalyticsWidget: Widget {
     }
 }
 
-/// 브랜드 그린 — 위젯 타깃엔 앱 Palette 가 없어 최소한만 미러링.
-private enum WidgetPalette {
-    static let accent = Color(red: 0x05 / 255.0, green: 0x96 / 255.0, blue: 0x69 / 255.0)
-    static let ink = Color.primary
-    static let secondary = Color.secondary
-}
-
 struct AnalyticsWidgetView: View {
     @Environment(\.widgetFamily) private var family
     let entry: AnalyticsEntry
@@ -67,7 +60,7 @@ struct AnalyticsWidgetView: View {
         } else if family == .accessoryCircular || family == .accessoryRectangular {
             // 잠금화면엔 긴 안내문이 안 선다 — 마크 한 점으로만.
             Text(verbatim: "kurl")
-                .font(.system(size: 12, weight: .bold))
+                .widgetType(.caption, weight: .bold)
         } else {
             empty
         }
@@ -77,11 +70,11 @@ struct AnalyticsWidgetView: View {
     private func circular(_ s: WidgetSnapshot) -> some View {
         VStack(spacing: 0) {
             Text(s.windowViews.formatted())
-                .font(.system(size: 16, weight: .bold).monospacedDigit())
+                .widgetType(.headline, weight: .bold, monospacedDigit: true)
                 .minimumScaleFactor(0.5)
                 .lineLimit(1)
             Text("조회")
-                .font(.system(size: 9, weight: .medium))
+                .widgetType(.micro, weight: .medium)
         }
     }
 
@@ -89,9 +82,9 @@ struct AnalyticsWidgetView: View {
     private func rectangular(_ s: WidgetSnapshot) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text("최근 \(s.windowDays)일 조회")
-                .font(.system(size: 11, weight: .semibold))
+                .widgetType(.caption, weight: .semibold)
             Text(s.windowViews.formatted())
-                .font(.system(size: 17, weight: .bold).monospacedDigit())
+                .widgetType(.headline, weight: .bold, monospacedDigit: true)
                 .lineLimit(1)
             bars(s.dailyViews)
                 .frame(height: 10)
@@ -103,7 +96,7 @@ struct AnalyticsWidgetView: View {
         VStack(alignment: .leading, spacing: 6) {
             header
             Text("앱에서 분석을 한 번 열면\n여기에 지표가 떠요.")
-                .font(.system(size: 12))
+                .widgetType(.footnote)
                 .foregroundStyle(WidgetPalette.secondary)
             Spacer(minLength: 0)
         }
@@ -116,7 +109,7 @@ struct AnalyticsWidgetView: View {
                 .fill(WidgetPalette.accent)
                 .frame(width: 3, height: 10)
             Text("kurl 분석")
-                .font(.system(size: 11, weight: .bold))
+                .widgetType(.caption, weight: .bold)
                 .foregroundStyle(WidgetPalette.secondary)
         }
     }
@@ -126,12 +119,12 @@ struct AnalyticsWidgetView: View {
             header
             Spacer(minLength: 0)
             Text(s.windowViews.formatted())
-                .font(.system(size: 30, weight: .bold).monospacedDigit())
+                .widgetType(.figure, weight: .bold, monospacedDigit: true)
                 .foregroundStyle(WidgetPalette.ink)
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
             Text("최근 \(s.windowDays)일 조회")
-                .font(.system(size: 11))
+                .widgetType(.caption)
                 .foregroundStyle(WidgetPalette.secondary)
             bars(s.dailyViews)
                 .frame(height: 22)
@@ -146,12 +139,12 @@ struct AnalyticsWidgetView: View {
                 header
                 Spacer(minLength: 0)
                 Text(s.windowViews.formatted())
-                    .font(.system(size: 30, weight: .bold).monospacedDigit())
+                    .widgetType(.figure, weight: .bold, monospacedDigit: true)
                     .foregroundStyle(WidgetPalette.ink)
                     .minimumScaleFactor(0.6)
                     .lineLimit(1)
                 Text("최근 \(s.windowDays)일 조회")
-                    .font(.system(size: 11))
+                    .widgetType(.caption)
                     .foregroundStyle(WidgetPalette.secondary)
                 bars(s.dailyViews)
                     .frame(height: 22)
@@ -171,11 +164,11 @@ struct AnalyticsWidgetView: View {
     private func stat(_ label: LocalizedStringKey, _ value: Int64) -> some View {
         HStack(spacing: 6) {
             Text(label)
-                .font(.system(size: 11))
+                .widgetType(.caption)
                 .foregroundStyle(WidgetPalette.secondary)
             Spacer(minLength: 4)
             Text(value.formatted())
-                .font(.system(size: 13, weight: .semibold).monospacedDigit())
+                .widgetType(.metricSmall, weight: .semibold, monospacedDigit: true)
                 .foregroundStyle(WidgetPalette.ink)
         }
         .frame(width: 118)
