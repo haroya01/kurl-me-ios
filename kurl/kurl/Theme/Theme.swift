@@ -46,6 +46,7 @@ extension Color {
 enum Palette {
     // 잉크 (slate)
     static let ink = Color(light: 0x0F172A, dark: 0xF1F5F9)            // 제목/헤딩 slate-900/100
+    static let inkOnLight = Color(hex: 0x0F172A)                       // 항상 흰 면(커버 위 흰 필) 위 글자 — 스킴 무관 slate-900
     static let heading = Color(light: 0x1E293B, dark: 0xE2E8F0)        // RailHeading slate-800/200
     // 본문·메타·구분선은 "대비 증가"를 켜면 한 단계 진하게(읽기 가독 우선).
     static let body = Color(light: 0x334155, dark: 0xCBD5E1, lightHC: 0x1E293B, darkHC: 0xE2E8F0)        // slate-700/300 → 800/200

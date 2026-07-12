@@ -12,8 +12,11 @@ struct CollectionsListView: View {
     @State private var loading = true
     @State private var failed = false
     @State private var showCreate = false
-    /// 상세에서 삭제·수정하고 돌아오면 목록이 스테일 — 재진입 시 조용히 다시 읽는다.
-    @State private var loadedOnce = false
+    /// 첫 로드는 .task 한 곳에서만 — .task 와 .onAppear 의 첫 등장 순서는 보장되지 않아
+    /// 둘 다 걸면 첫 진입에서 GET 이 두 번 나갈 수 있다. .onAppear 는 재진입 갱신만 맡는다.
+    @State private var didLoad = false
+    /// 상세로 실제로 벗어났다 돌아온 경우에만 갱신 — 첫 등장의 .onAppear 를 재진입과 구분한다.
+    @State private var wentAway = false
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
     var body: some View {
@@ -63,12 +66,19 @@ struct CollectionsListView: View {
         .navigationDestination(for: CollectionRef.self) { CollectionDetailView(collectionId: $0.id) }
         .navigationDestination(for: Route.self) { RouteView(route: $0) }
         .task {
-            guard !loadedOnce else { return }
-            loadedOnce = true
+            guard !didLoad else { return }
+            didLoad = true
             await load()
         }
+        // 상세로 벗어난 걸 표시 — 돌아왔을 때만 조용히 갱신하기 위한 신호.
+        .onDisappear { wentAway = true }
         // 상세에서 삭제·수정 후 돌아오면 새로 읽는다(스피너 없이 제자리 갱신).
-        .onAppear { if loadedOnce { Task { await load() } } }
+        // 첫 등장(.task 로드)과 겹치지 않게, 실제로 벗어났다 돌아온 경우에만.
+        .onAppear {
+            guard wentAway else { return }
+            wentAway = false
+            Task { await load() }
+        }
         .refreshable { await load() }
     }
 
