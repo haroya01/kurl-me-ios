@@ -248,6 +248,8 @@ enum Metrics {
     static let radiusControl: CGFloat = 12
     /// 썸네일(행 안의 56×42 등)
     static let radiusThumb: CGFloat = 8
+    /// 차트 막대(완주 funnel·비율 막대) — 얇은 데이터 막대의 둥근 끝.
+    static let radiusBar: CGFloat = 3
 
     /// 전폭 종이 카드 내부 여백 — radiusCard 면이 본문을 들이는 정준 인셋.
     /// 텍스트 카드·발행 미리보기·자리표시가 같은 값을 물어 카드끼리 결이 안 어긋난다.

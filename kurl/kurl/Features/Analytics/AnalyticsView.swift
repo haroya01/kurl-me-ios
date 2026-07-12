@@ -45,11 +45,11 @@ struct AnalyticsView: View {
             case .idle, .loading:
                 KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 280)
-            case .failed(let message):
+            case .failed:
                 ContentUnavailableView {
-                    Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
+                    Label("분석을 불러오지 못했습니다", systemImage: "wifi.exclamationmark")
                 } description: {
-                    Text(message)
+                    Text("잠시 후 다시 시도해 주세요.")
                 } actions: {
                     Button("다시 시도") { Task { await load() } }
                         .foregroundStyle(Palette.accent)
@@ -198,7 +198,7 @@ struct AnalyticsView: View {
                     .foregroundStyle(Palette.secondary)
             }
             // 윈도우 보조지표 — 아이콘 군집 대신 담백한 한 줄(§10 절제).
-            metaLine(["팔로우 +\(overview.windowFollows)", "링크 클릭 \(overview.windowLinkClicks)"])
+            MetaLine(["팔로우 +\(overview.windowFollows)", "링크 클릭 \(overview.windowLinkClicks)"])
                 .padding(.top, 2)
         }
 
@@ -252,7 +252,7 @@ struct AnalyticsView: View {
                                 .lineLimit(2)
                                 .multilineTextAlignment(.leading)
                                 .fixedSize(horizontal: false, vertical: true)
-                            metaLine(
+                            MetaLine(
                                 ["조회 \(row.viewCount.formatted())",
                                  "좋아요 \(row.likeCount.formatted())"]
                                 + (row.followsGained > 0
@@ -309,7 +309,7 @@ struct AnalyticsView: View {
                                 .typeScale(.title)
                                 .foregroundStyle(Palette.ink)
                                 .lineLimit(1)
-                            metaLine([
+                            MetaLine([
                                 "\(row.postCount)편", "구독 \(row.subscriberCount.formatted())",
                                 "조회 \(row.totalViews.formatted())",
                                 "좋아요 \(row.totalLikes.formatted())",
@@ -382,16 +382,6 @@ struct AnalyticsView: View {
         .buttonStyle(.plain)
         .selectorPill(selected: active)
         .accessibilityAddTraits(active ? [.isSelected] : [])
-    }
-
-    /// 절제 — 작은 아이콘 군집 대신 muted 텍스트 한 줄(라벨·값을 가운뎃점으로). 텍스트라
-    /// VoiceOver 도 그대로 읽힌다. 메타에서 아이콘을 걷어내는 게 "조용함"의 큰 부분(§10).
-    private func metaLine(_ parts: [String]) -> some View {
-        Text(parts.joined(separator: "  ·  "))
-            .font(.system(size: 13 * metaUnit))
-            .foregroundStyle(Palette.secondary)
-            .monospacedDigit()
-            .lineLimit(1)
     }
 
     private func stat(_ label: LocalizedStringKey, _ value: Int64) -> some View {

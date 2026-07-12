@@ -759,9 +759,9 @@ private struct InlineVideoEmbed: View {
         .aspectRatio(16.0 / 9.0, contentMode: .fit)
         .frame(maxWidth: .infinity)
         .background(Color.black)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusControl, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: Metrics.radiusControl, style: .continuous)
                 .strokeBorder(Palette.hairlineStrong.opacity(0.5), lineWidth: 1)
         )
         .padding(.vertical, 8)

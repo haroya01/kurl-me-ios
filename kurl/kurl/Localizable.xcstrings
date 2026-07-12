@@ -15213,6 +15213,30 @@
           }
         }
       }
+    },
+    "링크별 클릭" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Clicks by link" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "लिंक के अनुसार क्लिक" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "リンク別クリック" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Lượt nhấp theo liên kết" } }
+      }
+    },
+    "분석을 불러오지 못했습니다" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Couldn't load analytics" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "एनालिटिक्स लोड नहीं हो सका" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "分析を読み込めませんでした" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Không thể tải phân tích" } }
+      }
+    },
+    "잠시 후 다시 시도해 주세요." : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Please try again in a moment." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "कृपया थोड़ी देर बाद फिर से प्रयास करें।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "しばらくしてからもう一度お試しください。" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Vui lòng thử lại sau giây lát." } }
+      }
     }
   },
   "version" : "1.0"
