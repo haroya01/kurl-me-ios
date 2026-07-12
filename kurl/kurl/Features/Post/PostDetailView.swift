@@ -859,7 +859,9 @@ struct PostDetailView: View {
         // 제목 위 카테고리 eyebrow(대표 태그)가 내비바 아래 띠를 매거진 머릿글처럼 채운다.
         let kicker = ContentValidity.renderableTags(detail.post.tags).first
         return VStack(alignment: .leading, spacing: 0) {
-            Color.clear.frame(height: kicker != nil ? 6 : 14)
+            // 단독 뷰의 내비바는 배경 없이 유리 캡슐만 떠 있어서, 제목이 6pt 에서 시작하면
+            // 캡슐과 뭉개져 보인다. 캡슐 아래로 한 호흡 내려 시작(덱 임베드는 칸이 좁아 유지).
+            Color.clear.frame(height: embedded ? (kicker != nil ? 6 : 14) : (kicker != nil ? 24 : 28))
 
             if let kicker {
                 // 카테고리 eyebrow = 조용한 매거진 머릿글. 초록은 주액션(팔로우)·데이터 전용이므로
