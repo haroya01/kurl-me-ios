@@ -30,7 +30,7 @@ struct BookmarksView: View {
                     Text("북마크한 글은 오프라인에서도 읽을 수 있어요.")
                 } actions: {
                     Button("발견에서 읽을 글 찾기") { TabRouter.shared.selection = 1 }
-                        .foregroundStyle(Palette.accent)
+                        .foregroundStyle(Palette.link)
                 }
                 .padding(.top, 60)
             } else {
@@ -159,7 +159,7 @@ struct LikedPostsView: View {
                     Label("좋아요한 글이 없습니다", systemImage: "heart")
                 } actions: {
                     Button("발견에서 읽을 글 찾기") { TabRouter.shared.selection = 1 }
-                        .foregroundStyle(Palette.accent)
+                        .foregroundStyle(Palette.link)
                 }
                     .padding(.top, 60)
             } else {
@@ -212,7 +212,7 @@ struct SubscribedSeriesView: View {
                     Label("구독한 시리즈가 없습니다", systemImage: "square.stack.3d.up")
                 } actions: {
                     Button("검색에서 시리즈 찾기") { TabRouter.shared.selection = 3 }
-                        .foregroundStyle(Palette.accent)
+                        .foregroundStyle(Palette.link)
                 }
                 .padding(.top, 60)
             } else {
@@ -274,7 +274,7 @@ private struct LibraryFailedState: View {
             Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
         } actions: {
             Button("다시 시도", action: retry)
-                .foregroundStyle(Palette.accent)
+                .foregroundStyle(Palette.link)
         }
         .padding(.top, 60)
     }

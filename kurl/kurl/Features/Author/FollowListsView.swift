@@ -14,7 +14,7 @@ struct FollowListsView: View {
     enum FollowTab: String, Identifiable, CaseIterable {
         case followers, following
         var id: String { rawValue }
-        var title: String { self == .followers ? "팔로워" : "팔로잉" }
+        var title: String { self == .followers ? String(localized: "팔로워") : String(localized: "팔로잉") }
     }
 
     @State private var tab: FollowTab
@@ -50,7 +50,7 @@ struct FollowListsView: View {
                     Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
                 } actions: {
                     Button("다시 시도") { Task { await reload() } }
-                        .foregroundStyle(Palette.accent)
+                        .foregroundStyle(Palette.link)
                 }
                 .padding(.top, 56)
             } else if loadedOnce && items.isEmpty {

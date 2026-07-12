@@ -62,7 +62,7 @@ enum MockSelfTest {
             let bookmarked = try await InteractionsAPI.setBookmark(postId: 9001, on: true)
             log("engage.bookmark: on=\(bookmarked.bookmarked)")
             let follow = try await InteractionsAPI.setFollow(username: "honggildong", on: true)
-            log("engage.follow: on=\(follow.following) count=\(follow.followerCount)")
+            log("engage.follow: on=\(follow.following) count=\(follow.followerCount.map(String.init) ?? "nil")")
             let sub = try await InteractionsAPI.setSubscription(seriesId: 1, on: true)
             log("engage.subscribe: on=\(sub.subscribed) count=\(sub.subscriberCount)")
             try await InteractionsAPI.createComment(postId: 9001, body: "셀프테스트 댓글")

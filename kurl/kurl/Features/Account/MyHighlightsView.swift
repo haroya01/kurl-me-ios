@@ -58,7 +58,7 @@ struct MyHighlightsView: View {
                     Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
                 } actions: {
                     Button("다시 시도") { Task { loading = true; await load() } }
-                        .foregroundStyle(Palette.accent)
+                        .foregroundStyle(Palette.link)
                 }
                 .padding(.top, 60)
             } else if items.isEmpty {
@@ -68,7 +68,7 @@ struct MyHighlightsView: View {
                     Text("글을 읽다 마음에 닿는 문장을 길게 눌러 하이라이트해 보세요.")
                 } actions: {
                     Button("발견에서 읽을 글 찾기") { TabRouter.shared.selection = 1 }
-                        .foregroundStyle(Palette.accent)
+                        .foregroundStyle(Palette.link)
                 }
                 .padding(.top, 60)
             } else if visibleGroups.isEmpty {

@@ -439,7 +439,7 @@ struct FeedPage: View {
             Text(message)
         } actions: {
             Button("다시 시도") { Task { await model.reload() } }
-                .foregroundStyle(Palette.accent)
+                .foregroundStyle(Palette.link)
         }
     }
 }

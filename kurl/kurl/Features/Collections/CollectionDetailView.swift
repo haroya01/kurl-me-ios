@@ -492,7 +492,7 @@ struct CollectionDetailView: View {
             Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
         } actions: {
             Button("다시 시도") { Task { loading = true; await load() } }
-                .foregroundStyle(Palette.accent)
+                .foregroundStyle(Palette.link)
         }
         .padding(.top, 60)
     }

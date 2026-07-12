@@ -52,7 +52,7 @@ struct AnalyticsView: View {
                     Text("잠시 후 다시 시도해 주세요.")
                 } actions: {
                     Button("다시 시도") { Task { await load() } }
-                        .foregroundStyle(Palette.accent)
+                        .foregroundStyle(Palette.link)
                 }
                 .padding(.top, 60)
             case .loaded(let overview):

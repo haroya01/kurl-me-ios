@@ -112,7 +112,7 @@ struct DiscoverDeckView: View {
                         Text(message)
                     } actions: {
                         Button("다시 시도") { Task { await model.reshuffle() } }
-                            .foregroundStyle(Palette.accent)
+                            .foregroundStyle(Palette.link)
                     }
                 case .loaded:
                     // 인증 피드가 빈 덱을 줄 수 있다 — 빈 페이지형 면 대신 막다른 길 금지(작가 찾기로).

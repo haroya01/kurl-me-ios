@@ -84,7 +84,7 @@ struct StateView<Value, Content: View>: View {
                 } actions: {
                     if let retry {
                         Button(String(localized: "다시 시도"), action: retry)
-                            .foregroundStyle(Palette.accent)
+                            .foregroundStyle(Palette.link)
                     }
                 }
                 .transition(.opacity)

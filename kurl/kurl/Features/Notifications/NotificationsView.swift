@@ -42,7 +42,7 @@ struct NotificationsView: View {
                     Text(loadError)
                 } actions: {
                     Button("다시 시도") { Task { await load() } }
-                        .foregroundStyle(Palette.accent)
+                        .foregroundStyle(Palette.link)
                 }
                 .padding(.top, 60)
             } else if items.isEmpty {

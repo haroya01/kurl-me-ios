@@ -33,7 +33,7 @@ struct TagFeedView: View {
                         Text(message)
                     } actions: {
                         Button("다시 시도") { Task { await load() } }
-                            .foregroundStyle(Palette.accent)
+                            .foregroundStyle(Palette.link)
                     }
                     .padding(.top, 60)
                 case .loaded(let items):
@@ -44,7 +44,7 @@ struct TagFeedView: View {
                             Text("이 태그의 글이 아직 없어요.")
                         } actions: {
                             Button("발견 탭에서 읽을 글 찾기") { TabRouter.shared.selection = 1 }
-                                .foregroundStyle(Palette.accent)
+                                .foregroundStyle(Palette.link)
                         }
                         .padding(.top, 60)
                     }
