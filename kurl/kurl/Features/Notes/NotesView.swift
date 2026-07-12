@@ -340,8 +340,8 @@ private struct NoteComposerBar: View {
             if body_.count > 400 {
                 Text("\(500 - body_.count)")
                     .font(.system(size: countdownSize).monospacedDigit())
-                    // 초과는 색이 아니라 무게로 — slate 사다리 안에서 ink+semibold (그린 외 단독 색 금지).
-                    .foregroundStyle(body_.count > 500 ? Palette.ink : Palette.secondary)
+                    // 유리 위 = 시맨틱 vibrancy(§1.2). 초과는 색이 아니라 무게로 알린다(그린 외 단독 색 금지).
+                    .foregroundStyle(body_.count > 500 ? .primary : .secondary)
                     .fontWeight(body_.count > 500 ? .semibold : .regular)
             }
             Button {
