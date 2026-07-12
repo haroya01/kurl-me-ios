@@ -15453,6 +15453,78 @@
         "ja" : { "stringUnit" : { "state" : "translated", "value" : "あなたがつながっている道に新しい記事が加わったとき" } },
         "vi" : { "stringUnit" : { "state" : "translated", "value" : "Khi một bài viết mới nối vào con đường bạn tham gia" } }
       }
+    },
+    "스팸·광고" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Spam or ads" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "स्पैम या विज्ञापन" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "スパム・広告" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Spam hoặc quảng cáo" } }
+      }
+    },
+    "혐오·괴롭힘" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Hate or harassment" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "घृणा या उत्पीड़न" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "誹謗・嫌がらせ" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Thù ghét hoặc quấy rối" } }
+      }
+    },
+    "폭력·위험" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Violence or danger" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "हिंसा या खतरा" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "暴力・危険" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Bạo lực hoặc nguy hiểm" } }
+      }
+    },
+    "성적인 콘텐츠" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Sexual content" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "यौन सामग्री" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "性的なコンテンツ" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Nội dung tình dục" } }
+      }
+    },
+    "저작권 침해" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Copyright violation" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "कॉपीराइट उल्लंघन" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "著作権侵害" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Vi phạm bản quyền" } }
+      }
+    },
+    "기타" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Other" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "अन्य" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "その他" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Khác" } }
+      }
+    },
+    "사유 다시 고르기" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Choose a different reason" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "दूसरा कारण चुनें" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "理由を選び直す" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Chọn lý do khác" } }
+      }
+    },
+    "어떤 점이 문제인지 알려주세요 (선택)" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Tell us what's wrong (optional)" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "बताएं कि क्या समस्या है (वैकल्पिक)" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "問題点を教えてください（任意）" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Cho chúng tôi biết vấn đề là gì (tùy chọn)" } }
+      }
+    },
+    "신고 보내기" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Submit report" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "रिपोर्ट भेजें" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "報告を送信" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Gửi báo cáo" } }
+      }
     }
   },
   "version" : "1.0"

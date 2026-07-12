@@ -5,8 +5,9 @@
 
 import SwiftUI
 
-/// 신고 사유 — 백엔드 reason 은 자유 문자열이라 검토 큐에서 읽히게 한국어 라벨을 그대로 보낸다
-/// (표시 라벨과 전송 텍스트를 같은 한국어로 고정 — 로케일 무관하게 검토자가 읽는다).
+/// 신고 사유 — 백엔드는 `reasonCode`(enum) + `detail`(자유서술) 두 필드로 받는다(#611).
+/// 표시 라벨(`text`)은 로케일별로 번역해 사용자에게 보이고, 서버로는 `code`(enum)만 보낸다 —
+/// 검토 큐는 코드로 분류하고 자유서술 detail 로 맥락을 읽는다.
 enum ReportReason: String, CaseIterable, Identifiable {
     case spam
     case harassment
@@ -17,6 +18,10 @@ enum ReportReason: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    /// 백엔드 enum 값 — SPAM·HARASSMENT·VIOLENCE·SEXUAL·COPYRIGHT·OTHER.
+    var code: String { rawValue.uppercased() }
+
+    /// 사용자에게 보이는 라벨 — xcstrings 로 번역된다(서버 전송값이 아니다).
     var text: String {
         switch self {
         case .spam: return "스팸·광고"
@@ -64,14 +69,23 @@ extension View {
 }
 
 /// 신고 사유 시트 — 종이 문법의 사유 행 + 콘텐츠 높이 detent(LoginSheet 와 같은 결).
-/// 사유를 고르면 닫고 접수한 뒤 토스트로 알린다. 취소는 드래그·바깥 탭(시트 표준).
+/// 하이브리드: 코드 사유(스팸·혐오 등)는 한 번 눌러 바로 접수하고, "기타"만 고르면 그 자리에서
+/// 자유서술(detail) 입력이 펼쳐진다 — 검토자가 맥락을 읽게. 서버로는 `reasonCode`(enum) +
+/// `detail` 로 보낸다(#611). 취소는 드래그·바깥 탭(시트 표준).
 struct ReportReasonSheet: View {
     let subjectType: String
     let subjectId: Int64
 
     @Environment(\.dismiss) private var dismiss
     @ScaledMetric(relativeTo: .title3) private var titleSize: CGFloat = 20
+    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @State private var contentHeight: CGFloat = 420
+    /// false 면 사유 목록, "기타"를 고르면 true 로 자유서술 입력이 펼쳐진다(하이브리드).
+    @State private var expandedOther = false
+    @State private var detail = ""
+    @FocusState private var detailFocused: Bool
+
+    private static let detailLimit = 500
 
     private var noun: String {
         switch subjectType {
@@ -92,36 +106,103 @@ struct ReportReasonSheet: View {
                 .padding(.top, 6)
                 .padding(.bottom, 12)
 
-            ForEach(Array(ReportReason.allCases.enumerated()), id: \.element.id) { index, reason in
-                Button {
-                    send(reason)
-                } label: {
-                    Text(LocalizedStringKey(reason.text))
-                        .typeScale(.body)
-                        .foregroundStyle(Palette.ink)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 15)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(RowButtonStyle())
-                if index < ReportReason.allCases.count - 1 { Hairline() }
+            if expandedOther {
+                otherDetailForm
+            } else {
+                reasonList
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, Metrics.gutter)
         .padding(.top, 28)
         .padding(.bottom, 16)
+        .animation(.snappy(duration: 0.25), value: expandedOther)
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
         .presentationDetents([.height(contentHeight)])
         .presentationDragIndicator(.visible)
     }
 
-    private func send(_ reason: ReportReason) {
+    // 사유 목록 — 코드 사유는 즉시 접수, "기타"는 자유서술 입력으로 펼친다.
+    private var reasonList: some View {
+        ForEach(Array(ReportReason.allCases.enumerated()), id: \.element.id) { index, reason in
+            Button {
+                if reason == .other {
+                    expandedOther = true
+                    detailFocused = true
+                } else {
+                    send(reasonCode: reason.code, detail: nil)
+                }
+            } label: {
+                Text(LocalizedStringKey(reason.text))
+                    .typeScale(.body)
+                    .foregroundStyle(Palette.ink)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 15)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(RowButtonStyle())
+            if index < ReportReason.allCases.count - 1 { Hairline() }
+        }
+    }
+
+    // "기타" 자유서술 — 종이 문법 입력 상자 + 그린 유리 캡슐 제출(§1.3). 뒤로 돌아가면 목록.
+    private var otherDetailForm: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Button {
+                expandedOther = false
+                detailFocused = false
+            } label: {
+                Label("사유 다시 고르기", systemImage: "chevron.left")
+                    .typeScale(.footnote)
+                    .foregroundStyle(Palette.link)
+            }
+            .buttonStyle(.plain)
+
+            TextField(
+                "어떤 점이 문제인지 알려주세요 (선택)", text: $detail, axis: .vertical
+            )
+            .font(.system(size: 16 * unit))
+            .foregroundStyle(Palette.ink)
+            .lineLimit(3...7)
+            .focused($detailFocused)
+            .padding(14)
+            .background(
+                Palette.chipBg,
+                in: RoundedRectangle(cornerRadius: Metrics.radiusControl, style: .continuous))
+            .onChange(of: detail) { _, new in
+                if new.count > Self.detailLimit {
+                    detail = String(new.prefix(Self.detailLimit))
+                }
+            }
+
+            HStack(spacing: 0) {
+                Text("\(detail.count)/\(Self.detailLimit)")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(Palette.secondary)
+                Spacer(minLength: 12)
+                Button {
+                    let trimmed = detail.trimmingCharacters(in: .whitespacesAndNewlines)
+                    send(reasonCode: ReportReason.other.code, detail: trimmed.isEmpty ? nil : trimmed)
+                } label: {
+                    Text("신고 보내기")
+                        .typeScale(.body)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 11)
+                }
+                .glassCapsule(prominent: true)
+            }
+        }
+    }
+
+    private func send(reasonCode: String, detail: String?) {
         dismiss()
         Task {
             do {
                 try await InteractionsAPI.report(
-                    subjectType: subjectType, subjectId: subjectId, reason: reason.text)
+                    subjectType: subjectType, subjectId: subjectId,
+                    reasonCode: reasonCode, detail: detail)
                 ToastCenter.shared.show(String(localized: "신고가 접수되었습니다"))
             } catch {
                 ToastCenter.shared.show(String(localized: "신고를 보내지 못했습니다"))
