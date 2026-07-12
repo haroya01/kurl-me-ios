@@ -83,6 +83,9 @@ struct PostDetailView: View {
     /// 키보드가 떠 있는 동안(댓글 입력)은 길이와 무관하게 물러난다.
     @State private var endVisible = false
     @State private var scrollable = false
+    /// 끝맺음 감지선에 처음 닿았을 때의 읽기 진행도 — 이 아래로 되돌아 올라오면 독이 다시 뜬다.
+    /// (감지선을 지나쳐 위로 사라져도 물러난 상태를 유지하기 위한 래치 기준점.)
+    @State private var bodyEndProgress: CGFloat?
     @State private var keyboardUp = false
 
     /// 글 끝의 작가 카드·다른 글 — 작가 글 목록은 한 번만 가져와 양쪽(카드·다음 글 큐)이 쓴다.
@@ -142,10 +145,12 @@ struct PostDetailView: View {
         .scrollEdgeEffectHidden(embedded || !showNavTitle, for: .top)
         .background(Palette.readingBg.ignoresSafeArea())
         // 스크롤 여유가 충분한지 — 독 후퇴 판정의 전제(짧은 글은 독이 유일한 인게이지 표면).
+        // 한 번 스크롤 가능으로 판정되면 유지한다(글 길이는 스크롤로 줄지 않는데, 바닥에 닿으면
+        // contentSize↔containerSize 관계가 잠깐 뒤집혀 false 로 흘러 끝맺음 위 독이 되살아났다).
         .onScrollGeometryChange(for: Bool.self) { geometry in
             geometry.contentSize.height > geometry.containerSize.height + 120
         } action: { _, isScrollable in
-            scrollable = isScrollable
+            if isScrollable { scrollable = true }
         }
         .onReceive(
             NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
@@ -219,6 +224,10 @@ struct PostDetailView: View {
                 readComplete = true
             } else if progress < 0.9, readComplete {
                 readComplete = false
+            }
+            // 독 래치 해제 — 끝맺음에 닿았던 지점보다 본문 위로 되돌아 오면 독을 다시 띄운다.
+            if let end = bodyEndProgress, progress < end - 0.02, endVisible {
+                endVisible = false
             }
         }
         .onScrollPhaseChange { _, newPhase in
@@ -663,8 +672,9 @@ struct PostDetailView: View {
             #selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
     }
 
-    // 읽기 흐름 우선: 커버 → 제목 → 작가 한 줄 → 본문. 태그와 좋아요는 다 읽은 뒤
-    // 자연스럽게 만나도록 본문 끝으로 — 헤더에 끼어 있던 인터랙션 바가 진입을 막지 않는다.
+    // 읽기 흐름 우선: 제목 → 작가 한 줄 → 본문(커버 헤더 없음 — 제목이 항상 맨 위).
+    // 태그와 좋아요는 다 읽은 뒤 자연스럽게 만나도록 본문 끝으로 — 헤더에 끼어 있던
+    // 인터랙션 바가 진입을 막지 않는다.
     @ViewBuilder
     private func content(_ detail: PublicPostDetail) -> some View {
         header(detail)
@@ -711,13 +721,17 @@ struct PostDetailView: View {
         if let nav = detail.series {
             SeriesNextCard(nav: nav, username: detail.author.username)
         }
-        // 글 본문이 끝나고 '끝맺음'(작가 카드·이 작가의 다른 글 레일·댓글)이 시작되는 지점.
-        // 이 감지선이 뷰포트에 들어오면 독이 물러난다 — 떠 있는 독이 추천 레일·작가 카드를
-        // 가리지 않게(§ 표면 매핑: "글 끝에선 후퇴"). 위로 되돌아가 본문으로 오면 다시 뜬다.
-        // 예전엔 맨 밑 감지선에만 반응해 레일·댓글 위로 독이 계속 겹쳤다.
+        // 본문이 끝나고 '끝맺음'(레일·작가 카드·댓글)이 시작되는 감지선. 뷰포트에 들면 독이 물러난다 —
+        // 떠 있는 독이 그 아래 요소를 가리지 않게(§ 표면 매핑: "글 끝에선 후퇴"). 한 번 닿으면 그 지점의
+        // 읽기 진행도를 기록해 두고, 감지선을 지나쳐 위로 사라져도(끝맺음을 계속 보는 동안) 물러난
+        // 채로 둔다 — 예전엔 감지선을 지나치는 순간 독이 되살아나 댓글·레일을 덮었다. 본문으로
+        // 되돌아 그 진행도 아래로 올라오면 다시 뜬다. 짧은 글은 scrollable 가드가 막아 독을 유지한다.
         Color.clear.frame(height: 1)
             .onScrollVisibilityChange(threshold: 0.1) { visible in
-                endVisible = visible
+                if visible {
+                    endVisible = true
+                    if bodyEndProgress == nil { bodyEndProgress = scrollProgress.read }
+                }
             }
         // 글 = 엣지가 보이는 노드 — 다 읽은 뒤, 이 글이 놓인 길 · 이어진 것 · 이은 사람으로 나간다.
         // 엣지가 하나도 없으면 그려지지 않고(막다른 길 방지는 아래 태그 기반 작가 레일이 맡는다),
@@ -731,7 +745,12 @@ struct PostDetailView: View {
         if embedded, let next = nextPost {
             NextPostCue(next: next, progress: scrollProgress) { showNext = true }
         }
-        Color.clear.frame(height: 56)
+        // 바닥 여백 — 단독 글엔 떠 있는 독(바닥 원판 52 + 아래 10)만큼 자리를 비워 둔다.
+        // 짧은 글(스크롤 없음)은 독이 물러날 계기(endVisible)가 없어 하단 댓글 프롬프트·작가
+        // 카드 위에 영영 겹쳤다 — 이 여백이 마지막 인터랙션을 독 위로 올린다. 스크롤되는 글은
+        // 끝에서 독이 후퇴하므로 이 여백이 남아돌 뿐 해가 없다(scrollable 에 의존하지 않아
+        // 여백↔scrollable 되먹임 진동도 없다). 덱 임베드는 페이지마다 독이 함께 밀려 나가 제외.
+        Color.clear.frame(height: embedded ? 56 : 78)
     }
 
     /// 작가 글 목록 1회 로드 — 글 끝 작가 카드(다른 글)와 덱의 다음 글 큐가 함께 쓴다.
@@ -1479,8 +1498,6 @@ struct GlassCommentBar: View {
 
 }
 
-/// 시그니처 — 읽기 진행을 kurl 3-bar 마크가 그려지며 표현한다. 옅은 트랙(미독) 위로 그린
-/// 마크가 왼쪽부터 채워지고(progress), 완독하면(complete) 한 번 톡 튄다. 밋밋한 진행 띠를
 /// 태그 줄바꿈 래핑 — muted 칩.
 struct FlowTags: View {
     let tags: [String]
