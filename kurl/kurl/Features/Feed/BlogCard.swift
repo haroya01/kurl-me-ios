@@ -99,7 +99,7 @@ struct BlogCard: View {
                 // 하단 타이포 띠 = 맑은 유리 — 카드 안 유리의 유일한 예외(AGENTS.md §1.5).
                 // 무거운 그라데이션 대신 사진이 띠 뒤로 비치고, 가독은 mediaScrim 틴트가 잡는다.
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(item.title)
+                    Text(item.title.cleanedPreview)
                         .typeScale(featured ? .featured : .title)
                         .foregroundStyle(.white)
                         .lineLimit(3)
@@ -141,14 +141,14 @@ struct BlogCard: View {
                     }
                 }
             }
-            Text(item.title)
+            Text(item.title.cleanedPreview)
                 .typeScale(featured ? .featured : .title)
                 .foregroundStyle(Palette.ink)
                 .lineLimit(3)
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
             if let excerpt = item.excerpt, !excerpt.isEmpty {
-                Text(excerpt)
+                Text(excerpt.cleanedPreview)
                     .typeScale(.lede)
                     .foregroundStyle(Palette.secondary)
                     .lineLimit(4)
