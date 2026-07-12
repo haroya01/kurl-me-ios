@@ -9,7 +9,6 @@ only_rules:
 
 included:
   - kurl/kurl
-excluded:
   - kurl/kurlWidget
 
 custom_rules:

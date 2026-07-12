@@ -102,15 +102,6 @@ struct LibraryWidget: Widget {
     }
 }
 
-/// 브랜드 그린 — 위젯 타깃엔 앱 Palette 가 없어 최소한만 미러링(§10.3 비텍스트=600).
-private enum WidgetPalette {
-    static let accent = Color(red: 0x05 / 255.0, green: 0x96 / 255.0, blue: 0x69 / 255.0)
-    static let ink = Color.primary
-    static let secondary = Color.secondary
-    /// 종이 세계의 hairline 을 위젯 위에서 흉내 — 양 모드에서 옅게.
-    static let hairline = Color.primary.opacity(0.06)
-}
-
 struct LibraryWidgetView: View {
     @Environment(\.widgetFamily) private var family
     let entry: LibraryEntry
@@ -133,7 +124,7 @@ struct LibraryWidgetView: View {
                 .fill(WidgetPalette.accent)
                 .frame(width: 3, height: 10)
             Text("서재")
-                .font(.system(size: 11, weight: .bold))
+                .widgetType(.caption, weight: .bold)
                 .foregroundStyle(WidgetPalette.secondary)
         }
     }
@@ -145,7 +136,7 @@ struct LibraryWidgetView: View {
                 Text("글을 북마크하면")
                 Text("여기 한 장씩 꽂혀요.")
             }
-            .font(.system(size: 12))
+            .widgetType(.footnote)
             .foregroundStyle(WidgetPalette.secondary)
             Spacer(minLength: 0)
         }
@@ -160,20 +151,20 @@ struct LibraryWidgetView: View {
             Spacer(minLength: 8)
             VStack(alignment: .leading, spacing: 5) {
                 Text(item.title)
-                    .font(.system(size: 17, weight: .semibold))
+                    .widgetType(.headline, weight: .semibold)
                     .tracking(-0.3)
                     .foregroundStyle(WidgetPalette.ink)
                     .lineLimit(3)
                     .minimumScaleFactor(0.85)
                 Text(verbatim: "@\(item.username)")
-                    .font(.system(size: 12.5))
+                    .widgetType(.footnote)
                     .foregroundStyle(WidgetPalette.secondary)
                     .lineLimit(1)
             }
             Spacer(minLength: 8)
             if snapshot.totalCount > 1 {
                 Text("\(snapshot.totalCount)편 보관")
-                    .font(.system(size: 11, weight: .medium))
+                    .widgetType(.caption, weight: .medium)
                     .foregroundStyle(WidgetPalette.secondary.opacity(0.7))
             }
         }
@@ -189,7 +180,7 @@ struct LibraryWidgetView: View {
                 header
                 Spacer(minLength: 4)
                 Text("\(snapshot.totalCount)편 보관")
-                    .font(.system(size: 11, weight: .medium))
+                    .widgetType(.caption, weight: .medium)
                     .foregroundStyle(WidgetPalette.secondary.opacity(0.7))
             }
             Spacer(minLength: 8)
@@ -211,13 +202,13 @@ struct LibraryWidgetView: View {
     private func shelfRow(_ item: LibrarySnapshot.Item) -> some View {
         HStack(spacing: 8) {
             Text(item.title)
-                .font(.system(size: 15, weight: .semibold))
+                .widgetType(.rowTitle, weight: .semibold)
                 .tracking(-0.2)
                 .foregroundStyle(WidgetPalette.ink)
                 .lineLimit(1)
             Spacer(minLength: 4)
             Text(verbatim: "@\(item.username)")
-                .font(.system(size: 12))
+                .widgetType(.footnote)
                 .foregroundStyle(WidgetPalette.secondary)
                 .lineLimit(1)
         }

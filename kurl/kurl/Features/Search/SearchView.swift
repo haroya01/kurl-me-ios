@@ -200,6 +200,7 @@ struct SearchView: View {
                                         .typeScale(.titleSmall)
                                         .foregroundStyle(Palette.ink)
                                         .lineLimit(2)
+                                        .minimumScaleFactor(0.7)
                                         .multilineTextAlignment(.leading)
                                     Spacer(minLength: 0)
                                     HStack(spacing: 5) {
@@ -314,8 +315,10 @@ struct SearchView: View {
 
     private func loadDiscovery() async {
         if trending.isEmpty {
+            // 피드와 같은 가드 — 자모·구두점만 있는 제목("ㅇㅇ")은 카드로 그리지 않는다.
             trending = Array(
-                ((try? await BlogAPI.feed(sort: .trending, size: 6))?.items ?? []).prefix(6))
+                ((try? await BlogAPI.feed(sort: .trending, size: 6))?.items ?? [])
+                    .filter(\.isRenderableCard).prefix(6))
         }
         if popularTags.isEmpty {
             popularTags = Array(((try? await BlogAPI.popularTags(limit: 12)) ?? []).prefix(12))
@@ -358,7 +361,9 @@ struct SearchView: View {
     }
 
     @ViewBuilder
-    private func results(_ items: [FeedItem]) -> some View {
+    private func results(_ rawItems: [FeedItem]) -> some View {
+        // 피드와 같은 가드 — 자모·구두점만 있는 제목("ㅇㅇ")은 결과 카드로 그리지 않는다.
+        let items = rawItems.filter(\.isRenderableCard)
         let tags = tagOptions
         let authors = matchedAuthors
         if items.isEmpty, tags.isEmpty, authors.isEmpty {

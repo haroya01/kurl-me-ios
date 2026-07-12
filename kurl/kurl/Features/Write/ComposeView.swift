@@ -1814,7 +1814,8 @@ private struct TableActionBar: View {
                                 Text(action.label)
                                     .font(.system(size: 13 * unit, weight: .medium))
                             }
-                            .foregroundStyle(action.isDestructive ? Palette.secondary : Palette.ink)
+                            // 유리 위 글자 = 시맨틱 vibrancy(§1.2) — slate 고정색은 유리에서 안 쓴다.
+                            .foregroundStyle(action.isDestructive ? .secondary : .primary)
                             .padding(.horizontal, 14)
                             .frame(height: 44)
                             .contentShape(Rectangle())
@@ -1873,7 +1874,8 @@ private struct ImageActionBar: View {
                                 Text(item.label)
                                     .font(.system(size: 13 * unit, weight: active ? .semibold : .medium))
                             }
-                            .foregroundStyle(active ? Palette.link : Palette.secondary)
+                            // active = 그린 위계 유리 번역(§1.2 규칙3 = Palette.link), 그 외는 시맨틱.
+                            .foregroundStyle(active ? AnyShapeStyle(Palette.link) : AnyShapeStyle(.secondary))
                             .padding(.horizontal, 13)
                             .frame(height: 44)
                             .contentShape(Rectangle())
@@ -1885,9 +1887,9 @@ private struct ImageActionBar: View {
 
                     Divider().frame(height: 22).padding(.horizontal, 4)
 
-                    barButton("캡션", icon: "text.bubble", tint: Palette.ink) { perform(.caption) }
+                    barButton("캡션", icon: "text.bubble", tint: .primary) { perform(.caption) }
                     barButton(
-                        "삭제", icon: "trash", tint: Palette.secondary, hint: "이 이미지를 지웁니다"
+                        "삭제", icon: "trash", tint: .secondary, hint: "이 이미지를 지웁니다"
                     ) { perform(.delete) }
                 }
                 .padding(.horizontal, 4)
@@ -1948,7 +1950,8 @@ private struct VideoActionBar: View {
                                 Text(action.label)
                                     .font(.system(size: 13 * unit, weight: .medium))
                             }
-                            .foregroundStyle(action == .delete ? Palette.secondary : Palette.ink)
+                            // 유리 위 글자 = 시맨틱 vibrancy(§1.2).
+                            .foregroundStyle(action == .delete ? .secondary : .primary)
                             .padding(.horizontal, 14)
                             .frame(height: 44)
                             .contentShape(Rectangle())
@@ -2004,7 +2007,8 @@ private struct ListActionBar: View {
                 Text(action.label)
                     .font(.system(size: 13 * unit, weight: .medium))
             }
-            .foregroundStyle(enabled ? Palette.ink : Palette.faint)
+            // 유리 위 글자 = 시맨틱 vibrancy(§1.2) — 비활성은 .tertiary 로 가라앉힌다.
+            .foregroundStyle(enabled ? .primary : .tertiary)
             .padding(.horizontal, 14)
             .frame(height: 44)
             .contentShape(Rectangle())
