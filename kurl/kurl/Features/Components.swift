@@ -159,6 +159,24 @@ struct Hairline: View {
     }
 }
 
+// MARK: 메타 한 줄 — 작은 아이콘 군집 대신 muted 텍스트 한 줄(라벨·값을 가운뎃점으로).
+// 텍스트라 VoiceOver 도 그대로 읽힌다. 메타에서 아이콘을 걷어내는 게 "조용함"의 큰 부분(§10).
+// 분석·목록 행이 같은 메타 문법을 물게 하는 공유 조각.
+
+struct MetaLine: View {
+    let parts: [String]
+    @ScaledMetric(relativeTo: .footnote) private var unit: CGFloat = 1
+    init(_ parts: [String]) { self.parts = parts }
+
+    var body: some View {
+        Text(parts.joined(separator: "  ·  "))
+            .font(.system(size: 13 * unit))
+            .foregroundStyle(Palette.secondary)
+            .monospacedDigit()
+            .lineLimit(1)
+    }
+}
+
 // MARK: 절제된 태그 — 회색 캡슐 없이 글자만(§10). 종이 위에 #태그가 그대로 앉는다.
 
 struct MutedChip: View {

@@ -24,6 +24,7 @@ struct PostAnalyticsView: View {
     @ScaledMetric(relativeTo: .subheadline) private var sectionTitleSize: CGFloat = 13
     @ScaledMetric(relativeTo: .subheadline) private var countSize: CGFloat = 13
     @ScaledMetric(relativeTo: .title3) private var statValueSize: CGFloat = 17
+    @ScaledMetric(relativeTo: .caption) private var chipLabelSize: CGFloat = 12
 
     var body: some View {
         ReadingColumn(spacing: 0) {
@@ -39,11 +40,11 @@ struct PostAnalyticsView: View {
             case .idle, .loading:
                 KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 240)
-            case .failed(let message):
+            case .failed:
                 ContentUnavailableView {
-                    Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
+                    Label("분석을 불러오지 못했습니다", systemImage: "wifi.exclamationmark")
                 } description: {
-                    Text(message)
+                    Text("잠시 후 다시 시도해 주세요.")
                 } actions: {
                     Button("다시 시도") { Task { await load() } }
                         .foregroundStyle(Palette.accent)
@@ -73,7 +74,7 @@ struct PostAnalyticsView: View {
                         } label: {
                             Text("\(option)일")
                                 .font(.system(
-                                    size: 12, weight: days == option ? .semibold : .regular))
+                                    size: chipLabelSize, weight: days == option ? .semibold : .regular))
                                 .foregroundStyle(
                                     days == option
                                         ? AnyShapeStyle(Color(uiColor: .systemBackground))
@@ -101,14 +102,9 @@ struct PostAnalyticsView: View {
         }
         .padding(.top, 6)
 
-        HStack(spacing: 14) {
-            Label("팔로우 +\(detail.windowFollows)", systemImage: "person.badge.plus")
-            Label("링크 클릭 \(detail.windowLinkClicks)", systemImage: "link")
-        }
-        .font(.system(size: 13))
-        .foregroundStyle(Palette.secondary)
-        .labelStyle(.titleAndIcon)
-        .padding(.top, 4)
+        // 윈도우 보조지표 — 아이콘 군집 대신 담백한 한 줄(§10 절제, 개요·목록과 한 결).
+        MetaLine(["팔로우 +\(detail.windowFollows)", "링크 클릭 \(detail.windowLinkClicks)"])
+            .padding(.top, 4)
 
         if !detail.daily.isEmpty {
             DailyTrendChart(points: detail.daily)
@@ -123,6 +119,11 @@ struct PostAnalyticsView: View {
         }
         .padding(.vertical, 16)
         Hairline()
+
+        // 글 합계 링크 클릭이 어느 링크에서 나왔는지 — 링크가 있을 때만.
+        if !detail.linkBreakdown.isEmpty {
+            linkBreakdownSection(detail.linkBreakdown)
+        }
 
         if let readStats { readersSection(readStats) }
 
@@ -143,6 +144,45 @@ struct PostAnalyticsView: View {
             .buttonStyle(.plain)
         }
         Color.clear.frame(height: 32)
+    }
+
+    /// 글 안 링크별 클릭 — 합계가 어느 kurl 링크에서 나왔는지(클릭 내림차순). 짧은 코드가
+    /// 링크의 정체성이라 mono 로 앞에 두고, 목적지 호스트를 담백한 보조 줄로 둔다(웹 글 분석 parity).
+    @ViewBuilder
+    private func linkBreakdownSection(_ links: [PostLinkClick]) -> some View {
+        RailHeading("링크별 클릭")
+            .padding(.top, 24)
+            .padding(.bottom, 6)
+        ForEach(links) { link in
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(verbatim: "kurl.me/\(link.shortCode)")
+                        .font(.system(size: linkSize, design: .monospaced))
+                        .foregroundStyle(Palette.body)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Text(verbatim: destinationHost(link.destinationUrl))
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+                Spacer(minLength: 8)
+                Text(verbatim: link.clicks.formatted())
+                    .font(.system(size: countSize, weight: .semibold).monospacedDigit())
+                    .foregroundStyle(Palette.ink)
+            }
+            .padding(.vertical, 10)
+            // 짧은 코드·목적지·클릭 수가 한 요소로 읽히게 — 세 Text 를 합친다.
+            .accessibilityElement(children: .combine)
+        }
+        Hairline()
+    }
+
+    /// 목적지 URL 에서 표시용 호스트만 — www. 는 떼고, 파싱 실패 시 원문 그대로.
+    private func destinationHost(_ raw: String) -> String {
+        guard let host = URL(string: raw)?.host, !host.isEmpty else { return raw }
+        return host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
     }
 
     /// 독자 분석 — 웹과 같은 PostReadStats. 고유 방문 헤드라인 + 유입 채널·국가·기기 막대.
