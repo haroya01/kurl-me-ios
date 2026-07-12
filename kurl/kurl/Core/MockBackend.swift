@@ -113,6 +113,7 @@ enum MockBackend {
     private static var blogNotificationPrefs: [String: Bool] = [
         "LIKE": true, "COMMENT": true, "REPLY": true, "MENTION": true,
         "FOLLOW": true, "SERIES_SUBSCRIBE": true, "NEW_POST": false,
+        "CONNECTED": true, "PATH_GREW": true,
     ]
     private static var myBio = "경계를 긋는 사람. 헥사고날·도메인 모델링."
     private static var myHideFollowerCount = false
@@ -1339,6 +1340,18 @@ enum MockBackend {
                      "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글", "postAuthorUsername": "honggildong",
                      "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
                      "read": true, "createdAt": iso(Date().addingTimeInterval(-432_000))],
+                    // 연결 그래프 — 내 글이 큐레이터 컬렉션에 엮임(딥링크=컬렉션 101 "느린 사고").
+                    ["id": 8, "type": "CONNECTED", "actorUsername": "yuki_dev", "actorAvatarUrl": NSNull(),
+                     "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글", "postAuthorUsername": "honggildong",
+                     "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                     "collectionId": 101, "collectionName": "느린 사고",
+                     "read": false, "createdAt": iso(Date().addingTimeInterval(-1200))],
+                    // 연결 그래프 — 내가 엮인 길(PATH 104)에 새 글이 이어짐. actor 없이 시스템 발행.
+                    ["id": 9, "type": "PATH_GREW", "actorUsername": NSNull(), "actorAvatarUrl": NSNull(),
+                     "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
+                     "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                     "collectionId": 104, "collectionName": "경계를 긋는다는 것",
+                     "read": false, "createdAt": iso(Date().addingTimeInterval(-2400))],
                 ],
                 "nextCursor": NSNull(), "hasMore": false,
             ])

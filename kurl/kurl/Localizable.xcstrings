@@ -15405,6 +15405,54 @@
         "ja" : { "stringUnit" : { "state" : "translated", "value" : "しばらくしてからもう一度お試しください。" } },
         "vi" : { "stringUnit" : { "state" : "translated", "value" : "Vui lòng thử lại sau giây lát." } }
       }
+    },
+    "%@님이 회원님의 글을 ‘%@’에 엮었어요" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%@ wove your post into ‘%@’" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "%@ ने आपकी पोस्ट को ‘%@’ में जोड़ा" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "%@さんがあなたの記事を「%@」につなげました" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "%@ đã kết nối bài viết của bạn vào ‘%@’" } }
+      }
+    },
+    "회원님이 엮인 ‘%@’에 새 글이 이어졌어요" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "A new post joined ‘%@’, a path you’re part of" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "‘%@’ में एक नई पोस्ट जुड़ी, जिस राह का हिस्सा आप हैं" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "あなたがつながっている「%@」に新しい記事が加わりました" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Một bài viết mới đã nối vào ‘%@’, con đường bạn tham gia" } }
+      }
+    },
+    "내 글이 컬렉션에 엮일 때" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "When your post is woven into a collection" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "जब आपकी पोस्ट किसी संग्रह में जोड़ी जाए" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "記事がコレクションにつながれたとき" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Khi bài viết của bạn được kết nối vào bộ sưu tập" } }
+      }
+    },
+    "엮인 길에 새 글이 이어질 때" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "When a path you’re part of grows" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "जब आपकी शामिल राह में नई पोस्ट जुड़े" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "つながっている道に新しい記事が続くとき" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Khi con đường bạn tham gia có bài viết mới" } }
+      }
+    },
+    "누가 내 글·하이라이트를 컬렉션에 엮을 때" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "When someone weaves your post or highlight into a collection" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "जब कोई आपकी पोस्ट या हाइलाइट को किसी संग्रह में जोड़े" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "誰かがあなたの記事やハイライトをコレクションにつなげたとき" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Khi ai đó kết nối bài viết hoặc đoạn tô sáng của bạn vào bộ sưu tập" } }
+      }
+    },
+    "내가 엮인 길에 새 글이 이어질 때" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "When a new post joins a path you’re part of" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "जब कोई नई पोस्ट आपकी शामिल राह में जुड़े" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "あなたがつながっている道に新しい記事が加わったとき" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Khi một bài viết mới nối vào con đường bạn tham gia" } }
+      }
     }
   },
   "version" : "1.0"

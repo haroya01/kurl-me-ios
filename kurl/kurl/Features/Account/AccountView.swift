@@ -69,9 +69,9 @@ struct AccountView: View {
                         .accessibilityLabel("서재")
                     }
                     ToolbarItem(placement: .primaryAction) {
-                        Button {
-                            showNotifications = true
-                        } label: {
+                        // 값 기반 링크로 인박스를 민다 — 인박스 안의 딥링크(글·컬렉션)가 같은 스택에서
+                        // 이어 밀리게 하려면 벨도 값 목적지를 써야 한다(isPresented 목적지는 값 푸시와 충돌).
+                        NavigationLink(value: Route.notifications) {
                             Image(systemName: "bell")
                                 .overlay(alignment: .topTrailing) {
                                     if unreadCount > 0 {

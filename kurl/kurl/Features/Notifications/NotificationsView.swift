@@ -105,6 +105,13 @@ struct NotificationsView: View {
         }
         .refreshable { await load() }
         .sensoryFeedback(.success, trigger: markAllPulse)
+        .onDisappear {
+            // 인박스를 떠나면 미읽음 점을 갱신 — 여기서 읽었는데 계정·피드 벨에 점이 남지 않게.
+            // 벨을 값 링크로 밀면서 계정 뷰의 onChange 복귀 갱신이 안 걸리므로 인박스가 스스로 챙긴다.
+            if AuthStore.shared.isSignedIn {
+                Task { await UnreadStore.shared.refresh() }
+            }
+        }
     }
 
     // 비로그인 게이트 — 알림은 인증 피드라, 로그인하면 흐른다고 안내(발견·피드 로그아웃 결과와 동일 문법).
@@ -211,6 +218,9 @@ struct NotificationsView: View {
         case "SERIES_SUBSCRIBE": return "books.vertical.fill"
         case "NEW_POST": return "doc.text.fill"
         case "MENTION": return "at"
+        // 연결 그래프 — 엮임은 사슬(link), 길이 자람은 가지치는 흐름(§0 읽기 그래프).
+        case "CONNECTED": return "link"
+        case "PATH_GREW": return "arrow.triangle.branch"
         default: return "bell.fill"
         }
     }
@@ -257,13 +267,24 @@ struct NotificationsView: View {
         case "SERIES_SUBSCRIBE": return Text("\(actor)님이 시리즈를 구독했어요")
         case "NEW_POST": return Text("\(actor)님이 새 글을 올렸어요")
         case "MENTION": return Text("\(actor)님이 나를 언급했어요")
+        // 연결 그래프 — 컬렉션 이름은 본문 톤으로 얹고 작가 이름만 semibold(위계는 한 겹).
+        case "CONNECTED":
+            let name = n.collectionName ?? String(localized: "컬렉션")
+            return Text("\(actor)님이 회원님의 글을 ‘\(name)’에 엮었어요")
+        case "PATH_GREW":
+            let name = n.collectionName ?? String(localized: "컬렉션")
+            return Text("회원님이 엮인 ‘\(name)’에 새 글이 이어졌어요")
         default: return actor
         }
     }
 
-    /// 알림 대상 라우팅 — 글이 있으면 글로, 팔로우는 작가로, 시리즈 구독은 내 시리즈로.
-    /// 라우팅 재료가 비어 있으면 nil — 404 화면으로 푸시하지 않는다.
+    /// 알림 대상 라우팅 — 연결 그래프는 컬렉션으로, 글이 있으면 글로, 팔로우는 작가로,
+    /// 시리즈 구독은 내 시리즈로. 라우팅 재료가 비어 있으면 nil — 404 화면으로 푸시하지 않는다.
     private func route(for n: AppNotification) -> Route? {
+        // 연결 그래프(CONNECTED·PATH_GREW)는 글·작가보다 컬렉션이 목적지 — 엮인 맥락으로 데려간다.
+        if let collectionId = n.collectionId {
+            return .collection(id: collectionId)
+        }
         if let slug = n.postSlug, let author = n.postAuthorUsername, !author.isEmpty {
             return .post(username: author, slug: slug)
         }
@@ -300,6 +321,7 @@ struct NotificationsView: View {
             actorAvatarUrl: n.actorAvatarUrl, postId: n.postId, postSlug: n.postSlug,
             postTitle: n.postTitle, postAuthorUsername: n.postAuthorUsername,
             seriesId: n.seriesId, seriesSlug: n.seriesSlug, seriesTitle: n.seriesTitle,
+            collectionId: n.collectionId, collectionName: n.collectionName,
             read: true, createdAt: n.createdAt)
     }
 

@@ -5,7 +5,8 @@
 
 import Foundation
 
-/// 인앱 알림 — 좋아요·댓글·답글·팔로우·시리즈 구독·새 글·멘션. 커서 페이지네이션(before).
+/// 인앱 알림 — 좋아요·댓글·답글·팔로우·시리즈 구독·새 글·멘션, 그리고 연결 그래프
+/// (내 글이 컬렉션에 엮임 · 내가 엮인 길에 새 글). 커서 페이지네이션(before).
 enum NotificationsAPI {
     private static let client = APIClient.shared
 
@@ -52,6 +53,9 @@ struct AppNotification: Decodable, Identifiable {
     let seriesId: Int64?
     let seriesSlug: String?
     let seriesTitle: String?
+    /// 연결 그래프 알림(CONNECTED·PATH_GREW)의 딥링크 대상 = 컬렉션. 다른 종류에선 비어 온다.
+    let collectionId: Int64?
+    let collectionName: String?
     let read: Bool
     let createdAt: Date?
 }
