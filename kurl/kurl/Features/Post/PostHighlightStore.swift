@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 /// 한 글의 하이라이트 상태 — 공개 하이라이트를 싣고(본문 문단에 칠하기), 선택→생성(+메모)을 받고,
 /// 칠해진 하이라이트 탭→답글 스레드를 연다. 본문(BlockView)이 환경에서 읽어 문단별로 칠하고,
@@ -87,6 +88,9 @@ final class PostHighlightStore {
             endBlockOrder: blockOrder, startOffset: startOffset, endOffset: endOffset, quote: quote,
             note: memo, replyCount: 0, createdAt: nil)
         highlights.append(optimistic)
+        // 그은 순간 가벼운 촉감 하나 — 좋아요·다음글과 같은 결의 확인(§1.6 조용하지만 살아 있게).
+        // 마크가 즉시 칠해지는 그 순간에 맞춰, 형제 인게이지 동작과 동일한 light 무게로.
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
         Task {
             do {
                 let echo = try await HighlightsAPI.create(
