@@ -437,6 +437,18 @@ struct MarkdownTextView: UIViewRepresentable {
 /// 캐럿이 놓인 곳의 성격 — 컴포즈가 그에 맞는 컨텍스트 편집 바(표/이미지/목록)를 띄운다.
 enum EditorCaretContext { case none, table, image, video, list }
 
+/// 표 열 정렬 — GFM 구분선 토큰으로 인코딩된다(웹 에디터와 같은 규약, 마크다운 왕복).
+enum TableColumnAlign {
+    case left, center, right
+    var separatorToken: String {
+        switch self {
+        case .left: ":---"
+        case .center: ":---:"
+        case .right: "---:"
+        }
+    }
+}
+
 /// 스니펫 바 → 캔버스 다리. 커서/선택 기준 삽입을 UIKit 의 진짜 커서로 수행한다.
 /// 모든 동작은 undo 스택을 보존하고(`replace(_:withText:)`), 조합 중에는 거부한다.
 @MainActor
@@ -733,6 +745,12 @@ final class MarkdownEditorController {
         // applyTables 가 파이프를 흐리게·구분선을 숨겨(빠른 경로도 이제 전체 패스로 넘김) "코드"가 아니라
         // 조용한 표 구조로 읽히고, 캐럿이 표를 벗어나면 곧장 진짜 그리드로 전환된다.
         insertBlock("\n\n| 제목 | 제목 |\n| --- | --- |\n| 내용 | 내용 |\n\n", caretOffsetFromStart: 4)
+    }
+
+    /// 구분선(thematic break) — 단독 줄 `---` 을 백엔드가 DIVIDER 블록으로, 리더가 가로줄로 렌더.
+    /// 앞뒤 빈 줄로 띄워 앞 문단의 setext 제목 밑줄로 오인되지 않게 한다.
+    func insertDivider() {
+        insertBlock("\n\n---\n\n", caretOffsetFromStart: nil)
     }
 
     /// 단독 줄 동영상 URL — 백엔드가 EMBED 블록으로(YouTube/Vimeo), 리더(EmbedBlockView)가 플레이어로.
@@ -1134,6 +1152,23 @@ final class MarkdownEditorController {
             block, lines: renderTable(header: header, separator: separator, body: body),
             caretLine: block.caretLine == 1 ? (block.body.isEmpty ? 0 : 2) : block.caretLine,
             caretColumn: min(col, max(0, header.count - 1)))
+        return true
+    }
+
+    /// 캐럿이 놓인 열의 정렬을 바꾼다 — GFM 구분선 토큰(`:---` · `:---:` · `---:`)을 재작성한다.
+    /// renderTable 이 구분선 토큰을 보존하므로 본문은 그대로, 정렬만 마크다운에 반영된다. 바꿨으면 true.
+    @discardableResult
+    func setTableColumnAlign(_ align: TableColumnAlign) -> Bool {
+        guard let textView, textView.markedTextRange == nil,
+            let block = tableBlock(in: textView)
+        else { return false }
+        let n = block.columnCount
+        let col = min(block.caretColumn, n - 1)
+        var separator = padded(block.separator, to: n, fill: "---")
+        separator[col] = align.separatorToken
+        applyTable(
+            block, lines: renderTable(header: block.header, separator: separator, body: block.body),
+            caretLine: block.caretLine, caretColumn: col)
         return true
     }
 

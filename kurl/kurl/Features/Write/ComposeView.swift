@@ -1294,6 +1294,7 @@ struct ComposeView: View {
         case .link: presentLinkDialog()
         case .video: presentVideoDialog()
         case .image: showBodyImagePicker = true  // 폭은 넣은 뒤 이미지 편집 바에서.
+        case .divider: editorController.insertDivider()
         }
         // 프로그램 삽입은 delegate 를 거치지 않는다 — 바인딩(자동저장 시그니처) 수동 동기화.
         // 이미지·.link·.video 는 비동기(피커·다이얼로그)라 각자 끝낼 때 동기화한다.
@@ -1332,6 +1333,9 @@ struct ComposeView: View {
             if editorController.deleteTableRow() { showUndoToast(String(localized: "행을 지웠어요")) }
         case .deleteColumn:
             if editorController.deleteTableColumn() { showUndoToast(String(localized: "열을 지웠어요")) }
+        case .alignLeft: editorController.setTableColumnAlign(.left)
+        case .alignCenter: editorController.setTableColumnAlign(.center)
+        case .alignRight: editorController.setTableColumnAlign(.right)
         }
         syncMarkdownFromEditor()
         refreshCaretContext()
@@ -1644,7 +1648,7 @@ private struct MarkdownSnippetBar: View {
     // 들여쓰기/내어쓰기는 여기서 뺐다 — 목록 줄일 때만 뜨는 전용 바(ListActionBar)로 옮겨 소음을 줄였다.
     enum Action: CaseIterable {
         case heading, bold, italic, list, orderedList, link, image, table, quote,
-            video, strikethrough, inlineCode, codeBlock
+            video, strikethrough, inlineCode, codeBlock, divider
 
         var icon: String {
             switch self {
@@ -1661,6 +1665,7 @@ private struct MarkdownSnippetBar: View {
             case .strikethrough: "strikethrough"
             case .inlineCode: "chevron.left.forwardslash.chevron.right"
             case .codeBlock: "curlybraces"
+            case .divider: "minus"
             }
         }
 
@@ -1679,6 +1684,7 @@ private struct MarkdownSnippetBar: View {
             case .strikethrough: "취소선"
             case .inlineCode: "코드"
             case .codeBlock: "코드 블록"
+            case .divider: "구분선"
             }
         }
     }
@@ -1769,13 +1775,16 @@ private struct TableActionBar: View {
 
     // 추가(행→열) 먼저, 삭제(행→열) 뒤. 라벨의 행/열로 구분하므로 +/− 아이콘만으로 충분하다.
     enum Action: CaseIterable, Identifiable {
-        case addRow, addColumn, deleteRow, deleteColumn
+        case addRow, addColumn, deleteRow, deleteColumn, alignLeft, alignCenter, alignRight
         var id: Self { self }
 
         var symbol: String {
             switch self {
             case .addRow, .addColumn: "plus"
             case .deleteRow, .deleteColumn: "minus"
+            case .alignLeft: "text.alignleft"
+            case .alignCenter: "text.aligncenter"
+            case .alignRight: "text.alignright"
             }
         }
 
@@ -1785,6 +1794,9 @@ private struct TableActionBar: View {
             case .addColumn: "열 추가"
             case .deleteRow: "행 삭제"
             case .deleteColumn: "열 삭제"
+            case .alignLeft: "왼쪽 정렬"
+            case .alignCenter: "가운데 정렬"
+            case .alignRight: "오른쪽 정렬"
             }
         }
 
