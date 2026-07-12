@@ -4486,6 +4486,34 @@
         }
       }
     },
+    "엮은 순서와 연결이 함께 사라져요. 연결된 글·노트 자체는 지워지지 않아요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The order and its connections go too. The posts and notes themselves stay."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "क्रम और उसके कनेक्शन भी हट जाएँगे. जुड़ी पोस्ट और नोट्स वैसे ही रहेंगे."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "並べた順序と接続も消えます。つないだ記事・ノート自体は削除されません。"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thứ tự đã sắp và các kết nối cũng mất theo. Bài viết và ghi chú thì vẫn còn."
+          }
+        }
+      }
+    },
     "답글" : {
       "localizations" : {
         "en" : {
@@ -9954,6 +9982,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Xóa bộ sưu tập này?"
+          }
+        }
+      }
+    },
+    "이 길을 삭제할까요?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete this path?"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "क्या इस राह को हटाना चाहते हैं?"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この道を削除しますか？"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Xóa đường này?"
           }
         }
       }

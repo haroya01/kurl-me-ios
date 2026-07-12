@@ -559,6 +559,35 @@ private struct ListBlockView: View {
 
 // MARK: 테이블 블록 — flat (헤더 밑줄 + 행 구분선)
 
+/// GFM 표 파서 — 뷰에서 떼어내 순수 함수로 둔다(단위 테스트로 빈 셀 보존·정렬을 고정).
+enum TableMarkdown {
+    /// 마크다운 표를 셀 행렬로 — 감싸는 양 끝 파이프만 벗기고 내부 빈 셀은 보존한다.
+    /// (예전엔 빈 셀을 전부 걸러 `| a || c |` 가 왼쪽으로 밀렸다. 웹은 빈 칸을 지킨다.)
+    static func rows(_ markdown: String) -> [[String]] {
+        let parsed = markdown
+            .split(separator: "\n", omittingEmptySubsequences: true)
+            .map { line -> [String] in
+                var parts = line.split(separator: "|", omittingEmptySubsequences: false)
+                    .map { $0.trimmingCharacters(in: .whitespaces) }
+                // 표준 GFM 행은 `|…|` 라 양 끝이 빈 조각으로 나온다 — 그 둘만 벗긴다.
+                if parts.first == "" { parts.removeFirst() }
+                if parts.last == "" { parts.removeLast() }
+                return parts
+            }
+            .filter { cells in
+                // 구분선 행(--- / :--: 등)은 렌더하지 않는다 — 빈 셀 보존과 무관하게 그대로.
+                !(cells.isEmpty || cells.allSatisfy { $0.allSatisfy { "-: ".contains($0) } })
+            }
+        // 헤더(첫 행)의 열 수에 맞춰 데이터 행을 pad/truncate — 빈 셀이 있어도 열이 어긋나지 않게.
+        guard let columnCount = parsed.first?.count, columnCount > 0 else { return parsed }
+        return parsed.map { row in
+            if row.count == columnCount { return row }
+            if row.count < columnCount { return row + Array(repeating: "", count: columnCount - row.count) }
+            return Array(row.prefix(columnCount))
+        }
+    }
+}
+
 private struct TableBlockView: View {
     let markdown: String
 
@@ -569,21 +598,8 @@ private struct TableBlockView: View {
 
     private var overflowing: Bool { contentWidth > viewportWidth + 1 }
 
-    private var rows: [[String]] {
-        markdown
-            .split(separator: "\n", omittingEmptySubsequences: true)
-            .map { line -> [String] in
-                line.split(separator: "|", omittingEmptySubsequences: false)
-                    .map { $0.trimmingCharacters(in: .whitespaces) }
-                    .filter { !$0.isEmpty }
-            }
-            .filter { cells in
-                !cells.allSatisfy { $0.allSatisfy { "-: ".contains($0) } }
-            }
-    }
-
     var body: some View {
-        let rows = rows
+        let rows = TableMarkdown.rows(markdown)
         ScrollView(.horizontal, showsIndicators: false) {
             Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 0) {
                 ForEach(Array(rows.enumerated()), id: \.offset) { index, cells in

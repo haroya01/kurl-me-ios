@@ -187,7 +187,9 @@ private struct FeaturedBadge: View {
         Text("오늘의 글")
             .font(.system(size: badgeSize, weight: .semibold))
             .tracking(0.4)
-            .foregroundStyle(over ? Palette.ink : Palette.secondary)
+            // 커버 위 필은 항상 흰 캡슐이라 글자도 스킴 무관 고정 잉크(slate-900)로 둔다 —
+            // Palette.ink 는 다크에서 near-white 로 뒤집혀 흰 필 위에서 대비가 사라졌다.
+            .foregroundStyle(over ? Palette.inkOnLight : Palette.secondary)
             .padding(.horizontal, over ? 9 : 0)
             .padding(.vertical, over ? 4 : 0)
             .background {

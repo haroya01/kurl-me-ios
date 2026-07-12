@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		04147625300C869C640ADAC5 /* SnapshotSamplesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 479E161D9E2882B60F5B2EA3 /* SnapshotSamplesTests.swift */; };
+		AB10CE11F0A1B2C3D4E5F601 /* TableMarkdownTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10CE11F0A1B2C3D4E5F602 /* TableMarkdownTests.swift */; };
 		C3BF9305E467C9F295C69974 /* SnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = 866D5741CA182CC42D365DD5 /* SnapshotTesting */; };
 		C3C9FDE5254137DAB5A65AB0 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 39C7AB90AF0314D69BB840C3 /* Foundation.framework */; };
 		D400000000000000000000AC /* kurlWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D400000000000000000000A1 /* kurlWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -54,6 +55,7 @@
 /* Begin PBXFileReference section */
 		39C7AB90AF0314D69BB840C3 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		479E161D9E2882B60F5B2EA3 /* SnapshotSamplesTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SnapshotSamplesTests.swift; sourceTree = "<group>"; };
+		AB10CE11F0A1B2C3D4E5F602 /* TableMarkdownTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TableMarkdownTests.swift; sourceTree = "<group>"; };
 		5226FDED204BF66D262A0C1D /* kurlTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = kurlTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D3696C7C2FD48A89006D9F90 /* kurl.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = kurl.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D400000000000000000000A1 /* kurlWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = kurlWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -168,6 +170,7 @@
 			isa = PBXGroup;
 			children = (
 				479E161D9E2882B60F5B2EA3 /* SnapshotSamplesTests.swift */,
+				AB10CE11F0A1B2C3D4E5F602 /* TableMarkdownTests.swift */,
 			);
 			path = kurlTests;
 			sourceTree = "<group>";
@@ -347,6 +350,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				04147625300C869C640ADAC5 /* SnapshotSamplesTests.swift in Sources */,
+				AB10CE11F0A1B2C3D4E5F601 /* TableMarkdownTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
