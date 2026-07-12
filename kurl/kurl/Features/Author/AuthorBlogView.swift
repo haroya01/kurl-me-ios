@@ -64,6 +64,9 @@ struct AuthorBlogView: View {
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
         .background(Palette.pageBg)
+        // 계정 탭 루트로 임베드됐을 때만 탭바 숨김을 몬다 — 환경에 손잡이가 있을 때만
+        // 동작하고(스레드식), 작가 프로필로 푸시될 땐 env 가 nil 이라 조용하다(탭 루트 전용).
+        .tracksTabBarVisibility()
         // 헤더를 지나면 작가 이름이 내비바로 스민다 — 상단 중복 제거(태그·글 상세와 같은 결).
         .onScrollGeometryChange(for: Bool.self) { geometry in
             geometry.contentOffset.y + geometry.contentInsets.top > 64
