@@ -32,6 +32,9 @@ struct CollectionDetailView: View {
         detail?.curatorUsername != nil && detail?.curatorUsername == AuthStore.shared.me?.username
     }
 
+    /// 길(순서 있는 읽기 여정)인지 — 삭제 확인 문구를 "컬렉션"과 "길"로 가른다(툴바와 같은 분기).
+    private var isPath: Bool { detail?.kind == .path }
+
     var body: some View {
         ReadingColumn(spacing: 0) {
             if loading {
@@ -112,11 +115,13 @@ struct CollectionDetailView: View {
                 PathReorderSheet(detail: detail) { Task { await load() } }
             }
         }
-        .alert("이 컬렉션을 삭제할까요?", isPresented: $showDeleteConfirm) {
+        .alert(isPath ? "이 길을 삭제할까요?" : "이 컬렉션을 삭제할까요?", isPresented: $showDeleteConfirm) {
             Button("삭제", role: .destructive) { Task { await deleteCollection() } }
             Button("취소", role: .cancel) {}
         } message: {
-            Text("담긴 연결도 함께 사라져요. 연결된 글·노트 자체는 지워지지 않아요.")
+            Text(isPath
+                ? "엮은 순서와 연결이 함께 사라져요. 연결된 글·노트 자체는 지워지지 않아요."
+                : "담긴 연결도 함께 사라져요. 연결된 글·노트 자체는 지워지지 않아요.")
         }
         .sensoryFeedback(.impact(weight: .light), trigger: disconnects)
         .task { await load() }

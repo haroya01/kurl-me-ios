@@ -518,7 +518,6 @@ struct SearchView: View {
         // 갈아치우면 ScrollView identity 가 깨져 매번 깜빡이고 보던 위치가 사라진다.
         // 스켈레톤은 보여줄 결과가 아예 없는 첫 검색에만.
         if case .loaded = phase {} else { phase = .loading }
-        recordRecent(text)
         do {
             let result = try await BlogAPI.feed(query: text, page: 0, size: 30)
             guard !Task.isCancelled, myGen == generation else { return }
@@ -526,6 +525,8 @@ struct SearchView: View {
             page = 0
             hasNext = result.hasNext
             phase = .loaded(result.items)
+            // 결과가 실제로 온 뒤에 최근 검색에 남긴다 — 취소·실패한 검색어는 기록하지 않는다.
+            recordRecent(text)
         } catch {
             // 재검색·클리어의 cancel() 은 URLError(.cancelled)→APIError.transport 로 올라온다 —
             // 취소를 '네트워크 오류'로 둔갑시키거나 클리어가 세운 .idle 을 덮지 않게 여기서 버린다.
