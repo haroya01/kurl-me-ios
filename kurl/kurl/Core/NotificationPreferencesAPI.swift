@@ -5,12 +5,12 @@
 
 import Foundation
 
-/// 알림 종류별 켬/끔 — 웹과 같은 계약(GET 은 7타입 맵, PUT 은 한 타입씩).
+/// 알림 종류별 켬/끔 — 웹과 같은 계약(GET 은 타입 맵, PUT 은 한 타입씩).
 /// 서버에 기록이 없으면 기본 켜짐(true)으로 온다.
 enum NotificationPreferencesAPI {
     private static let client = APIClient.shared
 
-    /// 7타입 전부의 현재 상태. 서버가 일부만 보내도 빠진 타입은 기본 켜짐으로 채운다.
+    /// 모든 타입의 현재 상태. 서버가 일부만 보내도 빠진 타입은 기본 켜짐으로 채운다.
     static func load() async throws -> [NotificationKind: Bool] {
         let raw: [String: Bool] = try await client.get(
             "/notifications/blog-preferences", authenticated: true)
@@ -45,6 +45,9 @@ enum NotificationKind: String, CaseIterable, Identifiable {
     case follow = "FOLLOW"
     case seriesSubscribe = "SERIES_SUBSCRIBE"
     case newPost = "NEW_POST"
+    // 연결 그래프 — 사람 행동·시스템 발행 아래, 읽기 그래프가 자라는 소식(§0 connect not broadcast).
+    case connected = "CONNECTED"
+    case pathGrew = "PATH_GREW"
 
     var id: String { rawValue }
 }

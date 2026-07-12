@@ -17,6 +17,8 @@ extension NotificationKind {
         case .follow: return "팔로우"
         case .seriesSubscribe: return "시리즈 구독"
         case .newPost: return "팔로우한 작가의 새 글"
+        case .connected: return "내 글이 컬렉션에 엮일 때"
+        case .pathGrew: return "엮인 길에 새 글이 이어질 때"
         }
     }
 
@@ -30,6 +32,8 @@ extension NotificationKind {
         case .follow: return "누가 나를 팔로우할 때"
         case .seriesSubscribe: return "누가 내 시리즈를 구독할 때"
         case .newPost: return "팔로우한 작가가 새 글을 발행할 때"
+        case .connected: return "누가 내 글·하이라이트를 컬렉션에 엮을 때"
+        case .pathGrew: return "내가 엮인 길에 새 글이 이어질 때"
         }
     }
 
@@ -43,6 +47,8 @@ extension NotificationKind {
         case .follow: return "person.badge.plus"
         case .seriesSubscribe: return "books.vertical"
         case .newPost: return "doc.text"
+        case .connected: return "link"
+        case .pathGrew: return "arrow.triangle.branch"
         }
     }
 }

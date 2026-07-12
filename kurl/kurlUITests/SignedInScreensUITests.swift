@@ -119,7 +119,7 @@ final class SignedInScreensUITests: XCTestCase {
         shoot("reading-history")
     }
 
-    /// 알림 종류별 뮤트 — 계정 톱니(설정) → 알림 종류. 7타입 토글 리스트가 서고, 목은 새 글을
+    /// 알림 종류별 뮤트 — 계정 톱니(설정) → 알림 종류. 종류별 토글 리스트가 서고, 목은 새 글을
     /// 꺼둔 채 시작하므로 섞인 상태(켬/끔)가 그대로 보인다.
     func testNotificationPreferences() throws {
         let app = XCUIApplication()
@@ -135,7 +135,7 @@ final class SignedInScreensUITests: XCTestCase {
         if !row.isHittable { app.swipeUp() }
         row.tap()
 
-        // 7타입 토글이 도달했는지 — 목이 꺼둔 '팔로우한 작가의 새 글' 스위치가 off 로 렌더된다.
+        // 토글 리스트에 도달했는지 — 목이 꺼둔 '팔로우한 작가의 새 글' 스위치가 off 로 렌더된다.
         let newPost = app.switches.matching(NSPredicate(format: "label CONTAINS '새 글'")).firstMatch
         XCTAssertTrue(newPost.waitForExistence(timeout: 8), "알림 종류 화면에 토글이 없음")
         // 목 기본값 = 새 글만 꺼짐. 값까지 확인해 "렌더됨"을 "off 로 렌더됨"으로 좁힌다.
