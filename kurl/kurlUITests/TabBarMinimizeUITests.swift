@@ -5,7 +5,10 @@
 
 import XCTest
 
-/// 탭바 최소화(.tabBarMinimizeBehavior(.onScrollDown)) 회귀 가드.
+/// 스크롤 내리면 하단 탭바가 통째로 사라지고(스레드식), 올리면 되돌아오는 커스텀 동작의
+/// 회귀 가드. iOS 26/27.0 런타임은 네이티브 `.tabBarMinimizeBehavior` 를 안 태우고
+/// (2026-06-13 실기기 확정) `.toolbar(.hidden, for: .tabBar)` 도 탭 루트에선 시스템 바를
+/// 못 숨긴다(27 실측). 그래서 커스텀 FloatingTabBar 를 스크롤 방향으로 직접 숨겼다 되살린다.
 /// simctl 은 터치를 못 넣으니 — 스크롤 제스처 검증은 이 UI 테스트가 유일한 자동화 경로다.
 final class TabBarMinimizeUITests: XCTestCase {
 
@@ -20,69 +23,66 @@ final class TabBarMinimizeUITests: XCTestCase {
         return app
     }
 
-    /// 스크롤 내리면(콘텐츠 위로 스와이프) 바가 줄어드는지 — 프레임 폭으로 판정.
-    /// 26.0.x·27.0 베타1 런타임은 "시뮬·실기기 모두" tabBarMinimizeBehavior 자체가 죽어
-    /// 있다(2026-06-13 실기기 iPhone Air 에서 교과서 Tab+ScrollView 최소 재현으로 확정 —
-    /// 27 SDK 링크 바이너리만 안 태우고, 26 SDK 스토어 앱은 같은 폰에서 동작). 그래서
-    /// 깨진 런타임에선 "줄면 pass, 안 줄면 skip" — OS 가 고쳐지는 베타부터 자동 단정.
-    private func assertMinimizes(_ app: XCUIApplication, surface: String) throws {
-        let version = ProcessInfo.processInfo.operatingSystemVersion
-        let runtimeBroken = version.minorVersion == 0
-            && (version.majorVersion == 26 || version.majorVersion == 27)
-        let tabBar = app.tabBars.firstMatch
-        XCTAssertTrue(tabBar.waitForExistence(timeout: 10), "\(surface): 탭바 자체가 없음")
-        let before = tabBar.frame
-        print("TABBAR[\(surface)] before: \(before)")
-
-        // 빠른 swipe 는 플릭으로 인식돼 최소화 트리거를 건너뛸 수 있다 —
-        // 손가락 팬에 가까운 느린 드래그로 화면 중앙에서 위로 끈다.
-        let center = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.62))
-        let upper = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.22))
-        center.press(forDuration: 0.05, thenDragTo: upper,
-                     withVelocity: .default, thenHoldForDuration: 0.1)
-        print("TABBAR[\(surface)] mid: \(tabBar.frame)")
-        center.press(forDuration: 0.05, thenDragTo: upper,
-                     withVelocity: .default, thenHoldForDuration: 0.1)
-        print("TABBAR[\(surface)] mid2: \(tabBar.frame)")
-        Thread.sleep(forTimeInterval: 1.2)
-
-        let after = tabBar.frame
-        print("TABBAR[\(surface)] after: \(after)")
-
-        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
-        attachment.name = "after-scroll-\(surface)"
-        attachment.lifetime = .keepAlways
-        add(attachment)
-
-        // 최소화되면 5-아이콘 바가 한 점(검색 분리 시 두 점)으로 줄어 폭이 크게 준다.
-        let minimized = after.width < before.width * 0.7
-        if minimized { return }
-        if runtimeBroken {
-            throw XCTSkip("\(surface): iOS \(version.majorVersion).\(version.minorVersion) " +
-                          "런타임은 최소화 자체가 깨져 있어 판정 불가 (측정 minimized=false)")
+    /// 화면 중앙에서 위로 끄는 느린 팬(콘텐츠가 위로 = 아래로 읽는 중) — 플릭으로 인식돼
+    /// 방향 판정을 건너뛰지 않게 손가락 팬에 가깝게 여러 번.
+    private func scrollDown(_ app: XCUIApplication) {
+        let center = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6))
+        let upper = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.18))
+        for _ in 0..<3 {
+            center.press(forDuration: 0.06, thenDragTo: upper,
+                         withVelocity: .default, thenHoldForDuration: 0.1)
         }
-        XCTAssertTrue(minimized, "\(surface): 스크롤 후에도 탭바 폭이 줄지 않음 — 최소화 미동작")
     }
 
-    func testFeedMinimizesTabBar() throws {
-        let app = launch()
-        try assertMinimizes(app, surface: "feed")
+    /// 위에서 아래로 끄는 팬(콘텐츠가 아래로 = 위로 되돌리는 중).
+    private func scrollUp(_ app: XCUIApplication) {
+        let upper = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25))
+        let lower = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.72))
+        for _ in 0..<3 {
+            upper.press(forDuration: 0.06, thenDragTo: lower,
+                        withVelocity: .default, thenHoldForDuration: 0.1)
+        }
     }
 
+    private func attach(_ name: String) {
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = name
+        shot.lifetime = .keepAlways
+        add(shot)
+    }
 
-    /// 피드 ZStack 이 아닌 평범한 푸시 화면(글 상세)에서도 줄어드는지.
-    func testPostDetailMinimizesTabBar() throws {
+    /// 스크롤다운 후 탭바가 사라지고, 스크롤업 후 되돌아오는지 — 탭바 아이콘의 존재/명중
+    /// 가능 여부로 판정(숨김 = offset 으로 밀려나 hittable 아님 + accessibilityHidden).
+    func testFeedScrollHidesAndRestoresTabBar() throws {
         let app = launch()
+
+        // 카드가 실제로 뜬 뒤에 스크롤한다 — 콜드 스켈레톤에선 스크롤이 안 먹는다.
         let firstCard = app.scrollViews.buttons.firstMatch
-        XCTAssertTrue(firstCard.waitForExistence(timeout: 10), "피드 카드 없음")
-        // 입장 스태거(QuietAppear) 페이드 동안은 탭이 박히지 않는다 — 히터블까지 기다린다.
-        var waited = 0.0
-        while !firstCard.isHittable, waited < 4 {
-            Thread.sleep(forTimeInterval: 0.2)
-            waited += 0.2
-        }
-        firstCard.tap()
-        Thread.sleep(forTimeInterval: 2)
-        try assertMinimizes(app, surface: "post-detail")
+        XCTAssertTrue(firstCard.waitForExistence(timeout: 15), "피드 카드가 뜨지 않음")
+
+        // 커스텀 바의 탭 = VoiceOver 라벨 달린 버튼. "발견" 은 스크롤 대상 카드와 안 겹치는
+        // 안전한 탭바 프로브(피드 카드에 "피드" 라벨이 없어 유일하게 잡힌다).
+        let discoverTab = app.buttons["발견"]
+        XCTAssertTrue(discoverTab.waitForExistence(timeout: 8), "탭바(발견 버튼)가 없음")
+
+        // before — 스크롤 전엔 탭바가 명중 가능.
+        XCTAssertTrue(discoverTab.isHittable, "before: 탭바가 처음부터 보이지 않음")
+        attach("before-scroll-tabbar-visible")
+
+        // 스크롤다운 → 탭바가 사라진다(offset 132pt 로 밀려 hittable 아님).
+        scrollDown(app)
+        let hidden = NSPredicate(format: "isHittable == false")
+        expectation(for: hidden, evaluatedWith: discoverTab)
+        waitForExpectations(timeout: 5)
+        attach("after-scrolldown-tabbar-hidden")
+        XCTAssertFalse(discoverTab.isHittable, "after: 스크롤다운 후에도 탭바가 사라지지 않음")
+
+        // 스크롤업 → 탭바가 되돌아온다.
+        scrollUp(app)
+        let shown = NSPredicate(format: "isHittable == true")
+        expectation(for: shown, evaluatedWith: discoverTab)
+        waitForExpectations(timeout: 5)
+        attach("after-scrollup-tabbar-restored")
+        XCTAssertTrue(discoverTab.isHittable, "restore: 스크롤업 후에도 탭바가 돌아오지 않음")
     }
 }

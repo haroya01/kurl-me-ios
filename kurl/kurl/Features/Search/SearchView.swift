@@ -56,14 +56,19 @@ struct SearchView: View {
                     }
                 }
             }
+            // 스크롤을 내리면 탭바가 사라지고 올리면 돌아온다(스레드식) — 활성 스크롤 표면을 관측.
+            .tracksTabBarVisibility()
             .navigationTitle("검색")
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: Route.self) { route in
+                // 푸시된 상세는 탭바 숨김을 추적하지 않는다(탭 루트 전용).
                 if case .post(let username, let slug) = route, !reduceMotion {
                     RouteView(route: route)
                         .navigationTransition(.zoom(sourceID: "search-\(username)-\(slug)", in: zoomNS))
+                        .environment(\.tabBarVisibility, nil)
                 } else {
                     RouteView(route: route)
+                        .environment(\.tabBarVisibility, nil)
                 }
             }
             // 스택 안쪽에 부착 — 바깥이면 push 된 글 상세에도 검색바가 남는다.

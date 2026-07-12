@@ -137,16 +137,20 @@ struct FeedView: View {
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: Route.self) { route in
                 // 글 푸시만 zoom. 소스 카드가 화면에 없으면(깊은 푸시) 시스템이 표준
-                // 푸시로 폴백한다.
+                // 푸시로 폴백한다. 푸시된 화면은 탭바 숨김을 추적하지 않는다(탭 루트 전용).
                 if case .post(let username, let slug) = route, !reduceMotion {
                     RouteView(route: route)
                         .navigationTransition(.zoom(sourceID: "post-\(username)-\(slug)", in: zoomNS))
+                        .environment(\.tabBarVisibility, nil)
                 } else {
                     RouteView(route: route)
+                        .environment(\.tabBarVisibility, nil)
                 }
             }
             // 인터리브한 공개 연결 카드의 컬렉션 칩 → 컬렉션 상세(발견 표면과 같은 목적지).
-            .navigationDestination(for: CollectionRef.self) { CollectionDetailView(collectionId: $0.id) }
+            .navigationDestination(for: CollectionRef.self) {
+                CollectionDetailView(collectionId: $0.id).environment(\.tabBarVisibility, nil)
+            }
             .navigationDestination(isPresented: $showNotifications) {
                 NotificationsView()
             }
@@ -402,6 +406,9 @@ struct FeedPage: View {
         }
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
+        // 활성 페이지의 스크롤만 탭바 숨김을 몬다 — ZStack 에 상주하는 숨은 페이지가
+        // 방향을 함께 흘리면 서로 어긋난다.
+        .tracksTabBarVisibility(active)
         .refreshable { await model.reload() }
     }
 

@@ -64,10 +64,17 @@ struct DiscoverView: View {
                     }
                 }
             }
+            // 스크롤을 내리면 탭바가 사라지고 올리면 돌아온다(스레드식) — 탭 루트 전용.
+            .tracksTabBarVisibility()
             // 고정 스트립 대신 콘텐츠가 유리 크롬 밑으로 흐른다 — 상단 라벨은 탭바 아이콘이 맡는다.
             .toolbar(.hidden, for: .navigationBar)
-            .navigationDestination(for: CollectionRef.self) { CollectionDetailView(collectionId: $0.id) }
-            .navigationDestination(for: Route.self) { RouteView(route: $0) }
+            // 푸시된 상세는 탭바 숨김을 추적하지 않는다(탭 루트 전용).
+            .navigationDestination(for: CollectionRef.self) {
+                CollectionDetailView(collectionId: $0.id).environment(\.tabBarVisibility, nil)
+            }
+            .navigationDestination(for: Route.self) {
+                RouteView(route: $0).environment(\.tabBarVisibility, nil)
+            }
             // .task 는 재-appear(탭 전환·글에서 pop 복귀)마다 재발화한다 — 첫 진입과 실제
             // 인증 전환에서만 요청(FeedViewModel.loadInitial 의 idle 가드와 같은 문법).
             // 명시적 갱신은 refreshable 이 맡는다.
