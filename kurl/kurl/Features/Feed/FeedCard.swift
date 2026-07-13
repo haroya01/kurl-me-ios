@@ -40,8 +40,12 @@ struct FeedRow: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                MetaRow(author: item.author.username, date: item.publishedAt, likes: item.likeCount)
-                    .padding(.top, 2)
+                MetaRow(
+                    author: item.author.username, date: item.publishedAt,
+                    likes: LikeStore.shared.displayCount(
+                        username: item.author.username, slug: item.slug, server: item.likeCount)
+                )
+                .padding(.top, 2)
             }
 
             if let urlString = item.ogImageUrl, let url = URL(string: urlString) {

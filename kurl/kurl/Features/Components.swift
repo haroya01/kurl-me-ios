@@ -338,6 +338,8 @@ struct ToastHost: ViewModifier {
 @MainActor
 enum CardQuickActions {
     static func like(_ item: FeedItem) {
+        let alreadyLiked = LikeStore.shared.contains(
+            username: item.author.username, slug: item.slug)
         perform(
             failure: String(localized: "좋아요를 반영하지 못했습니다"),
             done: String(localized: "좋아요했습니다")
@@ -345,6 +347,11 @@ enum CardQuickActions {
             _ = try await InteractionsAPI.setLike(postId: item.id, on: true)
             // 발견 미리보기의 내 좋아요 표식과 어긋나지 않게 함께 반영(멱등 켜기).
             LikeStore.shared.set(username: item.author.username, slug: item.slug, on: true)
+            // 카드 숫자도 그 자리에서 오른다 — 이미 좋아요한 글(멱등 켜기)은 가산하지 않는다.
+            if !alreadyLiked {
+                LikeStore.shared.bumpCount(
+                    username: item.author.username, slug: item.slug, baseline: item.likeCount)
+            }
         }
     }
 

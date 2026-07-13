@@ -16,6 +16,9 @@ final class LikeStore {
     static let shared = LikeStore()
 
     private(set) var refs: Set<String> = []
+    /// 퀵액션 좋아요의 낙관 카운트 — 누르던 순간 카드가 보여주던 서버 값을 기준으로 기록한다.
+    /// 목록 응답이 새 숫자를 들고 오면(기준값과 달라지면) 자동 은퇴해 중복 가산이 없다.
+    private var countBumps: [String: Int64] = [:]
     private var hydrated = false
     private var hydrating = false
 
@@ -31,9 +34,21 @@ final class LikeStore {
         if on { refs.insert(key) } else { refs.remove(key) }
     }
 
+    /// 좋아요 직후 카드 숫자를 그 자리에서 올리기 위한 기준값 기록.
+    func bumpCount(username: String, slug: String, baseline: Int64) {
+        countBumps[Self.key(username, slug)] = baseline
+    }
+
+    /// 카드가 그릴 좋아요 수 — 서버 값이 아직 기준값 그대로면 +1, 갱신돼 왔으면 서버 값을 믿는다.
+    func displayCount(username: String, slug: String, server: Int64) -> Int64 {
+        guard let base = countBumps[Self.key(username, slug)] else { return server }
+        return server == base ? base + 1 : server
+    }
+
     /// 로그아웃 시 — 다음 로그인 사용자가 이전 사용자의 좋아요 표식을 보지 않게.
     func reset() {
         refs = []
+        countBumps = [:]
         hydrated = false
     }
 

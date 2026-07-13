@@ -233,13 +233,16 @@ private struct CardMeta: View {
                 // browse 면 시간 문법 통일 — 행·허브와 같은 상대시간(상세만 절대 날짜).
                 Text(date.relativeShort)
             }
-            if item.likeCount > 0 {
+            // 퀵액션 좋아요가 그 자리에서 보이게 — 서버 값 대신 낙관 카운트를 그린다(0→1 등장 포함).
+            let likes = LikeStore.shared.displayCount(
+                username: item.author.username, slug: item.slug, server: item.likeCount)
+            if likes > 0 {
                 Text("·").foregroundStyle(dim)
                 HStack(spacing: 3) {
                     Image(systemName: "heart")
                         .font(.system(size: 10))
                         .foregroundStyle(tone)
-                    Text("\(item.likeCount)")
+                    Text("\(likes)")
                 }
             }
         }
