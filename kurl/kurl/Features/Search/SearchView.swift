@@ -211,12 +211,16 @@ struct SearchView: View {
                                     HStack(spacing: 5) {
                                         Text(item.author.username)
                                             .lineLimit(1)
-                                        if item.likeCount > 0 {
+                                        // 피드 퀵액션 좋아요와 같은 낙관 카운트 — 표면 간 숫자 어긋남 방지.
+                                        let likes = LikeStore.shared.displayCount(
+                                            username: item.author.username, slug: item.slug,
+                                            server: item.likeCount)
+                                        if likes > 0 {
                                             Text("·").foregroundStyle(Palette.faint)
                                             HStack(spacing: 2) {
                                                 Image(systemName: "heart")
                                                     .font(.system(size: 9))
-                                                Text("\(item.likeCount)")
+                                                Text("\(likes)")
                                             }
                                         }
                                     }
