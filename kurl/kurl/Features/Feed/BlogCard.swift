@@ -37,14 +37,23 @@ struct BlogCard: View {
         // 글이 안 열림) 있던 것을 카드 전면 히트 셰이프로 묶는다(태그 칩은 자기 링크 유지).
         .contentShape(.rect)
         // 북마크한 글이면 우상단에 북마크 표식 — 피드에서 "이미 담아 둔 글"이 한눈에 보인다.
+        // 표식은 눌러 끌 수 있는 버튼이다(카드 링크가 탭을 삼키던 것을 buttonStyle 로 우선한다).
+        // 아직 안 담은 글엔 표식을 두지 않는다(§10 조용함 — 새로 담기는 롱프레스 퀵액션에 남는다).
         .overlay(alignment: .topTrailing) {
             if BookmarkStore.shared.contains(item.id) {
-                Image(systemName: "bookmark.fill")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(item.ogImageUrl != nil ? AnyShapeStyle(.white) : AnyShapeStyle(Palette.accentMarker))
-                    .shadow(color: .black.opacity(item.ogImageUrl != nil ? 0.35 : 0), radius: 3, y: 1)
-                    .padding(12)
-                    .accessibilityLabel("북마크됨")
+                Button {
+                    CardQuickActions.bookmark(item)
+                } label: {
+                    Image(systemName: "bookmark.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(item.ogImageUrl != nil ? AnyShapeStyle(.white) : AnyShapeStyle(Palette.accentMarker))
+                        .shadow(color: .black.opacity(item.ogImageUrl != nil ? 0.35 : 0), radius: 3, y: 1)
+                        .expandTapTarget(10)
+                        .padding(12)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("북마크 해제")
             }
         }
         .onAppear {
@@ -207,10 +216,18 @@ private struct CardMeta: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            AvatarView(author: item.author, size: 16)
-            Text(item.author.username)
-                .fontWeight(.medium)
-                .lineLimit(1)
+            // 아바타·유저명은 사람으로 가는 문 — 글(카드 링크)과 갈라 작가 블로그로 항해한다.
+            // 카드를 감싼 바깥 링크가 이 탭을 삼키지 않게 buttonStyle 로 우선한다(읽기 기록 행과 같은 문법).
+            NavigationLink(value: Route.author(username: item.author.username)) {
+                HStack(spacing: 6) {
+                    AvatarView(author: item.author, size: 16)
+                    Text(item.author.username)
+                        .fontWeight(.medium)
+                        .lineLimit(1)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
             if let date = item.publishedAt {
                 Text("·").foregroundStyle(dim)
                 // browse 면 시간 문법 통일 — 행·허브와 같은 상대시간(상세만 절대 날짜).
