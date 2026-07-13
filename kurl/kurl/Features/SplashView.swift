@@ -76,7 +76,8 @@ struct SplashView: View {
             wordVisible = true
         }
         // 이름 위에 형광 한 획 — 읽다가 긋는 제품의 손짓을 스플래시가 먼저 해 보인다.
-        withAnimation(.timingCurve(0.16, 1, 0.3, 1, duration: 0.5).delay(0.85)) {
+        // 0.55s 시작·1.05s 완료 — 로그인 상태의 짧은 커튼(1.15s) 안에도 획이 다 그어진다.
+        withAnimation(.timingCurve(0.16, 1, 0.3, 1, duration: 0.5).delay(0.55)) {
             swept = true
         }
     }
