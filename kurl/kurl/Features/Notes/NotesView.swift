@@ -246,7 +246,11 @@ private struct NoteRowView: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 11) {
-            NavigationLink(value: Route.author(username: note.author.username)) {
+            // 클로저형 링크 — 계정 스택 혼용 함정 회피(값 기반은 이 깊이서 항해 안 함).
+            NavigationLink {
+                RouteView(route: .author(username: note.author.username))
+                    .environment(\.tabBarVisibility, nil)
+            } label: {
                 AvatarView(author: note.author, size: 38)
             }
             .buttonStyle(.plain)

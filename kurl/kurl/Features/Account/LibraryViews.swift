@@ -51,7 +51,12 @@ struct BookmarksView: View {
                 // 화면 제목이 이미 "북마크"라 행마다 북마크 글리프는 중복 — 오프라인 저장분만 메타에 ⤓ 배지로.
                 LazyVStack(spacing: 0) {
                     ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                        NavigationLink(value: Route.post(username: item.username, slug: item.slug)) {
+                        // 클로저형 링크로 민다 — 계정 스택은 클로저형(서재 행)과 값형이 섞여 값 기반
+                        // Route 링크가 항해하지 않는다(SwiftUI 혼용 함정). RouteView 로 감싸 목적지는 그대로.
+                        NavigationLink {
+                            RouteView(route: .post(username: item.username, slug: item.slug))
+                                .environment(\.tabBarVisibility, nil)
+                        } label: {
                             HStack(alignment: .top, spacing: 12) {
                                 VStack(alignment: .leading, spacing: 5) {
                                     Text(item.title)
@@ -166,7 +171,11 @@ struct LikedPostsView: View {
                 // 좋아요한 글 = 내 컬렉션(카탈로그) — 카드가 아니라 피드와 같은 글 행(3원칙 표준).
                 LazyVStack(spacing: 0) {
                     ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                        NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
+                        // 클로저형 링크 — 계정 스택 혼용 함정 회피(값 기반은 이 깊이서 항해 안 함).
+                        NavigationLink {
+                            RouteView(route: .post(username: item.author.username, slug: item.slug))
+                                .environment(\.tabBarVisibility, nil)
+                        } label: {
                             FeedRow(item: item)
                         }
                         .buttonStyle(RowButtonStyle())
@@ -217,9 +226,12 @@ struct SubscribedSeriesView: View {
                 .padding(.top, 60)
             } else {
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, card in
-                    // author 없는 카드는 라우팅 불가 — 행은 그리되 링크를 걸지 않는다.
-                    NavigationLink(value: Route.series(
-                        username: card.author?.username ?? "", slug: card.slug)) {
+                    // 클로저형 링크 — 계정 스택 혼용 함정 회피(값 기반은 이 깊이서 항해 안 함).
+                    NavigationLink {
+                        RouteView(route: .series(
+                            username: card.author?.username ?? "", slug: card.slug))
+                            .environment(\.tabBarVisibility, nil)
+                    } label: {
                         HStack(spacing: 10) {
                             KurlMark(drawn: [true, true, true])
                                 .frame(width: 18, height: 11)
@@ -261,6 +273,87 @@ struct SubscribedSeriesView: View {
         } catch {
             loading = false
             if items.isEmpty { failed = true }
+        }
+    }
+}
+
+/// 구독한 태그 — 구독한 시리즈가 서재에 보이듯, 구독(팔로우)한 주제도 한자리에 모아 본다.
+/// 칩을 탭하면 그 태그의 글 피드(TagFeedView)로. 구독/숨김은 그 피드 안에서 관리한다(단일 관리 지점).
+struct SubscribedTagsView: View {
+    @State private var tags: [String] = []
+    @State private var loading = true
+    @State private var failed = false
+    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+
+    var body: some View {
+        ReadingColumn(spacing: 0) {
+            if loading {
+                KurlLoadingMark()
+                    .frame(maxWidth: .infinity, minHeight: 240)
+            } else if failed {
+                LibraryFailedState { Task { loading = true; await load() } }
+            } else if tags.isEmpty {
+                ContentUnavailableView {
+                    Label("구독한 태그가 없습니다", systemImage: "number")
+                } description: {
+                    Text("글에서 태그를 구독하면 그 주제의 새 글이 구독함에 모여요.")
+                } actions: {
+                    Button("발견에서 읽을 글 찾기") { TabRouter.shared.selection = 1 }
+                        .foregroundStyle(Palette.link)
+                }
+                .padding(.top, 60)
+            } else {
+                // 각 태그를 한 줄 행으로 — 구독한 시리즈 행과 같은 항해 문법(값 기반 링크가 확실히 걸린다).
+                // 주제는 왼쪽에 조용한 그린 테두리 칩으로 앉힌다(§10 색 규율 — 채움 없이 테두리·잉크).
+                LazyVStack(spacing: 0) {
+                    ForEach(Array(tags.enumerated()), id: \.element) { index, tag in
+                        // 클로저형 링크 — 계정 스택 혼용 함정 회피(값 기반은 이 깊이서 항해 안 함).
+                        NavigationLink {
+                            RouteView(route: .tag(tag))
+                                .environment(\.tabBarVisibility, nil)
+                        } label: {
+                            tagRow(tag)
+                        }
+                        .buttonStyle(RowButtonStyle())
+                        if index < tags.count - 1 { Hairline() }
+                    }
+                }
+                .padding(.top, 8)
+            }
+        }
+        .navigationTitle("구독한 태그")
+        .navigationBarTitleDisplayMode(.inline)
+        .task { await load() }
+        .refreshable { await load() }
+    }
+
+    /// 한 태그 행 — 왼쪽에 조용한 그린 테두리 칩, 오른쪽 끝에 흐린 셰브론(다른 서재 행과 같은 어포던스).
+    private func tagRow(_ tag: String) -> some View {
+        HStack(spacing: 10) {
+            Text("#\(tag)")
+                .font(.system(size: 15 * unit, weight: .medium))
+                .foregroundStyle(Palette.ink)
+                .lineLimit(1)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .overlay(Capsule().strokeBorder(Palette.accent.opacity(0.35), lineWidth: 1))
+            Spacer(minLength: 0)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Palette.faint)
+        }
+        .padding(.vertical, 10)
+        .contentShape(Rectangle())
+    }
+
+    private func load() async {
+        failed = false
+        do {
+            tags = try await InteractionsAPI.tagPrefs().followed
+            loading = false
+        } catch {
+            loading = false
+            if tags.isEmpty { failed = true }
         }
     }
 }

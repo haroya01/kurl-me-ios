@@ -436,7 +436,11 @@ private struct CardQuickActionsModifier: ViewModifier {
                     Label("작가 블로그", systemImage: "person.crop.circle")
                 }
                 if let url = CardQuickActions.shareURL(item) {
-                    ShareLink(item: url) {
+                    // 제목 + 앱 마크를 미리보기로 얹어 공유 시트가 빈 카드로 뜨지 않게(상세 공유와 같은 문법).
+                    ShareLink(
+                        item: url,
+                        preview: SharePreview(item.title.cleanedPreview, icon: Image("LaunchMark"))
+                    ) {
                         Label("공유", systemImage: "square.and.arrow.up")
                     }
                 }

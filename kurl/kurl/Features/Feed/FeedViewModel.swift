@@ -102,7 +102,8 @@ final class FeedViewModel {
             loadMoreFailed = false
             withAnimation(.easeInOut(duration: 0.2)) {
                 // 제목이 사실상 빈("ㅇㅇ"·공백) 글은 카드로 그리지 않는다 — 풀 크롬으로 뜨면 피드가 부서져 보인다.
-                items = view.items.filter(\.isRenderableCard)
+                // 차단한 작가의 글도 여기서 걷어낸다 — 차단이 피드에도 반영돼야 "동작 안 함"으로 안 보인다(댓글 필터와 짝).
+                items = view.items.filter { $0.isRenderableCard && !BlockStore.shared.isBlocked($0.author.username) }
                 phase = .loaded(items)
             }
             // 새로 들어온 피드는 소속을 다시 묻는다 — 이전 세대의 물어본 표식을 비우고 배치로 긁는다.
@@ -158,7 +159,10 @@ final class FeedViewModel {
             // 서버 페이지가 겹쳐 와도 같은 id 카드가 두 번 박히지 않게 — 기존 id 와 겹치는 건 버린다.
             // 빈 콘텐츠 카드도 함께 거른다(reload 와 같은 가드).
             let seen = Set(items.map(\.id))
-            let fresh = view.items.filter { !seen.contains($0.id) && $0.isRenderableCard }
+            let fresh = view.items.filter {
+                !seen.contains($0.id) && $0.isRenderableCard
+                    && !BlockStore.shared.isBlocked($0.author.username)
+            }
             items.append(contentsOf: fresh)
             hasNext = view.hasNext
             phase = .loaded(items)
@@ -192,5 +196,17 @@ final class FeedViewModel {
     func retryLoadMore() async {
         guard let last = items.last else { return }
         await loadMoreIfNeeded(current: last)
+    }
+
+    /// 차단 반영 — 글을 읽다 작가를 차단하고 피드로 돌아왔을 때, 재조회 없이 그 작가의 카드를
+    /// 그 자리에서 걷어낸다(차단이 피드에 즉시 반영돼야 "동작 안 함"으로 안 보인다). 이미
+    /// 차단분이 없으면 대입을 생략해 @Observable 헛 무효화를 피한다.
+    func pruneBlocked() {
+        let kept = items.filter { !BlockStore.shared.isBlocked($0.author.username) }
+        guard kept.count != items.count else { return }
+        withAnimation(.easeInOut(duration: 0.2)) {
+            items = kept
+            phase = .loaded(items)
+        }
     }
 }

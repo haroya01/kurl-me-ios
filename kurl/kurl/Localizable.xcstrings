@@ -3614,62 +3614,6 @@
         }
       }
     },
-    "기록 지우기" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clear history"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "रिकॉर्ड मिटाएँ"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "履歴を消去"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Xóa lịch sử"
-          }
-        }
-      }
-    },
-    "기록에서 지우기" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Remove from history"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "रिकॉर्ड से हटाएँ"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "履歴から削除"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Xóa khỏi lịch sử"
-          }
-        }
-      }
-    },
     "길" : {
       "localizations" : {
         "en" : {
@@ -11471,34 +11415,6 @@
         }
       }
     },
-    "전체 기록을 지울까요?" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Clear your entire history?"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "क्या पूरा रिकॉर्ड मिटाना चाहते हैं?"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "すべての履歴を消去しますか？"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Xóa toàn bộ lịch sử?"
-          }
-        }
-      }
-    },
     "전체 미리보기" : {
       "localizations" : {
         "en" : {
@@ -15524,6 +15440,46 @@
         "hi" : { "stringUnit" : { "state" : "translated", "value" : "रिपोर्ट भेजें" } },
         "ja" : { "stringUnit" : { "state" : "translated", "value" : "報告を送信" } },
         "vi" : { "stringUnit" : { "state" : "translated", "value" : "Gửi báo cáo" } }
+      }
+    },
+    "구독한 태그" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Subscribed Tags" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "सब्सक्राइब किए गए टैग" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "購読中のタグ" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Thẻ đã đăng ký" } }
+      }
+    },
+    "구독한 태그가 없습니다" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No subscribed tags" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "कोई सब्सक्राइब किया गया टैग नहीं" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "購読中のタグはありません" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Chưa có thẻ nào được đăng ký" } }
+      }
+    },
+    "글에서 태그를 구독하면 그 주제의 새 글이 구독함에 모여요." : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Subscribe to a tag from a post, and new posts on that topic gather in your subscriptions." } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "किसी पोस्ट से टैग सब्सक्राइब करें, और उस विषय की नई पोस्ट आपकी सदस्यता में इकट्ठा होंगी।" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "投稿からタグを購読すると、そのトピックの新しい投稿が購読フィードに集まります。" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Đăng ký một thẻ từ bài viết, và các bài mới về chủ đề đó sẽ tụ về mục đăng ký của bạn." } }
+      }
+    },
+    "하이라이트 표시" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Show highlights" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "हाइलाइट दिखाएं" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ハイライトを表示" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Hiện phần tô sáng" } }
+      }
+    },
+    "하이라이트 숨기기" : {
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Hide highlights" } },
+        "hi" : { "stringUnit" : { "state" : "translated", "value" : "हाइलाइट छिपाएं" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ハイライトを非表示" } },
+        "vi" : { "stringUnit" : { "state" : "translated", "value" : "Ẩn phần tô sáng" } }
       }
     }
   },

@@ -95,6 +95,10 @@ struct PostDetailView: View {
     /// 임베드(덱)는 만들지 않아 종전 렌더 그대로다.
     @State private var highlights: PostHighlightStore?
 
+    /// 하이라이트 표시/숨기기 — 남들 형광펜이 많으면 어지럽다는 독자를 위해. 기기 전역 취향이라
+    /// 글마다 다시 정하지 않게 @AppStorage 로 영속하고, 로드 시 스토어에 밀어 넣는다(기본 = 표시).
+    @AppStorage("hideOthersHighlights") private var hideHighlights = false
+
     /// 읽기 기록 비콘을 이미 보낸 글 id — pop-back 으로 task 가 재시작돼도 재전송하지 않는다.
     @State private var recordedHistoryId: Int64?
 
@@ -348,9 +352,14 @@ struct PostDetailView: View {
             // 새로 만들면 칠이 지워졌다 재로드까지 깜빡이므로 그대로 둔다.
             guard highlights?.postId != id else { return }
             let store = PostHighlightStore(postId: id)
+            store.paintHidden = hideHighlights
             highlights = store
             await store.load()
             maybeShowHighlightCoach(store)
+        }
+        // 표시/숨기기 토글 — 켜고 끄면 곧바로 본문 칠이 걷히거나 돌아온다(스토어가 @Observable).
+        .onChange(of: hideHighlights) { _, hidden in
+            highlights?.paintHidden = hidden
         }
         // 읽기 기록 비콘 — 로그인 독자가 글을 열면 계정에 기록(기기를 넘어 이어진다). 익명은 기록 없음.
         // 가드 = pop-back task 재시작마다 재전송하지 않게(didFocus 와 같은 1회 패턴).
@@ -424,6 +433,7 @@ struct PostDetailView: View {
                 if isOwnPost {
                     Menu {
                         shareMenuItem
+                        highlightToggleItem
                         Button { showOwnAnalytics = true } label: {
                             Label("이 글 분석", systemImage: "chart.bar")
                         }
@@ -449,6 +459,7 @@ struct PostDetailView: View {
                     // 거슬리는 글을 만난 자리에서 바로 처리하게 한다.
                     Menu {
                         shareMenuItem
+                        highlightToggleItem
                         Section {
                             if BlockStore.shared.isBlocked(id: author.id) {
                                 Button {
@@ -489,11 +500,33 @@ struct PostDetailView: View {
     }
 
     /// ⋯ 메뉴 안의 공유 항목 — 모두에게 뜬다(공유 URL 이 준비됐을 때). 네이티브 공유 시트를 연다.
+    /// 제목·아이콘을 미리보기로 직접 얹어, 시스템이 URL 을 원격 조회할 때까지 빈 카드로 있던
+    /// 지연을 없앤다(§ 공유 시 제목·마크가 즉시 뜬다).
     @ViewBuilder
     private var shareMenuItem: some View {
         if let shareURL {
-            ShareLink(item: shareURL) {
+            // 제목 + 앱 마크를 미리보기로 직접 얹는다 — 커버가 있어도 원격 이미지는 비동기라
+            // 늦게 뜨므로, 즉시 그릴 수 있는 번들 아이콘으로 첫 화면을 채운다.
+            ShareLink(
+                item: shareURL,
+                preview: SharePreview(loadedTitle, icon: Image("LaunchMark"))
+            ) {
                 Label("공유", systemImage: "square.and.arrow.up")
+            }
+        }
+    }
+
+    /// ⋯ 메뉴 안의 하이라이트 표시 토글 — 칠할 하이라이트가 있을 때만 뜬다. 숨기면 본문의 형광펜이
+    /// 걷히고(내 형광펜 생성은 그대로), 다시 켜면 돌아온다. 기기 전역 취향이라 @AppStorage 로 영속.
+    @ViewBuilder
+    private var highlightToggleItem: some View {
+        if let store = highlights, !store.highlights.isEmpty {
+            Button {
+                hideHighlights.toggle()
+            } label: {
+                Label(
+                    hideHighlights ? "하이라이트 표시" : "하이라이트 숨기기",
+                    systemImage: hideHighlights ? "eye" : "eye.slash")
             }
         }
     }

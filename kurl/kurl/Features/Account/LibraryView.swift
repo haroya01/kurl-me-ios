@@ -20,6 +20,8 @@ struct LibraryView: View {
                 Hairline()
                 libraryRow("구독한 시리즈") { SubscribedSeriesView() }
                 Hairline()
+                libraryRow("구독한 태그") { SubscribedTagsView() }
+                Hairline()
                 libraryRow("내 하이라이트") { MyHighlightsView() }
                 Hairline()
                 libraryRow("컬렉션") { CollectionsListView() }
