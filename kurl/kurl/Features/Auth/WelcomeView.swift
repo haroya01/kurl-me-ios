@@ -15,7 +15,7 @@ import SwiftUI
 struct WelcomeView: View {
     /// 스플래시가 걷혀 웰컴이 드러나는 순간 true — 이때 엔트런스가 시작된다.
     var revealed: Bool
-    /// 스플래시 마크 글라이드용(이전 구성) — 들판이 그린이라 마크는 스플래시와 함께 걷힌다.
+    /// 스플래시 마크가 중앙에서 이 서명 자리로 글라이드해 오는 네임스페이스(matchedGeometry).
     var launchNS: Namespace.ID? = nil
     var onContinueAsGuest: () -> Void
     var onSignedIn: () -> Void
@@ -54,6 +54,7 @@ struct WelcomeView: View {
                 HStack(spacing: 10) {
                     KurlMark(drawn: [true, true, true])
                         .frame(width: 44, height: 27)
+                        .launchMatched("launchMark", in: launchNS, isSource: revealed)
                     Text(verbatim: "kurl")
                         .font(.system(size: 26, weight: .bold))
                         .tracking(-1.0)
@@ -61,8 +62,9 @@ struct WelcomeView: View {
                 }
                 .padding(.horizontal, Metrics.gutter + 4)
                 .opacity(rowsVisible ? 1 : 0)
+                .offset(y: rowsVisible ? 0 : 6)
 
-                Spacer(minLength: 18)
+                Spacer(minLength: 16)
 
                 proseWall
 
@@ -76,9 +78,10 @@ struct WelcomeView: View {
                     .lineSpacing(3)
                     .foregroundStyle(Palette.ink)
                     .padding(.horizontal, Metrics.gutter + 4)
-                    .padding(.top, 24)
+                    .padding(.top, 28)
                     .opacity(taglineVisible ? 1 : 0)
-                    .offset(y: taglineVisible ? 0 : 10)
+                    .offset(y: taglineVisible ? 0 : 14)
+                    .blur(radius: taglineVisible ? 0 : 3)
                     .accessibilityAddTraits(.isHeader)
 
                 Spacer(minLength: 16)
@@ -100,6 +103,7 @@ struct WelcomeView: View {
                     }
                     .buttonStyle(.plain)
                     .glassEffect(.regular, in: .capsule)
+                    .overlay(Capsule().strokeBorder(Palette.hairlineStrong.opacity(0.6), lineWidth: 1))
 
                     Button {
                         showLogin = true
@@ -117,7 +121,7 @@ struct WelcomeView: View {
                 .padding(.horizontal, Metrics.gutter + 4)
                 .padding(.bottom, 24)
                 .opacity(actionsVisible ? 1 : 0)
-                .offset(y: actionsVisible ? 0 : 12)
+                .offset(y: actionsVisible ? 0 : 16)
             }
             .padding(.top, 24)
         }
@@ -134,12 +138,17 @@ struct WelcomeView: View {
 
     private var connectionChip: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // 실 — 형광 구절 아래에서 자라 내려온다(scaleY, 위 고정).
-            RoundedRectangle(cornerRadius: 1)
-                .fill(Palette.accent)
-                .frame(width: 2, height: 26)
-                .padding(.leading, 34)
-                .scaleEffect(y: threadOn ? 1 : 0.01, anchor: .top)
+            // 실 — 두 번째 형광("길이 된다") 아래께에서 시작점(점)을 찍고 자라 내려온다.
+            VStack(spacing: 0) {
+                Circle()
+                    .fill(Palette.accent)
+                    .frame(width: 5, height: 5)
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(Palette.accent)
+                    .frame(width: 2, height: 24)
+            }
+            .padding(.leading, 96)
+            .scaleEffect(y: threadOn ? 1 : 0.01, anchor: .top)
             HStack(spacing: 8) {
                 Image(systemName: "arrow.turn.down.right")
                     .font(.system(size: 13, weight: .bold))
@@ -147,18 +156,22 @@ struct WelcomeView: View {
                 Text("'다시 읽고 싶은'에 이어짐")
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(Palette.ink)
+                Image(systemName: "square.stack")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Palette.secondary)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 11)
             .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Palette.readingBg)
-                    .shadow(color: .black.opacity(0.06), radius: 10, y: 3))
+                RoundedRectangle(cornerRadius: 13, style: .continuous)
+                    .fill(Palette.cardBg)
+                    .shadow(color: .black.opacity(0.07), radius: 12, y: 4))
             .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .strokeBorder(Palette.accent.opacity(0.35), lineWidth: 1))
+                RoundedRectangle(cornerRadius: 13, style: .continuous)
+                    .strokeBorder(Palette.accent.opacity(0.3), lineWidth: 1))
+            .padding(.leading, 44)
             .opacity(threadOn ? 1 : 0)
-            .offset(y: threadOn ? 0 : -6)
+            .offset(y: threadOn ? 0 : -8)
         }
         // 데모 소품 — 보이스오버는 태그라인으로 직행.
         .accessibilityHidden(true)
@@ -174,11 +187,12 @@ struct WelcomeView: View {
             Text(Self.attributed(highlighted: true))
                 .opacity(highlightsOn ? 1 : 0)
         }
-        .lineSpacing(9)
+        .lineSpacing(10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, Metrics.gutter + 4)
         .opacity(rowsVisible ? 1 : 0)
-        .offset(y: rowsVisible ? 0 : 8)
+        .offset(y: rowsVisible ? 0 : 14)
+        .blur(radius: rowsVisible ? 0 : 3)
         // 벽은 장식 — 보이스오버는 태그라인부터 읽는다.
         .accessibilityHidden(true)
     }
@@ -190,11 +204,12 @@ struct WelcomeView: View {
         for (text, isHighlight) in prose {
             var run = AttributedString(text)
             run.font = .system(size: 21, weight: .regular)
+            run.tracking = -0.1
             if !highlighted {
                 run.foregroundColor = Palette.ink
             } else if isHighlight {
                 run.foregroundColor = Palette.ink
-                run.backgroundColor = Palette.accent.opacity(0.16)
+                run.backgroundColor = Palette.accent.opacity(0.19)
                 run.underlineStyle = .single
                 run.underlineColor = UIColor(Palette.accent)
             } else {
@@ -216,12 +231,14 @@ struct WelcomeView: View {
             actionsVisible = true
             return
         }
-        rowsVisible = true
+        // 실크 — 빠르게 나와 아주 길게 눕는 커브. 팝 없이 전 박자가 같은 결로 떠오른다.
+        let silk = Animation.timingCurve(0.16, 1, 0.3, 1, duration: 0.9)
+        withAnimation(silk) { rowsVisible = true }
         // 본문이 자리잡은 뒤 형광이 그어지고, 그은 문장에서 실이 자라 컬렉션에 꽂힌다 —
         // 읽다가 긋고, 그은 것이 이어지는 제품의 서사가 엔트런스 그 자체.
-        withAnimation(.easeOut(duration: 0.5).delay(0.5)) { highlightsOn = true }
-        withAnimation(.snappy(duration: 0.45).delay(0.95)) { threadOn = true }
-        withAnimation(.easeOut(duration: 0.4).delay(1.2)) { taglineVisible = true }
-        withAnimation(.easeOut(duration: 0.45).delay(1.35)) { actionsVisible = true }
+        withAnimation(silk.delay(0.55)) { highlightsOn = true }
+        withAnimation(.smooth(duration: 0.7).delay(1.05)) { threadOn = true }
+        withAnimation(silk.delay(1.3)) { taglineVisible = true }
+        withAnimation(silk.delay(1.45)) { actionsVisible = true }
     }
 }

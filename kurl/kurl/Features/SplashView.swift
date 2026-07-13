@@ -16,6 +16,8 @@ struct SplashView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var barsDrawn = [false, false, false]
     @State private var wordVisible = false
+    /// 마지막 박자 — 워드마크 뒤로 형광이 좌→우로 그어진다(웰컴·인앱 하이라이트와 같은 결).
+    @State private var swept = false
     /// 워드마크는 사다리 밖 브랜드 자산(고유 자간) — 크기 보존 + Dynamic Type 만 얹는다.
     @ScaledMetric(relativeTo: .largeTitle) private var wordmarkSize: CGFloat = 28
 
@@ -32,6 +34,20 @@ struct SplashView: View {
                     .font(.system(size: wordmarkSize, weight: .bold))
                     .tracking(-1.1)
                     .foregroundStyle(Palette.ink)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2)
+                    .background(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            .fill(Palette.accent.opacity(0.19))
+                            .scaleEffect(x: swept ? 1 : 0.001, anchor: .leading)
+                    }
+                    .overlay(alignment: .bottomLeading) {
+                        RoundedRectangle(cornerRadius: 1)
+                            .fill(Palette.accent)
+                            .frame(height: 2)
+                            .offset(y: 4)
+                            .scaleEffect(x: swept ? 1 : 0.001, anchor: .leading)
+                    }
                     .opacity(wordVisible ? 1 : 0)
                     .offset(y: wordVisible ? 0 : 7)
             }
@@ -47,6 +63,7 @@ struct SplashView: View {
         guard !reduceMotion else {
             barsDrawn = [true, true, true]
             wordVisible = true
+            swept = true
             return
         }
         // 웹 warp 의 타이밍 그대로 — 줄별 스태거 후 워드마크.
@@ -57,6 +74,10 @@ struct SplashView: View {
         }
         withAnimation(.easeOut(duration: 0.34).delay(0.46)) {
             wordVisible = true
+        }
+        // 이름 위에 형광 한 획 — 읽다가 긋는 제품의 손짓을 스플래시가 먼저 해 보인다.
+        withAnimation(.timingCurve(0.16, 1, 0.3, 1, duration: 0.5).delay(0.85)) {
+            swept = true
         }
     }
 }
@@ -112,12 +133,12 @@ private struct WaveBand: View {
         TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: reduceMotion)) { context in
             let t = context.date.timeIntervalSinceReferenceDate
             ZStack(alignment: .bottom) {
-                WaveShape(phase: reduceMotion ? 0 : t * 0.7, amplitude: 9, wavelength: 240)
-                    .fill(Palette.accent.opacity(0.10))
-                WaveShape(phase: reduceMotion ? 1.8 : t * 1.1 + 1.8, amplitude: 6, wavelength: 170)
-                    .fill(Palette.accent.opacity(0.14))
+                WaveShape(phase: reduceMotion ? 0 : t * 0.55, amplitude: 7, wavelength: 260)
+                    .fill(Palette.accent.opacity(0.08))
+                WaveShape(phase: reduceMotion ? 1.8 : t * 0.85 + 1.8, amplitude: 5, wavelength: 185)
+                    .fill(Palette.accent.opacity(0.11))
             }
-            .frame(height: 110)
+            .frame(height: 92)
         }
         .allowsHitTesting(false)
     }
