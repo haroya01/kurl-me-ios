@@ -284,6 +284,11 @@ struct FeedPage: View {
             guard warm, !source.requiresAuth || signedIn else { return }
             await model.loadInitial()
         }
+        // 글을 읽다 작가를 차단하고 돌아오면 — 그 작가의 카드를 재조회 없이 그 자리에서 걷어낸다
+        // (차단이 피드에도 즉시 반영). 차단 목록이 바뀔 때만 발화한다.
+        .onChange(of: BlockStore.shared.blockedUsernames) { _, _ in
+            model.pruneBlocked()
+        }
     }
 
     private var followingGate: some View {
@@ -595,6 +600,8 @@ private struct FeedSeriesCard: View {
                 .strokeBorder(Palette.cardBorder, lineWidth: 1)
         }
         .cardShadow()
+        // 회차 넘김에 가벼운 촉감 하나 — 스위처 pill·좋아요와 같은 결(§1.6 조용하지만 살아 있게).
+        .sensoryFeedback(.selection, trigger: idx)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text("시리즈 \(series.title), \(series.postCount)편"))
     }
