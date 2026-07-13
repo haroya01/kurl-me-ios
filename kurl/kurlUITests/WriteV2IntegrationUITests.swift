@@ -55,15 +55,12 @@ final class WriteV2IntegrationUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 0.6)
         shot("writev2-edited")
 
-        // 3) 저장 → 마크다운 계약으로 mock 백엔드에 왕복 저장. 저장됨 배지(체크)로 성공 확인.
-        let save = app.buttons["저장"]
-        XCTAssertTrue(save.waitForExistence(timeout: 5), "저장 버튼 없음")
-        save.tap()
-
+        // 3) 저장 — 초안엔 손 '저장'이 없다(저장 통합: 자동저장이 유일한 저장). 편집이 markdown 으로
+        //    흘러들면 디바운스 자동저장이 mock 백엔드로 왕복하고, 저장됨 배지로 성공이 보인다.
         let statusBadge = app.buttons["저장 상태 보기"]
         XCTAssertTrue(
-            statusBadge.waitForExistence(timeout: 12),
-            "저장됨 배지 안 뜸 — WriteV2 편집분의 마크다운 왕복 저장 실패 의심")
+            statusBadge.waitForExistence(timeout: 15),
+            "저장됨 배지 안 뜸 — WriteV2 편집분의 마크다운 자동저장 왕복 실패 의심")
         Thread.sleep(forTimeInterval: 0.6)
         shot("writev2-saved")
     }
