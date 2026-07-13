@@ -23,7 +23,8 @@ final class ComposeMarkdownRenderUITests: XCTestCase {
 
     func testMarkdownRendersWhileTyping() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["--mocks", "--tab", "write", "--open", "compose", "--focus", "editor"]
+        // 이 스위트는 레거시 마크다운 에디터(MarkdownTextView) 전용 — 이제 v2 가 default 라 명시로 고정.
+        app.launchArguments = ["--mocks", "--tab", "write", "--open", "compose", "--focus", "editor", "--editor", "legacy"]
         app.launch()
 
         let editor = app.textViews.firstMatch
@@ -79,7 +80,8 @@ final class ComposeMarkdownRenderUITests: XCTestCase {
         }
 
         let app = XCUIApplication()
-        app.launchArguments = ["--mocks", "--tab", "write", "--open", "compose", "--focus", "editor"]
+        // 이 스위트는 레거시 마크다운 에디터(MarkdownTextView) 전용 — 이제 v2 가 default 라 명시로 고정.
+        app.launchArguments = ["--mocks", "--tab", "write", "--open", "compose", "--focus", "editor", "--editor", "legacy"]
         app.launch()
 
         let editor = app.textViews.firstMatch

@@ -400,4 +400,138 @@ final class WriteV2RoundTripTests: XCTestCase {
             XCTAssertEqual(doc.markdown, md)
         }
     }
+
+    // MARK: 통합 링크 삽입 — 링크 vs 동영상 임베드 라우팅 (왕복 계약)
+
+    func testInsertPlainLinkProducesMarkdownLink() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.paragraph("본문")])
+            doc.focus = EditorFocus(blockID: doc.blocks[0].id, caret: 2)
+            doc.insertLink(url: "https://example.com", label: "예시")
+            // 링크는 자체 문단 `[예시](url)` 로 앉는다(단독 URL 아님 → 인라인 링크로 발행).
+            XCTAssertTrue(doc.markdown.contains("[예시](https://example.com)"))
+        }
+    }
+
+    func testInsertLinkEmptyLabelUsesURL() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.paragraph("")])
+            doc.focus = EditorFocus(blockID: doc.blocks[0].id, caret: 0)
+            doc.insertLink(url: "https://example.com/a", label: "")
+            XCTAssertTrue(doc.markdown.contains("[https://example.com/a](https://example.com/a)"))
+        }
+    }
+
+    func testInsertVideoLinkProducesStandaloneURLForEmbed() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.paragraph("본문")])
+            doc.focus = EditorFocus(blockID: doc.blocks[0].id, caret: 2)
+            doc.insertLink(url: "https://youtu.be/dQw4w9WgXcQ", label: "무시됨")
+            // 동영상은 단독 URL 문단으로 — 발행 md→blocks 가 EMBED 로 접는다(대괄호 링크 아님).
+            XCTAssertFalse(doc.markdown.contains("["))
+            XCTAssertTrue(doc.markdown.contains("https://youtu.be/dQw4w9WgXcQ"))
+            // 그 URL 이 제 문단에 홀로 서야 한다(앞뒤 빈 줄).
+            XCTAssertTrue(doc.markdown.contains("\n\nhttps://youtu.be/dQw4w9WgXcQ"))
+        }
+    }
+
+    // MARK: 동영상 URL 판정 — 발행면(BlockRenderer) 규칙 미러
+
+    func testVideoDetectYouTube() {
+        XCTAssertTrue(WriteV2VideoDetect.isVideoURL("https://youtu.be/dQw4w9WgXcQ"))
+        XCTAssertTrue(WriteV2VideoDetect.isVideoURL("https://www.youtube.com/watch?v=dQw4w9WgXcQ"))
+        XCTAssertTrue(WriteV2VideoDetect.isVideoURL("https://youtube.com/shorts/abc123"))
+    }
+
+    func testVideoDetectVimeo() {
+        XCTAssertTrue(WriteV2VideoDetect.isVideoURL("https://vimeo.com/123456789"))
+    }
+
+    func testVideoDetectRejectsPlainLink() {
+        XCTAssertFalse(WriteV2VideoDetect.isVideoURL("https://example.com/watch?v=x"))
+        XCTAssertFalse(WriteV2VideoDetect.isVideoURL("https://vimeo.com/channels/foo"))  // 숫자 id 아님
+        XCTAssertFalse(WriteV2VideoDetect.isVideoURL("https://kurl.me/post/1"))
+    }
+
+    // MARK: 인라인 라이브 렌더 — 마커 은닉 / 반개봉
+
+    /// 활성 범위가 없으면(비포커스) `**볼드**` 의 마커(`**`)는 clear 색으로 숨는다(최종 모습).
+    func testInlineRenderHidesBoldMarkersWhenInactive() {
+        let block = EditorBlock.paragraph("앞 **굵게** 뒤")
+        let rendered = BlockInlineRenderer.render(block, activeRange: nil)
+        // "앞 " = 0..2, "**" = 3..4 (마커 시작). 마커 첫 글자(index 3)의 색이 clear 여야.
+        let markerColor = rendered.attribute(
+            .foregroundColor, at: 3, effectiveRange: nil) as? UIColor
+        XCTAssertEqual(markerColor, UIColor.clear, "비활성 마커는 숨겨야(clear)")
+    }
+
+    /// 캐럿이 그 마크업에 걸치면 양쪽 마커가 함께 faint 로 노출된다(반개봉).
+    func testInlineRenderRevealsBoldMarkersWhenActive() {
+        let block = EditorBlock.paragraph("앞 **굵게** 뒤")
+        // "앞 "=0..1, "**"=2..3, "굵게"=4..5, "**"=6..7. 캐럿을 "굵게" 안(5)에 두면 span(2..7)이 열린다.
+        let rendered = BlockInlineRenderer.render(block, activeRange: NSRange(location: 5, length: 0))
+        // 여는 마커(index 3)와 닫는 마커(index 6)가 둘 다 faint 여야.
+        let openMarker = rendered.attribute(.foregroundColor, at: 3, effectiveRange: nil) as? UIColor
+        XCTAssertEqual(openMarker, UIColor(Palette.faint), "활성 마크업 여는 마커는 흐리게 노출")
+        let closeMarker = rendered.attribute(.foregroundColor, at: 6, effectiveRange: nil) as? UIColor
+        XCTAssertEqual(closeMarker, UIColor(Palette.faint), "활성 마크업 닫는 마커도 함께 노출")
+    }
+
+    /// 링크 `[라벨](url)` — 비활성이면 라벨만 링크색으로 남고 `[`·`](url)` 은 숨는다.
+    func testInlineRenderLinkShowsLabelHidesURL() {
+        let block = EditorBlock.paragraph("[라벨](https://kurl.me)")
+        let rendered = BlockInlineRenderer.render(block, activeRange: nil)
+        // index 0 = "[" (마커) → clear. index 1 = "라"(라벨) → 링크색.
+        let bracket = rendered.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? UIColor
+        XCTAssertEqual(bracket, UIColor.clear, "여는 대괄호는 숨김")
+        let label = rendered.attribute(.foregroundColor, at: 1, effectiveRange: nil) as? UIColor
+        XCTAssertEqual(label, UIColor(Palette.link), "라벨은 링크색")
+        // 라벨 뒤 `](url)` 첫 글자(index 3 = "]")는 숨김.
+        let tail = rendered.attribute(.foregroundColor, at: 3, effectiveRange: nil) as? UIColor
+        XCTAssertEqual(tail, UIColor.clear, "링크 꼬리(url)는 숨김")
+    }
+
+    /// 인라인 코드는 안쪽이 모노 + 칩 배경, 백틱은 숨는다.
+    func testInlineRenderInlineCodeStyled() {
+        let block = EditorBlock.paragraph("`코드`")
+        let rendered = BlockInlineRenderer.render(block, activeRange: nil)
+        // index 0 = "`" 마커 → clear. index 1 = "코"(코드) → 인라인코드 배경.
+        let tick = rendered.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? UIColor
+        XCTAssertEqual(tick, UIColor.clear, "백틱은 숨김")
+        let bg = rendered.attribute(.backgroundColor, at: 1, effectiveRange: nil) as? UIColor
+        XCTAssertEqual(bg, UIColor(Palette.inlineCodeBg), "코드 안쪽은 칩 배경")
+    }
+
+    /// 링크 url 안의 `*`·`**` 는 강조가 아니라 링크 문법 — 볼드/이탤릭 패스가 건드려 url 을 깨면 안 된다.
+    func testInlineRenderLinkURLWithAsteriskNotMangled() {
+        // url 에 별표쌍이 있는 링크. 라벨은 "k", url 은 별표를 포함.
+        let block = EditorBlock.paragraph("[k](https://a.com/*b*)")
+        // 캐럿을 링크에 넣어 반개봉(url 이 흐리게 드러난다). 이때 url 안 `*` 가 숨겨지면(clear) 버그.
+        let rendered = BlockInlineRenderer.render(block, activeRange: NSRange(location: 3, length: 0))
+        let ns = block.text as NSString
+        let star1 = ns.range(of: "*")
+        // 그 `*` 는 링크 꼬리(url)의 일부라 faint(반개봉)여야지, italic 마커로 오인돼 clear 로 숨으면 안 된다.
+        let color = rendered.attribute(.foregroundColor, at: star1.location, effectiveRange: nil) as? UIColor
+        XCTAssertEqual(color, UIColor(Palette.faint), "url 안 별표는 링크 문법(faint), italic 마커로 숨기지 않음")
+    }
+
+    // MARK: activeMarkupSpan — 캐럿이 걸친 마크업 판정(재렌더 게이팅용)
+
+    func testActiveMarkupSpanInsideBold() {
+        // "앞 **굵게** 뒤" — "굵게"는 4..5. 캐럿 5는 볼드 span(2..8) 안.
+        let span = BlockInlineRenderer.activeMarkupSpan(in: "앞 **굵게** 뒤", caret: 5)
+        XCTAssertNotNil(span)
+        XCTAssertEqual(span, NSRange(location: 2, length: 6))
+    }
+
+    func testActiveMarkupSpanOutsideMarkupIsNil() {
+        // 캐럿 0(문단 맨 앞, 마크업 밖) → nil.
+        let span = BlockInlineRenderer.activeMarkupSpan(in: "앞 **굵게** 뒤", caret: 0)
+        XCTAssertNil(span)
+    }
+
+    func testActiveMarkupSpanNoMarkup() {
+        let span = BlockInlineRenderer.activeMarkupSpan(in: "그냥 문단", caret: 2)
+        XCTAssertNil(span)
+    }
 }

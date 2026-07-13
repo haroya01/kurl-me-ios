@@ -18,9 +18,10 @@ struct SettingsView: View {
     @State private var confirmDelete = false
     @State private var deleting = false
     @State private var deleteFailed = false
-    /// WYSIWYG 블록 에디터(WriteV2) 옵트인 — 검증 중인 새 글쓰기 화면을 실기기에서 켜본다.
-    /// 기본 꺼짐(현행 마크다운 에디터가 default). Config.wysiwygEditorEnabled 가 같은 키를 읽는다.
-    @AppStorage("wysiwygEditorEnabled") private var wysiwygEditorEnabled = false
+    /// 옛 글쓰기 화면(마크다운 원문 에디터)으로 되돌리는 복귀 스위치 — 이제 블록 에디터(WriteV2)가
+    /// default 라, 켜면 마크다운 문법을 직접 쓰던 옛 화면으로 돌아간다. Config.wysiwygEditorEnabled 가
+    /// 같은 키를 반대로 읽는다(켜짐=레거시). 기본 꺼짐이라 아무 영향 없다.
+    @AppStorage("legacyEditorEnabled") private var legacyEditorEnabled = false
     /// 버전 문자열(mono) — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
     @ScaledMetric(relativeTo: .headline) private var versionSize: CGFloat = 14
     @State private var pushStatus: UNAuthorizationStatus = .notDetermined
@@ -148,19 +149,19 @@ struct SettingsView: View {
             .padding(.vertical, 13)
 
             if auth.isSignedIn {
-                // 실험 — 검증 중인 새 글쓰기 화면(WYSIWYG). 켜면 다음에 여는 글쓰기가 블록 에디터로 뜬다.
-                // 기본 꺼짐이라 아무 영향 없고, 켠 뒤에도 저장·발행은 같은 계약(마크다운)으로 흐른다.
-                RailHeading("실험")
+                // 글쓰기 — 이제 블록 에디터가 default. 켜면 마크다운 문법을 직접 쓰던 옛 화면으로
+                // 되돌린다(다음에 여는 글쓰기부터). 저장·발행은 어느 쪽이든 같은 계약(마크다운)으로 흐른다.
+                RailHeading("글쓰기")
                     .padding(.top, 28)
                     .padding(.bottom, 4)
-                Toggle(isOn: $wysiwygEditorEnabled) {
+                Toggle(isOn: $legacyEditorEnabled) {
                     HStack(spacing: 10) {
-                        settingIcon("square.text.square")
+                        settingIcon("text.alignleft")
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("새 글쓰기 화면")
+                            Text("옛 글쓰기 화면")
                                 .typeScale(.body)
                                 .foregroundStyle(Palette.ink)
-                            Text("블록 에디터로 글을 씁니다. 저장·발행은 그대로예요.")
+                            Text("마크다운 문법을 직접 쓰던 화면으로 돌아갑니다.")
                                 .typeScale(.footnote)
                                 .foregroundStyle(Palette.secondary)
                         }

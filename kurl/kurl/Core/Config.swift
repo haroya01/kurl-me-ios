@@ -31,17 +31,32 @@ enum Config {
         #endif
     }()
 
-    /// WYSIWYG 블록 에디터(WriteV2) 옵트인 — 아직 현행 마크다운 에디터가 default 다.
-    /// 두 경로로 켠다: 설정의 '실험' 토글(@AppStorage "wysiwygEditorEnabled", 실기기용) 또는
-    /// 런치 플래그 `--editor v2`(simctl/XCUITest 검증용, 터치 없이 강제 진입). 검증이 끝나면
-    /// default 를 넘긴다 — 그때까지 현행 에디터를 하드 교체하지 않는다.
+    /// WYSIWYG 블록 에디터(WriteV2) — 이제 글쓰기의 default 다. 이탤릭·링크·표·구분선·코드가
+    /// 마크다운 원문이 아니라 최종 모습으로 바로 보이는 캔버스가 기본이 됐다.
+    /// 복귀 경로 둘: 설정의 '실험' 토글(@AppStorage "legacyEditorEnabled", 실기기·릴리스 포함) 또는
+    /// 런치 플래그 `--editor v2`|`--editor legacy`(DEBUG 전용 — simctl/XCUITest 검증용, 토글보다 우선).
+    /// 실기기 릴리스에선 플래그가 없으니 토글이 유일한 제어다.
+    ///
+    /// 키를 "wysiwygEditorEnabled"(옛 옵트인, 기본 false) → "legacyEditorEnabled"(복귀, 기본 false)로
+    /// 바꾼 이유: 옛 키를 그대로 두고 default 만 true 로 하면 옛 키가 `false`(대다수)인 기기가
+    /// 레거시로 떨어진다. 새 키는 아무도 켜지 않았으니 전원이 곧장 v2 로 온다.
     static var wysiwygEditorEnabled: Bool {
-        if ProcessInfo.processInfo.arguments.firstIndex(of: "--editor")
-            .map({ $0 + 1 < ProcessInfo.processInfo.arguments.count
-                && ProcessInfo.processInfo.arguments[$0 + 1] == "v2" }) == true {
-            return true
+        if let editor = launchEditorOverride {
+            return editor == "v2"
         }
-        return UserDefaults.standard.bool(forKey: "wysiwygEditorEnabled")
+        return !UserDefaults.standard.bool(forKey: "legacyEditorEnabled")
+    }
+
+    /// `--editor v2` / `--editor legacy` 오버라이드 — 있으면 토글보다 우선. DEBUG 밖에선 무시.
+    private static var launchEditorOverride: String? {
+        #if DEBUG
+        let args = ProcessInfo.processInfo.arguments
+        guard let i = args.firstIndex(of: "--editor"), i + 1 < args.count else { return nil }
+        let value = args[i + 1]
+        return (value == "v2" || value == "legacy") ? value : nil
+        #else
+        return nil
+        #endif
     }
 
     /// 디버그 화면 진입 — `--tab write|discover|search|account`, `--open analytics|compose`,

@@ -224,6 +224,28 @@ final class EditorDocument {
         return f
     }
 
+    // MARK: 링크 / 임베드 삽입 (툴바) — 하나의 "링크"로 통합
+
+    /// 툴바 링크 삽입 — URL 이 동영상(YouTube·Vimeo)이면 발행 시 플레이어가 되도록 **단독 URL 문단**으로
+    /// 넣고(백엔드 md→blocks 가 그 줄을 EMBED 블록으로 접는다), 아니면 `[라벨](url)` 문단으로 넣는다.
+    /// 링크는 인라인이 자연스럽지만(캔버스에서 직접 `[..](..)` 를 쳐도 라이브 렌더된다), 이 버튼은
+    /// 주소를 손에 든 채 한 번에 떨어뜨리는 편의라 자체 문단으로 앉힌다(구분선·이미지·표와 같은 결).
+    /// `label` 이 비면 URL 자체를 라벨로 쓴다. 반환: 이어서 쓸 새 후속 문단의 포커스.
+    @discardableResult
+    func insertLink(url: String, label: String) -> EditorFocus? {
+        let trimmedURL = url.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedURL.isEmpty else { return focus }
+        let block: EditorBlock
+        if WriteV2VideoDetect.isVideoURL(trimmedURL) {
+            // 임베드는 URL 이 제 문단에 홀로 서야 플레이어로 렌더된다(insertVideoEmbed 방언과 동형).
+            block = .paragraph(trimmedURL)
+        } else {
+            let text = label.trimmingCharacters(in: .whitespacesAndNewlines)
+            block = .paragraph("[\(text.isEmpty ? trimmedURL : text)](\(trimmedURL))")
+        }
+        return insertNonText(block)
+    }
+
     // MARK: 표 셀 편집
 
     /// 표 블록의 (row,col) 셀 텍스트 갱신.

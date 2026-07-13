@@ -3,9 +3,10 @@
 //  kurl — WriteV2
 //
 //  블록 하나를 그리는 UITextView 브리지. "원시 마크다운 안 보이고 최종 모습으로 렌더 + 편집" 의
-//  실제 구현. 문단/제목/인용은 인라인 마크다운(`**볼드**` 등)을 볼드/이탤릭으로 *렌더*하되 마커
-//  글자는 안 보이게 하지 않고(Phase 1) 인라인 스타일만 입힌다 — 대신 블록 종류(제목 크기·인용 바)는
-//  마커 없이 최종 모습이다. 코드 블록은 별도(BlockCodeView, SwiftUI).
+//  실제 구현. 문단/제목/인용은 인라인 마크다운(`**볼드**`·`*이탤릭*`·`[라벨](url)` 등)을 최종 모습으로
+//  렌더하며 마커 글자는 숨긴다 — 캐럿이 그 마크업에 걸칠 때만 마커를 흐리게 반개봉해 손볼 수 있게 한다
+//  (BlockInlineRenderer.render(activeRange:)). 블록 종류(제목 크기·인용 바)도 마커 없이 최종 모습이다.
+//  코드 블록은 별도(BlockCodeView, SwiftUI).
 //
 //  세금(§4에서 예고): shouldChangeTextIn 에서 (1) 블록 경계 엔터/백스페이스를 가로채 문서 구조
 //  연산으로 승격 (2) 줄머리 지름길(`# `·`> `·```)을 종류 전환으로 승격. 한글 IME 는 markedTextRange
@@ -81,8 +82,15 @@ struct BlockTextView: UIViewRepresentable {
         coordinator.isProgrammaticEdit = true
         tv.currentBlockText = block.text
         coordinator.renderedKind = block.kind
-        tv.attributedText = BlockInlineRenderer.render(block)
+        // 포커스 중이면 현재 캐럿을 반개봉 기준으로 넘긴다 — 안 그러면 외부 갱신마다 활성 마커까지 숨는다.
+        // attributedText 교체는 selection 을 끝으로 리셋하므로, 포커스 중이면 캐럿을 복원한다(외부 동기화
+        // 중 캐럿이 맨 앞으로 튀지 않게 — reRenderInline 과 같은 규율).
+        let active = tv.isFirstResponder ? tv.selectedRange : nil
+        tv.attributedText = BlockInlineRenderer.render(block, activeRange: active)
         tv.typingAttributes = BlockInlineRenderer.typingAttributes(for: block.kind)
+        if let active, active.location + active.length <= (tv.text as NSString).length {
+            tv.selectedRange = active
+        }
         coordinator.isProgrammaticEdit = false
     }
 
@@ -108,7 +116,34 @@ struct BlockTextView: UIViewRepresentable {
 
         func textViewDidBeginEditing(_ textView: UITextView) {
             parent.onFocused()
+            // 막 포커스를 얻었으면 캐럿이 걸친 마크업을 반개봉한다(숨어 있던 마커를 그 자리만 노출).
+            if let tv = textView as? BlockUITextView, tv.markedTextRange == nil {
+                reRenderInline(tv)
+            }
         }
+
+        /// 캐럿이 움직이면(글자 변화 없이 선택만 바뀌어도) 마크업을 다시 칠한다 — 캐럿이 들어온
+        /// `**볼드**`·`[라벨](url)` 은 마커를 흐리게 열고, 벗어난 것은 다시 숨긴다(반개봉의 왕복).
+        func textViewDidChangeSelection(_ textView: UITextView) {
+            guard !isProgrammaticEdit, let tv = textView as? BlockUITextView,
+                  tv.markedTextRange == nil else { return }
+            // 드래그 선택 중(길이>0)엔 재렌더하지 않는다 — attributedText 교체가 확대경/드래그를 끊고,
+            // 선택 중엔 반개봉이 굳이 필요 없다(선택을 놓으면 캐럿이 되고 그때 열린다).
+            guard tv.selectedRange.length == 0 else { return }
+            // 인라인 마커가 아예 없는 블록은 반개봉할 게 없으니 건너뛴다(캐럿 이동마다 재렌더 낭비 방지).
+            let text = tv.text ?? ""
+            guard text.contains("*") || text.contains("`") || text.contains("[") else { return }
+            // 반개봉 상태(어느 마크업이 열렸나)가 캐럿 이동으로 실제 바뀔 때만 다시 칠한다 — 마크업과
+            // 무관한 위치들 사이 이동엔 재렌더를 생략(방향키 네비 낭비 방지).
+            let active = BlockInlineRenderer.activeMarkupSpan(
+                in: text, caret: tv.selectedRange.location)
+            guard active != lastRevealedSpan else { return }
+            lastRevealedSpan = active
+            reRenderInline(tv)
+        }
+
+        /// 직전에 반개봉된 마크업 span(없으면 nil) — 캐럿 이동이 반개봉 상태를 바꿀 때만 재렌더하려는 캐시.
+        private var lastRevealedSpan: NSRange?
 
         func textView(
             _ textView: UITextView,
@@ -154,16 +189,20 @@ struct BlockTextView: UIViewRepresentable {
             }
         }
 
-        /// 인라인 마크다운(`**볼드**` 등)을 스타일로 다시 입힌다 — 캐럿을 보존한 채.
+        /// 인라인 마크다운(`**볼드**`·`[라벨](url)` 등)을 최종 모습으로 다시 입힌다 — 캐럿을 보존한 채,
+        /// 그 캐럿이 걸친 마크업만 마커를 반개봉한다(activeRange). attributedText 교체가 selection 을
+        /// 리셋하므로 곧바로 되돌린다.
         private func reRenderInline(_ tv: BlockUITextView) {
             let selected = tv.selectedRange
             let block = EditorBlock(kind: parent.block.kind, text: tv.text ?? "")
             isProgrammaticEdit = true
-            tv.attributedText = BlockInlineRenderer.render(block)
+            tv.attributedText = BlockInlineRenderer.render(block, activeRange: selected)
             tv.typingAttributes = BlockInlineRenderer.typingAttributes(for: block.kind)
             if selected.location <= (tv.text as NSString).length {
                 tv.selectedRange = selected
             }
+            // 방금 반개봉한 span 을 캐시에 기록 — 이어지는 selection 콜백이 같은 상태로 재렌더 반복하지 않게.
+            lastRevealedSpan = BlockInlineRenderer.activeMarkupSpan(in: block.text, caret: selected.location)
             isProgrammaticEdit = false
         }
 

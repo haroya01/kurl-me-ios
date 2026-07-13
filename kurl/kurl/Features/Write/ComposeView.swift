@@ -57,10 +57,15 @@ struct ComposeView: View {
     /// 진실이고(자동저장·DraftFlusher·발행 전부 이걸 본다), 이 문서는 그 위에 얹힌 편집 표면이다.
     /// blocks 변화 → `markdown = document.markdown` 으로 동기화해 기존 저장 파이프를 그대로 태운다.
     /// nil = 현행 마크다운 에디터(MarkdownTextView) default 경로.
+    /// nil = 옛 마크다운 에디터(MarkdownTextView) 복귀 경로(설정 토글/`--editor legacy`). 기본은 non-nil.
     @State private var editorDocument: EditorDocument?
     /// WriteV2 캔버스에 이미지를 넣는 사진 선택 — 실제 업로드 후 `insertNonText(.image)` 로 삽입한다.
     @State private var showV2ImagePicker = false
     @State private var v2ImageItem: PhotosPickerItem?
+    /// WriteV2 통합 링크 삽입 — 주소(+선택 라벨)를 받아 동영상이면 임베드, 아니면 링크로 문서에 넣는다.
+    @State private var showV2LinkDialog = false
+    @State private var v2LinkURL = ""
+    @State private var v2LinkLabel = ""
     @State private var postId: Int64?
     @State private var status = "DRAFT"
     @State private var busy = false
@@ -160,6 +165,7 @@ struct ComposeView: View {
                 // WriteV2 캔버스는 자체 스니펫 바가 없다 — 비텍스트(구분선·이미지·표) 삽입만 유리 툴바로 얹는다.
                 // 텍스트 스타일(제목·인용·리스트)은 캔버스 안 줄머리 지름길(`# `·`> `·`- `)로 넣는다.
                 V2InsertToolbar(
+                    insertLink: { presentV2LinkSheet() },
                     insertDivider: { editorDocument?.insertNonText(.divider); syncFromDocument() },
                     insertImage: { showV2ImagePicker = true },
                     insertTable: { editorDocument?.insertNonText(.table(.blank)); syncFromDocument() }
@@ -300,6 +306,19 @@ struct ComposeView: View {
             Button("취소", role: .cancel) {}
         } message: {
             Text("YouTube·Vimeo 주소를 붙여넣거나 입력하세요.")
+        }
+        // WriteV2 통합 링크 — 하나의 입력으로 링크·동영상을 다 받는다. 주소가 동영상이면 발행 시
+        // 플레이어(임베드), 아니면 링크. 라벨은 링크일 때만 쓰이고, 동영상이면 주소 자체가 문단이 된다.
+        .alert("링크", isPresented: $showV2LinkDialog) {
+            TextField("표시할 텍스트 (선택)", text: $v2LinkLabel)
+            TextField("https://example.com", text: $v2LinkURL)
+                .textInputAutocapitalization(.never)
+                .keyboardType(.URL)
+                .autocorrectionDisabled()
+            Button("추가") { confirmV2Link() }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("주소를 붙여넣으세요. YouTube·Vimeo 주소는 발행할 때 동영상으로 재생돼요.")
         }
         // 이미 넣은 이미지의 캡션 고치기 — 이미지 편집 바의 ‘캡션’ 버튼이 연다(막는 알럿 대신 종이 시트).
         .sheet(isPresented: $showEditImageCaption) {
@@ -1659,6 +1678,27 @@ struct ComposeView: View {
         markdown = editorDocument.markdown
     }
 
+    /// WriteV2 통합 링크 삽입 — 클립보드에 URL 이 있으면 미리 채워 다이얼로그를 연다.
+    private func presentV2LinkSheet() {
+        v2LinkLabel = ""
+        if let clip = UIPasteboard.general.string, Self.looksLikeURL(clip) {
+            v2LinkURL = clip.trimmingCharacters(in: .whitespacesAndNewlines)
+        } else {
+            v2LinkURL = ""
+        }
+        showV2LinkDialog = true
+    }
+
+    /// 다이얼로그 확인 — 문서에 링크/임베드를 넣고 저장 계약을 즉시 맞춘다.
+    private func confirmV2Link() {
+        let url = Self.normalizedURL(v2LinkURL)
+        guard !url.isEmpty else { return }
+        editorDocument?.insertLink(url: url, label: v2LinkLabel)
+        syncFromDocument()
+        v2LinkURL = ""
+        v2LinkLabel = ""
+    }
+
     /// WriteV2 캔버스의 사진 삽입 — 실제 업로드 후 IMAGE 블록으로 넣는다(현행 경로와 같은 업로드 계약).
     private func uploadV2BodyImage() {
         guard let item = v2ImageItem else { return }
@@ -2622,9 +2662,12 @@ private struct WysiwygComposeCanvas: View {
     }
 }
 
-/// WriteV2 전용 비텍스트 삽입 툴바 — 구분선·사진·표를 캐럿 뒤에 넣는다. 캔버스는 종이,
+/// WriteV2 전용 삽입 툴바 — 링크·구분선·사진·표를 캐럿 뒤에 넣는다. 캔버스는 종이,
 /// 이 크롬만 유리(AGENTS §1). 텍스트 스타일(제목·인용·리스트)은 캔버스 안 줄머리 지름길로 넣는다.
+/// "링크" 하나로 통합: 주소가 동영상(YouTube·Vimeo)이면 발행 시 플레이어(임베드), 아니면 링크로 —
+/// 사용자는 "링크냐 동영상이냐"를 안 고르고 주소만 넣는다(신고 11: 동영상·링크 버튼 분리 해소).
 private struct V2InsertToolbar: View {
+    let insertLink: () -> Void
     let insertDivider: () -> Void
     let insertImage: () -> Void
     let insertTable: () -> Void
@@ -2634,6 +2677,7 @@ private struct V2InsertToolbar: View {
 
     var body: some View {
         HStack(spacing: 8) {
+            item("link", "링크", action: insertLink)
             item("minus", "구분선", action: insertDivider)
             item("photo", "사진", action: insertImage)
             item("tablecells", "표", action: insertTable)
