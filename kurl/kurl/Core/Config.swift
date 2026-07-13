@@ -31,6 +31,19 @@ enum Config {
         #endif
     }()
 
+    /// WYSIWYG 블록 에디터(WriteV2) 옵트인 — 아직 현행 마크다운 에디터가 default 다.
+    /// 두 경로로 켠다: 설정의 '실험' 토글(@AppStorage "wysiwygEditorEnabled", 실기기용) 또는
+    /// 런치 플래그 `--editor v2`(simctl/XCUITest 검증용, 터치 없이 강제 진입). 검증이 끝나면
+    /// default 를 넘긴다 — 그때까지 현행 에디터를 하드 교체하지 않는다.
+    static var wysiwygEditorEnabled: Bool {
+        if ProcessInfo.processInfo.arguments.firstIndex(of: "--editor")
+            .map({ $0 + 1 < ProcessInfo.processInfo.arguments.count
+                && ProcessInfo.processInfo.arguments[$0 + 1] == "v2" }) == true {
+            return true
+        }
+        return UserDefaults.standard.bool(forKey: "wysiwygEditorEnabled")
+    }
+
     /// 디버그 화면 진입 — `--tab write|discover|search|account`, `--open analytics|compose`,
     /// `--selftest`. simctl 로는 터치를 못 넣으니 스크린샷/검증용 진입로다. DEBUG 전용.
     static func launchValue(after flag: String) -> String? {

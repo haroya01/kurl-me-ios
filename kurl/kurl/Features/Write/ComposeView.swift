@@ -53,6 +53,14 @@ struct ComposeView: View {
     @State private var tagDraft = ""
     @State private var excerpt = ""
     @State private var markdown = ""
+    /// WYSIWYG(WriteV2) 옵트인일 때만 사는 블록 문서. `markdown` 문자열이 여전히 저장 계약의
+    /// 진실이고(자동저장·DraftFlusher·발행 전부 이걸 본다), 이 문서는 그 위에 얹힌 편집 표면이다.
+    /// blocks 변화 → `markdown = document.markdown` 으로 동기화해 기존 저장 파이프를 그대로 태운다.
+    /// nil = 현행 마크다운 에디터(MarkdownTextView) default 경로.
+    @State private var editorDocument: EditorDocument?
+    /// WriteV2 캔버스에 이미지를 넣는 사진 선택 — 실제 업로드 후 `insertNonText(.image)` 로 삽입한다.
+    @State private var showV2ImagePicker = false
+    @State private var v2ImageItem: PhotosPickerItem?
     @State private var postId: Int64?
     @State private var status = "DRAFT"
     @State private var busy = false
@@ -148,7 +156,15 @@ struct ComposeView: View {
         .background(Palette.readingBg.ignoresSafeArea())
         // 키보드 위에 뜨는 유리 마크다운 바 — 캔버스는 종이, 크롬은 유리(AGENTS.md §1).
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if editorFocused {
+            if editorDocument != nil {
+                // WriteV2 캔버스는 자체 스니펫 바가 없다 — 비텍스트(구분선·이미지·표) 삽입만 유리 툴바로 얹는다.
+                // 텍스트 스타일(제목·인용·리스트)은 캔버스 안 줄머리 지름길(`# `·`> `·`- `)로 넣는다.
+                V2InsertToolbar(
+                    insertDivider: { editorDocument?.insertNonText(.divider); syncFromDocument() },
+                    insertImage: { showV2ImagePicker = true },
+                    insertTable: { editorDocument?.insertNonText(.table(.blank)); syncFromDocument() }
+                )
+            } else if editorFocused {
                 VStack(spacing: 8) {
                     // 캐럿이 표 안일 때만 — 마크다운을 몰라도 행·열을 늘리고 줄인다.
                     if caretInTable {
@@ -209,6 +225,8 @@ struct ComposeView: View {
         .onChange(of: coverItem) { uploadPickedCover() }
         .photosPicker(isPresented: $showBodyImagePicker, selection: $bodyImageItem, matching: .images)
         .onChange(of: bodyImageItem) { uploadBodyImage() }
+        .photosPicker(isPresented: $showV2ImagePicker, selection: $v2ImageItem, matching: .images)
+        .onChange(of: v2ImageItem) { uploadV2BodyImage() }
         .onDisappear {
             // 디바운스 창에 걸린 마지막 변경을 버리지 않는다 — 마지막 1회 저장.
             // 단, 이 뷰(값 타입)는 곧 사라지므로 여기서 Task 로 save(silent:) 를 돌리면
@@ -242,6 +260,8 @@ struct ComposeView: View {
         .sheet(isPresented: $showRevisions) {
             RevisionsSheet(postId: postId) { restored in
                 markdown = restored
+                // WriteV2 라면 복원 본문으로 문서를 다시 짓는다(제자리 교체 API 가 없어 재생성이 계약).
+                rebuildEditorDocumentIfNeeded()
                 // 복원 본문을 곧장 '저장됨'으로 맞춰(동기) 2초 디바운스가 복원본문+옛메타로
                 // 저장하는 창을 닫는다. 메타는 syncAfterRestore 가 마저 맞춘다.
                 lastSavedSignature = signature
@@ -302,29 +322,44 @@ struct ComposeView: View {
             .padding(.bottom, 12)
     }
 
-    private var editor: some View {
-        MarkdownTextView(
-            text: $markdown, controller: editorController,
-            onFocusChange: { focused in
-                editorFocused = focused
-                if !focused {
-                    caretInTable = false
-                    caretOnImage = false
-                    caretOnVideo = false
-                    caretInList = false
+    /// 본문 캔버스 — 옵트인이면 WriteV2 블록 에디터, 아니면 현행 마크다운 에디터(default).
+    @ViewBuilder
+    private var editorCanvas: some View {
+        if let editorDocument {
+            WysiwygComposeCanvas(document: editorDocument)
+                // 블록 편집을 저장 계약(마크다운 문자열)으로 흘려보낸다 — 기존 자동저장·서명·발행 파이프
+                // 는 이 `markdown` 하나만 본다. 여기가 WriteV2 배선의 유일한 접합점이다.
+                .onChange(of: editorDocument.blocks) {
+                    markdown = editorDocument.markdown
                 }
-            },
-            onContextChange: { ctx in
-                caretInTable = ctx == .table
-                caretOnImage = ctx == .image
-                caretOnVideo = ctx == .video
-                caretInList = ctx == .list
-                caretCanOutdent = editorController.currentLineIndentSpaces() > 0
-                canUndo = editorController.canUndo
-                canRedo = editorController.canRedo
-            },
-            onPasteImageURL: { url in importPastedImage(url) },
-            onPasteImages: { images in uploadPastedImages(images) })
+        } else {
+            MarkdownTextView(
+                text: $markdown, controller: editorController,
+                onFocusChange: { focused in
+                    editorFocused = focused
+                    if !focused {
+                        caretInTable = false
+                        caretOnImage = false
+                        caretOnVideo = false
+                        caretInList = false
+                    }
+                },
+                onContextChange: { ctx in
+                    caretInTable = ctx == .table
+                    caretOnImage = ctx == .image
+                    caretOnVideo = ctx == .video
+                    caretInList = ctx == .list
+                    caretCanOutdent = editorController.currentLineIndentSpaces() > 0
+                    canUndo = editorController.canUndo
+                    canRedo = editorController.canRedo
+                },
+                onPasteImageURL: { url in importPastedImage(url) },
+                onPasteImages: { images in uploadPastedImages(images) })
+        }
+    }
+
+    private var editor: some View {
+        editorCanvas
         .padding(.horizontal, Metrics.gutter - 4)
         .overlay(alignment: .topLeading) {
             // 본문 로드 중엔 입력을 권하지 않는다 — '탭해 시작' 대신 로딩을 보인다.
@@ -338,7 +373,8 @@ struct ComposeView: View {
                 .padding(.horizontal, Metrics.gutter)
                 .padding(.top, 12)
                 .allowsHitTesting(false)
-            } else if markdown.isEmpty, !loadFailed {
+            } else if markdown.isEmpty, !loadFailed, editorDocument == nil {
+                // 현행 에디터에서만 — WriteV2 캔버스는 빈 블록·삽입 툴바가 스스로 시작을 안내한다(이 힌트 억제).
                 // 마크다운 지식을 요구하지 않는다 — 탭하면 도구 막대가 떠서 제목·목록·이미지·표를 넣는다.
                 Text("여기를 탭해 시작하세요 — 아래 도구 막대로 제목·사진·목록·표를 넣어요.")
                     .font(.system(size: 14 * unit))
@@ -995,6 +1031,7 @@ struct ComposeView: View {
         } else {
             // 새 글은 읽을 본문이 없다 — 곧장 편집·저장 가능.
             bodyLoaded = true
+            rebuildEditorDocumentIfNeeded()
         }
         seriesList = (try? await series) ?? []
     }
@@ -1043,6 +1080,8 @@ struct ComposeView: View {
             if markdown == bodyAtEntry {
                 markdown = body
                 lastSavedSignature = signature
+                // 서버 본문이 확정된 순간에만 WriteV2 문서를 짓는다 — 로드 중 친 입력으로 덮지 않는다.
+                rebuildEditorDocumentIfNeeded()
             }
             bodyLoaded = true
         } catch {
@@ -1597,6 +1636,52 @@ struct ComposeView: View {
                 maybeSetCoverFromBodyImage(url: uploaded.url, key: uploaded.key)
                 refreshCaretContext()
                 editorController.focus()
+            } catch {
+                ToastCenter.shared.show(String(localized: "이미지를 올리지 못했습니다"))
+            }
+        }
+    }
+
+    // MARK: WriteV2 배선 — 블록 문서 ↔ 마크다운 계약
+
+    /// 옵트인일 때, 현재 `markdown` 으로 WriteV2 블록 문서를 (재)생성한다. 문서엔 제자리 교체 API 가
+    /// 없어 로드·복원마다 새 인스턴스를 짓는 게 계약(포커스·캐럿은 초기화 — 사용자가 탭해 다시 잡는다).
+    /// 플래그 OFF 면 nil 로 두어 현행 MarkdownTextView default 경로를 탄다.
+    private func rebuildEditorDocumentIfNeeded() {
+        guard Config.wysiwygEditorEnabled else { editorDocument = nil; return }
+        editorDocument = EditorDocument(markdown: markdown)
+    }
+
+    /// 문서를 직접 변형(삽입 등)한 직후 저장 계약(마크다운 문자열)을 즉시 맞춘다 —
+    /// blocks 관찰(onChange)이 다음 런루프에나 돌아 삽입 직후 서명이 뒤처지는 창을 없앤다.
+    private func syncFromDocument() {
+        guard let editorDocument else { return }
+        markdown = editorDocument.markdown
+    }
+
+    /// WriteV2 캔버스의 사진 삽입 — 실제 업로드 후 IMAGE 블록으로 넣는다(현행 경로와 같은 업로드 계약).
+    private func uploadV2BodyImage() {
+        guard let item = v2ImageItem else { return }
+        guard !uploadingBodyImage else {
+            v2ImageItem = nil
+            ToastCenter.shared.show(String(localized: "이미지를 올리는 중이에요 — 잠시 후 다시 시도해 주세요"))
+            return
+        }
+        uploadingBodyImage = true
+        v2ImageItem = nil
+        ToastCenter.shared.show(String(localized: "이미지 올리는 중…"))
+        Task {
+            defer { uploadingBodyImage = false }
+            do {
+                let id = try await ensurePost()
+                guard let data = try await item.loadTransferable(type: Data.self),
+                      let jpeg = await Self.encodeUploadJPEG(from: data)
+                else { return }
+                let uploaded = try await WriteAPI.uploadImage(postId: id, jpegData: jpeg)
+                editorDocument?.insertNonText(.image(url: uploaded.url, alt: ""))
+                syncFromDocument()
+                // 커버가 비어 있으면 이 첫 이미지를 기본 커버로(현행 경로와 동일).
+                maybeSetCoverFromBodyImage(url: uploaded.url, key: uploaded.key)
             } catch {
                 ToastCenter.shared.show(String(localized: "이미지를 올리지 못했습니다"))
             }
@@ -2520,5 +2605,59 @@ private struct ConfettiBurst: View {
                     .opacity(active ? 0 : 1)
             }
         }
+    }
+}
+
+// MARK: - WriteV2 캔버스 래퍼 (플래그 뒤 옵트인)
+
+/// ComposeView 가 소유한 EditorDocument 를 WriteV2 캔버스에 태우는 얇은 어댑터.
+/// WysiwygEditorView 는 `@State` 로 문서 인스턴스를 캡처하므로, ComposeView 가 문서를 새 인스턴스로
+/// 갈아끼울 때(리비전 복원 등) 옛 인스턴스를 계속 잡지 않게 인스턴스 정체로 `.id` 를 걸어 재생성한다.
+private struct WysiwygComposeCanvas: View {
+    let document: EditorDocument
+
+    var body: some View {
+        WysiwygEditorView(document: document)
+            .id(ObjectIdentifier(document))
+    }
+}
+
+/// WriteV2 전용 비텍스트 삽입 툴바 — 구분선·사진·표를 캐럿 뒤에 넣는다. 캔버스는 종이,
+/// 이 크롬만 유리(AGENTS §1). 텍스트 스타일(제목·인용·리스트)은 캔버스 안 줄머리 지름길로 넣는다.
+private struct V2InsertToolbar: View {
+    let insertDivider: () -> Void
+    let insertImage: () -> Void
+    let insertTable: () -> Void
+
+    /// 아이콘만 키우고 44pt 터치 타깃은 작은 글자 설정에서도 유지(AGENTS §1 에디터 규율).
+    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+
+    var body: some View {
+        HStack(spacing: 8) {
+            item("minus", "구분선", action: insertDivider)
+            item("photo", "사진", action: insertImage)
+            item("tablecells", "표", action: insertTable)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .glassEffect(.regular, in: .capsule)
+        .padding(.bottom, 8)
+    }
+
+    private func item(
+        _ icon: String, _ label: LocalizedStringKey, action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            VStack(spacing: 3) {
+                Image(systemName: icon)
+                    .font(.system(size: 17 * unit, weight: .medium))
+                Text(label)
+                    .font(.system(size: 10 * unit, weight: .medium))
+            }
+            .foregroundStyle(Palette.link)
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
