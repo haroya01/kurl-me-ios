@@ -54,9 +54,14 @@ struct DiscoverView: View {
                     loggedOutGate
                 } else {
                     // 발견 표면 = 큐레이터 연결(누가 무엇을 이었나) · 남들 하이라이트(누가 무엇을 밑줄 쳤나)
-                    // 두 흐름을 떠 있는 유리 세그먼트로 — FeedView 의 최신·인기·팔로잉과 같은 문법.
-                    GlassSegmentSwitcher(items: DiscoverTab.allCases, selection: $tab) { $0.label }
-                        .padding(.bottom, 14)
+                    // 세 흐름을 떠 있는 유리 세그먼트로 — FeedView 의 최신·인기·팔로잉과 같은 문법.
+                    // 스위처는 화면 정중앙에 — 스튜디오 헤더와 같은 Spacer 보정(왼쪽에 기대던 것 교정).
+                    HStack(spacing: 0) {
+                        Spacer(minLength: 0)
+                        GlassSegmentSwitcher(items: DiscoverTab.allCases, selection: $tab) { $0.label }
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.bottom, 14)
                     switch tab {
                     case .entrances: entrancesContent
                     case .connections: connectionsContent

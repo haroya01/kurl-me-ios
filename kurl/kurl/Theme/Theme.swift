@@ -258,7 +258,8 @@ enum Metrics {
 
     /// 커스텀 하단 탭바가 콘텐츠 하단에 비워 두는 높이(바 높이 + 숨 쉴 여백) — 시스템 탭바 콘텐츠 인셋 대체.
     /// RootView 의 FloatingTabBar 와 그 위에 떠 있는 독(EngagementDock)이 같은 값을 물어야 탭바에 가리지 않는다.
-    static let tabBarReservedHeight: CGFloat = 60
+    /// 바 캡슐 = 아이콘 프레임 44 + 세로 패딩 7×2 ≈ 58pt, 그 위 숨 쉴 여백을 더한 값.
+    static let tabBarReservedHeight: CGFloat = 66
 }
 
 /// Liquid Glass 토큰 — "종이 본문, 액체 크롬"(AGENTS.md §1).
