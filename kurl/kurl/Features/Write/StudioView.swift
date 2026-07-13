@@ -320,17 +320,28 @@ struct StudioView: View {
         }
         LazyVStack(spacing: 0) {
             ForEach(Array(filtered.enumerated()), id: \.element.id) { index, post in
-                // 행 탭 = 편집(에디터). 관리(발행취소·삭제)는 우측 ⋯ 메뉴로 — 웹 write 관리와 같은
-                // 계약이라, 글을 내리거나 지우려고 웹으로 건너갈 필요가 없다(감사 갭 ④).
-                Button {
-                    editing = post
-                } label: {
-                    HStack(alignment: .top, spacing: 4) {
-                        postRow(post)
-                        ownerMenu(post)
+                // 발행 글 행 탭 = 글 상세(리더) — 사용자가 읽으러 눌렀는데 편집기가 열리던 것 교정.
+                // 편집은 ⋯ 메뉴의 '편집'으로 살려둔다. 초안·예약·비공개는 아직 독자 앞 글이 아니라
+                // 행 탭 = 편집(에디터) 유지. 관리(발행취소·삭제)는 우측 ⋯ 메뉴로(웹 write 와 같은 계약).
+                if post.isPublished, let username = auth.me?.username, !username.isEmpty {
+                    NavigationLink(value: Route.post(username: username, slug: post.slug)) {
+                        HStack(alignment: .top, spacing: 4) {
+                            postRow(post)
+                            ownerMenu(post)
+                        }
                     }
+                    .buttonStyle(RowButtonStyle())
+                } else {
+                    Button {
+                        editing = post
+                    } label: {
+                        HStack(alignment: .top, spacing: 4) {
+                            postRow(post)
+                            ownerMenu(post)
+                        }
+                    }
+                    .buttonStyle(RowButtonStyle())
                 }
-                .buttonStyle(RowButtonStyle())
                 if index < filtered.count - 1 { Hairline() }
             }
         }
@@ -389,12 +400,18 @@ struct StudioView: View {
         .contentShape(Rectangle())
     }
 
-    /// 행 우측 ⋯ 관리 메뉴 — 편집(행 탭)과 겹치지 않게 자체 히트 영역을 갖는다.
+    /// 행 우측 ⋯ 관리 메뉴 — 자체 히트 영역을 갖는다(행 탭과 겹치지 않게).
+    /// 발행 글은 행 탭이 리더로 가므로 '편집'을 여기에 둔다(초안·예약은 행 탭이 이미 편집이라 생략).
     /// 발행취소는 라이브(발행) 글에만(초안·예약·이미 비공개엔 의미 없음), 삭제는 어느 상태든.
     /// 파괴적 액션이라 SeriesDetail·CommentRow 와 같은 .alert 확인 관용구를 거친다.
     private func ownerMenu(_ post: MyPost) -> some View {
         Menu {
             if post.isPublished {
+                Button {
+                    editing = post
+                } label: {
+                    Label("편집", systemImage: "square.and.pencil")
+                }
                 Button(role: .destructive) {
                     unpublishTarget = post
                 } label: {
