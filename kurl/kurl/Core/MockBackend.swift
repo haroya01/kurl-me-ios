@@ -786,8 +786,11 @@ enum MockBackend {
             return json(["followed": Array(followedTags), "hidden": Array(hiddenTags)])
         }
 
-        // 신고 — 202, 본문 없음. 목에선 실서버에 진짜 신고가 쌓이지 않게 받아만 준다.
+        // 신고 — 사유 하이브리드 계약(#611): reasonCode(enum) + detail(자유서술, 선택).
+        // 목에선 실서버에 진짜 신고가 쌓이지 않게 받아만 준다. 새 바디는 reasonCode 를 담아 온다.
         if method == "POST", parts == ["public", "abuse-reports"] {
+            let req = decode(body)
+            guard req["reasonCode"] is String else { return nil }
             return json([:] as [String: Any])
         }
 

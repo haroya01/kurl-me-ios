@@ -160,18 +160,25 @@ enum InteractionsAPI {
 
     // MARK: 신고(abuse report)
 
-    /// 글·작가 신고 — `POST /public/abuse-reports`(202). subjectType = POST | USER.
-    /// 익명 허용(permitAll) 이라 로그인 안 해도 보내되, 로그인 상태면 토큰을 붙인다.
-    static func report(subjectType: String, subjectId: Int64, reason: String) async throws {
+    /// 글·작가·댓글 신고 — `POST /public/abuse-reports`(202). subjectType = POST | USER | COMMENT.
+    /// 사유 하이브리드 계약(#611): `reasonCode`(enum: SPAM·HARASSMENT·VIOLENCE·SEXUAL·
+    /// COPYRIGHT·OTHER) + `detail`(자유서술, 없으면 생략). 익명 허용(permitAll) 이라 로그인 안
+    /// 해도 보내되, 로그인 상태면 토큰을 붙인다.
+    static func report(
+        subjectType: String, subjectId: Int64, reasonCode: String, detail: String?
+    ) async throws {
         struct Body: Encodable {
             let subjectType: String
             let subjectId: Int64
-            let reason: String
+            let reasonCode: String
+            let detail: String?
         }
         let signedIn = await AuthStore.shared.isSignedIn
         try await client.post(
             "/public/abuse-reports",
-            body: Body(subjectType: subjectType, subjectId: subjectId, reason: reason),
+            body: Body(
+                subjectType: subjectType, subjectId: subjectId,
+                reasonCode: reasonCode, detail: detail),
             authenticated: signedIn)
     }
 
