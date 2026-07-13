@@ -17,7 +17,8 @@ final class ComposeImagePasteUITests: XCTestCase {
 
     private func launchFocusedEditor() -> (XCUIApplication, XCUIElement) {
         let app = XCUIApplication()
-        app.launchArguments = ["--mocks", "--tab", "write", "--open", "compose", "--focus", "editor"]
+        // 이 스위트는 레거시 마크다운 에디터(MarkdownTextView) 전용 — 이제 v2 가 default 라 명시로 고정.
+        app.launchArguments = ["--mocks", "--tab", "write", "--open", "compose", "--focus", "editor", "--editor", "legacy"]
         app.launch()
         XCTAssertTrue(app.buttons["굵게"].waitForExistence(timeout: 12), "스니펫 바 안 뜸")
         let editor = app.textViews.firstMatch

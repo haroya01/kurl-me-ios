@@ -58,9 +58,12 @@ struct EditorHarnessView: View {
         }
     }
 
-    /// 비텍스트 블록 삽입 툴바(§1 크롬 유리) — 포커스 블록 뒤에 구분선·이미지·표를 넣는다.
+    /// 삽입 툴바(§1 크롬 유리) — 포커스 블록 뒤에 링크·구분선·이미지·표를 넣는다.
     private var insertToolbar: some View {
         HStack(spacing: 18) {
+            Button {
+                document.insertLink(url: "https://kurl.me", label: "kurl 링크")
+            } label: { Image(systemName: "link") }
             Button {
                 document.insertNonText(.divider)
             } label: { Image(systemName: "minus") }
@@ -105,6 +108,7 @@ enum EditorSample {
         [
             .heading(1, "종이 본문, 액체 크롬"),
             .paragraph("이 문단은 **볼드**와 *이탤릭*, 그리고 `인라인 코드`가 최종 모습으로 보인다."),
+            .paragraph("링크도 원문이 아니라 [최종 모습](https://kurl.me)으로 — 커서를 넣으면 주소가 열린다."),
             .divider,
             .heading(2, "리스트"),
             .listItem("첫 항목 — 줄머리에 `- ` 를 치면 여기로 바뀐다.", ordered: false, indent: 0),
