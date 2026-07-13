@@ -335,6 +335,9 @@ enum MockBackend {
         var username: String?
         var quote: String?
         var body: String?
+        /// 이 연결이 가리키는 블록 id — 연결 시트가 "이 블록 담긴 곳"을 물을 때(blockType·refId) 대조한다.
+        /// 표시용 목 연결은 대부분 nil 이고, 담김 표시를 확인할 씨앗 연결·새로 연결한 것만 채운다.
+        var refId: Int64?
     }
     struct MockCollection {
         let id: Int64
@@ -349,6 +352,13 @@ enum MockBackend {
         MockCollection(
             id: 101, title: "느린 사고", description: "빨리 답하지 않고 오래 머문 글들.", visibility: "PUBLIC",
             connections: [
+                // 씨앗 연결 — 목 글 9101(헥사고날)이 이 컬렉션에 이미 담겨 있다(refId 9101). 연결 시트를
+                // 이 글로 열면 "연결됨"으로 뜨고, "해제"를 누르면 이 연결이 지워진다.
+                MockConnection(
+                    id: 504, blockType: "POST", why: "결론부터 적는 글. 다시 읽어도 같은 문장에 밑줄 친다.",
+                    title: "헥사고날로 갈아탄 지 석 달, 무엇이 남았나",
+                    excerpt: "결론부터 적는다. 다시 돌아가라면 또 갈아탄다.",
+                    slug: "hexagonal-after-3-months", username: "honggildong", refId: 9101),
                 MockConnection(
                     id: 501, blockType: "HIGHLIGHT", why: "추상이 먼저가 아니라 경계가 먼저라는 한 문장. 여기서 시작.",
                     title: "헥사고날로 갈아탄 지 석 달", slug: "hexagonal-after-3-months",
@@ -522,7 +532,11 @@ enum MockBackend {
         ]
     }
 
-    private static func collectionSummary(_ c: MockCollection) -> [String: Any] {
+    /// connectedRefId 를 주면(연결 시트 조회) 그 블록이 이 컬렉션에 이미 담겼는지 보고 담겼으면 그 연결
+    /// id 를 connectionId 로 싣는다 — "연결됨" 표시·해제용. 아니면 nil 로 빠져 평소 목록과 같다.
+    private static func collectionSummary(
+        _ c: MockCollection, connectedRefId: Int64? = nil
+    ) -> [String: Any] {
         // 최근 2개 항목 라벨 — 백엔드 preview 와 동일(POST 제목·HIGHLIGHT 인용·NOTE 본문).
         let preview = c.connections.suffix(2).reversed().compactMap { conn -> String? in
             switch conn.blockType {
@@ -531,12 +545,17 @@ enum MockBackend {
             default: return conn.title
             }
         }
-        return [
+        var out: [String: Any] = [
             "id": c.id, "title": c.title,
             "description": orNull(c.description),
             "visibility": c.visibility, "kind": c.kind, "count": c.connections.count,
             "updatedAt": iso(Date()), "preview": Array(preview),
         ]
+        if let refId = connectedRefId,
+           let conn = c.connections.first(where: { $0.refId == refId }) {
+            out["connectionId"] = conn.id
+        }
+        return out
     }
 
     /// 카드 소속 배치 목 — 잘 알려진 목 피드 글 id 에 소속 공개 컬렉션을 매핑한다. 한 컬렉션(단수 카피)과
@@ -640,7 +659,11 @@ enum MockBackend {
     // MARK: 라우팅
 
     /// 처리하면 응답 바디, 아니면 nil → 실네트워크로.
-    static func respond(path: String, method: String, body: Data?) -> Data? {
+    /// query = 실 클라이언트가 붙인 쿼리 항목(연결 시트의 blockType/refId 같은 것) — 경로만으로 못 가르는
+    /// 응답 형태를 여기서 가른다.
+    static func respond(
+        path: String, method: String, query: [URLQueryItem]? = nil, body: Data?
+    ) -> Data? {
         let parts = path.split(separator: "/").map(String.init)
 
         // 본문 링크 단축 — 붙여넣은 URL 을 kurl 짧은 링크로(POST /links).
@@ -689,7 +712,10 @@ enum MockBackend {
 
         // 컬렉션 — 내 목록 / 상세 / 생성 / 연결 / 연결끊기 / 삭제.
         if method == "GET", parts == ["users", "me", "collections"] {
-            return json(collections.map(collectionSummary))
+            // 연결 시트가 "이 블록을 어디에 남길까"를 물으면(blockType·refId) 이미 담긴 컬렉션에
+            // connectionId 를 실어 "연결됨"으로 표시·해제되게 한다. 목 글 9101 은 컬렉션 101 에 이미 담겨 있다.
+            let refId = query?.first { $0.name == "refId" }?.value.flatMap(Int64.init)
+            return json(collections.map { collectionSummary($0, connectedRefId: refId) })
         }
         if parts.first == "collections" {
             if method == "POST", parts.count == 1 {
@@ -726,8 +752,9 @@ enum MockBackend {
                     let req = decode(body)
                     let type = req["blockType"] as? String ?? "POST"
                     let why = req["why"] as? String
+                    let refId = (req["refId"] as? NSNumber)?.int64Value
                     var conn = MockConnection(
-                        id: nextConnectionId, blockType: type, why: why)
+                        id: nextConnectionId, blockType: type, why: why, refId: refId)
                     switch type {
                     case "NOTE": conn.body = "연결한 노트"
                     case "HIGHLIGHT":
@@ -1034,7 +1061,7 @@ enum MockBackend {
         if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "profiles",
            parts[3] == "collections" {
             let publicOnly = collections.filter { $0.visibility == "PUBLIC" }
-            return json(publicOnly.map(collectionSummary))
+            return json(publicOnly.map { collectionSummary($0) })
         }
 
         // 공개 작가 시리즈 목록.
@@ -1239,7 +1266,7 @@ enum MockBackend {
             let containing = collections.filter {
                 $0.visibility == "PUBLIC" && [104, 101].contains($0.id)
             }
-            return json(containing.map(collectionSummary))
+            return json(containing.map { collectionSummary($0) })
         }
         if method == "POST", parts.count == 3, parts[0] == "highlights", parts[2] == "replies",
            let hid = Int(parts[1]) {

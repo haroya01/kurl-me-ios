@@ -252,6 +252,7 @@ struct APIClient {
            let mocked = await MockBackend.respond(
                path: String(url.path.dropFirst(Config.apiPrefix.count + 1)),
                method: request.httpMethod ?? "GET",
+               query: URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems,
                body: request.httpBody
            ) {
             return mocked

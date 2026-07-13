@@ -101,12 +101,13 @@ struct RootView: View {
                     .navigationDestination(for: Route.self) { RouteView(route: $0) }
             }
         } else if Config.launchValue(after: "--screen") == "connect" {
-            // "연결" 시트 — 인게이지에서만 떠 simctl 로 못 띄운다, 검증 진입로.
+            // "연결" 시트 — 인게이지에서만 떠 simctl 로 못 띄운다, 검증 진입로. 목 글 9101(헥사고날)로
+            // 열어 이미 담긴 컬렉션의 "연결됨"·해제를 함께 확인한다(목 컬렉션 101 에 씨앗 연결).
             Color(uiColor: .systemBackground).ignoresSafeArea()
                 .sheet(isPresented: .constant(true)) {
                     ConnectSheet(
-                        targetKind: "글", targetTitle: "헥사고날로 갈아탄 지 석 달",
-                        blockType: .post, refId: 9002)
+                        targetKind: "글", targetTitle: "헥사고날로 갈아탄 지 석 달, 무엇이 남았나",
+                        blockType: .post, refId: 9101)
                 }
         } else if Config.launchValue(after: "--screen") == "businesscard" {
             // 명함(/u) 인앱 웹뷰 — 블로그 헤더에서 푸시로만 들어가 simctl 로 못 띄운다 — 검증 진입로.
@@ -218,7 +219,8 @@ struct RootView: View {
 /// 숨겨(27 실측) 우리가 소유한다 — 대신 스레드처럼 확실히 사라진다.
 private struct FloatingTabBar: View {
     /// 탭 콘텐츠가 하단에 비워 둘 높이(바 높이 + 숨 쉴 여백) — 시스템 탭바 콘텐츠 인셋 대체.
-    static let reservedHeight: CGFloat = 60
+    /// 값은 Metrics 에 두고 공유한다 — 바 위에 떠 있는 독(EngagementDock)도 같은 예약 높이를 물어야 한다.
+    static let reservedHeight = Metrics.tabBarReservedHeight
 
     let tabs: [(icon: String, label: LocalizedStringKey)]
     let selection: Binding<Int>

@@ -10,9 +10,17 @@ import Foundation
 enum CollectionsAPI {
     private static let client = APIClient.shared
 
-    /// 내 컬렉션 목록(최근 손댄 순).
-    static func mine() async throws -> [CollectionSummary] {
-        try await client.get("/users/me/collections", authenticated: true)
+    /// 내 컬렉션 목록(최근 손댄 순). blockType·refId 를 주면 "이 블록을 어디에 남길까"를 물으며 부르는
+    /// 것으로, 각 컬렉션에 그 블록이 이미 연결돼 있으면 connectionId 가 채워져 온다("연결됨" 표시·해제용).
+    static func mine(blockType: ConnectionBlockKind? = nil, refId: Int64? = nil)
+        async throws -> [CollectionSummary]
+    {
+        var query: [String: String?] = [:]
+        if let blockType, let refId {
+            query["blockType"] = blockType.rawValue
+            query["refId"] = String(refId)
+        }
+        return try await client.get("/users/me/collections", query: query, authenticated: true)
     }
 
     /// 한 큐레이터의 공개 컬렉션 목록(최근 손댄 순) — 남의 프로필에서 엮은 길들을 본다. 미로그인도 본다.

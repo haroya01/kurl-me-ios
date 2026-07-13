@@ -110,10 +110,14 @@ struct CollectionSummary: Decodable, Identifiable, Hashable {
     let position: Int?
     /// 이 길의 전체 편 수(선택). 목록 응답엔 없어 count 로 폴백한다 — position 과 짝지어 순서 맥락을 준다.
     let total: Int?
+    /// 이 컬렉션에 지금 대상(blockType·refId)이 이미 연결돼 있으면 그 연결 PK. "이 글을 어디에 남길까"를
+    /// 물으며 부를 때(mine(blockType:refId:))만 채워져, 이미 담긴 컬렉션은 "연결됨"으로 표시하고 이 id 로 해제한다.
+    /// 그 맥락이 아닌 목록 응답엔 없어 nil 로 조용히 빠진다.
+    let connectionId: Int64?
 
     private enum CodingKeys: String, CodingKey {
         case id, title, description, visibility, kind, count, preview
-        case curatorUsername, position, total
+        case curatorUsername, position, total, connectionId
     }
 
     init(from decoder: Decoder) throws {
@@ -130,6 +134,7 @@ struct CollectionSummary: Decodable, Identifiable, Hashable {
         curatorUsername = try c.decodeIfPresent(String.self, forKey: .curatorUsername)
         position = try c.decodeIfPresent(Int.self, forKey: .position)
         total = try c.decodeIfPresent(Int.self, forKey: .total)
+        connectionId = try c.decodeIfPresent(Int64.self, forKey: .connectionId)
     }
 
     /// 로컬 생성(낙관) — 새 컬렉션을 목록에 즉시 끼워 넣을 때.
@@ -147,6 +152,7 @@ struct CollectionSummary: Decodable, Identifiable, Hashable {
         self.curatorUsername = nil
         self.position = nil
         self.total = nil
+        self.connectionId = nil
     }
 }
 
