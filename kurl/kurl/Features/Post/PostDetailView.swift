@@ -13,6 +13,9 @@ struct PostDetailView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
+    /// 커스텀 하단 탭바 숨김 상태 — 독이 탭바에 가리지 않게 예약 높이만큼 띄우되, 탭바가 스크롤로
+    /// 사라지면 그 여백을 걷어 독이 허공에 뜨지 않게 한다(단독 상세에서만 있고, 덱 임베드엔 nil).
+    @Environment(\.tabBarVisibility) private var tabBarVisibility
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
@@ -101,6 +104,13 @@ struct PostDetailView: View {
 
     /// 읽기 기록 비콘을 이미 보낸 글 id — pop-back 으로 task 가 재시작돼도 재전송하지 않는다.
     @State private var recordedHistoryId: Int64?
+
+    /// 독을 커스텀 탭바 위로 얼마나 띄울지 — 단독 상세에서 탭바가 떠 있을 때만 예약 높이만큼.
+    /// 덱 임베드(embedded)엔 탭바 추적이 없어(env nil) 0, 스크롤로 탭바가 숨으면 0 으로 걷힌다.
+    private var dockTabBarInset: CGFloat {
+        guard !embedded, let visibility = tabBarVisibility, !visibility.hidden else { return 0 }
+        return Metrics.tabBarReservedHeight
+    }
 
     // 상세 body 는 모디파이어 사슬이 길어 하나의 식으로는 타입 검사 예산을 넘는다 —
     // ScrollView + 스크롤/툴바 계열을 scrollBody 로 잘라 불투명 경계(some View)를 만들고,
@@ -309,10 +319,14 @@ struct PostDetailView: View {
                     )
                 }
                 .padding(.trailing, 14)
-                .padding(.bottom, 10)
+                // 진입 직후엔 커스텀 탭바가 떠 있어 독 맨 아래 버튼을 가린다 — 탭바 예약 높이만큼 띄운다.
+                // 스크롤로 탭바가 사라지면(hidden) 그 여백을 걷어 독이 허공에 뜨지 않게(§1 크롬 문법).
+                .padding(.bottom, 10 + dockTabBarInset)
                 .opacity(dockHidden ? 0 : 1)
                 .allowsHitTesting(!dockHidden)
                 .accessibilityHidden(dockHidden)
+                .animation(
+                    reduceMotion ? nil : .snappy(duration: 0.25), value: dockTabBarInset)
             }
         }
         // 읽기 진행 = 상단 가는 막대(내비바 아래 한 줄). 왼쪽부터 그린으로 찬다 — 떠 있는

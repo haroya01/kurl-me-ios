@@ -35,6 +35,12 @@ struct CollectionDetailView: View {
     /// 길(순서 있는 읽기 여정)인지 — 삭제 확인 문구를 "컬렉션"과 "길"로 가른다(툴바와 같은 분기).
     private var isPath: Bool { detail?.kind == .path }
 
+    /// "취향이 겹치는 큐레이터"를 보일지 — 비공개거나 아직 아무것도 안 담긴 컬렉션엔 겹칠 취향이 없다.
+    /// 빈·비공개 상세에 남 추천이 뜨면 "왜 여기 있지" 하는 잡음이라, 그런 표면엔 아예 렌더하지 않는다.
+    private var showsKindred: Bool {
+        !kindred.isEmpty && !connections.isEmpty && detail?.visibility != .private
+    }
+
     var body: some View {
         ReadingColumn(spacing: 0) {
             if loading {
@@ -61,7 +67,7 @@ struct CollectionDetailView: View {
                 if connections.isEmpty {
                     emptyState
                 }
-                if !kindred.isEmpty {
+                if showsKindred {
                     kindredSection()
                 }
             } else if failed {

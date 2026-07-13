@@ -101,11 +101,13 @@ struct DiscoverView: View {
     private var openPaths: [DiscoverPath] {
         var seen = Set<Int64>()
         var out: [DiscoverPath] = []
+        // events 는 최신순 — 첫 등장이 그 길에 가장 최근 붙은 연결이라, 그 "왜" 한 줄을 입구 미리보기로 싣는다.
         for e in events where seen.insert(e.collectionId).inserted {
             out.append(
                 DiscoverPath(
                     id: e.collectionId, title: e.collectionTitle,
-                    kind: e.collectionKind, curatorUsername: e.curator.username))
+                    kind: e.collectionKind, curatorUsername: e.curator.username,
+                    latestWhy: e.why))
         }
         return out
     }
@@ -695,6 +697,9 @@ private struct DiscoverPath: Identifiable, Hashable {
     let title: String
     let kind: CollectionKind
     let curatorUsername: String
+    /// 이 길에 가장 최근 붙은 연결의 "왜" 한 줄(있으면) — 입구가 제목만이 아니라 큐레이터의 목소리를
+    /// 한 줄 미리 보여 주는 신호. 흐름(events)에 이미 실려 온 값이라 새 콜 없이 붙인다.
+    let latestWhy: String?
 }
 
 /// 길 입구 한 줄 — 그린 글리프(길=↳ / 컬렉션=그리드) + 제목, 그 아래 @큐레이터. PostEdges 의
@@ -716,9 +721,19 @@ private struct PathEntranceRow: View {
                     .foregroundStyle(Palette.ink)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
+                // 큐레이터의 최근 한 줄 — 입구가 알고리즘이 아니라 사람의 목소리임을 미리 보여 준다(§0).
+                if let why = path.latestWhy, !why.isEmpty {
+                    Text(why)
+                        .typeScale(.lede)
+                        .foregroundStyle(Palette.secondary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                        .padding(.top, 1)
+                }
                 Text("@\(path.curatorUsername)")
                     .typeScale(.meta)
                     .foregroundStyle(Palette.faint)
+                    .padding(.top, 1)
             }
             Spacer(minLength: 8)
             Image(systemName: "chevron.right")

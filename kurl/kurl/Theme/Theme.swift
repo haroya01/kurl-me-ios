@@ -255,6 +255,10 @@ enum Metrics {
     /// 전폭 종이 카드 내부 여백 — radiusCard 면이 본문을 들이는 정준 인셋.
     /// 텍스트 카드·발행 미리보기·자리표시가 같은 값을 물어 카드끼리 결이 안 어긋난다.
     static let cardPadding: CGFloat = 18
+
+    /// 커스텀 하단 탭바가 콘텐츠 하단에 비워 두는 높이(바 높이 + 숨 쉴 여백) — 시스템 탭바 콘텐츠 인셋 대체.
+    /// RootView 의 FloatingTabBar 와 그 위에 떠 있는 독(EngagementDock)이 같은 값을 물어야 탭바에 가리지 않는다.
+    static let tabBarReservedHeight: CGFloat = 60
 }
 
 /// Liquid Glass 토큰 — "종이 본문, 액체 크롬"(AGENTS.md §1).
