@@ -275,11 +275,14 @@ struct SubscribedSeriesView: View {
 }
 
 /// 구독한 태그 — 구독한 시리즈가 서재에 보이듯, 구독(팔로우)한 주제도 한자리에 모아 본다.
-/// 칩을 탭하면 그 태그의 글 피드(TagFeedView)로. 구독/숨김은 그 피드 안에서 관리한다(단일 관리 지점).
+/// 주제는 목록 행이 아니라 흐르는 그린 테두리 칩 그리드로 — 태그는 본디 칩이라(§10 "칩처럼 보이면
+/// 칩처럼 눌린다") 한 줄 한 개보다 한눈에 훑긴다. 칩 탭 = 그 태그 피드, 길게 눌러 = 구독 해제.
 struct SubscribedTagsView: View {
     @State private var tags: [String] = []
     @State private var loading = true
     @State private var failed = false
+    /// 구독 해제 낙관 반영 중인 태그 — 응답 전 즉시 걷어내고, 실패하면 되돌린다.
+    @State private var unsubscribing: Set<String> = []
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
 
     var body: some View {
@@ -300,21 +303,21 @@ struct SubscribedTagsView: View {
                 }
                 .padding(.top, 60)
             } else {
-                // 각 태그를 한 줄 행으로 — 구독한 시리즈 행과 같은 항해 문법(값 기반 링크가 확실히 걸린다).
-                // 주제는 왼쪽에 조용한 그린 테두리 칩으로 앉힌다(§10 색 규율 — 채움 없이 테두리·잉크).
-                LazyVStack(spacing: 0) {
-                    ForEach(Array(tags.enumerated()), id: \.element) { index, tag in
-                        // 클로저형 링크 — 계정 스택 혼용 함정 회피(값 기반은 이 깊이서 항해 안 함).
-                        NavigationLink {
-                            RouteView(route: .tag(tag))
-                        } label: {
-                            tagRow(tag)
+                VStack(alignment: .leading, spacing: 12) {
+                    // 흐르는 칩 그리드 — 좁은 폭에서 자동 줄바꿈(발행 시트 태그 필드와 같은 FlowLayout).
+                    TagFlowLayout(spacing: 10) {
+                        ForEach(tags, id: \.self) { tag in
+                            subscribedChip(tag)
                         }
-                        .buttonStyle(RowButtonStyle())
-                        if index < tags.count - 1 { Hairline() }
                     }
+                    // 조용한 안내 한 줄 — 해제가 길게 누르기 뒤에 숨어 있음을 알린다(발견성).
+                    Text("칩을 탭하면 그 주제의 글로, 길게 누르면 구독을 해제해요.")
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.faint)
+                        .padding(.top, 2)
                 }
-                .padding(.top, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 12)
             }
         }
         .navigationTitle("구독한 태그")
@@ -323,23 +326,32 @@ struct SubscribedTagsView: View {
         .refreshable { await load() }
     }
 
-    /// 한 태그 행 — 왼쪽에 조용한 그린 테두리 칩, 오른쪽 끝에 흐린 셰브론(다른 서재 행과 같은 어포던스).
-    private func tagRow(_ tag: String) -> some View {
-        HStack(spacing: 10) {
+    /// 구독 태그 한 칩 — 그린 테두리·잉크 라벨(§10 색 규율, 채움 없이). 탭 = 그 태그 피드로 항해(클로저형
+    /// 링크 — 계정 스택 혼용 함정 회피). 길게 누르면 구독 해제 컨텍스트 메뉴(파괴적 롤).
+    private func subscribedChip(_ tag: String) -> some View {
+        NavigationLink {
+            RouteView(route: .tag(tag))
+        } label: {
             Text("#\(tag)")
                 .font(.system(size: 15 * unit, weight: .medium))
                 .foregroundStyle(Palette.ink)
                 .lineLimit(1)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
+                .padding(.horizontal, 15)
+                .padding(.vertical, 9)
+                .background(Palette.accent.opacity(0.06), in: Capsule())
                 .overlay(Capsule().strokeBorder(Palette.accent.opacity(0.35), lineWidth: 1))
-            Spacer(minLength: 0)
-            Image(systemName: "chevron.right")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(Palette.faint)
+                .contentShape(Capsule())
         }
-        .padding(.vertical, 10)
-        .contentShape(Rectangle())
+        .buttonStyle(.plain)
+        .contextMenu {
+            Button(role: .destructive) {
+                unsubscribe(tag)
+            } label: {
+                Label("구독 해제", systemImage: "number.circle.fill")
+            }
+        }
+        .accessibilityLabel(Text("#\(tag) 구독됨"))
+        .accessibilityHint(Text("두 번 탭하면 그 태그 글로, 길게 누르면 구독 해제"))
     }
 
     private func load() async {
@@ -350,6 +362,66 @@ struct SubscribedTagsView: View {
         } catch {
             loading = false
             if tags.isEmpty { failed = true }
+        }
+    }
+
+    /// 구독 해제 — 낙관 제거(즉시 칩을 걷고) + 가벼운 햅틱, 실패하면 제자리로 되돌리고 토스트.
+    private func unsubscribe(_ tag: String) {
+        guard !unsubscribing.contains(tag) else { return }
+        unsubscribing.insert(tag)
+        let index = tags.firstIndex(of: tag)
+        withAnimation(.snappy(duration: 0.2)) { tags.removeAll { $0 == tag } }
+        Task {
+            defer { unsubscribing.remove(tag) }
+            do {
+                let prefs = try await InteractionsAPI.setTagFollow(tag: tag, on: false)
+                // 서버 확정 목록으로 맞춘다 — 다른 기기 변경까지 반영(멱등).
+                withAnimation(.snappy(duration: 0.2)) { tags = prefs.followed }
+                ToastCenter.shared.show(String(localized: "‘#\(tag)’ 구독을 해제했어요"))
+            } catch {
+                // 되돌리기 — 원래 자리에 다시 꽂는다(순서 보존).
+                withAnimation(.snappy(duration: 0.2)) {
+                    if !tags.contains(tag) {
+                        tags.insert(tag, at: min(index ?? tags.count, tags.count))
+                    }
+                }
+                ToastCenter.shared.show(String(localized: "구독 해제를 반영하지 못했습니다"))
+            }
+        }
+    }
+}
+
+/// 흐르는 칩 레이아웃 — 줄이 꽉 차면 다음 줄로. 발행 시트의 태그 FlowLayout 과 같은 규칙을
+/// 서재 쪽에서도 쓰기 위한 로컬 사본(ComposeView 의 private 판과 결이 같다).
+private struct TagFlowLayout: Layout {
+    var spacing: CGFloat = 10
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        var x: CGFloat = 0, y: CGFloat = 0, rowHeight: CGFloat = 0
+        for sub in subviews {
+            let size = sub.sizeThatFits(.unspecified)
+            if x + size.width > maxWidth, x > 0 {
+                x = 0; y += rowHeight + spacing; rowHeight = 0
+            }
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+        return CGSize(width: proposal.width ?? x, height: y + rowHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let maxWidth = bounds.width
+        var x: CGFloat = 0, y: CGFloat = 0, rowHeight: CGFloat = 0
+        for sub in subviews {
+            let size = sub.sizeThatFits(.unspecified)
+            if x + size.width > maxWidth, x > 0 {
+                x = 0; y += rowHeight + spacing; rowHeight = 0
+            }
+            sub.place(at: CGPoint(x: bounds.minX + x, y: bounds.minY + y),
+                      anchor: .topLeading, proposal: ProposedViewSize(size))
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
         }
     }
 }

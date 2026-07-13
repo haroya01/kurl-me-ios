@@ -126,6 +126,9 @@ struct ComposeView: View {
     }
     /// 발행 폼(fullScreenCover) 안에서 여는 미리보기 — 루트 ⋯ 미리보기(previewItem)와 분리.
     @State private var formPreviewItem: PreviewItem?
+    /// 이미 발행된 글의 미리보기 — 웹 시트가 아니라 인앱 리더(PostDetailView)로 네이티브 항해한다.
+    /// 발행 전(초안·예약·비공개)은 공개 엔드포인트가 안 줘서 여전히 미리보기 토큰 URL(previewItem)로 연다.
+    @State private var previewPublished: PublishedRef?
     @State private var showSchedule = false
     @State private var scheduleDate = Date().addingTimeInterval(3600)
     @State private var scheduleError: String?
@@ -258,10 +261,14 @@ struct ComposeView: View {
         // 발행 준비 = 살아있는 카드 미리보기 폼(전체 화면). 미리보기·예약은 이 폼 위에
         // 바로 떠서 폼을 잃지 않는다(닫았다 다시 여는 왕복을 없앴다).
         .fullScreenCover(isPresented: $showPublish) { publishSheet }
-        // ⋯ 메뉴의 미리보기(폼 밖) 경로.
+        // ⋯ 메뉴의 미리보기(폼 밖) 경로 — 발행 전 글은 인앱 사파리(미리보기 토큰 URL).
         .sheet(item: $previewItem) { item in
             SafariView(url: item.url)
                 .ignoresSafeArea()
+        }
+        // 이미 발행된 글의 미리보기 = 인앱 리더로 네이티브 항해(웹으로 안 내보낸다). 뒤로 = 에디터.
+        .navigationDestination(item: $previewPublished) { ref in
+            PostDetailView(username: ref.username, slug: ref.slug)
         }
         .sheet(isPresented: $showRevisions) {
             RevisionsSheet(postId: postId) { restored in
@@ -1244,9 +1251,17 @@ struct ComposeView: View {
                 ToastCenter.shared.show(String(localized: "미리보기를 여는 중이에요. 잠시 후 다시 시도해 주세요."))
                 return
             }
+            // 이미 발행된 글은 공개 블록이 있으니 인앱 리더(PostDetailView)로 네이티브 렌더 —
+            // 웹 미리보기 시트로 내보내지 않는다(항목 17). 발행 폼이 떠 있으면 먼저 닫고 항해한다.
+            if status == "PUBLISHED", let username = await AuthStore.shared.me?.username,
+               !username.isEmpty {
+                if showPublish { showPublish = false }
+                previewPublished = PublishedRef(username: username, slug: resolved)
+                return
+            }
+            // 발행 전(초안·예약·비공개)은 공개 엔드포인트가 안 줘서 미리보기 토큰 URL 을 인앱 사파리로 연다
+            // (외부 사파리로 내쫓지 않는다). 발행 폼이 떠 있으면 폼 전용 presenter 로(바인딩 충돌 방지).
             if let url = try? await WriteAPI.previewURL(slug: resolved, postId: postId) {
-                // 외부 사파리로 내쫓지 않는다 — 발행 전 확인은 인앱 시트로.
-                // 발행 폼이 떠 있으면 폼 전용 presenter 로(루트와 같은 바인딩 공유 충돌 방지).
                 if showPublish {
                     formPreviewItem = PreviewItem(url: url)
                 } else {

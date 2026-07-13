@@ -70,7 +70,13 @@ struct SearchView: View {
                 }
             }
             // 스택 안쪽에 부착 — 바깥이면 push 된 글 상세에도 검색바가 남는다.
-            .searchable(text: $query, prompt: "글 검색")
+            // 상단 고정(navigationBarDrawer) — iOS 26+ 는 .searchable 을 하단에 도킹하는데, 우리
+            // 커스텀 FloatingTabBar 가 그 자리를 덮어 필드가 통째로 가려졌다. 검색 탭의 필드는
+            // 제목 아래 상단에 항상 보이게 못 박는다.
+            .searchable(
+                text: $query,
+                placement: .navigationBarDrawer(displayMode: .always),
+                prompt: "글 검색")
             // 태그·작가 갈래는 결과에서도 쓰므로 phase 와 무관하게 한 번 받아 둔다.
             .task { await loadDiscovery() }
             // `--query <term>` — simctl 은 터치를 못 넣으니, 결과·갈래·페이지네이션·무결과까지

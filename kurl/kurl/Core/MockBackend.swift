@@ -107,7 +107,7 @@ enum MockBackend {
     private static var bookmarks: Set<Int64> = []
     private static var follows: [String: (following: Bool, count: Int64)] = [:]
     private static var subscriptions: [Int64: (subscribed: Bool, count: Int64)] = [:]
-    private static var followedTags: Set<String> = ["아키텍처"]
+    private static var followedTags: Set<String> = ["아키텍처", "스프링", "리팩터링", "디자인", "kurl"]
     private static var hiddenTags: Set<String> = []
     // 알림 종류별 켬/끔 — 하나 꺼둔 채로 시작해 화면이 섞인 상태를 바로 보여준다(기본은 켜짐).
     private static var blogNotificationPrefs: [String: Bool] = [

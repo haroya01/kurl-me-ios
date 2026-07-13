@@ -95,7 +95,7 @@ enum Config {
         #endif
     }
 
-    /// UI 로케일 (ja/ko/en). 시스템 우선 언어를 따르되 미지원이면 ko 로 떨어진다.
+    /// UI 로케일 (ja/ko/en/vi/hi). 시스템 우선 언어를 따르되 미지원이면 ko 로 떨어진다.
     static var preferredLanguageTag: String {
         let supported = ["ja", "ko", "en", "vi", "hi"]
         for code in Locale.preferredLanguages {
@@ -103,5 +103,15 @@ enum Config {
             if supported.contains(base) { return base }
         }
         return "ko"
+    }
+
+    /// 글 본문(POST /posts·PATCH)에 실어 보내는 언어 태그 — 백엔드 글 생성/수정은 ko·ja·en
+    /// 만 허용(그 밖은 400 → 초안 생성 실패로 자동저장이 통째로 죽는다). UI 로케일이 vi·hi 여도
+    /// 글 콘텐츠 언어는 서버가 받는 값으로 좁혀 보낸다(en 로 폴백 — UI 표시용 preferredLanguageTag 는
+    /// 그대로 두고, 미리보기 URL·화면 문구엔 영향 없음).
+    static var postContentLanguageTag: String {
+        let backendSupported: Set<String> = ["ko", "ja", "en"]
+        let tag = preferredLanguageTag
+        return backendSupported.contains(tag) ? tag : "en"
     }
 }

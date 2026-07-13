@@ -228,7 +228,8 @@ private struct FloatingTabBar: View {
     /// reduce-motion 이면 그쪽에서 즉시 토글한다(여기선 상태만 그린다).
     let hidden: Bool
     /// 아이콘 크기는 Dynamic Type 를 따른다(고정 pt 로 접근성 크기를 무시하지 않게).
-    @ScaledMetric(relativeTo: .title3) private var iconSize: CGFloat = 22
+    /// 네이티브 iOS 26 유리 탭바 심볼 비례(≈25pt)에 맞춘다 — 22pt 는 얇게 읽혔다.
+    @ScaledMetric(relativeTo: .title3) private var iconSize: CGFloat = 25
 
     var body: some View {
         GlassEffectContainer(spacing: GlassTokens.clusterSpacing) {
@@ -245,7 +246,7 @@ private struct FloatingTabBar: View {
                             .foregroundStyle(active ? AnyShapeStyle(Color.brand)
                                                     : AnyShapeStyle(Palette.secondary))
                             .frame(maxWidth: .infinity)
-                            .frame(height: 40)
+                            .frame(height: 44)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -254,11 +255,12 @@ private struct FloatingTabBar: View {
                 }
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.vertical, 7)
             .glassEffect(.regular.interactive(), in: .capsule)
         }
         .padding(.horizontal, Metrics.gutter)
-        .padding(.bottom, 4)
+        // 네이티브 유리 탭바처럼 하단 세이프에어리어에 바짝 앉힌다 — 4pt 는 위로 떠 보였다.
+        .padding(.bottom, 2)
         // 스크롤다운 = 바 높이만큼 아래로 미끄러져 완전히 사라진다(스레드식). 페이드도 얹어
         // 세이프에어리어 여백에서도 흔적이 남지 않게. reduce-motion 은 위 report 호출이 즉시 토글.
         .offset(y: hidden ? 132 : 0)
