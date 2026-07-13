@@ -65,10 +65,8 @@ struct SearchView: View {
                 if case .post(let username, let slug) = route, !reduceMotion {
                     RouteView(route: route)
                         .navigationTransition(.zoom(sourceID: "search-\(username)-\(slug)", in: zoomNS))
-                        .environment(\.tabBarVisibility, nil)
                 } else {
                     RouteView(route: route)
-                        .environment(\.tabBarVisibility, nil)
                 }
             }
             // 스택 안쪽에 부착 — 바깥이면 push 된 글 상세에도 검색바가 남는다.

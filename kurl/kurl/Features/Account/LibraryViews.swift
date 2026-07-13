@@ -55,7 +55,6 @@ struct BookmarksView: View {
                         // Route 링크가 항해하지 않는다(SwiftUI 혼용 함정). RouteView 로 감싸 목적지는 그대로.
                         NavigationLink {
                             RouteView(route: .post(username: item.username, slug: item.slug))
-                                .environment(\.tabBarVisibility, nil)
                         } label: {
                             HStack(alignment: .top, spacing: 12) {
                                 VStack(alignment: .leading, spacing: 5) {
@@ -174,7 +173,6 @@ struct LikedPostsView: View {
                         // 클로저형 링크 — 계정 스택 혼용 함정 회피(값 기반은 이 깊이서 항해 안 함).
                         NavigationLink {
                             RouteView(route: .post(username: item.author.username, slug: item.slug))
-                                .environment(\.tabBarVisibility, nil)
                         } label: {
                             FeedRow(item: item)
                         }
@@ -230,7 +228,6 @@ struct SubscribedSeriesView: View {
                     NavigationLink {
                         RouteView(route: .series(
                             username: card.author?.username ?? "", slug: card.slug))
-                            .environment(\.tabBarVisibility, nil)
                     } label: {
                         HStack(spacing: 10) {
                             KurlMark(drawn: [true, true, true])
@@ -310,7 +307,6 @@ struct SubscribedTagsView: View {
                         // 클로저형 링크 — 계정 스택 혼용 함정 회피(값 기반은 이 깊이서 항해 안 함).
                         NavigationLink {
                             RouteView(route: .tag(tag))
-                                .environment(\.tabBarVisibility, nil)
                         } label: {
                             tagRow(tag)
                         }

@@ -93,19 +93,16 @@ struct StudioView: View {
             // 푸시된 화면(에디터·상세)은 탭바 숨김을 추적하지 않는다(탭 루트 전용).
             .navigationDestination(isPresented: $composing) {
                 ComposeView(post: nil, onSaved: { reloadSoon() }, onOpenPublished: openPublished)
-                    .environment(\.tabBarVisibility, nil)
             }
             .navigationDestination(item: $editing) { post in
                 ComposeView(post: post, onSaved: { reloadSoon() }, onOpenPublished: openPublished)
-                    .environment(\.tabBarVisibility, nil)
             }
             // 발행 직후 "글 보기" — 에디터가 닫히면 그 자리로 라이브 상세를 띄운다(뒤로 = 스튜디오).
             .navigationDestination(item: $justPublished) { ref in
                 PostDetailView(username: ref.username, slug: ref.slug)
-                    .environment(\.tabBarVisibility, nil)
             }
             .navigationDestination(for: Route.self) {
-                RouteView(route: $0).environment(\.tabBarVisibility, nil)
+                RouteView(route: $0)
             }
             .onAppear {
                 // `--open analytics|compose` — 목/스크린샷 검증용 자동 진입.

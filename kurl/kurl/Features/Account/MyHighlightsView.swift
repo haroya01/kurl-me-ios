@@ -124,7 +124,6 @@ struct MyHighlightsView: View {
             // 클로저형 링크 — 계정 스택 혼용 함정 회피(값 기반은 이 깊이서 항해 안 함).
             NavigationLink {
                 RouteView(route: .post(username: group.username, slug: group.slug))
-                    .environment(\.tabBarVisibility, nil)
             } label: {
                 HStack(spacing: 6) {
                     Text(group.title)
@@ -159,7 +158,6 @@ struct MyHighlightsView: View {
         // 클로저형 링크 — 계정 스택 혼용 함정 회피(값 기반은 이 깊이서 항해 안 함).
         NavigationLink {
             RouteView(route: .post(username: item.postUsername, slug: item.postSlug))
-                .environment(\.tabBarVisibility, nil)
         } label: {
             // 그은 구절 — 본문에서 칠한 그린 워시를 그대로.
             Text(item.quote)

@@ -70,10 +70,10 @@ struct DiscoverView: View {
             .toolbar(.hidden, for: .navigationBar)
             // 푸시된 상세는 탭바 숨김을 추적하지 않는다(탭 루트 전용).
             .navigationDestination(for: CollectionRef.self) {
-                CollectionDetailView(collectionId: $0.id).environment(\.tabBarVisibility, nil)
+                CollectionDetailView(collectionId: $0.id)
             }
             .navigationDestination(for: Route.self) {
-                RouteView(route: $0).environment(\.tabBarVisibility, nil)
+                RouteView(route: $0)
             }
             // .task 는 재-appear(탭 전환·글에서 pop 복귀)마다 재발화한다 — 첫 진입과 실제
             // 인증 전환에서만 요청(FeedViewModel.loadInitial 의 idle 가드와 같은 문법).
