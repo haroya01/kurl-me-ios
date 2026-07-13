@@ -25,21 +25,21 @@ struct WelcomeView: View {
     /// 태그라인은 브랜드 조판 — 크기 보존 + Dynamic Type 만 얹는다.
     @ScaledMetric(relativeTo: .largeTitle) private var taglineSize: CGFloat = 38
     @State private var rowsVisible = false
+    /// 본문이 선 뒤 형광이 "그어지는" 박자 — 오버레이 텍스트가 이 값으로 떠오른다.
+    @State private var highlightsOn = false
     @State private var taglineVisible = false
     @State private var actionsVisible = false
     @State private var showLogin = false
 
-    /// 벽 한 줄 — (단어, 강조) 나열. 강조는 흰색 볼드, 나머지는 반투명 흰색(톤온톤).
-    /// 행마다 왼쪽으로 다르게 블리드해 "화면보다 큰 세계"로 읽힌다. 조합은 고정(결정적).
-    /// 강조 단어는 늘 온전히 보이고(잘리면 정체를 잃는다) 필러만 좌우로 잘려 나간다 —
-    /// 행마다 필러를 뒤에 더 붙여 오른쪽 끝까지 흘러넘치게(화면보다 큰 세계).
-    private static let wall: [(offset: CGFloat, words: [(LocalizedStringKey, Bool)])] = [
-        (-40, [("독서", false), ("하이라이트", true), ("기록", false), ("에세이", false)]),
-        (-64, [("사진", false), ("회고", true), ("개발", false), ("디자인", false)]),
-        (-84, [("일상", false), ("태그", false), ("시리즈", true), ("여행", false), ("밑줄", false)]),
-        (-16, [("문장", false), ("연결", true), ("커리어", false), ("발견", false)]),
-        (-70, [("큐레이션", false), ("아카이브", false), ("길", true), ("튜토리얼", false)]),
-        (-36, [("인터뷰", false), ("컬렉션", true), ("음악", false), ("기록", false)]),
+    /// 벽 = 본문 한 단락 — 톤온톤 산문 속에서 두 구절만 형광으로 살아난다.
+    /// "읽다가 긋는다"는 제품의 핵심 동작이 그대로 첫인상이 된다(레퍼런스 없는 우리 문법).
+    /// 구절은 세그먼트로 나눠 로컬라이즈한다(강조 위치가 언어마다 자연스럽게 이동).
+    private static let prose: [(String, Bool)] = [
+        (String(localized: "글은 읽는 사람의 밑줄에서 두 번째 삶을 산다. 좋은 글은 "), false),
+        (String(localized: "두 번째 읽을 때 다른 문장에 밑줄이 쳐진다."), true),
+        (String(localized: " 흩어진 기록은 잊히지만, "), false),
+        (String(localized: "기록은 연결될 때 길이 된다."), true),
+        (String(localized: " 누군가의 문장을 내 컬렉션에 잇는 순간, 읽기는 더 이상 혼자의 일이 아니다."), false),
     ]
 
     var body: some View {
@@ -62,7 +62,7 @@ struct WelcomeView: View {
 
                 Spacer(minLength: 18)
 
-                wordWall
+                proseWall
 
                 // 태그라인 — 들판 위 검정 한 방(다크에서도 검정: 그린 위 대비가 곧 목소리).
                 Text("읽고, 쓰고,\n연결하다.")
@@ -125,37 +125,43 @@ struct WelcomeView: View {
 
     // MARK: 단어 벽 — 우리 우주의 어휘가 곧 배경
 
-    private var wordWall: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            ForEach(Array(Self.wall.enumerated()), id: \.offset) { i, row in
-                // 행은 overlay 로 붙인다 — fixedSize 행 폭이 레이아웃에 새어 나가면(특히 en/ja 처럼
-                // 단어가 긴 로케일) 조상 VStack 이 화면보다 넓어져 페이지 전체가 왼쪽으로 밀린다.
-                // overlay 는 조상 크기에 관여하지 않으니 어떤 언어여도 페이지 폭이 고정된다.
-                Color.clear
-                    .frame(height: 38)
-                    .overlay(alignment: .leading) {
-                        HStack(spacing: 16) {
-                            ForEach(Array(row.words.enumerated()), id: \.offset) { _, word in
-                                Text(word.0)
-                                    .font(.system(size: 32, weight: word.1 ? .heavy : .semibold))
-                                    .foregroundStyle(word.1 ? Color.white : Color.white.opacity(0.32))
-                                    .lineLimit(1)
-                                    .fixedSize()
-                            }
-                        }
-                        .offset(x: row.offset)
-                    }
-                    .opacity(rowsVisible ? 1 : 0)
-                    .offset(y: rowsVisible ? 0 : 8)
-                    .animation(
-                        reduceMotion ? nil : .easeOut(duration: 0.35).delay(0.05 * Double(i)),
-                        value: rowsVisible)
-            }
+    /// 본문(톤온톤)과 형광 오버레이(같은 문자열·같은 조판이라 글리프가 정확히 겹친다) —
+    /// 오버레이만 나중에 떠올라 "형광펜이 그어지는" 순간이 엔트런스가 된다.
+    private var proseWall: some View {
+        ZStack(alignment: .topLeading) {
+            Text(Self.attributed(highlighted: false))
+            Text(Self.attributed(highlighted: true))
+                .opacity(highlightsOn ? 1 : 0)
         }
+        .lineSpacing(9)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .clipped()
+        .padding(.horizontal, Metrics.gutter + 4)
+        .opacity(rowsVisible ? 1 : 0)
+        .offset(y: rowsVisible ? 0 : 8)
         // 벽은 장식 — 보이스오버는 태그라인부터 읽는다.
         .accessibilityHidden(true)
+    }
+
+    /// highlighted=false 는 전체 톤온톤 본문. true 는 형광 구절만 보이는 오버레이(나머지는 투명) —
+    /// 두 장을 겹쳐 오버레이 불투명도만 올리면 같은 자리에서 형광이 켜진다.
+    private static func attributed(highlighted: Bool) -> AttributedString {
+        var out = AttributedString()
+        for (text, isHighlight) in prose {
+            var run = AttributedString(text)
+            run.font = .system(size: 23, weight: .semibold)
+            if !highlighted {
+                run.foregroundColor = .white.opacity(0.34)
+            } else if isHighlight {
+                run.foregroundColor = .white
+                run.backgroundColor = .white.opacity(0.16)
+                run.underlineStyle = .single
+                run.underlineColor = UIColor.white.withAlphaComponent(0.85)
+            } else {
+                run.foregroundColor = .clear
+            }
+            out += run
+        }
+        return out
     }
 
     // MARK: 엔트런스 — 벽이 줄줄이 서고, 태그라인·버튼이 한 박자씩 따라온다
@@ -163,12 +169,15 @@ struct WelcomeView: View {
     private func play() {
         guard !reduceMotion else {
             rowsVisible = true
+            highlightsOn = true
             taglineVisible = true
             actionsVisible = true
             return
         }
         rowsVisible = true
-        withAnimation(.easeOut(duration: 0.4).delay(0.34)) { taglineVisible = true }
-        withAnimation(.easeOut(duration: 0.45).delay(0.48)) { actionsVisible = true }
+        // 본문이 자리잡은 뒤 형광이 그어진다 — 이 한 박자가 화면의 서사(읽다가 긋는다).
+        withAnimation(.easeOut(duration: 0.5).delay(0.55)) { highlightsOn = true }
+        withAnimation(.easeOut(duration: 0.4).delay(0.85)) { taglineVisible = true }
+        withAnimation(.easeOut(duration: 0.45).delay(1.0)) { actionsVisible = true }
     }
 }

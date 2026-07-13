@@ -4374,34 +4374,6 @@
         }
       }
     },
-    "길": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Path"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "राह"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "道"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Đường"
-          }
-        }
-      }
-    },
     "길 삭제": {
       "localizations": {
         "en": {
@@ -7070,34 +7042,6 @@
         }
       }
     },
-    "발견": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Discover"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "खोजें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "発見"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Khám phá"
-          }
-        }
-      }
-    },
     "발견에서 읽을 글 찾기": {
       "localizations": {
         "en": {
@@ -8860,34 +8804,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đã bỏ ẩn"
-          }
-        }
-      }
-    },
-    "시리즈": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Series"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "सीरीज़"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "シリーズ"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Series"
           }
         }
       }
@@ -13498,34 +13414,6 @@
         }
       }
     },
-    "컬렉션": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Collections"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "कलेक्शन"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コレクション"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bộ sưu tập"
-          }
-        }
-      }
-    },
     "컬렉션 관리": {
       "localizations": {
         "en": {
@@ -13970,34 +13858,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Không thể xóa tài khoản"
-          }
-        }
-      }
-    },
-    "태그": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tags"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "टैग"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "タグ"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Thẻ"
           }
         }
       }
@@ -14618,34 +14478,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nguồn cấp"
-          }
-        }
-      }
-    },
-    "하이라이트": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Highlight"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "हाइलाइट"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ハイライト"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tô sáng"
           }
         }
       }
@@ -16758,506 +16590,142 @@
         }
       }
     },
-    "문장": {
+    "글은 읽는 사람의 밑줄에서 두 번째 삶을 산다. 좋은 글은 ": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "sentences"
+            "value": "A piece of writing lives a second life in its reader’s underlines. In a good one, "
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "文章"
+            "value": "文章は、読む人の下線の中で二度目の生を生きる。良い文章は、"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "câu chữ"
+            "value": "Một bài viết sống cuộc đời thứ hai trong những dòng gạch chân của người đọc. Với bài hay, "
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "वाक्य"
+            "value": "लेख अपने पाठक के रेखांकनों में दूसरा जीवन जीता है. अच्छे लेख में, "
           }
         }
       }
     },
-    "기록": {
+    "두 번째 읽을 때 다른 문장에 밑줄이 쳐진다.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "notes"
+            "value": "a different sentence gets underlined on the second read."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "記録"
+            "value": "二度目に読むと別の文に下線が引かれる。"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "ghi chép"
+            "value": "lần đọc thứ hai sẽ gạch chân một câu khác."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "नोट्स"
+            "value": "दूसरी बार पढ़ने पर किसी और वाक्य पर रेखा खिंचती है."
           }
         }
       }
     },
-    "에세이": {
+    " 흩어진 기록은 잊히지만, ": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "essays"
+            "value": " Scattered notes fade, but "
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "エッセイ"
+            "value": " 散らばった記録は忘れられる。しかし"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "tùy bút"
+            "value": " Ghi chép rời rạc sẽ phai đi, nhưng "
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "निबंध"
+            "value": " बिखरे नोट्स भुला दिए जाते हैं, पर "
           }
         }
       }
     },
-    "개발": {
+    "기록은 연결될 때 길이 된다.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "dev"
+            "value": "notes become a path when they connect."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "開発"
+            "value": "記録はつながるとき、道になる。"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "lập trình"
+            "value": "ghi chép trở thành lối đi khi được kết nối."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "डेव"
+            "value": "जुड़ने पर नोट्स राह बन जाते हैं."
           }
         }
       }
     },
-    "독서": {
+    " 누군가의 문장을 내 컬렉션에 잇는 순간, 읽기는 더 이상 혼자의 일이 아니다.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "reading"
+            "value": " The moment you weave someone’s sentence into your collection, reading is no longer a solitary act."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "読書"
+            "value": " 誰かの文章を自分のコレクションにつないだ瞬間、読むことはもう一人の営みではない。"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "đọc sách"
+            "value": " Khoảnh khắc bạn nối câu chữ của ai đó vào bộ sưu tập của mình, việc đọc không còn là chuyện một mình."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "पठन"
-          }
-        }
-      }
-    },
-    "일상": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "daily life"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "日常"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "đời thường"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "रोज़मर्रा"
-          }
-        }
-      }
-    },
-    "연결": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "connections"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "つながり"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "kết nối"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "जुड़ाव"
-          }
-        }
-      }
-    },
-    "디자인": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "design"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "デザイン"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "thiết kế"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "डिज़ाइन"
-          }
-        }
-      }
-    },
-    "여행": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "travel"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "旅"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "du lịch"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "यात्रा"
-          }
-        }
-      }
-    },
-    "회고": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "retros"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "振り返り"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "nhìn lại"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "पुनरावलोकन"
-          }
-        }
-      }
-    },
-    "밑줄": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "underlines"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "下線"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "gạch chân"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "रेखांकन"
-          }
-        }
-      }
-    },
-    "큐레이션": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "curation"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キュレーション"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "tuyển chọn"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "क्यूरेशन"
-          }
-        }
-      }
-    },
-    "사진": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "photos"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "写真"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ảnh"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "फ़ोटो"
-          }
-        }
-      }
-    },
-    "커리어": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "careers"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キャリア"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "sự nghiệp"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "करियर"
-          }
-        }
-      }
-    },
-    "아카이브": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "archives"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アーカイブ"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "lưu trữ"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "संग्रहालय"
-          }
-        }
-      }
-    },
-    "튜토리얼": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "tutorials"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "チュートリアル"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "hướng dẫn"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ट्यूटोरियल"
-          }
-        }
-      }
-    },
-    "인터뷰": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "interviews"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "インタビュー"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "phỏng vấn"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "साक्षात्कार"
-          }
-        }
-      }
-    },
-    "음악": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "music"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "音楽"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "âm nhạc"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "संगीत"
+            "value": " जिस पल आप किसी का वाक्य अपने संग्रह से जोड़ते हैं, पढ़ना अकेले का काम नहीं रह जाता."
           }
         }
       }
