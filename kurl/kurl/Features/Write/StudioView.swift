@@ -128,9 +128,11 @@ struct StudioView: View {
             ForEach(StudioSection.allCases) { pane in
                 if paneRendered(pane) {
                     paneView(pane)
-                        // 드래그 중엔 분면 콘텐츠를 비활성화 — 손가락 따라 미끄러질 때 행 탭이
-                        // 안 취소되고 글/시리즈로 새던 것을 막는다(FeedView 와 같은 처리).
-                        .disabled(dragX != 0 && pane != section)
+                        // 드래그가 시작되면(dragX != 0) 분면 콘텐츠를 통째로 비활성화 — 손가락 따라
+                        // 미끄러질 때 행 탭이 발화해 글/시리즈/에디터로 새던 것을 막는다(FeedView 와
+                        // 같은 처리). `&& pane != section` 로 활성 분면만 살려두면 스와이프 중 그 행
+                        // 탭이 그대로 먹혀 페이지 전환과 편집 진입이 동시에 일어났다(c239760 회귀).
+                        .disabled(dragX != 0)
                         .allowsHitTesting(pane == section)
                         .accessibilityHidden(pane != section)
                         // 활성 분면의 스크롤만 탭바 숨김을 몬다(상주하는 숨은 분면 제외).
