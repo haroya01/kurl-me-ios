@@ -121,7 +121,11 @@ struct MyHighlightsView: View {
     private func section(_ group: PostGroup) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             // 글 헤더 — 같은 글의 구절들이 이 아래 모인다. 탭 = 원문.
-            NavigationLink(value: Route.post(username: group.username, slug: group.slug)) {
+            // 클로저형 링크 — 계정 스택 혼용 함정 회피(값 기반은 이 깊이서 항해 안 함).
+            NavigationLink {
+                RouteView(route: .post(username: group.username, slug: group.slug))
+                    .environment(\.tabBarVisibility, nil)
+            } label: {
                 HStack(spacing: 6) {
                     Text(group.title)
                         .typeScale(.titleSmall)
@@ -152,7 +156,11 @@ struct MyHighlightsView: View {
     }
 
     private func quoteRow(_ item: MyHighlightView) -> some View {
-        NavigationLink(value: Route.post(username: item.postUsername, slug: item.postSlug)) {
+        // 클로저형 링크 — 계정 스택 혼용 함정 회피(값 기반은 이 깊이서 항해 안 함).
+        NavigationLink {
+            RouteView(route: .post(username: item.postUsername, slug: item.postSlug))
+                .environment(\.tabBarVisibility, nil)
+        } label: {
             // 그은 구절 — 본문에서 칠한 그린 워시를 그대로.
             Text(item.quote)
                 .typeScale(.body)

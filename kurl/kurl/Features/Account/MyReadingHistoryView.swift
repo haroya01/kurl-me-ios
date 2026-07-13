@@ -81,11 +81,18 @@ struct MyReadingHistoryView: View {
     private func row(_ item: ReadingHistoryEntry) -> some View {
         HStack(spacing: 11) {
             // 아바타 → 작가 프로필(글이 아니라 사람). 제목·핸들 탭은 글로.
-            NavigationLink(value: Route.author(username: item.username)) {
+            // 클로저형 링크 — 계정 스택 혼용 함정 회피(값 기반은 이 깊이서 항해 안 함).
+            NavigationLink {
+                RouteView(route: .author(username: item.username))
+                    .environment(\.tabBarVisibility, nil)
+            } label: {
                 AvatarView(author: item.asAuthor, size: 40)
             }
             .buttonStyle(.plain)
-            NavigationLink(value: Route.post(username: item.username, slug: item.slug)) {
+            NavigationLink {
+                RouteView(route: .post(username: item.username, slug: item.slug))
+                    .environment(\.tabBarVisibility, nil)
+            } label: {
                 HStack(spacing: 11) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(item.title)
