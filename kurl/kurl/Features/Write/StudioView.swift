@@ -17,8 +17,12 @@ struct StudioView: View {
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
     @State private var section: StudioSection = .posts
     /// 한 번이라도 방문한 분면 — switch 로 갈아끼우면 뷰가 파괴돼 `.task` 가 전환마다
-    /// 재발화(분석은 스피너부터 다시)하므로, 방문한 분면은 상주시키고 opacity 만 굴린다.
+    /// 재발화(분석은 스피너부터 다시)하므로, 방문한 분면은 상주시켜 로드 상태를 살려둔다.
     @State private var visited: Set<StudioSection> = []
+    /// 좌우 스와이프 인터랙티브 — 손가락 따라 분면이 슬라이드된다(현재 분면 오프셋). 인접 분면은
+    /// 한 폭 옆에서 따라 들어온다. containerWidth = 스트립 한 칸 폭(전환·오프셋 계산 기준).
+    @State private var dragX: CGFloat = 0
+    @State private var containerWidth: CGFloat = 0
     @State private var phase: LoadState<[MyPost]> = .idle
     @State private var filter: HubFilter = .all
     @State private var seriesList: [MySeries] = []
@@ -40,28 +44,50 @@ struct StudioView: View {
                     signedOutGate
                 }
             }
-            // nav 타이틀 제거 — 세그먼트(글·시리즈·분석)가 곧 이 탭의 헤더다(중복 제거).
+            // 글·시리즈·분석 = 떠 있는 액체 유리 캡슐(내비바 대신) — 분면이 이 밑으로 흐른다.
+            // 콘텐츠와 같은 표면에서 좌우로 넘기고, 스위처는 그 위에 뜬 크롬(§1 액체 크롬/종이 본문).
+            // 내비바 principal 의 맨몸 세그먼트는 유리 없이 판판했다 — 피드와 같은 떠 있는 유리로 통일.
             .navigationBarTitleDisplayMode(.inline)
-            // 새 글 = 헤더의 prominent 유리 버튼 — 떠다니는 FAB 대신 콘텐츠를 안 가리고
-            // 모든 분면에서 늘 같은 자리(컴포즈 툴바의 발행과 같은 .glassProminent 문법).
-            .toolbar {
+            .toolbar(auth.isSignedIn ? .hidden : .automatic, for: .navigationBar)
+            .safeAreaInset(edge: .top) {
                 if auth.isSignedIn {
-                    // 글·시리즈·분석 = 헤더(내비바)에. 떠 있는 캡슐로 따로 두지 않고 헤더 하나로 합친다.
-                    ToolbarItem(placement: .principal) {
-                        GlassSegmentSwitcher(
-                            items: StudioSection.allCases, selection: $section, label: { $0.label },
-                            bare: true)
-                    }
-                    ToolbarItem(placement: .primaryAction) {
+                    // 좌측 '새 글' 폭만큼의 투명 균형추 — 스위처가 화면 정중앙에 오게(피드의 벨 보정과 같은 수법).
+                    HStack(spacing: 0) {
+                        Color.clear.frame(width: 44, height: 40)
+                        Spacer(minLength: 0)
+                        // 스위처와 '새 글'은 한 영역의 유리 둘 — 컨테이너 하나로 묶어 각자 겉돌지 않게(§1.4).
+                        GlassEffectContainer(spacing: GlassTokens.clusterSpacing) {
+                            GlassSegmentSwitcher(
+                                items: StudioSection.allCases, selection: $section, label: { $0.label })
+                        }
+                        Spacer(minLength: 0)
+                        // 새 글 = 떠 있는 prominent 유리 버튼(컴포즈 툴바의 발행과 같은 문법).
                         Button {
                             composing = true
                         } label: {
-                            Label("새 글", systemImage: "square.and.pencil")
+                            Image(systemName: "square.and.pencil")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .frame(width: 44, height: 44)
+                                .contentShape(Circle())
                         }
-                        .buttonStyle(.glassProminent)
-                        .tint(GlassTokens.prominentTint)
+                        .buttonStyle(.plain)
+                        .glassEffect(.regular.tint(GlassTokens.prominentTint).interactive(), in: .circle)
                         .accessibilityLabel(Text("새 글 쓰기"))
                     }
+                    .padding(.horizontal, Metrics.gutter)
+                    .padding(.top, 2)
+                    .padding(.bottom, 8)
+                }
+            }
+            // 유리는 뒤에 흐르는 것이 있을 때만 유리다 — 스위처 뒤 옅은 브랜드 안개 한 겹(피드와 동일).
+            .background(alignment: .top) {
+                if auth.isSignedIn {
+                    BrandMist()
+                        .frame(height: 220)
+                        .mask(LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom))
+                        .ignoresSafeArea(edges: .top)
+                        .allowsHitTesting(false)
                 }
             }
             // 푸시된 화면(에디터·상세)은 탭바 숨김을 추적하지 않는다(탭 루트 전용).
@@ -95,26 +121,97 @@ struct StudioView: View {
 
     // MARK: 스튜디오 3분면
 
+    /// 글·시리즈·분석을 좌우로 넘기는 필름스트립. 페이지형 TabView(UIPageViewController) 중첩은
+    /// Liquid Glass 가 활성 분면의 스크롤뷰를 못 찾아 콘텐츠가 하단 바 밑으로 흐르지 않고 스크롤
+    /// 축소도 안 걸린다(FeedView 가 먼저 부딪힌 함정) — 세 분면을 ZStack 으로 살려두고(스크롤 위치·
+    /// 로드 상태 유지) 좌우 스와이프는 제스처로 직접 민다. 떠 있는 유리 스위처와 스와이프는 같은
+    /// selection 을 공유해 양방향으로 동기화된다.
     private var studio: some View {
         ZStack {
             ForEach(StudioSection.allCases) { pane in
-                if pane == section || visited.contains(pane) {
+                if paneRendered(pane) {
                     paneView(pane)
-                        .opacity(pane == section ? 1 : 0)
+                        // 드래그 중엔 분면 콘텐츠를 비활성화 — 손가락 따라 미끄러질 때 행 탭이
+                        // 안 취소되고 글/시리즈로 새던 것을 막는다(FeedView 와 같은 처리).
+                        .disabled(dragX != 0 && pane != section)
                         .allowsHitTesting(pane == section)
                         .accessibilityHidden(pane != section)
                         // 활성 분면의 스크롤만 탭바 숨김을 몬다(상주하는 숨은 분면 제외).
                         .tracksTabBarVisibility(pane == section)
-                        .transition(.opacity)
+                        .offset(x: paneOffset(pane))
                 }
             }
         }
-        // 분면 교체는 한 호흡 크로스페이드. 세그먼트 자체는 내비바(헤더)에 산다.
-        .animation(reduceMotion ? nil : .snappy(duration: 0.28), value: section)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { containerWidth = $0 }
+        .simultaneousGesture(studioDrag)
         .onChange(of: section) { old, new in
             visited.insert(old)
             visited.insert(new)
         }
+    }
+
+    private var sectionIndex: Int { StudioSection.allCases.firstIndex(of: section) ?? 0 }
+    private func paneIndex(_ pane: StudioSection) -> Int {
+        StudioSection.allCases.firstIndex(of: pane) ?? 0
+    }
+
+    /// 어느 분면을 실제로 그릴지 — 현재 분면, 방문해서 상태를 살려둔 분면, 그리고 드래그 중일 때만
+    /// 인접 분면(슬라이드로 들어올 자리). 쉼 상태에서 인접 분면을 미리 그리지 않아, 안 본 분면의
+    /// `.task`(분석 3콜·시리즈 목록)가 진입 즉시 발화하는 것을 막는다 — 첫 스와이프 때 로드된다.
+    private func paneRendered(_ pane: StudioSection) -> Bool {
+        if pane == section || visited.contains(pane) { return true }
+        return dragX != 0 && abs(paneIndex(pane) - sectionIndex) <= 1
+    }
+
+    /// 필름스트립 — 각 분면을 (자기 인덱스 − 선택 인덱스)×폭 + dragX 위치에 둔다. 전환 시
+    /// 선택 인덱스와 dragX 를 같은 프레임에 맞바꿔(±폭 상쇄) 시각이 연속이라 점프·깜빡임이 없다.
+    private func paneOffset(_ pane: StudioSection) -> CGFloat {
+        CGFloat(paneIndex(pane) - sectionIndex) * containerWidth + dragX
+    }
+
+    /// 좌우 스와이프 — 수직 스크롤(ReadingColumn)과 공존하도록 수평 우세일 때만 잡는다.
+    /// 끝 분면에서 더 끌면 고무줄 저항. 스위처 pill 은 selection 이 바뀌면 자체 애니메이션으로
+    /// 활주하므로(withAnimation 래핑 금지 — 스냅 버그) 여기선 dragX 만 굴린다.
+    private var studioDrag: some Gesture {
+        DragGesture(minimumDistance: 18)
+            .onChanged { value in
+                guard !reduceMotion,
+                      abs(value.translation.width) > abs(value.translation.height) else { return }
+                var dx = value.translation.width
+                let all = StudioSection.allCases
+                let i = all.firstIndex(of: section) ?? 0
+                let atEdge = (i == 0 && dx > 0) || (i == all.count - 1 && dx < 0)
+                if atEdge { dx *= 0.28 }
+                dragX = dx
+            }
+            .onEnded { value in
+                let dx = value.translation.width
+                let dy = value.translation.height
+                let vx = value.velocity.width
+                let all = StudioSection.allCases
+                let i = all.firstIndex(of: section) ?? 0
+                // 빠른 플릭(속도) 또는 의도적 끌기(거리+방향비) 둘 다 받는다.
+                let horizontal = abs(dx) > abs(dy)
+                let flick = abs(vx) > 260 && abs(dx) > 20
+                let deliberate = abs(dx) > 48 && abs(dx) > abs(dy) * 1.2
+                let canGo = dx < 0 ? i < all.count - 1 : i > 0
+                guard horizontal, flick || deliberate, canGo else {
+                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.3)) { dragX = 0 }
+                    return
+                }
+                let newSection = all[dx < 0 ? i + 1 : i - 1]
+                if reduceMotion {
+                    section = newSection
+                    dragX = 0
+                    return
+                }
+                // 선택을 곧바로 바꾸고(→ 스위처 pill 활주·햅틱 즉시) dragX 를 ±폭만큼 보정해 한
+                // 프레임에 같이 적용 — 인덱스 변화와 상쇄돼 시각은 연속. 이어 dragX 를 0 으로
+                // 애니메이트해 새 분면을 중앙에 안착시킨다.
+                section = newSection
+                dragX += dx < 0 ? containerWidth : -containerWidth
+                withAnimation(.snappy(duration: 0.28)) { dragX = 0 }
+            }
     }
 
     @ViewBuilder

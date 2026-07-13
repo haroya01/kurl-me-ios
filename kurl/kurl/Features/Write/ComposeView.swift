@@ -403,14 +403,20 @@ struct ComposeView: View {
             }
         }
         ToolbarItemGroup(placement: .primaryAction) {
-            Button("저장") { Task { await save(publish: false) } }
-                .disabled(!canSave || busy)
             if isPrePublish {
+                // 초안은 자동저장이 곧 저장이다(2초 디바운스·이탈 플러시) — 손 저장 버튼을 따로 두면
+                // '임시저장'과 '자동저장'이 겹쳐 두 개념처럼 보인다. 손 버튼을 걷고, 좌측 상태 배지
+                // (저장됨·미저장·실패)를 초안의 단일 저장 표시로 둔다(웹 /write 와 같은 모델).
                 // 발행 = 즉시 쏘지 않는다 — 발행 시트에서 메타데이터를 갖추는 마지막 한 박자.
                 Button("발행") { showPublish = true }
                     .font(.body.weight(.semibold))
                     .buttonStyle(.glassProminent)
                     .tint(GlassTokens.prominentTint)
+                    .disabled(!canSave || busy)
+            } else {
+                // 발행·비공개 글은 라이브 상태라 명시 저장을 남긴다 — 편집이 독자 앞 글을
+                // 자동으로 바꾸지 않게(수정 저장 의미 유지). '글 정보'는 ⋯ 메뉴로.
+                Button("저장") { Task { await save(publish: false) } }
                     .disabled(!canSave || busy)
             }
         }
