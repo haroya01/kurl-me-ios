@@ -34,11 +34,12 @@ struct EditorHarnessView: View {
         ZStack(alignment: .bottom) {
             WysiwygEditorView(document: document)
 
-            // 검증용 유리 캡슐(§1 크롬만 유리) — 왕복 직렬화 결과를 펼쳐 대조.
-            VStack(spacing: 0) {
+            // 검증용 유리 캡슐(§1 크롬만 유리) — 삽입 툴바 + 왕복 직렬화 결과 대조.
+            VStack(spacing: 10) {
                 if showMarkdown {
                     markdownInspector
                 }
+                insertToolbar
                 Button {
                     withAnimation(.snappy(duration: 0.22)) { showMarkdown.toggle() }
                 } label: {
@@ -55,6 +56,26 @@ struct EditorHarnessView: View {
                 .padding(.bottom, 20)
             }
         }
+    }
+
+    /// 비텍스트 블록 삽입 툴바(§1 크롬 유리) — 포커스 블록 뒤에 구분선·이미지·표를 넣는다.
+    private var insertToolbar: some View {
+        HStack(spacing: 18) {
+            Button {
+                document.insertNonText(.divider)
+            } label: { Image(systemName: "minus") }
+            Button {
+                document.insertNonText(.image(url: "https://kurl.me/photo.jpg", alt: ""))
+            } label: { Image(systemName: "photo") }
+            Button {
+                document.insertNonText(.table(.blank))
+            } label: { Image(systemName: "tablecells") }
+        }
+        .font(.system(size: 17, weight: .semibold))
+        .foregroundStyle(Palette.link)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .glassEffect(.regular, in: .capsule)
     }
 
     private var markdownInspector: some View {
@@ -77,16 +98,27 @@ struct EditorHarnessView: View {
     }
 }
 
-/// 하네스 샘플 — 4블록 WYSIWYG 증명(문단·제목·인용·코드) + 인라인 볼드. 데모 카피는 하네스 전용.
+/// 하네스 샘플 — Phase 2 블록 8종 WYSIWYG 증명(문단·제목·인용·코드·구분선·리스트·이미지·표).
+/// 데모 카피는 하네스 전용.
 enum EditorSample {
     static var blocks: [EditorBlock] {
         [
             .heading(1, "종이 본문, 액체 크롬"),
-            .paragraph("이 문단은 **볼드**와 *이탤릭*, 그리고 `인라인 코드`가 최종 모습으로 보인다. 원시 마크다운 마커는 흐리게만 남는다."),
-            .heading(2, "인용과 코드"),
-            .quote("작고 깊게 사랑받기를 택한다 — 성장 천장은 의식적으로 받아들인다."),
+            .paragraph("이 문단은 **볼드**와 *이탤릭*, 그리고 `인라인 코드`가 최종 모습으로 보인다."),
+            .divider,
+            .heading(2, "리스트"),
+            .listItem("첫 항목 — 줄머리에 `- ` 를 치면 여기로 바뀐다.", ordered: false, indent: 0),
+            .listItem("들여쓴 하위 항목(탭으로 중첩).", ordered: false, indent: 1),
+            .listItem("번호 리스트 — `1. ` 로 시작.", ordered: true, indent: 0),
+            .listItem("둘째 항목(자동 재번호).", ordered: true, indent: 0),
+            .heading(2, "이미지와 표"),
+            .image(url: "https://kurl.me/sample.jpg", alt: "샘플 이미지"),
+            .table(EditorTable(
+                rows: [["언어", "용도"], ["Swift", "iOS"], ["Kotlin", "Android"]],
+                alignments: [.leading, .trailing]
+            )),
+            .quote("작고 깊게 사랑받기를 택한다."),
             .code("func greet(_ name: String) {\n    print(\"안녕, \\(name)\")\n}", language: "swift"),
-            .paragraph("줄머리에 # · > · ``` 를 치면 이 문단이 그 자리에서 제목·인용·코드로 바뀐다."),
         ]
     }
 }

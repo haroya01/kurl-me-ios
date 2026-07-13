@@ -33,6 +33,19 @@ nonisolated enum BlockShortcuts {
             return BlockShortcut(kind: .quote, strippedText: "", caret: 0)
         }
 
+        // 글머리 리스트 `- ` / `* ` (indent 0 — 중첩은 탭/툴바로).
+        if text.hasPrefix("- ") || text.hasPrefix("* ") {
+            return BlockShortcut(kind: .listItem(ordered: false, indent: 0), strippedText: String(text.dropFirst(2)), caret: 0)
+        }
+        // 번호 리스트 `N. `
+        let digits = text.prefix(while: { $0.isNumber })
+        if !digits.isEmpty {
+            let rest = text.dropFirst(digits.count)
+            if rest.hasPrefix(". ") {
+                return BlockShortcut(kind: .listItem(ordered: true, indent: 0), strippedText: String(rest.dropFirst(2)), caret: 0)
+            }
+        }
+
         // 코드펜스 ``` (언어 선택). 여는 펜스만 친 순간 코드 블록으로.
         if text.hasPrefix("```") {
             let after = String(text.dropFirst(3)).trimmingCharacters(in: .whitespaces)

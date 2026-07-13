@@ -67,6 +67,28 @@ final class EditorDocument {
         let head = String(block.text[..<cut])
         let tail = String(block.text[cut...])
 
+        // 리스트 항목에서 엔터 — 빈 항목이면 리스트 탈출(내어쓰기 → indent 0 이면 문단),
+        // 내용이 있으면 같은 종류·indent 의 새 항목으로.
+        if case .listItem(let ordered, let indent) = block.kind {
+            if head.isEmpty, tail.isEmpty {
+                // 빈 항목에서 엔터 = 리스트 종료. indent 가 있으면 한 단계 내어쓰기, 0 이면 문단으로.
+                if indent > 0 {
+                    blocks[i].kind = .listItem(ordered: ordered, indent: indent - 1)
+                } else {
+                    blocks[i].kind = .paragraph
+                }
+                let f = EditorFocus(blockID: blocks[i].id, caret: 0)
+                focus = f
+                return f
+            }
+            blocks[i].text = head
+            let newBlock = EditorBlock(kind: .listItem(ordered: ordered, indent: indent), text: tail)
+            blocks.insert(newBlock, at: i + 1)
+            let f = EditorFocus(blockID: newBlock.id, caret: 0)
+            focus = f
+            return f
+        }
+
         blocks[i].text = head
 
         // 제목/인용 뒤로 엔터를 치면 새 줄은 문단으로 떨어진다(에디터 관습) — 단 내용이 남은
@@ -79,6 +101,8 @@ final class EditorDocument {
                 return .paragraph
             case .code:
                 return .paragraph  // 코드 분할은 뷰가 개행으로 흡수하므로 여기 안 옴(안전 기본).
+            case .divider, .image, .table, .listItem:
+                return .paragraph  // 비텍스트/리스트는 위에서 처리(안전 기본).
             }
         }()
 
@@ -89,6 +113,24 @@ final class EditorDocument {
         return f
     }
 
+    // MARK: 리스트 들여쓰기 / 내어쓰기 (탭·시프트탭 또는 툴바)
+
+    /// 리스트 항목을 한 단계 안으로(최대 4). 리스트가 아니면 무동작.
+    func indentListItem(_ id: UUID) {
+        guard let i = index(of: id), case .listItem(let ordered, let indent) = blocks[i].kind else { return }
+        blocks[i].kind = .listItem(ordered: ordered, indent: min(4, indent + 1))
+    }
+
+    /// 리스트 항목을 한 단계 밖으로 — indent 0 이면 문단으로 강등.
+    func outdentListItem(_ id: UUID) {
+        guard let i = index(of: id), case .listItem(let ordered, let indent) = blocks[i].kind else { return }
+        if indent > 0 {
+            blocks[i].kind = .listItem(ordered: ordered, indent: indent - 1)
+        } else {
+            blocks[i].kind = .paragraph
+        }
+    }
+
     // MARK: 백스페이스 = 병합
 
     /// 블록 `id` 의 맨 앞(caret==0)에서 백스페이스 → 앞 블록과 병합. 앞 블록 끝에 캐럿을 남긴다.
@@ -97,6 +139,20 @@ final class EditorDocument {
     @discardableResult
     func mergeBackward(_ id: UUID) -> EditorFocus? {
         guard let i = index(of: id) else { return nil }
+
+        // 리스트 항목 맨 앞 백스페이스 = 리스트 마커 벗기기(내어쓰기 → indent 0 이면 문단으로 강등).
+        // 이렇게 하면 리스트를 "백스페이스로 해제"하는 관습과 맞고, 앞 항목과 텍스트가 섞이지 않는다.
+        if case .listItem(let ordered, let indent) = blocks[i].kind {
+            if indent > 0 {
+                blocks[i].kind = .listItem(ordered: ordered, indent: indent - 1)
+            } else {
+                blocks[i].kind = .paragraph
+            }
+            let f = EditorFocus(blockID: blocks[i].id, caret: 0)
+            focus = f
+            return f
+        }
+
         guard i > 0 else {
             // 첫 블록에서 앞이 없으면: 제목/인용을 문단으로 내린다(마커 제거 UX).
             if case .paragraph = blocks[i].kind {
@@ -108,8 +164,26 @@ final class EditorDocument {
             return f
         }
         let prev = blocks[i - 1]
+
+        // 앞이 비텍스트(구분선·이미지·표)면 텍스트 병합이 불가 — 그 비텍스트 블록을 삭제하고
+        // 현재 블록 맨 앞에 캐럿을 남긴다(비텍스트 블록을 "백스페이스로 지우는" 관습).
+        if prev.isNonText {
+            blocks.remove(at: i - 1)
+            let f = EditorFocus(blockID: id, caret: 0)
+            focus = f
+            return f
+        }
+
         // 코드 블록과의 병합은 종류가 섞이므로 막는다(빈 현재 블록만 삭제하고 앞으로 포커스).
         if case .code = prev.kind {
+            let caret = prev.text.count
+            if blocks[i].text.isEmpty { blocks.remove(at: i) }
+            let f = EditorFocus(blockID: prev.id, caret: caret)
+            focus = f
+            return f
+        }
+        // 앞이 리스트 항목이면 종류 섞임을 막는다 — 빈 현재 블록만 지우고 앞 항목 끝으로 포커스.
+        if prev.listInfo != nil {
             let caret = prev.text.count
             if blocks[i].text.isEmpty { blocks.remove(at: i) }
             let f = EditorFocus(blockID: prev.id, caret: caret)
@@ -124,6 +198,70 @@ final class EditorDocument {
         let f = EditorFocus(blockID: blocks[i - 1].id, caret: joinCaret)
         focus = f
         return f
+    }
+
+    // MARK: 비텍스트 블록 삽입 (툴바) — 구분선·이미지·표
+
+    /// 현재 포커스 블록 뒤에 비텍스트 블록을 넣고, 이어서 편집을 잇도록 빈 문단을 하나 더한다.
+    /// 포커스가 없으면 문서 끝에 붙인다. 반환: 새 후속 문단의 포커스.
+    @discardableResult
+    func insertNonText(_ block: EditorBlock) -> EditorFocus? {
+        let anchorIndex = focus.flatMap { index(of: $0.blockID) } ?? (blocks.count - 1)
+        let insertAt = min(anchorIndex + 1, blocks.count)
+        blocks.insert(block, at: insertAt)
+        // 비텍스트 블록 뒤엔 캐럿이 놓일 문단이 필요 — 없으면(문서 끝) 하나 만든다.
+        let trailingIndex = insertAt + 1
+        let trailing: EditorBlock
+        if trailingIndex < blocks.count, !blocks[trailingIndex].isNonText {
+            trailing = blocks[trailingIndex]
+        } else {
+            let p = EditorBlock.paragraph("")
+            blocks.insert(p, at: trailingIndex)
+            trailing = p
+        }
+        let f = EditorFocus(blockID: trailing.id, caret: 0)
+        focus = f
+        return f
+    }
+
+    // MARK: 표 셀 편집
+
+    /// 표 블록의 (row,col) 셀 텍스트 갱신.
+    func updateTableCell(_ id: UUID, row: Int, col: Int, text: String) {
+        guard let i = index(of: id), case .table(var table) = blocks[i].kind else { return }
+        guard row >= 0, row < table.rows.count, col >= 0, col < table.rows[row].count else { return }
+        table.rows[row][col] = text
+        blocks[i].kind = .table(table)
+    }
+
+    /// 표에 행 추가(맨 아래).
+    func addTableRow(_ id: UUID) {
+        guard let i = index(of: id), case .table(var table) = blocks[i].kind else { return }
+        table.rows.append(Array(repeating: "", count: table.columnCount))
+        blocks[i].kind = .table(table)
+    }
+
+    /// 표에 열 추가(맨 오른쪽) — 정렬 기본 leading.
+    func addTableColumn(_ id: UUID) {
+        guard let i = index(of: id), case .table(var table) = blocks[i].kind else { return }
+        for r in table.rows.indices { table.rows[r].append("") }
+        table.alignments.append(.leading)
+        blocks[i].kind = .table(table)
+    }
+
+    /// 열 정렬을 순환(leading → center → trailing → leading). GFM 구분선 토큰으로 왕복된다.
+    func cycleTableColumnAlignment(_ id: UUID, col: Int) {
+        guard let i = index(of: id), case .table(var table) = blocks[i].kind else { return }
+        while table.alignments.count <= col { table.alignments.append(.leading) }
+        let next: EditorTable.Alignment = {
+            switch table.alignments[col] {
+            case .leading: return .center
+            case .center: return .trailing
+            case .trailing: return .leading
+            }
+        }()
+        table.alignments[col] = next
+        blocks[i].kind = .table(table)
     }
 
     // MARK: 블록 종류 전환 (줄머리 마크다운 지름길)
