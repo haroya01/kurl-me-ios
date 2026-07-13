@@ -21,6 +21,10 @@ struct kurlApp: App {
 
     var body: some Scene {
         WindowGroup {
+            // 격리 WYSIWYG 에디터 하네스 진입로(스크린샷 검증 전용) — 다른 UI 를 전혀 안 태운다.
+            if Config.launchValue(after: "--screen") == "editor2" {
+                EditorHarnessRoot()
+            } else {
             ZStack {
                 // 스플래시가 걷힐 때 본 화면이 1.5% 에서 제자리로 — 막이 오르는 한 호흡.
                 RootView()
@@ -66,6 +70,7 @@ struct kurlApp: App {
                     welcomeRevealed = true
                     withAnimation(.easeOut(duration: 0.4)) { showWelcome = true }
                 }
+            }
             }
         }
     }

@@ -100,59 +100,255 @@ final class WriteV2RoundTripTests: XCTestCase {
         XCTAssertEqual(blocks[3].text, "x = 1")
     }
 
-    // MARK: Phase 1 밖 구조 = 문단으로 보존(무손실)
+    // MARK: Phase 2 블록 — 왕복 무손실 (정본 방언)
 
-    func testUnscopedListPreservedAsParagraph() {
-        // 리스트는 Phase 2 — 파서가 문단으로 보존해 왕복에서 안 잃는다.
+    func testDivider() {
+        assertRoundTrip("---")
+    }
+
+    func testDividerBetweenParagraphs() {
+        assertRoundTrip("위 문단.\n\n---\n\n아래 문단.")
+    }
+
+    func testBulletList() {
         assertRoundTrip("- 항목 하나\n- 항목 둘")
     }
 
-    func testUnscopedTablePreservedAsParagraph() {
-        assertRoundTrip("| a | b |\n| --- | --- |\n| 1 | 2 |")
+    func testNestedBulletList() {
+        assertRoundTrip("- 상위\n  - 하위\n  - 하위 둘\n- 다시 상위")
+    }
+
+    func testOrderedList() {
+        assertRoundTrip("1. 첫째\n2. 둘째\n3. 셋째")
+    }
+
+    func testMixedListThenParagraph() {
+        assertRoundTrip("- 항목\n- 항목 둘\n\n리스트 뒤 문단.")
+    }
+
+    func testImage() {
+        assertRoundTrip("![대체 텍스트](https://kurl.me/a.jpg)")
+    }
+
+    func testImageEmptyAlt() {
+        assertRoundTrip("![](https://kurl.me/a.jpg)")
+    }
+
+    func testTableRoundTrip() {
+        // 정본 방언: leading=`---`, center=`:---:`, trailing=`---:` / 셀 사이 ` | ` / 양 끝 `| … |`.
+        let md = "| 언어 | 용도 |\n| --- | ---: |\n| Swift | iOS |\n| Kotlin | Android |"
+        assertRoundTrip(md)
+    }
+
+    func testTableCenterAlignment() {
+        assertRoundTrip("| a | b | c |\n| --- | :---: | ---: |\n| 1 | 2 | 3 |")
+    }
+
+    func testTableEmptyCellsPreserved() {
+        assertRoundTrip("| a | b | c |\n| --- | --- | --- |\n| 1 |  | 3 |")
+    }
+
+    // MARK: 방언 정규화 — 비정본 입력이 정본으로 수렴(왕복 고정점)
+
+    func testStarBulletNormalizesToDash() {
+        let blocks = MarkdownBlockParser.parse("* 항목")
+        XCTAssertEqual(MarkdownSerializer.markdown(from: blocks), "- 항목")
+    }
+
+    func testLeadingColonAlignmentNormalizes() {
+        // `:---`(왼쪽) 은 정본 `---` 로 정규화 — 정렬 의미는 보존, 바이트는 수렴.
+        let blocks = MarkdownBlockParser.parse("| a |\n| :--- |\n| 1 |")
+        XCTAssertEqual(MarkdownSerializer.markdown(from: blocks), "| a |\n| --- |\n| 1 |")
+    }
+
+    func testDividerNotConfusedWithTableSeparator() {
+        // 파이프 없는 `---` = 구분선. 파이프 있는 구분행은 표 안에서만.
+        let blocks = MarkdownBlockParser.parse("---")
+        XCTAssertEqual(blocks.count, 1)
+        XCTAssertEqual(blocks[0].kind, .divider)
+    }
+
+    // MARK: 파싱 검증 — 종류·필드
+
+    func testParseListKinds() {
+        let blocks = MarkdownBlockParser.parse("- a\n  - b\n1. c")
+        XCTAssertEqual(blocks.count, 3)
+        XCTAssertEqual(blocks[0].kind, .listItem(ordered: false, indent: 0))
+        XCTAssertEqual(blocks[1].kind, .listItem(ordered: false, indent: 1))
+        XCTAssertEqual(blocks[1].text, "b")
+        XCTAssertEqual(blocks[2].kind, .listItem(ordered: true, indent: 0))
+    }
+
+    func testParseImageFields() {
+        let blocks = MarkdownBlockParser.parse("![alt 텍스트](https://kurl.me/x.png)")
+        XCTAssertEqual(blocks.count, 1)
+        XCTAssertEqual(blocks[0].kind, .image(url: "https://kurl.me/x.png"))
+        XCTAssertEqual(blocks[0].text, "alt 텍스트")
+    }
+
+    func testParseTableFields() {
+        let blocks = MarkdownBlockParser.parse("| h1 | h2 |\n| --- | :---: |\n| a | b |")
+        XCTAssertEqual(blocks.count, 1)
+        guard case .table(let table) = blocks[0].kind else { return XCTFail("표 아님") }
+        XCTAssertEqual(table.rows.count, 2)
+        XCTAssertEqual(table.rows[0], ["h1", "h2"])
+        XCTAssertEqual(table.rows[1], ["a", "b"])
+        XCTAssertEqual(table.alignments, [.leading, .center])
+    }
+
+    func testImageWithTextIsParagraph() {
+        // 텍스트가 섞인 이미지 줄은 단독 이미지가 아니므로 문단으로(하이라이터 규칙).
+        let blocks = MarkdownBlockParser.parse("보세요 ![x](u) 이미지")
+        XCTAssertEqual(blocks.count, 1)
+        XCTAssertEqual(blocks[0].kind, .paragraph)
     }
 
     // MARK: 편집 연산
+    // EditorDocument 는 @MainActor @Observable — XCTest 에서 동기 @MainActor 메서드는 이 런타임(Xcode 27
+    // 베타 / iOS 26 sim)에서 SIGABRT 로 죽는다. async 메서드로 두고 MainActor.run 안에서 문서를 다뤄 회피.
 
-    @MainActor
-    func testSplitBlock() {
-        let doc = EditorDocument(blocks: [.paragraph("안녕세상")])
-        let id = doc.blocks[0].id
-        doc.splitBlock(id, at: 2)
-        XCTAssertEqual(doc.blocks.count, 2)
-        XCTAssertEqual(doc.blocks[0].text, "안녕")
-        XCTAssertEqual(doc.blocks[1].text, "세상")
-        XCTAssertEqual(doc.focus?.blockID, doc.blocks[1].id)
-        XCTAssertEqual(doc.focus?.caret, 0)
+    func testSplitBlock() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.paragraph("안녕세상")])
+            let id = doc.blocks[0].id
+            doc.splitBlock(id, at: 2)
+            XCTAssertEqual(doc.blocks.count, 2)
+            XCTAssertEqual(doc.blocks[0].text, "안녕")
+            XCTAssertEqual(doc.blocks[1].text, "세상")
+            XCTAssertEqual(doc.focus?.blockID, doc.blocks[1].id)
+            XCTAssertEqual(doc.focus?.caret, 0)
+        }
     }
 
-    @MainActor
-    func testMergeBackward() {
-        let doc = EditorDocument(blocks: [.paragraph("안녕"), .paragraph("세상")])
-        let second = doc.blocks[1].id
-        doc.mergeBackward(second)
-        XCTAssertEqual(doc.blocks.count, 1)
-        XCTAssertEqual(doc.blocks[0].text, "안녕세상")
-        XCTAssertEqual(doc.focus?.caret, 2)  // 앞 블록 원래 길이
+    func testMergeBackward() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.paragraph("안녕"), .paragraph("세상")])
+            let second = doc.blocks[1].id
+            doc.mergeBackward(second)
+            XCTAssertEqual(doc.blocks.count, 1)
+            XCTAssertEqual(doc.blocks[0].text, "안녕세상")
+            XCTAssertEqual(doc.focus?.caret, 2)  // 앞 블록 원래 길이
+        }
     }
 
-    @MainActor
-    func testSplitThenMergeIsIdentity() {
-        let doc = EditorDocument(blocks: [.paragraph("한줄문단")])
-        let id = doc.blocks[0].id
-        doc.splitBlock(id, at: 2)
-        let second = doc.blocks[1].id
-        doc.mergeBackward(second)
-        XCTAssertEqual(doc.blocks.count, 1)
-        XCTAssertEqual(doc.blocks[0].text, "한줄문단")
+    func testSplitThenMergeIsIdentity() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.paragraph("한줄문단")])
+            let id = doc.blocks[0].id
+            doc.splitBlock(id, at: 2)
+            let second = doc.blocks[1].id
+            doc.mergeBackward(second)
+            XCTAssertEqual(doc.blocks.count, 1)
+            XCTAssertEqual(doc.blocks[0].text, "한줄문단")
+        }
     }
 
-    @MainActor
-    func testFirstBlockBackspaceDemotesHeadingToParagraph() {
-        let doc = EditorDocument(blocks: [.heading(2, "제목")])
-        let id = doc.blocks[0].id
-        doc.mergeBackward(id)
-        XCTAssertEqual(doc.blocks[0].kind, .paragraph)
-        XCTAssertEqual(doc.blocks[0].text, "제목")
+    func testFirstBlockBackspaceDemotesHeadingToParagraph() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.heading(2, "제목")])
+            let id = doc.blocks[0].id
+            doc.mergeBackward(id)
+            XCTAssertEqual(doc.blocks[0].kind, .paragraph)
+            XCTAssertEqual(doc.blocks[0].text, "제목")
+        }
+    }
+
+    // MARK: Phase 2 편집 연산 — 리스트
+
+    func testListItemEnterMakesNewItem() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.listItem("첫", ordered: false, indent: 0)])
+            let id = doc.blocks[0].id
+            doc.splitBlock(id, at: 1)  // "첫" 뒤에서 엔터
+            XCTAssertEqual(doc.blocks.count, 2)
+            XCTAssertEqual(doc.blocks[1].kind, .listItem(ordered: false, indent: 0))
+        }
+    }
+
+    func testEnterOnEmptyListItemExitsList() async {
+        await MainActor.run {
+            // 빈 항목에서 엔터 = 리스트 탈출(indent 0 이면 문단).
+            let doc = EditorDocument(blocks: [.listItem("", ordered: false, indent: 0)])
+            let id = doc.blocks[0].id
+            doc.splitBlock(id, at: 0)
+            XCTAssertEqual(doc.blocks.count, 1)
+            XCTAssertEqual(doc.blocks[0].kind, .paragraph)
+        }
+    }
+
+    func testEnterOnEmptyNestedItemOutdents() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.listItem("", ordered: false, indent: 2)])
+            let id = doc.blocks[0].id
+            doc.splitBlock(id, at: 0)
+            XCTAssertEqual(doc.blocks[0].kind, .listItem(ordered: false, indent: 1))
+        }
+    }
+
+    func testBackspaceAtListStartOutdentsThenParagraph() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.listItem("항목", ordered: true, indent: 1)])
+            let id = doc.blocks[0].id
+            doc.mergeBackward(id)  // indent 1 → 0
+            XCTAssertEqual(doc.blocks[0].kind, .listItem(ordered: true, indent: 0))
+            doc.mergeBackward(id)  // 0 → 문단
+            XCTAssertEqual(doc.blocks[0].kind, .paragraph)
+            XCTAssertEqual(doc.blocks[0].text, "항목")
+        }
+    }
+
+    func testIndentOutdentListItem() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.listItem("x", ordered: false, indent: 0)])
+            let id = doc.blocks[0].id
+            doc.indentListItem(id)
+            XCTAssertEqual(doc.blocks[0].kind, .listItem(ordered: false, indent: 1))
+            doc.outdentListItem(id)
+            XCTAssertEqual(doc.blocks[0].kind, .listItem(ordered: false, indent: 0))
+        }
+    }
+
+    // MARK: Phase 2 편집 연산 — 비텍스트 블록
+
+    func testInsertNonTextAddsTrailingParagraph() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.paragraph("본문")])
+            doc.focus = EditorFocus(blockID: doc.blocks[0].id, caret: 2)
+            doc.insertNonText(.divider)
+            XCTAssertEqual(doc.blocks.count, 3)  // 문단 · 구분선 · 새 빈 문단
+            XCTAssertEqual(doc.blocks[1].kind, .divider)
+            XCTAssertEqual(doc.blocks[2].kind, .paragraph)
+            XCTAssertEqual(doc.focus?.blockID, doc.blocks[2].id)
+        }
+    }
+
+    func testBackspaceDeletesPrecedingNonTextBlock() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.divider, .paragraph("뒤")])
+            let pID = doc.blocks[1].id
+            doc.mergeBackward(pID)  // 문단 맨 앞 백스페이스 → 앞 구분선 삭제
+            XCTAssertEqual(doc.blocks.count, 1)
+            XCTAssertEqual(doc.blocks[0].kind, .paragraph)
+            XCTAssertEqual(doc.blocks[0].text, "뒤")
+        }
+    }
+
+    func testTableCellEditAndRoundTrip() async {
+        await MainActor.run {
+            let table = EditorTable(rows: [["a", "b"], ["c", "d"]], alignments: [.leading, .leading])
+            let doc = EditorDocument(blocks: [.table(table)])
+            let id = doc.blocks[0].id
+            doc.updateTableCell(id, row: 1, col: 0, text: "변경")
+            doc.addTableRow(id)
+            doc.cycleTableColumnAlignment(id, col: 1)  // leading → center
+            let md = doc.markdown
+            // 다시 파싱해도 편집 결과가 살아있다.
+            let reparsed = MarkdownBlockParser.parse(md)
+            guard case .table(let t) = reparsed[0].kind else { return XCTFail("표 아님") }
+            XCTAssertEqual(t.rows[1][0], "변경")
+            XCTAssertEqual(t.rows.count, 3)  // 헤더 + 본문 2 (빈 행 추가)
+            XCTAssertEqual(t.alignments[1], .center)
+        }
     }
 
     // MARK: 줄머리 지름길 감지
@@ -161,6 +357,18 @@ final class WriteV2RoundTripTests: XCTestCase {
         let s = BlockShortcuts.detect(in: "## 소제목", kind: .paragraph)
         XCTAssertEqual(s?.kind, .heading(level: 2))
         XCTAssertEqual(s?.strippedText, "소제목")
+    }
+
+    func testBulletListShortcut() {
+        let s = BlockShortcuts.detect(in: "- 항목", kind: .paragraph)
+        XCTAssertEqual(s?.kind, .listItem(ordered: false, indent: 0))
+        XCTAssertEqual(s?.strippedText, "항목")
+    }
+
+    func testOrderedListShortcut() {
+        let s = BlockShortcuts.detect(in: "1. 항목", kind: .paragraph)
+        XCTAssertEqual(s?.kind, .listItem(ordered: true, indent: 0))
+        XCTAssertEqual(s?.strippedText, "항목")
     }
 
     func testQuoteShortcut() {
@@ -185,10 +393,11 @@ final class WriteV2RoundTripTests: XCTestCase {
 
     // MARK: 문서 초기화 = 마크다운에서
 
-    @MainActor
-    func testDocumentFromMarkdownProducesSameMarkdown() {
-        let md = "# 제목\n\n문단 **볼드**.\n\n> 인용."
-        let doc = EditorDocument(markdown: md)
-        XCTAssertEqual(doc.markdown, md)
+    func testDocumentFromMarkdownProducesSameMarkdown() async {
+        await MainActor.run {
+            let md = "# 제목\n\n문단 **볼드**.\n\n> 인용."
+            let doc = EditorDocument(markdown: md)
+            XCTAssertEqual(doc.markdown, md)
+        }
     }
 }
