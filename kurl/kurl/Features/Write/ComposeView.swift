@@ -210,10 +210,25 @@ struct ComposeView: View {
         .photosPicker(isPresented: $showBodyImagePicker, selection: $bodyImageItem, matching: .images)
         .onChange(of: bodyImageItem) { uploadBodyImage() }
         .onDisappear {
-            // 디바운스 창에 걸린 마지막 변경을 버리지 않는다 — 즉시 1회 저장(자동저장이므로 조용히).
+            // 디바운스 창에 걸린 마지막 변경을 버리지 않는다 — 마지막 1회 저장.
+            // 단, 이 뷰(값 타입)는 곧 사라지므로 여기서 Task 로 save(silent:) 를 돌리면
+            // 죽어가는 @State 위에서 실패해도 배지·토스트를 못 띄워 조용히 유실됐다.
+            // 저장을 뷰 수명과 분리된 루트 싱글턴(DraftFlusher)에 넘겨, 사라진 뒤에도
+            // 끝까지 밀고 실패 시 루트 토스트로 반드시 알린다(초안 미생성=전량 유실 방지).
             autosaveTask?.cancel()
             if canSave, signature != lastSavedSignature {
-                Task { await save(publish: false, silent: true) }
+                DraftFlusher.shared.flush(
+                    .init(
+                        postId: postId,
+                        title: title,
+                        markdown: markdown,
+                        savedTitle: savedTitle,
+                        savedExcerpt: savedExcerpt,
+                        savedTags: savedTags,
+                        excerpt: excerpt,
+                        tags: tags,
+                        savedSeriesId: savedSeriesId,
+                        seriesId: seriesId))
             }
         }
         // 발행 준비 = 살아있는 카드 미리보기 폼(전체 화면). 미리보기·예약은 이 폼 위에

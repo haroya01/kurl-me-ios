@@ -157,6 +157,9 @@ struct StudioView: View {
             await load()
         }
         .refreshable { await load() }
+        // 이탈 시 마지막 저장(DraftFlusher)은 뷰 밖에서 끝나 onSaved 를 못 부른다 — 플러시가
+        // 서버 반영을 끝낸 틱을 관찰해, 새로 만들어진 초안이 목록에 나타나게 새로고침한다.
+        .onChange(of: DraftFlusher.shared.completedTick) { if auth.isSignedIn { Task { await load() } } }
         // 앱으로 돌아오면 목록을 새로고침 — 예약→발행 전환·다른 기기 편집이 묵은 채로 남지 않게.
         .onChange(of: scenePhase) { _, phase in
             if phase == .active, auth.isSignedIn { Task { await load() } }
