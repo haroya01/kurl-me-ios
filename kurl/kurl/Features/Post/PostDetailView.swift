@@ -290,11 +290,17 @@ struct PostDetailView: View {
             // 숨김↔표시 사이클마다 hydrate GET 2건이 재발사되고 좋아요가 잠깐 꺼져 깜빡였다.
             if case .loaded(let detail) = model.phase {
                 let dockHidden = keyboardUp || composerActive || (endVisible && scrollable)
-                EngagementDock(
-                    postId: detail.post.id, initialLikeCount: detail.post.likeCount,
-                    offlineRef: (username: detail.author.username, slug: detail.post.slug),
-                    connectTarget: (title: detail.post.title, postId: detail.post.id)
-                )
+                // 목차를 상단 크롬에서 내려 독 바로 위에 얹는다 — 항해 보조와 인게이지를 한 손
+                // 닿는 자리에 모은다. 목차·독은 성격이 다른 독립 컨트롤이라 spacing 12 로 띄워
+                // 각자 제 유리로 읽히게 하고(독 내부 문법과 동일), 후퇴는 독과 함께 한다.
+                VStack(spacing: 12) {
+                    if headings.count >= 2 { tocButton(proxy) }
+                    EngagementDock(
+                        postId: detail.post.id, initialLikeCount: detail.post.likeCount,
+                        offlineRef: (username: detail.author.username, slug: detail.post.slug),
+                        connectTarget: (title: detail.post.title, postId: detail.post.id)
+                    )
+                }
                 .padding(.trailing, 14)
                 .padding(.bottom, 10)
                 .opacity(dockHidden ? 0 : 1)
@@ -396,7 +402,8 @@ struct PostDetailView: View {
         }
     }
 
-    /// 상세 내비바 — 제목·목차·공유·작가 동작(편집/분석)·남의 글 더보기(차단/신고).
+    /// 상세 내비바 — 제목 + 우측 단일 ⋯ 메뉴(공유·작가 동작/편집·분석·관리·남의 글 차단·신고).
+    /// 항해 보조인 목차는 크롬을 비우고 하단 독 위로 내려 인게이지와 한자리에 모았다(§1 유리 크롬).
     /// 임베드(덱)는 호스트 내비바를 쓰므로 비운다.
     @ToolbarContentBuilder
     private func detailToolbar(_ proxy: ScrollViewProxy) -> some ToolbarContent {
@@ -409,93 +416,68 @@ struct PostDetailView: View {
                     .lineLimit(1)
                     .opacity(showNavTitle ? 1 : 0)
             }
-            // 헤딩 2개 이상이면 목차 — 탭하면 그 자리로 스크롤(웹 post-toc 의 네이티브 번역).
-            // 제목·왼쪽은 깔끔히 두고 목차는 우측 크롬으로. 항해 보조라 액션 클러스터(공유·
-            // 분석·편집)와는 ToolbarSpacer 로 유리 그룹을 나눠 제 몫으로 읽히게 한다.
-            if headings.count >= 2 {
-                ToolbarItem(placement: .primaryAction) {
-                    Menu {
-                        ForEach(headings, id: \.id) { h in
-                            Button {
-                                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.3)) {
-                                    proxy.scrollTo(h.id, anchor: UnitPoint(x: 0, y: 0.08))
-                                }
-                            } label: {
-                                // 들여쓰기는 비분리 공백 — 메뉴가 선행 일반 공백을 트리밍해 레벨이 뭉개졌다.
-                                Text(String(repeating: "\u{00A0}\u{00A0}\u{00A0}", count: h.level - 1) + h.title)
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "list.bullet")
-                    }
-                    .tint(.brand)
-                    .accessibilityLabel("목차")
-                }
-                ToolbarSpacer(.fixed, placement: .primaryAction)
-            }
+            // 나열하던 공유·분석·편집·관리를 단일 ⋯ 하나로 접는다 — 읽기 화면 크롬을 조용히
+            // 비우고(§10), 액션은 한 번의 탭 뒤에 둔다. 조건부 노출은 그대로: 편집·분석 = 내 글만,
+            // 신고 = 남의 글만, 공유 = 모두. 파괴적 동작(발행취소·삭제·차단·신고)은 시트/알림으로
+            // 되묻는다(메뉴에서 바로 지워지지 않게).
             ToolbarItem(placement: .primaryAction) {
-                if let shareURL {
-                    ShareLink(item: shareURL) {
-                        Image(systemName: "square.and.arrow.up")
-                    }
-                    .accessibilityLabel(Text("공유"))
-                }
-            }
-            // 내 글이면 — 읽으면서 바로 편집·분석으로 갈 수 있게 작가 동작을 같이 노출.
-            if isOwnPost {
-                ToolbarItem(placement: .primaryAction) {
-                    Button { showOwnAnalytics = true } label: {
-                        Image(systemName: "chart.bar")
-                    }
-                    .tint(.brand)
-                    .accessibilityLabel("이 글 분석")
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    Button { editingOwnPost = true } label: {
-                        Image(systemName: "pencil")
-                    }
-                    .tint(.brand)
-                    .accessibilityLabel("이 글 편집")
-                }
-                // 발행취소·삭제 = 더 보기 메뉴로 — 편집·분석(잦은 동작)과 색을 다투지 않게
-                // 파괴적 관리는 ⋯ 뒤에 둔다(남의 글 차단·신고 메뉴와 같은 자리). 웹 관리와 같은 계약.
-                ToolbarItem(placement: .primaryAction) {
+                if isOwnPost {
                     Menu {
-                        Button(role: .destructive) { showUnpublishConfirm = true } label: {
-                            Label("발행 취소", systemImage: "eye.slash")
+                        shareMenuItem
+                        Button { showOwnAnalytics = true } label: {
+                            Label("이 글 분석", systemImage: "chart.bar")
                         }
-                        Button(role: .destructive) { showDeleteConfirm = true } label: {
-                            Label("삭제", systemImage: "trash")
+                        Button { editingOwnPost = true } label: {
+                            Label("이 글 편집", systemImage: "pencil")
+                        }
+                        Section {
+                            Button(role: .destructive) { showUnpublishConfirm = true } label: {
+                                Label("발행 취소", systemImage: "eye.slash")
+                            }
+                            Button(role: .destructive) { showDeleteConfirm = true } label: {
+                                Label("삭제", systemImage: "trash")
+                            }
                         }
                     } label: {
                         Image(systemName: "ellipsis")
                     }
                     .tint(.brand)
+                    // 관리(발행취소·삭제)를 품는 메뉴 — 접근성 라벨은 관리 진입로로 유지한다.
                     .accessibilityLabel("이 글 관리")
-                }
-            } else if loadedPostId != nil, let author = loadedAuthor {
-                // 남의 글이면 — 더 보기 메뉴에 차단·신고(작가 프로필과 같은 문법). 차단을 여기
-                // 두어 거슬리는 글을 만난 자리에서 바로 처리하게 하고, 한 항목뿐이던 메뉴도 채운다.
-                ToolbarItem(placement: .primaryAction) {
+                } else if loadedPostId != nil, let author = loadedAuthor {
+                    // 남의 글이면 — 공유 + 차단·신고(작가 프로필과 같은 문법). 차단을 여기 두어
+                    // 거슬리는 글을 만난 자리에서 바로 처리하게 한다.
                     Menu {
-                        if BlockStore.shared.isBlocked(id: author.id) {
-                            Button {
-                                Task {
-                                    try? await BlockStore.shared.unblock(
-                                        id: author.id, username: author.username)
-                                    ToastCenter.shared.show(String(localized: "차단을 해제했어요"))
+                        shareMenuItem
+                        Section {
+                            if BlockStore.shared.isBlocked(id: author.id) {
+                                Button {
+                                    Task {
+                                        try? await BlockStore.shared.unblock(
+                                            id: author.id, username: author.username)
+                                        ToastCenter.shared.show(String(localized: "차단을 해제했어요"))
+                                    }
+                                } label: {
+                                    Label("차단 해제", systemImage: "hand.raised.slash")
                                 }
-                            } label: {
-                                Label("차단 해제", systemImage: "hand.raised.slash")
+                            } else {
+                                Button(role: .destructive) { showBlockConfirm = true } label: {
+                                    Label("차단", systemImage: "hand.raised")
+                                }
                             }
-                        } else {
-                            Button(role: .destructive) { showBlockConfirm = true } label: {
-                                Label("차단", systemImage: "hand.raised")
+                            Button(role: .destructive) { showReport = true } label: {
+                                Label("신고", systemImage: "flag")
                             }
                         }
-                        Button(role: .destructive) { showReport = true } label: {
-                            Label("신고", systemImage: "flag")
-                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                    }
+                    .tint(.brand)
+                    .accessibilityLabel("더 보기")
+                } else {
+                    // 작가 정보가 아직 없을 때(로딩 중 등)엔 공유만이라도 손에 남긴다.
+                    Menu {
+                        shareMenuItem
                     } label: {
                         Image(systemName: "ellipsis")
                     }
@@ -504,6 +486,44 @@ struct PostDetailView: View {
                 }
             }
         }
+    }
+
+    /// ⋯ 메뉴 안의 공유 항목 — 모두에게 뜬다(공유 URL 이 준비됐을 때). 네이티브 공유 시트를 연다.
+    @ViewBuilder
+    private var shareMenuItem: some View {
+        if let shareURL {
+            ShareLink(item: shareURL) {
+                Label("공유", systemImage: "square.and.arrow.up")
+            }
+        }
+    }
+
+    /// 목차 — 독 위에 얹힌 유리 원판. 탭하면 헤딩을 펼쳐 그 자리로 스크롤한다(웹 post-toc 의
+    /// 네이티브 번역). 독의 좋아요·북마크와 같은 유리 문법(52 원판·시맨틱 심볼·materialize)이라
+    /// 크롬으로 한 덩이로 읽히되, 성격이 다른 항해 컨트롤이라 12pt 떨어져 제 유리로 산다.
+    private func tocButton(_ proxy: ScrollViewProxy) -> some View {
+        Menu {
+            ForEach(headings, id: \.id) { h in
+                Button {
+                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.3)) {
+                        proxy.scrollTo(h.id, anchor: UnitPoint(x: 0, y: 0.08))
+                    }
+                } label: {
+                    // 들여쓰기는 비분리 공백 — 메뉴가 선행 일반 공백을 트리밍해 레벨이 뭉개졌다.
+                    Text(String(repeating: "\u{00A0}\u{00A0}\u{00A0}", count: h.level - 1) + h.title)
+                }
+            }
+        } label: {
+            // 유리 위 심볼은 시맨틱 스타일(§1.2) — vibrancy 가 가독을 만든다. 52 원판은 독과 같은 키.
+            Image(systemName: "list.bullet")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(.primary)
+                .frame(width: 52, height: 52)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .glassCapsule(prominent: false)
+        .accessibilityLabel(Text("목차"))
     }
 
     /// 첫 1회 — 하이라이트가 "탭하면 대화·메모"라는 걸 조용히 알려준다. 탭하거나 5초 지나면 사라진다.
