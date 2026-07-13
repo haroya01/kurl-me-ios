@@ -82,8 +82,9 @@ extension EnvironmentValues {
     }
 }
 
-/// 탭 루트의 스크롤 표면에 붙여 세로 오프셋을 공유 상태로 흘려보낸다 — 스레드식 숨김의 눈.
-/// 상세/시트 등 탭 밖 스크롤엔 붙이지 않는다(그쪽은 탭바가 이미 없다).
+/// 스크롤 표면에 붙여 세로 오프셋을 공유 상태로 흘려보낸다 — 스레드식 숨김의 눈.
+/// 커스텀 바는 푸시 화면 위에도 떠 있으므로 탭 루트만이 아니라 글 상세처럼 오래 읽는
+/// 푸시 표면도 붙인다 — 붙인 표면만 보고하는 옵트인이라, 안 붙인 화면은 상태를 안 건드린다.
 private struct TracksTabBarVisibility: ViewModifier {
     let enabled: Bool
     @Environment(\.tabBarVisibility) private var visibility
@@ -103,8 +104,8 @@ private struct TracksTabBarVisibility: ViewModifier {
 }
 
 extension View {
-    /// 이 스크롤 표면의 방향을 공유 `TabBarVisibility` 로 보낸다(탭 루트 전용).
-    /// `enabled` 로 활성 페이지만 몰게 한다(ZStack 에 여러 페이지가 상주하는 피드).
+    /// 이 스크롤 표면의 방향을 공유 `TabBarVisibility` 로 보낸다.
+    /// `enabled` 로 활성 표면만 몰게 한다(ZStack 상주 피드 페이지·덱에 임베드된 상세).
     func tracksTabBarVisibility(_ enabled: Bool = true) -> some View {
         modifier(TracksTabBarVisibility(enabled: enabled))
     }

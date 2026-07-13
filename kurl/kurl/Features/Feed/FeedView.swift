@@ -137,19 +137,17 @@ struct FeedView: View {
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: Route.self) { route in
                 // 글 푸시만 zoom. 소스 카드가 화면에 없으면(깊은 푸시) 시스템이 표준
-                // 푸시로 폴백한다. 푸시된 화면은 탭바 숨김을 추적하지 않는다(탭 루트 전용).
+                // 푸시로 폴백한다.
                 if case .post(let username, let slug) = route, !reduceMotion {
                     RouteView(route: route)
                         .navigationTransition(.zoom(sourceID: "post-\(username)-\(slug)", in: zoomNS))
-                        .environment(\.tabBarVisibility, nil)
                 } else {
                     RouteView(route: route)
-                        .environment(\.tabBarVisibility, nil)
                 }
             }
             // 인터리브한 공개 연결 카드의 컬렉션 칩 → 컬렉션 상세(발견 표면과 같은 목적지).
             .navigationDestination(for: CollectionRef.self) {
-                CollectionDetailView(collectionId: $0.id).environment(\.tabBarVisibility, nil)
+                CollectionDetailView(collectionId: $0.id)
             }
             .navigationDestination(isPresented: $showNotifications) {
                 NotificationsView()

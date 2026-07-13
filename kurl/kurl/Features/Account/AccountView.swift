@@ -51,7 +51,7 @@ struct AccountView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     NavigationLink {
                         // 푸시된 화면은 탭바 숨김을 추적하지 않는다(탭 루트 전용).
-                        SettingsView().environment(\.tabBarVisibility, nil)
+                        SettingsView()
                     } label: {
                         Image(systemName: "gearshape")
                     }
@@ -62,7 +62,7 @@ struct AccountView: View {
                     // 서재 — 내가 모은 것(북마크·좋아요·구독·하이라이트·컬렉션·기록·노트).
                     ToolbarItem(placement: .primaryAction) {
                         NavigationLink {
-                            LibraryView().environment(\.tabBarVisibility, nil)
+                            LibraryView()
                         } label: {
                             Image(systemName: "books.vertical")
                         }
@@ -94,7 +94,7 @@ struct AccountView: View {
                 }
             }
             .navigationDestination(isPresented: $showNotifications) {
-                NotificationsView().environment(\.tabBarVisibility, nil)
+                NotificationsView()
             }
             .onChange(of: showNotifications) { _, open in
                 // 알림에서 돌아오면 미읽음 점 갱신 — 모두 읽었는데 점이 남지 않게.
@@ -117,7 +117,7 @@ struct AccountView: View {
             }
             // 푸시된 상세는 탭바 숨김을 추적하지 않는다(탭 루트 전용).
             .navigationDestination(for: Route.self) {
-                RouteView(route: $0).environment(\.tabBarVisibility, nil)
+                RouteView(route: $0)
             }
             .task {
                 await reloadMe()

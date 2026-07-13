@@ -147,6 +147,9 @@ struct PostDetailView: View {
         // 제목이 내비바로 스밀 때까지(showNavTitle) 상단 엣지 효과를 끈다 — 투명 헤더 위
         // 제목이 깔끔히 떠 있게. 덱(임베드)은 항상 끈다.
         .scrollEdgeEffectHidden(embedded || !showNavTitle, for: .top)
+        // 읽는 동안 홈바도 비켜선다 — 다른 스크롤 면과 같은 문법(내리면 숨고 올리면 돌아온다).
+        // 덱(임베드)은 장 넘김이 주라 제외.
+        .tracksTabBarVisibility(!embedded)
         .background(Palette.readingBg.ignoresSafeArea())
         // 스크롤 여유가 충분한지 — 독 후퇴 판정의 전제(짧은 글은 독이 유일한 인게이지 표면).
         // 한 번 스크롤 가능으로 판정되면 유지한다(글 길이는 스크롤로 줄지 않는데, 바닥에 닿으면
