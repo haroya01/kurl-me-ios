@@ -617,7 +617,8 @@ private struct FeedSeriesCard: View {
                     if loadImage {
                         RemoteImage(url: url) { phase in
                             if case .success(let img) = phase {
-                                img.resizable().scaledToFill()
+                                // 채움 이미지는 프레임 밖으로 넘친다 — 클립은 그림만 자르고 히트는 못 잘라, 이웃 카드 탭을 먹는다.
+                                img.resizable().scaledToFill().allowsHitTesting(false)
                             } else {
                                 Palette.accent.opacity(0.12)
                             }

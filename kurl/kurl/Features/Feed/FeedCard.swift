@@ -51,7 +51,8 @@ struct FeedRow: View {
             if let urlString = item.ogImageUrl, let url = URL(string: urlString) {
                 RemoteImage(url: url) { phase in
                     if case .success(let image) = phase {
-                        image.resizable().scaledToFill()
+                        // 채움 이미지는 프레임 밖으로 넘친다 — 클립은 그림만 자르고 히트는 못 잘라, 이웃 카드 탭을 먹는다.
+                        image.resizable().scaledToFill().allowsHitTesting(false)
                     } else {
                         // 로딩·실패 공통 — 맨 회색 면 대신 옅은 kurl 마크 워터마크(otherPostCover 와 같은 언어).
                         ZStack {
