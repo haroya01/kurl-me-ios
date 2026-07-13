@@ -8,10 +8,10 @@ import SwiftUI
 /// 첫 실행 1회 — 로그인 vs 게스트를 명시적으로 가른다. 게스트를 고르면 다시 안 뜬다.
 /// 읽기는 로그인 뒤에 갇히면 안 되므로(App Store 5.1.1(v)) "둘러보기"가 동등한 1급 출구다.
 ///
-/// 구성은 "단어 벽": 브랜드 그린 들판 위에 우리 우주의 단어들(하이라이트·시리즈·길·연결…)이
-/// 두 톤으로 깔리고, 검정 태그라인 한 줄이 그 위에 선다 — 일러스트 없이 어휘가 곧 첫인상.
-/// 벽은 장식이라 Dynamic Type 을 따르지 않고(a11y 트리에서도 숨김), 태그라인·버튼만 따른다.
-/// 다크에서도 들판은 같은 그린 — 첫 화면은 모드가 아니라 브랜드가 정한다.
+/// 구성은 "앱이 제 언어로 자기소개": 종이 본문(§1 종이 본문·액체 크롬) 위에 인앱과 똑같은
+/// 초록 형광이 그어지고, 그 문장에서 초록 실이 자라 컬렉션 카드에 이어진다 — 읽다가 긋고,
+/// 그은 것이 연결되는 제품의 두 동작이 그대로 첫인상. 배경·잉크·형광·유리 전부 인앱 토큰.
+/// 벽(본문·카드)은 장식이라 Dynamic Type 미적용(a11y 숨김), 태그라인·버튼만 따른다.
 struct WelcomeView: View {
     /// 스플래시가 걷혀 웰컴이 드러나는 순간 true — 이때 엔트런스가 시작된다.
     var revealed: Bool
@@ -27,6 +27,8 @@ struct WelcomeView: View {
     @State private var rowsVisible = false
     /// 본문이 선 뒤 형광이 "그어지는" 박자 — 오버레이 텍스트가 이 값으로 떠오른다.
     @State private var highlightsOn = false
+    /// 형광 다음 박자 — 실이 자라 컬렉션 카드에 꽂힌다.
+    @State private var threadOn = false
     @State private var taglineVisible = false
     @State private var actionsVisible = false
     @State private var showLogin = false
@@ -44,18 +46,18 @@ struct WelcomeView: View {
 
     var body: some View {
         ZStack {
-            // 들판 — 브랜드 그린 풀블리드. 라이트/다크 공통(첫 화면은 브랜드가 정한다).
-            Palette.accent.ignoresSafeArea()
+            // 종이 — 인앱 리딩 배경 그대로(§1 종이 본문). 웰컴이 곧 첫 리딩 화면이다.
+            Palette.readingBg.ignoresSafeArea()
 
             VStack(alignment: .leading, spacing: 0) {
-                // 서명 — 흰 마크 + 워드마크. 스플래시 마크는 막과 함께 걷히고 여기 흰 서명이 남는다.
+                // 서명 — 인앱 그대로의 그린 마크 + 잉크 워드마크.
                 HStack(spacing: 10) {
-                    KurlMark(drawn: [true, true, true], tint: .white)
+                    KurlMark(drawn: [true, true, true])
                         .frame(width: 44, height: 27)
                     Text(verbatim: "kurl")
                         .font(.system(size: 26, weight: .bold))
                         .tracking(-1.0)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Palette.ink)
                 }
                 .padding(.horizontal, Metrics.gutter + 4)
                 .opacity(rowsVisible ? 1 : 0)
@@ -64,46 +66,51 @@ struct WelcomeView: View {
 
                 proseWall
 
-                // 태그라인 — 들판 위 검정 한 방(다크에서도 검정: 그린 위 대비가 곧 목소리).
+                connectionChip
+                    .padding(.horizontal, Metrics.gutter + 4)
+
+                // 태그라인 — 종이 위 잉크 헤비(인앱 제목의 목소리).
                 Text("읽고, 쓰고,\n연결하다.")
                     .font(.system(size: taglineSize, weight: .heavy))
                     .tracking(-0.6)
                     .lineSpacing(3)
-                    .foregroundStyle(.black)
+                    .foregroundStyle(Palette.ink)
                     .padding(.horizontal, Metrics.gutter + 4)
-                    .padding(.top, 26)
+                    .padding(.top, 24)
                     .opacity(taglineVisible ? 1 : 0)
                     .offset(y: taglineVisible ? 0 : 10)
                     .accessibilityAddTraits(.isHeader)
 
-                Spacer(minLength: 18)
+                Spacer(minLength: 16)
 
-                // 트위치식 두 알약 — 게스트 출구가 시작하기와 같은 줄, 같은 키(5.1.1(v) 1급 출구).
+                // 두 알약 — 시작하기=브랜드 그린 솔리드(인앱 주행동), 둘러보기=유리(액체 크롬).
+                // 게스트 출구가 시작하기와 같은 줄, 같은 키(App Store 5.1.1(v) 1급 출구).
                 HStack(spacing: 10) {
                     Button {
                         onContinueAsGuest()
                     } label: {
                         Text("로그인 없이 둘러보기")
                             .font(.system(size: 15 * unit, weight: .semibold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Palette.ink)
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
                             .frame(maxWidth: .infinity)
                             .frame(height: 52)
-                            .background(.white.opacity(0.16), in: Capsule())
+                            .contentShape(Capsule())
                     }
                     .buttonStyle(.plain)
+                    .glassEffect(.regular, in: .capsule)
 
                     Button {
                         showLogin = true
                     } label: {
                         Text("시작하기")
                             .font(.system(size: 16 * unit, weight: .bold))
-                            .foregroundStyle(.black)
+                            .foregroundStyle(.white)
                             .lineLimit(1)
                             .frame(maxWidth: .infinity)
                             .frame(height: 52)
-                            .background(.white, in: Capsule())
+                            .background(Palette.accent, in: Capsule())
                     }
                     .buttonStyle(.plain)
                 }
@@ -123,9 +130,43 @@ struct WelcomeView: View {
         .onChange(of: revealed) { _, now in if now { play() } }
     }
 
-    // MARK: 단어 벽 — 우리 우주의 어휘가 곧 배경
+    // MARK: 연결 실 + 컬렉션 카드 — 그은 문장이 어딘가에 이어진다(연결 그래프의 최소 표현)
 
-    /// 본문(톤온톤)과 형광 오버레이(같은 문자열·같은 조판이라 글리프가 정확히 겹친다) —
+    private var connectionChip: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // 실 — 형광 구절 아래에서 자라 내려온다(scaleY, 위 고정).
+            RoundedRectangle(cornerRadius: 1)
+                .fill(Palette.accent)
+                .frame(width: 2, height: 26)
+                .padding(.leading, 34)
+                .scaleEffect(y: threadOn ? 1 : 0.01, anchor: .top)
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.turn.down.right")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(Palette.accent)
+                Text("'다시 읽고 싶은'에 이어짐")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Palette.ink)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Palette.readingBg)
+                    .shadow(color: .black.opacity(0.06), radius: 10, y: 3))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(Palette.accent.opacity(0.35), lineWidth: 1))
+            .opacity(threadOn ? 1 : 0)
+            .offset(y: threadOn ? 0 : -6)
+        }
+        // 데모 소품 — 보이스오버는 태그라인으로 직행.
+        .accessibilityHidden(true)
+    }
+
+    // MARK: 하이라이트 벽 — 본문에 형광이 그어진다
+
+    /// 본문(잉크)과 형광 오버레이(같은 문자열·같은 조판이라 글리프가 정확히 겹친다) —
     /// 오버레이만 나중에 떠올라 "형광펜이 그어지는" 순간이 엔트런스가 된다.
     private var proseWall: some View {
         ZStack(alignment: .topLeading) {
@@ -142,20 +183,20 @@ struct WelcomeView: View {
         .accessibilityHidden(true)
     }
 
-    /// highlighted=false 는 전체 톤온톤 본문. true 는 형광 구절만 보이는 오버레이(나머지는 투명) —
-    /// 두 장을 겹쳐 오버레이 불투명도만 올리면 같은 자리에서 형광이 켜진다.
+    /// highlighted=false 는 전체 잉크 본문. true 는 형광 구절만 보이는 오버레이(나머지는 투명) —
+    /// 두 장을 겹쳐 오버레이 불투명도만 올리면 같은 자리에서 형광이 켜진다(인앱 하이라이트 결).
     private static func attributed(highlighted: Bool) -> AttributedString {
         var out = AttributedString()
         for (text, isHighlight) in prose {
             var run = AttributedString(text)
-            run.font = .system(size: 23, weight: .semibold)
+            run.font = .system(size: 21, weight: .regular)
             if !highlighted {
-                run.foregroundColor = .white.opacity(0.34)
+                run.foregroundColor = Palette.ink
             } else if isHighlight {
-                run.foregroundColor = .white
-                run.backgroundColor = .white.opacity(0.16)
+                run.foregroundColor = Palette.ink
+                run.backgroundColor = Palette.accent.opacity(0.16)
                 run.underlineStyle = .single
-                run.underlineColor = UIColor.white.withAlphaComponent(0.85)
+                run.underlineColor = UIColor(Palette.accent)
             } else {
                 run.foregroundColor = .clear
             }
@@ -170,14 +211,17 @@ struct WelcomeView: View {
         guard !reduceMotion else {
             rowsVisible = true
             highlightsOn = true
+            threadOn = true
             taglineVisible = true
             actionsVisible = true
             return
         }
         rowsVisible = true
-        // 본문이 자리잡은 뒤 형광이 그어진다 — 이 한 박자가 화면의 서사(읽다가 긋는다).
-        withAnimation(.easeOut(duration: 0.5).delay(0.55)) { highlightsOn = true }
-        withAnimation(.easeOut(duration: 0.4).delay(0.85)) { taglineVisible = true }
-        withAnimation(.easeOut(duration: 0.45).delay(1.0)) { actionsVisible = true }
+        // 본문이 자리잡은 뒤 형광이 그어지고, 그은 문장에서 실이 자라 컬렉션에 꽂힌다 —
+        // 읽다가 긋고, 그은 것이 이어지는 제품의 서사가 엔트런스 그 자체.
+        withAnimation(.easeOut(duration: 0.5).delay(0.5)) { highlightsOn = true }
+        withAnimation(.snappy(duration: 0.45).delay(0.95)) { threadOn = true }
+        withAnimation(.easeOut(duration: 0.4).delay(1.2)) { taglineVisible = true }
+        withAnimation(.easeOut(duration: 0.45).delay(1.35)) { actionsVisible = true }
     }
 }

@@ -16729,6 +16729,34 @@
           }
         }
       }
+    },
+    "'다시 읽고 싶은'에 이어짐": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Woven into “Read again”"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「もう一度読みたい」につながった"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã nối vào “Đọc lại”"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“फिर पढ़ना है” से जुड़ा"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
