@@ -14,6 +14,9 @@ import UIKit
 final class PostHighlightStore {
     let postId: Int64
     private(set) var highlights: [HighlightView] = []
+    /// 남들 하이라이트가 많으면 본문이 어지럽다 — 켜면 칠하기를 멈춘다(내 형광펜 생성은 그대로).
+    /// 뷰(@AppStorage)가 소유하는 설정을 밀어 넣는다 — 페인트만 접고 데이터는 유지한다.
+    var paintHidden = false
     /// 미로그인 사용자가 하이라이트를 시도 — 뷰가 로그인 시트를 띄우도록 신호한다.
     var loginPrompt = false
     /// 탭한 하이라이트 — 뷰가 답글 스레드 시트를 띄운다.
@@ -48,7 +51,9 @@ final class PostHighlightStore {
     /// 다중 블록(endBlockOrder > blockOrder)은 시작 블록 꼬리·중간 블록 전체·끝 블록 머리로 나눠 칠한다
     /// (Int.max = 이 블록 끝까지, 뷰에서 본문 길이로 clamp).
     func marks(forBlock blockOrder: Int) -> [SelectableProseText.Mark] {
-        highlights.compactMap { h in
+        // 표시를 끈 상태면 마크를 하나도 넘기지 않는다 — 본문이 조용해진다. 선택→생성은 여전히 산다.
+        guard !paintHidden else { return [] }
+        return highlights.compactMap { h in
             let startBO = h.blockOrder ?? -1
             let endBO = h.endBlockOrder ?? startBO
             guard startBO >= 0, blockOrder >= startBO, blockOrder <= endBO else { return nil }

@@ -139,7 +139,13 @@ struct DiscoverDeckView: View {
                 // 공유(현재 장)와 섞기(덱 전체)는 작용 범위가 달라 유리 핀도 분리한다.
                 ToolbarItem(placement: .primaryAction) {
                     if let url = currentShareURL {
-                        ShareLink(item: url) {
+                        // 제목 + 앱 마크 미리보기로 공유 시트가 빈 카드로 뜨지 않게(상세 공유와 같은 문법).
+                        ShareLink(
+                            item: url,
+                            preview: SharePreview(
+                                (currentItem?.title).map(\.cleanedPreview) ?? "",
+                                icon: Image("LaunchMark"))
+                        ) {
                             Image(systemName: "square.and.arrow.up")
                         }
                         .tint(.brand)
