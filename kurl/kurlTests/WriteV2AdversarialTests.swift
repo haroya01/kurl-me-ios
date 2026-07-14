@@ -1,0 +1,307 @@
+//
+//  WriteV2AdversarialTests.swift
+//  kurlTests
+//
+//  글쓰기 엔진의 복합·적대 케이스 — "그럴듯하게 동작"이 아니라 못된 입력과 연산 조합에서도
+//  왕복(저장 계약)이 안 흔들리는지 고정한다. 세 층: ① 왕복 고정점(정규화 후 멱등) ② 문서 연산
+//  시퀀스(분할·병합·변환·표 편집 조합) ③ 지름길·인라인 렌더 경계.
+//
+
+import XCTest
+
+@testable import kurl
+
+@MainActor
+final class WriteV2AdversarialTests: XCTestCase {
+
+    /// Xcode 27 베타 시뮬 런타임의 isolated-deinit malloc abort 우회 — WriteV2FocusEngineTests 와 동일.
+    private static var retained: [EditorDocument] = []
+
+    private func makeDoc(_ blocks: [EditorBlock]) -> EditorDocument {
+        let doc = EditorDocument(blocks: blocks)
+        Self.retained.append(doc)
+        return doc
+    }
+
+    private func makeDoc(markdown: String) -> EditorDocument {
+        let doc = EditorDocument(markdown: markdown)
+        Self.retained.append(doc)
+        return doc
+    }
+
+    /// 첫 직렬화(정규화) 이후엔 왕복이 고정점이어야 한다 — 저장할 때마다 본문이 변형되면
+    /// 자동저장 서명이 출렁여 더티 루프에 빠진다.
+    private func assertFixedPoint(
+        _ markdown: String, file: StaticString = #filePath, line: UInt = #line
+    ) {
+        let once = MarkdownSerializer.markdown(from: MarkdownBlockParser.parse(markdown))
+        let twice = MarkdownSerializer.markdown(from: MarkdownBlockParser.parse(once))
+        XCTAssertEqual(twice, once, "정규화 후 왕복이 고정점이 아님", file: file, line: line)
+    }
+
+    // MARK: ① 왕복 고정점 — 못된 입력들
+
+    func testFixedPointOnMalformedInline() {
+        assertFixedPoint("**닫히지 않은 볼드")
+        assertFixedPoint("별표 * 하나")
+        assertFixedPoint("`닫히지 않은 코드")
+        assertFixedPoint("[라벨만](")
+        assertFixedPoint("![이미지 같지만 아닌 것](url 에 공백)")
+        assertFixedPoint("**")
+        assertFixedPoint("*_*_*")
+    }
+
+    func testFixedPointOnComplexDocument() {
+        assertFixedPoint(
+            """
+            # 제목
+
+            본문 **볼드**와 *이탤릭*, `코드`, [링크](https://example.com/a) 와 맨 https://example.com/b
+
+            - 하나
+            - 둘
+              - 둘의 하나
+            1. 첫
+            2. 둘
+
+            > 인용 첫 줄
+            > 인용 둘째 줄
+
+            ```swift
+            let x = "hello"
+            # 이건 제목이 아니라 코드다
+            ```
+
+            ---
+
+            ![«wide» «1200x800» 히어로](https://cdn.example/hero.png "커버")
+
+            | 이름 | 값 |
+            | --- | ---: |
+            | 파이프 \\| 이스케이프 | 42 |
+
+            https://youtu.be/dQw4w9WgXcQ
+            """)
+    }
+
+    func testFixedPointOnEdgeStructures() {
+        assertFixedPoint(">")                        // 빈 인용 줄
+        assertFixedPoint("> ")                       // 마커만
+        assertFixedPoint("```\n```")                 // 빈 코드
+        assertFixedPoint("```swift\n\n```")          // 빈 줄만 든 코드
+        assertFixedPoint("---")
+        assertFixedPoint("----------")               // 긴 구분선
+        assertFixedPoint("| a |\n| --- |")           // 본문 없는 1열 표
+        assertFixedPoint("![](https://cdn.example/x.png)")  // alt 없는 이미지
+    }
+
+    func testCRLFPasteIsNormalized() {
+        // 윈도우/외부 앱 붙여넣기 — \r 이 본문에 남으면 줄머리 판정과 저장 계약이 조용히 오염된다.
+        let blocks = MarkdownBlockParser.parse("# 제목\r\n\r\n본문 줄\r\n둘째 줄")
+        XCTAssertEqual(blocks.count, 2)
+        XCTAssertEqual(blocks[0].kind, .heading(level: 1))
+        XCTAssertEqual(blocks[0].text, "제목")
+        XCTAssertFalse(blocks[1].text.contains("\r"), "CRLF 의 \\r 가 본문에 샘")
+        assertFixedPoint("# 제목\r\n\r\n본문")
+    }
+
+    func testCodeFenceSwallowsBlockMarkers() {
+        // 펜스 안 `#`·`-`·`>`·`---` 는 구조가 아니라 코드다.
+        let md = "```\n# not heading\n- not list\n> not quote\n---\n```"
+        let blocks = MarkdownBlockParser.parse(md)
+        XCTAssertEqual(blocks.count, 1)
+        guard case .code = blocks[0].kind else { return XCTFail("코드 블록이 아님") }
+        XCTAssertTrue(blocks[0].text.contains("# not heading"))
+        assertFixedPoint(md)
+    }
+
+    func testOrderedListRenumbersRunsButStaysFixed() {
+        // 원문 번호가 어긋나 있어도(3. 7.) 정규화는 연속 순번으로 — 그 뒤로는 고정.
+        let once = MarkdownSerializer.markdown(from: MarkdownBlockParser.parse("3. 셋\n7. 일곱"))
+        XCTAssertEqual(once, "1. 셋\n2. 일곱")
+        assertFixedPoint("3. 셋\n7. 일곱")
+    }
+
+    func testTableUnevenRowsArePaddedToWidestRow() {
+        // 파서 계약: 열 수 = 가장 넓은 행(헤더가 좁으면 헤더도 빈 셀로 패딩) — 셀이 잘려나가지 않는다.
+        let md = "| a | b | c |\n| --- | --- | --- |\n| 하나 |\n| 하나 | 둘 | 셋 | 넷 |"
+        let blocks = MarkdownBlockParser.parse(md)
+        guard case .table(let table) = blocks[0].kind else { return XCTFail("표가 아님") }
+        XCTAssertEqual(table.columnCount, 4)
+        XCTAssertTrue(table.rows.allSatisfy { $0.count == 4 }, "행 폭이 열 수로 정규화 안 됨")
+        XCTAssertEqual(table.rows[1], ["하나", "", "", ""], "좁은 행은 빈 셀로 패딩")
+        assertFixedPoint(md)
+    }
+
+    // MARK: ② 문서 연산 시퀀스
+
+    func testSplitHeadingMiddleKeepsKindOnTail() {
+        let doc = makeDoc([.heading(2, "앞뒤")])
+        doc.splitBlock(doc.blocks[0].id, at: 1)
+        XCTAssertEqual(doc.blocks.count, 2)
+        XCTAssertEqual(doc.blocks[0].kind, .heading(level: 2))
+        XCTAssertEqual(doc.blocks[0].text, "앞")
+        XCTAssertEqual(doc.blocks[1].kind, .heading(level: 2), "내용이 남은 꼬리는 종류 유지")
+        XCTAssertEqual(doc.blocks[1].text, "뒤")
+    }
+
+    func testSplitHeadingAtEndDropsToParagraph() {
+        let doc = makeDoc([.heading(2, "제목")])
+        doc.splitBlock(doc.blocks[0].id, at: 2)
+        XCTAssertEqual(doc.blocks[1].kind, .paragraph, "제목 끝 엔터는 문단으로")
+        XCTAssertEqual(doc.focus?.blockID, doc.blocks[1].id)
+    }
+
+    func testMergeParagraphIntoHeadingKeepsHeading() {
+        let doc = makeDoc([.heading(2, "제목"), .paragraph("이어붙일 본문")])
+        doc.mergeBackward(doc.blocks[1].id)
+        XCTAssertEqual(doc.blocks.count, 1)
+        XCTAssertEqual(doc.blocks[0].kind, .heading(level: 2))
+        XCTAssertEqual(doc.blocks[0].text, "제목이어붙일 본문")
+        XCTAssertEqual(doc.focus?.caret, 2, "캐럿은 병합 지점(앞 블록 원래 길이)")
+    }
+
+    func testBackspaceLadderOnNestedListItem() {
+        // 중첩 항목 맨 앞 백스페이스: indent 2 → 1 → 0 → 문단 (사다리).
+        let doc = makeDoc([.listItem("항목", ordered: false, indent: 2)])
+        let id = doc.blocks[0].id
+        doc.mergeBackward(id)
+        XCTAssertEqual(doc.blocks[0].kind, .listItem(ordered: false, indent: 1))
+        doc.mergeBackward(id)
+        XCTAssertEqual(doc.blocks[0].kind, .listItem(ordered: false, indent: 0))
+        doc.mergeBackward(id)
+        XCTAssertEqual(doc.blocks[0].kind, .paragraph)
+        XCTAssertEqual(doc.blocks[0].text, "항목", "사다리를 내려와도 본문은 그대로")
+    }
+
+    func testBackspaceAfterNonTextDeletesIt() {
+        let doc = makeDoc([.paragraph("본문"), .divider, .paragraph("뒤 문단")])
+        doc.mergeBackward(doc.blocks[2].id)
+        XCTAssertEqual(doc.blocks.count, 2, "비텍스트(구분선)는 백스페이스로 지워진다")
+        XCTAssertEqual(doc.blocks[1].text, "뒤 문단")
+    }
+
+    func testTransformThenSplitThenSerialize() {
+        // 지름길 변환 → 타이핑 → 분할 → 직렬화가 방언과 일치.
+        let doc = makeDoc([.paragraph("")])
+        let id = doc.blocks[0].id
+        doc.transform(id, to: .quote, strippedText: "인용본문", caret: 4)
+        doc.splitBlock(id, at: 2)
+        XCTAssertEqual(doc.blocks[0].text, "인용")
+        XCTAssertEqual(doc.blocks[1].kind, .quote, "내용 남은 인용 분할은 인용 유지")
+        XCTAssertEqual(doc.markdown, "> 인용\n\n> 본문")
+    }
+
+    func testWrapSelectionWithKoreanAndEmojiOffsets() {
+        // String 인덱스 거리 기반 감싸기 — 한글·이모지(다중 스칼라)에서 마커 위치가 어긋나면 안 된다.
+        let doc = makeDoc([.paragraph("한글🙂뒤")])
+        doc.focus = EditorFocus(blockID: doc.blocks[0].id, caret: 2, selectionLength: 1)  // 🙂 선택
+        doc.wrapFocusedSelection(with: "**")
+        XCTAssertEqual(doc.blocks[0].text, "한글**🙂**뒤")
+        XCTAssertEqual(doc.focus?.caret, 4, "안쪽 시작(마커 뒤)으로 선택 복원")
+        XCTAssertEqual(doc.focus?.selectionLength, 1)
+    }
+
+    func testLinkSelectionClampsStaleTarget() {
+        // 알럿이 떠 있는 사이 본문이 짧아졌을 때 — 잡아둔 포커스가 범위 밖이어도 죽지 않고 클램프.
+        let doc = makeDoc([.paragraph("짧음")])
+        let stale = EditorFocus(blockID: doc.blocks[0].id, caret: 10, selectionLength: 5)
+        XCTAssertTrue(doc.linkSelection(at: stale, url: "https://example.com", label: "라벨"))
+        XCTAssertEqual(doc.blocks[0].text, "짧음[라벨](https://example.com)")
+    }
+
+    func testTableEditsRoundTrip() {
+        let doc = makeDoc(markdown: "| a | b |\n| --- | --- |\n| 1 | 2 |")
+        let id = doc.blocks[0].id
+        doc.addTableRow(id)
+        doc.addTableColumn(id)
+        doc.updateTableCell(id, row: 2, col: 2, text: "새 값 | 파이프")
+        doc.cycleTableColumnAlignment(id, col: 2)  // leading → center
+        let out = doc.markdown
+        let reparsed = MarkdownBlockParser.parse(out)
+        guard case .table(let table) = reparsed[0].kind else { return XCTFail("표 왕복 실패") }
+        XCTAssertEqual(table.columnCount, 3)
+        XCTAssertEqual(table.rows.count, 3)
+        XCTAssertEqual(table.rows[2][2], "새 값 | 파이프", "셀 안 파이프 이스케이프 왕복")
+        XCTAssertEqual(table.alignments[2], .center)
+    }
+
+    func testInsertNonTextAtDocumentEndGrowsTrailingParagraph() {
+        let doc = makeDoc([.paragraph("본문")])
+        doc.focus = EditorFocus(blockID: doc.blocks[0].id, caret: 2)
+        doc.insertNonText(.table(.blank))
+        XCTAssertEqual(doc.blocks.count, 3, "비텍스트 뒤엔 이어 쓸 문단이 생긴다")
+        XCTAssertTrue(doc.blocks[2].isEmptyParagraph)
+        XCTAssertEqual(doc.focus?.blockID, doc.blocks[2].id)
+    }
+
+    func testDeleteBlockNeverEmptiesDocument() {
+        let doc = makeDoc([.paragraph("하나")])
+        doc.deleteBlock(doc.blocks[0].id)
+        XCTAssertEqual(doc.blocks.count, 1, "마지막 블록은 지워지지 않는다(빈 문서 금지)")
+    }
+
+    // MARK: ③ 지름길 비트리거 — 마커를 리터럴로 남겨야 하는 자리
+
+    func testShortcutNonTriggers() {
+        XCTAssertNil(BlockShortcuts.detect(in: "#### 4단은 방언 밖", kind: .paragraph))
+        XCTAssertNil(BlockShortcuts.detect(in: "#공백없음", kind: .paragraph))
+        XCTAssertNil(BlockShortcuts.detect(in: "1.공백없음", kind: .paragraph))
+        XCTAssertNil(BlockShortcuts.detect(in: " - 선행 공백", kind: .paragraph))
+        XCTAssertNil(BlockShortcuts.detect(in: "> 인용 안에선 재적용 없음", kind: .quote))
+        XCTAssertNil(BlockShortcuts.detect(in: "# 제목 안에서도", kind: .heading(level: 2)))
+    }
+
+    func testShortcutTriggersStripExactMarker() {
+        let h = BlockShortcuts.detect(in: "### 셋", kind: .paragraph)
+        XCTAssertEqual(h?.kind, .heading(level: 3))
+        XCTAssertEqual(h?.strippedText, "셋")
+        let n = BlockShortcuts.detect(in: "12. 열둘", kind: .paragraph)
+        XCTAssertEqual(n?.kind, .listItem(ordered: true, indent: 0))
+        XCTAssertEqual(n?.strippedText, "열둘")
+        let c = BlockShortcuts.detect(in: "```swift", kind: .paragraph)
+        XCTAssertEqual(c?.kind, .code(language: "swift"))
+    }
+
+    // MARK: ③ 인라인 렌더 경계
+
+    func testActiveMarkupSpanBoundaries() {
+        let text = "앞 **볼드** 뒤"
+        let span = BlockInlineRenderer.activeMarkupSpan(in: text, caret: 2)   // `**` 시작 위치
+        XCTAssertNotNil(span, "마크업 시작 경계의 캐럿도 반개봉 대상")
+        let inside = BlockInlineRenderer.activeMarkupSpan(in: text, caret: 4)
+        XCTAssertEqual(inside, span)
+        XCTAssertNil(BlockInlineRenderer.activeMarkupSpan(in: text, caret: 0), "마크업 밖은 nil")
+    }
+
+    func testItalicRendersAsObliqueForKorean() {
+        // 한글 폰트엔 이탤릭 트레이트가 없다 — 합성 오블리크 속성이 실제로 붙는지.
+        let rendered = BlockInlineRenderer.render(.paragraph("*기울임*"))
+        let ns = rendered.string as NSString
+        let inner = ns.range(of: "기울임")
+        let oblique = rendered.attribute(.obliqueness, at: inner.location, effectiveRange: nil)
+        XCTAssertNotNil(oblique, "이탤릭에 오블리크 미적용")
+    }
+
+    func testBoldInsideLinkLabelIsNotEmphasized() {
+        // 링크 문법이 소유한 범위의 별표는 강조가 아니다 — url 이 깨져 보이면 안 된다.
+        let rendered = BlockInlineRenderer.render(.paragraph("[**라벨**](https://example.com/a*b)"))
+        XCTAssertEqual(rendered.string, "[**라벨**](https://example.com/a*b)", "문자 자체는 보존")
+    }
+
+    // MARK: ③ 인라인 이미지 추가 형태
+
+    func testInlineImageWithQueryURLAndTightText() {
+        let segs = InlineImageMarkdown.segments("앞글자![a](https://cdn.example/x.png?w=1200&q=80)뒷글자")
+        XCTAssertEqual(segs.count, 3)
+        guard case .image(let img) = segs[1] else { return XCTFail() }
+        XCTAssertEqual(img.url, "https://cdn.example/x.png?w=1200&q=80")
+    }
+
+    func testInlineImageMarkerOnlyAlt() {
+        let segs = InlineImageMarkdown.segments("![«half»](https://cdn.example/x.png)")
+        guard case .image(let img) = segs[0] else { return XCTFail() }
+        XCTAssertEqual(img.width, "half")
+        XCTAssertEqual(img.alt, "")
+    }
+}
