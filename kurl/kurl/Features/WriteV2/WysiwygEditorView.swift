@@ -8,6 +8,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct WysiwygEditorView: View {
     @State private var document: EditorDocument
@@ -82,6 +83,11 @@ struct WysiwygEditorView: View {
                     .monospacedDigit()
                     .frame(minWidth: 18, alignment: .trailing)
                 textBlock(block)
+                    // 빈 UITextView 는 SwiftUI 에 베이스라인을 못 줘 firstTextBaseline 정렬이
+                    // 틀어진다 — 마커는 제자리인데 캐럿이 한 줄 아래로 보였다(글머리/번호 토글 직후).
+                    // 블록 폰트의 ascender 로 첫 줄 베이스라인을 명시해 빈·비어있지 않은 항목 모두
+                    // 마커와 같은 줄에 선다(textContainerInset=0 이라 top+ascender 가 곧 첫 베이스라인).
+                    .alignmentGuide(.firstTextBaseline) { _ in Self.listItemFirstBaseline }
             }
             .padding(.leading, CGFloat(indent) * 18)
         case .divider:
@@ -109,6 +115,12 @@ struct WysiwygEditorView: View {
         default:
             textBlock(block)
         }
+    }
+
+    /// 리스트 항목 블록(18pt 본문 스케일)의 첫 줄 베이스라인 — BlockInlineRenderer.baseFont(.listItem) 와
+    /// 같은 폰트의 ascender. 빈 텍스트뷰의 베이스라인 명시(위 alignmentGuide)에 쓴다.
+    private static var listItemFirstBaseline: CGFloat {
+        UIFontMetrics(forTextStyle: .body).scaledFont(for: .systemFont(ofSize: 18)).ascender
     }
 
     /// 리스트 항목 마커 — 글머리는 `•`, 번호는 같은 indent 의 연속 항목 순번(1,2,3…).

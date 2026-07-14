@@ -43,6 +43,11 @@ struct BlockImageView: View {
     }
 
     @State private var alt: String = ""
+    /// 대체 텍스트 필드의 키보드 포커스 — 문서 focus 에 이 이미지 블록을 등록하는 방아쇠.
+    /// 등록하지 않으면 문서 focus 가 직전 텍스트 블록에 남아, 첫 글자 입력(블록 배열 변경)의
+    /// 뷰 갱신에서 그 텍스트 블록 UITextView 가 first responder 를 도로 뺏었다
+    /// ("설명 한 글자 쓰면 다음 단락으로 이동"의 근본).
+    @FocusState private var altFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -60,6 +65,10 @@ struct BlockImageView: View {
                 .foregroundStyle(Palette.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
+                .focused($altFocused)
+                .onChange(of: altFocused) { _, focused in
+                    if focused { onFocused() }
+                }
                 .onChange(of: alt) { _, new in onAltChange(new) }
         }
         .onAppear { alt = block.text }

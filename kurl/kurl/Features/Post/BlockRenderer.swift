@@ -321,14 +321,39 @@ private struct CodeBlockView: View {
 /// slate-900 위에서 또렷한, 절제된 다크 테마. 색은 `Palette.code*`(§색 규율의 유일한
 /// 다색 예외) 에서 다스리고 여기선 참조만 한다. 언어를 정확히 파싱하지 않는다 —
 /// 문자열·주석·숫자·식별자(키워드/타입) 수준의 범용 토큰만 칠해 어떤 언어든
-/// "코드처럼" 보이게 한다(과채색보다 안전 우선).
-private enum CodeSyntax {
+/// "코드처럼" 보이게 한다(과채색보다 안전 우선). 발행 리더와 V2 에디터 코드 블록이
+/// 같은 워커(walk)를 공유한다 — 편집 중 보던 색이 발행 후에도 같은 자리에 선다.
+enum CodeSyntax {
     static let plain = Palette.codeText
     static let comment = Palette.codeComment
     static let keyword = Palette.codeKeyword
     static let string = Palette.codeString
     static let number = Palette.codeNumber
     static let type = Palette.codeType
+
+    /// 토큰 종류 — 색 매핑은 각 표면(리더=SwiftUI Color, 에디터=UIColor)이 맡는다.
+    enum TokenKind { case plain, comment, string, number, keyword, type }
+
+    /// 에디터(UITextView) 표면 — 같은 워커로 UIKit 속성 문자열을 만든다.
+    static func nsHighlight(_ code: String, lang: String?, font: UIFont) -> NSAttributedString {
+        let result = NSMutableAttributedString()
+        func color(_ kind: TokenKind) -> UIColor {
+            switch kind {
+            case .plain: return UIColor(plain)
+            case .comment: return UIColor(comment)
+            case .string: return UIColor(string)
+            case .number: return UIColor(number)
+            case .keyword: return UIColor(keyword)
+            case .type: return UIColor(type)
+            }
+        }
+        walk(code, lang: lang) { piece, kind in
+            result.append(NSAttributedString(
+                string: piece,
+                attributes: [.font: font, .foregroundColor: color(kind)]))
+        }
+        return result
+    }
 
     /// 여러 언어 키워드의 합집합 — 식별자로 쓰일 일이 드문 예약어만(과채색 방지).
     static let keywords: Set<String> = [
@@ -356,23 +381,40 @@ private enum CodeSyntax {
     ]
 
     static func highlight(_ code: String, lang: String?) -> AttributedString {
+        var result = AttributedString()
+        func color(_ kind: TokenKind) -> Color {
+            switch kind {
+            case .plain: return plain
+            case .comment: return comment
+            case .string: return string
+            case .number: return number
+            case .keyword: return keyword
+            case .type: return type
+            }
+        }
+        walk(code, lang: lang) { piece, kind in
+            var attributed = AttributedString(piece)
+            attributed.foregroundColor = color(kind)
+            result += attributed
+        }
+        return result
+    }
+
+    /// 공용 토큰 워커 — 코드를 순서대로 (조각, 종류) 로 흘린다. 색·속성은 호출자가 입힌다.
+    static func walk(_ code: String, lang: String?, emit emitPiece: (String, TokenKind) -> Void) {
         // 아주 긴 블록은 색칠 비용을 피한다(스캔·다수 append).
         guard code.count <= 6000 else {
-            var flat = AttributedString(code)
-            flat.foregroundColor = plain
-            return flat
+            emitPiece(code, .plain)
+            return
         }
         let s = Array(code)
         let n = s.count
         let hashComment = hashCommentLangs.contains((lang ?? "").lowercased())
-        var result = AttributedString()
         var i = 0
 
-        func emit(_ range: Range<Int>, _ color: Color) {
+        func emit(_ range: Range<Int>, _ kind: TokenKind) {
             guard !range.isEmpty else { return }
-            var piece = AttributedString(String(s[range]))
-            piece.foregroundColor = color
-            result += piece
+            emitPiece(String(s[range]), kind)
         }
 
         func isWordChar(_ c: Character) -> Bool { c.isLetter || c.isNumber || c == "_" }
@@ -384,18 +426,18 @@ private enum CodeSyntax {
             if c == "/", i + 1 < n, s[i + 1] == "/" {
                 var j = i
                 while j < n, s[j] != "\n" { j += 1 }
-                emit(i..<j, comment); i = j; continue
+                emit(i..<j, .comment); i = j; continue
             }
             if c == "/", i + 1 < n, s[i + 1] == "*" {
                 var j = i + 2
                 while j < n, !(s[j] == "*" && j + 1 < n && s[j + 1] == "/") { j += 1 }
                 j = min(n, j + 2)
-                emit(i..<j, comment); i = j; continue
+                emit(i..<j, .comment); i = j; continue
             }
             if hashComment, c == "#" {
                 var j = i
                 while j < n, s[j] != "\n" { j += 1 }
-                emit(i..<j, comment); i = j; continue
+                emit(i..<j, .comment); i = j; continue
             }
 
             // 문자열/문자 리터럴
@@ -408,7 +450,7 @@ private enum CodeSyntax {
                     if s[j] == "\n", quote != "`" { break }
                     j += 1
                 }
-                emit(i..<min(j, n), string); i = min(j, n); continue
+                emit(i..<min(j, n), .string); i = min(j, n); continue
             }
 
             // 숫자
@@ -416,7 +458,7 @@ private enum CodeSyntax {
                 var j = i
                 while j < n, s[j].isNumber || s[j] == "." || s[j] == "_"
                     || "xXoObBeE".contains(s[j]) || "abcdefABCDEF".contains(s[j]) { j += 1 }
-                emit(i..<j, number); i = j; continue
+                emit(i..<j, .number); i = j; continue
             }
 
             // 식별자 → 키워드/타입/일반
@@ -425,11 +467,11 @@ private enum CodeSyntax {
                 while j < n, isWordChar(s[j]) { j += 1 }
                 let word = String(s[i..<j])
                 if keywords.contains(word) {
-                    emit(i..<j, keyword)
+                    emit(i..<j, .keyword)
                 } else if let first = word.first, first.isUppercase {
-                    emit(i..<j, type)
+                    emit(i..<j, .type)
                 } else {
-                    emit(i..<j, plain)
+                    emit(i..<j, .plain)
                 }
                 i = j; continue
             }
@@ -444,9 +486,8 @@ private enum CodeSyntax {
                 j += 1
             }
             if j == i { j = i + 1 }
-            emit(i..<j, plain); i = j
+            emit(i..<j, .plain); i = j
         }
-        return result
     }
 }
 

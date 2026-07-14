@@ -189,7 +189,19 @@ struct ComposeView: View {
                     toggleBlock: { kind in editorDocument.toggleFocusedBlockKind(kind); syncFromDocument() },
                     insertDivider: { editorDocument.insertNonText(.divider); syncFromDocument() },
                     insertImage: { showV2ImagePicker = true },
-                    insertTable: { editorDocument.insertNonText(.table(.blank)); syncFromDocument() }
+                    insertTable: { editorDocument.insertNonText(.table(.blank)); syncFromDocument() },
+                    indentList: {
+                        if let id = editorDocument.focus?.blockID {
+                            editorDocument.indentListItem(id)
+                            syncFromDocument()
+                        }
+                    },
+                    outdentList: {
+                        if let id = editorDocument.focus?.blockID {
+                            editorDocument.outdentListItem(id)
+                            syncFromDocument()
+                        }
+                    }
                 )
             } else if editorFocused {
                 VStack(spacing: 8) {
@@ -314,7 +326,7 @@ struct ComposeView: View {
         }
         // 링크 추가 — 주소만 받아 본문에 `[라벨](주소)` 로. 본문에 `(url)` 가 보이지 않는다.
         .alert("링크 추가", isPresented: $showLinkDialog) {
-            TextField("https://example.com", text: $linkURL)
+            TextField("https://…", text: $linkURL)
                 .textInputAutocapitalization(.never)
                 .keyboardType(.URL)
                 .autocorrectionDisabled()
@@ -340,7 +352,7 @@ struct ComposeView: View {
         // 플레이어(임베드), 아니면 링크. 라벨은 링크일 때만 쓰이고, 동영상이면 주소 자체가 문단이 된다.
         .alert("링크", isPresented: $showV2LinkDialog) {
             TextField("표시할 텍스트 (선택)", text: $v2LinkLabel)
-            TextField("https://example.com", text: $v2LinkURL)
+            TextField("https://…", text: $v2LinkURL)
                 .textInputAutocapitalization(.never)
                 .keyboardType(.URL)
                 .autocorrectionDisabled()
@@ -771,6 +783,28 @@ struct ComposeView: View {
             .buttonStyle(.plain)
             // 업로드가 도는 동안엔 재선택을 막는다 — 안 그러면 두 번째 선택이 조용히 버려진다(스피너로 진행을 보인다).
             .disabled(uploadingCover)
+            // 커버가 비었는데 본문에 이미지가 있으면 한 탭 제안 — 웹 발행 다이얼로그의 커버 제안 미러.
+            // 안 그러면 "글엔 이미지가 있는데 대표 이미지 자리가 빈 타일"이라는 기대 불일치가 남는다.
+            .overlay(alignment: .bottomLeading) {
+                if !uploadingCover, coverUrl == nil, let suggestion = suggestedCoverURL {
+                    Button {
+                        applySuggestedCover(suggestion)
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "photo.on.rectangle")
+                                .font(.system(size: 11 * metaUnit, weight: .semibold))
+                            Text("본문 첫 이미지를 커버로")
+                                .font(.system(size: 12 * metaUnit, weight: .medium))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(.black.opacity(0.45), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .padding(10)
+                }
+            }
 
             VStack(alignment: .leading, spacing: 8) {
                 if let tag = tags.first {
@@ -830,6 +864,30 @@ struct ComposeView: View {
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: tags)
         // 커버가 자리잡는 순간 가벼운 햅틱 — 손에 닿는 확인.
         .sensoryFeedback(.impact(weight: .light), trigger: coverUrl)
+    }
+
+    /// 본문 첫 이미지 URL — 커버가 빈 발행 카드의 한 탭 제안 재료(웹 coverSuggestion 미러).
+    private var suggestedCoverURL: String? {
+        Self.firstImageURL(in: markdown)
+    }
+
+    /// 마크다운 본문의 첫 `![alt](url)` 의 url. 인라인·단독 무관(카드 커버 후보로는 첫 이미지면 충분).
+    private static func firstImageURL(in markdown: String) -> String? {
+        guard let regex = try? NSRegularExpression(pattern: "!\\[[^\\]]*\\]\\(([^)\\s]+)"),
+              let m = regex.firstMatch(
+                in: markdown, range: NSRange(location: 0, length: (markdown as NSString).length))
+        else { return nil }
+        return (markdown as NSString).substring(with: m.range(at: 1))
+    }
+
+    /// 제안 커버 적용 — 카드는 즉시 바뀌고, 서버 반영은 뒤에서(초안이 없으면 만든다).
+    private func applySuggestedCover(_ url: String) {
+        coverUrl = url
+        Task {
+            guard let id = try? await ensurePost() else { return }
+            try? await WriteAPI.updateCover(postId: id, url: url, key: nil)
+            onSaved()
+        }
     }
 
     /// 미리보기 카드의 커버 — 채워졌으면 16:9 이미지(+변경), 없으면 추가 타일. 업로드 중엔 스피너.
@@ -1059,6 +1117,15 @@ struct ComposeView: View {
         DraftFlusher.isAuthFailure(error)
     }
 
+    /// 태스크 취소로 끝난 저장인가 — URLSession 은 취소를 URLError(.cancelled)로,
+    /// APIClient 는 그걸 transport 로 감싼다. 셋 다 "실패"가 아니라 "물러남"이다.
+    private static func isCancellation(_ error: Error) -> Bool {
+        if error is CancellationError { return true }
+        if let urlError = error as? URLError, urlError.code == .cancelled { return true }
+        if case APIError.transport(let inner) = error { return isCancellation(inner) }
+        return false
+    }
+
     private func saveStatusText(dirty: Bool) -> String {
         if autosaveNeedsLogin { return String(localized: "로그인이 풀렸어요 — 다시 로그인해야 저장돼요") }
         if autosaveFailed { return String(localized: "저장하지 못했어요 — 자동으로 다시 시도해요") }
@@ -1227,6 +1294,11 @@ struct ComposeView: View {
                 celebrating = true
             }
         } catch {
+            // 새 입력이 이전 비행을 취소한 것은 실패가 아니다 — scheduleAutosave 가 매 입력마다
+            // 이전 태스크를 cancel 하는데, 그 태스크가 이미 네트워크 비행 중이면 여기로 취소가
+            // 떨어진다. 더 새 저장이 이미 디바운스에 무장돼 있으므로 조용히 물러난다
+            // (타이핑이 빠를수록 "실패했다고 뜨는데 실제론 저장됨"이 잦던 허위 실패의 뿌리).
+            if silent, Self.isCancellation(error) { return }
             if silent {
                 // 자동저장 실패는 조용히 — 토스트(+VoiceOver 낭독)는 첫 실패에만 한 번.
                 // 지속 상태는 saveStatusIcon 배지가 보여주므로 재시도마다 다시 알리지 않는다.
@@ -2813,6 +2885,9 @@ private struct V2FormatToolbar: View {
     let insertDivider: () -> Void
     let insertImage: () -> Void
     let insertTable: () -> Void
+    /// 리스트 들여쓰기/내어쓰기 — 캐럿이 리스트 항목일 때만 버튼이 나타난다.
+    let indentList: () -> Void
+    let outdentList: () -> Void
 
     /// 아이콘만 키우고 44pt 터치 타깃은 작은 글자 설정에서도 유지(AGENTS §1 에디터 규율).
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
@@ -2838,6 +2913,11 @@ private struct V2FormatToolbar: View {
                 }
                 item("list.number", "번호", active: isList(ordered: true)) {
                     toggleBlock(.listItem(ordered: true, indent: 0))
+                }
+                // 캐럿이 리스트 항목일 때만 — 중첩을 여기서(마크다운 선행 공백을 몰라도 된다).
+                if isListFocused {
+                    item("increase.indent", "들여쓰기", action: indentList)
+                    item("decrease.indent", "내어쓰기", action: outdentList)
                 }
 
                 groupDivider
@@ -2901,6 +2981,10 @@ private struct V2FormatToolbar: View {
     }
     private func isList(ordered: Bool) -> Bool {
         if case .listItem(let o, _) = focusedKind { return o == ordered }
+        return false
+    }
+    private var isListFocused: Bool {
+        if case .listItem = focusedKind { return true }
         return false
     }
 }

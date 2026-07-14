@@ -157,10 +157,16 @@ enum BlockInlineRenderer {
             markersAround(s, span: m.range, inner: m.range(at: 1), activeRange: activeRange)
         }
         // *이탤릭* (단일 별표) — 코드·링크(url) 범위와 겹치면 건너뜀.
+        // traitItalic 이 아니라 합성 오블리크(skew)로 눕힌다 — 한글 폰트엔 이탤릭 트레이트가 없어
+        // 트레이트만으론 한글이 그대로 서 있었다("기울임이 안 됨"). 웹 <em> 이 CJK 를 합성으로
+        // 눕히는 것과 같은 문법 — 스크립트 무관하게 균일한 기울기.
         enumerate(Self.italicRegex, ns, full) { m in
             if intersectsAny(m.range, codeRanges) || intersectsAny(m.range, linkRanges) { return }
-            addTrait(s, .traitItalic, range: m.range(at: 1))
-            markersAround(s, span: m.range, inner: m.range(at: 1), activeRange: activeRange)
+            let inner = m.range(at: 1)
+            if inner.length > 0 {
+                s.addAttribute(.obliqueness, value: 0.18, range: inner)
+            }
+            markersAround(s, span: m.range, inner: inner, activeRange: activeRange)
         }
     }
 
