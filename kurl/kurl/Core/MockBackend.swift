@@ -924,13 +924,20 @@ enum MockBackend {
         }
 
         if method == "GET", parts == ["posts", "analytics", "posts"] {
+            // 기본 제목("발행된 목 글" 등)은 UITest 가 고정한다 — 스토어 캡처(--store-demo)에서만
+            // 있을 법한 글(일상·문학·홍보, 시스템 언어를 따름)로 갈아끼운다. 숫자는 공용.
+            let titles = MockStoreDemo.isOn ? MockStoreDemo.analyticsRows : [
+                MockStoreDemo.Row(slug: "p-mock-2", title: "발행된 목 글"),
+                MockStoreDemo.Row(slug: "p-mock-1", title: "목 초안 — 헥사고날 정리"),
+                MockStoreDemo.Row(slug: "p-mock-3", title: "조용한 웹로그라는 결정"),
+            ]
             return json([
                 "items": [
-                    ["postId": 9002, "slug": "p-mock-2", "title": "발행된 목 글",
+                    ["postId": 9002, "slug": titles[0].slug, "title": titles[0].title,
                      "viewCount": 812, "likeCount": 41, "followsGained": 6],
-                    ["postId": 9001, "slug": "p-mock-1", "title": "목 초안 — 헥사고날 정리",
+                    ["postId": 9001, "slug": titles[1].slug, "title": titles[1].title,
                      "viewCount": 287, "likeCount": 19, "followsGained": 2],
-                    ["postId": 9003, "slug": "p-mock-3", "title": "조용한 웹로그라는 결정",
+                    ["postId": 9003, "slug": titles[2].slug, "title": titles[2].title,
                      "viewCount": 145, "likeCount": 12, "followsGained": 0],
                 ],
                 "page": 0, "hasNext": false,
@@ -938,10 +945,12 @@ enum MockBackend {
         }
 
         if method == "GET", parts == ["posts", "analytics", "series"] {
+            let titles = MockStoreDemo.isOn
+                ? MockStoreDemo.seriesTitles : ["헥사고날 전환기", "iOS 앱 만들기"]
             return json([
-                ["seriesId": 1, "slug": "hexagonal", "title": "헥사고날 전환기",
+                ["seriesId": 1, "slug": "hexagonal", "title": titles[0],
                  "postCount": 6, "subscriberCount": 14, "totalViews": 1930, "totalLikes": 72],
-                ["seriesId": 2, "slug": "ios-build", "title": "iOS 앱 만들기",
+                ["seriesId": 2, "slug": "ios-build", "title": titles[1],
                  "postCount": 3, "subscriberCount": 7, "totalViews": 640, "totalLikes": 25],
             ])
         }
