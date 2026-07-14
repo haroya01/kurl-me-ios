@@ -482,10 +482,13 @@ struct CollectionDetailView: View {
 
     private var emptyState: some View {
         // 막다른 길 금지 — 빈 컬렉션은 이을 글을 찾으러 피드로 이어준다(다른 빈 면과 같은 언어).
+        // 큐레이터 본인에겐 "어떻게 채우는지" 동사("잇기")를 가르친다 — 남에겐 그냥 비었다고만.
         FeedPlaceholder(
             eyebrow: "컬렉션",
             title: "아직 연결된 글이 없어요",
-            message: "글을 읽다 우하단 연결 버튼으로 이 컬렉션에 이어 보세요.",
+            message: isOwner
+                ? "글이나 하이라이트에서 \"컬렉션에 잇기\"로 이 컬렉션에 이어 채워요."
+                : "아직 담긴 글이 없어요.",
             actionTitle: "읽을 글 찾기",
             action: { TabRouter.shared.selection = 0 }
         )

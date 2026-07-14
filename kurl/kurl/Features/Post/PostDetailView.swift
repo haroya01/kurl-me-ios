@@ -417,10 +417,20 @@ struct PostDetailView: View {
                 get: { highlights?.loginPrompt ?? false },
                 set: { highlights?.loginPrompt = $0 }),
             message: "하이라이트는 kurl 계정에 저장됩니다.")
-        // 칠해진 하이라이트 탭 → 답글 스레드.
-        .sheet(isPresented: Binding(
-            get: { highlights?.threadHighlightId != nil },
-            set: { if !$0 { highlights?.threadHighlightId = nil } })) {
+        // 칠해진 하이라이트 탭 → 답글 스레드. "컬렉션에 연결"은 시트 위 시트를 피해
+        // 여기 onDismiss(해제 완료가 보장되는 유일한 시점)에서 이어 띄운다 — 고정 지연으로
+        // 넘기면 첫 해제(콜드 계층)가 더 느려 프레젠테이션이 통째로 유실된다.
+        .sheet(
+            isPresented: Binding(
+                get: { highlights?.threadHighlightId != nil },
+                set: { if !$0 { highlights?.threadHighlightId = nil } }),
+            onDismiss: {
+                if let pending = highlights?.pendingConnect {
+                    highlights?.pendingConnect = nil
+                    highlights?.connectTarget = pending
+                }
+            }
+        ) {
             if let store = highlights, let id = store.threadHighlightId, let hl = store.highlight(id: id) {
                 HighlightThreadSheet(highlight: hl, store: store)
             }
@@ -473,6 +483,7 @@ struct PostDetailView: View {
                 if isOwnPost {
                     Menu {
                         shareMenuItem
+                        highlightHowToItem
                         highlightToggleItem
                         Button { showOwnAnalytics = true } label: {
                             Label("이 글 분석", systemImage: "chart.bar")
@@ -499,6 +510,7 @@ struct PostDetailView: View {
                     // 거슬리는 글을 만난 자리에서 바로 처리하게 한다.
                     Menu {
                         shareMenuItem
+                        highlightHowToItem
                         highlightToggleItem
                         Section {
                             if BlockStore.shared.isBlocked(id: author.id) {
@@ -567,6 +579,20 @@ struct PostDetailView: View {
                 preview: SharePreview(loadedTitle, icon: Image("LaunchMark"))
             ) {
                 Label("공유", systemImage: "square.and.arrow.up")
+            }
+        }
+    }
+
+    /// ⋯ 메뉴 안의 "하이라이트하는 법" — 선택→하이라이트가 가능한 면(본 글)에서 항상 뜨는 조용한
+    /// 진입로. 1회성 코치가 사라진 뒤에도 동사를 남긴다(§10: 떠 있는 오버레이 대신 메뉴 한 줄).
+    /// 탭하면 제스처를 짧은 토스트로 알려 준다 — 새 오버레이·반복 코치 없이.
+    @ViewBuilder
+    private var highlightHowToItem: some View {
+        if highlights != nil {
+            Button {
+                ToastCenter.shared.show(String(localized: "문장을 길게 눌러 하이라이트하거나 메모를 남겨요"))
+            } label: {
+                Label("하이라이트하는 법", systemImage: "highlighter")
             }
         }
     }
@@ -1583,6 +1609,8 @@ struct GlassCommentBar: View {
     @State private var sending = false
     @State private var sendFailed = false
     @State private var showLoginPrompt = false
+    /// 전송 성공 햅틱 트리거 — 좋아요·팔로우와 같은 결의 가벼운 확인음.
+    @State private var sentPulse = 0
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -1651,6 +1679,7 @@ struct GlassCommentBar: View {
         .padding(.horizontal, 10)
         .padding(.bottom, 6)
         .onAppear { focused = true }
+        .sensoryFeedback(.impact(weight: .light), trigger: sentPulse)
         .onChange(of: focused) { _, isFocused in
             // 키보드를 내렸고 쓰던 글도 없으면 바도 물러난다(초안이 있으면 남아서 지킨다).
             if !isFocused, !sending,
@@ -1684,6 +1713,7 @@ struct GlassCommentBar: View {
                 replyTo = nil
                 focused = false
                 sendFailed = false
+                sentPulse += 1
                 onDone()
             } catch {
                 sendFailed = true // 입력은 보존 — 실패를 보이게.

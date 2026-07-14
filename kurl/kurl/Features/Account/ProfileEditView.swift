@@ -68,6 +68,10 @@ struct ProfileEditView: View {
                 } else if usernameChanged {
                     Text("이전 이름은 30일간 예약돼 기존 링크가 바로 깨지지 않아요.")
                         .font(.caption).foregroundStyle(Palette.secondary)
+                } else {
+                    // 바꾸기 전에도 제약을 미리 알린다 — 첫 편집 때 "왜 안 바뀌지"를 없앤다(§10 조용한 각주).
+                    Text("이름을 바꾸면 30일 동안 다시 바꿀 수 없어요.")
+                        .font(.caption).foregroundStyle(Palette.secondary)
                 }
             }
 

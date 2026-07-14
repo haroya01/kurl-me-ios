@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 /// 탭 전환의 단일 손잡이 — 빈 상태의 "발견에서 찾기" 같은 행동 문이 다른 화면에서
 /// 탭을 갈아탈 때 쓴다(빈 상태는 막다른 길이면 안 된다 — AGENTS 폴리시).
@@ -26,6 +27,19 @@ final class TabRouter {
             case "account": 4
             default: 0
             }
+    }
+
+    /// 빈 상태 CTA 의 탭 갈아타기 — 아무 피드백 없이 화면만 바뀌면 눌렀는지조차 모른다.
+    /// 전환을 애니메이트해(탭 크로스페이드가 눈에 보이게) 셀렉션 틱 하나를 얹는다(§1.6 조용하지만
+    /// 살아 있게). 직접 selection 대입(런치 진입로)은 이 손맛 없이 즉시 바꾼다.
+    func switchTo(_ index: Int, reduceMotion: Bool = false) {
+        guard index != selection else { return }
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        if reduceMotion {
+            selection = index
+        } else {
+            withAnimation(.snappy(duration: 0.28)) { selection = index }
+        }
     }
 }
 

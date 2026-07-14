@@ -26,6 +26,9 @@ final class PostHighlightStore {
     /// 컬렉션에 연결할 하이라이트 — 스레드 시트가 닫힌 뒤 뷰(PostDetailView)가 ConnectSheet 를 띄운다
     /// (시트 위 시트 대신 present-after-dismiss 로 안정).
     var connectTarget: HighlightView?
+    /// 스레드 시트가 "연결"을 예약해 두는 슬롯 — 시트의 onDismiss 가 connectTarget 으로 승격한다.
+    /// 고정 지연 핸드오프는 첫 해제(콜드 계층)에서 프레젠테이션을 유실했다.
+    var pendingConnect: HighlightView?
 
     /// 메모 입력 시트를 구동하는 선택 구간.
     struct NoteDraft: Identifiable {

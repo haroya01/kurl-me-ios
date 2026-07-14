@@ -540,6 +540,14 @@ struct ComposeView: View {
                             }
                             .font(.system(size: 13 * metaUnit, weight: .semibold))
                             .foregroundStyle(Palette.link)
+                        } else if autosavePersistentFailure {
+                            // 서버·네트워크 실패는 백오프를 기다리지 않고 지금 한 번 밀어볼 손잡이를 준다.
+                            Button("지금 다시 저장") {
+                                showSaveStatus = false
+                                scheduleAutosave(after: .zero)
+                            }
+                            .font(.system(size: 13 * metaUnit, weight: .semibold))
+                            .foregroundStyle(Palette.link)
                         }
                     }
                     .padding(.horizontal, 16)
@@ -764,10 +772,15 @@ struct ComposeView: View {
             }
             // 발행/저장 실패는 폼 자체에 — 루트 알럿은 fullScreenCover 뒤에 가린다.
             .alert(
-                "문제가 생겼어요",
+                "발행하지 못했어요",
                 isPresented: .init(
                     get: { publishSheetError != nil }, set: { if !$0 { publishSheetError = nil } })
             ) {
+                // 초안은 그대로다 — 폼을 닫아 에디터로 돌려보내 초안이 안전함을 분명히 한다.
+                Button("에디터로 돌아가기") {
+                    publishSheetError = nil
+                    showPublish = false
+                }
                 Button("확인", role: .cancel) {}
             } message: {
                 Text(publishSheetError ?? "")
@@ -1156,7 +1169,14 @@ struct ComposeView: View {
         lastSavedAt != nil || autosaveFailed || (canSave && signature != lastSavedSignature)
     }
 
+    /// 인증이 아닌 저장 실패가 거듭되는가(서버 5xx·네트워크 단절) — 자동 재시도만 조용히 도는 대신
+    /// 지금 다시 시도할 손잡이를 줄 근거. 첫 실패는 일시적일 수 있어 두 번째부터 격상한다.
+    private var autosavePersistentFailure: Bool {
+        autosaveFailed && !autosaveNeedsLogin && autosaveRetryStreak >= 2
+    }
+
     private var saveStatusIcon: String {
+        if autosavePersistentFailure { return "exclamationmark.triangle" }
         if autosaveFailed { return "exclamationmark.icloud" }
         if signature != lastSavedSignature { return "circle.dotted" }
         return "checkmark.circle"
@@ -1178,6 +1198,7 @@ struct ComposeView: View {
 
     private func saveStatusText(dirty: Bool) -> String {
         if autosaveNeedsLogin { return String(localized: "로그인이 풀렸어요 — 다시 로그인해야 저장돼요") }
+        if autosavePersistentFailure { return String(localized: "계속 저장하지 못하고 있어요 — 지금 다시 시도해 보세요") }
         if autosaveFailed { return String(localized: "저장하지 못했어요 — 자동으로 다시 시도해요") }
         if dirty { return String(localized: "미저장 — 곧 저장돼요") }
         if let at = lastSavedAt {

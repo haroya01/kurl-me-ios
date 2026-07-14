@@ -76,7 +76,7 @@ struct SearchView: View {
             .searchable(
                 text: $query,
                 placement: .navigationBarDrawer(displayMode: .always),
-                prompt: "글 검색")
+                prompt: "작가·글·태그 찾기")
             // 태그·작가 갈래는 결과에서도 쓰므로 phase 와 무관하게 한 번 받아 둔다.
             .task { await loadDiscovery() }
             // `--query <term>` — simctl 은 터치를 못 넣으니, 결과·갈래·페이지네이션·무결과까지
@@ -111,6 +111,12 @@ struct SearchView: View {
     private var idleState: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 26) {
+                // 대기 화면이 수동적으로 비어 보이지 않게 — 무엇을 찾을 수 있는지 한 줄로 짚어 준다(배너 아닌 조용한 힌트).
+                Text("작가 이름, 글 제목이나 내용, 태그로 찾아보세요.")
+                    .typeScale(.footnote)
+                    .foregroundStyle(Palette.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
                 trendingRail
 
                 if !recents.isEmpty {
@@ -158,14 +164,6 @@ struct SearchView: View {
                 popularTagsRail
 
                 suggestedAuthorsRail
-
-                if popularTags.isEmpty, suggestedAuthors.isEmpty, recents.isEmpty {
-                    Text("제목과 내용으로 글을 검색합니다.")
-                        .typeScale(.footnote)
-                        .foregroundStyle(Palette.secondary)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.top, 80)
-                }
             }
             .padding(.top, 18)
             .frame(maxWidth: Metrics.readingColumn)
@@ -482,7 +480,7 @@ struct SearchView: View {
                 title: "‘\(query)’ 결과가 없어요",
                 message: "다른 낱말로 찾아보거나, 발견 탭에서 읽을 글을 둘러보세요.",
                 actionTitle: "발견 탭에서 읽을 글 찾기",
-                action: { TabRouter.shared.selection = 1 }
+                action: { TabRouter.shared.switchTo(1, reduceMotion: reduceMotion) }
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(.top, 80)

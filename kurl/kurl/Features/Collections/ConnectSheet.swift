@@ -371,7 +371,8 @@ struct ConnectSheet: View {
             .glassCapsule(prominent: true)
         }
         .buttonStyle(.plain)
-        .disabled(saving)
+        .disabled(saving || selected.isEmpty)
+        .opacity(selected.isEmpty ? 0.5 : 1)
         .padding(.top, 12)
     }
 

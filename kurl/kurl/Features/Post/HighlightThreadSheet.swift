@@ -393,14 +393,11 @@ struct HighlightThreadSheet: View {
         }
     }
 
-    /// 이 문장을 내 컬렉션(연결 그래프)에 노드로 — 시트 위 시트를 피해 닫은 뒤 부모가 띄운다.
+    /// 이 문장을 내 컬렉션(연결 그래프)에 노드로 — 시트 위 시트를 피해, 예약만 걸고 닫는다.
+    /// 실제 프레젠테이션은 부모의 onDismiss(해제 완료 시점)가 승격한다.
     private func startConnect() {
-        let target = highlight
+        store.pendingConnect = highlight
         dismiss()
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(350))
-            store.connectTarget = target
-        }
     }
 
     /// 삭제 확정 — 스토어가 낙관적으로 본문에서 걷어내고, 성공하면 시트를 닫는다. 실패하면
