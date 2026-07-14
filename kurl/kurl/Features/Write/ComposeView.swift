@@ -66,6 +66,9 @@ struct ComposeView: View {
     @State private var showV2LinkDialog = false
     @State private var v2LinkURL = ""
     @State private var v2LinkLabel = ""
+    /// 링크 알럿을 열기 직전에 잡아둔 캔버스 포커스(블록·선택) — 알럿이 first responder 를 뺏어 선택이
+    /// 접히므로, 확인 시 이 포커스로 원래 선택을 감싼다. nil 이면 포커스 없이 눌린 것(문단 삽입 폴백).
+    @State private var v2LinkTargetFocus: EditorFocus?
     @State private var postId: Int64?
     @State private var status = "DRAFT"
     @State private var busy = false
@@ -164,14 +167,19 @@ struct ComposeView: View {
         .background(Palette.readingBg.ignoresSafeArea())
         // 키보드 위에 뜨는 유리 마크다운 바 — 캔버스는 종이, 크롬은 유리(AGENTS.md §1).
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if editorDocument != nil {
-                // WriteV2 캔버스는 자체 스니펫 바가 없다 — 비텍스트(구분선·이미지·표) 삽입만 유리 툴바로 얹는다.
-                // 텍스트 스타일(제목·인용·리스트)은 캔버스 안 줄머리 지름길(`# `·`> `·`- `)로 넣는다.
-                V2InsertToolbar(
+            if let editorDocument {
+                // WriteV2 서식 툴바 — 선택 서식(볼드·이탤릭·코드·링크)·블록 서식(제목·인용·코드·리스트)·
+                // 삽입(구분선·사진·표)을 한 유리 바로. 캔버스는 종이, 이 크롬만 유리(AGENTS §1).
+                V2FormatToolbar(
+                    focusedKind: editorDocument.focus.flatMap { f in
+                        editorDocument.blocks.first(where: { $0.id == f.blockID })?.kind
+                    },
+                    wrapInline: { marker in editorDocument.wrapFocusedSelection(with: marker); syncFromDocument() },
                     insertLink: { presentV2LinkSheet() },
-                    insertDivider: { editorDocument?.insertNonText(.divider); syncFromDocument() },
+                    toggleBlock: { kind in editorDocument.toggleFocusedBlockKind(kind); syncFromDocument() },
+                    insertDivider: { editorDocument.insertNonText(.divider); syncFromDocument() },
                     insertImage: { showV2ImagePicker = true },
-                    insertTable: { editorDocument?.insertNonText(.table(.blank)); syncFromDocument() }
+                    insertTable: { editorDocument.insertNonText(.table(.blank)); syncFromDocument() }
                 )
             } else if editorFocused {
                 VStack(spacing: 8) {
@@ -1694,7 +1702,9 @@ struct ComposeView: View {
     }
 
     /// WriteV2 통합 링크 삽입 — 클립보드에 URL 이 있으면 미리 채워 다이얼로그를 연다.
+    /// 다이얼로그(알럿)가 뜨면 캔버스 선택이 접히므로, 지금의 포커스(블록·선택)를 잡아둔다.
     private func presentV2LinkSheet() {
+        v2LinkTargetFocus = editorDocument?.focus
         v2LinkLabel = ""
         if let clip = UIPasteboard.general.string, Self.looksLikeURL(clip) {
             v2LinkURL = clip.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1704,14 +1714,24 @@ struct ComposeView: View {
         showV2LinkDialog = true
     }
 
-    /// 다이얼로그 확인 — 문서에 링크/임베드를 넣고 저장 계약을 즉시 맞춘다.
+    /// 다이얼로그 확인 — 링크/임베드를 넣고 저장 계약을 즉시 맞춘다. 동영상 URL 은 단독 문단(임베드),
+    /// 아니면 알럿 열기 전 잡아둔 포커스의 선택을 `[선택](url)` 로 감싼다. 포커스가 없거나(캔버스 미포커스)
+    /// 비텍스트 블록이면 문단으로 삽입(폴백) — 링크가 조용히 사라지지 않게.
     private func confirmV2Link() {
         let url = Self.normalizedURL(v2LinkURL)
-        guard !url.isEmpty else { return }
-        editorDocument?.insertLink(url: url, label: v2LinkLabel)
+        guard !url.isEmpty, let editorDocument else { return }
+        if WriteV2VideoDetect.isVideoURL(url) {
+            editorDocument.insertLink(url: url, label: v2LinkLabel)  // 임베드 문단
+        } else if let target = v2LinkTargetFocus,
+                  editorDocument.linkSelection(at: target, url: url, label: v2LinkLabel) {
+            // 잡아둔 선택을 감쌌다.
+        } else {
+            editorDocument.insertLink(url: url, label: v2LinkLabel)  // 포커스 없음·비텍스트 → 문단 폴백
+        }
         syncFromDocument()
         v2LinkURL = ""
         v2LinkLabel = ""
+        v2LinkTargetFocus = nil
     }
 
     /// WriteV2 캔버스의 사진 삽입 — 실제 업로드 후 IMAGE 블록으로 넣는다(현행 경로와 같은 업로드 계약).
@@ -2677,12 +2697,19 @@ private struct WysiwygComposeCanvas: View {
     }
 }
 
-/// WriteV2 전용 삽입 툴바 — 링크·구분선·사진·표를 캐럿 뒤에 넣는다. 캔버스는 종이,
-/// 이 크롬만 유리(AGENTS §1). 텍스트 스타일(제목·인용·리스트)은 캔버스 안 줄머리 지름길로 넣는다.
-/// "링크" 하나로 통합: 주소가 동영상(YouTube·Vimeo)이면 발행 시 플레이어(임베드), 아니면 링크로 —
-/// 사용자는 "링크냐 동영상이냐"를 안 고르고 주소만 넣는다(신고 11: 동영상·링크 버튼 분리 해소).
-private struct V2InsertToolbar: View {
+/// WriteV2 서식 툴바 — 선택 서식(볼드·이탤릭·코드·링크)·블록 서식(제목·인용·코드·리스트)·삽입
+/// (구분선·사진·표)을 한 유리 바로. 캔버스는 종이, 이 크롬만 유리(AGENTS §1). 아이콘은 SF Symbols
+/// 표준. 블록 서식은 현재 블록 종류면 켜진(초록) 상태로 보여 토글임을 알린다. 좁은 화면을 위해
+/// 가로 스크롤(그룹 구분선으로 세 묶음을 시각 분리). "링크" 하나로 동영상/링크 통합(신고 11 유지).
+private struct V2FormatToolbar: View {
+    /// 현재 포커스 블록의 종류(없으면 nil) — 블록 토글 버튼의 활성 상태를 그린다.
+    let focusedKind: EditorBlockKind?
+    /// 선택을 마커로 감싸기(볼드=`**`·이탤릭=`*`·인라인코드=`` ` ``).
+    let wrapInline: (String) -> Void
+    /// 링크 — 선택을 `[선택](url)` 로(다이얼로그로 URL 받음). 동영상 URL 은 임베드.
     let insertLink: () -> Void
+    /// 블록 종류 토글(제목 H2·H3·인용·코드·불릿·번호).
+    let toggleBlock: (EditorBlockKind) -> Void
     let insertDivider: () -> Void
     let insertImage: () -> Void
     let insertTable: () -> Void
@@ -2691,20 +2718,54 @@ private struct V2InsertToolbar: View {
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
 
     var body: some View {
-        HStack(spacing: 8) {
-            item("link", "링크", action: insertLink)
-            item("minus", "구분선", action: insertDivider)
-            item("photo", "사진", action: insertImage)
-            item("tablecells", "표", action: insertTable)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 4) {
+                // 선택 서식 — 마커로 감싸기.
+                item("bold", "굵게") { wrapInline("**") }
+                item("italic", "기울임") { wrapInline("*") }
+                item("chevron.left.forwardslash.chevron.right", "코드") { wrapInline("`") }
+                item("link", "링크", action: insertLink)
+
+                groupDivider
+
+                // 블록 서식 — 종류 토글(현재 종류면 활성).
+                item("textformat.size.larger", "제목", active: isHeading(2)) { toggleBlock(.heading(level: 2)) }
+                item("textformat.size", "소제목", active: isHeading(3)) { toggleBlock(.heading(level: 3)) }
+                item("text.quote", "인용", active: isKind(.quote)) { toggleBlock(.quote) }
+                item("curlybraces", "코드블록", active: isCode) { toggleBlock(.code(language: nil)) }
+                item("list.bullet", "글머리", active: isList(ordered: false)) {
+                    toggleBlock(.listItem(ordered: false, indent: 0))
+                }
+                item("list.number", "번호", active: isList(ordered: true)) {
+                    toggleBlock(.listItem(ordered: true, indent: 0))
+                }
+
+                groupDivider
+
+                // 삽입 — 비텍스트 블록.
+                item("minus", "구분선", action: insertDivider)
+                item("photo", "사진", action: insertImage)
+                item("tablecells", "표", action: insertTable)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
+        .scrollClipDisabled()
         .glassEffect(.regular, in: .capsule)
+        .padding(.horizontal, 8)
         .padding(.bottom, 8)
     }
 
+    private var groupDivider: some View {
+        Rectangle()
+            .fill(Palette.hairline)
+            .frame(width: 1, height: 26)
+            .padding(.horizontal, 4)
+    }
+
     private func item(
-        _ icon: String, _ label: LocalizedStringKey, action: @escaping () -> Void
+        _ icon: String, _ label: LocalizedStringKey, active: Bool = false,
+        action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
             VStack(spacing: 3) {
@@ -2713,10 +2774,33 @@ private struct V2InsertToolbar: View {
                 Text(label)
                     .font(.system(size: 10 * unit, weight: .medium))
             }
-            .foregroundStyle(Palette.link)
+            // 활성(현재 블록 종류) = 초록 채움 배지로 켜짐을 알린다(§ 초록은 상태/데이터 전용).
+            .foregroundStyle(active ? Color.white : Palette.link)
             .frame(minWidth: 44, minHeight: 44)
+            .background {
+                if active {
+                    RoundedRectangle(cornerRadius: Metrics.radiusMini)
+                        .fill(Palette.accent)
+                }
+            }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: 활성 판정
+
+    private func isKind(_ kind: EditorBlockKind) -> Bool { focusedKind == kind }
+    private func isHeading(_ level: Int) -> Bool {
+        if case .heading(let l) = focusedKind { return l == level }
+        return false
+    }
+    private var isCode: Bool {
+        if case .code = focusedKind { return true }
+        return false
+    }
+    private func isList(ordered: Bool) -> Bool {
+        if case .listItem(let o, _) = focusedKind { return o == ordered }
+        return false
     }
 }

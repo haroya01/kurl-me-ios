@@ -534,4 +534,149 @@ final class WriteV2RoundTripTests: XCTestCase {
         let span = BlockInlineRenderer.activeMarkupSpan(in: "그냥 문단", caret: 2)
         XCTAssertNil(span)
     }
+
+    // MARK: 서식 툴바 — 인라인 감싸기 / 블록 토글
+
+    func testWrapSelectionBold() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.paragraph("안녕세상")])
+            let id = doc.blocks[0].id
+            // "세상"(2..4) 선택 상태로 focus.
+            doc.focus = EditorFocus(blockID: id, caret: 2, selectionLength: 2)
+            doc.wrapFocusedSelection(with: "**")
+            XCTAssertEqual(doc.blocks[0].text, "안녕**세상**")
+            // 안쪽("세상")을 다시 선택 — 마커(2) 뒤부터 2글자.
+            XCTAssertEqual(doc.focus?.caret, 4)
+            XCTAssertEqual(doc.focus?.selectionLength, 2)
+        }
+    }
+
+    func testWrapSelectionItalicNoSelectionInsertsMarkersWithCaretBetween() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.paragraph("가나")])
+            let id = doc.blocks[0].id
+            doc.focus = EditorFocus(blockID: id, caret: 1, selectionLength: 0)  // "가|나"
+            doc.wrapFocusedSelection(with: "*")
+            XCTAssertEqual(doc.blocks[0].text, "가**나")  // `*` + `` + `*` 삽입
+            XCTAssertEqual(doc.focus?.caret, 2)  // 두 별표 사이
+            XCTAssertEqual(doc.focus?.selectionLength, 0)
+        }
+    }
+
+    func testWrapSelectionInlineCode() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.paragraph("코드블록")])
+            let id = doc.blocks[0].id
+            doc.focus = EditorFocus(blockID: id, caret: 0, selectionLength: 4)
+            doc.wrapFocusedSelection(with: "`")
+            XCTAssertEqual(doc.blocks[0].text, "`코드블록`")
+        }
+    }
+
+    func testLinkSelectionWrapsAsMarkdownLink() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.paragraph("여기를 눌러")])
+            let id = doc.blocks[0].id
+            doc.focus = EditorFocus(blockID: id, caret: 0, selectionLength: 3)  // "여기를"
+            doc.linkFocusedSelection(url: "https://kurl.me")
+            XCTAssertEqual(doc.blocks[0].text, "[여기를](https://kurl.me) 눌러")
+            // 라벨("여기를")을 다시 선택 — `[` 다음부터 3글자.
+            XCTAssertEqual(doc.focus?.caret, 1)
+            XCTAssertEqual(doc.focus?.selectionLength, 3)
+        }
+    }
+
+    func testLinkNoSelectionUsesLabel() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.paragraph("")])
+            let id = doc.blocks[0].id
+            doc.focus = EditorFocus(blockID: id, caret: 0, selectionLength: 0)
+            doc.linkFocusedSelection(url: "https://kurl.me", label: "링크")
+            XCTAssertEqual(doc.blocks[0].text, "[링크](https://kurl.me)")
+        }
+    }
+
+    /// linkSelection(at:) — 알럿이 선택을 접어도, 잡아둔 포커스로 원래 선택을 감싼다(문서 focus 와 무관).
+    func testLinkSelectionAtExplicitTargetSurvivesCollapsedFocus() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.paragraph("여기를 눌러")])
+            let id = doc.blocks[0].id
+            let captured = EditorFocus(blockID: id, caret: 0, selectionLength: 3)  // "여기를"
+            // 알럿이 뜬 것처럼 문서 focus 는 접혀 있다(캐럿만).
+            doc.focus = EditorFocus(blockID: id, caret: 3, selectionLength: 0)
+            let ok = doc.linkSelection(at: captured, url: "https://kurl.me")
+            XCTAssertTrue(ok)
+            XCTAssertEqual(doc.blocks[0].text, "[여기를](https://kurl.me) 눌러")
+        }
+    }
+
+    func testLinkSelectionAtNonTextBlockReturnsFalse() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.divider])
+            let id = doc.blocks[0].id
+            let ok = doc.linkSelection(at: EditorFocus(blockID: id, caret: 0), url: "https://kurl.me")
+            XCTAssertFalse(ok)  // 비텍스트 → 실패(호출자가 문단 폴백)
+        }
+    }
+
+    func testToggleBlockKindHeadingOnAndOff() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.paragraph("제목감")])
+            let id = doc.blocks[0].id
+            doc.focus = EditorFocus(blockID: id, caret: 3)
+            doc.toggleFocusedBlockKind(.heading(level: 2))
+            XCTAssertEqual(doc.blocks[0].kind, .heading(level: 2))
+            XCTAssertEqual(doc.blocks[0].text, "제목감")  // 텍스트 보존
+            // 같은 버튼 다시 → 문단으로.
+            doc.toggleFocusedBlockKind(.heading(level: 2))
+            XCTAssertEqual(doc.blocks[0].kind, .paragraph)
+        }
+    }
+
+    func testToggleBlockKindQuote() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.paragraph("인용감")])
+            let id = doc.blocks[0].id
+            doc.focus = EditorFocus(blockID: id, caret: 0)
+            doc.toggleFocusedBlockKind(.quote)
+            XCTAssertEqual(doc.blocks[0].kind, .quote)
+            doc.toggleFocusedBlockKind(.quote)
+            XCTAssertEqual(doc.blocks[0].kind, .paragraph)
+        }
+    }
+
+    func testToggleBlockKindListPreservesText() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.paragraph("항목")])
+            let id = doc.blocks[0].id
+            doc.focus = EditorFocus(blockID: id, caret: 2)
+            doc.toggleFocusedBlockKind(.listItem(ordered: false, indent: 0))
+            XCTAssertEqual(doc.blocks[0].kind, .listItem(ordered: false, indent: 0))
+            XCTAssertEqual(doc.blocks[0].text, "항목")
+        }
+    }
+
+    func testToggleBlockKindNonTextNoOp() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.divider])
+            let id = doc.blocks[0].id
+            doc.focus = EditorFocus(blockID: id, caret: 0)
+            doc.toggleFocusedBlockKind(.heading(level: 2))
+            XCTAssertEqual(doc.blocks[0].kind, .divider)  // 비텍스트는 무동작
+        }
+    }
+
+    /// 서식 감싸기는 text 에 마크다운 원문을 넣을 뿐 — 왕복(직렬화)이 그 결과를 그대로 지킨다.
+    func testWrapThenSerializeRoundTrips() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.paragraph("안녕세상")])
+            let id = doc.blocks[0].id
+            doc.focus = EditorFocus(blockID: id, caret: 2, selectionLength: 2)
+            doc.wrapFocusedSelection(with: "**")
+            let md = doc.markdown
+            XCTAssertEqual(md, "안녕**세상**")
+            // 다시 파싱→직렬화해도 고정점.
+            XCTAssertEqual(MarkdownSerializer.markdown(from: MarkdownBlockParser.parse(md)), md)
+        }
+    }
 }
