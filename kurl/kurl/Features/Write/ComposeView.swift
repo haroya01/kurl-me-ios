@@ -129,6 +129,12 @@ struct ComposeView: View {
     /// 이미 발행된 글의 미리보기 — 웹 시트가 아니라 인앱 리더(PostDetailView)로 네이티브 항해한다.
     /// 발행 전(초안·예약·비공개)은 공개 엔드포인트가 안 줘서 여전히 미리보기 토큰 URL(previewItem)로 연다.
     @State private var previewPublished: PublishedRef?
+    /// 초안(미발행) 네이티브 미리보기 — 지금 문서를 발행 후 읽기면으로 보여준다(웹 사파리 대신).
+    /// 발행된 글은 이 경로를 안 탄다(위 previewPublished 가 PostDetailView 로 항해). 루트(⋯)와 발행 폼에서
+    /// 각각 뜨므로 presenter 를 둘로 나눈다(웹 preview 의 previewItem/formPreviewItem 과 같은 이유 —
+    /// 폼은 fullScreenCover 라 루트 시트가 그 아래 깔려 안 보인다).
+    @State private var showDraftPreview = false
+    @State private var showFormDraftPreview = false
     @State private var showSchedule = false
     @State private var scheduleDate = Date().addingTimeInterval(3600)
     @State private var scheduleError: String?
@@ -269,6 +275,10 @@ struct ComposeView: View {
         // 이미 발행된 글의 미리보기 = 인앱 리더로 네이티브 항해(웹으로 안 내보낸다). 뒤로 = 에디터.
         .navigationDestination(item: $previewPublished) { ref in
             PostDetailView(username: ref.username, slug: ref.slug)
+        }
+        // 초안(미발행) 네이티브 미리보기 — 폼 밖(⋯ 메뉴) 경로. 지금 문서를 발행 후 읽기면으로.
+        .sheet(isPresented: $showDraftPreview) {
+            DraftPreviewView(title: title, markdown: markdown)
         }
         .sheet(isPresented: $showRevisions) {
             RevisionsSheet(postId: postId) { restored in
@@ -692,6 +702,11 @@ struct ComposeView: View {
             // 루트의 ⋯ 미리보기와 같은 바인딩을 공유해 두 presenter 가 동시에 뜨던 것을 막는다.
             .sheet(item: $formPreviewItem) { item in
                 SafariView(url: item.url).ignoresSafeArea()
+            }
+            // 초안 네이티브 미리보기 — 발행 폼 위 경로(폼 전용 상태). 발행 폼은 미발행 글에서 열리니
+            // 여기 프리뷰는 항상 초안 갈래다.
+            .sheet(isPresented: $showFormDraftPreview) {
+                DraftPreviewView(title: title, markdown: markdown)
             }
             .sheet(isPresented: $showSchedule) { scheduleSheet }
             // 발행 성공 모먼트 — 폼 위 전체화면 블룸. 끝나면 토스트 남기고 에디터를 닫는다.
@@ -1236,6 +1251,12 @@ struct ComposeView: View {
 
     private func openPreview() {
         guard let postId else { return }
+        // 초안(미발행)은 네이티브 읽기 미리보기 — 지금 문서(markdown)를 발행 후 모습으로 바로 띄운다.
+        // 웹 프리뷰 URL 왕복이 없어 slug·서버 대기 없이 즉시 열린다. 발행된 글만 웹 경로(아래).
+        if isPrePublish {
+            if showPublish { showFormDraftPreview = true } else { showDraftPreview = true }
+            return
+        }
         let slug = existing?.slug
         Task {
             // 새 글이면 목록에서 slug 를 다시 찾는다(생성 응답을 보관 안 했을 때 대비).

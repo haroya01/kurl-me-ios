@@ -534,4 +534,108 @@ final class WriteV2RoundTripTests: XCTestCase {
         let span = BlockInlineRenderer.activeMarkupSpan(in: "그냥 문단", caret: 2)
         XCTAssertNil(span)
     }
+
+    // MARK: 초안 네이티브 미리보기 — 마크다운 → PostBlock 매핑(리더 계약)
+
+    func testDraftPreviewMapsHeadingAndParagraph() {
+        let blocks = DraftPreviewBlocks.from(markdown: "# 제목\n\n본문 **볼드**.")
+        XCTAssertEqual(blocks.count, 2)
+        XCTAssertEqual(blocks[0].kind, .h1)
+        XCTAssertEqual(blocks[0].content, "제목")
+        XCTAssertEqual(blocks[1].kind, .paragraph)
+        XCTAssertEqual(blocks[1].content, "본문 **볼드**.")
+    }
+
+    func testDraftPreviewMapsQuoteAndDivider() {
+        let blocks = DraftPreviewBlocks.from(markdown: "> 인용.\n\n---")
+        XCTAssertEqual(blocks.map(\.kind), [.quote, .divider])
+        XCTAssertEqual(blocks[0].content, "인용.")
+    }
+
+    func testDraftPreviewMapsCodeAsJSON() {
+        let blocks = DraftPreviewBlocks.from(markdown: "```swift\nlet x = 5\n```")
+        XCTAssertEqual(blocks.count, 1)
+        XCTAssertEqual(blocks[0].kind, .code)
+        // content 는 CodePayload 가 먹는 {"lang","code"} JSON.
+        let data = Data((blocks[0].content ?? "").utf8)
+        let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+        XCTAssertEqual(json?["lang"] as? String, "swift")
+        XCTAssertEqual(json?["code"] as? String, "let x = 5")
+    }
+
+    func testDraftPreviewMapsBulletListAsLines() {
+        let blocks = DraftPreviewBlocks.from(markdown: "- 하나\n- 둘")
+        XCTAssertEqual(blocks.count, 1)
+        XCTAssertEqual(blocks[0].kind, .listBullet)
+        // content 는 줄바꿈으로 이은 항목(리더 parseListItems 의 선행공백=깊이 경로).
+        XCTAssertEqual(blocks[0].content, "하나\n둘")
+    }
+
+    func testDraftPreviewMapsNumberedList() {
+        let blocks = DraftPreviewBlocks.from(markdown: "1. 첫째\n2. 둘째")
+        XCTAssertEqual(blocks.count, 1)
+        XCTAssertEqual(blocks[0].kind, .listNumbered)
+    }
+
+    func testDraftPreviewNestedListPreservesIndent() {
+        // 중첩 리스트 — 하위 항목은 선행 공백 2칸으로(리더가 depth 로 읽는다).
+        let blocks = DraftPreviewBlocks.from(markdown: "- 상위\n  - 하위")
+        XCTAssertEqual(blocks.count, 1)
+        XCTAssertEqual(blocks[0].kind, .listBullet)
+        XCTAssertEqual(blocks[0].content, "상위\n  하위")
+    }
+
+    func testDraftPreviewMapsImageWithWidthMarker() {
+        // 이미지 alt 앞 «half» 폭 마커 → IMAGE payload 의 width.
+        let blocks = DraftPreviewBlocks.from(markdown: "![«half» 대체](https://kurl.me/a.jpg)")
+        XCTAssertEqual(blocks.count, 1)
+        XCTAssertEqual(blocks[0].kind, .image)
+        let data = Data((blocks[0].content ?? "").utf8)
+        let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+        XCTAssertEqual(json?["url"] as? String, "https://kurl.me/a.jpg")
+        XCTAssertEqual(json?["width"] as? String, "half")
+        XCTAssertEqual(json?["alt"] as? String, "대체")
+    }
+
+    func testDraftPreviewMapsTableAsGFM() {
+        let md = "| a | b |\n| --- | --- |\n| 1 | 2 |"
+        let blocks = DraftPreviewBlocks.from(markdown: md)
+        XCTAssertEqual(blocks.count, 1)
+        XCTAssertEqual(blocks[0].kind, .table)
+        // TABLE content 는 GFM 원문(리더 TableBlockView(markdown:)가 먹는다).
+        XCTAssertEqual(blocks[0].content, md)
+    }
+
+    func testDraftPreviewMapsVideoURLAsEmbed() {
+        let blocks = DraftPreviewBlocks.from(markdown: "https://youtu.be/dQw4w9WgXcQ")
+        XCTAssertEqual(blocks.count, 1)
+        XCTAssertEqual(blocks[0].kind, .embed)
+        let data = Data((blocks[0].content ?? "").utf8)
+        let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+        XCTAssertEqual(json?["url"] as? String, "https://youtu.be/dQw4w9WgXcQ")
+    }
+
+    func testDraftPreviewPlainLinkStaysParagraph() {
+        // 동영상 아닌 단독 URL 은 문단(임베드 아님).
+        let blocks = DraftPreviewBlocks.from(markdown: "https://kurl.me/post/1")
+        XCTAssertEqual(blocks.count, 1)
+        XCTAssertEqual(blocks[0].kind, .paragraph)
+    }
+
+    func testDraftPreviewEmptyIsSingleEmptyParagraph() {
+        // 빈 입력 — 파서가 빈 문단 1개를 돌려주고, 뷰는 이걸 빈 상태로 취급.
+        let blocks = DraftPreviewBlocks.from(markdown: "")
+        XCTAssertEqual(blocks.count, 1)
+        XCTAssertEqual(blocks[0].kind, .paragraph)
+        XCTAssertEqual(blocks[0].content ?? "", "")
+    }
+
+    /// 미리보기 매핑은 표시용 — 저장 마크다운 왕복은 그대로여야(프리뷰가 계약을 바꾸지 않는다).
+    func testDraftPreviewDoesNotAlterRoundTrip() {
+        let md = "# 제목\n\n본문.\n\n> 인용.\n\n```swift\nlet x = 5\n```\n\n- 항목\n- 항목 둘"
+        _ = DraftPreviewBlocks.from(markdown: md)  // 매핑을 돌려도
+        // 왕복(parse→serialize)은 불변.
+        let reserialized = MarkdownSerializer.markdown(from: MarkdownBlockParser.parse(md))
+        XCTAssertEqual(reserialized, md)
+    }
 }
