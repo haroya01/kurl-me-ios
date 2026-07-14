@@ -11,7 +11,6 @@ import SwiftUI
 struct kurlApp: App {
     @UIApplicationDelegateAdaptor(PushDelegate.self) private var pushDelegate
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @AppStorage("hasCompletedWelcome") private var hasCompletedWelcome = false
     @State private var showSplash = true
     @State private var showWelcome = false
     /// 스플래시가 걷히는 순간 true — 웰컴 엔트런스가 이때 시작된다(t0 가 아니라).
@@ -50,13 +49,14 @@ struct kurlApp: App {
             }
             .task {
                 MockSelfTest.runIfRequested()
-                // 첫 실행 1회, 비로그인일 때만 웰컴. 게스트를 고르면 플래그가 서고 다시 안 뜬다.
+                // 비로그인이면 매 실행 웰컴이 먼저다 — 둘러보기는 그 화면의 1급 출구로 늘 열려
+                // 있으니(5.1.1(v)) 읽기가 로그인 뒤에 갇히지 않는다. 로그인하면 더는 안 뜬다.
                 // (`--screen welcome` 은 simctl 터치 불가 우회 — 스크린샷 검증 진입로.)
                 let forceWelcome = Config.launchValue(after: "--screen") == "welcome"
                 // 검증용 딥링크(--post 등)는 목적지가 명확하니 웰컴 막을 띄우지 않는다 —
                 // 안 그러면 웰컴이 목적 화면을 덮어 터치를 삼킨다.
                 showWelcome = forceWelcome
-                    || (!hasCompletedWelcome && !AuthStore.shared.isSignedIn && !Config.hasDeepLinkEntry)
+                    || (!AuthStore.shared.isSignedIn && !Config.hasDeepLinkEntry)
                 // 마크 드로잉(~0.4s)→워드마크(~0.8s)→형광 한 획(~1.05s)이 끝난 뒤 걷는다.
                 // 웰컴(첫 실행)은 한 박자 더 머물고, 매일 보는 로그인 커튼은 가볍게 1.15s.
                 let hold: Double = reduceMotion ? 0.6 : (showWelcome ? 1.6 : 1.15)
@@ -80,7 +80,6 @@ struct kurlApp: App {
     }
 
     private func dismissWelcome() {
-        hasCompletedWelcome = true
         withAnimation(.easeOut(duration: 0.3)) { showWelcome = false }
     }
 }
