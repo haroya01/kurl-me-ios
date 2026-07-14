@@ -376,10 +376,8 @@ enum CardQuickActions {
     }
 
     static func shareURL(_ item: FeedItem) -> URL? {
-        URL(
-            string:
-                "\(Config.apiBase)/\(Config.preferredLanguageTag)/p/\(item.author.username)/\(item.slug)"
-        )
+        // 정규 블로그 주소(blog.kurl.me/@user/slug) — apex 의 /{lang}/p/… 는 비정규 경로다.
+        URL(string: "\(Config.blogBase)/@\(item.author.username)/\(item.slug)")
     }
 
     private static func perform(

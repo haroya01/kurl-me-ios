@@ -66,7 +66,7 @@ struct EditSeriesSheet: View {
                     .typeScale(.meta)
                     .foregroundStyle(Palette.faint)
                 HStack(spacing: 8) {
-                    Text(verbatim: "kurl.me/…/")
+                    Text(verbatim: "blog.kurl.me/…/")
                         .typeScale(.meta)
                         .foregroundStyle(Palette.faint)
                     TextField("series-slug", text: $slug)

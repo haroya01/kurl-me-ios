@@ -732,11 +732,10 @@ struct PostDetailView: View {
             viewCount: 0, likeCount: detail.post.likeCount, followsGained: 0)
     }
 
-    /// 네이티브 공유 시트용 공개 URL — 웹과 같은 주소.
+    /// 네이티브 공유 시트용 공개 URL — 웹 postHref 와 같은 정규 블로그 주소.
     private var shareURL: URL? {
         guard case .loaded(let detail) = model.phase else { return nil }
-        return URL(
-            string: "\(Config.apiBase)/\(Config.preferredLanguageTag)/p/\(detail.author.username)/\(detail.post.slug)")
+        return URL(string: "\(Config.blogBase)/@\(detail.author.username)/\(detail.post.slug)")
     }
 
     /// 본문 탭 시 키보드 사임 — GlassCommentBar 의 focus 변화가 이어받아 빈 컴포저를 닫는다.

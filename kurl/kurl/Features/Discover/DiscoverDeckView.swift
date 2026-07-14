@@ -205,11 +205,10 @@ struct DiscoverDeckView: View {
         }
     }
 
-    /// 네이티브 공유 시트용 공개 URL — 글 상세와 같은 주소.
+    /// 네이티브 공유 시트용 공개 URL — 글 상세와 같은 정규 블로그 주소.
     private var currentShareURL: URL? {
         guard let item = currentItem else { return nil }
-        return URL(
-            string: "\(Config.apiBase)/\(Config.preferredLanguageTag)/p/\(item.author.username)/\(item.slug)")
+        return URL(string: "\(Config.blogBase)/@\(item.author.username)/\(item.slug)")
     }
 
     private var deck: some View {

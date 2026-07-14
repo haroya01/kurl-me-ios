@@ -41,13 +41,13 @@ struct ChooseUsernameView: View {
                     .font(.system(size: titleSize, weight: .bold))
                     .foregroundStyle(Palette.ink)
                     .padding(.top, 16)
-                Text("kurl.me/u/ 주소에 쓰여요. 나중에 바꿀 수 있어요.")
+                Text("blog.kurl.me/@ 주소에 쓰여요. 나중에 바꿀 수 있어요.")
                     .font(.system(size: 15 * unit))
                     .foregroundStyle(Palette.secondary)
                     .padding(.top, 8)
 
                 HStack(spacing: 1) {
-                    Text("kurl.me/u/").foregroundStyle(Palette.secondary)
+                    Text(verbatim: "blog.kurl.me/@").foregroundStyle(Palette.secondary)
                     TextField("username", text: $username)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
