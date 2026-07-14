@@ -194,7 +194,7 @@ struct AnalyticsView: View {
                     .foregroundStyle(Palette.ink)
                     .contentTransition(.numericText())
                 Text("조회")
-                    .font(.system(size: 15 * unit))
+                    .typeScale(.body)
                     .foregroundStyle(Palette.secondary)
             }
             // 윈도우 보조지표 — 아이콘 군집 대신 담백한 한 줄(§10 절제).
@@ -284,7 +284,7 @@ struct AnalyticsView: View {
                         KurlLoadingMark()
                     } else {
                         Text("더 보기")
-                            .font(.system(size: 13 * unit, weight: .medium))
+                            .typeScale(.meta)
                             .foregroundStyle(Palette.link)
                     }
                 }
@@ -346,7 +346,7 @@ struct AnalyticsView: View {
             ForEach(overview.referrers) { ref in
                 HStack(spacing: 10) {
                     Text(ref.host)
-                        .font(.system(size: 14 * unit))
+                        .typeScale(.lede)
                         .foregroundStyle(Palette.body)
                         .lineLimit(1)
                         .frame(width: 120 * unit, alignment: .leading)
@@ -396,7 +396,7 @@ struct AnalyticsView: View {
                 .minimumScaleFactor(0.7)
                 .lineLimit(1)
             Text(label)
-                .font(.system(size: 11 * metaUnit))
+                .typeScale(.footnote)
                 .foregroundStyle(Palette.secondary)
         }
         .frame(maxWidth: .infinity)

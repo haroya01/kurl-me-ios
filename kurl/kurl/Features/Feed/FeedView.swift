@@ -253,6 +253,10 @@ struct FeedPage: View {
     @State private var showLoginSheet = false
     /// 직전 로그인 상태 — 실제 인증 전환에서만 리셋한다(첫 로드 헛 epoch·빈 깜빡임 방지).
     @State private var wasSignedIn = AuthStore.shared.isSignedIn
+    /// 스크롤 복원 앵커 — 글로 들어갔다 돌아오면 보던 위치가 사라지던 것(ScrollView 는 push·pop
+    /// 을 건너 오프셋을 안 물어 준다). 페이지가 ZStack 에 상주해 이 @State 가 살아남으므로,
+    /// 마지막으로 보이던 카드 id 를 붙들어 두면 복귀 시 그 카드로 스크롤이 되돌아간다.
+    @State private var scrollAnchor: String?
 
     init(source: FeedSource, active: Bool, warm: Bool, zoom: Namespace.ID) {
         self.source = source
@@ -335,6 +339,8 @@ struct FeedPage: View {
                     }
                     .buttonStyle(CardButtonStyle())
                     .cardQuickActions(item)
+                    // 복원 앵커의 좌표 — 카드 id 문자열로 못 박아, 복귀 시 이 id 로 스크롤이 되돌아간다.
+                    .id(String(item.id))
                     .modifier(ZoomSource(
                         active: active,
                         id: "post-\(item.author.username)-\(item.slug)",
@@ -395,7 +401,7 @@ struct FeedPage: View {
                             title: "구독함이 비어 있어요",
                             message: "작가를 팔로우하면 새 글이 여기 도착해요.",
                             actionTitle: "발견에서 작가 찾기",
-                            action: { TabRouter.shared.selection = 1 }
+                            action: { TabRouter.shared.switchTo(1, reduceMotion: reduceMotion) }
                         )
                         .padding(.top, 64)
                     } else {
@@ -406,7 +412,7 @@ struct FeedPage: View {
                                 ? "몇 편 읽고 나면 취향이 잡힙니다."
                                 : "첫 글이 올라오면 여기에서 만나요.",
                             actionTitle: "발견에서 읽을 글 찾기",
-                            action: { TabRouter.shared.selection = 1 }
+                            action: { TabRouter.shared.switchTo(1, reduceMotion: reduceMotion) }
                         )
                         .padding(.top, 64)
                     }
@@ -416,10 +422,15 @@ struct FeedPage: View {
             .frame(maxWidth: Metrics.readingColumn)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, Metrics.gutter)
+            // 카드 행마다 붙인 .id 를 복원 좌표로 노출 — scrollPosition 이 이 레이아웃에서 앵커를 읽는다.
+            .scrollTargetLayout()
             // 발견 시리즈는 본 피드 반영 뒤 별도로 도착한다(피드를 막지 않는 설계) — 카드 한 장
             // 높이가 리스트 중간에 순간 끼어들어 아래를 보던 화면이 튀던 것을 애니메이트로 밀어낸다.
             .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: model.series?.id)
         }
+        // 글로 들어갔다 돌아오면 보던 카드로 스크롤을 되돌린다 — 페이지가 상주해 앵커가 살아남는다.
+        // .top 앵커라 그 카드가 다시 화면 맨 위에 온다(복귀 지점이 튀지 않게).
+        .scrollPosition(id: $scrollAnchor, anchor: .top)
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
         // 활성 페이지의 스크롤만 탭바 숨김을 몬다 — ZStack 에 상주하는 숨은 페이지가
@@ -560,8 +571,6 @@ private struct FeedSeriesCard: View {
     @ScaledMetric(relativeTo: .caption) private var seriesNameSize: CGFloat = 12
     @ScaledMetric(relativeTo: .title) private var epNumSize: CGFloat = 34
     @ScaledMetric(relativeTo: .footnote) private var epTotalSize: CGFloat = 15
-    @ScaledMetric(relativeTo: .headline) private var epTitleSize: CGFloat = 18
-    @ScaledMetric(relativeTo: .caption) private var metaSize: CGFloat = 12
 
     private var posts: [SeriesPostRef] { Array(series.posts.prefix(4)) }
 
@@ -683,8 +692,7 @@ private struct FeedSeriesCard: View {
                     .lineLimit(1)
                 // 에피소드 제목(웹: 18px bold, 3줄).
                 Text(ep.title)
-                    .font(.system(size: epTitleSize, weight: .bold))
-                    .tracking(-0.3)
+                    .typeScale(.title)
                     .foregroundStyle(onImage ? Color.white : Palette.ink)
                     .lineLimit(3)
                     .multilineTextAlignment(.leading)
@@ -692,13 +700,13 @@ private struct FeedSeriesCard: View {
                 HStack(spacing: 6) {
                     AvatarView(author: author, size: 18)
                     Text(author.username)
-                        .font(.system(size: metaSize, weight: .medium))
+                        .typeScale(.meta)
                         .foregroundStyle(onImage ? Color.white.opacity(0.9) : Palette.secondary)
                         .lineLimit(1)
                     if let date = series.lastPublishedAt {
                         Text("·").foregroundStyle(onImage ? Color.white.opacity(0.6) : Palette.faint)
                         Text(date.relativeShort)
-                            .font(.system(size: metaSize))
+                            .typeScale(.meta)
                             .foregroundStyle(onImage ? Color.white.opacity(0.9) : Palette.secondary)
                     }
                 }

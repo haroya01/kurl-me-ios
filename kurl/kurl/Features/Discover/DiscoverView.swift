@@ -42,6 +42,7 @@ struct DiscoverView: View {
     @State private var hlLoading = true
     @State private var hlFailed = false
     @State private var hlLoaded = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         NavigationStack {
@@ -305,7 +306,7 @@ struct DiscoverView: View {
             title: "아직 흐를 게 없어요",
             message: "작가를 팔로우하면, 그들이 컬렉션에 이은 글이 여기에 흘러요.",
             actionTitle: "읽을 글 찾기",
-            action: { TabRouter.shared.selection = 0 }
+            action: { TabRouter.shared.switchTo(0, reduceMotion: reduceMotion) }
         )
         .frame(maxWidth: .infinity)
         .padding(.top, 80)

@@ -23,6 +23,80 @@ extension View {
     }
 }
 
+/// 팔로우·구독·태그구독이 공유하는 토글 캡슐 한 벌 — 유리 문법·라벨 타이포(14 semibold,
+/// Dynamic Type)·토글 애니메이션을 여기서만 정의한다(3벌 복붙 산발의 종식, #124).
+/// 도메인(낙관 토글·햅틱·로그인 프롬프트)은 호출측 몫 — 이 뷰는 "보이는 캡슐"만 책임진다.
+struct ToggleCapsuleButton: View {
+    var isOn: Bool
+    var onLabel: LocalizedStringKey
+    var offLabel: LocalizedStringKey
+    /// 라벨 앞 상태 아이콘(태그 구독의 checkmark/plus) — 없으면 라벨만.
+    var onIcon: String?
+    var offIcon: String?
+    /// nil = 기본 문법(꺼짐이 주행동 → 그린 유리). 켜짐/꺼짐과 무관하게 가라앉는
+    /// 자리(구독 secondary)는 false 를 넘긴다.
+    var prominent: Bool?
+    /// nil = 기본(그린 유리엔 흰 글자, 맑은 유리엔 시맨틱). 구독 secondary 처럼
+    /// 자리마다 다른 잉크가 필요하면 호출측이 계산해 넘긴다.
+    var labelStyle: AnyShapeStyle?
+    /// 캡슐 시각 높이(~33pt)를 유지한 채 탭 영역만 넓힐 때(44pt 규칙).
+    var expandTap: CGFloat?
+    var action: () -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .headline) private var labelSize: CGFloat = 14
+    @ScaledMetric(relativeTo: .headline) private var iconSize: CGFloat = 12
+
+    init(
+        isOn: Bool, on onLabel: LocalizedStringKey, off offLabel: LocalizedStringKey,
+        onIcon: String? = nil, offIcon: String? = nil,
+        prominent: Bool? = nil, labelStyle: AnyShapeStyle? = nil, expandTap: CGFloat? = nil,
+        action: @escaping () -> Void
+    ) {
+        self.isOn = isOn
+        self.onLabel = onLabel
+        self.offLabel = offLabel
+        self.onIcon = onIcon
+        self.offIcon = offIcon
+        self.prominent = prominent
+        self.labelStyle = labelStyle
+        self.expandTap = expandTap
+        self.action = action
+    }
+
+    private var isProminent: Bool { prominent ?? !isOn }
+
+    var body: some View {
+        Button(action: action) {
+            if let expandTap {
+                capsuleLabel.expandTapTarget(expandTap)
+            } else {
+                capsuleLabel
+            }
+        }
+        .buttonStyle(.plain)
+        .glassCapsule(prominent: isProminent)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: isOn)
+    }
+
+    private var capsuleLabel: some View {
+        HStack(spacing: 5) {
+            if let name = isOn ? onIcon : offIcon {
+                Image(systemName: name)
+                    .font(.system(size: iconSize, weight: .semibold))
+            }
+            Text(isOn ? onLabel : offLabel)
+                .font(.system(size: labelSize, weight: .semibold))
+        }
+        .foregroundStyle(
+            labelStyle ?? (isProminent ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+        )
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .contentShape(Capsule())
+    }
+}
+
 private struct GlassCapsule: ViewModifier {
     let prominent: Bool
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency

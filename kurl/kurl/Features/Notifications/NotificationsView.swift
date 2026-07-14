@@ -22,8 +22,6 @@ struct NotificationsView: View {
     /// 같은 상태면 재fetch 하지 않아 쌓인 페이지·스크롤 위치를 보존한다.
     @State private var loadedForSignIn: Bool?
     @State private var showLoginSheet = false
-    /// 헤드라인 본문 크기 — 작가 이름만 굵게 얹되 Dynamic Type 를 따른다(§body 15.5).
-    @ScaledMetric(relativeTo: .callout) private var headlineSize: CGFloat = 15.5
     /// "모두 읽음" 툴바 액션 — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
     @ScaledMetric(relativeTo: .subheadline) private var actionSize: CGFloat = 13
 
@@ -230,8 +228,7 @@ struct NotificationsView: View {
             // 한 줄에 문장 + 오른쪽 끝 상대시간(행마다 시간이 한 열로 정렬돼 훑기 쉽게).
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 headline(n)
-                    .font(.system(size: headlineSize))
-                    .tracking(-0.1)
+                    .typeScale(.body)
                     // 읽은 알림은 한 톤 가라앉혀 — 안 읽은 줄로 눈이 가게. 이름은 이미 semibold.
                     .foregroundStyle(n.read ? Palette.secondary : Palette.ink)
                     .multilineTextAlignment(.leading)

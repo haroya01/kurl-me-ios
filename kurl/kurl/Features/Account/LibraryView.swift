@@ -8,7 +8,6 @@ import SwiftUI
 /// 서재 — 내가 모은 것(북마크·좋아요·구독·하이라이트·컬렉션·기록·노트)을 한 목록으로.
 /// 내 계정(= 내 블로그) 화면의 오른쪽 헤더 버튼으로 들어온다.
 struct LibraryView: View {
-    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
     var body: some View {
@@ -46,7 +45,7 @@ struct LibraryView: View {
         } label: {
             HStack(spacing: 10) {
                 Text(title)
-                    .font(.system(size: 16 * unit))
+                    .typeScale(.body)
                     .foregroundStyle(Palette.ink)
                 Spacer()
                 Image(systemName: "chevron.right")

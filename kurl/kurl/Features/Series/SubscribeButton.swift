@@ -16,7 +16,6 @@ struct SubscribeButton: View {
     @State private var showLoginPrompt = false
     private let emphasis: Emphasis
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @ScaledMetric(relativeTo: .headline) private var labelSize: CGFloat = 14
 
     init(seriesId: Int64, emphasis: Emphasis = .primary) {
         _model = State(initialValue: SubscribeModel(seriesId: seriesId))
@@ -38,20 +37,13 @@ struct SubscribeButton: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Button {
+            // 캡슐 시각 높이 ~30pt → expandTap 으로 탭 영역만 44pt(시각 크기 유지).
+            ToggleCapsuleButton(
+                isOn: model.subscribed, on: "구독 중", off: "구독",
+                prominent: prominent, labelStyle: labelStyle, expandTap: 12
+            ) {
                 toggle()
-            } label: {
-                Text(model.subscribed ? "구독 중" : "구독")
-                    .font(.system(size: labelSize, weight: .semibold))
-                    .foregroundStyle(labelStyle)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .contentShape(Capsule())
-                    .expandTapTarget()  // 캡슐 시각 높이 ~30pt → 탭 영역만 44pt 로(시각 크기 유지)
             }
-            .buttonStyle(.plain)
-            .glassCapsule(prominent: prominent)
-            .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: model.subscribed)
 
             if let count = model.subscriberCount, count > 0 {
                 Text("구독자 \(count)")

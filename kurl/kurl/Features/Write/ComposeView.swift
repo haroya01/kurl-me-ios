@@ -466,7 +466,7 @@ struct ComposeView: View {
                 HStack(spacing: 8) {
                     ProgressView().controlSize(.small)
                     Text("본문을 불러오는 중이에요…")
-                        .font(.system(size: 14 * unit))
+                        .typeScale(.body)
                         .foregroundStyle(Palette.faint)
                 }
                 .padding(.horizontal, Metrics.gutter)
@@ -476,7 +476,7 @@ struct ComposeView: View {
                 // 현행 에디터에서만 — WriteV2 캔버스는 빈 블록·삽입 툴바가 스스로 시작을 안내한다(이 힌트 억제).
                 // 마크다운 지식을 요구하지 않는다 — 탭하면 도구 막대가 떠서 제목·목록·이미지·표를 넣는다.
                 Text("여기를 탭해 시작하세요 — 아래 도구 막대로 제목·사진·목록·표를 넣어요.")
-                    .font(.system(size: 14 * unit))
+                    .typeScale(.body)
                     .foregroundStyle(Palette.faint)
                     .padding(.horizontal, Metrics.gutter)
                     .padding(.top, 12)
@@ -494,7 +494,7 @@ struct ComposeView: View {
                         .font(.system(size: 30 * unit))
                         .foregroundStyle(Palette.secondary)
                     Text("본문을 불러오지 못했어요")
-                        .font(.system(size: 15 * unit, weight: .medium))
+                        .typeScale(.body)
                         .foregroundStyle(Palette.ink)
                     Button("다시 시도") {
                         guard let id = postId else { return }
@@ -537,6 +537,14 @@ struct ComposeView: View {
                             Button("다시 로그인") {
                                 showSaveStatus = false
                                 showLoginSheet = true
+                            }
+                            .font(.system(size: 13 * metaUnit, weight: .semibold))
+                            .foregroundStyle(Palette.link)
+                        } else if autosavePersistentFailure {
+                            // 서버·네트워크 실패는 백오프를 기다리지 않고 지금 한 번 밀어볼 손잡이를 준다.
+                            Button("지금 다시 저장") {
+                                showSaveStatus = false
+                                scheduleAutosave(after: .zero)
                             }
                             .font(.system(size: 13 * metaUnit, weight: .semibold))
                             .foregroundStyle(Palette.link)
@@ -617,7 +625,7 @@ struct ComposeView: View {
                         publishPreview
                         // 분량 감각 — 독자가 보는 읽는 시간·글자 수(작성 도구의 기본 피드백).
                         Text(readStats)
-                            .font(.system(size: 12.5 * metaUnit))
+                            .typeScale(.meta)
                             .foregroundStyle(Palette.secondary)
                     }
                     .modifier(QuietAppear(index: 0))
@@ -631,7 +639,7 @@ struct ComposeView: View {
                         TextField(
                             "소개글 — 카드와 검색에 보이는 한 단락", text: $excerpt, axis: .vertical
                         )
-                        .font(.system(size: 14 * unit))
+                        .typeScale(.lede)
                         .lineLimit(2...4)
                         .padding(.horizontal, 13)
                         .padding(.vertical, 11)
@@ -662,7 +670,7 @@ struct ComposeView: View {
                                     seriesList.first(where: { $0.id == seriesId })?.title
                                         ?? String(localized: "시리즈 없음")
                                 )
-                                .font(.system(size: 14 * unit, weight: .medium))
+                                .typeScale(.lede)
                                 .lineLimit(1)
                                 Image(systemName: "chevron.up.chevron.down")
                                     .font(.system(size: 10 * metaUnit))
@@ -693,7 +701,7 @@ struct ComposeView: View {
                         Task { await save(publish: willPublish) }
                     } label: {
                         Text(primaryPublishLabel)
-                            .font(.system(size: 15 * unit, weight: .semibold))
+                            .typeScale(.titleSmall)
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity)
                             // 높이 고정(48)이 큰 글자에서 라벨을 잘랐다 — 패딩 + 최소높이로 캡슐이 따라 자란다.
@@ -715,7 +723,7 @@ struct ComposeView: View {
                         // 폼을 닫지 않고 그 위로 — 보고 닫으면 폼으로 돌아온다.
                         Button { openPreview() } label: {
                             Label("전체 미리보기", systemImage: "doc.text.magnifyingglass")
-                                .font(.system(size: 13 * unit))
+                                .typeScale(.footnote)
                         }
                         .foregroundStyle(Palette.link)
                         .disabled(postId == nil)
@@ -728,7 +736,7 @@ struct ComposeView: View {
                                 }
                                 showSchedule = true
                             }
-                                .font(.system(size: 13 * unit))
+                                .typeScale(.footnote)
                                 .foregroundStyle(Palette.link)
                                 .disabled(postId == nil)
                         }
@@ -764,10 +772,15 @@ struct ComposeView: View {
             }
             // 발행/저장 실패는 폼 자체에 — 루트 알럿은 fullScreenCover 뒤에 가린다.
             .alert(
-                "문제가 생겼어요",
+                "발행하지 못했어요",
                 isPresented: .init(
                     get: { publishSheetError != nil }, set: { if !$0 { publishSheetError = nil } })
             ) {
+                // 초안은 그대로다 — 폼을 닫아 에디터로 돌려보내 초안이 안전함을 분명히 한다.
+                Button("에디터로 돌아가기") {
+                    publishSheetError = nil
+                    showPublish = false
+                }
                 Button("확인", role: .cancel) {}
             } message: {
                 Text(publishSheetError ?? "")
@@ -844,7 +857,7 @@ struct ComposeView: View {
                             Image(systemName: "photo.on.rectangle")
                                 .font(.system(size: 11 * metaUnit, weight: .semibold))
                             Text("본문 첫 이미지를 커버로")
-                                .font(.system(size: 12 * metaUnit, weight: .medium))
+                                .typeScale(.meta)
                         }
                         .foregroundStyle(.white)
                         .padding(.horizontal, 10)
@@ -962,7 +975,7 @@ struct ComposeView: View {
                         Image(systemName: "photo")
                             .font(.system(size: 11 * metaUnit, weight: .semibold))
                         Text("변경")
-                            .font(.system(size: 12 * metaUnit, weight: .medium))
+                            .typeScale(.meta)
                     }
                     .foregroundStyle(.white)
                     .padding(.horizontal, 10)
@@ -1018,7 +1031,7 @@ struct ComposeView: View {
                                     scheduleDate = preset.date
                                 } label: {
                                     Text(preset.label)
-                                        .font(.system(size: 13 * unit, weight: .medium))
+                                        .typeScale(.meta)
                                         .foregroundStyle(active ? .white : Palette.chipText)
                                         .padding(.horizontal, 14)
                                         .padding(.vertical, 8)
@@ -1156,7 +1169,14 @@ struct ComposeView: View {
         lastSavedAt != nil || autosaveFailed || (canSave && signature != lastSavedSignature)
     }
 
+    /// 인증이 아닌 저장 실패가 거듭되는가(서버 5xx·네트워크 단절) — 자동 재시도만 조용히 도는 대신
+    /// 지금 다시 시도할 손잡이를 줄 근거. 첫 실패는 일시적일 수 있어 두 번째부터 격상한다.
+    private var autosavePersistentFailure: Bool {
+        autosaveFailed && !autosaveNeedsLogin && autosaveRetryStreak >= 2
+    }
+
     private var saveStatusIcon: String {
+        if autosavePersistentFailure { return "exclamationmark.triangle" }
         if autosaveFailed { return "exclamationmark.icloud" }
         if signature != lastSavedSignature { return "circle.dotted" }
         return "checkmark.circle"
@@ -1178,6 +1198,7 @@ struct ComposeView: View {
 
     private func saveStatusText(dirty: Bool) -> String {
         if autosaveNeedsLogin { return String(localized: "로그인이 풀렸어요 — 다시 로그인해야 저장돼요") }
+        if autosavePersistentFailure { return String(localized: "계속 저장하지 못하고 있어요 — 지금 다시 시도해 보세요") }
         if autosaveFailed { return String(localized: "저장하지 못했어요 — 자동으로 다시 시도해요") }
         if dirty { return String(localized: "미저장 — 곧 저장돼요") }
         if let at = lastSavedAt {
@@ -2253,7 +2274,7 @@ private struct TableActionBar: View {
                                 Image(systemName: action.symbol)
                                     .font(.system(size: 12 * unit, weight: .bold))
                                 Text(action.label)
-                                    .font(.system(size: 13 * unit, weight: .medium))
+                                    .typeScale(.meta)
                             }
                             // 유리 위 글자 = 시맨틱 vibrancy(§1.2) — slate 고정색은 유리에서 안 쓴다.
                             .foregroundStyle(action.isDestructive ? .secondary : .primary)
@@ -2350,7 +2371,7 @@ private struct ImageActionBar: View {
                 Image(systemName: icon)
                     .font(.system(size: 12 * unit, weight: .semibold))
                 Text(label)
-                    .font(.system(size: 13 * unit, weight: .medium))
+                    .typeScale(.meta)
             }
             .foregroundStyle(tint)
             .padding(.horizontal, 13)
@@ -2389,7 +2410,7 @@ private struct VideoActionBar: View {
                                 Image(systemName: action.symbol)
                                     .font(.system(size: 12 * unit, weight: .semibold))
                                 Text(action.label)
-                                    .font(.system(size: 13 * unit, weight: .medium))
+                                    .typeScale(.meta)
                             }
                             // 유리 위 글자 = 시맨틱 vibrancy(§1.2).
                             .foregroundStyle(action == .delete ? .secondary : .primary)
@@ -2446,7 +2467,7 @@ private struct ListActionBar: View {
                 Image(systemName: action.symbol)
                     .font(.system(size: 12 * unit, weight: .semibold))
                 Text(action.label)
-                    .font(.system(size: 13 * unit, weight: .medium))
+                    .typeScale(.meta)
             }
             // 유리 위 글자 = 시맨틱 vibrancy(§1.2) — 비활성은 .tertiary 로 가라앉힌다.
             .foregroundStyle(enabled ? .primary : .tertiary)
@@ -2478,7 +2499,7 @@ private struct ImageCaptionSheet: View {
                     .typeScale(.meta)
                     .foregroundStyle(Palette.secondary)
                 TextField("이미지 설명", text: $draft, axis: .vertical)
-                    .font(.system(size: 16 * unit))
+                    .typeScale(.body)
                     .lineLimit(1...3)
                     .focused($focused)
                     .padding(.horizontal, 14)
@@ -2537,7 +2558,7 @@ private struct RevisionsSheet: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 3) {
                                 Text("v\(revision.versionNumber) — \(revision.titleSnapshot)")
-                                    .font(.system(size: 15 * unit, weight: .medium))
+                                    .typeScale(.body)
                                     .foregroundStyle(Palette.ink)
                                     .lineLimit(1)
                                 if let date = revision.createdAt {
@@ -2550,7 +2571,7 @@ private struct RevisionsSheet: View {
                             Button("복원") {
                                 restore(revision)
                             }
-                            .font(.system(size: 13 * unit, weight: .medium))
+                            .typeScale(.meta)
                             .foregroundStyle(Palette.link)
                             .disabled(busy)
                         }
@@ -2616,7 +2637,7 @@ private struct TagsField: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 TextField("태그 입력 후 추가 (쉼표로 여러 개)", text: $draft)
-                    .font(.system(size: 14 * unit))
+                    .typeScale(.lede)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
                     .submitLabel(.done)
@@ -2666,7 +2687,7 @@ private struct TagsField: View {
             Button {
                 promote(tag)
             } label: {
-                Text(tag).font(.system(size: 13 * unit, weight: .medium))
+                Text(tag).typeScale(.meta)
             }
             .buttonStyle(.plain)
             .disabled(isPrimary)
@@ -2759,7 +2780,6 @@ private struct PublishCelebrationView: View {
     let onDone: () -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .title3) private var titleSize: CGFloat = 19
-    @ScaledMetric(relativeTo: .headline) private var actionSize: CGFloat = 15
     @State private var bloom = false
     @State private var marked = false
     /// 발행 순간의 서명 — 브랜드 마크가 스플래시처럼 줄별로 그려진다(체크 대신).
@@ -2818,7 +2838,7 @@ private struct PublishCelebrationView: View {
                         onView()
                     } label: {
                         Text("글 보기")
-                            .font(.system(size: actionSize, weight: .semibold))
+                            .typeScale(.titleSmall)
                             .foregroundStyle(.white)
                             .padding(.horizontal, 20)
                             .padding(.vertical, 10)

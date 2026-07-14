@@ -89,7 +89,7 @@ struct HighlightThreadSheet: View {
                             composerFocused = true
                         } label: {
                             Label("첫 답글 쓰기", systemImage: "bubble.left")
-                                .font(.system(size: 14 * unit, weight: .medium))
+                                .typeScale(.lede)
                                 .foregroundStyle(Palette.link)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 28)
@@ -276,7 +276,7 @@ struct HighlightThreadSheet: View {
             Rectangle().fill(Palette.hairline).frame(height: 1)
             if sendFailed {
                 Text("전송하지 못했습니다 — 다시 시도해 주세요.")
-                    .font(.system(size: 12 * metaUnit))
+                    .typeScale(.footnote)
                     .foregroundStyle(Palette.danger)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, Metrics.gutter)
@@ -285,7 +285,7 @@ struct HighlightThreadSheet: View {
             HStack(alignment: .bottom, spacing: 10) {
                 TextField("답글 남기기…", text: $text, axis: .vertical)
                     .focused($composerFocused)
-                    .font(.system(size: 15 * unit))
+                    .typeScale(.body)
                     .lineLimit(1...5)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 9)
@@ -393,14 +393,11 @@ struct HighlightThreadSheet: View {
         }
     }
 
-    /// 이 문장을 내 컬렉션(연결 그래프)에 노드로 — 시트 위 시트를 피해 닫은 뒤 부모가 띄운다.
+    /// 이 문장을 내 컬렉션(연결 그래프)에 노드로 — 시트 위 시트를 피해, 예약만 걸고 닫는다.
+    /// 실제 프레젠테이션은 부모의 onDismiss(해제 완료 시점)가 승격한다.
     private func startConnect() {
-        let target = highlight
+        store.pendingConnect = highlight
         dismiss()
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(350))
-            store.connectTarget = target
-        }
     }
 
     /// 삭제 확정 — 스토어가 낙관적으로 본문에서 걷어내고, 성공하면 시트를 닫는다. 실패하면
@@ -443,7 +440,7 @@ struct HighlightNoteComposerSheet: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 TextField("이 부분에 대한 메모를 남겨보세요", text: $note, axis: .vertical)
-                    .font(.system(size: 16 * unit))
+                    .typeScale(.body)
                     .lineLimit(3...7)
                     .focused($focused)
                     .padding(14)

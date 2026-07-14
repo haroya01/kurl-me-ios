@@ -22,7 +22,6 @@ struct AuthorBlogView: View {
     @State private var showReport = false
     @State private var showBlockConfirm = false
     @Environment(\.scenePhase) private var scenePhase
-    @ScaledMetric(relativeTo: .body) private var navUnit: CGFloat = 1
     /// "명함" 버튼 라벨 — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
     @ScaledMetric(relativeTo: .headline) private var cardLabelSize: CGFloat = 14
 
@@ -76,7 +75,7 @@ struct AuthorBlogView: View {
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Text(username)
-                    .font(.system(size: 16 * navUnit, weight: .semibold))
+                    .typeScale(.titleSmall)
                     .opacity(showNavTitle ? 1 : 0)
             }
             if let author, !isOwnAuthor {

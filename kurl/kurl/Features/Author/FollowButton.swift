@@ -11,7 +11,6 @@ struct FollowButton: View {
     @State private var model: FollowModel
     @State private var showLoginPrompt = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @ScaledMetric(relativeTo: .headline) private var labelSize: CGFloat = 14
 
     /// 옆에 "팔로워 N"을 붙일지 — 작가 헤더처럼 탭 가능한 카운트 행이 따로 있으면 끈다.
     private let showCount: Bool
@@ -35,20 +34,12 @@ struct FollowButton: View {
 
     private var content: some View {
         HStack(spacing: 12) {
-            Button {
+            // 캡슐 높이 ~33pt → expandTap 으로 탭 영역만 44pt(시각 크기 유지).
+            ToggleCapsuleButton(
+                isOn: model.following, on: "팔로잉", off: "팔로우", expandTap: 6
+            ) {
                 toggle()
-            } label: {
-                Text(model.following ? "팔로잉" : "팔로우")
-                    .font(.system(size: labelSize, weight: .semibold))
-                    .foregroundStyle(model.following ? AnyShapeStyle(.primary) : AnyShapeStyle(.white))
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .contentShape(Capsule())
-                    .expandTapTarget(6)  // 캡슐 높이 ~33pt → 탭 영역만 44pt 로(시각 크기 유지)
             }
-            .buttonStyle(.plain)
-            .glassCapsule(prominent: !model.following)
-            .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: model.following)
 
             if showCount, !model.hideFollowerCount, let count = model.followerCount {
                 Text("팔로워 \(count)")

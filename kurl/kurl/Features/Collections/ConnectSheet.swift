@@ -139,7 +139,7 @@ struct ConnectSheet: View {
             step2
         } label: {
             Text(selected.isEmpty ? "컬렉션을 골라주세요" : "다음")
-                .font(.system(size: 16 * unit, weight: .semibold))
+                .typeScale(.titleSmall)
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
@@ -184,7 +184,7 @@ struct ConnectSheet: View {
     private func rowMeta(_ c: CollectionSummary) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(c.title)
-                .font(.system(size: 15 * unit, weight: .medium))
+                .typeScale(.titleSmall)
                 .foregroundStyle(Palette.ink)
                 .lineLimit(1)
             // 안에 뭐가 들었는지 한 줄 — 어디 넣을지 떠올리게. 비었으면 개수만.
@@ -256,7 +256,7 @@ struct ConnectSheet: View {
                     .foregroundStyle(Palette.secondary)
                     .frame(width: 22)
                 Text("새 컬렉션 만들기")
-                    .font(.system(size: 15 * unit, weight: .medium))
+                    .typeScale(.titleSmall)
                     .foregroundStyle(Palette.ink)
                 Spacer(minLength: 0)
             }
@@ -277,7 +277,7 @@ struct ConnectSheet: View {
                     .foregroundStyle(Palette.accent)
                     .frame(width: 22)
                 Text("새 길 만들기")
-                    .font(.system(size: 15 * unit, weight: .medium))
+                    .typeScale(.titleSmall)
                     .foregroundStyle(Palette.ink)
                 Text("순서로 엮기")
                     .typeScale(.meta)
@@ -326,7 +326,7 @@ struct ConnectSheet: View {
                 .tracking(0.4)
                 .foregroundStyle(Palette.secondary)
             Text(targetTitle)
-                .font(.system(size: 15 * unit, weight: .medium))
+                .typeScale(.titleSmall)
                 .foregroundStyle(Palette.ink)
                 .lineLimit(2)
             Spacer(minLength: 0)
@@ -364,14 +364,15 @@ struct ConnectSheet: View {
             Group {
                 if saving { ProgressView().tint(.white) } else { Text("추가") }
             }
-            .font(.system(size: 16 * unit, weight: .semibold))
+            .typeScale(.titleSmall)
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
             .glassCapsule(prominent: true)
         }
         .buttonStyle(.plain)
-        .disabled(saving)
+        .disabled(saving || selected.isEmpty)
+        .opacity(selected.isEmpty ? 0.5 : 1)
         .padding(.top, 12)
     }
 

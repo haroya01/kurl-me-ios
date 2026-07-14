@@ -11,7 +11,6 @@ import SwiftUI
 struct ChooseUsernameView: View {
     var onDone: () -> Void = {}
 
-    @ScaledMetric(relativeTo: .title2) private var titleSize: CGFloat = 26
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     /// username 입력 행 — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
     @ScaledMetric(relativeTo: .headline) private var fieldSize: CGFloat = 16
@@ -38,11 +37,11 @@ struct ChooseUsernameView: View {
                 KurlMark(drawn: [true, true, true])
                     .frame(width: 64, height: 39)
                 Text("사용자 이름을 정해 주세요")
-                    .font(.system(size: titleSize, weight: .bold))
+                    .typeScale(.masthead)
                     .foregroundStyle(Palette.ink)
                     .padding(.top, 16)
                 Text("blog.kurl.me/@ 주소에 쓰여요. 나중에 바꿀 수 있어요.")
-                    .font(.system(size: 15 * unit))
+                    .typeScale(.body)
                     .foregroundStyle(Palette.secondary)
                     .padding(.top, 8)
 

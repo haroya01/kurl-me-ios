@@ -165,12 +165,11 @@ struct Hairline: View {
 
 struct MetaLine: View {
     let parts: [String]
-    @ScaledMetric(relativeTo: .footnote) private var unit: CGFloat = 1
     init(_ parts: [String]) { self.parts = parts }
 
     var body: some View {
         Text(parts.joined(separator: "  ·  "))
-            .font(.system(size: 13 * unit))
+            .typeScale(.meta)
             .foregroundStyle(Palette.secondary)
             .monospacedDigit()
             .lineLimit(1)

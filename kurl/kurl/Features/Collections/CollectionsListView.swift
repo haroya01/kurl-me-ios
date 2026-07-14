@@ -196,7 +196,7 @@ struct CreateCollectionSheet: View {
                 Group {
                     if saving { ProgressView().tint(.white) } else { Text("만들기") }
                 }
-                .font(.system(size: 16 * unit, weight: .semibold))
+                .typeScale(.titleSmall)
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
@@ -286,7 +286,7 @@ struct EditCollectionSheet: View {
                 Group {
                     if saving { ProgressView().tint(.white) } else { Text("저장") }
                 }
-                .font(.system(size: 16 * unit, weight: .semibold))
+                .typeScale(.titleSmall)
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)

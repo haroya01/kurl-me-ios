@@ -12,9 +12,6 @@ struct AccountView: View {
 
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @ScaledMetric(relativeTo: .title3) private var titleSize: CGFloat = 24
-    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
-    @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
     @State private var showNotifications = false
     // 피드 탭 벨과 UnreadStore 공유 — 각자 fetch 해 같은 GET 이 2회 나가지 않게.
     private var unreadCount: Int64 { UnreadStore.shared.count }
@@ -163,11 +160,11 @@ struct AccountView: View {
             // 환대의 유리 패널 — 안개 위에 뜬 한 장. 본문 타이포는 유리 위 시맨틱.
             VStack(alignment: .leading, spacing: 0) {
                 Text("kurl에 로그인")
-                    .font(.system(size: titleSize, weight: .bold))
+                    .typeScale(.masthead)
                     .foregroundStyle(.primary)
 
                 Text("좋아요와 북마크, 구독, 그리고 글쓰기까지 — 웹과 같은 계정 하나로 이어집니다.")
-                    .font(.system(size: 15 * unit))
+                    .typeScale(.body)
                     .foregroundStyle(.secondary)
                     .lineSpacing(4)
                     .padding(.top, 8)
@@ -177,7 +174,7 @@ struct AccountView: View {
                     .padding(.top, 24)
 
                 Text("로그인은 시스템 브라우저에서 안전하게 진행됩니다.")
-                    .font(.system(size: 12 * metaUnit))
+                    .typeScale(.footnote)
                     .foregroundStyle(.secondary)
                     .padding(.top, 12)
             }

@@ -57,7 +57,7 @@ struct SeriesBanner: View {
             } label: {
                 HStack(spacing: 4) {
                     Text("이 시리즈의 글")
-                        .font(.system(size: 13 * metaUnit, weight: .medium))
+                        .typeScale(.meta)
                     Image(systemName: "chevron.down")
                         .font(.system(size: 10 * metaUnit, weight: .semibold))
                         .rotationEffect(.degrees(expanded ? 180 : 0))
@@ -100,7 +100,7 @@ struct SeriesBanner: View {
             }
         } else if loadFailed {
             Text("목록을 불러오지 못했습니다")
-                .font(.system(size: 13 * metaUnit))
+                .typeScale(.footnote)
                 .foregroundStyle(Palette.secondary)
                 .padding(.vertical, 6)
         } else {
@@ -192,7 +192,7 @@ struct SeriesNextCard: View {
 
             NavigationLink(value: Route.series(username: username, slug: nav.slug)) {
                 Text("시리즈 전체 보기 (\(nav.total)편)")
-                    .font(.system(size: 13 * metaUnit))
+                    .typeScale(.footnote)
                     .foregroundStyle(Palette.secondary)
                     .expandTapTarget()
             }
