@@ -82,6 +82,42 @@ final class WriteV2FocusEngineTests: XCTestCase {
         XCTAssertEqual(doc.blocks.last?.kind, .quote)
     }
 
+    // MARK: 제목 순환 — 버튼 하나가 # → ## → ### → 문단 (구 에디터 cycleHeading 과 같은 순서)
+
+    func testCycleHeadingWalksDownSizesThenBackToParagraph() {
+        let doc = makeDoc([.paragraph("걷다 보면")])
+        _ = doc.focusTail()
+        doc.cycleFocusedHeading()
+        XCTAssertEqual(doc.blocks[0].kind, .heading(level: 1))
+        XCTAssertEqual(trimmed(doc.markdown), "# 걷다 보면", "h1 은 `# ` 로 왕복")
+        doc.cycleFocusedHeading()
+        XCTAssertEqual(trimmed(doc.markdown), "## 걷다 보면", "h2 는 `## ` 로 왕복")
+        doc.cycleFocusedHeading()
+        XCTAssertEqual(trimmed(doc.markdown), "### 걷다 보면", "h3 은 `### ` 로 왕복")
+        doc.cycleFocusedHeading()
+        XCTAssertEqual(doc.blocks[0].kind, .paragraph, "### 다음은 본문으로 복귀")
+        XCTAssertEqual(trimmed(doc.markdown), "걷다 보면", "마커 없이 본문만 남는다")
+    }
+
+    func testCycleHeadingFromQuoteStartsAtLevelOne() {
+        let doc = makeDoc([.quote("인용에서 시작")])
+        _ = doc.focusTail()
+        doc.cycleFocusedHeading()
+        XCTAssertEqual(doc.blocks[0].kind, .heading(level: 1), "다른 텍스트 블록에선 제목 1 부터")
+    }
+
+    func testCycleHeadingPreservesTextAndCaret() {
+        let doc = makeDoc([.paragraph("본문 유지")])
+        doc.focus = EditorFocus(blockID: doc.blocks[0].id, caret: 2)
+        doc.cycleFocusedHeading()
+        XCTAssertEqual(doc.blocks[0].text, "본문 유지", "종류만 바뀌고 텍스트는 그대로")
+        XCTAssertEqual(doc.focus?.caret, 2, "캐럿 보존")
+    }
+
+    private func trimmed(_ s: String) -> String {
+        s.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     // MARK: 왕복 안정 — 폴백이 저장 계약을 흔들지 않는다
 
     func testFocusTailDoesNotChangeMarkdownForTextTail() {

@@ -342,6 +342,24 @@ final class EditorDocument {
         focus = EditorFocus(blockID: f.blockID, caret: min(f.caret, blocks[i].text.count))
     }
 
+    /// 제목 버튼 하나가 크기를 순환한다 — 문단 → `#`(1) → `##`(2) → `###`(3) → 문단. 누를수록
+    /// 작아지고 끝에서 본문으로 돌아온다(구 에디터 cycleHeading 과 같은 순서라 근육기억이 이어진다).
+    /// 인용·리스트 등 다른 텍스트 블록에서 눌리면 제목 1 부터 시작. 그 외 규칙(텍스트·캐럿 보존,
+    /// 비텍스트 무동작, 무포커스 = 끝에서 이어 쓰기)은 toggleFocusedBlockKind 와 같다.
+    func cycleFocusedHeading() {
+        if focus == nil { focusTail() }
+        guard let f = focus, let i = index(of: f.blockID) else { return }
+        if blocks[i].isNonText { return }
+        let next: EditorBlockKind
+        if case .heading(let level) = blocks[i].kind {
+            next = level >= 3 ? .paragraph : .heading(level: level + 1)
+        } else {
+            next = .heading(level: 1)
+        }
+        blocks[i].kind = next
+        focus = EditorFocus(blockID: f.blockID, caret: min(f.caret, blocks[i].text.count))
+    }
+
     /// 토글 비교 — 같은 "버튼"이 가리키는 종류인가. 리스트는 ordered 만 보고(indent 무관), 코드는 언어 무관, 제목은 레벨까지.
     private static func sameToggleKind(_ a: EditorBlockKind, _ b: EditorBlockKind) -> Bool {
         switch (a, b) {
