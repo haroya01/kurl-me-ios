@@ -20,7 +20,11 @@ import SwiftUI
 nonisolated struct EditorFocus: Equatable {
     var blockID: UUID
     /// 블록 text 안 캐럿 위치(UTF-16 오프셋 아님, Swift String 인덱스 거리). 병합/분할 복원에 쓴다.
+    /// 선택이 있으면 이 위치가 선택 시작이고 length 가 길이(0=순수 캐럿).
     var caret: Int
+    /// 선택 길이(String 인덱스 거리). 0 이면 캐럿, >0 이면 [caret, caret+length) 가 선택됨.
+    /// 서식 툴바가 "선택을 마커로 감싸기"에 쓰고, 감싼 뒤 안쪽을 다시 선택 상태로 되돌리는 데도 쓴다.
+    var selectionLength: Int = 0
 }
 
 @MainActor
@@ -295,6 +299,84 @@ final class EditorDocument {
         blocks[i].kind = kind
         blocks[i].text = strippedText
         focus = EditorFocus(blockID: id, caret: max(0, min(caret, strippedText.count)))
+    }
+
+    // MARK: 서식 툴바 — 블록 종류 토글 / 인라인 마커 감싸기
+
+    /// 포커스 블록의 종류를 `kind`로 토글한다 — 이미 그 종류면 문단으로 되돌린다(누르면 켜고 다시 누르면 끔).
+    /// 텍스트는 보존하고 캐럿만 유지. 비텍스트 블록(구분선·이미지·표)엔 무동작. 리스트는 ordered/indent 비교로 토글.
+    func toggleFocusedBlockKind(_ kind: EditorBlockKind) {
+        guard let f = focus, let i = index(of: f.blockID) else { return }
+        if blocks[i].isNonText { return }
+        let current = blocks[i].kind
+        let next: EditorBlockKind = Self.sameToggleKind(current, kind) ? .paragraph : kind
+        blocks[i].kind = next
+        focus = EditorFocus(blockID: f.blockID, caret: min(f.caret, blocks[i].text.count))
+    }
+
+    /// 토글 비교 — 같은 "버튼"이 가리키는 종류인가. 리스트는 ordered 만 보고(indent 무관), 코드는 언어 무관, 제목은 레벨까지.
+    private static func sameToggleKind(_ a: EditorBlockKind, _ b: EditorBlockKind) -> Bool {
+        switch (a, b) {
+        case (.heading(let la), .heading(let lb)): return la == lb
+        case (.quote, .quote): return true
+        case (.code, .code): return true
+        case (.listItem(let oa, _), .listItem(let ob, _)): return oa == ob
+        default: return false
+        }
+    }
+
+    /// 포커스 블록의 선택 범위를 `marker`로 감싼다(볼드=`**`·이탤릭=`*`·인라인코드=`` ` ``). 선택이 없으면
+    /// `marker+marker`를 캐럿 자리에 넣고 그 사이에 캐럿을 둔다. 감싼 뒤엔 안쪽 내용을 다시 선택 상태로
+    /// 되돌려(연속 서식·해제 편의), 라이브 렌더가 즉시 최종 모습으로 보여준다. 왕복: text 에 마크다운 원문을 넣을 뿐.
+    func wrapFocusedSelection(with marker: String) {
+        guard let f = focus, let i = index(of: f.blockID), !blocks[i].isNonText else { return }
+        let text = blocks[i].text
+        let start = clampIndex(f.caret, in: text)
+        let end = clampIndex(f.caret + f.selectionLength, in: text)
+        let lo = text.index(text.startIndex, offsetBy: min(start, end))
+        let hi = text.index(text.startIndex, offsetBy: max(start, end))
+        let inner = String(text[lo..<hi])
+        let wrapped = marker + inner + marker
+        blocks[i].text = text.replacingCharacters(in: lo..<hi, with: wrapped)
+        // 마커 뒤(안쪽 시작)부터 inner 길이만큼 다시 선택 — 무선택이었으면 length 0(마커 사이 캐럿).
+        let innerStart = min(start, end) + marker.count
+        focus = EditorFocus(blockID: f.blockID, caret: innerStart, selectionLength: inner.count)
+    }
+
+    /// 특정 포커스(블록·선택)의 선택을 `[선택](url)` 링크로 감싼다. 선택이 없으면 `[라벨](url)`를 넣고
+    /// 라벨 자리에 캐럿을 둔다. `at` 을 명시하는 이유: 링크 URL 을 알럿(UIAlertController)으로 받으면
+    /// 그 알럿이 텍스트뷰의 first responder 를 뺏어 선택이 접히므로(document.focus.selectionLength=0),
+    /// 알럿을 열기 **전에** 잡아둔 포커스를 넘겨 원래 선택을 감싼다. 성공하면 true(호출자가 폴백 판단).
+    @discardableResult
+    func linkSelection(at target: EditorFocus, url: String, label: String = "") -> Bool {
+        guard let i = index(of: target.blockID), !blocks[i].isNonText else { return false }
+        let trimmedURL = url.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedURL.isEmpty else { return false }
+        let text = blocks[i].text
+        let start = clampIndex(target.caret, in: text)
+        let end = clampIndex(target.caret + target.selectionLength, in: text)
+        let lo = text.index(text.startIndex, offsetBy: min(start, end))
+        let hi = text.index(text.startIndex, offsetBy: max(start, end))
+        let selected = String(text[lo..<hi])
+        let labelText = selected.isEmpty ? label.trimmingCharacters(in: .whitespacesAndNewlines) : selected
+        let replacement = "[\(labelText)](\(trimmedURL))"
+        blocks[i].text = text.replacingCharacters(in: lo..<hi, with: replacement)
+        // 라벨을 선택 상태로 되돌린다(`[` 다음부터 labelText 길이). 라벨이 비면 그 자리에 캐럿.
+        let labelStart = min(start, end) + 1
+        focus = EditorFocus(blockID: target.blockID, caret: labelStart, selectionLength: labelText.count)
+        return true
+    }
+
+    /// 현재 포커스의 선택을 링크로 감싼다(선택 손실 우려 없는 즉시 호출용 — 알럿 경유는 linkSelection(at:) 사용).
+    @discardableResult
+    func linkFocusedSelection(url: String, label: String = "") -> Bool {
+        guard let f = focus else { return false }
+        return linkSelection(at: f, url: url, label: label)
+    }
+
+    /// String 인덱스 거리를 0…count 로 클램프.
+    private func clampIndex(_ n: Int, in text: String) -> Int {
+        max(0, min(n, text.count))
     }
 
     // MARK: 삽입 · 삭제

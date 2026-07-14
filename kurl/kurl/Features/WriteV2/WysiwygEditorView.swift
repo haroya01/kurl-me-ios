@@ -109,10 +109,12 @@ struct WysiwygEditorView: View {
     }
 
     private func textBlock(_ block: EditorBlock) -> some View {
-        BlockTextView(
+        let isFocused = document.focus?.blockID == block.id
+        return BlockTextView(
             block: block,
-            isFocused: document.focus?.blockID == block.id,
-            caretOnFocus: document.focus?.blockID == block.id ? (document.focus?.caret ?? 0) : 0,
+            isFocused: isFocused,
+            caretOnFocus: isFocused ? (document.focus?.caret ?? 0) : 0,
+            selectionLengthOnFocus: isFocused ? (document.focus?.selectionLength ?? 0) : 0,
             onTextChange: { document.updateText(block.id, $0) },
             onSplit: { document.splitBlock(block.id, at: $0) },
             onMergeBackward: { document.mergeBackward(block.id) },
@@ -122,6 +124,12 @@ struct WysiwygEditorView: View {
             onFocused: {
                 if document.focus?.blockID != block.id {
                     document.focus = EditorFocus(blockID: block.id, caret: block.text.count)
+                }
+            },
+            onSelectionChange: { caret, length in
+                // 라이브 선택을 문서에 반영 — 서식 툴바가 이 선택을 감싼다. 포커스 블록일 때만.
+                if document.focus?.blockID == block.id {
+                    document.focus = EditorFocus(blockID: block.id, caret: caret, selectionLength: length)
                 }
             }
         )
