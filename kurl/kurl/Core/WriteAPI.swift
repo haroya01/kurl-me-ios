@@ -264,9 +264,11 @@ enum WriteAPI {
         return res.imageUrl
     }
 
+    /// 커버 지정 — key 는 업로드 경로에서만 안다(발행 카드의 "본문 첫 이미지" 제안은 URL 뿐).
+    /// PATCH 는 null 필드를 무시하므로 key 없이 보내면 서버의 기존 키 상태를 건드리지 않는다.
     @discardableResult
-    static func updateCover(postId: Int64, url: String, key: String) async throws -> MyPost {
-        struct Body: Encodable { let ogImageUrl: String, ogImageKey: String }
+    static func updateCover(postId: Int64, url: String, key: String?) async throws -> MyPost {
+        struct Body: Encodable { let ogImageUrl: String, ogImageKey: String? }
         return try await client.patch(
             "/posts/\(postId)", body: Body(ogImageUrl: url, ogImageKey: key), authenticated: true)
     }

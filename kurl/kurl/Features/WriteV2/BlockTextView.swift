@@ -16,6 +16,17 @@
 import SwiftUI
 import UIKit
 
+/// 캔버스 붙여넣기 훅 — 실제 업로드·재호스팅·단축은 호스트(컴포즈)가 잇는다(현행 V1 캔버스와 같은 계약).
+/// 하네스(EditorHarnessView)는 기본값(전부 nil)로 살아 네트워크 없이 돈다.
+struct EditorPasteHandlers {
+    /// 클립보드 이미지 바이트 — 호스트가 업로드 후 IMAGE 블록으로 넣는다.
+    var images: (([UIImage]) -> Void)?
+    /// 붙여넣은 외부 이미지 URL — 호스트가 우리 버킷으로 재호스팅 후 IMAGE 블록으로 넣는다(핫링크 방지).
+    var imageURL: ((String) -> Void)?
+    /// 붙여넣은 일반 URL 의 kurl 단축 — nil 반환(실패 포함)이면 원문을 그대로 둔다.
+    var shorten: ((String) async -> String?)?
+}
+
 /// 문단·제목·인용 블록용 UITextView. 코드 블록은 이걸 안 쓴다.
 struct BlockTextView: UIViewRepresentable {
     let block: EditorBlock
@@ -36,6 +47,8 @@ struct BlockTextView: UIViewRepresentable {
     let onFocused: () -> Void
     /// 선택/캐럿 변화 통지 — (caret, selectionLength) String 인덱스. 서식 툴바가 이 선택을 마커로 감싼다.
     let onSelectionChange: (Int, Int) -> Void
+    /// 붙여넣기 훅 — 이미지·URL 붙여넣기를 기본 텍스트 붙여넣기보다 먼저 가로챈다(V1 캔버스 계약 미러).
+    var pasteHandlers: EditorPasteHandlers = EditorPasteHandlers()
 
     func makeUIView(context: Context) -> BlockUITextView {
         let tv = BlockUITextView()
@@ -51,8 +64,20 @@ struct BlockTextView: UIViewRepresentable {
         tv.setContentHuggingPriority(.defaultLow, for: .horizontal)
         context.coordinator.textView = tv
         context.coordinator.onEmptyBackspace = onMergeBackward
+        wirePaste(tv, coordinator: context.coordinator)
         apply(block, to: tv, coordinator: context.coordinator)
         return tv
+    }
+
+    /// 붙여넣기 경로 배선 — 이미지/이미지 URL 은 호스트로 넘기고, 일반 URL 은 원문을 먼저 넣어
+    /// 즉시 반응한 뒤(맨 URL 도 링크색으로 라이브 렌더된다) 단축이 오면 그 자리만 치환한다.
+    private func wirePaste(_ tv: BlockUITextView, coordinator: Coordinator) {
+        tv.onPasteImages = pasteHandlers.images
+        tv.onPasteImageURL = pasteHandlers.imageURL
+        tv.onPastedURL = { [weak tv, weak coordinator] url, range in
+            guard let tv, let coordinator else { return }
+            coordinator.shortenPastedURL(url, at: range, in: tv)
+        }
     }
 
     /// 제안된 폭에 맞춰 높이를 재는 대신 폭을 강제 — UITextView 가 그 폭 안에서 줄바꿈한다(오버플로 방지).
@@ -65,6 +90,7 @@ struct BlockTextView: UIViewRepresentable {
     func updateUIView(_ tv: BlockUITextView, context: Context) {
         context.coordinator.parent = self
         context.coordinator.onEmptyBackspace = onMergeBackward
+        wirePaste(tv, coordinator: context.coordinator)
         // 외부(문서)에서 온 text/kind 변화만 반영 — 사용자가 방금 친 것과 같으면 건너뛴다(캐럿 튐 방지).
         let textChanged = tv.currentBlockText != block.text
             || context.coordinator.renderedKind != block.kind
@@ -78,7 +104,13 @@ struct BlockTextView: UIViewRepresentable {
             // 외부(문서)에서 온 텍스트 변화 = 서식 툴바 감싸기·블록 토글·구조 연산 — 문서가 준 새 선택/
             // 캐럿을 복원한다. 사용자 타이핑은 textViewDidChange 가 currentBlockText 를 먼저 맞춰 여기
             // textChanged=false 이므로 이 경로를 안 타(타이핑 캐럿을 안 건드린다).
-            setSelection(caret: caretOnFocus, length: selectionLengthOnFocus, in: tv)
+            // 동기 지름길 전환 직후엔 한 번 건너뛴다 — 전환과 이 복원 사이에 이미 새 글자가 들어와
+            // 있을 수 있어(속사 타이핑), 캐럿 0 복원이 이후 입력을 앞으로 끼워 넣는다.
+            if context.coordinator.suppressSelectionRestoreOnce {
+                context.coordinator.suppressSelectionRestoreOnce = false
+            } else {
+                setSelection(caret: caretOnFocus, length: selectionLengthOnFocus, in: tv)
+            }
         }
         context.coordinator.pendingCaret = nil
     }
@@ -133,6 +165,10 @@ struct BlockTextView: UIViewRepresentable {
         var isProgrammaticEdit = false
         var pendingCaret: Int?
         var onEmptyBackspace: (() -> Void)?
+        /// 동기 지름길 전환 직후 한 번, updateUIView 의 문서 focus 선택 복원을 건너뛴다 —
+        /// 전환 뒤에도 키 입력이 이어지는 중이라(속사 타이핑) 캐럿을 0 으로 되돌리면 글자가 뒤섞인다.
+        /// 툴바 감싸기/토글 경로는 이 플래그를 안 세우므로 종전대로 복원한다.
+        var suppressSelectionRestoreOnce = false
 
         init(_ parent: BlockTextView) { self.parent = parent }
 
@@ -186,6 +222,24 @@ struct BlockTextView: UIViewRepresentable {
                 return false
             }
 
+            // 줄머리 지름길(`# `·`- `·`> `·`1. `)의 방아쇠 공백을 **동기** 가로채기 — didChange
+            // (SwiftUI 왕복 뒤 재렌더)에 맡기면 전환이 한 프레임 늦고, 그 창에 속사 타이핑(하드웨어
+            // 키보드·연속 입력)의 다음 글자들이 끼면 문서 focus(캐럿 0) 복원이 타이핑을 뒤섞는다.
+            // 여기서 텍스트뷰를 즉시 마커 제거 상태로 바꾸고 문서에 전환을 알리면, 이후 키 입력은
+            // 처음부터 올바른(빈) 블록에 떨어진다. 붙여넣기 등 비공백 경로는 아래 didChange 가 그대로 처리.
+            if text == " ", range.length == 0, tv.markedTextRange == nil,
+               range.location == (tv.text as NSString).length,
+               let shortcut = BlockShortcuts.detect(in: (tv.text ?? "") + " ", kind: parent.block.kind) {
+                isProgrammaticEdit = true
+                tv.text = shortcut.strippedText
+                tv.currentBlockText = shortcut.strippedText
+                tv.typingAttributes = BlockInlineRenderer.typingAttributes(for: shortcut.kind)
+                isProgrammaticEdit = false
+                suppressSelectionRestoreOnce = true
+                parent.onLineHeadShortcut(shortcut.kind, shortcut.strippedText, shortcut.caret)
+                return false
+            }
+
             // 맨 앞에서 백스페이스(빈 replacement + 길이1 삭제 + range.location==0) = 앞과 병합.
             if text.isEmpty, range.length == 1, range.location == 0 {
                 onEmptyBackspace?()
@@ -233,6 +287,38 @@ struct BlockTextView: UIViewRepresentable {
             isProgrammaticEdit = false
         }
 
+        /// 붙여넣은 일반 URL 을 kurl 단축링크로 치환한다 — V1(MarkdownTextView.onPasteURL) 계약 미러.
+        /// 원문은 이미 캐럿 자리에 들어가 있다(즉시 반응). 단축이 돌아오면 그 사이 사용자가 그 범위를
+        /// 안 건드렸을 때만 제자리 교체하고, 조용히 바꾸지 않도록 되돌리기 토스트를 띄운다.
+        /// 동영상(YouTube·Vimeo) URL 은 단축하지 않는다 — 단독 문단 원문이어야 발행 시 플레이어가 된다.
+        func shortenPastedURL(_ original: String, at range: NSRange, in tv: BlockUITextView) {
+            guard let shorten = parent.pasteHandlers.shorten,
+                  !WriteV2VideoDetect.isVideoURL(original) else { return }
+            Task { @MainActor [weak tv, weak self] in
+                guard let short = await shorten(original), short != original,
+                      let tv, let self, tv.markedTextRange == nil else { return }
+                let ns = tv.text as NSString
+                guard range.location + range.length <= ns.length,
+                      ns.substring(with: range) == original,
+                      let start = tv.position(from: tv.beginningOfDocument, offset: range.location),
+                      let end = tv.position(from: start, offset: range.length),
+                      let textRange = tv.textRange(from: start, to: end)
+                else { return }
+                tv.replace(textRange, withText: short)
+                tv.selectedRange = NSRange(
+                    location: range.location + (short as NSString).length, length: 0)
+                self.textViewDidChange(tv)
+                ToastCenter.shared.show(
+                    String(localized: "kurl 링크로 단축했어요"),
+                    actionLabel: String(localized: "되돌리기")
+                ) { [weak tv, weak self] in
+                    guard let tv, let undo = tv.undoManager, undo.canUndo else { return }
+                    undo.undo()
+                    self?.textViewDidChange(tv)
+                }
+            }
+        }
+
         /// NSString(UTF-16) location → Swift String 캐럿(문서 연산은 String 인덱스 기준).
         private func swiftCaret(in tv: UITextView, nsLocation: Int) -> Int {
             let ns = tv.text as NSString
@@ -249,6 +335,44 @@ final class BlockUITextView: UITextView {
     /// 문서가 아는 이 블록의 현재 text — SwiftUI 왕복 시 캐럿 튐/재렌더 루프 방지용 캐시.
     var currentBlockText: String = ""
     var onEmptyBackspaceOverride: (() -> Void)?
+    /// 붙여넣기 가로채기 — 이미지 바이트 / 이미지 URL / 일반 URL(삽입 범위 통지). 없으면 기본 붙여넣기.
+    var onPasteImages: (([UIImage]) -> Void)?
+    var onPasteImageURL: ((String) -> Void)?
+    var onPastedURL: ((String, NSRange) -> Void)?
+
+    override func paste(_ sender: Any?) {
+        // 이미지 바이트가 실려 있으면 텍스트 표현보다 이미지를 우선한다 — 기본 붙여넣기는 이미지를
+        // 버리고 빈 텍스트/객체 치환문자만 남긴다(V1 캔버스와 같은 규칙).
+        if markedTextRange == nil, let onPasteImages, UIPasteboard.general.hasImages {
+            let images = UIPasteboard.general.images ?? []
+            if !images.isEmpty {
+                onPasteImages(images)
+                return
+            }
+        }
+        if markedTextRange == nil,
+           let raw = UIPasteboard.general.string,
+           let url = MarkdownInputTextView.singleURL(in: raw) {
+            // 이미지 URL 은 단축하지 않는다 — 호스트가 우리 버킷으로 재호스팅 후 이미지 블록으로 넣는다.
+            if MarkdownInputTextView.isImageURL(url), let onPasteImageURL {
+                onPasteImageURL(url)
+                return
+            }
+            let location = selectedRange.location
+            insertText(url)
+            onPastedURL?(url, NSRange(location: location, length: (url as NSString).length))
+            return
+        }
+        super.paste(sender)
+    }
+
+    // 클립보드가 이미지뿐이면 기본 UITextView 는 '붙여넣기' 메뉴를 감춘다 — 이미지 훅이 있을 땐 살린다.
+    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+        if action == #selector(paste(_:)), onPasteImages != nil, UIPasteboard.general.hasImages {
+            return true
+        }
+        return super.canPerformAction(action, withSender: sender)
+    }
 
     override func deleteBackward() {
         // 캐럿이 맨 앞이고 선택이 없으면(빈 블록 포함) 병합/강등으로 승격.

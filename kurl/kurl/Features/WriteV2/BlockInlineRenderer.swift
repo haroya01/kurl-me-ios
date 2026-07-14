@@ -141,6 +141,15 @@ enum BlockInlineRenderer {
             marker(s, NSRange(location: labelEnd, length: tailLen), reveal: revealed)
         }
 
+        // 맨 URL(https://…) — 마커 없는 자동 링크. 붙여넣거나 직접 친 주소가 문단에서 곧장
+        // 링크 모습이 된다(발행 렌더의 오토링크와 동형). 코드·`[라벨](url)` 안 주소는 건너뜀.
+        enumerate(Self.bareURLRegex, ns, full) { m in
+            if intersectsAny(m.range, codeRanges) || intersectsAny(m.range, linkRanges) { return }
+            s.addAttribute(.foregroundColor, value: UIColor(Palette.link), range: m.range)
+            // URL 속 별표·백틱이 강조로 오인되지 않게 링크 제외 범위에 합류시킨다.
+            linkRanges.append(m.range)
+        }
+
         // **볼드** — 코드·링크(url) 범위와 겹치면 건너뜀.
         enumerate(Self.boldRegex, ns, full) { m in
             if intersectsAny(m.range, codeRanges) || intersectsAny(m.range, linkRanges) { return }
@@ -148,10 +157,16 @@ enum BlockInlineRenderer {
             markersAround(s, span: m.range, inner: m.range(at: 1), activeRange: activeRange)
         }
         // *이탤릭* (단일 별표) — 코드·링크(url) 범위와 겹치면 건너뜀.
+        // traitItalic 이 아니라 합성 오블리크(skew)로 눕힌다 — 한글 폰트엔 이탤릭 트레이트가 없어
+        // 트레이트만으론 한글이 그대로 서 있었다("기울임이 안 됨"). 웹 <em> 이 CJK 를 합성으로
+        // 눕히는 것과 같은 문법 — 스크립트 무관하게 균일한 기울기.
         enumerate(Self.italicRegex, ns, full) { m in
             if intersectsAny(m.range, codeRanges) || intersectsAny(m.range, linkRanges) { return }
-            addTrait(s, .traitItalic, range: m.range(at: 1))
-            markersAround(s, span: m.range, inner: m.range(at: 1), activeRange: activeRange)
+            let inner = m.range(at: 1)
+            if inner.length > 0 {
+                s.addAttribute(.obliqueness, value: 0.18, range: inner)
+            }
+            markersAround(s, span: m.range, inner: inner, activeRange: activeRange)
         }
     }
 
@@ -221,6 +236,8 @@ enum BlockInlineRenderer {
     private static let boldRegex = make("\\*\\*([^*\\n]+)\\*\\*")
     private static let italicRegex = make("(?<![*\\w])\\*([^*\\n]+)\\*(?![*\\w])")
     private static let linkRegex = make("\\[([^\\]\\n]+)\\]\\([^)\\n]+\\)")
+    /// 맨 URL — `](` 바로 뒤(마크다운 링크의 url 부분)가 아니어야 한다. 끝은 공백·`)`·`]`·`<`·`>` 전까지.
+    private static let bareURLRegex = make("(?<!\\]\\()https?://[^\\s<>\\)\\]]+")
 
     private static func make(_ pattern: String) -> NSRegularExpression {
         // swiftlint:disable:next force_try

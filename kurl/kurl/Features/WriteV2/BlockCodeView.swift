@@ -38,6 +38,7 @@ struct BlockCodeView: View {
             }
             CodeEditingTextView(
                 text: block.text,
+                language: language,
                 isFocused: isFocused,
                 onTextChange: onTextChange,
                 onFocused: onFocused,
@@ -56,13 +57,17 @@ struct BlockCodeView: View {
     }
 }
 
-/// 코드 편집 UITextView — 모노 plain, 개행은 분할 아님(진짜 개행). 맨 앞 백스페이스만 병합 승격.
+/// 코드 편집 UITextView — 모노 + 언어별 신택스 컬러(발행 리더의 CodeSyntax 워커 공유 — 편집 중
+/// 보던 색이 발행 후에도 같다). 개행은 분할 아님(진짜 개행). 맨 앞 백스페이스만 병합 승격.
 private struct CodeEditingTextView: UIViewRepresentable {
     let text: String
+    let language: String?
     let isFocused: Bool
     let onTextChange: (String) -> Void
     let onFocused: () -> Void
     let onMergeBackward: () -> Void
+
+    static let monoFont = UIFont.monospacedSystemFont(ofSize: 14, weight: .regular)
 
     func makeUIView(context: Context) -> BlockUITextView {
         let tv = BlockUITextView()
@@ -75,11 +80,12 @@ private struct CodeEditingTextView: UIViewRepresentable {
         tv.autocapitalizationType = .none
         tv.smartQuotesType = .no
         tv.smartDashesType = .no
-        tv.font = .monospacedSystemFont(ofSize: 14, weight: .regular)
+        tv.font = Self.monoFont
         tv.textColor = UIColor(Palette.codeText)
         tv.text = text
         tv.currentBlockText = text
         tv.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        context.coordinator.applyHighlight(tv)
         return tv
     }
 
@@ -94,7 +100,7 @@ private struct CodeEditingTextView: UIViewRepresentable {
         if tv.currentBlockText != text {
             tv.text = text
             tv.currentBlockText = text
-            tv.textColor = UIColor(Palette.codeText)
+            context.coordinator.applyHighlight(tv)
         }
         if isFocused, !tv.isFirstResponder { tv.becomeFirstResponder() }
     }
@@ -124,6 +130,25 @@ private struct CodeEditingTextView: UIViewRepresentable {
             guard let tv = textView as? BlockUITextView else { return }
             tv.currentBlockText = tv.text ?? ""
             parent.onTextChange(tv.text ?? "")
+            // 신택스 재채색은 조합이 끝난 뒤에만(조합 중 attributedText 교체는 한글 IME 를 깬다).
+            if tv.markedTextRange == nil {
+                applyHighlight(tv)
+            }
+        }
+
+        /// 언어별 신택스 컬러 — 캐럿을 보존한 채 전체를 다시 칠한다(리더 CodeSyntax 워커 공유,
+        /// 6000자 초과는 워커가 plain 단색으로 흘려 비용을 막는다).
+        func applyHighlight(_ tv: BlockUITextView) {
+            let selected = tv.selectedRange
+            tv.attributedText = CodeSyntax.nsHighlight(
+                tv.text ?? "", lang: parent.language, font: CodeEditingTextView.monoFont)
+            if selected.location + selected.length <= (tv.text as NSString).length {
+                tv.selectedRange = selected
+            }
+            tv.typingAttributes = [
+                .font: CodeEditingTextView.monoFont,
+                .foregroundColor: UIColor(Palette.codeText),
+            ]
         }
     }
 }

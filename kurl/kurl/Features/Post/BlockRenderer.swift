@@ -36,9 +36,16 @@ struct BlockView: View {
             let size = isLead ? bodySize + 2 : bodySize
             let lineSpacing = size * (isLead ? 0.6 : 0.68)
             let color = isLead ? Palette.heading : Palette.body
+            // 문단 속 인라인 이미지(노션 붙여넣기 등) — Apple 마크다운 파서는 이미지를 못 그려 alt
+            // 텍스트만 남으므로, 텍스트/이미지 세그먼트로 갈라 이미지는 IMAGE 블록 문법으로 그린다
+            // (웹 리더의 인라인 <img> 등가). 이런 문단은 블록 내 오프셋 기반 하이라이트와 안 맞아
+            // 하이라이트 없이 그린다(분해가 오프셋을 흔든다 — 순수 텍스트 문단은 종전 그대로).
+            if InlineImageMarkdown.containsImage(block.content ?? "") {
+                inlineImageParagraph(block.content ?? "", size: size, lineSpacing: lineSpacing, color: color)
+            }
             // 본 글이면 선택 가능한 문단(UITextView) — 길게 눌러 하이라이트, 공개 하이라이트 페인트.
             // 임베드·프리뷰(store 없음)는 종전 Text 경로 그대로(블래스트 레이디어스 최소화).
-            if let store = highlightStore, let order = block.blockOrder {
+            else if let store = highlightStore, let order = block.blockOrder {
                 SelectableProseText(
                     raw: block.content ?? "",
                     fontSize: size,
@@ -134,7 +141,52 @@ struct BlockView: View {
         }
     }
 
+    /// 문단 속 인라인 이미지 — 텍스트/이미지 세그먼트를 세로로 쌓는다(웹 인라인 <img> 의 iOS 번역).
+    /// 이미지의 «WxH» 치수는 로드 전 비율 캐시에 미리 심어 정확한 높이를 예약한다(본문 밀림 방지).
+    @ViewBuilder
+    private func inlineImageParagraph(
+        _ raw: String, size: CGFloat, lineSpacing: CGFloat, color: Color
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            ForEach(Array(InlineImageMarkdown.segments(raw).enumerated()), id: \.offset) { _, segment in
+                switch segment {
+                case .text(let text):
+                    inline(text)
+                        .font(.system(size: size))
+                        .lineSpacing(lineSpacing)
+                        .foregroundStyle(color)
+                case .image(let image):
+                    ImageBlockView(
+                        payload: ImagePayload(url: image.url, caption: image.caption, width: image.width)
+                    )
+                    .onAppear {
+                        if let dims = image.dimensions, let url = URL(string: image.url) {
+                            ImageRatioCache.record(dims, for: url)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(.bottom, isLead ? 20 : 18)
+    }
+
+    /// 본문 속 맨 URL(`https://…`)을 CommonMark 오토링크(`<url>`)로 감싼다 — 웹 렌더(remark-gfm)는
+    /// 맨 URL 을 자동 링크하는데 Apple 마크다운 파서는 안 해서, 붙여넣은 주소가 웹에선 링크·앱에선
+    /// 죽은 텍스트로 갈라지던 것을 맞춘다. `[라벨](url)` 안 주소는 링크 문법 소유라 제외하고,
+    /// 인라인 코드가 섞인 문단은 통째로 건너뛴다(코드 속 주소 보호 — 보수적 판정).
+    private static let bareURLAutolink = try? NSRegularExpression(
+        pattern: "(?<!\\]\\()(?<!<)(https?://[^\\s<>\\)\\]]+)")
+
+    private func autolinkBareURLs(_ raw: String) -> String {
+        guard raw.contains("http://") || raw.contains("https://"), !raw.contains("`"),
+              let regex = Self.bareURLAutolink else { return raw }
+        let ns = raw as NSString
+        return regex.stringByReplacingMatches(
+            in: raw, range: NSRange(location: 0, length: ns.length), withTemplate: "<$1>")
+    }
+
     private func inline(_ raw: String) -> Text {
+        let raw = autolinkBareURLs(raw)
         let options = AttributedString.MarkdownParsingOptions(
             interpretedSyntax: .inlineOnlyPreservingWhitespace
         )
@@ -269,14 +321,39 @@ private struct CodeBlockView: View {
 /// slate-900 위에서 또렷한, 절제된 다크 테마. 색은 `Palette.code*`(§색 규율의 유일한
 /// 다색 예외) 에서 다스리고 여기선 참조만 한다. 언어를 정확히 파싱하지 않는다 —
 /// 문자열·주석·숫자·식별자(키워드/타입) 수준의 범용 토큰만 칠해 어떤 언어든
-/// "코드처럼" 보이게 한다(과채색보다 안전 우선).
-private enum CodeSyntax {
+/// "코드처럼" 보이게 한다(과채색보다 안전 우선). 발행 리더와 V2 에디터 코드 블록이
+/// 같은 워커(walk)를 공유한다 — 편집 중 보던 색이 발행 후에도 같은 자리에 선다.
+enum CodeSyntax {
     static let plain = Palette.codeText
     static let comment = Palette.codeComment
     static let keyword = Palette.codeKeyword
     static let string = Palette.codeString
     static let number = Palette.codeNumber
     static let type = Palette.codeType
+
+    /// 토큰 종류 — 색 매핑은 각 표면(리더=SwiftUI Color, 에디터=UIColor)이 맡는다.
+    enum TokenKind { case plain, comment, string, number, keyword, type }
+
+    /// 에디터(UITextView) 표면 — 같은 워커로 UIKit 속성 문자열을 만든다.
+    static func nsHighlight(_ code: String, lang: String?, font: UIFont) -> NSAttributedString {
+        let result = NSMutableAttributedString()
+        func color(_ kind: TokenKind) -> UIColor {
+            switch kind {
+            case .plain: return UIColor(plain)
+            case .comment: return UIColor(comment)
+            case .string: return UIColor(string)
+            case .number: return UIColor(number)
+            case .keyword: return UIColor(keyword)
+            case .type: return UIColor(type)
+            }
+        }
+        walk(code, lang: lang) { piece, kind in
+            result.append(NSAttributedString(
+                string: piece,
+                attributes: [.font: font, .foregroundColor: color(kind)]))
+        }
+        return result
+    }
 
     /// 여러 언어 키워드의 합집합 — 식별자로 쓰일 일이 드문 예약어만(과채색 방지).
     static let keywords: Set<String> = [
@@ -304,23 +381,40 @@ private enum CodeSyntax {
     ]
 
     static func highlight(_ code: String, lang: String?) -> AttributedString {
+        var result = AttributedString()
+        func color(_ kind: TokenKind) -> Color {
+            switch kind {
+            case .plain: return plain
+            case .comment: return comment
+            case .string: return string
+            case .number: return number
+            case .keyword: return keyword
+            case .type: return type
+            }
+        }
+        walk(code, lang: lang) { piece, kind in
+            var attributed = AttributedString(piece)
+            attributed.foregroundColor = color(kind)
+            result += attributed
+        }
+        return result
+    }
+
+    /// 공용 토큰 워커 — 코드를 순서대로 (조각, 종류) 로 흘린다. 색·속성은 호출자가 입힌다.
+    static func walk(_ code: String, lang: String?, emit emitPiece: (String, TokenKind) -> Void) {
         // 아주 긴 블록은 색칠 비용을 피한다(스캔·다수 append).
         guard code.count <= 6000 else {
-            var flat = AttributedString(code)
-            flat.foregroundColor = plain
-            return flat
+            emitPiece(code, .plain)
+            return
         }
         let s = Array(code)
         let n = s.count
         let hashComment = hashCommentLangs.contains((lang ?? "").lowercased())
-        var result = AttributedString()
         var i = 0
 
-        func emit(_ range: Range<Int>, _ color: Color) {
+        func emit(_ range: Range<Int>, _ kind: TokenKind) {
             guard !range.isEmpty else { return }
-            var piece = AttributedString(String(s[range]))
-            piece.foregroundColor = color
-            result += piece
+            emitPiece(String(s[range]), kind)
         }
 
         func isWordChar(_ c: Character) -> Bool { c.isLetter || c.isNumber || c == "_" }
@@ -332,18 +426,18 @@ private enum CodeSyntax {
             if c == "/", i + 1 < n, s[i + 1] == "/" {
                 var j = i
                 while j < n, s[j] != "\n" { j += 1 }
-                emit(i..<j, comment); i = j; continue
+                emit(i..<j, .comment); i = j; continue
             }
             if c == "/", i + 1 < n, s[i + 1] == "*" {
                 var j = i + 2
                 while j < n, !(s[j] == "*" && j + 1 < n && s[j + 1] == "/") { j += 1 }
                 j = min(n, j + 2)
-                emit(i..<j, comment); i = j; continue
+                emit(i..<j, .comment); i = j; continue
             }
             if hashComment, c == "#" {
                 var j = i
                 while j < n, s[j] != "\n" { j += 1 }
-                emit(i..<j, comment); i = j; continue
+                emit(i..<j, .comment); i = j; continue
             }
 
             // 문자열/문자 리터럴
@@ -356,7 +450,7 @@ private enum CodeSyntax {
                     if s[j] == "\n", quote != "`" { break }
                     j += 1
                 }
-                emit(i..<min(j, n), string); i = min(j, n); continue
+                emit(i..<min(j, n), .string); i = min(j, n); continue
             }
 
             // 숫자
@@ -364,7 +458,7 @@ private enum CodeSyntax {
                 var j = i
                 while j < n, s[j].isNumber || s[j] == "." || s[j] == "_"
                     || "xXoObBeE".contains(s[j]) || "abcdefABCDEF".contains(s[j]) { j += 1 }
-                emit(i..<j, number); i = j; continue
+                emit(i..<j, .number); i = j; continue
             }
 
             // 식별자 → 키워드/타입/일반
@@ -373,11 +467,11 @@ private enum CodeSyntax {
                 while j < n, isWordChar(s[j]) { j += 1 }
                 let word = String(s[i..<j])
                 if keywords.contains(word) {
-                    emit(i..<j, keyword)
+                    emit(i..<j, .keyword)
                 } else if let first = word.first, first.isUppercase {
-                    emit(i..<j, type)
+                    emit(i..<j, .type)
                 } else {
-                    emit(i..<j, plain)
+                    emit(i..<j, .plain)
                 }
                 i = j; continue
             }
@@ -392,9 +486,8 @@ private enum CodeSyntax {
                 j += 1
             }
             if j == i { j = i + 1 }
-            emit(i..<j, plain); i = j
+            emit(i..<j, .plain); i = j
         }
-        return result
     }
 }
 

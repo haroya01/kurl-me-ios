@@ -88,6 +88,10 @@ struct ComposeView: View {
     @State private var lastSavedAt: Date?
     /// 마지막 자동저장이 실패했는가 — 정직한 '저장 실패' 표시(조용히 재시도 중).
     @State private var autosaveFailed = false
+    /// 실패 원인이 인증(401·세션 만료)인가 — "실패했어요"만 반복하면 사용자는 원인을 영영 모른다.
+    /// 편집 중 세션이 죽으면(리프레시 토큰 만료 → 로컬 세션 폐기) 이후 모든 저장이 같은 이유로
+    /// 실패하므로, 배지·토스트가 "다시 로그인" 을 말해야 한다.
+    @State private var autosaveNeedsLogin = false
     /// 연속 자동저장 실패 횟수 — 재시도 간격 백오프 계산용(성공하면 리셋).
     @State private var autosaveRetryStreak = 0
     /// 발행 폼 안에서의 발행/저장 실패 — fullScreenCover 라 루트 알럿이 가려져 폼에 따로 띄운다.
@@ -185,7 +189,19 @@ struct ComposeView: View {
                     toggleBlock: { kind in editorDocument.toggleFocusedBlockKind(kind); syncFromDocument() },
                     insertDivider: { editorDocument.insertNonText(.divider); syncFromDocument() },
                     insertImage: { showV2ImagePicker = true },
-                    insertTable: { editorDocument.insertNonText(.table(.blank)); syncFromDocument() }
+                    insertTable: { editorDocument.insertNonText(.table(.blank)); syncFromDocument() },
+                    indentList: {
+                        if let id = editorDocument.focus?.blockID {
+                            editorDocument.indentListItem(id)
+                            syncFromDocument()
+                        }
+                    },
+                    outdentList: {
+                        if let id = editorDocument.focus?.blockID {
+                            editorDocument.outdentListItem(id)
+                            syncFromDocument()
+                        }
+                    }
                 )
             } else if editorFocused {
                 VStack(spacing: 8) {
@@ -310,7 +326,7 @@ struct ComposeView: View {
         }
         // 링크 추가 — 주소만 받아 본문에 `[라벨](주소)` 로. 본문에 `(url)` 가 보이지 않는다.
         .alert("링크 추가", isPresented: $showLinkDialog) {
-            TextField("https://example.com", text: $linkURL)
+            TextField("https://…", text: $linkURL)
                 .textInputAutocapitalization(.never)
                 .keyboardType(.URL)
                 .autocorrectionDisabled()
@@ -336,7 +352,7 @@ struct ComposeView: View {
         // 플레이어(임베드), 아니면 링크. 라벨은 링크일 때만 쓰이고, 동영상이면 주소 자체가 문단이 된다.
         .alert("링크", isPresented: $showV2LinkDialog) {
             TextField("표시할 텍스트 (선택)", text: $v2LinkLabel)
-            TextField("https://example.com", text: $v2LinkURL)
+            TextField("https://…", text: $v2LinkURL)
                 .textInputAutocapitalization(.never)
                 .keyboardType(.URL)
                 .autocorrectionDisabled()
@@ -370,7 +386,7 @@ struct ComposeView: View {
     @ViewBuilder
     private var editorCanvas: some View {
         if let editorDocument {
-            WysiwygComposeCanvas(document: editorDocument)
+            WysiwygComposeCanvas(document: editorDocument, pasteHandlers: v2PasteHandlers)
                 // 블록 편집을 저장 계약(마크다운 문자열)으로 흘려보낸다 — 기존 자동저장·서명·발행 파이프
                 // 는 이 `markdown` 하나만 본다. 여기가 WriteV2 배선의 유일한 접합점이다.
                 .onChange(of: editorDocument.blocks) {
@@ -767,6 +783,28 @@ struct ComposeView: View {
             .buttonStyle(.plain)
             // 업로드가 도는 동안엔 재선택을 막는다 — 안 그러면 두 번째 선택이 조용히 버려진다(스피너로 진행을 보인다).
             .disabled(uploadingCover)
+            // 커버가 비었는데 본문에 이미지가 있으면 한 탭 제안 — 웹 발행 다이얼로그의 커버 제안 미러.
+            // 안 그러면 "글엔 이미지가 있는데 대표 이미지 자리가 빈 타일"이라는 기대 불일치가 남는다.
+            .overlay(alignment: .bottomLeading) {
+                if !uploadingCover, coverUrl == nil, let suggestion = suggestedCoverURL {
+                    Button {
+                        applySuggestedCover(suggestion)
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: "photo.on.rectangle")
+                                .font(.system(size: 11 * metaUnit, weight: .semibold))
+                            Text("본문 첫 이미지를 커버로")
+                                .font(.system(size: 12 * metaUnit, weight: .medium))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(.black.opacity(0.45), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .padding(10)
+                }
+            }
 
             VStack(alignment: .leading, spacing: 8) {
                 if let tag = tags.first {
@@ -826,6 +864,30 @@ struct ComposeView: View {
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: tags)
         // 커버가 자리잡는 순간 가벼운 햅틱 — 손에 닿는 확인.
         .sensoryFeedback(.impact(weight: .light), trigger: coverUrl)
+    }
+
+    /// 본문 첫 이미지 URL — 커버가 빈 발행 카드의 한 탭 제안 재료(웹 coverSuggestion 미러).
+    private var suggestedCoverURL: String? {
+        Self.firstImageURL(in: markdown)
+    }
+
+    /// 마크다운 본문의 첫 `![alt](url)` 의 url. 인라인·단독 무관(카드 커버 후보로는 첫 이미지면 충분).
+    private static func firstImageURL(in markdown: String) -> String? {
+        guard let regex = try? NSRegularExpression(pattern: "!\\[[^\\]]*\\]\\(([^)\\s]+)"),
+              let m = regex.firstMatch(
+                in: markdown, range: NSRange(location: 0, length: (markdown as NSString).length))
+        else { return nil }
+        return (markdown as NSString).substring(with: m.range(at: 1))
+    }
+
+    /// 제안 커버 적용 — 카드는 즉시 바뀌고, 서버 반영은 뒤에서(초안이 없으면 만든다).
+    private func applySuggestedCover(_ url: String) {
+        coverUrl = url
+        Task {
+            guard let id = try? await ensurePost() else { return }
+            try? await WriteAPI.updateCover(postId: id, url: url, key: nil)
+            onSaved()
+        }
     }
 
     /// 미리보기 카드의 커버 — 채워졌으면 16:9 이미지(+변경), 없으면 추가 타일. 업로드 중엔 스피너.
@@ -1050,7 +1112,22 @@ struct ComposeView: View {
         return "checkmark.circle"
     }
 
+    /// 저장 실패가 인증(401·세션 만료) 때문인가 — 배지·토스트가 "다시 로그인"을 말할 근거(플러셔와 공용 판정).
+    private static func isAuthFailure(_ error: Error) -> Bool {
+        DraftFlusher.isAuthFailure(error)
+    }
+
+    /// 태스크 취소로 끝난 저장인가 — URLSession 은 취소를 URLError(.cancelled)로,
+    /// APIClient 는 그걸 transport 로 감싼다. 셋 다 "실패"가 아니라 "물러남"이다.
+    private static func isCancellation(_ error: Error) -> Bool {
+        if error is CancellationError { return true }
+        if let urlError = error as? URLError, urlError.code == .cancelled { return true }
+        if case APIError.transport(let inner) = error { return isCancellation(inner) }
+        return false
+    }
+
     private func saveStatusText(dirty: Bool) -> String {
+        if autosaveNeedsLogin { return String(localized: "로그인이 풀렸어요 — 다시 로그인해야 저장돼요") }
         if autosaveFailed { return String(localized: "저장하지 못했어요 — 자동으로 다시 시도해요") }
         if dirty { return String(localized: "미저장 — 곧 저장돼요") }
         if let at = lastSavedAt {
@@ -1204,6 +1281,7 @@ struct ComposeView: View {
             lastSavedSignature = snapshot
             lastSavedAt = Date()
             autosaveFailed = false
+            autosaveNeedsLogin = false
             autosaveRetryStreak = 0
             onSaved()
             // 스냅샷 이후 입력이 있었으면 디바운스를 다시 무장한다.
@@ -1216,12 +1294,23 @@ struct ComposeView: View {
                 celebrating = true
             }
         } catch {
+            // 새 입력이 이전 비행을 취소한 것은 실패가 아니다 — scheduleAutosave 가 매 입력마다
+            // 이전 태스크를 cancel 하는데, 그 태스크가 이미 네트워크 비행 중이면 여기로 취소가
+            // 떨어진다. 더 새 저장이 이미 디바운스에 무장돼 있으므로 조용히 물러난다
+            // (타이핑이 빠를수록 "실패했다고 뜨는데 실제론 저장됨"이 잦던 허위 실패의 뿌리).
+            if silent, Self.isCancellation(error) { return }
             if silent {
                 // 자동저장 실패는 조용히 — 토스트(+VoiceOver 낭독)는 첫 실패에만 한 번.
                 // 지속 상태는 saveStatusIcon 배지가 보여주므로 재시도마다 다시 알리지 않는다.
+                // 단, 원인은 말한다 — "실패했어요"만 반복하면 로그인 만료도 서버 오류도 구분이 안 돼
+                // 사용자가 손쓸 길이 없다(진단 불가의 뿌리). 인증이면 처방(다시 로그인)까지.
+                let needsLogin = Self.isAuthFailure(error)
                 if !autosaveFailed {
-                    ToastCenter.shared.show(String(localized: "자동저장에 실패했어요"))
+                    ToastCenter.shared.show(needsLogin
+                        ? String(localized: "로그인이 풀려 저장하지 못했어요 — 다시 로그인해 주세요")
+                        : String(localized: "자동저장에 실패했어요 — \(error.localizedDescription)"))
                 }
+                autosaveNeedsLogin = needsLogin
                 autosaveFailed = true
                 // 재시도는 지수 백오프(4초→8초→…→60초 상한) — 오프라인에서 2초 간격 무한 폭주 방지.
                 // 새 입력이 오면 onChange 가 기본 2초 디바운스로 다시 앞당긴다.
@@ -1700,6 +1789,67 @@ struct ComposeView: View {
                 refreshCaretContext()
                 editorController.focus()
             } catch {
+                ToastCenter.shared.show(String(localized: "이미지를 올리지 못했습니다"))
+            }
+        }
+    }
+
+    // MARK: WriteV2 붙여넣기 훅 — 현행(V1) 캔버스와 같은 계약을 블록 문서에 잇는다
+
+    /// 이미지 바이트 → 업로드 후 IMAGE 블록 / 이미지 URL → 재호스팅 후 IMAGE 블록 /
+    /// 일반 URL → 캔버스가 원문을 넣고, 이 훅의 단축 결과로 그 자리를 치환한다.
+    private var v2PasteHandlers: EditorPasteHandlers {
+        EditorPasteHandlers(
+            images: { images in uploadV2PastedImages(images) },
+            imageURL: { url in importV2PastedImage(url) },
+            shorten: { url in try? await WriteAPI.shorten(url) }
+        )
+    }
+
+    /// 붙여넣은 외부 이미지 URL — 서버 재호스팅 후 IMAGE 블록으로. 재호스팅이 안 되면(비로그인 등)
+    /// 원문 URL 그대로 넣는다 — 조용히 사라지는 것보다 핫링크가 낫다(현행 경로와 같은 판단).
+    private func importV2PastedImage(_ original: String) {
+        ToastCenter.shared.show(String(localized: "이미지 가져오는 중…"))
+        Task {
+            var finalURL = original
+            if let id = try? await ensurePost(),
+               let hosted = try? await WriteAPI.importImage(postId: id, url: original) {
+                finalURL = hosted
+            }
+            editorDocument?.insertNonText(.image(url: finalURL, alt: ""))
+            syncFromDocument()
+        }
+    }
+
+    /// 클립보드 이미지 붙여넣기(V2) — 스크린샷·노션 등에서 복사한 이미지 바이트를 순서대로 업로드해
+    /// IMAGE 블록으로 넣는다. 캡션(alt)은 블록의 대체 텍스트 필드에서 나중에 붙인다.
+    private func uploadV2PastedImages(_ images: [UIImage]) {
+        guard !images.isEmpty else { return }
+        guard !uploadingBodyImage else {
+            ToastCenter.shared.show(String(localized: "이미지를 올리는 중이에요 — 잠시 후 다시 시도해 주세요"))
+            return
+        }
+        uploadingBodyImage = true
+        ToastCenter.shared.show(String(localized: "이미지 올리는 중…"))
+        Task {
+            defer { uploadingBodyImage = false }
+            var failed = 0
+            for image in images {
+                guard let jpeg = await Self.encodeUploadJPEG(from: image) else {
+                    failed += 1
+                    continue
+                }
+                do {
+                    let id = try await ensurePost()
+                    let uploaded = try await WriteAPI.uploadImage(postId: id, jpegData: jpeg)
+                    editorDocument?.insertNonText(.image(url: uploaded.url, alt: ""))
+                    maybeSetCoverFromBodyImage(url: uploaded.url, key: uploaded.key)
+                } catch {
+                    failed += 1
+                }
+            }
+            syncFromDocument()
+            if failed > 0 {
                 ToastCenter.shared.show(String(localized: "이미지를 올리지 못했습니다"))
             }
         }
@@ -2711,9 +2861,10 @@ private struct ConfettiBurst: View {
 /// 갈아끼울 때(리비전 복원 등) 옛 인스턴스를 계속 잡지 않게 인스턴스 정체로 `.id` 를 걸어 재생성한다.
 private struct WysiwygComposeCanvas: View {
     let document: EditorDocument
+    let pasteHandlers: EditorPasteHandlers
 
     var body: some View {
-        WysiwygEditorView(document: document)
+        WysiwygEditorView(document: document, pasteHandlers: pasteHandlers)
             .id(ObjectIdentifier(document))
     }
 }
@@ -2734,6 +2885,9 @@ private struct V2FormatToolbar: View {
     let insertDivider: () -> Void
     let insertImage: () -> Void
     let insertTable: () -> Void
+    /// 리스트 들여쓰기/내어쓰기 — 캐럿이 리스트 항목일 때만 버튼이 나타난다.
+    let indentList: () -> Void
+    let outdentList: () -> Void
 
     /// 아이콘만 키우고 44pt 터치 타깃은 작은 글자 설정에서도 유지(AGENTS §1 에디터 규율).
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
@@ -2759,6 +2913,11 @@ private struct V2FormatToolbar: View {
                 }
                 item("list.number", "번호", active: isList(ordered: true)) {
                     toggleBlock(.listItem(ordered: true, indent: 0))
+                }
+                // 캐럿이 리스트 항목일 때만 — 중첩을 여기서(마크다운 선행 공백을 몰라도 된다).
+                if isListFocused {
+                    item("increase.indent", "들여쓰기", action: indentList)
+                    item("decrease.indent", "내어쓰기", action: outdentList)
                 }
 
                 groupDivider
@@ -2822,6 +2981,10 @@ private struct V2FormatToolbar: View {
     }
     private func isList(ordered: Bool) -> Bool {
         if case .listItem(let o, _) = focusedKind { return o == ordered }
+        return false
+    }
+    private var isListFocused: Bool {
+        if case .listItem = focusedKind { return true }
         return false
     }
 }

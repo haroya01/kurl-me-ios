@@ -28,8 +28,9 @@ struct BlockDividerView: View {
     }
 }
 
-/// 이미지 — 로드는 Phase 2 스코프 밖(플레이스홀더 OK). url 을 라벨로 보이고 alt 를 캡션으로 편집한다.
-/// alt 편집은 작은 텍스트필드(비텍스트 블록이라 본문 캐럿 규칙과 분리) — 왕복은 alt·url 만.
+/// 이미지 — 실제 사진을 캔버스에서 바로 보인다(발행면 ImageBlockView 와 같은 RemoteImage 경로).
+/// 로드 전·실패는 4:3 예약 박스로 자리를 지킨다(레이아웃 점프 방지). alt 는 아래 캡션 필드로 편집
+/// (비텍스트 블록이라 본문 캐럿 규칙과 분리) — 왕복은 alt·url 만.
 struct BlockImageView: View {
     let block: EditorBlock
     let isFocused: Bool
@@ -42,41 +43,74 @@ struct BlockImageView: View {
     }
 
     @State private var alt: String = ""
+    /// 대체 텍스트 필드의 키보드 포커스 — 문서 focus 에 이 이미지 블록을 등록하는 방아쇠.
+    /// 등록하지 않으면 문서 focus 가 직전 텍스트 블록에 남아, 첫 글자 입력(블록 배열 변경)의
+    /// 뷰 갱신에서 그 텍스트 블록 UITextView 가 first responder 를 도로 뺏었다
+    /// ("설명 한 글자 쓰면 다음 단락으로 이동"의 근본).
+    @FocusState private var altFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            ZStack {
-                RoundedRectangle(cornerRadius: Metrics.radiusMini)
-                    .fill(Palette.hairline)
-                    .aspectRatio(4.0 / 3.0, contentMode: .fit)
-                VStack(spacing: 6) {
-                    Image(systemName: "photo")
-                        .font(.system(size: 28, weight: .regular))
-                        .foregroundStyle(Palette.faint)
-                    Text(url)
-                        .font(.system(size: 12, design: .monospaced))
-                        .foregroundStyle(Palette.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .padding(.horizontal, 24)
-                }
-            }
-            .overlay(
-                RoundedRectangle(cornerRadius: Metrics.radiusMini)
-                    .strokeBorder(isFocused ? Palette.accentSoft : Color.clear, lineWidth: 2)
-            )
-            .contentShape(.rect)
-            .onTapGesture { onFocused() }
+            imageBody
+                .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusMini))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Metrics.radiusMini)
+                        .strokeBorder(isFocused ? Palette.accentSoft : Color.clear, lineWidth: 2)
+                )
+                .contentShape(.rect)
+                .onTapGesture { onFocused() }
 
             TextField("대체 텍스트", text: $alt)
                 .font(.system(size: 13))
                 .foregroundStyle(Palette.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
+                .focused($altFocused)
+                .onChange(of: altFocused) { _, focused in
+                    if focused { onFocused() }
+                }
                 .onChange(of: alt) { _, new in onAltChange(new) }
         }
         .onAppear { alt = block.text }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text("이미지"))
+    }
+
+    @ViewBuilder
+    private var imageBody: some View {
+        if let remote = URL(string: url), remote.scheme?.hasPrefix("http") == true {
+            RemoteImage(url: remote, animation: .easeOut(duration: 0.35)) { phase in
+                switch phase {
+                case .success(let image):
+                    image.resizable().scaledToFit().transition(.opacity)
+                case .failure:
+                    placeholder(caption: String(localized: "이미지를 불러오지 못했어요"))
+                default:
+                    placeholder(caption: nil)
+                }
+            }
+        } else {
+            // http(s) 가 아닌 주소(목 픽스처 등)는 로드를 시도하지 않고 자리만 지킨다.
+            placeholder(caption: nil)
+        }
+    }
+
+    private func placeholder(caption: String?) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: Metrics.radiusMini)
+                .fill(Palette.hairline)
+                .aspectRatio(4.0 / 3.0, contentMode: .fit)
+            VStack(spacing: 6) {
+                Image(systemName: "photo")
+                    .font(.system(size: 28, weight: .regular))
+                    .foregroundStyle(Palette.faint)
+                Text(caption ?? url)
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundStyle(Palette.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .padding(.horizontal, 24)
+            }
+        }
     }
 }

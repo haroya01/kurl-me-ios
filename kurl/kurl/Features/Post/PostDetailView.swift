@@ -86,6 +86,9 @@ struct PostDetailView: View {
     /// 키보드가 떠 있는 동안(댓글 입력)은 길이와 무관하게 물러난다.
     @State private var endVisible = false
     @State private var scrollable = false
+    /// 끝맺음 감지선이 한 번이라도 화면 밖에 있었는가 — 처음부터 끝이 보이는 짧은 글은
+    /// 래치 대상이 아니라는 표식(끝맺음까지 합치면 짧은 글도 scrollable 이라 이 가드가 필요).
+    @State private var endSentinelWasHidden = false
     /// 끝맺음 감지선에 처음 닿았을 때의 읽기 진행도 — 이 아래로 되돌아 올라오면 독이 다시 뜬다.
     /// (감지선을 지나쳐 위로 사라져도 물러난 상태를 유지하기 위한 래치 기준점.)
     @State private var bodyEndProgress: CGFloat?
@@ -799,8 +802,14 @@ struct PostDetailView: View {
         Color.clear.frame(height: 1)
             .onScrollVisibilityChange(threshold: 0.1) { visible in
                 if visible {
+                    // 처음부터 끝맺음이 보이는 짧은 글은 래치하지 않는다 — 끝맺음(댓글·레일·작가 카드)
+                    // 까지 합치면 짧은 글도 scrollable 이라, 로드와 동시에 독이 물러나 영영 못 떴다
+                    // (짧은 글 독·목차 실종). 한 번이라도 화면 밖이던 감지선이 들어올 때만 "끝"으로 본다.
+                    guard endSentinelWasHidden else { return }
                     endVisible = true
                     if bodyEndProgress == nil { bodyEndProgress = scrollProgress.read }
+                } else {
+                    endSentinelWasHidden = true
                 }
             }
         // 글 = 엣지가 보이는 노드 — 다 읽은 뒤, 이 글이 놓인 길 · 이어진 것 · 이은 사람으로 나간다.
