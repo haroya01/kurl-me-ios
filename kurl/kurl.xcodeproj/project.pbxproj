@@ -15,6 +15,7 @@
 		D400000000000000000000AC /* kurlWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D400000000000000000000A1 /* kurlWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		DEF2000000000000000000A1 /* WriteV2RoundTripTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEF2000000000000000000A2 /* WriteV2RoundTripTests.swift */; };
 		DEF2000000000000000000B1 /* WriteV2FocusEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEF2000000000000000000B2 /* WriteV2FocusEngineTests.swift */; };
+		DEF2000000000000000000C1 /* InlineImageMarkdownTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEF2000000000000000000C2 /* InlineImageMarkdownTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -66,6 +67,7 @@
 		D500000000000000000000B1 /* kurlUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = kurlUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DEF2000000000000000000A2 /* WriteV2RoundTripTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WriteV2RoundTripTests.swift; sourceTree = "<group>"; };
 		DEF2000000000000000000B2 /* WriteV2FocusEngineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WriteV2FocusEngineTests.swift; sourceTree = "<group>"; };
+		DEF2000000000000000000C2 /* InlineImageMarkdownTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = InlineImageMarkdownTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -180,6 +182,7 @@
 				AB10CE11F0A1B2C3D4E5F612 /* LikeStoreTests.swift */,
 				DEF2000000000000000000A2 /* WriteV2RoundTripTests.swift */,
 				DEF2000000000000000000B2 /* WriteV2FocusEngineTests.swift */,
+				DEF2000000000000000000C2 /* InlineImageMarkdownTests.swift */,
 			);
 			path = kurlTests;
 			sourceTree = "<group>";
@@ -363,6 +366,7 @@
 				AB10CE11F0A1B2C3D4E5F611 /* LikeStoreTests.swift in Sources */,
 				DEF2000000000000000000A1 /* WriteV2RoundTripTests.swift in Sources */,
 				DEF2000000000000000000B1 /* WriteV2FocusEngineTests.swift in Sources */,
+				DEF2000000000000000000C1 /* InlineImageMarkdownTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

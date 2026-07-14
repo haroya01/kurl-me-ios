@@ -36,9 +36,16 @@ struct BlockView: View {
             let size = isLead ? bodySize + 2 : bodySize
             let lineSpacing = size * (isLead ? 0.6 : 0.68)
             let color = isLead ? Palette.heading : Palette.body
+            // 문단 속 인라인 이미지(노션 붙여넣기 등) — Apple 마크다운 파서는 이미지를 못 그려 alt
+            // 텍스트만 남으므로, 텍스트/이미지 세그먼트로 갈라 이미지는 IMAGE 블록 문법으로 그린다
+            // (웹 리더의 인라인 <img> 등가). 이런 문단은 블록 내 오프셋 기반 하이라이트와 안 맞아
+            // 하이라이트 없이 그린다(분해가 오프셋을 흔든다 — 순수 텍스트 문단은 종전 그대로).
+            if InlineImageMarkdown.containsImage(block.content ?? "") {
+                inlineImageParagraph(block.content ?? "", size: size, lineSpacing: lineSpacing, color: color)
+            }
             // 본 글이면 선택 가능한 문단(UITextView) — 길게 눌러 하이라이트, 공개 하이라이트 페인트.
             // 임베드·프리뷰(store 없음)는 종전 Text 경로 그대로(블래스트 레이디어스 최소화).
-            if let store = highlightStore, let order = block.blockOrder {
+            else if let store = highlightStore, let order = block.blockOrder {
                 SelectableProseText(
                     raw: block.content ?? "",
                     fontSize: size,
@@ -132,6 +139,35 @@ struct BlockView: View {
         case .unknown:
             EmptyView()
         }
+    }
+
+    /// 문단 속 인라인 이미지 — 텍스트/이미지 세그먼트를 세로로 쌓는다(웹 인라인 <img> 의 iOS 번역).
+    /// 이미지의 «WxH» 치수는 로드 전 비율 캐시에 미리 심어 정확한 높이를 예약한다(본문 밀림 방지).
+    @ViewBuilder
+    private func inlineImageParagraph(
+        _ raw: String, size: CGFloat, lineSpacing: CGFloat, color: Color
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            ForEach(Array(InlineImageMarkdown.segments(raw).enumerated()), id: \.offset) { _, segment in
+                switch segment {
+                case .text(let text):
+                    inline(text)
+                        .font(.system(size: size))
+                        .lineSpacing(lineSpacing)
+                        .foregroundStyle(color)
+                case .image(let image):
+                    ImageBlockView(
+                        payload: ImagePayload(url: image.url, caption: image.caption, width: image.width)
+                    )
+                    .onAppear {
+                        if let dims = image.dimensions, let url = URL(string: image.url) {
+                            ImageRatioCache.record(dims, for: url)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(.bottom, isLead ? 20 : 18)
     }
 
     /// 본문 속 맨 URL(`https://…`)을 CommonMark 오토링크(`<url>`)로 감싼다 — 웹 렌더(remark-gfm)는
