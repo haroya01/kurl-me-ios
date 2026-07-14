@@ -53,14 +53,24 @@ final class DraftFlusher {
             } catch {
                 // 화면은 이미 사라졌다 — 루트에 살아있는 토스트로 반드시 알린다(조용한 유실 금지).
                 // '다시 시도'로 같은 스냅샷을 재플러시(초안 미생성이면 그때 생성).
+                // 원인이 인증이면 "네트워크 확인" 은 거짓 처방 — 다시 로그인을 말한다.
                 ToastCenter.shared.show(
-                    String(localized: "저장하지 못했어요 — 네트워크를 확인하고 다시 시도해 주세요"),
+                    Self.isAuthFailure(error)
+                        ? String(localized: "로그인이 풀려 저장하지 못했어요 — 다시 로그인한 뒤 시도해 주세요")
+                        : String(localized: "저장하지 못했어요 — 네트워크를 확인하고 다시 시도해 주세요"),
                     actionLabel: String(localized: "다시 시도")
                 ) {
                     DraftFlusher.shared.flush(payload)
                 }
             }
         }
+    }
+
+    /// 저장 실패가 인증(401·세션 만료) 때문인가 — 컴포즈의 저장 배지와 이 플러시 토스트가 같은 판정을 쓴다.
+    static func isAuthFailure(_ error: Error) -> Bool {
+        if let api = error as? APIError, api.statusCode == 401 { return true }
+        if case AuthError.notSignedIn = error { return true }
+        return false
     }
 
     /// 저장 본체 — save(silent:) 의 성공 경로와 같은 순서(초안 생성 → 본문 교체 → 바뀐 메타 PATCH → 시리즈).

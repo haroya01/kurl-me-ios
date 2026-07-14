@@ -134,7 +134,23 @@ struct BlockView: View {
         }
     }
 
+    /// 본문 속 맨 URL(`https://…`)을 CommonMark 오토링크(`<url>`)로 감싼다 — 웹 렌더(remark-gfm)는
+    /// 맨 URL 을 자동 링크하는데 Apple 마크다운 파서는 안 해서, 붙여넣은 주소가 웹에선 링크·앱에선
+    /// 죽은 텍스트로 갈라지던 것을 맞춘다. `[라벨](url)` 안 주소는 링크 문법 소유라 제외하고,
+    /// 인라인 코드가 섞인 문단은 통째로 건너뛴다(코드 속 주소 보호 — 보수적 판정).
+    private static let bareURLAutolink = try? NSRegularExpression(
+        pattern: "(?<!\\]\\()(?<!<)(https?://[^\\s<>\\)\\]]+)")
+
+    private func autolinkBareURLs(_ raw: String) -> String {
+        guard raw.contains("http://") || raw.contains("https://"), !raw.contains("`"),
+              let regex = Self.bareURLAutolink else { return raw }
+        let ns = raw as NSString
+        return regex.stringByReplacingMatches(
+            in: raw, range: NSRange(location: 0, length: ns.length), withTemplate: "<$1>")
+    }
+
     private func inline(_ raw: String) -> Text {
+        let raw = autolinkBareURLs(raw)
         let options = AttributedString.MarkdownParsingOptions(
             interpretedSyntax: .inlineOnlyPreservingWhitespace
         )

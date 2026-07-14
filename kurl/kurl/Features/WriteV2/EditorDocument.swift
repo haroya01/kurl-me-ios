@@ -290,6 +290,31 @@ final class EditorDocument {
         blocks[i].kind = .table(table)
     }
 
+    // MARK: 이어 쓰기 포커스 — 캔버스 빈 곳 탭 / 포커스 없는 툴바 조작의 도착지
+
+    /// 문서 끝에서 이어 쓰도록 포커스를 놓는다. 마지막 블록이 문단·제목·인용·리스트면 그 끝으로,
+    /// 코드·비텍스트(구분선·이미지·표)로 끝나면 빈 문단을 하나 붙여 그리로 — 코드 블록은 "아래를
+    /// 탭해 이어 쓰기"의 도착지로 어색하다(코드 안에 이어 쓰는 게 아니라 다음 문단을 원한다).
+    /// 캔버스 빈 영역 탭과, 포커스 없이 눌린 서식 버튼이 이 포커스를 쓴다.
+    @discardableResult
+    func focusTail() -> EditorFocus {
+        if let last = blocks.last, !last.isNonText, !isCodeKind(last.kind) {
+            let f = EditorFocus(blockID: last.id, caret: last.text.count)
+            focus = f
+            return f
+        }
+        let p = EditorBlock.paragraph("")
+        blocks.append(p)
+        let f = EditorFocus(blockID: p.id, caret: 0)
+        focus = f
+        return f
+    }
+
+    private func isCodeKind(_ kind: EditorBlockKind) -> Bool {
+        if case .code = kind { return true }
+        return false
+    }
+
     // MARK: 블록 종류 전환 (줄머리 마크다운 지름길)
 
     /// 줄머리 지름길을 블록 종류 전환으로 승격 — 뷰가 `> `·`# `·```` 를 감지해 부른다.
@@ -305,7 +330,10 @@ final class EditorDocument {
 
     /// 포커스 블록의 종류를 `kind`로 토글한다 — 이미 그 종류면 문단으로 되돌린다(누르면 켜고 다시 누르면 끔).
     /// 텍스트는 보존하고 캐럿만 유지. 비텍스트 블록(구분선·이미지·표)엔 무동작. 리스트는 ordered/indent 비교로 토글.
+    /// 포커스가 없으면 문서 끝을 잡아 거기에 적용한다 — 캔버스를 탭하기 전에 누른 서식 버튼이
+    /// 조용히 죽는 대신 "끝에서 이어 쓰기"로 응답한다(포커스·키보드도 함께 선다).
     func toggleFocusedBlockKind(_ kind: EditorBlockKind) {
+        if focus == nil { focusTail() }
         guard let f = focus, let i = index(of: f.blockID) else { return }
         if blocks[i].isNonText { return }
         let current = blocks[i].kind
@@ -329,6 +357,7 @@ final class EditorDocument {
     /// `marker+marker`를 캐럿 자리에 넣고 그 사이에 캐럿을 둔다. 감싼 뒤엔 안쪽 내용을 다시 선택 상태로
     /// 되돌려(연속 서식·해제 편의), 라이브 렌더가 즉시 최종 모습으로 보여준다. 왕복: text 에 마크다운 원문을 넣을 뿐.
     func wrapFocusedSelection(with marker: String) {
+        if focus == nil { focusTail() }  // 포커스 전에 눌린 버튼도 죽지 않게 — 끝에 빈 마커쌍을 놓고 캐럿을 그 사이에.
         guard let f = focus, let i = index(of: f.blockID), !blocks[i].isNonText else { return }
         let text = blocks[i].text
         let start = clampIndex(f.caret, in: text)

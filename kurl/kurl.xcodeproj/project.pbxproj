@@ -10,10 +10,11 @@
 		04147625300C869C640ADAC5 /* SnapshotSamplesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 479E161D9E2882B60F5B2EA3 /* SnapshotSamplesTests.swift */; };
 		AB10CE11F0A1B2C3D4E5F601 /* TableMarkdownTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10CE11F0A1B2C3D4E5F602 /* TableMarkdownTests.swift */; };
 		AB10CE11F0A1B2C3D4E5F611 /* LikeStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10CE11F0A1B2C3D4E5F612 /* LikeStoreTests.swift */; };
-		DEF2000000000000000000A1 /* WriteV2RoundTripTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEF2000000000000000000A2 /* WriteV2RoundTripTests.swift */; };
 		C3BF9305E467C9F295C69974 /* SnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = 866D5741CA182CC42D365DD5 /* SnapshotTesting */; };
 		C3C9FDE5254137DAB5A65AB0 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 39C7AB90AF0314D69BB840C3 /* Foundation.framework */; };
 		D400000000000000000000AC /* kurlWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D400000000000000000000A1 /* kurlWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		DEF2000000000000000000A1 /* WriteV2RoundTripTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEF2000000000000000000A2 /* WriteV2RoundTripTests.swift */; };
+		DEF2000000000000000000B1 /* WriteV2FocusEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEF2000000000000000000B2 /* WriteV2FocusEngineTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,13 +58,14 @@
 /* Begin PBXFileReference section */
 		39C7AB90AF0314D69BB840C3 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		479E161D9E2882B60F5B2EA3 /* SnapshotSamplesTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SnapshotSamplesTests.swift; sourceTree = "<group>"; };
+		5226FDED204BF66D262A0C1D /* kurlTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = kurlTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB10CE11F0A1B2C3D4E5F602 /* TableMarkdownTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TableMarkdownTests.swift; sourceTree = "<group>"; };
 		AB10CE11F0A1B2C3D4E5F612 /* LikeStoreTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LikeStoreTests.swift; sourceTree = "<group>"; };
-		DEF2000000000000000000A2 /* WriteV2RoundTripTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WriteV2RoundTripTests.swift; sourceTree = "<group>"; };
-		5226FDED204BF66D262A0C1D /* kurlTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = kurlTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D3696C7C2FD48A89006D9F90 /* kurl.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = kurl.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D400000000000000000000A1 /* kurlWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = kurlWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		D500000000000000000000B1 /* kurlUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = kurlUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		DEF2000000000000000000A2 /* WriteV2RoundTripTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WriteV2RoundTripTests.swift; sourceTree = "<group>"; };
+		DEF2000000000000000000B2 /* WriteV2FocusEngineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WriteV2FocusEngineTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -177,6 +179,7 @@
 				AB10CE11F0A1B2C3D4E5F602 /* TableMarkdownTests.swift */,
 				AB10CE11F0A1B2C3D4E5F612 /* LikeStoreTests.swift */,
 				DEF2000000000000000000A2 /* WriteV2RoundTripTests.swift */,
+				DEF2000000000000000000B2 /* WriteV2FocusEngineTests.swift */,
 			);
 			path = kurlTests;
 			sourceTree = "<group>";
@@ -359,6 +362,7 @@
 				AB10CE11F0A1B2C3D4E5F601 /* TableMarkdownTests.swift in Sources */,
 				AB10CE11F0A1B2C3D4E5F611 /* LikeStoreTests.swift in Sources */,
 				DEF2000000000000000000A1 /* WriteV2RoundTripTests.swift in Sources */,
+				DEF2000000000000000000B1 /* WriteV2FocusEngineTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

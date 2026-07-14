@@ -141,6 +141,15 @@ enum BlockInlineRenderer {
             marker(s, NSRange(location: labelEnd, length: tailLen), reveal: revealed)
         }
 
+        // 맨 URL(https://…) — 마커 없는 자동 링크. 붙여넣거나 직접 친 주소가 문단에서 곧장
+        // 링크 모습이 된다(발행 렌더의 오토링크와 동형). 코드·`[라벨](url)` 안 주소는 건너뜀.
+        enumerate(Self.bareURLRegex, ns, full) { m in
+            if intersectsAny(m.range, codeRanges) || intersectsAny(m.range, linkRanges) { return }
+            s.addAttribute(.foregroundColor, value: UIColor(Palette.link), range: m.range)
+            // URL 속 별표·백틱이 강조로 오인되지 않게 링크 제외 범위에 합류시킨다.
+            linkRanges.append(m.range)
+        }
+
         // **볼드** — 코드·링크(url) 범위와 겹치면 건너뜀.
         enumerate(Self.boldRegex, ns, full) { m in
             if intersectsAny(m.range, codeRanges) || intersectsAny(m.range, linkRanges) { return }
@@ -221,6 +230,8 @@ enum BlockInlineRenderer {
     private static let boldRegex = make("\\*\\*([^*\\n]+)\\*\\*")
     private static let italicRegex = make("(?<![*\\w])\\*([^*\\n]+)\\*(?![*\\w])")
     private static let linkRegex = make("\\[([^\\]\\n]+)\\]\\([^)\\n]+\\)")
+    /// 맨 URL — `](` 바로 뒤(마크다운 링크의 url 부분)가 아니어야 한다. 끝은 공백·`)`·`]`·`<`·`>` 전까지.
+    private static let bareURLRegex = make("(?<!\\]\\()https?://[^\\s<>\\)\\]]+")
 
     private static func make(_ pattern: String) -> NSRegularExpression {
         // swiftlint:disable:next force_try

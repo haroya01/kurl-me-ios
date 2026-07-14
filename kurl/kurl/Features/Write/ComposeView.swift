@@ -88,6 +88,10 @@ struct ComposeView: View {
     @State private var lastSavedAt: Date?
     /// 마지막 자동저장이 실패했는가 — 정직한 '저장 실패' 표시(조용히 재시도 중).
     @State private var autosaveFailed = false
+    /// 실패 원인이 인증(401·세션 만료)인가 — "실패했어요"만 반복하면 사용자는 원인을 영영 모른다.
+    /// 편집 중 세션이 죽으면(리프레시 토큰 만료 → 로컬 세션 폐기) 이후 모든 저장이 같은 이유로
+    /// 실패하므로, 배지·토스트가 "다시 로그인" 을 말해야 한다.
+    @State private var autosaveNeedsLogin = false
     /// 연속 자동저장 실패 횟수 — 재시도 간격 백오프 계산용(성공하면 리셋).
     @State private var autosaveRetryStreak = 0
     /// 발행 폼 안에서의 발행/저장 실패 — fullScreenCover 라 루트 알럿이 가려져 폼에 따로 띄운다.
@@ -370,7 +374,7 @@ struct ComposeView: View {
     @ViewBuilder
     private var editorCanvas: some View {
         if let editorDocument {
-            WysiwygComposeCanvas(document: editorDocument)
+            WysiwygComposeCanvas(document: editorDocument, pasteHandlers: v2PasteHandlers)
                 // 블록 편집을 저장 계약(마크다운 문자열)으로 흘려보낸다 — 기존 자동저장·서명·발행 파이프
                 // 는 이 `markdown` 하나만 본다. 여기가 WriteV2 배선의 유일한 접합점이다.
                 .onChange(of: editorDocument.blocks) {
@@ -1050,7 +1054,13 @@ struct ComposeView: View {
         return "checkmark.circle"
     }
 
+    /// 저장 실패가 인증(401·세션 만료) 때문인가 — 배지·토스트가 "다시 로그인"을 말할 근거(플러셔와 공용 판정).
+    private static func isAuthFailure(_ error: Error) -> Bool {
+        DraftFlusher.isAuthFailure(error)
+    }
+
     private func saveStatusText(dirty: Bool) -> String {
+        if autosaveNeedsLogin { return String(localized: "로그인이 풀렸어요 — 다시 로그인해야 저장돼요") }
         if autosaveFailed { return String(localized: "저장하지 못했어요 — 자동으로 다시 시도해요") }
         if dirty { return String(localized: "미저장 — 곧 저장돼요") }
         if let at = lastSavedAt {
@@ -1204,6 +1214,7 @@ struct ComposeView: View {
             lastSavedSignature = snapshot
             lastSavedAt = Date()
             autosaveFailed = false
+            autosaveNeedsLogin = false
             autosaveRetryStreak = 0
             onSaved()
             // 스냅샷 이후 입력이 있었으면 디바운스를 다시 무장한다.
@@ -1219,9 +1230,15 @@ struct ComposeView: View {
             if silent {
                 // 자동저장 실패는 조용히 — 토스트(+VoiceOver 낭독)는 첫 실패에만 한 번.
                 // 지속 상태는 saveStatusIcon 배지가 보여주므로 재시도마다 다시 알리지 않는다.
+                // 단, 원인은 말한다 — "실패했어요"만 반복하면 로그인 만료도 서버 오류도 구분이 안 돼
+                // 사용자가 손쓸 길이 없다(진단 불가의 뿌리). 인증이면 처방(다시 로그인)까지.
+                let needsLogin = Self.isAuthFailure(error)
                 if !autosaveFailed {
-                    ToastCenter.shared.show(String(localized: "자동저장에 실패했어요"))
+                    ToastCenter.shared.show(needsLogin
+                        ? String(localized: "로그인이 풀려 저장하지 못했어요 — 다시 로그인해 주세요")
+                        : String(localized: "자동저장에 실패했어요 — \(error.localizedDescription)"))
                 }
+                autosaveNeedsLogin = needsLogin
                 autosaveFailed = true
                 // 재시도는 지수 백오프(4초→8초→…→60초 상한) — 오프라인에서 2초 간격 무한 폭주 방지.
                 // 새 입력이 오면 onChange 가 기본 2초 디바운스로 다시 앞당긴다.
@@ -1700,6 +1717,67 @@ struct ComposeView: View {
                 refreshCaretContext()
                 editorController.focus()
             } catch {
+                ToastCenter.shared.show(String(localized: "이미지를 올리지 못했습니다"))
+            }
+        }
+    }
+
+    // MARK: WriteV2 붙여넣기 훅 — 현행(V1) 캔버스와 같은 계약을 블록 문서에 잇는다
+
+    /// 이미지 바이트 → 업로드 후 IMAGE 블록 / 이미지 URL → 재호스팅 후 IMAGE 블록 /
+    /// 일반 URL → 캔버스가 원문을 넣고, 이 훅의 단축 결과로 그 자리를 치환한다.
+    private var v2PasteHandlers: EditorPasteHandlers {
+        EditorPasteHandlers(
+            images: { images in uploadV2PastedImages(images) },
+            imageURL: { url in importV2PastedImage(url) },
+            shorten: { url in try? await WriteAPI.shorten(url) }
+        )
+    }
+
+    /// 붙여넣은 외부 이미지 URL — 서버 재호스팅 후 IMAGE 블록으로. 재호스팅이 안 되면(비로그인 등)
+    /// 원문 URL 그대로 넣는다 — 조용히 사라지는 것보다 핫링크가 낫다(현행 경로와 같은 판단).
+    private func importV2PastedImage(_ original: String) {
+        ToastCenter.shared.show(String(localized: "이미지 가져오는 중…"))
+        Task {
+            var finalURL = original
+            if let id = try? await ensurePost(),
+               let hosted = try? await WriteAPI.importImage(postId: id, url: original) {
+                finalURL = hosted
+            }
+            editorDocument?.insertNonText(.image(url: finalURL, alt: ""))
+            syncFromDocument()
+        }
+    }
+
+    /// 클립보드 이미지 붙여넣기(V2) — 스크린샷·노션 등에서 복사한 이미지 바이트를 순서대로 업로드해
+    /// IMAGE 블록으로 넣는다. 캡션(alt)은 블록의 대체 텍스트 필드에서 나중에 붙인다.
+    private func uploadV2PastedImages(_ images: [UIImage]) {
+        guard !images.isEmpty else { return }
+        guard !uploadingBodyImage else {
+            ToastCenter.shared.show(String(localized: "이미지를 올리는 중이에요 — 잠시 후 다시 시도해 주세요"))
+            return
+        }
+        uploadingBodyImage = true
+        ToastCenter.shared.show(String(localized: "이미지 올리는 중…"))
+        Task {
+            defer { uploadingBodyImage = false }
+            var failed = 0
+            for image in images {
+                guard let jpeg = await Self.encodeUploadJPEG(from: image) else {
+                    failed += 1
+                    continue
+                }
+                do {
+                    let id = try await ensurePost()
+                    let uploaded = try await WriteAPI.uploadImage(postId: id, jpegData: jpeg)
+                    editorDocument?.insertNonText(.image(url: uploaded.url, alt: ""))
+                    maybeSetCoverFromBodyImage(url: uploaded.url, key: uploaded.key)
+                } catch {
+                    failed += 1
+                }
+            }
+            syncFromDocument()
+            if failed > 0 {
                 ToastCenter.shared.show(String(localized: "이미지를 올리지 못했습니다"))
             }
         }
@@ -2711,9 +2789,10 @@ private struct ConfettiBurst: View {
 /// 갈아끼울 때(리비전 복원 등) 옛 인스턴스를 계속 잡지 않게 인스턴스 정체로 `.id` 를 걸어 재생성한다.
 private struct WysiwygComposeCanvas: View {
     let document: EditorDocument
+    let pasteHandlers: EditorPasteHandlers
 
     var body: some View {
-        WysiwygEditorView(document: document)
+        WysiwygEditorView(document: document, pasteHandlers: pasteHandlers)
             .id(ObjectIdentifier(document))
     }
 }

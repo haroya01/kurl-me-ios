@@ -11,28 +11,46 @@ import SwiftUI
 
 struct WysiwygEditorView: View {
     @State private var document: EditorDocument
+    /// 붙여넣기 훅 — 호스트(컴포즈)가 업로드·재호스팅·단축을 잇는다. 하네스는 기본값(빈 훅)으로 돈다.
+    private let pasteHandlers: EditorPasteHandlers
 
-    init(document: EditorDocument) {
+    init(document: EditorDocument, pasteHandlers: EditorPasteHandlers = EditorPasteHandlers()) {
         _document = State(initialValue: document)
+        self.pasteHandlers = pasteHandlers
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(document.blocks) { block in
-                    row(for: block)
-                        .padding(.vertical, verticalPadding(for: block.kind))
+        // 뷰포트 높이를 알아야 본문 아래 남는 공간 전부가 "이어 쓰기" 탭 활주로가 된다 —
+        // 블록 UITextView 밖(빈 캔버스)을 탭하면 아무 일도 없던 것이 이 캔버스의 첫 사망 원인이었다.
+        GeometryReader { viewport in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(document.blocks) { block in
+                        row(for: block)
+                            .padding(.vertical, verticalPadding(for: block.kind))
+                    }
+                    // 본문 아래 남는 화면 전부 — 탭하면 문서 끝에서 이어 쓴다(빈 문서 = 화면 전체가 입력 진입점).
+                    Color.clear
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: 120)
+                        .contentShape(.rect)
+                        .onTapGesture { document.focusTail() }
+                        .accessibilityElement()
+                        .accessibilityLabel(Text("본문 이어 쓰기"))
+                        .accessibilityAddTraits(.isButton)
                 }
+                // 읽기 컬럼(672)을 중앙 정렬하되, 좁은 화면에선 좌우 거터로 안전하게 인셋한다.
+                .padding(.horizontal, Metrics.gutter)
+                .frame(maxWidth: Metrics.readingColumn, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.vertical, 24)
+                // 콘텐츠가 짧아도 뷰포트를 꽉 채운다 — 위 활주로(Color.clear)가 남는 높이를 전부 흡수.
+                .frame(minHeight: viewport.size.height, alignment: .top)
             }
-            // 읽기 컬럼(672)을 중앙 정렬하되, 좁은 화면에선 좌우 거터로 안전하게 인셋한다.
-            .padding(.horizontal, Metrics.gutter)
-            .frame(maxWidth: Metrics.readingColumn, alignment: .leading)
-            .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.vertical, 24)
+            .background(Palette.readingBg)
+            .scrollDismissesKeyboard(.interactively)
+            .contentMargins(.horizontal, 0, for: .scrollContent)
         }
-        .background(Palette.readingBg)
-        .scrollDismissesKeyboard(.interactively)
-        .contentMargins(.horizontal, 0, for: .scrollContent)
     }
 
     // MARK: 블록 행 — 종류별 최종 모습 장식
@@ -131,7 +149,8 @@ struct WysiwygEditorView: View {
                 if document.focus?.blockID == block.id {
                     document.focus = EditorFocus(blockID: block.id, caret: caret, selectionLength: length)
                 }
-            }
+            },
+            pasteHandlers: pasteHandlers
         )
     }
 
