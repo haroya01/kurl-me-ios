@@ -58,12 +58,21 @@ final class V2FormatToolbarUITests: XCTestCase {
             shot("format-toolbar-03-bold-applied")
         }
 
-        // 블록 서식: 제목(H2) 토글 — 문단을 제목으로.
+        // 블록 서식: 제목 순환 — 버튼 하나가 # → ## → ### → 문단 을 돈다(제목/소제목 통합).
         let titleButton = app.buttons["제목"]
         if titleButton.isHittable {
             titleButton.tap()
             Thread.sleep(forTimeInterval: 0.7)
-            shot("format-toolbar-04-heading-toggled")
+            shot("format-toolbar-04-heading-h1")
+            titleButton.tap()
+            Thread.sleep(forTimeInterval: 0.5)
+            shot("format-toolbar-05-heading-h2")
+            titleButton.tap()
+            Thread.sleep(forTimeInterval: 0.5)
+            shot("format-toolbar-06-heading-h3")
+            titleButton.tap()  // 한 바퀴 — 문단으로 복귀(크래시·죽은 버튼 회귀 가드)
+            Thread.sleep(forTimeInterval: 0.5)
+            shot("format-toolbar-07-heading-back-to-paragraph")
         }
     }
 }

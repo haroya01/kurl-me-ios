@@ -11228,34 +11228,6 @@
         }
       }
     },
-    "소제목": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Subheading"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "उपशीर्षक"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "小見出し"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tiêu đề phụ"
-          }
-        }
-      }
-    },
     "수정": {
       "localizations": {
         "en": {

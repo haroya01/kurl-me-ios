@@ -193,6 +193,7 @@ struct ComposeView: View {
                     wrapInline: { marker in editorDocument.wrapFocusedSelection(with: marker); syncFromDocument() },
                     insertLink: { presentV2LinkSheet() },
                     toggleBlock: { kind in editorDocument.toggleFocusedBlockKind(kind); syncFromDocument() },
+                    cycleHeading: { editorDocument.cycleFocusedHeading(); syncFromDocument() },
                     insertDivider: { editorDocument.insertNonText(.divider); syncFromDocument() },
                     insertImage: { showV2ImagePicker = true },
                     insertTable: { editorDocument.insertNonText(.table(.blank)); syncFromDocument() },
@@ -2956,8 +2957,10 @@ private struct V2FormatToolbar: View {
     let wrapInline: (String) -> Void
     /// 링크 — 선택을 `[선택](url)` 로(다이얼로그로 URL 받음). 동영상 URL 은 임베드.
     let insertLink: () -> Void
-    /// 블록 종류 토글(제목 H2·H3·인용·코드·불릿·번호).
+    /// 블록 종류 토글(인용·코드·불릿·번호).
     let toggleBlock: (EditorBlockKind) -> Void
+    /// 제목 — 버튼 하나가 `#`→`##`→`###`→문단 을 순환한다(누를수록 작아짐).
+    let cycleHeading: () -> Void
     let insertDivider: () -> Void
     let insertImage: () -> Void
     let insertTable: () -> Void
@@ -2980,8 +2983,9 @@ private struct V2FormatToolbar: View {
                 groupDivider
 
                 // 블록 서식 — 종류 토글(현재 종류면 활성).
-                item("textformat.size.larger", "제목", active: isHeading(2)) { toggleBlock(.heading(level: 2)) }
-                item("textformat.size", "소제목", active: isHeading(3)) { toggleBlock(.heading(level: 3)) }
+                // 제목은 버튼 하나로 # → ## → ### → 본문 순환(제목/소제목 두 버튼의 통합) —
+                // 아이콘 크기가 현재 레벨을 따라 줄어들어 "누르면 작아진다"가 버튼에서 읽힌다.
+                item(headingIcon, "제목", active: isHeadingFocused, action: cycleHeading)
                 item("text.quote", "인용", active: isKind(.quote)) { toggleBlock(.quote) }
                 item("curlybraces", "코드블록", active: isCode) { toggleBlock(.code(language: nil)) }
                 item("list.bullet", "글머리", active: isList(ordered: false)) {
@@ -3047,9 +3051,21 @@ private struct V2FormatToolbar: View {
     // MARK: 활성 판정
 
     private func isKind(_ kind: EditorBlockKind) -> Bool { focusedKind == kind }
-    private func isHeading(_ level: Int) -> Bool {
-        if case .heading(let l) = focusedKind { return l == level }
+    private var isHeadingFocused: Bool {
+        if case .heading = focusedKind { return true }
         return false
+    }
+    /// 현재 제목 레벨을 아이콘 크기로 비춘다 — 1=크게 · 2=중간 · 3=작게. 문단(비활성)은 다음 탭이
+    /// 줄 제목 1 의 아이콘을 미리 보여준다.
+    private var headingIcon: String {
+        if case .heading(let level) = focusedKind {
+            switch level {
+            case 1: return "textformat.size.larger"
+            case 2: return "textformat.size"
+            default: return "textformat.size.smaller"
+            }
+        }
+        return "textformat.size.larger"
     }
     private var isCode: Bool {
         if case .code = focusedKind { return true }
