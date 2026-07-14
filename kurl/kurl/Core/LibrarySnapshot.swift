@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import WidgetKit
 
 /// 홈 위젯 "서재"에 보여줄 스냅샷. 위젯은 네트워크도 Keychain 도 만지지 않는다 —
 /// 기기에 보장된 북마크 사본(OfflineStore)이 바뀔 때마다 App Group defaults 에 제목·작가만
@@ -39,6 +40,8 @@ struct LibrarySnapshot: Codable, Sendable {
               let data = try? JSONEncoder().encode(snapshot)
         else { return }
         defaults.set(data, forKey: key)
+        // 북마크가 늘고 줄 때마다 위젯 타임라인을 다시 세운다 — 없으면 회전 스케줄이 옛 서재를 돈다.
+        WidgetCenter.shared.reloadTimelines(ofKind: "LibraryWidget")
     }
 
     static func load() -> LibrarySnapshot? {

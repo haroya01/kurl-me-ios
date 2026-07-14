@@ -107,14 +107,22 @@ struct LibraryWidgetView: View {
     let entry: LibraryEntry
 
     var body: some View {
-        if let snapshot = entry.snapshot, !snapshot.items.isEmpty {
-            switch family {
-            case .systemMedium: shelf(snapshot)
-            default: one(snapshot)
+        Group {
+            if let snapshot = entry.snapshot, !snapshot.items.isEmpty {
+                switch family {
+                case .systemMedium: shelf(snapshot)
+                default: one(snapshot)
+                }
+            } else {
+                // 빈 서재 탭 → 계정 탭(서재 입구)으로 — 채우는 행동 문까지 데려간다.
+                empty.widgetURL(URL(string: "kurlwidget://library"))
             }
-        } else {
-            empty
         }
+    }
+
+    /// 위젯 딥링크 — 탭한 저장 글을 앱이 시트로 바로 연다(스킴 등록 불필요, onOpenURL 계약).
+    private func deepLink(_ item: LibrarySnapshot.Item) -> URL? {
+        URL(string: "kurlwidget://post/\(item.username)/\(item.slug)")
     }
 
     /// 종이 언어의 눈썹 — 그린 한 가닥 + 라벨(분석 위젯과 같은 가족 문법).
@@ -144,6 +152,7 @@ struct LibraryWidgetView: View {
     }
 
     /// 작은 위젯 — "한 장". 회전 인덱스가 가리키는 저장글 하나를 종이처럼 조용히.
+    /// 탭하면 지금 보이는 그 글이 열린다(위젯 전체가 그 글의 문).
     private func one(_ snapshot: LibrarySnapshot) -> some View {
         let item = snapshot.items[min(entry.featuredIndex, snapshot.items.count - 1)]
         return VStack(alignment: .leading, spacing: 0) {
@@ -169,6 +178,7 @@ struct LibraryWidgetView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .widgetURL(deepLink(item))
     }
 
     /// 중간 위젯 — "선반". 최근 저장 순 세 줄, hairline 으로 묶어 한 목록(서재 화면과 리듬을 맞춘다).
@@ -191,7 +201,12 @@ struct LibraryWidgetView: View {
                             .fill(WidgetPalette.hairline)
                             .frame(height: 1)
                     }
-                    shelfRow(item)
+                    // 줄마다 그 글이 문 — 중형 위젯은 Link 로 행 단위 딥링크가 된다.
+                    if let url = deepLink(item) {
+                        Link(destination: url) { shelfRow(item) }
+                    } else {
+                        shelfRow(item)
+                    }
                 }
                 Spacer(minLength: 0)
             }
