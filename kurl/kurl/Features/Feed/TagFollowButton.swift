@@ -10,8 +10,6 @@ import SwiftUI
 struct TagFollowButton: View {
     @State private var model: TagFollowModel
     @State private var showLoginPrompt = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @ScaledMetric(relativeTo: .headline) private var labelSize: CGFloat = 14
 
     init(tag: String) {
         _model = State(initialValue: TagFollowModel(tag: tag))
@@ -19,23 +17,12 @@ struct TagFollowButton: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Button {
+            ToggleCapsuleButton(
+                isOn: model.following, on: "구독 중", off: "구독",
+                onIcon: "checkmark", offIcon: "plus"
+            ) {
                 toggle()
-            } label: {
-                HStack(spacing: 5) {
-                    Image(systemName: model.following ? "checkmark" : "plus")
-                        .font(.system(size: 12, weight: .semibold))
-                    Text(model.following ? "구독 중" : "구독")
-                        .font(.system(size: labelSize, weight: .semibold))
-                }
-                .foregroundStyle(model.following ? AnyShapeStyle(.primary) : AnyShapeStyle(.white))
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .contentShape(Capsule())
             }
-            .buttonStyle(.plain)
-            .glassCapsule(prominent: !model.following)
-            .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: model.following)
             .accessibilityLabel(Text("태그 구독"))
             .accessibilityAddTraits(model.following ? [.isSelected] : [])
 
