@@ -36,6 +36,32 @@ enum MockBackend {
         MockPost(id: 9001, slug: "p-mock-1", title: "목 초안 — 헥사고날 정리", status: "DRAFT",
                  markdown: "# 헥사고날\n\n포트와 어댑터.", publishedAt: nil, updatedAt: Date(),
                  tags: ["개발"], excerpt: "포트와 어댑터로 다시 그린다."),
+        // 초안 네이티브 미리보기(신고 15) 캡처용 — 블록 종류가 두루 든 초안. 기존 9001 은 그대로 둔다
+        // (WriteV2IntegrationUITests 가 그 정확한 본문에 의존). 목 데이터 전용 카피.
+        MockPost(id: 9003, slug: "p-mock-3", title: "목 초안 — 미리보기 데모", status: "DRAFT",
+                 markdown: """
+                 # 종이 위의 초안
+
+                 포트와 어댑터로 경계를 다시 그린다. **핵심은 방향**이고, *세부는 어댑터*에 맡긴다. 이름이 곧 `경계`다.
+
+                 > 작고 깊게, 경계는 이름에서 시작한다.
+
+                 ---
+
+                 ## 정리한 것
+
+                 - 포트 이름 짓기
+                 - 어댑터 분리
+                 - 테스트 경계 세우기
+
+                 ```swift
+                 protocol PostPort {
+                     func load(_ id: Int) async throws -> Post
+                 }
+                 ```
+                 """,
+                 publishedAt: nil, updatedAt: Date(),
+                 tags: ["개발"], excerpt: "블록 종류가 두루 든 미리보기 데모."),
         MockPost(id: 9002, slug: "p-mock-2", title: "발행된 목 글", status: "PUBLISHED",
                  markdown: "# 발행됨\n\n본문.", publishedAt: Date().addingTimeInterval(-86_400), updatedAt: Date(),
                  tags: ["회고", "iOS"], excerpt: "한 달간의 작업을 정리했다."),
