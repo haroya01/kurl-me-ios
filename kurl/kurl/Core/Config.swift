@@ -12,6 +12,11 @@ enum Config {
     static let apiBase = URL(string: "https://kurl.me")!
     static let apiPrefix = "/api/v1"
 
+    /// 공개 블로그 호스트 — 글·작가·시리즈의 정규 주소(웹 postHref 와 동일: blog.kurl.me/@user/slug).
+    /// apex 의 /{lang}/p/… 경로도 열리긴 하지만 정규 주소가 아니다 — 공유·표기는 전부 이쪽으로.
+    /// 로케일 세그먼트는 붙이지 않는다(블로그 호스트는 진입 시 언어를 자동 감지).
+    static let blogBase = URL(string: "https://blog.kurl.me")!
+
     /// 목 모드 — 런치 인자 `--mocks`. 웹의 NEXT_PUBLIC_USE_MOCKS 와 같은 역할:
     /// 인증이 필요한 표면을 로그인 없이 돌려본다(공개 읽기는 실서버 그대로). DEBUG 전용.
     static let useMocks: Bool = {

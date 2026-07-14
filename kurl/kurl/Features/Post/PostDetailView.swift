@@ -57,6 +57,12 @@ struct PostDetailView: View {
     /// 남의 글 신고·작가 차단(더 보기 메뉴).
     @State private var showReport = false
     @State private var showBlockConfirm = false
+    /// 관리자 모더레이션 — 타인 글의 내리기·영구 삭제 확인과 제목·태그 편집 시트.
+    @State private var showAdminUnpublishConfirm = false
+    @State private var showAdminDeleteConfirm = false
+    @State private var showAdminEdit = false
+    @State private var adminEditTitle = ""
+    @State private var adminEditTags = ""
     /// 손가락이 실제로 당기는 중일 때만 true — 플릭 관성의 바운스가 임계를 넘어도
     /// 다음 글로 튕겨가지 않게 한다.
     @State private var fingerDown = false
@@ -295,6 +301,20 @@ struct PostDetailView: View {
         } message: {
             Text("글과 그 안의 내용이 영구히 지워져요. 되돌릴 수 없어요.")
         }
+        // 관리자 모더레이션 — 타인 글이라 소유자 확인 문구와 구분해 "관리자 권한"을 명시한다.
+        .alert("관리자 권한으로 발행을 내릴까요?", isPresented: $showAdminUnpublishConfirm) {
+            Button("발행 내리기", role: .destructive) { Task { await adminUnpublish() } }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("작가의 글이 비공개로 내려가요. 글은 남고, 작가가 다시 발행할 수 있어요.")
+        }
+        .alert("관리자 권한으로 영구 삭제할까요?", isPresented: $showAdminDeleteConfirm) {
+            Button("영구 삭제", role: .destructive) { Task { await adminDelete() } }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("작가의 글과 댓글·좋아요·하이라이트가 모두 지워져요. 되돌릴 수 없어요.")
+        }
+        .sheet(isPresented: $showAdminEdit) { adminEditSheet }
         // 스크롤로 제목이 스밀 때까지는 내비바 배경을 숨긴다 — 커버 유무와 무관하게.
         // (무커버 글 진입 때 .automatic 의 반투명 내비바가 상단에 "투명한 박스"로 떴던 것 제거.)
         .toolbarBackground(
@@ -498,6 +518,21 @@ struct PostDetailView: View {
                             }
                             Button(role: .destructive) { showReport = true } label: {
                                 Label("신고", systemImage: "flag")
+                            }
+                        }
+                        // 관리자 모더레이션 — 타인 글의 제목·태그 정리, 내리기, 영구 삭제.
+                        // 클라 가드는 진입로 노출용일 뿐, 실제 권한은 서버 /admin/** 게이트가 문이다.
+                        if AuthStore.shared.me?.isAdmin == true {
+                            Section("관리자") {
+                                Button { presentAdminEdit() } label: {
+                                    Label("제목·태그 편집", systemImage: "pencil.and.list.clipboard")
+                                }
+                                Button(role: .destructive) { showAdminUnpublishConfirm = true } label: {
+                                    Label("발행 내리기", systemImage: "eye.slash")
+                                }
+                                Button(role: .destructive) { showAdminDeleteConfirm = true } label: {
+                                    Label("영구 삭제", systemImage: "trash")
+                                }
                             }
                         }
                     } label: {
@@ -716,6 +751,84 @@ struct PostDetailView: View {
         }
     }
 
+    // MARK: 관리자 모더레이션 — 타인 글의 제목·태그 편집·내리기·영구 삭제
+
+    /// 편집 시트 프리필 — 현재 제목·태그(쉼표 구분)를 들고 연다.
+    private func presentAdminEdit() {
+        guard case .loaded(let detail) = model.phase else { return }
+        adminEditTitle = detail.post.title
+        adminEditTags = detail.post.tags.joined(separator: ", ")
+        showAdminEdit = true
+    }
+
+    private var adminEditSheet: some View {
+        NavigationStack {
+            Form {
+                Section("제목") {
+                    TextField("제목", text: $adminEditTitle)
+                }
+                Section {
+                    TextField("태그 (쉼표로 구분)", text: $adminEditTags)
+                        .textInputAutocapitalization(.never)
+                } header: {
+                    Text("태그")
+                } footer: {
+                    Text("모더레이션 편집은 제목과 태그만 바꿔요 — 본문과 주소는 작가의 것으로 남아요.")
+                }
+            }
+            .navigationTitle("관리자 편집")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("취소") { showAdminEdit = false }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("저장") { Task { await adminApplyEdit() } }
+                        .disabled(adminEditTitle.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+
+    private func adminApplyEdit() async {
+        guard let id = loadedPostId else { return }
+        let title = adminEditTitle.trimmingCharacters(in: .whitespaces)
+        let tags = adminEditTags.split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        do {
+            try await AdminModerationAPI.update(postId: id, title: title, tags: tags)
+            showAdminEdit = false
+            ToastCenter.shared.show(String(localized: "관리자 권한으로 수정했어요"))
+            await model.load()  // 제자리 갱신 — 바뀐 제목·태그가 바로 보인다.
+        } catch {
+            ToastCenter.shared.show(String(localized: "수정하지 못했어요 — \(error.localizedDescription)"))
+        }
+    }
+
+    private func adminUnpublish() async {
+        guard let id = loadedPostId else { return }
+        do {
+            try await AdminModerationAPI.unpublish(postId: id)
+            ToastCenter.shared.show(String(localized: "관리자 권한으로 발행을 내렸어요"))
+            dismiss()
+        } catch {
+            ToastCenter.shared.show(String(localized: "발행을 내리지 못했어요"))
+        }
+    }
+
+    private func adminDelete() async {
+        guard let id = loadedPostId else { return }
+        do {
+            try await AdminModerationAPI.delete(postId: id)
+            ToastCenter.shared.show(String(localized: "관리자 권한으로 삭제했어요"))
+            dismiss()
+        } catch {
+            ToastCenter.shared.show(String(localized: "삭제하지 못했어요"))
+        }
+    }
+
     /// 공개 상세 → 에디터용 MyPost. 본문(markdown)은 에디터가 id 로 다시 받는다.
     private func myPost(from detail: PublicPostDetail) -> MyPost {
         MyPost(
@@ -732,11 +845,10 @@ struct PostDetailView: View {
             viewCount: 0, likeCount: detail.post.likeCount, followsGained: 0)
     }
 
-    /// 네이티브 공유 시트용 공개 URL — 웹과 같은 주소.
+    /// 네이티브 공유 시트용 공개 URL — 웹 postHref 와 같은 정규 블로그 주소.
     private var shareURL: URL? {
         guard case .loaded(let detail) = model.phase else { return nil }
-        return URL(
-            string: "\(Config.apiBase)/\(Config.preferredLanguageTag)/p/\(detail.author.username)/\(detail.post.slug)")
+        return URL(string: "\(Config.blogBase)/@\(detail.author.username)/\(detail.post.slug)")
     }
 
     /// 본문 탭 시 키보드 사임 — GlassCommentBar 의 focus 변화가 이어받아 빈 컴포저를 닫는다.

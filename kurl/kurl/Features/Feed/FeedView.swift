@@ -70,6 +70,19 @@ struct FeedView: View {
             }
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { containerWidth = $0 }
             .simultaneousGesture(feedDrag)
+            // 스위처 탭 전환도 스와이프처럼 미끄러진다 — 최신·인기 카드 목록이 즉시 스냅으로 갈리면
+            // 생김새가 비슷해 "전환이 일어났나"가 안 느껴졌다. 스와이프 경로는 dragX 보정을 스스로
+            // 하므로(이 onChange 시점에 dragX != 0) 여기선 탭 경로만 같은 문법으로 보정한다.
+            // 바인딩을 withAnimation 으로 감싸지 않는다 — 스위처 알약 활주와 충돌(메모리 함정).
+            .onChange(of: selection) { old, new in
+                guard !reduceMotion, dragX == 0, containerWidth > 0,
+                      let from = FeedTab.allCases.firstIndex(of: old),
+                      let to = FeedTab.allCases.firstIndex(of: new), from != to else { return }
+                dragX = CGFloat(to - from) * containerWidth
+                withAnimation(.snappy(duration: 0.32)) { dragX = 0 }
+            }
+            // 전환이 손에도 닿게 — 탭이든 스와이프든 선택이 바뀌는 순간 가벼운 셀렉션 틱.
+            .sensoryFeedback(.selection, trigger: selection)
             // 고정 스트립 대신 떠 있는 유리 — 카드가 캡슐 양옆·뒤로 그대로 흐른다.
             .safeAreaInset(edge: .top) {
                 // ZStack 중첩(중앙 스위처 + 우단 벨)은 375pt 기기에서 겹쳤다 — 압축 가능한

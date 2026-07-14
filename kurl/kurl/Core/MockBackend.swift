@@ -1015,6 +1015,16 @@ enum MockBackend {
             return json([:])
         }
 
+        // 프로필 고정 세트 전체 교체 — 목은 순서만 받아 ack(공개 목록 픽스처는 정적이라 재정렬 생략).
+        if method == "PUT", parts == ["posts", "pins"] {
+            return json([:])
+        }
+
+        // 관리자 모더레이션 — 목 me 가 ADMIN 이라 메뉴가 열린다. 내리기·편집·삭제 전부 ack.
+        if parts.count >= 2, parts[0] == "admin", parts[1] == "posts" {
+            return json([:])
+        }
+
         if parts.count == 3, parts[0] == "posts", parts[2] == "like" {
             let pid = Int64(parts[1]) ?? 0
             var state = likes[pid] ?? (count: 3, liked: false)

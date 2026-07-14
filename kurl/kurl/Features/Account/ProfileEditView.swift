@@ -49,7 +49,7 @@ struct ProfileEditView: View {
 
             Section("사용자 이름") {
                 HStack(spacing: 1) {
-                    Text("kurl.me/u/")
+                    Text(verbatim: "blog.kurl.me/@")
                         .foregroundStyle(Palette.secondary)
                     TextField("username", text: $username)
                         .textInputAutocapitalization(.never)

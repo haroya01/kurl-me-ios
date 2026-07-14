@@ -88,6 +88,34 @@
         }
       }
     },
+    "blog.kurl.me/@ 주소에 쓰여요. 나중에 바꿀 수 있어요." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used in your blog.kurl.me/@ address. You can change it later."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "blog.kurl.me/@ पते में इस्तेमाल होता है. बाद में बदला जा सकता है."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "blog.kurl.me/@ のアドレスに使われます。あとで変更できます。"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Được dùng trong địa chỉ blog.kurl.me/@. Bạn có thể đổi sau."
+          }
+        }
+      }
+    },
     "·" : {
       "localizations" : {
         "en" : {
@@ -1872,62 +1900,6 @@
     },
     "kurl 링크로 단축했어요" : {
 
-    },
-    "kurl.me/u/" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "kurl.me/u/"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "kurl.me/u/"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "kurl.me/u/"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "kurl.me/u/"
-          }
-        }
-      }
-    },
-    "kurl.me/u/ 주소에 쓰여요. 나중에 바꿀 수 있어요." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Used in your kurl.me/u/ address. You can change it later."
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "kurl.me/u/ पते में इस्तेमाल होता है. बाद में बदला जा सकता है."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "kurl.me/u/ のアドレスに使われます。あとで変更できます。"
-          }
-        },
-        "vi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dùng trong địa chỉ kurl.me/u/. Bạn có thể đổi sau."
-          }
-        }
-      }
     },
     "kurl에 로그인" : {
       "localizations" : {
