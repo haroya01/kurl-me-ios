@@ -20,7 +20,10 @@ import UIKit
 struct BlockTextView: UIViewRepresentable {
     let block: EditorBlock
     let isFocused: Bool
+    /// 문서 focus 의 캐럿(String 인덱스 거리). 포커스 획득/서식 적용 후 이 위치로 캐럿·선택을 되돌린다.
     let caretOnFocus: Int
+    /// 문서 focus 의 선택 길이(String 인덱스). >0 이면 [caret, caret+length) 를 선택 상태로 복원(서식 감싸기 후).
+    var selectionLengthOnFocus: Int = 0
     /// 텍스트 변경 콜백(구조 변경 없음).
     let onTextChange: (String) -> Void
     /// 엔터로 블록 분할 요청 — caret 위치 전달.
@@ -31,6 +34,8 @@ struct BlockTextView: UIViewRepresentable {
     let onLineHeadShortcut: (EditorBlockKind, String, Int) -> Void
     /// 포커스 획득 통지(문서 focus 동기화).
     let onFocused: () -> Void
+    /// 선택/캐럿 변화 통지 — (caret, selectionLength) String 인덱스. 서식 툴바가 이 선택을 마커로 감싼다.
+    let onSelectionChange: (Int, Int) -> Void
 
     func makeUIView(context: Context) -> BlockUITextView {
         let tv = BlockUITextView()
@@ -61,15 +66,19 @@ struct BlockTextView: UIViewRepresentable {
         context.coordinator.parent = self
         context.coordinator.onEmptyBackspace = onMergeBackward
         // 외부(문서)에서 온 text/kind 변화만 반영 — 사용자가 방금 친 것과 같으면 건너뛴다(캐럿 튐 방지).
-        if tv.currentBlockText != block.text || context.coordinator.renderedKind != block.kind {
+        let textChanged = tv.currentBlockText != block.text
+            || context.coordinator.renderedKind != block.kind
+        if textChanged {
             apply(block, to: tv, coordinator: context.coordinator)
         }
         if isFocused, !tv.isFirstResponder {
             tv.becomeFirstResponder()
-            setCaret(caretOnFocus, in: tv)
-        } else if isFocused, tv.isFirstResponder,
-                  context.coordinator.pendingCaret != nil {
-            setCaret(caretOnFocus, in: tv)
+            setSelection(caret: caretOnFocus, length: selectionLengthOnFocus, in: tv)
+        } else if isFocused, tv.isFirstResponder, textChanged {
+            // 외부(문서)에서 온 텍스트 변화 = 서식 툴바 감싸기·블록 토글·구조 연산 — 문서가 준 새 선택/
+            // 캐럿을 복원한다. 사용자 타이핑은 textViewDidChange 가 currentBlockText 를 먼저 맞춰 여기
+            // textChanged=false 이므로 이 경로를 안 타(타이핑 캐럿을 안 건드린다).
+            setSelection(caret: caretOnFocus, length: selectionLengthOnFocus, in: tv)
         }
         context.coordinator.pendingCaret = nil
     }
@@ -92,6 +101,19 @@ struct BlockTextView: UIViewRepresentable {
             tv.selectedRange = active
         }
         coordinator.isProgrammaticEdit = false
+    }
+
+    /// 문서 focus 의 (caret, length) — 둘 다 String 인덱스 거리 — 를 UITextView 선택으로 복원한다.
+    /// String↔UTF-16 변환을 거쳐(한글 등 다바이트 안전) length>0 이면 범위 선택, 0 이면 캐럿.
+    private func setSelection(caret: Int, length: Int, in tv: UITextView) {
+        let text = tv.text ?? ""
+        let startStr = max(0, min(caret, text.count))
+        let endStr = max(startStr, min(caret + max(0, length), text.count))
+        let utf16Start = text.index(text.startIndex, offsetBy: startStr).utf16Offset(in: text)
+        let utf16End = text.index(text.startIndex, offsetBy: endStr).utf16Offset(in: text)
+        guard let from = tv.position(from: tv.beginningOfDocument, offset: utf16Start),
+              let to = tv.position(from: tv.beginningOfDocument, offset: utf16End) else { return }
+        tv.selectedTextRange = tv.textRange(from: from, to: to)
     }
 
     private func setCaret(_ pos: Int, in tv: UITextView) {
@@ -122,21 +144,26 @@ struct BlockTextView: UIViewRepresentable {
             }
         }
 
-        /// 캐럿이 움직이면(글자 변화 없이 선택만 바뀌어도) 마크업을 다시 칠한다 — 캐럿이 들어온
-        /// `**볼드**`·`[라벨](url)` 은 마커를 흐리게 열고, 벗어난 것은 다시 숨긴다(반개봉의 왕복).
+        /// 캐럿/선택이 바뀌면 (1) 문서에 선택 좌표를 알려 서식 툴바가 감쌀 수 있게 하고 (2) 캐럿이
+        /// 들어온 `**볼드**`·`[라벨](url)` 은 마커를 흐리게 열고 벗어난 것은 다시 숨긴다(반개봉의 왕복).
         func textViewDidChangeSelection(_ textView: UITextView) {
             guard !isProgrammaticEdit, let tv = textView as? BlockUITextView,
                   tv.markedTextRange == nil else { return }
+            // 선택 좌표를 String 인덱스로 문서에 보고(선택 유무 무관) — 툴바가 이 선택을 감싼다.
+            let range = tv.selectedRange
+            let caret = swiftCaret(in: tv, nsLocation: range.location)
+            let end = swiftCaret(in: tv, nsLocation: range.location + range.length)
+            parent.onSelectionChange(caret, max(0, end - caret))
+
             // 드래그 선택 중(길이>0)엔 재렌더하지 않는다 — attributedText 교체가 확대경/드래그를 끊고,
             // 선택 중엔 반개봉이 굳이 필요 없다(선택을 놓으면 캐럿이 되고 그때 열린다).
-            guard tv.selectedRange.length == 0 else { return }
+            guard range.length == 0 else { return }
             // 인라인 마커가 아예 없는 블록은 반개봉할 게 없으니 건너뛴다(캐럿 이동마다 재렌더 낭비 방지).
             let text = tv.text ?? ""
             guard text.contains("*") || text.contains("`") || text.contains("[") else { return }
             // 반개봉 상태(어느 마크업이 열렸나)가 캐럿 이동으로 실제 바뀔 때만 다시 칠한다 — 마크업과
             // 무관한 위치들 사이 이동엔 재렌더를 생략(방향키 네비 낭비 방지).
-            let active = BlockInlineRenderer.activeMarkupSpan(
-                in: text, caret: tv.selectedRange.location)
+            let active = BlockInlineRenderer.activeMarkupSpan(in: text, caret: range.location)
             guard active != lastRevealedSpan else { return }
             lastRevealedSpan = active
             reRenderInline(tv)
