@@ -104,7 +104,13 @@ struct BlockTextView: UIViewRepresentable {
             // 외부(문서)에서 온 텍스트 변화 = 서식 툴바 감싸기·블록 토글·구조 연산 — 문서가 준 새 선택/
             // 캐럿을 복원한다. 사용자 타이핑은 textViewDidChange 가 currentBlockText 를 먼저 맞춰 여기
             // textChanged=false 이므로 이 경로를 안 타(타이핑 캐럿을 안 건드린다).
-            setSelection(caret: caretOnFocus, length: selectionLengthOnFocus, in: tv)
+            // 동기 지름길 전환 직후엔 한 번 건너뛴다 — 전환과 이 복원 사이에 이미 새 글자가 들어와
+            // 있을 수 있어(속사 타이핑), 캐럿 0 복원이 이후 입력을 앞으로 끼워 넣는다.
+            if context.coordinator.suppressSelectionRestoreOnce {
+                context.coordinator.suppressSelectionRestoreOnce = false
+            } else {
+                setSelection(caret: caretOnFocus, length: selectionLengthOnFocus, in: tv)
+            }
         }
         context.coordinator.pendingCaret = nil
     }
@@ -159,6 +165,10 @@ struct BlockTextView: UIViewRepresentable {
         var isProgrammaticEdit = false
         var pendingCaret: Int?
         var onEmptyBackspace: (() -> Void)?
+        /// 동기 지름길 전환 직후 한 번, updateUIView 의 문서 focus 선택 복원을 건너뛴다 —
+        /// 전환 뒤에도 키 입력이 이어지는 중이라(속사 타이핑) 캐럿을 0 으로 되돌리면 글자가 뒤섞인다.
+        /// 툴바 감싸기/토글 경로는 이 플래그를 안 세우므로 종전대로 복원한다.
+        var suppressSelectionRestoreOnce = false
 
         init(_ parent: BlockTextView) { self.parent = parent }
 
@@ -209,6 +219,24 @@ struct BlockTextView: UIViewRepresentable {
             if text == "\n" {
                 let caret = swiftCaret(in: tv, nsLocation: range.location)
                 parent.onSplit(caret)
+                return false
+            }
+
+            // 줄머리 지름길(`# `·`- `·`> `·`1. `)의 방아쇠 공백을 **동기** 가로채기 — didChange
+            // (SwiftUI 왕복 뒤 재렌더)에 맡기면 전환이 한 프레임 늦고, 그 창에 속사 타이핑(하드웨어
+            // 키보드·연속 입력)의 다음 글자들이 끼면 문서 focus(캐럿 0) 복원이 타이핑을 뒤섞는다.
+            // 여기서 텍스트뷰를 즉시 마커 제거 상태로 바꾸고 문서에 전환을 알리면, 이후 키 입력은
+            // 처음부터 올바른(빈) 블록에 떨어진다. 붙여넣기 등 비공백 경로는 아래 didChange 가 그대로 처리.
+            if text == " ", range.length == 0, tv.markedTextRange == nil,
+               range.location == (tv.text as NSString).length,
+               let shortcut = BlockShortcuts.detect(in: (tv.text ?? "") + " ", kind: parent.block.kind) {
+                isProgrammaticEdit = true
+                tv.text = shortcut.strippedText
+                tv.currentBlockText = shortcut.strippedText
+                tv.typingAttributes = BlockInlineRenderer.typingAttributes(for: shortcut.kind)
+                isProgrammaticEdit = false
+                suppressSelectionRestoreOnce = true
+                parent.onLineHeadShortcut(shortcut.kind, shortcut.strippedText, shortcut.caret)
                 return false
             }
 
