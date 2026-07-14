@@ -151,7 +151,7 @@ struct SeriesDetailView: View {
 
     private var navTitle: String {
         if case .loaded = phase { return "" }
-        return "시리즈"
+        return String(localized: "시리즈")
     }
 
     @ViewBuilder
@@ -450,11 +450,11 @@ private struct EpisodeRow: View {
     }
 
     private var a11yLabel: Text {
-        let base = "\(number)편 — \(post.title)"
+        let base = String(localized: "\(number)편 — \(post.title)")
         switch state {
-        case .read: return Text("\(base), 읽음")
-        case .next: return Text("\(base), 다음 읽을 글")
-        case .unread: return Text(base)
+        case .read: return Text(verbatim: String(localized: "\(base), 읽음"))
+        case .next: return Text(verbatim: String(localized: "\(base), 다음 읽을 글"))
+        case .unread: return Text(verbatim: base)
         }
     }
 }

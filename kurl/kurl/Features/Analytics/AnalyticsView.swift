@@ -198,7 +198,10 @@ struct AnalyticsView: View {
                     .foregroundStyle(Palette.secondary)
             }
             // 윈도우 보조지표 — 아이콘 군집 대신 담백한 한 줄(§10 절제).
-            MetaLine(["팔로우 +\(overview.windowFollows)", "링크 클릭 \(overview.windowLinkClicks)"])
+            MetaLine([
+                String(localized: "팔로우 +\(overview.windowFollows)"),
+                String(localized: "링크 클릭 \(overview.windowLinkClicks)"),
+            ])
                 .padding(.top, 2)
         }
 
@@ -253,10 +256,10 @@ struct AnalyticsView: View {
                                 .multilineTextAlignment(.leading)
                                 .fixedSize(horizontal: false, vertical: true)
                             MetaLine(
-                                ["조회 \(row.viewCount.formatted())",
-                                 "좋아요 \(row.likeCount.formatted())"]
+                                [String(localized: "조회 \(row.viewCount.formatted())"),
+                                 String(localized: "좋아요 \(row.likeCount.formatted())")]
                                 + (row.followsGained > 0
-                                    ? ["팔로우 \(row.followsGained.formatted())"] : []))
+                                    ? [String(localized: "팔로우 \(row.followsGained.formatted())")] : []))
                         }
                         Spacer(minLength: 0)
                         Image(systemName: "chevron.right")
@@ -310,9 +313,10 @@ struct AnalyticsView: View {
                                 .foregroundStyle(Palette.ink)
                                 .lineLimit(1)
                             MetaLine([
-                                "\(row.postCount)편", "구독 \(row.subscriberCount.formatted())",
-                                "조회 \(row.totalViews.formatted())",
-                                "좋아요 \(row.totalLikes.formatted())",
+                                String(localized: "\(row.postCount)편"),
+                                String(localized: "구독 \(row.subscriberCount.formatted())"),
+                                String(localized: "조회 \(row.totalViews.formatted())"),
+                                String(localized: "좋아요 \(row.totalLikes.formatted())"),
                             ])
                         }
                         Spacer(minLength: 0)

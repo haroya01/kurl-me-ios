@@ -103,7 +103,10 @@ struct PostAnalyticsView: View {
         .padding(.top, 6)
 
         // 윈도우 보조지표 — 아이콘 군집 대신 담백한 한 줄(§10 절제, 개요·목록과 한 결).
-        MetaLine(["팔로우 +\(detail.windowFollows)", "링크 클릭 \(detail.windowLinkClicks)"])
+        MetaLine([
+            String(localized: "팔로우 +\(detail.windowFollows)"),
+            String(localized: "링크 클릭 \(detail.windowLinkClicks)"),
+        ])
             .padding(.top, 4)
 
         if !detail.daily.isEmpty {
