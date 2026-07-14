@@ -324,9 +324,12 @@ private struct DeckSwipeHint: View {
         .padding(.vertical, 10)
         .glassEffect(.regular, in: .rect(cornerRadius: Metrics.radiusMini))
         .onAppear {
+            // 상호작용 UI 위의 ambient 연속 모션 금지(§10.7) — 첫 등장 한 번만 살짝 흐르고 정지한다.
             guard !reduceMotion else { return }
-            withAnimation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true)) {
-                phase = true
+            withAnimation(.easeInOut(duration: 0.3)) { phase = true }
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(450))
+                withAnimation(.easeInOut(duration: 0.3)) { phase = false }
             }
         }
     }
