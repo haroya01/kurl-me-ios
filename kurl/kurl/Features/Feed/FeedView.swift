@@ -560,8 +560,6 @@ private struct FeedSeriesCard: View {
     @ScaledMetric(relativeTo: .caption) private var seriesNameSize: CGFloat = 12
     @ScaledMetric(relativeTo: .title) private var epNumSize: CGFloat = 34
     @ScaledMetric(relativeTo: .footnote) private var epTotalSize: CGFloat = 15
-    @ScaledMetric(relativeTo: .headline) private var epTitleSize: CGFloat = 18
-    @ScaledMetric(relativeTo: .caption) private var metaSize: CGFloat = 12
 
     private var posts: [SeriesPostRef] { Array(series.posts.prefix(4)) }
 
@@ -683,8 +681,7 @@ private struct FeedSeriesCard: View {
                     .lineLimit(1)
                 // 에피소드 제목(웹: 18px bold, 3줄).
                 Text(ep.title)
-                    .font(.system(size: epTitleSize, weight: .bold))
-                    .tracking(-0.3)
+                    .typeScale(.title)
                     .foregroundStyle(onImage ? Color.white : Palette.ink)
                     .lineLimit(3)
                     .multilineTextAlignment(.leading)
@@ -692,13 +689,13 @@ private struct FeedSeriesCard: View {
                 HStack(spacing: 6) {
                     AvatarView(author: author, size: 18)
                     Text(author.username)
-                        .font(.system(size: metaSize, weight: .medium))
+                        .typeScale(.meta)
                         .foregroundStyle(onImage ? Color.white.opacity(0.9) : Palette.secondary)
                         .lineLimit(1)
                     if let date = series.lastPublishedAt {
                         Text("·").foregroundStyle(onImage ? Color.white.opacity(0.6) : Palette.faint)
                         Text(date.relativeShort)
-                            .font(.system(size: metaSize))
+                            .typeScale(.meta)
                             .foregroundStyle(onImage ? Color.white.opacity(0.9) : Palette.secondary)
                     }
                 }

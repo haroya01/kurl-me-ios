@@ -21,7 +21,6 @@ struct PostAnalyticsView: View {
     @ScaledMetric(relativeTo: .title2) private var postTitleSize: CGFloat = 20
     @ScaledMetric(relativeTo: .largeTitle) private var bigStatSize: CGFloat = 36
     @ScaledMetric(relativeTo: .headline) private var linkSize: CGFloat = 14
-    @ScaledMetric(relativeTo: .subheadline) private var sectionTitleSize: CGFloat = 13
     @ScaledMetric(relativeTo: .subheadline) private var countSize: CGFloat = 13
     @ScaledMetric(relativeTo: .title3) private var statValueSize: CGFloat = 17
     @ScaledMetric(relativeTo: .caption) private var chipLabelSize: CGFloat = 12
@@ -135,7 +134,7 @@ struct PostAnalyticsView: View {
             NavigationLink(value: Route.post(username: username, slug: detail.slug)) {
                 HStack(spacing: 6) {
                     Text("글 보기")
-                        .font(.system(size: linkSize, weight: .medium))
+                        .typeScale(.meta)
                         .foregroundStyle(Palette.link)
                     Image(systemName: "chevron.right")
                         .font(.system(size: 11, weight: .semibold))
@@ -213,7 +212,7 @@ struct PostAnalyticsView: View {
             let top = Array(items.prefix(5))
             let maxCount = top.map(\.count).max() ?? 1
             Text(title)
-                .font(.system(size: sectionTitleSize, weight: .semibold))
+                .typeScale(.eyebrow)
                 .foregroundStyle(Palette.heading)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.top, 18)

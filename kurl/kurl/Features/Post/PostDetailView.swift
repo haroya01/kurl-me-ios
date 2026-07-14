@@ -461,7 +461,7 @@ struct PostDetailView: View {
         if !embedded {
             ToolbarItem(placement: .principal) {
                 Text(loadedTitle)
-                    .font(.system(size: 16 * unit, weight: .semibold))
+                    .typeScale(.titleSmall)
                     .lineLimit(1)
                     .opacity(showNavTitle ? 1 : 0)
             }
@@ -1013,7 +1013,7 @@ struct PostDetailView: View {
                         NavigationLink(value: Route.author(username: author.username)) {
                             HStack(spacing: 2) {
                                 Text("전체 보기")
-                                    .font(.system(size: 13 * metaUnit, weight: .medium))
+                                    .typeScale(.meta)
                                 Image(systemName: "chevron.right")
                                     .font(.system(size: 10 * metaUnit, weight: .semibold))
                             }
@@ -1276,7 +1276,7 @@ struct PostDetailView: View {
                             .font(.system(size: 13 * unit))
                             .foregroundStyle(Palette.secondary)
                         Text("댓글을 남겨보세요")
-                            .font(.system(size: 14 * unit))
+                            .typeScale(.lede)
                             .foregroundStyle(Palette.secondary)
                         Spacer(minLength: 0)
                     }
@@ -1504,7 +1504,7 @@ struct CommentRow: View {
                             replyTo = comment
                         } label: {
                             Text("답글")
-                                .font(.system(size: 12 * metaUnit, weight: .medium))
+                                .typeScale(.meta)
                                 .foregroundStyle(Palette.secondary)
                                 .expandTapTarget()
                         }
@@ -1590,7 +1590,7 @@ struct GlassCommentBar: View {
             if let replyTo {
                 HStack(spacing: 6) {
                     Text("\(replyTo.author.username)님에게 답글")
-                        .font(.system(size: 12 * metaUnit))
+                        .typeScale(.footnote)
                         .foregroundStyle(Palette.link)
                     Button {
                         self.replyTo = nil
@@ -1606,7 +1606,7 @@ struct GlassCommentBar: View {
             }
             if sendFailed {
                 Text("전송하지 못했습니다 — 다시 시도해 주세요.")
-                    .font(.system(size: 12 * metaUnit))
+                    .typeScale(.footnote)
                     .foregroundStyle(Palette.danger)
             }
             // 한 줄일 때 입력칸이 보내기 버튼(34pt)보다 낮게 깔려 위에 빈 띠가 생기던 것 —
@@ -1616,7 +1616,7 @@ struct GlassCommentBar: View {
                     replyTo == nil ? "댓글을 남겨보세요" : "답글을 남겨보세요",
                     text: $body_, axis: .vertical
                 )
-                .font(.system(size: 15 * unit))
+                .typeScale(.body)
                 .lineLimit(1...4)
                 .focused($focused)
                 .submitLabel(.send)

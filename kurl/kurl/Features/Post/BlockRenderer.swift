@@ -254,7 +254,6 @@ private struct CodeBlockView: View {
     @State private var copied = false
     // 코드 바·본문 크기 — 사다리 밖(mono/소형)이라 크기 보존하되 Dynamic Type 는 얹는다(읽기면 나머지와 같은 결).
     @ScaledMetric(relativeTo: .caption) private var langLabelSize: CGFloat = 11
-    @ScaledMetric(relativeTo: .caption) private var copyLabelSize: CGFloat = 12
     @ScaledMetric(relativeTo: .body) private var codeSize: CGFloat = 14
 
     private var language: String? {
@@ -278,7 +277,7 @@ private struct CodeBlockView: View {
                         Image(systemName: copied ? "checkmark" : "doc.on.doc")
                             .font(.system(size: 11, weight: .semibold))
                         Text(copied ? "복사됨" : "복사")
-                            .font(.system(size: copyLabelSize, weight: .medium))
+                            .typeScale(.meta)
                     }
                     .foregroundStyle(copied ? Palette.accentSoft : Palette.codeText.opacity(0.7))
                     .expandTapTarget(8)

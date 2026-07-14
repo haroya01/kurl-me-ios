@@ -89,7 +89,7 @@ struct HighlightThreadSheet: View {
                             composerFocused = true
                         } label: {
                             Label("첫 답글 쓰기", systemImage: "bubble.left")
-                                .font(.system(size: 14 * unit, weight: .medium))
+                                .typeScale(.lede)
                                 .foregroundStyle(Palette.link)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 28)
@@ -276,7 +276,7 @@ struct HighlightThreadSheet: View {
             Rectangle().fill(Palette.hairline).frame(height: 1)
             if sendFailed {
                 Text("전송하지 못했습니다 — 다시 시도해 주세요.")
-                    .font(.system(size: 12 * metaUnit))
+                    .typeScale(.footnote)
                     .foregroundStyle(Palette.danger)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, Metrics.gutter)
@@ -285,7 +285,7 @@ struct HighlightThreadSheet: View {
             HStack(alignment: .bottom, spacing: 10) {
                 TextField("답글 남기기…", text: $text, axis: .vertical)
                     .focused($composerFocused)
-                    .font(.system(size: 15 * unit))
+                    .typeScale(.body)
                     .lineLimit(1...5)
                     .padding(.horizontal, 14)
                     .padding(.vertical, 9)
@@ -443,7 +443,7 @@ struct HighlightNoteComposerSheet: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 TextField("이 부분에 대한 메모를 남겨보세요", text: $note, axis: .vertical)
-                    .font(.system(size: 16 * unit))
+                    .typeScale(.body)
                     .lineLimit(3...7)
                     .focused($focused)
                     .padding(14)

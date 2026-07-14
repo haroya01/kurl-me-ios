@@ -180,7 +180,7 @@ struct TwoFactorSheet: View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 0) {
                 Text(useRecovery ? "복구 코드를 입력하세요" : "인증 앱의 6자리 코드를 입력하세요")
-                    .font(.system(size: 15 * unit))
+                    .typeScale(.body)
                     .foregroundStyle(Palette.body)
                     .padding(.top, 8)
 

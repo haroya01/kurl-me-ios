@@ -87,7 +87,7 @@ struct EditSeriesSheet: View {
                 Group {
                     if saving { ProgressView().tint(.white) } else { Text("저장") }
                 }
-                .font(.system(size: 16 * unit, weight: .semibold))
+                .typeScale(.titleSmall)
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)

@@ -14,7 +14,6 @@ struct SeriesAnalyticsDetailView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .title2) private var heroSize: CGFloat = 34
-    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
     @State private var phase: LoadState<SeriesAnalyticsDetail> = .idle
     @State private var days = 30
@@ -85,7 +84,7 @@ struct SeriesAnalyticsDetailView: View {
                     .foregroundStyle(Palette.ink)
                     .contentTransition(.numericText())
                 Text("구독자")
-                    .font(.system(size: 15 * unit))
+                    .typeScale(.body)
                     .foregroundStyle(Palette.secondary)
             }
             // 헤드라인 보조지표 — 아이콘 군집 대신 담백한 한 줄(§10 절제, 개요·목록과 한 결).
@@ -122,7 +121,7 @@ struct SeriesAnalyticsDetailView: View {
                         .font(.system(size: 11 * metaUnit, weight: .semibold))
                         .foregroundStyle(Palette.accentMarker)
                     Text(member.title)
-                        .font(.system(size: 15 * unit, weight: .medium))
+                        .typeScale(.titleSmall)
                         .foregroundStyle(Palette.ink)
                         .lineLimit(1)
                 }
@@ -154,7 +153,7 @@ struct SeriesAnalyticsDetailView: View {
                                 .font(.system(size: 10 * metaUnit))
                             Text("다음 화 \(pct)%")
                         }
-                        .font(.system(size: 12 * metaUnit, weight: .medium))
+                        .typeScale(.meta)
                         .foregroundStyle(Palette.secondary)
                         .accessibilityLabel(Text("다음 화로 \(pct)퍼센트 이어 읽음"))
                     }
