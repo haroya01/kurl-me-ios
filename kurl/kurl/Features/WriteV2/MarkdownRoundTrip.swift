@@ -134,6 +134,9 @@ nonisolated enum MarkdownBlockParser {
     /// 마크다운 문자열을 블록 배열로. 라인 스캐너 — 방언과 1:1(정규식 없이 줄머리 판정).
     /// Phase 1 밖 구조(리스트/표/이미지/구분선)는 문단 블록으로 보존(원문 그대로) → 왕복 무손실.
     static func parse(_ markdown: String) -> [EditorBlock] {
+        // 윈도우/외부 앱에서 붙여넣은 CRLF 를 정규화 — 안 하면 \r 이 줄 끝에 남아 줄머리 판정과
+        // 직렬화 본문에 조용히 섞인다(타이핑 입력은 \n 뿐이라 영향 없음).
+        let markdown = markdown.replacingOccurrences(of: "\r\n", with: "\n")
         let lines = markdown.components(separatedBy: "\n")
         var blocks: [EditorBlock] = []
         var i = 0
