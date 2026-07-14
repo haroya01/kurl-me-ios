@@ -99,6 +99,12 @@ struct ComposeView: View {
     @State private var showSaveStatus = false
     @State private var autosaveTask: Task<Void, Never>?
     @State private var createTask: Task<Int64, Error>?
+    /// 기기 로컬 초안 금고 스태시 디바운스 — 서버 자동저장과 별개로, 못 실린 변경을 기기에 남긴다.
+    @State private var recoveryStashTask: Task<Void, Never>?
+    /// 열었을 때 금고에서 발견한 "서버에 못 실린 변경" — 복구/버리기 제안의 재료.
+    @State private var pendingRecovery: ComposeRecoveryStore.Draft?
+    /// 세션이 풀렸을 때 컴포즈를 떠나지 않고 다시 로그인하는 시트.
+    @State private var showLoginSheet = false
 
     // 마지막으로 서버에 반영된 메타 — 바뀐 필드만 PATCH 해 다른 기기(웹)의 동시 편집을 덮지 않는다.
     @State private var savedTitle = ""
@@ -273,6 +279,11 @@ struct ComposeView: View {
             // 저장을 뷰 수명과 분리된 루트 싱글턴(DraftFlusher)에 넘겨, 사라진 뒤에도
             // 끝까지 밀고 실패 시 루트 토스트로 반드시 알린다(초안 미생성=전량 유실 방지).
             autosaveTask?.cancel()
+            // 디바운스를 기다리지 않고 즉시 금고에 눕힌다 — 이탈 플러시가 실패해도 기기에 남는다.
+            recoveryStashTask?.cancel()
+            if signature != lastSavedSignature {
+                ComposeRecoveryStore.stash(postId: postId, title: title, markdown: markdown)
+            }
             if canSave, signature != lastSavedSignature {
                 DraftFlusher.shared.flush(
                     .init(
@@ -313,6 +324,33 @@ struct ComposeView: View {
                 // 저장하는 창을 닫는다. 메타는 syncAfterRestore 가 마저 맞춘다.
                 lastSavedSignature = signature
                 Task { await syncAfterRestore() }
+            }
+        }
+        // 지난 세션이 저장 실패/강제 종료로 끝났다 — 기기 금고의 변경을 이어 쓸지 묻는다.
+        .alert(
+            "저장되지 못한 본문이 있어요",
+            isPresented: .init(get: { pendingRecovery != nil }, set: { if !$0 { pendingRecovery = nil } })
+        ) {
+            Button("이어서 쓰기") {
+                guard let draft = pendingRecovery else { return }
+                title = draft.title
+                markdown = draft.markdown
+                rebuildEditorDocumentIfNeeded()
+                scheduleAutosave()
+                pendingRecovery = nil
+            }
+            Button("버리기", role: .destructive) {
+                ComposeRecoveryStore.clear(postId: postId)
+                pendingRecovery = nil
+            }
+        } message: {
+            Text("지난 편집이 서버에 저장되지 못한 채 끝났어요. 기기에 남아 있는 내용을 이어서 쓸까요?")
+        }
+        // 세션이 풀렸을 때 — 컴포즈를 떠나지 않고 여기서 다시 로그인해 이어서 저장한다.
+        .sheet(isPresented: $showLoginSheet) {
+            LoginSheet(message: "로그인이 풀렸어요 — 다시 로그인하면 쓰던 글이 이어서 저장돼요.") {
+                autosaveNeedsLogin = false
+                scheduleAutosave(after: .zero)
             }
         }
         // 저장·발행·예약·미리보기 모두 이 알럿을 쓰므로 제목은 중립으로 — 본문에 서버가 준 사유를 보인다.
@@ -489,12 +527,23 @@ struct ComposeView: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel(Text("저장 상태 보기"))
                 .popover(isPresented: $showSaveStatus) {
-                    Text(saveStatusText(dirty: dirty))
-                        .typeScale(.meta)
-                        .foregroundStyle(Palette.secondary)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 11)
-                        .presentationCompactAdaptation(.popover)
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(saveStatusText(dirty: dirty))
+                            .typeScale(.meta)
+                            .foregroundStyle(Palette.secondary)
+                        // 세션이 풀린 실패는 재시도가 아니라 로그인이 처방 — 그 자리에서 잇는다.
+                        if autosaveNeedsLogin {
+                            Button("다시 로그인") {
+                                showSaveStatus = false
+                                showLoginSheet = true
+                            }
+                            .font(.system(size: 13 * metaUnit, weight: .semibold))
+                            .foregroundStyle(Palette.link)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 11)
+                    .presentationCompactAdaptation(.popover)
                 }
             }
         }
@@ -748,7 +797,7 @@ struct ComposeView: View {
                         // 예약은 모먼트가 사라진 뒤에도 발행 예정 시각을 토스트에 남긴다.
                         let toast =
                             celebrationIsSchedule
-                            ? (celebrationSubtitle.map { "예약됨 · \($0)" }
+                            ? (celebrationSubtitle.map { String(localized: "예약됨 · \($0)") }
                                 ?? String(localized: "예약되었습니다"))
                             : String(localized: "발행되었습니다")
                         ToastCenter.shared.show(toast)
@@ -1158,8 +1207,20 @@ struct ComposeView: View {
             // 새 글은 읽을 본문이 없다 — 곧장 편집·저장 가능.
             bodyLoaded = true
             rebuildEditorDocumentIfNeeded()
+            offerRecoveryIfAny()
         }
         seriesList = (try? await series) ?? []
+    }
+
+    /// 금고에 "서버에 못 실린 변경"이 남아 있으면 복구를 제안한다 — 지난 세션이 저장 실패/강제
+    /// 종료로 끝났다는 뜻. 서버 본문과 같으면(이미 실렸으면) 조용히 슬롯만 비운다.
+    private func offerRecoveryIfAny() {
+        guard let draft = ComposeRecoveryStore.peek(postId: postId) else { return }
+        if draft.markdown == markdown, draft.title == title {
+            ComposeRecoveryStore.clear(postId: postId)
+            return
+        }
+        pendingRecovery = draft
     }
 
     /// 리비전 복원 후 — 서버가 본문(과 메타)을 바꿨으므로 화면 상태 전체를 다시 읽어 맞춘다.
@@ -1208,6 +1269,7 @@ struct ComposeView: View {
                 lastSavedSignature = signature
                 // 서버 본문이 확정된 순간에만 WriteV2 문서를 짓는다 — 로드 중 친 입력으로 덮지 않는다.
                 rebuildEditorDocumentIfNeeded()
+                offerRecoveryIfAny()
             }
             bodyLoaded = true
         } catch {
@@ -1221,6 +1283,15 @@ struct ComposeView: View {
     /// 기본 2초 = 입력 디바운스. 실패 재시도는 백오프한 간격을 넘겨 온다.
     private func scheduleAutosave(after delay: Duration = .seconds(2)) {
         autosaveTask?.cancel()
+        // 서버 자동저장과 별개로 기기 금고에도 눕힌다(0.8초 디바운스) — 서버가 실패하든 앱이
+        // 죽든, 마지막 몇 초의 변경까지 기기에 남는다. 제목만 있어도 스태시(canSave 와 무관).
+        recoveryStashTask?.cancel()
+        let stash = (postId: postId, title: title, markdown: markdown)
+        recoveryStashTask = Task {
+            try? await Task.sleep(for: .milliseconds(800))
+            guard !Task.isCancelled else { return }
+            ComposeRecoveryStore.stash(postId: stash.postId, title: stash.title, markdown: stash.markdown)
+        }
         guard canSave, signature != lastSavedSignature else { return }
         autosaveTask = Task {
             try? await Task.sleep(for: delay)
@@ -1283,6 +1354,9 @@ struct ComposeView: View {
             autosaveFailed = false
             autosaveNeedsLogin = false
             autosaveRetryStreak = 0
+            // 서버에 실렸다 — 금고 슬롯을 비운다(스냅샷 이후 입력은 다음 스태시가 다시 눕힌다).
+            recoveryStashTask?.cancel()
+            ComposeRecoveryStore.clear(postId: postId)
             onSaved()
             // 스냅샷 이후 입력이 있었으면 디바운스를 다시 무장한다.
             if signature != snapshot { scheduleAutosave() }
@@ -1341,6 +1415,8 @@ struct ComposeView: View {
         defer { createTask = nil }
         let id = try await task.value
         postId = id
+        // 새 글이 초안 id 를 얻었다 — 금고의 new 슬롯을 이 id 로 승격(중간에 죽어도 이어지게).
+        ComposeRecoveryStore.promote(to: id)
         return id
     }
 
