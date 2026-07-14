@@ -2150,6 +2150,34 @@
         }
       }
     },
+    "— 몽테뉴": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— Montaigne"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— मोंटेन"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— モンテーニュ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— Montaigne"
+          }
+        }
+      }
+    },
     "— 윤동주, 「서시」": {
       "localizations": {
         "en": {
@@ -4036,34 +4064,6 @@
         }
       }
     },
-    "글은 읽는 사람의 밑줄에서 두 번째 삶을 산다.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A sentence lives a second life in a reader's underline."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "कोई वाक्य पाठक की रेखांकन में दूसरा जीवन जीता है।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "文章は、読む人の下線の中で二度目の生を生きる。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Câu văn sống cuộc đời thứ hai trong nét gạch chân của người đọc."
-          }
-        }
-      }
-    },
     "글을 삭제하지 못했습니다": {
       "localizations": {
         "en": {
@@ -4650,6 +4650,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Loại đã tắt sẽ không xuất hiện ở chuông và thông báo đẩy"
+          }
+        }
+      }
+    },
+    "나는 나를 더 잘 말하기 위해 남의 문장을 옮긴다.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I quote others only to better express myself."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मैं दूसरों के शब्द केवल इसलिए उद्धृत करता हूँ ताकि स्वयं को बेहतर कह सकूँ।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "私は自分をよりよく語るためにのみ、他人の言葉を引く。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tôi dẫn lời người khác chỉ để nói rõ hơn chính mình."
           }
         }
       }

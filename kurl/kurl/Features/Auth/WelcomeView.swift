@@ -37,7 +37,8 @@ struct WelcomeView: View {
     /// 동작이 각 언어권에서 사랑받는 퍼블릭 도메인 문장 위에서 일어나, 첫인상이 곧
     /// 그 문화의 문장을 잇는 경험이 된다. 인용은 번역이 아니라 로케일별 별도 선정
     /// (ko 윤동주 · ja 마쿠라노소시 · en 디킨슨 · vi 까자오 · hi 라힘).
-    private static let intro = String(localized: "글은 읽는 사람의 밑줄에서 두 번째 삶을 산다.")
+    private static let intro = String(localized: "나는 나를 더 잘 말하기 위해 남의 문장을 옮긴다.")
+    private static let introAttribution = String(localized: "— 몽테뉴")
     private static let quote = String(localized: "별을 노래하는 마음으로\n모든 죽어가는 것을 사랑해야지")
     private static let attribution = String(localized: "— 윤동주, 「서시」")
 
@@ -181,7 +182,7 @@ struct WelcomeView: View {
     /// 출처는 형광과 같은 박자로 떠올라 "누구의 문장인지"가 긋는 순간에 밝혀진다.
     private var proseWall: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(Self.styled(Self.intro))
+            Text(Self.introLine)
             ZStack(alignment: .topLeading) {
                 Text(Self.styled(Self.quote))
                 Text(Self.styled(Self.quote, highlighted: true))
@@ -200,6 +201,17 @@ struct WelcomeView: View {
         .blur(radius: rowsVisible ? 0 : 3)
         // 벽은 장식 — 보이스오버는 태그라인부터 읽는다.
         .accessibilityHidden(true)
+    }
+
+    /// 서두 인용 한 줄 — 출처는 문장 꼬리에 소자로 흘려 붙인다(아래 형광 인용의 출처
+    /// 블록과 위계가 겹치지 않게, 이 줄의 출처는 블록이 아니라 여운).
+    private static var introLine: AttributedString {
+        var out = styled(intro)
+        var by = AttributedString(" " + introAttribution)
+        by.font = .system(size: 15, weight: .medium)
+        by.foregroundColor = Palette.secondary
+        out += by
+        return out
     }
 
     /// highlighted=false 는 잉크 본문. true 는 형광 오버레이(같은 자리에서 형광이 켜진다 —
