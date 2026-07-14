@@ -97,6 +97,15 @@ enum WriteAPI {
         )
     }
 
+    // MARK: 프로필 고정 (핀)
+
+    /// 프로필 고정 세트 전체 교체 — 리스트 순서 = 핀 순서(0-base). 발행 글만 서버가 받는다(웹 계약).
+    /// 해제 포함 모든 변경이 "현재 세트를 읽어 ± 후 전체 PUT" — 낱개 토글 엔드포인트는 없다.
+    static func setPins(postIds: [Int64]) async throws {
+        struct Body: Encodable { let postIds: [Int64] }
+        try await client.putVoid("/posts/pins", body: Body(postIds: postIds), authenticated: true)
+    }
+
     // MARK: 미리보기 / 예약 / 리비전
 
     /// 공유 토큰을 발급해 웹과 같은 미리보기 URL 을 만든다 — 발행 전 글을 브라우저로 확인.

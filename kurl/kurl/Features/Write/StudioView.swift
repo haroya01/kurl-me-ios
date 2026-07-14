@@ -31,6 +31,8 @@ struct StudioView: View {
     @State private var editing: MyPost?
     /// 방금 발행한 글 — 셀레브레이션 "글 보기" 가 에디터를 닫고 여기로 이어 보낸다(라이브 상세).
     @State private var justPublished: PublishedRef?
+    /// 내 프로필의 현재 핀 세트(핀 순서) — 고정/해제 메뉴 라벨과 토글의 근거.
+    @State private var pinnedIds: [Int64] = []
     /// 파괴적 관리(발행취소·삭제) 확인 대상 — 웹 write 관리와 같은 계약. nil 이면 확인창 닫힘.
     @State private var unpublishTarget: MyPost?
     @State private var deleteTarget: MyPost?
@@ -412,6 +414,15 @@ struct StudioView: View {
                 } label: {
                     Label("편집", systemImage: "square.and.pencil")
                 }
+                // 프로필 고정 — 발행 글만(서버 계약: 핀은 PUBLISHED 만 받는다). 웹 프로필 관리의
+                // 고정 토글을 모바일에도. 리스트 순서 = 핀 순서, 새 핀은 맨 뒤에 붙는다.
+                Button {
+                    Task { await togglePin(post) }
+                } label: {
+                    Label(
+                        pinnedIds.contains(post.id) ? "프로필 고정 해제" : "프로필에 고정",
+                        systemImage: pinnedIds.contains(post.id) ? "pin.slash" : "pin")
+                }
                 Button(role: .destructive) {
                     unpublishTarget = post
                 } label: {
@@ -501,6 +512,37 @@ struct StudioView: View {
             // 보이던 목록을 에러 화면으로 대체하지 않는다 — 비었을 때만 실패 표시.
             if case .loaded(let posts) = phase, !posts.isEmpty { return }
             phase = .failed(error.localizedDescription)
+        }
+        await loadPins()
+    }
+
+    /// 내 프로필의 현재 핀 세트(핀 순서 그대로) — 공개 프로필 목록이 pinned 우선 정렬의 진실원이다
+    /// (내 글 목록 GET /posts 는 pinned 를 안 싣는다). 고정 메뉴 라벨(고정/해제)의 근거.
+    private func loadPins() async {
+        guard let username = auth.me?.username, !username.isEmpty else { return }
+        guard let posts = try? await BlogAPI.authorPosts(username: username).posts else { return }
+        pinnedIds = posts.filter(\.pinned).map(\.id)
+    }
+
+    /// 고정 토글 — 서버가 아는 현재 세트를 다시 읽어 ± 후 전체 PUT(다른 기기에서 바꾼 핀을 안 덮게).
+    private func togglePin(_ post: MyPost) async {
+        guard let username = auth.me?.username, !username.isEmpty else { return }
+        do {
+            let current = try await BlogAPI.authorPosts(username: username).posts
+                .filter(\.pinned).map(\.id)
+            var next = current
+            if let i = next.firstIndex(of: post.id) {
+                next.remove(at: i)
+            } else {
+                next.append(post.id)
+            }
+            try await WriteAPI.setPins(postIds: next)
+            pinnedIds = next
+            ToastCenter.shared.show(next.contains(post.id)
+                ? String(localized: "프로필 맨 위에 고정했어요")
+                : String(localized: "고정을 해제했어요"))
+        } catch {
+            ToastCenter.shared.show(String(localized: "고정을 바꾸지 못했어요 — \(error.localizedDescription)"))
         }
     }
 
