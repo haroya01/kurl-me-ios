@@ -17,6 +17,7 @@
 		DEF2000000000000000000B1 /* WriteV2FocusEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEF2000000000000000000B2 /* WriteV2FocusEngineTests.swift */; };
 		DEF2000000000000000000C1 /* InlineImageMarkdownTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEF2000000000000000000C2 /* InlineImageMarkdownTests.swift */; };
 		DEF2000000000000000000D1 /* WriteV2AdversarialTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEF2000000000000000000D2 /* WriteV2AdversarialTests.swift */; };
+		DEF2000000000000000000E1 /* WriteV2StressTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEF2000000000000000000E2 /* WriteV2StressTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -70,6 +71,7 @@
 		DEF2000000000000000000B2 /* WriteV2FocusEngineTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WriteV2FocusEngineTests.swift; sourceTree = "<group>"; };
 		DEF2000000000000000000C2 /* InlineImageMarkdownTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = InlineImageMarkdownTests.swift; sourceTree = "<group>"; };
 		DEF2000000000000000000D2 /* WriteV2AdversarialTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WriteV2AdversarialTests.swift; sourceTree = "<group>"; };
+		DEF2000000000000000000E2 /* WriteV2StressTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WriteV2StressTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -186,6 +188,7 @@
 				DEF2000000000000000000B2 /* WriteV2FocusEngineTests.swift */,
 				DEF2000000000000000000C2 /* InlineImageMarkdownTests.swift */,
 				DEF2000000000000000000D2 /* WriteV2AdversarialTests.swift */,
+				DEF2000000000000000000E2 /* WriteV2StressTests.swift */,
 			);
 			path = kurlTests;
 			sourceTree = "<group>";
@@ -371,6 +374,7 @@
 				DEF2000000000000000000B1 /* WriteV2FocusEngineTests.swift in Sources */,
 				DEF2000000000000000000C1 /* InlineImageMarkdownTests.swift in Sources */,
 				DEF2000000000000000000D1 /* WriteV2AdversarialTests.swift in Sources */,
+				DEF2000000000000000000E1 /* WriteV2StressTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
