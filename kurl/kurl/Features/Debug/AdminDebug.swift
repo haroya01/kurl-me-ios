@@ -80,6 +80,29 @@ struct AdminDebugView: View {
                     row("모델", UIDevice.current.model)
                     row("OS", "\(UIDevice.current.systemName) \(UIDevice.current.systemVersion)")
                 }
+                // MetricKit 진단(크래시·행) — 최근 페이로드가 기기에 남는다(CrashObservatory).
+                // 목록이 비어 있는 것이 곧 "관측되는 무사고"다.
+                Section("크래시 진단") {
+                    let reports = CrashObservatory.recentReports()
+                    if reports.isEmpty {
+                        row("수집된 진단", "없음 (무사고)")
+                    } else {
+                        ForEach(reports.prefix(10), id: \.self) { url in
+                            ShareLink(item: url) {
+                                HStack {
+                                    Text(url.lastPathComponent)
+                                        .font(.system(size: rowSize, design: .monospaced))
+                                        .foregroundStyle(Palette.danger)
+                                        .lineLimit(1)
+                                    Spacer()
+                                    Image(systemName: "square.and.arrow.up")
+                                        .font(.system(size: rowSize))
+                                        .foregroundStyle(Palette.secondary)
+                                }
+                            }
+                        }
+                    }
+                }
             }
             .navigationTitle("관리자 진단")
             .navigationBarTitleDisplayMode(.inline)

@@ -102,9 +102,9 @@ struct BlockTableView: View {
 
     private func alignLabel(_ table: EditorTable, _ c: Int) -> String {
         switch c < table.alignments.count ? table.alignments[c] : .leading {
-        case .leading: return "왼쪽"
-        case .center: return "가운데"
-        case .trailing: return "오른쪽"
+        case .leading: return String(localized: "왼쪽")
+        case .center: return String(localized: "가운데")
+        case .trailing: return String(localized: "오른쪽")
         }
     }
 }

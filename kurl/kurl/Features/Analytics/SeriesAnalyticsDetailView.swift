@@ -90,9 +90,9 @@ struct SeriesAnalyticsDetailView: View {
             }
             // 헤드라인 보조지표 — 아이콘 군집 대신 담백한 한 줄(§10 절제, 개요·목록과 한 결).
             MetaLine([
-                "\(detail.series.postCount)편",
-                "조회 \(detail.series.totalViews.formatted())",
-                "좋아요 \(detail.series.totalLikes.formatted())",
+                String(localized: "\(detail.series.postCount)편"),
+                String(localized: "조회 \(detail.series.totalViews.formatted())"),
+                String(localized: "좋아요 \(detail.series.totalLikes.formatted())"),
             ])
         }
 

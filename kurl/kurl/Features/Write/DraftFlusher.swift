@@ -48,6 +48,9 @@ final class DraftFlusher {
             defer { inFlight = false }
             do {
                 try await Self.perform(payload)
+                // 서버에 실렸다 — 기기 금고 슬롯을 비운다(new 슬롯 포함: 플러시가 초안을 만든 경우).
+                ComposeRecoveryStore.clear(postId: payload.postId)
+                if payload.postId == nil { ComposeRecoveryStore.clear(postId: nil) }
                 // 저장이 끝났음을 알려 스튜디오가 목록을 다시 읽게 한다(뷰 밖 생성분 반영).
                 completedTick &+= 1
             } catch {

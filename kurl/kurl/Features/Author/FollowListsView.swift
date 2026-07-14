@@ -186,12 +186,12 @@ struct FollowCountsLink: View {
     var body: some View {
         HStack(spacing: 8) {
             NavigationLink(value: Route.followers(username: username)) {
-                countLabel("팔로워", followers)
+                countLabel(String(localized: "팔로워"), followers)
             }
             .buttonStyle(.plain)
             Text("·").foregroundStyle(Palette.faint)
             NavigationLink(value: Route.following(username: username)) {
-                countLabel("팔로잉", followingCount)
+                countLabel(String(localized: "팔로잉"), followingCount)
             }
             .buttonStyle(.plain)
             if failed, !hidden {

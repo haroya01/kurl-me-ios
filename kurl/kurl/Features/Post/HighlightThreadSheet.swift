@@ -16,6 +16,8 @@ struct HighlightThreadSheet: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
+    /// 답글 작성기 포커스 — 빈 스레드의 '첫 답글 쓰기' 어포던스가 이 포커스를 세운다.
+    @FocusState private var composerFocused: Bool
     @State private var replies: [HighlightReplyView] = []
     @State private var text = ""
     @State private var busy = false
@@ -82,11 +84,18 @@ struct HighlightThreadSheet: View {
                         .padding(.top, 22)
                         .padding(.bottom, 8)
                     } else if !hasOpener {
-                        Text("첫 답글을 남겨보세요.")
-                            .font(.system(size: 14 * unit))
-                            .foregroundStyle(Palette.secondary)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 28)
+                        // 막다른 길 금지 — 빈 스레드는 안내문이 아니라 어포던스다: 탭하면 작성기가 열린다.
+                        Button {
+                            composerFocused = true
+                        } label: {
+                            Label("첫 답글 쓰기", systemImage: "bubble.left")
+                                .font(.system(size: 14 * unit, weight: .medium))
+                                .foregroundStyle(Palette.link)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 28)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
                     }
 
                     // ── 이 문장이 속한 길 — 한 문장에서 그것이 엮인 길/컬렉션으로(A 척추 발견 고리).
@@ -275,6 +284,7 @@ struct HighlightThreadSheet: View {
             }
             HStack(alignment: .bottom, spacing: 10) {
                 TextField("답글 남기기…", text: $text, axis: .vertical)
+                    .focused($composerFocused)
                     .font(.system(size: 15 * unit))
                     .lineLimit(1...5)
                     .padding(.horizontal, 14)
