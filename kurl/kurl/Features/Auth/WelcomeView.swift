@@ -33,16 +33,13 @@ struct WelcomeView: View {
     @State private var actionsVisible = false
     @State private var showLogin = false
 
-    /// 벽 = 본문 한 단락 — 톤온톤 산문 속에서 두 구절만 형광으로 살아난다.
-    /// "읽다가 긋는다"는 제품의 핵심 동작이 그대로 첫인상이 된다(레퍼런스 없는 우리 문법).
-    /// 구절은 세그먼트로 나눠 로컬라이즈한다(강조 위치가 언어마다 자연스럽게 이동).
-    private static let prose: [(String, Bool)] = [
-        (String(localized: "글은 읽는 사람의 밑줄에서 두 번째 삶을 산다. 좋은 글은 "), false),
-        (String(localized: "두 번째 읽을 때 다른 문장에 밑줄이 쳐진다."), true),
-        (String(localized: " 흩어진 기록은 잊히지만, "), false),
-        (String(localized: "기록은 연결될 때 길이 된다."), true),
-        (String(localized: " 누군가의 문장을 내 컬렉션에 잇는 순간, 읽기는 더 이상 혼자의 일이 아니다."), false),
-    ]
+    /// 벽 = 서사 한 줄 + 인용 구절 — 형광은 인용에만 그어진다. "읽다가 긋는다"는 핵심
+    /// 동작이 각 언어권에서 사랑받는 퍼블릭 도메인 문장 위에서 일어나, 첫인상이 곧
+    /// 그 문화의 문장을 잇는 경험이 된다. 인용은 번역이 아니라 로케일별 별도 선정
+    /// (ko 윤동주 · ja 마쿠라노소시 · en 디킨슨 · vi 까자오 · hi 라힘).
+    private static let intro = String(localized: "글은 읽는 사람의 밑줄에서 두 번째 삶을 산다.")
+    private static let quote = String(localized: "별을 노래하는 마음으로\n모든 죽어가는 것을 사랑해야지")
+    private static let attribution = String(localized: "— 윤동주, 「서시」")
 
     var body: some View {
         ZStack {
@@ -179,12 +176,20 @@ struct WelcomeView: View {
 
     // MARK: 하이라이트 벽 — 본문에 형광이 그어진다
 
-    /// 본문(잉크)과 형광 오버레이(같은 문자열·같은 조판이라 글리프가 정확히 겹친다) —
+    /// 인용(잉크)과 형광 오버레이(같은 문자열·같은 조판이라 글리프가 정확히 겹친다) —
     /// 오버레이만 나중에 떠올라 "형광펜이 그어지는" 순간이 엔트런스가 된다.
+    /// 출처는 형광과 같은 박자로 떠올라 "누구의 문장인지"가 긋는 순간에 밝혀진다.
     private var proseWall: some View {
-        ZStack(alignment: .topLeading) {
-            Text(Self.attributed(highlighted: false))
-            Text(Self.attributed(highlighted: true))
+        VStack(alignment: .leading, spacing: 16) {
+            Text(Self.styled(Self.intro))
+            ZStack(alignment: .topLeading) {
+                Text(Self.styled(Self.quote))
+                Text(Self.styled(Self.quote, highlighted: true))
+                    .opacity(highlightsOn ? 1 : 0)
+            }
+            Text(Self.attribution)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(Palette.secondary)
                 .opacity(highlightsOn ? 1 : 0)
         }
         .lineSpacing(10)
@@ -197,27 +202,19 @@ struct WelcomeView: View {
         .accessibilityHidden(true)
     }
 
-    /// highlighted=false 는 전체 잉크 본문. true 는 형광 구절만 보이는 오버레이(나머지는 투명) —
-    /// 두 장을 겹쳐 오버레이 불투명도만 올리면 같은 자리에서 형광이 켜진다(인앱 하이라이트 결).
-    private static func attributed(highlighted: Bool) -> AttributedString {
-        var out = AttributedString()
-        for (text, isHighlight) in prose {
-            var run = AttributedString(text)
-            run.font = .system(size: 21, weight: .regular)
-            run.tracking = -0.1
-            if !highlighted {
-                run.foregroundColor = Palette.ink
-            } else if isHighlight {
-                run.foregroundColor = Palette.ink
-                run.backgroundColor = Palette.accent.opacity(0.19)
-                run.underlineStyle = .single
-                run.underlineColor = UIColor(Palette.accent)
-            } else {
-                run.foregroundColor = .clear
-            }
-            out += run
+    /// highlighted=false 는 잉크 본문. true 는 형광 오버레이(같은 자리에서 형광이 켜진다 —
+    /// 인앱 하이라이트 결).
+    private static func styled(_ text: String, highlighted: Bool = false) -> AttributedString {
+        var run = AttributedString(text)
+        run.font = .system(size: 21, weight: .regular)
+        run.tracking = -0.1
+        run.foregroundColor = Palette.ink
+        if highlighted {
+            run.backgroundColor = Palette.accent.opacity(0.19)
+            run.underlineStyle = .single
+            run.underlineColor = UIColor(Palette.accent)
         }
-        return out
+        return run
     }
 
     // MARK: 엔트런스 — 벽이 줄줄이 서고, 태그라인·버튼이 한 박자씩 따라온다

@@ -57,62 +57,6 @@
         }
       }
     },
-    " 누군가의 문장을 내 컬렉션에 잇는 순간, 읽기는 더 이상 혼자의 일이 아니다.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " The moment you weave someone’s sentence into your collection, reading is no longer a solitary act."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " जिस पल आप किसी का वाक्य अपने संग्रह से जोड़ते हैं, पढ़ना अकेले का काम नहीं रह जाता."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " 誰かの文章を自分のコレクションにつないだ瞬間、読むことはもう一人の営みではない。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " Khoảnh khắc bạn nối câu chữ của ai đó vào bộ sưu tập của mình, việc đọc không còn là chuyện một mình."
-          }
-        }
-      }
-    },
-    " 흩어진 기록은 잊히지만, ": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " Scattered notes fade, but "
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " बिखरे नोट्स भुला दिए जाते हैं, पर "
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " 散らばった記録は忘れられる。しかし"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " Ghi chép rời rạc sẽ phai đi, nhưng "
-          }
-        }
-      }
-    },
     "#%@": {
       "localizations": {
         "en": {
@@ -2206,6 +2150,34 @@
         }
       }
     },
+    "— 윤동주, 「서시」": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— Emily Dickinson"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— रहीम"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— 清少納言『枕草子』"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "— Ca dao Việt Nam"
+          }
+        }
+      }
+    },
     "‘#%@’ 구독을 해제했어요": {
       "localizations": {
         "en": {
@@ -4064,30 +4036,30 @@
         }
       }
     },
-    "글은 읽는 사람의 밑줄에서 두 번째 삶을 산다. 좋은 글은 ": {
+    "글은 읽는 사람의 밑줄에서 두 번째 삶을 산다.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "A piece of writing lives a second life in its reader’s underlines. In a good one, "
+            "value": "A sentence lives a second life in a reader's underline."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "लेख अपने पाठक के रेखांकनों में दूसरा जीवन जीता है. अच्छे लेख में, "
+            "value": "कोई वाक्य पाठक की रेखांकन में दूसरा जीवन जीता है।"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "文章は、読む人の下線の中で二度目の生を生きる。良い文章は、"
+            "value": "文章は、読む人の下線の中で二度目の生を生きる。"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Một bài viết sống cuộc đời thứ hai trong những dòng gạch chân của người đọc. Với bài hay, "
+            "value": "Câu văn sống cuộc đời thứ hai trong nét gạch chân của người đọc."
           }
         }
       }
@@ -4369,34 +4341,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Thiết bị"
-          }
-        }
-      }
-    },
-    "기록은 연결될 때 길이 된다.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "notes become a path when they connect."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "जुड़ने पर नोट्स राह बन जाते हैं."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "記録はつながるとき、道になる。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ghi chép trở thành lối đi khi được kết nối."
           }
         }
       }
@@ -7153,34 +7097,6 @@
         }
       }
     },
-    "두 번째 읽을 때 다른 문장에 밑줄이 쳐진다.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "a different sentence gets underlined on the second read."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "दूसरी बार पढ़ने पर किसी और वाक्य पर रेखा खिंचती है."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "二度目に読むと別の文に下線が引かれる。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "lần đọc thứ hai sẽ gạch chân một câu khác."
-          }
-        }
-      }
-    },
     "둘러보기": {
       "extractionState": "stale",
       "localizations": {
@@ -9485,6 +9401,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đổi"
+          }
+        }
+      }
+    },
+    "별을 노래하는 마음으로\n모든 죽어가는 것을 사랑해야지": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "There is no Frigate like a Book\nTo take us Lands away"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रहिमन धागा प्रेम का,\nमत तोड़ो चटकाय।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "春はあけぼの。\nやうやう白くなりゆく山際、すこしあかりて。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lời nói chẳng mất tiền mua,\nLựa lời mà nói cho vừa lòng nhau."
           }
         }
       }
