@@ -51,3 +51,44 @@ final class LikeStoreTests: XCTestCase {
         XCTAssertEqual(LikeStore.shared.displayCount(username: "a", slug: "s", server: 5), 5)
     }
 }
+
+/// 위젯 딥링크(kurlwidget://…) 라우팅 계약 — 위젯 탭이 분석 분면·서재 탭·저장 글 시트로
+/// 정확히 떨어지는지. TabRouter 는 프로세스 공유 싱글턴이라 각 테스트가 상태를 되돌린다.
+@MainActor
+final class WidgetDeepLinkTests: XCTestCase {
+
+    override func tearDown() {
+        TabRouter.shared.pendingStudioSection = nil
+        TabRouter.shared.pendingPost = nil
+    }
+
+    func testAnalyticsLinkSwitchesToWriteTabAndQueuesSection() {
+        WidgetDeepLink.open(URL(string: "kurlwidget://analytics")!)
+        XCTAssertEqual(TabRouter.shared.selection, 2, "분석은 글쓰기 탭의 분면")
+        XCTAssertEqual(TabRouter.shared.pendingStudioSection, StudioSection.analytics.rawValue)
+    }
+
+    func testLibraryLinkSwitchesToAccountTab() {
+        WidgetDeepLink.open(URL(string: "kurlwidget://library")!)
+        XCTAssertEqual(TabRouter.shared.selection, 4, "서재는 계정 탭에 산다")
+    }
+
+    func testPostLinkQueuesSheetRef() {
+        WidgetDeepLink.open(URL(string: "kurlwidget://post/hana/slow-reading")!)
+        XCTAssertEqual(
+            TabRouter.shared.pendingPost,
+            WidgetPostRef(username: "hana", slug: "slow-reading"))
+    }
+
+    func testMalformedPostLinkIsIgnored() {
+        WidgetDeepLink.open(URL(string: "kurlwidget://post/only-one-part")!)
+        XCTAssertNil(TabRouter.shared.pendingPost, "재료가 모자라면 조용히 무시 — 404 시트를 띄우지 않는다")
+    }
+
+    func testForeignSchemeIsIgnored() {
+        let before = TabRouter.shared.selection
+        WidgetDeepLink.open(URL(string: "https://blog.kurl.me/@hana/slow-reading")!)
+        XCTAssertEqual(TabRouter.shared.selection, before)
+        XCTAssertNil(TabRouter.shared.pendingPost)
+    }
+}

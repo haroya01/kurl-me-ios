@@ -50,20 +50,24 @@ struct AnalyticsWidgetView: View {
     let entry: AnalyticsEntry
 
     var body: some View {
-        if let snapshot = entry.snapshot {
-            switch family {
-            case .systemMedium: medium(snapshot)
-            case .accessoryCircular: circular(snapshot)
-            case .accessoryRectangular: rectangular(snapshot)
-            default: small(snapshot)
+        Group {
+            if let snapshot = entry.snapshot {
+                switch family {
+                case .systemMedium: medium(snapshot)
+                case .accessoryCircular: circular(snapshot)
+                case .accessoryRectangular: rectangular(snapshot)
+                default: small(snapshot)
+                }
+            } else if family == .accessoryCircular || family == .accessoryRectangular {
+                // 잠금화면엔 긴 안내문이 안 선다 — 마크 한 점으로만.
+                Text(verbatim: "kurl")
+                    .widgetType(.caption, weight: .bold)
+            } else {
+                empty
             }
-        } else if family == .accessoryCircular || family == .accessoryRectangular {
-            // 잠금화면엔 긴 안내문이 안 선다 — 마크 한 점으로만.
-            Text(verbatim: "kurl")
-                .widgetType(.caption, weight: .bold)
-        } else {
-            empty
         }
+        // 탭하면 앱의 분석 분면으로 바로 — 위젯 URL 은 스킴 등록 없이 자기 앱 onOpenURL 로 간다.
+        .widgetURL(URL(string: "kurlwidget://analytics"))
     }
 
     /// 잠금화면 원형 — 윈도우 조회수 한 숫자.
@@ -95,7 +99,7 @@ struct AnalyticsWidgetView: View {
     private var empty: some View {
         VStack(alignment: .leading, spacing: 6) {
             header
-            Text("앱에서 분석을 한 번 열면\n여기에 지표가 떠요.")
+            Text("앱을 열면 여기에\n최근 지표가 떠요.")
                 .widgetType(.footnote)
                 .foregroundStyle(WidgetPalette.secondary)
             Spacer(minLength: 0)
@@ -126,8 +130,7 @@ struct AnalyticsWidgetView: View {
             Text("최근 \(s.windowDays)일 조회")
                 .widgetType(.caption)
                 .foregroundStyle(WidgetPalette.secondary)
-            bars(s.dailyViews)
-                .frame(height: 22)
+            trend(s.dailyViews, height: 26)
                 .padding(.top, 4)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -146,8 +149,7 @@ struct AnalyticsWidgetView: View {
                 Text("최근 \(s.windowDays)일 조회")
                     .widgetType(.caption)
                     .foregroundStyle(WidgetPalette.secondary)
-                bars(s.dailyViews)
-                    .frame(height: 22)
+                trend(s.dailyViews, height: 24)
                     .padding(.top, 2)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -174,7 +176,7 @@ struct AnalyticsWidgetView: View {
         .frame(width: 118)
     }
 
-    /// 미니 막대 추이 — 데이터가 비면 그리지 않는다.
+    /// 미니 막대 추이 — 잠금화면 사각 전용(그 크기에선 막대가 곡선보다 읽힌다).
     @ViewBuilder
     private func bars(_ values: [Int64]) -> some View {
         if !values.isEmpty {
@@ -188,5 +190,59 @@ struct AnalyticsWidgetView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    /// 부드러운 조회 곡선 + 옅은 면 — 앱 분석 화면의 시그니처(곡선·그린 그라데이션)를 위젯
+    /// 크기로 압축한다. 홈 위젯(소·중형)의 추이는 전부 이 곡선으로, 막대는 잠금화면만.
+    @ViewBuilder
+    private func trend(_ values: [Int64], height: CGFloat) -> some View {
+        if values.count > 1 {
+            ZStack {
+                TrendCurve(values: values, closed: true)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                WidgetPalette.accent.opacity(0.26),
+                                WidgetPalette.accent.opacity(0.03),
+                            ],
+                            startPoint: .top, endPoint: .bottom))
+                TrendCurve(values: values, closed: false)
+                    .stroke(
+                        WidgetPalette.accent,
+                        style: StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round))
+            }
+            .frame(height: height)
+        }
+    }
+}
+
+/// 일별 조회를 중점 보간(quad)으로 잇는 곡선 — closed 면 바닥까지 닫아 면 채움용 경로가 된다.
+private struct TrendCurve: Shape {
+    let values: [Int64]
+    let closed: Bool
+
+    func path(in rect: CGRect) -> Path {
+        guard values.count > 1 else { return Path() }
+        let peak = CGFloat(max(values.max() ?? 1, 1))
+        let stepX = rect.width / CGFloat(values.count - 1)
+        let points = values.enumerated().map { index, value in
+            CGPoint(
+                x: rect.minX + CGFloat(index) * stepX,
+                y: rect.maxY - rect.height * CGFloat(value) / peak)
+        }
+        var path = Path()
+        path.move(to: points[0])
+        for index in 1..<points.count {
+            let prev = points[index - 1]
+            let mid = CGPoint(x: (prev.x + points[index].x) / 2, y: (prev.y + points[index].y) / 2)
+            path.addQuadCurve(to: mid, control: prev)
+        }
+        path.addLine(to: points[points.count - 1])
+        if closed {
+            path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+            path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+            path.closeSubpath()
+        }
+        return path
     }
 }

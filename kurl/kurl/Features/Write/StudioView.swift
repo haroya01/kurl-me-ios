@@ -115,6 +115,13 @@ struct StudioView: View {
                 default: break
                 }
             }
+            // 위젯 딥링크(분석 위젯 탭)가 남긴 목적 분면 — 탭 전환 직후에도, 이미 이 탭에
+            // 서 있던 중에도 받는다. 소비 즉시 비워 다음 진입에 재발화하지 않는다.
+            .onChange(of: TabRouter.shared.pendingStudioSection, initial: true) { _, pending in
+                guard let pending, let target = StudioSection(rawValue: pending) else { return }
+                section = target
+                TabRouter.shared.pendingStudioSection = nil
+            }
         }
     }
 

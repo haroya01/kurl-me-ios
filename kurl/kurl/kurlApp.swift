@@ -29,6 +29,9 @@ struct kurlApp: App {
                 RootView()
                     .scaleEffect(showSplash && !reduceMotion ? 1.015 : 1)
                     .animation(.timingCurve(0.16, 1, 0.3, 1, duration: 0.6), value: showSplash)
+                    // 위젯 탭(kurlwidget://…) — 분석·서재·저장 글로 바로. 웰컴이 덮여 있어도
+                    // 라우팅은 밑에서 준비되고, 로그인/둘러보기로 막이 걷히면 그 자리다.
+                    .onOpenURL { url in WidgetDeepLink.open(url) }
                 // 첫 실행 1회 웰컴 — 스플래시 뒤에 깔려 있다가 막이 걷히면 드러난다.
                 if showWelcome {
                     WelcomeView(

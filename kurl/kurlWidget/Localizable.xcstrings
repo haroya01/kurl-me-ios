@@ -253,30 +253,30 @@
         }
       }
     },
-    "앱에서 분석을 한 번 열면\n여기에 지표가 떠요.": {
+    "앱을 열면 여기에\n최근 지표가 떠요.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open Analytics in the app once\nand your stats will appear here."
+            "value": "Open the app and your\nlatest stats will appear here."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "アプリで分析を一度開くと\nここに指標が表示されます。"
+            "value": "アプリを開くと\n最新の指標がここに表示されます。"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mở Phân tích trong ứng dụng một lần\nrồi số liệu của bạn sẽ hiện ở đây."
+            "value": "Mở ứng dụng và số liệu\nmới nhất sẽ hiện ở đây."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "ऐप में विश्लेषण एक बार खोलें\nऔर आपके आँकड़े यहाँ दिखेंगे."
+            "value": "ऐप खोलें, आपके ताज़ा\nआँकड़े यहाँ दिखेंगे."
           }
         }
       }

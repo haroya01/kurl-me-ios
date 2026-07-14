@@ -16,6 +16,12 @@ final class TabRouter {
 
     var selection: Int
 
+    /// 위젯 딥링크의 대기석 — 탭을 갈아탄 뒤 스튜디오가 스스로 소비한다(StudioSection rawValue).
+    var pendingStudioSection: String?
+    /// 위젯에서 탭한 저장 글 — RootView 가 시트로 띄운다. 탭 스택에 미는 방식은 path 바인딩이
+    /// 필요한데, 그 바인딩이 tabBarMinimizeBehavior 를 죽이는 함정이 있어(§DiscoverDeckView) 시트로.
+    var pendingPost: WidgetPostRef?
+
     private init() {
         // `--tab write|discover|search|account` — simctl 은 터치를 못 넣으니 검증용 진입로.
         selection =
@@ -29,7 +35,37 @@ final class TabRouter {
     }
 }
 
+/// 위젯이 가리킨 글 하나 — 시트 identity 는 주소(작가/슬러그)로 충분하다.
+struct WidgetPostRef: Identifiable, Equatable {
+    let username: String
+    let slug: String
+    var id: String { "\(username)/\(slug)" }
+}
+
+/// 위젯 탭 URL(kurlwidget://…) 라우팅 — 위젯은 자기 앱만 열 수 있으니 스킴 등록이 필요 없고,
+/// 시스템이 이 URL 을 onOpenURL 로 그대로 건네준다. 목적지는 셋: 분석·서재·저장 글 하나.
+enum WidgetDeepLink {
+    @MainActor
+    static func open(_ url: URL) {
+        guard url.scheme == "kurlwidget" else { return }
+        switch url.host {
+        case "analytics":
+            TabRouter.shared.selection = 2
+            TabRouter.shared.pendingStudioSection = StudioSection.analytics.rawValue
+        case "library":
+            TabRouter.shared.selection = 4
+        case "post":
+            let parts = url.path.split(separator: "/").map(String.init)
+            guard parts.count == 2 else { return }
+            TabRouter.shared.pendingPost = WidgetPostRef(username: parts[0], slug: parts[1])
+        default:
+            break
+        }
+    }
+}
+
 struct RootView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var showDebug = false
     /// 하단 탭바 스크롤 숨김의 단일 손잡이 — 탭 루트들이 스크롤 방향을 여기 보고하고,
     /// 커스텀 FloatingTabBar 가 그 상태로 바를 숨겼다 되살린다(스레드식).
@@ -129,6 +165,18 @@ struct RootView: View {
     private var tabs: some View {
         @Bindable var router = TabRouter.shared
         return tabView(selection: $router.selection)
+            // 위젯이 가리킨 저장 글 — 현재 탭 위 시트로. 읽기가 끝나면 원래 자리로 그대로 돌아온다.
+            .sheet(item: $router.pendingPost) { ref in
+                NavigationStack {
+                    PostDetailView(username: ref.username, slug: ref.slug)
+                        .navigationDestination(for: Route.self) { RouteView(route: $0) }
+                }
+            }
+            // 위젯 몫의 분석 신선도 — 분석 화면을 열지 않아도 앱이 열릴 때 조용히 당겨 둔다.
+            .task { await AnalyticsSnapshot.refreshIfStale() }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { Task { await AnalyticsSnapshot.refreshIfStale() } }
+            }
     }
 
     private func tabView(selection: Binding<Int>) -> some View {
