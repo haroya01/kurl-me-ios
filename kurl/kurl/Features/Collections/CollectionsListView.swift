@@ -200,9 +200,10 @@ struct CreateCollectionSheet: View {
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .glassCapsule(prominent: true)
+                .contentShape(Capsule())
             }
             .buttonStyle(.plain)
+            .glassCapsule(prominent: true)
             .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || saving)
             .opacity(title.trimmingCharacters(in: .whitespaces).isEmpty ? 0.5 : 1)
             .padding(.bottom, 16)
@@ -290,9 +291,10 @@ struct EditCollectionSheet: View {
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .glassCapsule(prominent: true)
+                .contentShape(Capsule())
             }
             .buttonStyle(.plain)
+            .glassCapsule(prominent: true)
             .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || saving)
             .opacity(title.trimmingCharacters(in: .whitespaces).isEmpty ? 0.5 : 1)
             .padding(.bottom, 16)

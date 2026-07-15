@@ -153,12 +153,7 @@ struct RootView: View {
         } else if Config.launchValue(after: "--screen") == "connect" {
             // "연결" 시트 — 인게이지에서만 떠 simctl 로 못 띄운다, 검증 진입로. 목 글 9101(헥사고날)로
             // 열어 이미 담긴 컬렉션의 "연결됨"·해제를 함께 확인한다(목 컬렉션 101 에 씨앗 연결).
-            Color(uiColor: .systemBackground).ignoresSafeArea()
-                .sheet(isPresented: .constant(true)) {
-                    ConnectSheet(
-                        targetKind: "글", targetTitle: "헥사고날로 갈아탄 지 석 달, 무엇이 남았나",
-                        blockType: .post, refId: 9101)
-                }
+            ConnectHarness()
         } else if Config.launchValue(after: "--screen") == "businesscard" {
             // 명함(/u) 인앱 웹뷰 — 블로그 헤더에서 푸시로만 들어가 simctl 로 못 띄운다 — 검증 진입로.
             NavigationStack {
@@ -330,6 +325,21 @@ private struct FloatingTabBar: View {
         // 숨겨졌을 땐 손가락도 안 받는다(투명 바가 하단 탭을 가로채지 않게).
         .allowsHitTesting(!hidden)
         .accessibilityHidden(hidden)
+    }
+}
+
+/// `--screen connect` 검증 진입로 — 시트를 실제 바인딩으로 띄워 dismiss(연결 성공)가
+/// 관찰 가능하게 한다(.constant(true)는 닫힘이 무시돼 완료 단언이 불가능했다).
+private struct ConnectHarness: View {
+    @State private var open = true
+
+    var body: some View {
+        Color(uiColor: .systemBackground).ignoresSafeArea()
+            .sheet(isPresented: $open) {
+                ConnectSheet(
+                    targetKind: "글", targetTitle: "헥사고날로 갈아탄 지 석 달, 무엇이 남았나",
+                    blockType: .post, refId: 9101)
+            }
     }
 }
 

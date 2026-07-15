@@ -500,9 +500,10 @@ private struct EmptySeries: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 22)
                     .padding(.vertical, 12)
-                    .glassCapsule(prominent: true)
+                    .contentShape(Capsule())
             }
             .buttonStyle(.plain)
+            .glassCapsule(prominent: true)
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, Metrics.gutter)

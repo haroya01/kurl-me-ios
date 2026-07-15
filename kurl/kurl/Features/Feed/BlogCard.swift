@@ -271,19 +271,27 @@ private struct BelongingLine: View {
 
     var body: some View {
         if let lead {
-            HStack(alignment: .firstTextBaseline, spacing: 5) {
-                // 그린 한 가닥은 글리프에만(§10.3 비텍스트 마커 = accent 600) — 카피는 조용한 슬레이트로
-                // 흘러 로케일마다 조사·어순이 자연스럽게 붙는다(한 Text = 한 번역 문자열).
-                Image(systemName: "arrow.turn.down.right")
-                    .font(.system(size: glyph, weight: .semibold))
-                    .foregroundStyle(marker)
-                caption(title: lead.title)
-                    .foregroundStyle(textTone)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+            // 담긴 곳의 이름이 보이면 눌러서 그 컬렉션으로 가져야 한다(웹 카드와 같은 계약) —
+            // 표시 전용이던 줄을 카드(글) 링크 안의 중첩 링크로. 안쪽 링크가 자기 히트 영역의
+            // 탭을 가져가고, 목적지는 피드 스택의 CollectionRef 등록이 받는다.
+            NavigationLink(value: CollectionRef(id: lead.id)) {
+                HStack(alignment: .firstTextBaseline, spacing: 5) {
+                    // 그린 한 가닥은 글리프에만(§10.3 비텍스트 마커 = accent 600) — 카피는 조용한 슬레이트로
+                    // 흘러 로케일마다 조사·어순이 자연스럽게 붙는다(한 Text = 한 번역 문자열).
+                    Image(systemName: "arrow.turn.down.right")
+                        .font(.system(size: glyph, weight: .semibold))
+                        .foregroundStyle(marker)
+                    caption(title: lead.title)
+                        .foregroundStyle(textTone)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+                .typeScale(.footnote)
+                .contentShape(Rectangle())
             }
-            .typeScale(.footnote)
+            .buttonStyle(.plain)
             .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isLink)
         }
     }
 
