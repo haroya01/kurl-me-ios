@@ -58,6 +58,13 @@ struct FollowListsView: View {
                     Label(
                         tab == .followers ? "아직 팔로워가 없어요" : "아직 팔로우하는 사람이 없어요",
                         systemImage: "person.2")
+                } actions: {
+                    // 내 팔로잉 0 = 콜드스타트의 한복판 — 유일하게 CTA 없던 빈 면이었다.
+                    // 사람을 찾을 경로(발견 탭)를 형제 빈 면들과 같은 문법으로 내민다.
+                    if tab == .following, AuthStore.shared.me?.username == username {
+                        Button("발견에서 작가 찾기") { TabRouter.shared.selection = 1 }
+                            .foregroundStyle(Palette.link)
+                    }
                 }
                 .padding(.top, 56)
             } else {

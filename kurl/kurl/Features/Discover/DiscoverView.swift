@@ -216,8 +216,15 @@ struct DiscoverView: View {
             } description: {
                 Text("팔로우한 큐레이터가 글에서 밑줄 친 문장이 여기에 모여요.")
             } actions: {
-                Button("연결 흐름 보기") { tab = .connections }
-                    .foregroundStyle(Palette.link)
+                // 콜드스타트(팔로우 0)면 연결 흐름도 비어 "빈 화면 → 빈 화면" 루프였다 —
+                // 그땐 피드(작가 찾기)로 바로 보낸다. 흐름이 있으면 원래 안내 유지.
+                if events.isEmpty {
+                    Button("읽을 글 찾기") { TabRouter.shared.switchTo(0, reduceMotion: reduceMotion) }
+                        .foregroundStyle(Palette.link)
+                } else {
+                    Button("연결 흐름 보기") { tab = .connections }
+                        .foregroundStyle(Palette.link)
+                }
             }
             .padding(.top, 60)
         } else {
