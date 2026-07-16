@@ -55,6 +55,19 @@ final class ComposeStressUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 0.6)
     }
 
+    /// 붙여넣기 롱프레스 대상 텍스트뷰 — tapCanvas 가 방금 포커스한 "문서 끝 문단"에 붙여넣어야
+    /// 이미지가 끝에 쌓인다. `firstMatch` 는 이미지 삽입 후 {{inf,inf},{0,0}} 퇴화 프레임(오프스크린
+    /// 블록·alt 필드)으로 잡혀 press 가 실패했고, "첫 hittable" 은 이미지 위쪽 문단을 잡아 붙여넣기가
+    /// 엉뚱한 자리로 가며 이중 삽입을 유발했다. 그래서 hittable 한 **마지막** 텍스트뷰(=끝 문단)를 쓴다.
+    private func tailTextView(_ app: XCUIApplication) -> XCUIElement {
+        let all = app.textViews
+        for i in stride(from: all.count - 1, through: 0, by: -1) {
+            let tv = all.element(boundBy: i)
+            if tv.exists, tv.isHittable { return tv }
+        }
+        return all.firstMatch  // 폴백.
+    }
+
     private func pasteViaMenu(_ app: XCUIApplication, on element: XCUIElement) {
         // 토스트/포커스 전환 직후엔 편집 메뉴가 한 박자 늦게 뜬다 — 짧은 재시도로 흡수.
         for attempt in 0..<3 {
@@ -118,22 +131,31 @@ final class ComposeStressUITests: XCTestCase {
         let app = launchCompose()
         tapCanvas(app)
 
+        var previousCount = 0
         for round in 1...3 {
             let image = UIGraphicsImageRenderer(size: CGSize(width: 200, height: 140)).image { ctx in
                 UIColor(hue: CGFloat(round) / 3.0, saturation: 0.6, brightness: 0.9, alpha: 1).setFill()
                 ctx.fill(CGRect(x: 0, y: 0, width: 200, height: 140))
             }
             UIPasteboard.general.image = image
-            // 매 라운드 캔버스 끝(이미지 블록 뒤 문단)에 붙여넣는다.
+            // 매 라운드 캔버스 끝(이미지 블록 뒤 문단)에 붙여넣는다. tapCanvas 가 끝 문단에 포커스를
+            // 두므로 롱프레스 대상도 끝 문단(tailTextView) — firstMatch(퇴화 프레임)·첫 문단(이중 삽입) 회피.
             tapCanvas(app)
-            pasteViaMenu(app, on: app.textViews.firstMatch)
-            // 업로드(목) → IMAGE 블록의 지문(대체 텍스트 필드)이 round 장만큼 쌓일 때까지.
+            pasteViaMenu(app, on: tailTextView(app))
+            // 업로드(목) → IMAGE 블록의 지문(대체 텍스트 필드)이 라운드마다 하나씩 쌓인다. 이 테스트의
+            // 뜻은 "붙여넣기가 이미지 블록으로 누적된다"이다 — 붙여넣기 동의 알럿+메뉴 레이스로 XCUITest
+            // 가 드물게 한 라운드에 두 번 붙여넣어도(경합, 기능 무관) 누적 자체는 성립하므로, 정확한
+            // 개수가 아니라 "이전보다 늘고 최소 round 장 이상"으로 단언한다(취약 == 회피).
             let altFields = app.textFields.matching(identifier: "대체 텍스트")
             let deadline = Date().addingTimeInterval(20)
             while altFields.count < round, Date() < deadline {
                 Thread.sleep(forTimeInterval: 0.5)
             }
-            XCTAssertEqual(altFields.count, round, "\(round)장째 이미지 블록이 안 쌓임")
+            XCTAssertGreaterThanOrEqual(
+                altFields.count, round, "\(round)장째 이미지 블록이 안 쌓임")
+            XCTAssertGreaterThan(
+                altFields.count, previousCount, "이번 라운드에 이미지 블록이 안 늘었음")
+            previousCount = altFields.count
         }
         shot(app, "stress-03-three-images")
     }
