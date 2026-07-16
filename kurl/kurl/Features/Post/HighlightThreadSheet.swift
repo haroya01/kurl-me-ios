@@ -199,6 +199,9 @@ struct HighlightThreadSheet: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+        // 답글을 쓰던 중의 드래그 닫힘은 입력을 통째로 버린다 — 글자가 있는 동안만 잠근다
+        // (보내거나 지우면 다시 닫힘, 인증 시트와 같은 관용구).
+        .interactiveDismissDisabled(!text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         .task { await loadReplies() }
         .task { await loadContainingCollections() }
         .task { await loadRelated() }
@@ -464,5 +467,7 @@ struct HighlightNoteComposerSheet: View {
         }
         .presentationDetents([.height(320), .medium])
         .presentationDragIndicator(.visible)
+        // 메모를 쓰다 드래그로 내리면 유실 — 글자가 있는 동안만 잠근다(취소 버튼은 그대로 출구).
+        .interactiveDismissDisabled(!note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
     }
 }

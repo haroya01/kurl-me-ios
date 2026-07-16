@@ -83,6 +83,10 @@ struct ReportReasonSheet: View {
     /// false 면 사유 목록, "기타"를 고르면 true 로 자유서술 입력이 펼쳐진다(하이브리드).
     @State private var expandedOther = false
     @State private var detail = ""
+    /// 전송 중 — 연타 방지 + 제출 버튼 스피너.
+    @State private var sending = false
+    /// 전송 실패 — 루트 토스트는 시트에 가려 안 보이므로 인라인으로 알리고 입력을 지킨다.
+    @State private var sendFailed = false
     @FocusState private var detailFocused: Bool
 
     private static let detailLimit = 500
@@ -105,6 +109,14 @@ struct ReportReasonSheet: View {
                 .foregroundStyle(Palette.secondary)
                 .padding(.top, 6)
                 .padding(.bottom, 12)
+
+            if sendFailed {
+                Text("신고를 보내지 못했어요 — 다시 시도해 주세요")
+                    .typeScale(.footnote)
+                    .foregroundStyle(Palette.secondary)
+                    .padding(.bottom, 10)
+                    .accessibilityAddTraits(.updatesFrequently)
+            }
 
             if expandedOther {
                 otherDetailForm
@@ -141,6 +153,7 @@ struct ReportReasonSheet: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(RowButtonStyle())
+            .disabled(sending)
             if index < ReportReason.allCases.count - 1 { Hairline() }
         }
     }
@@ -184,28 +197,39 @@ struct ReportReasonSheet: View {
                     let trimmed = detail.trimmingCharacters(in: .whitespacesAndNewlines)
                     send(reasonCode: ReportReason.other.code, detail: trimmed.isEmpty ? nil : trimmed)
                 } label: {
-                    Text("신고 보내기")
-                        .typeScale(.body)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 11)
+                    Group {
+                        if sending { ProgressView().tint(.white) } else { Text("신고 보내기") }
+                    }
+                    .typeScale(.body)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 11)
+                    .contentShape(Capsule())
                 }
                 .glassCapsule(prominent: true)
+                .disabled(sending)
             }
         }
     }
 
     private func send(reasonCode: String, detail: String?) {
-        dismiss()
+        // 닫기는 성공 뒤에 — 먼저 닫으면 실패 시 쓰던 자유서술이 통째로 유실되고, 루트
+        // 토스트는 이미 닫힌 시트 자리라 실패를 알릴 곳도 없었다(입력 유실 사고).
+        guard !sending else { return }
+        sending = true
+        sendFailed = false
         Task {
+            defer { sending = false }
             do {
                 try await InteractionsAPI.report(
                     subjectType: subjectType, subjectId: subjectId,
                     reasonCode: reasonCode, detail: detail)
                 ToastCenter.shared.show(String(localized: "신고가 접수되었습니다"))
+                dismiss()
             } catch {
-                ToastCenter.shared.show(String(localized: "신고를 보내지 못했습니다"))
+                // 시트를 유지 — 사유·서술이 그대로 남아 바로 재시도할 수 있다.
+                sendFailed = true
             }
         }
     }
