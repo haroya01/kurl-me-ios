@@ -8,7 +8,38 @@
 import SwiftUI
 import UIKit
 
+/// 시리즈 리더 셸 — 회차 전환을 뷰 스택에 쌓지 않고 `.id(currentSlug)` 로 본문을 제자리 교체한다
+/// (Apple Books·Kindle 식: 뒤로가기는 시리즈 진입 전으로, 회차마다 push 하지 않는다). 교체라
+/// 새 회차는 스크롤 최상단·읽기 진행 0·크롬/탭바 상태가 초기화되고, 조회·읽음 이벤트도 회차별로
+/// 다시 발화한다(PostDetailReader 가 자기 slug 로 새로 생성되므로). 덱 임베드·비시리즈 글은 무변화.
 struct PostDetailView: View {
+    private let initialUsername: String
+    private let initialSlug: String
+    private let embedded: Bool
+    private let focusQuote: String?
+    @State private var currentSlug: String
+
+    init(username: String, slug: String, embedded: Bool = false, focusQuote: String? = nil) {
+        self.initialUsername = username
+        self.initialSlug = slug
+        self.embedded = embedded
+        self.focusQuote = focusQuote
+        _currentSlug = State(initialValue: slug)
+    }
+
+    var body: some View {
+        PostDetailReader(
+            username: initialUsername, slug: currentSlug,
+            embedded: embedded,
+            // 진입 회차에만 딥링크 강조를 적용한다 — 회차 전환 후엔 위에서부터 읽기.
+            focusQuote: currentSlug == initialSlug ? focusQuote : nil,
+            goToEpisode: { slug in currentSlug = slug })
+        .id(currentSlug)
+    }
+}
+
+/// 한 회차의 리더 — slug 는 불변, 회차 전환은 셸(PostDetailView)이 `.id` 로 이 뷰를 새로 만든다.
+private struct PostDetailReader: View {
     @State private var model: PostDetailViewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
@@ -26,10 +57,16 @@ struct PostDetailView: View {
     private let embedded: Bool
     /// 발견 딥링크 — 이 구절이 든 블록으로 스크롤해 잠깐 강조한다(없으면 평소대로 위에서부터 읽기).
     private let focusQuote: String?
+    /// 시리즈 회차 전환 — 셸(PostDetailView)에 새 slug 를 올려 `.id` 교체를 트리거한다. 덱·비시리즈에선 nil.
+    private let goToEpisode: ((String) -> Void)?
 
-    init(username: String, slug: String, embedded: Bool = false, focusQuote: String? = nil) {
+    init(
+        username: String, slug: String, embedded: Bool = false, focusQuote: String? = nil,
+        goToEpisode: ((String) -> Void)? = nil
+    ) {
         self.embedded = embedded
         self.focusQuote = focusQuote
+        self.goToEpisode = goToEpisode
         _model = State(initialValue: PostDetailViewModel(
             username: username, slug: slug, recordsView: !embedded))
     }
@@ -49,6 +86,8 @@ struct PostDetailView: View {
     @State private var nextPost: PostListItem?
     @State private var nextFetched = false
     @State private var showNext = false
+    /// 끝에서 당겨 다음 편으로 넘어가는 중 — 재발화(연속 프레임에서 임계 재통과) 가드.
+    @State private var advancing = false
     /// 내 글을 볼 때만 뜨는 작가 동작 — 편집(에디터)·분석(이 글 성과).
     @State private var editingOwnPost = false
     @State private var showOwnAnalytics = false
@@ -241,17 +280,21 @@ struct PostDetailView: View {
             return geometry.contentSize.height
                 - (geometry.contentOffset.y + geometry.containerSize.height)
         } action: { _, remaining in
-            guard embedded else { return }
-            if remaining < 600, !nextFetched {
+            // 덱: 같은 작가 다음 글 프리페치(끝 근접). 단독 시리즈는 상세에 이미 next 가 실려 온다.
+            if embedded, remaining < 600, !nextFetched {
                 nextFetched = true
                 Task { await loadAuthorContext() }
             }
-            // 같은 값(평소엔 0) 재대입도 @Observable 은 통지한다 — 일반 스크롤 내내
-            // 큐가 헛되이 다시 그려지지 않게 변할 때만 쓴다.
+            // 끝에서 이어 당기기 — 덱(다음 글) 또는 단독 시리즈 회차(다음 편) 어느 쪽이든 목적지가
+            // 있을 때만. 같은 값(평소엔 0) 재대입도 @Observable 은 통지하니 변할 때만 쓴다.
+            guard pullTargetSlug != nil else {
+                if scrollProgress.pull != 0 { scrollProgress.pull = 0 }
+                return
+            }
             let pull = remaining < 0 ? min(1, -remaining / 90) : 0
             if scrollProgress.pull != pull { scrollProgress.pull = pull }
-            if remaining < -90, fingerDown, nextPost != nil, !showNext {
-                showNext = true
+            if remaining < -90, fingerDown, !advancing {
+                advanceToPullTarget()
             }
         }
         // 읽기 진행도 — 본문을 얼마나 내려왔는지 0~1 로(덱·단독 공통).
@@ -274,12 +317,14 @@ struct PostDetailView: View {
             }
         }
         .onScrollPhaseChange { _, newPhase in
-            if embedded { fingerDown = newPhase == .interacting }
+            // 당길 목적지가 있을 때만 손가락 상태를 추적 — 관성 바운스로 튕겨 넘어가지 않게.
+            if pullTargetSlug != nil { fingerDown = newPhase == .interacting }
         }
-        .sensoryFeedback(.impact(weight: .medium), trigger: showNext)
+        .sensoryFeedback(.impact(weight: .medium), trigger: advancing)
+        // 덱: 같은 작가 다음 글은 스택에 푸시(여러 장이 lazy 로 살아 있는 덱 문법). 단독 시리즈
+        // 회차는 셸이 .id 로 제자리 교체하므로 여기서 push 하지 않는다.
         .navigationDestination(isPresented: $showNext) {
             if let nextPost {
-                // 당겨서 명시적으로 넘어간 글 — 정상 상세(자체 비콘 포함)로 푸시.
                 PostDetailView(username: model.username, slug: nextPost.slug)
             }
         }
@@ -711,6 +756,32 @@ struct PostDetailView: View {
         return nil
     }
 
+    /// 이 글이 속한 시리즈의 다음 회차(있으면). 단독 리더에서 "끝에서 이어 당기기"의 목적지.
+    private var seriesNext: PostSeriesNav.NavLink? {
+        if case .loaded(let detail) = model.phase { return detail.series?.next }
+        return nil
+    }
+
+    /// 이 글의 이전 회차(배너 이전 버튼용).
+    private var seriesPrev: PostSeriesNav.NavLink? {
+        if case .loaded(let detail) = model.phase { return detail.series?.prev }
+        return nil
+    }
+
+    /// 끝에서 당길 때 넘어갈 대상 — 단독 시리즈 회차면 다음 회차(제자리 교체), 덱이면 같은 작가
+    /// 다음 글(스택 푸시). 둘 다 없으면 nil(당겨도 전환 없음).
+    private var pullTargetSlug: String? {
+        if !embedded, let next = seriesNext { return next.slug }
+        if embedded { return nextPost?.slug }
+        return nil
+    }
+
+    private var pullTargetTitle: String? {
+        if !embedded, let next = seriesNext { return next.title }
+        if embedded { return nextPost?.title }
+        return nil
+    }
+
     /// 발견 딥링크 — 구절이 든 블록으로 스크롤하고 잠깐 강조했다 사라진다. 공개 하이라이트는 이미
     /// 그 자리에 그린으로 칠해져 있어, 도착하면 그 문장에 바로 안착한다. 한 글에 한 번만.
     private func focusOnQuoteIfNeeded(_ proxy: ScrollViewProxy) async {
@@ -931,8 +1002,11 @@ struct PostDetailView: View {
             .padding(.top, 14)
         }
         // 시리즈 글은 본문 전에 "여정의 몇 번째"부터 세운다 — 웹 SeriesNav 와 같은 자리.
+        // 이전/다음 버튼은 끝에서 당기기와 같은 제자리 교체(가로 슬라이드 금지) — 단독 리더에서만.
         if let nav = detail.series {
-            SeriesBanner(nav: nav, username: detail.author.username, currentSlug: detail.post.slug)
+            SeriesBanner(
+                nav: nav, username: detail.author.username, currentSlug: detail.post.slug,
+                goToEpisode: embedded ? nil : goToEpisode)
                 .padding(.top, 22)
         }
         VStack(alignment: .leading, spacing: 2) {
@@ -955,9 +1029,11 @@ struct PostDetailView: View {
             FlowTags(tags: detail.post.tags)
                 .padding(.top, 26)
         }
-        // 완독 직후의 연결 — 다음 편 카드(시리즈) → 작가 카드 → 댓글 순.
+        // 완독 직후의 연결 — 다음 편 카드(시리즈) → 작가 카드 → 댓글 순. 카드 탭도 제자리 교체.
         if let nav = detail.series {
-            SeriesNextCard(nav: nav, username: detail.author.username)
+            SeriesNextCard(
+                nav: nav, username: detail.author.username,
+                goToEpisode: embedded ? nil : goToEpisode)
         }
         // 본문이 끝나고 '끝맺음'(레일·작가 카드·댓글)이 시작되는 감지선. 뷰포트에 들면 독이 물러난다 —
         // 떠 있는 독이 그 아래 요소를 가리지 않게(§ 표면 매핑: "글 끝에선 후퇴"). 한 번 닿으면 그 지점의
@@ -986,8 +1062,18 @@ struct PostDetailView: View {
         }
         authorCard(detail.author)
         comments(authorId: detail.author.id)
+        // 끝에서 이어 당기기 큐 — 덱은 같은 작가 다음 글, 단독 시리즈는 다음 편. 손가락 따라 셰브론이
+        // 돌고 제목이 떠오른다. 탭으로도 넘어간다(짧은 글은 러버밴드가 없어 당김이 성립 안 함).
         if embedded, let next = nextPost {
-            NextPostCue(next: next, progress: scrollProgress) { showNext = true }
+            NextPostCue(title: next.title, progress: scrollProgress) { showNext = true }
+        } else if !embedded, let next = seriesNext {
+            NextPostCue(title: next.title, episode: true, progress: scrollProgress) {
+                advanceToPullTarget()
+            }
+        } else if !embedded, let series = detail.series, series.next == nil {
+            // 마지막 회차 — 당길 다음 편이 없다. 조용한 마무리 한 줄(§10). 아래 SeriesNextCard 가
+            // "시리즈 전체 보기"를 이미 세우므로 여기선 여정의 끝만 담담히 알린다.
+            LastEpisodeCue()
         }
         // 바닥 여백 — 단독 글엔 떠 있는 독(바닥 원판 52 + 아래 10)만큼 자리를 비워 둔다.
         // 짧은 글(스크롤 없음)은 독이 물러날 계기(endVisible)가 없어 하단 댓글 프롬프트·작가
@@ -999,6 +1085,20 @@ struct PostDetailView: View {
         // 카드)이 눌려 잘렸다 — 커스텀 바는 시스템 인셋을 안 주므로(Root, 독과 같은 사연) 예약
         // 높이만큼 더 비운다. 스크롤 중 높이가 흔들려 튀지 않게 hidden 무관 상수로 둔다.
         Color.clear.frame(height: (embedded ? 56 : 78) + pushedTabBarBottomInset)
+    }
+
+    /// 끝에서 당김/큐 탭이 임계를 넘겼을 때의 확정 전환. 덱은 스택 푸시(showNext), 단독 시리즈
+    /// 회차는 셸에 다음 편 slug 를 올려 `.id` 제자리 교체(스택 안 쌓음). advancing 가드로 연속
+    /// 프레임 재발화를 막는다 — 교체가 한 프레임 늦어도 임계를 다시 통과해 두 편을 건너뛰지 않게.
+    private func advanceToPullTarget() {
+        guard !advancing else { return }
+        if !embedded, let next = seriesNext, let go = goToEpisode {
+            advancing = true
+            go(next.slug)   // .id 교체 → 이 뷰는 곧 사라지므로 advancing 리셋 불필요.
+        } else if embedded, nextPost != nil, !showNext {
+            advancing = true
+            showNext = true
+        }
     }
 
     /// 작가 글 목록 1회 로드 — 글 끝 작가 카드(다른 글)와 덱의 다음 글 큐가 함께 쓴다.
@@ -1382,7 +1482,9 @@ private struct ReadProgressBar: View {
 /// 본문 끝의 조용한 신호 — 더 당기면 이 작가의 다음 글로 이어진다.
 /// 탭해도 간다: 짧은 글은 러버밴드가 없어 당김이 성립하지 않는다.
 private struct NextPostCue: View {
-    let next: PostListItem
+    let title: String
+    /// 다음 글 큐인지 다음 편 큐인지 — 카피를 가른다("다음 글" vs "다음 편").
+    var episode = false
     let progress: ScrollProgress
     let onAdvance: () -> Void
 
@@ -1398,10 +1500,10 @@ private struct NextPostCue: View {
                     .font(.system(size: 16 * unit, weight: .semibold))
                     .foregroundStyle(progress.pull > 0.97 ? Palette.link : Palette.faint)
                     .rotationEffect(.degrees(reduceMotion ? 0 : 180 * progress.pull))
-                Text("계속 당기면 다음 글")
+                Text(episode ? "계속 당기면 다음 편" : "계속 당기면 다음 글")
                     .typeScale(.footnote)
                     .foregroundStyle(Palette.secondary)
-                Text(next.title)
+                Text(title)
                     .typeScale(.titleSmall)
                     .foregroundStyle(Palette.ink)
                     .lineLimit(1)
@@ -1414,7 +1516,23 @@ private struct NextPostCue: View {
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("다음 글 — \(next.title)")
+        .accessibilityLabel(episode ? "다음 편 — \(title)" : "다음 글 — \(title)")
+    }
+}
+
+/// 마지막 회차의 조용한 마무리 — 당겨도 넘어갈 다음 편이 없을 때 여정의 끝을 담담히 알린다(§10).
+private struct LastEpisodeCue: View {
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "checkmark.circle")
+                .font(.system(size: 13, weight: .semibold))
+            Text("시리즈의 마지막 회차예요")
+                .typeScale(.footnote)
+        }
+        .foregroundStyle(Palette.secondary)
+        .frame(maxWidth: .infinity)
+        .padding(.top, 18)
+        .accessibilityElement(children: .combine)
     }
 }
 
