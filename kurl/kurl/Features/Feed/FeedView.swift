@@ -60,7 +60,10 @@ struct FeedView: View {
             ZStack {
                 ForEach(FeedTab.allCases) { tab in
                     page(for: tab)
-                        .opacity(pageVisible(tab) ? 1 : 0)
+                        // 슬라이드 중 중앙을 벗어난 분면은 살짝 가라앉는다 — 옆 칸이 "뒤에 있다"는
+                        // 얕은 깊이(페이지컨트롤 결). 드래그가 끝나 dragX 가 0 이면 중앙 분면은 1.0 으로
+                        // 복원된다(오프셋이 폭의 배수로 스냅). scale 없이 opacity 만(§10 절제).
+                        .opacity(pageOpacity(tab))
                         // 드래그 중엔 페이지 콘텐츠를 비활성화 — 페이지가 손가락 따라 미끄러지면
                         // 카드가 손가락과 함께 움직여 탭이 안 취소되고 글로 새던 것을 막는다.
                         .disabled(dragX != 0)
@@ -188,6 +191,16 @@ struct FeedView: View {
     /// 선택 인덱스와 dragX 를 같은 프레임에 맞바꿔(±폭이 상쇄) 시각이 연속이라 점프·깜빡임이 없다.
     private func pageOffset(_ tab: FeedTab) -> CGFloat {
         CGFloat(tabIndex(tab) - selectionIndex) * containerWidth + dragX
+    }
+
+    /// 슬라이드 중 미세 디밍 — 중앙(오프셋 0)은 1.0, 한 폭 벗어나면 0.85 까지 가라앉는다. 숨은
+    /// 분면(선택±1 밖)은 0. reduce-motion 이면 디밍 없이 pageVisible 게이트만(정지 면엔 깊이 연출
+    /// 안 함). containerWidth 0(첫 레이아웃)이나 dragX 0(정지)이면 중앙 분면은 자연히 1.0.
+    private func pageOpacity(_ tab: FeedTab) -> Double {
+        guard pageVisible(tab) else { return 0 }
+        guard !reduceMotion, containerWidth > 0 else { return 1 }
+        let offCenter = min(1, abs(pageOffset(tab)) / containerWidth)
+        return 1 - 0.15 * offCenter
     }
 
     private var feedDrag: some Gesture {
