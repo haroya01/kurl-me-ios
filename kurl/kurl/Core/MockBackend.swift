@@ -1287,11 +1287,17 @@ enum MockBackend {
                     "lastPublishedAt": iso(Date().addingTimeInterval(-86_400)),
                     "posts": [
                         // 앞장은 사진 커버(사진 변형), 뒷장은 무이미지(종이 변형) — 둘 다 확인용.
+                        // 방향성 슬라이드(넘김) 데모/테스트가 여러 번 전진·순환하도록 4장.
                         [
                             "slug": "ep-1", "title": "포트와 어댑터",
                             "ogImageUrl": "https://picsum.photos/seed/hexa1/900/1100",
                         ],
                         ["slug": "ep-2", "title": "도메인을 안으로", "ogImageUrl": NSNull()],
+                        [
+                            "slug": "ep-3", "title": "의존성 뒤집기",
+                            "ogImageUrl": "https://picsum.photos/seed/hexa3/900/1100",
+                        ],
+                        ["slug": "ep-4", "title": "어댑터를 갈아 끼우다", "ogImageUrl": NSNull()],
                     ],
                 ],
                 [
