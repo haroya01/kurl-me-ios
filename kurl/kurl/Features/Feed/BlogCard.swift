@@ -77,9 +77,14 @@ struct BlogCard: View {
                     }
                 }
                 // 톤 하모나이즈: 저채도 + 그린 베일 — 피드의 사진들이 한 결로 가라앉는다(#692-693).
-                .saturation(0.85)
+                // 스크린샷·다이어그램 커버의 원색 UI(파란 말풍선 등)가 중앙 띠에서 소란하던 것(#B3) —
+                // 채도를 한 단 더 낮춰 원색 잔재를 카드 톤으로 끌어내린다(사진은 여전히 사진, §10 조용함).
+                .saturation(0.5)
             }
             .overlay(Palette.coverVeil)
+            // 스크린샷·다이어그램 커버의 원본 UI 잔재(말풍선·타임스탬프)가 중앙 띠에서 소란하던 것 —
+            // 상단 scrim·하단 띠가 안 덮는 가운데를 아주 옅은 뉴트럴 스크림 한 겹으로 가라앉힌다(#B3).
+            .overlay(Palette.coverScrim)
             .overlay(alignment: .top) {
                 // 상단 scrim — 좌상단 태그/featured 뱃지 가독용.
                 LinearGradient(
