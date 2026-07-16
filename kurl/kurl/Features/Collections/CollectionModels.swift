@@ -254,10 +254,36 @@ struct ConnectionEvent: Decodable, Identifiable, Hashable {
     }
 }
 
+/// 발견 피드가 개인화(팔로우 큐레이터)인지 전역 폴백인지 — 로그인했지만 팔로우 0/활동 0이면
+/// 서버가 page 0 을 전역 공개 흐름으로 폴백하고 `source: "global"` 로 알린다. 필드가 없던 옛
+/// 응답과 호환되게 없으면 following 으로 본다(무회귀). (피드 정렬 셀렉터 FeedSource 와는 별개 —
+/// 이쪽은 발견 흐름의 개인화 범위이고 scope= 파라미터를 만든다.)
+enum DiscoverScope: String, Decodable {
+    case following
+    case global
+
+    /// 알 수 없는 값·필드 부재는 following 으로 — 전역 폴백은 서버가 명시할 때만.
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = DiscoverScope(rawValue: raw) ?? .following
+    }
+}
+
 /// 발견 피드 한 페이지 — 백엔드 `DiscoverFeedView`.
 struct DiscoverFeedResponse: Decodable {
     let items: [ConnectionEvent]
     let hasNext: Bool
+    /// page 0 이 개인화인지 전역 폴백인지. 옛 응답 호환 위해 없으면 following.
+    let source: DiscoverScope
+
+    private enum CodingKeys: String, CodingKey { case items, hasNext, source }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        items = try c.decode([ConnectionEvent].self, forKey: .items)
+        hasNext = try c.decodeIfPresent(Bool.self, forKey: .hasNext) ?? false
+        source = try c.decodeIfPresent(DiscoverScope.self, forKey: .source) ?? .following
+    }
 }
 
 /// 컬렉션 상세로 가는 내비 값 — id 만 들고 가서 상세에서 API 로 불러온다.
