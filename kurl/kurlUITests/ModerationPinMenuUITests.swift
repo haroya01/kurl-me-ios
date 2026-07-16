@@ -29,12 +29,17 @@ final class ModerationPinMenuUITests: XCTestCase {
             pin.waitForExistence(timeout: 5) || unpin.exists,
             "발행 글 메뉴에 프로필 고정 토글이 없음")
         (pin.exists ? pin : unpin).tap()
-        // 목 PUT ack → 토스트 문구 중 하나가 떠야 한다(고정/해제 어느 쪽이든).
-        let pinnedToast = app.staticTexts["프로필 맨 위에 고정했어요"]
-        let unpinnedToast = app.staticTexts["고정을 해제했어요"]
-        XCTAssertTrue(
-            pinnedToast.waitForExistence(timeout: 8) || unpinnedToast.exists,
-            "고정 토글 후 확인 토스트가 안 뜸")
+        // 목 PUT ack → 토스트 문구 중 하나가 떠야 한다(고정/해제 어느 쪽이든). 토스트는 ~2.4s 만
+        // 유지되는 짧은 전이라 waitForExistence 스냅샷 지연에 놓치기 쉽다 — 탭 직후 빠르게 폴링한다.
+        let toast = app.staticTexts.matching(
+            NSPredicate(format:
+                "label CONTAINS '고정했어요' OR label CONTAINS '고정을 해제했어요'")).firstMatch
+        var appeared = false
+        for _ in 0..<20 {
+            if toast.exists { appeared = true; break }
+            Thread.sleep(forTimeInterval: 0.1)
+        }
+        XCTAssertTrue(appeared, "고정 토글 후 확인 토스트가 안 뜸")
     }
 
     func testAdminSectionOnOthersPost() throws {

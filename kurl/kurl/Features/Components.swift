@@ -352,7 +352,10 @@ final class ToastCenter {
 
 /// 루트(탭바 위)에 한 번만 부착한다.
 struct ToastHost: ViewModifier {
-    private var center: ToastCenter { .shared }
+    // @Observable 은 body 안에서 추적되는 저장 프로퍼티로 들어와야 의존성이 걸린다 — computed var
+    // { .shared } 로 들면 message 변화에 body 가 안 돌아, 마침 다른 갱신과 겹친 토스트만 보이고
+    // 나머지는 조용히 증발한다(스튜디오 핀 토글 등). @State 로 붙들어 관찰을 성립시킨다.
+    @State private var center = ToastCenter.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// 유리 캡슐의 한 줄 — 13pt 를 바닥으로 시스템 글자 크기 설정을 따른다(고정 크기 우회 종식).
     @ScaledMetric(relativeTo: .footnote) private var textSize: CGFloat = 13
