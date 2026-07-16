@@ -12639,6 +12639,34 @@
         }
       }
     },
+    "아직 팔로우한 큐레이터의 소식이 없어, 지금 전역에서 이어지는 것들을 보여드려요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No updates yet from curators you follow, so here's what's being connected across kurl right now."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォロー中のキュレーターの新着はまだないので、今 kurl 全体でつながっているものをお見せします。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có tin mới từ các nhà tuyển chọn bạn theo dõi, nên đây là những gì đang được kết nối trên toàn kurl ngay bây giờ."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आप जिन क्यूरेटर को फ़ॉलो करते हैं उनसे अभी कोई अपडेट नहीं है, तो अभी kurl पर जो जुड़ रहा है वह यहाँ दिखा रहे हैं।"
+          }
+        }
+      }
+    },
     "아직 팔로워가 없어요": {
       "localizations": {
         "en": {
@@ -20237,6 +20265,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Khối mã"
+          }
+        }
+      }
+    },
+    "큐레이터 찾기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find curators"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キュレーターを探す"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tìm nhà tuyển chọn"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "क्यूरेटर खोजें"
           }
         }
       }

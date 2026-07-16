@@ -50,11 +50,12 @@ enum HighlightsAPI {
     }
 
     /// 인증 — 팔로우한 큐레이터가 최근 칠한 공개 하이라이트 피드(최신순, 페이지). "남들 하이라이트" 발견 표면.
-    static func feed(page: Int = 0, size: Int = 20) async throws -> HighlightFeedPage {
-        try await client.get(
-            "/highlights/feed",
-            query: ["page": String(page), "size": String(size)],
-            authenticated: true)
+    /// 로그인했지만 팔로우 0/활동 0이면 서버가 전역 공개 흐름으로 폴백해 `source: "global"` 로 알린다.
+    /// 폴백이 활성이면 이후 요청에 `scope=global` 을 고정해 개인화 페이지와 안 섞이게 한다.
+    static func feed(page: Int = 0, size: Int = 20, scope: DiscoverScope? = nil) async throws -> HighlightFeedPage {
+        var query: [String: String?] = ["page": String(page), "size": String(size)]
+        if scope == .global { query["scope"] = "global" }
+        return try await client.get("/highlights/feed", query: query, authenticated: true)
     }
 }
 
@@ -143,4 +144,17 @@ struct HighlightFeedPage: Decodable {
     let page: Int
     let size: Int
     let hasNext: Bool
+    /// page 0 이 개인화(팔로우 큐레이터)인지 전역 폴백인지. 옛 응답 호환 위해 없으면 following.
+    let source: DiscoverScope
+
+    private enum CodingKeys: String, CodingKey { case items, page, size, hasNext, source }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        items = try c.decode([HighlightFeedItemView].self, forKey: .items)
+        page = try c.decodeIfPresent(Int.self, forKey: .page) ?? 0
+        size = try c.decodeIfPresent(Int.self, forKey: .size) ?? items.count
+        hasNext = try c.decodeIfPresent(Bool.self, forKey: .hasNext) ?? false
+        source = try c.decodeIfPresent(DiscoverScope.self, forKey: .source) ?? .following
+    }
 }

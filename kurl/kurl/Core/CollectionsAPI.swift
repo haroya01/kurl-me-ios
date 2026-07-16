@@ -28,11 +28,13 @@ enum CollectionsAPI {
         try await client.get("/public/profiles/\(username)/collections")
     }
 
-    /// 발견 — 내가 팔로우한 큐레이터들의 공개 컬렉션 연결 흐름(최신순). 팔로우 0이면 빈 배열.
-    static func discoverFeed() async throws -> [ConnectionEvent] {
-        let view: DiscoverFeedResponse = try await client.get(
-            "/feed/connections", authenticated: true)
-        return view.items
+    /// 발견 — 내가 팔로우한 큐레이터들의 공개 컬렉션 연결 흐름(최신순). 로그인했지만 팔로우 0/활동
+    /// 0이면 서버가 전역 공개 흐름으로 폴백해 `source: "global"` 로 내려준다(빈 배열 대신). 폴백이
+    /// 활성이면(page 0 source=global) 이후 요청에 `scope=global` 을 고정해 개인화 페이지와 안 섞이게 한다.
+    static func discoverFeed(scope: DiscoverScope? = nil) async throws -> DiscoverFeedResponse {
+        var query: [String: String?] = [:]
+        if scope == .global { query["scope"] = "global" }
+        return try await client.get("/feed/connections", query: query, authenticated: true)
     }
 
     /// 공개 연결 흐름 — 비로그인 첫 피드에 인터리브할 최근 공개 연결(누가 무엇을 어느 컬렉션에 이었나).

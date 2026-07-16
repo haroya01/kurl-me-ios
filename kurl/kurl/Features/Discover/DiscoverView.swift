@@ -42,6 +42,10 @@ struct DiscoverView: View {
     @State private var hlLoading = true
     @State private var hlFailed = false
     @State private var hlLoaded = false
+    /// page 0 이 전역 폴백으로 내려왔는가 — 흐름별로 따로 둔다(연결·하이라이트는 다른 엔드포인트).
+    /// 활성이면 조용한 맥락 한 줄을 세그먼트 콘텐츠 위에 올리고, 이후 요청에 scope=global 을 고정한다.
+    @State private var connectionsSource: DiscoverScope = .following
+    @State private var highlightsSource: DiscoverScope = .following
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -63,6 +67,10 @@ struct DiscoverView: View {
                         Spacer(minLength: 0)
                     }
                     .padding(.bottom, 14)
+                    // 전역 폴백이 활성인 흐름에서만 조용한 맥락 한 줄(§10) — 왜 이게 보이는지 + 큐레이터 찾기.
+                    if activeSourceIsGlobal {
+                        globalFallbackCaption
+                    }
                     switch tab {
                     case .entrances: entrancesContent
                     case .connections: connectionsContent
@@ -127,6 +135,36 @@ struct DiscoverView: View {
             out.append(e.curator)
         }
         return out
+    }
+
+    /// 지금 보고 있는 흐름이 전역 폴백으로 내려왔는가 — 입구·최근은 연결 소스, 하이라이트는 제 소스.
+    private var activeSourceIsGlobal: Bool {
+        switch tab {
+        case .entrances, .connections: connectionsSource == .global
+        case .highlights: highlightsSource == .global
+        }
+    }
+
+    /// 전역 폴백 맥락 한 줄(§10) — 왜 개인화가 아니라 전역이 보이는지 조용히 알리고, 큐레이터를
+    /// 팔로우하면 개인화된다는 다음 행동으로 잇는다. 배너 아님 — eyebrow 급 한 줄 + 인라인 링크.
+    private var globalFallbackCaption: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            Text("아직 팔로우한 큐레이터의 소식이 없어, 지금 전역에서 이어지는 것들을 보여드려요.")
+                .typeScale(.footnote)
+                .foregroundStyle(Palette.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            // 큐레이터 찾기 = 입구 탭의 "취향이 겹치는 큐레이터" 레일로 데려간다(팔로우하면 개인화된다).
+            Button {
+                tab = .entrances
+            } label: {
+                Text("큐레이터 찾기")
+                    .typeScale(.footnote)
+                    .foregroundStyle(Palette.link)
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.bottom, 14)
     }
 
     @ViewBuilder
@@ -248,7 +286,10 @@ struct DiscoverView: View {
         // 콜드스타트 빈 상태가 먼저 뜨지 않게. 목록이 있으면 조용히 갱신.
         if events.isEmpty { loading = true }
         do {
-            events = try await CollectionsAPI.discoverFeed()
+            // 폴백이 활성이던 흐름은 scope=global 을 고정해 개인화 페이지와 안 섞이게 한다.
+            let response = try await CollectionsAPI.discoverFeed(scope: connectionsSource)
+            events = response.items
+            connectionsSource = response.source
             loading = false
         } catch {
             loading = false
@@ -272,7 +313,10 @@ struct DiscoverView: View {
         hlFailed = false
         if highlights.isEmpty { hlLoading = true }
         do {
-            highlights = try await HighlightsAPI.feed().items
+            // 폴백이 활성이던 흐름은 scope=global 을 고정한다(연결 흐름과 같은 문법).
+            let page = try await HighlightsAPI.feed(scope: highlightsSource)
+            highlights = page.items
+            highlightsSource = page.source
             hlLoaded = true
             hlLoading = false
         } catch {
