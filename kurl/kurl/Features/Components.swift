@@ -77,17 +77,8 @@ struct StateView<Value, Content: View>: View {
                 content(value)
                     .transition(.opacity)
             case .failed(let message):
-                ContentUnavailableView {
-                    Label(String(localized: "불러오지 못했습니다"), systemImage: "wifi.exclamationmark")
-                } description: {
-                    Text(message)
-                } actions: {
-                    if let retry {
-                        Button(String(localized: "다시 시도"), action: retry)
-                            .foregroundStyle(Palette.link)
-                    }
-                }
-                .transition(.opacity)
+                ErrorState(message: message, retry: retry)
+                    .transition(.opacity)
             }
         }
         .animation(.easeOut(duration: 0.3), value: phase)
@@ -101,6 +92,69 @@ struct StateView<Value, Content: View>: View {
         case .loaded: return 1
         case .failed: return 2
         }
+    }
+}
+
+/// 에러 상태 — 스톡 `ContentUnavailableView`(회색 SF 심볼 + 가운데 설명)의 기성품 인상을 걷고,
+/// 빈 상태(`FeedPlaceholder`)와 같은 종이 문법으로 다시 짠다: 브랜드 마크 한 점 + 제목 + 한 줄 +
+/// 그린 재시도 CTA. 앱 안에서 빈 면과 에러 면의 결이 어긋나지 않게 한 곳으로 다스린다.
+/// 재시도가 없으면(자동 복구·읽기 전용 면) CTA 를 감춘다.
+struct ErrorState: View {
+    var title: LocalizedStringKey = "불러오지 못했습니다"
+    /// 서버가 준 사유. 비어 있으면 기본 안내 문구로 대체한다(빈 줄이 서지 않게).
+    var message: String?
+    var retry: (() -> Void)?
+    /// 재시도 라벨도 시스템 글자 크기를 따른다(제목·설명은 이미 typeScale 로 스케일).
+    @ScaledMetric(relativeTo: .subheadline) private var actionSize: CGFloat = 13
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // 빈 면과 같은 브랜드 사인 — 형광 아닌 옅은 잉크(RailHeading 마커와 같은 중립).
+            KurlMark(drawn: [true, true, true], tint: Palette.hairlineStrong)
+                .frame(width: 46, height: 28)
+                .accessibilityHidden(true)
+                .padding(.bottom, 24)
+
+            Text(title)
+                .typeScale(.featured)
+                .foregroundStyle(Palette.ink)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.bottom, 9)
+
+            Text(resolvedMessage)
+                .typeScale(.lede)
+                .foregroundStyle(Palette.secondary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: 272)
+
+            if let retry {
+                Button(action: retry) {
+                    HStack(spacing: 3) {
+                        Text("다시 시도")
+                            .font(.system(size: actionSize, weight: .semibold))
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    // 텍스트/인라인 CTA = link(700), accent(600)는 비텍스트 마커 몫(§10.3).
+                    .foregroundStyle(Palette.link)
+                    .expandTapTarget(8)
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 22)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, Metrics.gutter)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var resolvedMessage: String {
+        if let message, !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return message
+        }
+        return String(localized: "네트워크를 확인하고 다시 시도해 주세요.")
     }
 }
 

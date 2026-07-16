@@ -40,15 +40,11 @@ struct PostAnalyticsView: View {
                 KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 240)
             case .failed:
-                ContentUnavailableView {
-                    Label("분석을 불러오지 못했습니다", systemImage: "wifi.exclamationmark")
-                } description: {
-                    Text("잠시 후 다시 시도해 주세요.")
-                } actions: {
-                    Button("다시 시도") { Task { await load() } }
-                        .foregroundStyle(Palette.link)
-                }
-                .padding(.top, 40)
+                ErrorState(
+                    title: "분석을 불러오지 못했습니다",
+                    message: String(localized: "잠시 후 다시 시도해 주세요."),
+                    retry: { Task { await load() } })
+                    .padding(.top, 40)
             case .loaded(let detail):
                 content(detail)
             }

@@ -134,15 +134,8 @@ struct PostDetailView: View {
                     KurlLoadingMark()
                         .frame(maxWidth: .infinity, minHeight: 320)
                 case .failed(let message):
-                    ContentUnavailableView {
-                        Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
-                    } description: {
-                        Text(message)
-                    } actions: {
-                        Button("다시 시도") { Task { await model.load() } }
-                            .foregroundStyle(Palette.link)
-                    }
-                    .padding(.top, 80)
+                    ErrorState(message: message, retry: { Task { await model.load() } })
+                        .padding(.top, 80)
                 case .loaded(let detail):
                     // 커버 헤더 없음 — 제목이 항상 맨 위(커버·무커버 글 제목 위치 일관).
                     // 커버 이미지가 의미 있으면 작가가 본문에 넣고, 발견 카드엔 그대로 남는다.
@@ -500,9 +493,11 @@ struct PostDetailView: View {
                             Button(role: .destructive) { showUnpublishConfirm = true } label: {
                                 Label("발행 취소", systemImage: "eye.slash")
                             }
+                            .tint(Palette.danger)
                             Button(role: .destructive) { showDeleteConfirm = true } label: {
                                 Label("삭제", systemImage: "trash")
                             }
+                            .tint(Palette.danger)
                         }
                     } label: {
                         Image(systemName: "ellipsis")
@@ -532,10 +527,12 @@ struct PostDetailView: View {
                                 Button(role: .destructive) { showBlockConfirm = true } label: {
                                     Label("차단", systemImage: "hand.raised")
                                 }
+                                .tint(Palette.danger)
                             }
                             Button(role: .destructive) { showReport = true } label: {
                                 Label("신고", systemImage: "flag")
                             }
+                            .tint(Palette.danger)
                         }
                         // 관리자 모더레이션 — 타인 글의 제목·태그 정리, 내리기, 영구 삭제.
                         // 클라 가드는 진입로 노출용일 뿐, 실제 권한은 서버 /admin/** 게이트가 문이다.
@@ -547,9 +544,11 @@ struct PostDetailView: View {
                                 Button(role: .destructive) { showAdminUnpublishConfirm = true } label: {
                                     Label("발행 내리기", systemImage: "eye.slash")
                                 }
+                                .tint(Palette.danger)
                                 Button(role: .destructive) { showAdminDeleteConfirm = true } label: {
                                     Label("영구 삭제", systemImage: "trash")
                                 }
+                                .tint(Palette.danger)
                             }
                         }
                     } label: {

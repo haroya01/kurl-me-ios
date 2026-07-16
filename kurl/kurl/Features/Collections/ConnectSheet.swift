@@ -126,13 +126,8 @@ struct ConnectSheet: View {
     }
 
     private var failedState: some View {
-        ContentUnavailableView {
-            Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
-        } actions: {
-            Button("다시 시도") { Task { loading = true; await loadCollections() } }
-                .foregroundStyle(Palette.link)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        ErrorState(retry: { Task { loading = true; await loadCollections() } })
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var nextButton: some View {

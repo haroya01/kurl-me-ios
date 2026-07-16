@@ -68,15 +68,10 @@ struct NotificationPreferencesView: View {
                 KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 240)
             } else if loadError != nil, prefs.isEmpty {
-                ContentUnavailableView {
-                    Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
-                } description: {
-                    Text("잠시 후 다시 시도해 주세요")
-                } actions: {
-                    Button("다시 시도") { Task { await load() } }
-                        .foregroundStyle(Palette.accent)
-                }
-                .padding(.top, 60)
+                ErrorState(
+                    message: String(localized: "잠시 후 다시 시도해 주세요"),
+                    retry: { Task { await load() } })
+                    .padding(.top, 60)
             } else {
                 RailHeading("알림 종류")
                     .padding(.top, 24)

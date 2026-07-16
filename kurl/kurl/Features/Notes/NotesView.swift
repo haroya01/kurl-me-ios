@@ -142,14 +142,7 @@ struct NotesPage: View {
                 KurlLoadingMark()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             case .failed(let message):
-                ContentUnavailableView {
-                    Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
-                } description: {
-                    Text(message)
-                } actions: {
-                    Button("다시 시도") { Task { await model.reload() } }
-                        .foregroundStyle(Palette.link)
-                }
+                ErrorState(message: message, retry: { Task { await model.reload() } })
             case .loaded:
                 list
             }

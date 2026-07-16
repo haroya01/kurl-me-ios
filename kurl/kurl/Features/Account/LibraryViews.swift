@@ -431,12 +431,7 @@ private struct LibraryFailedState: View {
     let retry: () -> Void
 
     var body: some View {
-        ContentUnavailableView {
-            Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
-        } actions: {
-            Button("다시 시도", action: retry)
-                .foregroundStyle(Palette.link)
-        }
-        .padding(.top, 60)
+        ErrorState(retry: retry)
+            .padding(.top, 60)
     }
 }

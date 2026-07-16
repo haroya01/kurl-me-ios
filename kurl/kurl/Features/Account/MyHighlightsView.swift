@@ -54,13 +54,8 @@ struct MyHighlightsView: View {
                     .frame(maxWidth: .infinity, minHeight: 240)
             } else if failed {
                 // 실패는 빈 200 과 구분 — 서재 형제 화면들의 실패 상태와 같은 문법.
-                ContentUnavailableView {
-                    Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
-                } actions: {
-                    Button("다시 시도") { Task { loading = true; await load() } }
-                        .foregroundStyle(Palette.link)
-                }
-                .padding(.top, 60)
+                ErrorState(retry: { Task { loading = true; await load() } })
+                    .padding(.top, 60)
             } else if items.isEmpty {
                 ContentUnavailableView {
                     Label("하이라이트한 구절이 없습니다", systemImage: "highlighter")

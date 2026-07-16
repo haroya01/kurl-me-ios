@@ -34,18 +34,14 @@ struct BusinessCardView: View {
                     }
                     .overlay {
                         if failed {
-                            ContentUnavailableView {
-                                Label("명함을 불러오지 못했습니다", systemImage: "wifi.exclamationmark")
-                            } description: {
-                                Text("연결을 확인하고 다시 시도해 주세요.")
-                            } actions: {
-                                Button("다시 시도") {
+                            ErrorState(
+                                title: "명함을 불러오지 못했습니다",
+                                message: String(localized: "연결을 확인하고 다시 시도해 주세요."),
+                                retry: {
                                     failed = false
                                     isLoading = true
                                     attempt += 1
-                                }
-                                .foregroundStyle(Palette.link)
-                            }
+                                })
                         }
                     }
             }

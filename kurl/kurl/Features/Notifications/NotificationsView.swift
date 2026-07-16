@@ -34,15 +34,8 @@ struct NotificationsView: View {
                 KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 240)
             } else if items.isEmpty, let loadError {
-                ContentUnavailableView {
-                    Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
-                } description: {
-                    Text(loadError)
-                } actions: {
-                    Button("다시 시도") { Task { await load() } }
-                        .foregroundStyle(Palette.link)
-                }
-                .padding(.top, 60)
+                ErrorState(message: loadError, retry: { Task { await load() } })
+                    .padding(.top, 60)
             } else if items.isEmpty {
                 // 막다른 길 금지 — 알림은 사람을 팔로우하고 반응하면 흐른다. 발견으로 이어준다
                 // (다른 빈 면과 같은 언어 = FeedPlaceholder).
@@ -335,7 +328,7 @@ struct NotificationsView: View {
         do {
             let page = try await NotificationsAPI.list()
             guard myEpoch == epoch else { return }
-            items = page.items
+            items = sortedByRecency(page.items)
             nextCursor = page.nextCursor
             hasMore = page.hasMore
             loadError = nil
@@ -355,9 +348,25 @@ struct NotificationsView: View {
         if let page = try? await NotificationsAPI.list(before: cursor) {
             // refresh 가 끼어들었으면 이 응답은 옛 세대 — 버린다(append 도 커서 갱신도 없음).
             guard myEpoch == epoch else { return }
-            items += page.items
+            items = sortedByRecency(items + page.items)
             nextCursor = page.nextCursor
             hasMore = page.hasMore
         }
+    }
+
+    /// 인박스는 항상 최신순 — 서버/목이 순서를 보장하지 않아도 클라이언트에서 createdAt 내림차순으로
+    /// 못 박는다(그래프 알림이 오래된 항목 아래로 새던 것). createdAt 이 없는 항목은 뒤로 보내되
+    /// 서로 간엔 원래 순서를 지킨다.
+    private func sortedByRecency(_ list: [AppNotification]) -> [AppNotification] {
+        list.enumerated().sorted { lhs, rhs in
+            switch (lhs.element.createdAt, rhs.element.createdAt) {
+            case let (l?, r?):
+                if l != r { return l > r }
+                return lhs.offset < rhs.offset
+            case (nil, .some): return false
+            case (.some, nil): return true
+            case (nil, nil): return lhs.offset < rhs.offset
+            }
+        }.map(\.element)
     }
 }

@@ -46,13 +46,8 @@ struct FollowListsView: View {
                 KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 240)
             } else if failed {
-                ContentUnavailableView {
-                    Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
-                } actions: {
-                    Button("다시 시도") { Task { await reload() } }
-                        .foregroundStyle(Palette.link)
-                }
-                .padding(.top, 56)
+                ErrorState(retry: { Task { await reload() } })
+                    .padding(.top, 56)
             } else if loadedOnce && items.isEmpty {
                 ContentUnavailableView {
                     Label(
