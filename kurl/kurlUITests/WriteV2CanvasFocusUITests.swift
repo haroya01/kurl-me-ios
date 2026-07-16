@@ -24,7 +24,10 @@ final class WriteV2CanvasFocusUITests: XCTestCase {
 
     func testTapEmptyCanvasStartsWriting() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["--mocks", "--tab", "write", "--editor", "v2", "--open", "compose"]
+        // --reset-recovery: 앞선 컴포즈 테스트(ComposeRecovery 강제종료·이탈보호)가 남긴 복구 스태시를
+        // 지운다. 안 지우면 새 컴포즈에서 "저장되지 못한 본문이 있어요" 다이얼로그가 캔버스를 덮어
+        // 활주로 탭+typeText 가 "no keyboard focus" 로 실패했다(테스트 격리 결함, 앱 무죄).
+        app.launchArguments = ["--mocks", "--tab", "write", "--editor", "v2", "--open", "compose", "--reset-recovery"]
         app.launch()
 
         let canvas = app.scrollViews.firstMatch
