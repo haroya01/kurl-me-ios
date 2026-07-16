@@ -33,6 +33,10 @@ final class EditorDocument {
     private(set) var blocks: [EditorBlock]
     /// 포커스 — 뷰가 이 값 변화를 보고 해당 블록 UITextView 를 first responder 로 만들고 캐럿을 놓는다.
     var focus: EditorFocus?
+    /// 툴바 서식 직후 1회 마커 반개봉 억제(B1) — 이 블록의 다음 렌더는 캐럿이 스팬 안이어도 마커를
+    /// 숨긴다("굵게 눌렀는데 **가 보인다"의 근본). 뷰가 그 렌더에서 소비(nil 로)한다. 이후 캐럿 이동/
+    /// 타이핑엔 정상 반개봉이 돌아온다(왕복·reveal 계약 불변 — 표시 속성 1프레임만 다르다).
+    var suppressRevealOnceBlockID: UUID?
 
     init(blocks: [EditorBlock] = [.paragraph("")]) {
         self.blocks = blocks.isEmpty ? [.paragraph("")] : blocks
@@ -53,7 +57,7 @@ final class EditorDocument {
 
     /// 뷰가 블록 안 타이핑을 반영 — 구조는 그대로, text 만 바꾼다.
     func updateText(_ id: UUID, _ newText: String) {
-        guard let i = index(of: id) else { return }
+        guard let i = index(of: id), blocks[i].text != newText else { return }
         blocks[i].text = newText
     }
 
@@ -290,6 +294,45 @@ final class EditorDocument {
         blocks[i].kind = .table(table)
     }
 
+    /// 표 블록의 현재 상태 스냅샷 — 삭제 되돌리기(토스트 undo)용. 표가 아니면 nil.
+    func tableSnapshot(_ id: UUID) -> EditorTable? {
+        guard let i = index(of: id), case .table(let table) = blocks[i].kind else { return nil }
+        return table
+    }
+
+    /// 스냅샷으로 표를 되돌린다 — 삭제 되돌리기(토스트 undo)에서 호출.
+    func restoreTable(_ id: UUID, to table: EditorTable) {
+        guard let i = index(of: id), case .table = blocks[i].kind else { return }
+        blocks[i].kind = .table(table)
+    }
+
+    /// 마지막 본문 행 삭제(맨 아래) — 헤더는 보호하고 본문 1행은 남긴다(레거시 deleteTableRow 미러).
+    /// 지웠으면 true(삭제 토스트 표시용). +행이 맨 아래에 붙이므로 −행도 맨 아래에서 뺀다(대칭).
+    @discardableResult
+    func deleteTableRow(_ id: UUID) -> Bool {
+        guard let i = index(of: id), case .table(var table) = blocks[i].kind else { return false }
+        // rows[0]=헤더. 본문(rows[1...])이 2행 이상일 때만 마지막 본문 행을 뺀다.
+        guard table.rows.count >= 3 else { return false }
+        table.rows.removeLast()
+        blocks[i].kind = .table(table)
+        return true
+    }
+
+    /// 마지막 열 삭제(맨 오른쪽) — 마지막 한 열은 보호한다(레거시 deleteTableColumn 미러).
+    /// 지웠으면 true. +열이 맨 오른쪽에 붙으므로 −열도 맨 오른쪽에서 뺀다(대칭).
+    @discardableResult
+    func deleteTableColumn(_ id: UUID) -> Bool {
+        guard let i = index(of: id), case .table(var table) = blocks[i].kind else { return false }
+        guard table.columnCount >= 2 else { return false }
+        let last = table.columnCount - 1
+        for r in table.rows.indices where last < table.rows[r].count {
+            table.rows[r].remove(at: last)
+        }
+        if last < table.alignments.count { table.alignments.remove(at: last) }
+        blocks[i].kind = .table(table)
+        return true
+    }
+
     // MARK: 이어 쓰기 포커스 — 캔버스 빈 곳 탭 / 포커스 없는 툴바 조작의 도착지
 
     /// 문서 끝에서 이어 쓰도록 포커스를 놓는다. 마지막 블록이 문단·제목·인용·리스트면 그 끝으로,
@@ -388,6 +431,9 @@ final class EditorDocument {
         // 마커 뒤(안쪽 시작)부터 inner 길이만큼 다시 선택 — 무선택이었으면 length 0(마커 사이 캐럿).
         let innerStart = min(start, end) + marker.count
         focus = EditorFocus(blockID: f.blockID, caret: innerStart, selectionLength: inner.count)
+        // 감싼 직후엔 선택이 스팬 안이라 반개봉 규칙상 마커가 보인다("굵게 눌렀는데 ** 노출"). 이 1회
+        // 렌더만 마커를 숨긴다(B1) — 선택·왕복은 그대로, 다음 캐럿 이동/타이핑엔 정상 반개봉 복귀.
+        suppressRevealOnceBlockID = f.blockID
     }
 
     /// 특정 포커스(블록·선택)의 선택을 `[선택](url)` 링크로 감싼다. 선택이 없으면 `[라벨](url)`를 넣고
@@ -439,5 +485,27 @@ final class EditorDocument {
         blocks.remove(at: i)
         let target = blocks[max(0, i - 1)]
         focus = EditorFocus(blockID: target.id, caret: target.text.count)
+    }
+
+    /// 블록 하나를 지우고 되돌리기 재료(지운 블록·바로 앞 블록 id)를 돌려준다 — 삭제 토스트 undo 용.
+    /// 앞이 없으면(맨 앞) afterId=nil. 문서에 블록이 하나뿐이면 지우지 않는다(nil).
+    func removeBlock(_ id: UUID) -> (block: EditorBlock, afterId: UUID?)? {
+        guard blocks.count > 1, let i = index(of: id) else { return nil }
+        let removed = blocks[i]
+        let afterId = i > 0 ? blocks[i - 1].id : nil
+        blocks.remove(at: i)
+        let target = blocks[max(0, i - 1)]
+        focus = EditorFocus(blockID: target.id, caret: target.text.count)
+        return (removed, afterId)
+    }
+
+    /// removeBlock 으로 지운 블록을 원래 자리에 되돌린다(삭제 토스트 undo).
+    func restoreBlock(_ block: EditorBlock, afterId: UUID?) {
+        if let afterId, let i = index(of: afterId) {
+            blocks.insert(block, at: i + 1)
+        } else {
+            blocks.insert(block, at: 0)
+        }
+        focus = EditorFocus(blockID: block.id, caret: 0)
     }
 }

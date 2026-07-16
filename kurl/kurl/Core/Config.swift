@@ -36,6 +36,16 @@ enum Config {
         #endif
     }()
 
+    /// `--reset-recovery` — 시작 시 기기 복구 금고(ComposeRecoveryStore)를 비운다(DEBUG 전용).
+    /// 컴포즈 계열 UITest 가 앞선 테스트의 잔여 스태시(→ 복구 다이얼로그)에 오염되지 않게 setUp 에서 쓴다.
+    static let resetRecovery: Bool = {
+        #if DEBUG
+        return ProcessInfo.processInfo.arguments.contains("--reset-recovery")
+        #else
+        return false
+        #endif
+    }()
+
     /// WYSIWYG 블록 에디터(WriteV2) — 이제 글쓰기의 default 다. 이탤릭·링크·표·구분선·코드가
     /// 마크다운 원문이 아니라 최종 모습으로 바로 보이는 캔버스가 기본이 됐다.
     /// 복귀 경로 둘: 설정의 '실험' 토글(@AppStorage "legacyEditorEnabled", 실기기·릴리스 포함) 또는

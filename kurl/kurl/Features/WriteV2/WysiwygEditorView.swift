@@ -100,6 +100,7 @@ struct WysiwygEditorView: View {
                 block: block,
                 isFocused: document.focus?.blockID == block.id,
                 onAltChange: { document.updateText(block.id, $0) },
+                onDelete: { deleteImage(block.id) },
                 onFocused: { document.focus = EditorFocus(blockID: block.id, caret: 0) }
             )
         case .table:
@@ -110,6 +111,8 @@ struct WysiwygEditorView: View {
                 onAddRow: { document.addTableRow(block.id) },
                 onAddColumn: { document.addTableColumn(block.id) },
                 onAlignColumn: { document.cycleTableColumnAlignment(block.id, col: $0) },
+                onDeleteRow: { deleteTableRow(block.id) },
+                onDeleteColumn: { deleteTableColumn(block.id) },
                 onFocused: { document.focus = EditorFocus(blockID: block.id, caret: 0) }
             )
         default:
@@ -145,6 +148,13 @@ struct WysiwygEditorView: View {
             isFocused: isFocused,
             caretOnFocus: isFocused ? (document.focus?.caret ?? 0) : 0,
             selectionLengthOnFocus: isFocused ? (document.focus?.selectionLength ?? 0) : 0,
+            // 툴바 서식 직후 1회 마커 숨김(B1) — 이 블록이 억제 대상이면 렌더가 반개봉을 건너뛴다.
+            suppressRevealOnce: document.suppressRevealOnceBlockID == block.id,
+            onRevealSuppressConsumed: {
+                if document.suppressRevealOnceBlockID == block.id {
+                    document.suppressRevealOnceBlockID = nil
+                }
+            },
             onTextChange: { document.updateText(block.id, $0) },
             onSplit: { document.splitBlock(block.id, at: $0) },
             onMergeBackward: { document.mergeBackward(block.id) },
@@ -164,6 +174,31 @@ struct WysiwygEditorView: View {
             },
             pasteHandlers: pasteHandlers
         )
+    }
+
+    /// 표 행 삭제 + 되돌리기 토스트 — EditorDocument 엔 undo 스택이 없어 스냅샷 복원으로 되돌린다
+    /// (레거시 TableActionBar 의 실행취소 토스트 문법 미러). 지운 게 없으면 조용히 무동작.
+    private func deleteTableRow(_ id: UUID) {
+        guard let before = document.tableSnapshot(id), document.deleteTableRow(id) else { return }
+        ToastCenter.shared.show(String(localized: "행을 지웠어요"), actionLabel: String(localized: "실행취소")) {
+            document.restoreTable(id, to: before)
+        }
+    }
+
+    /// 표 열 삭제 + 되돌리기 토스트 — 위와 동일(스냅샷 복원).
+    private func deleteTableColumn(_ id: UUID) {
+        guard let before = document.tableSnapshot(id), document.deleteTableColumn(id) else { return }
+        ToastCenter.shared.show(String(localized: "열을 지웠어요"), actionLabel: String(localized: "실행취소")) {
+            document.restoreTable(id, to: before)
+        }
+    }
+
+    /// 이미지 블록 삭제 + 되돌리기 토스트 — 지운 블록을 원래 자리에 되돌린다(레거시 removeImage 미러).
+    private func deleteImage(_ id: UUID) {
+        guard let removed = document.removeBlock(id) else { return }
+        ToastCenter.shared.show(String(localized: "이미지를 지웠어요"), actionLabel: String(localized: "실행취소")) {
+            document.restoreBlock(removed.block, afterId: removed.afterId)
+        }
     }
 
     private func verticalPadding(for kind: EditorBlockKind) -> CGFloat {
