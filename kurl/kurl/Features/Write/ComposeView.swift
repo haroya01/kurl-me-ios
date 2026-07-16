@@ -708,6 +708,8 @@ struct ComposeView: View {
                             .padding(.vertical, 14)
                             .frame(minHeight: 48)
                             .background(GlassTokens.prominentTint, in: Capsule())
+                            // 캡슐 버튼 전수 규칙(#185): 라벨에 contentShape 명시 — 여백부 탭 보장.
+                            .contentShape(Capsule())
                     }
                     .buttonStyle(.plain)
                     .disabled((status != "PUBLISHED" ? !canPublish : !canSave) || busy)
