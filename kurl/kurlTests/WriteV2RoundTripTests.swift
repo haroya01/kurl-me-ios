@@ -783,4 +783,115 @@ final class WriteV2RoundTripTests: XCTestCase {
             XCTAssertEqual(MarkdownSerializer.markdown(from: MarkdownBlockParser.parse(md)), md)
         }
     }
+
+    // MARK: 취소선 (레거시 파리티)
+
+    /// ~~취소선~~ 은 GFM 표준 — 감싸기 후 왕복이 고정점(text=마크다운 원문).
+    func testStrikethroughWrapRoundTrips() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.paragraph("지운다")])
+            let id = doc.blocks[0].id
+            doc.focus = EditorFocus(blockID: id, caret: 0, selectionLength: 3)
+            doc.wrapFocusedSelection(with: "~~")
+            XCTAssertEqual(doc.blocks[0].text, "~~지운다~~")
+            let md = doc.markdown
+            XCTAssertEqual(MarkdownSerializer.markdown(from: MarkdownBlockParser.parse(md)), md)
+        }
+    }
+
+    /// 렌더러가 ~~ 을 그은 줄로 처리한다 — 마커는 숨기고 inner 에 strikethroughStyle.
+    func testStrikethroughRendersStruckAndHidesMarkers() async {
+        await MainActor.run {
+            let block = EditorBlock.paragraph("앞 ~~중간~~ 뒤")
+            let attributed = BlockInlineRenderer.render(block)
+            let ns = attributed.string as NSString
+            let innerRange = ns.range(of: "중간")
+            XCTAssertNotEqual(innerRange.location, NSNotFound)
+            let style = attributed.attribute(.strikethroughStyle, at: innerRange.location, effectiveRange: nil)
+            XCTAssertEqual(style as? Int, NSUnderlineStyle.single.rawValue, "취소선 스타일 미적용")
+            // 캐럿 없으면(activeRange nil) 마커 `~~` 는 숨김(clear).
+            let markerLoc = ns.range(of: "~~").location
+            let markerColor = attributed.attribute(.foregroundColor, at: markerLoc, effectiveRange: nil) as? UIColor
+            XCTAssertEqual(markerColor, UIColor.clear, "마커가 숨겨지지 않음")
+        }
+    }
+
+    // MARK: 표 행/열 삭제 (레거시 파리티)
+
+    /// 본문 행 삭제 — 헤더는 보호, 본문 1행은 남긴다. 마지막 본문 행이면 삭제 거부(false).
+    func testDeleteTableRowProtectsHeaderAndLastBodyRow() async {
+        await MainActor.run {
+            // 헤더 + 본문 2행(총 3행).
+            let table = EditorTable(
+                rows: [["A", "B"], ["1", "2"], ["3", "4"]], alignments: [.leading, .leading])
+            let doc = EditorDocument(blocks: [.table(table)])
+            let id = doc.blocks[0].id
+            XCTAssertTrue(doc.deleteTableRow(id), "본문 2행일 때 삭제 가능해야")
+            if case .table(let t) = doc.blocks[0].kind {
+                XCTAssertEqual(t.rows.count, 2, "헤더+본문1행 남아야")
+                XCTAssertEqual(t.rows[0], ["A", "B"], "헤더 보존")
+            } else { XCTFail("표가 아님") }
+            // 이제 본문 1행 — 더 못 지운다.
+            XCTAssertFalse(doc.deleteTableRow(id), "마지막 본문 행은 보호")
+        }
+    }
+
+    /// 열 삭제 — 마지막 한 열은 보호. 정렬 배열도 함께 준다.
+    func testDeleteTableColumnProtectsLastColumn() async {
+        await MainActor.run {
+            let table = EditorTable(
+                rows: [["A", "B"], ["1", "2"]], alignments: [.leading, .center])
+            let doc = EditorDocument(blocks: [.table(table)])
+            let id = doc.blocks[0].id
+            XCTAssertTrue(doc.deleteTableColumn(id), "2열일 때 삭제 가능해야")
+            if case .table(let t) = doc.blocks[0].kind {
+                XCTAssertEqual(t.columnCount, 1, "1열 남아야")
+                XCTAssertEqual(t.rows[0], ["A"], "마지막 열 제거")
+                XCTAssertEqual(t.alignments.count, 1, "정렬도 함께 제거")
+            } else { XCTFail("표가 아님") }
+            XCTAssertFalse(doc.deleteTableColumn(id), "마지막 열은 보호")
+        }
+    }
+
+    /// 삭제 스냅샷 복원 — 되돌리기 토스트가 원상복구할 수 있다.
+    func testTableSnapshotRestoresAfterDelete() async {
+        await MainActor.run {
+            let table = EditorTable(
+                rows: [["A", "B"], ["1", "2"], ["3", "4"]], alignments: [.leading, .leading])
+            let doc = EditorDocument(blocks: [.table(table)])
+            let id = doc.blocks[0].id
+            let snapshot = doc.tableSnapshot(id)
+            XCTAssertNotNil(snapshot)
+            _ = doc.deleteTableRow(id)
+            doc.restoreTable(id, to: snapshot!)
+            if case .table(let t) = doc.blocks[0].kind {
+                XCTAssertEqual(t.rows.count, 3, "복원 후 3행")
+            } else { XCTFail("표가 아님") }
+        }
+    }
+
+    // MARK: 이미지 폭 마커 (레거시 파리티)
+
+    /// 폭 마커(`«wide»`)를 alt 앞에 담아 왕복 — `![«wide» alt](url)` 고정점.
+    func testImageWidthMarkerRoundTrips() {
+        let md = "![«wide» 다이어그램](https://example.com/a.png)"
+        let blocks = MarkdownBlockParser.parse(md)
+        XCTAssertEqual(blocks.count, 1)
+        if case .image(let url) = blocks[0].kind {
+            XCTAssertEqual(url, "https://example.com/a.png")
+            XCTAssertEqual(blocks[0].text, "«wide» 다이어그램", "폭 마커가 alt 에 보존")
+        } else { XCTFail("이미지 블록이 아님") }
+        XCTAssertEqual(MarkdownSerializer.markdown(from: blocks), md, "폭 마커 왕복 고정점")
+    }
+
+    /// parseImageAlt 이 폭·순수 alt 를 가른다(에디터 UI 가 alt 필드엔 순수 alt 만 보이게).
+    func testParseImageAltSplitsWidthAndAlt() {
+        let (width, alt) = DraftPreviewBlocks.parseImageAlt("«half» 캡션 텍스트")
+        XCTAssertEqual(width, "half")
+        XCTAssertEqual(alt, "캡션 텍스트")
+        // 마커 없으면 폭 nil.
+        let (w2, a2) = DraftPreviewBlocks.parseImageAlt("그냥 설명")
+        XCTAssertNil(w2)
+        XCTAssertEqual(a2, "그냥 설명")
+    }
 }

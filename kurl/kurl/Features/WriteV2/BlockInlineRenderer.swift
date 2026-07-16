@@ -93,7 +93,7 @@ enum BlockInlineRenderer {
         func touches(_ span: NSRange) -> Bool {
             caret >= span.location && caret <= span.location + span.length
         }
-        for regex in [codeRegex, linkRegex, boldRegex, italicRegex] {
+        for regex in [codeRegex, linkRegex, boldRegex, italicRegex, strikeRegex] {
             var found: NSRange?
             enumerate(regex, ns, full) { m in
                 if found == nil, touches(m.range) { found = m.range }
@@ -168,6 +168,14 @@ enum BlockInlineRenderer {
             }
             markersAround(s, span: m.range, inner: inner, activeRange: activeRange)
         }
+        // ~~취소선~~ — 코드·링크(url) 범위와 겹치면 건너뜀. 그은 줄 + 옅은 색(레거시 하이라이터 미러).
+        enumerate(Self.strikeRegex, ns, full) { m in
+            if intersectsAny(m.range, codeRanges) || intersectsAny(m.range, linkRanges) { return }
+            let inner = m.range(at: 1)
+            s.addAttribute(.strikethroughStyle, value: NSUnderlineStyle.single.rawValue, range: inner)
+            s.addAttribute(.foregroundColor, value: UIColor(Palette.secondary), range: inner)
+            markersAround(s, span: m.range, inner: inner, activeRange: activeRange)
+        }
     }
 
     private static func addTrait(
@@ -235,6 +243,7 @@ enum BlockInlineRenderer {
     private static let codeRegex = make("`([^`\\n]+)`")
     private static let boldRegex = make("\\*\\*([^*\\n]+)\\*\\*")
     private static let italicRegex = make("(?<![*\\w])\\*([^*\\n]+)\\*(?![*\\w])")
+    private static let strikeRegex = make("~~([^~\\n]+)~~")
     private static let linkRegex = make("\\[([^\\]\\n]+)\\]\\([^)\\n]+\\)")
     /// 맨 URL — `](` 바로 뒤(마크다운 링크의 url 부분)가 아니어야 한다. 끝은 공백·`)`·`]`·`<`·`>` 전까지.
     private static let bareURLRegex = make("(?<!\\]\\()https?://[^\\s<>\\)\\]]+")
