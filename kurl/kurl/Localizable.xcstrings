@@ -2606,6 +2606,34 @@
         }
       }
     },
+    "계속 당기면 다음 편": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep pulling for the next part"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "खींचते रहें, अगले भाग के लिए"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "さらに引っ張ると次の話へ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kéo tiếp để xem phần tiếp theo"
+          }
+        }
+      }
+    },
     "계속하면 [이용약관](%@)과 [개인정보 처리방침](%@)에 동의하는 것으로 간주됩니다.": {
       "localizations": {
         "en": {
@@ -6027,6 +6055,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Phần tiếp theo — %@"
+          }
+        }
+      }
+    },
+    "다음 편 없음": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No next part"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कोई अगला भाग नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "次の話なし"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không có phần tiếp theo"
           }
         }
       }
@@ -11991,6 +12047,34 @@
         }
       }
     },
+    "시리즈의 마지막 회차예요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You're on the last part of the series"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह शृंखला का अंतिम भाग है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "シリーズの最終話です"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đây là phần cuối của loạt bài"
+          }
+        }
+      }
+    },
     "시스템 설정에서 켤 수 있어요": {
       "localizations": {
         "en": {
@@ -15905,6 +15989,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tên cũ được giữ trong 30 ngày nên liên kết hiện tại không bị hỏng ngay."
+          }
+        }
+      }
+    },
+    "이전 편 — %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Previous part — %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पिछला भाग — %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前の話 — %@"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phần trước — %@"
+          }
+        }
+      }
+    },
+    "이전 편 없음": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No previous part"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कोई पिछला भाग नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前の話なし"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không có phần trước"
           }
         }
       }

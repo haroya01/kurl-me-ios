@@ -617,6 +617,46 @@ enum MockBackend {
         return out
     }
 
+    /// 시리즈 회차 픽스처 — ep-1…ep-6. 회차 nav(position/total/prev/next)를 slug 로 계산해
+    /// "끝에서 이어 당기기"·배너 이전/다음·마지막 회차 폴백을 결정론적으로 검증한다.
+    private static let episodeTitles = [
+        "포트와 어댑터", "도메인을 안으로", "의존성 뒤집기",
+        "어댑터 구현", "테스트 전략", "마이그레이션",
+    ]
+
+    private static func seriesEpisodeNav(slug: String) -> [String: Any]? {
+        guard slug.hasPrefix("ep-"), let n = Int(slug.dropFirst(3)),
+              n >= 1, n <= episodeTitles.count else { return nil }
+        let i = n - 1
+        func link(_ idx: Int) -> [String: Any] {
+            ["slug": "ep-\(idx + 1)", "title": episodeTitles[idx]]
+        }
+        var nav: [String: Any] = [
+            "slug": "hexagonal", "title": "헥사고날 전환기",
+            "position": n, "total": episodeTitles.count,
+        ]
+        nav["prev"] = i > 0 ? link(i - 1) : NSNull()
+        nav["next"] = i < episodeTitles.count - 1 ? link(i + 1) : NSNull()
+        return nav
+    }
+
+    /// 회차 본문 — 화면보다 길어야 스크롤·오버스크롤 당김이 성립한다(문단 여럿).
+    private static func episodeBlocks(slug: String) -> [[String: Any]] {
+        let n = Int(slug.dropFirst(3)) ?? 1
+        let idx = min(max(n - 1, 0), episodeTitles.count - 1)
+        let title = episodeTitles[idx]
+        return ordered([
+            ["type": "H1", "content": "\(n)편 — \(title)"],
+            ["type": "PARAGRAPH", "content": "이 회차는 시리즈 '헥사고날 전환기'의 \(n)번째 글이다. 끝까지 읽고 위로 더 당기면 다음 편이 아래에서 딸려 올라온다."],
+            ["type": "PARAGRAPH", "content": "레이어드 구조로 3년을 버텼다. 컨트롤러-서비스-리포지토리, 익숙한 삼층. 문제는 코드가 늘면서 '서비스'가 만물상이 된 거였다. 도메인 규칙과 트랜잭션 경계와 외부 API 호출이 한 클래스에 뒤섞였고, 단위 테스트 한 줄을 돌리려고 스프링 컨텍스트를 통째로 띄우고 있었다."],
+            ["type": "H2", "content": "경계를 먼저"],
+            ["type": "PARAGRAPH", "content": "어댑터부터 짜고 싶은 충동을 눌렀다. 도메인이 바깥에서 무엇을 기대하는지 — 그 인터페이스(포트)부터 이름을 지었다. 이름이 곧 경계였다. 포트 이름을 짓다 보면 '이건 도메인이 알 바 아니다' 싶은 것이 드러난다."],
+            ["type": "QUOTE", "content": "경계가 없으면 모든 변경이 전역 변경이 된다."],
+            ["type": "PARAGRAPH", "content": "그걸 바깥으로 밀어내는 게 작업의 절반이었다. 나머지 절반은 그 결정을 팀이 납득하게 만드는 일이었고. 세 달이 지난 지금, 다시 돌아가라면 또 갈아탄다."],
+            ["type": "PARAGRAPH", "content": "다만 첫 두 주에 들인 비용을 미리 알았다면, 훨씬 더 작게 시작했을 것이다. 가장 아픈 슬라이스부터, 거기서만 경계를 그어 보라. 석 달 전의 나에게 해주고 싶은 말이다."],
+        ])
+    }
+
     /// 카드 소속 배치 목 — 잘 알려진 목 피드 글 id 에 소속 공개 컬렉션을 매핑한다. 한 컬렉션(단수 카피)과
     /// 여러 컬렉션(복수 "외 N개") 두 경우를 다 그려 보이게 섞는다. 소속 없는 글은 여기 없다(호출측은 빈 배열).
     private static func postCollectionsMock() -> [[String: Any]] {
@@ -1174,19 +1214,24 @@ enum MockBackend {
             let username = parts[2]
             let slug = parts[4]
             let article = articles.first { $0.slug == slug }
-            let blocks = article?.blocks ?? ordered([
+            // 시리즈 회차(ep-1…ep-6) 는 본문 + 회차 nav(position/total/prev/next)를 실어 준다 —
+            // 끝에서 이어 당기기·배너 이전/다음 검증용 결정론적 픽스처.
+            let seriesNav = seriesEpisodeNav(slug: slug)
+            let blocks = article?.blocks ?? (seriesNav != nil
+                ? episodeBlocks(slug: slug) : ordered([
                 ["type": "H1", "content": "헥사고날로 가는 길"],
                 ["type": "PARAGRAPH", "content": "레이어드에서 갈아탄 이유와 그 결정의 기록."],
                 ["type": "H2", "content": "포트와 어댑터"],
                 ["type": "PARAGRAPH", "content": "경계를 먼저 긋고, 구현은 그 바깥으로 민다."],
-            ])
+            ]))
             return json([
                 "author": [
                     "id": username == "honggildong" ? 1 : 2, "username": username,
                     "bio": NSNull(), "avatarUrl": NSNull(),
                 ],
                 "post": [
-                    "id": 8201, "slug": slug, "title": article?.title ?? "헥사고날로 가는 길",
+                    "id": 8201, "slug": slug,
+                    "title": seriesNav?["title"] as? String ?? article?.title ?? "헥사고날로 가는 길",
                     "excerpt": article?.excerpt ?? "경계를 긋는 이야기",
                     "ogImageUrl": NSNull(), "languageTag": "ko",
                     "tags": article?.tags ?? ["아키텍처"], "likeCount": article?.likeCount ?? 8,
@@ -1195,7 +1240,7 @@ enum MockBackend {
                         -(article?.daysAgo ?? 1) * 86_400)),
                 ],
                 "blocks": blocks,
-                "series": NSNull(),
+                "series": seriesNav.map { $0 as Any } ?? NSNull(),
             ])
         }
 

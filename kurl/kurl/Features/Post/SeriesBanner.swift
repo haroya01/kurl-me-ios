@@ -12,6 +12,9 @@ struct SeriesBanner: View {
     let nav: PostSeriesNav
     let username: String
     let currentSlug: String
+    /// 회차 전환 — 이전/다음 버튼이 끝에서 당기기와 같은 제자리 교체를 쓴다(가로 슬라이드 금지).
+    /// nil 이면(덱 임베드 등) 버튼을 감춘다.
+    var goToEpisode: ((String) -> Void)? = nil
 
     @State private var expanded = false
     @State private var episodes: [PostListItem]?
@@ -52,22 +55,32 @@ struct SeriesBanner: View {
                 .accessibilityHidden(true)
             }
 
-            Button {
-                toggle()
-            } label: {
-                HStack(spacing: 4) {
-                    Text("이 시리즈의 글")
-                        .typeScale(.meta)
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 10 * metaUnit, weight: .semibold))
-                        .rotationEffect(.degrees(expanded ? 180 : 0))
+            HStack(spacing: 0) {
+                Button {
+                    toggle()
+                } label: {
+                    HStack(spacing: 4) {
+                        Text("이 시리즈의 글")
+                            .typeScale(.meta)
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 10 * metaUnit, weight: .semibold))
+                            .rotationEffect(.degrees(expanded ? 180 : 0))
+                    }
+                    .foregroundStyle(expanded ? Palette.link : Palette.secondary)
+                    .expandTapTarget()
                 }
-                .foregroundStyle(expanded ? Palette.link : Palette.secondary)
-                .expandTapTarget()
+                .buttonStyle(.plain)
+                .accessibilityLabel(expanded ? Text("회차 목록 접기") : Text("회차 목록 펼치기"))
+
+                Spacer(minLength: 8)
+
+                // 이전/다음 회차 — 끝에서 당기기와 같은 제자리 교체(가로 슬라이드 금지). 없는 방향은 비활성.
+                if goToEpisode != nil {
+                    episodeArrow(systemName: "chevron.left", link: nav.prev, label: "이전 편")
+                    episodeArrow(systemName: "chevron.right", link: nav.next, label: "다음 편")
+                }
             }
-            .buttonStyle(.plain)
             .padding(.top, 10)
-            .accessibilityLabel(expanded ? Text("회차 목록 접기") : Text("회차 목록 펼치기"))
 
             if expanded {
                 episodeList
@@ -125,6 +138,23 @@ struct SeriesBanner: View {
         .accessibilityLabel(current ? Text("\(index + 1)편 — \(title), 현재 글") : Text("\(index + 1)편 — \(title)"))
     }
 
+    /// 배너의 이전/다음 회차 원형 버튼 — 링크가 있으면 goToEpisode 로 제자리 교체, 없으면(끝) 비활성.
+    @ViewBuilder
+    private func episodeArrow(systemName: String, link: PostSeriesNav.NavLink?, label: String) -> some View {
+        Button {
+            if let link { goToEpisode?(link.slug) }
+        } label: {
+            Image(systemName: systemName)
+                .font(.system(size: 13 * metaUnit, weight: .semibold))
+                .foregroundStyle(link != nil ? Palette.link : Palette.faint)
+                .frame(width: 34, height: 34)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .disabled(link == nil)
+        .accessibilityLabel(link != nil ? Text("\(label) — \(link!.title)") : Text("\(label) 없음"))
+    }
+
     private func toggle() {
         withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) {
             expanded.toggle()
@@ -147,6 +177,9 @@ struct SeriesBanner: View {
 struct SeriesNextCard: View {
     let nav: PostSeriesNav
     let username: String
+    /// 다음 편 카드 탭도 끝에서 당기기·배너 버튼과 같은 제자리 교체를 쓴다(가로 슬라이드 금지).
+    /// nil 이면(덱 등) 링크 푸시로 폴백.
+    var goToEpisode: ((String) -> Void)? = nil
 
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
@@ -156,8 +189,38 @@ struct SeriesNextCard: View {
                 .padding(.bottom, 6)
 
             if let next = nav.next {
-                NavigationLink(value: Route.post(username: username, slug: next.slug)) {
-                    VStack(alignment: .leading, spacing: 8) {
+                nextEpisodeButton(next)
+            }
+
+            NavigationLink(value: Route.series(username: username, slug: nav.slug)) {
+                Text("시리즈 전체 보기 (\(nav.total)편)")
+                    .typeScale(.footnote)
+                    .foregroundStyle(Palette.secondary)
+                    .expandTapTarget()
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.top, 14)
+    }
+
+    /// 다음 편 카드 내용 — goToEpisode 가 있으면 버튼(제자리 교체), 없으면 NavigationLink(푸시).
+    @ViewBuilder
+    private func nextEpisodeButton(_ next: PostSeriesNav.NavLink) -> some View {
+        if let go = goToEpisode {
+            Button { go(next.slug) } label: { nextEpisodeLabel(next) }
+                .buttonStyle(RowButtonStyle())
+                .accessibilityLabel("다음 편 — \(next.title)")
+        } else {
+            NavigationLink(value: Route.post(username: username, slug: next.slug)) {
+                nextEpisodeLabel(next)
+            }
+            .buttonStyle(RowButtonStyle())
+            .accessibilityLabel("다음 편 — \(next.title)")
+        }
+    }
+
+    private func nextEpisodeLabel(_ next: PostSeriesNav.NavLink) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
                         Text("다음 편")
                             .typeScale(.eyebrow)
                             .foregroundStyle(Palette.link)
@@ -178,26 +241,12 @@ struct SeriesNextCard: View {
                                 .foregroundStyle(Palette.faint)
                         }
                     }
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous)
-                            .stroke(Palette.cardBorder, lineWidth: 1)
-                    )
-                    .contentShape(RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous))
-                }
-                .buttonStyle(RowButtonStyle())
-                .accessibilityLabel("다음 편 — \(next.title)")
-            }
-
-            NavigationLink(value: Route.series(username: username, slug: nav.slug)) {
-                Text("시리즈 전체 보기 (\(nav.total)편)")
-                    .typeScale(.footnote)
-                    .foregroundStyle(Palette.secondary)
-                    .expandTapTarget()
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.top, 14)
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous)
+                .stroke(Palette.cardBorder, lineWidth: 1)
+        )
+        .contentShape(RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous))
     }
 }
