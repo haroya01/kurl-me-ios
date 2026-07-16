@@ -135,6 +135,8 @@ struct ConnectSheet: View {
     }
 
     private var nextButton: some View {
+        // 유리는 라벨이 아니라 버튼 바깥, 라벨엔 contentShape — 유리를 라벨 안에 두면 캡슐의
+        // 여백부가 히트테스트에서 빠져 "안 눌리는 버튼"이 된다(구독 캡슐과 같은 검증된 문법).
         NavigationLink {
             step2
         } label: {
@@ -143,9 +145,10 @@ struct ConnectSheet: View {
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .glassCapsule(prominent: true)
+                .contentShape(Capsule())
         }
         .buttonStyle(.plain)
+        .glassCapsule(prominent: true)
         .disabled(selected.isEmpty)
         .opacity(selected.isEmpty ? 0.5 : 1)
         .padding(.top, 12)
@@ -368,9 +371,10 @@ struct ConnectSheet: View {
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
-            .glassCapsule(prominent: true)
+            .contentShape(Capsule())
         }
         .buttonStyle(.plain)
+        .glassCapsule(prominent: true)
         .disabled(saving || selected.isEmpty)
         .opacity(selected.isEmpty ? 0.5 : 1)
         .padding(.top, 12)

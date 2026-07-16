@@ -91,9 +91,10 @@ struct EditSeriesSheet: View {
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .glassCapsule(prominent: true)
+                .contentShape(Capsule())
             }
             .buttonStyle(.plain)
+            .glassCapsule(prominent: true)
             .disabled(!canSave)
             .opacity(canSave ? 1 : 0.5)
             .padding(.bottom, 16)

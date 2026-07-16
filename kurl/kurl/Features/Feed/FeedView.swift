@@ -534,9 +534,10 @@ struct FeedPlaceholder: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 22)
                     .padding(.vertical, 12)
-                    .glassCapsule(prominent: true)
+                    .contentShape(Capsule())
             }
             .buttonStyle(.plain)
+            .glassCapsule(prominent: true)
         } else {
             Button(action: action) {
                 HStack(spacing: 3) {
