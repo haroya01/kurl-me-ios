@@ -19,15 +19,10 @@ struct BlockedUsersView: View {
                 KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 240)
             } else if failed && BlockStore.shared.blocked.isEmpty {
-                ContentUnavailableView {
-                    Label(String(localized: "불러오지 못했습니다"), systemImage: "wifi.exclamationmark")
-                } description: {
-                    Text("연결을 확인하고 다시 시도해 주세요.")
-                } actions: {
-                    Button(String(localized: "다시 시도")) { Task { await load() } }
-                        .foregroundStyle(Palette.link)
-                }
-                .padding(.top, 60)
+                ErrorState(
+                    message: String(localized: "연결을 확인하고 다시 시도해 주세요."),
+                    retry: { Task { await load() } })
+                    .padding(.top, 60)
             } else if BlockStore.shared.blocked.isEmpty {
                 ContentUnavailableView {
                     Label("차단한 사용자가 없어요", systemImage: "hand.raised")

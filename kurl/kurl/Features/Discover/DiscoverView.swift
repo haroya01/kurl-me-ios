@@ -202,13 +202,8 @@ struct DiscoverView: View {
             KurlLoadingMark()
                 .frame(maxWidth: .infinity, minHeight: 320)
         } else if hlFailed {
-            ContentUnavailableView {
-                Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
-            } actions: {
-                Button("다시 시도") { Task { await loadHighlights(force: true) } }
-                    .foregroundStyle(Palette.link)
-            }
-            .padding(.top, 60)
+            ErrorState(retry: { Task { await loadHighlights(force: true) } })
+                .padding(.top, 60)
         } else if highlights.isEmpty {
             // 막다른 길 금지 — 팔로우한 큐레이터가 밑줄 치면 흐른다. 연결 흐름으로 이어준다.
             ContentUnavailableView {
@@ -320,13 +315,8 @@ struct DiscoverView: View {
     }
 
     private var failedState: some View {
-        ContentUnavailableView {
-            Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
-        } actions: {
-            Button("다시 시도") { Task { await load() } }
-                .foregroundStyle(Palette.link)
-        }
-        .padding(.top, 80)
+        ErrorState(retry: { Task { await load() } })
+            .padding(.top, 80)
     }
 }
 

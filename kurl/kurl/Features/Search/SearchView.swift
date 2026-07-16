@@ -46,14 +46,7 @@ struct SearchView: View {
                 case .loaded(let items):
                     results(items)
                 case .failed(let message):
-                    ContentUnavailableView {
-                        Label("불러오지 못했습니다", systemImage: "wifi.exclamationmark")
-                    } description: {
-                        Text(message)
-                    } actions: {
-                        Button("다시 시도") { runSearch(query) }
-                            .foregroundStyle(Palette.link)
-                    }
+                    ErrorState(message: message, retry: { runSearch(query) })
                 }
             }
             // 스크롤을 내리면 탭바가 사라지고 올리면 돌아온다(스레드식) — 활성 스크롤 표면을 관측.
