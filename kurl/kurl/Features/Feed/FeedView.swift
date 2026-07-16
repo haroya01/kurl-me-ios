@@ -569,10 +569,15 @@ private struct FeedSeriesCard: View {
     let author: Author
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var idx = 0
+    // 방금 떠난 장 — 넘김이 "카드 넘어가듯" 방향성 슬라이드로 보이게, 나가는 장은 왼쪽으로
+    // 미세하게 밀려 나가고(페이드 아웃) 새 장은 오른쪽에서 들어온다. 순환이라 항상 전진 방향.
+    @State private var prevIdx = 0
     // 모든 장이 ZStack 에 살아 있어(크로스페이드용) 숨은 장의 커버까지 즉시 받게 된다 —
     // 커버 로드는 현재 장 + 다음 장만 켜고, 한 번 켠 장은 유지해 페이드아웃 중
     // 이미지가 placeholder 로 되돌아가지 않게 한다.
     @State private var imagePages: Set<Int> = [0, 1]
+    // 슬라이드 이동량 — §10 절제(카드 폭 전체 활주는 과하다). 들고 나는 장이 살짝 미끄러지는 정도.
+    private let slideInset: CGFloat = 26
     // 하드코딩 크기가 Dynamic Type 를 무시하던 것 — 텍스트 스타일에 묶어 글자 크기 설정을 따른다.
     // (우상단의 148pt 장식 mono 번호만 고정 — 레이아웃을 이루는 배경 장식이라 스케일 제외.)
     @ScaledMetric(relativeTo: .caption) private var seriesNameSize: CGFloat = 12
@@ -586,11 +591,16 @@ private struct FeedSeriesCard: View {
         // 새로고침이 series 를 편수 적은 것으로 교체해도 @State idx 는 살아남는다 — 범위 밖이면
         // 모든 장이 opacity 0(빈 카드)이 되므로 표시 인덱스를 클램프해 항상 한 장은 보이게.
         let shown = min(idx, n - 1)
+        let prevShown = min(prevIdx, n - 1)
         ZStack(alignment: .topTrailing) {
-            // 에피소드 페이지들 — 앞장만 보이고 넘김은 크로스페이드.
+            // 에피소드 페이지들 — 앞장만 보이고, 넘김은 방향성 슬라이드+크로스페이드.
+            // 쉬는 장은 오른쪽(+inset)에서 대기하다 보여질 때 0으로 미끄러져 들어오고,
+            // 방금 떠난 장만 왼쪽(-inset)으로 밀려 나간다 — "카드 한 장 넘어가듯". reduce-motion 은
+            // 이동량 0 이라 기존 크로스페이드만 남는다.
             ForEach(Array(posts.enumerated()), id: \.offset) { i, ep in
                 episodePage(index: i, ep: ep, loadImage: imagePages.contains(i))
                     .opacity(i == shown ? 1 : 0)
+                    .offset(x: reduceMotion ? 0 : pageOffset(i, shown: shown, prevShown: prevShown))
             }
             // 카드 전체 탭 → 시리즈 상세(투명 링크가 비주얼 위에 깔린다).
             NavigationLink(value: Route.series(username: author.username, slug: series.slug)) {
@@ -604,7 +614,9 @@ private struct FeedSeriesCard: View {
                     let next = (shown + 1) % n
                     imagePages.insert(next)
                     if next + 1 < n { imagePages.insert(next + 1) }
-                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.45)) {
+                    // 떠나는 장을 기억해 그 장만 왼쪽으로 밀어낸다(나머지 쉬는 장은 오른쪽 대기).
+                    prevIdx = shown
+                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.42)) {
                         idx = next
                     }
                 } label: {
@@ -631,6 +643,14 @@ private struct FeedSeriesCard: View {
         .sensoryFeedback(.selection, trigger: idx)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text("시리즈 \(series.title), \(series.postCount)편"))
+    }
+
+    /// 장의 수평 위치 — 보이는 장은 중앙(0), 방금 떠난 장은 왼쪽(-inset)으로 밀려 나가고,
+    /// 그 밖의 쉬는 장은 오른쪽(+inset)에 대기해 다음에 보여질 때 오른쪽에서 미끄러져 들어온다.
+    private func pageOffset(_ i: Int, shown: Int, prevShown: Int) -> CGFloat {
+        if i == shown { return 0 }
+        if i == prevShown { return -slideInset }
+        return slideInset
     }
 
     private func episodePage(index i: Int, ep: SeriesPostRef, loadImage: Bool) -> some View {
