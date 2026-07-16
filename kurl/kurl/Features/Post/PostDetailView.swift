@@ -13,6 +13,7 @@ struct PostDetailView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// 커스텀 하단 탭바 숨김 상태 — 독이 탭바에 가리지 않게 예약 높이만큼 띄우되, 탭바가 스크롤로
     /// 사라지면 그 여백을 걷어 독이 허공에 뜨지 않게 한다(단독 상세에서만 있고, 덱 임베드엔 nil).
     @Environment(\.tabBarVisibility) private var tabBarVisibility
@@ -151,6 +152,10 @@ struct PostDetailView: View {
                     .frame(maxWidth: Metrics.readingColumn)
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, Metrics.gutter)
+                    // 접근성 크기에선 한 줄이 예닐곱 자라 우측에 뜬 인게이지 독(52pt 원판)이
+                    // 글자를 정통으로 가린다 — 독 폭만큼 본문을 비켜 감는다. 평상 크기에선
+                    // 문단 오른끝 여백이 자연 완충이라 그대로 둔다.
+                    .padding(.trailing, dynamicTypeSize.isAccessibilitySize ? 56 : 0)
                     // 본문 문단이 선택→하이라이트 + 공개 하이라이트 페인트를 띄울 수 있게.
                     .environment(\.postHighlightStore, highlights)
                 }

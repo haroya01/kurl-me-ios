@@ -36,6 +36,7 @@ struct ConnectSheet: View {
     /// 해제 성공 햅틱(가벼운 임팩트) — 연결과 결이 다른 되돌림이라 별도 트리거.
     @State private var didDisconnect = 0
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
@@ -224,9 +225,15 @@ struct ConnectSheet: View {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 13 * metaUnit, weight: .semibold))
                     .foregroundStyle(Palette.accent)
-                Text("연결됨")
-                    .typeScale(.meta)
-                    .foregroundStyle(Palette.secondary)
+                    .accessibilityLabel(Text("연결됨"))
+                // 접근성 크기에선 "연결됨"이 두 줄로 쪼개져 "해제"에 붙는다 — 초록 체크가
+                // 이미 상태를 말하므로 라벨은 접고 마커만 남긴다(VoiceOver 는 위 라벨로 유지).
+                if !dynamicTypeSize.isAccessibilitySize {
+                    Text("연결됨")
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.secondary)
+                        .lineLimit(1)
+                }
             }
             Button {
                 Task { await disconnect(c.id) }

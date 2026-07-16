@@ -139,11 +139,14 @@ struct SeriesAnalyticsDetailView: View {
                     .frame(maxHeight: .infinity, alignment: .center)
                 }
                 .frame(height: 8)
-                HStack(spacing: 12) {
+                // 접근성 크기에선 한 줄 통계가 넘쳐 숫자가 문자 단위로 쪼개졌다("26/8") —
+                // 안 맞으면 read-through 를 아랫줄로 떨어뜨린다(정보 축약 없는 리플로우).
+                let counts = HStack(spacing: 12) {
                     metaCount("person", member.uniqueReaders)
                     metaCount("eye", member.views)
                     metaCount("heart", member.likes)
-                    Spacer(minLength: 0)
+                }
+                let readThrough = Group {
                     if index < members.count - 1 {
                         let pct = member.uniqueReaders > 0
                             ? Int((Double(member.continuedToNext) / Double(member.uniqueReaders) * 100).rounded())
@@ -152,10 +155,22 @@ struct SeriesAnalyticsDetailView: View {
                             Image(systemName: "arrow.turn.down.right")
                                 .font(.system(size: 10 * metaUnit))
                             Text("다음 화 \(pct)%")
+                                .lineLimit(1)
                         }
                         .typeScale(.meta)
                         .foregroundStyle(Palette.secondary)
                         .accessibilityLabel(Text("다음 화로 \(pct)퍼센트 이어 읽음"))
+                    }
+                }
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 12) {
+                        counts
+                        Spacer(minLength: 12)
+                        readThrough
+                    }
+                    VStack(alignment: .leading, spacing: 5) {
+                        counts
+                        readThrough
                     }
                 }
             }

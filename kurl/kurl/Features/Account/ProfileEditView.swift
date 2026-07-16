@@ -14,6 +14,7 @@ struct ProfileEditView: View {
     var onSaved: () -> Void = {}
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var username = ""
     @State private var initialUsername = ""
     @State private var bio = ""
@@ -49,8 +50,12 @@ struct ProfileEditView: View {
 
             Section("사용자 이름") {
                 HStack(spacing: 1) {
-                    Text(verbatim: "blog.kurl.me/@")
+                    // 접근성 크기에선 도메인 접두가 세 줄로 감겨 입력과 겹친다 — "@"만 남긴다
+                    // (주소 맥락은 섹션 제목·아랫줄 안내가 진다). fixedSize = 접두 중간 줄바꿈 금지.
+                    Text(verbatim: dynamicTypeSize.isAccessibilitySize ? "@" : "blog.kurl.me/@")
                         .foregroundStyle(Palette.secondary)
+                        .lineLimit(1)
+                        .fixedSize()
                     TextField("username", text: $username)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
