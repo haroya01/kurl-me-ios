@@ -131,6 +131,16 @@ struct PostDetailView: View {
         return Metrics.tabBarReservedHeight
     }
 
+    /// 상단 크롬(뒤로·제목·⋯)을 하단 탭바와 동조해 숨길지 — 별도 임계값 없이 탭바의 스크롤
+    /// 신호(tabBarVisibility.hidden)를 그대로 구독한다("같이"가 요구사항). 제목이 내비바로
+    /// 스민 뒤(showNavTitle)에만 접어, 맨 위에서 뒤로 버튼이 성급히 사라지지 않게 한다. 접히면
+    /// 초록 읽기 진행 바만 남는다(진행 바는 크롬과 별개 오버레이라 그대로 최상단 고정). 뒤로가기는
+    /// 엣지 스와이프 제스처가 살아 있어 UX 문제 없다(Medium 동일 패턴). 덱 임베드는 호스트 크롬.
+    private var chromeHidden: Bool {
+        guard !embedded, showNavTitle else { return false }
+        return tabBarVisibility?.hidden ?? false
+    }
+
     // 상세 body 는 모디파이어 사슬이 길어 하나의 식으로는 타입 검사 예산을 넘는다 —
     // ScrollView + 스크롤/툴바 계열을 scrollBody 로 잘라 불투명 경계(some View)를 만들고,
     // 나머지(시트·태스크·오버레이)는 body 에서 이어 붙여 두 개의 작은 식으로 나눈다.
@@ -333,6 +343,10 @@ struct PostDetailView: View {
         // (무커버 글 진입 때 .automatic 의 반투명 내비바가 상단에 "투명한 박스"로 떴던 것 제거.)
         .toolbarBackground(
             !embedded && !showNavTitle ? .hidden : .automatic, for: .navigationBar)
+        // 아래로 읽어 내려가면 상단 크롬(뒤로·제목·⋯)도 하단 탭바와 함께 위로 걷혀 초록 진행 바만
+        // 남는다 — 위로 올리면 탭바 복귀와 동조해 돌아온다(chromeHidden 이 탭바 스크롤 신호를 그대로 탄다).
+        .toolbar(chromeHidden ? .hidden : .visible, for: .navigationBar)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: chromeHidden)
         // 뒤로가기 = 셰브론-온리 유리 원판 — "< 피드" 텍스트 꼬리 제거(스와이프 백 유지).
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)

@@ -166,4 +166,53 @@ final class TabBarMinimizeUITests: XCTestCase {
         attach("settings-child-dismissed-tabbar-restored")
         assertTabBarNavigates(app, discoverTab: discoverTab)
     }
+
+    /// 글 상세를 탭 스택 안(피드 → 카드 탭)에서 열고 아래로 읽어 내려가면 상단 크롬(뒤로·⋯)이
+    /// 하단 탭바와 함께 사라지고(초록 진행 바만 잔존), 위로 올리면 둘 다 돌아오는 동조 회귀 가드.
+    /// 크롬은 시스템 내비바라 프로브 = "더 보기"(⋯) 버튼 · 탭바 프로브 = "발견" 버튼.
+    func testPostDetailChromeHidesInSyncWithTabBar() throws {
+        let app = XCUIApplication()
+        // 추천(for-you) 피드로 바로 들어간다 — 목 피드에서 가장 긴 글(토큰이 사라진 밤)이 거기 있다.
+        // 크롬·탭바가 걷히려면 충분한 스크롤 런웨이가 필요한데 최신 피드의 글은 너무 짧다.
+        app.launchArguments = ["--mocks", "--tab", "feed", "--feed", "forYou"]
+        app.launch()
+
+        // 긴 글을 탭 스택 안에서 연다(--post 진입로는 탭바가 없어 동조를 못 탄다).
+        let card = app.scrollViews.buttons.matching(
+            NSPredicate(format: "label CONTAINS '토큰이 사라진 밤'")).firstMatch
+        var tries = 0
+        while !card.exists, tries < 5 { app.swipeUp(); Thread.sleep(forTimeInterval: 0.3); tries += 1 }
+        XCTAssertTrue(card.waitForExistence(timeout: 15), "긴 글 카드(토큰이 사라진 밤)가 추천 피드에 없음")
+        card.tap()
+
+        // 상단 크롬의 ⋯ 메뉴 — 라벨은 글 소유에 따라 "더 보기"(남의 글)/"이 글 관리"(내 글)로 갈린다.
+        let more = app.buttons.matching(
+            NSPredicate(format: "label == '더 보기' OR label == '이 글 관리'")).firstMatch
+        let tabBar = app.buttons["발견"]
+        XCTAssertTrue(more.waitForExistence(timeout: 10), "글 상세 상단 크롬(⋯ 메뉴)이 없음")
+        XCTAssertTrue(tabBar.waitForExistence(timeout: 5), "글 상세 위에 탭바(발견)가 없음")
+        XCTAssertTrue(more.isHittable, "before: 상단 크롬이 처음부터 안 보임")
+        XCTAssertTrue(tabBar.isHittable, "before: 탭바가 처음부터 안 보임")
+        attach("postdetail-before-scroll-chrome-and-tabbar")
+
+        // 아래로 읽어 내려가면 크롬과 탭바가 함께 사라진다(같은 스크롤 신호).
+        scrollDown(app)
+        let bothGone = NSPredicate(format: "isHittable == false")
+        expectation(for: bothGone, evaluatedWith: more)
+        expectation(for: bothGone, evaluatedWith: tabBar)
+        waitForExpectations(timeout: 6)
+        attach("postdetail-scrolldown-chrome-and-tabbar-hidden")
+        XCTAssertFalse(more.isHittable, "스크롤다운 후에도 상단 크롬(더 보기)이 남아 있음")
+        XCTAssertFalse(tabBar.isHittable, "스크롤다운 후에도 탭바가 남아 있음")
+
+        // 위로 올리면 둘 다 돌아온다.
+        scrollUp(app)
+        let bothBack = NSPredicate(format: "isHittable == true")
+        expectation(for: bothBack, evaluatedWith: more)
+        expectation(for: bothBack, evaluatedWith: tabBar)
+        waitForExpectations(timeout: 6)
+        attach("postdetail-scrollup-chrome-and-tabbar-restored")
+        XCTAssertTrue(more.isHittable, "스크롤업 후에도 상단 크롬이 안 돌아옴")
+        XCTAssertTrue(tabBar.isHittable, "스크롤업 후에도 탭바가 안 돌아옴")
+    }
 }
