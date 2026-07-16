@@ -80,4 +80,18 @@ final class DiscoverGlobalFallbackUITests: XCTestCase {
         XCTAssertFalse(caption.exists, "개인화 모드인데 전역 폴백 캡션이 떴다")
         shoot(app, "personalized-no-caption")
     }
+
+    /// 옛 서버 무회귀 — 응답에 source 필드가 아예 없으면(계약 미배포) 디코딩이 following 으로
+    /// 떨어져 캡션 없이 기존 동작 그대로여야 한다.
+    func testMissingSourceFieldFallsBackToPersonalized() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--discover-no-source", "--tab", "discover"]
+        app.launch()
+
+        let openPaths = app.staticTexts["지금 열려 있는 길"].firstMatch
+        XCTAssertTrue(openPaths.waitForExistence(timeout: 20), "source 부재 응답에서 입구 rows 가 안 뜸")
+        let caption = app.staticTexts.matching(
+            NSPredicate(format: "label BEGINSWITH %@", captionPrefix)).firstMatch
+        XCTAssertFalse(caption.exists, "source 부재인데 전역 폴백 캡션이 떴다 — 옛 서버 무회귀 실패")
+    }
 }
