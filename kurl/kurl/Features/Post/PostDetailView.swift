@@ -1430,6 +1430,7 @@ struct CommentRow: View {
                         Text(comment.author.username)
                             .typeScale(.meta)
                             .foregroundStyle(Palette.ink)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     if let postAuthorId, comment.author.id == postAuthorId {
