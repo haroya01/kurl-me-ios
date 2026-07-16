@@ -128,6 +128,10 @@ enum MockBackend {
     /// `--empty-feeds` = 구독함·추천을 빈 응답으로 — 빈 안내 화면 검증용.
     private static let emptyFeeds = ProcessInfo.processInfo.arguments.contains("--empty-feeds")
 
+    /// `--discover-global` = 발견 연결·하이라이트 흐름을 전역 폴백(source="global")으로 — 팔로우 0
+    /// 콜드스타트에서 서버가 전역 공개 흐름으로 내려주는 모드를 목으로 재현한다(맥락 캡션 검증용).
+    private static let discoverGlobal = ProcessInfo.processInfo.arguments.contains("--discover-global")
+
     private static var nextId: Int64 = 9100
     private static var likes: [Int64: (count: Int64, liked: Bool)] = [:]
     private static var bookmarks: Set<Int64> = []
@@ -491,6 +495,31 @@ enum MockBackend {
         ]
     }
 
+    /// 남들 하이라이트 흐름 목 — 팔로우한 큐레이터(minji·sori)가 공개 글에서 최근 칠한 구절.
+    /// 발견 세 번째 흐름(하이라이트 탭)이 목 모드에서 실서버 없이 렌더되게 한다.
+    private static func highlightsFeedMock() -> [[String: Any]] {
+        [
+            [
+                "id": 5001, "postId": 9101, "curator": curator(2, "minji"),
+                "postSlug": "hexagonal-after-3-months", "postTitle": "헥사고날로 갈아탄 지 석 달",
+                "postAuthorUsername": "honggildong",
+                "blockOrder": 1, "startOffset": 0, "endOffset": 24,
+                "quote": "경계가 없으면 모든 변경이 전역 변경이 된다.",
+                "note": "출발은 늘 여기다.",
+                "createdAt": iso(Date().addingTimeInterval(-5_400)), "replyCount": 2,
+            ],
+            [
+                "id": 5002, "postId": 9102, "curator": curator(3, "sori"),
+                "postSlug": "the-night-tokens-vanished", "postTitle": "토큰이 사라진 밤",
+                "postAuthorUsername": "honggildong",
+                "blockOrder": 6, "startOffset": 0, "endOffset": 20,
+                "quote": "재현이 안 되는 버그는 대개 타이밍 버그다.",
+                "note": NSNull(),
+                "createdAt": iso(Date().addingTimeInterval(-93_600)), "replyCount": 0,
+            ],
+        ]
+    }
+
     /// 공개 연결 흐름 목 — 비로그인 첫 피드에 인터리브할 최근 공개 연결. 세 실루엣(글·하이라이트·노트)이
     /// 번갈아 오도록 6개, 큐레이터의 산문 why 를 붙여 알고리즘이 아니라 사람의 큐레이션임이 드러나게.
     private static func publicConnectionFeedMock() -> [[String: Any]] {
@@ -703,10 +732,20 @@ enum MockBackend {
             ])
         }
 
-        // 발견 — 팔로우한 큐레이터의 연결 흐름(Phase 2).
+        // 발견 — 팔로우한 큐레이터의 연결 흐름(Phase 2). --discover-global 이면 전역 폴백으로 알린다.
         if method == "GET", parts == ["feed", "connections"] {
             return json([
                 "items": discoverFeedMock(), "page": 0, "size": 20, "hasNext": false,
+                "source": discoverGlobal ? "global" : "following",
+            ])
+        }
+
+        // 남들 하이라이트 — 팔로우한 큐레이터가 칠한 공개 하이라이트 피드(발견 세 번째 흐름).
+        // --discover-global 이면 전역 폴백으로 알린다(source="global").
+        if method == "GET", parts == ["highlights", "feed"] {
+            return json([
+                "items": highlightsFeedMock(), "page": 0, "size": 20, "hasNext": false,
+                "source": discoverGlobal ? "global" : "following",
             ])
         }
 
