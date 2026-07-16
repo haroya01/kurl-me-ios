@@ -110,6 +110,10 @@ enum Palette {
     static let cardBg = Color(light: 0xFFFFFF, dark: 0x0F172A)     // white / slate-900
     static let cardBorder = Color(light: 0xE2E8F0, dark: 0x1E293B) // slate-200 / slate-800
     static let coverVeil = Color(hex: 0x064E3B).opacity(0.10)      // accent-900/10 톤 베일
+    // 커버 톤 정돈 — 스크린샷·다이어그램 커버의 원본 UI 잔재(말풍선·타임스탬프)가 중앙 띠에서
+    // 풀블리드로 소란하던 것(#B3). 아주 옅은 뉴트럴 스크림 한 겹으로 디테일을 가라앉힌다(§10 조용함,
+    // 드라마 금지 — 사진 커버는 여전히 사진으로 읽힌다). 라이트·다크 공통(커버는 사진이라 동일).
+    static let coverScrim = Color(hex: 0x0F172A).opacity(0.18)     // slate-900/18 중립 톤
 
     // 코드
     static let codeBg = Color(hex: 0x0F172A)        // slate-900 (항상 어둡게)
