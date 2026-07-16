@@ -221,6 +221,11 @@ struct SettingsView: View {
         .navigationTitle("설정")
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
+        // 설정 스택(설정 루트 + 프로필 편집·알림 종류·차단 목록 등 하위 푸시)에선 커스텀
+        // 하단바를 접는다 — iOS 관습(설정류 화면엔 탭바가 없다)이자, 바에 가려 세로 스크롤로만
+        // 겨우 닿고 가로에선 아예 도달 못 하던 하단 행(회원 탈퇴 = App Store 5.1.1(v) 필수)을
+        // 살린다. 설정을 벗어나 탭 루트로 pop 하면 바가 돌아온다.
+        .hidesTabBar()
         .onChange(of: scenePhase) { _, phase in
             // 시스템 설정에 다녀온 뒤 상태 라벨을 따라잡는다.
             if phase == .active {

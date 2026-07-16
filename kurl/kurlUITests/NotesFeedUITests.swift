@@ -38,6 +38,9 @@ final class NotesFeedUITests: XCTestCase {
         // 목 모드 = 로그인 상태 — 키보드 위 유리 컴포저가 있어야 한다.
         let field = app.textFields["지금 떠오른 생각은…"]
         XCTAssertTrue(field.waitForExistence(timeout: 5), "노트 컴포저 바 없음")
+        // 존재만으론 부족 — 떠 있는 탭바가 컴포저 바를 가리면 a11y 트리엔 있어도 화면에 안 그려져
+        // 명중·포커스가 안 된다(첫 노트 못 씀). 명중 가능해야 탭이 키보드를 띄운다.
+        XCTAssertTrue(field.isHittable, "노트 컴포저가 하단바에 가려 명중 불가(탭바 가림 회귀)")
 
         field.tap()
         field.typeText("uitest note round trip")

@@ -36,8 +36,19 @@ final class DialogPresentationUITests: XCTestCase {
         settings.tap()
         let withdraw = app.buttons.matching(
             NSPredicate(format: "label CONTAINS '회원 탈퇴'")).firstMatch
-        XCTAssertTrue(withdraw.waitForExistence(timeout: 8), "설정에 회원 탈퇴 버튼이 없음")
-        if !withdraw.isHittable { app.swipeUp(); Thread.sleep(forTimeInterval: 0.3) }
+        // 최하단 행 = 회원 탈퇴(App Store 5.1.1(v) 필수 진입점). 설정 본문은 LazyVStack 이라
+        // 화면 밖 행은 a11y 트리에 없어(가로는 뷰포트가 낮아 더 심하다) 스크롤로 그려 낸 뒤 판정한다.
+        // 커스텀 하단바가 설정 스택에서 접히지 않으면 이 행이 바 뒤에 갇혀 아무리 끌어올려도
+        // hittable 위치로 안 올라온다 — 몇 번 스크롤해도 명중 못 하면 탭바 가림 회귀.
+        let scroll = app.scrollViews.firstMatch
+        var found = false
+        for _ in 0..<10 {
+            if withdraw.exists && withdraw.isHittable { found = true; break }
+            if scroll.exists { scroll.swipeUp(velocity: .slow) } else { app.swipeUp() }
+            Thread.sleep(forTimeInterval: 0.35)
+        }
+        shot("account-delete-after-scroll")
+        XCTAssertTrue(found, "회원 탈퇴 행이 하단바에 가려 명중 불가(탭바 가림 회귀)")
         withdraw.tap()
         Thread.sleep(forTimeInterval: 0.9)
     }

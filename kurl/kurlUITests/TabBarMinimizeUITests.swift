@@ -85,4 +85,134 @@ final class TabBarMinimizeUITests: XCTestCase {
         attach("after-scrollup-tabbar-restored")
         XCTAssertTrue(discoverTab.isHittable, "restore: 스크롤업 후에도 탭바가 돌아오지 않음")
     }
+
+    /// 설정 루트로 들어가면 커스텀 하단바가 접히고, 탭 루트로 pop 하면 되돌아온다 — iOS 관습이자,
+    /// 바에 가려 하단 행(회원 탈퇴)이 도달 불가하던 자리. 탭바 프로브 = "발견" 버튼(설정 콘텐츠와
+    /// 라벨이 안 겹친다).
+    func testSettingsFoldsTabBarAndRestoresOnBack() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "account"]
+        app.launch()
+
+        let discoverTab = app.buttons["발견"]
+        XCTAssertTrue(discoverTab.waitForExistence(timeout: 15), "계정 탭에 탭바가 없음")
+        XCTAssertTrue(discoverTab.isHittable, "계정 루트에서 탭바가 처음부터 안 보임")
+
+        // 설정 진입 → 바가 접힌다.
+        let settings = app.buttons["설정"].firstMatch
+        XCTAssertTrue(settings.waitForExistence(timeout: 8), "계정 탭에 설정 버튼이 없음")
+        settings.tap()
+        expectation(for: NSPredicate(format: "isHittable == false"), evaluatedWith: discoverTab)
+        waitForExpectations(timeout: 5)
+        attach("settings-root-tabbar-folded")
+        XCTAssertFalse(discoverTab.isHittable, "설정 루트에서 하단바가 접히지 않음")
+
+        // 설정 → 탭 루트로 pop → 바가 돌아온다. isHittable 은 계정 루트에서 밑으로 흐르는 글
+        // 카드가 바 영역과 겹쳐 프론트모스트 판정이 흔들리므로(바는 그려져 있어도 카드가 히트
+        // 포인트를 가로챈다), 되살아난 바를 실제로 눌러 항해가 되는지로 판정한다 — 발견 탭을
+        // 눌러 설정 진입점(gearshape)이 사라지는 발견 표면으로 넘어가면 바가 살아난 것.
+        app.navigationBars.buttons.firstMatch.tap()
+        expectation(for: NSPredicate(format: "exists == true"), evaluatedWith: discoverTab)
+        waitForExpectations(timeout: 5)
+        attach("settings-dismissed-tabbar-restored")
+        assertTabBarNavigates(app, discoverTab: discoverTab)
+    }
+
+    /// 되살아난 하단바가 실제로 동작하는지 — 발견 탭을 눌러(좌표 탭으로 겹침 무관) 발견 표면으로
+    /// 넘어갔음을 계정 전용 진입점(gearshape 설정 버튼)의 소멸로 확인한다.
+    private func assertTabBarNavigates(_ app: XCUIApplication, discoverTab: XCUIElement) {
+        XCTAssertTrue(discoverTab.exists, "복귀 후 하단바(발견 버튼)가 트리에 없음")
+        discoverTab.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        let gear = app.buttons["설정"].firstMatch
+        let gone = NSPredicate(format: "exists == false")
+        expectation(for: gone, evaluatedWith: gear)
+        waitForExpectations(timeout: 5)
+        XCTAssertFalse(gear.exists, "발견 탭을 눌렀는데 계정 표면(설정 버튼)이 그대로 — 하단바가 안 살아남")
+    }
+
+    /// 설정 안 하위 푸시(차단한 사용자)로 더 들어가도 하단바 접힘이 유지되고, 하위→설정→탭 루트로
+    /// 되돌아 나오면 바가 돌아온다 — iOS 27 은 자식 푸시에 부모 onDisappear 를 태워 부모만의
+    /// 접힘이 풀리므로 하위 화면에도 접힘을 건다(집합 토큰이라 순서가 뒤엉켜도 안정적으로 복귀).
+    func testSettingsChildKeepsTabBarFoldedAndRestores() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "account"]
+        app.launch()
+
+        let discoverTab = app.buttons["발견"]
+        XCTAssertTrue(discoverTab.waitForExistence(timeout: 15), "계정 탭에 탭바가 없음")
+
+        let settings = app.buttons["설정"].firstMatch
+        XCTAssertTrue(settings.waitForExistence(timeout: 8), "계정 탭에 설정 버튼이 없음")
+        settings.tap()
+        expectation(for: NSPredicate(format: "isHittable == false"), evaluatedWith: discoverTab)
+        waitForExpectations(timeout: 5)
+
+        let blocked = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS '차단한 사용자'")).firstMatch
+        XCTAssertTrue(blocked.waitForExistence(timeout: 5), "설정에 차단한 사용자 행이 없음")
+        blocked.tap()
+        Thread.sleep(forTimeInterval: 0.8)
+        attach("settings-child-tabbar-folded")
+        XCTAssertFalse(discoverTab.isHittable, "설정 하위 푸시(차단 목록)에서 하단바가 다시 나타남")
+
+        // 하위 → 설정 → 탭 루트로 끝까지 되돌아 나온다 — 각 pop 사이를 넉넉히 두어
+        // onAppear·onDisappear 가 뒤엉키지 않게(사람 손 속도).
+        app.navigationBars.buttons.firstMatch.tap()
+        Thread.sleep(forTimeInterval: 0.8)
+        XCTAssertFalse(discoverTab.isHittable, "차단 목록에서 설정으로 돌아오니 하단바가 나타남")
+        app.navigationBars.buttons.firstMatch.tap()
+        expectation(for: NSPredicate(format: "exists == true"), evaluatedWith: discoverTab)
+        waitForExpectations(timeout: 5)
+        attach("settings-child-dismissed-tabbar-restored")
+        assertTabBarNavigates(app, discoverTab: discoverTab)
+    }
+
+    /// 글 상세를 탭 스택 안(피드 → 카드 탭)에서 열고 아래로 읽어 내려가면 상단 크롬(뒤로·⋯)이
+    /// 하단 탭바와 함께 사라지고(초록 진행 바만 잔존), 위로 올리면 둘 다 돌아오는 동조 회귀 가드.
+    /// 크롬은 시스템 내비바라 프로브 = "더 보기"(⋯) 버튼 · 탭바 프로브 = "발견" 버튼.
+    func testPostDetailChromeHidesInSyncWithTabBar() throws {
+        let app = XCUIApplication()
+        // 추천(for-you) 피드로 바로 들어간다 — 목 피드에서 가장 긴 글(토큰이 사라진 밤)이 거기 있다.
+        // 크롬·탭바가 걷히려면 충분한 스크롤 런웨이가 필요한데 최신 피드의 글은 너무 짧다.
+        app.launchArguments = ["--mocks", "--tab", "feed", "--feed", "forYou"]
+        app.launch()
+
+        // 긴 글을 탭 스택 안에서 연다(--post 진입로는 탭바가 없어 동조를 못 탄다).
+        let card = app.scrollViews.buttons.matching(
+            NSPredicate(format: "label CONTAINS '토큰이 사라진 밤'")).firstMatch
+        var tries = 0
+        while !card.exists, tries < 5 { app.swipeUp(); Thread.sleep(forTimeInterval: 0.3); tries += 1 }
+        XCTAssertTrue(card.waitForExistence(timeout: 15), "긴 글 카드(토큰이 사라진 밤)가 추천 피드에 없음")
+        card.tap()
+
+        // 상단 크롬의 ⋯ 메뉴 — 라벨은 글 소유에 따라 "더 보기"(남의 글)/"이 글 관리"(내 글)로 갈린다.
+        let more = app.buttons.matching(
+            NSPredicate(format: "label == '더 보기' OR label == '이 글 관리'")).firstMatch
+        let tabBar = app.buttons["발견"]
+        XCTAssertTrue(more.waitForExistence(timeout: 10), "글 상세 상단 크롬(⋯ 메뉴)이 없음")
+        XCTAssertTrue(tabBar.waitForExistence(timeout: 5), "글 상세 위에 탭바(발견)가 없음")
+        XCTAssertTrue(more.isHittable, "before: 상단 크롬이 처음부터 안 보임")
+        XCTAssertTrue(tabBar.isHittable, "before: 탭바가 처음부터 안 보임")
+        attach("postdetail-before-scroll-chrome-and-tabbar")
+
+        // 아래로 읽어 내려가면 크롬과 탭바가 함께 사라진다(같은 스크롤 신호).
+        scrollDown(app)
+        let bothGone = NSPredicate(format: "isHittable == false")
+        expectation(for: bothGone, evaluatedWith: more)
+        expectation(for: bothGone, evaluatedWith: tabBar)
+        waitForExpectations(timeout: 6)
+        attach("postdetail-scrolldown-chrome-and-tabbar-hidden")
+        XCTAssertFalse(more.isHittable, "스크롤다운 후에도 상단 크롬(더 보기)이 남아 있음")
+        XCTAssertFalse(tabBar.isHittable, "스크롤다운 후에도 탭바가 남아 있음")
+
+        // 위로 올리면 둘 다 돌아온다.
+        scrollUp(app)
+        let bothBack = NSPredicate(format: "isHittable == true")
+        expectation(for: bothBack, evaluatedWith: more)
+        expectation(for: bothBack, evaluatedWith: tabBar)
+        waitForExpectations(timeout: 6)
+        attach("postdetail-scrollup-chrome-and-tabbar-restored")
+        XCTAssertTrue(more.isHittable, "스크롤업 후에도 상단 크롬이 안 돌아옴")
+        XCTAssertTrue(tabBar.isHittable, "스크롤업 후에도 탭바가 안 돌아옴")
+    }
 }

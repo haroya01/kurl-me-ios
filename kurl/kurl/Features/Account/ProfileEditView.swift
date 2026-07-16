@@ -117,6 +117,8 @@ struct ProfileEditView: View {
         }
         .navigationTitle("프로필 편집")
         .navigationBarTitleDisplayMode(.inline)
+        // 설정 스택의 하위 화면 — 밀고 들어와도 하단바 접힘을 유지한다(차단 목록과 같은 사연).
+        .hidesTabBar()
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 if saving {

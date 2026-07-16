@@ -42,6 +42,10 @@ struct BlockedUsersView: View {
         }
         .navigationTitle("차단한 사용자")
         .navigationBarTitleDisplayMode(.inline)
+        // 설정 스택의 하위 화면 — 설정 루트에서 더 밀고 들어와도 하단바는 접힌 채 유지한다
+        // (iOS 27 은 자식 푸시에 부모 onDisappear 를 태워 부모만의 접힘이 풀린다). 설정에서
+        // 새 하위 화면을 늘리면 여기처럼 .hidesTabBar() 를 함께 붙인다.
+        .hidesTabBar()
         .task { await load() }
     }
 
