@@ -132,6 +132,10 @@ enum MockBackend {
     /// 콜드스타트에서 서버가 전역 공개 흐름으로 내려주는 모드를 목으로 재현한다(맥락 캡션 검증용).
     private static let discoverGlobal = ProcessInfo.processInfo.arguments.contains("--discover-global")
 
+    /// `--discover-no-source` = 발견 응답에서 `source` 필드를 아예 빼 옛 서버(계약 미배포)를 재현 —
+    /// 디코딩이 옵셔널로 following 을 유지해 캡션 없이 기존 동작 그대로인지 검증한다(무회귀).
+    private static let discoverNoSource = ProcessInfo.processInfo.arguments.contains("--discover-no-source")
+
     private static var nextId: Int64 = 9100
     private static var likes: [Int64: (count: Int64, liked: Bool)] = [:]
     private static var bookmarks: Set<Int64> = []
@@ -733,20 +737,23 @@ enum MockBackend {
         }
 
         // 발견 — 팔로우한 큐레이터의 연결 흐름(Phase 2). --discover-global 이면 전역 폴백으로 알린다.
+        // --discover-no-source 면 source 를 아예 빼 옛 서버(계약 미배포)를 재현한다.
         if method == "GET", parts == ["feed", "connections"] {
-            return json([
+            var payload: [String: Any] = [
                 "items": discoverFeedMock(), "page": 0, "size": 20, "hasNext": false,
-                "source": discoverGlobal ? "global" : "following",
-            ])
+            ]
+            if !discoverNoSource { payload["source"] = discoverGlobal ? "global" : "following" }
+            return json(payload)
         }
 
         // 남들 하이라이트 — 팔로우한 큐레이터가 칠한 공개 하이라이트 피드(발견 세 번째 흐름).
         // --discover-global 이면 전역 폴백으로 알린다(source="global").
         if method == "GET", parts == ["highlights", "feed"] {
-            return json([
+            var payload: [String: Any] = [
                 "items": highlightsFeedMock(), "page": 0, "size": 20, "hasNext": false,
-                "source": discoverGlobal ? "global" : "following",
-            ])
+            ]
+            if !discoverNoSource { payload["source"] = discoverGlobal ? "global" : "following" }
+            return json(payload)
         }
 
         // 공개 연결 흐름 — 비로그인 첫 피드에 인터리브. 게이트 없는 공개 표면(미로그인도 본다).
