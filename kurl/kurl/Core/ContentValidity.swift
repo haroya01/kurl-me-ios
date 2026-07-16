@@ -86,6 +86,15 @@ enum ContentValidity {
         tags.filter(isRenderableTag)
     }
 
+    /// 태그 칩에 붙일 표시용 라벨 — 뷰가 "#" 를 앞에 그리므로, 원문에 이미 "#" 가 박혀 온
+    /// 태그("#디자인")는 이중 해시("##디자인")가 된다. 선행 "#" 하나만 벗겨 표시층에서 방어한다
+    /// (판정·라우팅 값은 원문 그대로 — 데이터 원인은 백엔드 몫).
+    static func tagDisplay(_ raw: String) -> String {
+        var tag = raw
+        while tag.hasPrefix("#") { tag.removeFirst() }
+        return tag
+    }
+
     // MARK: 빈 콘텐츠
 
     /// 글자로서 의미 있는 내용이 있는가 — 공백·구두점만 있으면 비어 있다고 본다.

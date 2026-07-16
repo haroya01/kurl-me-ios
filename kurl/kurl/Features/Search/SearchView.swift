@@ -199,7 +199,7 @@ struct SearchView: View {
                             ) {
                                 VStack(alignment: .leading, spacing: 7) {
                                     if let tag = item.tags.first {
-                                        Text("#\(tag)")
+                                        Text("#\(ContentValidity.tagDisplay(tag))")
                                             .typeScale(.footnote)
                                             .foregroundStyle(Palette.secondary)
                                     }
@@ -275,7 +275,7 @@ struct SearchView: View {
                         // 불완전 자모·한 글자 부스러기 태그는 인기 태그에서도 거른다.
                         ForEach(renderable) { tag in
                             NavigationLink(value: Route.tag(tag.tag)) {
-                                MutedChip(text: "#\(tag.tag)")
+                                MutedChip(text: "#\(ContentValidity.tagDisplay(tag.tag))")
                             }
                             .buttonStyle(.plain)
                         }
@@ -355,17 +355,15 @@ struct SearchView: View {
         }
     }
 
-    /// 결과의 태그 칩 — 입력어 자체를 첫 태그로(인기 태그에 없어도 바로 그 태그 피드로 가게),
-    /// 이어서 겹치는 인기 태그. 중복(대소문자 무시) 제거.
+    /// 결과의 태그 칩 — 검색어와 겹치는 *실제* 인기 태그만. 입력어를 무조건 첫 칩으로 끼워 넣던
+    /// 것을 뺀다: 아무 태그도 안 겹치는 검색어면 그 에코 칩이 tags 를 비우지 않아 무결과 폴백이
+    /// 영영 안 뜨고, 존재하지 않는 태그 피드(빈 페이지 = 막다른 길)로 데려갔다. 입력어가 실제
+    /// 태그와 정확히 겹치면 그 태그가 매치에 이미 들어 있어 여전히 첫 칩으로 선다.
     private var tagOptions: [String] {
-        let q = activeQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !q.isEmpty else { return [] }
         var seen = Set<String>()
         var tags: [String] = []
-        // 입력어(q)는 사용자가 직접 친 것이라 그대로 두고(그 태그 피드로 바로 가게),
-        // 겹쳐 붙는 인기 태그만 부스러기를 거른다.
-        let matched = matchedTags.map(\.tag).filter(ContentValidity.isRenderableTag)
-        for t in [q] + matched where seen.insert(t.lowercased()).inserted {
+        for t in matchedTags.map(\.tag).filter(ContentValidity.isRenderableTag)
+        where seen.insert(t.lowercased()).inserted {
             tags.append(t)
         }
         return tags
@@ -392,7 +390,7 @@ struct SearchView: View {
                                 HStack(spacing: 8) {
                                     ForEach(tags, id: \.self) { tag in
                                         NavigationLink(value: Route.tag(tag)) {
-                                            MutedChip(text: "#\(tag)")
+                                            MutedChip(text: "#\(ContentValidity.tagDisplay(tag))")
                                         }
                                         .buttonStyle(.plain)
                                     }
