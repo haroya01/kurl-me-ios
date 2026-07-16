@@ -256,9 +256,17 @@ private struct NoteRowView: View {
             VStack(alignment: .leading, spacing: 5) {
                 VStack(alignment: .leading, spacing: 5) {
                     HStack(spacing: 6) {
-                        Text(note.author.username)
-                            .typeScale(.meta)
-                            .foregroundStyle(Palette.ink)
+                        // 아바타(위 클로저형 링크)와 같은 엔티티 — 이름도 같은 항해를 받아야
+                        // 한 행의 상호작용이 일관된다. 같은 이유로 클로저형(값형 혼용 함정 회피).
+                        NavigationLink {
+                            RouteView(route: .author(username: note.author.username))
+                        } label: {
+                            Text(note.author.username)
+                                .typeScale(.meta)
+                                .foregroundStyle(Palette.ink)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
                         if let date = note.createdAt {
                             Text(date.relativeShort)
                                 .typeScale(.meta)

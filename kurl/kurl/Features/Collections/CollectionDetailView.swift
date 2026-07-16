@@ -239,9 +239,18 @@ struct CollectionDetailView: View {
 
             HStack(spacing: 6) {
                 if let curator = detail.curatorUsername {
-                    AvatarView(
-                        author: Author(id: 0, username: curator, bio: nil, avatarUrl: nil), size: 20)
-                    Text(curator).foregroundStyle(Palette.ink)
+                    // 큐레이터 정체는 눌러서 그 사람에게 가야 한다(웹 파리티) — 표시 전용이던
+                    // 아바타+이름을 작가 항해로. 이 화면의 스택엔 Route 목적지가 등록돼 있다.
+                    NavigationLink(value: Route.author(username: curator)) {
+                        HStack(spacing: 6) {
+                            AvatarView(
+                                author: Author(id: 0, username: curator, bio: nil, avatarUrl: nil),
+                                size: 20)
+                            Text(curator).foregroundStyle(Palette.ink)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
                     Text("·").foregroundStyle(Palette.faint)
                 }
                 Image(systemName: detail.visibility.icon)
