@@ -129,7 +129,11 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable>: View {
     @Namespace private var ns
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// 14pt 고정이 Dynamic Type 를 무시하던 것 — 텍스트 스타일에 묶어 글자 크기 설정을 따른다.
-    @ScaledMetric(relativeTo: .subheadline) private var labelSize: CGFloat = 14
+    /// 단 접근성 크기에선 네 CJK 라벨이 캡슐 폭을 넘어 "구…"로 잘린다 — 탭바처럼 자리가 고정된
+    /// 크롬이라 xxLarge 상당(약 16pt)에서 성장 상한. 환경 캡(.dynamicTypeSize)은 @ScaledMetric
+    /// 이 자기 뷰의 env 를 읽는 탓에 여기 안 먹혀, 메트릭을 직접 클램프한다.
+    @ScaledMetric(relativeTo: .subheadline) private var rawLabelSize: CGFloat = 14
+    private var labelSize: CGFloat { min(rawLabelSize, 16) }
 
     var body: some View {
         // 높이 ≈ 40pt — 헤더 영역의 유리 원형 버튼(벨 등)과 같은 키로 맞춘다.
