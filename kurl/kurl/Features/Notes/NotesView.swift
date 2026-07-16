@@ -164,6 +164,10 @@ struct NotesPage: View {
         }
         .navigationTitle("노트")
         .navigationBarTitleDisplayMode(.inline)
+        // 서재에서 푸시로 들어오는 표면이라 iOS 관습대로 하단바를 접는다 — 그러지 않으면 하단
+        // 유리 컴포저 바가 떠 있는 탭바에 가려 화면에 안 그려지고(포커스도 안 잡혀) 첫 노트를
+        // 못 쓴다. 접으면 컴포저가 진짜 하단(safeAreaInset)에 앉아 탭·키보드가 정상 동작한다.
+        .hidesTabBar()
         .sheet(item: $connectNote) { n in
             ConnectSheet(
                 targetKind: "노트", targetTitle: n.body, blockType: .note, refId: n.id)

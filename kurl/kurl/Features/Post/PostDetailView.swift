@@ -122,6 +122,15 @@ struct PostDetailView: View {
         return Metrics.tabBarReservedHeight
     }
 
+    /// 본문 끝맺음이 커스텀 탭바 뒤로 눌리지 않게 스크롤 콘텐츠 바닥에 늘 비워 둘 높이.
+    /// 독 인셋과 달리 `hidden` 을 보지 않는다 — 스크롤로 바가 숨을 때 콘텐츠 높이가 바뀌면
+    /// 바닥 근처에서 스크롤이 튄다. 탭 스택에 푸시된 단독 글에서만(env 있음·임베드 아님) 상수로
+    /// 예약해, 바가 떠 있을 땐 끝맺음이 가리지 않고 바가 숨은 바닥에선 그 여백이 남아돌 뿐이다.
+    private var pushedTabBarBottomInset: CGFloat {
+        guard !embedded, tabBarVisibility != nil else { return 0 }
+        return Metrics.tabBarReservedHeight
+    }
+
     // 상세 body 는 모디파이어 사슬이 길어 하나의 식으로는 타입 검사 예산을 넘는다 —
     // ScrollView + 스크롤/툴바 계열을 scrollBody 로 잘라 불투명 경계(some View)를 만들고,
     // 나머지(시트·태스크·오버레이)는 body 에서 이어 붙여 두 개의 작은 식으로 나눈다.
@@ -972,7 +981,11 @@ struct PostDetailView: View {
         // 카드 위에 영영 겹쳤다 — 이 여백이 마지막 인터랙션을 독 위로 올린다. 스크롤되는 글은
         // 끝에서 독이 후퇴하므로 이 여백이 남아돌 뿐 해가 없다(scrollable 에 의존하지 않아
         // 여백↔scrollable 되먹임 진동도 없다). 덱 임베드는 페이지마다 독이 함께 밀려 나가 제외.
-        Color.clear.frame(height: embedded ? 56 : 78)
+        //
+        // 탭 스택에 푸시된 단독 글은 커스텀 탭바가 떠 그 뒤로 끝맺음("이어진 것" 연결 블록·작가
+        // 카드)이 눌려 잘렸다 — 커스텀 바는 시스템 인셋을 안 주므로(Root, 독과 같은 사연) 예약
+        // 높이만큼 더 비운다. 스크롤 중 높이가 흔들려 튀지 않게 hidden 무관 상수로 둔다.
+        Color.clear.frame(height: (embedded ? 56 : 78) + pushedTabBarBottomInset)
     }
 
     /// 작가 글 목록 1회 로드 — 글 끝 작가 카드(다른 글)와 덱의 다음 글 큐가 함께 쓴다.

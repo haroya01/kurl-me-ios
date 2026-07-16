@@ -47,7 +47,8 @@ struct AccountView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     NavigationLink {
-                        // 푸시된 화면은 탭바 숨김을 추적하지 않는다(탭 루트 전용).
+                        // 설정 스택은 하단바를 접는다(SettingsView 안 .hidesTabBar) — 하단 행이
+                        // 바에 가리지 않게, iOS 관습대로.
                         SettingsView()
                     } label: {
                         Image(systemName: "gearshape")
