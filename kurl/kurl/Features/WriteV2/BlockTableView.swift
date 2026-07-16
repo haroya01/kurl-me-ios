@@ -21,6 +21,8 @@ struct BlockTableView: View {
     let onAddRow: () -> Void
     let onAddColumn: () -> Void
     let onAlignColumn: (Int) -> Void
+    let onDeleteRow: () -> Void
+    let onDeleteColumn: () -> Void
     let onFocused: () -> Void
 
     private var table: EditorTable? {
@@ -81,11 +83,30 @@ struct BlockTableView: View {
 
     private func controls(_ table: EditorTable) -> some View {
         HStack(spacing: 14) {
+            // 추가(행→열) 먼저, 삭제(행→열) 뒤 — 레거시 TableActionBar 순서 미러.
             Button(action: onAddRow) {
                 Label("행", systemImage: "plus").labelStyle(.titleAndIcon)
             }
             Button(action: onAddColumn) {
                 Label("열", systemImage: "plus").labelStyle(.titleAndIcon)
+            }
+            // 삭제 — 헤더/마지막 열은 보호하므로 지울 게 있을 때만 노출(본문 2행↑·열 2개↑).
+            // 파괴적이라 조용한 secondary(§10) + VoiceOver 힌트. 되돌리기 토스트로 복구된다.
+            if table.rows.count >= 3 {
+                Button(action: onDeleteRow) {
+                    Label("행", systemImage: "minus").labelStyle(.titleAndIcon)
+                }
+                .foregroundStyle(Palette.secondary)
+                .accessibilityLabel(Text("행 삭제"))
+                .accessibilityHint(Text("마지막 행을 지웁니다"))
+            }
+            if table.columnCount >= 2 {
+                Button(action: onDeleteColumn) {
+                    Label("열", systemImage: "minus").labelStyle(.titleAndIcon)
+                }
+                .foregroundStyle(Palette.secondary)
+                .accessibilityLabel(Text("열 삭제"))
+                .accessibilityHint(Text("마지막 열을 지웁니다"))
             }
             // 열 정렬 순환 — 현재 포커스 열을 모르므로 첫 열부터 순환(Phase 2b: 캐럿 열 감지).
             Menu {

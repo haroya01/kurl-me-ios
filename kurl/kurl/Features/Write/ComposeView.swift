@@ -208,6 +208,13 @@ struct ComposeView: View {
                             editorDocument.outdentListItem(id)
                             syncFromDocument()
                         }
+                    },
+                    dismissKeyboard: {
+                        // 포커스 블록의 UITextView 는 responder 체인에 있으니 전역 resign 으로 키보드를 접고,
+                        // 문서 focus 도 비워 서식 툴바가 함께 내려가게 한다(editorFocused=false).
+                        UIApplication.shared.sendAction(
+                            #selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                        editorDocument.focus = nil
                     }
                 )
             } else if editorFocused {
@@ -1184,6 +1191,7 @@ struct ComposeView: View {
         return "checkmark.circle"
     }
 
+    
     /// 저장 실패가 인증(401·세션 만료) 때문인가 — 배지·토스트가 "다시 로그인"을 말할 근거(플러셔와 공용 판정).
     private static func isAuthFailure(_ error: Error) -> Bool {
         DraftFlusher.isAuthFailure(error)
@@ -2989,51 +2997,72 @@ private struct V2FormatToolbar: View {
     /// 리스트 들여쓰기/내어쓰기 — 캐럿이 리스트 항목일 때만 버튼이 나타난다.
     let indentList: () -> Void
     let outdentList: () -> Void
+    /// 키보드 내리기 — 포커스를 놓고 키보드를 접는다(레거시 스니펫 바 대응).
+    let dismissKeyboard: () -> Void
 
     /// 아이콘만 키우고 44pt 터치 타깃은 작은 글자 설정에서도 유지(AGENTS §1 에디터 규율).
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 4) {
-                // 선택 서식 — 마커로 감싸기.
-                item("bold", "굵게") { wrapInline("**") }
-                item("italic", "기울임") { wrapInline("*") }
-                item("chevron.left.forwardslash.chevron.right", "코드") { wrapInline("`") }
-                item("link", "링크", action: insertLink)
+        // 스크롤 도구 캡슐 + 고정 키보드 내리기 버튼 — 두 성격의 유리를 GlassEffectContainer 로 묶어
+        // 겹침(유리 위 유리) 없이 나란히(§1.4). 키보드 버튼은 스크롤에 안 밀려 늘 오른쪽에 선다.
+        GlassEffectContainer(spacing: 8) {
+            HStack(spacing: 8) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 4) {
+                        // 선택 서식 — 마커로 감싸기.
+                        item("bold", "굵게") { wrapInline("**") }
+                        item("italic", "기울임") { wrapInline("*") }
+                        item("strikethrough", "취소선") { wrapInline("~~") }
+                        item("chevron.left.forwardslash.chevron.right", "코드") { wrapInline("`") }
+                        item("link", "링크", action: insertLink)
 
-                groupDivider
+                        groupDivider
 
-                // 블록 서식 — 종류 토글(현재 종류면 활성).
-                // 제목은 버튼 하나로 # → ## → ### → 본문 순환(제목/소제목 두 버튼의 통합) —
-                // 아이콘 크기가 현재 레벨을 따라 줄어들어 "누르면 작아진다"가 버튼에서 읽힌다.
-                item(headingIcon, "제목", active: isHeadingFocused, action: cycleHeading)
-                item("text.quote", "인용", active: isKind(.quote)) { toggleBlock(.quote) }
-                item("curlybraces", "코드블록", active: isCode) { toggleBlock(.code(language: nil)) }
-                item("list.bullet", "글머리", active: isList(ordered: false)) {
-                    toggleBlock(.listItem(ordered: false, indent: 0))
+                        // 블록 서식 — 종류 토글(현재 종류면 활성).
+                        // 제목은 버튼 하나로 # → ## → ### → 본문 순환(제목/소제목 두 버튼의 통합) —
+                        // 아이콘 크기가 현재 레벨을 따라 줄어들어 "누르면 작아진다"가 버튼에서 읽힌다.
+                        item(headingIcon, "제목", active: isHeadingFocused, action: cycleHeading)
+                        item("text.quote", "인용", active: isKind(.quote)) { toggleBlock(.quote) }
+                        item("curlybraces", "코드블록", active: isCode) { toggleBlock(.code(language: nil)) }
+                        item("list.bullet", "글머리", active: isList(ordered: false)) {
+                            toggleBlock(.listItem(ordered: false, indent: 0))
+                        }
+                        item("list.number", "번호", active: isList(ordered: true)) {
+                            toggleBlock(.listItem(ordered: true, indent: 0))
+                        }
+                        // 캐럿이 리스트 항목일 때만 — 중첩을 여기서(마크다운 선행 공백을 몰라도 된다).
+                        if isListFocused {
+                            item("increase.indent", "들여쓰기", action: indentList)
+                            item("decrease.indent", "내어쓰기", action: outdentList)
+                        }
+
+                        groupDivider
+
+                        // 삽입 — 비텍스트 블록.
+                        item("minus", "구분선", action: insertDivider)
+                        item("photo", "사진", action: insertImage)
+                        item("tablecells", "표", action: insertTable)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
                 }
-                item("list.number", "번호", active: isList(ordered: true)) {
-                    toggleBlock(.listItem(ordered: true, indent: 0))
-                }
-                // 캐럿이 리스트 항목일 때만 — 중첩을 여기서(마크다운 선행 공백을 몰라도 된다).
-                if isListFocused {
-                    item("increase.indent", "들여쓰기", action: indentList)
-                    item("decrease.indent", "내어쓰기", action: outdentList)
-                }
+                .scrollClipDisabled()
+                .glassEffect(.regular, in: .capsule)
 
-                groupDivider
-
-                // 삽입 — 비텍스트 블록.
-                item("minus", "구분선", action: insertDivider)
-                item("photo", "사진", action: insertImage)
-                item("tablecells", "표", action: insertTable)
+                // 키보드 내리기 — 고정(스크롤 밖). 별도 유리 원으로(레거시 스니펫 바 대응).
+                Button(action: dismissKeyboard) {
+                    Image(systemName: "keyboard.chevron.compact.down")
+                        .font(.system(size: 14 * unit, weight: .semibold))
+                        .foregroundStyle(Palette.link)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.interactive(), in: .circle)
+                .accessibilityLabel(Text("키보드 내리기"))
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
         }
-        .scrollClipDisabled()
-        .glassEffect(.regular, in: .capsule)
         .padding(.horizontal, 8)
         .padding(.bottom, 8)
     }
