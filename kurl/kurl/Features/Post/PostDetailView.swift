@@ -18,6 +18,7 @@ struct PostDetailView: View {
     private let embedded: Bool
     private let focusQuote: String?
     @State private var currentSlug: String
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(username: String, slug: String, embedded: Bool = false, focusQuote: String? = nil) {
         self.initialUsername = username
@@ -33,8 +34,15 @@ struct PostDetailView: View {
             embedded: embedded,
             // 진입 회차에만 딥링크 강조를 적용한다 — 회차 전환 후엔 위에서부터 읽기.
             focusQuote: currentSlug == initialSlug ? focusQuote : nil,
-            goToEpisode: { slug in currentSlug = slug })
+            goToEpisode: { slug in
+                // 크로스페이드로 교체를 감싼다 — 새 회차는 크롬/탭바가 초기화된 채 마운트되는데,
+                // 하드 컷이면 이전 회차에서 스크롤로 숨었던 크롬이 새로 튀어 "깜빡"인다. 나가는 편이
+                // 페이드 아웃하는 사이 새 편이 뒤에서(초기화 상태로) 페이드 인하므로, 크롬 리셋이
+                // 겹침막 뒤에서 일어나 보이지 않는다("다음 카드가 가린 뒤 재생성"의 SwiftUI 판).
+                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.28)) { currentSlug = slug }
+            })
         .id(currentSlug)
+        .transition(.opacity)
     }
 }
 
