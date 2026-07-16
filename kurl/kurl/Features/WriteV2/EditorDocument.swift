@@ -33,6 +33,10 @@ final class EditorDocument {
     private(set) var blocks: [EditorBlock]
     /// 포커스 — 뷰가 이 값 변화를 보고 해당 블록 UITextView 를 first responder 로 만들고 캐럿을 놓는다.
     var focus: EditorFocus?
+    /// 툴바 서식 직후 1회 마커 반개봉 억제(B1) — 이 블록의 다음 렌더는 캐럿이 스팬 안이어도 마커를
+    /// 숨긴다("굵게 눌렀는데 **가 보인다"의 근본). 뷰가 그 렌더에서 소비(nil 로)한다. 이후 캐럿 이동/
+    /// 타이핑엔 정상 반개봉이 돌아온다(왕복·reveal 계약 불변 — 표시 속성 1프레임만 다르다).
+    var suppressRevealOnceBlockID: UUID?
 
     init(blocks: [EditorBlock] = [.paragraph("")]) {
         self.blocks = blocks.isEmpty ? [.paragraph("")] : blocks
@@ -427,6 +431,9 @@ final class EditorDocument {
         // 마커 뒤(안쪽 시작)부터 inner 길이만큼 다시 선택 — 무선택이었으면 length 0(마커 사이 캐럿).
         let innerStart = min(start, end) + marker.count
         focus = EditorFocus(blockID: f.blockID, caret: innerStart, selectionLength: inner.count)
+        // 감싼 직후엔 선택이 스팬 안이라 반개봉 규칙상 마커가 보인다("굵게 눌렀는데 ** 노출"). 이 1회
+        // 렌더만 마커를 숨긴다(B1) — 선택·왕복은 그대로, 다음 캐럿 이동/타이핑엔 정상 반개봉 복귀.
+        suppressRevealOnceBlockID = f.blockID
     }
 
     /// 특정 포커스(블록·선택)의 선택을 `[선택](url)` 링크로 감싼다. 선택이 없으면 `[라벨](url)`를 넣고
