@@ -30,11 +30,13 @@ struct BlockDividerView: View {
 
 /// 이미지 — 실제 사진을 캔버스에서 바로 보인다(발행면 ImageBlockView 와 같은 RemoteImage 경로).
 /// 로드 전·실패는 4:3 예약 박스로 자리를 지킨다(레이아웃 점프 방지). alt 는 아래 캡션 필드로 편집
-/// (비텍스트 블록이라 본문 캐럿 규칙과 분리) — 왕복은 alt·url 만.
+/// (비텍스트 블록이라 본문 캐럿 규칙과 분리). 폭(기본/와이드/하프)·삭제는 이미지 아래 컨트롤 바에서.
+/// 왕복 계약: block.text = `«폭» alt`(폭 마커는 웹 image-width.ts·발행 렌더 InlineImageMarkdown 과 동형).
 struct BlockImageView: View {
     let block: EditorBlock
     let isFocused: Bool
     let onAltChange: (String) -> Void
+    let onDelete: () -> Void
     let onFocused: () -> Void
 
     private var url: String {
@@ -42,12 +44,21 @@ struct BlockImageView: View {
         return ""
     }
 
+    /// 사용자가 보고 고치는 순수 alt(폭 마커 제외). block.text 에서 마커를 벗겨 채운다.
     @State private var alt: String = ""
+    /// 현재 폭(`nil`=기본·`"wide"`·`"half"`). block.text 의 «마커»에서 읽어 컨트롤 활성 표시.
+    @State private var width: String?
     /// 대체 텍스트 필드의 키보드 포커스 — 문서 focus 에 이 이미지 블록을 등록하는 방아쇠.
     /// 등록하지 않으면 문서 focus 가 직전 텍스트 블록에 남아, 첫 글자 입력(블록 배열 변경)의
     /// 뷰 갱신에서 그 텍스트 블록 UITextView 가 first responder 를 도로 뺏었다
     /// ("설명 한 글자 쓰면 다음 단락으로 이동"의 근본).
     @FocusState private var altFocused: Bool
+
+    private static let widthOptions: [(value: String?, label: LocalizedStringKey, icon: String)] = [
+        (nil, "기본", "rectangle.center.inset.filled"),
+        ("wide", "와이드", "rectangle"),
+        ("half", "하프", "rectangle.split.2x1"),
+    ]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -69,11 +80,54 @@ struct BlockImageView: View {
                 .onChange(of: altFocused) { _, focused in
                     if focused { onFocused() }
                 }
-                .onChange(of: alt) { _, new in onAltChange(new) }
+                // alt 변화를 «폭» alt 로 합쳐 반영. onAppear 초기 세팅이 유발하는 첫 변화는
+                // updateText 가 값 동일 시 무동작(멱등)이라 거짓 dirty 를 만들지 않는다.
+                .onChange(of: alt) { _, _ in commit() }
+
+            // 폭·삭제 컨트롤 — 종이 세계 링크색(§10, 유리 아님). 삭제는 조용한 secondary + 되돌리기 토스트.
+            controls
         }
-        .onAppear { alt = block.text }
+        .onAppear {
+            let (w, a) = DraftPreviewBlocks.parseImageAlt(block.text)
+            width = w
+            alt = a ?? ""
+        }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text("이미지"))
+    }
+
+    /// 폭(기본/와이드/하프) + 삭제. 레거시 ImageActionBar 미러 — 폭은 한 탭, 삭제는 되돌리기 가능.
+    private var controls: some View {
+        HStack(spacing: 12) {
+            ForEach(Self.widthOptions, id: \.icon) { opt in
+                // full 은 리더에서 wide 와 같게 그려지므로 와이드 칸으로 활성 표시(웹·리비전 «full» 대비).
+                let active = opt.value == width || (opt.value == "wide" && width == "full")
+                Button {
+                    onFocused()
+                    width = opt.value
+                    commit()
+                } label: {
+                    Label(opt.label, systemImage: opt.icon).labelStyle(.titleAndIcon)
+                        .fontWeight(active ? .semibold : .medium)
+                }
+                .foregroundStyle(active ? Palette.link : Palette.secondary)
+                .accessibilityAddTraits(active ? .isSelected : [])
+            }
+            Spacer(minLength: 0)
+            Button(role: .destructive, action: onDelete) {
+                Label("삭제", systemImage: "trash").labelStyle(.titleAndIcon)
+            }
+            .foregroundStyle(Palette.secondary)
+            .accessibilityHint(Text("이 이미지를 지웁니다"))
+        }
+        .font(.system(size: 13, weight: .medium))
+    }
+
+    /// alt·폭을 block.text(`«폭» alt`)로 합쳐 문서에 반영. 폭 없으면 마커 생략(순수 alt).
+    private func commit() {
+        let trimmed = alt.trimmingCharacters(in: .whitespaces)
+        let marker = width.map { "«\($0)» " } ?? ""
+        onAltChange(marker + trimmed)
     }
 
     @ViewBuilder

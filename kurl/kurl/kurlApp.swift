@@ -51,6 +51,9 @@ struct kurlApp: App {
                 }
             }
             .task {
+                // `--reset-recovery` — 컴포즈 UITest 격리: 앞선 테스트가 남긴 복구 스태시를 지워
+                // 새 컴포즈에서 복구 다이얼로그가 떠 캔버스를 덮는 오염을 막는다(DEBUG 전용).
+                if Config.resetRecovery { ComposeRecoveryStore.wipeAll() }
                 MockSelfTest.runIfRequested()
                 // 비로그인이면 매 실행 웰컴이 먼저다 — 둘러보기는 그 화면의 1급 출구로 늘 열려
                 // 있으니(5.1.1(v)) 읽기가 로그인 뒤에 갇히지 않는다. 로그인하면 더는 안 뜬다.
