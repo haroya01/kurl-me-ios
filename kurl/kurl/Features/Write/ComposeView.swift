@@ -528,9 +528,16 @@ struct ComposeView: View {
                 Button {
                     showSaveStatus = true
                 } label: {
-                    Image(systemName: saveStatusIcon)
-                        .font(.system(size: 15 * metaUnit))
-                        .foregroundStyle(Palette.secondary)
+                    // 아이콘 + 짧은 텍스트("저장 중…/저장됨") — 점선 스피너 홀로가 아니라 상태를 말로(B5).
+                    // "저장 상태 보기" 진입(팝오버)은 그대로. 실패 상태는 라벨 없이 아이콘만(saveStatusLabel=nil).
+                    HStack(spacing: 5) {
+                        Image(systemName: saveStatusIcon)
+                            .font(.system(size: 13 * metaUnit))
+                        if let label = saveStatusLabel {
+                            Text(label).font(.system(size: 13 * metaUnit, weight: .medium))
+                        }
+                    }
+                    .foregroundStyle(Palette.secondary)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(Text("저장 상태 보기"))
@@ -1191,7 +1198,15 @@ struct ComposeView: View {
         return "checkmark.circle"
     }
 
-    
+    /// 내비바 배지의 짧은 라벨(B5) — 점선 스피너 홀로가 아니라 "저장 중…/저장됨" 텍스트로 신뢰를 준다.
+    /// 실패류는 아이콘만으로도 눈에 띄니 라벨은 저장/저장중에만(§10 조용함 — 정상 상태를 조용히 말한다).
+    private var saveStatusLabel: String? {
+        if autosaveFailed { return nil }  // 실패는 아이콘(구름!·삼각)이 말한다 — 라벨로 소란 떨지 않는다.
+        if signature != lastSavedSignature { return String(localized: "저장 중…") }
+        if lastSavedAt != nil { return String(localized: "저장됨") }
+        return nil
+    }
+
     /// 저장 실패가 인증(401·세션 만료) 때문인가 — 배지·토스트가 "다시 로그인"을 말할 근거(플러셔와 공용 판정).
     private static func isAuthFailure(_ error: Error) -> Bool {
         DraftFlusher.isAuthFailure(error)
@@ -1395,6 +1410,11 @@ struct ComposeView: View {
             if publish {
                 // 이 앱 최대의 순간 — 전체화면 모먼트(그린 블룸 + 햅틱 시퀀스)로 받는다.
                 // 토스트·dismiss 는 모먼트가 끝난 뒤 onDone 에서.
+                // 키보드가 떠 있으면 축하를 반쯤 가린다(B3) — 접어 전체 화면을 축하가 소유하게 한다.
+                UIApplication.shared.sendAction(
+                    #selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                editorController.dismissKeyboard()
+                editorDocument?.focus = nil
                 celebrationIsSchedule = false
                 celebrationSubtitle = nil
                 celebrating = true
@@ -3002,6 +3022,8 @@ private struct V2FormatToolbar: View {
 
     /// 아이콘만 키우고 44pt 터치 타깃은 작은 글자 설정에서도 유지(AGENTS §1 에디터 규율).
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+    /// 버튼 탭마다 증가 — 선택 햅틱(.selection) 트리거(B2).
+    @State private var hapticTick = 0
 
     var body: some View {
         // 스크롤 도구 캡슐 + 고정 키보드 내리기 버튼 — 두 성격의 유리를 GlassEffectContainer 로 묶어
@@ -3051,18 +3073,23 @@ private struct V2FormatToolbar: View {
                 .glassEffect(.regular, in: .capsule)
 
                 // 키보드 내리기 — 고정(스크롤 밖). 별도 유리 원으로(레거시 스니펫 바 대응).
-                Button(action: dismissKeyboard) {
+                Button {
+                    hapticTick &+= 1
+                    dismissKeyboard()
+                } label: {
                     Image(systemName: "keyboard.chevron.compact.down")
                         .font(.system(size: 14 * unit, weight: .semibold))
                         .foregroundStyle(Palette.link)
                         .frame(width: 44, height: 44)
                         .contentShape(Circle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ToolbarPressStyle())
                 .glassEffect(.regular.interactive(), in: .circle)
                 .accessibilityLabel(Text("키보드 내리기"))
             }
         }
+        // 선택 햅틱(B2) — 세그먼트·독 토글과 같은 앱 문법. 컨테이너 한 곳에서 모든 버튼 탭을 받는다.
+        .sensoryFeedback(.selection, trigger: hapticTick)
         .padding(.horizontal, 8)
         .padding(.bottom, 8)
     }
@@ -3078,7 +3105,11 @@ private struct V2FormatToolbar: View {
         _ icon: String, _ label: LocalizedStringKey, active: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
-        Button(action: action) {
+        // 탭마다 선택 햅틱(B2) — 세그먼트 전환·독 토글과 같은 앱 문법(.selection). 서식이 손에 닿는다.
+        Button {
+            hapticTick &+= 1
+            action()
+        } label: {
             VStack(spacing: 3) {
                 Image(systemName: icon)
                     .font(.system(size: 17 * unit, weight: .medium))
@@ -3096,7 +3127,8 @@ private struct V2FormatToolbar: View {
             }
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        // 터치다운 즉시 딤+살짝 눌림(B4) — 카드 press(0.975)와 같은 결의 툴바용 프레스 문법.
+        .buttonStyle(ToolbarPressStyle())
     }
 
     // MARK: 활성 판정
@@ -3129,5 +3161,17 @@ private struct V2FormatToolbar: View {
     private var isListFocused: Bool {
         if case .listItem = focusedKind { return true }
         return false
+    }
+}
+
+/// 툴바 버튼 프레스 상태(B4) — 터치다운 즉시 살짝 눌리고 흐려진다(카드 press 0.975 와 같은 결).
+/// 상태 배지·햅틱과 별개로 "눌렀다"를 손보다 먼저 눈에 준다. reduce-motion 이면 스케일만 끈다.
+private struct ToolbarPressStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.9 : 1)
+            .opacity(configuration.isPressed ? 0.55 : 1)
+            .animation(.snappy(duration: 0.12), value: configuration.isPressed)
     }
 }

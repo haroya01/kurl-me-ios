@@ -35,6 +35,10 @@ struct BlockTextView: UIViewRepresentable {
     let caretOnFocus: Int
     /// 문서 focus 의 선택 길이(String 인덱스). >0 이면 [caret, caret+length) 를 선택 상태로 복원(서식 감싸기 후).
     var selectionLengthOnFocus: Int = 0
+    /// 툴바 서식 직후 1회 마커 반개봉 억제(B1) — true 면 이 렌더는 캐럿이 스팬 안이어도 마커를 숨긴다.
+    var suppressRevealOnce: Bool = false
+    /// 위 억제를 이 렌더에서 소비했음을 문서에 알린다(1회성 리셋).
+    var onRevealSuppressConsumed: () -> Void = {}
     /// 텍스트 변경 콜백(구조 변경 없음).
     let onTextChange: (String) -> Void
     /// 엔터로 블록 분할 요청 — caret 위치 전달.
@@ -127,12 +131,21 @@ struct BlockTextView: UIViewRepresentable {
         // attributedText 교체는 selection 을 끝으로 리셋하므로, 포커스 중이면 캐럿을 복원한다(외부 동기화
         // 중 캐럿이 맨 앞으로 튀지 않게 — reRenderInline 과 같은 규율).
         let active = tv.isFirstResponder ? tv.selectedRange : nil
-        tv.attributedText = BlockInlineRenderer.render(block, activeRange: active)
+        // 툴바 서식 직후 1회는 반개봉을 끈다(B1) — 마커를 숨겨 렌더하되 선택은 그대로 복원한다.
+        // 다음 캐럿 이동/타이핑의 재렌더(reRenderInline)는 억제 없이 정상 반개봉으로 돌아온다.
+        let renderRange = suppressRevealOnce ? nil : active
+        tv.attributedText = BlockInlineRenderer.render(block, activeRange: renderRange)
         tv.typingAttributes = BlockInlineRenderer.typingAttributes(for: block.kind)
         if let active, active.location + active.length <= (tv.text as NSString).length {
             tv.selectedRange = active
         }
         coordinator.isProgrammaticEdit = false
+        // 소비(문서 플래그 리셋)는 이 렌더 패스 밖으로 미룬다 — 뷰 업데이트 도중 @Observable 변경 경고·
+        // 재진입을 피한다. 다음 런루프에서 nil 로 돌려 이후 캐럿 이동 렌더가 정상 반개봉을 타게 한다.
+        if suppressRevealOnce {
+            let consume = onRevealSuppressConsumed
+            DispatchQueue.main.async { consume() }
+        }
     }
 
     /// 문서 focus 의 (caret, length) — 둘 다 String 인덱스 거리 — 를 UITextView 선택으로 복원한다.

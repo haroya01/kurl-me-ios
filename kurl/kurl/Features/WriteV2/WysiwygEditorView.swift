@@ -148,6 +148,13 @@ struct WysiwygEditorView: View {
             isFocused: isFocused,
             caretOnFocus: isFocused ? (document.focus?.caret ?? 0) : 0,
             selectionLengthOnFocus: isFocused ? (document.focus?.selectionLength ?? 0) : 0,
+            // 툴바 서식 직후 1회 마커 숨김(B1) — 이 블록이 억제 대상이면 렌더가 반개봉을 건너뛴다.
+            suppressRevealOnce: document.suppressRevealOnceBlockID == block.id,
+            onRevealSuppressConsumed: {
+                if document.suppressRevealOnceBlockID == block.id {
+                    document.suppressRevealOnceBlockID = nil
+                }
+            },
             onTextChange: { document.updateText(block.id, $0) },
             onSplit: { document.splitBlock(block.id, at: $0) },
             onMergeBackward: { document.mergeBackward(block.id) },

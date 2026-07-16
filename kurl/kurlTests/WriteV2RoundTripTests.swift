@@ -894,4 +894,41 @@ final class WriteV2RoundTripTests: XCTestCase {
         XCTAssertNil(w2)
         XCTAssertEqual(a2, "그냥 설명")
     }
+
+    // MARK: B1 — 툴바 서식 직후 마커 반개봉 1회 억제
+
+    /// 감싸기는 억제 플래그를 그 블록에 세운다 — 뷰가 다음 렌더에서 마커를 숨기고 소비한다.
+    /// (왕복·선택은 불변: text 는 여전히 마크다운 원문, 선택은 inner 로 복원.)
+    func testWrapSetsSuppressRevealOnceFlag() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.paragraph("굵게할것")])
+            let id = doc.blocks[0].id
+            XCTAssertNil(doc.suppressRevealOnceBlockID)
+            doc.focus = EditorFocus(blockID: id, caret: 0, selectionLength: 4)
+            doc.wrapFocusedSelection(with: "**")
+            XCTAssertEqual(doc.suppressRevealOnceBlockID, id, "감싼 블록에 1회 억제 플래그가 서야")
+            // 왕복·선택 불변 확인.
+            XCTAssertEqual(doc.blocks[0].text, "**굵게할것**")
+            XCTAssertEqual(doc.focus?.selectionLength, 4)
+        }
+    }
+
+    /// 렌더러: 선택이 스팬 안(=평소엔 반개봉)이어도, 억제 렌더(activeRange nil)면 마커는 숨는다.
+    /// B1 의 핵심 — 뷰가 억제 시 activeRange nil 로 렌더하면 마커가 안 보인다는 계약 확인.
+    func testSuppressedRenderHidesMarkersEvenWhenSelectionInside() async {
+        await MainActor.run {
+            let block = EditorBlock.paragraph("**굵게**")
+            let ns = block.text as NSString
+            let inside = ns.range(of: "굵게")  // 스팬 안 선택
+            // 평소(반개봉): 캐럿이 스팬 안이면 마커가 흐리게 노출(clear 아님).
+            let revealed = BlockInlineRenderer.render(block, activeRange: inside)
+            let markerLoc = ns.range(of: "**").location
+            let revealedColor = revealed.attribute(.foregroundColor, at: markerLoc, effectiveRange: nil) as? UIColor
+            XCTAssertNotEqual(revealedColor, UIColor.clear, "반개봉이면 마커가 흐리게라도 보여야")
+            // 억제(activeRange nil): 같은 선택이어도 마커는 숨김(clear).
+            let suppressed = BlockInlineRenderer.render(block, activeRange: nil)
+            let suppressedColor = suppressed.attribute(.foregroundColor, at: markerLoc, effectiveRange: nil) as? UIColor
+            XCTAssertEqual(suppressedColor, UIColor.clear, "억제 렌더면 마커가 숨어야(B1)")
+        }
+    }
 }

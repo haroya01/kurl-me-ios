@@ -56,7 +56,24 @@ final class V2LegacyParityUITests: XCTestCase {
         shot(app, "parity-02-strike-applied")
     }
 
-    
+    // MARK: 자동저장 텍스트 라벨(B5) — 편집 후 "저장 중…" 또는 "저장됨" 텍스트가 배지에 보인다
+
+    func testAutosaveShowsTextLabel() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "write", "--editor", "v2"]
+        app.launch()
+        let paragraph = openDraftAndFocus(app)
+        paragraph.tap()
+        app.typeText(" 라벨 테스트.")
+        Thread.sleep(forTimeInterval: 0.5)
+        // 편집 직후엔 "저장 중…", 왕복 후엔 "저장됨" — 둘 중 하나가 텍스트로 떠야 한다(점선 스피너 단독 아님).
+        let saving = app.staticTexts["저장 중…"]
+        let saved = app.staticTexts["저장됨"]
+        XCTAssertTrue(saving.waitForExistence(timeout: 6) || saved.waitForExistence(timeout: 15),
+                      "자동저장 상태가 텍스트 라벨로 안 보임(B5)")
+        shot(app, "parity-07-autosave-label")
+    }
+
     // MARK: 키보드 내리기 — 고정 버튼 존재 + 탭
 
     func testKeyboardDismissButtonExists() throws {
