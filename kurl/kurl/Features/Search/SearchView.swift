@@ -288,9 +288,9 @@ struct SearchView: View {
                         value: Route.author(username: suggestion.author.username)
                     ) {
                         HStack(spacing: 11) {
-                            AvatarView(author: suggestion.author, size: 42)
+                            AvatarView(author: suggestion.author, size: 44)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(suggestion.author.username)
+                                Text("@\(suggestion.author.username)")
                                     .typeScale(.titleSmall)
                                     .foregroundStyle(Palette.ink)
                                 if let bio = suggestion.author.bio, !bio.isEmpty {
@@ -399,9 +399,9 @@ struct SearchView: View {
                                     value: Route.author(username: suggestion.author.username)
                                 ) {
                                     HStack(spacing: 11) {
-                                        AvatarView(author: suggestion.author, size: 42)
+                                        AvatarView(author: suggestion.author, size: 44)
                                         VStack(alignment: .leading, spacing: 2) {
-                                            Text(suggestion.author.username)
+                                            Text("@\(suggestion.author.username)")
                                                 .typeScale(.titleSmall)
                                                 .foregroundStyle(Palette.ink)
                                             if let bio = suggestion.author.bio, !bio.isEmpty {
