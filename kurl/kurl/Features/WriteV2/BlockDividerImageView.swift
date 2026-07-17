@@ -40,7 +40,7 @@ struct BlockImageView: View {
     let onFocused: () -> Void
 
     private var url: String {
-        if case .image(let u) = block.kind { return u }
+        if case .image(let u, _) = block.kind { return u }
         return ""
     }
 

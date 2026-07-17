@@ -113,4 +113,36 @@ final class SnapshotSamplesTests: XCTestCase {
     func test_typeLadder_dynamicTypeXXXL() {
         assertSnapshot(of: typeLadder, as: snapshot(CGSize(width: 360, height: 620), .light, xxxl: true))
     }
+
+    // MARK: 리더 블록 — h4~6 소제목·작업 목록 렌더 회귀(웹 파리티)
+
+    /// 블록 모델이 H3 에서 캡되어 h4~6 은 `#### ` 문단으로, 작업 목록은 `[ ]`/`[x]` 붙은
+    /// LIST_BULLET 로 온다. 이 스냅샷이 소제목 사다리(h4>h5>h6)와 읽기전용 체크박스 글리프를
+    /// 픽셀로 고정한다 — 예전엔 해시가 리터럴로 새고 `[ ]` 가 그대로 보였다.
+    private func block(_ type: String, _ content: String) -> PostBlock {
+        let json = #"{"type":"\#(type)","content":\#(String(data: try! JSONEncoder().encode(content), encoding: .utf8)!)}"#
+        return try! JSONDecoder().decode(PostBlock.self, from: Data(json.utf8))
+    }
+
+    private var readerSubHeadingsAndTasks: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            BlockView(block: block("H3", "H3 섹션 제목"))
+            BlockView(block: block("PARAGRAPH", "#### H4 소제목"))
+            BlockView(block: block("PARAGRAPH", "##### H5 소제목"))
+            BlockView(block: block("PARAGRAPH", "###### H6 소제목"))
+            BlockView(block: block("PARAGRAPH", "소제목 뒤 본문 한 줄."))
+            BlockView(block: block("LIST_BULLET", "- [x] 끝낸 일\n- [ ] 남은 일\n- 보통 항목"))
+        }
+        .frame(width: 360, alignment: .leading)
+        .padding(20)
+        .background(Palette.readingBg)
+    }
+
+    func test_readerSubHeadingsAndTasks_light() {
+        assertSnapshot(of: readerSubHeadingsAndTasks, as: snapshot(CGSize(width: 360, height: 420), .light))
+    }
+
+    func test_readerSubHeadingsAndTasks_dark() {
+        assertSnapshot(of: readerSubHeadingsAndTasks, as: snapshot(CGSize(width: 360, height: 420), .dark))
+    }
 }
