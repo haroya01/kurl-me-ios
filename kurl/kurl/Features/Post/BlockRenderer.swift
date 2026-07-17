@@ -27,6 +27,10 @@ struct BlockView: View {
     @ScaledMetric(relativeTo: .title) private var h1Size: CGFloat = 27
     @ScaledMetric(relativeTo: .title2) private var h2Size: CGFloat = 23
     @ScaledMetric(relativeTo: .title3) private var h3Size: CGFloat = 19
+    // h4~6 은 블록 타입이 아니라(백엔드·웹 에디터 모두 H3 에서 캡) 문단 속 `#### ` 로 온다.
+    // 웹 리더는 그 문단을 react-markdown 으로 <h4>(17px semibold) 로 그리므로 여기서도 맞춘다.
+    // h5·h6 은 웹에 전용 스타일이 없어 h4 아래로 한 칸씩 내려 사다리를 잇는다(소실 금지).
+    @ScaledMetric(relativeTo: .headline) private var h4Size: CGFloat = 17
 
     var body: some View {
         switch block.kind {
@@ -36,11 +40,17 @@ struct BlockView: View {
             let size = isLead ? bodySize + 2 : bodySize
             let lineSpacing = size * (isLead ? 0.6 : 0.68)
             let color = isLead ? Palette.heading : Palette.body
+            // h4~6 소제목 — `#### `/`##### `/`###### ` 로 시작하는 단독 문단은 웹 리더가 <h4~6>
+            // 로 그린다(블록 모델은 H3 에서 캡되어 이런 헤딩이 PARAGRAPH 로 넘어온다). Apple
+            // 인라인 파서는 `#` 를 헤딩으로 안 읽어 해시가 리터럴로 새므로, 여기서 직접 소제목으로 그린다.
+            if let sub = Self.subHeading(block.content ?? "") {
+                subHeadingView(level: sub.level, text: sub.text)
+            }
             // 문단 속 인라인 이미지(노션 붙여넣기 등) — Apple 마크다운 파서는 이미지를 못 그려 alt
             // 텍스트만 남으므로, 텍스트/이미지 세그먼트로 갈라 이미지는 IMAGE 블록 문법으로 그린다
             // (웹 리더의 인라인 <img> 등가). 이런 문단은 블록 내 오프셋 기반 하이라이트와 안 맞아
             // 하이라이트 없이 그린다(분해가 오프셋을 흔든다 — 순수 텍스트 문단은 종전 그대로).
-            if InlineImageMarkdown.containsImage(block.content ?? "") {
+            else if InlineImageMarkdown.containsImage(block.content ?? "") {
                 inlineImageParagraph(block.content ?? "", size: size, lineSpacing: lineSpacing, color: color)
             }
             // 본 글이면 선택 가능한 문단(UITextView) — 길게 눌러 하이라이트, 공개 하이라이트 페인트.
@@ -208,11 +218,42 @@ struct BlockView: View {
         return Text(raw)
     }
 
+    /// 단독 `#### `/`##### `/`###### ` 줄이면 (레벨 4~6, 뒤 내용). 여러 줄이거나 h1~3(블록으로
+    /// 승격됨)·해시 뒤 공백 없음이면 nil → 보통 문단. 웹 리더의 h4~6 처리와 파리티.
+    static func subHeading(_ content: String) -> (level: Int, text: String)? {
+        let line = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !line.contains("\n") else { return nil }
+        var hashes = 0
+        for ch in line { if ch == "#" { hashes += 1 } else { break } }
+        guard hashes >= 4, hashes <= 6 else { return nil }
+        let after = line.dropFirst(hashes)
+        guard after.first == " " else { return nil }
+        let text = String(after.dropFirst()).trimmingCharacters(in: .whitespaces)
+        guard !text.isEmpty else { return nil }
+        return (hashes, text)
+    }
+
+    /// h4~6 소제목 뷰 — h4 는 웹(17px semibold)에 맞추고, h5·h6 은 그 아래로 한 칸씩 내려
+    /// 사다리를 잇는다(웹엔 h5·h6 전용 스타일이 없어 소실을 막는 쪽으로 확장).
+    @ViewBuilder
+    private func subHeadingView(level: Int, text: String) -> some View {
+        let size = h4Size - CGFloat(level - 4) // h4=17, h5=16, h6=15
+        inline(text)
+            .font(.system(size: size, weight: .semibold))
+            .tracking(-0.2)
+            .foregroundStyle(level >= 6 ? Palette.heading : Palette.ink)
+            .accessibilityAddTraits(.isHeader)
+            .padding(.top, 14).padding(.bottom, 2)
+    }
+
     private func parseListItems(_ content: String?) -> [ListItem] {
         guard let content, !content.isEmpty else { return [] }
         if let data = content.data(using: .utf8),
            let array = try? JSONDecoder().decode([String].self, from: data) {
-            return array.map { ListItem(depth: 0, text: $0) }
+            return array.map { text in
+                let (task, stripped) = Self.taskMarker(text)
+                return ListItem(depth: 0, text: stripped, task: task)
+            }
         }
         return content
             .split(separator: "\n", omittingEmptySubsequences: true)
@@ -230,8 +271,17 @@ struct BlockView: View {
                 if let dot = s.firstIndex(of: "."), s[..<dot].allSatisfy(\.isNumber) {
                     s = String(s[s.index(after: dot)...]).trimmingCharacters(in: .whitespaces)
                 }
-                return ListItem(depth: min(4, lead / 2), text: s)
+                let (task, stripped) = Self.taskMarker(s)
+                return ListItem(depth: min(4, lead / 2), text: stripped, task: task)
             }
+    }
+
+    /// GFM 작업 목록 마커 — 글머리 뗀 항목 텍스트가 `[ ] `/`[x] `/`[X] ` 로 시작하면
+    /// (완료 여부, 마커 뗀 텍스트)를, 아니면 (nil, 원문). 웹 리더가 그리는 disabled 체크박스와 파리티.
+    static func taskMarker(_ text: String) -> (checked: Bool?, text: String) {
+        let lower = text.prefix(4).lowercased()
+        guard lower.hasPrefix("[ ] ") || lower.hasPrefix("[x] ") else { return (nil, text) }
+        return (lower.hasPrefix("[x] "), String(text.dropFirst(4)))
     }
 }
 
@@ -603,9 +653,11 @@ private struct ImageBlockView: View {
 // MARK: 리스트 블록 — 마커 그린
 
 /// 리스트 항목 — 중첩 깊이(들여쓰기)와 텍스트. 0 = 최상위.
+/// task = GFM 작업 목록(`- [ ]`/`- [x]`) 상태. nil 이면 보통 항목(글머리·번호).
 private struct ListItem {
     let depth: Int
     let text: String
+    var task: Bool?
 }
 
 private struct ListBlockView: View {
@@ -618,20 +670,43 @@ private struct ListBlockView: View {
         VStack(alignment: .leading, spacing: 9) {
             ForEach(Array(items.enumerated()), id: \.offset) { index, item in
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
-                    Text(marker(item, index: index))
-                        .font(.system(size: bodySize))
-                        .foregroundStyle(Palette.secondary)
-                        .monospacedDigit()
+                    markerView(item, index: index)
                     Text(inline(item.text))
                         .font(.system(size: bodySize))
                         .lineSpacing(bodySize * 0.5)
                         .foregroundStyle(Palette.body)
                 }
                 .padding(.leading, CGFloat(item.depth) * 18) // 중첩 들여쓰기
+                // 작업 항목은 완료 여부를 음성으로 알린다(글리프는 숨겨 중복 낭독 방지).
+                .accessibilityElement(children: item.task == nil ? .contain : .combine)
+                .accessibilityLabel(taskAXLabel(item))
             }
         }
         .padding(.top, 2)
         .padding(.bottom, 14)
+    }
+
+    // 항목 앞 글머리 — 작업 목록은 읽기 전용 체크박스 글리프(웹 disabled input 파리티),
+    // 그 외엔 글머리·번호 텍스트. 체크박스는 눌러도 상태가 안 바뀐다(읽기면은 열람만).
+    @ViewBuilder
+    private func markerView(_ item: ListItem, index: Int) -> some View {
+        if let checked = item.task {
+            Image(systemName: checked ? "checkmark.square.fill" : "square")
+                .font(.system(size: bodySize * 0.92))
+                .foregroundStyle(checked ? Palette.accentFill : Palette.secondary)
+                .accessibilityHidden(true)
+        } else {
+            Text(marker(item, index: index))
+                .font(.system(size: bodySize))
+                .foregroundStyle(Palette.secondary)
+                .monospacedDigit()
+        }
+    }
+
+    // 작업 항목의 음성 라벨 — "완료/미완료, 본문". 보통 항목은 빈 텍스트(자식 낭독에 맡김).
+    private func taskAXLabel(_ item: ListItem) -> Text {
+        guard let checked = item.task else { return Text("") }
+        return Text(checked ? "완료됨" : "미완료") + Text(", ") + Text(item.text)
     }
 
     // 중첩 단계별 글머리(•→◦→▪). 번호 목록은 그대로 번호(중첩 번호 재시작은 생략).
