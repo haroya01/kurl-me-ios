@@ -364,107 +364,145 @@ struct DiscoverView: View {
     }
 }
 
-/// 큐레이터 연결 한 장 — 누가(아바타+이름) → 어느 컬렉션에 → [왜 한 줄] → 블록.
+/// 큐레이터 연결 한 장 — 일반 글 카드 문법으로 수렴한 미니멀 카드(≤3층, 장식 아이콘 0, 웹 #891 미러).
+/// 연결된 것(글 제목·하이라이트 구절·노트 본문)이 주인공으로 본문에 직접(중첩 박스·아이콘 없음),
+/// why 조용한 한 줄, 맥락은 메타 한 줄(아바타 + "@큐레이터가 [컬렉션]에 연결 · 날짜", 컬렉션=그린 링크).
 /// 발견 표면(팔로우 큐레이터 흐름)과 비로그인 첫 피드의 공개 연결 인터리브가 이 하나를 공유한다.
 struct ConnectionEventCard: View {
     let event: ConnectionEvent
-    @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
-    /// 비로그인 첫 피드에서도 이 카드가 흐른다 — 이때 컬렉션 칩은 인증 전용 상세(401)로
+    /// 비로그인 첫 피드에서도 이 카드가 흐른다 — 이때 컬렉션 링크는 인증 전용 상세(401)로
     /// 데려가면 막다른 길이라, 정식 로그인 시트로 돌린다(발견 표면은 이미 로그인 뒤라 안 뜬다).
     @State private var showLoginPrompt = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // 귀속 = 조용히. 누가·언제만(broadcast 아니라 connect 라는 건 아래 eyebrow 가 말한다).
-            HStack(spacing: 7) {
-                // 큐레이터(아바타+이름) → 그 사람 프로필. 컬렉션 eyebrow 와 같은 결의 형제 링크.
-                NavigationLink(value: Route.author(username: event.curator.username)) {
-                    HStack(spacing: 7) {
-                        AvatarView(author: event.curator, size: 22)
-                        Text(event.curator.username)
-                            .typeScale(.meta)
-                            .foregroundStyle(Palette.secondary)
-                    }
-                }
-                .buttonStyle(.plain)
-                if let at = event.connectedAt {
-                    Text("·").foregroundStyle(Palette.faint)
-                    Text(at.relativeShort)
-                        .typeScale(.meta)
-                        .foregroundStyle(Palette.faint)
-                }
-                Spacer(minLength: 0)
-            }
+        VStack(alignment: .leading, spacing: 8) {
+            // 주인공 — 연결된 것(일반 카드 제목과 같은 급). 중첩 박스·아이콘 없이 본문에 직접.
+            // 하이라이트만 세로 그린 스파인 유지(칠한 구절은 콘텐츠라). 노트는 종이 위 그대로.
+            MinimalConnectionHero(block: event.block)
 
-            // 컬렉션 eyebrow — "…에 연결" 이라는 동사를 탭 가능한 채널 칩으로. 한 연결에서
-            // 그 채널 전체로 이어지는 문(§0 connect). 초록은 데이터 링크라 link 톤 허용.
-            // 로그인 뒤에만 인증 전용 상세로 가고, 비로그인이면 그 자리에서 로그인 시트로 돌린다.
-            if AuthStore.shared.isSignedIn {
-                NavigationLink(value: CollectionRef(id: event.collectionId)) {
-                    collectionChip
-                }
-                .buttonStyle(.plain)
-            } else {
-                Button { showLoginPrompt = true } label: {
-                    collectionChip
-                }
-                .buttonStyle(.plain)
-            }
-
-            // 큐레이터의 한 줄 = 히어로. 이 흐름이 알고리즘 피드가 아니라 사람의 큐레이션이라는
-            // 가장 또렷한 신호. 없으면(이유 안 단 연결) 블록이 곧장 히어로가 된다.
+            // why — 큐레이터의 한 줄(콘텐츠라 유지). 일반 카드 소개글 자리, 스파인 없이 조용히.
             if let why = event.why {
                 Text(why)
-                    .typeScale(.body)
-                    .foregroundStyle(Palette.ink)
+                    .typeScale(.lede)
+                    .foregroundStyle(Palette.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            BlockPreview(block: event.block, showsEngagement: true)
-                .padding(.top, 2)
+            // 맥락 한 줄 — 일반 카드 작가 행과 같은 결. 아바타 + "@큐레이터가 [컬렉션]에 연결 · 날짜".
+            // 장식 아이콘 0, 컬렉션은 그린 텍스트(알약 아님). 로케일 어순은 xcstrings 위치 인자로 지킨다.
+            // 행 전체 탭 = 컬렉션(연결의 주 문); 로그인 뒤에만 상세로, 비로그인이면 로그인 시트로.
+            metaLine
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 14)
         .loginPrompt(isPresented: $showLoginPrompt, message: "큐레이터가 엮은 컬렉션 이어 보기")
     }
 
-    /// 컬렉션 칩의 겉모습 — 로그인 여부에 따라 링크로도, 로그인 트리거로도 감싼다(모양은 하나).
-    private var collectionChip: some View {
-        HStack(spacing: 4) {
-            Image(
-                systemName: event.collectionKind == .path
-                    ? "arrow.turn.down.right" : "square.grid.2x2"
-            )
-            .font(.system(size: 10 * metaUnit, weight: .bold))
-            Text(event.collectionTitle)
-                .typeScale(.eyebrow)
-                .tracking(0.3)
-            Text(event.collectionKind == .path ? "길에 엮음" : "에 연결")
-                .typeScale(.meta)
-                .foregroundStyle(Palette.faint)
+    @ViewBuilder
+    private var metaLine: some View {
+        if AuthStore.shared.isSignedIn {
+            NavigationLink(value: CollectionRef(id: event.collectionId)) { metaRow }
+                .buttonStyle(.plain)
+        } else {
+            Button { showLoginPrompt = true } label: { metaRow }
+                .buttonStyle(.plain)
         }
-        .foregroundStyle(Palette.link)
+    }
+
+    private var metaRow: some View {
+        HStack(spacing: 7) {
+            AvatarView(author: event.curator, size: 20)
+            // 큐레이터·컬렉션 이름을 서식 있는 Text 조각으로 끼워 로케일 어순을 지킨다(웹 t.rich 대응):
+            // 컬렉션=그린, 나머지=secondary. 날짜는 · 뒤 faint.
+            metaText
+                .typeScale(.meta)
+                .lineLimit(2)
+            Spacer(minLength: 0)
+        }
         .expandTapTarget(6)
+    }
+
+    /// "@큐레이터가 [컬렉션]에 연결 · 날짜" — 컬렉션만 그린으로 강조한 단일 Text. 길/컬렉션 어투 분리.
+    private var metaText: Text {
+        let curator = Text(event.curator.username).foregroundStyle(Palette.secondary)
+        let collection = Text(event.collectionTitle).foregroundStyle(Palette.link)
+        // xcstrings 위치 인자(%1$@ 큐레이터 · %2$@ 컬렉션)로 로케일별 어순 유지.
+        let phrase: Text = event.collectionKind == .path
+            ? Text("\(curator)가 \(collection) 길에 엮음")
+            : Text("\(curator)가 \(collection)에 연결")
+        var line = phrase.foregroundStyle(Palette.secondary)
+        if let at = event.connectedAt {
+            line = line
+                + Text("  ·  ").foregroundStyle(Palette.faint)
+                + Text(at.relativeShort).foregroundStyle(Palette.faint)
+        }
+        return line
     }
 }
 
-/// 연결된 블록 — 종류마다 *다른 실루엣*으로 한눈에 구분된다(같은 리듬 반복 = 단조의 원인).
-/// 글 = 흰 보더 카드(읽을 아티팩트) · 하이라이트 = 그린 좌측 룰 인용(뽑은 구절) ·
-/// 노트 = 부드러운 틴트 패널(붙잡은 생각). 발견 흐름·컬렉션 상세가 이 하나를 공유한다.
-struct BlockPreview: View {
+/// 연결 이벤트의 주인공 — 웹 #891 미러. 글=제목만(박스·아이콘 없이 본문에 직접), 하이라이트=그린
+/// 스파인+칠한 구절, 노트=본문 그대로. 전부 일반 카드 제목 급이 주인공이고 장식 꼬리표는 없다.
+private struct MinimalConnectionHero: View {
     let block: ConnectionBlock
-    /// 발견 흐름의 글 미리보기에만 켠다 — 내 좋아요 표식 + 그 자리 북마크 토글. 컬렉션 상세·
-    /// 하이라이트 스레드가 쓰는 같은 컴포넌트는 기본 꺼짐(표식 없이 조용히).
-    var showsEngagement = false
-    @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
     var body: some View {
         switch block {
-        case let .post(title, excerpt, username, slug, tags):
-            // 글 = 흰 종이 카드. 셋 중 가장 무거운 아티팩트 — 읽으러 들어가는 곳.
+        case let .post(title, _, username, slug, _):
             NavigationLink(value: Route.post(username: username, slug: slug)) {
-                VStack(alignment: .leading, spacing: 6) {
-                    kindTag("글", icon: "doc.text")
+                Text(title)
+                    .typeScale(.title)
+                    .foregroundStyle(Palette.ink)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+        case let .highlight(quote, _, username, slug):
+            // 하이라이트 = 칠한 구절이 주인공. 세로 그린 스파인만 남기고(콘텐츠라), 탭은 그 문장으로 딥링크.
+            NavigationLink(value: Route.postFocusQuote(username: username, slug: slug, quote: quote)) {
+                HStack(alignment: .top, spacing: 10) {
+                    RoundedRectangle(cornerRadius: 1.5)
+                        .fill(Palette.accent)
+                        .frame(width: 3)
+                    Text(quote)
+                        .typeScale(.title)
+                        .foregroundStyle(Palette.ink)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+        case let .note(body):
+            // 노트 = 붙잡은 생각. 목적지 없이 종이 위 그대로, 제목 급 본문.
+            Text(body)
+                .typeScale(.title)
+                .foregroundStyle(Palette.ink)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+/// 연결된 블록 — 일반 글 카드 문법으로 수렴한 미니멀 렌더(웹 #894 미러). 글·상세 "이어진 것"·
+/// 컬렉션 상세·하이라이트 스레드가 이 하나를 공유하므로, 장식 꼬리표(타입 태그·문서/인용/노트
+/// 아이콘)와 중첩 박스를 걷어 연결된 것 자체가 종이 위 주인공이 되게 한다. 종류 구분은 실루엣만:
+/// 글=제목이 카드 제목 급 · 하이라이트=그린 좌측 스파인 + 구절(칠한 구절이 콘텐츠) · 노트=본문 그대로.
+struct BlockPreview: View {
+    let block: ConnectionBlock
+
+    var body: some View {
+        switch block {
+        case let .post(title, excerpt, username, slug, _):
+            // 글 = 제목이 주인공. 중첩 박스·보더·문서 아이콘·"글" 태그 제거하고 종이에 직접,
+            // 소개글은 조용한 한 줄. (연결의 주인공은 연결된 글이지 카드 장식이 아니다.)
+            NavigationLink(value: Route.post(username: username, slug: slug)) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(title)
                         .typeScale(.titleSmall)
                         .foregroundStyle(Palette.ink)
@@ -476,41 +514,21 @@ struct BlockPreview: View {
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
-                    if let tag = tags.first {
-                        Text("#\(tag)")
-                            .typeScale(.meta)
-                            .foregroundStyle(Palette.secondary)
-                            .padding(.top, 1)
-                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(14)
-                .background(Palette.cardBg, in: RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous)
-                        .strokeBorder(Palette.cardBorder, lineWidth: 1))
                 .contentShape(Rectangle())
             }
-            .buttonStyle(CardButtonStyle())
-            // 종이 카드 위 조용한 인게이지 표식 — 카드 우상단(BlogCard 북마크 표식과 같은 자리).
-            // 유리 없이 종이 문법(§1.5): 좋아요 여부는 표식, 북마크는 그 자리 토글. 버튼이 제 탭을
-            // 삼켜 카드 열기와 겹치지 않는다.
-            .overlay(alignment: .topTrailing) {
-                if showsEngagement {
-                    PostPreviewEngagement(username: username, slug: slug)
-                }
-            }
+            .buttonStyle(.plain)
 
         case let .highlight(quote, postTitle, username, slug):
-            // 하이라이트 = 인용. 카드 박스가 아니라 그린 좌측 룰 + 큰 구절 — 본문에서 뽑힌 결.
-            // 탭 = 글의 *그 문장*으로 딥링크(스크롤+깜빡), 글 맨 위가 아니라.
+            // 하이라이트 = 칠한 구절이 주인공. 그린 좌측 스파인만 남기고(구절이 콘텐츠) 인용 아이콘·
+            // "하이라이트" 태그 제거. 탭 = 글의 *그 문장*으로 딥링크. 출처 제목은 조용한 한 줄.
             NavigationLink(value: Route.postFocusQuote(username: username, slug: slug, quote: quote)) {
                 HStack(alignment: .top, spacing: 12) {
                     RoundedRectangle(cornerRadius: 1.5)
                         .fill(Palette.accent)
                         .frame(width: 3)
-                    VStack(alignment: .leading, spacing: 8) {
-                        kindTag("하이라이트", icon: "quote.opening")
+                    VStack(alignment: .leading, spacing: 6) {
                         Text(quote)
                             .typeScale(.body)
                             .foregroundStyle(Palette.body)
@@ -528,117 +546,12 @@ struct BlockPreview: View {
             .buttonStyle(.plain)
 
         case let .note(body):
-            // 노트 = 붙잡은 생각. 회색 박스 없이 바로 본문 — 글(카드)·하이라이트(그린 룰)와
-            // 실루엣으로 구분되고, 노트는 가장 조용하게 종이 위에 그대로 앉는다.
-            VStack(alignment: .leading, spacing: 8) {
-                kindTag("노트", icon: "text.quote")
-                Text(body)
-                    .typeScale(.body)
-                    .foregroundStyle(Palette.body)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    // 종류 꼬리표 — 작고 흐린 한 점. 실루엣이 1차 신호, 이건 확인 사살.
-    private func kindTag(_ label: LocalizedStringKey, icon: String) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: icon)
-                .font(.system(size: 9 * metaUnit, weight: .bold))
-            Text(label)
-                .typeScale(.footnote)
-        }
-        .foregroundStyle(Palette.faint)
-    }
-}
-
-/// 미리보기 카드의 조용한 인게이지 — 좋아요 여부(하트 표식)와 북마크(그 자리 토글).
-/// 카드는 종이 세계(§1.5)라 유리 없이 종이 문법: 채워짐/빔 심볼 한둘. 행당 그린 액센트 ≤1 —
-/// 그린은 행동 가능한 북마크(켜짐)만 가져가고, 좋아요 표식은 채워진 모양으로만 말한다.
-/// 연결 응답엔 postId 가 없어 스토어로 여부를 대조하고, 북마크를 켤 때만 상세로 id 를 푼다.
-/// 북마크 = 낙관 토글(즉시 반영 → 실패 시 원상복구 + 토스트) + 가벼운 햅틱, 비로그인이면 그 자리 로그인.
-private struct PostPreviewEngagement: View {
-    let username: String
-    let slug: String
-
-    @State private var showLoginPrompt = false
-    @State private var toggleTick = 0
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    private var liked: Bool { LikeStore.shared.contains(username: username, slug: slug) }
-    private var bookmarked: Bool { BookmarkStore.shared.contains(username: username, slug: slug) }
-
-    var body: some View {
-        HStack(spacing: 12) {
-            if liked {
-                // 좋아요 여부 = 조용한 표식(끄기/켜기는 상세의 독이 든다). 그린은 북마크가 가져가므로
-                // 여기선 무채색(secondary) — 채워진 하트 모양만으로 "좋아요함"을 말한다.
-                Image(systemName: "heart.fill")
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(Palette.secondary)
-                    .transition(reduceMotion ? .opacity : .scale(scale: 0.6).combined(with: .opacity))
-                    .accessibilityLabel(Text("좋아요한 글"))
-            }
-            Button {
-                toggleBookmark()
-            } label: {
-                Image(systemName: bookmarked ? "bookmark.fill" : "bookmark")
-                    .font(.system(size: 13, weight: .semibold))
-                    .symbolEffect(.bounce, value: reduceMotion ? false : bookmarked)
-                    .foregroundStyle(bookmarked ? Palette.accent : Palette.faint)
-                    // 44pt 터치 타깃(§2) — 보이는 글리프는 작아도 누를 곳은 넉넉히.
-                    .frame(width: 44, height: 44)
-                    .contentShape(Circle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(Text(bookmarked ? "북마크됨" : "북마크"))
-            .accessibilityAddTraits(bookmarked ? [.isSelected] : [])
-        }
-        .padding(.trailing, 4)
-        .padding(.top, 2)
-        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: liked)
-        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: bookmarked)
-        .sensoryFeedback(.impact(weight: .light), trigger: toggleTick)
-        .task(id: AuthStore.shared.isSignedIn) {
-            await BookmarkStore.shared.hydrateIfNeeded()
-            await LikeStore.shared.hydrateIfNeeded()
-        }
-        .loginPrompt(isPresented: $showLoginPrompt, message: "북마크한 글은 내 서재에 모여요")
-    }
-
-    private func toggleBookmark() {
-        guard AuthStore.shared.isSignedIn else {
-            showLoginPrompt = true
-            return
-        }
-        toggleTick += 1
-        let knownId = BookmarkStore.shared.postId(username: username, slug: slug)
-        let target = !bookmarked
-        // 낙관 — 응답 전에 표식부터 뒤집는다(id 는 아직 모를 수 있어 nil 로 여부만 표시).
-        BookmarkStore.shared.set(username: username, slug: slug, id: knownId, on: target)
-        Task {
-            do {
-                let id: Int64
-                if let knownId {
-                    id = knownId
-                } else {
-                    // 연결 미리보기엔 postId 가 없다 — 켤 때 한 번만 상세로 id 를 푼다(탭 1회당 1콜).
-                    id = try await BlogAPI.postDetail(username: username, slug: slug).post.id
-                }
-                let status = try await InteractionsAPI.setBookmark(postId: id, on: target)
-                BookmarkStore.shared.set(username: username, slug: slug, id: id, on: status.bookmarked)
-                // 북마크 = 오프라인 보장 — 켜지면 기기 사본 확보(서재 위젯 스냅샷까지), 꺼지면 정리.
-                // 기존 북마크 플로우와 같은 경로라 OfflineStore·위젯이 자동으로 맞는다.
-                if status.bookmarked {
-                    await OfflineStore.shared.download(username: username, slug: slug)
-                } else {
-                    OfflineStore.shared.remove(username: username, slug: slug)
-                }
-            } catch {
-                BookmarkStore.shared.set(username: username, slug: slug, id: knownId, on: !target)
-                ToastCenter.shared.show(String(localized: "북마크를 반영하지 못했습니다"))
-            }
+            // 노트 = 붙잡은 생각. StickyNote 아이콘·"노트" 태그·래퍼 없이 본문이 맨 종이에 그대로.
+            Text(body)
+                .typeScale(.body)
+                .foregroundStyle(Palette.body)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
@@ -671,13 +584,10 @@ private struct HighlightFeedCard: View {
                 }
                 Spacer(minLength: 0)
                 if item.replyCount > 0 {
-                    HStack(spacing: 3) {
-                        Image(systemName: "bubble.left")
-                            .font(.system(size: 10 * metaUnit))
-                        Text("\(item.replyCount)")
-                    }
-                    .typeScale(.meta)
-                    .foregroundStyle(Palette.faint)
+                    // 답글 수 = 말풍선 아이콘 없이 평문(웹 #894 미러). 장식 대신 사실 한 조각.
+                    Text("답글 \(item.replyCount)")
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.faint)
                 }
             }
 
