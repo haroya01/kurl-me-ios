@@ -268,7 +268,7 @@ struct SearchView: View {
                         // 불완전 자모·한 글자 부스러기 태그는 인기 태그에서도 거른다.
                         ForEach(renderable) { tag in
                             NavigationLink(value: Route.tag(tag.tag)) {
-                                MutedChip(text: "#\(ContentValidity.tagDisplay(tag.tag))")
+                                MutedChip(text: "#\(ContentValidity.tagDisplay(tag.tag))", tappable: true)
                             }
                             .buttonStyle(.plain)
                         }
@@ -383,7 +383,7 @@ struct SearchView: View {
                                 HStack(spacing: 8) {
                                     ForEach(tags, id: \.self) { tag in
                                         NavigationLink(value: Route.tag(tag)) {
-                                            MutedChip(text: "#\(ContentValidity.tagDisplay(tag))")
+                                            MutedChip(text: "#\(ContentValidity.tagDisplay(tag))", tappable: true)
                                         }
                                         .buttonStyle(.plain)
                                     }
