@@ -538,6 +538,9 @@ struct ComposeView: View {
                         }
                     }
                     .foregroundStyle(Palette.secondary)
+                    // 유리칩이 없으니 라벨이 좁은 슬롯에 갇혀 "저\n…"로 접히지 않게 한 줄로 편다.
+                    .lineLimit(1)
+                    .fixedSize()
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(Text("저장 상태 보기"))
@@ -570,6 +573,11 @@ struct ComposeView: View {
                 }
             }
         }
+        // 상태 배지는 back(<)·⋯ 과 같은 원형 유리칩이 아니라 평문 상태 라벨이어야 한다 —
+        // 유리 크롬이 붙으면 "동작 버튼"으로 과약속하고 라벨이 원형에 갇혀 "저…"로 잘린다.
+        // 시스템 유리 배경만 걷어내(iOS 26+) 텍스트 버튼 수준으로: 탭→팝오버는 그대로,
+        // 프레스 시 .plain 의 옅은 디밍만 남는다. §10.
+        .sharedBackgroundVisibility(.hidden)
         ToolbarItemGroup(placement: .primaryAction) {
             if isPrePublish {
                 // 초안은 자동저장이 곧 저장이다(2초 디바운스·이탈 플러시) — 손 저장 버튼을 따로 두면
