@@ -103,6 +103,31 @@ enum BlockInlineRenderer {
         return nil
     }
 
+    /// 캐럿(Swift Character 오프셋)이 강조 스팬(`**볼드**`·`*이탤릭*`·`~~취소~~`·`` `코드` ``)의
+    /// **내용 안**(마커 사이)에 있으면 그 마커 문자열을, 아니면 nil. Enter 분할이 짝을 깨지 않게
+    /// head 를 닫고 tail 을 다시 열 때 쓴다. 캐럿이 마커 위·스팬 경계면 nil(짝 안 깨짐). 링크는 제외.
+    /// splitBlock 이 Character 오프셋으로 자르므로 여기도 Character 공간에서 판정한다(한글 UTF-16 어긋남 방지).
+    static func splitMarker(in text: String, caret: Int) -> String? {
+        let ns = text as NSString
+        let full = NSRange(location: 0, length: ns.length)
+        let candidates: [(NSRegularExpression, String)] =
+            [(codeRegex, "`"), (strikeRegex, "~~"), (boldRegex, "**"), (italicRegex, "*")]
+        for (regex, marker) in candidates {
+            let m = marker.count
+            var hit: String?
+            enumerate(regex, ns, full) { match in
+                guard hit == nil else { return }
+                // NSString(UTF-16) 스팬을 Character 오프셋으로 환산해 캐럿과 비교.
+                guard let r = Range(match.range, in: text) else { return }
+                let spanLo = text.distance(from: text.startIndex, to: r.lowerBound)
+                let spanHi = text.distance(from: text.startIndex, to: r.upperBound)
+                if caret > spanLo + m, caret < spanHi - m { hit = marker }
+            }
+            if let hit { return hit }
+        }
+        return nil
+    }
+
     // MARK: 인라인 — `**볼드**` · `*이탤릭*` · `` `코드` `` · `[라벨](url)`
 
     private static func applyInline(
