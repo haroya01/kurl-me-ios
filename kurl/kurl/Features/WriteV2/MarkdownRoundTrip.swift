@@ -162,14 +162,15 @@ nonisolated enum MarkdownBlockParser {
                 continue
             }
 
-            // 코드펜스 ``` (여는 줄 언어 선택) — 같은 백틱 마커로 닫힐 때까지 원문 보존.
-            if let lang = fenceLanguage(trimmed) {
+            // 코드펜스 ``` 또는 ~~~ (여는 줄 언어 선택) — 연 것과 같은 마커로 닫힐 때까지 원문 보존.
+            // ~~~ 는 웹 파리티로 코드로 인식하되, 직렬화는 ``` 로 정규화한다(웹과 같은 무해 정규화).
+            if let (fence, lang) = fenceOpen(trimmed) {
                 flushParagraph()
                 var codeLines: [String] = []
                 i += 1
                 while i < lines.count {
                     let t = lines[i].trimmingCharacters(in: .whitespaces)
-                    if t == "```" { i += 1; break }
+                    if t == fence { i += 1; break }
                     codeLines.append(lines[i])
                     i += 1
                 }
@@ -258,10 +259,13 @@ nonisolated enum MarkdownBlockParser {
         return (count, String(afterHashes.dropFirst()))
     }
 
-    /// 여는 코드펜스면 언어(없으면 "")를, 아니면 nil. ``` 뒤 나머지가 언어(공백 트림).
-    static func fenceLanguage(_ trimmed: String) -> String? {
-        guard trimmed.hasPrefix("```") else { return nil }
-        return String(trimmed.dropFirst(3)).trimmingCharacters(in: .whitespaces)
+    /// 여는 코드펜스면 (펜스 마커, 언어)를, 아니면 nil. ``` 또는 ~~~ 뒤 나머지가 언어(공백 트림).
+    /// 반환된 마커로 닫힘을 판정한다(웹 파리티 — ~~~ 도 코드로 인식). 직렬화는 ``` 로 정규화한다.
+    static func fenceOpen(_ trimmed: String) -> (fence: String, language: String)? {
+        for fence in ["```", "~~~"] where trimmed.hasPrefix(fence) {
+            return (fence, String(trimmed.dropFirst(fence.count)).trimmingCharacters(in: .whitespaces))
+        }
+        return nil
     }
 
     /// 단독 `>` 또는 `> ...` (방언 L169).

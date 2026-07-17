@@ -54,6 +54,26 @@ final class WriteV2RoundTripTests: XCTestCase {
         assertRoundTrip("```\nplain code\n```")
     }
 
+    // ~~~ 물결 펜스도 코드로 인식(웹 파리티) — 직렬화는 ``` 로 정규화(무해).
+    func testTildeFenceParsedAsCode() {
+        let blocks = MarkdownBlockParser.parse("~~~python\nprint(\"tilde\")\n~~~")
+        XCTAssertEqual(blocks.count, 1)
+        XCTAssertEqual(blocks[0].kind, .code(language: "python"))
+        XCTAssertEqual(blocks[0].text, "print(\"tilde\")")
+        // 직렬화는 ``` 로 정규화 — 왕복 고정점(``` 쪽으로 수렴).
+        let out = MarkdownSerializer.markdown(from: blocks)
+        XCTAssertEqual(out, "```python\nprint(\"tilde\")\n```")
+        // 정규화 후엔 고정점.
+        XCTAssertEqual(MarkdownSerializer.markdown(from: MarkdownBlockParser.parse(out)), out)
+    }
+
+    func testTildeFenceNoLanguage() {
+        let blocks = MarkdownBlockParser.parse("~~~\nno lang\n~~~")
+        XCTAssertEqual(blocks.count, 1)
+        XCTAssertEqual(blocks[0].kind, .code(language: nil))
+        XCTAssertEqual(blocks[0].text, "no lang")
+    }
+
     // MARK: 여러 블록 문서
 
     func testMixedDocument() {
