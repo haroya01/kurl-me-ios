@@ -84,15 +84,19 @@ struct HighlightThreadSheet: View {
                         .padding(.top, 22)
                         .padding(.bottom, 8)
                     } else if !hasOpener {
-                        // 막다른 길 금지 — 빈 스레드는 안내문이 아니라 어포던스다: 탭하면 작성기가 열린다.
+                        // 답글 0개 — 하이라이트(따옴표+작성자)는 이미 위에 있으므로 이 자리는 "답글이
+                        // 없다"만 조용히 말한다. 예전 "첫 답글 쓰기"는 큰 중앙 블록이라 "여기 비어 있다/
+                        // 하이라이트 없다"로 오독됐다(웹 #893 미러) — 왼쪽 정렬 muted 한 줄로 낮춘다.
+                        // 막다른 길은 아니게, 탭하면 여전히 작성기가 열린다(어포던스 유지).
                         Button {
                             composerFocused = true
                         } label: {
-                            Label("첫 답글 쓰기", systemImage: "bubble.left")
-                                .typeScale(.lede)
-                                .foregroundStyle(Palette.link)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 28)
+                            Text("아직 답글이 없어요")
+                                .typeScale(.meta)
+                                .foregroundStyle(Palette.faint)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, Metrics.gutter)
+                                .padding(.vertical, 14)
                                 .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
