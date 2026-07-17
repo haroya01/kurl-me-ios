@@ -10,21 +10,37 @@
 
 import SwiftUI
 
-/// 구분선 — 발행면 `Hairline().padding(.vertical, 8)` 의 에디터 대응. 선택되면 은은한 강조.
+/// 구분선 — 발행면 `Hairline().padding(.vertical, 8)` 의 에디터 대응. 선택되면 은은한 강조 +
+/// 삭제 버튼(비텍스트 블록이라 백스페이스로만 지우던 걸 명시적 어포던스로 — 이미지 삭제 문법 미러).
 struct BlockDividerView: View {
     let isFocused: Bool
     let onFocused: () -> Void
+    let onDelete: () -> Void
 
     var body: some View {
-        Rectangle()
-            .fill(isFocused ? Palette.accentSoft : Palette.hairlineStrong)
-            .frame(height: 1)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .contentShape(.rect)
-            .onTapGesture { onFocused() }
-            .accessibilityElement()
-            .accessibilityLabel(Text("구분선"))
+        HStack(spacing: 12) {
+            // 탭 표적은 선(1pt)이 아니라 위아래 여백까지 포함한 띠 — 얇은 선을 정확히 눌러야 하는 부담을 없앤다.
+            Rectangle()
+                .fill(isFocused ? Palette.accentSoft : Palette.hairlineStrong)
+                .frame(height: 1)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .contentShape(.rect)
+                .onTapGesture { onFocused() }
+                .accessibilityElement()
+                .accessibilityLabel(Text("구분선"))
+                .accessibilityIdentifier("editor-divider")
+                .accessibilityAddTraits(.isButton)
+            // 선택 시에만 삭제 버튼 노출 — 평소엔 순수 구분선(§10 조용함).
+            if isFocused {
+                Button(role: .destructive, action: onDelete) {
+                    Label("삭제", systemImage: "trash").labelStyle(.iconOnly)
+                }
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(Palette.secondary)
+                .accessibilityLabel(Text("구분선 삭제"))
+            }
+        }
     }
 }
 

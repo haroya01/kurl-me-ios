@@ -241,6 +241,61 @@ final class WriteV2AdversarialTests: XCTestCase {
         XCTAssertEqual(doc.blocks.count, 1, "마지막 블록은 지워지지 않는다(빈 문서 금지)")
     }
 
+    // MARK: 블록 삭제 매트릭스 회귀 — 비텍스트 블록(구분선·표·이미지)의 통째 삭제 경로
+
+    /// 비텍스트 블록은 캐럿을 못 받아 뷰의 명시적 삭제 버튼이 removeBlock 을 부른다(구분선·표·이미지 대칭).
+    /// 마지막 블록이어도(뒤 문단 없음) removeBlock 으로 지워지고, 되돌리기(restoreBlock)로 복구된다.
+    func testNonTextBlocksRemovableAndRestorable() {
+        for (label, blk) in [("구분선", EditorBlock.divider),
+                             ("표", .table(.blank)),
+                             ("이미지", .image(url: "https://kurl.me/a.png", alt: "그림"))] {
+            // 앞 문단 + 대상(마지막 블록, 뒤 문단 없음) — 백스페이스 진입점이 없는 최악 구도.
+            let doc = makeDoc([.paragraph("앞"), blk])
+            let targetID = doc.blocks[1].id
+            guard let removed = doc.removeBlock(targetID) else {
+                return XCTFail("\(label): removeBlock 이 nil — 통째 삭제 불가")
+            }
+            XCTAssertFalse(doc.blocks.contains { $0.id == targetID }, "\(label) 삭제 안 됨")
+            XCTAssertEqual(doc.blocks.count, 1, "\(label) 삭제 후 앞 문단만 남아야")
+            // 되돌리기 — 원 자리에 복원.
+            doc.restoreBlock(removed.block, afterId: removed.afterId)
+            XCTAssertEqual(doc.blocks.count, 2, "\(label) 되돌리기 후 복원")
+            XCTAssertTrue(doc.blocks[1].isNonText, "\(label) 복원 위치·종류 보존")
+        }
+    }
+
+    /// 비텍스트 블록이 뒤 문단 앞머리 백스페이스로도 지워지는 종전 경로도 유지된다(회귀 가드).
+    func testNonTextBlockDeletedByBackspaceFromTrailing() {
+        for blk in [EditorBlock.divider, .table(.blank), .image(url: "https://kurl.me/a.png", alt: "그림")] {
+            let doc = makeDoc([.paragraph("앞"), blk, .paragraph("")])
+            let targetID = doc.blocks[1].id
+            doc.mergeBackward(doc.blocks[2].id) // 뒤 빈 문단 앞머리에서 백스페이스
+            XCTAssertFalse(doc.blocks.contains { $0.id == targetID }, "백스페이스로 비텍스트 블록 삭제")
+        }
+    }
+
+    /// 텍스트 블록(인용·제목·코드·리스트) 토글 오프가 문단으로 되돌리고 마커 잔여가 없는지 — 회귀 가드.
+    /// (진단 결과 이 경로들은 정상이었다. 사용자 신고의 "삭제 안 됨"은 비텍스트 어포던스 부재가 근원.)
+    func testTextBlockToggleOffCleanToParagraph() {
+        func assertTogglesToClean(_ block: EditorBlock, to kind: EditorBlockKind, expectText: String) {
+            let doc = makeDoc([block])
+            doc.focus = EditorFocus(blockID: doc.blocks[0].id, caret: 0)
+            doc.toggleFocusedBlockKind(kind)
+            guard case .paragraph = doc.blocks[0].kind else {
+                return XCTFail("토글 오프가 문단으로 안 감: \(doc.blocks[0].kind)")
+            }
+            XCTAssertEqual(doc.blocks[0].text, expectText, "토글 오프 시 마커 잔여 없이 텍스트 보존")
+        }
+        assertTogglesToClean(.quote("주석"), to: .quote, expectText: "주석")
+        assertTogglesToClean(.code("코드", language: "swift"), to: .code(language: nil), expectText: "코드")
+        assertTogglesToClean(.listItem("항목", ordered: false, indent: 0),
+                             to: .listItem(ordered: false, indent: 0), expectText: "항목")
+        assertTogglesToClean(.listItem("항목", ordered: true, indent: 0),
+                             to: .listItem(ordered: true, indent: 0), expectText: "항목")
+        // 제목 순환: H2 에서 heading(2) 재토글 → 문단.
+        assertTogglesToClean(.heading(2, "제목"), to: .heading(level: 2), expectText: "제목")
+    }
+
     // MARK: ③ 지름길 비트리거 — 마커를 리터럴로 남겨야 하는 자리
 
     func testShortcutNonTriggers() {
