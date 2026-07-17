@@ -268,7 +268,7 @@ struct SearchView: View {
                         // 불완전 자모·한 글자 부스러기 태그는 인기 태그에서도 거른다.
                         ForEach(renderable) { tag in
                             NavigationLink(value: Route.tag(tag.tag)) {
-                                MutedChip(text: "#\(ContentValidity.tagDisplay(tag.tag))")
+                                MutedChip(text: "#\(ContentValidity.tagDisplay(tag.tag))", tappable: true)
                             }
                             .buttonStyle(.plain)
                         }
@@ -288,9 +288,9 @@ struct SearchView: View {
                         value: Route.author(username: suggestion.author.username)
                     ) {
                         HStack(spacing: 11) {
-                            AvatarView(author: suggestion.author, size: 42)
+                            AvatarView(author: suggestion.author, size: 44)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(suggestion.author.username)
+                                Text("@\(suggestion.author.username)")
                                     .typeScale(.titleSmall)
                                     .foregroundStyle(Palette.ink)
                                 if let bio = suggestion.author.bio, !bio.isEmpty {
@@ -383,7 +383,7 @@ struct SearchView: View {
                                 HStack(spacing: 8) {
                                     ForEach(tags, id: \.self) { tag in
                                         NavigationLink(value: Route.tag(tag)) {
-                                            MutedChip(text: "#\(ContentValidity.tagDisplay(tag))")
+                                            MutedChip(text: "#\(ContentValidity.tagDisplay(tag))", tappable: true)
                                         }
                                         .buttonStyle(.plain)
                                     }
@@ -399,9 +399,9 @@ struct SearchView: View {
                                     value: Route.author(username: suggestion.author.username)
                                 ) {
                                     HStack(spacing: 11) {
-                                        AvatarView(author: suggestion.author, size: 42)
+                                        AvatarView(author: suggestion.author, size: 44)
                                         VStack(alignment: .leading, spacing: 2) {
-                                            Text(suggestion.author.username)
+                                            Text("@\(suggestion.author.username)")
                                                 .typeScale(.titleSmall)
                                                 .foregroundStyle(Palette.ink)
                                             if let bio = suggestion.author.bio, !bio.isEmpty {
