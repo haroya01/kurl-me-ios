@@ -48,8 +48,9 @@ nonisolated enum EditorBlockKind: Equatable {
     /// 리스트 항목 한 개. `ordered`=번호, `indent`=중첩 깊이(0 최상위). 마크다운은 항목당 한 줄
     /// (`{indent*2 공백}- {text}` 또는 `{n}. {text}`). 연속 항목이 발행 시 한 리스트 블록으로 묶인다.
     case listItem(ordered: Bool, indent: Int)
-    /// 이미지. 비텍스트 블록 — `url`/`alt` 왕복(`![alt](url)`). text 는 alt 를 겸한다(캐럿 규칙 단순화).
-    case image(url: String)
+    /// 이미지. 비텍스트 블록 — `url`/`alt`/`caption` 왕복(`![alt](url "caption")`). text 는 alt 를
+    /// 겸한다(캐럿 규칙 단순화). caption(마크다운 title)은 kind 에 담아 왕복 보존한다(웹·리더 파리티).
+    case image(url: String, caption: String?)
     /// 표. 셀은 별도 2차원 편집(text 는 안 쓴다). GFM 왕복은 `EditorTable`이 담는다.
     case table(EditorTable)
 }
@@ -82,9 +83,9 @@ nonisolated struct EditorBlock: Identifiable, Equatable {
     static func listItem(_ text: String, ordered: Bool = false, indent: Int = 0) -> EditorBlock {
         .init(kind: .listItem(ordered: ordered, indent: max(0, min(4, indent))), text: text)
     }
-    /// 이미지 — url 은 kind 에, alt 는 text 에 담는다(캐럿 규칙은 비텍스트로 취급).
-    static func image(url: String, alt: String = "") -> EditorBlock {
-        .init(kind: .image(url: url), text: alt)
+    /// 이미지 — url·caption 은 kind 에, alt 는 text 에 담는다(캐럿 규칙은 비텍스트로 취급).
+    static func image(url: String, alt: String = "", caption: String? = nil) -> EditorBlock {
+        .init(kind: .image(url: url, caption: caption), text: alt)
     }
     static func table(_ table: EditorTable) -> EditorBlock { .init(kind: .table(table), text: "") }
 
