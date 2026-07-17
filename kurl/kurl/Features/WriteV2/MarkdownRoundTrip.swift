@@ -93,9 +93,10 @@ nonisolated enum MarkdownSerializer {
         case .listItem:
             // 단독 리스트 항목(그룹 밖 진입 시) — 그룹 직렬화와 같은 방언.
             return serializeList([block])
-        case .image(let url):
-            // alt 는 text 에. 캡션/타이틀은 Phase 2 스코프 밖(왕복은 alt·url 만).
-            return "![\(block.text)](\(url))"
+        case .image(let url, let caption):
+            // alt 는 text 에, 캡션(마크다운 title)은 kind 에 — `![alt](url "caption")` 로 왕복 보존.
+            let title = (caption?.isEmpty == false) ? " \"\(caption!)\"" : ""
+            return "![\(block.text)](\(url)\(title))"
         case .table(let table):
             return serializeTable(table)
         }
@@ -218,10 +219,10 @@ nonisolated enum MarkdownBlockParser {
                 continue
             }
 
-            // 이미지 = 단독 줄 `![alt](url)`(하이라이터는 그럴 때만 IMAGE 로 접는다). 텍스트 섞인 줄은 문단.
+            // 이미지 = 단독 줄 `![alt](url "caption")`(하이라이터는 그럴 때만 IMAGE 로 접는다). 텍스트 섞인 줄은 문단.
             if let img = standaloneImage(trimmed) {
                 flushParagraph()
-                blocks.append(.image(url: img.url, alt: img.alt))
+                blocks.append(.image(url: img.url, alt: img.alt, caption: img.caption))
                 i += 1
                 continue
             }
@@ -291,9 +292,9 @@ nonisolated enum MarkdownBlockParser {
 
     /// 줄 전체가 오롯이 `![alt](url)` 하나일 때만 이미지(하이라이터 applyImages 의 "단독 이미지 줄" 규칙).
     /// title(`"…"`)은 파싱만 하고 버린다(Phase 2 왕복은 alt·url — title 은 스코프 밖).
-    static func standaloneImage(_ trimmed: String) -> (alt: String, url: String)? {
+    static func standaloneImage(_ trimmed: String) -> (alt: String, url: String, caption: String?)? {
         guard trimmed.hasPrefix("!["), trimmed.hasSuffix(")") else { return nil }
-        // ![alt](url) — alt=`![` 와 `]` 사이, url=`(` 와 `)` 사이(공백·title 앞까지).
+        // ![alt](url "caption") — alt=`![` 와 `]` 사이, url=`(` 와 공백/`)` 사이, title=`"…"`.
         guard let altOpen = trimmed.range(of: "!["),
               let altClose = trimmed.range(of: "](", range: altOpen.upperBound..<trimmed.endIndex)
         else { return nil }
@@ -303,10 +304,15 @@ nonisolated enum MarkdownBlockParser {
         // url = 첫 공백 전까지(선택 title 배제). url 자체엔 공백·닫는 괄호 없음(Regex L477).
         let url = inner.split(separator: " ", maxSplits: 1).first.map(String.init) ?? inner
         guard !url.isEmpty, !url.contains("("), !url.contains(")") else { return nil }
-        // 잔여(title 등)가 있으면 반드시 `"…"` 꼴이어야(아니면 단독 이미지가 아님 → 문단).
+        // 잔여(title)가 있으면 반드시 `"…"` 꼴이어야(아니면 단독 이미지가 아님 → 문단). 캡션 보존.
         let rest = inner.dropFirst(url.count).trimmingCharacters(in: .whitespaces)
-        if !rest.isEmpty, !(rest.hasPrefix("\"") && rest.hasSuffix("\"")) { return nil }
-        return (alt, url)
+        var caption: String?
+        if !rest.isEmpty {
+            guard rest.hasPrefix("\""), rest.hasSuffix("\""), rest.count >= 2 else { return nil }
+            let unquoted = String(rest.dropFirst().dropLast())
+            caption = unquoted.isEmpty ? nil : unquoted
+        }
+        return (alt, url, caption)
     }
 
     // MARK: 리스트
