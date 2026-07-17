@@ -127,4 +127,62 @@ final class V2LegacyParityUITests: XCTestCase {
         XCTAssertTrue(app.buttons["행 삭제"].waitForNonExistence(timeout: 6),
                       "행 삭제 후에도 행 삭제 컨트롤이 남음 — 실제 삭제가 안 일어남")
     }
+
+    // MARK: 표 전체 삭제 — 컨트롤 바 "표 삭제" 버튼이 블록을 통째로 지운다
+
+    /// 비텍스트 블록(표)은 캐럿을 못 받아 백스페이스로만(뒤 문단 트릭) 지워졌다 — 표 통째 삭제 수단이
+    /// UI 에 없어 사용자가 막혔다(진단). 이제 컨트롤 바 "표 삭제" 버튼으로 블록을 지운다.
+    func testTableWholeDeleteButtonRemovesBlock() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "write", "--editor", "v2"]
+        app.launch()
+        _ = openDraftAndFocus(app)
+
+        let tableButton = app.buttons["표"]
+        XCTAssertTrue(tableButton.waitForExistence(timeout: 8), "표 버튼 미표시")
+        tableButton.tap()
+        Thread.sleep(forTimeInterval: 0.8)
+        shot(app, "del-01-table-inserted")
+
+        // 표 삽입 즉시 "표 삭제" 버튼이 컨트롤 바에 있어야(최소 크기와 무관하게 항상 통째 삭제 가능).
+        let deleteTable = app.buttons["표 삭제"]
+        XCTAssertTrue(deleteTable.waitForExistence(timeout: 6),
+                      "표 삽입 후 '표 삭제' 버튼이 없음 — 통째 삭제 수단 부재")
+        deleteTable.tap()
+        Thread.sleep(forTimeInterval: 0.6)
+        shot(app, "del-02-table-deleted")
+        // 표가 사라지면 표 컨트롤(+행)도 함께 사라진다 — 실제 블록 삭제의 증거.
+        XCTAssertTrue(app.buttons["표 삭제"].waitForNonExistence(timeout: 6),
+                      "표 삭제 후에도 컨트롤이 남음 — 실제 삭제가 안 일어남")
+    }
+
+    // MARK: 구분선 삭제 — 선택 시 삭제 버튼이 블록을 지운다
+
+    /// 구분선도 비텍스트라 백스페이스로만 지워졌다(진단). 이제 탭해 선택하면 삭제 버튼이 뜨고 지운다.
+    func testDividerDeleteButtonRemovesBlock() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "write", "--editor", "v2"]
+        app.launch()
+        _ = openDraftAndFocus(app)
+
+        let dividerButton = app.buttons["구분선"]
+        XCTAssertTrue(dividerButton.waitForExistence(timeout: 8), "구분선 삽입 버튼 미표시")
+        dividerButton.tap()
+        Thread.sleep(forTimeInterval: 0.8)
+        shot(app, "del-03-divider-inserted")
+
+        // 구분선을 탭해 선택 → 삭제 버튼 노출. (툴바 삽입 버튼과 라벨이 겹쳐 식별자로 구분한다.)
+        let dividerLine = app.buttons["editor-divider"]
+        XCTAssertTrue(dividerLine.waitForExistence(timeout: 6), "삽입된 구분선 요소 미표시")
+        dividerLine.tap()
+        Thread.sleep(forTimeInterval: 0.4)
+        let deleteDivider = app.buttons["구분선 삭제"]
+        XCTAssertTrue(deleteDivider.waitForExistence(timeout: 6),
+                      "구분선 선택 후 '구분선 삭제' 버튼이 안 뜸")
+        deleteDivider.tap()
+        Thread.sleep(forTimeInterval: 0.6)
+        shot(app, "del-04-divider-deleted")
+        XCTAssertTrue(app.buttons["구분선 삭제"].waitForNonExistence(timeout: 6),
+                      "구분선 삭제 후에도 삭제 버튼이 남음 — 실제 삭제가 안 일어남")
+    }
 }
