@@ -72,8 +72,15 @@ final class EditorDocument {
         let block = blocks[i]
         let clamped = max(0, min(caret, block.text.count))
         let cut = block.text.index(block.text.startIndex, offsetBy: clamped)
-        let head = String(block.text[..<cut])
-        let tail = String(block.text[cut...])
+        var head = String(block.text[..<cut])
+        var tail = String(block.text[cut...])
+
+        // 강조 스팬 안에서 분할하면 짝이 갈려 양쪽에 리터럴 마커가 남는다(`**굵|게**`→`**굵`·`게**`).
+        // head 를 닫는 마커로 닫고 tail 을 여는 마커로 다시 열어 양쪽 서식을 보존한다(리스트 항목도 동일).
+        if let marker = BlockInlineRenderer.splitMarker(in: block.text, caret: clamped) {
+            head += marker
+            tail = marker + tail
+        }
 
         // 리스트 항목에서 엔터 — 빈 항목이면 리스트 탈출(내어쓰기 → indent 0 이면 문단),
         // 내용이 있으면 같은 종류·indent 의 새 항목으로.
