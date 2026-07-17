@@ -221,4 +221,44 @@ final class V2LegacyParityUITests: XCTestCase {
                        "토글 오프 후에도 별표가 남음(마커 잔존 버그): \(afterToggle)")
         XCTAssertEqual(afterToggle, original, "토글 오프 후 원문으로 정확히 복귀: \(afterToggle)")
     }
+
+    // MARK: 마커 스팬 안 Enter 분할 — 짝을 닫고 다시 열어 리터럴 마커 잔존 없음(실기기 경로)
+
+    /// 볼드 단어 안에 커서를 두고 Enter 를 치면 양쪽 블록이 각각 온전한 `**…**` 짝을 갖는다
+    /// (예전엔 `**굵`·`게**` 로 갈려 리터럴 별표가 남았다). 각 블록의 별표 수가 짝수여야 짝이 맞다.
+    func testEnterInsideBoldSplitsWithBalancedMarkers() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "write", "--editor", "v2"]
+        app.launch()
+        _ = openDraftAndFocus(app)
+
+        func boldedPara() -> XCUIElement {
+            app.textViews.containing(NSPredicate(format: "value CONTAINS %@", "**")).firstMatch
+        }
+        // 한 단어 볼드.
+        app.textViews.containing(NSPredicate(format: "value CONTAINS %@", "어댑터")).firstMatch.doubleTap()
+        Thread.sleep(forTimeInterval: 0.4)
+        let bold = app.buttons["굵게"]
+        XCTAssertTrue(bold.waitForExistence(timeout: 8), "굵게 버튼 미표시")
+        bold.tap()
+        Thread.sleep(forTimeInterval: 0.6)
+        let bolded = boldedPara()
+        XCTAssertTrue(bolded.waitForExistence(timeout: 6), "볼드 적용 문단 미표시")
+        shot(app, "mk-03-bolded-before-enter")
+
+        // 볼드 단어 글자 사이에 커서 — 텍스트뷰 가운데를 탭(단어 내부 근처)해 캐럿을 스팬 안에 둔다.
+        bolded.tap()
+        Thread.sleep(forTimeInterval: 0.3)
+        // Enter(구조 분할).
+        bolded.typeText("\n")
+        Thread.sleep(forTimeInterval: 0.6)
+        shot(app, "mk-04-after-enter")
+
+        // 분할 후 모든 문단 텍스트뷰의 별표 수가 짝수여야(짝이 안 깨짐). 홀수면 리터럴 잔존.
+        let allTexts = app.textViews.allElementsBoundByIndex.compactMap { $0.value as? String }
+        for t in allTexts where t.contains("*") {
+            let stars = t.filter { $0 == "*" }.count
+            XCTAssertEqual(stars % 2, 0, "분할 후 별표가 홀수(짝 깨짐): \"\(t)\"")
+        }
+    }
 }
