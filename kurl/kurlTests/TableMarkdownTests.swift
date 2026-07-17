@@ -93,3 +93,65 @@ final class TableMarkdownTests: XCTestCase {
         XCTAssertEqual(TableMarkdown.rows(md).count, 2)
     }
 }
+
+// MARK: 리더 소제목(h4~6)·작업 목록 파싱 회귀 — 웹 리더 파리티
+
+/// 블록 모델은 H3 에서 캡되어 h4~6 은 `#### ` 문단으로, 작업 목록은 `[ ]`/`[x]` 붙은
+/// LIST_BULLET 로 온다. 리더가 이를 웹처럼(소제목·읽기전용 체크박스) 그리는지 고정한다.
+final class ReaderSubHeadingTaskTests: XCTestCase {
+
+    // MARK: h4~6 소제목 감지
+
+    func testSubHeadingLevels() {
+        XCTAssertEqual(BlockView.subHeading("#### 소제목")?.level, 4)
+        XCTAssertEqual(BlockView.subHeading("##### 소제목")?.level, 5)
+        XCTAssertEqual(BlockView.subHeading("###### 소제목")?.level, 6)
+    }
+
+    func testSubHeadingStripsHashesAndKeepsText() {
+        let sub = BlockView.subHeading("#### H4 헤딩")
+        XCTAssertEqual(sub?.level, 4)
+        XCTAssertEqual(sub?.text, "H4 헤딩")
+    }
+
+    func testSubHeadingRejectsH1toH3() {
+        // h1~3 은 블록으로 승격되므로 문단 경로에서 소제목으로 안 잡는다.
+        XCTAssertNil(BlockView.subHeading("# H1"))
+        XCTAssertNil(BlockView.subHeading("## H2"))
+        XCTAssertNil(BlockView.subHeading("### H3"))
+    }
+
+    func testSubHeadingRejectsSevenHashesAndNoSpace() {
+        XCTAssertNil(BlockView.subHeading("####### 일곱 개"))   // h7+ 없음
+        XCTAssertNil(BlockView.subHeading("####공백없음"))       // 해시 뒤 공백 필수
+        XCTAssertNil(BlockView.subHeading("#### "))            // 내용 없음
+    }
+
+    func testSubHeadingRejectsMultiline() {
+        // 여러 줄이면 소제목 문단이 아니다(본문 단락).
+        XCTAssertNil(BlockView.subHeading("#### 소제목\n본문 이어짐"))
+    }
+
+    // MARK: 작업 목록 체크박스
+
+    func testTaskMarkerUnchecked() {
+        let (checked, text) = BlockView.taskMarker("[ ] 할 일")
+        XCTAssertEqual(checked, false)
+        XCTAssertEqual(text, "할 일")
+    }
+
+    func testTaskMarkerCheckedBothCases() {
+        XCTAssertEqual(BlockView.taskMarker("[x] 완료").checked, true)
+        XCTAssertEqual(BlockView.taskMarker("[X] 완료").checked, true)
+        XCTAssertEqual(BlockView.taskMarker("[x] 완료").text, "완료")
+    }
+
+    func testTaskMarkerPlainItemUntouched() {
+        // 작업 마커 없는 보통 항목은 그대로(checked nil).
+        let (checked, text) = BlockView.taskMarker("보통 항목")
+        XCTAssertNil(checked)
+        XCTAssertEqual(text, "보통 항목")
+        // `[대괄호]` 인라인은 작업 마커 아님(공백 포함 4자 꼴만).
+        XCTAssertNil(BlockView.taskMarker("[링크](url) 참고").checked)
+    }
+}
