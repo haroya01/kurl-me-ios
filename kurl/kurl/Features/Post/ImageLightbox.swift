@@ -46,7 +46,7 @@ struct ImageLightbox: View {
         ZStack {
             // 스크림 = 유일한 배경(presentationBackground 는 clear). 끌어 내리면 옅어져 뒤 본문이 비친다.
             Color.black
-                .opacity(appeared ? (1 - dismissProgress * 0.65) : 0)
+                .opacity(appeared ? 1 - Double(dismissProgress) * 0.65 : 0)
                 .ignoresSafeArea()
                 .contentShape(Rectangle())
                 .onTapGesture { close() }
