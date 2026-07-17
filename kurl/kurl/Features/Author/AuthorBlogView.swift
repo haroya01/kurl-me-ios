@@ -199,8 +199,6 @@ struct AuthorBlogView: View {
                                 value: Route.series(username: username, slug: item.slug)
                             ) {
                                 VStack(alignment: .leading, spacing: 6) {
-                                    KurlMark(drawn: [true, true, true])
-                                        .frame(width: 18, height: 11)
                                     Text(item.title)
                                         .typeScale(.titleSmall)
                                         .foregroundStyle(Palette.ink)

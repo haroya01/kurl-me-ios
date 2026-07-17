@@ -37,7 +37,6 @@ struct SettingsView: View {
                     ProfileEditView(currentAvatarUrl: auth.me?.avatarUrl)
                 } label: {
                     HStack(spacing: 10) {
-                        settingIcon("person.crop.circle")
                         Text("프로필 편집")
                             .typeScale(.body)
                             .foregroundStyle(Palette.ink)
@@ -56,9 +55,6 @@ struct SettingsView: View {
                     dismiss()
                 } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: "rectangle.portrait.and.arrow.right")
-                            .font(.system(size: 14))
-                            .frame(width: 22)
                         Text("로그아웃")
                             .typeScale(.body)
                         Spacer()
@@ -77,7 +73,6 @@ struct SettingsView: View {
             // 시트를 다시 띄울 수 없으므로 가짜 토글 대신 딥링크로 보낸다.
             Button(action: handlePushRow) {
                 HStack(spacing: 10) {
-                    settingIcon("bell.badge")
                     Text("푸시 알림")
                         .typeScale(.body)
                         .foregroundStyle(Palette.ink)
@@ -101,7 +96,6 @@ struct SettingsView: View {
                 Text("시스템 설정에서 켤 수 있어요")
                     .typeScale(.footnote)
                     .foregroundStyle(Palette.secondary)
-                    .padding(.leading, 32)
                     .padding(.bottom, 4)
             }
             if auth.isSignedIn {
@@ -111,7 +105,6 @@ struct SettingsView: View {
                     NotificationPreferencesView()
                 } label: {
                     HStack(spacing: 10) {
-                        settingIcon("slider.horizontal.3")
                         Text("알림 종류")
                             .typeScale(.body)
                             .foregroundStyle(Palette.ink)
@@ -129,15 +122,14 @@ struct SettingsView: View {
             RailHeading("정책")
                 .padding(.top, 28)
                 .padding(.bottom, 4)
-            linkRow("이용약관", icon: "doc.text") { open(path: "terms") }
+            linkRow("이용약관") { open(path: "terms") }
             Hairline()
-            linkRow("개인정보처리방침", icon: "hand.raised") { open(path: "privacy") }
+            linkRow("개인정보처리방침") { open(path: "privacy") }
 
             RailHeading("앱")
                 .padding(.top, 28)
                 .padding(.bottom, 4)
             HStack(spacing: 10) {
-                settingIcon("info.circle")
                 Text("버전")
                     .typeScale(.body)
                     .foregroundStyle(Palette.ink)
@@ -155,16 +147,13 @@ struct SettingsView: View {
                     .padding(.top, 28)
                     .padding(.bottom, 4)
                 Toggle(isOn: $legacyEditorEnabled) {
-                    HStack(spacing: 10) {
-                        settingIcon("text.alignleft")
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("옛 글쓰기 화면")
-                                .typeScale(.body)
-                                .foregroundStyle(Palette.ink)
-                            Text("마크다운 문법을 직접 쓰던 화면으로 돌아갑니다.")
-                                .typeScale(.footnote)
-                                .foregroundStyle(Palette.secondary)
-                        }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("옛 글쓰기 화면")
+                            .typeScale(.body)
+                            .foregroundStyle(Palette.ink)
+                        Text("마크다운 문법을 직접 쓰던 화면으로 돌아갑니다.")
+                            .typeScale(.footnote)
+                            .foregroundStyle(Palette.secondary)
                     }
                 }
                 .tint(GlassTokens.prominentTint)
@@ -179,7 +168,6 @@ struct SettingsView: View {
                     BlockedUsersView()
                 } label: {
                     HStack(spacing: 10) {
-                        settingIcon("hand.raised")
                         Text("차단한 사용자")
                             .typeScale(.body)
                             .foregroundStyle(Palette.ink)
@@ -273,19 +261,11 @@ struct SettingsView: View {
         }
     }
 
-    private func settingIcon(_ name: String) -> some View {
-        Image(systemName: name)
-            .font(.system(size: 14))
-            .foregroundStyle(Palette.accentMarker)
-            .frame(width: 22)
-    }
-
     private func linkRow(
-        _ title: LocalizedStringKey, icon: String, action: @escaping () -> Void
+        _ title: LocalizedStringKey, action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
             HStack(spacing: 10) {
-                settingIcon(icon)
                 Text(title)
                     .typeScale(.body)
                     .foregroundStyle(Palette.ink)
