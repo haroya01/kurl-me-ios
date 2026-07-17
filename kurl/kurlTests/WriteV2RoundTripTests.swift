@@ -1039,3 +1039,88 @@ final class WriteV2RoundTripTests: XCTestCase {
         }
     }
 }
+
+// MARK: 구조 가드 2 — 인라인 서식 불변식(전 서식 × 전 캐럿 위치 순회로 조합 사각 차단)
+
+/// 새 인라인 서식을 추가하면서 토글오프(unwrap)나 분할 짝맞춤을 빠뜨리면 이 가드가 잡는다.
+/// 서식 목록을 한 곳(allMarkers)에서 순회하고, 분할은 스팬 내부 **모든 캐럿 위치**를 전수 확인한다.
+/// (#207 토글오프·#208 분할 짝맞춤 계약의 일반화 — 위치별 조합 사각지대를 남기지 않는다.)
+@MainActor
+final class InlineFormatInvariantGuardTests: XCTestCase {
+
+    private static var retained: [EditorDocument] = []
+    private func makeDoc(_ blocks: [EditorBlock]) -> EditorDocument {
+        let doc = EditorDocument(blocks: blocks); Self.retained.append(doc); return doc
+    }
+
+    /// 전 인라인 서식 마커 — 새 서식을 추가하면 여기 한 줄 넣어야 아래 불변식이 그 서식을 강제한다.
+    /// (앱 코드엔 단일 목록이 없어 테스트가 정본 목록을 쥔다. 마커·규칙이 늘면 이 배열이 게이트.)
+    private static let allMarkers: [String] = ["**", "*", "~~", "`"]
+
+    /// 대표 내용 — 한글·라틴·이모지 섞어 오프셋(Character vs UTF-16) 함정을 노출.
+    private static let contents: [String] = ["굵게", "가나다", "abc", "가b다"]
+
+    private func starLikeCount(_ s: String, marker: String) -> Int {
+        guard let ch = marker.first else { return 0 }
+        return s.filter { $0 == ch }.count
+    }
+
+    // (a) 토글 항등 — apply→apply == 원문(마커 잔존 0). #207 계약의 전 서식 일반화.
+    func testToggleIdentityForAllFormats() {
+        for marker in Self.allMarkers {
+            for content in Self.contents {
+                let doc = makeDoc([.paragraph(content)])
+                doc.focus = EditorFocus(blockID: doc.blocks[0].id, caret: 0, selectionLength: content.count)
+                doc.wrapFocusedSelection(with: marker)          // apply
+                XCTAssertEqual(doc.blocks[0].text, "\(marker)\(content)\(marker)",
+                               "\(marker) 적용 형태")
+                doc.wrapFocusedSelection(with: marker)          // apply again = toggle off
+                XCTAssertEqual(doc.blocks[0].text, content,
+                               "\(marker)×'\(content)': 토글오프가 원문 복귀 아님(마커 잔존)")
+            }
+        }
+    }
+
+    // (b) 분할 짝 보존 — 서식 스팬 내부 **모든 캐럿 위치**에서 split → 양쪽에 깨진 짝 0.
+    // 마커 문자 개수 짝수 불변식으로 판정(홀수=리터럴 잔존). #208 계약의 위치 전수 일반화.
+    func testSplitPreservesPairAtEveryCaretInsideSpan() {
+        for marker in Self.allMarkers {
+            for content in Self.contents where content.count >= 2 {
+                let text = "\(marker)\(content)\(marker)"
+                let m = marker.count
+                // 내용 안쪽 경계(마커 바로 뒤 ~ 마커 바로 앞) 사이의 모든 캐럿에서 분할.
+                let innerLo = m
+                let innerHi = m + content.count
+                for caret in (innerLo + 1)..<innerHi {
+                    let doc = makeDoc([.paragraph(text)])
+                    doc.splitBlock(doc.blocks[0].id, at: caret)
+                    XCTAssertEqual(doc.blocks.count, 2, "\(marker)@\(caret): 분할 안 됨")
+                    for b in doc.blocks {
+                        let count = starLikeCount(b.text, marker: marker)
+                        XCTAssertEqual(count % 2, 0,
+                                       "\(marker)×'\(content)'@\(caret): 분할 후 마커 홀수(짝 깨짐) \"\(b.text)\"")
+                    }
+                    // 두 조각을 도로 이으면 원문 텍스트가 복원(내용 손실 없음).
+                    let rejoined = doc.blocks.map(\.text).joined()
+                    XCTAssertEqual(starLikeCount(rejoined, marker: marker) % 2, 0,
+                                   "\(marker)@\(caret): 재결합 마커도 짝수여야")
+                }
+            }
+        }
+    }
+
+    // (c) apply → 직렬화 → 파싱 라운드트립 — 서식 적용 문단이 md 왕복에서 안 깨진다.
+    func testApplySerializeParseRoundTripForAllFormats() {
+        for marker in Self.allMarkers {
+            let content = "가나다"
+            let doc = makeDoc([.paragraph(content)])
+            doc.focus = EditorFocus(blockID: doc.blocks[0].id, caret: 0, selectionLength: content.count)
+            doc.wrapFocusedSelection(with: marker)
+            let md = doc.markdown
+            // 정규화 후 고정점 — 한 번 더 파싱·직렬화해도 그대로.
+            let once = MarkdownSerializer.markdown(from: MarkdownBlockParser.parse(md))
+            let twice = MarkdownSerializer.markdown(from: MarkdownBlockParser.parse(once))
+            XCTAssertEqual(twice, once, "\(marker): apply 후 왕복 고정점이 아님(md=\(md))")
+        }
+    }
+}
