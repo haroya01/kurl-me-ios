@@ -93,7 +93,8 @@ struct WysiwygEditorView: View {
         case .divider:
             BlockDividerView(
                 isFocused: document.focus?.blockID == block.id,
-                onFocused: { document.focus = EditorFocus(blockID: block.id, caret: 0) }
+                onFocused: { document.focus = EditorFocus(blockID: block.id, caret: 0) },
+                onDelete: { deleteNonTextBlock(block.id, undoLabel: String(localized: "구분선을 지웠어요")) }
             )
         case .image:
             BlockImageView(
@@ -113,6 +114,7 @@ struct WysiwygEditorView: View {
                 onAlignColumn: { document.cycleTableColumnAlignment(block.id, col: $0) },
                 onDeleteRow: { deleteTableRow(block.id) },
                 onDeleteColumn: { deleteTableColumn(block.id) },
+                onDeleteTable: { deleteNonTextBlock(block.id, undoLabel: String(localized: "표를 지웠어요")) },
                 onFocused: { document.focus = EditorFocus(blockID: block.id, caret: 0) }
             )
         default:
@@ -195,8 +197,14 @@ struct WysiwygEditorView: View {
 
     /// 이미지 블록 삭제 + 되돌리기 토스트 — 지운 블록을 원래 자리에 되돌린다(레거시 removeImage 미러).
     private func deleteImage(_ id: UUID) {
+        deleteNonTextBlock(id, undoLabel: String(localized: "이미지를 지웠어요"))
+    }
+
+    /// 비텍스트 블록(구분선·이미지·표) 통째 삭제 + 되돌리기 토스트 — 지운 블록을 원래 자리에 되돌린다.
+    /// 비텍스트 블록은 캐럿을 못 받아 백스페이스로만 지워지던 걸(뒤 문단 트릭) 명시적 삭제 버튼의 정답 경로로.
+    private func deleteNonTextBlock(_ id: UUID, undoLabel: String) {
         guard let removed = document.removeBlock(id) else { return }
-        ToastCenter.shared.show(String(localized: "이미지를 지웠어요"), actionLabel: String(localized: "실행취소")) {
+        ToastCenter.shared.show(undoLabel, actionLabel: String(localized: "실행취소")) {
             document.restoreBlock(removed.block, afterId: removed.afterId)
         }
     }
