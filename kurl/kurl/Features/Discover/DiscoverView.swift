@@ -489,20 +489,20 @@ private struct MinimalConnectionHero: View {
     }
 }
 
-/// 연결된 블록 — 종류마다 *다른 실루엣*으로 한눈에 구분된다(같은 리듬 반복 = 단조의 원인).
-/// 글 = 흰 보더 카드(읽을 아티팩트) · 하이라이트 = 그린 좌측 룰 인용(뽑은 구절) ·
-/// 노트 = 부드러운 틴트 패널(붙잡은 생각). 발견 흐름·컬렉션 상세가 이 하나를 공유한다.
+/// 연결된 블록 — 일반 글 카드 문법으로 수렴한 미니멀 렌더(웹 #894 미러). 글·상세 "이어진 것"·
+/// 컬렉션 상세·하이라이트 스레드가 이 하나를 공유하므로, 장식 꼬리표(타입 태그·문서/인용/노트
+/// 아이콘)와 중첩 박스를 걷어 연결된 것 자체가 종이 위 주인공이 되게 한다. 종류 구분은 실루엣만:
+/// 글=제목이 카드 제목 급 · 하이라이트=그린 좌측 스파인 + 구절(칠한 구절이 콘텐츠) · 노트=본문 그대로.
 struct BlockPreview: View {
     let block: ConnectionBlock
-    @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
     var body: some View {
         switch block {
-        case let .post(title, excerpt, username, slug, tags):
-            // 글 = 흰 종이 카드. 셋 중 가장 무거운 아티팩트 — 읽으러 들어가는 곳.
+        case let .post(title, excerpt, username, slug, _):
+            // 글 = 제목이 주인공. 중첩 박스·보더·문서 아이콘·"글" 태그 제거하고 종이에 직접,
+            // 소개글은 조용한 한 줄. (연결의 주인공은 연결된 글이지 카드 장식이 아니다.)
             NavigationLink(value: Route.post(username: username, slug: slug)) {
-                VStack(alignment: .leading, spacing: 6) {
-                    kindTag("글", icon: "doc.text")
+                VStack(alignment: .leading, spacing: 4) {
                     Text(title)
                         .typeScale(.titleSmall)
                         .foregroundStyle(Palette.ink)
@@ -514,33 +514,21 @@ struct BlockPreview: View {
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
-                    if let tag = tags.first {
-                        Text("#\(tag)")
-                            .typeScale(.meta)
-                            .foregroundStyle(Palette.secondary)
-                            .padding(.top, 1)
-                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(14)
-                .background(Palette.cardBg, in: RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous)
-                        .strokeBorder(Palette.cardBorder, lineWidth: 1))
                 .contentShape(Rectangle())
             }
-            .buttonStyle(CardButtonStyle())
+            .buttonStyle(.plain)
 
         case let .highlight(quote, postTitle, username, slug):
-            // 하이라이트 = 인용. 카드 박스가 아니라 그린 좌측 룰 + 큰 구절 — 본문에서 뽑힌 결.
-            // 탭 = 글의 *그 문장*으로 딥링크(스크롤+깜빡), 글 맨 위가 아니라.
+            // 하이라이트 = 칠한 구절이 주인공. 그린 좌측 스파인만 남기고(구절이 콘텐츠) 인용 아이콘·
+            // "하이라이트" 태그 제거. 탭 = 글의 *그 문장*으로 딥링크. 출처 제목은 조용한 한 줄.
             NavigationLink(value: Route.postFocusQuote(username: username, slug: slug, quote: quote)) {
                 HStack(alignment: .top, spacing: 12) {
                     RoundedRectangle(cornerRadius: 1.5)
                         .fill(Palette.accent)
                         .frame(width: 3)
-                    VStack(alignment: .leading, spacing: 8) {
-                        kindTag("하이라이트", icon: "quote.opening")
+                    VStack(alignment: .leading, spacing: 6) {
                         Text(quote)
                             .typeScale(.body)
                             .foregroundStyle(Palette.body)
@@ -558,28 +546,13 @@ struct BlockPreview: View {
             .buttonStyle(.plain)
 
         case let .note(body):
-            // 노트 = 붙잡은 생각. 회색 박스 없이 바로 본문 — 글(카드)·하이라이트(그린 룰)와
-            // 실루엣으로 구분되고, 노트는 가장 조용하게 종이 위에 그대로 앉는다.
-            VStack(alignment: .leading, spacing: 8) {
-                kindTag("노트", icon: "text.quote")
-                Text(body)
-                    .typeScale(.body)
-                    .foregroundStyle(Palette.body)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            // 노트 = 붙잡은 생각. StickyNote 아이콘·"노트" 태그·래퍼 없이 본문이 맨 종이에 그대로.
+            Text(body)
+                .typeScale(.body)
+                .foregroundStyle(Palette.body)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
-    }
-
-    // 종류 꼬리표 — 작고 흐린 한 점. 실루엣이 1차 신호, 이건 확인 사살.
-    private func kindTag(_ label: LocalizedStringKey, icon: String) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: icon)
-                .font(.system(size: 9 * metaUnit, weight: .bold))
-            Text(label)
-                .typeScale(.footnote)
-        }
-        .foregroundStyle(Palette.faint)
     }
 }
 
@@ -611,13 +584,10 @@ private struct HighlightFeedCard: View {
                 }
                 Spacer(minLength: 0)
                 if item.replyCount > 0 {
-                    HStack(spacing: 3) {
-                        Image(systemName: "bubble.left")
-                            .font(.system(size: 10 * metaUnit))
-                        Text("\(item.replyCount)")
-                    }
-                    .typeScale(.meta)
-                    .foregroundStyle(Palette.faint)
+                    // 답글 수 = 말풍선 아이콘 없이 평문(웹 #894 미러). 장식 대신 사실 한 조각.
+                    Text("답글 \(item.replyCount)")
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.faint)
                 }
             }
 
