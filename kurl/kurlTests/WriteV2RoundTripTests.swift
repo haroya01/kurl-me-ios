@@ -54,6 +54,26 @@ final class WriteV2RoundTripTests: XCTestCase {
         assertRoundTrip("```\nplain code\n```")
     }
 
+    // ~~~ 물결 펜스도 코드로 인식(웹 파리티) — 직렬화는 ``` 로 정규화(무해).
+    func testTildeFenceParsedAsCode() {
+        let blocks = MarkdownBlockParser.parse("~~~python\nprint(\"tilde\")\n~~~")
+        XCTAssertEqual(blocks.count, 1)
+        XCTAssertEqual(blocks[0].kind, .code(language: "python"))
+        XCTAssertEqual(blocks[0].text, "print(\"tilde\")")
+        // 직렬화는 ``` 로 정규화 — 왕복 고정점(``` 쪽으로 수렴).
+        let out = MarkdownSerializer.markdown(from: blocks)
+        XCTAssertEqual(out, "```python\nprint(\"tilde\")\n```")
+        // 정규화 후엔 고정점.
+        XCTAssertEqual(MarkdownSerializer.markdown(from: MarkdownBlockParser.parse(out)), out)
+    }
+
+    func testTildeFenceNoLanguage() {
+        let blocks = MarkdownBlockParser.parse("~~~\nno lang\n~~~")
+        XCTAssertEqual(blocks.count, 1)
+        XCTAssertEqual(blocks[0].kind, .code(language: nil))
+        XCTAssertEqual(blocks[0].text, "no lang")
+    }
+
     // MARK: 여러 블록 문서
 
     func testMixedDocument() {
@@ -134,6 +154,25 @@ final class WriteV2RoundTripTests: XCTestCase {
         assertRoundTrip("![](https://kurl.me/a.jpg)")
     }
 
+    // 이미지 캡션(마크다운 title) 왕복 보존 — 편집·저장 시 캡션 유실 방지(md 파리티).
+    func testImageCaptionRoundTrips() {
+        assertRoundTrip("![대체 텍스트](https://kurl.me/a.jpg \"이미지 캡션\")")
+    }
+
+    func testImageCaptionPreservedInParse() {
+        let blocks = MarkdownBlockParser.parse("![alt](https://kurl.me/x.png \"캡션 텍스트\")")
+        XCTAssertEqual(blocks.count, 1)
+        guard case .image(let url, let caption) = blocks[0].kind else { return XCTFail("이미지 아님") }
+        XCTAssertEqual(url, "https://kurl.me/x.png")
+        XCTAssertEqual(caption, "캡션 텍스트")
+        XCTAssertEqual(blocks[0].text, "alt")
+    }
+
+    // «폭» 마커와 캡션 공존 — #194 마커 계약과 함께 왕복.
+    func testImageWidthMarkerAndCaptionCoexist() {
+        assertRoundTrip("![«wide» 다이어그램](https://kurl.me/d.png \"설명 캡션\")")
+    }
+
     func testTableRoundTrip() {
         // 정본 방언: leading=`---`, center=`:---:`, trailing=`---:` / 셀 사이 ` | ` / 양 끝 `| … |`.
         let md = "| 언어 | 용도 |\n| --- | ---: |\n| Swift | iOS |\n| Kotlin | Android |"
@@ -182,7 +221,7 @@ final class WriteV2RoundTripTests: XCTestCase {
     func testParseImageFields() {
         let blocks = MarkdownBlockParser.parse("![alt 텍스트](https://kurl.me/x.png)")
         XCTAssertEqual(blocks.count, 1)
-        XCTAssertEqual(blocks[0].kind, .image(url: "https://kurl.me/x.png"))
+        XCTAssertEqual(blocks[0].kind, .image(url: "https://kurl.me/x.png", caption: nil))
         XCTAssertEqual(blocks[0].text, "alt 텍스트")
     }
 
@@ -877,7 +916,7 @@ final class WriteV2RoundTripTests: XCTestCase {
         let md = "![«wide» 다이어그램](https://example.com/a.png)"
         let blocks = MarkdownBlockParser.parse(md)
         XCTAssertEqual(blocks.count, 1)
-        if case .image(let url) = blocks[0].kind {
+        if case .image(let url, _) = blocks[0].kind {
             XCTAssertEqual(url, "https://example.com/a.png")
             XCTAssertEqual(blocks[0].text, "«wide» 다이어그램", "폭 마커가 alt 에 보존")
         } else { XCTFail("이미지 블록이 아님") }

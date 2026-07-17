@@ -93,9 +93,10 @@ nonisolated enum MarkdownSerializer {
         case .listItem:
             // 단독 리스트 항목(그룹 밖 진입 시) — 그룹 직렬화와 같은 방언.
             return serializeList([block])
-        case .image(let url):
-            // alt 는 text 에. 캡션/타이틀은 Phase 2 스코프 밖(왕복은 alt·url 만).
-            return "![\(block.text)](\(url))"
+        case .image(let url, let caption):
+            // alt 는 text 에, 캡션(마크다운 title)은 kind 에 — `![alt](url "caption")` 로 왕복 보존.
+            let title = (caption?.isEmpty == false) ? " \"\(caption!)\"" : ""
+            return "![\(block.text)](\(url)\(title))"
         case .table(let table):
             return serializeTable(table)
         }
@@ -161,14 +162,15 @@ nonisolated enum MarkdownBlockParser {
                 continue
             }
 
-            // 코드펜스 ``` (여는 줄 언어 선택) — 같은 백틱 마커로 닫힐 때까지 원문 보존.
-            if let lang = fenceLanguage(trimmed) {
+            // 코드펜스 ``` 또는 ~~~ (여는 줄 언어 선택) — 연 것과 같은 마커로 닫힐 때까지 원문 보존.
+            // ~~~ 는 웹 파리티로 코드로 인식하되, 직렬화는 ``` 로 정규화한다(웹과 같은 무해 정규화).
+            if let (fence, lang) = fenceOpen(trimmed) {
                 flushParagraph()
                 var codeLines: [String] = []
                 i += 1
                 while i < lines.count {
                     let t = lines[i].trimmingCharacters(in: .whitespaces)
-                    if t == "```" { i += 1; break }
+                    if t == fence { i += 1; break }
                     codeLines.append(lines[i])
                     i += 1
                 }
@@ -218,10 +220,10 @@ nonisolated enum MarkdownBlockParser {
                 continue
             }
 
-            // 이미지 = 단독 줄 `![alt](url)`(하이라이터는 그럴 때만 IMAGE 로 접는다). 텍스트 섞인 줄은 문단.
+            // 이미지 = 단독 줄 `![alt](url "caption")`(하이라이터는 그럴 때만 IMAGE 로 접는다). 텍스트 섞인 줄은 문단.
             if let img = standaloneImage(trimmed) {
                 flushParagraph()
-                blocks.append(.image(url: img.url, alt: img.alt))
+                blocks.append(.image(url: img.url, alt: img.alt, caption: img.caption))
                 i += 1
                 continue
             }
@@ -257,10 +259,13 @@ nonisolated enum MarkdownBlockParser {
         return (count, String(afterHashes.dropFirst()))
     }
 
-    /// 여는 코드펜스면 언어(없으면 "")를, 아니면 nil. ``` 뒤 나머지가 언어(공백 트림).
-    static func fenceLanguage(_ trimmed: String) -> String? {
-        guard trimmed.hasPrefix("```") else { return nil }
-        return String(trimmed.dropFirst(3)).trimmingCharacters(in: .whitespaces)
+    /// 여는 코드펜스면 (펜스 마커, 언어)를, 아니면 nil. ``` 또는 ~~~ 뒤 나머지가 언어(공백 트림).
+    /// 반환된 마커로 닫힘을 판정한다(웹 파리티 — ~~~ 도 코드로 인식). 직렬화는 ``` 로 정규화한다.
+    static func fenceOpen(_ trimmed: String) -> (fence: String, language: String)? {
+        for fence in ["```", "~~~"] where trimmed.hasPrefix(fence) {
+            return (fence, String(trimmed.dropFirst(fence.count)).trimmingCharacters(in: .whitespaces))
+        }
+        return nil
     }
 
     /// 단독 `>` 또는 `> ...` (방언 L169).
@@ -291,9 +296,9 @@ nonisolated enum MarkdownBlockParser {
 
     /// 줄 전체가 오롯이 `![alt](url)` 하나일 때만 이미지(하이라이터 applyImages 의 "단독 이미지 줄" 규칙).
     /// title(`"…"`)은 파싱만 하고 버린다(Phase 2 왕복은 alt·url — title 은 스코프 밖).
-    static func standaloneImage(_ trimmed: String) -> (alt: String, url: String)? {
+    static func standaloneImage(_ trimmed: String) -> (alt: String, url: String, caption: String?)? {
         guard trimmed.hasPrefix("!["), trimmed.hasSuffix(")") else { return nil }
-        // ![alt](url) — alt=`![` 와 `]` 사이, url=`(` 와 `)` 사이(공백·title 앞까지).
+        // ![alt](url "caption") — alt=`![` 와 `]` 사이, url=`(` 와 공백/`)` 사이, title=`"…"`.
         guard let altOpen = trimmed.range(of: "!["),
               let altClose = trimmed.range(of: "](", range: altOpen.upperBound..<trimmed.endIndex)
         else { return nil }
@@ -303,10 +308,15 @@ nonisolated enum MarkdownBlockParser {
         // url = 첫 공백 전까지(선택 title 배제). url 자체엔 공백·닫는 괄호 없음(Regex L477).
         let url = inner.split(separator: " ", maxSplits: 1).first.map(String.init) ?? inner
         guard !url.isEmpty, !url.contains("("), !url.contains(")") else { return nil }
-        // 잔여(title 등)가 있으면 반드시 `"…"` 꼴이어야(아니면 단독 이미지가 아님 → 문단).
+        // 잔여(title)가 있으면 반드시 `"…"` 꼴이어야(아니면 단독 이미지가 아님 → 문단). 캡션 보존.
         let rest = inner.dropFirst(url.count).trimmingCharacters(in: .whitespaces)
-        if !rest.isEmpty, !(rest.hasPrefix("\"") && rest.hasSuffix("\"")) { return nil }
-        return (alt, url)
+        var caption: String?
+        if !rest.isEmpty {
+            guard rest.hasPrefix("\""), rest.hasSuffix("\""), rest.count >= 2 else { return nil }
+            let unquoted = String(rest.dropFirst().dropLast())
+            caption = unquoted.isEmpty ? nil : unquoted
+        }
+        return (alt, url, caption)
     }
 
     // MARK: 리스트

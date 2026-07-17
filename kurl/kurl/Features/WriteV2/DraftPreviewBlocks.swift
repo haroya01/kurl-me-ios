@@ -80,11 +80,12 @@ enum DraftPreviewBlocks {
             emit("CODE", jsonString(payload))
         case .divider:
             emit("DIVIDER", nil)
-        case .image(let url):
+        case .image(let url, let caption):
             let (width, alt) = parseImageAlt(block.text)
             var payload: [String: String] = ["url": url]
             if let alt, !alt.isEmpty { payload["alt"] = alt }
             if let width { payload["width"] = width }
+            if let caption, !caption.isEmpty { payload["caption"] = caption }
             emit("IMAGE", jsonString(payload))
         case .table(let table):
             emit("TABLE", MarkdownSerializer.serializeTable(table))
