@@ -185,4 +185,40 @@ final class V2LegacyParityUITests: XCTestCase {
         XCTAssertTrue(app.buttons["구분선 삭제"].waitForNonExistence(timeout: 6),
                       "구분선 삭제 후에도 삭제 버튼이 남음 — 실제 삭제가 안 일어남")
     }
+
+    // MARK: 볼드 토글 오프 — 굵게를 다시 누르면 마커가 깔끔히 제거된다(재랩·별표 잔존 아님)
+
+    /// 사용자 신고 재현·수정 검증: 볼드 단어에서 굵게를 다시 누르면 `**` 가 사라져 순수 텍스트가 된다.
+    /// (예전엔 unwrap 이 없어 재랩(`****…****`)되거나, 수동 마커 삭제 시 짝이 깨져 `*` 가 남았다.)
+    func testBoldToggleOffRemovesMarkersCleanly() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "write", "--editor", "v2"]
+        app.launch()
+        _ = openDraftAndFocus(app)
+
+        // 문단 텍스트를 매번 새로 질의(볼드 적용 시 value 가 바뀌어 이전 참조가 stale 이 된다).
+        // "포트와 어댑터."(공백 포함) 를 담은 문단 — 원문·마크업 상태 모두 이 접두로 잡힌다.
+        func para() -> XCUIElement {
+            app.textViews.containing(NSPredicate(format: "value CONTAINS %@", "어댑터")).firstMatch
+        }
+        let original = (para().value as? String) ?? ""
+        para().doubleTap()  // 한 단어 선택(어느 단어인지는 무관 — ** 삽입 여부만 본다)
+        Thread.sleep(forTimeInterval: 0.4)
+        let bold = app.buttons["굵게"]
+        XCTAssertTrue(bold.waitForExistence(timeout: 8), "굵게 버튼 미표시")
+        bold.tap()
+        Thread.sleep(forTimeInterval: 0.6)
+        shot(app, "mk-01-after-bold")
+        let afterBold = (para().value as? String) ?? ""
+        XCTAssertTrue(afterBold.contains("**"), "굵게 적용 후 raw 에 ** 가 있어야: \(afterBold)")
+
+        // 굵게를 다시 눌러 토글 오프 — 마커가 사라지고 별표가 하나도 안 남아야 한다(핵심 회귀).
+        bold.tap()
+        Thread.sleep(forTimeInterval: 0.6)
+        shot(app, "mk-02-after-toggle-off")
+        let afterToggle = (para().value as? String) ?? ""
+        XCTAssertFalse(afterToggle.contains("*"),
+                       "토글 오프 후에도 별표가 남음(마커 잔존 버그): \(afterToggle)")
+        XCTAssertEqual(afterToggle, original, "토글 오프 후 원문으로 정확히 복귀: \(afterToggle)")
+    }
 }
