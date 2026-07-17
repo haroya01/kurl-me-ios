@@ -448,3 +448,86 @@ final class WriteV2AdversarialTests: XCTestCase {
         XCTAssertEqual(img.alt, "")
     }
 }
+
+// MARK: 구조 가드 1 — 블록 타입 완비성(enum 순회로 삭제 경로 누락을 컴파일/실행에서 강제)
+
+/// 새 EditorBlockKind 를 추가하면서 삭제 경로를 안 만들면 이 가드가 잡는다.
+/// 핵심은 아래 exhaustive switch — 케이스가 늘면 컴파일 에러로 "삭제 유형을 선언하라"고 강제한다.
+/// (구분선·표에 삭제 어포던스가 없던 버그 #206 계급을 구조적으로 재발 방지.)
+@MainActor
+final class BlockTypeCompletenessGuardTests: XCTestCase {
+
+    private static var retained: [EditorDocument] = []
+    private func makeDoc(_ blocks: [EditorBlock]) -> EditorDocument {
+        let doc = EditorDocument(blocks: blocks); Self.retained.append(doc); return doc
+    }
+
+    /// 블록의 삭제 계약 유형 — 텍스트 블록은 캐럿 경로(백스페이스/토글)로, 비텍스트는 명시 삭제 컨트롤로.
+    private enum DeletionContract { case caretPath, explicitControl }
+
+    /// 각 kind 의 대표 샘플 + 기대 삭제 계약. **exhaustive switch** 라 새 케이스는 컴파일 에러로 강제된다.
+    /// 새 블록 타입을 넣으면 여기서 (샘플, 삭제계약)을 선언해야 하고, 그러면 아래 단언이 삭제 경로를 검증한다.
+    private func sampleAndContract(for kind: EditorBlockKind) -> (block: EditorBlock, contract: DeletionContract) {
+        switch kind {
+        case .paragraph:                 return (.paragraph("문단"), .caretPath)
+        case .heading:                   return (.heading(2, "제목"), .caretPath)
+        case .quote:                     return (.quote("인용"), .caretPath)
+        case .code:                      return (.code("코드", language: "swift"), .caretPath)
+        case .listItem:                  return (.listItem("항목", ordered: false, indent: 0), .caretPath)
+        case .divider:                   return (.divider, .explicitControl)
+        case .image:                     return (.image(url: "https://kurl.me/a.png", alt: "그림"), .explicitControl)
+        case .table:                     return (.table(.blank), .explicitControl)
+        }
+    }
+
+    /// EditorBlockKind 전 케이스의 대표값 — 새 케이스 추가 시 이 배열도 채워야 아래 순회가 그 타입을 덮는다.
+    /// (sampleAndContract 의 switch 가 1차 컴파일 게이트, 이 배열이 2차 실행 커버리지.)
+    private static let allKinds: [EditorBlockKind] = [
+        .paragraph, .heading(level: 2), .quote, .code(language: "swift"),
+        .divider, .listItem(ordered: false, indent: 0),
+        .image(url: "https://kurl.me/a.png", caption: nil), .table(.blank),
+    ]
+
+    func testEveryBlockKindHasCreationAndDeletionPath() {
+        for kind in Self.allKinds {
+            let (sample, contract) = sampleAndContract(for: kind)
+            // (a) 생성 경로 — 샘플이 그 kind 로 만들어진다.
+            XCTAssertEqual(sample.kind, kind, "생성 경로가 kind 를 안 맞춤: \(kind)")
+
+            // (b) 삭제 경로 — 계약별로 실제 삭제가 되는지.
+            switch contract {
+            case .caretPath:
+                // 텍스트 블록: 앞 문단 뒤에 놓고 그 블록 맨 앞 백스페이스(mergeBackward)로 병합/해제되어
+                // 문서에서 사라지거나(병합) 문단으로 강등된다 — 어느 쪽이든 "갇히지 않음".
+                let doc = makeDoc([.paragraph("앞"), sample])
+                XCTAssertFalse(sample.isNonText, "텍스트 계약인데 isNonText: \(kind)")
+                let before = doc.blocks.count
+                doc.mergeBackward(doc.blocks[1].id)
+                let merged = doc.blocks.count < before
+                let demoted = doc.blocks.count == before &&
+                    { if case .paragraph = doc.blocks[1].kind { return true }; return false }()
+                XCTAssertTrue(merged || demoted, "텍스트 블록 백스페이스가 병합·강등 어느 것도 안 함: \(kind)")
+
+            case .explicitControl:
+                // 비텍스트 블록: 캐럿을 못 받으므로(isNonText) removeBlock(명시 삭제 컨트롤이 부르는 것)으로
+                // 반드시 지워져야 한다 — 마지막 블록이어도(뒤 문단 없음) 갇히지 않는다.
+                XCTAssertTrue(sample.isNonText, "명시삭제 계약인데 텍스트 블록: \(kind)")
+                let doc = makeDoc([.paragraph("앞"), sample])
+                let id = doc.blocks[1].id
+                XCTAssertNotNil(doc.removeBlock(id), "비텍스트 블록 removeBlock 이 nil(삭제 경로 없음): \(kind)")
+                XCTAssertFalse(doc.blocks.contains { $0.id == id }, "비텍스트 블록이 안 지워짐: \(kind)")
+            }
+        }
+    }
+
+    /// isNonText 분류와 삭제 계약이 일관되는지(비텍스트=명시삭제, 텍스트=캐럿경로) — 분류 드리프트 가드.
+    func testDeletionContractMatchesIsNonText() {
+        for kind in Self.allKinds {
+            let (sample, contract) = sampleAndContract(for: kind)
+            switch contract {
+            case .caretPath:        XCTAssertFalse(sample.isNonText, "\(kind): 캐럿경로인데 비텍스트")
+            case .explicitControl:  XCTAssertTrue(sample.isNonText, "\(kind): 명시삭제인데 텍스트")
+            }
+        }
+    }
+}
