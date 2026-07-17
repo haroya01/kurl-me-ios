@@ -230,15 +230,28 @@ struct MetaLine: View {
     }
 }
 
-// MARK: 절제된 태그 — 회색 캡슐 없이 글자만(§10). 종이 위에 #태그가 그대로 앉는다.
+// MARK: 절제된 태그 — 기본은 회색 캡슐 없이 글자만(§10). 종이 위에 #태그가 그대로 앉는다.
+//        탭 가능한 태그(탭=태그 피드)는 옅은 칩 배경을 입어 "눌러진다"는 신호를 준다 — 정적 라벨과
+//        같은 모양이라 무엇이 눌리는지 안 보이던 것 교정. 칩 배경·패딩은 최근검색 칩과 같은 문법(새 색 X).
 
 struct MutedChip: View {
     let text: String
+    /// 탭 가능한 태그인가 — true 면 칩 배경으로 어포던스를 준다. 정적 라벨(StudioView 등)은 기본 false=글자만.
+    var tappable = false
 
     var body: some View {
-        Text(text)
-            .typeScale(.meta)
-            .foregroundStyle(Palette.secondary)
+        if tappable {
+            Text(text)
+                .typeScale(.meta)
+                .foregroundStyle(Palette.chipText)
+                .padding(.horizontal, 11)
+                .padding(.vertical, 6)
+                .background(Palette.chipBg, in: Capsule())
+        } else {
+            Text(text)
+                .typeScale(.meta)
+                .foregroundStyle(Palette.secondary)
+        }
     }
 }
 

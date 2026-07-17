@@ -216,6 +216,10 @@ struct CollectionDetailView: View {
             Text("\(item.sharedItems)개 함께 엮음")
                 .typeScale(.meta)
                 .foregroundStyle(Palette.faint)
+            // 형제 작가 행(검색 추천작가·발견 큐레이터 입구)과 같은 이동 신호 — 이 행도 작가로 항해한다.
+            Image(systemName: "chevron.right")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(Palette.faint)
         }
         .padding(.vertical, 10)
         .contentShape(Rectangle())
