@@ -241,6 +241,94 @@ final class WriteV2AdversarialTests: XCTestCase {
         XCTAssertEqual(doc.blocks.count, 1, "마지막 블록은 지워지지 않는다(빈 문서 금지)")
     }
 
+    // MARK: 진단 — 지우기·단락변경 감사 매트릭스 미커버 셀(관찰 로그)
+
+    /// 마커 스팬 안에서 Enter 분할 시 짝을 닫고 다시 열어 양쪽 서식을 보존한다(짝 깨짐·리터럴 잔존 방지).
+    func testSplitInsideMarkerSpanClosesAndReopensPair() {
+        // "앞 **굵게** 뒤" 에서 "굵|게"(caret 5)에서 분할. 앞=0 공백=1 **=2,3 굵=4 게=5 **=6,7.
+        let doc = makeDoc([.paragraph("앞 **굵게** 뒤")])
+        doc.splitBlock(doc.blocks[0].id, at: 5)
+        XCTAssertEqual(doc.blocks.count, 2)
+        XCTAssertEqual(doc.blocks[0].text, "앞 **굵**", "head 는 닫는 마커로 닫는다")
+        XCTAssertEqual(doc.blocks[1].text, "**게** 뒤", "tail 은 여는 마커로 다시 연다")
+        // 캐럿은 tail 의 여는 마커 뒤(내용 시작)에 놓여 이어 쓰기가 서식 안에서 시작된다.
+        XCTAssertEqual(doc.focus?.blockID, doc.blocks[1].id)
+    }
+
+    func testSplitInsideMarkerSpanVariants() {
+        // 이탤릭·취소선·코드도 동일하게 짝 보존.
+        let cases: [(String, Int, String, String)] = [
+            ("가 *기울* 나", 4, "가 *기*", "*울* 나"),      // 가0 공1 *2 기3 울4 *5 공6 나7 → caret4=기|울
+            ("가 ~~취소~~ 나", 5, "가 ~~취~~", "~~소~~ 나"), // ~~2,3 취4 소5 ~~6,7 → caret5=취|소
+            ("가 `코드` 나", 4, "가 `코`", "`드` 나"),        // `2 코3 드4 `5 → caret4=코|드
+        ]
+        for (text, caret, expHead, expTail) in cases {
+            let doc = makeDoc([.paragraph(text)])
+            doc.splitBlock(doc.blocks[0].id, at: caret)
+            XCTAssertEqual(doc.blocks[0].text, expHead, "head for \(text)@\(caret)")
+            XCTAssertEqual(doc.blocks[1].text, expTail, "tail for \(text)@\(caret)")
+        }
+    }
+
+    /// 마커 경계·마커 밖에서의 분할은 짝을 안 건드린다(내용 안일 때만 닫고 연다).
+    func testSplitOutsideMarkerSpanUnchanged() {
+        // 스팬 경계(caret 2, 여는 `**` 바로 앞)에서 분할 — 마커 추가 없이 순수 텍스트 컷.
+        let doc = makeDoc([.paragraph("앞 **굵게** 뒤")])
+        doc.splitBlock(doc.blocks[0].id, at: 2)
+        XCTAssertEqual(doc.blocks[0].text, "앞 ")
+        XCTAssertEqual(doc.blocks[1].text, "**굵게** 뒤")
+        // 마크업 밖 순수 문단 분할도 그대로.
+        let d2 = makeDoc([.paragraph("그냥 문단입니다")])
+        d2.splitBlock(d2.blocks[0].id, at: 3)
+        XCTAssertEqual(d2.blocks[0].text, "그냥 ")
+        XCTAssertEqual(d2.blocks[1].text, "문단입니다")
+    }
+
+    /// 이종 kind 병합 — 문단이 인용/리스트 뒤에서 백스페이스로 병합될 때 텍스트·kind 결과(감사 [정상] 잠금).
+    func testHeterogeneousMergesPreserveTextAndKind() {
+        // 문단 ← 인용: 앞 인용의 kind 를 따르고 텍스트 이어붙임.
+        let d1 = makeDoc([.quote("인용문"), .paragraph("문단")])
+        d1.mergeBackward(d1.blocks[1].id)
+        XCTAssertEqual(d1.blocks.count, 1)
+        XCTAssertEqual(d1.blocks[0].text, "인용문문단")
+        if case .quote = d1.blocks[0].kind {} else { XCTFail("앞 인용 kind 채택") }
+
+        // 문단 ← 리스트: 종류 섞임 방지로 병합 안 함(2블록 유지) — 의도된 설계(데이터 손상 아님).
+        let d2 = makeDoc([.listItem("항목", ordered: false, indent: 0), .paragraph("문단")])
+        d2.mergeBackward(d2.blocks[1].id)
+        XCTAssertEqual(d2.blocks.count, 2, "리스트+문단은 섞지 않는다(의도)")
+        XCTAssertEqual(d2.blocks[1].text, "문단", "문단 텍스트 보존")
+
+        // 인용 ← 문단: 앞 문단 kind 채택, 텍스트 이어붙임.
+        let d3 = makeDoc([.paragraph("문단"), .quote("인용")])
+        d3.mergeBackward(d3.blocks[1].id)
+        XCTAssertEqual(d3.blocks.count, 1)
+        XCTAssertEqual(d3.blocks[0].text, "문단인용")
+        if case .paragraph = d3.blocks[0].kind {} else { XCTFail("앞 문단 kind 채택") }
+    }
+
+    /// 빈 블록 kind 전환 — 제목/인용/리스트/코드 전환 후 재전환으로 문단 복귀, 블록 안 늘어남(감사 [정상] 잠금).
+    func testEmptyBlockKindTransitionsRoundTrip() {
+        for kind in [EditorBlockKind.heading(level: 1), .quote, .listItem(ordered: false, indent: 0), .code(language: nil)] {
+            let doc = makeDoc([.paragraph("")])
+            doc.focus = EditorFocus(blockID: doc.blocks[0].id, caret: 0)
+            doc.toggleFocusedBlockKind(kind)
+            XCTAssertEqual(doc.blocks.count, 1, "빈 블록 전환이 블록을 늘리면 안 됨: \(kind)")
+            doc.toggleFocusedBlockKind(kind) // 재전환 → 문단 복귀
+            if case .paragraph = doc.blocks[0].kind {} else { XCTFail("재전환이 문단 복귀 아님: \(kind)") }
+            XCTAssertEqual(doc.blocks.count, 1)
+        }
+    }
+
+    /// 전환 직후 직렬화가 올바른 md 를 내는지(감사 [정상] 잠금).
+    func testTransitionSerializationRoundTrip() {
+        let doc = makeDoc([.paragraph("본문 텍스트")])
+        doc.focus = EditorFocus(blockID: doc.blocks[0].id, caret: 0)
+        doc.toggleFocusedBlockKind(.heading(level: 2))
+        XCTAssertEqual(doc.markdown, "## 본문 텍스트", "문단→H2 전환 후 직렬화가 올바른 md")
+        XCTAssertEqual(MarkdownBlockParser.parse(doc.markdown).first?.text, "본문 텍스트")
+    }
+
     // MARK: 블록 삭제 매트릭스 회귀 — 비텍스트 블록(구분선·표·이미지)의 통째 삭제 경로
 
     /// 비텍스트 블록은 캐럿을 못 받아 뷰의 명시적 삭제 버튼이 removeBlock 을 부른다(구분선·표·이미지 대칭).
