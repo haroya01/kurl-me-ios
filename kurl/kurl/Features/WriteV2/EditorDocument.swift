@@ -415,25 +415,76 @@ final class EditorDocument {
     }
 
     /// 포커스 블록의 선택 범위를 `marker`로 감싼다(볼드=`**`·이탤릭=`*`·인라인코드=`` ` ``). 선택이 없으면
-    /// `marker+marker`를 캐럿 자리에 넣고 그 사이에 캐럿을 둔다. 감싼 뒤엔 안쪽 내용을 다시 선택 상태로
-    /// 되돌려(연속 서식·해제 편의), 라이브 렌더가 즉시 최종 모습으로 보여준다. 왕복: text 에 마크다운 원문을 넣을 뿐.
+    /// `marker+marker`를 캐럿 자리에 넣고 그 사이에 캐럿을 둔다. **이미 그 마커로 감싸진 선택이면 벗긴다**
+    /// (굵게 다시 누르면 해제 — 재랩·별표 잔존 방지). 감싼/벗긴 뒤엔 내용을 다시 선택 상태로 되돌려
+    /// 연속 서식·해제를 잇는다. 왕복: text 에 마크다운 원문을 넣을 뿐.
     func wrapFocusedSelection(with marker: String) {
         if focus == nil { focusTail() }  // 포커스 전에 눌린 버튼도 죽지 않게 — 끝에 빈 마커쌍을 놓고 캐럿을 그 사이에.
         guard let f = focus, let i = index(of: f.blockID), !blocks[i].isNonText else { return }
         let text = blocks[i].text
         let start = clampIndex(f.caret, in: text)
         let end = clampIndex(f.caret + f.selectionLength, in: text)
-        let lo = text.index(text.startIndex, offsetBy: min(start, end))
-        let hi = text.index(text.startIndex, offsetBy: max(start, end))
+        let loOff = min(start, end)
+        let hiOff = max(start, end)
+        let lo = text.index(text.startIndex, offsetBy: loOff)
+        let hi = text.index(text.startIndex, offsetBy: hiOff)
         let inner = String(text[lo..<hi])
+
+        let markerLen = marker.count
+        // 토글 오프 — 이미 정확히 이 마커로 감싸진 선택이면 마커를 벗긴다.
+        // 같은 문자의 더 긴 마커(`*` 로 `**` 을 오탐)를 막으려 경계 바로 안쪽이 같은 문자가 아닌지 확인한다.
+        // ① 선택이 마커까지 포함(`[**굵게**]`) ② 선택 밖 양옆이 마커(`**[굵게]**`) 두 경우 모두.
+        if inner.count >= 2 * markerLen, inner.hasPrefix(marker), inner.hasSuffix(marker),
+           Self.isExactMarker(inner, marker: marker) {
+            let stripped = String(inner.dropFirst(markerLen).dropLast(markerLen))
+            blocks[i].text = text.replacingCharacters(in: lo..<hi, with: stripped)
+            focus = EditorFocus(blockID: f.blockID, caret: loOff, selectionLength: stripped.count)
+            suppressRevealOnceBlockID = f.blockID
+            return
+        }
+        let before = text[..<lo]
+        let after = text[hi...]
+        // 앞뒤 마커가 정확히 이 마커여야 — 벗길 마커 바로 바깥이 같은 문자면 더 긴 마커(`**` 를 `*` 로
+        // 오탐)라 벗기지 않는다(예: `**[굵게]**` 에 이탤릭 `*` → 볼드 마커 건드리지 말고 감싸기).
+        let markerChar = marker.first
+        let outerBefore = before.dropLast(markerLen).last
+        let outerAfter = after.dropFirst(markerLen).first
+        if loOff >= markerLen, before.hasSuffix(marker), after.hasPrefix(marker),
+           outerBefore != markerChar, outerAfter != markerChar {
+            // `**[굵게]**` — 선택 앞뒤 마커를 벗기고 선택(내용)은 그대로 유지.
+            // 정수 오프셋으로 뒤(after) 마커 먼저, 앞(before) 마커 나중에 지운다(앞을 먼저 지우면 뒤 오프셋이 밀린다).
+            let afterMarkerLo = text.index(text.startIndex, offsetBy: hiOff)
+            let afterMarkerHi = text.index(text.startIndex, offsetBy: hiOff + markerLen)
+            let beforeMarkerLo = text.index(text.startIndex, offsetBy: loOff - markerLen)
+            var t = text
+            t.removeSubrange(afterMarkerLo..<afterMarkerHi)
+            t.removeSubrange(beforeMarkerLo..<lo)
+            blocks[i].text = t
+            focus = EditorFocus(blockID: f.blockID, caret: loOff - markerLen, selectionLength: inner.count)
+            suppressRevealOnceBlockID = f.blockID
+            return
+        }
+
         let wrapped = marker + inner + marker
         blocks[i].text = text.replacingCharacters(in: lo..<hi, with: wrapped)
         // 마커 뒤(안쪽 시작)부터 inner 길이만큼 다시 선택 — 무선택이었으면 length 0(마커 사이 캐럿).
-        let innerStart = min(start, end) + marker.count
+        let innerStart = loOff + marker.count
         focus = EditorFocus(blockID: f.blockID, caret: innerStart, selectionLength: inner.count)
         // 감싼 직후엔 선택이 스팬 안이라 반개봉 규칙상 마커가 보인다("굵게 눌렀는데 ** 노출"). 이 1회
         // 렌더만 마커를 숨긴다(B1) — 선택·왕복은 그대로, 다음 캐럿 이동/타이핑엔 정상 반개봉 복귀.
         suppressRevealOnceBlockID = f.blockID
+    }
+
+    /// `wrapped` 가 `marker` 로 **정확히** 감싸졌는가 — 같은 문자의 더 긴 마커 오탐 방지.
+    /// 예: 마커 `*`(이탤릭)로 `**굵게**`(볼드)를 벗기려 하면 경계 안쪽이 또 `*` 라 false → 오작동 차단.
+    /// 마커 `**` 로 `***x***` 도 안쪽이 `*` 라 false. 마커 문자와 다른 종류(`~`·`` ` ``)엔 영향 없음.
+    private static func isExactMarker(_ wrapped: String, marker: String) -> Bool {
+        guard let markerChar = marker.first else { return false }
+        let chars = Array(wrapped)
+        let m = marker.count
+        guard chars.count >= 2 * m + 1 else { return false } // 안쪽 내용이 최소 1자
+        // 여는 마커 바로 뒤·닫는 마커 바로 앞 문자가 마커 문자와 같으면 더 긴 마커의 일부.
+        return chars[m] != markerChar && chars[chars.count - 1 - m] != markerChar
     }
 
     /// 특정 포커스(블록·선택)의 선택을 `[선택](url)` 링크로 감싼다. 선택이 없으면 `[라벨](url)`를 넣고

@@ -694,6 +694,74 @@ final class WriteV2RoundTripTests: XCTestCase {
         }
     }
 
+    // MARK: 인라인 서식 토글 오프 — 이미 감싼 선택에 같은 마커를 다시 걸면 해제(재랩·별표 잔존 방지)
+
+    func testWrapBoldTwiceTogglesOffCleanly() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.paragraph("안녕세상")])
+            let id = doc.blocks[0].id
+            doc.focus = EditorFocus(blockID: id, caret: 2, selectionLength: 2)
+            doc.wrapFocusedSelection(with: "**")
+            XCTAssertEqual(doc.blocks[0].text, "안녕**세상**")
+            // 감싼 뒤 안쪽("세상")이 다시 선택된 상태 — 여기서 굵게를 또 누르면 마커가 벗겨져야.
+            doc.wrapFocusedSelection(with: "**")
+            XCTAssertEqual(doc.blocks[0].text, "안녕세상", "볼드 재적용이 토글 오프(마커 제거)여야 — 재랩·별표 잔존 금지")
+            // 내용이 다시 선택 상태(연속 편집).
+            XCTAssertEqual(doc.focus?.caret, 2)
+            XCTAssertEqual(doc.focus?.selectionLength, 2)
+        }
+    }
+
+    func testWrapItalicStrikeCodeToggleOff() async {
+        await MainActor.run {
+            for marker in ["*", "~~", "`"] {
+                let doc = EditorDocument(blocks: [.paragraph("가나다")])
+                let id = doc.blocks[0].id
+                doc.focus = EditorFocus(blockID: id, caret: 0, selectionLength: 3)
+                doc.wrapFocusedSelection(with: marker)
+                XCTAssertEqual(doc.blocks[0].text, "\(marker)가나다\(marker)")
+                doc.wrapFocusedSelection(with: marker)
+                XCTAssertEqual(doc.blocks[0].text, "가나다", "\(marker) 재적용이 토글 오프여야")
+            }
+        }
+    }
+
+    /// 선택이 마커 안쪽 내용만이 아니라 마커까지 포함해도(사용자가 `**단어**` 전체를 드래그) 토글 오프.
+    func testToggleOffWhenSelectionIncludesMarkers() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.paragraph("앞 **굵게** 뒤")])
+            let id = doc.blocks[0].id
+            // `**굵게**` 전체(2..8) 선택 — 앞=0 공백=1 **=2,3 굵게=4,5 **=6,7.
+            doc.focus = EditorFocus(blockID: id, caret: 2, selectionLength: 6)
+            doc.wrapFocusedSelection(with: "**")
+            XCTAssertEqual(doc.blocks[0].text, "앞 굵게 뒤", "마커 포함 선택도 토글 오프로 순수 텍스트")
+        }
+    }
+
+    /// 마커 밖 내용만 선택(`**[굵게]**`)해도 토글 오프 — 앞뒤 마커를 벗긴다.
+    func testToggleOffWhenSelectionIsInnerContentOnly() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.paragraph("앞 **굵게** 뒤")])
+            let id = doc.blocks[0].id
+            // 내용 "굵게"만(4..6) 선택.
+            doc.focus = EditorFocus(blockID: id, caret: 4, selectionLength: 2)
+            doc.wrapFocusedSelection(with: "**")
+            XCTAssertEqual(doc.blocks[0].text, "앞 굵게 뒤", "내용만 선택해도 앞뒤 마커 벗김")
+        }
+    }
+
+    /// 교차 마커 오탐 방지 — 볼드(`**굵게**`) 내용 선택에 이탤릭(`*`)을 걸면 벗기지 말고 감싼다.
+    func testItalicOnBoldDoesNotStripBoldMarkers() async {
+        await MainActor.run {
+            let doc = EditorDocument(blocks: [.paragraph("앞 **굵게** 뒤")])
+            let id = doc.blocks[0].id
+            doc.focus = EditorFocus(blockID: id, caret: 4, selectionLength: 2) // "굵게"
+            doc.wrapFocusedSelection(with: "*")
+            // 볼드 마커를 건드리지 않고 내용만 이탤릭으로 감싼다(정확 마커 경계 판정).
+            XCTAssertEqual(doc.blocks[0].text, "앞 ***굵게*** 뒤")
+        }
+    }
+
     func testWrapSelectionItalicNoSelectionInsertsMarkersWithCaretBetween() async {
         await MainActor.run {
             let doc = EditorDocument(blocks: [.paragraph("가나")])
