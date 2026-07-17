@@ -23,6 +23,7 @@ struct BlockTableView: View {
     let onAlignColumn: (Int) -> Void
     let onDeleteRow: () -> Void
     let onDeleteColumn: () -> Void
+    let onDeleteTable: () -> Void
     let onFocused: () -> Void
 
     private var table: EditorTable? {
@@ -116,6 +117,15 @@ struct BlockTableView: View {
             } label: {
                 Label("정렬", systemImage: "text.alignleft")
             }
+            Spacer(minLength: 0)
+            // 표 통째 삭제 — 행/열 삭제는 최소 크기에서 멈춰 블록 자체는 못 지웠다(비텍스트라 백스페이스도
+            // 뒤 문단에서만 먹힘). 명시적 삭제 버튼을 정답 경로로(이미지 삭제 문법 미러·되돌리기 토스트).
+            Button(role: .destructive, action: onDeleteTable) {
+                Label("표 삭제", systemImage: "trash").labelStyle(.iconOnly)
+            }
+            .foregroundStyle(Palette.secondary)
+            .accessibilityLabel(Text("표 삭제"))
+            .accessibilityHint(Text("이 표를 통째로 지웁니다"))
         }
         .font(.system(size: 13, weight: .medium))
         .foregroundStyle(Palette.link)
