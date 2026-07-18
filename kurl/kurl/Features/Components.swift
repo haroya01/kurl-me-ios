@@ -264,7 +264,8 @@ struct AvatarView: View {
     var body: some View {
         Group {
             if let urlString = author.avatarUrl, let url = URL(string: urlString) {
-                RemoteImage(url: url) { phase in
+                // 16~46pt 원 안에 들어가는 작은 원 — 512px 원본을 쥐지 않게 지름만큼만 받는다.
+                RemoteImage(url: url, maxPixel: size) { phase in
                     if case .success(let image) = phase {
                         image.resizable().scaledToFill()
                     } else {
