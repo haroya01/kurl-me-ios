@@ -20,7 +20,7 @@ private enum DiscoverTab: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .entrances: String(localized: "입구")
+        case .entrances: String(localized: "둘러보기")
         case .connections: String(localized: "최근")
         case .highlights: String(localized: "하이라이트")
         }
@@ -71,11 +71,26 @@ struct DiscoverView: View {
                     if activeSourceIsGlobal {
                         globalFallbackCaption
                     }
-                    switch tab {
-                    case .entrances: entrancesContent
-                    case .connections: connectionsContent
-                    case .highlights: highlightsContent
+                    Group {
+                        switch tab {
+                        case .entrances: entrancesContent
+                        case .connections: connectionsContent
+                        case .highlights: highlightsContent
+                        }
                     }
+                    // 좌우 스와이프로 흐름 전환 — 세그먼트를 탭하지 않아도 둘러보기↔최근↔하이라이트.
+                    // simultaneousGesture + 수평 우세 판정이라 세로 스크롤·행 탭·NavigationLink 은 그대로
+                    // 살아 있다(명백히 가로로 그은 제스처만 흐름을 넘긴다). tab 대입은 bare —
+                    // GlassSegmentSwitcher 가 제 알약 활주를 소유하므로 withAnimation 으로 감싸지 않는다.
+                    .simultaneousGesture(
+                        DragGesture(minimumDistance: 20)
+                            .onEnded { value in
+                                let dx = value.translation.width
+                                let dy = value.translation.height
+                                guard abs(dx) > 60, abs(dx) > abs(dy) * 1.5 else { return }
+                                moveTab(dx < 0 ? 1 : -1)
+                            }
+                    )
                 }
             }
             // 스크롤을 내리면 탭바가 사라지고 올리면 돌아온다(스레드식) — 탭 루트 전용.
@@ -107,7 +122,17 @@ struct DiscoverView: View {
         }
     }
 
-    // MARK: 입구 모음 — 지금 열려 있는 길 · 취향이 겹치는 큐레이터
+    /// 좌우 스와이프가 흐름을 한 칸 옮긴다 — 양끝에선 멈춘다(순환 없음). tab 은 bare 대입
+    /// (스위처가 알약 활주를 소유).
+    private func moveTab(_ direction: Int) {
+        let all = DiscoverTab.allCases
+        guard let i = all.firstIndex(of: tab) else { return }
+        let next = i + direction
+        guard next >= 0, next < all.count else { return }
+        tab = all[next]
+    }
+
+    // MARK: 둘러보기 — 지금 열려 있는 길 · 취향이 겹치는 큐레이터
 
     /// 지금 열려 있는 길 — 흐름에 나타난 공개 컬렉션을 collectionId 로 중복 제거(첫 등장 순 = 최신순).
     /// 새 콜 없이 이미 받은 events 에서 입구를 뽑는다(신규 백엔드 0). 발견은 "누가 언제"가 아니라
@@ -189,7 +214,8 @@ struct DiscoverView: View {
                         .buttonStyle(.plain)
                         .modifier(QuietAppear(index: index))
                         if index < openPaths.count - 1 {
-                            Hairline().padding(.leading, 47)
+                            // 글리프가 빠져 행이 텍스트 정렬로 시작하므로 헤어라인도 풀폭.
+                            Hairline()
                         }
                     }
                 }
@@ -659,22 +685,18 @@ private struct DiscoverPath: Identifiable, Hashable {
     let latestWhy: String?
 }
 
-/// 길 입구 한 줄 — 그린 글리프(길=↳ / 컬렉션=그리드) + 제목, 그 아래 @큐레이터. PostEdges 의
-/// pathChip 과 같은 문법(§1 종이·§10.3 비텍스트만 초록). 허영 지표(편수·분) 없이 조용히(§0).
+/// 길 입구 한 줄 — 제목이 앵커(titleSmall semibold), 그 아래 큐레이터 목소리(why), 맨 아래 종류·작가
+/// 한 줄. 종전의 초록 SF 글리프(길=↳ / 컬렉션=그리드)는 뺐다 — "앱 격자" 같은 시스템 심볼이 종이 결을
+/// 싸구려로 만들고, 두 은유가 한 목록에 섞여 지저분했다. 종류는 조용한 텍스트 태그로 옮겨 §10.3(비텍스트만
+/// 초록) 도 지킨다. 허영 지표(편수·분) 없이 조용히(§0).
 private struct PathEntranceRow: View {
     let path: DiscoverPath
-    @ScaledMetric(relativeTo: .caption) private var glyph: CGFloat = 13
 
     var body: some View {
-        HStack(alignment: .top, spacing: 11) {
-            Image(systemName: path.kind == .path ? "arrow.turn.down.right" : "square.grid.2x2")
-                .font(.system(size: glyph, weight: .semibold))
-                .foregroundStyle(Palette.accent)
-                .frame(width: 24, alignment: .leading)
-                .padding(.top, 2)
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(alignment: .top, spacing: 10) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(path.title)
-                    .typeScale(.body)
+                    .typeScale(.titleSmall)
                     .foregroundStyle(Palette.ink)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
@@ -685,20 +707,23 @@ private struct PathEntranceRow: View {
                         .foregroundStyle(Palette.secondary)
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
-                        .padding(.top, 1)
                 }
-                Text("@\(path.curatorUsername)")
-                    .typeScale(.meta)
-                    .foregroundStyle(Palette.faint)
-                    .padding(.top, 1)
+                // 종류(길/컬렉션) + 큐레이터를 한 줄로 — 초록 글리프가 하던 구분을 조용한 텍스트가 대신한다.
+                // 종류 라벨은 로컬라이즈(둘러보기 탭 라벨과 같은 5언어 파리티).
+                Text(
+                    "\(path.kind == .path ? String(localized: "길") : String(localized: "컬렉션")) · @\(path.curatorUsername)"
+                )
+                .typeScale(.meta)
+                .foregroundStyle(Palette.faint)
+                .padding(.top, 1)
             }
             Spacer(minLength: 8)
             Image(systemName: "chevron.right")
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(Palette.faint)
-                .padding(.top, 4)
+                .padding(.top, 5)
         }
-        .padding(.vertical, 10)
+        .padding(.vertical, 11)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
     }
