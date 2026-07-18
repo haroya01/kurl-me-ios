@@ -47,6 +47,11 @@ struct FeedView: View {
     /// dragX = 현재 끌린 거리(현재 페이지 오프셋), 인접 페이지는 한 폭 옆에서 따라 들어온다.
     @State private var dragX: CGFloat = 0
     @State private var containerWidth: CGFloat = 0
+    /// 스와이프가 방금 selection 을 확정했음을 onChange 에 알린다 — 스와이프 경로는 dragX 를 스스로
+    /// 보정해 슬라이드하므로, 뒤이어 발화하는 onChange 가 같은 전환을 한 번 더 슬라이드시키지 않게 한다.
+    /// (dragX==0 로 구분하던 방식은 withAnimation 이 dragX 모델값을 그 프레임에 0 으로 써버려
+    /// onChange 시점엔 이미 0 이라 스와이프도 통과 → 이중 슬라이드로 튀던 것을 대체.)
+    @State private var swipeCommitted = false
 
     var body: some View {
         // NavigationStack 에 path 를 바인딩하면 iOS 26 의 tabBarMinimizeBehavior 가
@@ -74,11 +79,15 @@ struct FeedView: View {
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { containerWidth = $0 }
             .simultaneousGesture(feedDrag)
             // 스위처 탭 전환도 스와이프처럼 미끄러진다 — 최신·인기 카드 목록이 즉시 스냅으로 갈리면
-            // 생김새가 비슷해 "전환이 일어났나"가 안 느껴졌다. 스와이프 경로는 dragX 보정을 스스로
-            // 하므로(이 onChange 시점에 dragX != 0) 여기선 탭 경로만 같은 문법으로 보정한다.
+            // 생김새가 비슷해 "전환이 일어났나"가 안 느껴졌다. 스와이프 확정은 dragX 보정을 스스로 해
+            // 이미 슬라이드했으므로 여기선 건너뛰고(swipeCommitted), 탭 경로만 같은 문법으로 보정한다.
             // 바인딩을 withAnimation 으로 감싸지 않는다 — 스위처 알약 활주와 충돌(메모리 함정).
             .onChange(of: selection) { old, new in
-                guard !reduceMotion, dragX == 0, containerWidth > 0,
+                if swipeCommitted {
+                    swipeCommitted = false
+                    return
+                }
+                guard !reduceMotion, containerWidth > 0,
                       let from = FeedTab.allCases.firstIndex(of: old),
                       let to = FeedTab.allCases.firstIndex(of: new), from != to else { return }
                 dragX = CGFloat(to - from) * containerWidth
@@ -232,6 +241,8 @@ struct FeedView: View {
                     return
                 }
                 let newTab = all[dx < 0 ? i + 1 : i - 1]
+                // 이 selection 변경은 스와이프가 이미 슬라이드 중이므로 onChange 가 다시 슬라이드하지 않게 표시.
+                swipeCommitted = true
                 if reduceMotion {
                     selection = newTab
                     dragX = 0
