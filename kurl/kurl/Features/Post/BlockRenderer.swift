@@ -55,22 +55,16 @@ struct BlockView: View {
             }
             // 본 글이면 선택 가능한 문단(UITextView) — 길게 눌러 하이라이트, 공개 하이라이트 페인트.
             // 임베드·프리뷰(store 없음)는 종전 Text 경로 그대로(블래스트 레이디어스 최소화).
+            // 스토어 관찰은 얇은 래퍼(HighlightableParagraph)에 가둔다 — BlockView 본문이 store.highlights
+            // 를 직접 읽으면 어느 하이라이트가 바뀌든 모든 문단이 재바디(→마크다운 재파싱)되던 것을 막는다.
             else if let store = highlightStore, let order = block.blockOrder {
-                SelectableProseText(
+                HighlightableParagraph(
+                    store: store,
+                    blockOrder: order,
                     raw: block.content ?? "",
                     fontSize: size,
                     textColor: color,
-                    lineSpacing: lineSpacing,
-                    highlights: store.marks(forBlock: order),
-                    onHighlight: { start, end, quote in
-                        store.create(
-                            blockOrder: order, startOffset: start, endOffset: end, quote: quote)
-                    },
-                    onHighlightNote: { start, end, quote in
-                        store.noteDraft = PostHighlightStore.NoteDraft(
-                            blockOrder: order, startOffset: start, endOffset: end, quote: quote)
-                    },
-                    onOpenThread: { id in store.threadHighlightId = id }
+                    lineSpacing: lineSpacing
                 )
                 .padding(.bottom, isLead ? 20 : 18)
             } else {
@@ -195,12 +189,32 @@ struct BlockView: View {
             in: raw, range: NSRange(location: 0, length: ns.length), withTemplate: "<$1>")
     }
 
+    /// 인라인 파싱 결과 캐시 — 같은 문단이 스크롤·하이라이트 토글·부모 무효화마다 다시 파싱되던 것을 막는다
+    /// (`AttributedString(markdown:)` + 오토링크 정규식이 body 마다 O(보이는 블록)만큼 돌던 비용).
+    /// 키 = 원문 + 인라인 코드 크기(bodySize) — 색은 동적 `Color`(Palette)를 그대로 담아 Text 가 스킴별로
+    /// 다시 해석하므로(라이트/다크 자동 대응) 키에 넣지 않는다. countLimit 으로 긴 글 연속 열람에도 유계.
+    private static let inlineCache: NSCache<NSString, InlineBox> = {
+        let cache = NSCache<NSString, InlineBox>()
+        cache.countLimit = 512
+        return cache
+    }()
+
+    /// NSCache 는 참조 타입만 담아 AttributedString(값 타입)을 감싼다.
+    private final class InlineBox {
+        let attributed: AttributedString
+        init(_ attributed: AttributedString) { self.attributed = attributed }
+    }
+
     private func inline(_ raw: String) -> Text {
-        let raw = autolinkBareURLs(raw)
+        let key = "\(bodySize)|\(raw)" as NSString
+        if let box = Self.inlineCache.object(forKey: key) {
+            return Text(box.attributed)
+        }
+        let source = autolinkBareURLs(raw)
         let options = AttributedString.MarkdownParsingOptions(
             interpretedSyntax: .inlineOnlyPreservingWhitespace
         )
-        if var attributed = try? AttributedString(markdown: raw, options: options) {
+        if var attributed = try? AttributedString(markdown: source, options: options) {
             for run in attributed.runs {
                 if run.link != nil {
                     attributed[run.range].foregroundColor = Palette.link
@@ -213,6 +227,7 @@ struct BlockView: View {
                     attributed[run.range].backgroundColor = Palette.chipBg
                 }
             }
+            Self.inlineCache.setObject(InlineBox(attributed), forKey: key)
             return Text(attributed)
         }
         return Text(raw)
@@ -282,6 +297,39 @@ struct BlockView: View {
         let lower = text.prefix(4).lowercased()
         guard lower.hasPrefix("[ ] ") || lower.hasPrefix("[x] ") else { return (nil, text) }
         return (lower.hasPrefix("[x] "), String(text.dropFirst(4)))
+    }
+}
+
+/// 하이라이트 스토어 관찰을 한 문단으로 가둔 얇은 래퍼. 여기서만 `store.marks(forBlock:)` 를 읽어
+/// SwiftUI 가 이 문단에 대해서만 `store.highlights`(·paintHidden)를 추적한다 — 다른 문단의 마크가
+/// 바뀌어도 이 뷰는 무효화되지 않는다. 넘겨받는 `[Mark]` 는 Equatable 값 타입이라, 마크가 실제로
+/// 달라진 문단만 SelectableProseText 의 페인트가 다시 돈다(그마저도 파싱은 재사용, #2). 스토어 전체를
+/// 모든 BlockView 에 주입해 아무 하이라이트 변경이 글 전체를 재파싱하던 블래스트 레이디어스를 좁힌다.
+private struct HighlightableParagraph: View {
+    let store: PostHighlightStore
+    let blockOrder: Int
+    let raw: String
+    let fontSize: CGFloat
+    let textColor: Color
+    let lineSpacing: CGFloat
+
+    var body: some View {
+        SelectableProseText(
+            raw: raw,
+            fontSize: fontSize,
+            textColor: textColor,
+            lineSpacing: lineSpacing,
+            highlights: store.marks(forBlock: blockOrder),
+            onHighlight: { start, end, quote in
+                store.create(
+                    blockOrder: blockOrder, startOffset: start, endOffset: end, quote: quote)
+            },
+            onHighlightNote: { start, end, quote in
+                store.noteDraft = PostHighlightStore.NoteDraft(
+                    blockOrder: blockOrder, startOffset: start, endOffset: end, quote: quote)
+            },
+            onOpenThread: { id in store.threadHighlightId = id }
+        )
     }
 }
 
