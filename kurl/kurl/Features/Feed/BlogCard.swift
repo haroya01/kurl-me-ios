@@ -68,7 +68,8 @@ struct BlogCard: View {
         Color.clear
             .aspectRatio(4.0 / 3.0, contentMode: .fit)
             .overlay {
-                RemoteImage(url: url) { phase in
+                // 카드 폭은 리딩 컬럼 남짓 — 2000px OG 커버를 그대로 쥐지 않게 폭만큼만 받는다.
+                RemoteImage(url: url, maxPixel: 480) { phase in
                     if case .success(let image) = phase {
                         // 채움 이미지는 프레임 밖으로 넘친다 — 클립은 그림만 자르고 히트는 못 잘라, 이웃 카드 탭을 먹는다.
                         image.resizable().scaledToFill().allowsHitTesting(false)
