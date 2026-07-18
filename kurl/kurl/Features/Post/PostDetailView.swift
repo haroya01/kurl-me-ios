@@ -391,8 +391,12 @@ private struct PostDetailReader: View {
             !embedded && !showNavTitle ? .hidden : .automatic, for: .navigationBar)
         // 아래로 읽어 내려가면 상단 크롬(뒤로·제목·⋯)도 하단 탭바와 함께 위로 걷혀 초록 진행 바만
         // 남는다 — 위로 올리면 탭바 복귀와 동조해 돌아온다(chromeHidden 이 탭바 스크롤 신호를 그대로 탄다).
+        // ⚠️ 이 토글에 SwiftUI 명시 애니메이션(.animation(value: chromeHidden))을 걸면 안 된다 —
+        // toolbar(.hidden/.visible) 이 UINavigationController.setNavigationBarHidden(animated: true) 로
+        // 내려가는데, 스크롤 경계에서 chromeHidden 이 프레임마다 진동하면 매 프레임 내비바 슬라이드
+        // 애니메이션이 재시작돼 메인 스레드를 포화(워치독 0x8BADF00D 강제종료, "게시글 볼 때 렉으로 멈춤"의
+        // 근본). 애니메이션 없이 상태만 바꾸면 UIKit 이 즉시 전환해 루프가 생기지 않는다.
         .toolbar(chromeHidden ? .hidden : .visible, for: .navigationBar)
-        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: chromeHidden)
         // 뒤로가기 = 셰브론-온리 유리 원판 — "< 피드" 텍스트 꼬리 제거(스와이프 백 유지).
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
