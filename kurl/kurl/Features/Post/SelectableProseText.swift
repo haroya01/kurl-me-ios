@@ -72,8 +72,21 @@ struct SelectableProseText: UIViewRepresentable {
         tv.onHighlightNote = onHighlightNote
         tv.onOpenThread = onOpenThread
         tv.marks = highlights
-        let base = Self.attributed(
-            raw, fontSize: fontSize, color: UIColor(textColor), lineSpacing: lineSpacing)
+        // 베이스(파싱된 본문)는 원문·크기·행간·색이 실제로 바뀔 때만 다시 만든다 — 하이라이트 토글·
+        // 부모 무효화(다른 문단의 마크 변화 등)마다 마크다운을 재파싱하던 것을 막는다. 페인트 패스는
+        // 아래에서 늘 새로 얹으므로(하이라이트만 바뀌어도) 재파싱 없이 span 만 다시 칠해진다.
+        // 색은 동적 UIColor(스킴별 재해석)라 스킴이 바뀌어도 베이스는 그대로 유효 — 키에 넣지 않는다.
+        let signature = Coordinator.BaseSignature(
+            raw: raw, fontSize: fontSize, lineSpacing: lineSpacing, textColor: textColor)
+        let base: NSAttributedString
+        if let cached = context.coordinator.baseCache, context.coordinator.baseSignature == signature {
+            base = cached
+        } else {
+            base = Self.attributed(
+                raw, fontSize: fontSize, color: UIColor(textColor), lineSpacing: lineSpacing)
+            context.coordinator.baseCache = base
+            context.coordinator.baseSignature = signature
+        }
         let painted = NSMutableAttributedString(attributedString: base)
         let hay = painted.string as NSString
         let total = painted.length
@@ -132,6 +145,18 @@ struct SelectableProseText: UIViewRepresentable {
 
     final class Coordinator: NSObject, UITextViewDelegate, UIGestureRecognizerDelegate,
         UIEditMenuInteractionDelegate {
+        /// 마지막으로 파싱한 베이스 본문과 그 입력 — 입력이 그대로면 재파싱을 건너뛴다.
+        var baseCache: NSAttributedString?
+        var baseSignature: BaseSignature?
+
+        /// 베이스 본문을 결정하는 입력. 이 넷이 같으면 파싱 결과도 같다(색은 동적이라 제외).
+        struct BaseSignature: Equatable {
+            let raw: String
+            let fontSize: CGFloat
+            let lineSpacing: CGFloat
+            let textColor: Color
+        }
+
         /// 선택 편집 메뉴에 "하이라이트"·"메모"를 맨 앞에 더한다(복사 등 기본 항목은 그대로).
         /// 더블탭/드래그(기본 편집 메뉴) 경로.
         func textView(
