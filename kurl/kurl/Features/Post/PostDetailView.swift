@@ -1298,7 +1298,8 @@ private struct PostDetailReader: View {
         VStack(alignment: .leading, spacing: 0) {
             Group {
                 if let cover = post.ogImageUrl, let url = URL(string: cover) {
-                    RemoteImage(url: url) { phase in
+                    // 220×118 썸네일 — 그 폭에 맞춰 받아 목록에서 원본을 겹겹이 쥐지 않게.
+                    RemoteImage(url: url, maxPixel: 240) { phase in
                         if case .success(let image) = phase {
                             // 채움 이미지는 프레임 밖으로 넘친다 — 클립은 그림만 자르고 히트는 못 잘라, 이웃 카드 탭을 먹는다.
                             image.resizable().scaledToFill().allowsHitTesting(false)

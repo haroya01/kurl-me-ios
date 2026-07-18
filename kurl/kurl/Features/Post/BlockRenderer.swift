@@ -950,7 +950,8 @@ private struct EmbedLinkCard: View {
 
     /// 파비콘 — 로드되면 사이트 아이콘, 실패·로딩 중엔 조용한 지구본 글리프로 폴백.
     private var favicon: some View {
-        RemoteImage(url: faviconURL) { phase in
+        // 20×20 글리프 — 아이콘 원본이 커도 이 크기로만 받는다.
+        RemoteImage(url: faviconURL, maxPixel: 24) { phase in
             if case .success(let image) = phase {
                 image.resizable().scaledToFit()
             } else {
