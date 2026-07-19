@@ -29,6 +29,34 @@
         }
       }
     },
+    "\n\n| 제목 | 제목 |\n| --- | --- |\n| 내용 | 내용 |\n\n": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\n\n| Header | Header |\n| --- | --- |\n| Cell | Cell |\n\n"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\n\n| शीर्षक | शीर्षक |\n| --- | --- |\n| सामग्री | सामग्री |\n\n"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\n\n| 見出し | 見出し |\n| --- | --- |\n| 内容 | 内容 |\n\n"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\n\n| Tiêu đề | Tiêu đề |\n| --- | --- |\n| Nội dung | Nội dung |\n\n"
+          }
+        }
+      }
+    },
     " / %@": {
       "localizations": {
         "en": {
@@ -201,6 +229,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ · %lld bài"
+          }
+        }
+      }
+    },
+    "%@ — %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ — %2$@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ — %2$@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ — %2$@"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ — %2$@"
           }
         }
       }
@@ -397,6 +453,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Báo cáo %@. Sẽ xử lý sau khi xem xét."
+          }
+        }
+      }
+    },
+    "%@ 없음": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ なし"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không có %@"
           }
         }
       }
@@ -3698,6 +3782,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đường phân cách"
+          }
+        }
+      }
+    },
+    "구분선 삭제": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete divider"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "विभाजक हटाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "区切り線を削除"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xóa đường phân cách"
+          }
+        }
+      }
+    },
+    "구분선을 지웠어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Divider deleted"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "विभाजक हटा दिया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "区切り線を削除しました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã xóa đường phân cách"
           }
         }
       }
@@ -8276,6 +8416,34 @@
         }
       }
     },
+    "마지막 열을 지웁니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deletes the last column"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आख़िरी कॉलम हटाता है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最後の列を削除します"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xóa cột cuối cùng"
+          }
+        }
+      }
+    },
     "마지막 편 읽기": {
       "localizations": {
         "en": {
@@ -8306,6 +8474,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đọc bài cuối"
+          }
+        }
+      }
+    },
+    "마지막 행을 지웁니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deletes the last row"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आख़िरी पंक्ति हटाता है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最後の行を削除します"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xóa hàng cuối cùng"
           }
         }
       }
@@ -9007,6 +9203,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đang mở bản xem trước — vui lòng thử lại sau giây lát."
+          }
+        }
+      }
+    },
+    "미완료": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not completed"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अपूर्ण"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未完了"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa xong"
           }
         }
       }
@@ -14384,6 +14608,34 @@
         }
       }
     },
+    "완료됨": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Completed"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पूर्ण"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完了"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã xong"
+          }
+        }
+      }
+    },
     "왜 이었나요": {
       "localizations": {
         "en": {
@@ -15504,6 +15756,34 @@
         }
       }
     },
+    "이 표를 통째로 지웁니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deletes this entire table"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह पूरी तालिका हटाता है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この表を丸ごと削除します"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xóa toàn bộ bảng này"
+          }
+        }
+      }
+    },
     "이 하이라이트를 삭제할까요?": {
       "localizations": {
         "en": {
@@ -16269,6 +16549,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tên cũ được giữ trong 30 ngày nên liên kết hiện tại không bị hỏng ngay."
+          }
+        }
+      }
+    },
+    "이전 편": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Previous episode"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पिछला भाग"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前の回"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tập trước"
           }
         }
       }
@@ -17565,6 +17873,34 @@
         }
       }
     },
+    "저장 중…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saving…"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सेव हो रहा है…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存中…"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đang lưu…"
+          }
+        }
+      }
+    },
     "저장되면 미리보기·예약할 수 있어요.": {
       "localizations": {
         "en": {
@@ -17617,6 +17953,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Có nội dung chưa được lưu"
+          }
+        }
+      }
+    },
+    "저장됨": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सेव हो गया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存済み"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã lưu"
           }
         }
       }
@@ -21668,6 +22032,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bảng"
+          }
+        }
+      }
+    },
+    "표 삭제": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete table"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "तालिका हटाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "表を削除"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xóa bảng"
+          }
+        }
+      }
+    },
+    "표를 지웠어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Table deleted"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "तालिका हटा दी"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "表を削除しました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã xóa bảng"
           }
         }
       }
