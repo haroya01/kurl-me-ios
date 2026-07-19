@@ -115,7 +115,7 @@ struct DiscoverView: View {
                 await load()
             }
             .task(id: tab) { if tab == .highlights { await loadHighlights() } }
-            .refreshable {
+            .brandRefreshable {
                 // 입구·최근은 같은 연결 흐름(events)에서 산다 — 둘 다 load() 로 새로고침한다.
                 if tab == .highlights { await loadHighlights(force: true) } else { await load() }
             }
