@@ -178,16 +178,6 @@ private struct PostDetailReader: View {
         return Metrics.tabBarReservedHeight
     }
 
-    /// 상단 크롬(뒤로·제목·⋯)을 하단 탭바와 동조해 숨길지 — 별도 임계값 없이 탭바의 스크롤
-    /// 신호(tabBarVisibility.hidden)를 그대로 구독한다("같이"가 요구사항). 제목이 내비바로
-    /// 스민 뒤(showNavTitle)에만 접어, 맨 위에서 뒤로 버튼이 성급히 사라지지 않게 한다. 접히면
-    /// 초록 읽기 진행 바만 남는다(진행 바는 크롬과 별개 오버레이라 그대로 최상단 고정). 뒤로가기는
-    /// 엣지 스와이프 제스처가 살아 있어 UX 문제 없다(Medium 동일 패턴). 덱 임베드는 호스트 크롬.
-    private var chromeHidden: Bool {
-        guard !embedded, showNavTitle else { return false }
-        return tabBarVisibility?.hidden ?? false
-    }
-
     // 상세 body 는 모디파이어 사슬이 길어 하나의 식으로는 타입 검사 예산을 넘는다 —
     // ScrollView + 스크롤/툴바 계열을 scrollBody 로 잘라 불투명 경계(some View)를 만들고,
     // 나머지(시트·태스크·오버레이)는 body 에서 이어 붙여 두 개의 작은 식으로 나눈다.
@@ -274,8 +264,13 @@ private struct PostDetailReader: View {
         .onScrollGeometryChange(for: Bool.self) { geometry in
             geometry.contentOffset.y + geometry.contentInsets.top > 110
         } action: { _, passed in
-            guard !embedded else { return }
-            withAnimation(.easeInOut(duration: 0.18)) { showNavTitle = passed }
+            guard !embedded, showNavTitle != passed else { return }
+            // ⚠️ withAnimation 으로 감싸면 안 된다 — showNavTitle 은 상세 body 전체(무거운 블록 트리·
+            // 툴바·목차)가 읽는 값이라, 애니메이션 트랜잭션이 그 전 트리를 프레임마다 보간·재구성한다.
+            // 스크롤로 임계(110px)를 오르내릴 때마다 무거운 body 가 애니메이션 재평가되며 ToolbarModifier
+            // 파괴/재생성이 누적 → 메인 스레드 5초+ 점유 → 워치독 강제종료("읽다가 느려지다 멈춤"의 근본,
+            // build 10 .ips 스택: PostDetailReader.body → destroy ToolbarModifier/ScaledMetric). 값만 바꾼다.
+            showNavTitle = passed
         }
         // 임베드 전용: 바닥까지 남은 거리. 가까워지면 다음 글을 미리 찾고,
         // 바닥을 지나 90pt 이상 당기면 다음 글로 넘어간다.
@@ -389,14 +384,12 @@ private struct PostDetailReader: View {
         // (무커버 글 진입 때 .automatic 의 반투명 내비바가 상단에 "투명한 박스"로 떴던 것 제거.)
         .toolbarBackground(
             !embedded && !showNavTitle ? .hidden : .automatic, for: .navigationBar)
-        // 아래로 읽어 내려가면 상단 크롬(뒤로·제목·⋯)도 하단 탭바와 함께 위로 걷혀 초록 진행 바만
-        // 남는다 — 위로 올리면 탭바 복귀와 동조해 돌아온다(chromeHidden 이 탭바 스크롤 신호를 그대로 탄다).
-        // ⚠️ 이 토글에 SwiftUI 명시 애니메이션(.animation(value: chromeHidden))을 걸면 안 된다 —
-        // toolbar(.hidden/.visible) 이 UINavigationController.setNavigationBarHidden(animated: true) 로
-        // 내려가는데, 스크롤 경계에서 chromeHidden 이 프레임마다 진동하면 매 프레임 내비바 슬라이드
-        // 애니메이션이 재시작돼 메인 스레드를 포화(워치독 0x8BADF00D 강제종료, "게시글 볼 때 렉으로 멈춤"의
-        // 근본). 애니메이션 없이 상태만 바꾸면 UIKit 이 즉시 전환해 루프가 생기지 않는다.
-        .toolbar(chromeHidden ? .hidden : .visible, for: .navigationBar)
+        // 예전엔 스크롤로 상단 크롬 전체를 탭바와 함께 걷었다(.toolbar(chromeHidden ...)). 그 토글이
+        // ToolbarModifier 를 파괴/재생성하는데, 무거운 상세 body(깊은 블록 트리)에선 그 파괴가 극도로
+        // 비싸 스크롤로 오르내릴 때마다 누적 → 메인 스레드 5초+ 점유 → 워치독 강제종료("읽다가 느려지다
+        // 멈춤"의 근본, build 10 .ips: PostDetailReader.body → destroy ToolbarModifier). 크롬 자동숨김은
+        // 두 번(이 행·#213 애니 루프) 앱을 죽인 nice-to-have 라 뺀다 — 내비바는 읽는 동안 안정적으로 떠
+        // 있고(뒤로/목차 항상 도달), 초록 진행 바는 그대로. chromeHidden 계산도 함께 제거.
         // 뒤로가기 = 셰브론-온리 유리 원판 — "< 피드" 텍스트 꼬리 제거(스와이프 백 유지).
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
