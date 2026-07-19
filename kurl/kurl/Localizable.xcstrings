@@ -547,6 +547,64 @@
         }
       }
     },
+    "%@가 %@ 길에 엮음": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ wove into %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ने %@ पथ में पिरोया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@が%@の道に編んだ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ đã đan vào %@"
+          }
+        }
+      }
+    },
+    "%@가 %@에 연결": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ connected into %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ने %@ से जोड़ा"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@が%@につなげた"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ đã kết nối vào %@"
+          }
+        }
+      }
+    },
     "%@님에게 답글": {
       "localizations": {
         "en": {
@@ -2630,6 +2688,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Kéo tiếp để xem phần tiếp theo"
+          }
+        }
+      }
+    },
+    "계속 저장하지 못하고 있어요 — 지금 다시 시도해 보세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Still can't save — try again now"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी भी सेव नहीं हो पा रहा — अभी फिर से कोशिश करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存できない状態が続いています — 今すぐ再試行してください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vẫn chưa lưu được — hãy thử lại ngay"
           }
         }
       }
@@ -5246,6 +5332,34 @@
         }
       }
     },
+    "네트워크를 확인하고 다시 시도해 주세요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check your network and try again."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नेटवर्क जाँचें और फिर से कोशिश करें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ネットワークを確認して、もう一度お試しください。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kiểm tra mạng và thử lại."
+          }
+        }
+      }
+    },
     "네트워크에 연결할 수 없습니다.": {
       "localizations": {
         "en": {
@@ -6223,6 +6337,59 @@
           "stringUnit": {
             "state": "translated",
             "value": "Trả lời"
+          }
+        }
+      }
+    },
+    "답글 %lld": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld reply"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld replies"
+                }
+              }
+            }
+          }
+        },
+        "hi": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld जवाब"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld जवाब"
+                }
+              }
+            }
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返信 %lld"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld phản hồi"
           }
         }
       }
@@ -9348,6 +9515,34 @@
         }
       }
     },
+    "발행하지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't publish"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "प्रकाशित नहीं हो सका"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "公開できませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể đăng bài"
+          }
+        }
+      }
+    },
     "발행한 글": {
       "localizations": {
         "en": {
@@ -12271,6 +12466,34 @@
         }
       }
     },
+    "신고를 보내지 못했어요 — 다시 시도해 주세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't send the report — please try again"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रिपोर्ट नहीं भेज सके — कृपया फिर से कोशिश करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "報告を送信できませんでした — もう一度お試しください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không gửi được báo cáo — vui lòng thử lại"
+          }
+        }
+      }
+    },
     "실행취소": {
       "localizations": {
         "en": {
@@ -12438,6 +12661,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chưa có gì được thêm vào."
+          }
+        }
+      }
+    },
+    "아직 답글이 없어요": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No replies yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी कोई जवाब नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだ返信はありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có phản hồi"
           }
         }
       }
@@ -12731,6 +12983,12 @@
             "value": "No updates yet from curators you follow, so here's what's being connected across kurl right now."
           }
         },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आप जिन क्यूरेटर को फ़ॉलो करते हैं उनसे अभी कोई अपडेट नहीं है, तो अभी kurl पर जो जुड़ रहा है वह यहाँ दिखा रहे हैं।"
+          }
+        },
         "ja": {
           "stringUnit": {
             "state": "translated",
@@ -12741,12 +12999,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chưa có tin mới từ các nhà tuyển chọn bạn theo dõi, nên đây là những gì đang được kết nối trên toàn kurl ngay bây giờ."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आप जिन क्यूरेटर को फ़ॉलो करते हैं उनसे अभी कोई अपडेट नहीं है, तो अभी kurl पर जो जुड़ रहा है वह यहाँ दिखा रहे हैं।"
           }
         }
       }
@@ -13170,6 +13422,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "· đã kết nối"
+          }
+        }
+      }
+    },
+    "에디터로 돌아가기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back to editor"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "एडिटर पर वापस जाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エディタに戻る"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quay lại trình soạn thảo"
           }
         }
       }
@@ -18439,6 +18719,34 @@
         }
       }
     },
+    "지금 다시 저장": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save again now"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी फिर से सेव करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今すぐ再保存"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lưu lại ngay"
+          }
+        }
+      }
+    },
     "지금 떠오른 생각은…": {
       "localizations": {
         "en": {
@@ -20417,6 +20725,12 @@
             "value": "Find curators"
           }
         },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "क्यूरेटर खोजें"
+          }
+        },
         "ja": {
           "stringUnit": {
             "state": "translated",
@@ -20427,12 +20741,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tìm nhà tuyển chọn"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "क्यूरेटर खोजें"
           }
         }
       }
@@ -20461,6 +20769,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Xem tiếp các bộ sưu tập do người tuyển chọn kết nối"
+          }
+        }
+      }
+    },
+    "크래시 진단": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Crash diagnostics"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "क्रैश डायग्नोस्टिक्स"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クラッシュ診断"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chẩn đoán sự cố"
           }
         }
       }
@@ -22285,146 +22621,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hoàn thành theo từng tập"
-          }
-        }
-      }
-    },
-    "%@가 %@에 연결": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ connected into %@"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@が%@につなげた"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ đã kết nối vào %@"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ ने %@ से जोड़ा"
-          }
-        }
-      }
-    },
-    "%@가 %@ 길에 엮음": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ wove into %@"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@が%@の道に編んだ"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ đã đan vào %@"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ ने %@ पथ में पिरोया"
-          }
-        }
-      }
-    },
-    "답글 %lld": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld reply"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld replies"
-                }
-              }
-            }
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "返信 %lld"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld phản hồi"
-          }
-        },
-        "hi": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld जवाब"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld जवाब"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "아직 답글이 없어요": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No replies yet"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "まだ返信はありません"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Chưa có phản hồi"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "अभी कोई जवाब नहीं"
           }
         }
       }
