@@ -1217,13 +1217,17 @@ enum MockBackend {
             // 시리즈 회차(ep-1…ep-6) 는 본문 + 회차 nav(position/total/prev/next)를 실어 준다 —
             // 끝에서 이어 당기기·배너 이전/다음 검증용 결정론적 픽스처.
             let seriesNav = seriesEpisodeNav(slug: slug)
-            let blocks = article?.blocks ?? (seriesNav != nil
+            var blocks = article?.blocks ?? (seriesNav != nil
                 ? episodeBlocks(slug: slug) : ordered([
                 ["type": "H1", "content": "헥사고날로 가는 길"],
                 ["type": "PARAGRAPH", "content": "레이어드에서 갈아탄 이유와 그 결정의 기록."],
                 ["type": "H2", "content": "포트와 어댑터"],
                 ["type": "PARAGRAPH", "content": "경계를 먼저 긋고, 구현은 그 바깥으로 민다."],
             ]))
+            // `--longpost` — 실사용급 초장문 재현(진입 렉 프로파일링용): 본문을 40배로 편다.
+            if ProcessInfo.processInfo.arguments.contains("--longpost") {
+                blocks = ordered(Array(repeating: blocks, count: 40).flatMap { $0 })
+            }
             return json([
                 "author": [
                     "id": username == "honggildong" ? 1 : 2, "username": username,

@@ -1039,7 +1039,11 @@ private struct PostDetailReader: View {
                 goToEpisode: embedded ? nil : goToEpisode)
                 .padding(.top, 22)
         }
-        VStack(alignment: .leading, spacing: 2) {
+        // ⚠️ 반드시 LazyVStack — 일반 VStack 이면 바깥 LazyVStack 에게 본문 전체가 "항목
+        // 하나"라, 진입 순간 모든 블록(긴 글=수백 UITextView)이 한꺼번에 생성·조판돼
+        // 실기기에서 몇 초씩 걸렸다("긴 글/시리즈 들어가면 렉"의 근본). 지연 컨테이너를
+        // 겹치면 블록이 화면에 들어올 때만 만들어진다(TOC scrollTo·앵커는 그대로 동작).
+        LazyVStack(alignment: .leading, spacing: 2) {
             // 첫 문단은 lead — 독자를 글 안으로 들이는 한 호흡 큰 도입(에디토리얼 문법).
             let leadIndex = detail.blocks.firstIndex { $0.kind == .paragraph }
             ForEach(Array(detail.blocks.enumerated()), id: \.offset) { index, block in
