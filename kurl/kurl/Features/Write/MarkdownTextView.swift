@@ -744,7 +744,7 @@ final class MarkdownEditorController {
         // 캐럿은 첫 셀에 둔다(offset 4 = "\n\n| " 다음) — 넣자마자 첫 칸을 바로 친다. 활성(편집) 중에도
         // applyTables 가 파이프를 흐리게·구분선을 숨겨(빠른 경로도 이제 전체 패스로 넘김) "코드"가 아니라
         // 조용한 표 구조로 읽히고, 캐럿이 표를 벗어나면 곧장 진짜 그리드로 전환된다.
-        insertBlock("\n\n| 제목 | 제목 |\n| --- | --- |\n| 내용 | 내용 |\n\n", caretOffsetFromStart: 4)
+        insertBlock(String(localized: "\n\n| 제목 | 제목 |\n| --- | --- |\n| 내용 | 내용 |\n\n"), caretOffsetFromStart: 4)
     }
 
     /// 구분선(thematic break) — 단독 줄 `---` 을 백엔드가 DIVIDER 블록으로, 리더가 가로줄로 렌더.
