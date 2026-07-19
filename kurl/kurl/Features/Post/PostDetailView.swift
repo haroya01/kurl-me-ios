@@ -82,6 +82,13 @@ private struct PostDetailReader: View {
     /// 헤더를 지나면 제목이 내비바로 스며들고(아이폰 리딩 앱 문법), 커버가 있으면
     /// 그 동안 내비바 배경을 숨겨 커버가 상단을 다 쓴다.
     @State private var showNavTitle = false
+    /// 내비바에 실제로 *적용*하는 크롬 숨김 — 파생값(chromeHidden)을 직접 꽂지 않고
+    /// 220ms 안정된 값만 래치한다. 내비바를 숨기면 세이프에어리어가 변해 스크롤 메트릭이
+    /// 밀리고, 경계에서 파생값이 같은 레이아웃 커밋 안에 진동하면 UIKit 내비바 슬라이드가
+    /// 무한 재시작돼 메인 스레드가 10초를 넘겨 워치독(0x8BADF00D)에 죽는다 — 실기기
+    /// 크래시 리포트 2건(2026-07-20)의 근본. 런루프 턴을 건너 적용하면 루프가 끊긴다.
+    @State private var chromeHiddenApplied = false
+    @State private var chromeLatchTask: Task<Void, Never>?
     @State private var replyTo: Comment?
 
     /// 덱 임베드 전용 — 댓글은 접힌 행으로 시작하고, 본문 끝에서 더 당기면
@@ -391,12 +398,23 @@ private struct PostDetailReader: View {
             !embedded && !showNavTitle ? .hidden : .automatic, for: .navigationBar)
         // 아래로 읽어 내려가면 상단 크롬(뒤로·제목·⋯)도 하단 탭바와 함께 위로 걷혀 초록 진행 바만
         // 남는다 — 위로 올리면 탭바 복귀와 동조해 돌아온다(chromeHidden 이 탭바 스크롤 신호를 그대로 탄다).
-        // ⚠️ 이 토글에 SwiftUI 명시 애니메이션(.animation(value: chromeHidden))을 걸면 안 된다 —
-        // toolbar(.hidden/.visible) 이 UINavigationController.setNavigationBarHidden(animated: true) 로
-        // 내려가는데, 스크롤 경계에서 chromeHidden 이 프레임마다 진동하면 매 프레임 내비바 슬라이드
-        // 애니메이션이 재시작돼 메인 스레드를 포화(워치독 0x8BADF00D 강제종료, "게시글 볼 때 렉으로 멈춤"의
-        // 근본). 애니메이션 없이 상태만 바꾸면 UIKit 이 즉시 전환해 루프가 생기지 않는다.
-        .toolbar(chromeHidden ? .hidden : .visible, for: .navigationBar)
+        // ⚠️ 여기엔 파생값(chromeHidden)이 아니라 래치(chromeHiddenApplied)를 꽂는다.
+        // 내비바 숨김 → 세이프에어리어 변화 → 스크롤 메트릭 이동 → 파생값 반전이 같은
+        // 레이아웃 커밋 안에서 맞물리면 내비바 슬라이드가 무한 재시작돼 메인 스레드가 10초를
+        // 넘기고 워치독(0x8BADF00D)에 죽는다 — 명시 애니메이션 제거만으로는 부족했다(실기기
+        // 크래시 2026-07-20 재발). onChange 디바운스 래치로 런루프 턴을 건너 안정된 의도만
+        // 반영해 피드백 고리를 끊는다.
+        .toolbar(chromeHiddenApplied ? .hidden : .visible, for: .navigationBar)
+        .onChange(of: chromeHidden) { _, want in
+            chromeLatchTask?.cancel()
+            guard want != chromeHiddenApplied else { return }
+            chromeLatchTask = Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(220))
+                guard !Task.isCancelled else { return }
+                chromeHiddenApplied = want
+            }
+        }
+        .onDisappear { chromeLatchTask?.cancel() }
         // 뒤로가기 = 셰브론-온리 유리 원판 — "< 피드" 텍스트 꼬리 제거(스와이프 백 유지).
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
