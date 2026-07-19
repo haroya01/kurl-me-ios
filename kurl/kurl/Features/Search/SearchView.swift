@@ -166,7 +166,7 @@ struct SearchView: View {
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
         // 빈 레일을 당겨서 다시 받는다 — 첫 로드 실패의 두 번째 탈출구(scenePhase 와 짝).
-        .refreshable { await loadDiscovery() }
+        .brandRefreshable { await loadDiscovery() }
         // 검색 idle = 안개가 서는 세 곳 중 하나(§1 폴리시). 유리 검색바·탭바가 굴절할
         // 배경을 깐다(피드·계정과 같은 레시피).
         .background(alignment: .top) {

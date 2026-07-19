@@ -58,6 +58,59 @@ struct KurlLoadingMark: View {
     }
 }
 
+// MARK: 브랜드 당겨서 새로고침 — 시스템 스피너 대신 kurl 마크가 당김을 따라 그어진다
+
+/// `.refreshable` 스피너를 대체한다. 당김 진행에 따라 마크 세 선이 차례로 그어지고
+/// (제품 로딩 마크와 같은 어휘), 임계를 넘으면 발동 — 새로고침 동안은 KurlLoadingMark 가
+/// 살아 움직인다. 발동은 임계 통과 즉시(놓기 감지는 SwiftUI 스크롤에선 불가) + 햅틱 한 번.
+struct BrandRefresh: ViewModifier {
+    let action: () async -> Void
+    @State private var pull: CGFloat = 0
+    @State private var refreshing = false
+    @State private var fireTick = 0
+    private let threshold: CGFloat = 84
+
+    func body(content: Content) -> some View {
+        content
+            .onScrollGeometryChange(for: CGFloat.self) { geo in
+                -(geo.contentOffset.y + geo.contentInsets.top)
+            } action: { _, overpull in
+                pull = max(0, overpull)
+                guard overpull > threshold, !refreshing else { return }
+                refreshing = true
+                fireTick += 1
+                Task { @MainActor in
+                    await action()
+                    // 새 데이터가 즉시 와도 마크가 깜빡하고 사라지지 않게 한 호흡.
+                    try? await Task.sleep(for: .milliseconds(500))
+                    withAnimation(.snappy(duration: 0.25)) { refreshing = false }
+                }
+            }
+            .overlay(alignment: .top) {
+                if refreshing {
+                    KurlLoadingMark()
+                        .padding(.top, 12)
+                        .transition(.opacity)
+                } else if pull > 10 {
+                    KurlMark(drawn: [
+                        pull > threshold * 0.33, pull > threshold * 0.66, pull > threshold,
+                    ])
+                    .frame(width: 34, height: 21)
+                    .opacity(min(1, Double(pull / 40)))
+                    .padding(.top, 12)
+                }
+            }
+            .sensoryFeedback(.impact, trigger: fireTick)
+    }
+}
+
+extension View {
+    /// 브랜드 리프레시 — `.refreshable` 대신 단다. 당김 임계(84pt)에서 발동한다.
+    func brandRefreshable(action: @escaping () async -> Void) -> some View {
+        modifier(BrandRefresh(action: action))
+    }
+}
+
 struct StateView<Value, Content: View>: View {
     let state: LoadState<Value>
     var retry: (() -> Void)?
