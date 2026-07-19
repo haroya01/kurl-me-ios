@@ -35,13 +35,13 @@ struct LibrarySnapshot: Codable {
     static let sample = LibrarySnapshot(
         items: [
             Item(username: "sunwoo",
-                 title: "느리게 읽는 법 — 속독을 버리고 얻은 것",
+                 title: String(localized: "느리게 읽는 법 — 속독을 버리고 얻은 것"),
                  slug: "slow-reading", savedAt: Date().addingTimeInterval(-3600)),
             Item(username: "hana",
-                 title: "작은 블로그가 오래 사랑받는 이유",
+                 title: String(localized: "작은 블로그가 오래 사랑받는 이유"),
                  slug: "small-and-loved", savedAt: Date().addingTimeInterval(-3 * 86_400)),
             Item(username: "minjae",
-                 title: "밑줄 그은 문장으로 남는 책",
+                 title: String(localized: "밑줄 그은 문장으로 남는 책"),
                  slug: "underlines", savedAt: Date().addingTimeInterval(-8 * 86_400)),
         ],
         totalCount: 12,

@@ -76,8 +76,8 @@ struct SeriesBanner: View {
 
                 // 이전/다음 회차 — 끝에서 당기기와 같은 제자리 교체(가로 슬라이드 금지). 없는 방향은 비활성.
                 if goToEpisode != nil {
-                    episodeArrow(systemName: "chevron.left", link: nav.prev, label: "이전 편")
-                    episodeArrow(systemName: "chevron.right", link: nav.next, label: "다음 편")
+                    episodeArrow(systemName: "chevron.left", link: nav.prev, label: String(localized: "이전 편"))
+                    episodeArrow(systemName: "chevron.right", link: nav.next, label: String(localized: "다음 편"))
                 }
             }
             .padding(.top, 10)

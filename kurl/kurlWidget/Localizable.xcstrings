@@ -9,6 +9,12 @@
             "value": "%lld saved"
           }
         },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld सहेजे गए"
+          }
+        },
         "ja": {
           "stringUnit": {
             "state": "translated",
@@ -20,124 +26,6 @@
             "state": "translated",
             "value": "%lld đã lưu"
           }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld सहेजे गए"
-          }
-        }
-      }
-    },
-    "글을 북마크하면": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bookmark a post"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "記事をブックマークすると"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Đánh dấu một bài viết"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "किसी पोस्ट को बुकमार्क करें"
-          }
-        }
-      }
-    },
-    "북마크한 글이 홈 화면에 한 장씩.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Your bookmarked posts, one at a time on your Home Screen."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ブックマークした記事をホーム画面に一冊ずつ。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bài viết đã đánh dấu, hiện từng cái trên Màn hình chính."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आपकी बुकमार्क की गई पोस्ट, होम स्क्रीन पर एक-एक कर."
-          }
-        }
-      }
-    },
-    "서재": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Library"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "本棚"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Thư viện"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "लाइब्रेरी"
-          }
-        }
-      }
-    },
-    "여기 한 장씩 꽂혀요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "and it appears here, one at a time."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ここに一冊ずつ並びます。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "và nó xuất hiện ở đây, từng cái một."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "और वह यहाँ एक-एक कर दिखेगी."
-          }
         }
       }
     },
@@ -147,6 +35,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "kurl Analytics"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kurl विश्लेषण"
           }
         },
         "ja": {
@@ -160,11 +54,33 @@
             "state": "translated",
             "value": "Phân tích kurl"
           }
+        }
+      }
+    },
+    "글을 북마크하면": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bookmark a post"
+          }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "kurl विश्लेषण"
+            "value": "किसी पोस्ट को बुकमार्क करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記事をブックマークすると"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đánh dấu một bài viết"
           }
         }
       }
@@ -175,6 +91,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Total views"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कुल व्यूज़"
           }
         },
         "ja": {
@@ -188,11 +110,61 @@
             "state": "translated",
             "value": "Tổng lượt xem"
           }
+        }
+      }
+    },
+    "느리게 읽는 법 — 속독을 버리고 얻은 것": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How to read slowly — what I gained by quitting speed reading"
+          }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "कुल व्यूज़"
+            "value": "धीरे पढ़ने की कला — स्पीड रीडिंग छोड़कर जो मिला"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ゆっくり読む方法 — 速読をやめて得たもの"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đọc chậm — điều nhận được khi bỏ đọc nhanh"
+          }
+        }
+      }
+    },
+    "밑줄 그은 문장으로 남는 책": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Books that live on as underlined sentences"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रेखांकित वाक्यों में बची रहने वाली किताबें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下線を引いた文で残る本"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuốn sách đọng lại qua những câu gạch chân"
           }
         }
       }
@@ -203,6 +175,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Published"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "प्रकाशित"
           }
         },
         "ja": {
@@ -216,11 +194,33 @@
             "state": "translated",
             "value": "Đã đăng"
           }
+        }
+      }
+    },
+    "북마크한 글이 홈 화면에 한 장씩.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your bookmarked posts, one at a time on your Home Screen."
+          }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "प्रकाशित"
+            "value": "आपकी बुकमार्क की गई पोस्ट, होम स्क्रीन पर एक-एक कर."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブックマークした記事をホーム画面に一冊ずつ。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bài viết đã đánh dấu, hiện từng cái trên Màn hình chính."
           }
         }
       }
@@ -231,6 +231,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Blog Analytics"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ब्लॉग विश्लेषण"
           }
         },
         "ja": {
@@ -244,11 +250,33 @@
             "state": "translated",
             "value": "Phân tích blog"
           }
+        }
+      }
+    },
+    "서재": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Library"
+          }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "ब्लॉग विश्लेषण"
+            "value": "लाइब्रेरी"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本棚"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thư viện"
           }
         }
       }
@@ -259,6 +287,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Open the app and your\nlatest stats will appear here."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ऐप खोलें, आपके ताज़ा\nआँकड़े यहाँ दिखेंगे."
           }
         },
         "ja": {
@@ -272,11 +306,61 @@
             "state": "translated",
             "value": "Mở ứng dụng và số liệu\nmới nhất sẽ hiện ở đây."
           }
+        }
+      }
+    },
+    "여기 한 장씩 꽂혀요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "and it appears here, one at a time."
+          }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "ऐप खोलें, आपके ताज़ा\nआँकड़े यहाँ दिखेंगे."
+            "value": "और वह यहाँ एक-एक कर दिखेगी."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ここに一冊ずつ並びます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "và nó xuất hiện ở đây, từng cái một."
+          }
+        }
+      }
+    },
+    "작은 블로그가 오래 사랑받는 이유": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Why small blogs stay loved for a long time"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "छोटे ब्लॉग लंबे समय तक क्यों पसंद आते हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "小さなブログが長く愛される理由"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vì sao blog nhỏ được yêu mến lâu dài"
           }
         }
       }
@@ -287,6 +371,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "views"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "व्यूज़"
           }
         },
         "ja": {
@@ -300,12 +390,6 @@
             "state": "translated",
             "value": "lượt xem"
           }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "व्यूज़"
-          }
         }
       }
     },
@@ -315,6 +399,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Likes"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पसंद"
           }
         },
         "ja": {
@@ -328,12 +418,6 @@
             "state": "translated",
             "value": "Lượt thích"
           }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "पसंद"
-          }
         }
       }
     },
@@ -343,6 +427,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Views, last %lld days"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "व्यूज़, पिछले %lld दिन"
           }
         },
         "ja": {
@@ -356,12 +446,6 @@
             "state": "translated",
             "value": "Lượt xem, %lld ngày qua"
           }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "व्यूज़, पिछले %lld दिन"
-          }
         }
       }
     },
@@ -371,6 +455,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Recent views and lifetime stats on your Home Screen."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "हाल के व्यूज़ और कुल आँकड़े आपकी होम स्क्रीन पर."
           }
         },
         "ja": {
@@ -384,12 +474,6 @@
             "state": "translated",
             "value": "Lượt xem gần đây và số liệu tích lũy ngay trên Màn hình chính."
           }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "हाल के व्यूज़ और कुल आँकड़े आपकी होम स्क्रीन पर."
-          }
         }
       }
     },
@@ -399,6 +483,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Followers"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ॉलोअर"
           }
         },
         "ja": {
@@ -411,12 +501,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Người theo dõi"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "फ़ॉलोअर"
           }
         }
       }
