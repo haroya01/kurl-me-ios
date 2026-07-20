@@ -240,6 +240,20 @@ private struct PostDetailReader: View {
         // 읽는 동안 홈바도 비켜선다 — 다른 스크롤 면과 같은 문법(내리면 숨고 올리면 돌아온다).
         // 덱(임베드)은 장 넘김이 주라 제외.
         .tracksTabBarVisibility(!embedded)
+        // 오른쪽 읽기 스크러버 — 시스템 인디케이터(전체 콘텐츠 기준·제어 불가) 대신 앱 소유.
+        // 초록 바와 같은 본문 실측 위치를 보여주고, 끌면 본문의 그 지점(블록)으로 점프한다.
+        .overlay(alignment: .trailing) {
+            if !embedded, scrollable, case .loaded(let detail) = model.phase, detail.blocks.count > 3 {
+                ReadingScrubber(progress: scrollProgress) { fraction in
+                    let blocks = detail.blocks
+                    let idx = min(blocks.count - 1, max(0, Int(fraction * CGFloat(blocks.count - 1))))
+                    proxy.scrollTo(blocks[idx].id, anchor: UnitPoint(x: 0, y: 0.12))
+                }
+                .padding(.top, 96)
+                .padding(.bottom, 150)
+                .padding(.trailing, 2)
+            }
+        }
         .background(Palette.readingBg.ignoresSafeArea())
         // 스크롤 여유가 충분한지 — 독 후퇴 판정의 전제(짧은 글은 독이 유일한 인게이지 표면).
         // 한 번 스크롤 가능으로 판정되면 유지한다(글 길이는 스크롤로 줄지 않는데, 바닥에 닿으면
@@ -1514,6 +1528,83 @@ private final class ScrollProgress {
     var bodyMinY: CGFloat = .nan
     var bodyHeight: CGFloat = 0
     var containerH: CGFloat = 0
+
+    /// 본문 실측 진행 — 화면 바닥이 본문의 어디까지 왔나(본문 끝=1). 실측 전엔 전체 폴백.
+    var bodyRead: CGFloat {
+        guard bodyHeight > 1, containerH > 1, bodyMinY.isFinite else { return min(1, max(0, read)) }
+        return min(1, max(0, (containerH - bodyMinY) / bodyHeight))
+    }
+}
+
+/// 오른쪽 가장자리 읽기 스크러버 — 본문 실측 위치(초록 바와 동일)를 보여주고, 끌면 그
+/// 지점으로 점프한다. 스크롤/드래그 중에만 떠 있다가 1.2초 뒤 물러난다(시스템 인디케이터
+/// 관용). 보이스오버는 목차가 항해 경로라 숨긴다. 점프는 0.5% 스텝으로만 발사해 지연
+/// 렌더 위에서도 스크럽이 가볍다.
+private struct ReadingScrubber: View {
+    let progress: ScrollProgress
+    let onScrub: (CGFloat) -> Void
+
+    @State private var visible = false
+    @State private var dragging = false
+    @State private var dragFraction: CGFloat = 0
+    @State private var lastStep = -1
+    @State private var hideTask: Task<Void, Never>?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var fraction: CGFloat { dragging ? dragFraction : progress.bodyRead }
+
+    var body: some View {
+        GeometryReader { geo in
+            let thumbH: CGFloat = 44
+            let travel = max(1, geo.size.height - thumbH)
+            ZStack(alignment: .topTrailing) {
+                Color.clear
+                Capsule()
+                    .fill(dragging ? AnyShapeStyle(Palette.accent) : AnyShapeStyle(Palette.faint.opacity(0.55)))
+                    .frame(width: dragging ? 5 : 3.5, height: thumbH)
+                    .offset(y: travel * min(1, max(0, fraction)))
+            }
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        dragging = true
+                        let f = min(1, max(0, (value.location.y - thumbH / 2) / travel))
+                        dragFraction = f
+                        // 0.5% 스텝으로 양자화 — 매 프레임 scrollTo 를 피한다.
+                        let step = Int(f * 200)
+                        if step != lastStep {
+                            lastStep = step
+                            onScrub(f)
+                        }
+                    }
+                    .onEnded { _ in
+                        dragging = false
+                        lastStep = -1
+                        scheduleHide()
+                    }
+            )
+        }
+        .frame(width: 26)
+        .opacity(visible || dragging ? 1 : 0)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: visible || dragging)
+        // 스크롤이 움직이는 동안만 얼굴을 내민다 — bodyMinY 가 프레임마다 변하는 걸 신호로.
+        .onChange(of: progress.bodyMinY) {
+            guard !visible || hideTask != nil else { return }
+            visible = true
+            scheduleHide()
+        }
+        .accessibilityHidden(true)
+    }
+
+    private func scheduleHide() {
+        hideTask?.cancel()
+        hideTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(1200))
+            guard !Task.isCancelled, !dragging else { return }
+            visible = false
+        }
+    }
 }
 
 /// 읽기 진행 막대(내비바 아래 한 줄) — 매 프레임 값은 이 잎 뷰만 구독한다.
@@ -1522,18 +1613,11 @@ private final class ScrollProgress {
 private struct ReadProgressBar: View {
     let progress: ScrollProgress
 
-    private var value: CGFloat {
-        guard progress.bodyHeight > 1, progress.containerH > 1, progress.bodyMinY.isFinite else {
-            return min(1, max(0, progress.read))  // 실측 전 첫 프레임 폴백
-        }
-        return min(1, max(0, (progress.containerH - progress.bodyMinY) / progress.bodyHeight))
-    }
-
     var body: some View {
         GeometryReader { geo in
             Capsule()
                 .fill(Palette.accent)
-                .frame(width: geo.size.width * value, height: 3)
+                .frame(width: geo.size.width * progress.bodyRead, height: 3)
         }
         .frame(height: 3)
         .allowsHitTesting(false)
