@@ -63,6 +63,42 @@ final class ReadingStressUITests: XCTestCase {
         }
     }
 
+    /// 딥스택 소크 — "창 여러 개": 초장문(--longpost)을 열고 바닥 큐로 다음 글을 계속
+    /// 밀어 넣어 상세를 겹겹이 쌓는다(스택 깊이 8). 각 층에서 격한 스크롤·경계 왕복 후
+    /// 전 층을 엣지 백으로 되감는다. 시뮬엔 워치독이 없어 루프면 '영구 멈춤'으로 남고
+    /// (밖에서 sample 로 스택 채취), 메모리는 호스트가 RSS 를 병행 계측한다.
+    func testDeepStackSoak() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--longpost"]
+        app.launch()
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15), "런치 실패")
+
+        guard openFromFeed(app, title: "헥사고날로 갈아탄 지 석 달, 무엇이 남았나") else {
+            throw XCTSkip("긴 글 진입 실패")
+        }
+        assertAlive(app, "1층 진입")
+
+        var depth = 1
+        for level in 1...8 {
+            for _ in 0..<6 { app.swipeUp(velocity: .fast) }
+            jiggle(app, times: 3)
+            assertAlive(app, "\(level)층 스크롤 후")
+            let cue = app.staticTexts.matching(
+                NSPredicate(format: "label BEGINSWITH '계속 당기면'")).firstMatch
+            guard cue.exists, cue.isHittable else { break }
+            cue.tap()
+            Thread.sleep(forTimeInterval: 1.2)
+            depth += 1
+            assertAlive(app, "\(level + 1)층 적재 후")
+        }
+
+        // 되감기 — 쌓인 층을 전부 걷는다(뒤로 전환마다 크롬 토글·해제가 연쇄).
+        for level in (1...depth).reversed() {
+            edgeSwipeBack(app)
+            assertAlive(app, "\(level)층 되감기 후")
+        }
+    }
+
     // MARK: 헬퍼
 
     /// 피드에서 제목을 찾아 연다 — 피드가 설 때까지 기다린 뒤 아래로, 그다음 위로 훑는다.
