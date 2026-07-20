@@ -313,6 +313,10 @@ private struct PostDetailReader: View {
             }
         }
         // 읽기 진행도 — 본문을 얼마나 내려왔는지 0~1 로(덱·단독 공통).
+        // 뷰포트 높이 — 본문 실측 진행(ReadProgressBar) 계산의 분모 재료. 잎 스토어에만 쓴다.
+        .onScrollGeometryChange(for: CGFloat.self) { $0.containerSize.height } action: { _, h in
+            scrollProgress.containerH = h
+        }
         .onScrollGeometryChange(for: CGFloat.self) { geometry in
             let total = geometry.contentSize.height - geometry.containerSize.height
             guard total > 1 else { return 0 }
@@ -1058,6 +1062,14 @@ private struct PostDetailReader: View {
             }
         }
         .padding(.top, 20)
+        // 본문 실측 — 진행 바("게시글만, 정확히")의 분모/분자 재료. 지연 렌더의 추정 높이가
+        // 아니라 실제 프레임이라, 댓글·연결 블록은 진행에 안 잡히고 흔들림도 없다.
+        .onGeometryChange(for: CGRect.self) { proxy in
+            proxy.frame(in: .scrollView(axis: .vertical))
+        } action: { frame in
+            scrollProgress.bodyMinY = frame.minY
+            scrollProgress.bodyHeight = frame.height
+        }
 
         if !ContentValidity.renderableTags(detail.post.tags).isEmpty {
             FlowTags(tags: detail.post.tags)
@@ -1492,21 +1504,36 @@ private struct PostDetailReader: View {
 @MainActor
 @Observable
 private final class ScrollProgress {
-    /// 읽기 진행도(0~1) — 상단 가는 막대가 왼쪽부터 그린으로 찬다.
+    /// 읽기 진행도(0~1) — 전체 콘텐츠 기준(완독 모먼트·독 후퇴 판정용 내부 지표).
     var read: CGFloat = 0
     /// 바닥 너머 당김의 진행도(0~1, 임계 90pt) — 큐의 셰브론·제목이 손가락을 따라온다.
     var pull: CGFloat = 0
+    /// 본문(블록 스택) 실측 — 표시용 진행 바는 이걸로 계산한다: 본문 시작=0, 본문 끝이
+    /// 화면 바닥에 닿으면=1. 댓글·연결 블록·작가 카드는 진행에 안 잡힌다("게시글만 반영").
+    /// 지연 렌더의 추정 높이 대신 실제 레이아웃 프레임을 쓰므로 흔들리지 않는다.
+    var bodyMinY: CGFloat = .nan
+    var bodyHeight: CGFloat = 0
+    var containerH: CGFloat = 0
 }
 
 /// 읽기 진행 막대(내비바 아래 한 줄) — 매 프레임 값은 이 잎 뷰만 구독한다.
+/// 값 = 본문 실측: 화면 바닥이 본문의 어디까지 왔나(본문 끝 닿으면 1). 댓글·연결 블록·
+/// 작가 카드는 분모에 없다 — "게시글에서 어느 부분을 읽고 있는지"만 정확히 반영한다.
 private struct ReadProgressBar: View {
     let progress: ScrollProgress
+
+    private var value: CGFloat {
+        guard progress.bodyHeight > 1, progress.containerH > 1, progress.bodyMinY.isFinite else {
+            return min(1, max(0, progress.read))  // 실측 전 첫 프레임 폴백
+        }
+        return min(1, max(0, (progress.containerH - progress.bodyMinY) / progress.bodyHeight))
+    }
 
     var body: some View {
         GeometryReader { geo in
             Capsule()
                 .fill(Palette.accent)
-                .frame(width: geo.size.width * min(1, max(0, progress.read)), height: 3)
+                .frame(width: geo.size.width * value, height: 3)
         }
         .frame(height: 3)
         .allowsHitTesting(false)
