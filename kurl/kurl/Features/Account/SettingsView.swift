@@ -25,6 +25,7 @@ struct SettingsView: View {
     /// 버전 문자열(mono) — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
     @ScaledMetric(relativeTo: .headline) private var versionSize: CGFloat = 14
     @State private var pushStatus: UNAuthorizationStatus = .notDetermined
+    @State private var legalLink: LegalLink?
 
     var body: some View {
         ReadingColumn(spacing: 0) {
@@ -236,6 +237,7 @@ struct SettingsView: View {
         } message: {
             Text("잠시 후 다시 시도해 주세요.")
         }
+        .sheet(item: $legalLink) { SafariView(url: $0.url).ignoresSafeArea() }
     }
 
     private var pushStatusLabel: LocalizedStringKey? {
@@ -280,10 +282,11 @@ struct SettingsView: View {
         .buttonStyle(RowButtonStyle())
     }
 
-    /// 약관·방침은 웹과 단일 원문 — 로케일 경로로 연다.
+    /// 약관·방침은 웹과 단일 원문 — 로케일 경로를 로그인 화면과 같은 인앱 사파리로 연다
+    /// (외부 Safari 로 내쫓지 않는다).
     private func open(path: String) {
         if let url = URL(string: "\(Config.apiBase)/\(Config.preferredLanguageTag)/\(path)") {
-            openURL(url)
+            legalLink = LegalLink(url: url)
         }
     }
 
