@@ -16918,6 +16918,118 @@
         }
       }
     },
+    "여기서 발행하면 그 순간 웹에도 살아요 — 같은 글, 같은 주소. 앱이 없어도 누구나 브라우저로 읽어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publish here and it's live on the web that same moment — same post, same address. Anyone can read it in a browser, no app needed."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यहाँ प्रकाशित करते ही लेख उसी पल वेब पर भी आ जाता है — वही लेख, वही पता। बिना ऐप के भी कोई भी ब्राउज़र में पढ़ सकता है।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ここで公開すると、その瞬間ウェブにも載ります — 同じ記事、同じアドレス。アプリがなくてもブラウザで誰でも読めます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xuất bản ở đây là bài lên web ngay khoảnh khắc đó — cùng bài viết, cùng địa chỉ. Ai cũng đọc được bằng trình duyệt, không cần ứng dụng."
+          }
+        }
+      }
+    },
+    "첫 글을 발행하면 이 주소가 채워져요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publish your first post and this address comes alive."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पहला लेख प्रकाशित करते ही यह पता जीवंत हो उठता है।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最初の記事を公開すると、このアドレスが埋まります。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xuất bản bài đầu tiên là địa chỉ này sáng lên."
+          }
+        }
+      }
+    },
+    "웹에서도 볼 수 있어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can read it on the web too"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "वेब पर भी पढ़ा जा सकता है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウェブでも読めます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đọc được cả trên web"
+          }
+        }
+      }
+    },
+    "내 블로그 웹 주소 열기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open my blog's web address"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मेरे ब्लॉग का वेब पता खोलें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自分のブログのウェブアドレスを開く"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mở địa chỉ web blog của tôi"
+          }
+        }
+      }
+    },
     "읽고, 쓰고,\n연결하다.": {
       "localizations": {
         "en": {
