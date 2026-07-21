@@ -22,6 +22,12 @@ struct SafariView: UIViewControllerRepresentable {
     func updateUIViewController(_ controller: SFSafariViewController, context: Context) {}
 }
 
+/// `.sheet(item:)` 로 SafariView 를 띄울 약관·방침 링크 — 로그인·설정이 공유한다.
+struct LegalLink: Identifiable {
+    let url: URL
+    var id: String { url.absoluteString }
+}
+
 // MARK: 로딩/에러/빈 상태
 
 enum LoadState<Value> {

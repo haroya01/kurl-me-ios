@@ -21,12 +21,6 @@ struct AuthProviderButtons: View {
     @State private var errorMessage: String?
     @State private var legalLink: LegalLink?
 
-    /// 인앱 사파리로 열 약관·방침 링크 — 로그인 흐름을 앱 밖으로 내보내지 않는다.
-    private struct LegalLink: Identifiable {
-        let url: URL
-        var id: String { url.absoluteString }
-    }
-
     var body: some View {
         VStack(spacing: 10) {
             // Apple 버튼은 시스템 소유 모양(브랜딩 규정) — 유리를 입히지 않고 캡슐만 맞춘다.
