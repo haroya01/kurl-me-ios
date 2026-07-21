@@ -276,7 +276,12 @@ struct RootView: View {
         .onChange(of: webIntroReady) { was, now in
             guard now, !was, didStartSignedOut, !seenWebIntro else { return }
             seenWebIntro = true
-            showWebIntro = true
+            // 핸들 게이트(fullScreenCover)가 닫히는 전환과 겹치면 시트 프레젠테이션이
+            // 드랍될 수 있다 — 전환이 끝난 뒤 한 박자 쉬고 띄운다.
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(700))
+                showWebIntro = true
+            }
         }
         .sheet(isPresented: $showWebIntro) { WebIntroSheet() }
     }
