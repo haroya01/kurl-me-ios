@@ -460,7 +460,7 @@ struct FeedPage: View {
         // 활성 페이지의 스크롤만 탭바 숨김을 몬다 — ZStack 에 상주하는 숨은 페이지가
         // 방향을 함께 흘리면 서로 어긋난다.
         .tracksTabBarVisibility(active)
-        .refreshable { await model.reload() }
+        .brandRefreshable { await model.reload() }
     }
 
     // 공개 연결을 인터리브할 자리 — 시리즈 카드(index 3) 뒤로 충분히 띄워 index 5 부터 5칸마다

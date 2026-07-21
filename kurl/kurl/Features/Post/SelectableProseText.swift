@@ -78,6 +78,12 @@ struct SelectableProseText: UIViewRepresentable {
         // 색은 동적 UIColor(스킴별 재해석)라 스킴이 바뀌어도 베이스는 그대로 유효 — 키에 넣지 않는다.
         let signature = Coordinator.BaseSignature(
             raw: raw, fontSize: fontSize, lineSpacing: lineSpacing, textColor: textColor)
+        // 본문도 하이라이트도 그대로면 여기서 끝 — attributedText 를 다시 꽂지 않는다.
+        // (재설정 자체가 TextKit 재조판이라, 무변경 update 스톰에서 이 한 줄이 프레임을 살린다.)
+        if context.coordinator.lastPaintSignature == signature,
+           context.coordinator.lastPaintMarks == highlights {
+            return
+        }
         let base: NSAttributedString
         if let cached = context.coordinator.baseCache, context.coordinator.baseSignature == signature {
             base = cached
@@ -125,6 +131,8 @@ struct SelectableProseText: UIViewRepresentable {
                 range: range)
         }
         tv.attributedText = painted
+        context.coordinator.lastPaintSignature = signature
+        context.coordinator.lastPaintMarks = highlights
     }
 
     /// 제안 폭에 맞춘 높이 — isScrollEnabled=false 라 본문 높이를 직접 재서 돌려준다.
@@ -148,6 +156,13 @@ struct SelectableProseText: UIViewRepresentable {
         /// 마지막으로 파싱한 베이스 본문과 그 입력 — 입력이 그대로면 재파싱을 건너뛴다.
         var baseCache: NSAttributedString?
         var baseSignature: BaseSignature?
+
+        /// 마지막으로 tv.attributedText 에 실제 반영한 입력(베이스+하이라이트). 이 둘이 그대로면
+        /// 페인트·재설정을 통째로 건너뛴다 — attributedText 재설정은 TextKit 전체 재레이아웃이라,
+        /// 부모 body 무효화(스크롤 중 탭바 신호·크롬 토글 등)마다 보이는 모든 문단이 다시
+        /// 조판되며 긴 글이 프레임 단위로 버벅였다(실기기 "글 길면 렉"의 핵심 비용).
+        var lastPaintSignature: BaseSignature?
+        var lastPaintMarks: [Mark]?
 
         /// 베이스 본문을 결정하는 입력. 이 넷이 같으면 파싱 결과도 같다(색은 동적이라 제외).
         struct BaseSignature: Equatable {
