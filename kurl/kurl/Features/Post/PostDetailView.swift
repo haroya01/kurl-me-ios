@@ -82,13 +82,6 @@ private struct PostDetailReader: View {
     /// 헤더를 지나면 제목이 내비바로 스며들고(아이폰 리딩 앱 문법), 커버가 있으면
     /// 그 동안 내비바 배경을 숨겨 커버가 상단을 다 쓴다.
     @State private var showNavTitle = false
-    /// 내비바에 실제로 *적용*하는 크롬 숨김 — 파생값(chromeHidden)을 직접 꽂지 않고
-    /// 220ms 안정된 값만 래치한다. 내비바를 숨기면 세이프에어리어가 변해 스크롤 메트릭이
-    /// 밀리고, 경계에서 파생값이 같은 레이아웃 커밋 안에 진동하면 UIKit 내비바 슬라이드가
-    /// 무한 재시작돼 메인 스레드가 10초를 넘겨 워치독(0x8BADF00D)에 죽는다 — 실기기
-    /// 크래시 리포트 2건(2026-07-20)의 근본. 런루프 턴을 건너 적용하면 루프가 끊긴다.
-    @State private var chromeHiddenApplied = false
-    @State private var chromeLatchTask: Task<Void, Never>?
     @State private var replyTo: Comment?
 
     /// 덱 임베드 전용 — 댓글은 접힌 행으로 시작하고, 본문 끝에서 더 당기면
@@ -186,14 +179,18 @@ private struct PostDetailReader: View {
     }
 
     /// 상단 크롬(뒤로·제목·⋯)을 하단 탭바와 동조해 숨길지 — 별도 임계값 없이 탭바의 스크롤
-    /// 신호(tabBarVisibility.hidden)를 그대로 구독한다("같이"가 요구사항). 제목이 내비바로
+    /// 신호(tabBarVisibility.hidden)를 그대로 구독한다("같이"가 요구사항). 제목이 상단 바로
     /// 스민 뒤(showNavTitle)에만 접어, 맨 위에서 뒤로 버튼이 성급히 사라지지 않게 한다. 접히면
-    /// 초록 읽기 진행 바만 남는다(진행 바는 크롬과 별개 오버레이라 그대로 최상단 고정). 뒤로가기는
+    /// 초록 읽기 진행 바만 남는다(바 높이 자리에서 맨 위로 함께 붙는다). 뒤로가기는
     /// 엣지 스와이프 제스처가 살아 있어 UX 문제 없다(Medium 동일 패턴). 덱 임베드는 호스트 크롬.
     private var chromeHidden: Bool {
         guard !embedded, showNavTitle else { return false }
         return tabBarVisibility?.hidden ?? false
     }
+
+    /// 커스텀 상단 바 높이 — 시스템 인라인 내비바와 같은 44pt. 본문 상단 마진과 진행 바
+    /// 자리가 이 값을 공유하고, 상수라 크롬이 접혀도 스크롤 메트릭이 흔들리지 않는다.
+    private static let topBarHeight: CGFloat = 44
 
     // 상세 body 는 모디파이어 사슬이 길어 하나의 식으로는 타입 검사 예산을 넘는다 —
     // ScrollView + 스크롤/툴바 계열을 scrollBody 로 잘라 불투명 경계(some View)를 만들고,
@@ -202,6 +199,12 @@ private struct PostDetailReader: View {
     private func scrollBody(_ proxy: ScrollViewProxy) -> some View {
         ScrollView {
             VStack(spacing: 0) {
+                // 커스텀 상단 바 자리 — 시스템 내비바가 접힌 만큼 본문 시작을 상수로 내려
+                // 앉힌다(바는 오버레이라 크롬이 접혀도 이 여백은 변하지 않아 본문이 출렁이지
+                // 않는다). contentMargins 는 하위 중첩 스크롤에도 전파돼 쓰지 않는다.
+                if !embedded {
+                    Color.clear.frame(height: Self.topBarHeight)
+                }
                 switch model.phase {
                 case .idle, .loading:
                     KurlLoadingMark()
@@ -371,7 +374,6 @@ private struct PostDetailReader: View {
                 PostAnalyticsView(post: topPost(from: detail))
             }
         }
-        .toolbar { detailToolbar(proxy) }
     }
 
     var body: some View {
@@ -410,32 +412,13 @@ private struct PostDetailReader: View {
             Text("작가의 글과 댓글·좋아요·하이라이트가 모두 지워져요. 되돌릴 수 없어요.")
         }
         .sheet(isPresented: $showAdminEdit) { adminEditSheet }
-        // 스크롤로 제목이 스밀 때까지는 내비바 배경을 숨긴다 — 커버 유무와 무관하게.
-        // (무커버 글 진입 때 .automatic 의 반투명 내비바가 상단에 "투명한 박스"로 떴던 것 제거.)
-        .toolbarBackground(
-            !embedded && !showNavTitle ? .hidden : .automatic, for: .navigationBar)
-        // 아래로 읽어 내려가면 상단 크롬(뒤로·제목·⋯)도 하단 탭바와 함께 위로 걷혀 초록 진행 바만
-        // 남는다 — 위로 올리면 탭바 복귀와 동조해 돌아온다(chromeHidden 이 탭바 스크롤 신호를 그대로 탄다).
-        // ⚠️ 여기엔 파생값(chromeHidden)이 아니라 래치(chromeHiddenApplied)를 꽂는다.
-        // 내비바 숨김 → 세이프에어리어 변화 → 스크롤 메트릭 이동 → 파생값 반전이 같은
-        // 레이아웃 커밋 안에서 맞물리면 내비바 슬라이드가 무한 재시작돼 메인 스레드가 10초를
-        // 넘기고 워치독(0x8BADF00D)에 죽는다 — 명시 애니메이션 제거만으로는 부족했다(실기기
-        // 크래시 2026-07-20 재발). onChange 디바운스 래치로 런루프 턴을 건너 안정된 의도만
-        // 반영해 피드백 고리를 끊는다.
-        .toolbar(chromeHiddenApplied ? .hidden : .visible, for: .navigationBar)
-        .onChange(of: chromeHidden) { _, want in
-            chromeLatchTask?.cancel()
-            guard want != chromeHiddenApplied else { return }
-            chromeLatchTask = Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(220))
-                guard !Task.isCancelled else { return }
-                chromeHiddenApplied = want
-            }
-        }
-        .onDisappear { chromeLatchTask?.cancel() }
-        // 뒤로가기 = 셰브론-온리 유리 원판 — "< 피드" 텍스트 꼬리 제거(스와이프 백 유지).
-        .toolbarRole(.editor)
-        .navigationBarTitleDisplayMode(.inline)
+        // 단독 상세는 시스템 내비바를 상시 접고 커스텀 상단 바(readerTopBar)가 크롬을 그린다.
+        // 시스템 바를 스크롤로 토글하면 세이프에어리어 변화 → 스크롤 메트릭 이동 → 파생값
+        // 반전이 한 레이아웃 커밋에 맞물려 UIKit 내비바 슬라이드가 무한 재시작됐고(워치독
+        // 0x8BADF00D, 실기기 크래시 2026-07-20 — 디바운스 래치로 봉합했었다), 상시 숨김 +
+        // 오버레이 바는 레이아웃을 아예 건드리지 않아 그 고리가 구조적으로 없다(래치도 걷어냄).
+        // 엣지 스와이프 백은 숨긴 바에서도 살아 있다(종전 접힘 상태에서 실증된 동작).
+        .toolbar(embedded ? .automatic : .hidden, for: .navigationBar)
         .overlay(alignment: .bottomTrailing) {
             // 단독·덱 임베드 공통의 단일 인게이지 문법 — 임베드별 인라인 줄을 두지 않는다.
             // 덱에선 장마다 제 페이지 안에 떠서 페이지와 함께 밀려 나간다.
@@ -472,7 +455,13 @@ private struct PostDetailReader: View {
         .overlay(alignment: .top) {
             if scrollable, embedded || showNavTitle {
                 ReadProgressBar(progress: scrollProgress)
+                    // 크롬이 떠 있으면 상단 바 바로 아래 한 줄, 접히면 크롬과 같은 커브로 맨 위에 붙는다.
+                    .padding(.top, embedded || chromeHidden ? 0 : Self.topBarHeight)
+                    .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: chromeHidden)
             }
+        }
+        .overlay(alignment: .top) {
+            if !embedded { readerTopBar }
         }
         // 완독 = 결과 햅틱 한 번(.success). trigger 닫힘(되돌아감)엔 울리지 않게 완료에만.
         .sensoryFeedback(trigger: readComplete) { _, done in done ? .success : nil }
@@ -577,112 +566,138 @@ private struct PostDetailReader: View {
 
     /// 상세 내비바 — 제목 + 우측 단일 ⋯ 메뉴(공유·작가 동작/편집·분석·관리·남의 글 차단·신고).
     /// 항해 보조인 목차는 크롬을 비우고 하단 독 위로 내려 인게이지와 한자리에 모았다(§1 유리 크롬).
-    /// 임베드(덱)는 호스트 내비바를 쓰므로 비운다.
-    @ToolbarContentBuilder
-    private func detailToolbar(_ proxy: ScrollViewProxy) -> some ToolbarContent {
-        // 임베드 시 내비바는 호스트(발견)의 것 — 여러 장이 동시에 살아 있어
-        // principal/공유를 끼우면 서로 싸운다.
-        if !embedded {
-            ToolbarItem(placement: .principal) {
-                Text(loadedTitle)
-                    .typeScale(.titleSmall)
-                    .lineLimit(1)
-                    .opacity(showNavTitle ? 1 : 0)
+    /// 커스텀 상단 크롬 — 시스템 내비바 대신 우리가 그린다(임베드는 호스트 크롬이라 없음).
+    /// 숨김/복귀가 하단 탭바와 같은 문법(offset+opacity, snappy 0.25)을 타서 위로 쓸려
+    /// 나가고 위에서 쓸려 내려온다 — 시스템 바 토글의 뚝 끊기던 결을 대체한다.
+    private var readerTopBar: some View {
+        ZStack {
+            // 가운데 제목 — 헤더를 지나면 스며든다(종전 principal 자리 그대로).
+            Text(loadedTitle)
+                .typeScale(.titleSmall)
+                .lineLimit(1)
+                .padding(.horizontal, 60)
+                .opacity(showNavTitle ? 1 : 0)
+            HStack {
+                // 뒤로가기 = 셰브론-온리 유리 원판("< 피드" 텍스트 꼬리 없음, 엣지 스와이프 백 유지).
+                Button { dismiss() } label: {
+                    Image(systemName: "chevron.backward")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Palette.ink)
+                        .frame(width: 38, height: 38)
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.interactive(), in: .circle)
+                .accessibilityLabel("뒤로")
+                Spacer()
+                moreMenu
             }
-            // 나열하던 공유·분석·편집·관리를 단일 ⋯ 하나로 접는다 — 읽기 화면 크롬을 조용히
-            // 비우고(§10), 액션은 한 번의 탭 뒤에 둔다. 조건부 노출은 그대로: 편집·분석 = 내 글만,
-            // 신고 = 남의 글만, 공유 = 모두. 파괴적 동작(발행취소·삭제·차단·신고)은 시트/알림으로
-            // 되묻는다(메뉴에서 바로 지워지지 않게).
-            ToolbarItem(placement: .primaryAction) {
-                if isOwnPost {
-                    Menu {
-                        shareMenuItem
-                        highlightHowToItem
-                        highlightToggleItem
-                        Button { showOwnAnalytics = true } label: {
-                            Label("이 글 분석", systemImage: "chart.bar")
-                        }
-                        Button { editingOwnPost = true } label: {
-                            Label("이 글 편집", systemImage: "pencil")
-                        }
-                        Section {
-                            Button(role: .destructive) { showUnpublishConfirm = true } label: {
-                                Label("발행 취소", systemImage: "eye.slash")
-                            }
-                            .tint(Palette.danger)
-                            Button(role: .destructive) { showDeleteConfirm = true } label: {
-                                Label("삭제", systemImage: "trash")
-                            }
-                            .tint(Palette.danger)
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis")
-                    }
-                    .tint(.brand)
-                    // 관리(발행취소·삭제)를 품는 메뉴 — 접근성 라벨은 관리 진입로로 유지한다.
-                    .accessibilityLabel("이 글 관리")
-                } else if loadedPostId != nil, let author = loadedAuthor {
-                    // 남의 글이면 — 공유 + 차단·신고(작가 프로필과 같은 문법). 차단을 여기 두어
-                    // 거슬리는 글을 만난 자리에서 바로 처리하게 한다.
-                    Menu {
-                        shareMenuItem
-                        highlightHowToItem
-                        highlightToggleItem
-                        Section {
-                            if BlockStore.shared.isBlocked(id: author.id) {
-                                Button {
-                                    Task {
-                                        try? await BlockStore.shared.unblock(
-                                            id: author.id, username: author.username)
-                                        ToastCenter.shared.show(String(localized: "차단을 해제했어요"))
-                                    }
-                                } label: {
-                                    Label("차단 해제", systemImage: "hand.raised.slash")
-                                }
-                            } else {
-                                Button(role: .destructive) { showBlockConfirm = true } label: {
-                                    Label("차단", systemImage: "hand.raised")
-                                }
-                                .tint(Palette.danger)
-                            }
-                            Button(role: .destructive) { showReport = true } label: {
-                                Label("신고", systemImage: "flag")
-                            }
-                            .tint(Palette.danger)
-                        }
-                        // 관리자 모더레이션 — 타인 글의 제목·태그 정리, 내리기, 영구 삭제.
-                        // 클라 가드는 진입로 노출용일 뿐, 실제 권한은 서버 /admin/** 게이트가 문이다.
-                        if AuthStore.shared.me?.isAdmin == true {
-                            Section("관리자") {
-                                Button { presentAdminEdit() } label: {
-                                    Label("제목·태그 편집", systemImage: "pencil.and.list.clipboard")
-                                }
-                                Button(role: .destructive) { showAdminUnpublishConfirm = true } label: {
-                                    Label("발행 내리기", systemImage: "eye.slash")
-                                }
-                                .tint(Palette.danger)
-                                Button(role: .destructive) { showAdminDeleteConfirm = true } label: {
-                                    Label("영구 삭제", systemImage: "trash")
-                                }
-                                .tint(Palette.danger)
-                            }
+            .padding(.horizontal, 10)
+        }
+        .frame(height: Self.topBarHeight)
+        // 제목이 스민 뒤에만 바탕을 깐다 — 그 전엔 유리 원판 둘만 본문 위에 뜬다(종전
+        // toolbarBackground .hidden→.automatic 규칙 그대로). 바탕은 상태바 뒤까지 올려 채운다.
+        .background {
+            if showNavTitle {
+                Rectangle().fill(.bar).ignoresSafeArea(edges: .top).transition(.opacity)
+            }
+        }
+        .offset(y: chromeHidden ? -140 : 0)
+        .opacity(chromeHidden ? 0 : 1)
+        .allowsHitTesting(!chromeHidden)
+        .accessibilityHidden(chromeHidden)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: chromeHidden)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: showNavTitle)
+    }
+
+    /// 상단 바 ⋯ — 나열하던 공유·분석·편집·관리를 단일 ⋯ 하나로 접는다(§10 조용한 크롬).
+    /// 조건부 노출은 그대로: 편집·분석 = 내 글만, 신고·차단 = 남의 글만, 공유 = 모두.
+    /// 파괴적 동작(발행취소·삭제·차단·신고)은 시트/알림으로 되묻는다(메뉴에서 바로 지워지지 않게).
+    private var moreMenu: some View {
+        Menu {
+            moreMenuItems
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Color.brand)
+                .frame(width: 38, height: 38)
+                .contentShape(Circle())
+        }
+        .glassEffect(.regular.interactive(), in: .circle)
+        // 관리(발행취소·삭제)를 품을 땐 접근성 라벨을 관리 진입로로 유지한다.
+        .accessibilityLabel(isOwnPost ? "이 글 관리" : "더 보기")
+    }
+
+    @ViewBuilder
+    private var moreMenuItems: some View {
+        if isOwnPost {
+            shareMenuItem
+            highlightHowToItem
+            highlightToggleItem
+            Button { showOwnAnalytics = true } label: {
+                Label("이 글 분석", systemImage: "chart.bar")
+            }
+            Button { editingOwnPost = true } label: {
+                Label("이 글 편집", systemImage: "pencil")
+            }
+            Section {
+                Button(role: .destructive) { showUnpublishConfirm = true } label: {
+                    Label("발행 취소", systemImage: "eye.slash")
+                }
+                .tint(Palette.danger)
+                Button(role: .destructive) { showDeleteConfirm = true } label: {
+                    Label("삭제", systemImage: "trash")
+                }
+                .tint(Palette.danger)
+            }
+        } else if loadedPostId != nil, let author = loadedAuthor {
+            // 남의 글이면 — 공유 + 차단·신고(작가 프로필과 같은 문법). 차단을 여기 두어
+            // 거슬리는 글을 만난 자리에서 바로 처리하게 한다.
+            shareMenuItem
+            highlightHowToItem
+            highlightToggleItem
+            Section {
+                if BlockStore.shared.isBlocked(id: author.id) {
+                    Button {
+                        Task {
+                            try? await BlockStore.shared.unblock(
+                                id: author.id, username: author.username)
+                            ToastCenter.shared.show(String(localized: "차단을 해제했어요"))
                         }
                     } label: {
-                        Image(systemName: "ellipsis")
+                        Label("차단 해제", systemImage: "hand.raised.slash")
                     }
-                    .tint(.brand)
-                    .accessibilityLabel("더 보기")
                 } else {
-                    // 작가 정보가 아직 없을 때(로딩 중 등)엔 공유만이라도 손에 남긴다.
-                    Menu {
-                        shareMenuItem
-                    } label: {
-                        Image(systemName: "ellipsis")
+                    Button(role: .destructive) { showBlockConfirm = true } label: {
+                        Label("차단", systemImage: "hand.raised")
                     }
-                    .tint(.brand)
-                    .accessibilityLabel("더 보기")
+                    .tint(Palette.danger)
+                }
+                Button(role: .destructive) { showReport = true } label: {
+                    Label("신고", systemImage: "flag")
+                }
+                .tint(Palette.danger)
+            }
+            // 관리자 모더레이션 — 타인 글의 제목·태그 정리, 내리기, 영구 삭제.
+            // 클라 가드는 진입로 노출용일 뿐, 실제 권한은 서버 /admin/** 게이트가 문이다.
+            if AuthStore.shared.me?.isAdmin == true {
+                Section("관리자") {
+                    Button { presentAdminEdit() } label: {
+                        Label("제목·태그 편집", systemImage: "pencil.and.list.clipboard")
+                    }
+                    Button(role: .destructive) { showAdminUnpublishConfirm = true } label: {
+                        Label("발행 내리기", systemImage: "eye.slash")
+                    }
+                    .tint(Palette.danger)
+                    Button(role: .destructive) { showAdminDeleteConfirm = true } label: {
+                        Label("영구 삭제", systemImage: "trash")
+                    }
+                    .tint(Palette.danger)
                 }
             }
+        } else {
+            // 작가 정보가 아직 없을 때(로딩 중 등)엔 공유만이라도 손에 남긴다.
+            shareMenuItem
         }
     }
 
