@@ -86,6 +86,12 @@ struct RootView: View {
     @State private var tabBarVisibility = TabBarVisibility()
     /// 한 번이라도 연 탭 — 상주시켜 스크롤 위치·상태를 보존한다(시스템 TabView 대체).
     @State private var visitedTabs: Set<Int> = []
+    /// 로그인 직후 1회 웹 안내 — 이 실행이 "로그아웃 상태로 시작"했을 때만 후보(콜드런치
+    /// 세션 복원에는 안 뜬다). RootView 생성 시점의 세션 상태를 그대로 박는다.
+    @State private var didStartSignedOut = !AuthStore.shared.isSignedIn
+    @State private var showWebIntro = false
+    /// 기기당 딱 한 번 — 본 뒤엔 로그아웃/재로그인해도 다시 안 뜬다.
+    @AppStorage("seenWebIntro") private var seenWebIntro = false
 
     var body: some View {
         // `--post user/slug`·`--author user`·`--series user/slug` — 검증 진입로(simctl 터치 불가 우회).
@@ -123,6 +129,11 @@ struct RootView: View {
                 .sheet(isPresented: .constant(true)) {
                     LoginSheet(message: "좋아한 글은 내 라이브러리에 쌓여요")
                 }
+        } else if Config.launchValue(after: "--screen") == "webintro" {
+            // 로그인 직후 1회 시트는 로그인 전환으로만 떠 simctl 로 못 띄운다 — 검증 진입로.
+            // ConnectHarness 처럼 실제 바인딩으로 띄운다(.constant(true)는 닫힘이 무시돼
+            // '확인으로 닫힘' 단언이 불가능한 함정).
+            WebIntroHarness()
         } else if Config.launchValue(after: "--screen") == "series-analytics" {
             // 시리즈 상세 분석은 분석 탭에서 행 탭으로만 들어가 simctl 로 못 띄운다 — 검증 진입로.
             NavigationStack {
@@ -193,6 +204,9 @@ struct RootView: View {
         let needsUsername = AuthStore.shared.isSignedIn
             && AuthStore.shared.me != nil
             && (AuthStore.shared.me?.username ?? "").isEmpty
+        // 웹 안내를 띄울 준비 — 로그인 + 핸들까지 선 상태(핸들 게이트 뒤 박자).
+        let webIntroReady = AuthStore.shared.isSignedIn
+            && !(AuthStore.shared.me?.username ?? "").isEmpty
         // 스레드식 하단바: 라벨 없는 아이콘-온리 탭 + 스크롤 내릴 때 바가 통째로 사라지고
         // 올릴 때 되돌아온다. 검색에 role 을 주지 않는 건 의도 — role: .search 는 Liquid
         // Glass 가 검색을 독립 pill 로 분리하는데, 한 바에 5탭이 모이는 쪽을 택했다.
@@ -256,6 +270,15 @@ struct RootView: View {
         .fullScreenCover(isPresented: .constant(needsUsername)) {
             ChooseUsernameView()
         }
+        // 로그인 직후 1회 — "쓴 글이 웹에도 같은 주소로 산다"를 내 주소로 안내.
+        // 핸들 게이트가 걷힌 뒤(webIntroReady) 뜨고, 콜드런치 세션 복원(didStartSignedOut=false)
+        // 이나 이미 본 기기(seenWebIntro)에는 안 뜬다.
+        .onChange(of: webIntroReady) { was, now in
+            guard now, !was, didStartSignedOut, !seenWebIntro else { return }
+            seenWebIntro = true
+            showWebIntro = true
+        }
+        .sheet(isPresented: $showWebIntro) { WebIntroSheet() }
     }
 
     /// 인덱스별 탭 루트 화면. 각자 제 NavigationStack 을 든다(시스템 TabView 와 동일 계약).
@@ -330,6 +353,16 @@ private struct FloatingTabBar: View {
 
 /// `--screen connect` 검증 진입로 — 시트를 실제 바인딩으로 띄워 dismiss(연결 성공)가
 /// 관찰 가능하게 한다(.constant(true)는 닫힘이 무시돼 완료 단언이 불가능했다).
+/// `--screen webintro` 검증 진입로 — 실제 바인딩이라 '확인' dismiss 가 관찰 가능하다.
+private struct WebIntroHarness: View {
+    @State private var open = true
+
+    var body: some View {
+        Color(uiColor: .systemBackground).ignoresSafeArea()
+            .sheet(isPresented: $open) { WebIntroSheet() }
+    }
+}
+
 private struct ConnectHarness: View {
     @State private var open = true
 
