@@ -38,6 +38,10 @@ struct DiscoverView: View {
     /// 발견 표면 세 흐름: 입구(길·큐레이터) / 최근(큐레이터 연결 시간순) / 남들 하이라이트.
     /// 입구가 기본 — 발견은 활동 로그가 아니라 어디로 들어가나로 연다(§0).
     @State private var tab: DiscoverTab = .entrances
+    /// 가로 우세 드래그가 진행 중 — 이 동안 흐름 콘텐츠를 disabled 로 눌러 카드 탭 오발화를 막는다.
+    @State private var flowDragging = false
+    /// 뷰포트 높이 — 흐름 콘텐츠가 짧아도(최근·하이라이트 몇 행) 스와이프 면이 화면을 채우게.
+    @State private var viewportHeight: CGFloat = 0
     @State private var highlights: [HighlightFeedItemView] = []
     @State private var hlLoading = true
     @State private var hlFailed = false
@@ -78,13 +82,31 @@ struct DiscoverView: View {
                         case .highlights: highlightsContent
                         }
                     }
+                    // 콘텐츠가 짧아도(최근·하이라이트 몇 행) 빈 화면 어디서든 스와이프가 잡히게 —
+                    // 흐름 영역을 뷰포트 높이만큼 늘리고 여백까지 히트 대상으로 만든다(재현: 하이라이트
+                    // 흐름에서 화면 중앙 스와이프가 Group 밖에 떨어져 무반응).
+                    .frame(
+                        maxWidth: .infinity,
+                        minHeight: max(viewportHeight - 180, 0), alignment: .top)
+                    .contentShape(Rectangle())
+                    // 가로 우세 드래그가 확정되면 콘텐츠 히트를 끊는다 — 세로 ScrollView 안에선 가로
+                    // 드래그가 카드 탭을 취소하지 않아, 스와이프가 상세 항해로 새던 근본(피드 탭의
+                    // `.disabled(dragX != 0)` 과 같은 문법. 재현: 스와이프 → 컬렉션 상세로 push).
+                    .disabled(flowDragging)
                     // 좌우 스와이프로 흐름 전환 — 세그먼트를 탭하지 않아도 둘러보기↔최근↔하이라이트.
                     // simultaneousGesture + 수평 우세 판정이라 세로 스크롤·행 탭·NavigationLink 은 그대로
                     // 살아 있다(명백히 가로로 그은 제스처만 흐름을 넘긴다). tab 대입은 bare —
                     // GlassSegmentSwitcher 가 제 알약 활주를 소유하므로 withAnimation 으로 감싸지 않는다.
                     .simultaneousGesture(
                         DragGesture(minimumDistance: 20)
+                            .onChanged { value in
+                                guard !flowDragging else { return }
+                                let dx = value.translation.width
+                                let dy = value.translation.height
+                                if abs(dx) > 24, abs(dx) > abs(dy) * 1.5 { flowDragging = true }
+                            }
                             .onEnded { value in
+                                defer { flowDragging = false }
                                 let dx = value.translation.width
                                 let dy = value.translation.height
                                 guard abs(dx) > 60, abs(dx) > abs(dy) * 1.5 else { return }
@@ -93,6 +115,8 @@ struct DiscoverView: View {
                     )
                 }
             }
+            // 스와이프 면 최소 높이의 기준 — 스크롤 컨테이너(뷰포트) 실측.
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { viewportHeight = $0 }
             // 스크롤을 내리면 탭바가 사라지고 올리면 돌아온다(스레드식) — 탭 루트 전용.
             .tracksTabBarVisibility()
             // 고정 스트립 대신 콘텐츠가 유리 크롬 밑으로 흐른다 — 상단 라벨은 탭바 아이콘이 맡는다.
