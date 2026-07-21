@@ -16918,6 +16918,90 @@
         }
       }
     },
+    "웹에서도 볼 수 있어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can read it on the web too"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "वेब पर भी पढ़ा जा सकता है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウェブでも読めます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đọc được cả trên web"
+          }
+        }
+      }
+    },
+    "발행한 글은 웹에도 같은 글, 같은 주소로 살아요. 앱이 없어도 누구나 열 수 있어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Every post you publish also lives on the web — same post, same address. Anyone can open it, no app needed."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपके प्रकाशित लेख वेब पर भी रहते हैं — वही लेख, वही पता। बिना ऐप के भी कोई भी खोल सकता है।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "公開した記事はウェブにも同じ記事・同じアドレスで残ります。アプリがなくても誰でも開けます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bài bạn xuất bản cũng sống trên web — cùng bài viết, cùng địa chỉ. Ai cũng mở được, không cần ứng dụng."
+          }
+        }
+      }
+    },
+    "내 블로그 웹 주소 열기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open my blog's web address"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मेरे ब्लॉग का वेब पता खोलें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自分のブログのウェブアドレスを開く"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mở địa chỉ web blog của tôi"
+          }
+        }
+      }
+    },
     "읽고, 쓰고,\n연결하다.": {
       "localizations": {
         "en": {
