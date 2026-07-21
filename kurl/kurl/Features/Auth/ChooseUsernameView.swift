@@ -17,6 +17,8 @@ struct ChooseUsernameView: View {
     @State private var username = ""
     @State private var saving = false
     @State private var serverError: String?
+    /// 게이트가 뜨면 바로 입력할 수 있게 — 커버 전환이 끝난 뒤 키보드를 올린다.
+    @FocusState private var fieldFocused: Bool
 
     private var trimmed: String { username.trimmingCharacters(in: .whitespaces) }
     private var valid: Bool {
@@ -50,6 +52,7 @@ struct ChooseUsernameView: View {
                     TextField("username", text: $username)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                        .focused($fieldFocused)
                         .onChange(of: username) { _, value in
                             let cleaned = value.lowercased()
                                 .filter { $0.isNumber || ("a"..."z").contains($0) || $0 == "_" }
@@ -100,6 +103,14 @@ struct ChooseUsernameView: View {
             .padding(.bottom, 28)
         }
         .interactiveDismissDisabled(true)
+        // 게이트가 뜨면 바로 입력 — 풀스크린 커버 전환이 끝난 뒤 키보드를 올린다
+        // (전환 중 포커스는 애니메이션과 겹쳐 키보드가 유실되는 수가 있다).
+        .onAppear {
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(550))
+                fieldFocused = true
+            }
+        }
     }
 
     private func submit() {
