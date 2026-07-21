@@ -477,7 +477,22 @@ enum CodeSyntax {
         "toml", "r", "perl", "makefile", "dockerfile", "ini", "conf", "elixir", "ex",
     ]
 
+    /// 강조 결과 캐시 — 같은 코드 블록은 한 번만 토큰화한다. body 재평가(스크롤 중 부모
+    /// 무효화)마다 정규식 스캔이 다시 돌아 코드 많은 긴 글이 버벅였다(인라인 캐시와 같은 패턴).
+    private static let highlightCache: NSCache<NSString, HighlightBox> = {
+        let cache = NSCache<NSString, HighlightBox>()
+        cache.countLimit = 128
+        return cache
+    }()
+
+    private final class HighlightBox {
+        let value: AttributedString
+        init(_ value: AttributedString) { self.value = value }
+    }
+
     static func highlight(_ code: String, lang: String?) -> AttributedString {
+        let key = "\(lang ?? "")\u{0}\(code)" as NSString
+        if let box = highlightCache.object(forKey: key) { return box.value }
         var result = AttributedString()
         func color(_ kind: TokenKind) -> Color {
             switch kind {
@@ -494,6 +509,7 @@ enum CodeSyntax {
             attributed.foregroundColor = color(kind)
             result += attributed
         }
+        highlightCache.setObject(HighlightBox(result), forKey: key)
         return result
     }
 

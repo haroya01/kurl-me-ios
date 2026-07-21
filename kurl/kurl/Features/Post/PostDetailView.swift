@@ -82,6 +82,13 @@ private struct PostDetailReader: View {
     /// 헤더를 지나면 제목이 내비바로 스며들고(아이폰 리딩 앱 문법), 커버가 있으면
     /// 그 동안 내비바 배경을 숨겨 커버가 상단을 다 쓴다.
     @State private var showNavTitle = false
+    /// 내비바에 실제로 *적용*하는 크롬 숨김 — 파생값(chromeHidden)을 직접 꽂지 않고
+    /// 220ms 안정된 값만 래치한다. 내비바를 숨기면 세이프에어리어가 변해 스크롤 메트릭이
+    /// 밀리고, 경계에서 파생값이 같은 레이아웃 커밋 안에 진동하면 UIKit 내비바 슬라이드가
+    /// 무한 재시작돼 메인 스레드가 10초를 넘겨 워치독(0x8BADF00D)에 죽는다 — 실기기
+    /// 크래시 리포트 2건(2026-07-20)의 근본. 런루프 턴을 건너 적용하면 루프가 끊긴다.
+    @State private var chromeHiddenApplied = false
+    @State private var chromeLatchTask: Task<Void, Never>?
     @State private var replyTo: Comment?
 
     /// 덱 임베드 전용 — 댓글은 접힌 행으로 시작하고, 본문 끝에서 더 당기면
@@ -233,6 +240,20 @@ private struct PostDetailReader: View {
         // 읽는 동안 홈바도 비켜선다 — 다른 스크롤 면과 같은 문법(내리면 숨고 올리면 돌아온다).
         // 덱(임베드)은 장 넘김이 주라 제외.
         .tracksTabBarVisibility(!embedded)
+        // 오른쪽 읽기 스크러버 — 시스템 인디케이터(전체 콘텐츠 기준·제어 불가) 대신 앱 소유.
+        // 초록 바와 같은 본문 실측 위치를 보여주고, 끌면 본문의 그 지점(블록)으로 점프한다.
+        .overlay(alignment: .trailing) {
+            if !embedded, scrollable, case .loaded(let detail) = model.phase, detail.blocks.count > 3 {
+                ReadingScrubber(progress: scrollProgress) { fraction in
+                    let blocks = detail.blocks
+                    let idx = min(blocks.count - 1, max(0, Int(fraction * CGFloat(blocks.count - 1))))
+                    proxy.scrollTo(blocks[idx].id, anchor: UnitPoint(x: 0, y: 0.12))
+                }
+                .padding(.top, 96)
+                .padding(.bottom, 150)
+                .padding(.trailing, 2)
+            }
+        }
         .background(Palette.readingBg.ignoresSafeArea())
         // 스크롤 여유가 충분한지 — 독 후퇴 판정의 전제(짧은 글은 독이 유일한 인게이지 표면).
         // 한 번 스크롤 가능으로 판정되면 유지한다(글 길이는 스크롤로 줄지 않는데, 바닥에 닿으면
@@ -306,6 +327,10 @@ private struct PostDetailReader: View {
             }
         }
         // 읽기 진행도 — 본문을 얼마나 내려왔는지 0~1 로(덱·단독 공통).
+        // 뷰포트 높이 — 본문 실측 진행(ReadProgressBar) 계산의 분모 재료. 잎 스토어에만 쓴다.
+        .onScrollGeometryChange(for: CGFloat.self) { $0.containerSize.height } action: { _, h in
+            scrollProgress.containerH = h
+        }
         .onScrollGeometryChange(for: CGFloat.self) { geometry in
             let total = geometry.contentSize.height - geometry.containerSize.height
             guard total > 1 else { return 0 }
@@ -391,12 +416,23 @@ private struct PostDetailReader: View {
             !embedded && !showNavTitle ? .hidden : .automatic, for: .navigationBar)
         // 아래로 읽어 내려가면 상단 크롬(뒤로·제목·⋯)도 하단 탭바와 함께 위로 걷혀 초록 진행 바만
         // 남는다 — 위로 올리면 탭바 복귀와 동조해 돌아온다(chromeHidden 이 탭바 스크롤 신호를 그대로 탄다).
-        // ⚠️ 이 토글에 SwiftUI 명시 애니메이션(.animation(value: chromeHidden))을 걸면 안 된다 —
-        // toolbar(.hidden/.visible) 이 UINavigationController.setNavigationBarHidden(animated: true) 로
-        // 내려가는데, 스크롤 경계에서 chromeHidden 이 프레임마다 진동하면 매 프레임 내비바 슬라이드
-        // 애니메이션이 재시작돼 메인 스레드를 포화(워치독 0x8BADF00D 강제종료, "게시글 볼 때 렉으로 멈춤"의
-        // 근본). 애니메이션 없이 상태만 바꾸면 UIKit 이 즉시 전환해 루프가 생기지 않는다.
-        .toolbar(chromeHidden ? .hidden : .visible, for: .navigationBar)
+        // ⚠️ 여기엔 파생값(chromeHidden)이 아니라 래치(chromeHiddenApplied)를 꽂는다.
+        // 내비바 숨김 → 세이프에어리어 변화 → 스크롤 메트릭 이동 → 파생값 반전이 같은
+        // 레이아웃 커밋 안에서 맞물리면 내비바 슬라이드가 무한 재시작돼 메인 스레드가 10초를
+        // 넘기고 워치독(0x8BADF00D)에 죽는다 — 명시 애니메이션 제거만으로는 부족했다(실기기
+        // 크래시 2026-07-20 재발). onChange 디바운스 래치로 런루프 턴을 건너 안정된 의도만
+        // 반영해 피드백 고리를 끊는다.
+        .toolbar(chromeHiddenApplied ? .hidden : .visible, for: .navigationBar)
+        .onChange(of: chromeHidden) { _, want in
+            chromeLatchTask?.cancel()
+            guard want != chromeHiddenApplied else { return }
+            chromeLatchTask = Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(220))
+                guard !Task.isCancelled else { return }
+                chromeHiddenApplied = want
+            }
+        }
+        .onDisappear { chromeLatchTask?.cancel() }
         // 뒤로가기 = 셰브론-온리 유리 원판 — "< 피드" 텍스트 꼬리 제거(스와이프 백 유지).
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
@@ -1021,7 +1057,11 @@ private struct PostDetailReader: View {
                 goToEpisode: embedded ? nil : goToEpisode)
                 .padding(.top, 22)
         }
-        VStack(alignment: .leading, spacing: 2) {
+        // ⚠️ 반드시 LazyVStack — 일반 VStack 이면 바깥 LazyVStack 에게 본문 전체가 "항목
+        // 하나"라, 진입 순간 모든 블록(긴 글=수백 UITextView)이 한꺼번에 생성·조판돼
+        // 실기기에서 몇 초씩 걸렸다("긴 글/시리즈 들어가면 렉"의 근본). 지연 컨테이너를
+        // 겹치면 블록이 화면에 들어올 때만 만들어진다(TOC scrollTo·앵커는 그대로 동작).
+        LazyVStack(alignment: .leading, spacing: 2) {
             // 첫 문단은 lead — 독자를 글 안으로 들이는 한 호흡 큰 도입(에디토리얼 문법).
             let leadIndex = detail.blocks.firstIndex { $0.kind == .paragraph }
             ForEach(Array(detail.blocks.enumerated()), id: \.offset) { index, block in
@@ -1036,6 +1076,14 @@ private struct PostDetailReader: View {
             }
         }
         .padding(.top, 20)
+        // 본문 실측 — 진행 바("게시글만, 정확히")의 분모/분자 재료. 지연 렌더의 추정 높이가
+        // 아니라 실제 프레임이라, 댓글·연결 블록은 진행에 안 잡히고 흔들림도 없다.
+        .onGeometryChange(for: CGRect.self) { proxy in
+            proxy.frame(in: .scrollView(axis: .vertical))
+        } action: { frame in
+            scrollProgress.bodyMinY = frame.minY
+            scrollProgress.bodyHeight = frame.height
+        }
 
         if !ContentValidity.renderableTags(detail.post.tags).isEmpty {
             FlowTags(tags: detail.post.tags)
@@ -1470,13 +1518,98 @@ private struct PostDetailReader: View {
 @MainActor
 @Observable
 private final class ScrollProgress {
-    /// 읽기 진행도(0~1) — 상단 가는 막대가 왼쪽부터 그린으로 찬다.
+    /// 읽기 진행도(0~1) — 전체 콘텐츠 기준(완독 모먼트·독 후퇴 판정용 내부 지표).
     var read: CGFloat = 0
     /// 바닥 너머 당김의 진행도(0~1, 임계 90pt) — 큐의 셰브론·제목이 손가락을 따라온다.
     var pull: CGFloat = 0
+    /// 본문(블록 스택) 실측 — 표시용 진행 바는 이걸로 계산한다: 본문 시작=0, 본문 끝이
+    /// 화면 바닥에 닿으면=1. 댓글·연결 블록·작가 카드는 진행에 안 잡힌다("게시글만 반영").
+    /// 지연 렌더의 추정 높이 대신 실제 레이아웃 프레임을 쓰므로 흔들리지 않는다.
+    var bodyMinY: CGFloat = .nan
+    var bodyHeight: CGFloat = 0
+    var containerH: CGFloat = 0
+
+    /// 본문 실측 진행 — 화면 바닥이 본문의 어디까지 왔나(본문 끝=1). 실측 전엔 전체 폴백.
+    var bodyRead: CGFloat {
+        guard bodyHeight > 1, containerH > 1, bodyMinY.isFinite else { return min(1, max(0, read)) }
+        return min(1, max(0, (containerH - bodyMinY) / bodyHeight))
+    }
+}
+
+/// 오른쪽 가장자리 읽기 스크러버 — 본문 실측 위치(초록 바와 동일)를 보여주고, 끌면 그
+/// 지점으로 점프한다. 스크롤/드래그 중에만 떠 있다가 1.2초 뒤 물러난다(시스템 인디케이터
+/// 관용). 보이스오버는 목차가 항해 경로라 숨긴다. 점프는 0.5% 스텝으로만 발사해 지연
+/// 렌더 위에서도 스크럽이 가볍다.
+private struct ReadingScrubber: View {
+    let progress: ScrollProgress
+    let onScrub: (CGFloat) -> Void
+
+    @State private var visible = false
+    @State private var dragging = false
+    @State private var dragFraction: CGFloat = 0
+    @State private var lastStep = -1
+    @State private var hideTask: Task<Void, Never>?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var fraction: CGFloat { dragging ? dragFraction : progress.bodyRead }
+
+    var body: some View {
+        GeometryReader { geo in
+            let thumbH: CGFloat = 44
+            let travel = max(1, geo.size.height - thumbH)
+            ZStack(alignment: .topTrailing) {
+                Color.clear
+                Capsule()
+                    .fill(dragging ? AnyShapeStyle(Palette.accent) : AnyShapeStyle(Palette.faint.opacity(0.55)))
+                    .frame(width: dragging ? 5 : 3.5, height: thumbH)
+                    .offset(y: travel * min(1, max(0, fraction)))
+            }
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        dragging = true
+                        let f = min(1, max(0, (value.location.y - thumbH / 2) / travel))
+                        dragFraction = f
+                        // 0.5% 스텝으로 양자화 — 매 프레임 scrollTo 를 피한다.
+                        let step = Int(f * 200)
+                        if step != lastStep {
+                            lastStep = step
+                            onScrub(f)
+                        }
+                    }
+                    .onEnded { _ in
+                        dragging = false
+                        lastStep = -1
+                        scheduleHide()
+                    }
+            )
+        }
+        .frame(width: 26)
+        .opacity(visible || dragging ? 1 : 0)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: visible || dragging)
+        // 스크롤이 움직이는 동안만 얼굴을 내민다 — bodyMinY 가 프레임마다 변하는 걸 신호로.
+        .onChange(of: progress.bodyMinY) {
+            guard !visible || hideTask != nil else { return }
+            visible = true
+            scheduleHide()
+        }
+        .accessibilityHidden(true)
+    }
+
+    private func scheduleHide() {
+        hideTask?.cancel()
+        hideTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(1200))
+            guard !Task.isCancelled, !dragging else { return }
+            visible = false
+        }
+    }
 }
 
 /// 읽기 진행 막대(내비바 아래 한 줄) — 매 프레임 값은 이 잎 뷰만 구독한다.
+/// 값 = 본문 실측: 화면 바닥이 본문의 어디까지 왔나(본문 끝 닿으면 1). 댓글·연결 블록·
+/// 작가 카드는 분모에 없다 — "게시글에서 어느 부분을 읽고 있는지"만 정확히 반영한다.
 private struct ReadProgressBar: View {
     let progress: ScrollProgress
 
@@ -1484,7 +1617,7 @@ private struct ReadProgressBar: View {
         GeometryReader { geo in
             Capsule()
                 .fill(Palette.accent)
-                .frame(width: geo.size.width * min(1, max(0, progress.read)), height: 3)
+                .frame(width: geo.size.width * progress.bodyRead, height: 3)
         }
         .frame(height: 3)
         .allowsHitTesting(false)

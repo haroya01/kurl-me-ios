@@ -227,7 +227,7 @@ struct NotesPage: View {
         }
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
-        .refreshable { await model.reload() }
+        .brandRefreshable { await model.reload() }
     }
 }
 
