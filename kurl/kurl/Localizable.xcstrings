@@ -16918,6 +16918,34 @@
         }
       }
     },
+    "웹에도 같은 주소로": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Also on the web, same address"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "वेब पर भी, वही पता"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ウェブでも同じアドレスで"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trên web cũng cùng địa chỉ"
+          }
+        }
+      }
+    },
     "읽고, 쓰고,\n연결하다.": {
       "localizations": {
         "en": {

@@ -29,6 +29,9 @@ struct WelcomeView: View {
     @State private var highlightsOn = false
     /// 형광 다음 박자 — 실이 자라 컬렉션 카드에 꽂힌다.
     @State private var threadOn = false
+    /// 마지막 박자 — 컬렉션에서 실이 한 번 더 자라 웹 주소(blog.kurl.me)에 꽂힌다.
+    /// "이어진 것이 웹에도 산다"까지가 자기소개(발행=웹과 같은 글, 같은 주소).
+    @State private var webOn = false
     @State private var taglineVisible = false
     @State private var actionsVisible = false
     @State private var showLogin = false
@@ -67,6 +70,9 @@ struct WelcomeView: View {
                 proseWall
 
                 connectionChip
+                    .padding(.horizontal, Metrics.gutter + 4)
+
+                webChip
                     .padding(.horizontal, Metrics.gutter + 4)
 
                 // 태그라인 — 종이 위 잉크 헤비(인앱 제목의 목소리).
@@ -175,6 +181,51 @@ struct WelcomeView: View {
         .accessibilityHidden(true)
     }
 
+    // MARK: 웹 실 — 이어진 것이 웹에도 산다(발행 = blog.kurl.me 같은 주소)
+
+    /// 컬렉션 칩에서 실이 한 번 더 자라 웹 주소 칩에 꽂힌다 — 연결 문법의 마지막 박자.
+    /// 도메인은 verbatim(브랜드), 앞말만 로케일. CTA 이후에 떠오르는 꼬리 장식이라
+    /// 버튼 박자를 밀지 않는다.
+    private var webChip: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(spacing: 0) {
+                Circle()
+                    .fill(Palette.accent)
+                    .frame(width: 5, height: 5)
+                RoundedRectangle(cornerRadius: 1)
+                    .fill(Palette.accent)
+                    .frame(width: 2, height: 20)
+            }
+            .padding(.leading, 120)
+            .scaleEffect(y: webOn ? 1 : 0.01, anchor: .top)
+            HStack(spacing: 8) {
+                Image(systemName: "globe")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Palette.accent)
+                Text("웹에도 같은 주소로")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Palette.ink)
+                Text(verbatim: "blog.kurl.me")
+                    .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(Palette.accent)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+            .background(
+                RoundedRectangle(cornerRadius: 13, style: .continuous)
+                    .fill(Palette.cardBg)
+                    .shadow(color: .black.opacity(0.07), radius: 12, y: 4))
+            .overlay(
+                RoundedRectangle(cornerRadius: 13, style: .continuous)
+                    .strokeBorder(Palette.accent.opacity(0.3), lineWidth: 1))
+            .padding(.leading, 68)
+            .opacity(webOn ? 1 : 0)
+            .offset(y: webOn ? 0 : -8)
+        }
+        // 데모 소품 — 보이스오버는 태그라인으로 직행.
+        .accessibilityHidden(true)
+    }
+
     // MARK: 하이라이트 벽 — 본문에 형광이 그어진다
 
     /// 인용(잉크)과 형광 오버레이(같은 문자열·같은 조판이라 글리프가 정확히 겹친다) —
@@ -236,6 +287,7 @@ struct WelcomeView: View {
             rowsVisible = true
             highlightsOn = true
             threadOn = true
+            webOn = true
             taglineVisible = true
             actionsVisible = true
             return
@@ -249,5 +301,7 @@ struct WelcomeView: View {
         withAnimation(.smooth(duration: 0.7).delay(1.05)) { threadOn = true }
         withAnimation(silk.delay(1.3)) { taglineVisible = true }
         withAnimation(silk.delay(1.45)) { actionsVisible = true }
+        // 웹 실은 CTA 뒤의 꼬리 박자 — 버튼 등장을 안 밀고 서사만 완성한다.
+        withAnimation(.smooth(duration: 0.7).delay(1.6)) { webOn = true }
     }
 }
