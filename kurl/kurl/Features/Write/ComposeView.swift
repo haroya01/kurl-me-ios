@@ -3077,7 +3077,8 @@ private struct V2FormatToolbar: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
                 }
-                .scrollClipDisabled()
+                // 기본 클립 유지 — 클립을 끄면 뷰포트 밖 도구가 캡슐 오른쪽을 지나 키보드
+                // 버튼 위·화면 밖까지 그려진다(#194 에서 오른쪽 고정 버튼이 생기며 크게 드러남).
                 .glassEffect(.regular, in: .capsule)
 
                 // 키보드 내리기 — 고정(스크롤 밖). 별도 유리 원으로(레거시 스니펫 바 대응).
