@@ -102,7 +102,7 @@ struct KurlMark: View {
     let drawn: [Bool]
     var tint: Color = Palette.accent
 
-    // (x, y, width) — height 3.4, rx 1.7 고정. viewBox 기준.
+    // (x, y, width) — height 3.4, rx 1.0 고정. viewBox 기준.
     private static let bars: [(CGFloat, CGFloat, CGFloat)] = [
         (6, 1, 20),
         (0, 7.3, 28),
@@ -115,7 +115,7 @@ struct KurlMark: View {
             ZStack(alignment: .topLeading) {
                 ForEach(0..<3, id: \.self) { i in
                     let bar = Self.bars[i]
-                    RoundedRectangle(cornerRadius: 1.7 * scale)
+                    RoundedRectangle(cornerRadius: 1.0 * scale)
                         .fill(tint)
                         .frame(width: bar.2 * scale, height: 3.4 * scale)
                         .scaleEffect(x: drawn[i] ? 1 : 0, anchor: .leading)
