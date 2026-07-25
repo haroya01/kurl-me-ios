@@ -40,8 +40,6 @@ struct FeedView: View {
     /// 알림은 리텐션 루프의 심장인데 계정 탭 안 2뎁스였다 — 첫 화면에 벨을 둔다.
     /// 카운트는 계정 탭 벨과 UnreadStore 공유 — 각자 fetch 해 같은 GET 이 2회 나가지 않게.
     private var unreadCount: Int64 { UnreadStore.shared.count }
-    /// 벨 → 알림. isPresented 바인딩이라 pop 시 onChange 가 미읽음을 다시 읽는다(계정 탭과 동일).
-    @State private var showNotifications = false
 
     /// 좌우 스와이프 인터랙티브 — 손가락을 따라 화면이 슬라이드되어 "넘기는 중"이 느껴진다.
     /// dragX = 현재 끌린 거리(현재 페이지 오프셋), 인접 페이지는 한 폭 옆에서 따라 들어온다.
@@ -114,9 +112,10 @@ struct FeedView: View {
                         }
                         Spacer(minLength: 0)
                         if AuthStore.shared.isSignedIn {
-                            Button {
-                                showNotifications = true
-                            } label: {
+                            // 값 기반 링크로 인박스를 민다 — 인박스 안의 딥링크(글·컬렉션·프로필)가
+                            // 같은 스택에서 이어 밀리게. isPresented 목적지는 값 푸시마다 재발화해
+                            // 행을 눌러도 인박스가 한 번 더 열렸다(계정 탭 벨과 같은 수리).
+                            NavigationLink(value: Route.notifications) {
                                 Image(systemName: "bell")
                                     .font(.system(size: 15, weight: .semibold))
                                     .foregroundStyle(.primary)
@@ -174,13 +173,8 @@ struct FeedView: View {
             .navigationDestination(for: CollectionRef.self) {
                 CollectionDetailView(collectionId: $0.id)
             }
-            .navigationDestination(isPresented: $showNotifications) {
-                NotificationsView()
-            }
-            .onChange(of: showNotifications) { _, open in
-                // 알림에서 돌아오면 미읽음 점 갱신 — 모두 읽었는데 점이 남지 않게(계정 탭과 동일).
-                if !open { Task { await refreshUnread() } }
-            }
+            // 알림에서 돌아올 때의 미읽음 점 갱신은 인박스가 스스로 챙긴다(NotificationsView
+            // onDisappear → UnreadStore.refresh, 계정 탭과 동일) — count 관찰로 벨 점이 따라온다.
         }
     }
 
