@@ -70,6 +70,45 @@ final class FeedViewModel {
         }
     }
 
+    /// 카드로 남길 글인가 — 제목이 사실상 빈("ㅇㅇ"·공백) 글은 풀 크롬으로 뜨면 피드가 부서져
+    /// 보이고, 차단한 작가의 글은 피드에도 반영돼야 "동작 안 함"으로 안 보인다(댓글 필터와 짝).
+    private static func keepsCard(_ item: FeedItem) -> Bool {
+        item.isRenderableCard && !BlockStore.shared.isBlocked(item.author.username)
+    }
+
+    /// 한 페이지의 연쇄 필터 소멸 상한 — 한 제스처가 서버를 끝없이 긁지 않게 이어받기는 5장까지.
+    private static let chaseCap = 5
+
+    /// 페이지를 받아 거른 뒤 남는 카드가 없으면 다음 페이지를 이어 받는다(상한 `chaseCap`).
+    /// 한 작가가 연속 페이지를 통째로 차지하는 코퍼스에서 그 작가를 차단하면 fetch 한 번이
+    /// 전량 걸러졌다 — 첫 로드는 글 한둘로 조용히 끝난 피드로 위장하고, 다음 장은 앵커
+    /// .task 가 빈 append 로 소진돼 영영 안 왔다. 걸러서 빈 페이지는 응답이 아니라 통과로 본다.
+    static func collectKept(
+        from startPage: Int,
+        seen: Set<Int64>,
+        cap: Int = chaseCap,
+        isKept: (FeedItem) -> Bool = keepsCard,
+        fetch: (Int) async throws -> PublicFeedView
+    ) async throws -> (kept: [FeedItem], page: Int, hasNext: Bool) {
+        var seen = seen
+        var kept: [FeedItem] = []
+        var page = startPage
+        var hops = 0
+        while true {
+            let view = try await fetch(page)
+            // 서버 페이지가 겹쳐 와도 같은 id 카드가 두 번 박히지 않게 — 이미 본 id 는 버린다.
+            for item in view.items {
+                guard seen.insert(item.id).inserted, isKept(item) else { continue }
+                kept.append(item)
+            }
+            hops += 1
+            if !kept.isEmpty || !view.hasNext || hops >= cap {
+                return (kept, page, view.hasNext)
+            }
+            page += 1
+        }
+    }
+
     func loadInitial() async {
         guard case .idle = phase else { return }
         await reload()
@@ -94,16 +133,15 @@ final class FeedViewModel {
         let myEpoch = epoch
         if items.isEmpty { phase = .loading }
         do {
-            let view = try await fetch(page: 0)
+            // 걸러서 빈 페이지(차단 작가 전량 등)는 이어 받는다 — 첫 화면이 빈 피드로 위장하지 않게.
+            let head = try await Self.collectKept(from: 0, seen: []) { try await self.fetch(page: $0) }
             guard myEpoch == epoch else { return }
             // 페이지네이터 리셋은 성공 시에만 — fetch 전에 리셋하면 실패 후 loadMore 가 이미 있는 페이지를 다시 붙인다.
-            page = 0
-            hasNext = view.hasNext
+            page = head.page
+            hasNext = head.hasNext
             loadMoreFailed = false
             withAnimation(.easeInOut(duration: 0.2)) {
-                // 제목이 사실상 빈("ㅇㅇ"·공백) 글은 카드로 그리지 않는다 — 풀 크롬으로 뜨면 피드가 부서져 보인다.
-                // 차단한 작가의 글도 여기서 걷어낸다 — 차단이 피드에도 반영돼야 "동작 안 함"으로 안 보인다(댓글 필터와 짝).
-                items = view.items.filter { $0.isRenderableCard && !BlockStore.shared.isBlocked($0.author.username) }
+                items = head.kept
                 phase = .loaded(items)
             }
             // 새로 들어온 피드는 소속을 다시 묻는다 — 이전 세대의 물어본 표식을 비우고 배치로 긁는다.
@@ -111,9 +149,9 @@ final class FeedViewModel {
             loadBelonging(for: items, epoch: myEpoch)
             // 구독함 머리쪽은 조용히 기기로 — 도착한 글은 지하철에서도 읽혀야 한다.
             if source == .following {
-                let head = view.items.prefix(10).map { ($0.author.username, $0.slug) }
+                let arrivals = head.kept.prefix(10).map { ($0.author.username, $0.slug) }
                 Task(priority: .utility) {
-                    for (username, slug) in head {
+                    for (username, slug) in arrivals {
                         await OfflineStore.shared.download(username: username, slug: slug)
                     }
                 }
@@ -151,26 +189,22 @@ final class FeedViewModel {
         loadMoreFailed = false
         defer { isLoadingMore = false }
         let myEpoch = epoch
-        page += 1
         do {
-            let view = try await fetch(page: page)
-            // reload 가 끼어들었으면 이 응답은 옛 세대 — 버린다(append 도 page 복원도 없음).
-            guard myEpoch == epoch else { return }
-            // 서버 페이지가 겹쳐 와도 같은 id 카드가 두 번 박히지 않게 — 기존 id 와 겹치는 건 버린다.
-            // 빈 콘텐츠 카드도 함께 거른다(reload 와 같은 가드).
-            let seen = Set(items.map(\.id))
-            let fresh = view.items.filter {
-                !seen.contains($0.id) && $0.isRenderableCard
-                    && !BlockStore.shared.isBlocked($0.author.username)
+            // 걸러서 빈 페이지는 이어 받는다 — 빈 append 는 앵커 .task 를 소진시켜 피드가 조용히
+            // 끝난 것처럼 굳는다. page 는 성공 시에만 전진(실패 후 재시도가 같은 페이지를 다시 받게).
+            let next = try await Self.collectKept(from: page + 1, seen: Set(items.map(\.id))) {
+                try await self.fetch(page: $0)
             }
-            items.append(contentsOf: fresh)
-            hasNext = view.hasNext
+            // reload 가 끼어들었으면 이 응답은 옛 세대 — 버린다(append 도 page 전진도 없음).
+            guard myEpoch == epoch else { return }
+            page = next.page
+            hasNext = next.hasNext
+            items.append(contentsOf: next.kept)
             phase = .loaded(items)
             // 다음 페이지 카드들의 소속도 곁에서 배치로 — 이미 물어본 id 는 method 안에서 걸러진다.
-            loadBelonging(for: fresh, epoch: myEpoch)
+            loadBelonging(for: next.kept, epoch: myEpoch)
         } catch {
             guard myEpoch == epoch else { return }
-            page = max(0, page - 1)
             loadMoreFailed = true
         }
     }
