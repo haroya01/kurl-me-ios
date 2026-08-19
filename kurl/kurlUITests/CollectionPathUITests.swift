@@ -167,11 +167,14 @@ final class CollectionPathUITests: XCTestCase {
         // 콜드 부팅 직후 첫 UI 테스트는 AX 서버 응답이 느리다 — 첫 대기만 넉넉히.
         XCTAssertTrue(
             app.navigationBars["어디에 남길까요?"].waitForExistence(timeout: 40), "연결 시트가 안 뜸")
-        // 새 길 만들기 = 만들어지며 선택됨 → '다음' 활성.
+        // 새 길 만들기 = 이름 시트(타깃 제목이 제안으로 채워짐)를 거쳐 만들어지며 선택됨 → '다음' 활성.
         let newPath =
             app.buttons.matching(NSPredicate(format: "label CONTAINS '새 길 만들기'")).firstMatch
         XCTAssertTrue(newPath.waitForExistence(timeout: 5), "'새 길 만들기'가 없음")
         newPath.tap()
+        let createButton = app.buttons["만들기"].firstMatch
+        XCTAssertTrue(createButton.waitForExistence(timeout: 5), "길 이름 시트가 안 뜸")
+        createButton.tap()
         let next = app.buttons.matching(NSPredicate(format: "label CONTAINS '다음'")).firstMatch
         XCTAssertTrue(next.waitForExistence(timeout: 5), "'다음'이 없음")
         next.tap()
