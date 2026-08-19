@@ -31,7 +31,6 @@ struct WelcomeView: View {
     @State private var threadOn = false
     @State private var taglineVisible = false
     @State private var actionsVisible = false
-    @State private var showLogin = false
 
     /// 벽 = 서사 한 줄 + 인용 구절 — 형광은 인용에만 그어진다. "읽다가 긋는다"는 핵심
     /// 동작이 각 언어권에서 사랑받는 퍼블릭 도메인 문장 위에서 일어나, 첫인상이 곧
@@ -84,49 +83,29 @@ struct WelcomeView: View {
 
                 Spacer(minLength: 16)
 
-                // 두 알약 — 시작하기=브랜드 그린 솔리드(인앱 주행동), 둘러보기=유리(액체 크롬).
-                // 게스트 출구가 시작하기와 같은 줄, 같은 키(App Store 5.1.1(v) 1급 출구).
-                HStack(spacing: 10) {
+                // 로그인 묶음 — 링크 앱 웰컴과 같은 문법: 공식 Apple/Google 버튼 직노출
+                // (시작하기→시트 한 겹을 걷어낸다), 약관은 버튼 묶음이 품고, 게스트 출구는
+                // 하단 텍스트로 동등한 1급(App Store 5.1.1(v)).
+                VStack(spacing: 10) {
+                    AuthProviderButtons { onSignedIn() }
                     Button {
                         onContinueAsGuest()
                     } label: {
                         Text("로그인 없이 둘러보기")
-                            .font(.system(size: 15 * unit, weight: .semibold))
-                            .foregroundStyle(Palette.ink)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
+                            .font(.system(size: 15 * unit, weight: .medium))
+                            .foregroundStyle(Palette.secondary)
                             .frame(maxWidth: .infinity)
-                            .frame(height: 52)
-                            .contentShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    .glassEffect(.regular, in: .capsule)
-                    .overlay(Capsule().strokeBorder(Palette.hairlineStrong.opacity(0.6), lineWidth: 1))
-
-                    Button {
-                        showLogin = true
-                    } label: {
-                        Text("시작하기")
-                            .font(.system(size: 16 * unit, weight: .bold))
-                            .foregroundStyle(.white)
-                            .lineLimit(1)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 52)
-                            .background(Palette.accent, in: Capsule())
+                            .frame(height: 44)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }
                 .padding(.horizontal, Metrics.gutter + 4)
-                .padding(.bottom, 24)
+                .padding(.bottom, 12)
                 .opacity(actionsVisible ? 1 : 0)
                 .offset(y: actionsVisible ? 0 : 16)
             }
             .padding(.top, 24)
-        }
-        .sheet(isPresented: $showLogin) {
-            LoginSheet(message: "계정 하나면 읽고, 쓰고, 연결한 것이 어디서든 이어져요.") {
-                onSignedIn()
-            }
         }
         .onAppear { if revealed { play() } }
         .onChange(of: revealed) { _, now in if now { play() } }
