@@ -30,6 +30,7 @@ struct ConnectSheet: View {
     @State private var failed = false
     @State private var saving = false
     @State private var showCreate = false
+    @State private var createKind: CollectionKind = .collection
     /// 성공 햅틱 트리거 — 만들기·연결이 끝나면 +1(§10 살아 있는 절제).
     @State private var didConnect = 0
     @State private var didCreate = 0
@@ -50,7 +51,10 @@ struct ConnectSheet: View {
         .presentationDragIndicator(.visible)
         .background(Palette.readingBg)
         .sheet(isPresented: $showCreate) {
-            CreateCollectionSheet { created in
+            CreateCollectionSheet(
+                kind: createKind,
+                initialTitle: createKind == .path ? targetTitle : ""
+            ) { created in
                 collections.insert(created, at: 0)
                 selected.insert(created.id)
                 didCreate += 1
@@ -253,6 +257,7 @@ struct ConnectSheet: View {
 
     private var newCollectionRow: some View {
         Button {
+            createKind = .collection
             showCreate = true
         } label: {
             HStack(spacing: 10) {
@@ -272,9 +277,11 @@ struct ConnectSheet: View {
     }
 
     /// 새 길(PATH) 만들기 — 순서로 엮는 reading path. 문장을 가로질러 하나의 흐름으로.
+    /// 타깃 제목은 시작 이름 *제안*으로만 넘긴다 — 자동 확정 명명은 06-17 리뷰 지적.
     private var newPathRow: some View {
         Button {
-            Task { await createPathAndSelect() }
+            createKind = .path
+            showCreate = true
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: "arrow.turn.down.right")
@@ -383,20 +390,6 @@ struct ConnectSheet: View {
     }
 
     // MARK: 동작
-
-    /// 새 길(PATH) 만들기 — 길은 타깃 글을 첫 마디로 출발하니 그 제목을 시작 이름으로.
-    private func createPathAndSelect() async {
-        let name = targetTitle.isEmpty ? String(localized: "새 길") : targetTitle
-        guard let created = try? await CollectionsAPI.create(
-            title: name, description: nil, visibility: .private, kind: .path)
-        else {
-            ToastCenter.shared.show(String(localized: "만들지 못했습니다"))
-            return
-        }
-        collections.insert(created, at: 0)
-        selected.insert(created.id)
-        didCreate += 1
-    }
 
     private func connectAll() async {
         saving = true
