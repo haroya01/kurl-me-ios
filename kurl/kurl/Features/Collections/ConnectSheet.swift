@@ -29,7 +29,14 @@ struct ConnectSheet: View {
     @State private var loading = true
     @State private var failed = false
     @State private var saving = false
-    @State private var showCreate = false
+    /// 생성 시트 요청 — kind 를 item 에 실어 원자적으로 전달한다. isPresented+별도 상태 조합은
+    /// 같은 틱에 세팅하면 시트 콘텐츠가 stale kind 로 캡처되는 함정(길이 컬렉션으로 뜸).
+    @State private var createRequest: CreateRequest?
+
+    private struct CreateRequest: Identifiable {
+        let kind: CollectionKind
+        var id: String { kind.rawValue }
+    }
     /// 성공 햅틱 트리거 — 만들기·연결이 끝나면 +1(§10 살아 있는 절제).
     @State private var didConnect = 0
     @State private var didCreate = 0
@@ -49,8 +56,11 @@ struct ConnectSheet: View {
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .background(Palette.readingBg)
-        .sheet(isPresented: $showCreate) {
-            CreateCollectionSheet { created in
+        .sheet(item: $createRequest) { req in
+            CreateCollectionSheet(
+                kind: req.kind,
+                initialTitle: req.kind == .path ? targetTitle : ""
+            ) { created in
                 collections.insert(created, at: 0)
                 selected.insert(created.id)
                 didCreate += 1
@@ -253,7 +263,7 @@ struct ConnectSheet: View {
 
     private var newCollectionRow: some View {
         Button {
-            showCreate = true
+            createRequest = CreateRequest(kind: .collection)
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: "plus")
@@ -272,9 +282,10 @@ struct ConnectSheet: View {
     }
 
     /// 새 길(PATH) 만들기 — 순서로 엮는 reading path. 문장을 가로질러 하나의 흐름으로.
+    /// 타깃 제목은 시작 이름 *제안*으로만 넘긴다 — 자동 확정 명명은 06-17 리뷰 지적.
     private var newPathRow: some View {
         Button {
-            Task { await createPathAndSelect() }
+            createRequest = CreateRequest(kind: .path)
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: "arrow.turn.down.right")
@@ -383,20 +394,6 @@ struct ConnectSheet: View {
     }
 
     // MARK: 동작
-
-    /// 새 길(PATH) 만들기 — 길은 타깃 글을 첫 마디로 출발하니 그 제목을 시작 이름으로.
-    private func createPathAndSelect() async {
-        let name = targetTitle.isEmpty ? String(localized: "새 길") : targetTitle
-        guard let created = try? await CollectionsAPI.create(
-            title: name, description: nil, visibility: .private, kind: .path)
-        else {
-            ToastCenter.shared.show(String(localized: "만들지 못했습니다"))
-            return
-        }
-        collections.insert(created, at: 0)
-        selected.insert(created.id)
-        didCreate += 1
-    }
 
     private func connectAll() async {
         saving = true

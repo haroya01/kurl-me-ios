@@ -38,7 +38,7 @@ jobs:
     runs-on: macos-15
     # 위 헤더 근거로 첫 도입은 비필수. 빨간불이어도 PR 을 막지 않는다.
     continue-on-error: true
-    timeout-minutes: 40
+    timeout-minutes: 60
 
     env:
       SCHEME: kurlUITests

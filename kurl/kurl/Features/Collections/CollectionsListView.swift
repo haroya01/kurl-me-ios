@@ -151,24 +151,35 @@ struct CollectionsListView: View {
 
 /// 새 컬렉션 만들기 — 제목 + 공개 범위. 만들면 목록에 즉시 끼운다.
 struct CreateCollectionSheet: View {
+    let kind: CollectionKind
     let onCreated: (CollectionSummary) -> Void
 
-    @State private var title = ""
+    @State private var title: String
     @State private var visibility: CollectionVisibility = .private
     @State private var saving = false
     @Environment(\.dismiss) private var dismiss
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
 
+    /// 길(PATH)은 타깃 글 제목을 시작 이름으로 *제안*만 한다 — 자동 확정 대신 사용자가 고쳐 쓴다.
+    init(
+        kind: CollectionKind = .collection, initialTitle: String = "",
+        onCreated: @escaping (CollectionSummary) -> Void
+    ) {
+        self.kind = kind
+        self.onCreated = onCreated
+        _title = State(initialValue: initialTitle)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("새 컬렉션")
+            Text(kind == .path ? "새 길" : "새 컬렉션")
                 .typeScale(.titleSmall)
                 .foregroundStyle(Palette.ink)
                 .padding(.top, 26)
 
             // 회색 채움 박스 대신 밑줄 — 수정 시트(EditCollectionSheet)와 같은 입력 문법(§10).
             VStack(alignment: .leading, spacing: 9) {
-                TextField("컬렉션 이름", text: $title)
+                TextField(kind == .path ? "길 이름" : "컬렉션 이름", text: $title)
                     .font(.system(size: 17 * unit))
                     .foregroundStyle(Palette.ink)
                 Hairline()
@@ -215,11 +226,14 @@ struct CreateCollectionSheet: View {
         do {
             let created = try await CollectionsAPI.create(
                 title: title.trimmingCharacters(in: .whitespaces),
-                description: nil, visibility: visibility)
+                description: nil, visibility: visibility, kind: kind)
             onCreated(created)
             dismiss()
         } catch {
-            ToastCenter.shared.show(String(localized: "컬렉션을 만들지 못했습니다"))
+            ToastCenter.shared.show(
+                kind == .path
+                    ? String(localized: "길을 만들지 못했습니다")
+                    : String(localized: "컬렉션을 만들지 못했습니다"))
         }
     }
 }
