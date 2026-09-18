@@ -20,6 +20,10 @@ struct BlockCodeView: View {
     let onFocused: () -> Void
     /// 빈 코드 블록 맨 앞 백스페이스 → 문단으로 강등/병합(문서가 처리).
     let onMergeBackward: () -> Void
+    var documentUndoManager: UndoManager? = nil
+    var onEditingEnded: () -> Void = {}
+    var onSeparateEdit: () -> Void = {}
+    var onCompositionChange: (Bool) -> Void = { _ in }
 
     private var language: String? {
         if case .code(let lang) = block.kind { return lang }
@@ -42,7 +46,11 @@ struct BlockCodeView: View {
                 isFocused: isFocused,
                 onTextChange: onTextChange,
                 onFocused: onFocused,
-                onMergeBackward: onMergeBackward
+                onMergeBackward: onMergeBackward,
+                documentUndoManager: documentUndoManager,
+                onEditingEnded: onEditingEnded,
+                onSeparateEdit: onSeparateEdit,
+                onCompositionChange: onCompositionChange
             )
             .padding(.horizontal, 14)
             .padding(.top, language == nil ? 12 : 4)
@@ -66,11 +74,17 @@ private struct CodeEditingTextView: UIViewRepresentable {
     let onTextChange: (String) -> Void
     let onFocused: () -> Void
     let onMergeBackward: () -> Void
+    var documentUndoManager: UndoManager? = nil
+    var onEditingEnded: () -> Void = {}
+    var onSeparateEdit: () -> Void = {}
+    var onCompositionChange: (Bool) -> Void = { _ in }
 
     static let monoFont = UIFont.monospacedSystemFont(ofSize: 14, weight: .regular)
 
     func makeUIView(context: Context) -> BlockUITextView {
         let tv = BlockUITextView()
+        tv.documentUndoManager = documentUndoManager
+        tv.onSeparateEdit = onSeparateEdit
         tv.delegate = context.coordinator
         tv.isScrollEnabled = false
         tv.backgroundColor = .clear
@@ -97,12 +111,15 @@ private struct CodeEditingTextView: UIViewRepresentable {
 
     func updateUIView(_ tv: BlockUITextView, context: Context) {
         context.coordinator.parent = self
+        tv.documentUndoManager = documentUndoManager
+        tv.onSeparateEdit = onSeparateEdit
+        guard tv.markedTextRange == nil else { return }
         if tv.currentBlockText != text {
             tv.text = text
             tv.currentBlockText = text
             context.coordinator.applyHighlight(tv)
         }
-        if isFocused, !tv.isFirstResponder { tv.becomeFirstResponder() }
+        tv.requestDocumentFocus(isFocused)
     }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -113,6 +130,10 @@ private struct CodeEditingTextView: UIViewRepresentable {
         init(_ parent: CodeEditingTextView) { self.parent = parent }
 
         func textViewDidBeginEditing(_ textView: UITextView) { parent.onFocused() }
+        func textViewDidEndEditing(_ textView: UITextView) {
+            parent.onCompositionChange(false)
+            parent.onEditingEnded()
+        }
 
         func textView(
             _ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String
@@ -129,7 +150,9 @@ private struct CodeEditingTextView: UIViewRepresentable {
         func textViewDidChange(_ textView: UITextView) {
             guard let tv = textView as? BlockUITextView else { return }
             tv.currentBlockText = tv.text ?? ""
+            if tv.markedTextRange != nil { parent.onCompositionChange(true) }
             parent.onTextChange(tv.text ?? "")
+            if tv.markedTextRange == nil { parent.onCompositionChange(false) }
             // 신택스 재채색은 조합이 끝난 뒤에만(조합 중 attributedText 교체는 한글 IME 를 깬다).
             if tv.markedTextRange == nil {
                 applyHighlight(tv)

@@ -39,40 +39,23 @@ final class V2FormatToolbarUITests: XCTestCase {
         paragraph.tap()
         Thread.sleep(forTimeInterval: 0.8)
 
-        // 서식 툴바가 떴는가 — 굵게·제목 버튼 존재로 판정(레이블).
-        let boldButton = app.buttons["굵게"]
-        XCTAssertTrue(boldButton.waitForExistence(timeout: 6), "서식 툴바(굵게) 미표시")
-        XCTAssertTrue(app.buttons["제목"].exists, "블록 서식(제목) 미표시")
-        XCTAssertTrue(app.buttons["인용"].exists, "블록 서식(인용) 미표시")
-        shot("format-toolbar-01-visible")
-
-        // 단어 선택 — 문단을 더블탭해 단어를 선택하고 볼드 적용.
+        XCTAssertTrue(app.buttons["composeFormat"].isHittable)
         paragraph.doubleTap()
-        Thread.sleep(forTimeInterval: 0.5)
-        shot("format-toolbar-02-word-selected")
+        app.buttons["composeFormat"].tap()
+        let bold = app.buttons["굵게"]
+        XCTAssertTrue(bold.waitForExistence(timeout: 5))
+        bold.tap()
+        let formatted = app.textViews.containing(NSPredicate(format: "value CONTAINS %@", "**")).firstMatch
+        XCTAssertTrue(formatted.waitForExistence(timeout: 5), "Selected text receives bold formatting through the menu")
+        shot("format-toolbar-bold-applied")
 
-        if boldButton.isHittable {
-            boldButton.tap()
-            Thread.sleep(forTimeInterval: 0.7)
-            // 적용 후에도 캔버스는 유지되고(포커스), 저장 배지가 뜬다(마크다운 변경 → 자동저장).
-            shot("format-toolbar-03-bold-applied")
+        for heading in ["제목 1", "제목 2", "제목 3", "본문"] {
+            app.buttons["composeFormat"].tap()
+            let choice = app.buttons[heading]
+            XCTAssertTrue(choice.waitForExistence(timeout: 4))
+            choice.tap()
+            XCTAssertEqual(app.buttons["composeFormat"].value as? String, heading)
         }
-
-        // 블록 서식: 제목 순환 — 버튼 하나가 # → ## → ### → 문단 을 돈다(제목/소제목 통합).
-        let titleButton = app.buttons["제목"]
-        if titleButton.isHittable {
-            titleButton.tap()
-            Thread.sleep(forTimeInterval: 0.7)
-            shot("format-toolbar-04-heading-h1")
-            titleButton.tap()
-            Thread.sleep(forTimeInterval: 0.5)
-            shot("format-toolbar-05-heading-h2")
-            titleButton.tap()
-            Thread.sleep(forTimeInterval: 0.5)
-            shot("format-toolbar-06-heading-h3")
-            titleButton.tap()  // 한 바퀴 — 문단으로 복귀(크래시·죽은 버튼 회귀 가드)
-            Thread.sleep(forTimeInterval: 0.5)
-            shot("format-toolbar-07-heading-back-to-paragraph")
-        }
+        shot("format-toolbar-heading-choices")
     }
 }

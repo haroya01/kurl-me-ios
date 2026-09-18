@@ -27,9 +27,14 @@ struct EditorPasteHandlers {
     var shorten: ((String) async -> String?)?
 }
 
+struct EditorSplitContinuation {
+    let block: EditorBlock
+    let caret: Int
+}
+
 /// 문단·제목·인용 블록용 UITextView. 코드 블록은 이걸 안 쓴다.
 struct BlockTextView: UIViewRepresentable {
-    let block: EditorBlock
+    var block: EditorBlock
     let isFocused: Bool
     /// 문서 focus 의 캐럿(String 인덱스 거리). 포커스 획득/서식 적용 후 이 위치로 캐럿·선택을 되돌린다.
     let caretOnFocus: Int
@@ -41,8 +46,8 @@ struct BlockTextView: UIViewRepresentable {
     var onRevealSuppressConsumed: () -> Void = {}
     /// 텍스트 변경 콜백(구조 변경 없음).
     let onTextChange: (String) -> Void
-    /// 엔터로 블록 분할 요청 — caret 위치 전달.
-    let onSplit: (Int) -> Void
+    /// Split and return the continuation block so UIKit can accept the next key immediately.
+    let onSplit: (Int, Int) -> EditorSplitContinuation?
     /// 맨 앞 백스페이스로 앞 블록과 병합 요청.
     let onMergeBackward: () -> Void
     /// 줄머리 지름길 감지 — 종류·마커 뗀 텍스트·caret 을 문서에 승격 요청.
@@ -53,9 +58,15 @@ struct BlockTextView: UIViewRepresentable {
     let onSelectionChange: (Int, Int) -> Void
     /// 붙여넣기 훅 — 이미지·URL 붙여넣기를 기본 텍스트 붙여넣기보다 먼저 가로챈다(V1 캔버스 계약 미러).
     var pasteHandlers: EditorPasteHandlers = EditorPasteHandlers()
+    var documentUndoManager: UndoManager? = nil
+    var onEditingEnded: () -> Void = {}
+    var onSeparateEdit: () -> Void = {}
+    var onCompositionChange: (Bool) -> Void = { _ in }
 
     func makeUIView(context: Context) -> BlockUITextView {
         let tv = BlockUITextView()
+        tv.documentUndoManager = documentUndoManager
+        tv.onSeparateEdit = onSeparateEdit
         tv.delegate = context.coordinator
         tv.isScrollEnabled = false
         tv.backgroundColor = .clear
@@ -93,18 +104,22 @@ struct BlockTextView: UIViewRepresentable {
 
     func updateUIView(_ tv: BlockUITextView, context: Context) {
         context.coordinator.parent = self
+        tv.documentUndoManager = documentUndoManager
+        tv.onSeparateEdit = onSeparateEdit
         context.coordinator.onEmptyBackspace = onMergeBackward
         wirePaste(tv, coordinator: context.coordinator)
+        guard tv.markedTextRange == nil else { return }
         // 외부(문서)에서 온 text/kind 변화만 반영 — 사용자가 방금 친 것과 같으면 건너뛴다(캐럿 튐 방지).
         let textChanged = tv.currentBlockText != block.text
             || context.coordinator.renderedKind != block.kind
         if textChanged {
             apply(block, to: tv, coordinator: context.coordinator)
         }
-        if isFocused, !tv.isFirstResponder {
-            tv.becomeFirstResponder()
-            setSelection(caret: caretOnFocus, length: selectionLengthOnFocus, in: tv)
-        } else if isFocused, tv.isFirstResponder, textChanged {
+        let wasFirstResponder = tv.isFirstResponder
+        tv.requestDocumentFocus(isFocused) { focusedView in
+            setSelection(caret: caretOnFocus, length: selectionLengthOnFocus, in: focusedView)
+        }
+        if isFocused, wasFirstResponder, textChanged {
             // 외부(문서)에서 온 텍스트 변화 = 서식 툴바 감싸기·블록 토글·구조 연산 — 문서가 준 새 선택/
             // 캐럿을 복원한다. 사용자 타이핑은 textViewDidChange 가 currentBlockText 를 먼저 맞춰 여기
             // textChanged=false 이므로 이 경로를 안 타(타이핑 캐럿을 안 건드린다).
@@ -193,11 +208,16 @@ struct BlockTextView: UIViewRepresentable {
             }
         }
 
+        func textViewDidEndEditing(_ textView: UITextView) {
+            parent.onCompositionChange(false)
+            parent.onEditingEnded()
+        }
+
         /// 캐럿/선택이 바뀌면 (1) 문서에 선택 좌표를 알려 서식 툴바가 감쌀 수 있게 하고 (2) 캐럿이
         /// 들어온 `**볼드**`·`[라벨](url)` 은 마커를 흐리게 열고 벗어난 것은 다시 숨긴다(반개봉의 왕복).
         func textViewDidChangeSelection(_ textView: UITextView) {
             guard !isProgrammaticEdit, let tv = textView as? BlockUITextView,
-                  tv.markedTextRange == nil else { return }
+                  tv.isFirstResponder, tv.markedTextRange == nil else { return }
             // 선택 좌표를 String 인덱스로 문서에 보고(선택 유무 무관) — 툴바가 이 선택을 감싼다.
             let range = tv.selectedRange
             let caret = swiftCaret(in: tv, nsLocation: range.location)
@@ -227,11 +247,27 @@ struct BlockTextView: UIViewRepresentable {
             replacementText text: String
         ) -> Bool {
             guard let tv = textView as? BlockUITextView else { return true }
+            // Return can confirm an IME candidate. Let UIKit finish that composition before
+            // interpreting Return/Backspace as a document operation.
+            if tv.markedTextRange != nil { return true }
 
             // 엔터 = 블록 분할(코드 블록은 이 뷰를 안 쓰므로 여기 엔터는 항상 구조 엔터).
             if text == "\n" {
                 let caret = swiftCaret(in: tv, nsLocation: range.location)
-                parent.onSplit(caret)
+                let end = swiftCaret(in: tv, nsLocation: range.location + range.length)
+                if let continuation = parent.onSplit(caret, max(0, end - caret)) {
+                    // The continuing block keeps this view's identity. Synchronize its input
+                    // buffer inside Return, before the next key and before SwiftUI redraws.
+                    isProgrammaticEdit = true
+                    parent.block = continuation.block
+                    renderedKind = continuation.block.kind
+                    tv.currentBlockText = continuation.block.text
+                    tv.attributedText = BlockInlineRenderer.render(continuation.block)
+                    tv.typingAttributes = BlockInlineRenderer.typingAttributes(for: continuation.block.kind)
+                    parent.setSelection(caret: continuation.caret, length: 0, in: tv)
+                    lastRevealedSpan = nil
+                    isProgrammaticEdit = false
+                }
                 return false
             }
 
@@ -253,12 +289,8 @@ struct BlockTextView: UIViewRepresentable {
                 return false
             }
 
-            // 맨 앞에서 백스페이스(빈 replacement + 길이1 삭제 + range.location==0) = 앞과 병합.
-            if text.isEmpty, range.length == 1, range.location == 0 {
-                onEmptyBackspace?()
-                return false
-            }
-
+            // A deletion range starting at zero can still be an ordinary first-character deletion.
+            // Only deleteBackward's actual caret==0 check below may request a block merge.
             return true
         }
 
@@ -275,7 +307,9 @@ struct BlockTextView: UIViewRepresentable {
             }
 
             tv.currentBlockText = newText
+            if tv.markedTextRange != nil { parent.onCompositionChange(true) }
             parent.onTextChange(newText)
+            if tv.markedTextRange == nil { parent.onCompositionChange(false) }
 
             // 인라인 재렌더는 조합이 끝난 뒤에만(조합 중 attributedText 교체는 IME 를 깬다).
             if tv.markedTextRange == nil {
@@ -317,17 +351,29 @@ struct BlockTextView: UIViewRepresentable {
                       let end = tv.position(from: start, offset: range.length),
                       let textRange = tv.textRange(from: start, to: end)
                 else { return }
+                self.parent.onSeparateEdit()
                 tv.replace(textRange, withText: short)
                 tv.selectedRange = NSRange(
                     location: range.location + (short as NSString).length, length: 0)
                 self.textViewDidChange(tv)
+                self.parent.onSeparateEdit()
                 ToastCenter.shared.show(
                     String(localized: "kurl 링크로 단축했어요"),
                     actionLabel: String(localized: "되돌리기")
                 ) { [weak tv, weak self] in
-                    guard let tv, let undo = tv.undoManager, undo.canUndo else { return }
-                    undo.undo()
-                    self?.textViewDidChange(tv)
+                    // Reverse this replacement only; a later edit in another block must not be undone.
+                    guard let tv, let self, tv.markedTextRange == nil else { return }
+                    let shortRange = NSRange(location: range.location, length: (short as NSString).length)
+                    let current = tv.text as NSString
+                    guard NSMaxRange(shortRange) <= current.length,
+                          current.substring(with: shortRange) == short,
+                          let start = tv.position(from: tv.beginningOfDocument, offset: shortRange.location),
+                          let end = tv.position(from: start, offset: shortRange.length),
+                          let target = tv.textRange(from: start, to: end) else { return }
+                    self.parent.onSeparateEdit()
+                    tv.replace(target, withText: original)
+                    self.textViewDidChange(tv)
+                    self.parent.onSeparateEdit()
                 }
             }
         }
@@ -345,6 +391,32 @@ struct BlockTextView: UIViewRepresentable {
 /// 빈 블록에서의 백스페이스를 잡기 위한 서브클래스 — 빈 UITextView 는 shouldChangeText 가
 /// 안 불릴 수 있어(삭제할 문자 없음) deleteBackward 를 직접 가로챈다(블록 병합·강등의 핵심).
 final class BlockUITextView: UITextView {
+    weak var documentUndoManager: UndoManager?
+    var onSeparateEdit: (() -> Void)?
+    override var undoManager: UndoManager? { documentUndoManager ?? super.undoManager }
+    private var pendingDocumentFocus: ((BlockUITextView) -> Void)?
+
+    /// A new block can receive its focus request before SwiftUI attaches it to a window.
+    /// Keep that request until attachment, and cancel it if the document moves focus elsewhere.
+    func requestDocumentFocus(_ requested: Bool, onAcquired: @escaping (BlockUITextView) -> Void = { _ in }) {
+        guard requested, !isFirstResponder else { pendingDocumentFocus = nil; return }
+        pendingDocumentFocus = onAcquired
+        acquirePendingDocumentFocus()
+    }
+
+    private func acquirePendingDocumentFocus() {
+        guard window != nil, let onAcquired = pendingDocumentFocus else { return }
+        // Clear before the delegate callback, which can synchronously update the document.
+        pendingDocumentFocus = nil
+        if becomeFirstResponder() { onAcquired(self) }
+    }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        if window != nil {
+            DispatchQueue.main.async { [weak self] in self?.acquirePendingDocumentFocus() }
+        }
+    }
     /// 문서가 아는 이 블록의 현재 text — SwiftUI 왕복 시 캐럿 튐/재렌더 루프 방지용 캐시.
     var currentBlockText: String = ""
     var onEmptyBackspaceOverride: (() -> Void)?
@@ -354,6 +426,8 @@ final class BlockUITextView: UITextView {
     var onPastedURL: ((String, NSRange) -> Void)?
 
     override func paste(_ sender: Any?) {
+        onSeparateEdit?()
+        defer { onSeparateEdit?() }
         // 이미지 바이트가 실려 있으면 텍스트 표현보다 이미지를 우선한다 — 기본 붙여넣기는 이미지를
         // 버리고 빈 텍스트/객체 치환문자만 남긴다(V1 캔버스와 같은 규칙).
         if markedTextRange == nil, let onPasteImages, UIPasteboard.general.hasImages {
@@ -388,6 +462,7 @@ final class BlockUITextView: UITextView {
     }
 
     override func deleteBackward() {
+        if markedTextRange != nil { super.deleteBackward(); return }
         // 캐럿이 맨 앞이고 선택이 없으면(빈 블록 포함) 병합/강등으로 승격.
         if let range = selectedTextRange, range.isEmpty,
            offset(from: beginningOfDocument, to: range.start) == 0 {

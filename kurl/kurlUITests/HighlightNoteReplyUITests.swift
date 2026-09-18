@@ -112,11 +112,34 @@ final class HighlightNoteReplyUITests: XCTestCase {
 
         let composer = app.navigationBars["메모 추가"]
         XCTAssertTrue(composer.waitForExistence(timeout: 5), "'메모 추가' 시트가 안 뜸")
-        let noteField = app.textFields["이 부분에 대한 메모를 남겨보세요"]
+        let noteField = app.textViews["highlightNoteInput"]
         XCTAssertTrue(noteField.waitForExistence(timeout: 3), "메모 입력란 없음")
         noteField.tap()
-        noteField.typeText("여백 메모 uitest")
-        shot("2-note-typed")
+        XCTAssertGreaterThanOrEqual(noteField.frame.height, 180, "The memo should use the space above the keyboard")
+        let visibility = app.descendants(matching: .any)["highlightNoteVisibility"].firstMatch
+        let quote = app.staticTexts["highlightNoteQuote"]
+        XCTAssertTrue(visibility.exists)
+        XCTAssertLessThan(visibility.frame.maxY, quote.frame.minY)
+        XCTAssertLessThan(quote.frame.maxY, noteField.frame.minY)
+        XCTAssertFalse(composer.buttons["저장"].isEnabled)
+        shot("memo-layout-empty")
+        let memo = "복잡한 구조보다 먼저, 책임을 작게 나누는 게 중요하다는 생각이 들었다."
+        noteField.typeText(memo)
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 3))
+        XCTAssertGreaterThanOrEqual(noteField.frame.height, 180)
+        XCTAssertLessThanOrEqual(noteField.frame.maxY, app.keyboards.firstMatch.frame.minY)
+        shot("memo-layout-written")
+        composer.buttons["취소"].tap()
+        XCTAssertTrue(app.buttons["메모 버리기"].waitForExistence(timeout: 3))
+        let keepWriting = app.buttons["계속 쓰기"]
+        if keepWriting.exists {
+            keepWriting.tap()
+        } else {
+            // Popover presentations omit the cancel row; tapping outside cancels dismissal.
+            noteField.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        }
+        XCTAssertTrue(app.buttons["메모 버리기"].waitForNonExistence(timeout: 3))
+        XCTAssertEqual(noteField.value as? String, memo, "Cancelling dismissal must preserve the memo")
 
         composer.buttons["저장"].tap()
         XCTAssertTrue(composer.waitForNonExistence(timeout: 6), "저장해도 '메모 추가' 시트가 안 닫힘")

@@ -43,11 +43,12 @@ final class V2LegacyParityUITests: XCTestCase {
         app.launch()
         let paragraph = openDraftAndFocus(app)
 
+        paragraph.doubleTap()
+        app.buttons["composeFormat"].tap()
         let strike = app.buttons["취소선"]
         XCTAssertTrue(strike.waitForExistence(timeout: 8), "취소선 버튼이 V2 툴바에 없음")
         shot(app, "parity-01-strike-button")
 
-        paragraph.doubleTap()  // 단어 선택
         Thread.sleep(forTimeInterval: 0.4)
         if strike.isHittable { strike.tap(); Thread.sleep(forTimeInterval: 0.6) }
         // 마크다운 변경 → 자동저장 배지.
@@ -99,6 +100,7 @@ final class V2LegacyParityUITests: XCTestCase {
         _ = openDraftAndFocus(app)
 
         // 표 삽입 — 인블록 컨트롤(+행 +열)이 뜬다.
+        app.buttons["composeMoreTools"].tap()
         let tableButton = app.buttons["표"]
         XCTAssertTrue(tableButton.waitForExistence(timeout: 8), "표 버튼 미표시")
         tableButton.tap()
@@ -138,6 +140,7 @@ final class V2LegacyParityUITests: XCTestCase {
         app.launch()
         _ = openDraftAndFocus(app)
 
+        app.buttons["composeMoreTools"].tap()
         let tableButton = app.buttons["표"]
         XCTAssertTrue(tableButton.waitForExistence(timeout: 8), "표 버튼 미표시")
         tableButton.tap()
@@ -165,6 +168,7 @@ final class V2LegacyParityUITests: XCTestCase {
         app.launch()
         _ = openDraftAndFocus(app)
 
+        app.buttons["composeMoreTools"].tap()
         let dividerButton = app.buttons["구분선"]
         XCTAssertTrue(dividerButton.waitForExistence(timeout: 8), "구분선 삽입 버튼 미표시")
         dividerButton.tap()
@@ -204,6 +208,7 @@ final class V2LegacyParityUITests: XCTestCase {
         let original = (para().value as? String) ?? ""
         para().doubleTap()  // 한 단어 선택(어느 단어인지는 무관 — ** 삽입 여부만 본다)
         Thread.sleep(forTimeInterval: 0.4)
+        app.buttons["composeFormat"].tap()
         let bold = app.buttons["굵게"]
         XCTAssertTrue(bold.waitForExistence(timeout: 8), "굵게 버튼 미표시")
         bold.tap()
@@ -213,6 +218,7 @@ final class V2LegacyParityUITests: XCTestCase {
         XCTAssertTrue(afterBold.contains("**"), "굵게 적용 후 raw 에 ** 가 있어야: \(afterBold)")
 
         // 굵게를 다시 눌러 토글 오프 — 마커가 사라지고 별표가 하나도 안 남아야 한다(핵심 회귀).
+        app.buttons["composeFormat"].tap()
         bold.tap()
         Thread.sleep(forTimeInterval: 0.6)
         shot(app, "mk-02-after-toggle-off")
@@ -238,6 +244,7 @@ final class V2LegacyParityUITests: XCTestCase {
         // 한 단어 볼드.
         app.textViews.containing(NSPredicate(format: "value CONTAINS %@", "어댑터")).firstMatch.doubleTap()
         Thread.sleep(forTimeInterval: 0.4)
+        app.buttons["composeFormat"].tap()
         let bold = app.buttons["굵게"]
         XCTAssertTrue(bold.waitForExistence(timeout: 8), "굵게 버튼 미표시")
         bold.tap()

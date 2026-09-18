@@ -27,12 +27,149 @@ nonisolated struct EditorFocus: Equatable {
     var selectionLength: Int = 0
 }
 
+/// UIKit's menu/keyboard shortcuts consult the same guard as the visible document controls.
+/// Used only from the main thread, like every UITextView's UndoManager.
+@MainActor
+final class EditorUndoManager: UndoManager {
+    var compositionInProgress = false
+    override var canUndo: Bool { !compositionInProgress && super.canUndo }
+    override var canRedo: Bool { !compositionInProgress && super.canRedo }
+    override func undo() { guard !compositionInProgress else { return }; super.undo() }
+    override func redo() { guard !compositionInProgress else { return }; super.redo() }
+}
+
 @MainActor
 @Observable
 final class EditorDocument {
     private(set) var blocks: [EditorBlock]
     /// 포커스 — 뷰가 이 값 변화를 보고 해당 블록 UITextView 를 first responder 로 만들고 캐럿을 놓는다.
-    var focus: EditorFocus?
+    var focus: EditorFocus? {
+        didSet { isEditing = focus != nil }
+    }
+    /// Keep the insertion target when a menu or the keyboard closes, without reclaiming first responder.
+    var isEditing = false
+
+    /// Every body text view uses this manager. UIKit's private text registrations are disabled;
+    /// the document registers complete edits, including the block changes around that text.
+    @ObservationIgnored let undoManager = EditorUndoManager()
+    private var historyRevision = 0
+    @ObservationIgnored private var editDepth = 0
+    @ObservationIgnored private var editBefore: Snapshot?
+    @ObservationIgnored private var editTypingKey: String?
+    @ObservationIgnored private var lastTypingKey: String?
+    @ObservationIgnored private var lastTypingAt: Date?
+    @ObservationIgnored private var compositionBefore: Snapshot?
+    @ObservationIgnored private var compositionKey: String?
+    private var compositionInProgress = false
+
+    private struct Snapshot {
+        let blocks: [EditorBlock]
+        let focus: EditorFocus?
+    }
+
+    var canUndo: Bool { _ = historyRevision; return !compositionInProgress && undoManager.canUndo }
+    var canRedo: Bool { _ = historyRevision; return !compositionInProgress && undoManager.canRedo }
+
+    func undo() { guard canUndo else { return }; breakUndoCoalescing(); undoManager.undo() }
+    func redo() { guard canRedo else { return }; breakUndoCoalescing(); undoManager.redo() }
+
+    func breakUndoCoalescing() {
+        lastTypingKey = nil
+        lastTypingAt = nil
+    }
+
+    /// IME candidate updates stay in the live document, but create one undo item only at commit.
+    /// Cancelling a composition back to its starting text leaves no empty history item.
+    func setComposition(_ blockID: UUID, active: Bool) {
+        setComposition(key: blockID.uuidString, active: active)
+    }
+
+    func setTableComposition(_ blockID: UUID, row: Int, col: Int, active: Bool) {
+        setComposition(key: "\(blockID)-\(row)-\(col)", active: active)
+    }
+
+    private func setComposition(key: String, active: Bool) {
+        if active {
+            guard compositionKey != key else { return }
+            finishComposition()
+            breakUndoCoalescing()
+            compositionBefore = Snapshot(blocks: blocks, focus: focus)
+            compositionKey = key
+            compositionInProgress = true
+            undoManager.compositionInProgress = true
+        } else if compositionKey == key {
+            finishComposition()
+        }
+    }
+
+    private func finishComposition() {
+        guard let before = compositionBefore else { return }
+        compositionBefore = nil
+        compositionKey = nil
+        compositionInProgress = false
+        undoManager.compositionInProgress = false
+        if before.blocks != blocks { registerRestore(before); historyRevision &+= 1 }
+        breakUndoCoalescing()
+    }
+
+    /// Title's Next key resumes the body, or enters the first editable block on a new visit.
+    func focusBody() {
+        if let focus, let i = index(of: focus.blockID), !blocks[i].isNonText {
+            isEditing = true
+        } else if let first = blocks.first(where: { !$0.isNonText }) {
+            focus = EditorFocus(blockID: first.id, caret: 0)
+        } else {
+            focusTail()
+        }
+    }
+
+    func endEditing(_ blockID: UUID) {
+        if focus?.blockID == blockID { isEditing = false; breakUndoCoalescing() }
+    }
+
+    private func beginEdit(typingKey: String? = nil) {
+        if editDepth == 0 {
+            if compositionKey != nil, typingKey != compositionKey { finishComposition() }
+            editBefore = Snapshot(blocks: blocks, focus: focus)
+            editTypingKey = typingKey
+        }
+        editDepth += 1
+    }
+
+    private func endEdit() {
+        editDepth -= 1
+        guard editDepth == 0, let before = editBefore else { return }
+        editBefore = nil
+        if compositionKey != nil, editTypingKey == compositionKey { return }
+        guard before.blocks != blocks else { return }
+        let now = Date()
+        let coalesces = editTypingKey != nil && editTypingKey == lastTypingKey
+            && lastTypingAt.map { now.timeIntervalSince($0) < 1 } == true
+            && !undoManager.canRedo
+        if !coalesces { registerRestore(before) }
+        lastTypingKey = editTypingKey
+        lastTypingAt = editTypingKey == nil ? nil : now
+        historyRevision &+= 1
+    }
+
+    private func registerRestore(_ snapshot: Snapshot) {
+        undoManager.enableUndoRegistration()
+        let ownsGroup = undoManager.groupingLevel == 0
+        if ownsGroup { undoManager.beginUndoGrouping() }
+        undoManager.registerUndo(withTarget: self) { target in target.restoreHistory(snapshot) }
+        undoManager.setActionName(String(localized: "본문 편집"))
+        if ownsGroup { undoManager.endUndoGrouping() }
+        undoManager.disableUndoRegistration()
+    }
+
+    private func restoreHistory(_ snapshot: Snapshot) {
+        registerRestore(Snapshot(blocks: blocks, focus: focus))
+        blocks = snapshot.blocks
+        focus = snapshot.focus
+        suppressRevealOnceBlockID = snapshot.focus?.blockID
+        breakUndoCoalescing()
+        historyRevision &+= 1
+    }
     /// 툴바 서식 직후 1회 마커 반개봉 억제(B1) — 이 블록의 다음 렌더는 캐럿이 스팬 안이어도 마커를
     /// 숨긴다("굵게 눌렀는데 **가 보인다"의 근본). 뷰가 그 렌더에서 소비(nil 로)한다. 이후 캐럿 이동/
     /// 타이핑엔 정상 반개봉이 돌아온다(왕복·reveal 계약 불변 — 표시 속성 1프레임만 다르다).
@@ -40,6 +177,9 @@ final class EditorDocument {
 
     init(blocks: [EditorBlock] = [.paragraph("")]) {
         self.blocks = blocks.isEmpty ? [.paragraph("")] : blocks
+        undoManager.groupsByEvent = false
+        undoManager.levelsOfUndo = 100
+        undoManager.disableUndoRegistration()
     }
 
     convenience init(markdown: String) {
@@ -57,6 +197,7 @@ final class EditorDocument {
 
     /// 뷰가 블록 안 타이핑을 반영 — 구조는 그대로, text 만 바꾼다.
     func updateText(_ id: UUID, _ newText: String) {
+        beginEdit(typingKey: id.uuidString); defer { endEdit() }
         guard let i = index(of: id), blocks[i].text != newText else { return }
         blocks[i].text = newText
     }
@@ -64,22 +205,34 @@ final class EditorDocument {
     // MARK: 엔터 = 분할
 
     /// 블록 `id` 의 caret 위치에서 엔터. 코드 블록 안 엔터는 분할이 아니라 개행(뷰가 처리) —
-    /// 여기 오는 엔터는 "블록을 가르는" 엔터다. caret 앞은 현재 블록, 뒤는 새 블록으로.
-    /// 반환: 새로 포커스를 받아야 하는 (blockID, caret=0).
+    /// Keep the current block's identity on the tail where typing continues. Replacing its
+    /// responder with a new SwiftUI row would send rapid input to the old paragraph for a frame.
+    /// Selection removal and splitting form one undo item. The continuation caret is inside
+    /// any reopened formatting marker so the next character retains the current formatting.
     @discardableResult
-    func splitBlock(_ id: UUID, at caret: Int) -> EditorFocus? {
+    func splitBlock(_ id: UUID, at caret: Int, deleting selectionLength: Int = 0) -> EditorFocus? {
+        beginEdit(); defer { endEdit() }
         guard let i = index(of: id) else { return nil }
-        let block = blocks[i]
+        var block = blocks[i]
         let clamped = max(0, min(caret, block.text.count))
+        let selectedEnd = min(block.text.count, clamped + max(0, selectionLength))
+        if selectedEnd > clamped {
+            let start = block.text.index(block.text.startIndex, offsetBy: clamped)
+            let end = block.text.index(block.text.startIndex, offsetBy: selectedEnd)
+            block.text.removeSubrange(start..<end)
+            blocks[i].text = block.text
+        }
         let cut = block.text.index(block.text.startIndex, offsetBy: clamped)
         var head = String(block.text[..<cut])
         var tail = String(block.text[cut...])
+        var continuationCaret = 0
 
         // 강조 스팬 안에서 분할하면 짝이 갈려 양쪽에 리터럴 마커가 남는다(`**굵|게**`→`**굵`·`게**`).
         // head 를 닫는 마커로 닫고 tail 을 여는 마커로 다시 열어 양쪽 서식을 보존한다(리스트 항목도 동일).
         if let marker = BlockInlineRenderer.splitMarker(in: block.text, caret: clamped) {
             head += marker
             tail = marker + tail
+            continuationCaret = marker.count
         }
 
         // 리스트 항목에서 엔터 — 빈 항목이면 리스트 탈출(내어쓰기 → indent 0 이면 문단),
@@ -96,15 +249,13 @@ final class EditorDocument {
                 focus = f
                 return f
             }
-            blocks[i].text = head
-            let newBlock = EditorBlock(kind: .listItem(ordered: ordered, indent: indent), text: tail)
-            blocks.insert(newBlock, at: i + 1)
-            let f = EditorFocus(blockID: newBlock.id, caret: 0)
+            blocks[i].text = tail
+            let headBlock = EditorBlock(kind: block.kind, text: head)
+            blocks.insert(headBlock, at: i)
+            let f = EditorFocus(blockID: id, caret: continuationCaret)
             focus = f
             return f
         }
-
-        blocks[i].text = head
 
         // 제목/인용 뒤로 엔터를 치면 새 줄은 문단으로 떨어진다(에디터 관습) — 단 내용이 남은
         // 뒷부분이 있으면 같은 종류를 유지(제목 중간에서 가른 경우).
@@ -121,9 +272,10 @@ final class EditorDocument {
             }
         }()
 
-        let newBlock = EditorBlock(kind: newKind, text: tail)
-        blocks.insert(newBlock, at: i + 1)
-        let f = EditorFocus(blockID: newBlock.id, caret: 0)
+        blocks[i].text = tail
+        blocks[i].kind = newKind
+        blocks.insert(EditorBlock(kind: block.kind, text: head), at: i)
+        let f = EditorFocus(blockID: id, caret: continuationCaret)
         focus = f
         return f
     }
@@ -132,12 +284,14 @@ final class EditorDocument {
 
     /// 리스트 항목을 한 단계 안으로(최대 4). 리스트가 아니면 무동작.
     func indentListItem(_ id: UUID) {
+        beginEdit(); defer { endEdit() }
         guard let i = index(of: id), case .listItem(let ordered, let indent) = blocks[i].kind else { return }
         blocks[i].kind = .listItem(ordered: ordered, indent: min(4, indent + 1))
     }
 
     /// 리스트 항목을 한 단계 밖으로 — indent 0 이면 문단으로 강등.
     func outdentListItem(_ id: UUID) {
+        beginEdit(); defer { endEdit() }
         guard let i = index(of: id), case .listItem(let ordered, let indent) = blocks[i].kind else { return }
         if indent > 0 {
             blocks[i].kind = .listItem(ordered: ordered, indent: indent - 1)
@@ -153,6 +307,7 @@ final class EditorDocument {
     /// 반환: 병합 후 포커스(앞 블록, caret=앞 블록 원래 길이).
     @discardableResult
     func mergeBackward(_ id: UUID) -> EditorFocus? {
+        beginEdit(); defer { endEdit() }
         guard let i = index(of: id) else { return nil }
 
         // 리스트 항목 맨 앞 백스페이스 = 리스트 마커 벗기기(내어쓰기 → indent 0 이면 문단으로 강등).
@@ -221,6 +376,7 @@ final class EditorDocument {
     /// 포커스가 없으면 문서 끝에 붙인다. 반환: 새 후속 문단의 포커스.
     @discardableResult
     func insertNonText(_ block: EditorBlock) -> EditorFocus? {
+        beginEdit(); defer { endEdit() }
         let anchorIndex = focus.flatMap { index(of: $0.blockID) } ?? (blocks.count - 1)
         let insertAt = min(anchorIndex + 1, blocks.count)
         blocks.insert(block, at: insertAt)
@@ -248,6 +404,7 @@ final class EditorDocument {
     /// `label` 이 비면 URL 자체를 라벨로 쓴다. 반환: 이어서 쓸 새 후속 문단의 포커스.
     @discardableResult
     func insertLink(url: String, label: String) -> EditorFocus? {
+        beginEdit(); defer { endEdit() }
         let trimmedURL = url.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedURL.isEmpty else { return focus }
         let block: EditorBlock
@@ -265,6 +422,7 @@ final class EditorDocument {
 
     /// 표 블록의 (row,col) 셀 텍스트 갱신.
     func updateTableCell(_ id: UUID, row: Int, col: Int, text: String) {
+        beginEdit(typingKey: "\(id)-\(row)-\(col)"); defer { endEdit() }
         guard let i = index(of: id), case .table(var table) = blocks[i].kind else { return }
         guard row >= 0, row < table.rows.count, col >= 0, col < table.rows[row].count else { return }
         table.rows[row][col] = text
@@ -273,6 +431,7 @@ final class EditorDocument {
 
     /// 표에 행 추가(맨 아래).
     func addTableRow(_ id: UUID) {
+        beginEdit(); defer { endEdit() }
         guard let i = index(of: id), case .table(var table) = blocks[i].kind else { return }
         table.rows.append(Array(repeating: "", count: table.columnCount))
         blocks[i].kind = .table(table)
@@ -280,6 +439,7 @@ final class EditorDocument {
 
     /// 표에 열 추가(맨 오른쪽) — 정렬 기본 leading.
     func addTableColumn(_ id: UUID) {
+        beginEdit(); defer { endEdit() }
         guard let i = index(of: id), case .table(var table) = blocks[i].kind else { return }
         for r in table.rows.indices { table.rows[r].append("") }
         table.alignments.append(.leading)
@@ -288,6 +448,7 @@ final class EditorDocument {
 
     /// 열 정렬을 순환(leading → center → trailing → leading). GFM 구분선 토큰으로 왕복된다.
     func cycleTableColumnAlignment(_ id: UUID, col: Int) {
+        beginEdit(); defer { endEdit() }
         guard let i = index(of: id), case .table(var table) = blocks[i].kind else { return }
         while table.alignments.count <= col { table.alignments.append(.leading) }
         let next: EditorTable.Alignment = {
@@ -309,6 +470,7 @@ final class EditorDocument {
 
     /// 스냅샷으로 표를 되돌린다 — 삭제 되돌리기(토스트 undo)에서 호출.
     func restoreTable(_ id: UUID, to table: EditorTable) {
+        beginEdit(); defer { endEdit() }
         guard let i = index(of: id), case .table = blocks[i].kind else { return }
         blocks[i].kind = .table(table)
     }
@@ -317,6 +479,7 @@ final class EditorDocument {
     /// 지웠으면 true(삭제 토스트 표시용). +행이 맨 아래에 붙이므로 −행도 맨 아래에서 뺀다(대칭).
     @discardableResult
     func deleteTableRow(_ id: UUID) -> Bool {
+        beginEdit(); defer { endEdit() }
         guard let i = index(of: id), case .table(var table) = blocks[i].kind else { return false }
         // rows[0]=헤더. 본문(rows[1...])이 2행 이상일 때만 마지막 본문 행을 뺀다.
         guard table.rows.count >= 3 else { return false }
@@ -329,6 +492,7 @@ final class EditorDocument {
     /// 지웠으면 true. +열이 맨 오른쪽에 붙으므로 −열도 맨 오른쪽에서 뺀다(대칭).
     @discardableResult
     func deleteTableColumn(_ id: UUID) -> Bool {
+        beginEdit(); defer { endEdit() }
         guard let i = index(of: id), case .table(var table) = blocks[i].kind else { return false }
         guard table.columnCount >= 2 else { return false }
         let last = table.columnCount - 1
@@ -348,6 +512,7 @@ final class EditorDocument {
     /// 캔버스 빈 영역 탭과, 포커스 없이 눌린 서식 버튼이 이 포커스를 쓴다.
     @discardableResult
     func focusTail() -> EditorFocus {
+        beginEdit(); defer { endEdit() }
         if let last = blocks.last, !last.isNonText, !isCodeKind(last.kind) {
             let f = EditorFocus(blockID: last.id, caret: last.text.count)
             focus = f
@@ -370,6 +535,7 @@ final class EditorDocument {
     /// 줄머리 지름길을 블록 종류 전환으로 승격 — 뷰가 `> `·`# `·```` 를 감지해 부른다.
     /// text 는 마커를 뗀 나머지. 전환 후 caret 을 새 text 기준으로 되돌린다.
     func transform(_ id: UUID, to kind: EditorBlockKind, strippedText: String, caret: Int) {
+        beginEdit(); defer { endEdit() }
         guard let i = index(of: id) else { return }
         blocks[i].kind = kind
         blocks[i].text = strippedText
@@ -383,6 +549,7 @@ final class EditorDocument {
     /// 포커스가 없으면 문서 끝을 잡아 거기에 적용한다 — 캔버스를 탭하기 전에 누른 서식 버튼이
     /// 조용히 죽는 대신 "끝에서 이어 쓰기"로 응답한다(포커스·키보드도 함께 선다).
     func toggleFocusedBlockKind(_ kind: EditorBlockKind) {
+        beginEdit(); defer { endEdit() }
         if focus == nil { focusTail() }
         guard let f = focus, let i = index(of: f.blockID) else { return }
         if blocks[i].isNonText { return }
@@ -397,6 +564,7 @@ final class EditorDocument {
     /// 인용·리스트 등 다른 텍스트 블록에서 눌리면 제목 1 부터 시작. 그 외 규칙(텍스트·캐럿 보존,
     /// 비텍스트 무동작, 무포커스 = 끝에서 이어 쓰기)은 toggleFocusedBlockKind 와 같다.
     func cycleFocusedHeading() {
+        beginEdit(); defer { endEdit() }
         if focus == nil { focusTail() }
         guard let f = focus, let i = index(of: f.blockID) else { return }
         if blocks[i].isNonText { return }
@@ -426,6 +594,7 @@ final class EditorDocument {
     /// (굵게 다시 누르면 해제 — 재랩·별표 잔존 방지). 감싼/벗긴 뒤엔 내용을 다시 선택 상태로 되돌려
     /// 연속 서식·해제를 잇는다. 왕복: text 에 마크다운 원문을 넣을 뿐.
     func wrapFocusedSelection(with marker: String) {
+        beginEdit(); defer { endEdit() }
         if focus == nil { focusTail() }  // 포커스 전에 눌린 버튼도 죽지 않게 — 끝에 빈 마커쌍을 놓고 캐럿을 그 사이에.
         guard let f = focus, let i = index(of: f.blockID), !blocks[i].isNonText else { return }
         let text = blocks[i].text
@@ -500,6 +669,7 @@ final class EditorDocument {
     /// 알럿을 열기 **전에** 잡아둔 포커스를 넘겨 원래 선택을 감싼다. 성공하면 true(호출자가 폴백 판단).
     @discardableResult
     func linkSelection(at target: EditorFocus, url: String, label: String = "") -> Bool {
+        beginEdit(); defer { endEdit() }
         guard let i = index(of: target.blockID), !blocks[i].isNonText else { return false }
         let trimmedURL = url.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedURL.isEmpty else { return false }
@@ -533,12 +703,14 @@ final class EditorDocument {
     // MARK: 삽입 · 삭제
 
     func insertBlock(_ block: EditorBlock, after id: UUID) {
+        beginEdit(); defer { endEdit() }
         guard let i = index(of: id) else { blocks.append(block); return }
         blocks.insert(block, at: i + 1)
         focus = EditorFocus(blockID: block.id, caret: 0)
     }
 
     func deleteBlock(_ id: UUID) {
+        beginEdit(); defer { endEdit() }
         guard blocks.count > 1, let i = index(of: id) else { return }
         blocks.remove(at: i)
         let target = blocks[max(0, i - 1)]
@@ -548,6 +720,7 @@ final class EditorDocument {
     /// 블록 하나를 지우고 되돌리기 재료(지운 블록·바로 앞 블록 id)를 돌려준다 — 삭제 토스트 undo 용.
     /// 앞이 없으면(맨 앞) afterId=nil. 문서에 블록이 하나뿐이면 지우지 않는다(nil).
     func removeBlock(_ id: UUID) -> (block: EditorBlock, afterId: UUID?)? {
+        beginEdit(); defer { endEdit() }
         guard blocks.count > 1, let i = index(of: id) else { return nil }
         let removed = blocks[i]
         let afterId = i > 0 ? blocks[i - 1].id : nil
@@ -559,6 +732,7 @@ final class EditorDocument {
 
     /// removeBlock 으로 지운 블록을 원래 자리에 되돌린다(삭제 토스트 undo).
     func restoreBlock(_ block: EditorBlock, afterId: UUID?) {
+        beginEdit(); defer { endEdit() }
         if let afterId, let i = index(of: afterId) {
             blocks.insert(block, at: i + 1)
         } else {

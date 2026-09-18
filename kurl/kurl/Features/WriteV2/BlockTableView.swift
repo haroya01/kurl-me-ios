@@ -25,6 +25,9 @@ struct BlockTableView: View {
     let onDeleteColumn: () -> Void
     let onDeleteTable: () -> Void
     let onFocused: () -> Void
+    var documentUndoManager: UndoManager? = nil
+    var onEditingEnded: () -> Void = {}
+    var onCellCompositionChange: (Int, Int, Bool) -> Void = { _, _, _ in }
 
     private var table: EditorTable? {
         if case .table(let t) = block.kind { return t }
@@ -63,7 +66,10 @@ struct BlockTableView: View {
                             isHeader: r == 0,
                             alignment: c < table.alignments.count ? table.alignments[c] : .leading,
                             onChange: { onCellChange(r, c, $0) },
-                            onFocused: onFocused
+                            onFocused: onFocused,
+                            documentUndoManager: documentUndoManager,
+                            onEditingEnded: onEditingEnded,
+                            onCompositionChange: { onCellCompositionChange(r, c, $0) }
                         )
                         .frame(minWidth: 96, alignment: .leading)
                         .padding(.horizontal, 10)
@@ -147,9 +153,13 @@ private struct TableCellEditor: UIViewRepresentable {
     let alignment: EditorTable.Alignment
     let onChange: (String) -> Void
     let onFocused: () -> Void
+    var documentUndoManager: UndoManager? = nil
+    var onEditingEnded: () -> Void = {}
+    var onCompositionChange: (Bool) -> Void = { _ in }
 
     func makeUIView(context: Context) -> UITextView {
-        let tv = UITextView()
+        let tv = BlockUITextView()
+        tv.documentUndoManager = documentUndoManager
         tv.delegate = context.coordinator
         tv.isScrollEnabled = false
         tv.backgroundColor = .clear
@@ -169,6 +179,7 @@ private struct TableCellEditor: UIViewRepresentable {
 
     func updateUIView(_ tv: UITextView, context: Context) {
         context.coordinator.parent = self
+        guard tv.markedTextRange == nil else { return }
         if tv.text != text { apply(tv) }
     }
 
@@ -193,15 +204,22 @@ private struct TableCellEditor: UIViewRepresentable {
         init(_ parent: TableCellEditor) { self.parent = parent }
 
         func textViewDidBeginEditing(_ textView: UITextView) { parent.onFocused() }
+        func textViewDidEndEditing(_ textView: UITextView) {
+            parent.onCompositionChange(false)
+            parent.onEditingEnded()
+        }
 
         func textView(
             _ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String
         ) -> Bool {
-            text != "\n"  // 셀 안 개행 금지 — 한 줄 셀(GFM 행 무결).
+            if textView.markedTextRange != nil { return true }
+            return text != "\n"  // 셀 안 개행 금지 — 한 줄 셀(GFM 행 무결).
         }
 
         func textViewDidChange(_ textView: UITextView) {
+            if textView.markedTextRange != nil { parent.onCompositionChange(true) }
             parent.onChange(textView.text ?? "")
+            if textView.markedTextRange == nil { parent.onCompositionChange(false) }
         }
     }
 }

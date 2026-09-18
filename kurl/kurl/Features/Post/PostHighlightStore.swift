@@ -30,6 +30,14 @@ final class PostHighlightStore {
     /// 고정 지연 핸드오프는 첫 해제(콜드 계층)에서 프레젠테이션을 유실했다.
     var pendingConnect: HighlightView?
 
+    @ObservationIgnored private let isSignedIn: @MainActor () -> Bool
+    @ObservationIgnored private let createRequest: @MainActor (Int64, NewHighlight) async throws -> HighlightRef
+    @ObservationIgnored private let listRequest: @MainActor (Int64) async throws -> [HighlightView]
+    @ObservationIgnored private let deleteRequest: @MainActor (Int64) async throws -> Void
+    @ObservationIgnored private var nextOptimisticId: Int64 = -1
+    @ObservationIgnored private var mutationVersion = 0
+    @ObservationIgnored private var pendingDeletes: Set<Int64> = []
+
     /// 메모 입력 시트를 구동하는 선택 구간.
     struct NoteDraft: Identifiable {
         let blockOrder: Int
@@ -39,12 +47,31 @@ final class PostHighlightStore {
         var id: String { "\(blockOrder)-\(startOffset)-\(endOffset)" }
     }
 
-    init(postId: Int64) { self.postId = postId }
+    init(
+        postId: Int64,
+        isSignedIn: @escaping @MainActor () -> Bool = { AuthStore.shared.isSignedIn },
+        createRequest: @escaping @MainActor (Int64, NewHighlight) async throws -> HighlightRef = {
+            try await HighlightsAPI.create(postId: $0, $1)
+        },
+        listRequest: @escaping @MainActor (Int64) async throws -> [HighlightView] = {
+            try await HighlightsAPI.list(postId: $0)
+        },
+        deleteRequest: @escaping @MainActor (Int64) async throws -> Void = {
+            try await HighlightsAPI.delete(id: $0)
+        }
+    ) {
+        self.postId = postId
+        self.isSignedIn = isSignedIn
+        self.createRequest = createRequest
+        self.listRequest = listRequest
+        self.deleteRequest = deleteRequest
+    }
 
     func load() async {
+        let version = mutationVersion
         // 실패 시 기존 배열 유지 — 빈 배열로 갈면 화면에 칠해진 마크(남들 공개 하이라이트 포함)가 전부 사라진다.
-        if let fresh = try? await HighlightsAPI.list(postId: postId) {
-            highlights = fresh
+        if let fresh = try? await listRequest(postId), version == mutationVersion {
+            highlights = fresh.filter { !pendingDeletes.contains($0.id) } + highlights.filter { $0.id < 0 }
         }
     }
 
@@ -63,20 +90,26 @@ final class PostHighlightStore {
             let hasThread = (h.note?.isEmpty == false) || h.replyCount > 0
             let start: Int
             let end: Int
+            let segment: SelectableProseText.Mark.Segment
             if endBO <= startBO {
                 start = h.startOffset ?? -1
                 end = h.endOffset ?? -1
+                segment = .single
             } else if blockOrder == startBO {
-                start = h.startOffset ?? 0
+                start = h.startOffset ?? -1
                 end = Int.max
+                segment = .start
             } else if blockOrder == endBO {
                 start = 0
-                end = h.endOffset ?? 0
+                end = h.endOffset ?? -1
+                segment = .end
             } else {
                 start = 0
                 end = Int.max
+                segment = .middle
             }
-            return SelectableProseText.Mark(id: h.id, start: start, end: end, quote: h.quote, hasThread: hasThread)
+            return SelectableProseText.Mark(
+                id: h.id, start: start, end: end, quote: h.quote, hasThread: hasThread, segment: segment)
         }
     }
 
@@ -84,43 +117,63 @@ final class PostHighlightStore {
     /// 즉시 칠하고 서버 echo 로 진짜 id·attribution 을 채운다. 실패하면 낙관 마크를 걷어내고
     /// 토스트로 알린다(삭제와 같은 문법) — 무음이면 메모까지 소리 없이 유실된다.
     func create(blockOrder: Int, startOffset: Int, endOffset: Int, quote: String, note: String? = nil) {
-        guard AuthStore.shared.isSignedIn else {
+        guard isSignedIn() else {
             loginPrompt = true
             return
         }
+        Task {
+            do {
+                try await createAndWait(
+                    blockOrder: blockOrder, startOffset: startOffset, endOffset: endOffset,
+                    quote: quote, note: note)
+            } catch {
+                ToastCenter.shared.show((error as? HighlightValidationError)?.localizedDescription
+                    ?? String(localized: "하이라이트를 저장하지 못했습니다"))
+            }
+        }
+    }
+
+    /// 메모 시트는 이 완료를 기다린 뒤 닫는다. 실패는 호출부에 돌려 입력·재시도를 유지한다.
+    func createAndWait(
+        blockOrder: Int, startOffset: Int, endOffset: Int, quote: String, note: String? = nil
+    ) async throws {
+        guard isSignedIn() else { throw AuthError.notSignedIn }
         let trimmed = note?.trimmingCharacters(in: .whitespacesAndNewlines)
         let memo = (trimmed?.isEmpty == false) ? trimmed : nil
+        let payload = NewHighlight(
+            blockOrder: blockOrder, endBlockOrder: blockOrder, startOffset: startOffset,
+            endOffset: endOffset, quote: quote, note: memo)
+        try HighlightsAPI.validate(payload)
         // iOS 선택은 블록 단위(문단별 UITextView)라 생성은 늘 단일 블록 — endBlockOrder == blockOrder.
         let optimistic = HighlightView(
-            id: -Int64(highlights.count + 1), author: nil, blockOrder: blockOrder,
+            id: nextOptimisticId, author: nil, blockOrder: blockOrder,
             endBlockOrder: blockOrder, startOffset: startOffset, endOffset: endOffset, quote: quote,
             note: memo, replyCount: 0, createdAt: nil)
+        nextOptimisticId -= 1
+        mutationVersion += 1
         highlights.append(optimistic)
         // 그은 순간 가벼운 촉감 하나 — 좋아요·다음글과 같은 결의 확인(§1.6 조용하지만 살아 있게).
         // 마크가 즉시 칠해지는 그 순간에 맞춰, 형제 인게이지 동작과 동일한 light 무게로.
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        Task {
-            do {
-                let echo = try await HighlightsAPI.create(
-                    postId: postId,
-                    NewHighlight(
-                        blockOrder: blockOrder, endBlockOrder: blockOrder, startOffset: startOffset,
-                        endOffset: endOffset, quote: quote, note: memo))
-                // 낙관 항목을 echo 로 교체 — 뒤의 재조회가 실패해도 진짜 id 라 스레드·삭제가 동작한다.
-                if let idx = highlights.firstIndex(where: { $0.id == optimistic.id }) {
-                    highlights[idx] = HighlightView(
-                        id: echo.id, author: nil, blockOrder: echo.blockOrder,
-                        endBlockOrder: echo.endBlockOrder, startOffset: echo.startOffset,
-                        endOffset: echo.endOffset, quote: echo.quote, note: echo.note,
-                        replyCount: 0, createdAt: echo.createdAt)
-                }
-                await load()
-            } catch {
-                withAnimation(.snappy(duration: 0.25)) {
-                    highlights.removeAll { $0.id == optimistic.id }
-                }
-                ToastCenter.shared.show(String(localized: "하이라이트를 저장하지 못했습니다"))
+        do {
+            let echo = try await createRequest(postId, payload)
+            mutationVersion += 1
+            // 낙관 항목을 echo 로 교체 — 뒤의 재조회가 실패해도 진짜 id 라 스레드가 동작한다.
+            if let idx = highlights.firstIndex(where: { $0.id == optimistic.id }) {
+                highlights[idx] = HighlightView(
+                    id: echo.id, author: nil, blockOrder: echo.blockOrder,
+                    endBlockOrder: echo.endBlockOrder, startOffset: echo.startOffset,
+                    endOffset: echo.endOffset, quote: echo.quote, note: echo.note,
+                    replyCount: 0, createdAt: echo.createdAt)
             }
+            // 저장 완료를 목록 재조회 네트워크에 묶지 않는다. 시트는 이제 안전하게 닫힐 수 있다.
+            Task { await load() }
+        } catch {
+            mutationVersion += 1
+            withAnimation(.snappy(duration: 0.25)) {
+                highlights.removeAll { $0.id == optimistic.id }
+            }
+            throw error
         }
     }
 
@@ -129,15 +182,25 @@ final class PostHighlightStore {
     @discardableResult
     func delete(id: Int64) async -> Bool {
         guard let idx = highlights.firstIndex(where: { $0.id == id }) else { return false }
-        let snapshot = highlights
+        let removed = highlights[idx]
+        pendingDeletes.insert(id)
+        defer { pendingDeletes.remove(id) }
+        mutationVersion += 1
         withAnimation(.snappy(duration: 0.25)) {
             highlights.remove(at: idx)
         }
         do {
-            try await HighlightsAPI.delete(id: id)
+            try await deleteRequest(id)
+            mutationVersion += 1
             return true
         } catch {
-            withAnimation(.snappy(duration: 0.25)) { highlights = snapshot }
+            mutationVersion += 1
+            // Only restore this item; a concurrent create/refresh owns the rest of the array.
+            if !highlights.contains(where: { $0.id == id }) {
+                withAnimation(.snappy(duration: 0.25)) {
+                    highlights.insert(removed, at: min(idx, highlights.count))
+                }
+            }
             return false
         }
     }

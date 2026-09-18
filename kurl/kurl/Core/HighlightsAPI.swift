@@ -9,6 +9,20 @@ import Foundation
 /// 백엔드 `PostHighlightController`/`PublicHighlightController`/`HighlightReplyController` 와 1:1.
 enum HighlightsAPI {
     private static let client = APIClient.shared
+    // Java String.length / @Size count UTF-16 units; match the server before it truncates a quote.
+    static let maxQuoteLength = 1000
+    static let maxNoteLength = 500
+
+    static func validate(_ payload: NewHighlight) throws {
+        guard payload.blockOrder >= 0, payload.endBlockOrder >= payload.blockOrder,
+              payload.startOffset >= 0, payload.endOffset >= 0,
+              payload.endBlockOrder > payload.blockOrder || payload.endOffset > payload.startOffset,
+              !payload.quote.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw HighlightValidationError.invalidSelection
+        }
+        guard payload.quote.utf16.count <= maxQuoteLength else { throw HighlightValidationError.quoteTooLong }
+        guard (payload.note?.utf16.count ?? 0) <= maxNoteLength else { throw HighlightValidationError.noteTooLong }
+    }
 
     /// 공개 — 이 글의 모든 하이라이트(attributed). 미로그인도 읽는다.
     static func list(postId: Int64) async throws -> [HighlightView] {
@@ -18,7 +32,8 @@ enum HighlightsAPI {
     /// 인증 — 발행된 글에 하이라이트 생성(선택적 공개 메모 포함). 생성된 것을 그대로 돌려받는다.
     @discardableResult
     static func create(postId: Int64, _ payload: NewHighlight) async throws -> HighlightRef {
-        try await client.post("/posts/\(postId)/highlights", body: payload, authenticated: true)
+        try validate(payload)
+        return try await client.post("/posts/\(postId)/highlights", body: payload, authenticated: true)
     }
 
     /// 인증 — 내가 그은 하이라이트 삭제(본인만).
@@ -56,6 +71,18 @@ enum HighlightsAPI {
         var query: [String: String?] = ["page": String(page), "size": String(size)]
         if scope == .global { query["scope"] = "global" }
         return try await client.get("/highlights/feed", query: query, authenticated: true)
+    }
+}
+
+enum HighlightValidationError: LocalizedError {
+    case invalidSelection, quoteTooLong, noteTooLong
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidSelection: String(localized: "하이라이트할 문장을 다시 선택해 주세요.")
+        case .quoteTooLong: String(localized: "1,000자 이내로 선택해 주세요.")
+        case .noteTooLong: String(localized: "메모는 500자 이내로 남겨 주세요.")
+        }
     }
 }
 
@@ -111,11 +138,19 @@ struct HighlightReplyView: Decodable, Identifiable, Hashable {
 struct MyHighlightView: Decodable, Identifiable, Hashable {
     let id: Int64
     let quote: String
+    /// Optional for compatibility with older responses; always public when supplied.
+    let note: String?
     let blockOrder: Int?
     let postUsername: String
     let postSlug: String
     let postTitle: String
     let createdAt: Date?
+
+    func matches(_ query: String) -> Bool {
+        let term = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        return term.isEmpty || quote.localizedStandardContains(term)
+            || postTitle.localizedStandardContains(term) || (note?.localizedStandardContains(term) ?? false)
+    }
 }
 
 /// "남들 하이라이트" 피드 한 항목 — 팔로우한 큐레이터가 그은 구절 + 원문 참조(구절로 이동)·메모·답글 수.
