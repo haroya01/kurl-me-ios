@@ -86,6 +86,7 @@ struct ComposeView: View {
     @State private var loadFailed = false
     @State private var lastSavedSignature: String?
     @State private var lastSavedAt: Date?
+    @State private var locallySavedBodySignature: String?
     /// 마지막 자동저장이 실패했는가 — 정직한 '저장 실패' 표시(조용히 재시도 중).
     @State private var autosaveFailed = false
     /// 실패 원인이 인증(401·세션 만료)인가 — "실패했어요"만 반복하면 사용자는 원인을 영영 모른다.
@@ -170,97 +171,13 @@ struct ComposeView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            // 가로(compact 높이)에서 에디터에 포커스가 가면 메타를 접는다 —
-            // 안 그러면 키보드+메타가 에디터 가시 영역을 0 으로 만든다.
-            if !(verticalSizeClass == .compact && editorFocused) {
-                meta
-                Hairline()
-                    .padding(.horizontal, Metrics.gutter)
-            }
-            editor
-        }
-        .background(Palette.readingBg.ignoresSafeArea())
-        // 키보드 위에 뜨는 유리 마크다운 바 — 캔버스는 종이, 크롬은 유리(AGENTS.md §1).
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if let editorDocument {
-                // WriteV2 서식 툴바 — 선택 서식(볼드·이탤릭·코드·링크)·블록 서식(제목·인용·코드·리스트)·
-                // 삽입(구분선·사진·표)을 한 유리 바로. 캔버스는 종이, 이 크롬만 유리(AGENTS §1).
-                V2FormatToolbar(
-                    focusedKind: editorDocument.focus.flatMap { f in
-                        editorDocument.blocks.first(where: { $0.id == f.blockID })?.kind
-                    },
-                    wrapInline: { marker in editorDocument.wrapFocusedSelection(with: marker); syncFromDocument() },
-                    insertLink: { presentV2LinkSheet() },
-                    toggleBlock: { kind in editorDocument.toggleFocusedBlockKind(kind); syncFromDocument() },
-                    cycleHeading: { editorDocument.cycleFocusedHeading(); syncFromDocument() },
-                    insertDivider: { editorDocument.insertNonText(.divider); syncFromDocument() },
-                    insertImage: { showV2ImagePicker = true },
-                    insertTable: { editorDocument.insertNonText(.table(.blank)); syncFromDocument() },
-                    indentList: {
-                        if let id = editorDocument.focus?.blockID {
-                            editorDocument.indentListItem(id)
-                            syncFromDocument()
-                        }
-                    },
-                    outdentList: {
-                        if let id = editorDocument.focus?.blockID {
-                            editorDocument.outdentListItem(id)
-                            syncFromDocument()
-                        }
-                    },
-                    dismissKeyboard: {
-                        // 포커스 블록의 UITextView 는 responder 체인에 있으니 전역 resign 으로 키보드를 접고,
-                        // 문서 focus 도 비워 서식 툴바가 함께 내려가게 한다(editorFocused=false).
-                        UIApplication.shared.sendAction(
-                            #selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                        editorDocument.focus = nil
-                    }
-                )
-            } else if editorFocused {
-                VStack(spacing: 8) {
-                    // 캐럿이 표 안일 때만 — 마크다운을 몰라도 행·열을 늘리고 줄인다.
-                    if caretInTable {
-                        TableActionBar(perform: applyTableAction)
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                    }
-                    // 캐럿이 이미지 줄일 때만 — 폭·캡션을 바꾸고 지운다(마크다운을 건드리지 않고).
-                    if caretOnImage {
-                        ImageActionBar(
-                            selectedWidth: editorController.currentImageWidth(),
-                            perform: applyImageAction
-                        )
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                    }
-                    // 캐럿이 단독 URL(임베드) 줄일 때만 — 교체·삭제.
-                    if caretOnVideo {
-                        VideoActionBar(perform: applyVideoAction)
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                    }
-                    // 캐럿이 목록 줄일 때만 — 들여쓰기/내어쓰기(목록 밖에선 스니펫 바에서 감춰 소음을 줄였다).
-                    if caretInList {
-                        ListActionBar(canOutdent: caretCanOutdent, perform: applyListAction)
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                    }
-                    MarkdownSnippetBar(
-                        canUndo: canUndo, canRedo: canRedo,
-                        undo: performUndo, redo: performRedo,
-                        perform: applySnippet
-                    ) { editorController.dismissKeyboard() }
-                }
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-        }
-        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: editorFocused)
-        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: caretInTable)
-        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: caretOnImage)
-        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: caretOnVideo)
-        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: caretInList)
+        compositionSurface
         .navigationTitle(existing == nil ? "새 글" : "편집")
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
         // 쓰는 동안 탭 5개가 떠 있을 이유가 없다 — 에디터는 풀스크린 몰입.
         .toolbar(.hidden, for: .tabBar)
+        .hidesTabBar()
         .toolbar { toolbarContent }
         .task {
             await loadExisting()
@@ -268,13 +185,17 @@ struct ComposeView: View {
             if Config.consumeLaunchValue(after: "--focus") == "editor" {
                 // representable 의 makeUIView 가 붙은 뒤에 포커스를 줘야 한다.
                 try? await Task.sleep(for: .milliseconds(200))
-                editorController.focus()
+                focusBodyEditor()
             }
             if Config.consumeLaunchValue(after: "--sheet") == "publish" {
                 showPublish = true
             }
         }
         .onChange(of: signature) { scheduleAutosave() }
+        .onChange(of: focusedField) { handleTitleFocusChange() }
+        .onChange(of: bodyEditorFocused) { (_: Bool, editing: Bool) in
+            handleBodyFocusChange(editing)
+        }
         .onChange(of: coverItem) { uploadPickedCover() }
         .photosPicker(isPresented: $showBodyImagePicker, selection: $bodyImageItem, matching: .images)
         .onChange(of: bodyImageItem) { uploadBodyImage() }
@@ -292,7 +213,7 @@ struct ComposeView: View {
             if signature != lastSavedSignature {
                 ComposeRecoveryStore.stash(postId: postId, title: title, markdown: markdown)
             }
-            if canSave, signature != lastSavedSignature {
+            if allowsAutosave, canSave, signature != lastSavedSignature {
                 DraftFlusher.shared.flush(
                     .init(
                         postId: postId,
@@ -417,12 +338,133 @@ struct ComposeView: View {
 
     // MARK: 메타 영역 — 캔버스엔 제목뿐. 태그·소개글·시리즈·커버는 발행 시트의 일.
 
+    private var compositionSurface: some View {
+        VStack(spacing: 0) {
+            // 가로(compact 높이)에서 에디터에 포커스가 가면 메타를 접는다 —
+            // 안 그러면 키보드+메타가 에디터 가시 영역을 0 으로 만든다.
+            if !(verticalSizeClass == .compact && bodyEditorFocused) {
+                meta
+                Hairline()
+                    .padding(.horizontal, Metrics.gutter)
+            }
+            editor
+        }
+        .background(Palette.readingBg.ignoresSafeArea())
+        // 키보드 위에 뜨는 유리 마크다운 바 — 캔버스는 종이, 크롬은 유리(AGENTS.md §1).
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if let editorDocument {
+                // WriteV2 서식 툴바 — 선택 서식(볼드·이탤릭·코드·링크)·블록 서식(제목·인용·코드·리스트)·
+                // 삽입(구분선·사진·표)을 한 유리 바로. 캔버스는 종이, 이 크롬만 유리(AGENTS §1).
+                V2FormatToolbar(
+                    canUndo: editorDocument.canUndo && focusedField != .title,
+                    canRedo: editorDocument.canRedo && focusedField != .title,
+                    undo: { editorDocument.undo(); syncFromDocument() },
+                    redo: { editorDocument.redo(); syncFromDocument() },
+                    focusedKind: editorDocument.focus.flatMap { f in
+                        editorDocument.blocks.first(where: { $0.id == f.blockID })?.kind
+                    },
+                    wrapInline: { marker in editorDocument.wrapFocusedSelection(with: marker); syncFromDocument() },
+                    insertLink: { presentV2LinkSheet() },
+                    toggleBlock: { kind in editorDocument.toggleFocusedBlockKind(kind); syncFromDocument() },
+                    cycleHeading: { editorDocument.cycleFocusedHeading(); syncFromDocument() },
+                    insertDivider: { editorDocument.insertNonText(.divider); syncFromDocument() },
+                    insertImage: { showV2ImagePicker = true },
+                    insertTable: { editorDocument.insertNonText(.table(.blank)); syncFromDocument() },
+                    indentList: {
+                        if let id = editorDocument.focus?.blockID {
+                            editorDocument.indentListItem(id)
+                            syncFromDocument()
+                        }
+                    },
+                    outdentList: {
+                        if let id = editorDocument.focus?.blockID {
+                            editorDocument.outdentListItem(id)
+                            syncFromDocument()
+                        }
+                    },
+                    dismissKeyboard: {
+                        // 포커스 블록의 UITextView 는 responder 체인에 있으니 전역 resign 으로 키보드를 접고,
+                        // 문서 focus 도 비워 서식 툴바가 함께 내려가게 한다(editorFocused=false).
+                        UIApplication.shared.sendAction(
+                            #selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                        editorDocument.isEditing = false
+                    }
+                )
+            } else if editorFocused {
+                VStack(spacing: 8) {
+                    // 캐럿이 표 안일 때만 — 마크다운을 몰라도 행·열을 늘리고 줄인다.
+                    if caretInTable {
+                        TableActionBar(perform: applyTableAction)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+                    // 캐럿이 이미지 줄일 때만 — 폭·캡션을 바꾸고 지운다(마크다운을 건드리지 않고).
+                    if caretOnImage {
+                        ImageActionBar(
+                            selectedWidth: editorController.currentImageWidth(),
+                            perform: applyImageAction
+                        )
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+                    // 캐럿이 단독 URL(임베드) 줄일 때만 — 교체·삭제.
+                    if caretOnVideo {
+                        VideoActionBar(perform: applyVideoAction)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+                    // 캐럿이 목록 줄일 때만 — 들여쓰기/내어쓰기(목록 밖에선 스니펫 바에서 감춰 소음을 줄였다).
+                    if caretInList {
+                        ListActionBar(canOutdent: caretCanOutdent, perform: applyListAction)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
+                    MarkdownSnippetBar(
+                        canUndo: canUndo, canRedo: canRedo,
+                        undo: performUndo, redo: performRedo,
+                        perform: applySnippet
+                    ) { editorController.dismissKeyboard() }
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: bodyEditorFocused)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: caretInTable)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: caretOnImage)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: caretOnVideo)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: caretInList)
+    }
+
+    private var bodyEditorFocused: Bool {
+        if let document = editorDocument { return document.isEditing }
+        return editorFocused
+    }
+
+    private func handleTitleFocusChange() {
+        if focusedField == .title {
+            editorDocument?.isEditing = false
+            editorDocument?.breakUndoCoalescing()
+        }
+    }
+
+    private func handleBodyFocusChange(_ editing: Bool) {
+        if editing { focusedField = nil }
+    }
+
+    private func focusBodyEditor() {
+        focusedField = nil
+        editorDocument?.isEditing = false
+        // SwiftUI finishes the title's submit/resign transaction after onSubmit returns.
+        // Requesting UIKit focus inside that transaction can immediately lose the new responder.
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        DispatchQueue.main.async {
+            if let editorDocument { editorDocument.focusBody() }
+            else { editorController.focus() }
+        }
+    }
+
     private var meta: some View {
         TextField("제목", text: $title)
             .typeScale(.masthead)
             .focused($focusedField, equals: .title)
             .submitLabel(.next)
-            .onSubmit { editorController.focus() }
+            .onSubmit { focusBodyEditor() }
             .padding(.horizontal, Metrics.gutter)
             .padding(.top, 16)
             .padding(.bottom, 12)
@@ -544,6 +586,8 @@ struct ComposeView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(Text("저장 상태 보기"))
+                .accessibilityValue(Text(saveStatusText(dirty: dirty)))
+                .accessibilityIdentifier("composeSaveStatus")
                 .popover(isPresented: $showSaveStatus) {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(saveStatusText(dirty: dirty))
@@ -561,7 +605,8 @@ struct ComposeView: View {
                             // 서버·네트워크 실패는 백오프를 기다리지 않고 지금 한 번 밀어볼 손잡이를 준다.
                             Button("지금 다시 저장") {
                                 showSaveStatus = false
-                                scheduleAutosave(after: .zero)
+                                if allowsAutosave { scheduleAutosave(after: .zero) }
+                                else { Task { await save(publish: false) } }
                             }
                             .font(.system(size: 13 * metaUnit, weight: .semibold))
                             .foregroundStyle(Palette.link)
@@ -579,7 +624,18 @@ struct ComposeView: View {
         // 프레스 시 .plain 의 옅은 디밍만 남는다. §10.
         .sharedBackgroundVisibility(.hidden)
         ToolbarItemGroup(placement: .primaryAction) {
-            if isPrePublish {
+            if let editorDocument {
+                Button {
+                    editorDocument.undo()
+                    syncFromDocument()
+                } label: {
+                    Image(systemName: "arrow.uturn.backward")
+                }
+                .disabled(!editorDocument.canUndo || focusedField == .title)
+                .accessibilityLabel(Text("실행취소"))
+                .accessibilityIdentifier("composeUndo")
+            }
+            if allowsAutosave {
                 // 초안은 자동저장이 곧 저장이다(2초 디바운스·이탈 플러시) — 손 저장 버튼을 따로 두면
                 // '임시저장'과 '자동저장'이 겹쳐 두 개념처럼 보인다. 손 버튼을 걷고, 좌측 상태 배지
                 // (저장됨·미저장·실패)를 초안의 단일 저장 표시로 둔다(웹 /write 와 같은 모델).
@@ -600,18 +656,28 @@ struct ComposeView: View {
         ToolbarSpacer(.fixed, placement: .primaryAction)
         ToolbarItem(placement: .primaryAction) {
             Menu {
+                if let editorDocument {
+                    Button {
+                        editorDocument.redo()
+                        syncFromDocument()
+                    } label: {
+                        Label("다시실행", systemImage: "arrow.uturn.forward")
+                    }
+                    .disabled(!editorDocument.canRedo || focusedField == .title)
+                    Divider()
+                }
                 Button {
                     openPreview()
                 } label: {
                     Label("미리보기", systemImage: "safari")
                 }
-                .disabled(postId == nil)
-                if !isPrePublish {
+                .disabled(markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                if !allowsAutosave {
                     // 발행·비공개 글의 태그·소개글·시리즈·커버 편집(+비공개는 다시 게시) — 같은 시트.
                     Button {
                         showPublish = true
                     } label: {
-                        Label(status == "UNPUBLISHED" ? "다시 게시…" : "글 정보…", systemImage: "info.circle")
+                        Label(status == "UNPUBLISHED" ? "다시 게시…" : status == "SCHEDULED" ? "발행 설정…" : "글 정보…", systemImage: "info.circle")
                     }
                 }
                 Button {
@@ -1162,6 +1228,9 @@ struct ComposeView: View {
     /// PUBLISHED 는 '글 정보' 저장, UNPUBLISHED(웹에서 내린 글)는 '다시 게시'로 다룬다.
     private var isPrePublish: Bool { status == "DRAFT" || status == "SCHEDULED" }
 
+    /// Scheduled content may become public at any moment, so it needs the same explicit save as a live post.
+    private var allowsAutosave: Bool { status == "DRAFT" }
+
     private var primaryPublishLabel: String {
         isPrePublish
             ? String(localized: "지금 발행")
@@ -1188,9 +1257,16 @@ struct ComposeView: View {
             .joined(separator: "\u{1F}")
     }
 
+    private var hasLocalContent: Bool {
+        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || !markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var bodyRecoverySignature: String { [title, markdown].joined(separator: "\u{1F}") }
+
     /// 저장 상태 표시를 띄울 조건 — 저장 이력이 있거나, 실패했거나, 저장할 미저장 변경이 있을 때.
     private var saveStatusVisible: Bool {
-        lastSavedAt != nil || autosaveFailed || (canSave && signature != lastSavedSignature)
+        lastSavedAt != nil || autosaveFailed || (hasLocalContent && signature != lastSavedSignature)
     }
 
     /// 인증이 아닌 저장 실패가 거듭되는가(서버 5xx·네트워크 단절) — 자동 재시도만 조용히 도는 대신
@@ -1202,15 +1278,23 @@ struct ComposeView: View {
     private var saveStatusIcon: String {
         if autosavePersistentFailure { return "exclamationmark.triangle" }
         if autosaveFailed { return "exclamationmark.icloud" }
-        if signature != lastSavedSignature { return "circle.dotted" }
+        if signature != lastSavedSignature { return !allowsAutosave || !canSave ? "iphone" : "circle.dotted" }
         return "checkmark.circle"
     }
 
     /// 내비바 배지의 짧은 라벨(B5) — 점선 스피너 홀로가 아니라 "저장 중…/저장됨" 텍스트로 신뢰를 준다.
     /// 실패류는 아이콘만으로도 눈에 띄니 라벨은 저장/저장중에만(§10 조용함 — 정상 상태를 조용히 말한다).
     private var saveStatusLabel: String? {
-        if autosaveFailed { return nil }  // 실패는 아이콘(구름!·삼각)이 말한다 — 라벨로 소란 떨지 않는다.
-        if signature != lastSavedSignature { return String(localized: "저장 중…") }
+        if autosaveNeedsLogin { return String(localized: "로그인 필요") }
+        if autosaveFailed { return String(localized: "저장 실패") }
+        if signature != lastSavedSignature {
+            if !allowsAutosave { return String(localized: "저장 필요") }
+            if !canSave {
+                return locallySavedBodySignature == bodyRecoverySignature
+                    ? String(localized: "기기에 보관") : String(localized: "보관 중…")
+            }
+            return String(localized: "저장 중…")
+        }
         if lastSavedAt != nil { return String(localized: "저장됨") }
         return nil
     }
@@ -1233,6 +1317,12 @@ struct ComposeView: View {
         if autosaveNeedsLogin { return String(localized: "로그인이 풀렸어요 — 다시 로그인해야 저장돼요") }
         if autosavePersistentFailure { return String(localized: "계속 저장하지 못하고 있어요 — 지금 다시 시도해 보세요") }
         if autosaveFailed { return String(localized: "저장하지 못했어요 — 자동으로 다시 시도해요") }
+        if dirty, !allowsAutosave {
+            return String(localized: "수정한 본문은 이 기기에 보관해요. 저장을 누르면 글에 반영돼요.")
+        }
+        if dirty, !canSave {
+            return String(localized: "제목과 본문을 채우면 다른 기기에서도 이어 쓸 수 있어요. 지금 쓰는 내용은 이 기기에 보관해요.")
+        }
         if dirty { return String(localized: "미저장 — 곧 저장돼요") }
         if let at = lastSavedAt {
             return String(localized: "저장됨 \(at.formatted(date: .omitted, time: .shortened))")
@@ -1346,8 +1436,12 @@ struct ComposeView: View {
             try? await Task.sleep(for: .milliseconds(800))
             guard !Task.isCancelled else { return }
             ComposeRecoveryStore.stash(postId: stash.postId, title: stash.title, markdown: stash.markdown)
+            if let saved = ComposeRecoveryStore.peek(postId: stash.postId),
+               saved.title == stash.title, saved.markdown == stash.markdown {
+                locallySavedBodySignature = [stash.title, stash.markdown].joined(separator: "\u{1F}")
+            }
         }
-        guard canSave, signature != lastSavedSignature else { return }
+        guard allowsAutosave, canSave, signature != lastSavedSignature else { return }
         autosaveTask = Task {
             try? await Task.sleep(for: delay)
             guard !Task.isCancelled else { return }
@@ -1358,7 +1452,7 @@ struct ComposeView: View {
     /// silent = 자동저장(디바운스·이탈) — 실패해도 타이핑 위로 모달을 띄우지 않고 첫 실패에만
     /// 토스트로 알린 뒤 백오프 간격으로 재무장한다. 명시 저장(버튼·발행·예약)은 silent=false 로 모달을 띄운다.
     private func save(publish: Bool, silent: Bool = false) async {
-        guard !busy, canSave else { return }
+        guard !busy, canSave, !silent || allowsAutosave else { return }
         // 명시 저장·발행이면 아직 +/Enter 안 누른 입력 중 태그도 포함한다(유실 방지).
         if !silent {
             let pending = normalizedTag(tagDraft)
@@ -1483,49 +1577,7 @@ struct ComposeView: View {
     // MARK: 부가 동작
 
     private func openPreview() {
-        guard let postId else { return }
-        // 초안(미발행)은 네이티브 읽기 미리보기 — 지금 문서(markdown)를 발행 후 모습으로 바로 띄운다.
-        // 웹 프리뷰 URL 왕복이 없어 slug·서버 대기 없이 즉시 열린다. 발행된 글만 웹 경로(아래).
-        if isPrePublish {
-            if showPublish { showFormDraftPreview = true } else { showDraftPreview = true }
-            return
-        }
-        let slug = existing?.slug
-        Task {
-            // 새 글이면 목록에서 slug 를 다시 찾는다(생성 응답을 보관 안 했을 때 대비).
-            let resolved: String
-            if let slug {
-                resolved = slug
-            } else {
-                resolved = (try? await WriteAPI.myPosts())?
-                    .first(where: { $0.id == postId })?.slug ?? ""
-            }
-            // slug 미해결이면 깨진 URL(.../p/username/?preview=…)을 열지 않는다 — 잠시 후 재시도.
-            guard !resolved.isEmpty else {
-                ToastCenter.shared.show(String(localized: "미리보기를 여는 중이에요. 잠시 후 다시 시도해 주세요."))
-                return
-            }
-            // 이미 발행된 글은 공개 블록이 있으니 인앱 리더(PostDetailView)로 네이티브 렌더 —
-            // 웹 미리보기 시트로 내보내지 않는다(항목 17). 발행 폼이 떠 있으면 먼저 닫고 항해한다.
-            if status == "PUBLISHED", let username = await AuthStore.shared.me?.username,
-               !username.isEmpty {
-                if showPublish { showPublish = false }
-                previewPublished = PublishedRef(username: username, slug: resolved)
-                return
-            }
-            // 발행 전(초안·예약·비공개)은 공개 엔드포인트가 안 줘서 미리보기 토큰 URL 을 인앱 사파리로 연다
-            // (외부 사파리로 내쫓지 않는다). 발행 폼이 떠 있으면 폼 전용 presenter 로(바인딩 충돌 방지).
-            if let url = try? await WriteAPI.previewURL(slug: resolved, postId: postId) {
-                if showPublish {
-                    formPreviewItem = PreviewItem(url: url)
-                } else {
-                    previewItem = PreviewItem(url: url)
-                }
-            } else {
-                // username 미해결 등으로 URL 을 못 만들면 깨진 페이지 대신 안내한다.
-                ToastCenter.shared.show(String(localized: "미리보기를 여는 중이에요. 잠시 후 다시 시도해 주세요."))
-            }
-        }
+        if showPublish { showFormDraftPreview = true } else { showDraftPreview = true }
     }
 
     private func scheduleNow() async {
@@ -3009,86 +3061,93 @@ private struct WysiwygComposeCanvas: View {
 /// 표준. 블록 서식은 현재 블록 종류면 켜진(초록) 상태로 보여 토글임을 알린다. 좁은 화면을 위해
 /// 가로 스크롤(그룹 구분선으로 세 묶음을 시각 분리). "링크" 하나로 동영상/링크 통합(신고 11 유지).
 private struct V2FormatToolbar: View {
-    /// 현재 포커스 블록의 종류(없으면 nil) — 블록 토글 버튼의 활성 상태를 그린다.
+    let canUndo: Bool
+    let canRedo: Bool
+    let undo: () -> Void
+    let redo: () -> Void
     let focusedKind: EditorBlockKind?
-    /// 선택을 마커로 감싸기(볼드=`**`·이탤릭=`*`·인라인코드=`` ` ``).
     let wrapInline: (String) -> Void
-    /// 링크 — 선택을 `[선택](url)` 로(다이얼로그로 URL 받음). 동영상 URL 은 임베드.
     let insertLink: () -> Void
-    /// 블록 종류 토글(인용·코드·불릿·번호).
     let toggleBlock: (EditorBlockKind) -> Void
-    /// 제목 — 버튼 하나가 `#`→`##`→`###`→문단 을 순환한다(누를수록 작아짐).
     let cycleHeading: () -> Void
     let insertDivider: () -> Void
     let insertImage: () -> Void
     let insertTable: () -> Void
-    /// 리스트 들여쓰기/내어쓰기 — 캐럿이 리스트 항목일 때만 버튼이 나타난다.
     let indentList: () -> Void
     let outdentList: () -> Void
-    /// 키보드 내리기 — 포커스를 놓고 키보드를 접는다(레거시 스니펫 바 대응).
     let dismissKeyboard: () -> Void
 
-    /// 아이콘만 키우고 44pt 터치 타깃은 작은 글자 설정에서도 유지(AGENTS §1 에디터 규율).
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
-    /// 버튼 탭마다 증가 — 선택 햅틱(.selection) 트리거(B2).
     @State private var hapticTick = 0
 
     var body: some View {
-        // 스크롤 도구 캡슐 + 고정 키보드 내리기 버튼 — 두 성격의 유리를 GlassEffectContainer 로 묶어
-        // 겹침(유리 위 유리) 없이 나란히(§1.4). 키보드 버튼은 스크롤에 안 밀려 늘 오른쪽에 선다.
+        // Five stable entrances fit a 320pt phone. Primary tools never move offscreen.
+        // Menus retain the native selection, and every surface keeps a 44pt target.
         GlassEffectContainer(spacing: 8) {
             HStack(spacing: 8) {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 4) {
-                        // 선택 서식 — 마커로 감싸기.
-                        item("bold", "굵게") { wrapInline("**") }
-                        item("italic", "기울임") { wrapInline("*") }
-                        item("strikethrough", "취소선") { wrapInline("~~") }
-                        item("chevron.left.forwardslash.chevron.right", "코드") { wrapInline("`") }
-                        item("link", "링크", action: insertLink)
+                HStack(spacing: 4) {
+                    Menu {
+                        Section("글자") {
+                            action("굵게", "bold") { wrapInline("**") }
+                            action("기울임", "italic") { wrapInline("*") }
+                            action("취소선", "strikethrough") { wrapInline("~~") }
+                            action("코드", "chevron.left.forwardslash.chevron.right") { wrapInline("`") }
+                        }
+                        Section("문단") {
+                            action("본문", "text.alignleft", active: focusedKind == .paragraph) { toggleBlock(.paragraph) }
+                            action("제목 1", "textformat.size.larger", active: focusedKind == .heading(level: 1)) { toggleBlock(.heading(level: 1)) }
+                            action("제목 2", "textformat.size", active: focusedKind == .heading(level: 2)) { toggleBlock(.heading(level: 2)) }
+                            action("제목 3", "textformat.size.smaller", active: focusedKind == .heading(level: 3)) { toggleBlock(.heading(level: 3)) }
+                            action("인용", "text.quote", active: focusedKind == .quote) { toggleBlock(.quote) }
+                            action("코드블록", "curlybraces", active: isCode) { toggleBlock(.code(language: nil)) }
+                        }
+                    } label: {
+                        toolLabel("textformat", "서식", active: isFormattedBlock)
+                    }
+                    .accessibilityIdentifier("composeFormat")
+                    .accessibilityValue(Text(blockDescription))
 
-                        groupDivider
-
-                        // 블록 서식 — 종류 토글(현재 종류면 활성).
-                        // 제목은 버튼 하나로 # → ## → ### → 본문 순환(제목/소제목 두 버튼의 통합) —
-                        // 아이콘 크기가 현재 레벨을 따라 줄어들어 "누르면 작아진다"가 버튼에서 읽힌다.
-                        item(headingIcon, "제목", active: isHeadingFocused, action: cycleHeading)
-                        item("text.quote", "인용", active: isKind(.quote)) { toggleBlock(.quote) }
-                        item("curlybraces", "코드블록", active: isCode) { toggleBlock(.code(language: nil)) }
-                        item("list.bullet", "글머리", active: isList(ordered: false)) {
+                    Menu {
+                        action("글머리", "list.bullet", active: isList(ordered: false)) {
                             toggleBlock(.listItem(ordered: false, indent: 0))
                         }
-                        item("list.number", "번호", active: isList(ordered: true)) {
+                        action("번호", "list.number", active: isList(ordered: true)) {
                             toggleBlock(.listItem(ordered: true, indent: 0))
                         }
-                        // 캐럿이 리스트 항목일 때만 — 중첩을 여기서(마크다운 선행 공백을 몰라도 된다).
                         if isListFocused {
-                            item("increase.indent", "들여쓰기", action: indentList)
-                            item("decrease.indent", "내어쓰기", action: outdentList)
+                            Divider()
+                            action("들여쓰기", "increase.indent", perform: indentList)
+                            action("내어쓰기", "decrease.indent", perform: outdentList)
                         }
-
-                        groupDivider
-
-                        // 삽입 — 비텍스트 블록.
-                        item("minus", "구분선", action: insertDivider)
-                        item("photo", "사진", action: insertImage)
-                        item("tablecells", "표", action: insertTable)
+                    } label: {
+                        toolLabel("list.bullet", "목록", active: isListFocused)
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
+                    .accessibilityIdentifier("composeList")
+
+                    Button { perform(insertLink) } label: { toolLabel("link", "링크") }
+                        .accessibilityIdentifier("composeLink")
+                    Button { perform(insertImage) } label: { toolLabel("photo", "사진") }
+                        .accessibilityIdentifier("composePhoto")
+                    Menu {
+                        action("실행취소", "arrow.uturn.backward", perform: undo).disabled(!canUndo)
+                        action("다시실행", "arrow.uturn.forward", perform: redo).disabled(!canRedo)
+                        Divider()
+                        action("표", "tablecells", perform: insertTable)
+                        action("구분선", "minus", perform: insertDivider)
+                    } label: {
+                        toolLabel("ellipsis", "더보기")
+                    }
+                    .accessibilityIdentifier("composeMoreTools")
                 }
-                // 기본 클립 유지 — 클립을 끄면 뷰포트 밖 도구가 캡슐 오른쪽을 지나 키보드
-                // 버튼 위·화면 밖까지 그려진다(#194 에서 오른쪽 고정 버튼이 생기며 크게 드러남).
+                .buttonStyle(ToolbarPressStyle())
+                .padding(.horizontal, 4)
+                .padding(.vertical, 6)
                 .glassEffect(.regular, in: .capsule)
 
-                // 키보드 내리기 — 고정(스크롤 밖). 별도 유리 원으로(레거시 스니펫 바 대응).
-                Button {
-                    hapticTick &+= 1
-                    dismissKeyboard()
-                } label: {
+                Button { perform(dismissKeyboard) } label: {
                     Image(systemName: "keyboard.chevron.compact.down")
-                        .font(.system(size: 14 * unit, weight: .semibold))
-                        .foregroundStyle(Palette.link)
+                        .font(.system(size: 16 * unit, weight: .medium))
+                        .foregroundStyle(.secondary)
                         .frame(width: 44, height: 44)
                         .contentShape(Circle())
                 }
@@ -3097,79 +3156,54 @@ private struct V2FormatToolbar: View {
                 .accessibilityLabel(Text("키보드 내리기"))
             }
         }
-        // 선택 햅틱(B2) — 세그먼트·독 토글과 같은 앱 문법. 컨테이너 한 곳에서 모든 버튼 탭을 받는다.
         .sensoryFeedback(.selection, trigger: hapticTick)
         .padding(.horizontal, 8)
         .padding(.bottom, 8)
     }
 
-    private var groupDivider: some View {
-        Rectangle()
-            .fill(Palette.hairline)
-            .frame(width: 1, height: 26)
-            .padding(.horizontal, 4)
-    }
+    private func perform(_ action: () -> Void) { hapticTick &+= 1; action() }
 
-    private func item(
-        _ icon: String, _ label: LocalizedStringKey, active: Bool = false,
-        action: @escaping () -> Void
+    private func action(
+        _ title: LocalizedStringKey, _ icon: String, active: Bool = false,
+        perform action: @escaping () -> Void
     ) -> some View {
-        // 탭마다 선택 햅틱(B2) — 세그먼트 전환·독 토글과 같은 앱 문법(.selection). 서식이 손에 닿는다.
-        Button {
-            hapticTick &+= 1
-            action()
-        } label: {
-            VStack(spacing: 3) {
-                Image(systemName: icon)
-                    .font(.system(size: 17 * unit, weight: .medium))
-                Text(label)
-                    .font(.system(size: 10 * unit, weight: .medium))
-            }
-            // 활성(현재 블록 종류) = 초록 채움 배지로 켜짐을 알린다(§ 초록은 상태/데이터 전용).
-            .foregroundStyle(active ? Color.white : Palette.link)
-            .frame(minWidth: 44, minHeight: 44)
-            .background {
-                if active {
-                    RoundedRectangle(cornerRadius: Metrics.radiusMini)
-                        .fill(Palette.accent)
-                }
-            }
-            .contentShape(Rectangle())
+        Button { perform(action) } label: {
+            Label(title, systemImage: active ? "checkmark" : icon)
         }
-        // 터치다운 즉시 딤+살짝 눌림(B4) — 카드 press(0.975)와 같은 결의 툴바용 프레스 문법.
-        .buttonStyle(ToolbarPressStyle())
     }
 
-    // MARK: 활성 판정
-
-    private func isKind(_ kind: EditorBlockKind) -> Bool { focusedKind == kind }
-    private var isHeadingFocused: Bool {
-        if case .heading = focusedKind { return true }
-        return false
-    }
-    /// 현재 제목 레벨을 아이콘 크기로 비춘다 — 1=크게 · 2=중간 · 3=작게. 문단(비활성)은 다음 탭이
-    /// 줄 제목 1 의 아이콘을 미리 보여준다.
-    private var headingIcon: String {
-        if case .heading(let level) = focusedKind {
-            switch level {
-            case 1: return "textformat.size.larger"
-            case 2: return "textformat.size"
-            default: return "textformat.size.smaller"
-            }
+    private func toolLabel(_ icon: String, _ title: LocalizedStringKey, active: Bool = false) -> some View {
+        VStack(spacing: 3) {
+            Image(systemName: icon).font(.system(size: 17 * unit, weight: .medium))
+            Text(title)
+                .font(.system(size: 10 * unit, weight: .medium))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
         }
-        return "textformat.size.larger"
+        .foregroundStyle(active ? AnyShapeStyle(Palette.link) : AnyShapeStyle(.primary))
+        .frame(minWidth: 44, maxWidth: .infinity, minHeight: 44)
+        .contentShape(Rectangle())
     }
-    private var isCode: Bool {
-        if case .code = focusedKind { return true }
-        return false
+
+    private var isFormattedBlock: Bool {
+        switch focusedKind {
+        case .heading, .quote, .code: return true
+        default: return false
+        }
     }
+    private var isCode: Bool { if case .code = focusedKind { return true }; return false }
     private func isList(ordered: Bool) -> Bool {
-        if case .listItem(let o, _) = focusedKind { return o == ordered }
+        if case .listItem(let current, _) = focusedKind { return current == ordered }
         return false
     }
-    private var isListFocused: Bool {
-        if case .listItem = focusedKind { return true }
-        return false
+    private var isListFocused: Bool { if case .listItem = focusedKind { return true }; return false }
+    private var blockDescription: String {
+        switch focusedKind {
+        case .heading(let level): return String(localized: "제목 \(level)")
+        case .quote: return String(localized: "인용")
+        case .code: return String(localized: "코드블록")
+        default: return String(localized: "본문")
+        }
     }
 }
 

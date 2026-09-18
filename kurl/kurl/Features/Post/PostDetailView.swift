@@ -553,7 +553,8 @@ private struct PostDetailReader: View {
             get: { highlights?.noteDraft },
             set: { highlights?.noteDraft = $0 })) { draft in
             HighlightNoteComposerSheet(draft: draft) { note in
-                highlights?.create(
+                guard let highlights else { throw AuthError.notSignedIn }
+                try await highlights.createAndWait(
                     blockOrder: draft.blockOrder, startOffset: draft.startOffset,
                     endOffset: draft.endOffset, quote: draft.quote, note: note)
             }
@@ -850,16 +851,15 @@ private struct PostDetailReader: View {
     private func focusOnQuoteIfNeeded(_ proxy: ScrollViewProxy) async {
         guard !didFocus, let quote = focusQuote, !quote.isEmpty,
               case .loaded(let detail) = model.phase else { return }
-        let needle = String(quote.prefix(16))
-        guard let block = detail.blocks.first(where: { ($0.content ?? "").contains(needle) })
-        else { return }
+        guard let blockId = SelectableProseText.sourceBlockID(
+            for: quote, blocks: detail.blocks.map { (id: $0.id, raw: $0.content ?? "") }) else { return }
         didFocus = true
         try? await Task.sleep(for: .milliseconds(420))  // 레이아웃·하이라이트 페인트 후
         // reduce-motion = 스크롤·플래시 모두 즉시(스밈·페이드 없이) — 도착은 하되 움직임은 끈다.
         withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.55)) {
-            proxy.scrollTo(block.id, anchor: UnitPoint(x: 0, y: 0.18))
+            proxy.scrollTo(blockId, anchor: UnitPoint(x: 0, y: 0.18))
         }
-        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.35)) { flashBlockId = block.id }
+        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.35)) { flashBlockId = blockId }
         try? await Task.sleep(for: .milliseconds(1300))
         withAnimation(reduceMotion ? nil : .easeIn(duration: 0.7)) { flashBlockId = nil }
     }

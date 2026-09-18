@@ -122,6 +122,7 @@ final class WriteV2RealInteractionUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 0.3)
 
         // 서식 툴바 굵게 — 선택 없이 눌러도 죽지 않고 마커쌍 사이에 캐럿(신고 2).
+        app.buttons["composeFormat"].tap()
         let bold = app.buttons["굵게"]
         XCTAssertTrue(bold.waitForExistence(timeout: 4), "서식 툴바(굵게) 없음")
         bold.tap()
@@ -131,6 +132,7 @@ final class WriteV2RealInteractionUITests: XCTestCase {
         shot(app, "journey-03-bold")
 
         // 구분선 삽입 — 비텍스트 블록이 실제로 앉는다.
+        app.buttons["composeMoreTools"].tap()
         app.buttons["구분선"].tap()
         Thread.sleep(forTimeInterval: 0.5)
         XCTAssertTrue(
@@ -138,6 +140,7 @@ final class WriteV2RealInteractionUITests: XCTestCase {
             "구분선 블록이 캔버스에 안 나타남")
 
         // 표 삽입 — 행/열 추가·정렬 컨트롤이 뜬다(열별 정렬은 '정렬' 메뉴 안).
+        app.buttons["composeMoreTools"].tap()
         app.buttons["표"].tap()
         XCTAssertTrue(app.buttons["정렬"].waitForExistence(timeout: 6), "표 블록 정렬 컨트롤이 안 뜸")
         XCTAssertTrue(app.buttons["행"].exists, "표 블록 행 추가 컨트롤이 안 뜸")

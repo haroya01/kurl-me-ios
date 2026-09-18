@@ -264,6 +264,9 @@ struct RootView: View {
             .safeAreaPadding(.bottom, FloatingTabBar.reservedHeight)
 
             FloatingTabBar(tabs: tabs, selection: selection, hidden: tabBarVisibility.hidden)
+                // Rebuild glass controls when returning from a screen that force-hides them.
+                // Scroll-driven hiding keeps the same identity and its existing animation.
+                .id(tabBarVisibility.forceHidden)
         }
         .ignoresSafeArea(.keyboard) // 키보드가 떠도 커스텀 바가 위로 밀려 올라오지 않게.
         .environment(\.tabBarVisibility, tabBarVisibility)

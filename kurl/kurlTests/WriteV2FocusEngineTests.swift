@@ -153,3 +153,336 @@ final class WriteV2FocusEngineTests: XCTestCase {
         XCTAssertEqual(font?.pointSize ?? 0, 0.01, accuracy: 0.001, "링크 url 은 숨김 유지")
     }
 }
+
+
+@MainActor
+final class WriteV2HistoryTests: XCTestCase {
+    private static var retained: [EditorDocument] = []
+
+    private func document(_ blocks: [EditorBlock] = [.paragraph("")]) -> EditorDocument {
+        let doc = EditorDocument(blocks: blocks)
+        Self.retained.append(doc)
+        return doc
+    }
+
+    func testContinuousTypingCoalescesAndRestoresUnicode() {
+        let doc = document()
+        let id = doc.blocks[0].id
+        doc.focusBody()
+        doc.updateText(id, "한")
+        doc.updateText(id, "한글🙂")
+        doc.updateText(id, "한글🙂 문장")
+        doc.undo()
+        XCTAssertEqual(doc.blocks[0].text, "")
+        XCTAssertFalse(doc.canUndo)
+        doc.redo()
+        XCTAssertEqual(doc.blocks[0].text, "한글🙂 문장")
+        XCTAssertFalse(doc.canRedo)
+    }
+
+    func testSplitAndTypingAreSeparateUndoStepsWithStableBlockIDs() {
+        let doc = document([.paragraph("First")])
+        let firstID = doc.blocks[0].id
+        doc.focusTail()
+        let second = doc.splitBlock(firstID, at: 5)!
+        doc.updateText(second.blockID, "Second")
+        doc.undo()
+        XCTAssertEqual(doc.blocks.count, 2)
+        XCTAssertEqual(doc.blocks[1].text, "")
+        doc.undo()
+        XCTAssertEqual(doc.blocks, [.init(id: firstID, kind: .paragraph, text: "First")])
+        XCTAssertEqual(doc.focus?.blockID, firstID)
+        doc.redo()
+        XCTAssertEqual(doc.blocks[1].id, second.blockID)
+        doc.redo()
+        XCTAssertEqual(doc.blocks[1].text, "Second")
+    }
+
+    func testNestedInsertionIsAtomicAndNewBranchClearsRedo() {
+        let doc = document([.paragraph("Start")])
+        doc.focusTail()
+        doc.insertLink(url: "https://example.com", label: "Reference")
+        XCTAssertEqual(doc.blocks.count, 3)
+        doc.undo()
+        XCTAssertEqual(doc.blocks.count, 1)
+        XCTAssertEqual(doc.blocks[0].text, "Start")
+        XCTAssertTrue(doc.canRedo)
+        doc.updateText(doc.blocks[0].id, "Different direction")
+        XCTAssertFalse(doc.canRedo)
+    }
+
+    func testNativeManagerUsesDocumentHistoryAndIgnoresTextOnlyRegistration() {
+        let doc = document([.paragraph("Hello")])
+        doc.focusTail()
+        doc.toggleFocusedBlockKind(.heading(level: 2))
+        var nativeOnlyUndoRan = false
+        doc.undoManager.registerUndo(withTarget: self) { _ in nativeOnlyUndoRan = true }
+        doc.undoManager.undo()
+        XCTAssertFalse(nativeOnlyUndoRan, "UIKit registrations must not create a competing text-only undo step")
+        XCTAssertEqual(doc.blocks[0].kind, .paragraph)
+        doc.undoManager.redo()
+        XCTAssertEqual(doc.blocks[0].kind, .heading(level: 2))
+        XCTAssertFalse(doc.undoManager.isUndoRegistrationEnabled)
+    }
+
+    func testTableTextAndStructureUndoIndependently() {
+        let doc = document([.table(.blank)])
+        let id = doc.blocks[0].id
+        doc.updateTableCell(id, row: 1, col: 0, text: "value")
+        doc.addTableRow(id)
+        doc.undo()
+        XCTAssertEqual(doc.tableSnapshot(id)?.rows.count, 2)
+        XCTAssertEqual(doc.tableSnapshot(id)?.rows[1][0], "value")
+        doc.undo()
+        XCTAssertEqual(doc.tableSnapshot(id)?.rows[1][0], "")
+        doc.redo()
+        XCTAssertEqual(doc.tableSnapshot(id)?.rows[1][0], "value")
+    }
+
+    func testIMECommitsOneEditAndCancelledCompositionAddsNoHistory() {
+        let doc = document()
+        let id = doc.blocks[0].id
+        doc.setComposition(id, active: true)
+        doc.updateText(id, "ㅎ")
+        doc.updateText(id, "하")
+        XCTAssertFalse(doc.canUndo, "Do not replace an active IME candidate from the toolbar")
+        doc.updateText(id, "한")
+        doc.setComposition(id, active: false)
+        XCTAssertTrue(doc.canUndo)
+        doc.setComposition(id, active: true)
+        doc.updateText(id, "한ㄱ")
+        doc.updateText(id, "한") // Candidate cancelled.
+        doc.setComposition(id, active: false)
+        doc.undo()
+        XCTAssertEqual(doc.blocks[0].text, "", "Cancelled composition must not leave a phantom undo step")
+        XCTAssertFalse(doc.canUndo)
+        doc.redo()
+        XCTAssertEqual(doc.blocks[0].text, "한")
+    }
+
+    func testFocusBodyRetainsInsertionPointAfterKeyboardDismissal() {
+        let doc = document([.paragraph("One"), .paragraph("Two")])
+        doc.focusBody()
+        XCTAssertEqual(doc.focus, EditorFocus(blockID: doc.blocks[0].id, caret: 0))
+        doc.focus = EditorFocus(blockID: doc.blocks[1].id, caret: 2)
+        doc.endEditing(doc.blocks[1].id)
+        XCTAssertFalse(doc.isEditing)
+        doc.focusBody()
+        XCTAssertTrue(doc.isEditing)
+        XCTAssertEqual(doc.focus, EditorFocus(blockID: doc.blocks[1].id, caret: 2))
+        XCTAssertFalse(doc.canUndo, "Focusing an existing block is not a document edit")
+    }
+
+    func testNoOpDoesNotPolluteHistoryAndFormattingRestoresSelection() {
+        let doc = document([.paragraph("Hello")])
+        let id = doc.blocks[0].id
+        doc.mergeBackward(id)
+        XCTAssertFalse(doc.canUndo)
+        let selection = EditorFocus(blockID: id, caret: 0, selectionLength: 5)
+        doc.focus = selection
+        doc.wrapFocusedSelection(with: "**")
+        doc.undo()
+        XCTAssertEqual(doc.blocks[0].text, "Hello")
+        XCTAssertEqual(doc.focus, selection)
+    }
+
+    func testNativeUndoCannotReplaceActiveComposition() {
+        let doc = document([.paragraph("Original")])
+        let id = doc.blocks[0].id
+        doc.updateText(id, "Saved edit")
+        doc.setComposition(id, active: true)
+        doc.updateText(id, "Saved editㅎ")
+        XCTAssertFalse(doc.undoManager.canUndo)
+        XCTAssertFalse(doc.undoManager.canRedo)
+        doc.undoManager.undo() // Native Cmd+Z/edit menu, bypassing doc.undo().
+        XCTAssertEqual(doc.blocks[0].text, "Saved editㅎ")
+        doc.updateText(id, "Saved edit한")
+        doc.setComposition(id, active: false)
+        doc.undoManager.undo()
+        XCTAssertEqual(doc.blocks[0].text, "Saved edit")
+    }
+
+    func testTableIMEUsesCellKeyAndCancellationPreservesPriorHistory() {
+        let doc = document([.table(.blank)])
+        let id = doc.blocks[0].id
+        doc.setTableComposition(id, row: 1, col: 0, active: true)
+        doc.updateTableCell(id, row: 1, col: 0, text: "ㅎ")
+        XCTAssertFalse(doc.canUndo)
+        XCTAssertFalse(doc.undoManager.canUndo)
+        doc.updateTableCell(id, row: 1, col: 0, text: "한")
+        doc.setTableComposition(id, row: 1, col: 0, active: false)
+        XCTAssertTrue(doc.canUndo)
+        doc.setTableComposition(id, row: 1, col: 1, active: true)
+        doc.updateTableCell(id, row: 1, col: 1, text: "ㄱ")
+        doc.updateTableCell(id, row: 1, col: 1, text: "")
+        doc.setTableComposition(id, row: 1, col: 1, active: false)
+        doc.undo()
+        XCTAssertEqual(doc.tableSnapshot(id)?.rows[1], ["", ""])
+        XCTAssertFalse(doc.canUndo)
+        doc.redo()
+        XCTAssertEqual(doc.tableSnapshot(id)?.rows[1], ["한", ""])
+    }
+
+
+    func testBackspaceAfterFirstCharacterDeletesTextButAtStartMergesOnce() {
+        var merges = 0
+        let block = EditorBlock.paragraph("가나다")
+        let view = BlockTextView(
+            block: block, isFocused: true, caretOnFocus: 1,
+            onTextChange: { _ in }, onSplit: { _, _ in nil }, onMergeBackward: { merges += 1 },
+            onLineHeadShortcut: { _, _, _ in }, onFocused: {}, onSelectionChange: { _, _ in })
+        let coordinator = view.makeCoordinator()
+        coordinator.onEmptyBackspace = { merges += 1 }
+        let textView = BlockUITextView()
+        textView.delegate = coordinator
+        textView.text = "가나다"
+        textView.currentBlockText = "가나다"
+        textView.selectedRange = NSRange(location: 1, length: 0)
+        withExtendedLifetime(coordinator) {
+            XCTAssertTrue(coordinator.textView(
+                textView, shouldChangeTextIn: NSRange(location: 0, length: 1), replacementText: ""))
+            textView.deleteBackward()
+            XCTAssertEqual(textView.text, "나다")
+            XCTAssertEqual(merges, 0)
+            textView.selectedRange = NSRange(location: 0, length: 0)
+            textView.deleteBackward()
+            XCTAssertEqual(textView.text, "나다")
+            XCTAssertEqual(merges, 1, "Only a caret at the actual block start requests one merge")
+        }
+    }
+
+    func testBodyFocusWaitsForWindowAndCancelledRequestDoesNotStealIt() async {
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        let controller = UIViewController()
+        window.rootViewController = controller
+        defer { window.isHidden = true }
+
+        let body = BlockUITextView(frame: CGRect(x: 20, y: 100, width: 300, height: 100))
+        body.text = "본문"
+        let acquired = expectation(description: "Body gains focus after window attachment")
+        body.requestDocumentFocus(true) { textView in
+            textView.selectedRange = NSRange(location: 1, length: 0)
+            acquired.fulfill()
+        }
+        XCTAssertFalse(body.isFirstResponder)
+        controller.view.addSubview(body)
+        window.makeKeyAndVisible()
+        await fulfillment(of: [acquired], timeout: 2)
+        XCTAssertTrue(body.isFirstResponder)
+        XCTAssertEqual(body.selectedRange.location, 1)
+
+        let abandoned = BlockUITextView(frame: CGRect(x: 20, y: 220, width: 300, height: 100))
+        abandoned.requestDocumentFocus(true) { _ in XCTFail("Cancelled focus must never be acquired") }
+        abandoned.requestDocumentFocus(false)
+        controller.view.addSubview(abandoned)
+        let nextTurn = expectation(description: "Attachment callback completed")
+        DispatchQueue.main.async { nextTurn.fulfill() }
+        await fulfillment(of: [nextTurn], timeout: 2)
+        XCTAssertFalse(abandoned.isFirstResponder)
+        XCTAssertTrue(body.isFirstResponder)
+    }
+
+    func testImmediateTypingAfterReturnStaysInContinuationBeforeSwiftUIUpdates() {
+        for first in [EditorBlock.paragraph("First"), .heading(2, "First"), .quote("First"), .listItem("First")] {
+            let doc = document([first])
+            let id = first.id
+            doc.focusTail()
+            let view = BlockTextView(
+                block: first, isFocused: true, caretOnFocus: 5,
+                onTextChange: { doc.updateText(id, $0) },
+                onSplit: { caret, length in
+                    guard let target = doc.splitBlock(id, at: caret, deleting: length),
+                          let continuation = doc.blocks.first(where: { $0.id == target.blockID }) else { return nil }
+                    return EditorSplitContinuation(block: continuation, caret: target.caret)
+                },
+                onMergeBackward: {}, onLineHeadShortcut: { _, _, _ in },
+                onFocused: {}, onSelectionChange: { _, _ in })
+            let coordinator = view.makeCoordinator()
+            let textView = BlockUITextView()
+            textView.delegate = coordinator
+            textView.text = first.text
+            textView.currentBlockText = first.text
+            textView.selectedRange = NSRange(location: 5, length: 0)
+            withExtendedLifetime(coordinator) {
+                // No run-loop yield or SwiftUI update between Return and any following key.
+                for character in "\nSecond\nThird" {
+                    let replacement = String(character)
+                    if coordinator.textView(textView, shouldChangeTextIn: textView.selectedRange, replacementText: replacement) {
+                        textView.insertText(replacement)
+                    }
+                }
+                XCTAssertEqual(doc.blocks.map(\.text), ["First", "Second", "Third"], "\(first.kind)")
+                XCTAssertEqual(doc.blocks.last?.id, id, "The continuing input view keeps its identity")
+                XCTAssertEqual(textView.text, "Third")
+                doc.undo()
+                XCTAssertEqual(doc.blocks.map(\.text), ["First", "Second", ""])
+                doc.undo()
+                XCTAssertEqual(doc.blocks.map(\.text), ["First", "Second"])
+            }
+        }
+    }
+
+    private func splitInputBridge(_ doc: EditorDocument) -> (BlockUITextView, BlockTextView.Coordinator) {
+        let first = doc.blocks[0]
+        let id = first.id
+        let view = BlockTextView(
+            block: first, isFocused: true, caretOnFocus: doc.focus?.caret ?? 0,
+            onTextChange: { doc.updateText(id, $0) },
+            onSplit: { caret, length in
+                guard let target = doc.splitBlock(id, at: caret, deleting: length),
+                      let continuation = doc.blocks.first(where: { $0.id == target.blockID }) else { return nil }
+                return EditorSplitContinuation(block: continuation, caret: target.caret)
+            },
+            onMergeBackward: {}, onLineHeadShortcut: { _, _, _ in },
+            onFocused: {}, onSelectionChange: { _, _ in })
+        let coordinator = view.makeCoordinator()
+        let textView = BlockUITextView()
+        textView.delegate = coordinator
+        textView.text = first.text
+        textView.currentBlockText = first.text
+        return (textView, coordinator)
+    }
+
+    func testReturnReplacesUTF16SelectionAndUndoesAsOneEdit() {
+        let doc = document([.paragraph("A🙂BC")])
+        let original = doc.blocks
+        let selection = EditorFocus(blockID: original[0].id, caret: 1, selectionLength: 2)
+        doc.focus = selection
+        let (textView, coordinator) = splitInputBridge(doc)
+        textView.selectedRange = NSRange(location: 1, length: 3) // 🙂 + B occupy three UTF-16 units.
+        XCTAssertFalse(coordinator.textView(textView, shouldChangeTextIn: textView.selectedRange, replacementText: "\n"))
+        let split = doc.blocks
+        XCTAssertEqual(split.map(\.text), ["A", "C"])
+        XCTAssertEqual(split[1].id, original[0].id)
+        XCTAssertNotEqual(split[0].id, original[0].id)
+        XCTAssertEqual(textView.text, "C")
+        XCTAssertEqual(textView.selectedRange, NSRange(location: 0, length: 0))
+        doc.undo()
+        XCTAssertEqual(doc.blocks, original)
+        XCTAssertEqual(doc.focus, selection)
+        XCTAssertFalse(doc.canUndo, "Selection replacement and Enter are one document edit")
+        doc.redo()
+        XCTAssertEqual(doc.blocks, split, "Redo restores the same head/tail identities")
+    }
+
+    func testReturnKeepsImmediateTypingInsideReopenedFormatting() {
+        for marker in ["**", "*", "~~", "`"] {
+            let source = marker + "ab" + marker
+            let doc = document([.paragraph(source)])
+            doc.focus = EditorFocus(blockID: doc.blocks[0].id, caret: marker.count + 1)
+            let (textView, coordinator) = splitInputBridge(doc)
+            textView.selectedRange = NSRange(location: marker.count + 1, length: 0)
+            XCTAssertFalse(coordinator.textView(textView, shouldChangeTextIn: textView.selectedRange, replacementText: "\n"))
+            XCTAssertEqual(textView.selectedRange.location, marker.count)
+            XCTAssertEqual(doc.focus?.caret, marker.count)
+            XCTAssertTrue(coordinator.textView(textView, shouldChangeTextIn: textView.selectedRange, replacementText: "X"))
+            textView.insertText("X")
+            XCTAssertEqual(doc.blocks.map(\.text), [marker + "a" + marker, marker + "Xb" + marker])
+            doc.undo()
+            XCTAssertEqual(doc.blocks[1].text, marker + "b" + marker)
+            doc.undo()
+            XCTAssertEqual(doc.blocks[0].text, source)
+        }
+    }
+
+}

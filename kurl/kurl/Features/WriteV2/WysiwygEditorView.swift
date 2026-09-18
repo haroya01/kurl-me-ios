@@ -62,34 +62,15 @@ struct WysiwygEditorView: View {
         case .code:
             BlockCodeView(
                 block: block,
-                isFocused: document.focus?.blockID == block.id,
+                isFocused: document.focus?.blockID == block.id && document.isEditing,
                 onTextChange: { document.updateText(block.id, $0) },
                 onFocused: { document.focus = EditorFocus(blockID: block.id, caret: block.text.count) },
-                onMergeBackward: { document.mergeBackward(block.id) }
+                onMergeBackward: { document.mergeBackward(block.id) },
+                documentUndoManager: document.undoManager,
+                onEditingEnded: { document.endEditing(block.id) },
+                onSeparateEdit: { document.breakUndoCoalescing() },
+                onCompositionChange: { document.setComposition(block.id, active: $0) }
             )
-        case .quote:
-            HStack(spacing: 0) {
-                RoundedRectangle(cornerRadius: 1.5)
-                    .fill(Palette.accentSoft)
-                    .frame(width: 3)
-                    .padding(.trailing, 14)
-                textBlock(block)
-            }
-        case .listItem(let ordered, let indent):
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                Text(marker(for: block, ordered: ordered))
-                    .font(.system(size: 18))
-                    .foregroundStyle(Palette.secondary)
-                    .monospacedDigit()
-                    .frame(minWidth: 18, alignment: .trailing)
-                textBlock(block)
-                    // 빈 UITextView 는 SwiftUI 에 베이스라인을 못 줘 firstTextBaseline 정렬이
-                    // 틀어진다 — 마커는 제자리인데 캐럿이 한 줄 아래로 보였다(글머리/번호 토글 직후).
-                    // 블록 폰트의 ascender 로 첫 줄 베이스라인을 명시해 빈·비어있지 않은 항목 모두
-                    // 마커와 같은 줄에 선다(textContainerInset=0 이라 top+ascender 가 곧 첫 베이스라인).
-                    .alignmentGuide(.firstTextBaseline) { _ in Self.listItemFirstBaseline }
-            }
-            .padding(.leading, CGFloat(indent) * 18)
         case .divider:
             BlockDividerView(
                 isFocused: document.focus?.blockID == block.id,
@@ -115,11 +96,41 @@ struct WysiwygEditorView: View {
                 onDeleteRow: { deleteTableRow(block.id) },
                 onDeleteColumn: { deleteTableColumn(block.id) },
                 onDeleteTable: { deleteNonTextBlock(block.id, undoLabel: String(localized: "표를 지웠어요")) },
-                onFocused: { document.focus = EditorFocus(blockID: block.id, caret: 0) }
+                onFocused: { document.focus = EditorFocus(blockID: block.id, caret: 0) },
+                documentUndoManager: document.undoManager,
+                onEditingEnded: { document.endEditing(block.id) },
+                onCellCompositionChange: { document.setTableComposition(block.id, row: $0, col: $1, active: $2) }
             )
         default:
-            textBlock(block)
+            textRow(block)
         }
+    }
+
+    /// Paragraph, heading, quote and list use one stable UIKit position in the view tree.
+    /// Enter can remove the quote/list decoration while the same responder keeps accepting keys.
+    private func textRow(_ block: EditorBlock) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            if case .listItem(let ordered, _) = block.kind {
+                Text(marker(for: block, ordered: ordered))
+                    .font(.system(size: 18))
+                    .foregroundStyle(Palette.secondary)
+                    .monospacedDigit()
+                    .frame(minWidth: 18, alignment: .trailing)
+            }
+            textBlock(block)
+                .alignmentGuide(.firstTextBaseline) { dimensions in
+                    block.listInfo != nil ? Self.listItemFirstBaseline : dimensions[.firstTextBaseline]
+                }
+        }
+        .padding(.leading, block.kind == .quote ? 17 : 0)
+        .overlay(alignment: .leading) {
+            if block.kind == .quote {
+                RoundedRectangle(cornerRadius: 1.5)
+                    .fill(Palette.accentSoft)
+                    .frame(width: 3)
+            }
+        }
+        .padding(.leading, CGFloat(block.listInfo?.indent ?? 0) * 18)
     }
 
     /// 리스트 항목 블록(18pt 본문 스케일)의 첫 줄 베이스라인 — BlockInlineRenderer.baseFont(.listItem) 와
@@ -144,7 +155,7 @@ struct WysiwygEditorView: View {
     }
 
     private func textBlock(_ block: EditorBlock) -> some View {
-        let isFocused = document.focus?.blockID == block.id
+        let isFocused = document.focus?.blockID == block.id && document.isEditing
         return BlockTextView(
             block: block,
             isFocused: isFocused,
@@ -158,12 +169,17 @@ struct WysiwygEditorView: View {
                 }
             },
             onTextChange: { document.updateText(block.id, $0) },
-            onSplit: { document.splitBlock(block.id, at: $0) },
+            onSplit: { caret, length in
+                guard let target = document.splitBlock(block.id, at: caret, deleting: length),
+                      let continuation = document.blocks.first(where: { $0.id == target.blockID }) else { return nil }
+                return EditorSplitContinuation(block: continuation, caret: target.caret)
+            },
             onMergeBackward: { document.mergeBackward(block.id) },
             onLineHeadShortcut: { kind, stripped, caret in
                 document.transform(block.id, to: kind, strippedText: stripped, caret: caret)
             },
             onFocused: {
+                document.isEditing = true
                 if document.focus?.blockID != block.id {
                     document.focus = EditorFocus(blockID: block.id, caret: block.text.count)
                 }
@@ -174,11 +190,15 @@ struct WysiwygEditorView: View {
                     document.focus = EditorFocus(blockID: block.id, caret: caret, selectionLength: length)
                 }
             },
-            pasteHandlers: pasteHandlers
+            pasteHandlers: pasteHandlers,
+            documentUndoManager: document.undoManager,
+            onEditingEnded: { document.endEditing(block.id) },
+            onSeparateEdit: { document.breakUndoCoalescing() },
+            onCompositionChange: { document.setComposition(block.id, active: $0) }
         )
     }
 
-    /// 표 행 삭제 + 되돌리기 토스트 — EditorDocument 엔 undo 스택이 없어 스냅샷 복원으로 되돌린다
+    /// 표 행 삭제 + 되돌리기 토스트 — 문서 히스토리와 함께 특정 표 스냅샷 복원도 제공한다
     /// (레거시 TableActionBar 의 실행취소 토스트 문법 미러). 지운 게 없으면 조용히 무동작.
     private func deleteTableRow(_ id: UUID) {
         guard let before = document.tableSnapshot(id), document.deleteTableRow(id) else { return }

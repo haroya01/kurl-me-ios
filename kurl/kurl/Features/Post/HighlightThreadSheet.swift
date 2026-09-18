@@ -58,7 +58,12 @@ struct HighlightThreadSheet: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         if let note = highlight.note, !note.isEmpty {
-                            personRow(author: highlight.author, date: highlight.createdAt, text: note, isOpener: true)
+                            VStack(alignment: .leading, spacing: 8) {
+                                Label("공개 메모", systemImage: "globe")
+                                    .typeScale(.meta)
+                                    .foregroundStyle(Palette.secondary)
+                                personRow(author: highlight.author, date: highlight.createdAt, text: note, isOpener: true)
+                            }
                         }
                     }
                     .padding(.horizontal, Metrics.gutter)
@@ -297,6 +302,7 @@ struct HighlightThreadSheet: View {
                     .padding(.horizontal, 14)
                     .padding(.vertical, 9)
                     .background(Palette.chipBg, in: Capsule())
+                    .disabled(busy)
                 Button { submit() } label: {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.system(size: 30 * unit))
@@ -422,56 +428,177 @@ struct HighlightThreadSheet: View {
     }
 }
 
-/// 메모와 함께 하이라이트 — 선택 구간에 작성자의 여백 노트(스레드 오프너)를 달아 생성한다.
+/// Keeps the exact memo through a failed request and serializes retries. The sheet only dismisses
+/// after this returns success; a pending save never clears input or reports a saved state.
+@MainActor
+@Observable
+final class HighlightNoteSubmission {
+    var text = ""
+    private(set) var busy = false
+    private(set) var errorMessage: String?
+    var noteLength: Int { text.trimmingCharacters(in: .whitespacesAndNewlines).utf16.count }
+    var canSave: Bool { !busy && noteLength > 0 && noteLength <= HighlightsAPI.maxNoteLength }
+
+    func save(using save: @MainActor (String) async throws -> Void) async -> Bool {
+        let memo = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !busy, !memo.isEmpty else { return false }
+        guard noteLength <= HighlightsAPI.maxNoteLength else {
+            errorMessage = HighlightValidationError.noteTooLong.localizedDescription
+            return false
+        }
+        busy = true
+        errorMessage = nil
+        defer { busy = false }
+        do {
+            try await save(memo)
+            return true
+        } catch {
+            if let validation = error as? HighlightValidationError {
+                errorMessage = validation.localizedDescription
+            } else if let authError = error as? AuthError, case .notSignedIn = authError {
+                errorMessage = String(localized: "로그인이 필요해요. 작성한 메모는 그대로 남아 있어요.")
+            } else {
+                errorMessage = String(localized: "메모를 저장하지 못했어요. 입력은 그대로 남아 있어요.")
+            }
+            return false
+        }
+    }
+}
+
+/// 메모와 함께 하이라이트 — 공개 범위를 확인하고, 저장 성공 뒤 읽던 자리로 돌아간다.
 struct HighlightNoteComposerSheet: View {
     let draft: PostHighlightStore.NoteDraft
-    let onSave: (String) -> Void
+    let onSave: @MainActor (String) async throws -> Void
 
     @Environment(\.dismiss) private var dismiss
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
-    @State private var note = ""
+    @State private var submission = HighlightNoteSubmission()
+    @State private var showDiscardConfirm = false
     @FocusState private var focused: Bool
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 16) {
-                // 무엇에 메모하나 — 인용을 그린 한 가닥과 함께 바짝 위에.
-                HStack(alignment: .top, spacing: 11) {
-                    RoundedRectangle(cornerRadius: 1.5, style: .continuous)
-                        .fill(Palette.accent)
-                        .frame(width: 3)
-                    Text(draft.quote)
-                        .typeScale(.lede)
-                        .foregroundStyle(Palette.secondary)
-                        .lineLimit(3)
-                        .fixedSize(horizontal: false, vertical: true)
+            GeometryReader { geometry in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        Label("이 글의 독자에게 공개돼요", systemImage: "globe")
+                            .typeScale(.footnote)
+                            .foregroundStyle(Palette.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityIdentifier("highlightNoteVisibility")
+
+                        // The source and the thought share one paper surface. Keep the writing
+                        // area flexible so the space above the keyboard belongs to the memo.
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text(draft.quote)
+                                .typeScale(.lede)
+                                .foregroundStyle(Palette.secondary)
+                                .lineLimit(3)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.leading, 14)
+                                .overlay(alignment: .leading) {
+                                    RoundedRectangle(cornerRadius: 1.5, style: .continuous)
+                                        .fill(Palette.accent)
+                                        .frame(width: 3)
+                                }
+                                .accessibilityLabel(Text(verbatim: draft.quote))
+                                .accessibilityIdentifier("highlightNoteQuote")
+
+                            Rectangle()
+                                .fill(Palette.hairline)
+                                .frame(height: 1)
+                                .accessibilityHidden(true)
+
+                            ZStack(alignment: .topLeading) {
+                                TextEditor(text: $submission.text)
+                                    .typeScale(.body)
+                                    .scrollContentBackground(.hidden)
+                                    .focused($focused)
+                                    .disabled(submission.busy)
+                                    .accessibilityLabel(Text("이 부분에 대한 메모를 남겨보세요"))
+                                    .accessibilityIdentifier("highlightNoteInput")
+
+                                if submission.text.isEmpty {
+                                    Text("이 부분에 대한 메모를 남겨보세요")
+                                        .typeScale(.body)
+                                        .foregroundStyle(Palette.faint)
+                                        .padding(.top, 8)
+                                        .padding(.leading, 5)
+                                        .allowsHitTesting(false)
+                                        .accessibilityHidden(true)
+                                }
+                            }
+                            .frame(minHeight: 140, maxHeight: .infinity)
+                        }
+                        .frame(maxHeight: .infinity)
+
+                        if submission.noteLength >= 400 {
+                            Text("\(submission.noteLength)/500")
+                                .typeScale(.meta)
+                                .monospacedDigit()
+                                .foregroundStyle(submission.noteLength > HighlightsAPI.maxNoteLength ? Palette.danger : Palette.secondary)
+                                .frame(maxWidth: .infinity, alignment: .trailing)
+                        }
+                        if let message = submission.noteLength > HighlightsAPI.maxNoteLength
+                            ? HighlightValidationError.noteTooLong.errorDescription : submission.errorMessage {
+                            Text(message)
+                                .typeScale(.footnote)
+                                .foregroundStyle(Palette.danger)
+                                .accessibilityIdentifier("highlightNoteSaveError")
+                        }
+                    }
+                    .padding(Metrics.gutter)
+                    .frame(minHeight: geometry.size.height, alignment: .top)
+                    .frame(maxWidth: Metrics.readingColumn)
+                    .frame(maxWidth: .infinity)
                 }
-                TextField("이 부분에 대한 메모를 남겨보세요", text: $note, axis: .vertical)
-                    .typeScale(.body)
-                    .lineLimit(3...7)
-                    .focused($focused)
-                    .padding(14)
-                    .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radiusControl, style: .continuous))
-                Spacer(minLength: 0)
+                .scrollBounceBehavior(.basedOnSize)
+                .scrollDismissesKeyboard(.interactively)
             }
-            .padding(Metrics.gutter)
             .navigationTitle("메모 추가")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("저장") { onSave(note); dismiss() }
-                        .disabled(note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("취소") {
+                        if submission.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            dismiss()
+                        } else {
+                            showDiscardConfirm = true
+                        }
+                    }
+                    .disabled(submission.busy)
                 }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        Task {
+                            if await submission.save(using: onSave) { dismiss() }
+                        }
+                    } label: {
+                        if submission.busy {
+                            ProgressView().accessibilityLabel(Text("저장 중"))
+                        } else if submission.errorMessage != nil {
+                            Text("다시 저장")
+                        } else {
+                            Text("저장")
+                        }
+                    }
+                    .disabled(!submission.canSave)
+                    .accessibilityIdentifier("saveHighlightNote")
+                }
+            }
+            .confirmationDialog("작성한 메모를 버릴까요?", isPresented: $showDiscardConfirm, titleVisibility: .visible) {
+                Button("메모 버리기", role: .destructive) { dismiss() }
+                Button("계속 쓰기", role: .cancel) {}
             }
             .task {
                 try? await Task.sleep(for: .milliseconds(250))
                 focused = true
             }
         }
-        .presentationDetents([.height(320), .medium])
+        .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         // 메모를 쓰다 드래그로 내리면 유실 — 글자가 있는 동안만 잠근다(취소 버튼은 그대로 출구).
-        .interactiveDismissDisabled(!note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        .interactiveDismissDisabled(submission.busy || !submission.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
     }
 }

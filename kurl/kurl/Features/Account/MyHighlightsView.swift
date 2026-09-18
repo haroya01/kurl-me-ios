@@ -28,10 +28,7 @@ struct MyHighlightsView: View {
     }
 
     private var visibleGroups: [PostGroup] {
-        let q = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let filtered = q.isEmpty ? items : items.filter {
-            $0.quote.lowercased().contains(q) || $0.postTitle.lowercased().contains(q)
-        }
+        let filtered = items.filter { $0.matches(query) }
         var order: [String] = []
         var map: [String: [MyHighlightView]] = [:]
         for it in filtered {
@@ -83,7 +80,7 @@ struct MyHighlightsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .searchable(
             text: $query, placement: .navigationBarDrawer(displayMode: .always),
-            prompt: "구절·글 검색")
+            prompt: "구절·메모·글 검색")
         .sheet(item: $connectTarget) { h in
             ConnectSheet(
                 targetKind: "하이라이트", targetTitle: h.quote,
@@ -152,9 +149,9 @@ struct MyHighlightsView: View {
     private func quoteRow(_ item: MyHighlightView) -> some View {
         // 클로저형 링크 — 계정 스택 혼용 함정 회피(값 기반은 이 깊이서 항해 안 함).
         NavigationLink {
-            RouteView(route: .post(username: item.postUsername, slug: item.postSlug))
+            RouteView(route: .postFocusQuote(username: item.postUsername, slug: item.postSlug, quote: item.quote))
         } label: {
-            // 그은 구절 — 본문에서 칠한 그린 워시를 그대로.
+            VStack(alignment: .leading, spacing: 8) {
             Text(item.quote)
                 .typeScale(.body)
                 .foregroundStyle(Palette.body)
@@ -166,11 +163,29 @@ struct MyHighlightsView: View {
                 .background(
                     Palette.highlightWash,
                     in: RoundedRectangle(cornerRadius: Metrics.radiusThumb))
-                .padding(.vertical, 9)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
+                if let note = item.note, !note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("내 공개 메모")
+                            .typeScale(.meta)
+                            .foregroundStyle(Palette.secondary)
+                        Text(note)
+                            .typeScale(.body)
+                            .foregroundStyle(Palette.body)
+                            .lineLimit(3)
+                    }
+                    .padding(.horizontal, 8)
+                }
+                Label("원문에서 보기", systemImage: "arrow.up.right")
+                    .typeScale(.meta)
+                    .foregroundStyle(Palette.link)
+                    .padding(.horizontal, 8)
+            }
+            .padding(.vertical, 9)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
         }
         .buttonStyle(RowButtonStyle())
+        .accessibilityIdentifier("libraryHighlight-\(item.id)")
         .contextMenu {
             Button { connectTarget = item } label: {
                 Label("컬렉션에 연결", systemImage: "rectangle.stack.badge.plus")
@@ -187,7 +202,6 @@ struct MyHighlightsView: View {
     /// 그은 구절 삭제 — 낙관적으로 목록에서 즉시 빼고, 실패하면 자리째 되돌리고 토스트로 알린다.
     private func delete(_ item: MyHighlightView) {
         guard let idx = items.firstIndex(where: { $0.id == item.id }) else { return }
-        let snapshot = items
         withAnimation(.snappy(duration: 0.25)) {
             items.remove(at: idx)
         }
@@ -195,7 +209,9 @@ struct MyHighlightsView: View {
             do {
                 try await HighlightsAPI.delete(id: item.id)
             } catch {
-                withAnimation(.snappy(duration: 0.25)) { items = snapshot }
+                if !items.contains(where: { $0.id == item.id }) {
+                    withAnimation(.snappy(duration: 0.25)) { items.insert(item, at: min(idx, items.count)) }
+                }
                 ToastCenter.shared.show(String(localized: "하이라이트를 삭제하지 못했습니다"))
             }
         }

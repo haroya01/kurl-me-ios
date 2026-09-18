@@ -29,11 +29,83 @@ struct SelectableProseText: UIViewRepresentable {
     /// 칠할 한 span — 렌더된 본문 텍스트 기준 문자 오프셋 [start, end) + 폴백용 인용. id 로 탭→스레드,
     /// hasThread 면 메모/답글이 있어 강조 밑줄을 더한다.
     struct Mark: Equatable {
+        enum Segment: Equatable { case single, start, middle, end }
         let id: Int64
         let start: Int
         let end: Int
         let quote: String
         let hasThread: Bool
+        var segment: Segment = .single
+    }
+
+    struct ResolvedMark: Equatable {
+        let id: Int64
+        let range: NSRange
+        let hasThread: Bool
+    }
+
+    /// Locate the whole quoted passage, including inline formatting and paragraph boundaries.
+    /// A repeated quote has no safe destination without its ID/offsets, so don't jump to the first.
+    static func sourceBlockID(for quote: String, blocks: [(id: Int, raw: String)]) -> Int? {
+        let needle = normalized(quote)
+        guard !needle.isEmpty else { return nil }
+        let options = AttributedString.MarkdownParsingOptions(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        var text = ""
+        var ranges: [(id: Int, range: NSRange)] = []
+        for block in blocks {
+            let parsed = (try? AttributedString(markdown: block.raw, options: options)) ?? AttributedString(block.raw)
+            let plain = normalized(String(parsed.characters))
+            guard !plain.isEmpty else { continue }
+            if !text.isEmpty { text += " " }
+            let start = (text as NSString).length
+            text += plain
+            ranges.append((block.id, NSRange(location: start, length: (plain as NSString).length)))
+        }
+        guard let match = uniqueRange(of: needle, in: text as NSString) else { return nil }
+        return ranges.first(where: { NSLocationInRange(match.location, $0.range) })?.id
+    }
+
+    /// Paint and tap share one verified range. Never fall back to an arbitrary first occurrence.
+    /// A multi-block quote is validated against its relevant edge, rather than comparing each
+    /// paragraph slice with the entire quote. Drifted multi-block offsets fail closed: one paragraph
+    /// alone cannot safely reconstruct the other blocks' boundaries.
+    static func resolve(_ mark: Mark, in text: NSString) -> ResolvedMark? {
+        let quote = normalized(mark.quote)
+        guard !quote.isEmpty else { return nil }
+        if mark.start >= 0, mark.start < text.length {
+            let end = min(mark.end, text.length)
+            if end > mark.start {
+                let range = NSRange(location: mark.start, length: end - mark.start)
+                let fragment = normalized(text.substring(with: range))
+                let matches: Bool
+                switch mark.segment {
+                case .single: matches = fragment == quote
+                case .start: matches = !fragment.isEmpty && quote.hasPrefix(fragment)
+                case .end: matches = !fragment.isEmpty && quote.hasSuffix(fragment)
+                case .middle:
+                    matches = !fragment.isEmpty && uniqueRange(of: fragment, in: quote as NSString) != nil
+                }
+                if matches { return ResolvedMark(id: mark.id, range: range, hasThread: mark.hasThread) }
+            }
+        }
+        guard mark.segment == .single, let range = uniqueRange(of: mark.quote, in: text) else { return nil }
+        return ResolvedMark(id: mark.id, range: range, hasThread: mark.hasThread)
+    }
+
+    private static func normalized(_ text: String) -> String {
+        text.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
+    }
+
+    private static func uniqueRange(of quote: String, in text: NSString) -> NSRange? {
+        guard !quote.isEmpty else { return nil }
+        let first = text.range(of: quote)
+        guard first.location != NSNotFound else { return nil }
+        let next = first.location + 1 // also reject overlapping repeats
+        if next < text.length,
+           text.range(of: quote, range: NSRange(location: next, length: text.length - next)).location != NSNotFound {
+            return nil
+        }
+        return first
     }
 
     func makeUIView(context: Context) -> ProseTextView {
@@ -71,7 +143,6 @@ struct SelectableProseText: UIViewRepresentable {
         tv.onHighlight = onHighlight
         tv.onHighlightNote = onHighlightNote
         tv.onOpenThread = onOpenThread
-        tv.marks = highlights
         // 베이스(파싱된 본문)는 원문·크기·행간·색이 실제로 바뀔 때만 다시 만든다 — 하이라이트 토글·
         // 부모 무효화(다른 문단의 마크 변화 등)마다 마크다운을 재파싱하던 것을 막는다. 페인트 패스는
         // 아래에서 늘 새로 얹으므로(하이라이트만 바뀌어도) 재파싱 없이 span 만 다시 칠해진다.
@@ -95,29 +166,10 @@ struct SelectableProseText: UIViewRepresentable {
         }
         let painted = NSMutableAttributedString(attributedString: base)
         let hay = painted.string as NSString
-        let total = painted.length
         let wash = UIColor(Palette.highlightWash)
-        for mark in highlights {
-            var painted_range: NSRange?
-            // 정밀: 저장된 오프셋이 이 렌더 텍스트에 들어맞으면 그 span 을 칠한다(서식 교차 포함).
-            // end 는 본문 길이로 clamp — 다중 블록의 "이 블록 끝까지"(Int.max)를 처리한다.
-            if mark.start >= 0, mark.start < total {
-                let end = min(mark.end, total)
-                if mark.start < end {
-                    let candidate = NSRange(location: mark.start, length: end - mark.start)
-                    // 오프셋이 본문 수정으로 밀렸으면 같은 위치에 다른 글자가 온다 — 인용과
-                    // 대조해 어긋나면 정밀 경로를 버리고 폴백으로 강등(엉뚱한 span 칠 방지).
-                    if mark.quote.isEmpty || hay.substring(with: candidate) == mark.quote {
-                        painted_range = candidate
-                    }
-                }
-            }
-            if painted_range == nil, !mark.quote.isEmpty {
-                // 폴백: 오프셋이 본문 수정으로 어긋났을 때 인용 텍스트로.
-                let range = hay.range(of: mark.quote)
-                if range.location != NSNotFound { painted_range = range }
-            }
-            guard let range = painted_range else { continue }
+        tv.resolvedMarks = highlights.compactMap { Self.resolve($0, in: hay) }
+        for mark in tv.resolvedMarks {
+            let range = mark.range
             painted.addAttribute(.backgroundColor, value: wash, range: range)
             // 낮춘 채움을 얇은 그린 밑줄로 보완 — 모든 하이라이트에 헤어라인 하나(놓칠 곳에서도 표식 유지).
             // 메모/답글이 달린 건 굵고 진한 밑줄로 올려 "탭하면 대화" 신호를 구분한다.
@@ -187,7 +239,13 @@ struct SelectableProseText: UIViewRepresentable {
         /// 선택 구간의 "하이라이트"·"메모" 액션 — 더블탭(기본 메뉴)과 롱프레스(문장 스냅, 우리
         /// UIEditMenuInteraction)가 공유한다. quote 는 호출 시점에 굳혀 둔다(선택이 바뀌어도 일관).
         private func highlightActions(tv: ProseTextView, range: NSRange) -> [UIMenuElement] {
-            let quote = (tv.text as NSString).substring(with: range)
+            let text = tv.text as NSString
+            guard range.location >= 0, range.location <= text.length,
+                  range.length > 0, range.length <= text.length - range.location else { return [] }
+            guard range.length <= HighlightsAPI.maxQuoteLength else {
+                return [UIAction(title: String(localized: "1,000자 이내로 선택해 주세요."), attributes: .disabled) { _ in }]
+            }
+            let quote = text.substring(with: range)
             let after = NSRange(location: range.location + range.length, length: 0)
             var actions: [UIMenuElement] = []
             if let onHighlight = tv.onHighlight {
@@ -221,6 +279,7 @@ struct SelectableProseText: UIViewRepresentable {
             point.x -= tv.textContainerInset.left
             point.y -= tv.textContainerInset.top
             let glyph = lm.glyphIndex(for: point, in: tv.textContainer)
+            guard glyph < lm.numberOfGlyphs else { return }
             let charIndex = min(lm.characterIndexForGlyph(at: glyph), ns.length - 1)
             let range = Self.sentenceRange(in: ns, around: charIndex)
             guard range.length > 0 else { return }
@@ -266,16 +325,17 @@ struct SelectableProseText: UIViewRepresentable {
 
         /// 칠해진 하이라이트를 탭 → 그 스레드 열기. 글자 위가 아닌 탭(빈 줄·여백)은 무시.
         @objc func handleTap(_ gesture: UITapGestureRecognizer) {
-            guard let tv = gesture.view as? ProseTextView, let onOpen = tv.onOpenThread, !tv.marks.isEmpty else { return }
+            guard let tv = gesture.view as? ProseTextView, let onOpen = tv.onOpenThread, !tv.resolvedMarks.isEmpty else { return }
             let lm = tv.layoutManager
             var point = gesture.location(in: tv)
             point.x -= tv.textContainerInset.left
             point.y -= tv.textContainerInset.top
             let glyph = lm.glyphIndex(for: point, in: tv.textContainer)
+            guard glyph < lm.numberOfGlyphs else { return }
             let rect = lm.boundingRect(forGlyphRange: NSRange(location: glyph, length: 1), in: tv.textContainer)
             guard rect.contains(point) else { return }
             let charIndex = lm.characterIndexForGlyph(at: glyph)
-            if let mark = tv.marks.first(where: { $0.start >= 0 && $0.start <= charIndex && charIndex < $0.end }) {
+            if let mark = tv.resolvedMarks.first(where: { NSLocationInRange(charIndex, $0.range) }) {
                 onOpen(mark.id)
             }
         }
@@ -328,7 +388,7 @@ final class ProseTextView: UITextView {
     var onHighlight: ((_ startOffset: Int, _ endOffset: Int, _ quote: String) -> Void)?
     var onHighlightNote: ((_ startOffset: Int, _ endOffset: Int, _ quote: String) -> Void)?
     var onOpenThread: ((_ highlightId: Int64) -> Void)?
-    var marks: [SelectableProseText.Mark] = []
+    var resolvedMarks: [SelectableProseText.ResolvedMark] = []
     /// 롱프레스(문장 스냅)가 띄우는 편집 메뉴 인터랙션.
     var highlightMenuInteraction: UIEditMenuInteraction?
 }
