@@ -185,7 +185,8 @@ private struct TableCellEditor: UIViewRepresentable {
 
     private func apply(_ tv: UITextView) {
         tv.text = text
-        tv.font = .systemFont(ofSize: 15, weight: isHeader ? .semibold : .regular)
+        tv.font = UIFontMetrics(forTextStyle: .body).scaledFont(for: .systemFont(ofSize: 15, weight: isHeader ? .semibold : .regular))
+        tv.adjustsFontForContentSizeCategory = true
         tv.textColor = UIColor(isHeader ? Palette.ink : Palette.body)
         tv.textAlignment = {
             switch alignment {

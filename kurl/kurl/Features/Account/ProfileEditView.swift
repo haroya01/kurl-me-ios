@@ -104,7 +104,7 @@ struct ProfileEditView: View {
 
             Section {
                 Toggle(isOn: $hideFollowerCount) {
-                    Text("팔로워 수 숨기기")
+                    Text("팔로워·팔로잉 목록 숨기기")
                         .typeScale(.body)
                         .foregroundStyle(Palette.ink)
                 }
@@ -112,7 +112,7 @@ struct ProfileEditView: View {
                 // 현재값을 못 받았으면 잠근다 — 잘못된 기준으로 서버 값을 덮어쓰지 않도록.
                 .disabled(!bioLoaded)
             } footer: {
-                Text("켜면 내 프로필과 목록에서 팔로워·팔로잉 수가 보이지 않아요. 팔로우는 그대로 돼요.")
+                Text("켜면 다른 사람에게 내 팔로워·팔로잉 목록이 보이지 않아요. 수는 원래 나에게만 보여요.")
             }
         }
         .navigationTitle("프로필 편집")

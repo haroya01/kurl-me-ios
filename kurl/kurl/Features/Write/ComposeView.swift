@@ -459,12 +459,31 @@ struct ComposeView: View {
         }
     }
 
+    private static func insertedText(from old: String, to new: String) -> String {
+        let a = Array(old), b = Array(new)
+        let prefix = zip(a, b).prefix(while: { $0 == $1 }).count
+        let maxSuffix = min(a.count, b.count) - prefix
+        let suffix = zip(a.reversed(), b.reversed()).prefix(while: { $0 == $1 }).count
+        return String(b[prefix..<(b.count - min(suffix, maxSuffix))])
+    }
+
     private var meta: some View {
-        TextField("제목", text: $title)
+        TextField("제목", text: $title, axis: .vertical)
+            .lineLimit(1...4)
             .typeScale(.masthead)
             .focused($focusedField, equals: .title)
             .submitLabel(.next)
-            .onSubmit { focusBodyEditor() }
+            .onChange(of: title) { oldValue, newValue in
+                guard newValue.contains("\n") else { return }
+                if Self.insertedText(from: oldValue, to: newValue) == "\n" {
+                    title = oldValue
+                    focusBodyEditor()
+                } else {
+                    title = newValue
+                        .replacingOccurrences(of: "\n", with: " ")
+                        .trimmingCharacters(in: .whitespaces)
+                }
+            }
             .padding(.horizontal, Metrics.gutter)
             .padding(.top, 16)
             .padding(.bottom, 12)
@@ -508,7 +527,7 @@ struct ComposeView: View {
 
     private var editor: some View {
         editorCanvas
-        .padding(.horizontal, Metrics.gutter - 4)
+        .padding(.horizontal, editorDocument == nil ? Metrics.gutter - 4 : 0)
         .overlay(alignment: .topLeading) {
             // 본문 로드 중엔 입력을 권하지 않는다 — '탭해 시작' 대신 로딩을 보인다.
             if bodyLoading {

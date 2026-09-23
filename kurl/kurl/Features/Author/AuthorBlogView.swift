@@ -22,6 +22,9 @@ struct AuthorBlogView: View {
     @State private var showReport = false
     @State private var showBlockConfirm = false
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .body) private var railCardWidth: CGFloat = 148
     /// "명함" 버튼 라벨 — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
     @ScaledMetric(relativeTo: .headline) private var cardLabelSize: CGFloat = 14
 
@@ -128,9 +131,6 @@ struct AuthorBlogView: View {
     private func content(_ view: PublicPostListView) -> some View {
         // 정체 헤더 = 작가 랜딩 마스트헤드(태그·시리즈와 같은 family — eyebrow + 히어로).
         VStack(alignment: .leading, spacing: 0) {
-            RailHeading(isOwnAuthor ? "내 블로그" : "작가")
-                .padding(.top, 8)
-                .padding(.bottom, 14)
             HStack(alignment: .center, spacing: 14) {
                 AvatarView(author: view.author, size: 76)
                 VStack(alignment: .leading, spacing: 4) {
@@ -156,18 +156,16 @@ struct AuthorBlogView: View {
                     .foregroundStyle(Palette.secondary)
                     .padding(.top, 12)
             }
-            // 탭 가능한 "팔로워 N · 팔로잉 N" — 각각 해당 목록으로(Medium 문법).
-            FollowCountsLink(username: view.author.username, initialStatus: followStatus)
-                .padding(.top, 12)
-            HStack(spacing: 10) {
-                // 내 블로그면 팔로우 자리는 비운다 — 정체는 위 eyebrow("내 블로그")가 이미 말한다.
-                // 남의 블로그일 때만 팔로우가 서고, 명함은 양쪽 모두 같은 정체의 다른 얼굴로 오른쪽에.
-                if !isOwnAuthor {
+            (dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
+                : AnyLayout(HStackLayout(spacing: 10))) {
+                if isOwnAuthor {
+                    FollowCountsLink(username: view.author.username, initialStatus: followStatus)
+                } else {
                     FollowButton(username: view.author.username, showCount: false, initialStatus: followStatus)
+                    FollowCountsLink(username: view.author.username, initialStatus: followStatus, showsCounts: false)
                 }
                 Spacer(minLength: 0)
-                // 명함(u/ — 링크 모음·소셜)으로 가는 문 — 블로그와 같은 정체의 다른 얼굴.
-                // 시트 대신 스택 푸시 — 앱 안 화면에 얹혀 뒤로가 자연스럽고 블로그로 되건너기 쉽다.
                 NavigationLink(value: Route.businessCard(username: username)) {
                     HStack(spacing: 5) {
                         Image(systemName: "person.crop.rectangle")
@@ -177,16 +175,20 @@ struct AuthorBlogView: View {
                     }
                     .foregroundStyle(.primary)
                     .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
+                    .frame(minHeight: 44)
                     .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
-                // 중성 보조 캡슐 — 투명도 감소 시 Palette.cardBg 솔리드로 떨어진다(§1.7).
                 .glassCapsule(prominent: false)
             }
             .padding(.top, 14)
         }
         .padding(.vertical, 18)
+
+        if !collections.isEmpty {
+            collectionsRail
+                .padding(.bottom, 18)
+        }
 
         if !series.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
@@ -202,8 +204,7 @@ struct AuthorBlogView: View {
                                     Text(item.title)
                                         .typeScale(.titleSmall)
                                         .foregroundStyle(Palette.ink)
-                                        .lineLimit(2)
-                                        .minimumScaleFactor(0.7)
+                                        .lineLimit(3)
                                         .multilineTextAlignment(.leading)
                                     Spacer(minLength: 0)
                                     Text("\(item.postCount)편")
@@ -211,28 +212,29 @@ struct AuthorBlogView: View {
                                         .foregroundStyle(Palette.secondary)
                                 }
                                 .padding(13)
-                                .frame(width: 148, height: 108, alignment: .topLeading)
-                                // 회색 박스 → 흰 종이 카드(보더) — 다른 카드와 같은 문법.
+                                .frame(width: railCardWidth, alignment: .topLeading)
+                                .frame(minHeight: 88, alignment: .topLeading)
                                 .background(
                                     Palette.cardBg,
                                     in: RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous)
-                                        .strokeBorder(Palette.cardBorder, lineWidth: 1))
+                                .overlay {
+                                    if colorScheme == .dark {
+                                        RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous)
+                                            .strokeBorder(Palette.cardBorder, lineWidth: 1)
+                                    }
+                                }
+                                .cardShadow()
                                 .contentShape(Rectangle())
                             }
                             .buttonStyle(CardButtonStyle())
                             .modifier(CardScrollFade(axis: .horizontal))
                         }
                     }
+                    .padding(.vertical, 6)
                 }
+                .scrollClipDisabled()
             }
             .padding(.bottom, 18)
-        }
-
-        if !collections.isEmpty {
-            collectionsRail
-                .padding(.bottom, 18)
         }
 
         RailHeading("글").padding(.bottom, 4)
@@ -240,7 +242,6 @@ struct AuthorBlogView: View {
             // 0편 = 헤딩 아래 빈 공간 대신 자리표 — 내 페이지면 글쓰기로, 남의 페이지면 그냥 안내.
             if isOwnAuthor {
                 FeedPlaceholder(
-                    eyebrow: "내 블로그",
                     title: "아직 발행한 글이 없어요",
                     message: "첫 글을 발행하면 여기 카탈로그로 쌓입니다.",
                     actionTitle: "글쓰기",
@@ -251,7 +252,6 @@ struct AuthorBlogView: View {
                 .padding(.bottom, 8)
             } else {
                 FeedPlaceholder(
-                    eyebrow: "작가",
                     title: "아직 발행한 글이 없어요",
                     message: "이 작가의 첫 글이 올라오면 여기에서 만나요.",
                     actionTitle: "발견에서 읽을 글 찾기",
@@ -281,7 +281,7 @@ struct AuthorBlogView: View {
     // 상세는 인증 면이라 미로그인 탭은 로그인으로 잇는다(막다른 길 금지).
     private var collectionsRail: some View {
         VStack(alignment: .leading, spacing: 12) {
-            RailHeading("컬렉션")
+            RailHeading(resource: LocalizedStringResource("heading.collections", defaultValue: "컬렉션"))
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     ForEach(collections) { item in
@@ -300,7 +300,9 @@ struct AuthorBlogView: View {
                         }
                     }
                 }
+                .padding(.vertical, 6)
             }
+            .scrollClipDisabled()
         }
     }
 
@@ -313,8 +315,7 @@ struct AuthorBlogView: View {
             Text(item.title)
                 .typeScale(.titleSmall)
                 .foregroundStyle(Palette.ink)
-                .lineLimit(2)
-                .minimumScaleFactor(0.7)
+                .lineLimit(3)
                 .multilineTextAlignment(.leading)
             Spacer(minLength: 0)
             Text("\(item.count)개")
@@ -322,13 +323,18 @@ struct AuthorBlogView: View {
                 .foregroundStyle(Palette.secondary)
         }
         .padding(13)
-        .frame(width: 148, height: 108, alignment: .topLeading)
+        .frame(width: railCardWidth, alignment: .topLeading)
+        .frame(minHeight: 96, alignment: .topLeading)
         .background(
             Palette.cardBg,
             in: RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous)
-                .strokeBorder(Palette.cardBorder, lineWidth: 1))
+        .overlay {
+            if colorScheme == .dark {
+                RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous)
+                    .strokeBorder(Palette.cardBorder, lineWidth: 1)
+            }
+        }
+        .cardShadow()
         .contentShape(Rectangle())
     }
 

@@ -326,7 +326,6 @@ struct FeedPage: View {
 
     private var followingGate: some View {
         FeedPlaceholder(
-            eyebrow: source == .forYou ? "추천" : "구독함",
             title: source == .forYou ? "읽을수록 좋아집니다" : "팔로우한 글이 여기 모입니다",
             message: source == .forYou
                 ? "로그인하면 읽은 글을 따라 추천이 쌓입니다."
@@ -352,7 +351,7 @@ struct FeedPage: View {
                     NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
                         BlogCard(
                             item: item,
-                            featured: index == 0 && source == .recent,
+                            featured: false,
                             belonging: model.belonging[item.id] ?? [])
                     }
                     .buttonStyle(CardButtonStyle())
@@ -415,7 +414,6 @@ struct FeedPage: View {
                 if model.items.isEmpty {
                     if source == .following {
                         FeedPlaceholder(
-                            eyebrow: "구독함",
                             title: "구독함이 비어 있어요",
                             message: "작가를 팔로우하면 새 글이 여기 도착해요.",
                             actionTitle: "발견에서 작가 찾기",
@@ -424,7 +422,6 @@ struct FeedPage: View {
                         .padding(.top, 64)
                     } else {
                         FeedPlaceholder(
-                            eyebrow: source == .forYou ? "추천" : "최신",
                             title: source == .forYou ? "아직은 고를 거리가 적어요" : "아직 글이 없습니다",
                             message: source == .forYou
                                 ? "몇 편 읽고 나면 취향이 잡힙니다."
@@ -466,7 +463,7 @@ struct FeedPage: View {
         let events = model.connectionEvents
         guard !events.isEmpty else { return nil }
         // 시작 5, 간격 5 — (index-5)가 5의 배수이고 시작 이상일 때만 슬롯이 열린다.
-        let start = 5, gap = 5
+        let start = 1, gap = 5
         guard index >= start, (index - start) % gap == 0 else { return nil }
         // 마지막 글 뒤에는 끼우지 않는다 — 연결 카드가 피드 끝에 홀로 매달리지 않게.
         guard index < model.items.count - 1 else { return nil }
@@ -491,10 +488,9 @@ struct FeedPage: View {
 
 /// 비어있음·로그아웃 안내 — 스톡 ContentUnavailableView(큰 SF 심볼 + 가운데 설명문)의
 /// 기성품 인상을 걷고, 종이 본문 결의 조용한 면으로 다시 짠다. 브랜드 마크 한 점 +
-/// 섹션 라벨 + 제목 + 한 줄 + 단일 주액션. 로그인 게이트만 그린 유리 캡슐(§1.4 종이 위
+/// 제목 + 한 줄 + 단일 주액션. 로그인 게이트만 그린 유리 캡슐(§1.4 종이 위
 /// 로그인 CTA), 빈 피드 안내는 조용한 그린 텍스트로 — 초록 과용을 피한다(§10 색 규율).
 struct FeedPlaceholder: View {
-    let eyebrow: LocalizedStringKey
     let title: LocalizedStringKey
     let message: LocalizedStringKey
     let actionTitle: LocalizedStringKey
@@ -510,11 +506,6 @@ struct FeedPlaceholder: View {
                 .frame(width: 46, height: 28)
                 .accessibilityHidden(true)
                 .padding(.bottom, 24)
-
-            Text(eyebrow)
-                .typeScale(.eyebrow)
-                .foregroundStyle(Palette.secondary)
-                .padding(.bottom, 10)
 
             Text(title)
                 .typeScale(.featured)
@@ -687,25 +678,13 @@ private struct FeedSeriesCard: View {
                         .init(color: .black.opacity(0.66), location: 1.0),
                     ], startPoint: .top, endPoint: .bottom)
             } else {
-                // 종이 변형 — 아주 옅은 그린(accent-50→accent-100) 대각 그라디언트(웹 EP_GRADS).
-                LinearGradient(
-                    colors: [
-                        Palette.cardBg, Palette.accent.opacity(0.05), Palette.accent.opacity(0.10),
-                    ], startPoint: .topLeading, endPoint: .bottomTrailing)
-                // 우상단에서 비껴 잘리는 거대한 흐린 mono 번호(웹: 148px·accent-600/9%).
-                Text(String(format: "%02d", i + 1))
-                    .font(.system(size: 148, weight: .bold, design: .monospaced))
-                    .tracking(-4)
-                    .foregroundStyle(Palette.accent.opacity(0.09))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                    .offset(x: 14, y: -28)
-                    .allowsHitTesting(false)
+                Palette.cardBg
             }
 
             VStack(alignment: .leading, spacing: 0) {
                 // 시리즈 정체 — 마크 + 시리즈명(웹: 12px semibold).
                 HStack(spacing: 6) {
-                    KurlMark(drawn: [true, true, true], tint: onImage ? .white : Palette.accent)
+                    KurlMark(drawn: [true, true, true], tint: onImage ? .white : Palette.secondary)
                         .frame(width: 16, height: 10)
                     Text(series.title)
                         .font(.system(size: seriesNameSize, weight: .semibold))
@@ -716,10 +695,10 @@ private struct FeedSeriesCard: View {
                 Spacer(minLength: 0)
                 // 에피소드 번호 01 / 04 (웹: 34px accent-700 + 15px slate-500).
                 (Text(String(format: "%02d", i + 1))
-                    .font(.system(size: epNumSize, weight: .bold, design: .monospaced))
-                    .foregroundStyle(onImage ? Color.white : Palette.link)
+                    .font(.system(size: epNumSize, weight: .bold).monospacedDigit())
+                    .foregroundStyle(onImage ? Color.white : Palette.ink)
                     + Text(" / \(String(format: "%02d", series.postCount))")
-                    .font(.system(size: epTotalSize, weight: .bold, design: .monospaced))
+                    .font(.system(size: epTotalSize, weight: .bold).monospacedDigit())
                     .foregroundStyle(onImage ? Color.white.opacity(0.75) : Palette.secondary))
                     .lineLimit(1)
                 // 에피소드 제목(웹: 18px bold, 3줄).

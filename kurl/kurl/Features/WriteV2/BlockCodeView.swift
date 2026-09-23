@@ -79,7 +79,9 @@ private struct CodeEditingTextView: UIViewRepresentable {
     var onSeparateEdit: () -> Void = {}
     var onCompositionChange: (Bool) -> Void = { _ in }
 
-    static let monoFont = UIFont.monospacedSystemFont(ofSize: 14, weight: .regular)
+    static var monoFont: UIFont {
+        UIFontMetrics(forTextStyle: .body).scaledFont(for: .monospacedSystemFont(ofSize: 14, weight: .regular))
+    }
 
     func makeUIView(context: Context) -> BlockUITextView {
         let tv = BlockUITextView()

@@ -97,7 +97,7 @@ struct SeriesAnalyticsDetailView: View {
 
         if !detail.members.isEmpty {
             Hairline().padding(.top, 22)
-            RailHeading("회차별 완주")
+            RailHeading("회차별 독자 수")
                 .padding(.top, 22)
                 .padding(.bottom, 4)
             funnel(detail.members)
@@ -178,30 +178,13 @@ struct SeriesAnalyticsDetailView: View {
     // MARK: 조각
 
     private var periodChips: some View {
-        // 구독자 추이는 7일이 너무 짧아 30·90만. 작가 분석 칩과 같은 유리 문법.
-        GlassEffectContainer(spacing: 0) {
-            HStack(spacing: 8) {
-                ForEach([30, 90], id: \.self) { option in
-                    Button {
-                        changeWindow(option)
-                    } label: {
-                        Text("\(option)일")
-                            .font(.system(
-                                size: 12 * metaUnit, weight: days == option ? .semibold : .regular))
-                            .foregroundStyle(
-                                days == option
-                                    ? AnyShapeStyle(Color(uiColor: .systemBackground))
-                                    : AnyShapeStyle(.secondary))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .contentShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    .selectorPill(selected: days == option)
-                    .accessibilityAddTraits(days == option ? [.isSelected] : [])
-                }
+        Picker("기간", selection: Binding(get: { days }, set: { changeWindow($0) })) {
+            ForEach([30, 90], id: \.self) { option in
+                Text("\(option)일").tag(option)
             }
         }
+        .pickerStyle(.segmented)
+        .fixedSize()
     }
 
     private func metaCount(_ icon: String, _ value: Int64) -> some View {

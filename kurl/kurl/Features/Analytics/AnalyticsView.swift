@@ -21,6 +21,8 @@ struct AnalyticsView: View {
     @State private var phase: LoadState<AuthorAnalyticsOverview> = .idle
     @State private var performance: PostPerformanceResult?
     @State private var performanceSort = "views"
+    @State private var appliedSort = "views"
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var loadingMorePosts = false
     @State private var series: [SeriesAnalyticsRow] = []
     @State private var days = 30
@@ -70,9 +72,10 @@ struct AnalyticsView: View {
         loadGeneration += 1
         let generation = loadGeneration
         if case .idle = phase { phase = .loading }
+        let requestedSort = performanceSort
         do {
             async let overviewReq = AnalyticsAPI.overview(days: days)
-            async let performanceReq = AnalyticsAPI.postPerformance(sort: performanceSort)
+            async let performanceReq = AnalyticsAPI.postPerformance(sort: requestedSort)
             async let seriesReq = AnalyticsAPI.seriesAnalytics()
             let overview = try await overviewReq
             let nextPerformance = try? await performanceReq
@@ -80,7 +83,10 @@ struct AnalyticsView: View {
             guard generation == loadGeneration else { return }
             // 트랜잭션 밖 교체는 numericText·차트 보간을 전부 죽인다 — 한 호흡에 굴린다.
             withAnimation(reduceMotion ? nil : .snappy(duration: 0.3)) {
-                performance = nextPerformance
+                if nextPerformance != nil, requestedSort == performanceSort {
+                    performance = nextPerformance
+                    appliedSort = requestedSort
+                }
                 series = nextSeries
                 phase = .loaded(overview)
             }
@@ -101,12 +107,15 @@ struct AnalyticsView: View {
         guard sort != performanceSort else { return }
         performanceSort = sort
         Task {
-            // 실패 시 기존 목록 유지 + 칩이 또 바뀌었으면 스테일 응답 폐기.
-            if let next = try? await AnalyticsAPI.postPerformance(sort: sort),
-               sort == performanceSort {
+            do {
+                let next = try await AnalyticsAPI.postPerformance(sort: sort)
+                guard sort == performanceSort else { return }
                 withAnimation(reduceMotion ? nil : .snappy(duration: 0.3)) {
                     performance = next
+                    appliedSort = sort
                 }
+            } catch {
+                if sort == performanceSort { performanceSort = appliedSort }
             }
         }
     }
@@ -134,7 +143,6 @@ struct AnalyticsView: View {
         // 0편이면 지표가 전부 0인 벽 — 막다른 길 대신 첫 글로 잇는다(AGENTS 빈 상태 폴리시).
         if overview.publishedPosts == 0 {
             FeedPlaceholder(
-                eyebrow: "분석",
                 title: "발행하면 여기 쌓입니다",
                 message: "첫 글이 나가면 조회·팔로우·유입 추이가 매일 채워집니다.",
                 actionTitle: "새 글 쓰기",
@@ -158,30 +166,13 @@ struct AnalyticsView: View {
             HStack(alignment: .center) {
                 RailHeading("최근 \(overview.windowDays)일")
                 Spacer()
-                // 기간은 서버가 받는 파라미터 — 30일 고정 리포트를 끝낸다.
-                // 칩은 중립 잉크 알약(유리 아님) — 유리 컨테이너 없이 담백한 줄로 둔다.
-                HStack(spacing: 8) {
+                Picker("기간", selection: Binding(get: { days }, set: { changeWindow($0) })) {
                     ForEach([7, 30, 90], id: \.self) { option in
-                        Button {
-                            changeWindow(option)
-                        } label: {
-                            Text("\(option)일")
-                                .font(.system(
-                                    size: 12 * metaUnit,
-                                    weight: days == option ? .semibold : .regular))
-                                .foregroundStyle(
-                                    days == option
-                                        ? AnyShapeStyle(Color(uiColor: .systemBackground))
-                                        : AnyShapeStyle(.secondary))
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .contentShape(Capsule())
-                        }
-                        .buttonStyle(.plain)
-                        .selectorPill(selected: days == option)
-                        .accessibilityAddTraits(days == option ? [.isSelected] : [])
+                        Text("\(option)일").tag(option)
                     }
                 }
+                .pickerStyle(.segmented)
+                .fixedSize()
             }
             .padding(.top, 24)
             HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -209,15 +200,36 @@ struct AnalyticsView: View {
     @ViewBuilder
     private func lifetime(_ overview: AuthorAnalyticsOverview) -> some View {
         Hairline().padding(.top, 22)
-        HStack(spacing: 0) {
-            stat("발행한 글", overview.publishedPosts)
-            stat("누적 조회", overview.lifetimeViews)
-            stat("좋아요", overview.lifetimeLikes)
-            stat("팔로워", overview.lifetimeFollows)
-            stat("링크 클릭", overview.lifetimeLinkClicks)
+        Text("전체 기간")
+            .typeScale(.footnote)
+            .foregroundStyle(Palette.secondary)
+            .padding(.top, 14)
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 2), spacing: 16) {
+                    lifetimeStats(overview)
+                }
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 0) { lifetimeStats(overview) }
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 3), spacing: 16) {
+                        lifetimeStats(overview)
+                    }
+                }
+            }
         }
-        .padding(.vertical, 16)
+        .padding(.top, 10)
+        .padding(.bottom, 16)
         Hairline()
+    }
+
+    @ViewBuilder
+    private func lifetimeStats(_ overview: AuthorAnalyticsOverview) -> some View {
+        stat("발행한 글", overview.publishedPosts)
+        stat("누적 조회", overview.lifetimeViews)
+        stat("좋아요", overview.lifetimeLikes)
+        stat("팔로워", overview.lifetimeFollows)
+        stat("링크 클릭", overview.lifetimeLinkClicks)
     }
 
     @ViewBuilder
@@ -226,12 +238,13 @@ struct AnalyticsView: View {
             HStack(alignment: .center) {
                 RailHeading("글별 성과")
                 Spacer()
-                // 정렬 칩도 중립 잉크 알약 — 유리 컨테이너 없이 담백한 줄로 둔다.
-                HStack(spacing: 8) {
-                    sortChip("조회", key: "views")
-                    sortChip("좋아요", key: "likes")
-                    sortChip("최신", key: "recent")
+                Picker("정렬 기준", selection: Binding(get: { performanceSort }, set: { resort($0) })) {
+                    Text(LocalizedStringResource("sort.views", defaultValue: "조회")).tag("views")
+                    Text("좋아요").tag("likes")
+                    Text("최신").tag("recent")
                 }
+                .pickerStyle(.segmented)
+                .fixedSize()
             }
             .padding(.top, 24)
             .padding(.bottom, 4)
@@ -366,34 +379,19 @@ struct AnalyticsView: View {
 
     // MARK: 조각
 
-    private func sortChip(_ label: LocalizedStringKey, key: String) -> some View {
-        let active = performanceSort == key
-        return Button {
-            resort(key)
-        } label: {
-            Text(label)
-                .font(.system(size: 12 * metaUnit, weight: active ? .semibold : .regular))
-                .foregroundStyle(active
-                    ? AnyShapeStyle(Color(uiColor: .systemBackground)) : AnyShapeStyle(.secondary))
-                .padding(.horizontal, 11)
-                .padding(.vertical, 6)
-                .contentShape(Capsule())
-        }
-        .buttonStyle(.plain)
-        .selectorPill(selected: active)
-        .accessibilityAddTraits(active ? [.isSelected] : [])
-    }
-
     private func stat(_ label: LocalizedStringKey, _ value: Int64) -> some View {
         VStack(spacing: 4) {
             Text(value.formatted())
                 .font(.system(size: 17 * unit, weight: .semibold).monospacedDigit())
                 .foregroundStyle(Palette.ink)
-                .minimumScaleFactor(0.7)
                 .lineLimit(1)
+                .fixedSize()
             Text(label)
                 .typeScale(.footnote)
                 .foregroundStyle(Palette.secondary)
+                .multilineTextAlignment(.center)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+                .fixedSize(horizontal: !dynamicTypeSize.isAccessibilitySize, vertical: true)
         }
         .frame(maxWidth: .infinity)
     }

@@ -14,6 +14,7 @@ struct WysiwygEditorView: View {
     @State private var document: EditorDocument
     /// 붙여넣기 훅 — 호스트(컴포즈)가 업로드·재호스팅·단축을 잇는다. 하네스는 기본값(빈 훅)으로 돈다.
     private let pasteHandlers: EditorPasteHandlers
+    @ScaledMetric(relativeTo: .body) private var placeholderSize: CGFloat = 18
 
     init(document: EditorDocument, pasteHandlers: EditorPasteHandlers = EditorPasteHandlers()) {
         _document = State(initialValue: document)
@@ -39,6 +40,16 @@ struct WysiwygEditorView: View {
                         .accessibilityElement()
                         .accessibilityLabel(Text("본문 이어 쓰기"))
                         .accessibilityAddTraits(.isButton)
+                }
+                .overlay(alignment: .topLeading) {
+                    if isBlankDocument {
+                        Text("본문을 입력하세요")
+                            .font(.system(size: placeholderSize))
+                            .foregroundStyle(Palette.secondary)
+                            .padding(.vertical, verticalPadding(for: .paragraph))
+                            .allowsHitTesting(false)
+                            .accessibilityHidden(true)
+                    }
                 }
                 // 읽기 컬럼(672)을 중앙 정렬하되, 좁은 화면에선 좌우 거터로 안전하게 인셋한다.
                 .padding(.horizontal, Metrics.gutter)
@@ -227,6 +238,12 @@ struct WysiwygEditorView: View {
         ToastCenter.shared.show(undoLabel, actionLabel: String(localized: "실행취소")) {
             document.restoreBlock(removed.block, afterId: removed.afterId)
         }
+    }
+
+    private var isBlankDocument: Bool {
+        guard document.blocks.count == 1, let only = document.blocks.first else { return false }
+        if case .paragraph = only.kind { return only.text.isEmpty }
+        return false
     }
 
     private func verticalPadding(for kind: EditorBlockKind) -> CGFloat {

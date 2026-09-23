@@ -18,7 +18,7 @@ struct FollowButton: View {
     private let username: String
 
     /// 호출측이 작가 로드 때 이미 받아 둔 follow status — 같은 GET 을 또 치지 않도록 시드.
-    init(username: String, showCount: Bool = true, initialStatus: InteractionsAPI.FollowStatus? = nil) {
+    init(username: String, showCount: Bool = false, initialStatus: InteractionsAPI.FollowStatus? = nil) {
         _model = State(initialValue: FollowModel(username: username, seed: initialStatus))
         self.showCount = showCount
         self.username = username

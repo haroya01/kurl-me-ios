@@ -147,8 +147,8 @@ struct SeriesBanner: View {
             Image(systemName: systemName)
                 .font(.system(size: 13 * metaUnit, weight: .semibold))
                 .foregroundStyle(link != nil ? Palette.link : Palette.faint)
-                .frame(width: 34, height: 34)
-                .contentShape(Circle())
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .disabled(link == nil)

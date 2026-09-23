@@ -39,8 +39,8 @@ struct TagFollowButton: View {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(Palette.secondary)
-                    .frame(width: 38, height: 38)
-                    .contentShape(Circle())
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("태그 더 보기")

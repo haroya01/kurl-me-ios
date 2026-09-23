@@ -82,16 +82,6 @@ struct StudioView: View {
                     .padding(.bottom, 8)
                 }
             }
-            // 유리는 뒤에 흐르는 것이 있을 때만 유리다 — 스위처 뒤 옅은 브랜드 안개 한 겹(피드와 동일).
-            .background(alignment: .top) {
-                if auth.isSignedIn {
-                    BrandMist()
-                        .frame(height: 220)
-                        .mask(LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom))
-                        .ignoresSafeArea(edges: .top)
-                        .allowsHitTesting(false)
-                }
-            }
             // 푸시된 화면(에디터·상세)은 탭바 숨김을 추적하지 않는다(탭 루트 전용).
             .navigationDestination(isPresented: $composing) {
                 ComposeView(post: nil, onSaved: { reloadSoon() }, onOpenPublished: openPublished)
@@ -295,7 +285,7 @@ struct StudioView: View {
         switch filter {
         case .all: return currentPosts
         case .draft: return currentPosts.filter(\.isDraft)
-        case .published: return currentPosts.filter { !$0.isDraft }
+        case .published: return currentPosts.filter(\.isPublished)
         }
     }
 
@@ -310,10 +300,22 @@ struct StudioView: View {
         // 필터만 슬림하게 한 줄, 그 아래 바로 콘텐츠.
         HStack {
             Spacer(minLength: 0)
-            GlassSegmentSwitcher(items: HubFilter.allCases, selection: $filter) { $0.label }
+            Menu {
+                Picker("보기", selection: $filter) {
+                    ForEach(HubFilter.allCases) { Text($0.label).tag($0) }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(filter.label)
+                    Image(systemName: "chevron.down").font(.caption.weight(.semibold))
+                }
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(Palette.secondary)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+            }
         }
-        .padding(.top, 4)
-        .padding(.bottom, 12)
+        .padding(.bottom, 4)
         if filtered.isEmpty {
             Text(filter == .draft ? "아직 임시저장한 글이 없어요" : "아직 발행한 글이 없어요")
                 .typeScale(.lede)
@@ -438,7 +440,7 @@ struct StudioView: View {
             Image(systemName: "ellipsis")
                 .font(.system(size: 15 * metaUnit, weight: .semibold))
                 .foregroundStyle(Palette.secondary)
-                .frame(width: 34, height: 34)
+                .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }
         .tint(.brand)

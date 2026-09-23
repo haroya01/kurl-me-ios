@@ -44,7 +44,7 @@ struct TagFeedView: View {
                     // 태그 피드도 browse 면 — 검색·홈과 같은 카드 문법(웹 §10.1 예외 경계).
                     ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                         NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
-                            BlogCard(item: item)
+                            BlogCard(item: item, omittingTag: tag)
                         }
                         .buttonStyle(CardButtonStyle())
                         .cardQuickActions(item)

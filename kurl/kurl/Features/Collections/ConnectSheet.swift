@@ -118,6 +118,9 @@ struct ConnectSheet: View {
                 failedState
             } else {
                 ScrollView {
+                    targetPreview
+                        .padding(.top, 14)
+                        .padding(.bottom, 6)
                     LazyVStack(spacing: 0) {
                         ForEach(collections) { c in
                             collectionRow(c)
@@ -181,11 +184,13 @@ struct ConnectSheet: View {
                     Image(systemName: selected.contains(c.id) ? "checkmark.circle.fill" : "circle")
                         .font(.system(size: 20 * unit))
                         .foregroundStyle(selected.contains(c.id) ? Palette.accent : Palette.faint)
+                        .accessibilityHidden(true)
                 }
                 .padding(.vertical, 13)
                 .contentShape(Rectangle())
             }
             .buttonStyle(RowButtonStyle())
+            .accessibilityAddTraits(selected.contains(c.id) ? .isSelected : [])
         }
     }
 
@@ -215,6 +220,7 @@ struct ConnectSheet: View {
                 }
                 Image(systemName: c.visibility.icon)
                     .font(.system(size: 10 * metaUnit, weight: .medium))
+                    .accessibilityLabel(Text(c.visibility.label))
                 Text("\(c.count)개")
             }
             .typeScale(.meta)
@@ -252,7 +258,7 @@ struct ConnectSheet: View {
                             .foregroundStyle(Palette.link)
                     }
                 }
-                .frame(minWidth: 44, minHeight: 30)
+                .frame(minWidth: 44, minHeight: 44)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)

@@ -175,7 +175,6 @@ struct DiscoverDeckView: View {
     private var emptyDeck: some View {
         // 인증 피드가 빈 덱을 줄 수 있다 — 다른 빈 면과 같은 언어(FeedPlaceholder)로 다시 섞기를 건넨다.
         FeedPlaceholder(
-            eyebrow: "발견",
             title: "읽을 글이 없어요",
             message: "작가를 팔로우하면, 그들의 글이 이 덱에 흘러요.",
             actionTitle: "다시 섞기",

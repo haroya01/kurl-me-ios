@@ -116,6 +116,10 @@ struct CollectionsListView: View {
             }
 
             HStack(spacing: 6) {
+                if c.kind == .path {
+                    Text("길")
+                    Text("·").foregroundStyle(Palette.faint)
+                }
                 Image(systemName: c.visibility.icon)
                     .font(.system(size: 11 * metaUnit, weight: .medium))
                 Text(c.visibility.label)
@@ -123,7 +127,7 @@ struct CollectionsListView: View {
                 Text("\(c.count)개")
             }
             .typeScale(.meta)
-            .foregroundStyle(Palette.faint)
+            .foregroundStyle(Palette.secondary)
             .padding(.top, 2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

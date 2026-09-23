@@ -46,7 +46,7 @@ struct AccountView: View {
                     } label: {
                         Image(systemName: "gearshape")
                     }
-                    .tint(.brand)
+                    .tint(.primary)
                     .accessibilityLabel("설정")
                 }
                 if auth.isSignedIn {
@@ -57,7 +57,7 @@ struct AccountView: View {
                         } label: {
                             Image(systemName: "books.vertical")
                         }
-                        .tint(.brand)
+                        .tint(.primary)
                         .accessibilityLabel("서재")
                     }
                     ToolbarItem(placement: .primaryAction) {
@@ -76,7 +76,7 @@ struct AccountView: View {
                                     }
                                 }
                         }
-                        .tint(.brand)
+                        .tint(.primary)
                         .accessibilityLabel("알림")
                         .accessibilityValue(
                             unreadCount > 0 ? Text("읽지 않음 \(unreadCount)") : Text(""))

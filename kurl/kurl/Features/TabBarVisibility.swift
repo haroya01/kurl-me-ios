@@ -115,16 +115,20 @@ private struct TracksTabBarVisibility: ViewModifier {
     let enabled: Bool
     @Environment(\.tabBarVisibility) private var visibility
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverOn
 
     func body(content: Content) -> some View {
         content.onScrollGeometryChange(for: CGFloat.self) { geometry in
             geometry.contentOffset.y + geometry.contentInsets.top
         } action: { _, offset in
-            guard enabled, let visibility else { return }
+            guard enabled, let visibility, !voiceOverOn else { return }
             // 숨김↔복귀 전환만 부드럽게 — reduce-motion 이면 즉시 토글(움직임 없이 존재만).
             withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) {
                 visibility.report(offset: offset)
             }
+        }
+        .onChange(of: voiceOverOn) { _, on in
+            if on, enabled { visibility?.reset() }
         }
     }
 }

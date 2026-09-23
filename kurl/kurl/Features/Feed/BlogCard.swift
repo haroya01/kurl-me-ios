@@ -17,6 +17,11 @@ import SwiftUI
 struct BlogCard: View {
     let item: FeedItem
     var featured = false
+    var omittingTag: String?
+
+    private var shownTag: String? {
+        item.renderableTags.first { $0.caseInsensitiveCompare(omittingTag ?? "") != .orderedSame }
+    }
     /// 이 글이 담긴 공개 컬렉션(소속 한 올) — 있을 때만 카드 아래 한 줄이 선다. 배치로 채워져 곁에서 도착한다.
     var belonging: [CollectionSummary] = []
 
@@ -66,7 +71,7 @@ struct BlogCard: View {
 
     private func cover(url: URL) -> some View {
         Color.clear
-            .aspectRatio(4.0 / 3.0, contentMode: .fit)
+            .aspectRatio(1200.0 / 630.0, contentMode: .fit)
             .overlay {
                 // 카드 폭은 리딩 컬럼 남짓 — 2000px OG 커버를 그대로 쥐지 않게 폭만큼만 받는다.
                 RemoteImage(url: url, maxPixel: 480) { phase in
@@ -98,7 +103,7 @@ struct BlogCard: View {
             .overlay(alignment: .topLeading) {
                 HStack(spacing: 8) {
                     if featured { FeaturedBadge(over: true) }
-                    if let tag = item.renderableTags.first {
+                    if let tag = shownTag {
                         // 칩처럼 보이면 칩처럼 동작해야 한다 — 탭 = 태그 피드.
                         NavigationLink(value: Route.tag(tag)) {
                             Text("#\(tag)")
@@ -143,10 +148,10 @@ struct BlogCard: View {
 
     private var textCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if featured || item.renderableTags.first != nil {
+            if featured || shownTag != nil {
                 HStack(spacing: 8) {
                     if featured { FeaturedBadge(over: false) }
-                    if let tag = item.renderableTags.first {
+                    if let tag = shownTag {
                         NavigationLink(value: Route.tag(tag)) {
                             Text("#\(tag)")
                                 .typeScale(.meta)
@@ -232,25 +237,15 @@ private struct CardMeta: View {
                         .fontWeight(.medium)
                         .lineLimit(1)
                 }
+                .padding(.horizontal, 10)
                 .contentShape(Rectangle())
+                .padding(.horizontal, -10)
             }
             .buttonStyle(.plain)
             if let date = item.publishedAt {
                 Text("·").foregroundStyle(dim)
                 // browse 면 시간 문법 통일 — 행·허브와 같은 상대시간(상세만 절대 날짜).
                 Text(date.relativeShort)
-            }
-            // 퀵액션 좋아요가 그 자리에서 보이게 — 서버 값 대신 낙관 카운트를 그린다(0→1 등장 포함).
-            let likes = LikeStore.shared.displayCount(
-                username: item.author.username, slug: item.slug, server: item.likeCount)
-            if likes > 0 {
-                Text("·").foregroundStyle(dim)
-                HStack(spacing: 3) {
-                    Image(systemName: "heart")
-                        .font(.system(size: 10))
-                        .foregroundStyle(tone)
-                    Text("\(likes)")
-                }
             }
         }
         .typeScale(.meta)
@@ -293,7 +288,7 @@ private struct BelongingLine: View {
                         .truncationMode(.middle)
                 }
                 .typeScale(.footnote)
-                .contentShape(Rectangle())
+                .expandTapTarget(4)
             }
             .buttonStyle(.plain)
             .accessibilityElement(children: .combine)

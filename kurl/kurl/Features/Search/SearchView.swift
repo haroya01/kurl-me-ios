@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct SearchView: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var query = ""
     @State private var phase: LoadState<[FeedItem]> = .idle
     @State private var searchTask: Task<Void, Never>?
@@ -49,6 +50,8 @@ struct SearchView: View {
                     ErrorState(message: message, retry: { runSearch(query) })
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Palette.pageBg)
             // 스크롤을 내리면 탭바가 사라지고 올리면 돌아온다(스레드식) — 활성 스크롤 표면을 관측.
             .tracksTabBarVisibility()
             .navigationTitle("검색")
@@ -69,7 +72,7 @@ struct SearchView: View {
             .searchable(
                 text: $query,
                 placement: .navigationBarDrawer(displayMode: .always),
-                prompt: "작가·글·태그 찾기")
+                prompt: "글 찾기")
             // 태그·작가 갈래는 결과에서도 쓰므로 phase 와 무관하게 한 번 받아 둔다.
             .task { await loadDiscovery() }
             // `--query <term>` — simctl 은 터치를 못 넣으니, 결과·갈래·페이지네이션·무결과까지
@@ -104,14 +107,6 @@ struct SearchView: View {
     private var idleState: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 26) {
-                // 대기 화면이 수동적으로 비어 보이지 않게 — 무엇을 찾을 수 있는지 한 줄로 짚어 준다(배너 아닌 조용한 힌트).
-                Text("작가 이름, 글 제목이나 내용, 태그로 찾아보세요.")
-                    .typeScale(.footnote)
-                    .foregroundStyle(Palette.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                trendingRail
-
                 if !recents.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
@@ -153,6 +148,8 @@ struct SearchView: View {
                         }
                     }
                 }
+
+                trendingRail
 
                 popularTagsRail
 
@@ -199,31 +196,19 @@ struct SearchView: View {
                                     Text(item.title)
                                         .typeScale(.titleSmall)
                                         .foregroundStyle(Palette.ink)
-                                        .lineLimit(2)
-                                        .minimumScaleFactor(0.7)
+                                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? 6 : 3)
                                         .multilineTextAlignment(.leading)
                                     Spacer(minLength: 0)
-                                    HStack(spacing: 5) {
-                                        Text(item.author.username)
-                                            .lineLimit(1)
-                                        // 피드 퀵액션 좋아요와 같은 낙관 카운트 — 표면 간 숫자 어긋남 방지.
-                                        let likes = LikeStore.shared.displayCount(
-                                            username: item.author.username, slug: item.slug,
-                                            server: item.likeCount)
-                                        if likes > 0 {
-                                            Text("·").foregroundStyle(Palette.faint)
-                                            HStack(spacing: 2) {
-                                                Image(systemName: "heart")
-                                                    .font(.system(size: 9))
-                                                Text("\(likes)")
-                                            }
-                                        }
-                                    }
+                                    Text(item.author.username)
+                                        .lineLimit(1)
                                     .typeScale(.meta)
                                     .foregroundStyle(Palette.secondary)
                                 }
                                 .padding(14)
-                                .frame(width: 200, height: 112, alignment: .topLeading)
+                                .containerRelativeFrame(.horizontal, alignment: .topLeading) { width, _ in
+                                    dynamicTypeSize.isAccessibilitySize ? width * 0.8 : 200
+                                }
+                                .frame(minHeight: 112, alignment: .topLeading)
                                 .background(
                                     Palette.cardBg,
                                     in: RoundedRectangle(
@@ -378,7 +363,7 @@ struct SearchView: View {
                 LazyVStack(alignment: .leading, spacing: 16) {
                     if !tags.isEmpty {
                         VStack(alignment: .leading, spacing: 10) {
-                            RailHeading("태그")
+                            RailHeading("관련 태그")
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
                                     ForEach(tags, id: \.self) { tag in
@@ -393,7 +378,7 @@ struct SearchView: View {
                     }
                     if !authors.isEmpty {
                         VStack(alignment: .leading, spacing: 6) {
-                            RailHeading("작가")
+                            RailHeading("관련 작가")
                             ForEach(authors) { suggestion in
                                 NavigationLink(
                                     value: Route.author(username: suggestion.author.username)
@@ -467,7 +452,6 @@ struct SearchView: View {
             // 발견 레일까지 못 받은 드문 경우 — 스톡 회색 말풍선 대신 대기화면과 같은 언어로
             // 발견 탭으로 이어준다(막다른 길 금지).
             FeedPlaceholder(
-                eyebrow: "검색",
                 title: "‘\(query)’ 결과가 없어요",
                 message: "다른 낱말로 찾아보거나, 발견 탭에서 읽을 글을 둘러보세요.",
                 actionTitle: "발견 탭에서 읽을 글 찾기",

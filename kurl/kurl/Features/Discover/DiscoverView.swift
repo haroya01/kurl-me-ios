@@ -65,12 +65,6 @@ struct DiscoverView: View {
                     // 발견 표면 = 큐레이터 연결(누가 무엇을 이었나) · 남들 하이라이트(누가 무엇을 밑줄 쳤나)
                     // 세 흐름을 떠 있는 유리 세그먼트로 — FeedView 의 최신·인기·팔로잉과 같은 문법.
                     // 스위처는 화면 정중앙에 — 스튜디오 헤더와 같은 Spacer 보정(왼쪽에 기대던 것 교정).
-                    HStack(spacing: 0) {
-                        Spacer(minLength: 0)
-                        GlassSegmentSwitcher(items: DiscoverTab.allCases, selection: $tab) { $0.label }
-                        Spacer(minLength: 0)
-                    }
-                    .padding(.bottom, 14)
                     // 전역 폴백이 활성인 흐름에서만 조용한 맥락 한 줄(§10) — 왜 이게 보이는지 + 큐레이터 찾기.
                     if activeSourceIsGlobal {
                         globalFallbackCaption
@@ -115,6 +109,18 @@ struct DiscoverView: View {
                     )
                 }
             }
+            .safeAreaInset(edge: .top) {
+                if AuthStore.shared.isSignedIn {
+                    HStack(spacing: 0) {
+                        Spacer(minLength: 0)
+                        GlassSegmentSwitcher(items: DiscoverTab.allCases, selection: $tab) { $0.label }
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.top, 2)
+                    .padding(.bottom, 8)
+                }
+            }
+            .scrollEdgeEffectStyle(.soft, for: .top)
             // 스와이프 면 최소 높이의 기준 — 스크롤 컨테이너(뷰포트) 실측.
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { viewportHeight = $0 }
             // 스크롤을 내리면 탭바가 사라지고 올리면 돌아온다(스레드식) — 탭 루트 전용.
@@ -244,7 +250,7 @@ struct DiscoverView: View {
                     }
                 }
                 if !flowCurators.isEmpty {
-                    RailHeading("취향이 겹치는 큐레이터")
+                    RailHeading("최근 길을 엮은 큐레이터")
                         .padding(.top, openPaths.isEmpty ? 0 : 30)
                         .padding(.bottom, 12)
                     ForEach(Array(flowCurators.enumerated()), id: \.element.id) { index, curator in
@@ -382,7 +388,6 @@ struct DiscoverView: View {
     // 비로그인 게이트 — 발견은 인증 피드라, 로그인하면 흐른다고 안내(FeedView 로그아웃 결과와 동일 문법).
     private var loggedOutGate: some View {
         FeedPlaceholder(
-            eyebrow: "발견",
             title: "연결 발견",
             message: "로그인하면 팔로우한 큐레이터가 컬렉션에 이은 글이 여기에 흘러요.",
             actionTitle: "로그인",
@@ -398,7 +403,6 @@ struct DiscoverView: View {
     // (다른 빈 면과 같은 언어 = FeedPlaceholder).
     private var emptyState: some View {
         FeedPlaceholder(
-            eyebrow: "발견",
             title: "아직 흐를 게 없어요",
             message: "작가를 팔로우하면, 그들이 컬렉션에 이은 글이 여기에 흘러요.",
             actionTitle: "읽을 글 찾기",
@@ -738,7 +742,7 @@ private struct PathEntranceRow: View {
                     "\(path.kind == .path ? String(localized: "길") : String(localized: "컬렉션")) · @\(path.curatorUsername)"
                 )
                 .typeScale(.meta)
-                .foregroundStyle(Palette.faint)
+                .foregroundStyle(Palette.secondary)
                 .padding(.top, 1)
             }
             Spacer(minLength: 8)
