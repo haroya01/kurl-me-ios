@@ -199,7 +199,6 @@ struct NotesPage: View {
                     // 컴포저를 열고, 아니면 로그인 시트로(FeedPlaceholder 와 같은 언어).
                     if AuthStore.shared.isSignedIn {
                         FeedPlaceholder(
-                            eyebrow: "노트",
                             title: "첫 생각을 남겨보세요",
                             message: "제목도 형식도 없이, 지금 떠오른 한 줄을 흘려 두는 자리예요.",
                             actionTitle: "첫 노트 쓰기",
@@ -209,7 +208,6 @@ struct NotesPage: View {
                         .padding(.top, 72)
                     } else {
                         FeedPlaceholder(
-                            eyebrow: "노트",
                             title: "첫 생각을 남겨보세요",
                             message: "로그인하면 제목도 형식도 없이 지금 떠오른 한 줄을 여기에 흘려 둘 수 있어요.",
                             actionTitle: "로그인",
@@ -250,6 +248,7 @@ private struct NoteRowView: View {
                 AvatarView(author: note.author, size: 38)
             }
             .buttonStyle(.plain)
+            .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 5) {
                 VStack(alignment: .leading, spacing: 5) {
                     HStack(spacing: 6) {
@@ -261,7 +260,7 @@ private struct NoteRowView: View {
                             Text(note.author.username)
                                 .typeScale(.meta)
                                 .foregroundStyle(Palette.ink)
-                                .contentShape(Rectangle())
+                                .expandTapTarget()
                         }
                         .buttonStyle(.plain)
                         if let date = note.createdAt {
@@ -287,11 +286,6 @@ private struct NoteRowView: View {
                             .font(.system(size: 13))
                             .symbolEffect(
                                 .bounce, value: reduceMotion ? false : model.isLiked(note))
-                        if model.displayLikeCount(note) > 0 {
-                            Text("\(model.displayLikeCount(note))")
-                                .monospacedDigit()
-                                .contentTransition(.numericText())
-                        }
                     }
                     // 카운트는 메타 사다리로 — raw 12pt 산발 종식(Dynamic Type 도 따라온다). 하트는 자체 size 유지.
                     .typeScale(.meta)

@@ -188,7 +188,7 @@ enum TypeRole {
         case .name, .featured: return -0.4
         case .title: return -0.3
         case .titleSmall: return -0.25
-        case .lede, .body: return -0.1
+        case .lede, .body: return 0
         case .eyebrow, .meta, .footnote: return 0
         }
     }

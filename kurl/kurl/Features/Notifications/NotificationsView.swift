@@ -8,6 +8,7 @@ import SwiftUI
 /// 알림 — 웹 벨과 같은 데이터. 행 탭 = 읽음 처리 + 대상(글/작가/시리즈)으로 이동,
 /// 미읽음은 왼쪽 그린 점 하나로 조용히 표시한다.
 struct NotificationsView: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var items: [AppNotification] = []
     @State private var nextCursor: Int64?
     @State private var hasMore = false
@@ -40,7 +41,6 @@ struct NotificationsView: View {
                 // 막다른 길 금지 — 알림은 사람을 팔로우하고 반응하면 흐른다. 발견으로 이어준다
                 // (다른 빈 면과 같은 언어 = FeedPlaceholder).
                 FeedPlaceholder(
-                    eyebrow: "알림",
                     title: "아직 알림이 없어요",
                     message: "팔로우한 작가의 새 글·좋아요·댓글 소식이 여기 모여요.",
                     actionTitle: "발견에서 작가 찾기",
@@ -108,7 +108,6 @@ struct NotificationsView: View {
     // 비로그인 게이트 — 알림은 인증 피드라, 로그인하면 흐른다고 안내(발견·피드 로그아웃 결과와 동일 문법).
     private var loggedOutGate: some View {
         FeedPlaceholder(
-            eyebrow: "알림",
             title: "내 알림을 받으려면",
             message: "로그인하면 좋아요·댓글·팔로우·새 글 알림이 여기에 모여요.",
             actionTitle: "로그인",
@@ -173,10 +172,33 @@ struct NotificationsView: View {
     // 왼쪽 점 칸을 없애 행이 조여지고, 초록은 행당 한 점만(§10 색 규율).
     // 좌하단엔 알림 종류(좋아요·댓글·팔로우…)를 중립 회색 심볼 배지로 얹어, 행마다
     // 똑같아 보이던 아바타 목록에서 종류를 한눈에 훑게 한다 — 초록은 미읽음에만 남긴다.
+    @ViewBuilder
     private func avatarBadge(_ n: AppNotification) -> some View {
+        if n.actorUsername == nil {
+            Image(systemName: typeIcon(n.type))
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Palette.secondary)
+                .frame(width: 38, height: 38)
+                .background(Palette.chipBg, in: Circle())
+                .overlay(alignment: .bottomTrailing) {
+                    if !n.read {
+                        Circle()
+                            .fill(Palette.accent)
+                            .frame(width: 10, height: 10)
+                            .overlay(Circle().strokeBorder(Palette.readingBg, lineWidth: 2))
+                            .offset(x: 1, y: 1)
+                    }
+                }
+                .accessibilityHidden(true)
+        } else {
+            actorAvatar(n)
+        }
+    }
+
+    private func actorAvatar(_ n: AppNotification) -> some View {
         AvatarView(
             author: Author(
-                id: 0, username: n.actorUsername ?? "?", bio: nil, avatarUrl: n.actorAvatarUrl),
+                id: 0, username: n.actorUsername ?? "", bio: nil, avatarUrl: n.actorAvatarUrl),
             size: 38)
             .overlay(alignment: .bottomLeading) {
                 Image(systemName: typeIcon(n.type))
@@ -227,12 +249,17 @@ struct NotificationsView: View {
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 4)
-                if let date = n.createdAt {
+                if let date = n.createdAt, !dynamicTypeSize.isAccessibilitySize {
                     Text(date.relativeShort)
                         .typeScale(.footnote)
-                        .foregroundStyle(Palette.faint)
+                        .foregroundStyle(Palette.secondary)
                         .fixedSize()
                 }
+            }
+            if let date = n.createdAt, dynamicTypeSize.isAccessibilitySize {
+                Text(date.relativeShort)
+                    .typeScale(.footnote)
+                    .foregroundStyle(Palette.secondary)
             }
             if let subtitle = n.postTitle ?? n.seriesTitle {
                 Text(subtitle)

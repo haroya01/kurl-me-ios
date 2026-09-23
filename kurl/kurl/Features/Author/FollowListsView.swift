@@ -179,13 +179,19 @@ struct FollowCountsLink: View {
     let username: String
     /// 호출측이 작가 로드 때 이미 받아 둔 수 — 같은 status GET 을 또 치지 않도록 시드.
     var initialStatus: InteractionsAPI.FollowStatus?
+    var showsCounts = true
     @State private var followers: Int64?
     @State private var followingCount: Int64?
     /// 작가가 팔로워 수를 숨겼는지 — 켜지면 숫자 없이 라벨만(목록 진입로는 유지).
     @State private var hidden = false
+    @State private var listHidden = false
     @State private var failed = false
 
     var body: some View {
+        if !listHidden { links }
+    }
+
+    private var links: some View {
         HStack(spacing: 8) {
             NavigationLink(value: Route.followers(username: username)) {
                 countLabel(String(localized: "팔로워"), followers)
@@ -215,7 +221,10 @@ struct FollowCountsLink: View {
         .animation(.snappy(duration: 0.2), value: followers)
         .task {
             // 시드를 받았으면 그 값으로 그리고 GET 을 건너뛴다(작가 페이지가 이미 한 번 받아 둠).
-            if let seed = initialStatus {
+            if !showsCounts {
+                hidden = true
+                listHidden = initialStatus?.hideFollowerCount ?? false
+            } else if let seed = initialStatus {
                 hidden = seed.hideFollowerCount
                 followers = seed.followerCount
                 followingCount = seed.followingCount

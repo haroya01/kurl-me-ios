@@ -153,6 +153,7 @@ struct SelectableProseText: UIViewRepresentable {
         // (재설정 자체가 TextKit 재조판이라, 무변경 update 스톰에서 이 한 줄이 프레임을 살린다.)
         if context.coordinator.lastPaintSignature == signature,
            context.coordinator.lastPaintMarks == highlights {
+            Self.refreshAccessibilityActions(tv)
             return
         }
         let base: NSAttributedString
@@ -183,8 +184,31 @@ struct SelectableProseText: UIViewRepresentable {
                 range: range)
         }
         tv.attributedText = painted
+        Self.refreshAccessibilityActions(tv)
         context.coordinator.lastPaintSignature = signature
         context.coordinator.lastPaintMarks = highlights
+    }
+
+    private static func refreshAccessibilityActions(_ tv: ProseTextView) {
+        guard tv.onOpenThread != nil else {
+            tv.accessibilityCustomActions = nil
+            return
+        }
+        let hay = (tv.attributedText?.string ?? "") as NSString
+        var seen: [String: Int] = [:]
+        tv.accessibilityCustomActions = tv.resolvedMarks.map { mark in
+            var snippet = String(hay.substring(with: mark.range).prefix(30))
+            seen[snippet, default: 0] += 1
+            if let n = seen[snippet], n > 1 { snippet += " (\(n))" }
+            let name = mark.hasThread
+                ? String(localized: "메모 열기: \(snippet)")
+                : String(localized: "하이라이트 열기: \(snippet)")
+            return UIAccessibilityCustomAction(name: name) { [weak tv] _ in
+                guard let open = tv?.onOpenThread else { return false }
+                open(mark.id)
+                return true
+            }
+        }
     }
 
     /// 제안 폭에 맞춘 높이 — isScrollEnabled=false 라 본문 높이를 직접 재서 돌려준다.

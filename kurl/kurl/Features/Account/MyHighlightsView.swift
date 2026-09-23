@@ -128,7 +128,7 @@ struct MyHighlightsView: View {
                         .lineLimit(1)
                     Spacer(minLength: 8)
                     Text("\(group.items.count)")
-                        .foregroundStyle(Palette.faint)
+                        .foregroundStyle(Palette.secondary)
                 }
                 .typeScale(.meta)
                 .padding(.top, 18)
@@ -175,16 +175,13 @@ struct MyHighlightsView: View {
                     }
                     .padding(.horizontal, 8)
                 }
-                Label("원문에서 보기", systemImage: "arrow.up.right")
-                    .typeScale(.meta)
-                    .foregroundStyle(Palette.link)
-                    .padding(.horizontal, 8)
             }
             .padding(.vertical, 9)
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
         }
         .buttonStyle(RowButtonStyle())
+        .accessibilityHint(Text("원문에서 보기"))
         .accessibilityIdentifier("libraryHighlight-\(item.id)")
         .contextMenu {
             Button { connectTarget = item } label: {

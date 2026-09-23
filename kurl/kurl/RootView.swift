@@ -356,8 +356,8 @@ private struct FloatingTabBar: View {
                         Image(systemName: tab.icon)
                             .font(.system(size: iconSize, weight: active ? .semibold : .regular))
                             // active = brand green(§10.3 데이터/주액션), 나머지는 잉크로 가라앉힌다.
-                            .foregroundStyle(active ? AnyShapeStyle(Color.brand)
-                                                    : AnyShapeStyle(Palette.secondary))
+                            .foregroundStyle(active ? AnyShapeStyle(Palette.link)
+                                                    : AnyShapeStyle(.secondary))
                             .frame(maxWidth: .infinity)
                             .frame(height: 44)
                             .contentShape(Rectangle())

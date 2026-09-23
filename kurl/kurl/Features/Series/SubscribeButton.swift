@@ -15,7 +15,6 @@ struct SubscribeButton: View {
     @State private var model: SubscribeModel
     @State private var showLoginPrompt = false
     private let emphasis: Emphasis
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(seriesId: Int64, emphasis: Emphasis = .primary) {
         _model = State(initialValue: SubscribeModel(seriesId: seriesId))
@@ -30,7 +29,7 @@ struct SubscribeButton: View {
         switch (emphasis, model.subscribed) {
         case (.primary, false): return AnyShapeStyle(.white)
         case (.primary, true): return AnyShapeStyle(.primary)
-        case (.secondary, false): return AnyShapeStyle(Palette.link)
+        case (.secondary, false): return AnyShapeStyle(.primary)
         case (.secondary, true): return AnyShapeStyle(.secondary)
         }
     }
@@ -45,13 +44,6 @@ struct SubscribeButton: View {
                 toggle()
             }
 
-            if let count = model.subscriberCount, count > 0 {
-                Text("구독자 \(count)")
-                    .typeScale(.meta)
-                    .foregroundStyle(Palette.secondary)
-                    .contentTransition(.numericText())
-                    .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: count)
-            }
         }
         .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
         .task { await model.hydrate() }

@@ -242,9 +242,10 @@ struct ReadingColumn<Content: View>: View {
 // MARK: 섹션 라벨 — RailHeading (그린 마커 + 13px bold)
 
 struct RailHeading: View {
-    let text: LocalizedStringKey
+    let text: Text
     @ScaledMetric(relativeTo: .footnote) private var unit: CGFloat = 1
-    init(_ text: LocalizedStringKey) { self.text = text }
+    init(_ text: LocalizedStringKey) { self.text = Text(text) }
+    init(resource: LocalizedStringResource) { self.text = Text(resource) }
 
     var body: some View {
         HStack(spacing: 8) {
@@ -253,7 +254,7 @@ struct RailHeading: View {
             RoundedRectangle(cornerRadius: 1)
                 .fill(Palette.hairlineStrong)
                 .frame(width: 3, height: 12 * unit)
-            Text(text)
+            text
                 .typeScale(.eyebrow)
                 .foregroundStyle(Palette.heading)
         }

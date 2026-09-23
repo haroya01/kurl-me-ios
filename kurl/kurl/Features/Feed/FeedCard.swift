@@ -41,9 +41,7 @@ struct FeedRow: View {
                 }
 
                 MetaRow(
-                    author: item.author.username, date: item.publishedAt,
-                    likes: LikeStore.shared.displayCount(
-                        username: item.author.username, slug: item.slug, server: item.likeCount)
+                    author: item.author.username, date: item.publishedAt
                 )
                 .padding(.top, 2)
             }
@@ -101,7 +99,7 @@ struct PostRow: View {
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            MetaRow(author: nil, date: item.publishedAt, likes: item.likeCount)
+            MetaRow(author: nil, date: item.publishedAt)
                 .padding(.top, 2)
         }
         .padding(.vertical, 16)
@@ -166,7 +164,6 @@ final class PostReadStore {
 struct MetaRow: View {
     var author: String?
     var date: Date?
-    var likes: Int64
 
     var body: some View {
         HStack(spacing: 7) {
@@ -176,11 +173,6 @@ struct MetaRow: View {
             if let date {
                 if author != nil { dot }
                 Text(date.relativeShort)
-            }
-            if likes > 0 {
-                dot
-                Label("\(likes)", systemImage: "heart")
-                    .labelStyle(.titleAndIcon)
             }
         }
         .typeScale(.meta)

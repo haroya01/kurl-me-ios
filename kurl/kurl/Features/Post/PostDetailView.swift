@@ -50,6 +50,7 @@ struct PostDetailView: View {
 private struct PostDetailReader: View {
     @State private var model: PostDetailViewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverOn
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -221,10 +222,6 @@ private struct PostDetailReader: View {
                     .frame(maxWidth: Metrics.readingColumn)
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, Metrics.gutter)
-                    // 접근성 크기에선 한 줄이 예닐곱 자라 우측에 뜬 인게이지 독(52pt 원판)이
-                    // 글자를 정통으로 가린다 — 독 폭만큼 본문을 비켜 감는다. 평상 크기에선
-                    // 문단 오른끝 여백이 자연 완충이라 그대로 둔다.
-                    .padding(.trailing, dynamicTypeSize.isAccessibilitySize ? 56 : 0)
                     // 본문 문단이 선택→하이라이트 + 공개 하이라이트 페인트를 띄울 수 있게.
                     .environment(\.postHighlightStore, highlights)
                 }
@@ -426,11 +423,11 @@ private struct PostDetailReader: View {
             // 숨김은 opacity 로만 — hierarchy 에서 빼면 독의 @State 모델이 새로 만들어져
             // 숨김↔표시 사이클마다 hydrate GET 2건이 재발사되고 좋아요가 잠깐 꺼져 깜빡였다.
             if case .loaded(let detail) = model.phase {
-                let dockHidden = keyboardUp || composerActive || (endVisible && scrollable)
+                let dockHidden = keyboardUp || composerActive || chromeHidden || (endVisible && scrollable && !voiceOverOn)
                 // 목차를 상단 크롬에서 내려 독 바로 위에 얹는다 — 항해 보조와 인게이지를 한 손
                 // 닿는 자리에 모은다. 목차·독은 성격이 다른 독립 컨트롤이라 spacing 12 로 띄워
                 // 각자 제 유리로 읽히게 하고(독 내부 문법과 동일), 후퇴는 독과 함께 한다.
-                VStack(spacing: 12) {
+                HStack(spacing: 12) {
                     if headings.count >= 2 { tocButton(proxy) }
                     EngagementDock(
                         postId: detail.post.id, initialLikeCount: detail.post.likeCount,
@@ -584,7 +581,7 @@ private struct PostDetailReader: View {
                     Image(systemName: "chevron.backward")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(Palette.ink)
-                        .frame(width: 38, height: 38)
+                        .frame(width: 44, height: 44)
                         .contentShape(Circle())
                 }
                 .buttonStyle(.plain)
@@ -621,7 +618,7 @@ private struct PostDetailReader: View {
             Image(systemName: "ellipsis")
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(Color.brand)
-                .frame(width: 38, height: 38)
+                .frame(width: 44, height: 44)
                 .contentShape(Circle())
         }
         .glassEffect(.regular.interactive(), in: .circle)
@@ -1308,22 +1305,38 @@ private struct PostDetailReader: View {
                 .accessibilityAddTraits(.isHeader)
 
             NavigationLink(value: Route.author(username: detail.author.username)) {
-                HStack(spacing: 9) {
-                    AvatarView(author: detail.author, size: 28)
-                    Text(detail.author.username)
-                        .typeScale(.meta)
-                        .foregroundStyle(Palette.ink)
-                    if let date = detail.post.publishedAt {
-                        Text("·").foregroundStyle(Palette.faint)
-                        Text(date.mediumDate)
-                            .typeScale(.meta)
-                            .foregroundStyle(Palette.secondary)
+                Group {
+                    if dynamicTypeSize.isAccessibilitySize {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(detail.author.username)
+                                .typeScale(.meta)
+                                .foregroundStyle(Palette.ink)
+                            if let date = detail.post.publishedAt {
+                                Text(date.mediumDate)
+                                    .typeScale(.meta)
+                                    .foregroundStyle(Palette.secondary)
+                            }
+                        }
+                    } else {
+                        HStack(spacing: 9) {
+                            AvatarView(author: detail.author, size: 28)
+                            Text(detail.author.username)
+                                .typeScale(.meta)
+                                .foregroundStyle(Palette.ink)
+                            if let date = detail.post.publishedAt {
+                                Text("·").foregroundStyle(Palette.faint)
+                                Text(date.mediumDate)
+                                    .typeScale(.meta)
+                                    .foregroundStyle(Palette.secondary)
+                            }
+                            // 탭 가능한 행이라는 신호 — 어포던스 없는 링크는 없는 링크다.
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 11 * metaUnit, weight: .semibold))
+                                .foregroundStyle(Palette.faint)
+                        }
                     }
-                    // 탭 가능한 행이라는 신호 — 어포던스 없는 링크는 없는 링크다.
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 11 * metaUnit, weight: .semibold))
-                        .foregroundStyle(Palette.faint)
                 }
+                .frame(minHeight: 44)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -1393,13 +1406,6 @@ private struct PostDetailReader: View {
                 HStack(spacing: 6) {
                     if let date = post.publishedAt {
                         Text(date.relativeShort)
-                    }
-                    if post.likeCount > 0 {
-                        Text("·").foregroundStyle(Palette.faint)
-                        HStack(spacing: 3) {
-                            Image(systemName: "heart")
-                            Text("\(post.likeCount)").monospacedDigit()
-                        }
                     }
                 }
                 .typeScale(.meta)
@@ -1819,11 +1825,6 @@ struct CommentRow: View {
                             Image(systemName: likedByMe ? "heart.fill" : "heart")
                                 .font(.system(size: 11 * metaUnit))
                                 .symbolEffect(.bounce, value: reduceMotion ? false : likedByMe)
-                            if model.displayLikeCount(comment) > 0 {
-                                Text("\(model.displayLikeCount(comment))")
-                                    .font(.system(size: 12 * metaUnit).monospacedDigit())
-                                    .contentTransition(.numericText())
-                            }
                         }
                         .foregroundStyle(likedByMe ? Palette.link : Palette.secondary)
                         .expandTapTarget()
@@ -1831,7 +1832,6 @@ struct CommentRow: View {
                     .buttonStyle(.plain)
                     .sensoryFeedback(.impact(weight: .light), trigger: likeTaps)
                     .accessibilityLabel(Text("댓글 좋아요"))
-                    .accessibilityValue(Text("\(model.displayLikeCount(comment))"))
                     .accessibilityAddTraits(likedByMe ? [.isSelected] : [])
                     .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: likedByMe)
 

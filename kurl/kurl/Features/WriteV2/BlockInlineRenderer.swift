@@ -144,7 +144,7 @@ enum BlockInlineRenderer {
         // 인라인 코드 먼저(안쪽 강조 무시) — 모노 + 옅은 칩.
         enumerate(Self.codeRegex, ns, full) { m in
             let inner = m.range(at: 1)
-            s.addAttribute(.font, value: UIFont.monospacedSystemFont(ofSize: 16, weight: .regular), range: inner)
+            s.addAttribute(.font, value: UIFontMetrics(forTextStyle: .body).scaledFont(for: .monospacedSystemFont(ofSize: 16, weight: .regular)), range: inner)
             s.addAttribute(.foregroundColor, value: UIColor(Palette.inlineCodeText), range: inner)
             s.addAttribute(.backgroundColor, value: UIColor(Palette.inlineCodeBg), range: inner)
             markersAround(s, span: m.range, inner: inner, activeRange: activeRange)

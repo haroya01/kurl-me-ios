@@ -84,7 +84,7 @@ struct SeriesDetailView: View {
                     } label: {
                         Image(systemName: "ellipsis")
                     }
-                    .tint(.brand)
+                    .tint(.primary)
                     .accessibilityLabel(Text("시리즈 관리"))
                 }
             }
@@ -198,12 +198,12 @@ struct SeriesDetailView: View {
                 Text("시리즈")
                     .typeScale(.eyebrow)
                     .foregroundStyle(Palette.heading)
-                    .accessibilityAddTraits(.isHeader)
             }
 
             Text(editedTitle ?? detail.series.title)
                 .typeScale(.masthead)
                 .foregroundStyle(Palette.ink)
+                .accessibilityAddTraits(.isHeader)
                 .padding(.top, 10)
 
             // 작가 = 여백의 서명. 아바타 + 이름 한 줄이 시리즈의 주인을 세운다(웹 좌측 레일 번역).
@@ -217,6 +217,7 @@ struct SeriesDetailView: View {
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(Palette.faint)
                 }
+                .frame(minHeight: 44)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -257,6 +258,7 @@ struct SeriesDetailView: View {
                     Text(verbatim: "#\(tag)")
                         .typeScale(.meta)
                         .foregroundStyle(Palette.secondary)
+                        .frame(minHeight: 44)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -296,13 +298,14 @@ struct SeriesDetailView: View {
                 NavigationLink(value: Route.post(username: username, slug: action.post.slug)) {
                     HStack(spacing: 7) {
                         Image(systemName: action.icon)
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.subheadline.weight(.semibold))
                         actionLabel(action)
                     }
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.headline)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 18)
                     .padding(.vertical, 11)
+                    .frame(minHeight: 44)
                     .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
@@ -410,7 +413,7 @@ private struct EpisodeRow: View {
                 if let date = post.publishedAt {
                     Text(date.relativeShort)
                         .typeScale(.meta)
-                        .foregroundStyle(Palette.faint)
+                        .foregroundStyle(Palette.secondary)
                         .padding(.top, 1)
                 }
             }

@@ -666,7 +666,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ connected into %@"
+            "value": "%@ linked this to %@"
           }
         },
         "hi": {
@@ -1181,9 +1181,21 @@
     "%lld개": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld items"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld item"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld items"
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -1383,9 +1395,21 @@
     "%lld편": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld posts"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld post"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld posts"
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -3957,9 +3981,21 @@
     "글 %lld": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld posts"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld post"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld posts"
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -8820,7 +8856,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Card"
+            "value": "Profile card"
           }
         },
         "hi": {
@@ -10897,12 +10933,6 @@
             "value": "Username"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "उपयोक्तानाम"
-          }
-        },
         "ja": {
           "stringUnit": {
             "state": "translated",
@@ -10913,6 +10943,12 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tên người dùng"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यूज़रनेम"
           }
         }
       }
@@ -19375,7 +19411,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Paths open now"
+            "value": "Paths to explore"
           }
         },
         "hi": {
@@ -19403,7 +19439,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connecting now"
+            "value": "Recent connections"
           }
         },
         "hi": {
@@ -21658,7 +21694,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "フォロー %@"
+            "value": "新規フォロワー %@"
           }
         },
         "vi": {
@@ -21687,7 +21723,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "フォロー +%lld"
+            "value": "フォロワー +%lld"
           }
         },
         "vi": {
@@ -23022,7 +23058,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "A new post joined ‘%@’, a path you’re part of"
+            "value": "New post added to ‘%@’"
           }
         },
         "hi": {
@@ -24077,6 +24113,524 @@
           "stringUnit": {
             "state": "translated",
             "value": "इस लेख के पाठकों को दिखाई देगा"
+          }
+        }
+      }
+    },
+    "최근 길을 엮은 큐레이터": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recently active curators"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近パスを編んだキュレーター"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Người tuyển chọn vừa kết nối lối đi"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "हाल में राहें जोड़ने वाले क्यूरेटर"
+          }
+        }
+      }
+    },
+    "전체 기간": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All time"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全期間"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toàn thời gian"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सभी समय"
+          }
+        }
+      }
+    },
+    "글 찾기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search posts"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記事を探す"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tìm bài viết"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लेख खोजें"
+          }
+        }
+      }
+    },
+    "글 제목이나 내용으로 찾아요. 인기 태그와 작가도 함께 보여 줘요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search by title or text. Popular tags and writers show up too."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タイトルや本文で探せます。人気タグや書き手も一緒に表示します。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tìm theo tiêu đề hoặc nội dung. Thẻ và tác giả phổ biến cũng hiện ra."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "शीर्षक या पाठ से खोजें। लोकप्रिय टैग और लेखक भी दिखेंगे।"
+          }
+        }
+      }
+    },
+    "본문을 입력하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start writing"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本文を入力"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bắt đầu viết"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लिखना शुरू करें"
+          }
+        }
+      }
+    },
+    "회차별 독자 수": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Readers per episode"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回ごとの読者数"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Độc giả mỗi tập"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "प्रति एपिसोड पाठक"
+          }
+        }
+      }
+    },
+    "기간": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Period"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "期間"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khoảng thời gian"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अवधि"
+          }
+        }
+      }
+    },
+    "보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "表示"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xem"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "देखें"
+          }
+        }
+      }
+    },
+    "정렬 기준": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sort by"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "並べ替え"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sắp xếp theo"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इसके अनुसार क्रमबद्ध करें"
+          }
+        }
+      }
+    },
+    "팔로워·팔로잉 목록 숨기기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide followers and following lists"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォロワー・フォロー中リストを非表示"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ẩn danh sách người theo dõi và đang theo dõi"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ॉलोअर्स और फ़ॉलोइंग सूची छिपाएँ"
+          }
+        }
+      }
+    },
+    "켜면 다른 사람에게 내 팔로워·팔로잉 목록이 보이지 않아요. 수는 원래 나에게만 보여요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When on, others can’t see your followers and following lists. Counts are only ever shown to you."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オンにすると、他の人にはあなたのフォロワー・フォロー中リストが表示されません。数はもともとあなたにだけ表示されます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khi bật, người khác sẽ không thấy danh sách người theo dõi và đang theo dõi của bạn. Số lượng vốn chỉ hiển thị với bạn."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "चालू होने पर दूसरे लोग आपकी फ़ॉलोअर्स और फ़ॉलोइंग सूची नहीं देख पाएँगे। संख्या हमेशा सिर्फ़ आपको दिखती है।"
+          }
+        }
+      }
+    },
+    "메모 열기: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open note: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メモを開く：%@"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mở ghi chú: %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नोट खोलें: %@"
+          }
+        }
+      }
+    },
+    "하이라이트 열기: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open highlight: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ハイライトを開く：%@"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mở đánh dấu: %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "हाइलाइट खोलें: %@"
+          }
+        }
+      }
+    },
+    "내 블로그 주소에 쓰여요. 나중에 바꿀 수 있어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Used in your blog address. You can change it later."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブログのアドレスに使われます。あとで変更できます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dùng trong địa chỉ blog của bạn. Bạn có thể đổi sau."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह आपके ब्लॉग पते में इस्तेमाल होगा। बाद में बदल सकते हैं।"
+          }
+        }
+      }
+    },
+    "관련 태그": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Related tags"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "関連タグ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thẻ liên quan"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "संबंधित टैग"
+          }
+        }
+      }
+    },
+    "관련 작가": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Related writers"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "関連する書き手"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tác giả liên quan"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "संबंधित लेखक"
+          }
+        }
+      }
+    },
+    "heading.collections": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "컬렉션"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collections"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コレクション"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bộ sưu tập"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "संग्रह"
+          }
+        }
+      }
+    },
+    "sort.views": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "조회"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Views"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "閲覧"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lượt xem"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "व्यू"
           }
         }
       }

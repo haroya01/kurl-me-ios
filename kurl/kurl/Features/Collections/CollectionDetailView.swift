@@ -179,10 +179,7 @@ struct CollectionDetailView: View {
     private func kindredSection() -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Hairline().padding(.vertical, 8)
-            Text("취향이 겹치는 큐레이터")
-                .typeScale(.eyebrow)
-                .tracking(0.4)
-                .foregroundStyle(Palette.faint)
+            RailHeading("취향이 겹치는 큐레이터")
                 .padding(.bottom, 6)
             ForEach(Array(kindred.enumerated()), id: \.element.id) { index, item in
                 NavigationLink(value: Route.author(username: item.curator.username)) {
@@ -497,7 +494,6 @@ struct CollectionDetailView: View {
         // 막다른 길 금지 — 빈 컬렉션은 이을 글을 찾으러 피드로 이어준다(다른 빈 면과 같은 언어).
         // 큐레이터 본인에겐 "어떻게 채우는지" 동사("잇기")를 가르친다 — 남에겐 그냥 비었다고만.
         FeedPlaceholder(
-            eyebrow: "컬렉션",
             title: "아직 연결된 글이 없어요",
             message: isOwner
                 ? "글이나 하이라이트에서 \"컬렉션에 잇기\"로 이 컬렉션에 이어 채워요."

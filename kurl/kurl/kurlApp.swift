@@ -65,7 +65,7 @@ struct kurlApp: App {
                     || (!AuthStore.shared.isSignedIn && !Config.hasDeepLinkEntry)
                 // 마크 드로잉(~0.4s)→워드마크(~0.8s)→형광 한 획(~1.05s)이 끝난 뒤 걷는다.
                 // 웰컴(첫 실행)은 한 박자 더 머물고, 매일 보는 로그인 커튼은 가볍게 1.15s.
-                let hold: Double = reduceMotion ? 0.6 : (showWelcome ? 1.6 : 1.15)
+                let hold: Double = reduceMotion ? 0.6 : 1.15
                 try? await Task.sleep(for: .seconds(hold))
                 // 막이 걷히며 마크가 스플래시 자리에서 웰컴 자리로 글라이드한다(matched). 같은
                 // 트랜잭션에서 reveal 을 켜 마크 핸드오프와 텍스트 스태거가 한 호흡으로 이어진다.

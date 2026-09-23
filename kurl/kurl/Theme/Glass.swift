@@ -15,12 +15,6 @@ extension View {
     func glassCapsule(prominent: Bool) -> some View {
         modifier(GlassCapsule(prominent: prominent))
     }
-
-    /// 셀렉터(기간·정렬 칩 등) 선택 표시 — 형광 초록(주 액션 색)과 구분되는 중립 잉크 알약.
-    /// 선택 라벨은 배경색으로 두면(반전) 다크모드에서도 대비가 선다. §10 색 규율: 초록은 주 액션만.
-    func selectorPill(selected: Bool) -> some View {
-        background(selected ? AnyShapeStyle(Palette.ink) : AnyShapeStyle(Color.clear), in: Capsule())
-    }
 }
 
 /// 팔로우·구독·태그구독이 공유하는 토글 캡슐 한 벌 — 유리 문법·라벨 타이포(14 semibold,
@@ -128,6 +122,7 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable>: View {
     var bare = false
     @Namespace private var ns
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// 14pt 고정이 Dynamic Type 를 무시하던 것 — 텍스트 스타일에 묶어 글자 크기 설정을 따른다.
     /// 단 접근성 크기에선 네 CJK 라벨이 캡슐 폭을 넘어 "구…"로 잘린다 — 탭바처럼 자리가 고정된
     /// 크롬이라 xxLarge 상당(약 16pt)에서 성장 상한. 환경 캡(.dynamicTypeSize)은 @ScaledMetric
@@ -177,23 +172,33 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable>: View {
         // 오버슈트 없이 조용히 활주하도록 bounce 0 인 smooth 커브로 민다(§10.7 조용함).
         .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: selection)
 
+        let menu = Menu {
+            Picker(selection: $selection) {
+                ForEach(items) { item in
+                    Text(label(item)).tag(item)
+                }
+            } label: {
+                EmptyView()
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Text(label(selection)).font(.body.weight(.semibold))
+                Image(systemName: "chevron.down").font(.footnote.weight(.semibold))
+            }
+            .foregroundStyle(.primary)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+        }
+        .tint(.primary)
+
         return Group {
-            if bare {
+            if dynamicTypeSize.isAccessibilitySize {
+                if bare { menu } else { menu.glassEffect(.regular.interactive(), in: .capsule) }
+            } else if bare {
                 row // 내비바 유리가 배경 — 자기 유리는 얹지 않는다.
             } else {
                 row
                     .glassEffect(.regular.interactive(), in: .capsule)
-                    // 위쪽 모서리에 빛 한 가닥(아래로 사라지는 림) — 종이 위에서 판판하던 캡슐이
-                    // "유리 한 겹"으로 읽히게 하는 글래스모피즘 신호. 히트테스트는 건드리지 않는다.
-                    .overlay {
-                        Capsule()
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: [.white.opacity(0.5), .white.opacity(0.04)],
-                                    startPoint: .top, endPoint: .bottom),
-                                lineWidth: 0.8)
-                            .allowsHitTesting(false)
-                    }
                     // 콘텐츠 위로 떠 있는 크롬 — 닿는 면 한 겹 + 옅은 앰비언트로 종이에서 들어 올린다.
                     .shadow(color: .black.opacity(0.05), radius: 1.5, y: 1)
                     .shadow(color: .black.opacity(0.08), radius: 12, y: 5)

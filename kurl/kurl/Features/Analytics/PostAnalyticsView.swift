@@ -23,7 +23,6 @@ struct PostAnalyticsView: View {
     @ScaledMetric(relativeTo: .headline) private var linkSize: CGFloat = 14
     @ScaledMetric(relativeTo: .subheadline) private var countSize: CGFloat = 13
     @ScaledMetric(relativeTo: .title3) private var statValueSize: CGFloat = 17
-    @ScaledMetric(relativeTo: .caption) private var chipLabelSize: CGFloat = 12
 
     var body: some View {
         ReadingColumn(spacing: 0) {
@@ -61,28 +60,13 @@ struct PostAnalyticsView: View {
         HStack(alignment: .center) {
             RailHeading("최근 \(detail.windowDays)일")
             Spacer()
-            GlassEffectContainer(spacing: 0) {  // 0 = 닿을 때만 — 칩이 서로 녹아 붙지 않게
-                HStack(spacing: 8) {
-                    ForEach([7, 30, 90], id: \.self) { option in
-                        Button {
-                            changeWindow(option)
-                        } label: {
-                            Text("\(option)일")
-                                .font(.system(
-                                    size: chipLabelSize, weight: days == option ? .semibold : .regular))
-                                .foregroundStyle(
-                                    days == option
-                                        ? AnyShapeStyle(Color(uiColor: .systemBackground))
-                                        : AnyShapeStyle(.secondary))
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .contentShape(Capsule())
-                        }
-                        .buttonStyle(.plain)
-                        .selectorPill(selected: days == option)
-                    }
+            Picker("기간", selection: Binding(get: { days }, set: { changeWindow($0) })) {
+                ForEach([7, 30, 90], id: \.self) { option in
+                    Text("\(option)일").tag(option)
                 }
             }
+            .pickerStyle(.segmented)
+            .fixedSize()
         }
         .padding(.top, 22)
 

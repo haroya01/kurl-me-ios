@@ -34,73 +34,98 @@ struct ChooseUsernameView: View {
                 .mask(LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom))
                 .ignoresSafeArea()
 
-            VStack(alignment: .leading, spacing: 0) {
-                Spacer()
-                KurlMark(drawn: [true, true, true])
-                    .frame(width: 64, height: 39)
-                Text("사용자 이름을 정해 주세요")
-                    .typeScale(.masthead)
-                    .foregroundStyle(Palette.ink)
-                    .padding(.top, 16)
-                Text("blog.kurl.me/@ 주소에 쓰여요. 나중에 바꿀 수 있어요.")
-                    .typeScale(.body)
-                    .foregroundStyle(Palette.secondary)
-                    .padding(.top, 8)
-
-                HStack(spacing: 1) {
-                    Text(verbatim: "blog.kurl.me/@").foregroundStyle(Palette.secondary)
-                    TextField("username", text: $username)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .focused($fieldFocused)
-                        .onChange(of: username) { _, value in
-                            let cleaned = value.lowercased()
-                                .filter { $0.isNumber || ("a"..."z").contains($0) || $0 == "_" }
-                            username = String(cleaned.prefix(16))
-                            serverError = nil
-                        }
-                }
-                .font(.system(size: fieldSize))
-                .padding(.vertical, 14)
-                .padding(.horizontal, 16)
-                .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radiusControl))
-                .padding(.top, 24)
-
-                Group {
-                    if let serverError {
-                        Text(serverError).foregroundStyle(Palette.danger)
-                    } else if !trimmed.isEmpty && !valid {
-                        Text("영문 소문자·숫자·_ 3~16자, 첫 글자는 영문이나 숫자")
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        KurlMark(drawn: [true, true, true])
+                            .frame(width: 64, height: 39)
+                            .accessibilityHidden(true)
+                        Text("사용자 이름을 정해 주세요")
+                            .typeScale(.masthead)
+                            .foregroundStyle(Palette.ink)
+                            .padding(.top, 16)
+                        Text("내 블로그 주소에 쓰여요. 나중에 바꿀 수 있어요.")
+                            .typeScale(.body)
                             .foregroundStyle(Palette.secondary)
-                    }
-                }
-                .font(.caption)
-                .padding(.top, 8)
+                            .padding(.top, 8)
 
-                Spacer()
+                        HStack(spacing: 2) {
+                            Text(verbatim: "@").foregroundStyle(Palette.secondary).accessibilityHidden(true)
+                            TextField("사용자 이름", text: $username, prompt: Text(verbatim: "username"))
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .keyboardType(.asciiCapable)
+                                .textContentType(.username)
+                                .submitLabel(.go)
+                                .onSubmit(submit)
+                                .focused($fieldFocused)
+                                .accessibilityHint(Text("영문 소문자·숫자·_ 3~16자, 첫 글자는 영문이나 숫자"))
+                                .onChange(of: username) { _, value in
+                                    let cleaned = value.lowercased()
+                                        .filter { $0.isNumber || ("a"..."z").contains($0) || $0 == "_" }
+                                    username = String(cleaned.prefix(16))
+                                    serverError = nil
+                                }
+                        }
+                        .font(.system(size: fieldSize))
+                        .padding(.vertical, 14)
+                        .padding(.horizontal, 16)
+                        .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radiusControl))
+                        .padding(.top, 24)
 
-                Button {
-                    submit()
-                } label: {
-                    HStack(spacing: 8) {
-                        if saving { ProgressView().tint(.white) }
-                        Text("시작하기").font(.system(size: 16 * unit, weight: .semibold))
+                        Group {
+                            if let serverError {
+                                Text(serverError).foregroundStyle(Palette.danger)
+                            } else if !trimmed.isEmpty && !valid {
+                                Text("영문 소문자·숫자·_ 3~16자, 첫 글자는 영문이나 숫자")
+                                    .foregroundStyle(Palette.secondary)
+                            } else {
+                                Text(verbatim: "blog.kurl.me/@\(trimmed.isEmpty ? "username" : trimmed)")
+                                    .foregroundStyle(Palette.secondary)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                            }
+                        }
+                        .font(.caption)
+                        .padding(.top, 8)
+                        .id("status")
                     }
-                    .foregroundStyle(.white)
+                    .frame(maxWidth: Metrics.readingColumn, alignment: .leading)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(
-                        valid ? GlassTokens.prominentTint : Color.secondary.opacity(0.4),
-                        in: Capsule())
+                    .padding(.horizontal, Metrics.gutter + 4)
+                    .padding(.top, 120)
                 }
-                .buttonStyle(.plain)
-                .disabled(!valid || saving)
+                .scrollDismissesKeyboard(.interactively)
+                .onChange(of: serverError) { _, message in
+                    guard let message else { return }
+                    withAnimation { proxy.scrollTo("status", anchor: .bottom) }
+                    AccessibilityNotification.Announcement(message).post()
+                }
+                .safeAreaInset(edge: .bottom) {
+                    Button {
+                        submit()
+                    } label: {
+                        HStack(spacing: 8) {
+                            if saving { ProgressView().tint(.white) }
+                            Text("시작하기").font(.system(size: 16 * unit, weight: .semibold))
+                        }
+                        .foregroundStyle(valid ? Color.white : Color.secondary)
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: 50)
+                        .background(
+                            valid ? GlassTokens.prominentTint : Color(uiColor: .systemGray3),
+                            in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!valid || saving)
+                    .frame(maxWidth: Metrics.readingColumn)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, Metrics.gutter + 4)
+                    .padding(.top, 8)
+                    .padding(.bottom, 12)
+                    .background(Color(uiColor: .systemBackground))
+                }
             }
-            .frame(maxWidth: Metrics.readingColumn)
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, Metrics.gutter + 4)
-            .padding(.top, 60)
-            .padding(.bottom, 28)
         }
         .interactiveDismissDisabled(true)
         // 게이트가 뜨면 바로 입력 — 풀스크린 커버 전환이 끝난 뒤 키보드를 올린다

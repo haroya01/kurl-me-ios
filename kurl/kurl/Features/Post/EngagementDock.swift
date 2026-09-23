@@ -16,8 +16,6 @@ struct EngagementDock: View {
     @State private var showConnect = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var glassNS
-    /// 좋아요 카운트 — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
-    @ScaledMetric(relativeTo: .caption) private var countSize: CGFloat = 12
 
     /// "연결" 시트가 잇는 대상(글 제목·글 id). 없으면 연결 버튼을 감춘다.
     private let connectTarget: (title: String, postId: Int64)?
@@ -39,7 +37,7 @@ struct EngagementDock: View {
         // 캡슐로 이어 붙어(누른 버튼이 이웃까지 함께 반응) 버튼 독립성이 깨졌다. 0 = 실제로 닿을
         // 때만 녹인다(작성 도구줄·분석 칩과 같은 규율).
         GlassEffectContainer(spacing: 0) {
-            VStack(spacing: 12) {
+            HStack(spacing: 12) {
                 // 연결 = §0의 핵심 동사. 좋아요·북마크와 나란히 1급 인게이지로 둔다 —
                 // 읽다가 그 자리에서 컬렉션에 잇는다(쉽고 명확한 만들기 경로).
                 if connectTarget != nil { connect }
@@ -89,11 +87,6 @@ struct EngagementDock: View {
                 Image(systemName: model.liked ? "heart.fill" : "heart")
                     .font(.system(size: 17, weight: .semibold))
                     .symbolEffect(.bounce, value: reduceMotion ? false : model.liked)
-                if model.likeCount > 0 {
-                    Text("\(model.likeCount)")
-                        .font(.system(size: countSize, weight: .semibold).monospacedDigit())
-                        .contentTransition(.numericText())
-                }
             }
             .foregroundStyle(model.liked ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
             // 고정 52 원판 — 카운트가 0→1 로 뜰 때 캡슐이 커지며 독 전체가 밀려 재배치되던
@@ -106,9 +99,7 @@ struct EngagementDock: View {
         .glassEffectID("like", in: glassNS)
         .glassEffectTransition(.materialize)
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: model.liked)
-        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: model.likeCount)
         .accessibilityLabel(Text("좋아요"))
-        .accessibilityValue(Text("\(model.likeCount)"))
         .accessibilityAddTraits(model.liked ? [.isSelected] : [])
 
     }

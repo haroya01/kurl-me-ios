@@ -21,6 +21,7 @@ struct WelcomeView: View {
     var onSignedIn: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     /// 태그라인은 브랜드 조판 — 크기 보존 + Dynamic Type 만 얹는다.
     @ScaledMetric(relativeTo: .largeTitle) private var taglineSize: CGFloat = 38
@@ -63,10 +64,12 @@ struct WelcomeView: View {
 
                 Spacer(minLength: 16)
 
-                proseWall
+                if !dynamicTypeSize.isAccessibilitySize {
+                    proseWall
 
-                connectionChip
-                    .padding(.horizontal, Metrics.gutter + 4)
+                    connectionChip
+                        .padding(.horizontal, Metrics.gutter + 4)
+                }
 
                 // 태그라인 — 종이 위 잉크 헤비(인앱 제목의 목소리).
                 Text("읽고, 쓰고,\n연결하다.")
@@ -227,6 +230,6 @@ struct WelcomeView: View {
         withAnimation(silk.delay(0.55)) { highlightsOn = true }
         withAnimation(.smooth(duration: 0.7).delay(1.05)) { threadOn = true }
         withAnimation(silk.delay(1.3)) { taglineVisible = true }
-        withAnimation(silk.delay(1.45)) { actionsVisible = true }
+        withAnimation(silk.delay(0.3)) { actionsVisible = true }
     }
 }
