@@ -109,4 +109,27 @@ final class GraphNotificationsUITests: XCTestCase {
         XCTAssertEqual(pathToggle.value as? String, "1", "PATH_GREW 토글 기본값이 on 이 아님")
         shoot("graph-notification-preferences")
     }
+
+    func testLikeNotificationOpensMyPost() throws {
+        let app = launchInbox()
+        let like = rowButton(app, contains: "좋아해요")
+        XCTAssertTrue(like.waitForExistence(timeout: 12), "인박스에 좋아요 알림이 없음")
+        like.tap()
+        let markAll = app.buttons["모두 읽음"].firstMatch
+        XCTAssertTrue(markAll.waitForNonExistence(timeout: 10), "좋아요 알림을 누르면 인박스에서 넘어가야 함")
+        let readingTime = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH '읽는 시간'")).firstMatch
+        XCTAssertTrue(readingTime.waitForExistence(timeout: 10), "좋아요 알림을 누르면 내 글로 가야 함")
+        XCTAssertFalse(app.buttons["팔로우"].exists, "좋아요한 사람 프로필로 빠지면 안 됨")
+        shoot("like-opens-post")
+    }
+
+    func testActorAvatarOpensProfile() throws {
+        let app = launchInbox()
+        let avatar = app.buttons["reader_kim 프로필"].firstMatch
+        XCTAssertTrue(avatar.waitForExistence(timeout: 12), "좋아요한 사람 아바타 링크가 없음")
+        avatar.tap()
+        XCTAssertTrue(app.buttons["모두 읽음"].firstMatch.waitForNonExistence(timeout: 10), "아바타를 누르면 인박스에서 넘어가야 함")
+        XCTAssertTrue(app.buttons["팔로우"].firstMatch.waitForExistence(timeout: 10), "아바타는 그 사람 프로필로 가야 함")
+        shoot("actor-opens-profile")
+    }
 }
