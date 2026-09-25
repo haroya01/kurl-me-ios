@@ -98,12 +98,15 @@ final class PushDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCen
         [.banner, .sound]
     }
 
-    /// 푸시 탭 → 알림함. 페이로드에 목적지 정보가 없으니(계약: 제목·본문뿐) 항목이 사는
-    /// 인박스를 연다 — 어느 화면에 있었든 같은 자리로.
+    /// 푸시 탭 → 알림함 위에 그 알림의 목적지(글·프로필·시리즈·컬렉션)를 얹는다. 뒤로 가면 알림함.
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse
     ) async {
-        await MainActor.run { TabRouter.shared.pendingNotifications = true }
+        let route = NotificationRoute.route(push: response.notification.request.content.userInfo)
+        await MainActor.run {
+            TabRouter.shared.pendingPushRoute = route
+            TabRouter.shared.pendingNotifications = true
+        }
     }
 }

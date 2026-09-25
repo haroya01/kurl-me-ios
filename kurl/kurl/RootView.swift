@@ -22,9 +22,9 @@ final class TabRouter {
     /// 위젯에서 탭한 저장 글 — RootView 가 시트로 띄운다. 탭 스택에 미는 방식은 path 바인딩이
     /// 필요한데, 그 바인딩이 tabBarMinimizeBehavior 를 죽이는 함정이 있어(§DiscoverDeckView) 시트로.
     var pendingPost: WidgetPostRef?
-    /// 푸시 탭의 대기석 — 페이로드에 라우팅 정보가 없으니(계약: 제목·본문뿐) 목적지는 알림함 하나.
-    /// pendingPost 와 같은 이유로 시트.
+    /// 푸시 탭의 대기석 — 알림함 시트. pendingPost 와 같은 이유로 시트.
     var pendingNotifications = false
+    var pendingPushRoute: Route?
 
     private init() {
         // `--tab write|discover|search|account` — simctl 은 터치를 못 넣으니 검증용 진입로.
@@ -40,6 +40,11 @@ final class TabRouter {
         // `--tab account --open notifications` 는 기존대로 AccountView 가 소비한다(이중 발화 방지).
         if Config.launchValue(after: "--tab") == nil,
             Config.launchValue(after: "--open") == "notifications" {
+            pendingNotifications = true
+        }
+        if let json = Config.launchValue(after: "--push"),
+            let info = try? JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any] {
+            pendingPushRoute = NotificationRoute.route(push: info)
             pendingNotifications = true
         }
     }
@@ -83,6 +88,24 @@ enum WidgetDeepLink {
             TabRouter.shared.pendingPost = WidgetPostRef(username: parts[0], slug: parts[1])
         default:
             break
+        }
+    }
+}
+
+private struct NotificationsSheet: View {
+    @State private var path: [Route]
+
+    init(initial: Route?) {
+        _path = State(initialValue: initial.map { [$0] } ?? [])
+    }
+
+    var body: some View {
+        NavigationStack(path: $path) {
+            NotificationsView()
+                .navigationDestination(for: Route.self) { RouteView(route: $0) }
+        }
+        .onChange(of: TabRouter.shared.pendingPushRoute) { _, route in
+            if let route { path = [route] }
         }
     }
 }
@@ -202,18 +225,20 @@ struct RootView: View {
                 }
             }
             // 푸시 탭 — 알림함 시트. 인박스 안의 딥링크(글·컬렉션)가 같은 스택에서 이어 밀린다.
-            .sheet(isPresented: $router.pendingNotifications) {
-                NavigationStack {
-                    NotificationsView()
-                        .navigationDestination(for: Route.self) { RouteView(route: $0) }
-                }
+            .sheet(
+                isPresented: $router.pendingNotifications,
+                onDismiss: { TabRouter.shared.pendingPushRoute = nil }
+            ) {
+                NotificationsSheet(initial: TabRouter.shared.pendingPushRoute)
             }
             // 콜드 런치(종료 상태에서 푸시 탭)는 첫 프레임 전에 플래그가 서서 시트가 무시된다 —
             // 첫 커밋 뒤 한 틱 쉬고 재점화해야 뜬다.
             .task {
                 if TabRouter.shared.pendingNotifications {
+                    let route = TabRouter.shared.pendingPushRoute
                     TabRouter.shared.pendingNotifications = false
                     try? await Task.sleep(for: .milliseconds(350))
+                    TabRouter.shared.pendingPushRoute = route
                     TabRouter.shared.pendingNotifications = true
                 }
             }

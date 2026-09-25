@@ -55,4 +55,26 @@ final class EngagementDockUITests: XCTestCase {
         XCTAssertTrue(like.isHittable, "스크롤하면 독이 숨음 — 읽는 동안 계속 보여야 함")
         XCTAssertTrue(bookmark.isHittable, "스크롤하면 북마크가 숨음")
     }
+
+    func testDockRetreatsAtTheEndAndReturnsInTheBody() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--post", "honggildong/hexagonal-after-3-months"]
+        app.launch()
+
+        let like = app.buttons["좋아요"]
+        XCTAssertTrue(like.waitForExistence(timeout: 15), "독에 좋아요 버튼이 없음")
+        XCTAssertTrue(like.isHittable, "처음 연 글에서 독이 보여야 함")
+
+        for _ in 0..<12 where like.isHittable {
+            app.swipeUp()
+            Thread.sleep(forTimeInterval: 0.4)
+        }
+        XCTAssertFalse(like.isHittable, "글 끝맺음에 닿으면 독이 물러나야 함")
+
+        for _ in 0..<12 where !like.isHittable {
+            app.swipeDown()
+            Thread.sleep(forTimeInterval: 0.4)
+        }
+        XCTAssertTrue(like.isHittable, "본문으로 되돌아오면 독이 다시 떠야 함")
+    }
 }
