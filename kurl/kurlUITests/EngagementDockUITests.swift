@@ -35,4 +35,24 @@ final class EngagementDockUITests: XCTestCase {
                        "좋아요를 눌렀는데 북마크 선택 상태가 바뀜 — 독립성 깨짐")
         XCTAssertFalse(app.sheets.firstMatch.exists, "좋아요를 눌렀는데 연결 시트가 뜸 — 독립성 깨짐")
     }
+
+    func testDockStaysStackedAtBottomTrailingWhileScrolling() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--post", "honggildong/hexagonal-after-3-months"]
+        app.launch()
+
+        let like = app.buttons["좋아요"]
+        let bookmark = app.buttons["북마크"]
+        XCTAssertTrue(like.waitForExistence(timeout: 15), "독에 좋아요 버튼이 없음")
+
+        let window = app.windows.firstMatch.frame
+        XCTAssertEqual(like.frame.midX, bookmark.frame.midX, accuracy: 2, "독이 세로로 쌓이지 않음")
+        XCTAssertGreaterThan(bookmark.frame.minY, like.frame.maxY, "북마크가 좋아요 아래에 있지 않음")
+        XCTAssertGreaterThan(like.frame.minX, window.midX, "독이 오른쪽에 붙지 않음")
+
+        app.swipeUp()
+        Thread.sleep(forTimeInterval: 0.8)
+        XCTAssertTrue(like.isHittable, "스크롤하면 독이 숨음 — 읽는 동안 계속 보여야 함")
+        XCTAssertTrue(bookmark.isHittable, "스크롤하면 북마크가 숨음")
+    }
 }

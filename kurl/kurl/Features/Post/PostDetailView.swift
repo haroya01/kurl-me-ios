@@ -427,7 +427,7 @@ private struct PostDetailReader: View {
             // 숨김은 opacity 로만 — hierarchy 에서 빼면 독의 @State 모델이 새로 만들어져
             // 숨김↔표시 사이클마다 hydrate GET 2건이 재발사되고 좋아요가 잠깐 꺼져 깜빡였다.
             if case .loaded(let detail) = model.phase {
-                let dockHidden = keyboardUp || composerActive || chromeHidden || (endVisible && scrollable && !voiceOverOn)
+                let dockHidden = keyboardUp || composerActive || (endVisible && scrollable && !voiceOverOn)
                 // 목차를 상단 크롬에서 내려 독 바로 위에 얹는다 — 항해 보조와 인게이지를 한 손
                 // 닿는 자리에 모은다. 목차·독은 성격이 다른 독립 컨트롤이라 spacing 12 로 띄워
                 // 각자 제 유리로 읽히게 하고(독 내부 문법과 동일), 후퇴는 독과 함께 한다.
