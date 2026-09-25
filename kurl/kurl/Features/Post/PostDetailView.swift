@@ -222,6 +222,10 @@ private struct PostDetailReader: View {
                     .frame(maxWidth: Metrics.readingColumn)
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, Metrics.gutter)
+                    // 접근성 크기에선 한 줄이 예닐곱 자라 우측에 뜬 인게이지 독(52pt 원판)이
+                    // 글자를 정통으로 가린다 — 독 폭만큼 본문을 비켜 감는다. 평상 크기에선
+                    // 문단 오른끝 여백이 자연 완충이라 그대로 둔다.
+                    .padding(.trailing, dynamicTypeSize.isAccessibilitySize ? 56 : 0)
                     // 본문 문단이 선택→하이라이트 + 공개 하이라이트 페인트를 띄울 수 있게.
                     .environment(\.postHighlightStore, highlights)
                 }
@@ -423,11 +427,11 @@ private struct PostDetailReader: View {
             // 숨김은 opacity 로만 — hierarchy 에서 빼면 독의 @State 모델이 새로 만들어져
             // 숨김↔표시 사이클마다 hydrate GET 2건이 재발사되고 좋아요가 잠깐 꺼져 깜빡였다.
             if case .loaded(let detail) = model.phase {
-                let dockHidden = keyboardUp || composerActive || chromeHidden || (endVisible && scrollable && !voiceOverOn)
+                let dockHidden = keyboardUp || composerActive || (endVisible && scrollable && !voiceOverOn)
                 // 목차를 상단 크롬에서 내려 독 바로 위에 얹는다 — 항해 보조와 인게이지를 한 손
                 // 닿는 자리에 모은다. 목차·독은 성격이 다른 독립 컨트롤이라 spacing 12 로 띄워
                 // 각자 제 유리로 읽히게 하고(독 내부 문법과 동일), 후퇴는 독과 함께 한다.
-                HStack(spacing: 12) {
+                VStack(spacing: 12) {
                     if headings.count >= 2 { tocButton(proxy) }
                     EngagementDock(
                         postId: detail.post.id, initialLikeCount: detail.post.likeCount,
