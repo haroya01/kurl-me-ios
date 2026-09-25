@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import UserNotifications
 
 /// 알림 — 웹 벨과 같은 데이터. 행 탭 = 읽음 처리 + 대상(글/작가/시리즈)으로 이동,
 /// 미읽음은 왼쪽 그린 점 하나로 조용히 표시한다.
@@ -23,11 +24,16 @@ struct NotificationsView: View {
     /// 같은 상태면 재fetch 하지 않아 쌓인 페이지·스크롤 위치를 보존한다.
     @State private var loadedForSignIn: Bool?
     @State private var showLoginSheet = false
+    @State private var pushStatus: UNAuthorizationStatus?
+    @Environment(\.openURL) private var openURL
     /// "모두 읽음" 툴바 액션 — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
     @ScaledMetric(relativeTo: .subheadline) private var actionSize: CGFloat = 13
 
     var body: some View {
         ReadingColumn(spacing: 0) {
+            if AuthStore.shared.isSignedIn, let pushStatus, pushStatus == .notDetermined || pushStatus == .denied {
+                pushPrompt(pushStatus)
+            }
             if !AuthStore.shared.isSignedIn {
                 // 알림은 인증 피드 — 비로그인은 네트워크 에러가 아니라 로그인 게이트로(막다른 길 금지).
                 loggedOutGate
@@ -95,6 +101,10 @@ struct NotificationsView: View {
             await load()
         }
         .refreshable { await load() }
+        .task { await reloadPushStatus() }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            Task { await reloadPushStatus() }
+        }
         .sensoryFeedback(.success, trigger: markAllPulse)
         .onDisappear {
             // 인박스를 떠나면 미읽음 점을 갱신 — 여기서 읽었는데 계정·피드 벨에 점이 남지 않게.
@@ -103,6 +113,43 @@ struct NotificationsView: View {
                 Task { await UnreadStore.shared.refresh() }
             }
         }
+    }
+
+    private func pushPrompt(_ status: UNAuthorizationStatus) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: "bell.badge")
+                .font(.title3)
+                .foregroundStyle(Palette.secondary)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("푸시 알림이 꺼져 있어요")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Palette.ink)
+                Text("좋아요·댓글·새 글을 휴대폰 알림으로 바로 받아요.")
+                    .font(.footnote)
+                    .foregroundStyle(Palette.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Button(status == .denied ? "설정 열기" : "켜기") {
+                if status == .denied {
+                    if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
+                } else {
+                    Task {
+                        _ = await PushRegistrar.requestAndRegister()
+                        await reloadPushStatus()
+                    }
+                }
+            }
+            .buttonStyle(.glassProminent)
+            .tint(Palette.accentFill)
+            .accessibilityIdentifier("push-prompt-action")
+        }
+        .padding(.vertical, 14)
+        .overlay(alignment: .bottom) { Hairline() }
+    }
+
+    private func reloadPushStatus() async {
+        pushStatus = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
     }
 
     // 비로그인 게이트 — 알림은 인증 피드라, 로그인하면 흐른다고 안내(발견·피드 로그아웃 결과와 동일 문법).
@@ -302,7 +349,7 @@ struct NotificationsView: View {
         if let collectionId = n.collectionId {
             return .collection(id: collectionId)
         }
-        if let slug = n.postSlug, let author = n.postAuthorUsername, !author.isEmpty {
+        if let slug = n.postSlug, let author = postAuthor(of: n) {
             return .post(username: author, slug: slug)
         }
         if let slug = n.seriesSlug, let mine = AuthStore.shared.me?.username, !mine.isEmpty {
@@ -311,6 +358,13 @@ struct NotificationsView: View {
         if let actor = n.actorUsername, !actor.isEmpty {
             return .author(username: actor)
         }
+        return nil
+    }
+
+    private func postAuthor(of n: AppNotification) -> String? {
+        if let author = n.postAuthorUsername, !author.isEmpty { return author }
+        if n.type == "NEW_POST" { return n.actorUsername.flatMap { $0.isEmpty ? nil : $0 } }
+        if let mine = AuthStore.shared.me?.username, !mine.isEmpty { return mine }
         return nil
     }
 

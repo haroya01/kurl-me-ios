@@ -66,6 +66,7 @@ enum AuthAPI {
     private struct DeviceBody: Encodable {
         let token: String
         var platform = "ios"
+        var topic = Bundle.main.bundleIdentifier
     }
 }
 

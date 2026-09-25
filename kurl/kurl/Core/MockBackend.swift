@@ -1489,11 +1489,11 @@ enum MockBackend {
             return json([
                 "items": [
                     ["id": 1, "type": "LIKE", "actorUsername": "reader_kim", "actorAvatarUrl": NSNull(),
-                     "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글", "postAuthorUsername": "honggildong",
+                     "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글", "postAuthorUsername": NSNull(),
                      "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
                      "read": false, "createdAt": iso(Date().addingTimeInterval(-600))],
                     ["id": 2, "type": "COMMENT", "actorUsername": "yuki_dev", "actorAvatarUrl": NSNull(),
-                     "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글", "postAuthorUsername": "honggildong",
+                     "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글", "postAuthorUsername": NSNull(),
                      "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
                      "read": false, "createdAt": iso(Date().addingTimeInterval(-3600))],
                     ["id": 3, "type": "FOLLOW", "actorUsername": "stranger99", "actorAvatarUrl": NSNull(),
