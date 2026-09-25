@@ -123,6 +123,19 @@ final class GraphNotificationsUITests: XCTestCase {
         shoot("like-opens-post")
     }
 
+    func testCommentNotificationOpensMyPost() throws {
+        let app = launchInbox()
+        shoot("inbox-with-push-prompt")
+        let comment = rowButton(app, contains: "댓글을 남겼어요")
+        XCTAssertTrue(comment.waitForExistence(timeout: 12), "인박스에 댓글 알림이 없음")
+        comment.tap()
+        XCTAssertTrue(app.buttons["모두 읽음"].firstMatch.waitForNonExistence(timeout: 10), "댓글 알림을 누르면 인박스에서 넘어가야 함")
+        let readingTime = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH '읽는 시간'")).firstMatch
+        XCTAssertTrue(readingTime.waitForExistence(timeout: 10), "댓글 알림을 누르면 내 글로 가야 함")
+        XCTAssertFalse(app.buttons["팔로우"].exists, "댓글 단 사람 프로필로 빠지면 안 됨")
+        shoot("comment-opens-post")
+    }
+
     func testActorAvatarOpensProfile() throws {
         let app = launchInbox()
         let avatar = app.buttons["reader_kim 프로필"].firstMatch
