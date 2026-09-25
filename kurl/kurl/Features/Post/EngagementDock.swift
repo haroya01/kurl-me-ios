@@ -37,7 +37,7 @@ struct EngagementDock: View {
         // 캡슐로 이어 붙어(누른 버튼이 이웃까지 함께 반응) 버튼 독립성이 깨졌다. 0 = 실제로 닿을
         // 때만 녹인다(작성 도구줄·분석 칩과 같은 규율).
         GlassEffectContainer(spacing: 0) {
-            HStack(spacing: 12) {
+            VStack(spacing: 12) {
                 // 연결 = §0의 핵심 동사. 좋아요·북마크와 나란히 1급 인게이지로 둔다 —
                 // 읽다가 그 자리에서 컬렉션에 잇는다(쉽고 명확한 만들기 경로).
                 if connectTarget != nil { connect }
