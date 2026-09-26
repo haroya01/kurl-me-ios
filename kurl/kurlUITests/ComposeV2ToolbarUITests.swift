@@ -131,8 +131,9 @@ final class ComposeV2ToolbarUITests: XCTestCase {
 
     func testFormatMenuTurnsAParagraphIntoAWarningBox() throws {
         let app = launchCompose()
-        app.textFields["제목"].tap()
-        app.textFields["제목"].typeText("Boxes\n")
+        let body = app.textViews.firstMatch
+        XCTAssertTrue(body.waitForExistence(timeout: 5))
+        body.tap()
         app.typeText("Restart does not reload the config")
         XCTAssertTrue(bodyContains(app, "Restart does not reload").waitForExistence(timeout: 5))
         app.buttons["composeFormat"].tap()
@@ -145,6 +146,27 @@ final class ComposeV2ToolbarUITests: XCTestCase {
         XCTAssertTrue(bodyContains(app, "Restart does not reload the config").exists, "글은 박스 안에 그대로")
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "compose-warning-box"
+        shot.lifetime = .keepAlways
+        add(shot)
+    }
+
+    func testLinkDialogAddsALinkCard() throws {
+        let app = launchCompose()
+        let body = app.textViews.firstMatch
+        XCTAssertTrue(body.waitForExistence(timeout: 5))
+        body.tap()
+        app.typeText("Read this first")
+        app.buttons["composeLink"].tap()
+        let dialog = app.alerts["링크"]
+        XCTAssertTrue(dialog.waitForExistence(timeout: 5), "링크 다이얼로그가 떠야 함")
+        let url = dialog.textFields["https://…"]
+        url.tap()
+        url.typeText("https://docs.spring.io/spring-framework/reference/web/webflux.html")
+        dialog.buttons["카드로 추가"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["editor-link-card"].waitForExistence(timeout: 8), "링크 카드 블록이 들어가야 함")
+        XCTAssertTrue(bodyContains(app, "Read this first").exists, "앞 문단은 그대로")
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "compose-link-card"
         shot.lifetime = .keepAlways
         add(shot)
     }
