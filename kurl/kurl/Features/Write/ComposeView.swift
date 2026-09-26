@@ -452,24 +452,33 @@ struct ComposeView: View {
         if editing { focusedField = nil }
     }
 
-    private func focusBodyEditor() {
+    private func focusBodyEditor(carrying carried: String = "") {
         focusedField = nil
         editorDocument?.isEditing = false
+        if editorDocument == nil { markdown = carried + markdown }
         // SwiftUI finishes the title's submit/resign transaction after onSubmit returns.
         // Requesting UIKit focus inside that transaction can immediately lose the new responder.
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         DispatchQueue.main.async {
-            if let editorDocument { editorDocument.focusBody() }
-            else { editorController.focus() }
+            if let editorDocument {
+                editorDocument.focusBody()
+                editorDocument.insertCarriedText(carried)
+                syncFromDocument()
+            } else {
+                editorController.focus()
+            }
         }
     }
 
-    private static func insertedText(from old: String, to new: String) -> String {
+    static func splitAtReturn(from old: String, to new: String) -> (title: String, carried: String)? {
         let a = Array(old), b = Array(new)
         let prefix = zip(a, b).prefix(while: { $0 == $1 }).count
-        let maxSuffix = min(a.count, b.count) - prefix
-        let suffix = zip(a.reversed(), b.reversed()).prefix(while: { $0 == $1 }).count
-        return String(b[prefix..<(b.count - min(suffix, maxSuffix))])
+        let suffix = min(zip(a.reversed(), b.reversed()).prefix(while: { $0 == $1 }).count, min(a.count, b.count) - prefix)
+        let inserted = String(b[prefix..<(b.count - suffix)])
+        guard let newline = inserted.firstIndex(of: "\n") else { return nil }
+        let head = String(b[..<prefix]) + inserted[..<newline]
+        let tail = String(a[(a.count - suffix)...])
+        return (head + tail, String(inserted[inserted.index(after: newline)...]))
     }
 
     private var meta: some View {
@@ -481,9 +490,9 @@ struct ComposeView: View {
             .submitLabel(.next)
             .onChange(of: title) { oldValue, newValue in
                 guard newValue.contains("\n") else { return }
-                if Self.insertedText(from: oldValue, to: newValue) == "\n" {
-                    title = oldValue
-                    focusBodyEditor()
+                if let split = Self.splitAtReturn(from: oldValue, to: newValue) {
+                    title = split.title
+                    focusBodyEditor(carrying: split.carried)
                 } else {
                     title = newValue
                         .replacingOccurrences(of: "\n", with: " ")
