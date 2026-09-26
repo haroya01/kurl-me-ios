@@ -88,6 +88,13 @@ struct WysiwygEditorView: View {
                 onFocused: { document.focus = EditorFocus(blockID: block.id, caret: 0) },
                 onDelete: { deleteNonTextBlock(block.id, undoLabel: String(localized: "구분선을 지웠어요")) }
             )
+        case .linkCard(let url):
+            BlockLinkCardView(
+                url: url,
+                isFocused: document.focus?.blockID == block.id,
+                onFocused: { document.focus = EditorFocus(blockID: block.id, caret: 0) },
+                onDelete: { deleteNonTextBlock(block.id, undoLabel: String(localized: "링크 카드를 지웠어요")) }
+            )
         case .image:
             BlockImageView(
                 block: block,
@@ -155,14 +162,20 @@ struct WysiwygEditorView: View {
     private func marker(for block: EditorBlock, ordered: Bool) -> String {
         guard ordered, let (_, indent) = block.listInfo else { return "•" }
         guard let idx = document.blocks.firstIndex(where: { $0.id == block.id }) else { return "1." }
+        return "\(Self.ordinal(at: idx, indent: indent, in: document.blocks))."
+    }
+
+    static func ordinal(at idx: Int, indent: Int, in blocks: [EditorBlock]) -> Int {
         var n = 1
         var i = idx - 1
-        while i >= 0, let info = document.blocks[i].listInfo, info.ordered, info.indent == indent {
-            n += 1
+        while i >= 0, let info = blocks[i].listInfo, info.indent >= indent {
+            if info.indent == indent {
+                guard info.ordered else { break }
+                n += 1
+            }
             i -= 1
         }
-        // 사이에 다른 indent 항목이 있으면 위 루프가 끊긴다 — 같은 indent 연속만 센다.
-        return "\(n)."
+        return n
     }
 
     private func textBlock(_ block: EditorBlock) -> some View {
@@ -254,6 +267,7 @@ struct WysiwygEditorView: View {
         case .paragraph: return 4
         case .listItem: return 3
         case .divider: return 4
+        case .linkCard: return 8
         case .image: return 10
         case .table: return 8
         }

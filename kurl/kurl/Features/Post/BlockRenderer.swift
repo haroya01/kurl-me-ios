@@ -16,6 +16,7 @@ struct BlockView: View {
     let block: PostBlock
     /// 첫 문단이면 lead — 한 호흡 큰 도입으로 독자를 들인다(에디토리얼 마스트헤드의 일부).
     var isLead = false
+    var calloutBody: PostBlock? = nil
 
     /// 본 글(단독 상세)에서만 주입 — 있으면 문단이 선택→하이라이트 + 공개 하이라이트 페인트를
     /// 띄운다. 없으면(발견 덱 임베드·프리뷰) 종전 SwiftUI Text 그대로.
@@ -43,7 +44,10 @@ struct BlockView: View {
             // h4~6 소제목 — `#### `/`##### `/`###### ` 로 시작하는 단독 문단은 웹 리더가 <h4~6>
             // 로 그린다(블록 모델은 H3 에서 캡되어 이런 헤딩이 PARAGRAPH 로 넘어온다). Apple
             // 인라인 파서는 `#` 를 헤딩으로 안 읽어 해시가 리터럴로 새므로, 여기서 직접 소제목으로 그린다.
-            if let sub = Self.subHeading(block.content ?? "") {
+            if Self.isThematicBreak(block.content) {
+                Hairline().padding(.vertical, 8)
+            }
+            else if let sub = Self.subHeading(block.content ?? "") {
                 subHeadingView(level: sub.level, text: sub.text)
             }
             // 문단 속 인라인 이미지(노션 붙여넣기 등) — Apple 마크다운 파서는 이미지를 못 그려 alt
@@ -102,7 +106,12 @@ struct BlockView: View {
         case .quote:
             // 이탤릭 없음 — 한글엔 진짜 기울임꼴이 없어 합성 오블리크가 지저분하다(웹 결정 미러).
             // 위계는 그린 좌측 룰 + secondary 색 + 넉넉한 행간으로 세운다.
-            inline(block.content ?? "")
+            VStack(alignment: .leading, spacing: 8) {
+                inline(block.content ?? "")
+                if let body = calloutBody {
+                    inline(body.content ?? "")
+                }
+            }
                 .font(.system(size: bodySize))
                 .lineSpacing(bodySize * 0.6)
                 .foregroundStyle(Palette.secondary)
@@ -203,6 +212,18 @@ struct BlockView: View {
     private final class InlineBox {
         let attributed: AttributedString
         init(_ attributed: AttributedString) { self.attributed = attributed }
+    }
+
+    static func isThematicBreak(_ content: String?) -> Bool {
+        guard let content else { return false }
+        return content.range(of: #"^\s*([-*_])(\s*\1){2,}\s*$"#, options: .regularExpression) != nil
+    }
+
+    static func isCalloutLabel(_ block: PostBlock, next: PostBlock?) -> Bool {
+        guard block.kind == .quote, let content = block.content,
+              let next, next.kind == .paragraph, !(next.content ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else { return false }
+        return content.range(of: #"^\s*\p{Extended_Pictographic}\x{FE0F}?\s*\*\*[^*\n]{1,12}\*\*\s*$"#, options: .regularExpression) != nil
     }
 
     private func inline(_ raw: String) -> Text {

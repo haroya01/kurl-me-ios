@@ -53,6 +53,7 @@ nonisolated enum EditorBlockKind: Equatable {
     case image(url: String, caption: String?)
     /// 표. 셀은 별도 2차원 편집(text 는 안 쓴다). GFM 왕복은 `EditorTable`이 담는다.
     case table(EditorTable)
+    case linkCard(url: String)
 }
 
 /// 편집 단위 블록. `id` 는 SwiftUI diffing 안정용(마크다운엔 안 실림). `text` 는 블록의 원본
@@ -88,6 +89,7 @@ nonisolated struct EditorBlock: Identifiable, Equatable {
         .init(kind: .image(url: url, caption: caption), text: alt)
     }
     static func table(_ table: EditorTable) -> EditorBlock { .init(kind: .table(table), text: "") }
+    static func linkCard(_ url: String) -> EditorBlock { .init(kind: .linkCard(url: url), text: "") }
 
     /// 코드 블록만 여러 줄을 한 블록에 담는다 — 나머지는 개념상 한 줄(문단은 소프트랩).
     var isMultiline: Bool {
@@ -103,7 +105,7 @@ nonisolated struct EditorBlock: Identifiable, Equatable {
     /// 캐럿을 담을 수 없는 블록(구분선·이미지·표) — 엔터/백스페이스/분할·병합 규칙이 텍스트 블록과 다르다.
     var isNonText: Bool {
         switch kind {
-        case .divider, .image, .table: return true
+        case .divider, .image, .table, .linkCard: return true
         default: return false
         }
     }

@@ -23,6 +23,10 @@ import Foundation
 
 enum DraftPreviewBlocks {
     /// 저장 마크다운 → 읽기면 PostBlock 배열. WriteV2 파서로 블록을 얻고 리더 계약으로 인코딩한다.
+    static func embed(_ url: String) -> PostBlock? {
+        decode([["type": "EMBED", "content": url, "blockOrder": 0]]).first
+    }
+
     static func from(markdown: String) -> [PostBlock] {
         let editorBlocks = MarkdownBlockParser.parse(markdown)
         var dicts: [[String: Any]] = []
@@ -78,6 +82,8 @@ enum DraftPreviewBlocks {
             var payload: [String: String] = ["code": block.text]
             if let language, !language.isEmpty { payload["lang"] = language }
             emit("CODE", jsonString(payload))
+        case .linkCard(let url):
+            emit("EMBED", jsonString(["url": url]))
         case .divider:
             emit("DIVIDER", nil)
         case .image(let url, let caption):
