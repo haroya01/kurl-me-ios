@@ -478,6 +478,7 @@ final class BlockTypeCompletenessGuardTests: XCTestCase {
         case .image:                     return (.image(url: "https://kurl.me/a.png", alt: "그림"), .explicitControl)
         case .table:                     return (.table(.blank), .explicitControl)
         case .linkCard:                  return (.linkCard("https://r2dbc.io/"), .explicitControl)
+        case .callout:                   return (.callout(.note, "メモ"), .caretPath)
         }
     }
 
@@ -487,7 +488,7 @@ final class BlockTypeCompletenessGuardTests: XCTestCase {
         .paragraph, .heading(level: 2), .quote, .code(language: "swift"),
         .divider, .listItem(ordered: false, indent: 0),
         .image(url: "https://kurl.me/a.png", caption: nil), .table(.blank),
-        .linkCard(url: "https://r2dbc.io/"),
+        .linkCard(url: "https://r2dbc.io/"), .callout(kind: .note),
     ]
 
     func testEveryBlockKindHasCreationAndDeletionPath() {

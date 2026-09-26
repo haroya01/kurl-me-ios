@@ -54,6 +54,26 @@ nonisolated enum EditorBlockKind: Equatable {
     /// 표. 셀은 별도 2차원 편집(text 는 안 쓴다). GFM 왕복은 `EditorTable`이 담는다.
     case table(EditorTable)
     case linkCard(url: String)
+    case callout(kind: CalloutKind)
+}
+
+nonisolated enum CalloutKind: String, CaseIterable, Equatable {
+    case note, tip, important, warning, caution
+
+    var marker: String { "[!\(rawValue.uppercased())]" }
+
+    static func from(marker line: String) -> CalloutKind? {
+        let t = line.trimmingCharacters(in: .whitespaces)
+        guard t.hasPrefix("[!"), t.hasSuffix("]") else { return nil }
+        return CalloutKind(rawValue: t.dropFirst(2).dropLast().lowercased())
+    }
+
+    static func from(label line: String) -> CalloutKind {
+        if line.range(of: #"⚠|注意|주의|warn"#, options: [.regularExpression, .caseInsensitive]) != nil { return .warning }
+        if line.range(of: #"❗|‼|警告|경고|alert|caution"#, options: [.regularExpression, .caseInsensitive]) != nil { return .caution }
+        if line.range(of: #"💡|tip|ヒント|팁"#, options: [.regularExpression, .caseInsensitive]) != nil { return .tip }
+        return .note
+    }
 }
 
 /// 편집 단위 블록. `id` 는 SwiftUI diffing 안정용(마크다운엔 안 실림). `text` 는 블록의 원본
@@ -90,6 +110,7 @@ nonisolated struct EditorBlock: Identifiable, Equatable {
     }
     static func table(_ table: EditorTable) -> EditorBlock { .init(kind: .table(table), text: "") }
     static func linkCard(_ url: String) -> EditorBlock { .init(kind: .linkCard(url: url), text: "") }
+    static func callout(_ kind: CalloutKind, _ text: String) -> EditorBlock { .init(kind: .callout(kind: kind), text: text) }
 
     /// 코드 블록만 여러 줄을 한 블록에 담는다 — 나머지는 개념상 한 줄(문단은 소프트랩).
     var isMultiline: Bool {

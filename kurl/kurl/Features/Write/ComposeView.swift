@@ -3120,6 +3120,13 @@ private struct V2FormatToolbar: View {
                             action("인용", "text.quote", active: focusedKind == .quote) { toggleBlock(.quote) }
                             action("코드블록", "curlybraces", active: isCode) { toggleBlock(.code(language: nil)) }
                         }
+                        Section("박스") {
+                            ForEach(CalloutKind.allCases, id: \.self) { kind in
+                                action(kind.label, kind.symbol, active: focusedKind == .callout(kind: kind)) {
+                                    toggleBlock(.callout(kind: kind))
+                                }
+                            }
+                        }
                     } label: {
                         toolLabel("textformat", "서식", active: isFormattedBlock)
                     }
@@ -3206,7 +3213,7 @@ private struct V2FormatToolbar: View {
 
     private var isFormattedBlock: Bool {
         switch focusedKind {
-        case .heading, .quote, .code: return true
+        case .heading, .quote, .code, .callout: return true
         default: return false
         }
     }
@@ -3221,6 +3228,7 @@ private struct V2FormatToolbar: View {
         case .heading(let level): return String(localized: "제목 \(level)")
         case .quote: return String(localized: "인용")
         case .code: return String(localized: "코드블록")
+        case .callout(let kind): return String(localized: "박스 \(kind.localizedName)")
         default: return String(localized: "본문")
         }
     }

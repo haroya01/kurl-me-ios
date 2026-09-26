@@ -148,7 +148,33 @@ struct WysiwygEditorView: View {
                     .frame(width: 3)
             }
         }
+        .padding(.top, calloutKind(block) == nil ? 0 : 30)
+        .padding(.horizontal, calloutKind(block) == nil ? 0 : 16)
+        .padding(.bottom, calloutKind(block) == nil ? 0 : 12)
+        .background(alignment: .topLeading) {
+            if let kind = calloutKind(block) {
+                ZStack(alignment: .topLeading) {
+                    RoundedRectangle(cornerRadius: Metrics.radiusThumb)
+                        .fill(Palette.calloutWash(kind))
+                    Rectangle()
+                        .fill(Palette.calloutBar(kind))
+                        .frame(width: 4)
+                    Label { Text(kind.label) } icon: { Image(systemName: kind.symbol) }
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Palette.calloutAccent(kind))
+                        .padding(.leading, 16)
+                        .padding(.top, 9)
+                        .accessibilityIdentifier("editor-callout-label")
+                }
+                .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
+            }
+        }
         .padding(.leading, CGFloat(block.listInfo?.indent ?? 0) * 18)
+    }
+
+    private func calloutKind(_ block: EditorBlock) -> CalloutKind? {
+        if case .callout(let kind) = block.kind { return kind }
+        return nil
     }
 
     /// 리스트 항목 블록(18pt 본문 스케일)의 첫 줄 베이스라인 — BlockInlineRenderer.baseFont(.listItem) 와
@@ -264,6 +290,7 @@ struct WysiwygEditorView: View {
         case .heading(let level): return level == 1 ? 12 : level == 2 ? 10 : 8
         case .code: return 8
         case .quote: return 6
+        case .callout: return 8
         case .paragraph: return 4
         case .listItem: return 3
         case .divider: return 4

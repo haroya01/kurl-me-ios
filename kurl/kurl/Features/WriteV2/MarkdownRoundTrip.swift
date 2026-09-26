@@ -79,6 +79,10 @@ nonisolated enum MarkdownSerializer {
         case .heading(let level):
             let hashes = String(repeating: "#", count: max(1, min(3, level)))
             return "\(hashes) \(block.text)"
+        case .callout(let kind):
+            return ([kind.marker] + block.text.split(separator: "\n", omittingEmptySubsequences: false).map(String.init))
+                .map { $0.isEmpty ? ">" : "> \($0)" }
+                .joined(separator: "\n")
         case .quote:
             // 여러 줄 인용은 줄마다 `> ` — 빈 줄은 단독 `>` (방언 L169 가 둘 다 받는다).
             return block.text
@@ -139,7 +143,7 @@ nonisolated enum MarkdownBlockParser {
     static func parse(_ markdown: String) -> [EditorBlock] {
         // 윈도우/외부 앱에서 붙여넣은 CRLF 를 정규화 — 안 하면 \r 이 줄 끝에 남아 줄머리 판정과
         // 직렬화 본문에 조용히 섞인다(타이핑 입력은 \n 뿐이라 영향 없음).
-        let markdown = markdown.replacingOccurrences(of: "\r\n", with: "\n")
+        let markdown = convertCalloutContainers(markdown.replacingOccurrences(of: "\r\n", with: "\n"))
         let lines = markdown.components(separatedBy: "\n")
         var blocks: [EditorBlock] = []
         var i = 0
@@ -196,7 +200,11 @@ nonisolated enum MarkdownBlockParser {
                     quoteLines.append(stripQuoteMarker(lines[i]))
                     i += 1
                 }
-                blocks.append(.quote(quoteLines.joined(separator: "\n")))
+                if let first = quoteLines.first, let kind = CalloutKind.from(marker: first) {
+                    blocks.append(.callout(kind, quoteLines.dropFirst().joined(separator: "\n")))
+                } else {
+                    blocks.append(.quote(quoteLines.joined(separator: "\n")))
+                }
                 continue
             }
 
@@ -268,6 +276,46 @@ nonisolated enum MarkdownBlockParser {
               !url.contains(">"), !MarkdownInputTextView.isImageURL(url)
         else { return nil }
         return url
+    }
+
+    static func convertCalloutContainers(_ markdown: String) -> String {
+        guard markdown.contains(":::") else { return markdown }
+        let lines = markdown.components(separatedBy: "\n")
+        var out: [String] = []
+        var fence: String?
+        var i = 0
+        while i < lines.count {
+            let open = lines[i].trimmingCharacters(in: .whitespaces)
+            if let marker = open.range(of: #"^(`{3,}|~{3,})"#, options: .regularExpression).map({ String(open[$0]) }) {
+                if fence == nil {
+                    fence = marker
+                } else if let current = fence, marker.hasPrefix(current), open.count == marker.count {
+                    fence = nil
+                }
+                out.append(lines[i])
+                i += 1
+                continue
+            }
+            let kind = fence == nil ? calloutContainerKind(open) : nil
+            if let kind, let close = lines[(i + 1)...].firstIndex(where: { $0.trimmingCharacters(in: .whitespaces) == ":::" }) {
+                out.append("> \(kind.marker)")
+                out.append(contentsOf: lines[(i + 1)..<close].map { $0.trimmingCharacters(in: .whitespaces).isEmpty ? ">" : "> \($0)" })
+                i = close + 1
+                continue
+            }
+            out.append(lines[i])
+            i += 1
+        }
+        return out.joined(separator: "\n")
+    }
+
+    private static func calloutContainerKind(_ line: String) -> CalloutKind? {
+        switch line.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression) {
+        case ":::note", ":::note info", "::: note", "::: note info", ":::message", "::: message": return .note
+        case ":::note warn", "::: note warn": return .warning
+        case ":::note alert", "::: note alert", ":::message alert", "::: message alert": return .caution
+        default: return nil
+        }
     }
 
     static func heading(_ line: String) -> (Int, String)? {
