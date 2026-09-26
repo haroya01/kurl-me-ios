@@ -128,4 +128,25 @@ final class ComposeV2ToolbarUITests: XCTestCase {
         XCTAssertTrue((title.value as? String)?.contains("edit") == true)
     }
 
+
+    func testFormatMenuTurnsAParagraphIntoAWarningBox() throws {
+        let app = launchCompose()
+        app.textFields["제목"].tap()
+        app.textFields["제목"].typeText("Boxes\n")
+        app.typeText("Restart does not reload the config")
+        XCTAssertTrue(bodyContains(app, "Restart does not reload").waitForExistence(timeout: 5))
+        app.buttons["composeFormat"].tap()
+        let warning = app.buttons["주의"]
+        XCTAssertTrue(warning.waitForExistence(timeout: 5), "서식 메뉴에 박스 종류가 있어야 함")
+        warning.tap()
+        let label = app.staticTexts["editor-callout-label"]
+        XCTAssertTrue(label.waitForExistence(timeout: 5), "주의 박스 라벨이 떠야 함")
+        XCTAssertEqual(label.label, "주의")
+        XCTAssertTrue(bodyContains(app, "Restart does not reload the config").exists, "글은 박스 안에 그대로")
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "compose-warning-box"
+        shot.lifetime = .keepAlways
+        add(shot)
+    }
 }
+

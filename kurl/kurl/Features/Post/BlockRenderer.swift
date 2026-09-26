@@ -104,25 +104,24 @@ struct BlockView: View {
                 .padding(.top, 16).padding(.bottom, 2)
 
         case .quote:
-            // 이탤릭 없음 — 한글엔 진짜 기울임꼴이 없어 합성 오블리크가 지저분하다(웹 결정 미러).
-            // 위계는 그린 좌측 룰 + secondary 색 + 넉넉한 행간으로 세운다.
-            VStack(alignment: .leading, spacing: 8) {
+            if let callout = Self.callout(in: block.content ?? "", body: calloutBody) {
+                calloutBox(kind: callout.kind, body: callout.body)
+            } else {
+                // 이탤릭 없음 — 한글엔 진짜 기울임꼴이 없어 합성 오블리크가 지저분하다(웹 결정 미러).
+                // 위계는 그린 좌측 룰 + secondary 색 + 넉넉한 행간으로 세운다.
                 inline(block.content ?? "")
-                if let body = calloutBody {
-                    inline(body.content ?? "")
-                }
+                    .font(.system(size: bodySize))
+                    .lineSpacing(bodySize * 0.6)
+                    .foregroundStyle(Palette.secondary)
+                    .padding(.leading, 20)
+                    .padding(.vertical, 2)
+                    .overlay(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 1.5)
+                            .fill(Palette.accentSoft)
+                            .frame(width: 3)
+                    }
+                    .padding(.bottom, 14)
             }
-                .font(.system(size: bodySize))
-                .lineSpacing(bodySize * 0.6)
-                .foregroundStyle(Palette.secondary)
-                .padding(.leading, 20)
-                .padding(.vertical, 2)
-                .overlay(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 1.5)
-                        .fill(Palette.accentSoft)
-                        .frame(width: 3)
-                }
-                .padding(.bottom, 14)
 
         case .divider:
             Hairline().padding(.vertical, 8)
@@ -212,6 +211,45 @@ struct BlockView: View {
     private final class InlineBox {
         let attributed: AttributedString
         init(_ attributed: AttributedString) { self.attributed = attributed }
+    }
+
+    static func callout(in content: String, body: PostBlock?) -> (kind: CalloutKind, body: String)? {
+        let lines = content.components(separatedBy: "\n")
+        guard let first = lines.first else { return nil }
+        if let kind = CalloutKind.from(marker: first) {
+            return (kind, lines.dropFirst().joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+        let isLabel = first.range(of: #"^\s*\p{Extended_Pictographic}\x{FE0F}?\s*\*\*[^*\n]{1,12}\*\*\s*$"#, options: .regularExpression) != nil
+        guard isLabel else { return nil }
+        if let body { return (CalloutKind.from(label: first), body.content ?? "") }
+        guard lines.count > 1 else { return nil }
+        return (CalloutKind.from(label: first), lines.dropFirst().joined(separator: "\n"))
+    }
+
+    private func calloutBox(kind: CalloutKind, body: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label { Text(kind.label) } icon: { Image(systemName: kind.symbol) }
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Palette.calloutAccent(kind))
+            if !body.isEmpty {
+                inline(body)
+                    .font(.system(size: bodySize))
+                    .lineSpacing(bodySize * 0.6)
+                    .foregroundStyle(Palette.body)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.leading, 18)
+        .padding(.trailing, 16)
+        .padding(.vertical, 14)
+        .background(Palette.calloutWash(kind))
+        .overlay(alignment: .leading) {
+            Rectangle().fill(Palette.calloutBar(kind)).frame(width: 4)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
+        .accessibilityElement(children: .combine)
+        .padding(.vertical, 6)
+        .padding(.bottom, 8)
     }
 
     static func isThematicBreak(_ content: String?) -> Bool {

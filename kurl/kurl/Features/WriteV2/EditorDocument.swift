@@ -261,7 +261,7 @@ final class EditorDocument {
         // 뒷부분이 있으면 같은 종류를 유지(제목 중간에서 가른 경우).
         let newKind: EditorBlockKind = {
             switch block.kind {
-            case .heading, .quote:
+            case .heading, .quote, .callout:
                 return tail.isEmpty ? .paragraph : block.kind
             case .paragraph:
                 return .paragraph
@@ -583,6 +583,7 @@ final class EditorDocument {
         switch (a, b) {
         case (.heading(let la), .heading(let lb)): return la == lb
         case (.quote, .quote): return true
+        case (.callout(let ka), .callout(let kb)): return ka == kb
         case (.code, .code): return true
         case (.listItem(let oa, _), .listItem(let ob, _)): return oa == ob
         default: return false

@@ -279,3 +279,67 @@ enum GlassTokens {
     /// 유리 클러스터 간격 — GlassEffectContainer 가 이 거리부터 서로 녹여 붙인다.
     static let clusterSpacing: CGFloat = 18
 }
+
+extension Palette {
+    static func calloutAccent(_ kind: CalloutKind) -> Color {
+        switch kind {
+        case .note: Color(light: 0x0369A1, dark: 0x7DD3FC)
+        case .tip: Color(light: 0x0E7490, dark: 0x67E8F9)
+        case .important: Color(light: 0x6D28D9, dark: 0xC4B5FD)
+        case .warning: Color(light: 0xB45309, dark: 0xFCD34D)
+        case .caution: Color(light: 0xBE123C, dark: 0xFDA4AF)
+        }
+    }
+
+    static func calloutBar(_ kind: CalloutKind) -> Color {
+        switch kind {
+        case .note: Color(light: 0x7DD3FC, dark: 0x085680)
+        case .tip: Color(light: 0x67E8F9, dark: 0x045E76)
+        case .important: Color(light: 0xC4B5FD, dark: 0x463186)
+        case .warning: Color(light: 0xFCD34D, dark: 0x7C5211)
+        case .caution: Color(light: 0xFDA4AF, dark: 0x7B223A)
+        }
+    }
+
+    static func calloutWash(_ kind: CalloutKind) -> Color {
+        switch kind {
+        case .note: Color(light: 0xF0F9FF, dark: 0x03162C)
+        case .tip: Color(light: 0xECFEFF, dark: 0x02182A)
+        case .important: Color(light: 0xF5F3FF, dark: 0x100F2D)
+        case .warning: Color(light: 0xFFFBEB, dark: 0x1A1516)
+        case .caution: Color(light: 0xFFF1F2, dark: 0x1A0C1E)
+        }
+    }
+}
+
+extension CalloutKind {
+    var label: LocalizedStringKey {
+        switch self {
+        case .note: "참고"
+        case .tip: "팁"
+        case .important: "중요"
+        case .warning: "주의"
+        case .caution: "경고"
+        }
+    }
+
+    var localizedName: String {
+        switch self {
+        case .note: String(localized: "참고")
+        case .tip: String(localized: "팁")
+        case .important: String(localized: "중요")
+        case .warning: String(localized: "주의")
+        case .caution: String(localized: "경고")
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .note: "info.circle"
+        case .tip: "lightbulb"
+        case .important: "star"
+        case .warning: "exclamationmark.triangle"
+        case .caution: "exclamationmark.octagon"
+        }
+    }
+}

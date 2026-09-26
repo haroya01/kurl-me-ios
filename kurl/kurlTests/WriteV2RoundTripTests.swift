@@ -1216,3 +1216,63 @@ final class RealPostEditorRoundTripTests: XCTestCase {
         XCTAssertTrue(failures.isEmpty, failures.joined(separator: "\n"))
     }
 }
+
+final class CalloutBlockTests: XCTestCase {
+
+    func testAlertQuoteOpensAsABoxAndSavesBack() {
+        let md = "> [!WARNING]\n> **なぜ？**\n> 再起動では反映されない。"
+        let blocks = MarkdownBlockParser.parse(md)
+        XCTAssertEqual(blocks.map(\.kind), [.callout(kind: .warning)])
+        XCTAssertEqual(blocks.first?.text, "**なぜ？**\n再起動では反映されない。")
+        XCTAssertEqual(MarkdownSerializer.markdown(from: blocks), md)
+    }
+
+    func testPastedQiitaAndZennBoxesOpenAsBoxes() {
+        let blocks = MarkdownBlockParser.parse("前\n\n:::note warn\n**なぜ？**\n説明\n:::\n\n:::message\nメモ\n:::\n\n:::details 開く\n中身\n:::")
+        XCTAssertEqual(blocks.prefix(3).map(\.kind), [.paragraph, .callout(kind: .warning), .callout(kind: .note)])
+        XCTAssertEqual(blocks[1].text, "**なぜ？**\n説明")
+        XCTAssertTrue(blocks.contains { $0.text.contains(":::details") })
+    }
+
+    func testBoxSyntaxInsideCodeIsLeftAlone() {
+        let blocks = MarkdownBlockParser.parse("```markdown\n:::note warn\n例\n:::\n```")
+        XCTAssertEqual(blocks.count, 1)
+        XCTAssertTrue(blocks[0].text.contains(":::note warn"))
+    }
+
+    func testPlainQuoteStaysAQuote() {
+        XCTAssertEqual(MarkdownBlockParser.parse("> ただの引用").map(\.kind), [.quote])
+    }
+
+    func testPreviewCarriesTheMarker() {
+        let blocks = DraftPreviewBlocks.from(markdown: "> [!TIP]\n> 使えます")
+        XCTAssertEqual(blocks.first?.kind, .quote)
+        XCTAssertEqual(blocks.first?.content, "[!TIP]\n使えます")
+    }
+
+    func testReaderRecognizesNewAndImportedBoxes() throws {
+        XCTAssertEqual(BlockView.callout(in: "[!CAUTION]\n消えます", body: nil)?.kind, .caution)
+        XCTAssertEqual(BlockView.callout(in: "[!CAUTION]\n消えます", body: nil)?.body, "消えます")
+        XCTAssertEqual(BlockView.callout(in: "⚠️ **注意**\n**なぜ？**\n説明", body: nil)?.kind, .warning)
+        XCTAssertEqual(BlockView.callout(in: "⚠️ **注意**\n**なぜ？**\n説明", body: nil)?.body, "**なぜ？**\n説明")
+        let paragraph = try JSONDecoder().decode(PostBlock.self, from: Data(#"{"type":"PARAGRAPH","content":"本文"}"#.utf8))
+        XCTAssertEqual(BlockView.callout(in: "ℹ️ **Note**", body: paragraph)?.kind, .note)
+        XCTAssertNil(BlockView.callout(in: "ただの引用", body: nil))
+        XCTAssertNil(BlockView.callout(in: "ℹ️ **Note**", body: nil))
+    }
+
+    private static var retained: [EditorDocument] = []
+
+    @MainActor
+    func testToggleTurnsTheFocusedParagraphIntoABoxAndBack() {
+        let doc = EditorDocument(markdown: "メモです")
+        Self.retained.append(doc)
+        doc.focus = EditorFocus(blockID: doc.blocks[0].id, caret: 0)
+        doc.toggleFocusedBlockKind(.callout(kind: .note))
+        XCTAssertEqual(doc.markdown, "> [!NOTE]\n> メモです")
+        doc.toggleFocusedBlockKind(.callout(kind: .tip))
+        XCTAssertEqual(doc.markdown, "> [!TIP]\n> メモです")
+        doc.toggleFocusedBlockKind(.callout(kind: .tip))
+        XCTAssertEqual(doc.markdown, "メモです")
+    }
+}

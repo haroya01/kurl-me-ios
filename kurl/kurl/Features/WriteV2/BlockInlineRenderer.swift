@@ -34,7 +34,7 @@ enum BlockInlineRenderer {
         case .code:
             return UIFontMetrics(forTextStyle: .body)
                 .scaledFont(for: .monospacedSystemFont(ofSize: 14, weight: .regular))
-        case .paragraph, .listItem, .divider, .image, .table, .linkCard:
+        case .paragraph, .listItem, .callout, .divider, .image, .table, .linkCard:
             // 리스트 항목 본문은 문단과 같은 읽기 스케일(18). 비텍스트 블록은 이 렌더를 안 쓰지만
             // switch 완결을 위해 문단 기본을 준다.
             return UIFontMetrics(forTextStyle: .body).scaledFont(for: .systemFont(ofSize: 18))
@@ -46,7 +46,7 @@ enum BlockInlineRenderer {
         case .heading: return UIColor(Palette.ink)
         case .quote: return UIColor(Palette.secondary)
         case .code: return UIColor(Palette.codeText)
-        case .paragraph, .listItem, .divider, .image, .table, .linkCard: return UIColor(Palette.body)
+        case .paragraph, .listItem, .callout, .divider, .image, .table, .linkCard: return UIColor(Palette.body)
         }
     }
 
@@ -62,7 +62,7 @@ enum BlockInlineRenderer {
             ps.firstLineHeadIndent = 20
             ps.headIndent = 20
             ps.lineSpacing = 6
-        case .paragraph, .listItem:
+        case .paragraph, .listItem, .callout:
             ps.lineSpacing = 7
         case .heading:
             ps.lineSpacing = 2

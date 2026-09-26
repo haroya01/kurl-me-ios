@@ -78,6 +78,8 @@ enum DraftPreviewBlocks {
             emit(level == 1 ? "H1" : level == 2 ? "H2" : "H3", block.text)
         case .quote:
             emit("QUOTE", block.text)
+        case .callout(let kind):
+            emit("QUOTE", kind.marker + (block.text.isEmpty ? "" : "\n" + block.text))
         case .code(let language):
             var payload: [String: String] = ["code": block.text]
             if let language, !language.isEmpty { payload["lang"] = language }
