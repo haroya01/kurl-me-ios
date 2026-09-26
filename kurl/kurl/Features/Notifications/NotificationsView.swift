@@ -198,7 +198,7 @@ struct NotificationsView: View {
                 avatarBadge(n)
             }
             Group {
-                if let route = route(for: n) {
+                if let route = NotificationRoute.route(for: n) {
                     NavigationLink(value: route) {
                         content(n)
                     }
@@ -340,32 +340,6 @@ struct NotificationsView: View {
             return Text("회원님이 엮인 ‘\(name)’에 새 글이 이어졌어요")
         default: return actor
         }
-    }
-
-    /// 알림 대상 라우팅 — 연결 그래프는 컬렉션으로, 글이 있으면 글로, 팔로우는 작가로,
-    /// 시리즈 구독은 내 시리즈로. 라우팅 재료가 비어 있으면 nil — 404 화면으로 푸시하지 않는다.
-    private func route(for n: AppNotification) -> Route? {
-        // 연결 그래프(CONNECTED·PATH_GREW)는 글·작가보다 컬렉션이 목적지 — 엮인 맥락으로 데려간다.
-        if let collectionId = n.collectionId {
-            return .collection(id: collectionId)
-        }
-        if let slug = n.postSlug, let author = postAuthor(of: n) {
-            return .post(username: author, slug: slug)
-        }
-        if let slug = n.seriesSlug, let mine = AuthStore.shared.me?.username, !mine.isEmpty {
-            return .series(username: mine, slug: slug)
-        }
-        if let actor = n.actorUsername, !actor.isEmpty {
-            return .author(username: actor)
-        }
-        return nil
-    }
-
-    private func postAuthor(of n: AppNotification) -> String? {
-        if let author = n.postAuthorUsername, !author.isEmpty { return author }
-        if n.type == "NEW_POST" { return n.actorUsername.flatMap { $0.isEmpty ? nil : $0 } }
-        if let mine = AuthStore.shared.me?.username, !mine.isEmpty { return mine }
-        return nil
     }
 
     private func markRead(_ n: AppNotification) {

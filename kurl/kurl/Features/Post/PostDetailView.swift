@@ -1122,7 +1122,7 @@ private struct PostDetailReader: View {
                     // 처음부터 끝맺음이 보이는 짧은 글은 래치하지 않는다 — 끝맺음(댓글·레일·작가 카드)
                     // 까지 합치면 짧은 글도 scrollable 이라, 로드와 동시에 독이 물러나 영영 못 떴다
                     // (짧은 글 독·목차 실종). 한 번이라도 화면 밖이던 감지선이 들어올 때만 "끝"으로 본다.
-                    guard endSentinelWasHidden else { return }
+                    guard endSentinelWasHidden, scrollProgress.read > 0 else { return }
                     endVisible = true
                     if bodyEndProgress == nil { bodyEndProgress = scrollProgress.read }
                 } else {
