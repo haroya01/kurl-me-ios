@@ -1160,3 +1160,59 @@ final class InlineFormatInvariantGuardTests: XCTestCase {
         XCTAssertFalse(BlockView.isThematicBreak("---- 뒤에 글"))
     }
 }
+
+final class RealPostEditorRoundTripTests: XCTestCase {
+
+    private struct Post: Decodable { let slug: String; let markdown: String }
+
+    private static func corpus() throws -> [Post] {
+        let url = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .appendingPathComponent("Fixtures/post-corpus-markdown.json")
+        return try JSONDecoder().decode([Post].self, from: Data(contentsOf: url))
+    }
+
+    private static func visibleText(_ markdown: String) -> String {
+        markdown
+            .replacingOccurrences(of: #"(?m)^\s*\d+\.\s"#, with: "", options: .regularExpression)
+            .replacingOccurrences(of: #"[\p{P}\p{S}\s]"#, with: "", options: .regularExpression)
+    }
+
+    private static func shape(_ blocks: [EditorBlock]) -> [String] {
+        blocks.filter { !$0.isEmptyParagraph }.map { block in
+            let text = visibleText(block.text)
+            switch block.kind {
+            case .heading(let level): return "h\(level)|\(text)"
+            case .listItem(let ordered, let indent): return "li\(ordered ? "o" : "u")\(indent)|\(text)"
+            case .code(let language): return "code\(language ?? "")|\(text)"
+            case .image(let url, _): return "img|\(url)"
+            case .linkCard(let url): return "card|\(url)"
+            case .table(let table): return "table|\(visibleText(MarkdownSerializer.serializeTable(table)))"
+            default: return "\(block.kind)|\(text)"
+            }
+        }
+    }
+
+    func testRealPostsSurviveOpeningAndSavingInTheEditor() throws {
+        var failures: [String] = []
+        let corpus = try Self.corpus()
+        XCTAssertEqual(corpus.count, 55)
+        var checkedBlocks = 0
+        for post in corpus {
+            let opened = MarkdownBlockParser.parse(post.markdown)
+            checkedBlocks += opened.count
+            let saved = MarkdownSerializer.markdown(from: opened)
+            if Self.visibleText(saved) != Self.visibleText(post.markdown) {
+                failures.append("\(post.slug): text changed")
+            }
+            let reopened = MarkdownBlockParser.parse(saved)
+            if Self.shape(reopened) != Self.shape(opened) {
+                let a = Self.shape(opened), b = Self.shape(reopened)
+                let i = zip(a, b).enumerated().first { $0.element.0 != $0.element.1 }?.offset ?? min(a.count, b.count)
+                failures.append("\(post.slug): structure changed at \(i): \(i < a.count ? a[i].prefix(120) : "-") → \(i < b.count ? b[i].prefix(120) : "-")")
+            }
+        }
+        XCTAssertGreaterThan(checkedBlocks, 5_000)
+        XCTAssertTrue(failures.isEmpty, failures.joined(separator: "\n"))
+    }
+}
