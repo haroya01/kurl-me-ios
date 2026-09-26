@@ -323,10 +323,11 @@ struct ComposeView: View {
                 .textInputAutocapitalization(.never)
                 .keyboardType(.URL)
                 .autocorrectionDisabled()
-            Button("추가") { confirmV2Link() }
+            Button("링크로 추가") { confirmV2Link(asCard: false) }
+            Button("카드로 추가") { confirmV2Link(asCard: true) }
             Button("취소", role: .cancel) {}
         } message: {
-            Text("주소를 붙여넣으세요. YouTube·Vimeo 주소는 발행할 때 동영상으로 재생돼요.")
+            Text("카드로 추가하면 제목·사진이 담긴 미리보기로 보여요. YouTube·Vimeo 주소는 재생돼요.")
         }
         // 이미 넣은 이미지의 캡션 고치기 — 이미지 편집 바의 ‘캡션’ 버튼이 연다(막는 알럿 대신 종이 시트).
         .sheet(isPresented: $showEditImageCaption) {
@@ -469,6 +470,7 @@ struct ComposeView: View {
 
     private var meta: some View {
         TextField("제목", text: $title, axis: .vertical)
+            .accessibilityIdentifier("제목")
             .lineLimit(1...4)
             .typeScale(.masthead)
             .focused($focusedField, equals: .title)
@@ -2095,11 +2097,11 @@ struct ComposeView: View {
     /// 다이얼로그 확인 — 링크/임베드를 넣고 저장 계약을 즉시 맞춘다. 동영상 URL 은 단독 문단(임베드),
     /// 아니면 알럿 열기 전 잡아둔 포커스의 선택을 `[선택](url)` 로 감싼다. 포커스가 없거나(캔버스 미포커스)
     /// 비텍스트 블록이면 문단으로 삽입(폴백) — 링크가 조용히 사라지지 않게.
-    private func confirmV2Link() {
+    private func confirmV2Link(asCard: Bool) {
         let url = Self.normalizedURL(v2LinkURL)
         guard !url.isEmpty, let editorDocument else { return }
-        if WriteV2VideoDetect.isVideoURL(url) {
-            editorDocument.insertLink(url: url, label: v2LinkLabel)  // 임베드 문단
+        if asCard || WriteV2VideoDetect.isVideoURL(url) {
+            editorDocument.insertNonText(.linkCard(url))
         } else if let target = v2LinkTargetFocus,
                   editorDocument.linkSelection(at: target, url: url, label: v2LinkLabel) {
             // 잡아둔 선택을 감쌌다.

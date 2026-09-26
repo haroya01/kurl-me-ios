@@ -8508,6 +8508,34 @@
         }
       }
     },
+    "링크로 추가": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add as link"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लिंक के रूप में जोड़ें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンクで追加"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thêm dạng liên kết"
+          }
+        }
+      }
+    },
     "링크별 클릭": {
       "localizations": {
         "en": {
@@ -20803,6 +20831,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chạm chip để xem bài chủ đề đó, giữ để hủy theo dõi."
+          }
+        }
+      }
+    },
+    "카드로 추가": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add as card"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कार्ड के रूप में जोड़ें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カードで追加"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thêm dạng thẻ"
+          }
+        }
+      }
+    },
+    "카드로 추가하면 제목·사진이 담긴 미리보기로 보여요. YouTube·Vimeo 주소는 재생돼요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A card shows a preview with the title and image. YouTube · Vimeo links play."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कार्ड शीर्षक और तस्वीर के साथ पूर्वावलोकन दिखाता है। YouTube · Vimeo लिंक चलते हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カードで追加するとタイトル・画像付きのプレビューで表示されます。YouTube・Vimeoは再生されます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thẻ hiển thị bản xem trước có tiêu đề và hình ảnh. Liên kết YouTube · Vimeo sẽ phát được."
           }
         }
       }
