@@ -131,6 +131,16 @@ nonisolated struct EditorBlock: Identifiable, Equatable {
         }
     }
 
+    static let taskPrefixLength = 4
+
+    var taskChecked: Bool? {
+        guard case .listItem(false, _) = kind, text.count >= 3 else { return nil }
+        let head = text.prefix(4)
+        if head == "[ ] " || text == "[ ]" { return false }
+        if head == "[x] " || head == "[X] " || text == "[x]" || text == "[X]" { return true }
+        return nil
+    }
+
     /// 이 블록이 리스트 항목이면 (ordered, indent).
     var listInfo: (ordered: Bool, indent: Int)? {
         if case .listItem(let ordered, let indent) = kind { return (ordered, indent) }

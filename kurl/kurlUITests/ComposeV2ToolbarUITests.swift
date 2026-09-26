@@ -170,5 +170,28 @@ final class ComposeV2ToolbarUITests: XCTestCase {
         shot.lifetime = .keepAlways
         add(shot)
     }
+
+    func testListMenuMakesAChecklistWithTappableBoxes() throws {
+        let app = launchCompose()
+        let body = app.textViews.firstMatch
+        XCTAssertTrue(body.waitForExistence(timeout: 5))
+        body.tap()
+        app.typeText("Buy milk")
+        app.buttons["composeList"].tap()
+        let checklist = app.buttons["체크리스트"]
+        XCTAssertTrue(checklist.waitForExistence(timeout: 5), "목록 메뉴에 체크리스트가 있어야 함")
+        checklist.tap()
+        let box = app.buttons["editor-task-checkbox"]
+        XCTAssertTrue(box.waitForExistence(timeout: 5), "체크박스가 떠야 함")
+        XCTAssertEqual(box.label, "미완료")
+        app.typeText("\nCall mom")
+        XCTAssertEqual(app.buttons.matching(identifier: "editor-task-checkbox").count, 2, "엔터로 다음 체크 항목")
+        app.buttons.matching(identifier: "editor-task-checkbox").firstMatch.tap()
+        XCTAssertEqual(app.buttons.matching(identifier: "editor-task-checkbox").firstMatch.label, "완료")
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "compose-checklist"
+        shot.lifetime = .keepAlways
+        add(shot)
+    }
 }
 

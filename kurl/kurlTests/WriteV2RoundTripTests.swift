@@ -1276,3 +1276,58 @@ final class CalloutBlockTests: XCTestCase {
         XCTAssertEqual(doc.markdown, "メモです")
     }
 }
+
+final class ChecklistEditorTests: XCTestCase {
+
+    private static var retained: [EditorDocument] = []
+
+    @MainActor
+    private func document(_ markdown: String) -> EditorDocument {
+        let doc = EditorDocument(markdown: markdown)
+        Self.retained.append(doc)
+        return doc
+    }
+
+    @MainActor
+    func testChecklistRoundTripsAndReadsItsState() {
+        let doc = document("- [ ] 買い物\n- [x] 洗濯")
+        XCTAssertEqual(doc.blocks.map(\.taskChecked), [false, true])
+        XCTAssertEqual(doc.markdown, "- [ ] 買い物\n- [x] 洗濯")
+    }
+
+    @MainActor
+    func testEnterContinuesTheChecklistAndAnEmptyItemLeavesIt() {
+        let doc = document("- [x] 洗濯")
+        let first = doc.blocks[0]
+        let next = doc.splitBlock(first.id, at: first.text.count)
+        XCTAssertEqual(doc.markdown, "- [x] 洗濯\n- [ ] ")
+        XCTAssertEqual(next?.caret, EditorBlock.taskPrefixLength)
+        let empty = doc.blocks[1]
+        _ = doc.splitBlock(empty.id, at: empty.text.count)
+        XCTAssertEqual(doc.blocks[1].kind, .paragraph)
+        XCTAssertEqual(doc.blocks[1].text, "")
+    }
+
+    @MainActor
+    func testCheckboxTogglesAndMenuTurnsAParagraphIntoAChecklist() {
+        let doc = document("- [ ] 買い物")
+        doc.toggleTask(doc.blocks[0].id)
+        XCTAssertEqual(doc.markdown, "- [x] 買い物")
+        let para = document("メモ")
+        para.focus = EditorFocus(blockID: para.blocks[0].id, caret: 2)
+        para.toggleFocusedChecklist()
+        XCTAssertEqual(para.markdown, "- [ ] メモ")
+        XCTAssertEqual(para.focus?.caret, 6)
+        para.toggleFocusedChecklist()
+        XCTAssertEqual(para.markdown, "メモ")
+    }
+
+    func testTheEditorHidesThePrefixUnlessTheCaretIsInIt() {
+        let block = EditorBlock.listItem("[ ] 買い物", ordered: false)
+        let hidden = BlockInlineRenderer.render(block, activeRange: NSRange(location: 6, length: 0))
+        let font = hidden.attribute(.font, at: 0, effectiveRange: nil) as? UIFont
+        XCTAssertLessThan(font?.pointSize ?? 99, 1)
+        let revealed = BlockInlineRenderer.render(block, activeRange: NSRange(location: 1, length: 0))
+        XCTAssertGreaterThan((revealed.attribute(.font, at: 0, effectiveRange: nil) as? UIFont)?.pointSize ?? 0, 1)
+    }
+}

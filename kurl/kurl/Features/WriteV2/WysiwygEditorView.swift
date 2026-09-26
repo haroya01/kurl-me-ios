@@ -128,7 +128,20 @@ struct WysiwygEditorView: View {
     /// Enter can remove the quote/list decoration while the same responder keeps accepting keys.
     private func textRow(_ block: EditorBlock) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
-            if case .listItem(let ordered, _) = block.kind {
+            if let checked = block.taskChecked {
+                Button {
+                    document.toggleTask(block.id)
+                } label: {
+                    Image(systemName: checked ? "checkmark.square.fill" : "square")
+                        .font(.system(size: 18))
+                        .foregroundStyle(checked ? Palette.accentFill : Palette.secondary)
+                        .frame(minWidth: 18, alignment: .trailing)
+                }
+                .buttonStyle(.plain)
+                .sensoryFeedback(.selection, trigger: checked)
+                .accessibilityLabel(checked ? Text("완료") : Text("미완료"))
+                .accessibilityIdentifier("editor-task-checkbox")
+            } else if case .listItem(let ordered, _) = block.kind {
                 Text(marker(for: block, ordered: ordered))
                     .font(.system(size: 18))
                     .foregroundStyle(Palette.secondary)

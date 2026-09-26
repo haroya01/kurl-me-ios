@@ -238,6 +238,22 @@ final class EditorDocument {
         // 리스트 항목에서 엔터 — 빈 항목이면 리스트 탈출(내어쓰기 → indent 0 이면 문단),
         // 내용이 있으면 같은 종류·indent 의 새 항목으로.
         if case .listItem(let ordered, let indent) = block.kind {
+            if let checked = block.taskChecked, tail.isEmpty,
+               head == (checked ? "[x] " : "[ ] ") || head == (checked ? "[x]" : "[ ]") {
+                blocks[i].text = ""
+                if indent > 0 {
+                    blocks[i].kind = .listItem(ordered: ordered, indent: indent - 1)
+                } else {
+                    blocks[i].kind = .paragraph
+                }
+                let f = EditorFocus(blockID: blocks[i].id, caret: 0)
+                focus = f
+                return f
+            }
+            if block.taskChecked != nil, !tail.hasPrefix("[ ] "), !tail.hasPrefix("[x] ") {
+                tail = "[ ] " + tail
+                continuationCaret += EditorBlock.taskPrefixLength
+            }
             if head.isEmpty, tail.isEmpty {
                 // 빈 항목에서 엔터 = 리스트 종료. indent 가 있으면 한 단계 내어쓰기, 0 이면 문단으로.
                 if indent > 0 {
@@ -557,6 +573,29 @@ final class EditorDocument {
         let next: EditorBlockKind = Self.sameToggleKind(current, kind) ? .paragraph : kind
         blocks[i].kind = next
         focus = EditorFocus(blockID: f.blockID, caret: min(f.caret, blocks[i].text.count))
+    }
+
+    func toggleTask(_ id: UUID) {
+        guard let i = index(of: id), let checked = blocks[i].taskChecked else { return }
+        beginEdit(); defer { endEdit() }
+        let rest = blocks[i].text.dropFirst(min(EditorBlock.taskPrefixLength, blocks[i].text.count))
+        blocks[i].text = (checked ? "[ ] " : "[x] ") + rest
+    }
+
+    func toggleFocusedChecklist() {
+        beginEdit(); defer { endEdit() }
+        if focus == nil { focusTail() }
+        guard let f = focus, let i = index(of: f.blockID), !blocks[i].isNonText else { return }
+        if blocks[i].taskChecked != nil {
+            blocks[i].text = String(blocks[i].text.dropFirst(min(EditorBlock.taskPrefixLength, blocks[i].text.count)))
+            blocks[i].kind = .paragraph
+            focus = EditorFocus(blockID: f.blockID, caret: max(0, f.caret - EditorBlock.taskPrefixLength))
+        } else {
+            let indent = blocks[i].listInfo?.indent ?? 0
+            blocks[i].kind = .listItem(ordered: false, indent: indent)
+            blocks[i].text = "[ ] " + blocks[i].text
+            focus = EditorFocus(blockID: f.blockID, caret: f.caret + EditorBlock.taskPrefixLength)
+        }
     }
 
     /// 제목 버튼 하나가 크기를 순환한다 — 문단 → `#`(1) → `##`(2) → `###`(3) → 문단. 누를수록
