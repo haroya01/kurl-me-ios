@@ -38,7 +38,7 @@ jobs:
     runs-on: macos-15
     # 위 헤더 근거로 첫 도입은 비필수. 빨간불이어도 PR 을 막지 않는다.
     continue-on-error: true
-    timeout-minutes: 60
+    timeout-minutes: 45
 
     env:
       SCHEME: kurlUITests
@@ -46,6 +46,10 @@ jobs:
       # iPhone 17 Pro 는 macos-15 이미지에 존재. OS 는 러너 최신 iOS 런타임.
       DESTINATION: 'platform=iOS Simulator,name=iPhone 17 Pro'
       RESULT_BUNDLE: TestResults.xcresult
+      SMOKE: >-
+        -only-testing:kurlUITests/GraphNotificationsUITests
+        -only-testing:kurlUITests/PushTapRouteUITests
+        -only-testing:kurlUITests/EngagementDockUITests
 
     steps:
       - uses: actions/checkout@v4
@@ -102,10 +106,15 @@ jobs:
           # destination 이 첫 실행 시 부팅을 처리하지만, 미리 띄워 안정화한다.
           xcrun simctl boot 'iPhone 17 Pro' 2>/dev/null || true
           xcrun simctl bootstatus 'iPhone 17 Pro' -b || true
+          xcrun simctl spawn 'iPhone 17 Pro' defaults write -g AppleLanguages -array ko-KR
+          xcrun simctl spawn 'iPhone 17 Pro' defaults write -g AppleLocale ko_KR
+          xcrun simctl shutdown 'iPhone 17 Pro'
+          xcrun simctl boot 'iPhone 17 Pro'
+          xcrun simctl bootstatus 'iPhone 17 Pro' -b
 
       - name: Run kurlUITests
-        # -retry-tests-on-failure + -test-iterations 3: 실패한 테스트만 최대
-        # 3회까지 재시도해 flaky 잡음을 줄인다(전량 3회 반복이 아니라 실패분만).
+        # -retry-tests-on-failure + -test-iterations 2: 전체 스위트는 60분 안에 못 끝나 매번 취소됐다 — 알림·푸시·독 스모크만 돌리고, 실패한 테스트만 최대
+        # 2회까지 재시도한다.
         # continue-on-error(job) 이므로 실패해도 다음 스텝(아티팩트 업로드)은 돈다.
         # xcbeautify 는 macos 러너 기본 설치. 없으면 raw 로그로 폴백.
         run: |
@@ -117,8 +126,9 @@ jobs:
             -scheme "$SCHEME" \
             -destination "$DESTINATION" \
             -resultBundlePath "$RESULT_BUNDLE" \
+            $SMOKE \
             -retry-tests-on-failure \
-            -test-iterations 3 \
+            -test-iterations 2 \
             CODE_SIGNING_ALLOWED=NO \
             | $FORMAT || echo "::warning::xcodebuild test 실패 — 아래 아티팩트/요약에서 원인 확인(빌드 실패면 헤더의 27-SDK 이슈 참고)."
 
