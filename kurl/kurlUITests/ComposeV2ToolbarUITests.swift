@@ -50,6 +50,22 @@ final class ComposeV2ToolbarUITests: XCTestCase {
         add(shot)
     }
 
+    func testPastedLinesInTitleKeepFirstLineAndStartTheBody() throws {
+        UIPasteboard.general.string = "Pasted title\nPasted body"
+        let app = launchCompose()
+        let title = app.textFields["제목"]
+        title.tap()
+        title.press(forDuration: 1.2)
+        let pasteEN = app.menuItems["Paste"]
+        let pasteKO = app.menuItems["붙여넣기"]
+        XCTAssertTrue(pasteEN.waitForExistence(timeout: 5) || pasteKO.waitForExistence(timeout: 2))
+        (pasteEN.exists ? pasteEN : pasteKO).tap()
+        XCTAssertTrue(bodyContains(app, "Pasted body").waitForExistence(timeout: 5))
+        XCTAssertEqual(title.value as? String, "Pasted title")
+        app.typeText(" continues")
+        XCTAssertTrue(bodyContains(app, "Pasted body continues").waitForExistence(timeout: 5))
+    }
+
     func testUndoRedoCrossesParagraphBoundary() throws {
         let app = launchCompose()
         app.textFields["제목"].tap()

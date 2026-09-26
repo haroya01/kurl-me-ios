@@ -273,6 +273,37 @@ final class WriteV2HistoryTests: XCTestCase {
         XCTAssertFalse(doc.canUndo, "Focusing an existing block is not a document edit")
     }
 
+    func testTitleReturnSplitsCoalescedTypingAndCarriesTheRest() {
+        XCTAssertEqual(ComposeView.splitAtReturn(from: "Next targe", to: "Next target\n")?.title, "Next target")
+        XCTAssertEqual(ComposeView.splitAtReturn(from: "Next targe", to: "Next target\n")?.carried, "")
+        XCTAssertEqual(ComposeView.splitAtReturn(from: "제목", to: "제목\n본문")?.title, "제목")
+        XCTAssertEqual(ComposeView.splitAtReturn(from: "제목", to: "제목\n본문")?.carried, "본문")
+        XCTAssertEqual(ComposeView.splitAtReturn(from: "제목", to: "제\n목")?.title, "제목")
+        XCTAssertEqual(ComposeView.splitAtReturn(from: "", to: "첫 줄\n둘\n셋")?.carried, "둘\n셋")
+        XCTAssertNil(ComposeView.splitAtReturn(from: "제목", to: "제목입"))
+    }
+
+    func testCarriedTitleTextStartsTheBody() {
+        let empty = document()
+        empty.focusBody()
+        empty.insertCarriedText("본문 시작")
+        XCTAssertEqual(empty.markdown, "본문 시작")
+        XCTAssertEqual(empty.focus?.caret, "본문 시작".count)
+        XCTAssertTrue(empty.isEditing)
+
+        let written = document([.paragraph("이어서")])
+        written.focusBody()
+        written.insertCarriedText("앞 ")
+        XCTAssertEqual(written.markdown, "앞 이어서")
+        XCTAssertEqual(written.focus?.caret, 2)
+
+        let pasted = document()
+        pasted.focusBody()
+        pasted.insertCarriedText("둘\n\n셋")
+        XCTAssertEqual(pasted.markdown, "둘\n\n셋")
+        XCTAssertEqual(pasted.focus?.blockID, pasted.blocks.last?.id)
+    }
+
     func testNoOpDoesNotPolluteHistoryAndFormattingRestoresSelection() {
         let doc = document([.paragraph("Hello")])
         let id = doc.blocks[0].id

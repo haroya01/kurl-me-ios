@@ -123,6 +123,32 @@ final class EditorDocument {
         }
     }
 
+    func insertCarriedText(_ text: String) {
+        guard !text.isEmpty else { return }
+        beginEdit(); defer { endEdit() }
+        if focus.flatMap({ index(of: $0.blockID) }).map({ blocks[$0].isNonText }) ?? true {
+            if let first = blocks.first(where: { !$0.isNonText }) {
+                focus = EditorFocus(blockID: first.id, caret: 0)
+            } else {
+                focusTail()
+            }
+        }
+        guard let f = focus, let i = index(of: f.blockID) else { return }
+        if blocks[i].isEmptyParagraph {
+            let parsed = MarkdownBlockParser.parse(text)
+            blocks.replaceSubrange(i...i, with: parsed)
+            let last = parsed[parsed.count - 1]
+            focus = EditorFocus(blockID: last.id, caret: last.text.count)
+        } else {
+            let caret = clampIndex(f.caret, in: blocks[i].text)
+            let flat = text.replacingOccurrences(of: "\n", with: " ")
+            let cut = blocks[i].text.index(blocks[i].text.startIndex, offsetBy: caret)
+            blocks[i].text.insert(contentsOf: flat, at: cut)
+            focus = EditorFocus(blockID: f.blockID, caret: caret + flat.count)
+        }
+        isEditing = true
+    }
+
     func endEditing(_ blockID: UUID) {
         if focus?.blockID == blockID { isEditing = false; breakUndoCoalescing() }
     }
