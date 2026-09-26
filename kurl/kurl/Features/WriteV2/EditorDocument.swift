@@ -267,7 +267,7 @@ final class EditorDocument {
                 return .paragraph
             case .code:
                 return .paragraph  // 코드 분할은 뷰가 개행으로 흡수하므로 여기 안 옴(안전 기본).
-            case .divider, .image, .table, .listItem:
+            case .divider, .image, .table, .linkCard, .listItem:
                 return .paragraph  // 비텍스트/리스트는 위에서 처리(안전 기본).
             }
         }()

@@ -90,6 +90,8 @@ nonisolated enum MarkdownSerializer {
             return "\(fenceOpen)\n\(block.text)\n```"
         case .divider:
             return "---"
+        case .linkCard(let url):
+            return url
         case .listItem:
             // 단독 리스트 항목(그룹 밖 진입 시) — 그룹 직렬화와 같은 방언.
             return serializeList([block])
@@ -228,6 +230,13 @@ nonisolated enum MarkdownBlockParser {
                 continue
             }
 
+            if let url = standaloneLinkCard(trimmed) {
+                flushParagraph()
+                blocks.append(.linkCard(url))
+                i += 1
+                continue
+            }
+
             // 리스트 `- `/`* `/`N. `(선행 공백=중첩). 연속 항목을 각각 한 블록으로(그룹은 직렬화가 다시 묶는다).
             if let item = listItem(line) {
                 flushParagraph()
@@ -248,6 +257,19 @@ nonisolated enum MarkdownBlockParser {
     // MARK: 줄머리 판정 (방언 그대로)
 
     /// `# `/`## `/`### ` → (레벨, 뒤 내용). 해시 뒤 공백 필수(MarkdownSyntaxHighlighter L160).
+    static func standaloneLinkCard(_ trimmed: String) -> String? {
+        let url: String
+        if trimmed.hasPrefix("<"), trimmed.hasSuffix(">") {
+            url = String(trimmed.dropFirst().dropLast())
+        } else {
+            url = trimmed
+        }
+        guard url.range(of: #"^https?://\S+$"#, options: .regularExpression) != nil,
+              !url.contains(">"), !MarkdownInputTextView.isImageURL(url)
+        else { return nil }
+        return url
+    }
+
     static func heading(_ line: String) -> (Int, String)? {
         var count = 0
         for ch in line {

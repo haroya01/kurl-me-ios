@@ -654,11 +654,11 @@ final class WriteV2RoundTripTests: XCTestCase {
         XCTAssertEqual(json?["url"] as? String, "https://youtu.be/dQw4w9WgXcQ")
     }
 
-    func testDraftPreviewPlainLinkStaysParagraph() {
-        // 동영상 아닌 단독 URL 은 문단(임베드 아님).
+    func testDraftPreviewPlainLinkIsACardLikeThePublishedPost() {
         let blocks = DraftPreviewBlocks.from(markdown: "https://kurl.me/post/1")
         XCTAssertEqual(blocks.count, 1)
-        XCTAssertEqual(blocks[0].kind, .paragraph)
+        XCTAssertEqual(blocks[0].kind, .embed)
+        XCTAssertEqual(DraftPreviewBlocks.from(markdown: "자세한 건 https://kurl.me/post/1 참고")[0].kind, .paragraph)
     }
 
     func testDraftPreviewEmptyIsSingleEmptyParagraph() {
@@ -1122,5 +1122,41 @@ final class InlineFormatInvariantGuardTests: XCTestCase {
             let twice = MarkdownSerializer.markdown(from: MarkdownBlockParser.parse(once))
             XCTAssertEqual(twice, once, "\(marker): apply 후 왕복 고정점이 아님(md=\(md))")
         }
+    }
+
+    // MARK: 가져온 글 — 링크 카드·번호 목록·리더 규칙
+
+    func testStandaloneURLIsALinkCardAndRoundTrips() {
+        let md = "앞 문단.\n\nhttps://r2dbc.io/\n\n뒤 문단."
+        let kinds = MarkdownBlockParser.parse(md).map(\.kind)
+        XCTAssertEqual(kinds, [.paragraph, .linkCard(url: "https://r2dbc.io/"), .paragraph])
+        XCTAssertEqual(MarkdownSerializer.markdown(from: MarkdownBlockParser.parse(md)), md)
+        XCTAssertEqual(MarkdownBlockParser.parse("<https://x.com/a>").map(\.kind), [.linkCard(url: "https://x.com/a")])
+    }
+
+    func testURLInsideTextOrImageURLStaysAsIs() {
+        XCTAssertEqual(MarkdownBlockParser.parse("자세한 건 https://x.com 참고").map(\.kind), [.paragraph])
+        XCTAssertNotEqual(MarkdownBlockParser.parse("https://x.com/a.png").map(\.kind), [.linkCard(url: "https://x.com/a.png")])
+    }
+
+    func testOrderedNumberingContinuesAfterNestedItems() {
+        let blocks = MarkdownBlockParser.parse("1. 첫\n2. 둘\n   - 하위 하나\n   - 하위 둘\n3. 셋")
+        let last = blocks.count - 1
+        XCTAssertEqual(WysiwygEditorView.ordinal(at: last, indent: 0, in: blocks), 3)
+        XCTAssertEqual(WysiwygEditorView.ordinal(at: 1, indent: 0, in: blocks), 2)
+    }
+
+    func testReaderFoldsCalloutLabelWithItsBodyAndDrawsThematicBreak() throws {
+        let data = Data("""
+        [{"type":"QUOTE","content":"ℹ️ **Note**"},{"type":"PARAGRAPH","content":"**イベントループとは？**\\n本文"},
+         {"type":"QUOTE","content":"ただの引用"},{"type":"PARAGRAPH","content":"----"}]
+        """.utf8)
+        let b = try JSONDecoder().decode([PostBlock].self, from: data)
+        XCTAssertTrue(BlockView.isCalloutLabel(b[0], next: b[1]))
+        XCTAssertFalse(BlockView.isCalloutLabel(b[2], next: b[3]))
+        XCTAssertFalse(BlockView.isCalloutLabel(b[0], next: nil))
+        XCTAssertTrue(BlockView.isThematicBreak(b[3].content))
+        XCTAssertFalse(BlockView.isThematicBreak("--"))
+        XCTAssertFalse(BlockView.isThematicBreak("---- 뒤에 글"))
     }
 }

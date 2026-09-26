@@ -99,8 +99,13 @@ struct DraftPreviewView: View {
             VStack(alignment: .leading, spacing: 2) {
                 let leadIndex = blocks.firstIndex { $0.kind == .paragraph }
                 ForEach(Array(blocks.enumerated()), id: \.offset) { index, block in
-                    BlockView(block: block, isLead: index == leadIndex)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    let next = index + 1 < blocks.count ? blocks[index + 1] : nil
+                    if !(index > 0 && BlockView.isCalloutLabel(blocks[index - 1], next: block)) {
+                        BlockView(
+                            block: block, isLead: index == leadIndex,
+                            calloutBody: BlockView.isCalloutLabel(block, next: next) ? next : nil)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
             }
             .padding(.top, 20)

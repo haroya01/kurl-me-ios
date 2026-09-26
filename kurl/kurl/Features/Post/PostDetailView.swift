@@ -1080,8 +1080,19 @@ private struct PostDetailReader: View {
         LazyVStack(alignment: .leading, spacing: 2) {
             // 첫 문단은 lead — 독자를 글 안으로 들이는 한 호흡 큰 도입(에디토리얼 문법).
             let leadIndex = detail.blocks.firstIndex { $0.kind == .paragraph }
-            ForEach(Array(detail.blocks.enumerated()), id: \.offset) { index, block in
-                BlockView(block: block, isLead: index == leadIndex)
+            let blocks = detail.blocks
+            ForEach(Array(blocks.enumerated()), id: \.offset) { index, block in
+                let next = index + 1 < blocks.count ? blocks[index + 1] : nil
+                let folded = index > 0 && BlockView.isCalloutLabel(blocks[index - 1], next: block)
+                Group {
+                    if folded {
+                        Color.clear.frame(height: 0)
+                    } else {
+                        BlockView(
+                            block: block, isLead: index == leadIndex,
+                            calloutBody: BlockView.isCalloutLabel(block, next: next) ? next : nil)
+                    }
+                }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     // 딥링크 도착 시 잠깐 강조(그린 워시) — 그 문장이 "여기야" 신호.
                     .background(

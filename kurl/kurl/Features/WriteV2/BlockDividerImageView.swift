@@ -12,6 +12,35 @@ import SwiftUI
 
 /// 구분선 — 발행면 `Hairline().padding(.vertical, 8)` 의 에디터 대응. 선택되면 은은한 강조 +
 /// 삭제 버튼(비텍스트 블록이라 백스페이스로만 지우던 걸 명시적 어포던스로 — 이미지 삭제 문법 미러).
+struct BlockLinkCardView: View {
+    let url: String
+    let isFocused: Bool
+    let onFocused: () -> Void
+    let onDelete: () -> Void
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 6) {
+            if let block = DraftPreviewBlocks.embed(url) {
+                BlockView(block: block)
+                    .allowsHitTesting(false)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            if isFocused {
+                Button(role: .destructive, action: onDelete) {
+                    Label("삭제", systemImage: "trash").labelStyle(.iconOnly)
+                }
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(Palette.secondary)
+                .accessibilityLabel(Text("링크 카드 삭제"))
+            }
+        }
+        .contentShape(.rect)
+        .onTapGesture { onFocused() }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("editor-link-card")
+    }
+}
+
 struct BlockDividerView: View {
     let isFocused: Bool
     let onFocused: () -> Void
