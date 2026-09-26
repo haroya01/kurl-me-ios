@@ -1331,3 +1331,39 @@ final class ChecklistEditorTests: XCTestCase {
         XCTAssertGreaterThan((revealed.attribute(.font, at: 0, effectiveRange: nil) as? UIFont)?.pointSize ?? 0, 1)
     }
 }
+
+final class PhoneWritingTests: XCTestCase {
+
+    private static var retained: [EditorDocument] = []
+
+    @MainActor
+    private func document(_ text: String) -> EditorDocument {
+        let doc = EditorDocument(blocks: [.paragraph(text)])
+        Self.retained.append(doc)
+        return doc
+    }
+
+    @MainActor
+    func testBoldButtonAgainLeavesBoldInsteadOfNestingMarkers() {
+        let doc = document("")
+        let id = doc.blocks[0].id
+        doc.focus = EditorFocus(blockID: id, caret: 0)
+        doc.wrapFocusedSelection(with: "**")
+        XCTAssertEqual(doc.blocks[0].text, "****")
+        doc.updateText(id, "**銀閣寺**")
+        doc.focus = EditorFocus(blockID: id, caret: 5)
+        doc.wrapFocusedSelection(with: "**")
+        XCTAssertEqual(doc.blocks[0].text, "**銀閣寺**")
+        XCTAssertEqual(doc.focus?.caret, 7)
+    }
+
+    @MainActor
+    func testLinkWithoutSelectionOrTextShowsTheURLAndMovesPastIt() {
+        let doc = document("見て ")
+        let id = doc.blocks[0].id
+        XCTAssertTrue(doc.linkSelection(at: EditorFocus(blockID: id, caret: 3), url: "https://kurl.me/docs"))
+        XCTAssertEqual(doc.blocks[0].text, "見て [https://kurl.me/docs](https://kurl.me/docs)")
+        XCTAssertEqual(doc.focus?.caret, doc.blocks[0].text.count)
+        XCTAssertEqual(doc.focus?.selectionLength ?? 0, 0)
+    }
+}

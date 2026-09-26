@@ -647,6 +647,13 @@ final class EditorDocument {
         let inner = String(text[lo..<hi])
 
         let markerLen = marker.count
+        let insideSpan = BlockInlineRenderer.splitMarker(in: text, caret: loOff) == marker
+            || (loOff > 0 && text[lo...].hasPrefix(marker)
+                && BlockInlineRenderer.splitMarker(in: text, caret: loOff - 1) == marker)
+        if loOff == hiOff, insideSpan, let close = text[lo...].range(of: marker) {
+            focus = EditorFocus(blockID: f.blockID, caret: text.distance(from: text.startIndex, to: close.upperBound))
+            return
+        }
         // 토글 오프 — 이미 정확히 이 마커로 감싸진 선택이면 마커를 벗긴다.
         // 같은 문자의 더 긴 마커(`*` 로 `**` 을 오탐)를 막으려 경계 바로 안쪽이 같은 문자가 아닌지 확인한다.
         // ① 선택이 마커까지 포함(`[**굵게**]`) ② 선택 밖 양옆이 마커(`**[굵게]**`) 두 경우 모두.
@@ -719,12 +726,16 @@ final class EditorDocument {
         let lo = text.index(text.startIndex, offsetBy: min(start, end))
         let hi = text.index(text.startIndex, offsetBy: max(start, end))
         let selected = String(text[lo..<hi])
-        let labelText = selected.isEmpty ? label.trimmingCharacters(in: .whitespacesAndNewlines) : selected
+        let typedLabel = label.trimmingCharacters(in: .whitespacesAndNewlines)
+        let labelText = selected.isEmpty ? (typedLabel.isEmpty ? trimmedURL : typedLabel) : selected
         let replacement = "[\(labelText)](\(trimmedURL))"
         blocks[i].text = text.replacingCharacters(in: lo..<hi, with: replacement)
-        // 라벨을 선택 상태로 되돌린다(`[` 다음부터 labelText 길이). 라벨이 비면 그 자리에 캐럿.
-        let labelStart = min(start, end) + 1
-        focus = EditorFocus(blockID: target.blockID, caret: labelStart, selectionLength: labelText.count)
+        if selected.isEmpty {
+            focus = EditorFocus(blockID: target.blockID, caret: min(start, end) + replacement.count)
+        } else {
+            // 라벨을 선택 상태로 되돌린다(`[` 다음부터 labelText 길이).
+            focus = EditorFocus(blockID: target.blockID, caret: min(start, end) + 1, selectionLength: labelText.count)
+        }
         return true
     }
 
