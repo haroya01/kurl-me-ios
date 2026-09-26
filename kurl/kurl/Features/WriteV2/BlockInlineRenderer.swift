@@ -81,6 +81,10 @@ enum BlockInlineRenderer {
         let base = typingAttributes(for: block.kind)
         let result = NSMutableAttributedString(string: block.text, attributes: base)
         applyInline(result, base: block.kind, activeRange: activeRange)
+        if block.taskChecked != nil {
+            let length = min(EditorBlock.taskPrefixLength, (block.text as NSString).length)
+            marker(result, NSRange(location: 0, length: length), reveal: activeRange.map { $0.location < length } ?? false)
+        }
         return result
     }
 

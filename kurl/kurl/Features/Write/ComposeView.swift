@@ -364,9 +364,13 @@ struct ComposeView: View {
                     focusedKind: editorDocument.focus.flatMap { f in
                         editorDocument.blocks.first(where: { $0.id == f.blockID })?.kind
                     },
+                    focusedIsChecklist: editorDocument.focus.flatMap { f in
+                        editorDocument.blocks.first(where: { $0.id == f.blockID })?.taskChecked
+                    } != nil,
                     wrapInline: { marker in editorDocument.wrapFocusedSelection(with: marker); syncFromDocument() },
                     insertLink: { presentV2LinkSheet() },
                     toggleBlock: { kind in editorDocument.toggleFocusedBlockKind(kind); syncFromDocument() },
+                    toggleChecklist: { editorDocument.toggleFocusedChecklist(); syncFromDocument() },
                     cycleHeading: { editorDocument.cycleFocusedHeading(); syncFromDocument() },
                     insertDivider: { editorDocument.insertNonText(.divider); syncFromDocument() },
                     insertImage: { showV2ImagePicker = true },
@@ -3087,9 +3091,11 @@ private struct V2FormatToolbar: View {
     let undo: () -> Void
     let redo: () -> Void
     let focusedKind: EditorBlockKind?
+    let focusedIsChecklist: Bool
     let wrapInline: (String) -> Void
     let insertLink: () -> Void
     let toggleBlock: (EditorBlockKind) -> Void
+    let toggleChecklist: () -> Void
     let cycleHeading: () -> Void
     let insertDivider: () -> Void
     let insertImage: () -> Void
@@ -3142,6 +3148,7 @@ private struct V2FormatToolbar: View {
                         action("번호", "list.number", active: isList(ordered: true)) {
                             toggleBlock(.listItem(ordered: true, indent: 0))
                         }
+                        action("체크리스트", "checklist", active: isChecklistFocused, perform: toggleChecklist)
                         if isListFocused {
                             Divider()
                             action("들여쓰기", "increase.indent", perform: indentList)
@@ -3221,9 +3228,10 @@ private struct V2FormatToolbar: View {
     }
     private var isCode: Bool { if case .code = focusedKind { return true }; return false }
     private func isList(ordered: Bool) -> Bool {
-        if case .listItem(let current, _) = focusedKind { return current == ordered }
+        if case .listItem(let current, _) = focusedKind { return current == ordered && (ordered || !focusedIsChecklist) }
         return false
     }
+    private var isChecklistFocused: Bool { focusedIsChecklist }
     private var isListFocused: Bool { if case .listItem = focusedKind { return true }; return false }
     private var blockDescription: String {
         switch focusedKind {
