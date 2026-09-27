@@ -472,7 +472,7 @@ struct StudioView: View {
         .typeScale(.meta)
     }
 
-    /// 빈 상태 — 막다른 길 금지(AGENTS 폴리시). 인사 + 또렷한 시작 버튼.
+    /// 빈 상태 — 막다른 길 금지(DESIGN.md 폴리시). 인사 + 또렷한 시작 버튼.
     private var emptyState: some View {
         VStack(spacing: 16) {
             Image(systemName: "square.and.pencil")

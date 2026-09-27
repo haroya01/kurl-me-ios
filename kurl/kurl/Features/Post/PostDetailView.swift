@@ -1921,7 +1921,7 @@ private struct CommentThread: View {
     }
 }
 
-/// 키보드 위에 붙는 유리 댓글 바 — 입력은 떠 있는 크롬이므로 유리(AGENTS §1).
+/// 키보드 위에 붙는 유리 댓글 바 — 입력은 떠 있는 크롬이므로 유리(DESIGN.md §1).
 /// safeAreaInset(.bottom) 이 키보드를 따라가 위치는 시스템이 보장한다.
 /// 유리 위 주행동(보내기)은 솔리드 그린 원(§1.4 유리 중첩 금지).
 struct GlassCommentBar: View {

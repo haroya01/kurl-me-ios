@@ -233,7 +233,7 @@ struct ReadingColumn<Content: View>: View {
             .padding(.horizontal, Metrics.gutter)
         }
         .scrollIndicators(.hidden)
-        // 콘텐츠가 유리 크롬 밑으로 흐를 때의 가장자리 — soft 가 기본 정책(AGENTS.md §1).
+        // 콘텐츠가 유리 크롬 밑으로 흐를 때의 가장자리 — soft 가 기본 정책(DESIGN.md §1).
         .scrollEdgeEffectStyle(.soft, for: .top)
         .background(Palette.pageBg)
     }
