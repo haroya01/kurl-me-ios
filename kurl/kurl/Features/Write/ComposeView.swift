@@ -351,11 +351,11 @@ struct ComposeView: View {
             editor
         }
         .background(Palette.readingBg.ignoresSafeArea())
-        // 키보드 위에 뜨는 유리 마크다운 바 — 캔버스는 종이, 크롬은 유리(AGENTS.md §1).
+        // 키보드 위에 뜨는 유리 마크다운 바 — 캔버스는 종이, 크롬은 유리(DESIGN.md §1).
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if let editorDocument {
                 // WriteV2 서식 툴바 — 선택 서식(볼드·이탤릭·코드·링크)·블록 서식(제목·인용·코드·리스트)·
-                // 삽입(구분선·사진·표)을 한 유리 바로. 캔버스는 종이, 이 크롬만 유리(AGENTS §1).
+                // 삽입(구분선·사진·표)을 한 유리 바로. 캔버스는 종이, 이 크롬만 유리(DESIGN.md §1).
                 V2FormatToolbar(
                     canUndo: editorDocument.canUndo && focusedField != .title,
                     canRedo: editorDocument.canRedo && focusedField != .title,
@@ -3091,7 +3091,7 @@ private struct WysiwygComposeCanvas: View {
 }
 
 /// WriteV2 서식 툴바 — 선택 서식(볼드·이탤릭·코드·링크)·블록 서식(제목·인용·코드·리스트)·삽입
-/// (구분선·사진·표)을 한 유리 바로. 캔버스는 종이, 이 크롬만 유리(AGENTS §1). 아이콘은 SF Symbols
+/// (구분선·사진·표)을 한 유리 바로. 캔버스는 종이, 이 크롬만 유리(DESIGN.md §1). 아이콘은 SF Symbols
 /// 표준. 블록 서식은 현재 블록 종류면 켜진(초록) 상태로 보여 토글임을 알린다. 좁은 화면을 위해
 /// 가로 스크롤(그룹 구분선으로 세 묶음을 시각 분리). "링크" 하나로 동영상/링크 통합(신고 11 유지).
 private struct V2FormatToolbar: View {

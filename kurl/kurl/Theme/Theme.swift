@@ -245,7 +245,7 @@ enum Metrics {
     static let gutter: CGFloat = 20
 
     // 코너 반경 4단 — 같은 급의 면은 같은 반경(매직넘버 산포 방지).
-    /// 전폭 카드(피드·커버) — 하단 유리 띠와 동일값 강제(AGENTS §1.5).
+    /// 전폭 카드(피드·커버) — 하단 유리 띠와 동일값 강제(DESIGN.md §1.5).
     static let radiusCard: CGFloat = 20
     /// 미니 카드(레일·다음 편·힌트 캡슐류)
     static let radiusMini: CGFloat = 16
@@ -266,7 +266,7 @@ enum Metrics {
     static let tabBarReservedHeight: CGFloat = 66
 }
 
-/// Liquid Glass 토큰 — "종이 본문, 액체 크롬"(AGENTS.md §1).
+/// Liquid Glass 토큰 — "종이 본문, 액체 크롬"(DESIGN.md §1).
 /// 유리는 떠 있는 크롬에만 산다. 종이 세계 토큰은 위 Palette 그대로.
 enum GlassTokens {
     /// 흰 라벨을 받는 유리 틴트 = accent-700 — §10.3 600/700 규칙의 유리판.

@@ -9,7 +9,7 @@ import SwiftUI
 import UIKit
 
 /// 탭 전환의 단일 손잡이 — 빈 상태의 "발견에서 찾기" 같은 행동 문이 다른 화면에서
-/// 탭을 갈아탈 때 쓴다(빈 상태는 막다른 길이면 안 된다 — AGENTS 폴리시).
+/// 탭을 갈아탈 때 쓴다(빈 상태는 막다른 길이면 안 된다 — DESIGN.md 폴리시).
 @MainActor
 @Observable
 final class TabRouter {

@@ -29,7 +29,7 @@ best done with the simulator open, one surface at a time. Concrete targets:
   ([[feedback_brand_color_green]] = #059669). Audit decorative green: eyebrow dots (`accentMarker`),
   list bullet markers, tag chips, "오늘의 글" link-colour eyebrow, pinned-pin accent. Keep green on the
   one primary action per screen + chart data; neutralise the rest to ink/secondary.
-- **Glass discipline** — glass belongs on 1–2 floating chrome surfaces (nav/dock), per AGENTS §1.4
+- **Glass discipline** — glass belongs on 1–2 floating chrome surfaces (nav/dock), per DESIGN.md §1.4
   "no glass-on-glass". Audit `glassEffect` / `glassCapsule` usages for decorative panels that should
   be flat (hairline) cards.
 - **Density / whitespace** — the diagnosis flagged screens "욱여넣은" without breathing room (analytics
@@ -41,6 +41,6 @@ best done with the simulator open, one surface at a time. Concrete targets:
 One screen at a time, simulator open (`--mocks`, see [[reference_kurl_ios_sim_verify]]):
 screenshot → identify the one primary action (keep its green) → neutralise decorative green/glass →
 add whitespace → re-screenshot → compare. This is a visual-judgment pass, not a find-and-replace, so
-it should be its own focused session rather than a bulk diff. Honour AGENTS.md §10 "조용한 웹로그"
+it should be its own focused session rather than a bulk diff. Honour DESIGN.md §10 "조용한 웹로그"
 throughout; the user's taste is "living restraint" — rich motion within the quiet rules
 ([[user_polish_motion_taste]]), no decorative colour.

@@ -7,7 +7,7 @@ name: UITests
 #   1) UI 테스트는 느리고 간헐적(flaky)이다. 첫 도입부터 required 로 걸면
 #      멀쩡한 PR 이 인프라 흔들림으로 막힌다.
 #   2) 이 앱은 iOS 27 SDK 로 빌드하는 게 정식 툴체인이다
-#      (AGENTS.md §3, Xcode 27 베타). 그런데 GitHub-hosted 러너에는
+#      (DESIGN.md §3, Xcode 27 베타). 그런데 GitHub-hosted 러너에는
 #      Xcode 27 이 아직 없다(macos-15 이미지 최신 = Xcode 26.3 / iOS 26 SDK).
 #      앱 코드가 27-only API(GlassEffectTransition.materialize)를 #available 가드
 #      없이 쓰고 있어(EngagementDock.swift), iOS 26 SDK 로는 컴파일이 실패한다.

@@ -140,7 +140,7 @@ struct AnalyticsView: View {
 
     @ViewBuilder
     private func content(_ overview: AuthorAnalyticsOverview) -> some View {
-        // 0편이면 지표가 전부 0인 벽 — 막다른 길 대신 첫 글로 잇는다(AGENTS 빈 상태 폴리시).
+        // 0편이면 지표가 전부 0인 벽 — 막다른 길 대신 첫 글로 잇는다(DESIGN.md 빈 상태 폴리시).
         if overview.publishedPosts == 0 {
             FeedPlaceholder(
                 title: "발행하면 여기 쌓입니다",

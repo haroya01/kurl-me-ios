@@ -117,7 +117,7 @@ struct BlogCard: View {
                 .padding(14)
             }
             .overlay(alignment: .bottom) {
-                // 하단 타이포 띠 = 맑은 유리 — 카드 안 유리의 유일한 예외(AGENTS.md §1.5).
+                // 하단 타이포 띠 = 맑은 유리 — 카드 안 유리의 유일한 예외(DESIGN.md §1.5).
                 // 무거운 그라데이션 대신 사진이 띠 뒤로 비치고, 가독은 mediaScrim 틴트가 잡는다.
                 VStack(alignment: .leading, spacing: 8) {
                     Text(item.title.cleanedPreview)
