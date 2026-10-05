@@ -17,14 +17,19 @@ struct PostDetailView: View {
     private let initialSlug: String
     private let embedded: Bool
     private let focusQuote: String?
+    private let focusSpot: PostSpot?
     @State private var currentSlug: String
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(username: String, slug: String, embedded: Bool = false, focusQuote: String? = nil) {
+    init(
+        username: String, slug: String, embedded: Bool = false, focusQuote: String? = nil,
+        focusSpot: PostSpot? = nil
+    ) {
         self.initialUsername = username
         self.initialSlug = slug
         self.embedded = embedded
         self.focusQuote = focusQuote
+        self.focusSpot = focusSpot
         _currentSlug = State(initialValue: slug)
     }
 
@@ -34,6 +39,7 @@ struct PostDetailView: View {
             embedded: embedded,
             // 진입 회차에만 딥링크 강조를 적용한다 — 회차 전환 후엔 위에서부터 읽기.
             focusQuote: currentSlug == initialSlug ? focusQuote : nil,
+            focusSpot: currentSlug == initialSlug ? focusSpot : nil,
             goToEpisode: { slug in
                 // 크로스페이드로 교체를 감싼다 — 새 회차는 크롬/탭바가 초기화된 채 마운트되는데,
                 // 하드 컷이면 이전 회차에서 스크롤로 숨었던 크롬이 새로 튀어 "깜빡"인다. 나가는 편이
@@ -66,15 +72,17 @@ private struct PostDetailReader: View {
     private let embedded: Bool
     /// 발견 딥링크 — 이 구절이 든 블록으로 스크롤해 잠깐 강조한다(없으면 평소대로 위에서부터 읽기).
     private let focusQuote: String?
+    private let focusSpot: PostSpot?
     /// 시리즈 회차 전환 — 셸(PostDetailView)에 새 slug 를 올려 `.id` 교체를 트리거한다. 덱·비시리즈에선 nil.
     private let goToEpisode: ((String) -> Void)?
 
     init(
         username: String, slug: String, embedded: Bool = false, focusQuote: String? = nil,
-        goToEpisode: ((String) -> Void)? = nil
+        focusSpot: PostSpot? = nil, goToEpisode: ((String) -> Void)? = nil
     ) {
         self.embedded = embedded
         self.focusQuote = focusQuote
+        self.focusSpot = focusSpot
         self.goToEpisode = goToEpisode
         _model = State(initialValue: PostDetailViewModel(
             username: username, slug: slug, recordsView: !embedded))
@@ -134,6 +142,8 @@ private struct PostDetailReader: View {
     /// 발견 딥링크 도착 시 그 블록을 잠깐 강조했다 사라지는 플래시. didFocus = 1회만.
     @State private var flashBlockId: Int?
     @State private var didFocus = false
+    @State private var flashCommentId: Int64?
+    @State private var didFocusSpot = false
 
     /// 떠 있는 유리 독 — 글 끝(컴포저·다음 글 큐 영역)에 닿으면 materialize 로 물러나
     /// 입력을 가리지 않는다. 후퇴는 "스크롤 여유가 충분한 글"에만 — 한 화면 남짓 글은
@@ -515,6 +525,7 @@ private struct PostDetailReader: View {
         }
         // 발견 피드의 하이라이트 카드로 들어오면 — 그 구절이 든 블록으로 스크롤 + 잠깐 강조(1회).
         .task(id: loadedPostId) { await focusOnQuoteIfNeeded(proxy) }
+        .task(id: spotReadiness) { await focusOnSpotIfNeeded(proxy) }
         // 미로그인 사용자가 하이라이트를 시도하면 — 댓글·팔로우와 같은 공용 로그인 시트.
         .loginPrompt(
             isPresented: Binding(
@@ -865,6 +876,55 @@ private struct PostDetailReader: View {
         withAnimation(reduceMotion ? nil : .easeIn(duration: 0.7)) { flashBlockId = nil }
     }
 
+    private var spotReadiness: String {
+        "\(loadedPostId ?? -1)|\(model.commentsLoaded)|\(highlights?.loaded ?? false)"
+    }
+
+    static func commentAnchor(_ id: Int64) -> String { "comment-\(id)" }
+    static let commentsAnchor = "comments"
+
+    /// 댓글 행은 바깥 LazyVStack 의 한 항목(댓글 영역) 안이라 그려지기 전엔 행 id 로 scrollTo 가 닿지 않는다 —
+    /// 영역으로 먼저 내려간 뒤 행에 맞춘다. 지워졌거나 차단해 안 보이는 댓글은 영역에서, 사라진 하이라이트는 글 처음에 머문다.
+    private func focusOnSpotIfNeeded(_ proxy: ScrollViewProxy) async {
+        guard !didFocusSpot, let spot = focusSpot, case .loaded(let detail) = model.phase else { return }
+        switch spot {
+        case .comment(let id):
+            guard model.commentsLoaded else { return }
+            didFocusSpot = true
+            let visible = model.comments.contains {
+                $0.id == id && !BlockStore.shared.isBlocked($0.author.username)
+            }
+            try? await Task.sleep(for: .milliseconds(420))
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.55)) {
+                proxy.scrollTo(Self.commentsAnchor, anchor: .top)
+                endVisible = true
+            }
+            guard visible else { return }
+            try? await Task.sleep(for: .milliseconds(reduceMotion ? 50 : 600))
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.35)) {
+                proxy.scrollTo(Self.commentAnchor(id), anchor: UnitPoint(x: 0, y: 0.3))
+            }
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.35)) { flashCommentId = id }
+            try? await Task.sleep(for: .milliseconds(1300))
+            withAnimation(reduceMotion ? nil : .easeIn(duration: 0.7)) { flashCommentId = nil }
+        case .highlight(let id):
+            guard let store = highlights, store.loaded else { return }
+            didFocusSpot = true
+            guard let highlight = store.highlight(id: id) else { return }
+            if let order = highlight.blockOrder, detail.blocks.contains(where: { $0.id == order }) {
+                try? await Task.sleep(for: .milliseconds(420))
+                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.55)) {
+                    proxy.scrollTo(order, anchor: UnitPoint(x: 0, y: 0.18))
+                }
+                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.35)) { flashBlockId = order }
+                try? await Task.sleep(for: .milliseconds(700))
+            }
+            store.threadHighlightId = id
+            try? await Task.sleep(for: .milliseconds(600))
+            withAnimation(reduceMotion ? nil : .easeIn(duration: 0.7)) { flashBlockId = nil }
+        }
+    }
+
     /// 대화가 달린 하이라이트가 있는 글에서, 처음 한 번만 "탭하면 열려요" 코치(§10 조용히).
     /// `--force-coach`(목 전용) = 플래그 무시하고 매번 — UI 테스트 결정성 진입로.
     private func maybeShowHighlightCoach(_ store: PostHighlightStore) {
@@ -1149,6 +1209,7 @@ private struct PostDetailReader: View {
         }
         authorCard(detail.author)
         comments(authorId: detail.author.id)
+            .id(Self.commentsAnchor)
         // 끝에서 이어 당기기 큐 — 덱은 같은 작가 다음 글, 단독 시리즈는 다음 편. 손가락 따라 셰브론이
         // 돌고 제목이 떠오른다. 탭으로도 넘어간다(짧은 글은 러버밴드가 없어 당김이 성립 안 함).
         if embedded, let next = nextPost {
@@ -1518,7 +1579,8 @@ private struct PostDetailReader: View {
                                 && !BlockStore.shared.isBlocked($0.author.username)
                         },
                         replyTo: $replyTo,
-                        postAuthorId: authorId)
+                        postAuthorId: authorId,
+                        flashCommentId: flashCommentId)
                     if index < threads.count - 1 { Hairline() }
                 }
                 // 본문 끝의 조용한 프롬프트 — 탭하면 유리 바가 키보드와 함께 떠오른다.
@@ -1895,11 +1957,13 @@ private struct CommentThread: View {
     let replies: [Comment]
     @Binding var replyTo: Comment?
     var postAuthorId: Int64?
+    var flashCommentId: Int64?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            CommentRow(
-                model: model, comment: comment, replyTo: $replyTo, postAuthorId: postAuthorId)
+            spot(CommentRow(
+                model: model, comment: comment, replyTo: $replyTo, postAuthorId: postAuthorId),
+                comment.id)
             if !replies.isEmpty {
                 HStack(alignment: .top, spacing: 12) {
                     RoundedRectangle(cornerRadius: 1)
@@ -1907,9 +1971,10 @@ private struct CommentThread: View {
                         .frame(width: 2)
                     VStack(alignment: .leading, spacing: 18) {
                         ForEach(replies) { reply in
-                            CommentRow(
+                            spot(CommentRow(
                                 model: model, comment: reply, replyTo: $replyTo,
-                                postAuthorId: postAuthorId)
+                                postAuthorId: postAuthorId),
+                                reply.id)
                         }
                     }
                 }
@@ -1918,6 +1983,17 @@ private struct CommentThread: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func spot(_ row: CommentRow, _ id: Int64) -> some View {
+        row
+            .background {
+                RoundedRectangle(cornerRadius: Metrics.radiusThumb)
+                    .fill(flashCommentId == id ? Palette.highlightFlash : Color.clear)
+                    .padding(.horizontal, -8)
+                    .padding(.vertical, -6)
+            }
+            .id(PostDetailReader.commentAnchor(id))
     }
 }
 

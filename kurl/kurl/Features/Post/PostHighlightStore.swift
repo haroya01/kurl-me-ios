@@ -14,6 +14,7 @@ import UIKit
 final class PostHighlightStore {
     let postId: Int64
     private(set) var highlights: [HighlightView] = []
+    private(set) var loaded = false
     /// 남들 하이라이트가 많으면 본문이 어지럽다 — 켜면 칠하기를 멈춘다(내 형광펜 생성은 그대로).
     /// 뷰(@AppStorage)가 소유하는 설정을 밀어 넣는다 — 페인트만 접고 데이터는 유지한다.
     var paintHidden = false
@@ -73,6 +74,7 @@ final class PostHighlightStore {
         if let fresh = try? await listRequest(postId), version == mutationVersion {
             highlights = fresh.filter { !pendingDeletes.contains($0.id) } + highlights.filter { $0.id < 0 }
         }
+        loaded = true
     }
 
     func highlight(id: Int64) -> HighlightView? { highlights.first { $0.id == id } }

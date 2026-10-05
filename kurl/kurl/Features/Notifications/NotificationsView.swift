@@ -365,6 +365,7 @@ struct NotificationsView: View {
             id: n.id, type: n.type, actorUsername: n.actorUsername,
             actorAvatarUrl: n.actorAvatarUrl, postId: n.postId, postSlug: n.postSlug,
             postTitle: n.postTitle, postAuthorUsername: n.postAuthorUsername,
+            commentId: n.commentId, highlightId: n.highlightId,
             seriesId: n.seriesId, seriesSlug: n.seriesSlug, seriesTitle: n.seriesTitle,
             collectionId: n.collectionId, collectionName: n.collectionName,
             read: true, createdAt: n.createdAt)

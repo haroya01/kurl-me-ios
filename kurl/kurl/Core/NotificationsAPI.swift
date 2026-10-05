@@ -50,6 +50,8 @@ struct AppNotification: Decodable, Identifiable {
     let postSlug: String?
     let postTitle: String?
     let postAuthorUsername: String?
+    let commentId: Int64?
+    let highlightId: Int64?
     let seriesId: Int64?
     let seriesSlug: String?
     let seriesTitle: String?

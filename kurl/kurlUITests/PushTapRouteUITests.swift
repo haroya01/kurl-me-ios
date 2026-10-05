@@ -33,6 +33,23 @@ final class PushTapRouteUITests: XCTestCase {
         shoot("push-back-to-inbox")
     }
 
+    func testCommentPushLandsOnTheComment() throws {
+        let app = launch(push: #"{"type":"COMMENT","actorUsername":"yuki_dev","ownerUsername":"honggildong","postSlug":"p-mock-2","commentId":506}"#)
+        let target = app.staticTexts
+            .matching(NSPredicate(format: "label BEGINSWITH '어댑터를 바깥으로 미는 순서가'")).firstMatch
+        XCTAssertTrue(target.waitForExistence(timeout: 15), "댓글 푸시를 누르면 그 댓글이 있는 글이 열려야 함")
+        let screen = app.windows.firstMatch.frame
+        let deadline = Date().addingTimeInterval(6)
+        var onScreen = false
+        while Date() < deadline, !onScreen {
+            let frame = target.frame
+            onScreen = !frame.isEmpty && screen.contains(CGPoint(x: frame.midX, y: frame.midY))
+            if !onScreen { Thread.sleep(forTimeInterval: 0.25) }
+        }
+        XCTAssertTrue(onScreen, "댓글 푸시를 누르면 그 댓글 위치로 스크롤돼야 함")
+        shoot("push-comment-lands-on-comment")
+    }
+
     func testFollowPushOpensTheProfile() throws {
         let app = launch(push: #"{"type":"FOLLOW","actorUsername":"stranger99"}"#)
         XCTAssertTrue(app.buttons["팔로우"].firstMatch.waitForExistence(timeout: 15), "팔로우 푸시를 누르면 그 사람 프로필이 열려야 함")

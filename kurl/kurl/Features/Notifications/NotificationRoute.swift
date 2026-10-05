@@ -6,12 +6,20 @@ enum NotificationRoute {
         ownerUsername: String?,
         postSlug: String?,
         seriesSlug: String?,
-        collectionId: Int64?
+        collectionId: Int64?,
+        commentId: Int64? = nil,
+        highlightId: Int64? = nil
     ) -> Route? {
         if let collectionId {
             return .collection(id: collectionId)
         }
         if let slug = filled(postSlug), let owner = filled(ownerUsername) {
+            if let commentId {
+                return .postSpot(username: owner, slug: slug, spot: .comment(commentId))
+            }
+            if let highlightId {
+                return .postSpot(username: owner, slug: slug, spot: .highlight(highlightId))
+            }
             return .post(username: owner, slug: slug)
         }
         if let slug = filled(seriesSlug), let owner = filled(ownerUsername) {
@@ -37,7 +45,9 @@ enum NotificationRoute {
             ownerUsername: owner,
             postSlug: n.postSlug,
             seriesSlug: n.seriesSlug,
-            collectionId: n.collectionId)
+            collectionId: n.collectionId,
+            commentId: n.commentId,
+            highlightId: n.highlightId)
     }
 
     static func route(push userInfo: [AnyHashable: Any]) -> Route? {
@@ -46,7 +56,9 @@ enum NotificationRoute {
             ownerUsername: userInfo["ownerUsername"] as? String,
             postSlug: userInfo["postSlug"] as? String,
             seriesSlug: userInfo["seriesSlug"] as? String,
-            collectionId: (userInfo["collectionId"] as? NSNumber)?.int64Value)
+            collectionId: (userInfo["collectionId"] as? NSNumber)?.int64Value,
+            commentId: (userInfo["commentId"] as? NSNumber)?.int64Value,
+            highlightId: (userInfo["highlightId"] as? NSNumber)?.int64Value)
     }
 
     private static func filled(_ value: String?) -> String? {

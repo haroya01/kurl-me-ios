@@ -122,6 +122,23 @@ enum MockBackend {
              "createdAt": iso(Date().addingTimeInterval(-3_000))],
         ]
     ]
+    private static var commentRows: [[String: Any]] = [
+        commentRow(501, nil, "haruka", "경계를 먼저 긋는다는 말이 오래 남네요.", 86_400),
+        commentRow(502, 501, "honggildong", "그 한 줄 쓰려고 두 주를 돌아왔어요.", 80_000),
+        commentRow(503, nil, "minji", "포트 이름 짓는 법을 따로 글로 써 주세요.", 70_000),
+        commentRow(504, nil, "sori", "레이어드에서 넘어올 때 테스트는 어떻게 옮기셨나요?", 60_000),
+        commentRow(505, 504, "honggildong", "도메인부터 단위 테스트로 감싸고 어댑터는 나중에요.", 50_000),
+        commentRow(506, nil, "yuki_dev", "어댑터를 바깥으로 미는 순서가 제일 와닿았어요. 저희 팀도 다음 분기에 해 보려고요.", 3_600),
+        commentRow(507, 506, "reader_kim", "저희도 같은 고민이에요 — 순서를 정리한 표가 있으면 좋겠어요.", 1_800),
+    ]
+
+    private static func commentRow(
+        _ id: Int, _ parent: Int?, _ username: String, _ body: String, _ ago: Double
+    ) -> [String: Any] {
+        ["id": id, "parentId": parent.map { $0 as Any } ?? NSNull(),
+         "author": ["id": id, "username": username, "bio": NSNull(), "avatarUrl": NSNull()],
+         "body": body, "createdAt": iso(Date().addingTimeInterval(-ago)), "likeCount": 0]
+    }
     private static var nextHighlightId = 6100
     private static var nextHighlightReplyId = 7100
 
@@ -1165,6 +1182,11 @@ enum MockBackend {
             return json(["id": 1, "body": decode(body)["body"] as? String ?? ""])
         }
 
+        if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "posts",
+           parts[3] == "comments" {
+            return json(commentRows)
+        }
+
         // 공개 작가 글 목록 — 실서버 미목이라 작가 페이지 검증 불가했음.
         if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "profiles",
            parts[3] == "posts" {
@@ -1494,6 +1516,7 @@ enum MockBackend {
                      "read": false, "createdAt": iso(Date().addingTimeInterval(-600))],
                     ["id": 2, "type": "COMMENT", "actorUsername": "yuki_dev", "actorAvatarUrl": NSNull(),
                      "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글", "postAuthorUsername": NSNull(),
+                     "commentId": 506,
                      "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
                      "read": false, "createdAt": iso(Date().addingTimeInterval(-3600))],
                     ["id": 3, "type": "FOLLOW", "actorUsername": "stranger99", "actorAvatarUrl": NSNull(),
@@ -1506,10 +1529,12 @@ enum MockBackend {
                      "read": true, "createdAt": iso(Date().addingTimeInterval(-172_800))],
                     ["id": 5, "type": "REPLY", "actorUsername": "reader_kim", "actorAvatarUrl": NSNull(),
                      "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글", "postAuthorUsername": "honggildong",
+                     "commentId": 507,
                      "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
                      "read": true, "createdAt": iso(Date().addingTimeInterval(-259_200))],
                     ["id": 6, "type": "MENTION", "actorUsername": "yuki_dev", "actorAvatarUrl": NSNull(),
                      "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글", "postAuthorUsername": "honggildong",
+                     "highlightId": 6001,
                      "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
                      "read": true, "createdAt": iso(Date().addingTimeInterval(-345_600))],
                     ["id": 7, "type": "NEW_POST", "actorUsername": "honggildong", "actorAvatarUrl": NSNull(),
