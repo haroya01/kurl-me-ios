@@ -2114,6 +2114,34 @@
         }
       }
     },
+    "kurl 노트는 마스토돈·Misskey 같은 다른 서버의 팔로워에게도 전해져요. 노트를 지우면 그 서버들에도 지우라고 알리지만, 이미 퍼진 사본이 지워진다는 보장은 할 수 없어요. 설정에서 언제든 끌 수 있어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kurl notes are also delivered to your followers on other servers such as Mastodon and Misskey. If you delete a note we ask those servers to delete it too, but we can't guarantee that copies already shared are removed. You can turn this off in Settings at any time."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kurl नोट Mastodon और Misskey जैसे दूसरे सर्वरों पर आपके फ़ॉलोअर्स तक भी पहुँचते हैं। नोट हटाने पर हम उन सर्वरों से भी हटाने को कहते हैं, लेकिन पहले से फैल चुकी कॉपियाँ हटने की गारंटी नहीं दे सकते। आप इसे सेटिंग्स में कभी भी बंद कर सकते हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kurl のノートは Mastodon・Misskey などほかのサーバーのフォロワーにも届きます。ノートを削除するとそのサーバーにも削除を依頼しますが、すでに広まったコピーが消えることは保証できません。設定からいつでもオフにできます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ghi chú kurl cũng được gửi đến người theo dõi bạn trên các máy chủ khác như Mastodon và Misskey. Khi bạn xóa ghi chú, chúng tôi sẽ yêu cầu các máy chủ đó xóa theo, nhưng không thể đảm bảo các bản sao đã chia sẻ sẽ bị xóa. Bạn có thể tắt tính năng này trong Cài đặt bất cứ lúc nào."
+          }
+        }
+      }
+    },
     "kurl 링크로 단축했어요": {
       "localizations": {
         "en": {
@@ -3077,6 +3105,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đã bỏ ghim"
+          }
+        }
+      }
+    },
+    "고치기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "संपादित करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "編集"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sửa"
+          }
+        }
+      }
+    },
+    "고침": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "edited"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "संपादित"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "編集済み"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "đã sửa"
           }
         }
       }
@@ -5198,6 +5282,34 @@
         }
       }
     },
+    "내 노트": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "My notes"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मेरे नोट्स"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自分のノート"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ghi chú của tôi"
+          }
+        }
+      }
+    },
     "내 명함": {
       "extractionState": "stale",
       "localizations": {
@@ -5648,6 +5760,62 @@
         }
       }
     },
+    "노트 고치기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit note"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नोट संपादित करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートを編集"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sửa ghi chú"
+          }
+        }
+      }
+    },
+    "노트 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show notes"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नोट्स देखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートの表示"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xem ghi chú"
+          }
+        }
+      }
+    },
     "노트 삭제": {
       "localizations": {
         "en": {
@@ -5672,6 +5840,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Xóa ghi chú"
+          }
+        }
+      }
+    },
+    "노트 쓰기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write a note"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नोट लिखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートを書く"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viết ghi chú"
+          }
+        }
+      }
+    },
+    "노트 연합": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note federation"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नोट फ़ेडरेशन"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートの連合"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Liên kết ghi chú"
           }
         }
       }
@@ -5704,6 +5928,90 @@
         }
       }
     },
+    "노트는 다른 서버에도 전해져요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes reach other servers too"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नोट दूसरे सर्वरों तक भी पहुँचते हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートはほかのサーバーにも届きます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ghi chú cũng đến các máy chủ khác"
+          }
+        }
+      }
+    },
+    "노트로 인용": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quote in a note"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नोट में उद्धृत करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートで引用"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trích dẫn trong ghi chú"
+          }
+        }
+      }
+    },
+    "노트를 고치지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't edit the note"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नोट संपादित नहीं हो सका"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートを編集できませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không sửa được ghi chú"
+          }
+        }
+      }
+    },
     "노트를 삭제하지 못했습니다": {
       "localizations": {
         "en": {
@@ -5732,6 +6040,34 @@
         }
       }
     },
+    "노트를 올렸어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note posted"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नोट पोस्ट हो गया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートを投稿しました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã đăng ghi chú"
+          }
+        }
+      }
+    },
     "노트를 올리지 못했습니다": {
       "localizations": {
         "en": {
@@ -5756,6 +6092,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Không thể đăng ghi chú"
+          }
+        }
+      }
+    },
+    "노트를 올리지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't post the note"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नोट पोस्ट नहीं हो सका"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートを投稿できませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không đăng được ghi chú"
+          }
+        }
+      }
+    },
+    "노트에 좋아요 남기기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Like this note"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस नोट को पसंद करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートにいいねする"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thích ghi chú này"
           }
         }
       }
@@ -6036,6 +6428,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Thử từ khác, hoặc xem các bài để đọc trong Khám phá."
+          }
+        }
+      }
+    },
+    "다른 서버로 퍼진 사본에도 지우라는 요청을 보내요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We'll also ask other servers to delete their copies."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "हम दूसरे सर्वरों से भी उनकी कॉपी हटाने को कहेंगे।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほかのサーバーに広まったコピーにも削除を依頼します。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chúng tôi cũng sẽ yêu cầu các máy chủ khác xóa bản sao."
+          }
+        }
+      }
+    },
+    "다른 서버에 노트 공유": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share notes with other servers"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दूसरे सर्वरों के साथ नोट साझा करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほかのサーバーとノートを共有"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chia sẻ ghi chú với các máy chủ khác"
           }
         }
       }
@@ -6598,6 +7046,34 @@
         }
       }
     },
+    "답글 남기기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write a reply"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जवाब लिखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返信する"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viết trả lời"
+          }
+        }
+      }
+    },
     "답글 남기기…": {
       "localizations": {
         "en": {
@@ -6622,6 +7098,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Viết trả lời…"
+          }
+        }
+      }
+    },
+    "답글 달기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reply"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जवाब दें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返信"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trả lời"
           }
         }
       }
@@ -6706,6 +7210,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hủy trả lời"
+          }
+        }
+      }
+    },
+    "답글을 남겨 보세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write a reply"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जवाब लिखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返信を書く"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viết trả lời"
           }
         }
       }
@@ -8564,6 +9096,62 @@
         }
       }
     },
+    "마스토돈·Misskey에서 %@로 찾아 팔로우할 수 있어요. 끄면 팔로워 서버에 계정을 지우라고 알리고 팔로워 목록을 비워요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "People on Mastodon and Misskey can find and follow you as %@. Turning this off tells your followers' servers to delete your account and clears your followers."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mastodon और Misskey पर लोग आपको %@ से ढूँढकर फ़ॉलो कर सकते हैं। बंद करने पर आपके फ़ॉलोअर्स के सर्वरों को आपका खाता हटाने को कहा जाता है और फ़ॉलोअर्स सूची खाली हो जाती है।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mastodon・Misskey から %@ で見つけてフォローできます。オフにするとフォロワーのサーバーにアカウントの削除を伝え、フォロワーを空にします。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mọi người trên Mastodon và Misskey có thể tìm và theo dõi bạn qua %@. Khi tắt, máy chủ của người theo dõi sẽ được báo xóa tài khoản của bạn và danh sách người theo dõi bị xóa."
+          }
+        }
+      }
+    },
+    "마스토돈·Misskey에서 찾아 팔로우할 수 있어요. 끄면 팔로워 서버에 계정을 지우라고 알리고 팔로워 목록을 비워요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "People on Mastodon and Misskey can find and follow you. Turning this off tells your followers' servers to delete your account and clears your followers."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mastodon और Misskey पर लोग आपको ढूँढकर फ़ॉलो कर सकते हैं। बंद करने पर आपके फ़ॉलोअर्स के सर्वरों को आपका खाता हटाने को कहा जाता है और फ़ॉलोअर्स सूची खाली हो जाती है।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mastodon・Misskey から見つけてフォローできます。オフにするとフォロワーのサーバーにアカウントの削除を伝え、フォロワーを空にします。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mọi người trên Mastodon và Misskey có thể tìm và theo dõi bạn. Khi tắt, máy chủ của người theo dõi sẽ được báo xóa tài khoản của bạn và danh sách người theo dõi bị xóa."
+          }
+        }
+      }
+    },
     "마지막 열을 지웁니다": {
       "localizations": {
         "en": {
@@ -9071,6 +9659,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chỉnh sửa kiểm duyệt chỉ đổi tiêu đề và thẻ — nội dung và URL vẫn của tác giả."
+          }
+        }
+      }
+    },
+    "모두": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Everyone"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सभी"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "みんな"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mọi người"
           }
         }
       }
@@ -11261,6 +11877,90 @@
         }
       }
     },
+    "사진 빼기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove photo"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ोटो हटाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真を外す"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bỏ ảnh"
+          }
+        }
+      }
+    },
+    "사진 추가": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add photo"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ोटो जोड़ें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真を追加"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thêm ảnh"
+          }
+        }
+      }
+    },
+    "사진을 설명해 주세요. 화면 낭독기가 읽어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Describe the photo for screen readers"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "स्क्रीन रीडर के लिए फ़ोटो का वर्णन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真の説明を書いてください。スクリーンリーダーが読み上げます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mô tả ảnh cho trình đọc màn hình"
+          }
+        }
+      }
+    },
     "삭제": {
       "localizations": {
         "en": {
@@ -11509,6 +12209,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tạo đường mới"
+          }
+        }
+      }
+    },
+    "새 노트": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New note"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नया नोट"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しいノート"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ghi chú mới"
           }
         }
       }
@@ -11790,6 +12518,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cài đặt"
+          }
+        }
+      }
+    },
+    "설정을 바꾸지 못했습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't change the setting"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सेटिंग बदली नहीं जा सकी"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定を変更できませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thay đổi được cài đặt"
           }
         }
       }
@@ -13065,6 +13821,34 @@
         }
       }
     },
+    "아직 노트가 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No notes yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी कोई नोट नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだノートはありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có ghi chú"
+          }
+        }
+      }
+    },
     "아직 담긴 글이 없어요.": {
       "localizations": {
         "en": {
@@ -13595,6 +14379,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Người dùng không xác định"
+          }
+        }
+      }
+    },
+    "알겠어요, 올릴게요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Got it, post"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "समझ गया, पोस्ट करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "わかりました、投稿します"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã hiểu, đăng"
           }
         }
       }
@@ -14784,6 +15596,34 @@
         }
       }
     },
+    "올리기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Post"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पोस्ट करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "投稿"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng"
+          }
+        }
+      }
+    },
     "와이드": {
       "localizations": {
         "en": {
@@ -15340,6 +16180,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Xóa đường này?"
+          }
+        }
+      }
+    },
+    "이 노트를 지울까요?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete this note?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह नोट हटाएँ?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このノートを削除しますか？"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xóa ghi chú này?"
           }
         }
       }
@@ -16982,6 +17850,62 @@
         }
       }
     },
+    "인용 빼기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove quote"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "उद्धरण हटाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "引用を外す"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bỏ trích dẫn"
+          }
+        }
+      }
+    },
+    "인용한 글": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quoting"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "उद्धृत लेख"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "引用した記事"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bài viết được trích dẫn"
+          }
+        }
+      }
+    },
     "인증 앱 코드 사용": {
       "localizations": {
         "en": {
@@ -17178,6 +18102,34 @@
         }
       }
     },
+    "제목도 형식도 없이, 지금 떠오른 한 줄을 남기는 자리예요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No title, no format. Just the line on your mind right now."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "न शीर्षक, न ढाँचा। बस अभी मन में आई एक पंक्ति।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タイトルも形式もなく、いま浮かんだ一行を残す場所です。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không tiêu đề, không định dạng. Chỉ là dòng suy nghĩ lúc này."
+          }
+        }
+      }
+    },
     "주의": {
       "localizations": {
         "en": {
@@ -17230,6 +18182,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Quan trọng"
+          }
+        }
+      }
+    },
+    "지금 떠오른 생각을 짧게 남겨 보세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jot down what's on your mind"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जो मन में है उसे छोटा-सा लिखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "いま考えていることを短く残してみましょう"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ghi lại điều bạn đang nghĩ"
           }
         }
       }

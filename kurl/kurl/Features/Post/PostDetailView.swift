@@ -118,6 +118,7 @@ private struct PostDetailReader: View {
     @State private var showAdminUnpublishConfirm = false
     @State private var showAdminDeleteConfirm = false
     @State private var showAdminEdit = false
+    @State private var quotingInNote: QuotedPost?
     @State private var adminEditTitle = ""
     @State private var adminEditTags = ""
     /// 손가락이 실제로 당기는 중일 때만 true — 플릭 관성의 바운스가 임계를 넘어도
@@ -423,6 +424,11 @@ private struct PostDetailReader: View {
             Text("작가의 글과 댓글·좋아요·하이라이트가 모두 지워져요. 되돌릴 수 없어요.")
         }
         .sheet(isPresented: $showAdminEdit) { adminEditSheet }
+        .sheet(item: $quotingInNote) { quote in
+            NoteComposeSheet(mode: .new(quote: quote, inReplyToId: nil)) { _ in
+                ToastCenter.shared.show(String(localized: "노트를 올렸어요"))
+            }
+        }
         // 단독 상세는 시스템 내비바를 상시 접고 커스텀 상단 바(readerTopBar)가 크롬을 그린다.
         // 시스템 바를 스크롤로 토글하면 세이프에어리어 변화 → 스크롤 메트릭 이동 → 파생값
         // 반전이 한 레이아웃 커밋에 맞물려 UIKit 내비바 슬라이드가 무한 재시작됐고(워치독
@@ -645,6 +651,7 @@ private struct PostDetailReader: View {
     private var moreMenuItems: some View {
         if isOwnPost {
             shareMenuItem
+            quoteInNoteItem
             highlightHowToItem
             highlightToggleItem
             Button { showOwnAnalytics = true } label: {
@@ -667,6 +674,7 @@ private struct PostDetailReader: View {
             // 남의 글이면 — 공유 + 차단·신고(작가 프로필과 같은 문법). 차단을 여기 두어
             // 거슬리는 글을 만난 자리에서 바로 처리하게 한다.
             shareMenuItem
+            quoteInNoteItem
             highlightHowToItem
             highlightToggleItem
             Section {
@@ -727,6 +735,19 @@ private struct PostDetailReader: View {
                 preview: SharePreview(loadedTitle, icon: Image("LaunchMark"))
             ) {
                 Label("공유", systemImage: "square.and.arrow.up")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var quoteInNoteItem: some View {
+        if AuthStore.shared.isSignedIn, case .loaded(let detail) = model.phase {
+            Button {
+                quotingInNote = QuotedPost(
+                    id: detail.post.id, title: detail.post.title, slug: detail.post.slug,
+                    authorUsername: detail.author.username)
+            } label: {
+                Label("노트로 인용", systemImage: "quote.bubble")
             }
         }
     }

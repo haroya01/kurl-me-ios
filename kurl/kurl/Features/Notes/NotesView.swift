@@ -4,37 +4,41 @@
 //
 
 import Observation
+import PhotosUI
 import SwiftUI
 
-/// 짧은 글 피드 — 제목 없는 생각의 줄. 글(post)의 격식 없이 한 단락을 흘리는 자리라
-/// 카드가 아니라 가벼운 대화 행(헤어라인 구분). 작성은 하단 유리 바(로그인 시),
-/// 좋아요는 낙관 토글.
+enum NotesFeedKind: String, CaseIterable, Identifiable {
+    case everyone, following, mine
+
+    var id: String { rawValue }
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .everyone: "모두"
+        case .following: "팔로잉"
+        case .mine: "내 노트"
+        }
+    }
+}
+
 @MainActor
 @Observable
 final class NotesViewModel {
     private(set) var items: [Note] = []
     private(set) var phase: LoadState<Bool> = .idle
-    private(set) var likedIds: Set<Int64> = []
     private(set) var isLoadingMore = false
+    var kind: NotesFeedKind = .everyone
 
-    /// 낙관 카운트 보정 — 서버 응답이 오기 전의 표시값.
-    private var countOverride: [Int64: Int64] = [:]
-    private var toggleGen: [Int64: Int] = [:]
     private var page = 0
     private var hasNext = true
     private var epoch = 0
 
-    func displayLikeCount(_ note: Note) -> Int64 {
-        countOverride[note.id] ?? note.likeCount
-    }
-
-    func isLiked(_ note: Note) -> Bool {
-        likedIds.contains(note.id)
-    }
-
-    func loadInitial() async {
-        guard case .idle = phase else { return }
-        await reload()
+    private func load(_ page: Int) async throws -> NoteFeed {
+        switch kind {
+        case .everyone: try await NoteAPI.everyone(page: page)
+        case .following: try await NoteAPI.following(page: page)
+        case .mine: try await NoteAPI.byAuthor(AuthStore.shared.me?.username ?? "", page: page)
+        }
     }
 
     func reload() async {
@@ -42,25 +46,28 @@ final class NotesViewModel {
         let myEpoch = epoch
         if items.isEmpty { phase = .loading }
         do {
-            let view = try await NoteAPI.feed(page: 0)
+            let feed = try await load(0)
             guard myEpoch == epoch else { return }
             page = 0
-            items = view.items
-            hasNext = view.hasNext
-            countOverride = [:]
-            // 첫 페이지는 합집합이 아니라 교체 — 새로고침으로 사라진 노트의 좋아요가 남지 않게.
-            likedIds = []
+            items = feed.items
+            hasNext = feed.hasNext
             phase = .loaded(true)
-            await hydrateLikes(for: view.items)
         } catch {
+            guard myEpoch == epoch else { return }
             if items.isEmpty {
-                phase = .failed(
-                    (error as? APIError)?.localizedDescription ?? error.localizedDescription)
+                phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
             } else {
-                // 이미 글이 떠 있으면 화면을 비우지 않는다 — 무음 실패 대신 토스트로 알린다.
                 ToastCenter.shared.show(String(localized: "새로고침하지 못했습니다"))
             }
         }
+    }
+
+    func switchTo(_ next: NotesFeedKind) async {
+        guard next != kind else { return }
+        kind = next
+        items = []
+        phase = .loading
+        await reload()
     }
 
     func loadMoreIfNeeded(current note: Note) async {
@@ -68,157 +75,122 @@ final class NotesViewModel {
         isLoadingMore = true
         defer { isLoadingMore = false }
         let myEpoch = epoch
-        if let view = try? await NoteAPI.feed(page: page + 1) {
+        if let feed = try? await load(page + 1) {
             guard myEpoch == epoch else { return }
             page += 1
-            hasNext = view.hasNext
+            hasNext = feed.hasNext
             let seen = Set(items.map(\.id))
-            items.append(contentsOf: view.items.filter { !seen.contains($0.id) })
-            await hydrateLikes(for: view.items)
+            items.append(contentsOf: feed.items.filter { !seen.contains($0.id) })
         }
     }
 
-    private func hydrateLikes(for notes: [Note]) async {
-        guard AuthStore.shared.isSignedIn else { return }
-        if let ids = try? await NoteAPI.likedIds(notes.map(\.id)) {
-            likedIds.formUnion(ids)
-        }
-    }
-
-    func toggleLike(_ note: Note) async {
-        let gen = (toggleGen[note.id] ?? 0) + 1
-        toggleGen[note.id] = gen
-        let target = !isLiked(note)
-        if target { likedIds.insert(note.id) } else { likedIds.remove(note.id) }
-        countOverride[note.id] = displayLikeCount(note) + (target ? 1 : -1)
-        do {
-            let status = try await NoteAPI.setLike(id: note.id, on: target)
-            guard toggleGen[note.id] == gen else { return }
-            countOverride[note.id] = status.likeCount
-            if status.liked { likedIds.insert(note.id) } else { likedIds.remove(note.id) }
-        } catch {
-            guard toggleGen[note.id] == gen else { return }
-            if target { likedIds.remove(note.id) } else { likedIds.insert(note.id) }
-            countOverride[note.id] = displayLikeCount(note) + (target ? -1 : 1)
-            ToastCenter.shared.show(String(localized: "좋아요를 반영하지 못했습니다"))
-        }
-    }
-
-    func publish(body: String) async throws {
-        let created = try await NoteAPI.create(body: body)
+    func inserted(_ note: Note) {
         withAnimation(.snappy(duration: 0.3)) {
-            // .loading/.failed 면 list 가 안 떠 삽입한 노트가 안 보이고 성공 햅틱만 거짓으로 울린다 —
-            // 삽입 전에 .loaded 로 올려 방금 쓴 글이 곧장 보이게.
             phase = .loaded(true)
-            items.insert(created, at: 0)
+            items.insert(note, at: 0)
         }
     }
 
-    func delete(_ note: Note) async {
-        do {
-            try await NoteAPI.delete(id: note.id)
-            _ = withAnimation(.snappy(duration: 0.25)) {
-                items.removeAll { $0.id == note.id }
-            }
-        } catch {
-            ToastCenter.shared.show(String(localized: "노트를 삭제하지 못했습니다"))
-        }
+    func replaced(_ note: Note) {
+        if let index = items.firstIndex(where: { $0.id == note.id }) { items[index] = note }
+    }
+
+    func removed(_ id: Int64) {
+        _ = withAnimation(.snappy(duration: 0.25)) { items.removeAll { $0.id == id } }
     }
 }
 
+/// 노트 — 블로그 글과 분리한 짧은 글. 서재에서 들어오는 푸시 화면이라 하단바를 접고,
+/// 작성은 툴바의 작성 버튼이 여는 시트에서 한다(사진·대체 텍스트·인용이 한 줄 바에 안 들어간다).
 struct NotesPage: View {
     let active: Bool
     @State private var model = NotesViewModel()
-    @State private var connectNote: Note?
+    @State private var composing = false
     @State private var showLoginSheet = false
-    /// 빈 상태 CTA → 하단 컴포저 포커스. 값이 바뀔 때마다 컴포저가 필드를 연다.
-    @State private var focusComposer = 0
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        Group {
-            switch model.phase {
-            case .idle, .loading:
-                KurlLoadingMark()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            case .failed(let message):
-                ErrorState(message: message, retry: { Task { await model.reload() } })
-            case .loaded:
-                list
+        VStack(spacing: 0) {
+            Picker("노트 보기", selection: Binding(
+                get: { model.kind },
+                set: { next in Task { await model.switchTo(next) } }
+            )) {
+                ForEach(NotesFeedKind.allCases) { kind in
+                    if kind == .everyone || AuthStore.shared.isSignedIn {
+                        Text(kind.title).tag(kind)
+                    }
+                }
             }
-        }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            // 컴포저는 list 가 떴을 때만 — 로딩 마크·실패 화면 위에 떠서 안 보이는 곳에 글을 쓰지 않게.
-            if active, AuthStore.shared.isSignedIn, case .loaded = model.phase {
-                NoteComposerBar(focusSignal: focusComposer) { body in
-                    try await model.publish(body: body)
+            .pickerStyle(.segmented)
+            .padding(.horizontal, Metrics.gutter)
+            .padding(.vertical, 10)
+            .accessibilityIdentifier("notes.feedPicker")
+
+            Group {
+                switch model.phase {
+                case .idle, .loading:
+                    KurlLoadingMark().frame(maxWidth: .infinity, maxHeight: .infinity)
+                case .failed(let message):
+                    ErrorState(message: message, retry: { Task { await model.reload() } })
+                case .loaded:
+                    list
                 }
             }
         }
         .navigationTitle("노트")
         .navigationBarTitleDisplayMode(.inline)
-        // 서재에서 푸시로 들어오는 표면이라 iOS 관습대로 하단바를 접는다 — 그러지 않으면 하단
-        // 유리 컴포저 바가 떠 있는 탭바에 가려 화면에 안 그려지고(포커스도 안 잡혀) 첫 노트를
-        // 못 쓴다. 접으면 컴포저가 진짜 하단(safeAreaInset)에 앉아 탭·키보드가 정상 동작한다.
         .hidesTabBar()
-        .sheet(item: $connectNote) { n in
-            ConnectSheet(
-                targetKind: "노트", targetTitle: n.body, blockType: .note, refId: n.id)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    if AuthStore.shared.isSignedIn { composing = true } else { showLoginSheet = true }
+                } label: {
+                    Image(systemName: "square.and.pencil")
+                }
+                .accessibilityLabel("노트 쓰기")
+                .accessibilityIdentifier("notes.compose")
+            }
+        }
+        .sheet(isPresented: $composing) {
+            NoteComposeSheet(mode: .new(quote: nil, inReplyToId: nil)) { note in
+                model.inserted(note)
+            }
         }
         .loginPrompt(isPresented: $showLoginSheet, message: "첫 노트 남기기")
-        .task { await model.loadInitial() }
+        .task {
+            if case .idle = model.phase { await model.reload() }
+        }
     }
 
     private var list: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(model.items.enumerated()), id: \.element.id) { index, note in
-                    NoteRowView(model: model, note: note)
-                        .contextMenu {
-                            if AuthStore.shared.isSignedIn {
-                                Button {
-                                    connectNote = note
-                                } label: {
-                                    Label("컬렉션에 연결", systemImage: "rectangle.stack.badge.plus")
-                                }
-                            }
-                        }
-                        .modifier(QuietAppear(index: index))
-                        .transition(
-                            reduceMotion
-                                ? .opacity : .opacity.combined(with: .move(edge: .top)))
-                        .task { await model.loadMoreIfNeeded(current: note) }
+                    NoteRowView(
+                        note: note,
+                        onChange: { model.replaced($0) },
+                        onDelete: { model.removed($0) }
+                    )
+                    .modifier(QuietAppear(index: index))
+                    .task { await model.loadMoreIfNeeded(current: note) }
                     if index < model.items.count - 1 { Hairline() }
                 }
                 if model.isLoadingMore {
-                    KurlLoadingMark()
-                        .frame(maxWidth: .infinity).padding(.vertical, 14)
+                    KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
                 }
                 if model.items.isEmpty {
-                    // 막다른 길 금지 — 빈 노트 피드는 곧장 첫 글로 이어준다. 로그인 상태면 하단
-                    // 컴포저를 열고, 아니면 로그인 시트로(FeedPlaceholder 와 같은 언어).
-                    if AuthStore.shared.isSignedIn {
-                        FeedPlaceholder(
-                            title: "첫 생각을 남겨보세요",
-                            message: "제목도 형식도 없이, 지금 떠오른 한 줄을 흘려 두는 자리예요.",
-                            actionTitle: "첫 노트 쓰기",
-                            prominent: true,
-                            action: { focusComposer += 1 }
-                        )
-                        .padding(.top, 72)
-                    } else {
-                        FeedPlaceholder(
-                            title: "첫 생각을 남겨보세요",
-                            message: "로그인하면 제목도 형식도 없이 지금 떠오른 한 줄을 여기에 흘려 둘 수 있어요.",
-                            actionTitle: "로그인",
-                            prominent: true,
-                            action: { showLoginSheet = true }
-                        )
-                        .padding(.top, 72)
-                    }
+                    FeedPlaceholder(
+                        title: "아직 노트가 없어요",
+                        message: "제목도 형식도 없이, 지금 떠오른 한 줄을 남기는 자리예요.",
+                        actionTitle: "첫 노트 쓰기",
+                        prominent: true,
+                        action: {
+                            if AuthStore.shared.isSignedIn { composing = true } else { showLoginSheet = true }
+                        }
+                    )
+                    .padding(.top, 72)
                 }
             }
-            .padding(.vertical, 14)
+            .padding(.vertical, 6)
             .frame(maxWidth: Metrics.readingColumn)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, Metrics.gutter)
@@ -229,19 +201,36 @@ struct NotesPage: View {
     }
 }
 
-private struct NoteRowView: View {
-    let model: NotesViewModel
+/// 노트 한 행 — 대화 행 문법(헤어라인 구분). 내 노트는 길게 눌러 고치기·지우기.
+struct NoteRowView: View {
     let note: Note
+    var emphasized = false
+    let onChange: (Note) -> Void
+    let onDelete: (Int64) -> Void
+
+    @State private var liked: Bool
+    @State private var likeCount: Int64?
     @State private var likeTaps = 0
+    @State private var editing = false
+    @State private var confirmDelete = false
+    @State private var connecting = false
+    @State private var showLoginSheet = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var isMine: Bool {
-        AuthStore.shared.me?.id == note.author.id
+    init(note: Note, emphasized: Bool = false, onChange: @escaping (Note) -> Void,
+         onDelete: @escaping (Int64) -> Void) {
+        self.note = note
+        self.emphasized = emphasized
+        self.onChange = onChange
+        self.onDelete = onDelete
+        _liked = State(initialValue: note.likedByMe == true)
+        _likeCount = State(initialValue: note.likeCount)
     }
+
+    private var isMine: Bool { AuthStore.shared.me?.id == note.author.id }
 
     var body: some View {
         HStack(alignment: .top, spacing: 11) {
-            // 클로저형 링크 — 계정 스택 혼용 함정 회피(값 기반은 이 깊이서 항해 안 함).
             NavigationLink {
                 RouteView(route: .author(username: note.author.username))
             } label: {
@@ -249,157 +238,622 @@ private struct NoteRowView: View {
             }
             .buttonStyle(.plain)
             .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 5) {
-                VStack(alignment: .leading, spacing: 5) {
-                    HStack(spacing: 6) {
-                        // 아바타(위 클로저형 링크)와 같은 엔티티 — 이름도 같은 항해를 받아야
-                        // 한 행의 상호작용이 일관된다. 같은 이유로 클로저형(값형 혼용 함정 회피).
-                        NavigationLink {
-                            RouteView(route: .author(username: note.author.username))
-                        } label: {
-                            Text(note.author.username)
-                                .typeScale(.meta)
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    Text(note.author.username)
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.ink)
+                    if let date = note.createdAt {
+                        Text(date.relativeShort)
+                            .typeScale(.meta)
+                            .foregroundStyle(Palette.secondary)
+                    }
+                    if note.editedAt != nil {
+                        Text("고침")
+                            .typeScale(.footnote)
+                            .foregroundStyle(Palette.faint)
+                    }
+                    Spacer(minLength: 0)
+                }
+                if !note.body.isEmpty {
+                    Text(NoteText.attributed(note.body))
+                        .typeScale(emphasized ? .lede : .body)
+                        .foregroundStyle(Palette.body)
+                        .tint(Palette.link)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
+                }
+                NoteImagesView(media: note.media)
+                if let post = note.quotedPost {
+                    NavigationLink {
+                        RouteView(route: .post(username: post.authorUsername, slug: post.slug))
+                    } label: {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(post.title)
+                                .typeScale(.titleSmall)
                                 .foregroundStyle(Palette.ink)
-                                .expandTapTarget()
-                        }
-                        .buttonStyle(.plain)
-                        if let date = note.createdAt {
-                            Text(date.relativeShort)
+                                .multilineTextAlignment(.leading)
+                            Text("@\(post.authorUsername)")
                                 .typeScale(.meta)
                                 .foregroundStyle(Palette.secondary)
                         }
-                        Spacer(minLength: 0)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Metrics.radiusControl)
+                                .stroke(Palette.hairlineStrong, lineWidth: 1))
                     }
-                    Text(note.body)
-                        .typeScale(.body)
-                        .foregroundStyle(Palette.body)
-                        .fixedSize(horizontal: false, vertical: true)
+                    .buttonStyle(.plain)
+                    .padding(.top, 2)
                 }
-                // 이름·시각·본문이 한 번에 읽히게 — 행이 5조각으로 흩어지지 않는다.
-                .accessibilityElement(children: .combine)
-                Button {
-                    likeTaps += 1
-                    Task { await model.toggleLike(note) }
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: model.isLiked(note) ? "heart.fill" : "heart")
-                            .font(.system(size: 13))
-                            .symbolEffect(
-                                .bounce, value: reduceMotion ? false : model.isLiked(note))
-                    }
-                    // 카운트는 메타 사다리로 — raw 12pt 산발 종식(Dynamic Type 도 따라온다). 하트는 자체 size 유지.
-                    .typeScale(.meta)
-                    // 종이 위 비텍스트 마커라 accent(600) — link(700)는 텍스트/인라인 CTA 자리.
-                    .foregroundStyle(model.isLiked(note) ? Palette.accent : Palette.secondary)
-                    .expandTapTarget()
-                }
-                .buttonStyle(.plain)
-                .padding(.top, 2)
-                .sensoryFeedback(.impact(weight: .light), trigger: likeTaps)
-                // 상태는 라벨 뒤집기가 아니라 값·트레잇으로 — 카운트도 들리게.
-                .accessibilityLabel(Text("좋아요"))
-                .accessibilityValue(Text("\(model.displayLikeCount(note))"))
-                .accessibilityAddTraits(model.isLiked(note) ? [.isSelected] : [])
+                footer
             }
         }
         .padding(.vertical, 13)
         .contentShape(Rectangle())
         .contextMenu {
             if isMine {
-                Button(role: .destructive) {
-                    Task { await model.delete(note) }
-                } label: {
+                Button { editing = true } label: { Label("고치기", systemImage: "pencil") }
+                Button(role: .destructive) { confirmDelete = true } label: {
                     Label("노트 삭제", systemImage: "trash")
                 }
+            }
+            if AuthStore.shared.isSignedIn {
+                Button { connecting = true } label: {
+                    Label("컬렉션에 연결", systemImage: "rectangle.stack.badge.plus")
+                }
+            }
+        }
+        .sheet(isPresented: $editing) {
+            NoteComposeSheet(mode: .edit(note)) { onChange($0) }
+        }
+        .sheet(isPresented: $connecting) {
+            ConnectSheet(targetKind: "노트", targetTitle: note.body, blockType: .note, refId: note.id)
+        }
+        .alert("이 노트를 지울까요?", isPresented: $confirmDelete) {
+            Button("지우기", role: .destructive) { Task { await delete() } }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("다른 서버로 퍼진 사본에도 지우라는 요청을 보내요.")
+        }
+        .loginPrompt(isPresented: $showLoginSheet, message: "노트에 좋아요 남기기")
+        .onChange(of: note) { _, next in
+            liked = next.likedByMe == true
+            likeCount = next.likeCount
+        }
+    }
+
+    private var footer: some View {
+        HStack(spacing: 22) {
+            NavigationLink {
+                NoteDetailView(noteId: note.id)
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "bubble.left").font(.system(size: 13))
+                    if note.replyCount > 0 { Text("\(note.replyCount)").monospacedDigit() }
+                }
+                .typeScale(.meta)
+                .foregroundStyle(Palette.secondary)
+                .expandTapTarget()
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("답글 \(note.replyCount)"))
+            .accessibilityIdentifier("note.replies.\(note.id)")
+
+            Button {
+                likeTaps += 1
+                Task { await toggleLike() }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: liked ? "heart.fill" : "heart")
+                        .font(.system(size: 13))
+                        .symbolEffect(.bounce, value: reduceMotion ? false : liked)
+                    if isMine, let likeCount, likeCount > 0 {
+                        Text("\(likeCount)").monospacedDigit()
+                    }
+                }
+                .typeScale(.meta)
+                .foregroundStyle(liked ? Palette.accent : Palette.secondary)
+                .expandTapTarget()
+            }
+            .buttonStyle(.plain)
+            .sensoryFeedback(.impact(weight: .light), trigger: likeTaps)
+            .accessibilityLabel(Text("좋아요"))
+            .accessibilityAddTraits(liked ? [.isSelected] : [])
+        }
+        .padding(.top, 2)
+    }
+
+    private func toggleLike() async {
+        guard AuthStore.shared.isSignedIn else {
+            showLoginSheet = true
+            return
+        }
+        let target = !liked
+        let previous = likeCount
+        liked = target
+        if let count = likeCount { likeCount = count + (target ? 1 : -1) }
+        do {
+            let status = try await NoteAPI.setLike(id: note.id, on: target)
+            if isMine { likeCount = status.likeCount }
+        } catch {
+            liked = !target
+            likeCount = previous
+            ToastCenter.shared.show(String(localized: "좋아요를 반영하지 못했습니다"))
+        }
+    }
+
+    private func delete() async {
+        do {
+            try await NoteAPI.delete(id: note.id)
+            onDelete(note.id)
+        } catch {
+            ToastCenter.shared.show(String(localized: "노트를 삭제하지 못했습니다"))
+        }
+    }
+}
+
+/// 사진 1장은 전폭, 2~4장은 2열 정사각 격자. 대체 텍스트가 곧 접근성 라벨이다.
+private struct NoteImagesView: View {
+    let media: [NoteMedia]
+
+    var body: some View {
+        if !media.isEmpty {
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: media.count > 1 ? 2 : 1),
+                spacing: 6
+            ) {
+                ForEach(media, id: \.url) { image in
+                    RemoteImage(url: URL(string: image.url), maxPixel: media.count > 1 ? 320 : 640) { phase in
+                        if case .success(let loaded) = phase {
+                            loaded.resizable().scaledToFill()
+                        } else {
+                            Palette.hairline
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: media.count > 1 ? 150 : 240)
+                    .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
+                    .accessibilityElement()
+                    .accessibilityAddTraits(.isImage)
+                    .accessibilityLabel(Text(image.altText ?? String(localized: "사진")))
+                }
+            }
+            .padding(.top, 4)
+        }
+    }
+}
+
+/// 본문 안의 http(s) 주소만 링크로 — 웹·서버와 같은 규칙(끝 문장부호는 링크에서 뺀다).
+enum NoteText {
+    private static let urlPattern = try? NSRegularExpression(pattern: "https?://[^\\s<]+")
+    private static let trailing = CharacterSet(charactersIn: ".,!?:;)]'\"")
+
+    static func attributed(_ body: String) -> AttributedString {
+        var result = AttributedString()
+        let ns = body as NSString
+        var last = 0
+        for match in urlPattern?.matches(in: body, range: NSRange(location: 0, length: ns.length)) ?? [] {
+            var link = ns.substring(with: match.range)
+            while let scalar = link.unicodeScalars.last, trailing.contains(scalar) {
+                link.removeLast()
+            }
+            if match.range.location > last {
+                result += AttributedString(ns.substring(with: NSRange(location: last, length: match.range.location - last)))
+            }
+            var part = AttributedString(link)
+            part.link = URL(string: link)
+            result += part
+            last = match.range.location + (link as NSString).length
+        }
+        if last < ns.length { result += AttributedString(ns.substring(from: last)) }
+        return result
+    }
+
+    static func length(_ text: String) -> Int {
+        text.trimmingCharacters(in: .whitespacesAndNewlines).unicodeScalars.count
+    }
+}
+
+/// 노트 상세 — 원글(답글이면) · 노트 · 답글. 답글은 툴바 버튼이 여는 작성 시트로.
+struct NoteDetailView: View {
+    let noteId: Int64
+    @State private var thread: NoteThread?
+    @State private var failed: String?
+    @State private var replying = false
+    @State private var deleted = false
+    @State private var showLoginSheet = false
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        Group {
+            if let thread {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        if let parent = thread.parent {
+                            NoteRowView(note: parent, onChange: { _ in }, onDelete: { _ in })
+                                .opacity(0.75)
+                            Hairline()
+                        }
+                        NoteRowView(
+                            note: thread.note, emphasized: true,
+                            onChange: { note in self.thread = NoteThread(note: note, parent: thread.parent, replies: thread.replies) },
+                            onDelete: { _ in dismiss() })
+                        Hairline()
+                        RailHeading("답글")
+                            .padding(.top, 20)
+                            .padding(.bottom, 4)
+                        if thread.replies.isEmpty {
+                            Text("아직 답글이 없어요")
+                                .typeScale(.body)
+                                .foregroundStyle(Palette.secondary)
+                                .padding(.vertical, 14)
+                        }
+                        ForEach(Array(thread.replies.enumerated()), id: \.element.id) { index, reply in
+                            NoteRowView(
+                                note: reply,
+                                onChange: { next in update { $0.replies = $0.replies.map { $0.id == next.id ? next : $0 } } },
+                                onDelete: { id in update { $0.replies.removeAll { $0.id == id } } })
+                            if index < thread.replies.count - 1 { Hairline() }
+                        }
+                    }
+                    .padding(.vertical, 6)
+                    .frame(maxWidth: Metrics.readingColumn)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, Metrics.gutter)
+                }
+                .brandRefreshable { await load() }
+            } else if let failed {
+                ErrorState(message: failed, retry: { Task { await load() } })
+            } else {
+                KurlLoadingMark().frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .navigationTitle("노트")
+        .navigationBarTitleDisplayMode(.inline)
+        .hidesTabBar()
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    if AuthStore.shared.isSignedIn { replying = true } else { showLoginSheet = true }
+                } label: {
+                    Image(systemName: "arrowshape.turn.up.left")
+                }
+                .accessibilityLabel("답글 달기")
+                .accessibilityIdentifier("note.reply")
+                .disabled(thread == nil)
+            }
+        }
+        .sheet(isPresented: $replying) {
+            NoteComposeSheet(mode: .new(quote: nil, inReplyToId: noteId)) { reply in
+                update {
+                    $0.replies.append(reply)
+                }
+            }
+        }
+        .loginPrompt(isPresented: $showLoginSheet, message: "답글 남기기")
+        .task { if thread == nil { await load() } }
+    }
+
+    private struct MutableThread {
+        var note: Note
+        var parent: Note?
+        var replies: [Note]
+    }
+
+    private func update(_ change: (inout MutableThread) -> Void) {
+        guard let thread else { return }
+        var mutable = MutableThread(note: thread.note, parent: thread.parent, replies: thread.replies)
+        change(&mutable)
+        self.thread = NoteThread(note: mutable.note, parent: mutable.parent, replies: mutable.replies)
+    }
+
+    private func load() async {
+        do {
+            thread = try await NoteAPI.thread(id: noteId)
+            failed = nil
+        } catch {
+            if thread == nil {
+                failed = (error as? APIError)?.localizedDescription ?? error.localizedDescription
             }
         }
     }
 }
 
-/// 노트 작성 — 키보드 위 유리 바(댓글 바와 같은 문법). 500자 제한, 보내면 맨 위에 꽂힌다.
-private struct NoteComposerBar: View {
-    /// 빈 상태 CTA 가 이 값을 올리면 필드에 포커스를 준다(초기 0 은 무시).
-    var focusSignal: Int = 0
-    let publish: (String) async throws -> Void
+/// 노트 작성·고치기 시트. 새 노트는 사진(최대 4장, 장마다 대체 텍스트)과 블로그 글 인용을 받는다.
+/// 처음 올릴 때 한 번, 다른 서버로 퍼진 사본은 지운다는 보장을 못 한다는 안내를 확인받는다.
+struct NoteComposeSheet: View {
+    enum Mode {
+        case new(quote: QuotedPost?, inReplyToId: Int64?)
+        case edit(Note)
+    }
 
-    @State private var body_ = ""
-    @State private var sending = false
-    @State private var sentCount = 0
+    private struct PickedImage: Identifiable {
+        let id = UUID()
+        let image: UIImage
+        var altText = ""
+    }
+
+    let mode: Mode
+    let onDone: (Note) -> Void
+
+    @State private var text: String
+    @State private var quote: QuotedPost?
+    @State private var picked: [PickedImage] = []
+    @State private var pickerItems: [PhotosPickerItem] = []
+    @State private var posting = false
+    @State private var showNotice = false
+    @State private var errorMessage: String?
     @FocusState private var focused: Bool
-    /// 글자수 카운트다운 — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
-    @ScaledMetric(relativeTo: .caption) private var countdownSize: CGFloat = 11
+    @Environment(\.dismiss) private var dismiss
 
-    private var trimmed: String {
-        body_.trimmingCharacters(in: .whitespacesAndNewlines)
+    init(mode: Mode, onDone: @escaping (Note) -> Void) {
+        self.mode = mode
+        self.onDone = onDone
+        switch mode {
+        case let .new(quote, _):
+            _text = State(initialValue: "")
+            _quote = State(initialValue: quote)
+        case let .edit(note):
+            _text = State(initialValue: note.body)
+            _quote = State(initialValue: nil)
+        }
+    }
+
+    private var isEdit: Bool { if case .edit = mode { true } else { false } }
+    private var inReplyToId: Int64? { if case let .new(_, id) = mode { id } else { nil } }
+    private var length: Int { NoteText.length(text) }
+    private var placeholder: LocalizedStringKey {
+        inReplyToId == nil ? "지금 떠오른 생각을 짧게 남겨 보세요" : "답글을 남겨 보세요"
+    }
+    private var title: LocalizedStringKey {
+        isEdit ? "노트 고치기" : (inReplyToId == nil ? "새 노트" : "답글")
+    }
+    private var hasImages: Bool {
+        if case let .edit(note) = mode { return !note.media.isEmpty }
+        return !picked.isEmpty
+    }
+    private var canPost: Bool {
+        !posting && length <= NoteAPI.maxLength && (length > 0 || hasImages)
     }
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 10) {
-            TextField("지금 떠오른 생각은…", text: $body_, axis: .vertical)
-                .typeScale(.body)
-                .lineLimit(1...4)
-                .focused($focused)
-            if body_.count > 400 {
-                Text("\(500 - body_.count)")
-                    .font(.system(size: countdownSize).monospacedDigit())
-                    // 유리 위 = 시맨틱 vibrancy(§1.2). 초과는 색이 아니라 무게로 알린다(그린 외 단독 색 금지).
-                    .foregroundStyle(body_.count > 500 ? .primary : .secondary)
-                    .fontWeight(body_.count > 500 ? .semibold : .regular)
-            }
-            Button {
-                send()
-            } label: {
-                Group {
-                    if sending {
-                        ProgressView()
-                            .tint(.white)
-                            .frame(width: 34, height: 34)
-                            .background(GlassTokens.prominentTint, in: Circle())
-                    } else {
-                        Image(systemName: "arrow.up")
-                            .font(.system(size: 15, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 34, height: 34)
-                            .background(
-                                canSend ? GlassTokens.prominentTint : Color.secondary.opacity(0.45),
-                                in: Circle())
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    TextField(placeholder, text: $text, axis: .vertical)
+                    .typeScale(.body)
+                    .lineLimit(4...12)
+                    .focused($focused)
+                    .accessibilityIdentifier("noteCompose.text")
+
+                    if !picked.isEmpty {
+                        ForEach($picked) { $item in
+                            HStack(alignment: .top, spacing: 10) {
+                                Image(uiImage: item.image)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 64, height: 64)
+                                    .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
+                                    .accessibilityHidden(true)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    TextField("대체 텍스트", text: $item.altText, axis: .vertical)
+                                        .typeScale(.meta)
+                                        .lineLimit(1...3)
+                                    Text("사진을 설명해 주세요. 화면 낭독기가 읽어요")
+                                        .typeScale(.footnote)
+                                        .foregroundStyle(Palette.faint)
+                                }
+                                Button {
+                                    picked.removeAll { $0.id == item.id }
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundStyle(Palette.faint)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("사진 빼기")
+                            }
+                        }
+                    }
+
+                    if let quote {
+                        HStack(alignment: .top) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("인용한 글")
+                                    .typeScale(.footnote)
+                                    .foregroundStyle(Palette.secondary)
+                                Text(quote.title)
+                                    .typeScale(.titleSmall)
+                                    .foregroundStyle(Palette.ink)
+                            }
+                            Spacer()
+                            Button {
+                                self.quote = nil
+                            } label: {
+                                Image(systemName: "xmark.circle.fill").foregroundStyle(Palette.faint)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("인용 빼기")
+                        }
+                        .padding(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: Metrics.radiusControl)
+                                .stroke(Palette.hairlineStrong, lineWidth: 1))
+                    }
+
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .typeScale(.meta)
+                            .foregroundStyle(Palette.ink)
+                            .fontWeight(.semibold)
                     }
                 }
-                .expandTapTarget()
+                .padding(Metrics.gutter)
             }
-            .buttonStyle(.plain)
-            .disabled(!canSend || sending)
-            .accessibilityLabel("노트 올리기")
+            .safeAreaInset(edge: .bottom) {
+                HStack {
+                    if !isEdit {
+                        PhotosPicker(
+                            selection: $pickerItems,
+                            maxSelectionCount: max(0, NoteAPI.maxImages - picked.count),
+                            matching: .images
+                        ) {
+                            Image(systemName: "photo.badge.plus")
+                                .font(.system(size: 18))
+                                .foregroundStyle(picked.count >= NoteAPI.maxImages ? Palette.faint : Palette.ink)
+                        }
+                        .disabled(picked.count >= NoteAPI.maxImages)
+                        .accessibilityLabel("사진 추가")
+                    }
+                    Spacer()
+                    Text("\(length)/\(NoteAPI.maxLength)")
+                        .typeScale(.footnote)
+                        .monospacedDigit()
+                        .foregroundStyle(length > NoteAPI.maxLength ? Palette.ink : Palette.faint)
+                        .fontWeight(length > NoteAPI.maxLength ? .semibold : .regular)
+                }
+                .padding(.horizontal, Metrics.gutter)
+                .padding(.vertical, 10)
+                .background(.bar)
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("취소") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        Task { await submit() }
+                    } label: {
+                        if posting { ProgressView() } else { Text(isEdit ? LocalizedStringKey("저장") : LocalizedStringKey("올리기")) }
+                    }
+                    .disabled(!canPost)
+                    .accessibilityIdentifier("noteCompose.post")
+                }
+            }
+            .alert("노트는 다른 서버에도 전해져요", isPresented: $showNotice) {
+                Button("알겠어요, 올릴게요") {
+                    Task {
+                        try? await NoteAPI.updateFederationSettings(noticeSeen: true)
+                        await post()
+                    }
+                }
+                Button("취소", role: .cancel) {}
+            } message: {
+                Text("kurl 노트는 마스토돈·Misskey 같은 다른 서버의 팔로워에게도 전해져요. 노트를 지우면 그 서버들에도 지우라고 알리지만, 이미 퍼진 사본이 지워진다는 보장은 할 수 없어요. 설정에서 언제든 끌 수 있어요.")
+            }
+            .onChange(of: pickerItems) { _, items in
+                guard !items.isEmpty else { return }
+                Task { await loadPicked(items) }
+            }
+            .onAppear { focused = true }
         }
-        .padding(.horizontal, 15)
-        .padding(.vertical, 11)
-        .glassEffect(.regular, in: .rect(cornerRadius: GlassTokens.panelRadius))
-        .padding(.horizontal, 10)
-        .padding(.bottom, 6)
-        .sensoryFeedback(.success, trigger: sentCount)
-        // 빈 상태 CTA → 컴포저 열기(값 변화만, 첫 렌더의 0 은 통과시키지 않는다).
-        .onChange(of: focusSignal) { _, newValue in
-            if newValue > 0 { focused = true }
-        }
+        .interactiveDismissDisabled(posting)
     }
 
-    private var canSend: Bool {
-        !trimmed.isEmpty && body_.count <= 500
+    private func loadPicked(_ items: [PhotosPickerItem]) async {
+        for item in items {
+            guard picked.count < NoteAPI.maxImages,
+                  let data = try? await item.loadTransferable(type: Data.self),
+                  let image = UIImage(data: data)
+            else { continue }
+            picked.append(PickedImage(image: image))
+        }
+        pickerItems = []
     }
 
-    private func send() {
-        guard !sending, canSend else { return }
-        sending = true
-        Task {
-            defer { sending = false }
+    private func submit() async {
+        guard canPost else { return }
+        if case let .edit(note) = mode {
+            posting = true
+            defer { posting = false }
             do {
-                try await publish(trimmed)
-                sentCount += 1
-                body_ = ""
-                focused = false
+                onDone(try await NoteAPI.edit(id: note.id, body: text))
+                dismiss()
             } catch {
-                ToastCenter.shared.show(String(localized: "노트를 올리지 못했습니다"))
+                errorMessage = String(localized: "노트를 고치지 못했어요")
             }
+            return
+        }
+        let needsNotice: Bool
+        if let settings = try? await NoteAPI.federationSettings() {
+            needsNotice = settings.enabled && !settings.noticeSeen
+        } else {
+            needsNotice = true
+        }
+        if needsNotice {
+            showNotice = true
+        } else {
+            await post()
+        }
+    }
+
+    private func post() async {
+        posting = true
+        defer { posting = false }
+        errorMessage = nil
+        do {
+            var images: [NoteDraft.Image] = []
+            for item in picked {
+                guard let jpeg = item.image.jpegData(compressionQuality: 0.85) else { continue }
+                let key = try await NoteAPI.uploadImage(jpegData: jpeg)
+                images.append(NoteDraft.Image(key: key, altText: item.altText))
+            }
+            let note = try await NoteAPI.create(
+                NoteDraft(body: text, images: images, quotedPostId: quote?.id, inReplyToId: inReplyToId))
+            onDone(note)
+            dismiss()
+        } catch {
+            errorMessage = String(localized: "노트를 올리지 못했어요")
+        }
+    }
+}
+
+/// 설정의 노트 연합 토글 — 불러오기 전엔 그리지 않는다(잘못된 상태가 번쩍이지 않게).
+struct FederationSettingRow: View {
+    @State private var settings: FederationSettings?
+    @State private var busy = false
+
+    var body: some View {
+        Group {
+            if let settings {
+                Toggle(isOn: Binding(get: { settings.enabled }, set: { next in Task { await set(next) } })) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("다른 서버에 노트 공유")
+                            .typeScale(.body)
+                            .foregroundStyle(Palette.ink)
+                        Group {
+                            if let handle = settings.handle {
+                                Text("마스토돈·Misskey에서 \(handle)로 찾아 팔로우할 수 있어요. 끄면 팔로워 서버에 계정을 지우라고 알리고 팔로워 목록을 비워요.")
+                            } else {
+                                Text("마스토돈·Misskey에서 찾아 팔로우할 수 있어요. 끄면 팔로워 서버에 계정을 지우라고 알리고 팔로워 목록을 비워요.")
+                            }
+                        }
+                        .typeScale(.footnote)
+                        .foregroundStyle(Palette.secondary)
+                    }
+                }
+                .tint(GlassTokens.prominentTint)
+                .disabled(busy)
+                .padding(.vertical, 7)
+                .accessibilityIdentifier("settings.federation")
+            }
+        }
+        .task { settings = try? await NoteAPI.federationSettings() }
+    }
+
+    private func set(_ enabled: Bool) async {
+        guard let previous = settings else { return }
+        busy = true
+        defer { busy = false }
+        settings = FederationSettings(enabled: enabled, noticeSeen: previous.noticeSeen, handle: previous.handle)
+        do {
+            settings = try await NoteAPI.updateFederationSettings(enabled: enabled)
+        } catch {
+            settings = previous
+            ToastCenter.shared.show(String(localized: "설정을 바꾸지 못했습니다"))
         }
     }
 }

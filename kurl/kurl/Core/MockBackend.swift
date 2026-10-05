@@ -73,6 +73,10 @@ enum MockBackend {
         var likeCount: Int64
         var authorId: Int64
         var username: String
+        var editedAt: Date? = nil
+        var inReplyToId: Int64? = nil
+        var media: [[String: Any]] = []
+        var quotedPost: [String: Any]? = nil
     }
 
     private static var notes: [MockNote] = [
@@ -85,6 +89,13 @@ enum MockBackend {
     ]
     private static var nextNoteId: Int64 = 9600
     private static var likedNotes: Set<Int64> = []
+    private static var noteReplies: [MockNote] = [
+        MockNote(id: 9551, body: "이름이 경계라는 말, 오래 남을 것 같아요.",
+                 createdAt: Date().addingTimeInterval(-1_200), likeCount: 0, authorId: 3,
+                 username: "reader_kim", inReplyToId: 9501),
+    ]
+    private static var federationEnabled = true
+    private static var federationNoticeSeen = false
     private static var shortSeq = 0
 
     // 리더 소셜 하이라이트 + 답글 스레드 — 본 글 리더의 칠하기·탭→스레드·메모·답글 왕복을 검증.
@@ -978,21 +989,71 @@ enum MockBackend {
             return json(["avatarUrl": "https://cdn.kurl.me/mock-avatar.jpg"])
         }
 
-        // 노트는 공개 읽기까지 목으로 받는다 — 실서버에 아직 배포 전이라 fall-through 하면 404.
-        if method == "GET", parts == ["public", "notes"] {
+        // 노트는 공개 읽기까지 목으로 받는다 — 목 세션(honggildong, id 1)의 노트만 좋아요 수가 보인다.
+        if method == "GET", parts == ["public", "notes"] || parts == ["notes", "following"] {
+            return json(["items": topLevelNotes().map(noteView), "page": 0, "hasNext": false])
+        }
+        if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "profiles",
+           parts[3] == "notes" {
             return json([
-                "items": notes.sorted { $0.createdAt > $1.createdAt }.map(noteView),
+                "items": topLevelNotes().filter { $0.username == parts[2] }.map(noteView),
                 "page": 0, "hasNext": false,
             ])
         }
-
+        if method == "GET", parts.count == 3, parts[0] == "public", parts[1] == "notes",
+           let nid = Int64(parts[2]) {
+            guard let note = allNotes().first(where: { $0.id == nid }) else {
+                return json(["status": 404])
+            }
+            return json([
+                "note": noteView(note),
+                "parent": note.inReplyToId.flatMap { pid in allNotes().first { $0.id == pid } }
+                    .map(noteView) ?? NSNull(),
+                "replies": allNotes().filter { $0.inReplyToId == nid }
+                    .sorted { $0.createdAt < $1.createdAt }.map(noteView),
+            ])
+        }
+        if method == "POST", parts == ["notes", "images", "presign"] {
+            return json([
+                "uploadUrl": "https://mock-upload.invalid/put",
+                "key": "note-images/1/\(UUID().uuidString).jpg",
+                "publicUrl": "https://cdn.kurl.me/mock-note.jpg", "maxBytes": 5_242_880,
+            ])
+        }
         if method == "POST", parts == ["notes"] {
-            let note = MockNote(
-                id: nextNoteId, body: decode(body)["body"] as? String ?? "",
-                createdAt: Date(), likeCount: 0, authorId: 1, username: "honggildong")
+            let req = decode(body)
+            let images = (req["images"] as? [[String: Any]]) ?? []
+            var note = MockNote(
+                id: nextNoteId, body: req["body"] as? String ?? "",
+                createdAt: Date(), likeCount: 0, authorId: 1, username: "honggildong",
+                inReplyToId: (req["inReplyToId"] as? NSNumber)?.int64Value,
+                media: images.map { image in
+                    ["url": "https://picsum.photos/seed/kurl-note/800/600",
+                     "altText": (image["altText"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? NSNull(),
+                     "contentType": "image/jpeg"]
+                })
+            if let quoted = (req["quotedPostId"] as? NSNumber)?.int64Value {
+                note.quotedPost = [
+                    "id": quoted, "title": "인용한 글", "slug": "quoted", "authorUsername": "honggildong",
+                ]
+            }
             nextNoteId += 1
-            notes.insert(note, at: 0)
+            if note.inReplyToId == nil { notes.insert(note, at: 0) } else { noteReplies.append(note) }
             return json(noteView(note))
+        }
+        if method == "PATCH", parts.count == 2, parts[0] == "notes", let nid = Int64(parts[1]) {
+            let text = decode(body)["body"] as? String ?? ""
+            if let idx = notes.firstIndex(where: { $0.id == nid }) {
+                notes[idx].body = text
+                notes[idx].editedAt = Date()
+                return json(noteView(notes[idx]))
+            }
+            if let idx = noteReplies.firstIndex(where: { $0.id == nid }) {
+                noteReplies[idx].body = text
+                noteReplies[idx].editedAt = Date()
+                return json(noteView(noteReplies[idx]))
+            }
+            return json(["status": 404])
         }
 
         if method == "GET", parts == ["notes", "like-status"] {
@@ -1002,6 +1063,7 @@ enum MockBackend {
         if method == "DELETE", parts.count == 2, parts[0] == "notes" {
             let nid = Int64(parts[1]) ?? 0
             notes.removeAll { $0.id == nid }
+            noteReplies.removeAll { $0.id == nid }
             likedNotes.remove(nid)
             return json([:] as [String: Any])
         }
@@ -1017,9 +1079,22 @@ enum MockBackend {
                     likedNotes.remove(nid)
                     notes[idx].likeCount -= 1
                 }
-                return json(["liked": likedNotes.contains(nid), "likeCount": notes[idx].likeCount])
+                let mine = notes[idx].authorId == 1
+                return json(["liked": likedNotes.contains(nid), "likeCount": mine ? notes[idx].likeCount : 0])
             }
             return json(["liked": method == "PUT", "likeCount": 0])
+        }
+
+        if parts == ["federation", "settings"] {
+            if method == "PUT" {
+                let req = decode(body)
+                if let enabled = req["enabled"] as? Bool { federationEnabled = enabled }
+                if (req["noticeSeen"] as? Bool) == true { federationNoticeSeen = true }
+            }
+            return json([
+                "enabled": federationEnabled, "noticeSeen": federationNoticeSeen,
+                "handle": "@honggildong@kurl.me",
+            ])
         }
 
         if method == "GET", parts == ["posts", "analytics", "overview"] {
@@ -1742,10 +1817,23 @@ enum MockBackend {
 
     // MARK: 픽스처
 
+    private static func allNotes() -> [MockNote] { notes + noteReplies }
+
+    private static func topLevelNotes() -> [MockNote] {
+        notes.filter { $0.inReplyToId == nil }.sorted { $0.createdAt > $1.createdAt }
+    }
+
     private static func noteView(_ n: MockNote) -> [String: Any] {
         [
-            "id": n.id, "body": n.body, "createdAt": iso(n.createdAt), "likeCount": n.likeCount,
+            "id": n.id, "body": n.body, "createdAt": iso(n.createdAt),
+            "editedAt": n.editedAt.map(iso) ?? NSNull(),
+            "likeCount": n.authorId == 1 ? n.likeCount : NSNull(),
+            "likedByMe": likedNotes.contains(n.id),
             "author": ["id": n.authorId, "username": n.username, "avatarUrl": NSNull()],
+            "media": n.media,
+            "quotedPost": n.quotedPost ?? NSNull(),
+            "inReplyToId": n.inReplyToId ?? NSNull(),
+            "replyCount": noteReplies.filter { $0.inReplyToId == n.id }.count,
         ]
     }
 

@@ -5,18 +5,44 @@
 
 import Foundation
 
-/// 짧은 글(노트) — 읽기는 공개, 쓰기·좋아요는 인증. likedByMe 는 피드에 실리지 않고
-/// 배치 상태 조회로 따로 온다(#538 댓글 좋아요와 같은 분리).
+/// 노트 — 블로그 글과 분리한 짧은 글. 공개 읽기도 로그인 상태면 토큰을 실어 보내야 내 좋아요와
+/// 내 노트의 좋아요 수가 채워진다(남의 노트 좋아요 수는 서버가 숨긴다).
 enum NoteAPI {
+    static let maxLength = 500
+    static let maxImages = 4
+    static let maxAltLength = 1500
+
     private static let client = APIClient.shared
 
-    static func feed(page: Int = 0, size: Int = 20) async throws -> NoteFeedView {
+    private static var signedIn: Bool { AuthStore.shared.isSignedIn }
+
+    static func everyone(page: Int = 0) async throws -> NoteFeed {
         try await client.get(
-            "/public/notes", query: ["page": String(page), "size": String(size)])
+            "/public/notes", query: ["page": String(page), "size": "20"], authenticated: signedIn)
     }
 
-    static func create(body: String) async throws -> Note {
-        try await client.post("/notes", body: ["body": body], authenticated: true)
+    static func following(page: Int = 0) async throws -> NoteFeed {
+        try await client.get(
+            "/notes/following", query: ["page": String(page), "size": "20"], authenticated: true)
+    }
+
+    static func byAuthor(_ username: String, page: Int = 0) async throws -> NoteFeed {
+        try await client.get(
+            "/public/profiles/\(username)/notes", query: ["page": String(page), "size": "20"],
+            authenticated: signedIn)
+    }
+
+    static func thread(id: Int64) async throws -> NoteThread {
+        try await client.get("/public/notes/\(id)", authenticated: signedIn)
+    }
+
+    static func create(_ draft: NoteDraft) async throws -> Note {
+        try await client.post("/notes", body: draft, authenticated: true)
+    }
+
+    static func edit(id: Int64, body: String) async throws -> Note {
+        struct Body: Encodable { let body: String }
+        return try await client.patch("/notes/\(id)", body: Body(body: body), authenticated: true)
     }
 
     static func delete(id: Int64) async throws {
@@ -29,34 +55,110 @@ enum NoteAPI {
             : try await client.delete("/notes/\(id)/like", authenticated: true)
     }
 
-    static func likedIds(_ ids: [Int64]) async throws -> [Int64] {
-        guard !ids.isEmpty else { return [] }
-        let response: LikedIdsResponse = try await client.get(
-            "/notes/like-status",
-            query: ["ids": ids.map(String.init).joined(separator: ",")],
+    /// presign → 저장소 직행 PUT. 노트를 쓸 때 넘길 키를 돌려준다. JPEG 로 재인코딩해 올린다.
+    static func uploadImage(jpegData: Data) async throws -> String {
+        struct PresignBody: Encodable { let contentType: String }
+        struct Presign: Decodable {
+            let uploadUrl: String
+            let key: String
+            let maxBytes: Int64
+        }
+        let presign: Presign = try await client.post(
+            "/notes/images/presign", body: PresignBody(contentType: "image/jpeg"),
             authenticated: true)
-        return response.likedIds
+        guard jpegData.count <= presign.maxBytes else { throw APIError.invalidURL }
+        if !Config.useMocks, let url = URL(string: presign.uploadUrl) {
+            var request = URLRequest(url: url)
+            request.httpMethod = "PUT"
+            request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
+            let (_, response) = try await URLSession.shared.upload(for: request, from: jpegData)
+            guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+                throw APIError.http(status: (response as? HTTPURLResponse)?.statusCode ?? -1)
+            }
+        }
+        return presign.key
+    }
+
+    static func federationSettings() async throws -> FederationSettings {
+        try await client.get("/federation/settings", authenticated: true)
+    }
+
+    @discardableResult
+    static func updateFederationSettings(enabled: Bool? = nil, noticeSeen: Bool? = nil)
+        async throws -> FederationSettings
+    {
+        struct Body: Encodable {
+            let enabled: Bool?
+            let noticeSeen: Bool?
+        }
+        return try await client.put(
+            "/federation/settings", body: Body(enabled: enabled, noticeSeen: noticeSeen),
+            authenticated: true)
     }
 
     private struct EmptyBody: Encodable {}
-    private struct LikedIdsResponse: Decodable { let likedIds: [Int64] }
 }
 
-struct Note: Decodable, Identifiable, Equatable {
+struct NoteMedia: Decodable, Hashable {
+    let url: String
+    let altText: String?
+    let contentType: String
+}
+
+struct QuotedPost: Codable, Hashable, Identifiable {
+    let id: Int64
+    let title: String
+    let slug: String
+    let authorUsername: String
+}
+
+struct Note: Decodable, Identifiable, Hashable {
     let id: Int64
     let body: String
     let createdAt: Date?
-    let likeCount: Int64
+    let editedAt: Date?
+    /// 작성자 본인에게만 숫자, 남에게는 nil(좋아요 수 비공개).
+    let likeCount: Int64?
+    /// 비로그인 읽기면 nil.
+    let likedByMe: Bool?
     let author: Author
+    let media: [NoteMedia]
+    let quotedPost: QuotedPost?
+    let inReplyToId: Int64?
+    let replyCount: Int64
 }
 
-struct NoteFeedView: Decodable {
+struct NoteFeed: Decodable {
     let items: [Note]
     let page: Int
     let hasNext: Bool
 }
 
+struct NoteThread: Decodable {
+    let note: Note
+    let parent: Note?
+    let replies: [Note]
+}
+
+struct NoteDraft: Encodable {
+    struct Image: Encodable {
+        let key: String
+        let altText: String
+    }
+
+    let body: String
+    let images: [Image]
+    let quotedPostId: Int64?
+    let inReplyToId: Int64?
+}
+
 struct NoteLikeStatus: Decodable {
     let liked: Bool
     let likeCount: Int64
+}
+
+struct FederationSettings: Decodable {
+    let enabled: Bool
+    let noticeSeen: Bool
+    let handle: String?
 }
