@@ -130,10 +130,37 @@ final class GraphNotificationsUITests: XCTestCase {
         XCTAssertTrue(comment.waitForExistence(timeout: 12), "인박스에 댓글 알림이 없음")
         comment.tap()
         XCTAssertTrue(app.buttons["모두 읽음"].firstMatch.waitForNonExistence(timeout: 10), "댓글 알림을 누르면 인박스에서 넘어가야 함")
-        let readingTime = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH '읽는 시간'")).firstMatch
-        XCTAssertTrue(readingTime.waitForExistence(timeout: 10), "댓글 알림을 누르면 내 글로 가야 함")
+        let target = app.staticTexts
+            .matching(NSPredicate(format: "label BEGINSWITH '어댑터를 바깥으로 미는 순서가'")).firstMatch
+        XCTAssertTrue(target.waitForExistence(timeout: 10), "댓글 알림을 누르면 그 댓글이 있는 글로 가야 함")
+        XCTAssertTrue(waitUntilOnScreen(target, in: app), "댓글 알림을 누르면 그 댓글 위치로 스크롤돼야 함")
         XCTAssertFalse(app.buttons["팔로우"].exists, "댓글 단 사람 프로필로 빠지면 안 됨")
-        shoot("comment-opens-post")
+        shoot("comment-opens-at-comment")
+    }
+
+    func testHighlightMentionOpensItsConversation() throws {
+        let app = launchInbox()
+        let mention = rowButton(app, contains: "나를 언급했어요")
+        XCTAssertTrue(mention.waitForExistence(timeout: 12), "인박스에 언급 알림이 없음")
+        if !mention.isHittable { app.swipeUp() }
+        mention.tap()
+        let reply = app.staticTexts
+            .matching(NSPredicate(format: "label BEGINSWITH '저도요. 작게 시작했어야'")).firstMatch
+        XCTAssertTrue(reply.waitForExistence(timeout: 12), "하이라이트 언급을 누르면 그 메모 대화가 열려야 함")
+        shoot("highlight-mention-opens-thread")
+    }
+
+    private func waitUntilOnScreen(_ element: XCUIElement, in app: XCUIApplication) -> Bool {
+        let screen = app.windows.firstMatch.frame
+        let deadline = Date().addingTimeInterval(6)
+        while Date() < deadline {
+            let frame = element.frame
+            if element.exists, !frame.isEmpty, screen.contains(CGPoint(x: frame.midX, y: frame.midY)) {
+                return true
+            }
+            Thread.sleep(forTimeInterval: 0.25)
+        }
+        return false
     }
 
     func testActorAvatarOpensProfile() throws {

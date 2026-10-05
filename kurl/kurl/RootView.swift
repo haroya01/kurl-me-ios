@@ -25,6 +25,7 @@ final class TabRouter {
     /// 푸시 탭의 대기석 — 알림함 시트. pendingPost 와 같은 이유로 시트.
     var pendingNotifications = false
     var pendingPushRoute: Route?
+    var notificationsSheetVisible = false
 
     private init() {
         // `--tab write|discover|search|account` — simctl 은 터치를 못 넣으니 검증용 진입로.
@@ -107,6 +108,8 @@ private struct NotificationsSheet: View {
         .onChange(of: TabRouter.shared.pendingPushRoute) { _, route in
             if let route { path = [route] }
         }
+        .onAppear { TabRouter.shared.notificationsSheetVisible = true }
+        .onDisappear { TabRouter.shared.notificationsSheetVisible = false }
     }
 }
 
@@ -231,16 +234,17 @@ struct RootView: View {
             ) {
                 NotificationsSheet(initial: TabRouter.shared.pendingPushRoute)
             }
-            // 콜드 런치(종료 상태에서 푸시 탭)는 첫 프레임 전에 플래그가 서서 시트가 무시된다 —
-            // 첫 커밋 뒤 한 틱 쉬고 재점화해야 뜬다.
+            // 콜드 런치(종료 상태에서 푸시 탭)는 첫 프레임 전에 선 플래그를 시트가 무시하는 런타임이 있다 —
+            // 한 틱 뒤에도 안 떴을 때만 재점화한다. 이미 뜬 시트를 내렸다 올리면 깜빡이고 안쪽 스크롤이 처음으로 돌아간다.
             .task {
-                if TabRouter.shared.pendingNotifications {
-                    let route = TabRouter.shared.pendingPushRoute
-                    TabRouter.shared.pendingNotifications = false
-                    try? await Task.sleep(for: .milliseconds(350))
-                    TabRouter.shared.pendingPushRoute = route
-                    TabRouter.shared.pendingNotifications = true
-                }
+                guard TabRouter.shared.pendingNotifications else { return }
+                try? await Task.sleep(for: .milliseconds(350))
+                guard TabRouter.shared.pendingNotifications, !TabRouter.shared.notificationsSheetVisible else { return }
+                let route = TabRouter.shared.pendingPushRoute
+                TabRouter.shared.pendingNotifications = false
+                try? await Task.sleep(for: .milliseconds(350))
+                TabRouter.shared.pendingPushRoute = route
+                TabRouter.shared.pendingNotifications = true
             }
             // 위젯 몫의 분석 신선도 — 분석 화면을 열지 않아도 앱이 열릴 때 조용히 당겨 둔다.
             .task { await AnalyticsSnapshot.refreshIfStale() }

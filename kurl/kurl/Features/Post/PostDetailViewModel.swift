@@ -24,6 +24,7 @@ final class PostDetailViewModel {
     private(set) var comments: [Comment] = []
     /// 공개 댓글 API 실패 — "댓글 0"으로 위장하지 않고 재시도 행을 세우기 위한 구분.
     private(set) var commentsFailed = false
+    private(set) var commentsLoaded = false
     /// 보는 사람이 좋아요한 댓글 id — 공개 목록과 별도의 인증 엔드포인트로 hydrate(#538 패턴).
     private(set) var likedCommentIds: Set<Int64> = []
     /// 낙관 카운트 보정(댓글 id → 증감) — 서버 likeCount 는 공개 목록 재로드 때만 갱신되므로.
@@ -102,6 +103,7 @@ final class PostDetailViewModel {
             comments = []
             commentsFailed = true
         }
+        commentsLoaded = true
         commentLikeDelta = [:]
         commentToggleGen = [:]
         if AuthStore.shared.isSignedIn {
