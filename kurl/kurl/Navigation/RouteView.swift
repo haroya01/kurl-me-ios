@@ -35,6 +35,8 @@ struct RouteView: View {
             CollectionDetailView(collectionId: id)
         case .notifications:
             NotificationsView()
+        case let .note(id):
+            NoteDetailView(noteId: id)
         }
     }
 }

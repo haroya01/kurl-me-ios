@@ -11,18 +11,20 @@
 
 import SwiftUI
 
-/// 발견 표면 세 흐름 — 입구(길·큐레이터) · 최근(큐레이터 연결 시간순) · 남들 하이라이트.
+/// 발견 표면 네 흐름 — 입구(길·큐레이터) · 최근(큐레이터 연결 시간순) · 남들 하이라이트 · 노트.
 /// 입구가 기본: 발견은 "누가 언제"가 아니라 "어디로 들어가나"로 시작한다(§0).
 private enum DiscoverTab: String, CaseIterable, Identifiable {
     case entrances
     case connections
     case highlights
+    case notes
     var id: String { rawValue }
     var label: String {
         switch self {
         case .entrances: String(localized: "둘러보기")
         case .connections: String(localized: "최근")
         case .highlights: String(localized: "하이라이트")
+        case .notes: String(localized: "노트")
         }
     }
 }
@@ -50,6 +52,9 @@ struct DiscoverView: View {
     /// 활성이면 조용한 맥락 한 줄을 세그먼트 콘텐츠 위에 올리고, 이후 요청에 scope=global 을 고정한다.
     @State private var connectionsSource: DiscoverScope = .following
     @State private var highlightsSource: DiscoverScope = .following
+    @State private var notes = NotesViewModel()
+    @State private var composingNote = false
+    @State private var notesPosted = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -74,6 +79,7 @@ struct DiscoverView: View {
                         case .entrances: entrancesContent
                         case .connections: connectionsContent
                         case .highlights: highlightsContent
+                        case .notes: notesContent
                         }
                     }
                     // 콘텐츠가 짧아도(최근·하이라이트 몇 행) 빈 화면 어디서든 스와이프가 잡히게 —
@@ -144,11 +150,25 @@ struct DiscoverView: View {
                 hasLoaded = true
                 await load()
             }
-            .task(id: tab) { if tab == .highlights { await loadHighlights() } }
+            .task(id: tab) {
+                if tab == .highlights { await loadHighlights() }
+                if tab == .notes, case .idle = notes.phase { await notes.reload() }
+            }
             .brandRefreshable {
                 // 입구·최근은 같은 연결 흐름(events)에서 산다 — 둘 다 load() 로 새로고침한다.
-                if tab == .highlights { await loadHighlights(force: true) } else { await load() }
+                switch tab {
+                case .highlights: await loadHighlights(force: true)
+                case .notes: await notes.reload()
+                case .entrances, .connections: await load()
+                }
             }
+            .sheet(isPresented: $composingNote) {
+                NoteComposeSheet(mode: .new(quote: nil, inReplyToId: nil)) { note in
+                    notes.inserted(note)
+                    notesPosted += 1
+                }
+            }
+            .sensoryFeedback(.success, trigger: notesPosted)
         }
     }
 
@@ -197,6 +217,70 @@ struct DiscoverView: View {
         switch tab {
         case .entrances, .connections: connectionsSource == .global
         case .highlights: highlightsSource == .global
+        case .notes: false
+        }
+    }
+
+    // MARK: 노트 — 모두의 짧은 글. 맨 위 작성 자리를 누르면 작성 시트가 열린다(댓글 작성 자리와 같은 문법).
+
+    @ViewBuilder
+    private var notesContent: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                composingNote = true
+            } label: {
+                HStack(spacing: 10) {
+                    Text("지금 떠오른 생각을 짧게 남겨 보세요")
+                        .typeScale(.body)
+                        .foregroundStyle(Palette.secondary)
+                    Spacer(minLength: 0)
+                    Image(systemName: "square.and.pencil")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundStyle(Palette.link)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 13)
+                .overlay(
+                    RoundedRectangle(cornerRadius: Metrics.radiusControl)
+                        .stroke(Palette.hairlineStrong, lineWidth: 1))
+                .contentShape(RoundedRectangle(cornerRadius: Metrics.radiusControl))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("노트 쓰기")
+            .accessibilityIdentifier("notes.compose")
+            .padding(.bottom, 6)
+
+            switch notes.phase {
+            case .idle, .loading:
+                KurlLoadingMark().frame(maxWidth: .infinity, minHeight: 320)
+            case .failed(let message):
+                ErrorState(message: message, retry: { Task { await notes.reload() } })
+            case .loaded:
+                if notes.items.isEmpty {
+                    FeedPlaceholder(
+                        title: "아직 노트가 없어요",
+                        message: "제목도 형식도 없이, 지금 떠오른 한 줄을 남기는 자리예요.",
+                        actionTitle: "첫 노트 쓰기",
+                        prominent: true,
+                        action: { composingNote = true }
+                    )
+                    .padding(.top, 56)
+                } else {
+                    ForEach(Array(notes.items.enumerated()), id: \.element.id) { index, note in
+                        NoteRowView(
+                            note: note,
+                            onChange: { notes.replaced($0) },
+                            onDelete: { notes.removed($0) }
+                        )
+                        .modifier(QuietAppear(index: index))
+                        .task { await notes.loadMoreIfNeeded(current: note) }
+                        if index < notes.items.count - 1 { Hairline() }
+                    }
+                    if notes.isLoadingMore {
+                        KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
+                    }
+                }
+            }
         }
     }
 

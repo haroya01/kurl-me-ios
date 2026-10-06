@@ -162,6 +162,13 @@ struct SettingsView: View {
             }
 
             if auth.isSignedIn {
+                RailHeading("노트 연합")
+                    .padding(.top, 28)
+                    .padding(.bottom, 4)
+                FederationSettingRow()
+            }
+
+            if auth.isSignedIn {
                 RailHeading("안전")
                     .padding(.top, 28)
                     .padding(.bottom, 4)

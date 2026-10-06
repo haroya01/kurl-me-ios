@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-/// 서재 — 내가 모은 것(북마크·좋아요·구독·하이라이트·컬렉션·기록·노트)을 한 목록으로.
+/// 서재 — 내가 모은 것(북마크·좋아요·구독·하이라이트·컬렉션·기록)을 한 목록으로.
 /// 내 계정(= 내 블로그) 화면의 오른쪽 헤더 버튼으로 들어온다.
 struct LibraryView: View {
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
@@ -26,8 +26,6 @@ struct LibraryView: View {
                 libraryRow("컬렉션") { CollectionsListView() }
                 Hairline()
                 libraryRow("읽기 기록") { MyReadingHistoryView() }
-                Hairline()
-                libraryRow("노트") { NotesPage(active: true) }
             }
             .padding(.top, 8)
         }

@@ -79,3 +79,22 @@ final class InlineImageMarkdownTests: XCTestCase {
         XCTAssertFalse(InlineImageMarkdown.containsImage("[라벨](https://example.com)"))
     }
 }
+
+/// 노트 본문의 링크·길이 규칙 — 서버가 다른 서버로 보낼 때와 같아야 한다(http(s)만, 끝 문장부호 제외,
+/// 길이는 코드 포인트).
+final class NoteTextTests: XCTestCase {
+
+    func testOnlyHttpUrlsBecomeLinksWithoutTrailingPunctuation() {
+        let text = NoteText.attributed("see https://kurl.me/a?b=1. and javascript:alert(1)")
+        let links = text.runs.compactMap { run in run.link.map { ($0, String(text[run.range].characters)) } }
+        XCTAssertEqual(links.count, 1)
+        XCTAssertEqual(links.first?.0.absoluteString, "https://kurl.me/a?b=1")
+        XCTAssertEqual(links.first?.1, "https://kurl.me/a?b=1")
+        XCTAssertEqual(String(text.characters), "see https://kurl.me/a?b=1. and javascript:alert(1)")
+    }
+
+    func testLengthCountsCodePointsLikeTheServer() {
+        XCTAssertEqual(NoteText.length("😀😀"), 2)
+        XCTAssertEqual(NoteText.length("  가나  "), 2)
+    }
+}
