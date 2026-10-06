@@ -83,7 +83,10 @@ final class NotesFeedUITests: XCTestCase {
         app.buttons["팔로잉"].tap()
         XCTAssertTrue(app.navigationBars["팔로잉"].waitForExistence(timeout: 5), "제목이 팔로잉으로 안 바뀜")
         XCTAssertTrue(app.buttons["note.menu.9501"].waitForExistence(timeout: 8), "팔로잉 피드가 안 그려짐")
-        XCTAssertFalse(app.buttons["note.menu.9503"].exists, "팔로우하지 않은 사람의 노트가 팔로잉에 섞임")
+        XCTAssertTrue(app.buttons["note.menu.9503"].waitForExistence(timeout: 4), "팔로우한 사람의 리포스트가 팔로잉에 안 흐름")
+        let reposted = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'yuki_dev님이 리포스트함'")).firstMatch
+        XCTAssertTrue(reposted.exists, "리포스트로 들어온 노트에 리포스트한 사람이 안 붙음")
+        XCTAssertLessThan(reposted.frame.minY, app.buttons["note.menu.9503"].frame.minY, "리포스트 머리줄이 그 노트 위에 있지 않음")
 
         let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         shot.name = "notes-following"

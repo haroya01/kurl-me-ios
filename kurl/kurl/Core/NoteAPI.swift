@@ -170,6 +170,8 @@ struct Note: Decodable, Identifiable, Hashable {
     let quotedNote: QuotedNote?
     /// 첫 주소의 Open Graph 카드 — 서버가 올린 뒤 비동기로 채운다.
     var linkPreview: NoteLinkPreview?
+    /// 팔로잉 피드에서 이 노트가 리포스트로 들어왔을 때 리포스트한 사람.
+    var repostedBy: Author? = nil
 }
 
 struct NoteFeed: Decodable {

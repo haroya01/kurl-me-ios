@@ -116,7 +116,10 @@ final class NotesViewModel {
     }
 
     func replaced(_ note: Note) {
-        if let index = items.firstIndex(where: { $0.id == note.id }) { items[index] = note }
+        guard let index = items.firstIndex(where: { $0.id == note.id }) else { return }
+        var next = note
+        next.repostedBy = next.repostedBy ?? items[index].repostedBy
+        items[index] = next
     }
 
     func removed(_ id: Int64) {
