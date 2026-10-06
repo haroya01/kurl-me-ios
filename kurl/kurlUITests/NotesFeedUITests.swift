@@ -94,6 +94,40 @@ final class NotesFeedUITests: XCTestCase {
         add(shot)
     }
 
+    func testABookmarkFromTheDetailShowsInTheBookmarksFeedAndQuotesOpenFromTheDetail() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let replies = app.buttons["note.replies.9501"]
+        XCTAssertTrue(replies.waitForExistence(timeout: 10), "답글 버튼 없음")
+        replies.tap()
+
+        let bookmark = app.buttons["note.bookmark.9501"]
+        XCTAssertTrue(bookmark.waitForExistence(timeout: 8), "상세 수치 줄에 북마크가 없음")
+        bookmark.tap()
+        XCTAssertTrue(bookmark.isSelected, "북마크가 켜지지 않음")
+
+        let quotes = app.buttons["note.quotes.9501"]
+        XCTAssertTrue(quotes.waitForExistence(timeout: 4), "인용 줄이 없음")
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "note-detail-bookmark-quotes"
+        shot.lifetime = .keepAlways
+        add(shot)
+        quotes.tap()
+        XCTAssertTrue(app.navigationBars["인용한 노트"].waitForExistence(timeout: 6), "인용 목록이 안 열림")
+        XCTAssertTrue(app.buttons["note.menu.9505"].waitForExistence(timeout: 6), "인용한 노트가 목록에 없음")
+
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        let menu = app.buttons["tab.menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 6), "노트 탭 메뉴가 없음")
+        menu.tap()
+        app.buttons["북마크한 노트"].tap()
+        XCTAssertTrue(app.buttons["note.menu.9501"].waitForExistence(timeout: 8), "북마크한 노트가 북마크 피드에 없음")
+    }
+
     func testANotesRepliesOpenFromItsRow() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]

@@ -5476,6 +5476,34 @@
         }
       }
     },
+    "나만 보는 북마크": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bookmarks only you can see"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सिर्फ़ आपके बुकमार्क"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自分だけのブックマーク"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đánh dấu chỉ bạn thấy"
+          }
+        }
+      }
+    },
     "날짜": {
       "localizations": {
         "en": {
@@ -6432,6 +6460,34 @@
         }
       }
     },
+    "노트의 … 메뉴나 상세의 북마크로 모아 둘 수 있어요. 북마크는 나만 봐요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save notes from their … menu or the bookmark in a note's page. Only you see your bookmarks."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नोट के … मेनू या नोट पेज के बुकमार्क से सहेजें। बुकमार्क सिर्फ़ आप देखते हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートの…メニューや詳細のブックマークから保存できます。ブックマークは自分だけが見られます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lưu ghi chú từ menu … hoặc nút đánh dấu trong trang ghi chú. Chỉ bạn thấy đánh dấu của mình."
+          }
+        }
+      }
+    },
     "누가 내 노트를 리포스트하거나 다른 서버에서 부스트할 때": {
       "localizations": {
         "en": {
@@ -6596,6 +6652,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đăng nhập để xem bảng tin đang theo dõi"
+          }
+        }
+      }
+    },
+    "로그인하면 북마크한 노트를 여기서 다시 볼 수 있어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to come back to the notes you bookmarked."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साइन इन करें और बुकमार्क किए नोट्स यहाँ दोबारा देखें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログインすると、ブックマークしたノートをここでまた読めます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để xem lại các ghi chú bạn đã đánh dấu."
           }
         }
       }
@@ -6852,6 +6936,146 @@
         }
       }
     },
+    "북마크를 바꾸지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't update the bookmark"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बुकमार्क नहीं बदल सका"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブックマークを変更できませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể cập nhật đánh dấu"
+          }
+        }
+      }
+    },
+    "북마크에 넣었어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Added to bookmarks"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बुकमार्क में जोड़ा"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブックマークに追加しました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã thêm vào đánh dấu"
+          }
+        }
+      }
+    },
+    "북마크에서 뺐어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Removed from bookmarks"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बुकमार्क से हटाया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブックマークから外しました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã bỏ khỏi đánh dấu"
+          }
+        }
+      }
+    },
+    "북마크한 노트": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bookmarks"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बुकमार्क"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブックマーク"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã đánh dấu"
+          }
+        }
+      }
+    },
+    "북마크한 노트가 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No bookmarked notes"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कोई बुकमार्क किया नोट नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブックマークしたノートはありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có ghi chú nào được đánh dấu"
+          }
+        }
+      }
+    },
     "블로그에서 팔로우한 사람도 함께 보여요. 인기 노트에서 시작해 보세요.": {
       "localizations": {
         "en": {
@@ -6932,6 +7156,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chưa có lượt đăng lại"
+          }
+        }
+      }
+    },
+    "아직 이 노트를 인용한 노트가 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No one has quoted this note yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी तक किसी ने इस नोट को उद्धृत नहीं किया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだこのノートを引用したノートはありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa ai trích dẫn ghi chú này"
           }
         }
       }
@@ -11399,6 +11651,34 @@
         }
       }
     },
+    "인용 %lld": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld quotes"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld उद्धरण"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "引用 %lld件"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld trích dẫn"
+          }
+        }
+      }
+    },
     "인용 노트를 올렸어요": {
       "localizations": {
         "en": {
@@ -11423,6 +11703,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đã đăng trích dẫn"
+          }
+        }
+      }
+    },
+    "인용한 노트": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quotes"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "उद्धरण"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "引用したノート"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trích dẫn"
           }
         }
       }

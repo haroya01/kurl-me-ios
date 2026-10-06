@@ -111,6 +111,7 @@ enum MockBackend {
     ]
     private static var nextNoteId: Int64 = 9600
     private static var likedNotes: Set<Int64> = []
+    private static var bookmarkedNotes: [Int64] = []
     /// 사용자별 리포스트한 노트 id(최신 먼저). 목 세션은 honggildong.
     private static var repostedNotes: [String: [Int64]] = ["honggildong": [9503], "yuki_dev": [9505]]
     private static var noteReplies: [MockNote] = [
@@ -932,6 +933,20 @@ enum MockBackend {
             }
             return json(["items": ranked.map(noteView), "page": 0, "hasNext": false])
         }
+        if method == "GET", parts == ["notes", "bookmarks"] {
+            let items = bookmarkedNotes.compactMap { id in allNotes().first { $0.id == id } }.map(noteView)
+            return json(["items": items, "page": 0, "hasNext": false])
+        }
+        if parts.count == 3, parts[0] == "notes", parts[2] == "bookmark", let nid = Int64(parts[1]) {
+            bookmarkedNotes.removeAll { $0 == nid }
+            if method == "PUT" { bookmarkedNotes.insert(nid, at: 0) }
+            return json(["bookmarked": method == "PUT"])
+        }
+        if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "notes", parts[3] == "quotes",
+           let nid = Int64(parts[2]) {
+            let items = allNotes().filter { $0.quotedNoteId == nid }.map(noteView)
+            return json(["items": items, "page": 0, "hasNext": false])
+        }
         if method == "GET", parts == ["notes", "following"] {
             let followed: Set<Int64> = [1, 2]
             var items = topLevelNotes().filter { followed.contains($0.authorId) }.map(noteView)
@@ -1033,8 +1048,7 @@ enum MockBackend {
             var mine = (repostedNotes["honggildong"] ?? []).filter { $0 != nid }
             if method == "PUT" { mine.insert(nid, at: 0) }
             repostedNotes["honggildong"] = mine
-            let ownNote = allNotes().first { $0.id == nid }?.authorId == 1
-            return json(["reposted": method == "PUT", "repostCount": ownNote ? repostCount(nid) : 0])
+            return json(["reposted": method == "PUT", "repostCount": repostCount(nid)])
         }
 
         if parts.count == 3, parts[0] == "notes", parts[2] == "like" {
@@ -1048,8 +1062,7 @@ enum MockBackend {
                     likedNotes.remove(nid)
                     notes[idx].likeCount -= 1
                 }
-                let mine = notes[idx].authorId == 1
-                return json(["liked": likedNotes.contains(nid), "likeCount": mine ? notes[idx].likeCount : 0])
+                return json(["liked": likedNotes.contains(nid), "likeCount": notes[idx].likeCount])
             }
             return json(["liked": method == "PUT", "likeCount": 0])
         }
@@ -1819,15 +1832,17 @@ enum MockBackend {
         [
             "id": n.id, "body": n.body, "createdAt": iso(n.createdAt),
             "editedAt": n.editedAt.map(iso) ?? NSNull(),
-            "likeCount": n.authorId == 1 ? n.likeCount : NSNull(),
+            "likeCount": n.likeCount,
             "likedByMe": likedNotes.contains(n.id),
             "author": ["id": n.authorId, "username": n.username, "avatarUrl": NSNull()],
             "media": n.media,
             "quotedPost": n.quotedPost ?? NSNull(),
             "inReplyToId": n.inReplyToId ?? NSNull(),
             "replyCount": replyCount(n.id),
-            "repostCount": n.authorId == 1 ? repostCount(n.id) : NSNull(),
+            "repostCount": repostCount(n.id),
             "repostedByMe": repostedNotes["honggildong"]?.contains(n.id) == true,
+            "bookmarkedByMe": bookmarkedNotes.contains(n.id),
+            "quoteCount": allNotes().filter { $0.quotedNoteId == n.id }.count,
             "linkPreview": n.linkPreview ?? NSNull(),
             "quotedNote": n.quotedNoteId.flatMap { qid in allNotes().first { $0.id == qid } }
                 .map { q -> [String: Any] in
