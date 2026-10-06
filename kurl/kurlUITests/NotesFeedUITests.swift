@@ -175,6 +175,27 @@ final class NotesFeedUITests: XCTestCase {
         )).firstMatch
     }
 
+    func testAHashtagOpensTheTagOnItsNotesTabBesideItsPosts() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let tag = app.links["#아키텍처"].firstMatch
+        XCTAssertTrue(tag.waitForExistence(timeout: 10), "노트 본문의 해시태그가 링크가 아님")
+        tag.tap()
+
+        let tabs = app.segmentedControls["tag.tabs"]
+        XCTAssertTrue(tabs.waitForExistence(timeout: 8), "태그 화면이 안 열림")
+        XCTAssertTrue(tabs.buttons["노트"].isSelected, "노트에서 연 태그가 노트 탭으로 열리지 않음")
+        XCTAssertTrue(app.buttons["note.menu.9501"].waitForExistence(timeout: 8), "태그의 노트가 안 보임")
+        attach(app, "tag-notes")
+
+        tabs.buttons["글"].tap()
+        XCTAssertTrue(tabs.buttons["글"].isSelected, "글 탭으로 바뀌지 않음")
+        XCTAssertTrue(app.buttons["note.menu.9501"].waitForNonExistence(timeout: 6), "글 탭에 노트가 남음")
+    }
+
     func testANotesRepliesOpenFromItsRow() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]

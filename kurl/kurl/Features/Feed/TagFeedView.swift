@@ -7,8 +7,15 @@
 
 import SwiftUI
 
+enum TagFeedTab: Hashable {
+    case posts, notes
+}
+
 struct TagFeedView: View {
     let tag: String
+
+    @State private var tab: TagFeedTab
+    @State private var notes: NotesViewModel
 
     @State private var phase: LoadState<[FeedItem]> = .idle
     @State private var page = 0
@@ -17,51 +24,26 @@ struct TagFeedView: View {
     @State private var showNavTitle = false
     @Namespace private var zoomNS
 
+    init(tag: String, initialTab: TagFeedTab = .posts) {
+        self.tag = tag
+        _tab = State(initialValue: initialTab)
+        _notes = State(initialValue: NotesViewModel(tag: tag))
+    }
+
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 16) {
                 // 태그 마스트헤드 — 시리즈 랜딩과 같은 결(eyebrow + 큰 #태그). 로딩부터 떠 있는다.
                 masthead
-                switch phase {
-                case .idle, .loading:
-                    KurlLoadingMark()
-                        .frame(maxWidth: .infinity, minHeight: 280)
-                case .failed(let message):
-                    ErrorState(message: message, retry: { Task { await load() } })
-                        .padding(.top, 60)
-                case .loaded(let items):
-                    if items.isEmpty {
-                        ContentUnavailableView {
-                            Label("글이 없어요", systemImage: "tray")
-                        } description: {
-                            Text("이 태그의 글이 아직 없어요.")
-                        } actions: {
-                            Button("피드에서 읽을 글 찾기") { TabRouter.shared.selection = 0 }
-                                .foregroundStyle(Palette.link)
-                        }
-                        .padding(.top, 60)
-                    }
-                    // 태그 피드도 browse 면 — 검색·홈과 같은 카드 문법(웹 §10.1 예외 경계).
-                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                        NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
-                            BlogCard(item: item, omittingTag: tag)
-                        }
-                        .buttonStyle(CardButtonStyle())
-                        .cardQuickActions(item)
-                        .modifier(ZoomSource(
-                            active: true,
-                            id: "tag-\(item.author.username)-\(item.slug)",
-                            ns: zoomNS))
-                        .modifier(QuietAppear(index: index))
-                        .modifier(CardScrollFade())
-                        .task {
-                            if index >= items.count - 5 { await loadMore() }
-                        }
-                    }
-                    if loadingMore {
-                        KurlLoadingMark()
-                            .frame(maxWidth: .infinity).padding(.vertical, 18)
-                    }
+                Picker("보기", selection: $tab) {
+                    Text("글").tag(TagFeedTab.posts)
+                    Text("노트").tag(TagFeedTab.notes)
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("tag.tabs")
+                switch tab {
+                case .posts: postsContent
+                case .notes: notesContent
                 }
             }
             .padding(.bottom, 16)
@@ -88,7 +70,98 @@ struct TagFeedView: View {
         .toolbarBackground(showNavTitle ? .automatic : .hidden, for: .navigationBar)
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
-        .task { await load() }
+        .noteTagLinks()
+        .task(id: tab) {
+            switch tab {
+            case .posts: await load()
+            case .notes: if case .idle = notes.phase { await notes.reload() }
+            }
+        }
+        .refreshable {
+            if tab == .notes { await notes.reload() }
+        }
+    }
+
+    @ViewBuilder
+    private var postsContent: some View {
+        switch phase {
+        case .idle, .loading:
+            KurlLoadingMark()
+                .frame(maxWidth: .infinity, minHeight: 280)
+        case .failed(let message):
+            ErrorState(message: message, retry: { Task { await load() } })
+                .padding(.top, 60)
+        case .loaded(let items):
+            if items.isEmpty {
+                ContentUnavailableView {
+                    Label("글이 없어요", systemImage: "tray")
+                } description: {
+                    Text("이 태그의 글이 아직 없어요.")
+                } actions: {
+                    Button("피드에서 읽을 글 찾기") { TabRouter.shared.selection = 0 }
+                        .foregroundStyle(Palette.link)
+                }
+                .padding(.top, 60)
+            }
+            // 태그 피드도 browse 면 — 검색·홈과 같은 카드 문법(웹 §10.1 예외 경계).
+            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
+                    BlogCard(item: item, omittingTag: tag)
+                }
+                .buttonStyle(CardButtonStyle())
+                .cardQuickActions(item)
+                .modifier(ZoomSource(
+                    active: true,
+                    id: "tag-\(item.author.username)-\(item.slug)",
+                    ns: zoomNS))
+                .modifier(QuietAppear(index: index))
+                .modifier(CardScrollFade())
+                .task {
+                    if index >= items.count - 5 { await loadMore() }
+                }
+            }
+            if loadingMore {
+                KurlLoadingMark()
+                    .frame(maxWidth: .infinity).padding(.vertical, 18)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var notesContent: some View {
+        switch notes.phase {
+        case .idle, .loading:
+            KurlLoadingMark()
+                .frame(maxWidth: .infinity, minHeight: 280)
+        case .failed(let message):
+            ErrorState(message: message, retry: { Task { await notes.reload() } })
+                .padding(.top, 60)
+        case .loaded:
+            if notes.items.isEmpty {
+                ContentUnavailableView {
+                    Label("노트가 없어요", systemImage: "text.bubble")
+                } description: {
+                    Text("이 태그의 노트가 아직 없어요.")
+                }
+                .padding(.top, 60)
+            } else {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(notes.items.enumerated()), id: \.element.id) { index, note in
+                        NoteRowView(
+                            note: note,
+                            onChange: { notes.replaced($0) },
+                            onDelete: { notes.removed($0) }
+                        )
+                        .modifier(QuietAppear(index: index))
+                        .task { await notes.loadMoreIfNeeded(current: note) }
+                        if index < notes.items.count - 1 { Hairline().padding(.horizontal, -Metrics.gutter) }
+                    }
+                    if notes.isLoadingMore {
+                        KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
+                    }
+                }
+            }
+        }
     }
 
     /// 태그 머리 — "태그" eyebrow + #태그 디스플레이 제목 + 구독 버튼. 페이지의 단일 히어로.

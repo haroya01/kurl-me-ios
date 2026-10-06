@@ -82,7 +82,7 @@ enum MockBackend {
     }
 
     private static var notes: [MockNote] = [
-        MockNote(id: 9501, body: "오늘 헥사고날 포트 이름 짓는 데 한 시간 썼다. 이름이 곧 경계라는 걸 다시 배운다.",
+        MockNote(id: 9501, body: "오늘 헥사고날 포트 이름 짓는 데 한 시간 썼다. 이름이 곧 경계라는 걸 다시 배운다. #아키텍처",
                  createdAt: Date().addingTimeInterval(-1_800), likeCount: 4, authorId: 2, username: "yuki_dev"),
         MockNote(id: 9505, body: "이름 짓는 데 한 시간이면 싸게 먹힌 거다. 우리 팀은 일주일 걸렸다.",
                  createdAt: Date().addingTimeInterval(-3_600), likeCount: 1, authorId: 1, username: "honggildong",
@@ -943,6 +943,11 @@ enum MockBackend {
             bookmarkedNotes.removeAll { $0 == nid }
             if method == "PUT" { bookmarkedNotes.insert(nid, at: 0) }
             return json(["bookmarked": method == "PUT"])
+        }
+        if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "notes", parts[2] == "tags" {
+            let needle = "#" + parts[3].lowercased()
+            let items = allNotes().filter { $0.body.lowercased().contains(needle) }.map(noteView)
+            return json(["items": items, "page": 0, "hasNext": false])
         }
         if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "notes", parts[3] == "quotes",
            let nid = Int64(parts[2]) {

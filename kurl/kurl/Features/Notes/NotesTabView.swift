@@ -38,6 +38,7 @@ struct NotesTabView: View {
             .navigationDestination(for: Route.self) {
                 RouteView(route: $0)
             }
+            .noteTagLinks()
             .task(id: AuthStore.shared.isSignedIn) {
                 let signedIn = AuthStore.shared.isSignedIn
                 if loadedSignedIn == signedIn { return }
