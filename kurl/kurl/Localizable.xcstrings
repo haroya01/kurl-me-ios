@@ -6068,6 +6068,118 @@
         }
       }
     },
+    "노트 피드": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes feed"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नोट्स फ़ीड"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートのフィード"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bảng tin ghi chú"
+          }
+        }
+      }
+    },
+    "노트 피드 고르기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a notes feed"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नोट्स फ़ीड चुनें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートのフィードを選ぶ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chọn bảng tin ghi chú"
+          }
+        }
+      }
+    },
+    "로그인하고 팔로잉 피드 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to see your following feed"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ॉलोइंग फ़ीड देखने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログインしてフォロー中のフィードを見る"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để xem bảng tin đang theo dõi"
+          }
+        }
+      }
+    },
+    "로그인하면 블로그와 노트에서 팔로우한 사람의 노트가 여기 모여요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to gather notes from people you follow on the blog and in notes."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साइन इन करें — ब्लॉग और नोट्स में जिन्हें आप फ़ॉलो करते हैं, उनके नोट्स यहाँ आएँगे।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログインすると、ブログとノートでフォローした人のノートがここに集まります。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để xem ghi chú của những người bạn theo dõi trên blog và ghi chú."
+          }
+        }
+      }
+    },
     "리포스트": {
       "localizations": {
         "en": {
@@ -6208,6 +6320,34 @@
         }
       }
     },
+    "모든 노트": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All notes"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सभी नोट्स"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべてのノート"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tất cả ghi chú"
+          }
+        }
+      }
+    },
     "방금": {
       "localizations": {
         "en": {
@@ -6232,6 +6372,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "vừa xong"
+          }
+        }
+      }
+    },
+    "블로그에서 팔로우한 사람도 함께 보여요. 인기 노트에서 시작해 보세요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "People you follow on the blog show up here too. Start with trending notes."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ब्लॉग पर जिन्हें आप फ़ॉलो करते हैं, वे भी यहाँ दिखते हैं। ट्रेंडिंग नोट्स से शुरू करें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブログでフォローした人もここに表示されます。人気のノートから始めてみましょう。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Những người bạn theo dõi trên blog cũng hiện ở đây. Hãy bắt đầu với ghi chú thịnh hành."
           }
         }
       }
@@ -10699,6 +10867,62 @@
         }
       }
     },
+    "이번 주에 쓴 노트가 아직 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No notes this week yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस हफ़्ते अभी कोई नोट नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今週のノートはまだありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tuần này chưa có ghi chú nào"
+          }
+        }
+      }
+    },
+    "인기 노트 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "See trending notes"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ट्रेंडिंग नोट्स देखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人気のノートを見る"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xem ghi chú thịnh hành"
+          }
+        }
+      }
+    },
     "인용 노트를 올렸어요": {
       "localizations": {
         "en": {
@@ -10723,6 +10947,90 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đã đăng trích dẫn"
+          }
+        }
+      }
+    },
+    "일주일 안에 쓴 노트 중 반응을 많이 받은 노트가 먼저 올라와요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes from the past week with the most reactions come first."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पिछले एक हफ़्ते के नोट्स में जिन्हें सबसे ज़्यादा प्रतिक्रिया मिली, वे पहले आते हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この一週間に書かれたノートのうち、反応の多いものが先に並びます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ghi chú trong tuần qua có nhiều tương tác nhất sẽ hiện trước."
+          }
+        }
+      }
+    },
+    "팔로우한 사람의 노트가 여기 모여요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes from people you follow show up here"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जिन्हें आप फ़ॉलो करते हैं, उनके नोट्स यहाँ दिखते हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォロー中の人のノートがここに集まります"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ghi chú từ người bạn theo dõi sẽ hiện ở đây"
+          }
+        }
+      }
+    },
+    "팔로우한 사람의 노트만 모아 봐요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "See notes from people you follow"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जिन्हें आप फ़ॉलो करते हैं, उनके नोट्स देखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォロー中の人のノートだけを見る"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xem ghi chú từ người bạn theo dõi"
           }
         }
       }

@@ -55,6 +55,42 @@ final class NotesFeedUITests: XCTestCase {
         add(shot)
     }
 
+    func testTappingTheNotesTabAgainSwitchesTheFeed() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+        XCTAssertTrue(app.buttons["note.menu.9503"].waitForExistence(timeout: 10), "모든 노트에 reader_kim 노트가 없음")
+
+        let menu = app.buttons["tab.menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 5), "선택된 노트 탭이 메뉴가 아님")
+        menu.tap()
+        let trending = app.buttons["인기"]
+        XCTAssertTrue(trending.waitForExistence(timeout: 5), "탭 위로 피드 메뉴가 열리지 않음")
+        let opened = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        opened.name = "notes-feed-menu"
+        opened.lifetime = .keepAlways
+        add(opened)
+        trending.tap()
+
+        XCTAssertTrue(app.navigationBars["인기"].waitForExistence(timeout: 5), "제목이 인기로 안 바뀜")
+        let top = app.buttons["note.menu.9502"]
+        let newest = app.buttons["note.menu.9501"]
+        XCTAssertTrue(top.waitForExistence(timeout: 8) && newest.waitForExistence(timeout: 2), "인기 피드가 안 그려짐")
+        XCTAssertLessThan(top.frame.minY, newest.frame.minY, "좋아요 11개 노트가 최신 노트보다 위에 있지 않음")
+
+        menu.tap()
+        app.buttons["팔로잉"].tap()
+        XCTAssertTrue(app.navigationBars["팔로잉"].waitForExistence(timeout: 5), "제목이 팔로잉으로 안 바뀜")
+        XCTAssertTrue(app.buttons["note.menu.9501"].waitForExistence(timeout: 8), "팔로잉 피드가 안 그려짐")
+        XCTAssertFalse(app.buttons["note.menu.9503"].exists, "팔로우하지 않은 사람의 노트가 팔로잉에 섞임")
+
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "notes-following"
+        shot.lifetime = .keepAlways
+        add(shot)
+    }
+
     func testANotesRepliesOpenFromItsRow() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]

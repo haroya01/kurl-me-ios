@@ -17,16 +17,30 @@ final class NotesViewModel {
     private var page = 0
     private var hasNext = true
     private var epoch = 0
-    private let source: Source
+    private var source: Source
 
-    enum Source {
+    enum Source: Equatable {
         case everyone
+        case following
+        case trending
         case author(String)
         case reposts(String)
+
+        init(_ feed: NoteFeedKind) {
+            switch feed {
+            case .everyone: self = .everyone
+            case .following: self = .following
+            case .trending: self = .trending
+            }
+        }
     }
 
     init(author: String? = nil) {
         source = author.map(Source.author) ?? .everyone
+    }
+
+    init(feed: NoteFeedKind) {
+        source = Source(feed)
     }
 
     init(repostsBy username: String) {
@@ -36,9 +50,27 @@ final class NotesViewModel {
     private func load(_ page: Int) async throws -> NoteFeed {
         switch source {
         case .everyone: try await NoteAPI.everyone(page: page)
+        case .following:
+            if AuthStore.shared.isSignedIn {
+                try await NoteAPI.following(page: page)
+            } else {
+                NoteFeed(items: [], page: 0, hasNext: false)
+            }
+        case .trending: try await NoteAPI.trending(page: page)
         case let .author(username): try await NoteAPI.byAuthor(username, page: page)
         case let .reposts(username): try await NoteAPI.reposts(username, page: page)
         }
+    }
+
+    func show(_ next: Source) async {
+        guard next != source else { return }
+        source = next
+        epoch += 1
+        items = []
+        page = 0
+        hasNext = true
+        phase = .loading
+        await reload()
     }
 
     func reload() async {

@@ -6,7 +6,9 @@
 import SwiftUI
 
 struct NotesTabView: View {
-    @State private var notes = NotesViewModel()
+    @State private var choice = NoteFeedChoice.shared
+    @State private var notes = NotesViewModel(feed: NoteFeedChoice.shared.kind)
+    @State private var showFollowingLogin = false
     @State private var composingNote = false
     @State private var notesPosted = 0
     @State private var showLoginSheet = false
@@ -23,8 +25,13 @@ struct NotesTabView: View {
             }
             .onAppear { atRoot = true }
             .onDisappear { atRoot = false }
-            .navigationTitle("노트")
+            .navigationTitle(choice.kind.title)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarTitleMenu { NoteFeedPicker() }
+            .onChange(of: choice.kind) { _, kind in
+                Task { await notes.show(.init(kind)) }
+            }
+            .sensoryFeedback(.selection, trigger: choice.kind)
             .navigationDestination(for: Route.self) {
                 RouteView(route: $0)
             }
@@ -44,6 +51,9 @@ struct NotesTabView: View {
                 }
             }
             .loginPrompt(isPresented: $showLoginSheet, message: "로그인하고 노트 쓰기")
+            .background {
+                Color.clear.loginPrompt(isPresented: $showFollowingLogin, message: "로그인하고 팔로잉 피드 보기")
+            }
             .sensoryFeedback(.success, trigger: notesPosted)
         }
         .overlay(alignment: .bottomTrailing) { composeButton }
@@ -109,6 +119,52 @@ struct NotesTabView: View {
 
     @ViewBuilder
     private var content: some View {
+        if choice.kind == .following, !AuthStore.shared.isSignedIn {
+            FeedPlaceholder(
+                title: "팔로우한 사람의 노트만 모아 봐요",
+                message: "로그인하면 블로그와 노트에서 팔로우한 사람의 노트가 여기 모여요.",
+                actionTitle: "로그인",
+                prominent: true,
+                action: { showFollowingLogin = true }
+            )
+            .padding(.top, 56)
+        } else {
+            feed
+        }
+    }
+
+    @ViewBuilder
+    private var emptyFeed: some View {
+        switch choice.kind {
+        case .everyone:
+            FeedPlaceholder(
+                title: "아직 노트가 없어요",
+                message: "제목도 형식도 없이, 지금 떠오른 한 줄을 남기는 자리예요.",
+                actionTitle: "첫 노트 쓰기",
+                prominent: true,
+                action: compose
+            )
+        case .following:
+            FeedPlaceholder(
+                title: "팔로우한 사람의 노트가 여기 모여요",
+                message: "블로그에서 팔로우한 사람도 함께 보여요. 인기 노트에서 시작해 보세요.",
+                actionTitle: "인기 노트 보기",
+                prominent: true,
+                action: { choice.kind = .trending }
+            )
+        case .trending:
+            FeedPlaceholder(
+                title: "이번 주에 쓴 노트가 아직 없어요",
+                message: "일주일 안에 쓴 노트 중 반응을 많이 받은 노트가 먼저 올라와요.",
+                actionTitle: "첫 노트 쓰기",
+                prominent: true,
+                action: compose
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var feed: some View {
         switch notes.phase {
         case .idle, .loading:
             KurlLoadingMark().frame(maxWidth: .infinity, minHeight: 320)
@@ -116,14 +172,7 @@ struct NotesTabView: View {
             ErrorState(message: message, retry: { Task { await notes.reload() } })
         case .loaded:
             if notes.items.isEmpty {
-                FeedPlaceholder(
-                    title: "아직 노트가 없어요",
-                    message: "제목도 형식도 없이, 지금 떠오른 한 줄을 남기는 자리예요.",
-                    actionTitle: "첫 노트 쓰기",
-                    prominent: true,
-                    action: compose
-                )
-                .padding(.top, 56)
+                emptyFeed.padding(.top, 56)
             } else {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(notes.items.enumerated()), id: \.element.id) { index, note in

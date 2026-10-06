@@ -290,9 +290,14 @@ struct RootView: View {
             }
             // 커스텀 바가 시스템 탭바의 콘텐츠 인셋을 대신한다 — 마지막 카드가 바 뒤로 숨지 않게
             // 탭 콘텐츠 하단에 바 높이만큼 안전영역을 넓힌다(바는 이 인셋 밖 오버레이라 안 밀린다).
-            .safeAreaPadding(.bottom, FloatingTabBar.reservedHeight)
+            .safeAreaPadding(.bottom, Metrics.tabBarReservedHeight)
 
-            FloatingTabBar(tabs: tabs, selection: selection, hidden: tabBarVisibility.hidden)
+            FloatingTabBar(
+                tabs: tabs, selection: selection, hidden: tabBarVisibility.hidden,
+                menuTab: 1, menuLabel: "노트 피드 고르기"
+            ) {
+                NoteFeedPicker()
+            }
                 // Rebuild glass controls when returning from a screen that force-hides them.
                 // Scroll-driven hiding keeps the same identity and its existing animation.
                 .id(tabBarVisibility.forceHidden)
@@ -359,16 +364,15 @@ struct RootView: View {
 /// 스레드식 커스텀 하단바 — 시스템 유리 결(§1 액체 크롬)의 5탭 아이콘-온리. 스크롤을 내리면
 /// 아래로 미끄러져 사라지고(hidden) 올리면 되돌아온다. 시스템 TabView 의 바를 스크롤로 못
 /// 숨겨(27 실측) 우리가 소유한다 — 대신 스레드처럼 확실히 사라진다.
-private struct FloatingTabBar: View {
-    /// 탭 콘텐츠가 하단에 비워 둘 높이(바 높이 + 숨 쉴 여백) — 시스템 탭바 콘텐츠 인셋 대체.
-    /// 값은 Metrics 에 두고 공유한다 — 바 위에 떠 있는 독(EngagementDock)도 같은 예약 높이를 물어야 한다.
-    static let reservedHeight = Metrics.tabBarReservedHeight
-
+private struct FloatingTabBar<TabMenu: View>: View {
     let tabs: [(icon: String, label: LocalizedStringKey)]
     let selection: Binding<Int>
     /// 숨김 여부 — 스크롤다운이면 true. 전환은 위 report 호출부(withAnimation)가 부드럽게 몰고,
     /// reduce-motion 이면 그쪽에서 즉시 토글한다(여기선 상태만 그린다).
     let hidden: Bool
+    let menuTab: Int
+    let menuLabel: LocalizedStringKey
+    @ViewBuilder let menu: TabMenu
     /// 아이콘 크기는 Dynamic Type 를 따른다(고정 pt 로 접근성 크기를 무시하지 않게).
     /// 네이티브 iOS 26 유리 탭바 심볼 비례(≈25pt)에 맞춘다 — 22pt 는 얇게 읽혔다.
     @ScaledMetric(relativeTo: .title3) private var iconSize: CGFloat = 25
@@ -378,22 +382,28 @@ private struct FloatingTabBar: View {
             HStack(spacing: 0) {
                 ForEach(Array(tabs.enumerated()), id: \.offset) { index, tab in
                     let active = index == selection.wrappedValue
-                    Button {
-                        // 이미 선택된 탭을 다시 누르면 시각적으로 무해(향후 top-scroll 훅 자리).
-                        selection.wrappedValue = index
-                    } label: {
-                        Image(systemName: tab.icon)
-                            .font(.system(size: iconSize, weight: active ? .semibold : .regular))
-                            // active = brand green(§10.3 데이터/주액션), 나머지는 잉크로 가라앉힌다.
-                            .foregroundStyle(active ? AnyShapeStyle(Palette.link)
-                                                    : AnyShapeStyle(.secondary))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 44)
-                            .contentShape(Rectangle())
+                    if active, index == menuTab {
+                        Menu {
+                            menu
+                        } label: {
+                            icon(tab.icon, active: true)
+                        }
+                        .menuStyle(.button)
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(Text(tab.label))
+                        .accessibilityHint(Text(menuLabel))
+                        .accessibilityAddTraits(.isSelected)
+                        .accessibilityIdentifier("tab.menu")
+                    } else {
+                        Button {
+                            selection.wrappedValue = index
+                        } label: {
+                            icon(tab.icon, active: active)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(Text(tab.label))
+                        .accessibilityAddTraits(active ? [.isSelected, .isButton] : .isButton)
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(Text(tab.label))
-                    .accessibilityAddTraits(active ? [.isSelected, .isButton] : .isButton)
                 }
             }
             .padding(.horizontal, 10)
@@ -410,6 +420,16 @@ private struct FloatingTabBar: View {
         // 숨겨졌을 땐 손가락도 안 받는다(투명 바가 하단 탭을 가로채지 않게).
         .allowsHitTesting(!hidden)
         .accessibilityHidden(hidden)
+    }
+
+    private func icon(_ name: String, active: Bool) -> some View {
+        Image(systemName: name)
+            .font(.system(size: iconSize, weight: active ? .semibold : .regular))
+            // active = brand green(§10.3 데이터/주액션), 나머지는 잉크로 가라앉힌다.
+            .foregroundStyle(active ? AnyShapeStyle(Palette.link) : AnyShapeStyle(.secondary))
+            .frame(maxWidth: .infinity)
+            .frame(height: 44)
+            .contentShape(Rectangle())
     }
 }
 
