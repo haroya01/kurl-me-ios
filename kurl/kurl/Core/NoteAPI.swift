@@ -21,6 +21,12 @@ enum NoteAPI {
             "/public/notes", query: ["page": String(page), "size": "20"], authenticated: signedIn)
     }
 
+    static func trending(page: Int = 0) async throws -> NoteFeed {
+        try await client.get(
+            "/public/notes", query: ["sort": "trending", "page": String(page), "size": "20"],
+            authenticated: signedIn)
+    }
+
     static func following(page: Int = 0) async throws -> NoteFeed {
         try await client.get(
             "/notes/following", query: ["page": String(page), "size": "20"], authenticated: true)

@@ -925,7 +925,21 @@ enum MockBackend {
         }
 
         // 노트는 공개 읽기까지 목으로 받는다 — 목 세션(honggildong, id 1)의 노트만 좋아요 수가 보인다.
-        if method == "GET", parts == ["public", "notes"] || parts == ["notes", "following"] {
+        if method == "GET", parts == ["public", "notes"],
+           query?.first(where: { $0.name == "sort" })?.value == "trending" {
+            let ranked = topLevelNotes().sorted {
+                ($0.likeCount + Int64(replyCount($0.id))) > ($1.likeCount + Int64(replyCount($1.id)))
+            }
+            return json(["items": ranked.map(noteView), "page": 0, "hasNext": false])
+        }
+        if method == "GET", parts == ["notes", "following"] {
+            let followed: Set<Int64> = [1, 2]
+            return json([
+                "items": topLevelNotes().filter { followed.contains($0.authorId) }.map(noteView),
+                "page": 0, "hasNext": false,
+            ])
+        }
+        if method == "GET", parts == ["public", "notes"] {
             return json(["items": topLevelNotes().map(noteView), "page": 0, "hasNext": false])
         }
         if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "profiles",
@@ -1773,6 +1787,10 @@ enum MockBackend {
 
     private static func allNotes() -> [MockNote] { notes + noteReplies }
 
+    private static func replyCount(_ id: Int64) -> Int {
+        noteReplies.filter { $0.inReplyToId == id }.count
+    }
+
     private static func topLevelNotes() -> [MockNote] {
         notes.filter { $0.inReplyToId == nil }.sorted { $0.createdAt > $1.createdAt }
     }
@@ -1787,7 +1805,7 @@ enum MockBackend {
             "media": n.media,
             "quotedPost": n.quotedPost ?? NSNull(),
             "inReplyToId": n.inReplyToId ?? NSNull(),
-            "replyCount": noteReplies.filter { $0.inReplyToId == n.id }.count,
+            "replyCount": replyCount(n.id),
             "repostCount": n.authorId == 1 ? repostCount(n.id) : NSNull(),
             "repostedByMe": repostedNotes["honggildong"]?.contains(n.id) == true,
             "linkPreview": n.linkPreview ?? NSNull(),
