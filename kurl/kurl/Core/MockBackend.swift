@@ -1216,7 +1216,9 @@ enum MockBackend {
                 "author": [
                     // honggildong = 목 로그인 유저(내 프로필), 그 외는 남(신고 노출 검증용).
                     "id": username == "honggildong" ? 1 : 2, "username": username,
-                    "bio": "경계를 긋는 사람. 헥사고날·도메인 모델링.", "avatarUrl": NSNull(),
+                    "bio": "경계를 긋는 사람. 헥사고날·도메인 모델링.",
+                    "avatarUrl": username == "yuki_dev"
+                        ? "https://picsum.photos/seed/kurl-yuki/600/600" as Any : NSNull(),
                 ],
                 "posts": posts,
             ])

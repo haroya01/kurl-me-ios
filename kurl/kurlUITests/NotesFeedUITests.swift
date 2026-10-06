@@ -173,6 +173,13 @@ final class NotesFeedUITests: XCTestCase {
         app.buttons["author.tab.posts"].tap()
         XCTAssertTrue(app.buttons["author.tab.posts"].isSelected, "글 탭으로 바뀌지 않음")
         attach(app, "author-posts-tab")
+
+        app.buttons["author.avatar"].tap()
+        let close = app.buttons["author.avatar.close"]
+        XCTAssertTrue(close.waitForExistence(timeout: 4), "프로필 사진을 눌러도 크게 열리지 않음")
+        attach(app, "author-avatar-viewer")
+        close.tap()
+        XCTAssertFalse(close.waitForExistence(timeout: 2), "닫기를 눌러도 사진 보기가 남음")
     }
 
     func testRepostMenuTogglesAndQuotePostsAboveTheFeed() throws {

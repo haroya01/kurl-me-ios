@@ -238,23 +238,7 @@ struct NoteRowView: View {
                 NoteImagesView(media: note.media)
                 if let post = note.quotedPost {
                     NavigationLink(value: Route.post(username: post.authorUsername, slug: post.slug)) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(post.authorUsername)
-                                .typeScale(.meta)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(Palette.ink)
-                            Text(post.title)
-                                .typeScale(.body)
-                                .foregroundStyle(Palette.ink)
-                                .multilineTextAlignment(.leading)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 11)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: Metrics.radiusMini)
-                                .stroke(Palette.hairlineStrong, lineWidth: 1))
-                        .contentShape(RoundedRectangle(cornerRadius: Metrics.radiusMini))
+                        QuotedPostCard(post: post)
                     }
                     .buttonStyle(.plain)
                     .padding(.top, 6)
@@ -442,6 +426,37 @@ struct NoteRowView: View {
         } catch {
             ToastCenter.shared.show(String(localized: "노트를 삭제하지 못했습니다"))
         }
+    }
+}
+
+/// 인용된 블로그 글 — 인용된 노트 카드와 같은 틀(작성자 · 블로그 글 + 제목).
+struct QuotedPostCard: View {
+    let post: QuotedPost
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 4) {
+                Text(post.authorUsername)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Palette.ink)
+                    .lineLimit(1)
+                Text("· 블로그 글")
+                    .foregroundStyle(Palette.secondary)
+            }
+            .typeScale(.meta)
+            Text(post.title)
+                .typeScale(.body)
+                .fontWeight(.medium)
+                .foregroundStyle(Palette.ink)
+                .multilineTextAlignment(.leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
+        .overlay(
+            RoundedRectangle(cornerRadius: Metrics.radiusMini)
+                .stroke(Palette.hairlineStrong, lineWidth: 1))
+        .contentShape(RoundedRectangle(cornerRadius: Metrics.radiusMini))
     }
 }
 
@@ -1026,33 +1041,20 @@ struct NoteComposeSheet: View {
     }
 
     private func quoteCard(_ quote: QuotedPost) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(quote.authorUsername)
-                    .typeScale(.meta)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Palette.ink)
-                Text(quote.title)
-                    .typeScale(.body)
-                    .foregroundStyle(Palette.ink)
-                    .multilineTextAlignment(.leading)
+        QuotedPostCard(post: quote)
+            .overlay(alignment: .topTrailing) {
+                Button {
+                    self.quote = nil
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(Palette.faint)
+                        .frame(width: 32, height: 32)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(4)
+                .accessibilityLabel("인용 빼기")
             }
-            Spacer(minLength: 0)
-            Button {
-                self.quote = nil
-            } label: {
-                Image(systemName: "xmark.circle.fill").foregroundStyle(Palette.faint)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("인용 빼기")
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 11)
-        .overlay(
-            RoundedRectangle(cornerRadius: Metrics.radiusMini)
-                .stroke(Palette.hairlineStrong, lineWidth: 1))
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel(Text("인용한 글"))
     }
 
     private func altEditor(for id: UUID) -> some View {
