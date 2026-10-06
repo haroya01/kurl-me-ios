@@ -1053,6 +1053,34 @@
         }
       }
     },
+    "%@님이 노트에서 나를 언급했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ mentioned you in a note"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ने नोट में आपका ज़िक्र किया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@さんがノートであなたをメンションしました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ đã nhắc đến bạn trong một ghi chú"
+          }
+        }
+      }
+    },
     "%@님이 다른 서버에서 나를 팔로우했어요": {
       "localizations": {
         "en": {
@@ -6292,6 +6320,34 @@
         }
       }
     },
+    "노트 멘션": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note mentions"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नोट मेंशन"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートのメンション"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nhắc đến trong ghi chú"
+          }
+        }
+      }
+    },
     "노트 삭제": {
       "localizations": {
         "en": {
@@ -6624,6 +6680,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Khi ai đó trả lời ghi chú của bạn"
+          }
+        }
+      }
+    },
+    "누가 노트에서 나를 언급할 때": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When someone mentions you in a note"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जब कोई नोट में आपका ज़िक्र करे"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "誰かがノートであなたをメンションしたとき"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khi ai đó nhắc đến bạn trong ghi chú"
           }
         }
       }

@@ -117,7 +117,7 @@ enum MockBackend {
     /// 사용자별 리포스트한 노트 id(최신 먼저). 목 세션은 honggildong.
     private static var repostedNotes: [String: [Int64]] = ["honggildong": [9503], "yuki_dev": [9505]]
     private static var noteReplies: [MockNote] = [
-        MockNote(id: 9551, body: "이름이 경계라는 말, 오래 남을 것 같아요.",
+        MockNote(id: 9551, body: "@yuki_dev 이름이 경계라는 말, 오래 남을 것 같아요.",
                  createdAt: Date().addingTimeInterval(-1_200), likeCount: 0, authorId: 3,
                  username: "reader_kim", inReplyToId: 9501),
     ]
@@ -1631,6 +1631,11 @@ enum MockBackend {
                      "noteId": 9502, "noteExcerpt": "긴 글로 정리하기 전의 생각 조각을 둘 곳이 필요했는데, 노트가 딱 그 자리다.",
                      "sourceNoteId": 9551, "sourceExcerpt": "이름이 경계라는 말, 오래 남을 것 같아요.",
                      "count": 1, "read": false, "createdAt": iso(Date().addingTimeInterval(-450))],
+                    ["id": 13, "type": "NOTE_MENTION", "actorUsername": "yuki_dev", "actorAvatarUrl": NSNull(),
+                     "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
+                     "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                     "noteId": 9501, "noteExcerpt": "오늘 헥사고날 포트 이름 짓는 데 한 시간 썼다.",
+                     "count": 1, "read": false, "createdAt": iso(Date().addingTimeInterval(-600))],
                     ["id": 10, "type": "REMOTE_FOLLOW", "actorUsername": "bob@fosstodon.org", "actorAvatarUrl": NSNull(),
                      "actorProfileUrl": "https://fosstodon.org/@bob",
                      "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
@@ -1863,6 +1868,7 @@ enum MockBackend {
             "bookmarkedByMe": bookmarkedNotes.contains(n.id),
             "quoteCount": allNotes().filter { $0.quotedNoteId == n.id }.count,
             "linkPreview": n.linkPreview ?? NSNull(),
+            "mentions": ["honggildong", "yuki_dev", "reader_kim"].filter { n.body.lowercased().contains("@" + $0) },
             "quotedNote": n.quotedNoteId.flatMap { qid in allNotes().first { $0.id == qid } }
                 .map { q -> [String: Any] in
                     [

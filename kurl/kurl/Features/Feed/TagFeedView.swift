@@ -70,7 +70,7 @@ struct TagFeedView: View {
         .toolbarBackground(showNavTitle ? .automatic : .hidden, for: .navigationBar)
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
-        .noteTagLinks()
+        .noteTextLinks()
         .task(id: tab) {
             switch tab {
             case .posts: await load()

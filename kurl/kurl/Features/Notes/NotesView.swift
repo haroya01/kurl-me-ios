@@ -305,7 +305,7 @@ struct NoteRowView: View {
                 moreMenu
             }
             if !note.body.isEmpty {
-                Text(NoteText.attributed(note.body))
+                Text(NoteText.attributed(note.body, mentions: note.mentions ?? []))
                     .typeScale(.noteFocus)
                     .foregroundStyle(Palette.ink)
                     .tint(Palette.link)
@@ -362,7 +362,7 @@ struct NoteRowView: View {
                 header
                 if !note.body.isEmpty {
                     NavigationLink(value: Route.note(id: note.id)) {
-                        Text(NoteText.attributed(note.body))
+                        Text(NoteText.attributed(note.body, mentions: note.mentions ?? []))
                             .typeScale(.note)
                             .foregroundStyle(Palette.ink)
                             .tint(Palette.link)
@@ -887,12 +887,14 @@ private struct TileFrame: ViewModifier {
 enum NoteText {
     private static let urlPattern = try? NSRegularExpression(pattern: "https?://[^\\s<]+")
     private static let tokenPattern = try? NSRegularExpression(
-        pattern: "(https?://[^\\s<]+)|(?<![=/)\\p{L}\\p{M}\\p{N}_#])#([\\p{L}\\p{M}\\p{N}_][\\p{L}\\p{M}\\p{N}_·・]*)")
+        pattern: "(https?://[^\\s<]+)|(?<![=/)\\p{L}\\p{M}\\p{N}_#])#([\\p{L}\\p{M}\\p{N}_][\\p{L}\\p{M}\\p{N}_·・]*)"
+            + "|(?<![A-Za-z0-9_])@([A-Za-z0-9][A-Za-z0-9_]{2,15})(?![A-Za-z0-9_@])")
     private static let trailing = CharacterSet(charactersIn: ".,!?:;)]'\"")
     private static let tagSeparators = CharacterSet(charactersIn: "·・")
-    private static let tagScheme = "kurl-note-tag"
+    private static let linkScheme = "kurl-note"
 
-    static func attributed(_ body: String) -> AttributedString {
+    static func attributed(_ body: String, mentions: [String] = []) -> AttributedString {
+        let members = Set(mentions)
         var result = AttributedString()
         let ns = body as NSString
         var last = 0
@@ -906,10 +908,15 @@ enum NoteText {
                 }
                 text = link
                 url = URL(string: link)
-            } else {
+            } else if match.range(at: 2).location != NSNotFound {
                 guard let name = tagName(ns.substring(with: match.range(at: 2))) else { continue }
                 text = "#" + name
-                url = tagURL(name)
+                url = link(.tag(name))
+            } else {
+                let handle = ns.substring(with: match.range(at: 3))
+                guard members.contains(handle.lowercased()) else { continue }
+                text = "@" + handle
+                url = link(.member(handle.lowercased()))
             }
             if match.range.location > last {
                 result += AttributedString(ns.substring(with: NSRange(location: last, length: match.range.location - last)))
@@ -934,18 +941,29 @@ enum NoteText {
         return name
     }
 
-    static func tagURL(_ name: String) -> URL? {
+    static func link(_ target: NoteLinkTarget) -> URL? {
         var components = URLComponents()
-        components.scheme = tagScheme
-        components.host = "tag"
-        components.path = "/" + name
+        components.scheme = linkScheme
+        switch target {
+        case let .tag(name):
+            components.host = "tag"
+            components.path = "/" + name
+        case let .member(username):
+            components.host = "member"
+            components.path = "/" + username
+        }
         return components.url
     }
 
-    static func tag(from url: URL) -> String? {
-        guard url.scheme == tagScheme else { return nil }
-        let name = String(url.path(percentEncoded: false).dropFirst())
-        return name.isEmpty ? nil : name
+    static func target(from url: URL) -> NoteLinkTarget? {
+        guard url.scheme == linkScheme else { return nil }
+        let value = String(url.path(percentEncoded: false).dropFirst())
+        guard !value.isEmpty else { return nil }
+        switch url.host() {
+        case "tag": return .tag(value)
+        case "member": return .member(value)
+        default: return nil
+        }
     }
 
     static func length(_ text: String) -> Int {
@@ -1093,7 +1111,7 @@ struct NoteDetailView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Palette.readingBg)
         .navigationBarTitleDisplayMode(.inline)
-        .noteTagLinks()
+        .noteTextLinks()
         .hidesTabBar()
         .safeAreaInset(edge: .bottom) {
             if let thread { replyBar(to: thread.note.author.username) }
@@ -1642,24 +1660,32 @@ private struct NoteLengthRing: View {
     }
 }
 
-/// 본문의 #해시태그를 누르면 그 태그 화면의 노트 탭으로 — 노트를 그리는 화면 루트에 단다
-/// (줄마다 달면 지연 목록 안의 navigationDestination 이 무시된다).
-struct NoteTagLinks: ViewModifier {
-    @State private var tag: String?
+enum NoteLinkTarget: Hashable {
+    case tag(String)
+    case member(String)
+}
+
+/// 본문의 #해시태그는 그 태그 화면의 노트 탭으로, @회원은 그 프로필로 — 노트를 그리는 화면
+/// 루트에 단다(줄마다 달면 지연 목록 안의 navigationDestination 이 무시된다).
+struct NoteTextLinks: ViewModifier {
+    @State private var target: NoteLinkTarget?
 
     func body(content: Content) -> some View {
         content
             .environment(\.openURL, OpenURLAction { url in
-                guard let name = NoteText.tag(from: url) else { return .systemAction }
-                tag = name
+                guard let found = NoteText.target(from: url) else { return .systemAction }
+                target = found
                 return .handled
             })
-            .navigationDestination(item: $tag) { name in
-                TagFeedView(tag: name, initialTab: .notes)
+            .navigationDestination(item: $target) { target in
+                switch target {
+                case let .tag(name): TagFeedView(tag: name, initialTab: .notes)
+                case let .member(username): AuthorBlogView(username: username, initialTab: .notes)
+                }
             }
     }
 }
 
 extension View {
-    func noteTagLinks() -> some View { modifier(NoteTagLinks()) }
+    func noteTextLinks() -> some View { modifier(NoteTextLinks()) }
 }
