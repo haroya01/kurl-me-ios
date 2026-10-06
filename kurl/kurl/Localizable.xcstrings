@@ -5928,6 +5928,34 @@
         }
       }
     },
+    "누구나 볼 수 있어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anyone can see this"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इसे कोई भी देख सकता है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "誰でも見られます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ai cũng có thể xem"
+          }
+        }
+      }
+    },
     "로그인하고 노트 쓰기": {
       "localizations": {
         "en": {
@@ -7406,6 +7434,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Văn bản thay thế"
+          }
+        }
+      }
+    },
+    "대체 텍스트 추가": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add alt text"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "वैकल्पिक टेक्स्ट जोड़ें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "代替テキストを追加"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thêm văn bản thay thế"
           }
         }
       }

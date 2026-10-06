@@ -141,8 +141,13 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(fab.waitForExistence(timeout: 5), "노트 탭에 떠 있는 작성 버튼이 없음")
         attach(app, "notes-fab")
         fab.tap()
-        XCTAssertTrue(app.textFields["noteCompose.text"].waitForExistence(timeout: 5), "작성 버튼이 시트를 열지 않음")
+        let field = app.textFields["noteCompose.text"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5), "작성 버튼이 시트를 열지 않음")
+        field.typeText("스레드처럼 가볍게 쓰는 창")
+        XCTAssertTrue(app.staticTexts["누구나 볼 수 있어요"].exists, "작성 시트 아래 공개 범위 줄이 없음")
+        attach(app, "note-compose-sheet")
         app.navigationBars.buttons["취소"].tap()
+        app.alerts.firstMatch.buttons["버리기"].tap()
         XCTAssertTrue(fab.waitForExistence(timeout: 4), "시트를 닫은 뒤 작성 버튼이 사라짐")
     }
 
