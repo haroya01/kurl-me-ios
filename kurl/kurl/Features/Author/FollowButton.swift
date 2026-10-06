@@ -16,12 +16,17 @@ struct FollowButton: View {
     private let showCount: Bool
     /// 본인 작가 페이지/내 글에선 self-follow 가 무의미 — 버튼을 숨긴다.
     private let username: String
+    private let onFollowingChange: ((Bool) -> Void)?
 
     /// 호출측이 작가 로드 때 이미 받아 둔 follow status — 같은 GET 을 또 치지 않도록 시드.
-    init(username: String, showCount: Bool = false, initialStatus: InteractionsAPI.FollowStatus? = nil) {
+    init(
+        username: String, showCount: Bool = false, initialStatus: InteractionsAPI.FollowStatus? = nil,
+        onFollowingChange: ((Bool) -> Void)? = nil
+    ) {
         _model = State(initialValue: FollowModel(username: username, seed: initialStatus))
         self.showCount = showCount
         self.username = username
+        self.onFollowingChange = onFollowingChange
     }
 
     var body: some View {
@@ -51,6 +56,7 @@ struct FollowButton: View {
         }
         .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
         .task { await model.hydrateIfNeeded() }
+        .onChange(of: model.following) { _, following in onFollowingChange?(following) }
         .loginPrompt(isPresented: $showLoginPrompt, message: "이 큐레이터가 엮는 길을 따라 읽기") {
             await model.hydrate()
         }

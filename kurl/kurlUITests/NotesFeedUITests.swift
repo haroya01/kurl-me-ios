@@ -128,6 +128,53 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(app.buttons["note.menu.9501"].waitForExistence(timeout: 8), "북마크한 노트가 북마크 피드에 없음")
     }
 
+    func testRepostsHideForTheWholeFollowingFeedAndForOnePerson() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let menu = app.buttons["tab.menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 6), "노트 탭 메뉴가 없음")
+        menu.tap()
+        app.buttons["팔로잉"].tap()
+        let header = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'yuki_dev님이 리포스트함'")).firstMatch
+        XCTAssertTrue(header.waitForExistence(timeout: 8), "팔로잉에 리포스트가 없음")
+
+        menu.tap()
+        let showReposts = menuItem(app, "리포스트 보기")
+        XCTAssertTrue(showReposts.waitForExistence(timeout: 4), "팔로잉 메뉴에 리포스트 보기가 없음")
+        attach(app, "notes-following-menu-reposts")
+        showReposts.tap()
+        XCTAssertTrue(header.waitForNonExistence(timeout: 8), "리포스트를 끄고도 리포스트가 남음")
+
+        menu.tap()
+        menuItem(app, "리포스트 보기").tap()
+        XCTAssertTrue(header.waitForExistence(timeout: 8), "리포스트를 다시 켜도 안 돌아옴")
+
+        let name = app.buttons["yuki_dev"].firstMatch
+        XCTAssertTrue(name.waitForExistence(timeout: 6))
+        name.tap()
+        let more = app.buttons["더 보기"].firstMatch
+        XCTAssertTrue(more.waitForExistence(timeout: 10), "프로필 더 보기 메뉴가 없음")
+        more.tap()
+        let hide = app.buttons["리포스트 숨기기"].firstMatch
+        XCTAssertTrue(hide.waitForExistence(timeout: 6), "팔로우한 사람의 메뉴에 리포스트 숨기기가 없음")
+        attach(app, "author-menu-hide-reposts")
+        hide.tap()
+
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(header.waitForNonExistence(timeout: 8), "숨긴 사람의 리포스트가 팔로잉에 남음")
+        XCTAssertTrue(app.buttons["note.menu.9501"].exists, "숨긴 건 리포스트뿐인데 그 사람 노트까지 사라짐")
+    }
+
+    private func menuItem(_ app: XCUIApplication, _ label: String) -> XCUIElement {
+        app.descendants(matching: .any).matching(NSPredicate(
+            format: "label == %@ AND (elementType == %d OR elementType == %d)",
+            label, XCUIElement.ElementType.button.rawValue, XCUIElement.ElementType.switch.rawValue
+        )).firstMatch
+    }
+
     func testANotesRepliesOpenFromItsRow() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]

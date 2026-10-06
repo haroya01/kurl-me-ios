@@ -112,6 +112,8 @@ enum MockBackend {
     private static var nextNoteId: Int64 = 9600
     private static var likedNotes: Set<Int64> = []
     private static var bookmarkedNotes: [Int64] = []
+    private static var showReposts = true
+    private static var repostsHidden: Set<String> = []
     /// 사용자별 리포스트한 노트 id(최신 먼저). 목 세션은 honggildong.
     private static var repostedNotes: [String: [Int64]] = ["honggildong": [9503], "yuki_dev": [9505]]
     private static var noteReplies: [MockNote] = [
@@ -947,10 +949,22 @@ enum MockBackend {
             let items = allNotes().filter { $0.quotedNoteId == nid }.map(noteView)
             return json(["items": items, "page": 0, "hasNext": false])
         }
+        if parts == ["notes", "feed-preferences"] {
+            if method == "PUT", let on = decode(body)["showReposts"] as? Bool {
+                showReposts = on
+            }
+            return json(["showReposts": showReposts])
+        }
+        if parts.count == 3, parts[0] == "notes", parts[1] == "repost-visibility" {
+            if method == "PUT" { repostsHidden.insert(parts[2]) }
+            if method == "DELETE" { repostsHidden.remove(parts[2]) }
+            return json(["hidden": repostsHidden.contains(parts[2])])
+        }
         if method == "GET", parts == ["notes", "following"] {
             let followed: Set<Int64> = [1, 2]
             var items = topLevelNotes().filter { followed.contains($0.authorId) }.map(noteView)
-            if let reposted = notes.first(where: { $0.id == 9503 }) {
+            if showReposts, !repostsHidden.contains("yuki_dev"),
+               let reposted = notes.first(where: { $0.id == 9503 }) {
                 var view = noteView(reposted)
                 view["repostedBy"] = ["id": 2, "username": "yuki_dev", "avatarUrl": NSNull()] as [String: Any]
                 items.insert(view, at: min(1, items.count))
@@ -1212,7 +1226,7 @@ enum MockBackend {
 
         if parts.count == 3, parts[0] == "users", parts[2] == "follow" {
             let username = parts[1]
-            var state = follows[username] ?? (following: false, count: 12)
+            var state = follows[username] ?? (following: username == "yuki_dev", count: 12)
             if method == "PUT" { if !state.following { state.count += 1 }; state.following = true }
             if method == "DELETE" { if state.following { state.count -= 1 }; state.following = false }
             follows[username] = state

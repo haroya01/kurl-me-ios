@@ -25,6 +25,8 @@ struct AuthorBlogView: View {
     @State private var showCollectionLogin = false
     /// 작가 로드 때 한 번 받아 두는 follow status — 헤더의 팔로우 버튼·카운트 링크가 공유한다(중복 GET 제거).
     @State private var followStatus: InteractionsAPI.FollowStatus?
+    @State private var following = false
+    @State private var repostsHidden: Bool?
     @State private var showNavTitle = false
     @State private var showReport = false
     @State private var showBlockConfirm = false
@@ -96,6 +98,15 @@ struct AuthorBlogView: View {
             if let author, !isOwnAuthor {
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
+                        if let hidden = repostsHidden {
+                            Button {
+                                Task { await setRepostsHidden(!hidden) }
+                            } label: {
+                                Label(
+                                    hidden ? "리포스트 다시 보기" : "리포스트 숨기기",
+                                    systemImage: hidden ? "eye" : "eye.slash")
+                            }
+                        }
                         if BlockStore.shared.isBlocked(id: author.id) {
                             Button {
                                 Task {
@@ -208,7 +219,13 @@ struct AuthorBlogView: View {
                 if isOwnAuthor {
                     FollowCountsLink(username: view.author.username, initialStatus: followStatus)
                 } else {
-                    FollowButton(username: view.author.username, showCount: false, initialStatus: followStatus)
+                    FollowButton(
+                        username: view.author.username, showCount: false, initialStatus: followStatus
+                    ) { now in
+                        guard now != following else { return }
+                        following = now
+                        Task { await loadRepostVisibility() }
+                    }
                     FollowCountsLink(username: view.author.username, initialStatus: followStatus, showsCounts: false)
                 }
                 Spacer(minLength: 0)
@@ -448,15 +465,43 @@ struct AuthorBlogView: View {
             if AuthStore.shared.me?.username != username {
                 async let statusReq = InteractionsAPI.followStatus(username: username)
                 followStatus = try? await statusReq
+                following = followStatus?.following ?? false
             }
             let view = try await viewReq
             series = (try? await seriesReq)?.series ?? series
             collections = (try? await collectionsReq) ?? collections
             phase = .loaded(view)
+            await loadRepostVisibility()
         } catch {
             // 보이던 화면을 에러로 대체하지 않는다 — 비었을 때만 실패 표시.
             if case .loaded = phase { return }
             phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
+        }
+    }
+}
+
+extension AuthorBlogView {
+    fileprivate func loadRepostVisibility() async {
+        guard AuthStore.shared.isSignedIn, following else {
+            repostsHidden = nil
+            return
+        }
+        repostsHidden = (try? await NoteAPI.repostVisibility(of: username))?.hidden
+    }
+
+    fileprivate func setRepostsHidden(_ hidden: Bool) async {
+        let before = repostsHidden
+        repostsHidden = hidden
+        do {
+            repostsHidden = try await NoteAPI.setRepostsHidden(of: username, hidden: hidden).hidden
+            NoteFeedPreferences.shared.followingFeedChanged()
+            ToastCenter.shared.show(
+                hidden
+                    ? String(localized: "팔로잉 피드에서 \(username)님의 리포스트를 숨겨요")
+                    : String(localized: "\(username)님의 리포스트를 다시 보여 줘요"))
+        } catch {
+            repostsHidden = before
+            ToastCenter.shared.show(String(localized: "설정을 바꾸지 못했어요"))
         }
     }
 }

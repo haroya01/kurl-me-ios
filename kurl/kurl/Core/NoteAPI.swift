@@ -94,6 +94,27 @@ enum NoteAPI {
             : try await client.delete("/notes/\(id)/bookmark", authenticated: true)
     }
 
+    static func feedPreferences() async throws -> NoteFeedPreferencesBody {
+        try await client.get("/notes/feed-preferences", authenticated: true)
+    }
+
+    static func setShowReposts(_ on: Bool) async throws -> NoteFeedPreferencesBody {
+        try await client.put(
+            "/notes/feed-preferences", body: NoteFeedPreferencesBody(showReposts: on),
+            authenticated: true)
+    }
+
+    static func repostVisibility(of username: String) async throws -> NoteRepostVisibility {
+        try await client.get("/notes/repost-visibility/\(username)", authenticated: true)
+    }
+
+    static func setRepostsHidden(of username: String, hidden: Bool) async throws -> NoteRepostVisibility {
+        hidden
+            ? try await client.put(
+                "/notes/repost-visibility/\(username)", body: EmptyBody(), authenticated: true)
+            : try await client.delete("/notes/repost-visibility/\(username)", authenticated: true)
+    }
+
     /// presign → 저장소 직행 PUT. 노트를 쓸 때 넘길 키를 돌려준다. JPEG 로 재인코딩해 올린다.
     static func uploadImage(jpegData: Data) async throws -> String {
         struct PresignBody: Encodable { let contentType: String }
@@ -226,6 +247,14 @@ struct NoteLikeStatus: Decodable {
 
 struct NoteBookmarkStatus: Decodable {
     let bookmarked: Bool
+}
+
+struct NoteFeedPreferencesBody: Codable {
+    let showReposts: Bool
+}
+
+struct NoteRepostVisibility: Decodable {
+    let hidden: Bool
 }
 
 struct NoteRepostStatus: Decodable {
