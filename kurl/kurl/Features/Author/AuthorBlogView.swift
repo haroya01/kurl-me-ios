@@ -12,6 +12,7 @@ struct AuthorBlogView: View {
 
     @State private var tab: AuthorTab
     @State private var notes: NotesViewModel
+    @State private var viewingAvatar: AvatarTarget?
     @State private var reposts: NotesViewModel
     @State private var composingNote = false
     @State private var notesPosted = 0
@@ -150,6 +151,9 @@ struct AuthorBlogView: View {
             }
         }
         .sensoryFeedback(.success, trigger: notesPosted)
+        .fullScreenCover(item: $viewingAvatar) { target in
+            AvatarViewer(url: target.url, name: username)
+        }
         // 계정 탭은 상주 임베드라 세션 내내 살아 있다 — 앱 복귀 때 내 블로그를 조용히
         // 갱신해 발행·프로필 수정이 묵지 않게(남의 페이지는 당겨서 새로고침으로 충분).
         .onChange(of: scenePhase) { _, newPhase in
@@ -165,7 +169,16 @@ struct AuthorBlogView: View {
         // 정체 헤더 = 작가 랜딩 마스트헤드(태그·시리즈와 같은 family — eyebrow + 히어로).
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .center, spacing: 14) {
-                AvatarView(author: view.author, size: 76)
+                if let avatar = view.author.avatarUrl.flatMap(URL.init(string:)) {
+                    Button { viewingAvatar = AvatarTarget(url: avatar) } label: {
+                        AvatarView(author: view.author, size: 76)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("프로필 사진 크게 보기")
+                    .accessibilityIdentifier("author.avatar")
+                } else {
+                    AvatarView(author: view.author, size: 76)
+                }
                 VStack(alignment: .leading, spacing: 4) {
                     Text(view.author.username)
                         .typeScale(.name)
@@ -468,6 +481,64 @@ enum AuthorTab: Hashable {
         case .reposts: "reposts"
         case .series: "series"
         case .collections: "collections"
+        }
+    }
+}
+
+private struct AvatarTarget: Identifiable {
+    let url: URL
+    var id: URL { url }
+}
+
+/// 프로필 사진 크게 보기 — 어두운 막 위 큰 원(웹과 같은 문법). 바깥을 누르거나 닫기로 닫는다.
+private struct AvatarViewer: View {
+    let url: URL
+    let name: String
+    @State private var appeared = false
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        GeometryReader { proxy in
+            let side = min(proxy.size.width * 0.8, 360)
+            ZStack {
+                Color.black.opacity(0.85)
+                    .ignoresSafeArea()
+                    .onTapGesture { dismiss() }
+                RemoteImage(url: url, maxPixel: 720) { phase in
+                    Palette.hairline.overlay {
+                        if case .success(let image) = phase {
+                            image.resizable().scaledToFill()
+                        }
+                    }
+                }
+                .frame(width: side, height: side)
+                .clipShape(Circle())
+                .scaleEffect(appeared ? 1 : 0.92)
+                .opacity(appeared ? 1 : 0)
+                .accessibilityElement()
+                .accessibilityAddTraits(.isImage)
+                .accessibilityLabel(Text(name))
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .overlay(alignment: .topTrailing) {
+            Button { dismiss() } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 36, height: 36)
+                    .glassEffect(.regular, in: Circle())
+            }
+            .buttonStyle(.plain)
+            .padding(.trailing, Metrics.gutter)
+            .padding(.top, 8)
+            .accessibilityLabel(Text("닫기"))
+            .accessibilityIdentifier("author.avatar.close")
+        }
+        .presentationBackground(.clear)
+        .onAppear {
+            withAnimation(reduceMotion ? nil : .snappy(duration: 0.28)) { appeared = true }
         }
     }
 }

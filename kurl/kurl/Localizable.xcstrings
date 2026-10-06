@@ -2400,6 +2400,34 @@
         }
       }
     },
+    "· 블로그 글": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "· Blog post"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "· ब्लॉग पोस्ट"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "· ブログ記事"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "· Bài blog"
+          }
+        }
+      }
+    },
     "· 지금": {
       "localizations": {
         "en": {
@@ -10643,6 +10671,34 @@
         }
       }
     },
+    "프로필 사진 크게 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View profile photo"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "प्रोफ़ाइल फ़ोटो देखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プロフィール写真を拡大"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xem ảnh hồ sơ"
+          }
+        }
+      }
+    },
     "피드에서 읽을 글 찾기": {
       "localizations": {
         "en": {
@@ -18210,34 +18266,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bỏ trích dẫn"
-          }
-        }
-      }
-    },
-    "인용한 글": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Quoting"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "उद्धृत लेख"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "引用した記事"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bài viết được trích dẫn"
           }
         }
       }
