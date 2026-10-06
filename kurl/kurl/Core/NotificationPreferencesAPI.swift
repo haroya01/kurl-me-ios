@@ -48,6 +48,11 @@ enum NotificationKind: String, CaseIterable, Identifiable {
     // 연결 그래프 — 사람 행동·시스템 발행 아래, 읽기 그래프가 자라는 소식(§0 connect not broadcast).
     case connected = "CONNECTED"
     case pathGrew = "PATH_GREW"
+    case noteReply = "NOTE_REPLY"
+    case noteQuote = "NOTE_QUOTE"
+    case noteLike = "NOTE_LIKE"
+    case noteRepost = "NOTE_REPOST"
+    case remoteFollow = "REMOTE_FOLLOW"
 
     var id: String { rawValue }
 }

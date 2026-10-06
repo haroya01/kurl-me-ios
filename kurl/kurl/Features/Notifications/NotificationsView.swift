@@ -187,7 +187,14 @@ struct NotificationsView: View {
     @ViewBuilder
     private func notificationRow(_ n: AppNotification) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            if let actor = n.actorUsername, !actor.isEmpty {
+            if let remote = n.actorProfileUrl.flatMap(URL.init(string:)) {
+                Link(destination: remote) {
+                    avatarBadge(n)
+                }
+                .buttonStyle(.plain)
+                .simultaneousGesture(TapGesture().onEnded { markRead(n) })
+                .accessibilityLabel(Text("\(n.actorUsername ?? "") 프로필"))
+            } else if let actor = n.actorUsername, !actor.isEmpty {
                 NavigationLink(value: Route.author(username: actor)) {
                     avatarBadge(n)
                 }
@@ -200,6 +207,12 @@ struct NotificationsView: View {
             Group {
                 if let route = NotificationRoute.route(for: n) {
                     NavigationLink(value: route) {
+                        content(n)
+                    }
+                    .buttonStyle(RowButtonStyle())
+                    .simultaneousGesture(TapGesture().onEnded { markRead(n) })
+                } else if n.type == "REMOTE_FOLLOW", let remote = n.actorProfileUrl.flatMap(URL.init(string:)) {
+                    Link(destination: remote) {
                         content(n)
                     }
                     .buttonStyle(RowButtonStyle())
@@ -281,6 +294,11 @@ struct NotificationsView: View {
         // 연결 그래프 — 엮임은 사슬(link), 길이 자람은 가지치는 흐름(§0 읽기 그래프).
         case "CONNECTED": return "link"
         case "PATH_GREW": return "arrow.triangle.branch"
+        case "NOTE_LIKE": return "heart.fill"
+        case "NOTE_REPOST": return "arrow.2.squarepath"
+        case "NOTE_REPLY": return "arrowshape.turn.up.left.fill"
+        case "NOTE_QUOTE": return "quote.bubble.fill"
+        case "REMOTE_FOLLOW": return "person.fill.badge.plus"
         default: return "bell.fill"
         }
     }
@@ -308,7 +326,7 @@ struct NotificationsView: View {
                     .typeScale(.footnote)
                     .foregroundStyle(Palette.secondary)
             }
-            if let subtitle = n.postTitle ?? n.seriesTitle {
+            if let subtitle = subtitle(n) {
                 Text(subtitle)
                     .typeScale(.meta)
                     .foregroundStyle(Palette.secondary)
@@ -338,7 +356,28 @@ struct NotificationsView: View {
         case "PATH_GREW":
             let name = n.collectionName ?? String(localized: "컬렉션")
             return Text("회원님이 엮인 ‘\(name)’에 새 글이 이어졌어요")
+        case "NOTE_LIKE":
+            let others = max((n.count ?? 1) - 1, 0)
+            return others > 0
+                ? Text("\(actor)님 외 \(others)명이 내 노트를 좋아해요")
+                : Text("\(actor)님이 내 노트를 좋아해요")
+        case "NOTE_REPOST":
+            let others = max((n.count ?? 1) - 1, 0)
+            return others > 0
+                ? Text("\(actor)님 외 \(others)명이 내 노트를 리포스트했어요")
+                : Text("\(actor)님이 내 노트를 리포스트했어요")
+        case "NOTE_REPLY": return Text("\(actor)님이 내 노트에 답글을 남겼어요")
+        case "NOTE_QUOTE": return Text("\(actor)님이 내 노트를 인용했어요")
+        case "REMOTE_FOLLOW": return Text("\(actor)님이 다른 서버에서 나를 팔로우했어요")
         default: return actor
+        }
+    }
+
+    private func subtitle(_ n: AppNotification) -> String? {
+        switch n.type {
+        case "NOTE_REPLY", "NOTE_QUOTE": return n.sourceExcerpt
+        case "NOTE_LIKE", "NOTE_REPOST": return n.noteExcerpt
+        default: return n.postTitle ?? n.seriesTitle
         }
     }
 
@@ -361,14 +400,9 @@ struct NotificationsView: View {
     }
 
     private func asRead(_ n: AppNotification) -> AppNotification {
-        AppNotification(
-            id: n.id, type: n.type, actorUsername: n.actorUsername,
-            actorAvatarUrl: n.actorAvatarUrl, postId: n.postId, postSlug: n.postSlug,
-            postTitle: n.postTitle, postAuthorUsername: n.postAuthorUsername,
-            commentId: n.commentId, highlightId: n.highlightId,
-            seriesId: n.seriesId, seriesSlug: n.seriesSlug, seriesTitle: n.seriesTitle,
-            collectionId: n.collectionId, collectionName: n.collectionName,
-            read: true, createdAt: n.createdAt)
+        var read = n
+        read.read = true
+        return read
     }
 
     private func load() async {

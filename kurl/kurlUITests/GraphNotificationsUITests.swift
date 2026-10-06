@@ -112,7 +112,7 @@ final class GraphNotificationsUITests: XCTestCase {
 
     func testLikeNotificationOpensMyPost() throws {
         let app = launchInbox()
-        let like = rowButton(app, contains: "좋아해요")
+        let like = rowButton(app, contains: "글을 좋아해요")
         XCTAssertTrue(like.waitForExistence(timeout: 12), "인박스에 좋아요 알림이 없음")
         like.tap()
         let markAll = app.buttons["모두 읽음"].firstMatch
