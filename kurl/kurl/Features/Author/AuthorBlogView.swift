@@ -12,6 +12,7 @@ struct AuthorBlogView: View {
 
     @State private var tab: AuthorTab
     @State private var notes: NotesViewModel
+    @State private var reposts: NotesViewModel
     @State private var composingNote = false
     @State private var notesPosted = 0
 
@@ -35,6 +36,7 @@ struct AuthorBlogView: View {
         self.username = username
         _tab = State(initialValue: initialTab)
         _notes = State(initialValue: NotesViewModel(author: username))
+        _reposts = State(initialValue: NotesViewModel(repostsBy: username))
     }
 
     /// 로드된 작가 id — 신고 대상. 내가 아닐 때만 신고를 노출한다.
@@ -47,7 +49,7 @@ struct AuthorBlogView: View {
         return author.id == myId
     }
     private var tabs: [AuthorTab] {
-        var all: [AuthorTab] = [.posts, .notes]
+        var all: [AuthorTab] = [.posts, .notes, .reposts]
         if !series.isEmpty { all.append(.series) }
         if !collections.isEmpty { all.append(.collections) }
         return all
@@ -135,9 +137,11 @@ struct AuthorBlogView: View {
         .refreshable {
             await load()
             if shownTab == .notes { await notes.reload() }
+            if shownTab == .reposts { await reposts.reload() }
         }
         .task(id: shownTab) {
             if shownTab == .notes, case .idle = notes.phase { await notes.reload() }
+            if shownTab == .reposts, case .idle = reposts.phase { await reposts.reload() }
         }
         .sheet(isPresented: $composingNote) {
             NoteComposeSheet(mode: .new(quote: nil, inReplyToId: nil)) { note in
@@ -218,6 +222,7 @@ struct AuthorBlogView: View {
             switch shownTab {
             case .posts: postsTab(view)
             case .notes: notesTab
+            case .reposts: repostsTab
             case .series: seriesTab
             case .collections: collectionsTab
             }
@@ -300,13 +305,54 @@ struct AuthorBlogView: View {
                         NoteRowView(
                             note: note,
                             onChange: { notes.replaced($0) },
-                            onDelete: { notes.removed($0) }
+                            onDelete: { notes.removed($0) },
+                            onQuoted: isOwnAuthor ? { notes.inserted($0) } : nil
                         )
                         .modifier(QuietAppear(index: index))
                         .task { await notes.loadMoreIfNeeded(current: note) }
                         if index < notes.items.count - 1 { Hairline() }
                     }
                     if notes.isLoadingMore {
+                        KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var repostsTab: some View {
+        switch reposts.phase {
+        case .idle, .loading:
+            KurlLoadingMark().frame(maxWidth: .infinity, minHeight: 240)
+        case .failed(let message):
+            ErrorState(message: message, retry: { Task { await reposts.reload() } })
+                .padding(.top, 48)
+        case .loaded:
+            if reposts.items.isEmpty {
+                FeedPlaceholder(
+                    title: "아직 리포스트가 없어요",
+                    message: isOwnAuthor
+                        ? "마음에 든 노트를 리포스트하면 여기에 모여요."
+                        : "이 작가가 리포스트한 노트가 여기에 모여요.",
+                    actionTitle: "노트 둘러보기",
+                    action: { TabRouter.shared.selection = 1 }
+                )
+                .padding(.top, 48)
+            } else {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(reposts.items.enumerated()), id: \.element.id) { index, note in
+                        NoteRowView(
+                            note: note,
+                            onChange: { reposts.replaced($0) },
+                            onDelete: { reposts.removed($0) },
+                            repostedBy: username
+                        )
+                        .modifier(QuietAppear(index: index))
+                        .task { await reposts.loadMoreIfNeeded(current: note) }
+                        if index < reposts.items.count - 1 { Hairline() }
+                    }
+                    if reposts.isLoadingMore {
                         KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
                     }
                 }
@@ -403,12 +449,13 @@ struct AuthorBlogView: View {
 }
 
 enum AuthorTab: Hashable {
-    case posts, notes, series, collections
+    case posts, notes, reposts, series, collections
 
     var label: LocalizedStringKey {
         switch self {
         case .posts: "글"
         case .notes: "노트"
+        case .reposts: "리포스트"
         case .series: "시리즈"
         case .collections: "컬렉션"
         }
@@ -418,6 +465,7 @@ enum AuthorTab: Hashable {
         switch self {
         case .posts: "posts"
         case .notes: "notes"
+        case .reposts: "reposts"
         case .series: "series"
         case .collections: "collections"
         }
@@ -439,6 +487,8 @@ private struct AuthorTabBar: View {
                     Text(tab.label)
                         .typeScale(.body)
                         .fontWeight(selection == tab ? .semibold : .regular)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                         .foregroundStyle(selection == tab ? Palette.ink : Palette.secondary)
                         .frame(maxWidth: .infinity, minHeight: 44)
                         .overlay(alignment: .bottom) {
