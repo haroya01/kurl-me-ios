@@ -99,6 +99,8 @@ struct NoteRowView: View {
     let onDelete: (Int64) -> Void
     var onQuoted: ((Note) -> Void)? = nil
     var repostedBy: String? = nil
+    /// 원글 → 답글을 잇는 스레드 선 — 아바타 아래에서 다음 행 아바타 위까지.
+    var threadLineBelow = false
 
     @State private var liked: Bool
     @State private var likeCount: Int64?
@@ -115,12 +117,14 @@ struct NoteRowView: View {
 
     init(note: Note, onChange: @escaping (Note) -> Void,
          onDelete: @escaping (Int64) -> Void,
-         onQuoted: ((Note) -> Void)? = nil, repostedBy: String? = nil) {
+         onQuoted: ((Note) -> Void)? = nil, repostedBy: String? = nil,
+         threadLineBelow: Bool = false) {
         self.note = note
         self.onChange = onChange
         self.onDelete = onDelete
         self.onQuoted = onQuoted
         self.repostedBy = repostedBy
+        self.threadLineBelow = threadLineBelow
         _liked = State(initialValue: note.likedByMe == true)
         _likeCount = State(initialValue: note.likeCount)
         _reposted = State(initialValue: note.repostedByMe == true)
@@ -146,7 +150,18 @@ struct NoteRowView: View {
             }
             row
         }
-        .padding(.vertical, 12)
+        .padding(.vertical, 14)
+        .overlay(alignment: .topLeading) {
+            if threadLineBelow {
+                Capsule()
+                    .fill(Palette.hairlineStrong)
+                    .frame(width: 2)
+                    .padding(.top, 14 + 36 + 6)
+                    .padding(.bottom, -8)
+                    .padding(.leading, 17)
+                    .accessibilityHidden(true)
+            }
+        }
         .contentShape(Rectangle())
         .contextMenu {
             if !note.body.isEmpty {
@@ -203,11 +218,11 @@ struct NoteRowView: View {
             .buttonStyle(.plain)
             .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     NavigationLink(value: Route.authorNotes(username: note.author.username)) {
                         Text(note.author.username)
-                            .typeScale(.body)
+                            .typeScale(.note)
                             .fontWeight(.semibold)
                             .foregroundStyle(Palette.ink)
                             .lineLimit(1)
@@ -215,7 +230,7 @@ struct NoteRowView: View {
                     .buttonStyle(.plain)
                     if let date = note.createdAt {
                         Text(date.relativeShort)
-                            .typeScale(.body)
+                            .typeScale(.note)
                             .foregroundStyle(Palette.secondary)
                             .lineLimit(1)
                     }
@@ -229,10 +244,9 @@ struct NoteRowView: View {
                 }
                 if !note.body.isEmpty {
                     Text(NoteText.attributed(note.body))
-                        .typeScale(.body)
+                        .typeScale(.note)
                         .foregroundStyle(Palette.ink)
                         .tint(Palette.link)
-                        .lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 NoteImagesView(media: note.media)
@@ -293,20 +307,21 @@ struct NoteRowView: View {
     }
 
     private var footer: some View {
-        HStack(spacing: 18) {
+        HStack(spacing: 20) {
             Button {
                 likeTaps += 1
                 Task { await toggleLike() }
             } label: {
-                HStack(spacing: 5) {
+                HStack(spacing: 4) {
                     Image(systemName: liked ? "heart.fill" : "heart")
-                        .font(.system(size: 18))
+                        .font(Self.actionFont)
+                        .frame(width: Self.actionBox, height: Self.actionBox)
                         .symbolEffect(.bounce, value: reduceMotion ? false : liked)
                     if isMine, let likeCount, likeCount > 0 {
                         Text("\(likeCount)").monospacedDigit()
                     }
                 }
-                .typeScale(.meta)
+                .typeScale(.lede)
                 .foregroundStyle(liked ? Palette.accent : Palette.ink)
                 .expandTapTarget()
             }
@@ -316,11 +331,14 @@ struct NoteRowView: View {
             .accessibilityAddTraits(liked ? [.isSelected] : [])
 
             NavigationLink(value: Route.note(id: note.id)) {
-                HStack(spacing: 5) {
-                    Image(systemName: "message").font(.system(size: 17)).scaleEffect(x: -1, y: 1)
+                HStack(spacing: 4) {
+                    Image(systemName: "message")
+                        .font(Self.actionFont)
+                        .scaleEffect(x: -1, y: 1)
+                        .frame(width: Self.actionBox, height: Self.actionBox)
                     if note.replyCount > 0 { Text("\(note.replyCount)").monospacedDigit() }
                 }
-                .typeScale(.meta)
+                .typeScale(.lede)
                 .foregroundStyle(Palette.ink)
                 .expandTapTarget()
             }
@@ -333,8 +351,9 @@ struct NoteRowView: View {
             if let shareURL {
                 ShareLink(item: shareURL) {
                     Image(systemName: "paperplane")
-                        .font(.system(size: 16))
+                        .font(Self.actionFont)
                         .rotationEffect(.degrees(45))
+                        .frame(width: Self.actionBox, height: Self.actionBox)
                         .foregroundStyle(Palette.ink)
                         .expandTapTarget()
                 }
@@ -343,8 +362,11 @@ struct NoteRowView: View {
                 .accessibilityIdentifier("note.share.\(note.id)")
             }
         }
-        .padding(.top, 8)
+        .padding(.top, 10)
     }
+
+    private static let actionFont = Font.system(size: 19)
+    private static let actionBox: CGFloat = 24
 
     private var repostMenu: some View {
         Menu {
@@ -362,15 +384,16 @@ struct NoteRowView: View {
                 Label("인용", systemImage: "quote.opening")
             }
         } label: {
-            HStack(spacing: 5) {
+            HStack(spacing: 4) {
                 Image(systemName: "arrow.2.squarepath")
-                    .font(.system(size: 16, weight: reposted ? .bold : .regular))
+                    .font(.system(size: 19, weight: reposted ? .semibold : .regular))
+                    .frame(width: Self.actionBox, height: Self.actionBox)
                     .symbolEffect(.bounce, value: reduceMotion ? false : reposted)
                 if isMine, let repostCount, repostCount > 0 {
                     Text("\(repostCount)").monospacedDigit()
                 }
             }
-            .typeScale(.meta)
+            .typeScale(.lede)
             .foregroundStyle(reposted ? Palette.accent : Palette.ink)
             .expandTapTarget()
         }
@@ -445,7 +468,7 @@ struct QuotedPostCard: View {
             }
             .typeScale(.meta)
             Text(post.title)
-                .typeScale(.body)
+                .typeScale(.note)
                 .fontWeight(.medium)
                 .foregroundStyle(Palette.ink)
                 .multilineTextAlignment(.leading)
@@ -482,7 +505,7 @@ struct QuotedNoteCard: View {
             }
             if !note.body.isEmpty {
                 Text(note.body)
-                    .typeScale(.body)
+                    .typeScale(.note)
                     .foregroundStyle(Palette.ink)
                     .lineLimit(4)
                     .multilineTextAlignment(.leading)
@@ -691,21 +714,20 @@ struct NoteDetailView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
                         if let parent = thread.parent {
-                            NoteRowView(note: parent, onChange: { _ in }, onDelete: { _ in })
-                                .opacity(0.75)
-                            Hairline()
+                            NoteRowView(
+                                note: parent, onChange: { _ in }, onDelete: { _ in }, threadLineBelow: true)
                         }
                         NoteRowView(
                             note: thread.note,
                             onChange: { note in self.thread = NoteThread(note: note, parent: thread.parent, replies: thread.replies) },
                             onDelete: { _ in dismiss() })
-                        Hairline()
+                        Hairline().padding(.horizontal, -Metrics.noteGutter)
                         RailHeading("답글")
                             .padding(.top, 20)
                             .padding(.bottom, 4)
                         if thread.replies.isEmpty {
                             Text("아직 답글이 없어요")
-                                .typeScale(.body)
+                                .typeScale(.note)
                                 .foregroundStyle(Palette.secondary)
                                 .padding(.vertical, 14)
                         }
@@ -714,13 +736,15 @@ struct NoteDetailView: View {
                                 note: reply,
                                 onChange: { next in update { $0.replies = $0.replies.map { $0.id == next.id ? next : $0 } } },
                                 onDelete: { id in update { $0.replies.removeAll { $0.id == id } } })
-                            if index < thread.replies.count - 1 { Hairline() }
+                            if index < thread.replies.count - 1 {
+                                Hairline().padding(.horizontal, -Metrics.noteGutter)
+                            }
                         }
                     }
                     .padding(.vertical, 6)
                     .frame(maxWidth: Metrics.readingColumn)
                     .frame(maxWidth: .infinity)
-                    .padding(.horizontal, Metrics.gutter)
+                    .padding(.horizontal, Metrics.noteGutter)
                 }
                 .brandRefreshable { await load() }
             } else if let failed {
@@ -875,12 +899,12 @@ struct NoteComposeSheet: View {
                         VStack(alignment: .leading, spacing: 2) {
                             if let name = AuthStore.shared.me?.username {
                                 Text(name)
-                                    .typeScale(.body)
+                                    .typeScale(.note)
                                     .fontWeight(.semibold)
                                     .foregroundStyle(Palette.ink)
                             }
                             TextField(placeholder, text: $text, axis: .vertical)
-                                .typeScale(.body)
+                                .typeScale(.note)
                                 .lineLimit(1...20)
                                 .focused($focused)
                                 .accessibilityIdentifier("noteCompose.text")

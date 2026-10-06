@@ -16,7 +16,7 @@ struct NotesTabView: View {
 
     var body: some View {
         NavigationStack {
-            ReadingColumn(spacing: 0, background: Palette.readingBg, tracksTabBar: true) {
+            ReadingColumn(spacing: 0, background: Palette.readingBg, tracksTabBar: true, gutter: Metrics.noteGutter) {
                 Color.clear.frame(height: 8)
                 composePlaceholder
                 content
@@ -84,12 +84,12 @@ struct NotesTabView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     if let name = me?.username, AuthStore.shared.isSignedIn {
                         Text(name)
-                            .typeScale(.body)
+                            .typeScale(.note)
                             .fontWeight(.semibold)
                             .foregroundStyle(Palette.ink)
                     }
                     Text(AuthStore.shared.isSignedIn ? "지금 떠오른 생각을 짧게 남겨 보세요" : "로그인하고 노트 쓰기")
-                        .typeScale(.body)
+                        .typeScale(.note)
                         .foregroundStyle(Palette.secondary)
                         .lineLimit(1)
                 }
@@ -104,7 +104,7 @@ struct NotesTabView: View {
         .buttonStyle(.plain)
         .accessibilityLabel("노트 쓰기")
         .accessibilityIdentifier("notes.compose")
-        .overlay(alignment: .bottom) { Hairline() }
+        .overlay(alignment: .bottom) { Hairline().padding(.horizontal, -Metrics.noteGutter) }
     }
 
     @ViewBuilder
@@ -135,7 +135,7 @@ struct NotesTabView: View {
                         )
                         .modifier(QuietAppear(index: index))
                         .task { await notes.loadMoreIfNeeded(current: note) }
-                        if index < notes.items.count - 1 { Hairline() }
+                        if index < notes.items.count - 1 { Hairline().padding(.horizontal, -Metrics.noteGutter) }
                     }
                     if notes.isLoadingMore {
                         KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
