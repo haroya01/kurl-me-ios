@@ -246,11 +246,18 @@ struct NoteRowView: View {
             VStack(alignment: .leading, spacing: 2) {
                 header
                 if !note.body.isEmpty {
-                    Text(NoteText.attributed(note.body))
-                        .typeScale(.note)
-                        .foregroundStyle(Palette.ink)
-                        .tint(Palette.link)
-                        .fixedSize(horizontal: false, vertical: true)
+                    NavigationLink(value: Route.note(id: note.id)) {
+                        Text(NoteText.attributed(note.body))
+                            .typeScale(.note)
+                            .foregroundStyle(Palette.ink)
+                            .tint(Palette.link)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("note.body.\(note.id)")
                 }
                 attachments
                 footer

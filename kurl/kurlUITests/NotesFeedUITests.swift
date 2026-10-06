@@ -25,7 +25,7 @@ final class NotesFeedUITests: XCTestCase {
         tab.tap()
         openNotes(app)
 
-        let seeded = app.staticTexts
+        let seeded = app.descendants(matching: .any)
             .matching(NSPredicate(format: "label CONTAINS '헥사고날 포트'")).firstMatch
         XCTAssertTrue(seeded.waitForExistence(timeout: 10), "노트 목 피드가 렌더되지 않음")
 
@@ -44,7 +44,7 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(notice.staticTexts["노트는 다른 서버에도 전해져요"].exists)
         notice.buttons["알겠어요, 올릴게요"].tap()
 
-        let published = app.staticTexts
+        let published = app.descendants(matching: .any)
             .matching(NSPredicate(format: "label CONTAINS 'uitest note round trip'")).firstMatch
         XCTAssertTrue(published.waitForExistence(timeout: 8), "발행한 노트가 맨 위에 안 꽂힘")
         XCTAssertFalse(app.textFields["noteCompose.text"].exists, "올린 뒤 시트가 닫히지 않음")
@@ -65,7 +65,7 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(replies.waitForExistence(timeout: 10), "답글 버튼 없음")
         replies.tap()
 
-        let reply = app.staticTexts
+        let reply = app.descendants(matching: .any)
             .matching(NSPredicate(format: "label CONTAINS '이름이 경계라는 말'")).firstMatch
         XCTAssertTrue(reply.waitForExistence(timeout: 8), "노트 상세에 답글이 안 보임")
         XCTAssertTrue(app.buttons["note.reply"].waitForExistence(timeout: 3), "답글 달기 버튼 없음")
@@ -85,7 +85,7 @@ final class NotesFeedUITests: XCTestCase {
         let replyThread = app.buttons["note.replies.9551"]
         XCTAssertTrue(replyThread.waitForExistence(timeout: 5), "답글 행에 답글 버튼이 없음")
         replyThread.tap()
-        let parent = app.staticTexts
+        let parent = app.descendants(matching: .any)
             .matching(NSPredicate(format: "label CONTAINS '헥사고날 포트'")).firstMatch
         XCTAssertTrue(parent.waitForExistence(timeout: 8), "답글 상세 위에 원글이 안 보임")
         attach(app, "note-thread-parent")
@@ -179,7 +179,7 @@ final class NotesFeedUITests: XCTestCase {
         let notesTab = app.buttons["author.tab.notes"]
         XCTAssertTrue(notesTab.waitForExistence(timeout: 10), "프로필에 노트 탭이 없음")
         XCTAssertTrue(notesTab.isSelected, "노트에서 들어온 프로필이 노트 탭으로 열리지 않음")
-        let note = app.staticTexts
+        let note = app.descendants(matching: .any)
             .matching(NSPredicate(format: "label CONTAINS '헥사고날 포트'")).firstMatch
         XCTAssertTrue(note.waitForExistence(timeout: 8), "프로필 노트 탭에 그 작가의 노트가 없음")
         attach(app, "author-notes-tab")
@@ -195,6 +195,31 @@ final class NotesFeedUITests: XCTestCase {
         attach(app, "author-avatar-viewer")
         close.tap()
         XCTAssertFalse(close.waitForExistence(timeout: 2), "닫기를 눌러도 사진 보기가 남음")
+    }
+
+    func testTappingANoteBodyOpensItsDetailWhileLinksStillOpen() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let body = app.buttons["note.body.9502"]
+        XCTAssertTrue(body.waitForExistence(timeout: 10), "노트 본문이 눌리는 요소가 아님")
+        body.tap()
+        XCTAssertTrue(app.buttons["note.reply"].waitForExistence(timeout: 6), "본문을 눌러도 노트 상세가 안 열림")
+        attach(app, "note-body-opened")
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertTrue(app.buttons["notes.compose"].waitForExistence(timeout: 6), "상세에서 돌아오지 못함")
+
+        let linked = app.buttons["note.body.9503"]
+        var tries = 0
+        while !linked.isHittable, tries < 4 { app.swipeUp(); tries += 1 }
+        let link = linked.links.firstMatch
+        XCTAssertTrue(link.waitForExistence(timeout: 4), "본문 안 주소가 링크로 남아 있지 않음")
+        link.tap()
+        let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
+        XCTAssertTrue(safari.wait(for: .runningForeground, timeout: 10), "본문 안 링크를 눌러도 주소가 열리지 않음")
+        app.activate()
     }
 
     func testRepostMenuTogglesAndQuotePostsAboveTheFeed() throws {
@@ -223,7 +248,7 @@ final class NotesFeedUITests: XCTestCase {
         repost.tap()
         app.buttons["인용"].firstMatch.tap()
         XCTAssertTrue(app.navigationBars["노트 인용"].waitForExistence(timeout: 5), "인용 작성 시트가 안 열림")
-        let quoted = app.staticTexts
+        let quoted = app.descendants(matching: .any)
             .matching(NSPredicate(format: "label CONTAINS '헥사고날 포트'")).firstMatch
         XCTAssertTrue(quoted.exists, "인용 작성 시트에 인용할 노트가 없음")
         let field = app.textFields["noteCompose.text"]
@@ -234,7 +259,7 @@ final class NotesFeedUITests: XCTestCase {
         let notice = app.alerts.firstMatch
         if notice.waitForExistence(timeout: 4) { notice.buttons["알겠어요, 올릴게요"].tap() }
 
-        let posted = app.staticTexts
+        let posted = app.descendants(matching: .any)
             .matching(NSPredicate(format: "label CONTAINS 'uitest quote'")).firstMatch
         XCTAssertTrue(posted.waitForExistence(timeout: 8), "인용 노트가 피드 맨 위에 안 꽂힘")
         XCTAssertFalse(app.navigationBars["노트 인용"].exists, "올린 뒤 인용 시트가 닫히지 않음")
@@ -257,7 +282,7 @@ final class NotesFeedUITests: XCTestCase {
 
         let line = app.staticTexts["yuki_dev님이 리포스트함"].firstMatch
         XCTAssertTrue(line.waitForExistence(timeout: 8), "리포스트한 노트 위에 리포스트함 줄이 없음")
-        let reposted = app.staticTexts
+        let reposted = app.descendants(matching: .any)
             .matching(NSPredicate(format: "label CONTAINS '우리 팀은 일주일'")).firstMatch
         XCTAssertTrue(reposted.exists, "리포스트 탭에 리포스트한 노트가 없음")
         XCTAssertTrue(app.buttons["note.quoted.9501"].exists, "인용 노트 카드가 링크가 아님")
@@ -314,7 +339,7 @@ final class NotesFeedUITests: XCTestCase {
         app.launch()
 
         // 구독함도 최신·인기와 같은 발견 카드 — 알림 같던 인박스 행을 걷어냈다. 목 팔로잉 피드의 글 제목이 선다.
-        let row = app.staticTexts
+        let row = app.descendants(matching: .any)
             .matching(NSPredicate(format: "label CONTAINS '발행된 목 글'")).firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 10), "구독함 카드가 렌더되지 않음")
 

@@ -88,7 +88,7 @@ enum MockBackend {
                  quotedNoteId: 9501),
         MockNote(id: 9502, body: "긴 글로 정리하기 전의 생각 조각을 둘 곳이 필요했는데, 노트가 딱 그 자리다.",
                  createdAt: Date().addingTimeInterval(-7_200), likeCount: 11, authorId: 1, username: "honggildong"),
-        MockNote(id: 9503, body: "라이트 모드 캔버스를 순백에서 slate-50 으로 바꿨더니 카드가 비로소 떠 보인다. 배경은 색이 아니라 깊이다.",
+        MockNote(id: 9503, body: "라이트 모드 캔버스를 순백에서 slate-50 으로 바꿨더니 카드가 비로소 떠 보인다. 배경은 색이 아니라 깊이다. https://kurl.me/about",
                  createdAt: Date().addingTimeInterval(-26_000), likeCount: 7, authorId: 3, username: "reader_kim"),
         MockNote(id: 9504, body: "창밖 사진 세 장. 글로 정리하기 전에 남겨 둔다.",
                  createdAt: Date().addingTimeInterval(-40_000), likeCount: 2, authorId: 1, username: "honggildong",
