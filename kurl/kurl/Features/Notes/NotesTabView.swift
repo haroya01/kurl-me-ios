@@ -128,6 +128,15 @@ struct NotesTabView: View {
                 action: { showFollowingLogin = true }
             )
             .padding(.top, 56)
+        } else if choice.kind == .bookmarks, !AuthStore.shared.isSignedIn {
+            FeedPlaceholder(
+                title: "나만 보는 북마크",
+                message: "로그인하면 북마크한 노트를 여기서 다시 볼 수 있어요.",
+                actionTitle: "로그인",
+                prominent: true,
+                action: { showFollowingLogin = true }
+            )
+            .padding(.top, 56)
         } else {
             feed
         }
@@ -148,6 +157,14 @@ struct NotesTabView: View {
             FeedPlaceholder(
                 title: "팔로우한 사람의 노트가 여기 모여요",
                 message: "블로그에서 팔로우한 사람도 함께 보여요. 인기 노트에서 시작해 보세요.",
+                actionTitle: "인기 노트 보기",
+                prominent: true,
+                action: { choice.kind = .trending }
+            )
+        case .bookmarks:
+            FeedPlaceholder(
+                title: "북마크한 노트가 없어요",
+                message: "노트의 … 메뉴나 상세의 북마크로 모아 둘 수 있어요. 북마크는 나만 봐요.",
                 actionTitle: "인기 노트 보기",
                 prominent: true,
                 action: { choice.kind = .trending }

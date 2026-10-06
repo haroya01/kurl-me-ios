@@ -111,6 +111,7 @@ enum MockBackend {
     ]
     private static var nextNoteId: Int64 = 9600
     private static var likedNotes: Set<Int64> = []
+    private static var bookmarkedNotes: [Int64] = []
     /// 사용자별 리포스트한 노트 id(최신 먼저). 목 세션은 honggildong.
     private static var repostedNotes: [String: [Int64]] = ["honggildong": [9503], "yuki_dev": [9505]]
     private static var noteReplies: [MockNote] = [
@@ -931,6 +932,20 @@ enum MockBackend {
                 ($0.likeCount + Int64(replyCount($0.id))) > ($1.likeCount + Int64(replyCount($1.id)))
             }
             return json(["items": ranked.map(noteView), "page": 0, "hasNext": false])
+        }
+        if method == "GET", parts == ["notes", "bookmarks"] {
+            let items = bookmarkedNotes.compactMap { id in allNotes().first { $0.id == id } }.map(noteView)
+            return json(["items": items, "page": 0, "hasNext": false])
+        }
+        if parts.count == 3, parts[0] == "notes", parts[2] == "bookmark", let nid = Int64(parts[1]) {
+            bookmarkedNotes.removeAll { $0 == nid }
+            if method == "PUT" { bookmarkedNotes.insert(nid, at: 0) }
+            return json(["bookmarked": method == "PUT"])
+        }
+        if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "notes", parts[3] == "quotes",
+           let nid = Int64(parts[2]) {
+            let items = allNotes().filter { $0.quotedNoteId == nid }.map(noteView)
+            return json(["items": items, "page": 0, "hasNext": false])
         }
         if method == "GET", parts == ["notes", "following"] {
             let followed: Set<Int64> = [1, 2]
@@ -1826,6 +1841,8 @@ enum MockBackend {
             "replyCount": replyCount(n.id),
             "repostCount": repostCount(n.id),
             "repostedByMe": repostedNotes["honggildong"]?.contains(n.id) == true,
+            "bookmarkedByMe": bookmarkedNotes.contains(n.id),
+            "quoteCount": allNotes().filter { $0.quotedNoteId == n.id }.count,
             "linkPreview": n.linkPreview ?? NSNull(),
             "quotedNote": n.quotedNoteId.flatMap { qid in allNotes().first { $0.id == qid } }
                 .map { q -> [String: Any] in

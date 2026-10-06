@@ -23,14 +23,17 @@ final class NotesViewModel {
         case everyone
         case following
         case trending
+        case bookmarks
         case author(String)
         case reposts(String)
+        case quotes(Int64)
 
         init(_ feed: NoteFeedKind) {
             switch feed {
             case .everyone: self = .everyone
             case .following: self = .following
             case .trending: self = .trending
+            case .bookmarks: self = .bookmarks
             }
         }
     }
@@ -47,6 +50,10 @@ final class NotesViewModel {
         source = .reposts(username)
     }
 
+    init(quotesOf id: Int64) {
+        source = .quotes(id)
+    }
+
     private func load(_ page: Int) async throws -> NoteFeed {
         switch source {
         case .everyone: try await NoteAPI.everyone(page: page)
@@ -57,6 +64,13 @@ final class NotesViewModel {
                 NoteFeed(items: [], page: 0, hasNext: false)
             }
         case .trending: try await NoteAPI.trending(page: page)
+        case .bookmarks:
+            if AuthStore.shared.isSignedIn {
+                try await NoteAPI.bookmarks(page: page)
+            } else {
+                NoteFeed(items: [], page: 0, hasNext: false)
+            }
+        case let .quotes(id): try await NoteAPI.quotes(of: id, page: page)
         case let .author(username): try await NoteAPI.byAuthor(username, page: page)
         case let .reposts(username): try await NoteAPI.reposts(username, page: page)
         }
@@ -145,6 +159,8 @@ struct NoteRowView: View {
     @State private var reposted: Bool
     @State private var repostCount: Int64?
     @State private var repostTaps = 0
+    @State private var bookmarked: Bool
+    @State private var bookmarkTaps = 0
     @State private var quoting = false
     @State private var editing = false
     @State private var confirmDelete = false
@@ -167,6 +183,7 @@ struct NoteRowView: View {
         _likeCount = State(initialValue: note.likeCount)
         _reposted = State(initialValue: note.repostedByMe == true)
         _repostCount = State(initialValue: note.repostCount)
+        _bookmarked = State(initialValue: note.bookmarkedByMe == true)
     }
 
     private var isMine: Bool { AuthStore.shared.me?.id == note.author.id }
@@ -244,6 +261,7 @@ struct NoteRowView: View {
             likeCount = next.likeCount
             reposted = next.repostedByMe == true
             repostCount = next.repostCount
+            bookmarked = next.bookmarkedByMe == true
         }
     }
 
@@ -307,6 +325,23 @@ struct NoteRowView: View {
                 Hairline()
                 actions(spread: true)
                     .padding(.top, 10)
+                if let quotes = note.quoteCount, quotes > 0 {
+                    NavigationLink(value: Route.noteQuotes(id: note.id)) {
+                        HStack(spacing: 4) {
+                            Text("인용 \(quotes)")
+                                .typeScale(.meta)
+                                .fontWeight(.semibold)
+                            Spacer(minLength: 0)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundStyle(Palette.secondary)
+                        .padding(.top, 12)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("note.quotes.\(note.id)")
+                }
             }
         }
     }
@@ -407,6 +442,14 @@ struct NoteRowView: View {
                 }
             }
             if AuthStore.shared.isSignedIn {
+                Button {
+                    bookmarkTaps += 1
+                    Task { await toggleBookmark() }
+                } label: {
+                    Label(
+                        bookmarked ? LocalizedStringKey("북마크 해제") : LocalizedStringKey("북마크"),
+                        systemImage: bookmarked ? "bookmark.slash" : "bookmark")
+                }
                 Button { connecting = true } label: {
                     Label("컬렉션에 연결", systemImage: "rectangle.stack.badge.plus")
                 }
@@ -469,6 +512,23 @@ struct NoteRowView: View {
 
             if spread { Spacer(minLength: 0) }
             repostMenu
+
+            if spread {
+                Spacer(minLength: 0)
+                Button {
+                    bookmarkTaps += 1
+                    Task { await toggleBookmark() }
+                } label: {
+                    NoteGlyphView(glyph: .bookmark, active: bookmarked, size: Self.actionBox)
+                        .modifier(GlyphPop(trigger: reduceMotion ? false : bookmarked))
+                        .foregroundStyle(bookmarked ? Palette.accent : Palette.ink)
+                        .expandTapTarget()
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text(bookmarked ? "북마크 해제" : "북마크"))
+                .accessibilityAddTraits(bookmarked ? [.isSelected] : [])
+                .accessibilityIdentifier("note.bookmark.\(note.id)")
+            }
 
             if let shareURL {
                 if spread { Spacer(minLength: 0) }
@@ -540,6 +600,22 @@ struct NoteRowView: View {
             reposted = !target
             repostCount = previous
             ToastCenter.shared.show(String(localized: "리포스트하지 못했어요"))
+        }
+    }
+
+    private func toggleBookmark() async {
+        guard AuthStore.shared.isSignedIn else {
+            showLoginSheet = true
+            return
+        }
+        let target = !bookmarked
+        bookmarked = target
+        do {
+            _ = try await NoteAPI.setBookmark(id: note.id, on: target)
+            ToastCenter.shared.show(String(localized: target ? "북마크에 넣었어요" : "북마크에서 뺐어요"))
+        } catch {
+            bookmarked = !target
+            ToastCenter.shared.show(String(localized: "북마크를 바꾸지 못했어요"))
         }
     }
 

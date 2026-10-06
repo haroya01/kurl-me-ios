@@ -27,6 +27,17 @@ enum NoteAPI {
             authenticated: signedIn)
     }
 
+    static func bookmarks(page: Int = 0) async throws -> NoteFeed {
+        try await client.get(
+            "/notes/bookmarks", query: ["page": String(page), "size": "20"], authenticated: true)
+    }
+
+    static func quotes(of id: Int64, page: Int = 0) async throws -> NoteFeed {
+        try await client.get(
+            "/public/notes/\(id)/quotes", query: ["page": String(page), "size": "20"],
+            authenticated: signedIn)
+    }
+
     static func following(page: Int = 0) async throws -> NoteFeed {
         try await client.get(
             "/notes/following", query: ["page": String(page), "size": "20"], authenticated: true)
@@ -75,6 +86,12 @@ enum NoteAPI {
         on
             ? try await client.put("/notes/\(id)/repost", body: EmptyBody(), authenticated: true)
             : try await client.delete("/notes/\(id)/repost", authenticated: true)
+    }
+
+    static func setBookmark(id: Int64, on: Bool) async throws -> NoteBookmarkStatus {
+        on
+            ? try await client.put("/notes/\(id)/bookmark", body: EmptyBody(), authenticated: true)
+            : try await client.delete("/notes/\(id)/bookmark", authenticated: true)
     }
 
     /// presign → 저장소 직행 PUT. 노트를 쓸 때 넘길 키를 돌려준다. JPEG 로 재인코딩해 올린다.
@@ -172,6 +189,9 @@ struct Note: Decodable, Identifiable, Hashable {
     var linkPreview: NoteLinkPreview?
     /// 팔로잉 피드에서 이 노트가 리포스트로 들어왔을 때 리포스트한 사람.
     var repostedBy: Author? = nil
+    var quoteCount: Int64? = nil
+    /// 비로그인 읽기면 nil. 북마크는 본인만 안다.
+    var bookmarkedByMe: Bool? = nil
 }
 
 struct NoteFeed: Decodable {
@@ -202,6 +222,10 @@ struct NoteDraft: Encodable {
 struct NoteLikeStatus: Decodable {
     let liked: Bool
     let likeCount: Int64
+}
+
+struct NoteBookmarkStatus: Decodable {
+    let bookmarked: Bool
 }
 
 struct NoteRepostStatus: Decodable {

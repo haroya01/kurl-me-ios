@@ -5,10 +5,10 @@
 
 import SwiftUI
 
-/// 노트 반응 아이콘(좋아요·답글·리포스트·공유) — 웹(short-link-frontend note-glyph.tsx)과 같은 경로.
+/// 노트 반응 아이콘(좋아요·답글·리포스트·공유·북마크) — 웹(short-link-frontend note-glyph.tsx)과 같은 경로.
 /// 24 격자, 선 1.8, 둥근 끝. 한쪽을 고치면 다른 쪽도 고친다.
 enum NoteGlyph {
-    case heart, reply, repost, share
+    case heart, reply, repost, share, bookmark
 
     fileprivate var paths: [String] {
         switch self {
@@ -28,6 +28,9 @@ enum NoteGlyph {
             "M20.25 12L4.35 4.6L7.1 12L4.35 19.4Z",
             "M7.1 12H12.9",
         ]
+        case .bookmark: [
+            "M7 3.75H17C17.83 3.75 18.5 4.42 18.5 5.25V20.25L12 16.25L5.5 20.25V5.25C5.5 4.42 6.17 3.75 7 3.75Z",
+        ]
         }
     }
 }
@@ -41,7 +44,7 @@ struct NoteGlyphView: View {
         let width = (active && glyph == .repost ? 2.2 : 1.8) * size / 24
         ZStack {
             ForEach(glyph.paths, id: \.self) { d in
-                if active && glyph == .heart {
+                if active && (glyph == .heart || glyph == .bookmark) {
                     SVGPathShape(d: d).fill()
                 }
                 SVGPathShape(d: d)
