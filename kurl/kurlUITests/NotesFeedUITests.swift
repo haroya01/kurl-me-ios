@@ -175,6 +175,20 @@ final class NotesFeedUITests: XCTestCase {
         attach(app, "author-posts-tab")
     }
 
+    func testCollectionNoteBlockOpensTheNote() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--screen", "collection-detail", "--collection", "101"]
+        app.launch()
+
+        let block = app.buttons
+            .matching(NSPredicate(format: "label CONTAINS '더 나은 질문을 기다리는 일'")).firstMatch
+        XCTAssertTrue(block.waitForExistence(timeout: 12), "컬렉션의 노트 블록이 링크가 아님")
+        XCTAssertTrue(block.label.contains("yuki_dev"), "노트 블록에 작성자가 없음")
+        attach(app, "collection-note-block")
+        block.tap()
+        XCTAssertTrue(app.buttons["note.reply"].waitForExistence(timeout: 8), "노트 블록을 눌러도 노트가 열리지 않음")
+    }
+
     func testFederationCanBeTurnedOffInSettings() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "account"]

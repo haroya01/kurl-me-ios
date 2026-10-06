@@ -76,7 +76,7 @@ struct PathReorderSheet: View {
         switch item.block {
         case let .highlight(quote, _, _, _): return quote
         case let .post(title, _, _, _, _): return title
-        case let .note(body): return body
+        case let .note(body, _, _): return body
         }
     }
 

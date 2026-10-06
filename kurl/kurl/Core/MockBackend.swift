@@ -434,8 +434,8 @@ enum MockBackend {
                     title: "토큰이 사라진 밤", excerpt: "디자인 토큰을 지웠더니 오히려 화면이 선명해졌다.",
                     slug: "the-night-tokens-vanished", username: "honggildong"),
                 MockConnection(
-                    id: 503, blockType: "NOTE", why: nil,
-                    body: "결정을 미루는 건 게으름이 아니라, 더 나은 질문을 기다리는 일일 때가 있다."),
+                    id: 503, blockType: "NOTE", why: nil, username: "yuki_dev",
+                    body: "결정을 미루는 건 게으름이 아니라, 더 나은 질문을 기다리는 일일 때가 있다.", refId: 9501),
             ]),
         MockCollection(
             id: 102, title: "경계 긋기", description: "도메인·관계·코드에서 선을 긋는 법.", visibility: "PRIVATE",
@@ -711,6 +711,7 @@ enum MockBackend {
                     "title": orNull(conn.title), "excerpt": orNull(conn.excerpt),
                     "slug": orNull(conn.slug), "username": orNull(conn.username),
                     "quote": orNull(conn.quote), "body": orNull(conn.body),
+                    "noteId": conn.blockType == "NOTE" ? (conn.refId.map { $0 as Any } ?? NSNull()) : NSNull(),
                 ]
             },
         ]
