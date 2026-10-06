@@ -375,6 +375,27 @@ extension Date {
         return Self.relativeShortFormatter.localizedString(for: self, relativeTo: Date())
     }
 
+    /// 노트 행의 짧은 시간 — 스레드·X처럼 "30분 · 2시간 · 3일", 일주일이 넘으면 날짜.
+    @MainActor var relativeCompact: String {
+        let seconds = -timeIntervalSinceNow
+        if seconds < 60 { return String(localized: "방금") }
+        if seconds < 7 * 86_400, let text = Self.compactFormatter.string(from: seconds) {
+            return text
+        }
+        let sameYear = Calendar.current.isDate(self, equalTo: Date(), toGranularity: .year)
+        return sameYear
+            ? formatted(.dateTime.month(.abbreviated).day())
+            : formatted(.dateTime.year().month(.abbreviated).day())
+    }
+
+    @MainActor private static let compactFormatter: DateComponentsFormatter = {
+        let formatter = DateComponentsFormatter()
+        formatter.unitsStyle = .abbreviated
+        formatter.maximumUnitCount = 1
+        formatter.allowedUnits = [.minute, .hour, .day]
+        return formatter
+    }()
+
     var mediumDate: String {
         formatted(.dateTime.year().month(.abbreviated).day())
     }

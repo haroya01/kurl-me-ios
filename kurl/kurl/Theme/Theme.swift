@@ -153,6 +153,7 @@ enum TypeRole {
     case lede         // 발췌·소개 한 단락(카드·행 제목 아래)
     case body         // 컴포넌트 본문(댓글·답글 본문)
     case note         // 노트 행 — 이름·시간·본문이 한 크기(스레드 문법: 15pt, 줄 높이 약 21pt)
+    case noteFocus    // 노트 상세의 본문 — 머리 줄 아래 전체 폭, 한 단계 크게
     case meta         // 작가·날짜·카운트 등 메타
     case footnote     // 가장 작은 힌트·캡션
 
@@ -167,6 +168,7 @@ enum TypeRole {
         case .eyebrow: return 13
         case .body: return 15.5
         case .note: return 15
+        case .noteFocus: return 16.5
         case .lede: return 14.5
         case .meta: return 12.5
         case .footnote: return 11.5
@@ -178,7 +180,7 @@ enum TypeRole {
         case .display, .masthead, .name, .featured, .eyebrow: return .bold
         case .title, .titleSmall: return .semibold
         case .meta: return .medium
-        case .lede, .body, .note, .footnote: return .regular
+        case .lede, .body, .note, .noteFocus, .footnote: return .regular
         }
     }
 
@@ -190,7 +192,7 @@ enum TypeRole {
         case .name, .featured: return -0.4
         case .title: return -0.3
         case .titleSmall: return -0.25
-        case .lede, .body, .note: return 0
+        case .lede, .body, .note, .noteFocus: return 0
         case .eyebrow, .meta, .footnote: return 0
         }
     }
@@ -201,6 +203,7 @@ enum TypeRole {
         case .lede: return 3.5
         case .body: return 4.5
         case .note: return 2.5
+        case .noteFocus: return 3.5
         default: return 0
         }
     }
@@ -212,7 +215,7 @@ enum TypeRole {
         case .masthead, .name: return .title
         case .featured: return .title2
         case .title, .titleSmall: return .headline
-        case .body, .note: return .callout
+        case .body, .note, .noteFocus: return .callout
         case .lede: return .subheadline
         case .eyebrow, .meta, .footnote: return .caption
         }
