@@ -395,6 +395,8 @@ struct NoteDetailView: View {
                 KurlLoadingMark().frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Palette.pageBg)
         .navigationTitle("노트")
         .navigationBarTitleDisplayMode(.inline)
         .hidesTabBar()
