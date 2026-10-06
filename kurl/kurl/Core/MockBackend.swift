@@ -79,6 +79,8 @@ enum MockBackend {
         var quotedPost: [String: Any]? = nil
         var quotedNoteId: Int64? = nil
         var linkPreview: [String: Any]? = nil
+        var contentWarning: String? = nil
+        var sensitive = false
     }
 
     private static var notes: [MockNote] = [
@@ -108,6 +110,16 @@ enum MockBackend {
                  ],
                  quotedPost: ["id": 1, "title": "헥사고날 아키텍처, 작은 서비스에 과했을까", "slug": "hexagonal",
                               "authorUsername": "honggildong"]),
+        MockNote(id: 9506, body: "마지막 장면에서 주인공이 결국 돌아오지 않는다. 그래서 더 오래 남는다.",
+                 createdAt: Date().addingTimeInterval(-90_000), likeCount: 0, authorId: 3, username: "reader_kim",
+                 contentWarning: "영화 결말 이야기"),
+        MockNote(id: 9507, body: "수술 끝나고 꿰맨 자리. 잘 아물고 있다.",
+                 createdAt: Date().addingTimeInterval(-100_000), likeCount: 0, authorId: 2, username: "yuki_dev",
+                 media: [
+                    ["url": "https://picsum.photos/seed/kurl-note-d/800/600", "altText": "꿰맨 자리",
+                     "contentType": "image/jpeg"],
+                 ],
+                 sensitive: true),
     ]
     private static var nextNoteId: Int64 = 9600
     private static var likedNotes: Set<Int64> = []
@@ -1027,6 +1039,8 @@ enum MockBackend {
                      "contentType": "image/jpeg"]
                 })
             note.quotedNoteId = (req["quotedNoteId"] as? NSNumber)?.int64Value
+            note.contentWarning = (req["contentWarning"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+            note.sensitive = (req["sensitive"] as? Bool) ?? false
             if let quoted = (req["quotedPostId"] as? NSNumber)?.int64Value {
                 note.quotedPost = [
                     "id": quoted, "title": "인용한 글", "slug": "quoted", "authorUsername": "honggildong",
@@ -1037,10 +1051,15 @@ enum MockBackend {
             return json(noteView(note))
         }
         if method == "PATCH", parts.count == 2, parts[0] == "notes", let nid = Int64(parts[1]) {
-            let text = decode(body)["body"] as? String ?? ""
+            let req = decode(body)
+            let text = req["body"] as? String ?? ""
             if let idx = notes.firstIndex(where: { $0.id == nid }) {
                 notes[idx].body = text
                 notes[idx].editedAt = Date()
+                if let warning = req["contentWarning"] as? String {
+                    notes[idx].contentWarning = warning.isEmpty ? nil : warning
+                }
+                if let sensitive = req["sensitive"] as? Bool { notes[idx].sensitive = sensitive }
                 return json(noteView(notes[idx]))
             }
             if let idx = noteReplies.firstIndex(where: { $0.id == nid }) {
@@ -1869,12 +1888,16 @@ enum MockBackend {
             "quoteCount": allNotes().filter { $0.quotedNoteId == n.id }.count,
             "linkPreview": n.linkPreview ?? NSNull(),
             "mentions": ["honggildong", "yuki_dev", "reader_kim"].filter { n.body.lowercased().contains("@" + $0) },
+            "contentWarning": n.contentWarning ?? NSNull(),
+            "sensitive": n.sensitive || n.contentWarning != nil,
             "quotedNote": n.quotedNoteId.flatMap { qid in allNotes().first { $0.id == qid } }
                 .map { q -> [String: Any] in
                     [
                         "id": q.id, "body": q.body, "createdAt": iso(q.createdAt),
                         "author": ["id": q.authorId, "username": q.username, "avatarUrl": NSNull()],
                         "media": q.media,
+                        "contentWarning": q.contentWarning ?? NSNull(),
+                        "sensitive": q.sensitive || q.contentWarning != nil,
                     ]
                 } ?? NSNull(),
         ]

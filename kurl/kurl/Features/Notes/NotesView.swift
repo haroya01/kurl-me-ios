@@ -172,6 +172,8 @@ struct NoteRowView: View {
     @State private var confirmDelete = false
     @State private var connecting = false
     @State private var showLoginSheet = false
+    @State private var revealed = false
+    @State private var mediaRevealed = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(note: Note, onChange: @escaping (Note) -> Void,
@@ -304,15 +306,18 @@ struct NoteRowView: View {
                 FollowButton(username: note.author.username)
                 moreMenu
             }
-            if !note.body.isEmpty {
-                Text(NoteText.attributed(note.body, mentions: note.mentions ?? []))
-                    .typeScale(.noteFocus)
-                    .foregroundStyle(Palette.ink)
-                    .tint(Palette.link)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .textSelection(.enabled)
+            warningBar
+            if !folded {
+                if !note.body.isEmpty {
+                    Text(NoteText.attributed(note.body, mentions: note.mentions ?? []))
+                        .typeScale(.noteFocus)
+                        .foregroundStyle(Palette.ink)
+                        .tint(Palette.link)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
+                }
+                attachments
             }
-            attachments
             if let date = note.createdAt {
                 HStack(spacing: 4) {
                     Text(date, format: .dateTime.hour().minute())
@@ -360,7 +365,8 @@ struct NoteRowView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 header
-                if !note.body.isEmpty {
+                warningBar
+                if !folded, !note.body.isEmpty {
                     NavigationLink(value: Route.note(id: note.id)) {
                         Text(NoteText.attributed(note.body, mentions: note.mentions ?? []))
                             .typeScale(.note)
@@ -374,7 +380,7 @@ struct NoteRowView: View {
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("note.body.\(note.id)")
                 }
-                attachments
+                if !folded { attachments }
                 actions(spread: false)
                     .padding(.top, 10)
             }
@@ -407,8 +413,69 @@ struct NoteRowView: View {
         }
     }
 
+    private var folded: Bool { note.contentWarning != nil && !revealed }
+
+    /// 열람 주의 — 문구만 보이고 본문·사진·카드는 접힌다. 펼치면 사진도 함께 보인다(한 번만 누르게).
+    @ViewBuilder private var warningBar: some View {
+        if let warning = note.contentWarning {
+            HStack(alignment: .center, spacing: 8) {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.system(size: 13, weight: .semibold))
+                    .accessibilityHidden(true)
+                Text(warning)
+                    .typeScale(focused ? .noteFocus : .note)
+                    .fontWeight(.medium)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button(revealed ? "숨기기" : "내용 보기") {
+                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.22)) { revealed.toggle() }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .tint(Palette.ink)
+                .accessibilityIdentifier("note.reveal.\(note.id)")
+            }
+            .foregroundStyle(Palette.ink)
+            .padding(.vertical, 6)
+            .padding(.leading, 10)
+            .padding(.trailing, 6)
+            .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radiusMini))
+            .padding(.top, 4)
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("note.warning.\(note.id)")
+        }
+    }
+
+    private var hidesMedia: Bool {
+        note.sensitive == true && note.contentWarning == nil && !mediaRevealed && !note.media.isEmpty
+    }
+
     @ViewBuilder private var attachments: some View {
         NoteImagesView(media: note.media)
+            .allowsHitTesting(!hidesMedia)
+            .accessibilityHidden(hidesMedia)
+            .overlay {
+                if hidesMedia {
+                    ZStack {
+                        Rectangle().fill(.ultraThickMaterial)
+                        Button {
+                            withAnimation(reduceMotion ? nil : .snappy(duration: 0.22)) { mediaRevealed = true }
+                        } label: {
+                            Label("민감한 사진 · 눌러서 보기", systemImage: "eye.slash")
+                                .typeScale(.meta)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(Palette.ink)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 9)
+                                .background(.regularMaterial, in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("note.sensitive.\(note.id)")
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
+                    .transition(.opacity)
+                }
+            }
         if let post = note.quotedPost {
             NavigationLink(value: Route.post(username: post.authorUsername, slug: post.slug)) {
                 QuotedPostCard(post: post)
@@ -720,14 +787,20 @@ struct QuotedNoteCard: View {
                         .lineLimit(1)
                 }
             }
-            if !note.body.isEmpty {
+            if let warning = note.contentWarning {
+                Label(warning, systemImage: "exclamationmark.triangle")
+                    .typeScale(.note)
+                    .fontWeight(.medium)
+                    .foregroundStyle(Palette.ink)
+                    .lineLimit(2)
+            } else if !note.body.isEmpty {
                 Text(note.body)
                     .typeScale(.note)
                     .foregroundStyle(Palette.ink)
                     .lineLimit(4)
                     .multilineTextAlignment(.leading)
             }
-            if !note.media.isEmpty {
+            if note.contentWarning == nil, note.sensitive != true, !note.media.isEmpty {
                 HStack(spacing: 6) {
                     ForEach(note.media) { image in
                         RemoteImage(url: URL(string: image.url), maxPixel: 200) { phase in
@@ -758,7 +831,9 @@ struct QuotedNoteCard: View {
 
 extension QuotedNote {
     init(_ note: Note) {
-        self.init(id: note.id, body: note.body, createdAt: note.createdAt, author: note.author, media: note.media)
+        self.init(
+            id: note.id, body: note.body, createdAt: note.createdAt, author: note.author, media: note.media,
+            contentWarning: note.contentWarning, sensitive: note.sensitive)
     }
 }
 
@@ -1211,6 +1286,9 @@ struct NoteComposeSheet: View {
     let onDone: (Note) -> Void
 
     @State private var text: String
+    @State private var warning: String
+    @State private var warns: Bool
+    @State private var sensitive: Bool
     @State private var quote: QuotedPost?
     @State private var picked: [PickedImage] = []
     @State private var pickerItems: [PhotosPickerItem] = []
@@ -1237,6 +1315,10 @@ struct NoteComposeSheet: View {
             _text = State(initialValue: note.body)
             _quote = State(initialValue: nil)
         }
+        let editing: Note? = if case let .edit(note) = mode { note } else { nil }
+        _warning = State(initialValue: editing?.contentWarning ?? "")
+        _warns = State(initialValue: editing?.contentWarning != nil)
+        _sensitive = State(initialValue: editing?.sensitive == true && editing?.contentWarning == nil)
     }
 
     private var isEdit: Bool { if case .edit = mode { true } else { false } }
@@ -1259,15 +1341,20 @@ struct NoteComposeSheet: View {
         if case let .edit(note) = mode { return !note.media.isEmpty }
         return !picked.isEmpty
     }
+    private var warningText: String { warns ? warning.trimmingCharacters(in: .whitespacesAndNewlines) : "" }
     private var canPost: Bool {
         !posting && length <= NoteAPI.maxLength && (length > 0 || hasImages)
+            && NoteText.length(warningText) <= NoteAPI.maxWarningLength
     }
     private var discardTitle: LocalizedStringKey {
         isEdit ? "고친 내용을 버릴까요?" : "작성 중인 노트를 버릴까요?"
     }
     private var hasDraft: Bool {
-        if case let .edit(note) = mode { return text != note.body }
-        return length > 0 || !picked.isEmpty
+        if case let .edit(note) = mode {
+            return text != note.body || warningText != (note.contentWarning ?? "")
+                || sensitive != (note.sensitive == true && note.contentWarning == nil)
+        }
+        return length > 0 || !picked.isEmpty || !warningText.isEmpty
     }
 
     var body: some View {
@@ -1286,6 +1373,18 @@ struct NoteComposeSheet: View {
                                     .typeScale(.note)
                                     .fontWeight(.semibold)
                                     .foregroundStyle(Palette.ink)
+                            }
+                            if warns {
+                                TextField("열람 주의 문구 (예: 스포일러)", text: $warning, axis: .vertical)
+                                    .typeScale(.note)
+                                    .fontWeight(.medium)
+                                    .lineLimit(1...3)
+                                    .padding(.vertical, 6)
+                                    .padding(.horizontal, 10)
+                                    .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radiusMini))
+                                    .padding(.vertical, 4)
+                                    .accessibilityIdentifier("noteCompose.warning")
+                                    .transition(.opacity.combined(with: .move(edge: .top)))
                             }
                             TextField(placeholder, text: $text, axis: .vertical)
                                 .typeScale(.note)
@@ -1306,6 +1405,7 @@ struct NoteComposeSheet: View {
                                 .foregroundStyle(Palette.danger)
                                 .fontWeight(.semibold)
                         }
+                        HStack(spacing: 14) {
                         if !isEdit {
                             PhotosPicker(
                                 selection: $pickerItems,
@@ -1320,6 +1420,33 @@ struct NoteComposeSheet: View {
                             }
                             .disabled(picked.count >= NoteAPI.maxImages)
                             .accessibilityLabel("사진 추가")
+                        }
+                            Button {
+                                withAnimation(.snappy(duration: 0.2)) { warns.toggle() }
+                            } label: {
+                                Image(systemName: warns ? "exclamationmark.triangle.fill" : "exclamationmark.triangle")
+                                    .font(.system(size: 17))
+                                    .foregroundStyle(warns ? Palette.ink : Palette.secondary)
+                                    .frame(width: 32, height: 28, alignment: .leading)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(warns ? "열람 주의 끄기" : "열람 주의")
+                            .accessibilityIdentifier("noteCompose.warningToggle")
+                            if hasImages, !warns {
+                                Button {
+                                    sensitive.toggle()
+                                } label: {
+                                    Image(systemName: sensitive ? "eye.slash.fill" : "eye.slash")
+                                        .font(.system(size: 17))
+                                        .foregroundStyle(sensitive ? Palette.ink : Palette.secondary)
+                                        .frame(width: 32, height: 28, alignment: .leading)
+                                        .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel(sensitive ? "민감한 사진 표시 끄기" : "민감한 사진으로 표시")
+                                .accessibilityIdentifier("noteCompose.sensitiveToggle")
+                            }
                         }
                     }
                 }
@@ -1536,7 +1663,8 @@ struct NoteComposeSheet: View {
             posting = true
             defer { posting = false }
             do {
-                onDone(try await NoteAPI.edit(id: note.id, body: text))
+                onDone(try await NoteAPI.edit(
+                    id: note.id, body: text, contentWarning: warningText, sensitive: sensitive))
                 dismiss()
             } catch {
                 errorMessage = String(localized: "노트를 고치지 못했어요")
@@ -1570,7 +1698,8 @@ struct NoteComposeSheet: View {
             let note = try await NoteAPI.create(
                 NoteDraft(
                     body: text, images: images, quotedPostId: quote?.id, inReplyToId: inReplyToId,
-                    quotedNoteId: quotedNote?.id))
+                    quotedNoteId: quotedNote?.id,
+                    contentWarning: warningText.isEmpty ? nil : warningText, sensitive: sensitive))
             var created = note
             if created.linkPreview == nil, let linkCard, linkCard.url == cardUrl {
                 created.linkPreview = linkCard
