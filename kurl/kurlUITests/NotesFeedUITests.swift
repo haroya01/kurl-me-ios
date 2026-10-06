@@ -141,7 +141,13 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["비 오는 창밖"].firstMatch.waitForExistence(timeout: 3), "ALT 를 눌러도 설명이 안 뜸")
         attach(app, "note-row-threads")
 
-        app.buttons["note.menu.9504"].tap()
+        let menu = app.buttons["note.menu.9504"]
+        tries = 0
+        while !menu.isHittable, tries < 4 {
+            app.swipeDown(velocity: .slow)
+            tries += 1
+        }
+        menu.tap()
         XCTAssertTrue(app.buttons["고치기"].waitForExistence(timeout: 3), "내 노트 더보기 메뉴에 고치기가 없음")
         attach(app, "note-row-menu")
     }
@@ -220,6 +226,30 @@ final class NotesFeedUITests: XCTestCase {
         let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
         XCTAssertTrue(safari.wait(for: .runningForeground, timeout: 10), "본문 안 링크를 눌러도 주소가 열리지 않음")
         app.activate()
+    }
+
+    func testALinkedNoteShowsItsCardAndTheComposerPreviewsOne() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let card = app.descendants(matching: .any)["note.linkCard.9503"]
+        var tries = 0
+        while !card.exists || !card.isHittable, tries < 4 { app.swipeUp(); tries += 1 }
+        XCTAssertTrue(card.waitForExistence(timeout: 6), "주소가 든 노트에 링크 카드가 없음")
+        XCTAssertTrue(card.label.contains("kurl.me"), "링크 카드에 도메인이 없음")
+        attach(app, "note-link-card")
+
+        app.buttons["notes.fab"].tap()
+        let field = app.textFields["noteCompose.text"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeText("읽어 볼 글 https://example.com/essay")
+        let draftCard = app.descendants(matching: .any)["noteCompose.linkCard"]
+        XCTAssertTrue(draftCard.waitForExistence(timeout: 6), "작성 시트에 링크 미리보기가 안 뜸")
+        attach(app, "note-compose-link-card")
+        app.navigationBars.buttons["취소"].tap()
+        app.alerts.firstMatch.buttons["버리기"].tap()
     }
 
     func testRepostMenuTogglesAndQuotePostsAboveTheFeed() throws {
