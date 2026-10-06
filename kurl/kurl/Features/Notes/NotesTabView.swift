@@ -32,6 +32,9 @@ struct NotesTabView: View {
                 Task { await notes.show(.init(kind)) }
             }
             .sensoryFeedback(.selection, trigger: choice.kind)
+            .onChange(of: NoteFeedPreferences.shared.changes) {
+                if choice.kind == .following { Task { await notes.reload() } }
+            }
             .navigationDestination(for: Route.self) {
                 RouteView(route: $0)
             }
@@ -39,6 +42,7 @@ struct NotesTabView: View {
                 let signedIn = AuthStore.shared.isSignedIn
                 if loadedSignedIn == signedIn { return }
                 loadedSignedIn = signedIn
+                await NoteFeedPreferences.shared.hydrateIfNeeded()
                 await notes.reload()
             }
             .brandRefreshable {

@@ -829,6 +829,34 @@
         }
       }
     },
+    "%@님의 리포스트를 다시 보여 줘요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reposts from %@ are back"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ के रीपोस्ट फिर दिखेंगे"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@さんのリポストを再び表示します"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã hiện lại bài đăng lại của %@"
+          }
+        }
+      }
+    },
     "%@님의 블로그": {
       "localizations": {
         "en": {
@@ -6740,6 +6768,34 @@
         }
       }
     },
+    "리포스트 다시 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show reposts again"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रीपोस्ट फिर दिखाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リポストを再表示"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hiện lại bài đăng lại"
+          }
+        }
+      }
+    },
     "리포스트 메뉴": {
       "localizations": {
         "en": {
@@ -6764,6 +6820,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Menu đăng lại"
+          }
+        }
+      }
+    },
+    "리포스트 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show reposts"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रीपोस्ट दिखाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リポストを表示"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hiện bài đăng lại"
+          }
+        }
+      }
+    },
+    "리포스트 숨기기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide reposts"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रीपोस्ट छिपाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リポストを非表示"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ẩn bài đăng lại"
           }
         }
       }
@@ -7128,6 +7240,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Thêm suy nghĩ của bạn"
+          }
+        }
+      }
+    },
+    "설정을 바꾸지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't change the setting"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सेटिंग नहीं बदल सकी"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定を変更できませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể thay đổi cài đặt"
           }
         }
       }
@@ -11815,6 +11955,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Xem ghi chú từ người bạn theo dõi"
+          }
+        }
+      }
+    },
+    "팔로잉 피드에서 %@님의 리포스트를 숨겨요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reposts from %@ are hidden in Following"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ॉलोइंग में %@ के रीपोस्ट छिपे रहेंगे"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォロー中フィードで%@さんのリポストを非表示にします"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã ẩn bài đăng lại của %@ trong Đang theo dõi"
           }
         }
       }

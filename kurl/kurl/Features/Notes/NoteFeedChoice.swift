@@ -59,8 +59,50 @@ final class NoteFeedChoice {
     }
 }
 
+@MainActor
+@Observable
+final class NoteFeedPreferences {
+    static let shared = NoteFeedPreferences()
+
+    private(set) var showReposts = true
+    private(set) var changes = 0
+    private var loadedFor: Int64?
+
+    private init() {}
+
+    func hydrateIfNeeded() async {
+        guard let me = AuthStore.shared.me?.id else {
+            loadedFor = nil
+            if !showReposts { showReposts = true }
+            return
+        }
+        guard loadedFor != me else { return }
+        if let preferences = try? await NoteAPI.feedPreferences() {
+            showReposts = preferences.showReposts
+            loadedFor = me
+        }
+    }
+
+    func followingFeedChanged() {
+        changes += 1
+    }
+
+    func setShowReposts(_ on: Bool) async {
+        let before = showReposts
+        showReposts = on
+        do {
+            showReposts = try await NoteAPI.setShowReposts(on).showReposts
+            changes += 1
+        } catch {
+            showReposts = before
+            ToastCenter.shared.show(String(localized: "설정을 바꾸지 못했어요"))
+        }
+    }
+}
+
 struct NoteFeedPicker: View {
     @Bindable var choice = NoteFeedChoice.shared
+    private var preferences = NoteFeedPreferences.shared
 
     var body: some View {
         Picker("노트 피드", selection: $choice.kind) {
@@ -69,5 +111,15 @@ struct NoteFeedPicker: View {
             }
         }
         .pickerStyle(.inline)
+        if choice.kind == .following, AuthStore.shared.isSignedIn {
+            Section {
+                Toggle(isOn: Binding(
+                    get: { preferences.showReposts },
+                    set: { on in Task { await preferences.setShowReposts(on) } }
+                )) {
+                    Label("리포스트 보기", systemImage: "arrow.2.squarepath")
+                }
+            }
+        }
     }
 }
