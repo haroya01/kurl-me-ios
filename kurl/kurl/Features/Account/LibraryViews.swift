@@ -29,7 +29,7 @@ struct BookmarksView: View {
                 } description: {
                     Text("북마크한 글은 오프라인에서도 읽을 수 있어요.")
                 } actions: {
-                    Button("발견에서 읽을 글 찾기") { TabRouter.shared.selection = 1 }
+                    Button("피드에서 읽을 글 찾기") { TabRouter.shared.selection = 0 }
                         .foregroundStyle(Palette.link)
                 }
                 .padding(.top, 60)
@@ -162,7 +162,7 @@ struct LikedPostsView: View {
                 ContentUnavailableView {
                     Label("좋아요한 글이 없습니다", systemImage: "heart")
                 } actions: {
-                    Button("발견에서 읽을 글 찾기") { TabRouter.shared.selection = 1 }
+                    Button("피드에서 읽을 글 찾기") { TabRouter.shared.selection = 0 }
                         .foregroundStyle(Palette.link)
                 }
                     .padding(.top, 60)
@@ -298,7 +298,7 @@ struct SubscribedTagsView: View {
                 } description: {
                     Text("글에서 태그를 구독하면 그 주제의 새 글이 구독함에 모여요.")
                 } actions: {
-                    Button("발견에서 읽을 글 찾기") { TabRouter.shared.selection = 1 }
+                    Button("피드에서 읽을 글 찾기") { TabRouter.shared.selection = 0 }
                         .foregroundStyle(Palette.link)
                 }
                 .padding(.top, 60)

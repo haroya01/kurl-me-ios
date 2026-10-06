@@ -450,12 +450,12 @@ struct SearchView: View {
     @ViewBuilder private var noResults: some View {
         if trending.isEmpty, popularTags.isEmpty, suggestedAuthors.isEmpty {
             // 발견 레일까지 못 받은 드문 경우 — 스톡 회색 말풍선 대신 대기화면과 같은 언어로
-            // 발견 탭으로 이어준다(막다른 길 금지).
+            // 피드 탭으로 이어준다(막다른 길 금지).
             FeedPlaceholder(
                 title: "‘\(query)’ 결과가 없어요",
-                message: "다른 낱말로 찾아보거나, 발견 탭에서 읽을 글을 둘러보세요.",
-                actionTitle: "발견 탭에서 읽을 글 찾기",
-                action: { TabRouter.shared.switchTo(1, reduceMotion: reduceMotion) }
+                message: "다른 낱말로 찾아보거나, 피드에서 읽을 글을 둘러보세요.",
+                actionTitle: "피드에서 읽을 글 찾기",
+                action: { TabRouter.shared.switchTo(0, reduceMotion: reduceMotion) }
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(.top, 80)

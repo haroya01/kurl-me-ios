@@ -5844,6 +5844,34 @@
         }
       }
     },
+    "로그인하고 노트 쓰기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to write a note"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नोट लिखने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログインしてノートを書く"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để viết ghi chú"
+          }
+        }
+      }
+    },
     "노트 연합": {
       "localizations": {
         "en": {
@@ -6376,30 +6404,30 @@
         }
       }
     },
-    "다른 낱말로 찾아보거나, 발견 탭에서 읽을 글을 둘러보세요.": {
+    "다른 낱말로 찾아보거나, 피드에서 읽을 글을 둘러보세요.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Try a different word, or browse posts to read in Discover."
+            "value": "Try a different word, or browse posts to read in Feed."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "कोई और शब्द आज़माएँ, या खोजें में पढ़ने के लिए पोस्ट देखें।"
+            "value": "कोई और शब्द आज़माएँ, या फ़ीड में पढ़ने के लिए पोस्ट देखें।"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "別の言葉で探すか、発見タブで読む記事を見てみましょう。"
+            "value": "別の言葉で探すか、フィードで読む記事を見てみましょう。"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Thử từ khác, hoặc xem các bài để đọc trong Khám phá."
+            "value": "Thử từ khác, hoặc xem các bài để đọc trong Nguồn cấp."
           }
         }
       }
@@ -8674,34 +8702,6 @@
         }
       }
     },
-    "로그인하면 팔로우한 큐레이터가 컬렉션에 이은 글이 여기에 흘러요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign in and posts the curators you follow connect into collections will flow here."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "साइन इन करें, फिर आप जिन क्यूरेटर को फ़ॉलो करते हैं उन्होंने कलेक्शन में जो पोस्ट जोड़ी हैं वे यहाँ बहकर आएँगी।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ログインすると、フォロー中のキュレーターがコレクションにつないだ記事がここに流れてきます。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Đăng nhập để những bài viết mà các nhà tuyển chọn bạn theo dõi kết nối vào bộ sưu tập sẽ chảy về đây."
-          }
-        }
-      }
-    },
     "리비전": {
       "localizations": {
         "en": {
@@ -10139,86 +10139,58 @@
         }
       }
     },
-    "발견 탭에서 읽을 글 찾기": {
+    "피드에서 읽을 글 찾기": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Find posts to read in Discover"
+            "value": "Find posts to read in Feed"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "खोजें में पढ़ने के लिए पोस्ट खोजें"
+            "value": "फ़ीड में पढ़ने के लिए पोस्ट खोजें"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "発見タブで読む記事を探す"
+            "value": "フィードで読む記事を探す"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tìm bài để đọc trong Khám phá"
+            "value": "Tìm bài để đọc trong Nguồn cấp"
           }
         }
       }
     },
-    "발견에서 읽을 글 찾기": {
+    "검색에서 작가 찾기": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Find something to read in Discover"
+            "value": "Find writers in Search"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "खोजें में पढ़ने के लिए कुछ ढूँढें"
+            "value": "खोज में लेखक ढूँढें"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "発見で読む記事を探す"
+            "value": "検索で作家を探す"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tìm bài để đọc trong Khám phá"
-          }
-        }
-      }
-    },
-    "발견에서 작가 찾기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Find writers in Discover"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "खोजें में लेखक ढूँढें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "発見で作家を探す"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tìm tác giả trong Khám phá"
+            "value": "Tìm tác giả trong Tìm kiếm"
           }
         }
       }
@@ -14159,34 +14131,6 @@
         }
       }
     },
-    "아직 팔로우한 큐레이터의 소식이 없어, 지금 전역에서 이어지는 것들을 보여드려요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No updates yet from curators you follow, so here's what's being connected across kurl right now."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आप जिन क्यूरेटर को फ़ॉलो करते हैं उनसे अभी कोई अपडेट नहीं है, तो अभी kurl पर जो जुड़ रहा है वह यहाँ दिखा रहे हैं।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フォロー中のキュレーターの新着はまだないので、今 kurl 全体でつながっているものをお見せします。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Chưa có tin mới từ các nhà tuyển chọn bạn theo dõi, nên đây là những gì đang được kết nối trên toàn kurl ngay bây giờ."
-          }
-        }
-      }
-    },
     "아직 팔로워가 없어요": {
       "localizations": {
         "en": {
@@ -14211,62 +14155,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chưa có người theo dõi nào"
-          }
-        }
-      }
-    },
-    "아직 하이라이트가 없어요": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No highlights yet"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "अभी कोई हाइलाइट नहीं"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "まだハイライトがありません"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Chưa có đoạn tô sáng"
-          }
-        }
-      }
-    },
-    "아직 흐를 게 없어요": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nothing flowing yet"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "अभी तक कुछ भी प्रवाहित नहीं"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "まだ流れるものがありません"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Chưa có gì để hiển thị"
           }
         }
       }
@@ -14774,62 +14662,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ngắt kết nối"
-          }
-        }
-      }
-    },
-    "연결 발견": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Discover connections"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "कनेक्शन खोजें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "つながりを見つける"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Khám phá kết nối"
-          }
-        }
-      }
-    },
-    "연결 흐름 보기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "See the connection flow"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "कनेक्शन प्रवाह देखें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "つながりの流れを見る"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Xem dòng kết nối"
           }
         }
       }
@@ -19000,34 +18832,6 @@
         }
       }
     },
-    "작가를 팔로우하면, 그들이 컬렉션에 이은 글이 여기에 흘러요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Follow writers and what they connect to collections flows here."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "लेखकों को फ़ॉलो करें और वे जो कलेक्शन में जोड़ते हैं, वह यहाँ प्रवाहित होता है."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "書き手をフォローすると、彼らがコレクションにつないだ記事がここに流れます。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Theo dõi tác giả và những gì họ kết nối vào bộ sưu tập sẽ chảy về đây."
-          }
-        }
-      }
-    },
     "작가의 글과 댓글·좋아요·하이라이트가 모두 지워져요. 되돌릴 수 없어요.": {
       "localizations": {
         "en": {
@@ -20666,34 +20470,6 @@
         }
       }
     },
-    "지금 열려 있는 길": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Paths to explore"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "अभी खुली राहें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "いま開いている道"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Những lối đang mở"
-          }
-        }
-      }
-    },
     "지금 이어지는 것들": {
       "localizations": {
         "en": {
@@ -21474,34 +21250,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bản nháp"
-          }
-        }
-      }
-    },
-    "최근": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recent"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "हाल के"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "最近"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gần đây"
           }
         }
       }
@@ -22573,34 +22321,6 @@
         }
       }
     },
-    "큐레이터 찾기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Find curators"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "क्यूरेटर खोजें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キュレーターを探す"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tìm nhà tuyển chọn"
-          }
-        }
-      }
-    },
     "큐레이터가 엮은 컬렉션 이어 보기": {
       "localizations": {
         "en": {
@@ -23299,62 +23019,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bài mới, lượt thích và bình luận từ tác giả bạn theo dõi sẽ tụ về đây."
-          }
-        }
-      }
-    },
-    "팔로우한 큐레이터가 글에서 밑줄 친 문장이 여기에 모여요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sentences your curators underline in posts gather here."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आपके क्यूरेटर की रेखांकित पंक्तियाँ यहाँ इकट्ठा होती हैं।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フォロー中のキュレーターが記事に引いた下線の文がここに集まります。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Những câu mà curator bạn theo dõi gạch chân sẽ tụ về đây."
-          }
-        }
-      }
-    },
-    "팔로우한 큐레이터의 연결 흐름 받기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Get the connection feed from curators you follow"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आप जिन क्यूरेटर को फ़ॉलो करते हैं उनकी कनेक्शन फ़ीड पाएँ"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フォロー中のキュレーターのつながりを受け取る"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nhận dòng kết nối từ các nhà tuyển chọn bạn theo dõi"
           }
         }
       }
@@ -25485,34 +25149,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "इस लेख के पाठकों को दिखाई देगा"
-          }
-        }
-      }
-    },
-    "최근 길을 엮은 큐레이터": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recently active curators"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "最近パスを編んだキュレーター"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Người tuyển chọn vừa kết nối lối đi"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "हाल में राहें जोड़ने वाले क्यूरेटर"
           }
         }
       }

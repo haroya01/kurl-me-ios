@@ -5,7 +5,7 @@
 
 import XCTest
 
-/// 노트 — 발견의 노트 흐름, 목 피드 렌더, 작성 시트 → 첫 노트 연합 안내 → 맨 위 꽂힘, 답글 화면까지.
+/// 노트 — 노트 탭, 목 피드 렌더, 작성 시트 → 첫 노트 연합 안내 → 맨 위 꽂힘, 답글 화면까지.
 final class NotesFeedUITests: XCTestCase {
 
     override func setUpWithError() throws {
@@ -13,15 +13,16 @@ final class NotesFeedUITests: XCTestCase {
     }
 
     private func openNotes(_ app: XCUIApplication) {
-        let segment = app.buttons["노트"].firstMatch
-        XCTAssertTrue(segment.waitForExistence(timeout: 12), "발견 탭에 노트 흐름이 없음")
-        segment.tap()
+        XCTAssertTrue(app.buttons["notes.compose"].waitForExistence(timeout: 12), "노트 탭이 열리지 않음")
     }
 
-    func testNotesFlowInDiscoverPublishes() throws {
+    func testNotesTabPublishes() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["--mocks", "--tab", "discover"]
+        app.launchArguments = ["--mocks"]
         app.launch()
+        let tab = app.buttons["노트"].firstMatch
+        XCTAssertTrue(tab.waitForExistence(timeout: 12), "탭바에 노트가 없음")
+        tab.tap()
         openNotes(app)
 
         let seeded = app.staticTexts
@@ -49,14 +50,14 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertFalse(app.textFields["noteCompose.text"].exists, "올린 뒤 시트가 닫히지 않음")
 
         let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
-        shot.name = "notes-in-discover"
+        shot.name = "notes-tab"
         shot.lifetime = .keepAlways
         add(shot)
     }
 
     func testANotesRepliesOpenFromItsRow() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["--mocks", "--tab", "discover"]
+        app.launchArguments = ["--mocks", "--tab", "notes"]
         app.launch()
         openNotes(app)
 
@@ -77,7 +78,7 @@ final class NotesFeedUITests: XCTestCase {
 
     func testADraftIsKeptUntilDiscardedAndPhotosOpenLarge() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["--mocks", "--tab", "discover"]
+        app.launchArguments = ["--mocks", "--tab", "notes"]
         app.launch()
         openNotes(app)
 

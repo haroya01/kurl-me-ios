@@ -28,10 +28,10 @@ final class TabRouter {
     var notificationsSheetVisible = false
 
     private init() {
-        // `--tab write|discover|search|account` — simctl 은 터치를 못 넣으니 검증용 진입로.
+        // `--tab notes|write|search|account` — simctl 은 터치를 못 넣으니 검증용 진입로.
         selection =
             switch Config.launchValue(after: "--tab") {
-            case "discover": 1
+            case "notes": 1
             case "write": 2
             case "search": 3
             case "account": 4
@@ -273,7 +273,7 @@ struct RootView: View {
         // 시스템 유리 결의 커스텀 FloatingTabBar 로 직접 그린다(§1 종이 본문·액체 크롬 — 유리·
         // 5탭 아이콘-온리·brand green 은 그대로). 스크롤 방향은 TabBarVisibility 가 누적한다.
         let tabs: [(icon: String, label: LocalizedStringKey)] = [
-            ("doc.text.image", "피드"), ("safari", "발견"), ("square.and.pencil", "글쓰기"),
+            ("doc.text.image", "피드"), ("text.bubble", "노트"), ("square.and.pencil", "글쓰기"),
             ("magnifyingglass", "검색"), ("person.crop.circle", "내 계정"),
         ]
         return ZStack(alignment: .bottom) {
@@ -347,7 +347,7 @@ struct RootView: View {
     @ViewBuilder
     private func tabRoot(_ index: Int) -> some View {
         switch index {
-        case 1: DiscoverView()
+        case 1: NotesTabView()
         case 2: StudioView()
         case 3: SearchView()
         case 4: AccountView()

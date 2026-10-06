@@ -63,15 +63,6 @@ enum HighlightsAPI {
     static func deleteReply(id: Int64) async throws {
         try await client.deleteVoid("/highlight-replies/\(id)", authenticated: true)
     }
-
-    /// 인증 — 팔로우한 큐레이터가 최근 칠한 공개 하이라이트 피드(최신순, 페이지). "남들 하이라이트" 발견 표면.
-    /// 로그인했지만 팔로우 0/활동 0이면 서버가 전역 공개 흐름으로 폴백해 `source: "global"` 로 알린다.
-    /// 폴백이 활성이면 이후 요청에 `scope=global` 을 고정해 개인화 페이지와 안 섞이게 한다.
-    static func feed(page: Int = 0, size: Int = 20, scope: DiscoverScope? = nil) async throws -> HighlightFeedPage {
-        var query: [String: String?] = ["page": String(page), "size": String(size)]
-        if scope == .global { query["scope"] = "global" }
-        return try await client.get("/highlights/feed", query: query, authenticated: true)
-    }
 }
 
 enum HighlightValidationError: LocalizedError {
@@ -153,43 +144,3 @@ struct MyHighlightView: Decodable, Identifiable, Hashable {
     }
 }
 
-/// "남들 하이라이트" 피드 한 항목 — 팔로우한 큐레이터가 그은 구절 + 원문 참조(구절로 이동)·메모·답글 수.
-struct HighlightFeedItemView: Decodable, Identifiable, Hashable {
-    let id: Int64
-    let postId: Int64
-    /// 누가 칠했나 — 큐레이터(하이라이트 작성자). 글 작가와 다를 수 있다.
-    let curator: Author?
-    let postSlug: String
-    let postTitle: String
-    /// 글을 쓴 사람(큐레이터가 아니라).
-    let postAuthorUsername: String?
-    let blockOrder: Int?
-    let endBlockOrder: Int?
-    let startOffset: Int?
-    let endOffset: Int?
-    let quote: String
-    let note: String?
-    let createdAt: Date?
-    let replyCount: Int
-}
-
-/// GET /highlights/feed 한 페이지.
-struct HighlightFeedPage: Decodable {
-    let items: [HighlightFeedItemView]
-    let page: Int
-    let size: Int
-    let hasNext: Bool
-    /// page 0 이 개인화(팔로우 큐레이터)인지 전역 폴백인지. 옛 응답 호환 위해 없으면 following.
-    let source: DiscoverScope
-
-    private enum CodingKeys: String, CodingKey { case items, page, size, hasNext, source }
-
-    init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        items = try c.decode([HighlightFeedItemView].self, forKey: .items)
-        page = try c.decodeIfPresent(Int.self, forKey: .page) ?? 0
-        size = try c.decodeIfPresent(Int.self, forKey: .size) ?? items.count
-        hasNext = try c.decodeIfPresent(Bool.self, forKey: .hasNext) ?? false
-        source = try c.decodeIfPresent(DiscoverScope.self, forKey: .source) ?? .following
-    }
-}

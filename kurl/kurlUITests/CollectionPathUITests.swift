@@ -107,22 +107,25 @@ final class CollectionPathUITests: XCTestCase {
         shot("5-new-path-created")
     }
 
-    /// Stage 4a — 발견 피드에서 PATH 연결이 '길에 엮음'으로 구분된다.
-    func testDiscoverMarksPathConnections() throws {
+    /// Stage 4a — 홈 피드에 끼는 공개 연결에서 PATH 연결이 '길에 엮음'으로 구분된다.
+    func testFeedMarksPathConnections() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["--mocks", "--tab", "discover"]
+        app.launchArguments = ["--mocks", "--logged-out", "--feed", "recent"]
         app.launch()
 
-        // 연결 이벤트 흐름은 '최근' 서브탭 — 기본 탭이 '입구'로 바뀐 뒤에도 같은 자리를 본다.
-        let recent = app.buttons["최근"]
-        XCTAssertTrue(recent.waitForExistence(timeout: 15), "발견 서브탭이 없음")
-        recent.tap()
-        XCTAssertTrue(
-            app.descendants(matching: .any)
-                .matching(NSPredicate(format: "label CONTAINS '길에 엮음'")).firstMatch
-                .waitForExistence(timeout: 15),
-            "발견 피드에 '길에 엮음' 표시가 없음")
-        shot("6-discover-path-card")
+        let guest = app.buttons["로그인 없이 둘러보기"].firstMatch
+        if guest.waitForExistence(timeout: 6) {
+            guest.tap()
+        }
+        _ = app.buttons["최신"].firstMatch.waitForExistence(timeout: 12)
+
+        let pathLabel = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS '길에 엮음'")).firstMatch
+        for _ in 0..<8 where !(pathLabel.exists && pathLabel.isHittable) {
+            app.swipeUp()
+        }
+        XCTAssertTrue(pathLabel.exists, "홈 피드의 공개 연결에 '길에 엮음' 표시가 없음")
+        shot("6-feed-path-card")
     }
 
     /// Stage 4b — 하이라이트 스레드에 '이 문장이 속한 길' 섹션이 뜨고, 길을 탭하면 가이드 워크로.

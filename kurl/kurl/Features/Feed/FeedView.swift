@@ -416,8 +416,8 @@ struct FeedPage: View {
                         FeedPlaceholder(
                             title: "구독함이 비어 있어요",
                             message: "작가를 팔로우하면 새 글이 여기 도착해요.",
-                            actionTitle: "발견에서 작가 찾기",
-                            action: { TabRouter.shared.switchTo(1, reduceMotion: reduceMotion) }
+                            actionTitle: "검색에서 작가 찾기",
+                            action: { TabRouter.shared.switchTo(3, reduceMotion: reduceMotion) }
                         )
                         .padding(.top, 64)
                     } else {
@@ -426,8 +426,8 @@ struct FeedPage: View {
                             message: source == .forYou
                                 ? "몇 편 읽고 나면 취향이 잡힙니다."
                                 : "첫 글이 올라오면 여기에서 만나요.",
-                            actionTitle: "발견에서 읽을 글 찾기",
-                            action: { TabRouter.shared.switchTo(1, reduceMotion: reduceMotion) }
+                            actionTitle: "읽을 글 찾기",
+                            action: { TabRouter.shared.switchTo(3, reduceMotion: reduceMotion) }
                         )
                         .padding(.top, 64)
                     }
