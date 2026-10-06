@@ -140,8 +140,7 @@ struct NoteRowView: View {
         VStack(alignment: .leading, spacing: 6) {
             if let repostedBy {
                 HStack(spacing: 12) {
-                    Image(systemName: "arrow.2.squarepath")
-                        .font(.system(size: 11, weight: .semibold))
+                    NoteGlyphView(glyph: .repost, size: 14)
                         .frame(width: 36, alignment: .trailing)
                     Text("\(repostedBy)님이 리포스트함")
                         .typeScale(.meta)
@@ -347,10 +346,8 @@ struct NoteRowView: View {
                 Task { await toggleLike() }
             } label: {
                 HStack(spacing: 4) {
-                    Image(systemName: liked ? "heart.fill" : "heart")
-                        .font(Self.actionFont)
-                        .frame(width: Self.actionBox, height: Self.actionBox)
-                        .symbolEffect(.bounce, value: reduceMotion ? false : liked)
+                    NoteGlyphView(glyph: .heart, active: liked, size: Self.actionBox)
+                        .modifier(GlyphPop(trigger: reduceMotion ? false : liked))
                     if isMine, let likeCount, likeCount > 0 {
                         Text("\(likeCount)").monospacedDigit()
                     }
@@ -366,10 +363,7 @@ struct NoteRowView: View {
 
             NavigationLink(value: Route.note(id: note.id)) {
                 HStack(spacing: 4) {
-                    Image(systemName: "message")
-                        .font(Self.actionFont)
-                        .scaleEffect(x: -1, y: 1)
-                        .frame(width: Self.actionBox, height: Self.actionBox)
+                    NoteGlyphView(glyph: .reply, size: Self.actionBox)
                     if note.replyCount > 0 { Text("\(note.replyCount)").monospacedDigit() }
                 }
                 .typeScale(.lede)
@@ -384,10 +378,7 @@ struct NoteRowView: View {
 
             if let shareURL {
                 ShareLink(item: shareURL) {
-                    Image(systemName: "paperplane")
-                        .font(Self.actionFont)
-                        .rotationEffect(.degrees(45))
-                        .frame(width: Self.actionBox, height: Self.actionBox)
+                    NoteGlyphView(glyph: .share, size: Self.actionBox)
                         .foregroundStyle(Palette.ink)
                         .expandTapTarget()
                 }
@@ -399,7 +390,6 @@ struct NoteRowView: View {
         .padding(.top, 10)
     }
 
-    private static let actionFont = Font.system(size: 17)
     private static let actionBox: CGFloat = 22
 
     private var repostMenu: some View {
@@ -419,10 +409,8 @@ struct NoteRowView: View {
             }
         } label: {
             HStack(spacing: 4) {
-                Image(systemName: "arrow.2.squarepath")
-                    .font(.system(size: 17, weight: reposted ? .semibold : .regular))
-                    .frame(width: Self.actionBox, height: Self.actionBox)
-                    .symbolEffect(.bounce, value: reduceMotion ? false : reposted)
+                NoteGlyphView(glyph: .repost, active: reposted, size: Self.actionBox)
+                    .modifier(GlyphPop(trigger: reduceMotion ? false : reposted))
                 if isMine, let repostCount, repostCount > 0 {
                     Text("\(repostCount)").monospacedDigit()
                 }
@@ -482,6 +470,19 @@ struct NoteRowView: View {
             onDelete(note.id)
         } catch {
             ToastCenter.shared.show(String(localized: "노트를 삭제하지 못했습니다"))
+        }
+    }
+}
+
+/// 좋아요·리포스트를 켜고 끌 때 아이콘이 한 번 부풀었다 돌아온다.
+private struct GlyphPop: ViewModifier {
+    let trigger: Bool
+
+    func body(content: Content) -> some View {
+        content.phaseAnimator([1.0, 1.22, 1.0], trigger: trigger) { view, scale in
+            view.scaleEffect(scale)
+        } animation: { _ in
+            .snappy(duration: 0.16)
         }
     }
 }
