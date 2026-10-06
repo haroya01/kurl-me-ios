@@ -78,6 +78,7 @@ enum MockBackend {
         var media: [[String: Any]] = []
         var quotedPost: [String: Any]? = nil
         var quotedNoteId: Int64? = nil
+        var linkPreview: [String: Any]? = nil
     }
 
     private static var notes: [MockNote] = [
@@ -89,7 +90,12 @@ enum MockBackend {
         MockNote(id: 9502, body: "긴 글로 정리하기 전의 생각 조각을 둘 곳이 필요했는데, 노트가 딱 그 자리다.",
                  createdAt: Date().addingTimeInterval(-7_200), likeCount: 11, authorId: 1, username: "honggildong"),
         MockNote(id: 9503, body: "라이트 모드 캔버스를 순백에서 slate-50 으로 바꿨더니 카드가 비로소 떠 보인다. 배경은 색이 아니라 깊이다. https://kurl.me/about",
-                 createdAt: Date().addingTimeInterval(-26_000), likeCount: 7, authorId: 3, username: "reader_kim"),
+                 createdAt: Date().addingTimeInterval(-26_000), likeCount: 7, authorId: 3, username: "reader_kim",
+                 linkPreview: [
+                    "url": "https://kurl.me/about", "title": "kurl — 짧은 링크와 글이 오래 사는 곳",
+                    "description": "링크를 줄이고, 글을 쓰고, 그 사이를 엮는다.",
+                    "image": "https://picsum.photos/seed/kurl-about/960/502",
+                 ]),
         MockNote(id: 9504, body: "창밖 사진 세 장. 글로 정리하기 전에 남겨 둔다.",
                  createdAt: Date().addingTimeInterval(-40_000), likeCount: 2, authorId: 1, username: "honggildong",
                  media: [
@@ -732,6 +738,15 @@ enum MockBackend {
         path: String, method: String, query: [URLQueryItem]? = nil, body: Data?
     ) -> Data? {
         let parts = path.split(separator: "/").map(String.init)
+
+        if method == "GET", parts == ["public", "link-preview"],
+           let url = query?.first(where: { $0.name == "url" })?.value {
+            let host = URL(string: url)?.host() ?? url
+            return json([
+                "url": url, "title": "\(host) — 링크 미리보기", "description": NSNull(),
+                "image": "https://picsum.photos/seed/\(host)/960/502",
+            ])
+        }
 
         // 본문 링크 단축 — 붙여넣은 URL 을 kurl 짧은 링크로(POST /links).
         if method == "POST", parts == ["links"] {
@@ -1775,6 +1790,7 @@ enum MockBackend {
             "replyCount": noteReplies.filter { $0.inReplyToId == n.id }.count,
             "repostCount": n.authorId == 1 ? repostCount(n.id) : NSNull(),
             "repostedByMe": repostedNotes["honggildong"]?.contains(n.id) == true,
+            "linkPreview": n.linkPreview ?? NSNull(),
             "quotedNote": n.quotedNoteId.flatMap { qid in allNotes().first { $0.id == qid } }
                 .map { q -> [String: Any] in
                     [

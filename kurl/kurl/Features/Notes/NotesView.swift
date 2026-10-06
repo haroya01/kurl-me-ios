@@ -308,6 +308,14 @@ struct NoteRowView: View {
             .padding(.top, 6)
             .accessibilityIdentifier("note.quoted.\(quoted.id)")
         }
+        if let card = note.linkPreview, let url = URL(string: card.url) {
+            Link(destination: url) {
+                NoteLinkCardView(preview: card)
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 6)
+            .accessibilityIdentifier("note.linkCard.\(note.id)")
+        }
     }
 
     private var shareURL: URL? {
@@ -737,6 +745,75 @@ enum NoteText {
     static func length(_ text: String) -> Int {
         text.trimmingCharacters(in: .whitespacesAndNewlines).unicodeScalars.count
     }
+
+    /// 링크 카드가 다룰 주소 — 첫 주소, 서버·웹과 같은 규칙. 사진이나 인용이 있으면 카드가 없다.
+    static func previewUrl(_ body: String, hasMedia: Bool, hasQuote: Bool) -> String? {
+        guard !hasMedia, !hasQuote else { return nil }
+        let ns = body as NSString
+        guard let match = urlPattern?.firstMatch(in: body, range: NSRange(location: 0, length: ns.length))
+        else { return nil }
+        var link = ns.substring(with: match.range)
+        while let scalar = link.unicodeScalars.last, trailing.contains(scalar) {
+            link.removeLast()
+        }
+        return link.count <= 2048 ? link : nil
+    }
+}
+
+/// 노트 링크 카드 — 사진이 있으면 1.91:1로 위에, 아래로 도메인 · 제목(2줄). 사진이 없으면 설명 2줄.
+struct NoteLinkCardView: View {
+    let preview: NoteLinkPreview
+
+    private var domain: String {
+        guard let host = URL(string: preview.url)?.host() else { return preview.url }
+        return host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if let image = preview.image.flatMap(URL.init(string:)) {
+                Palette.hairline
+                    .aspectRatio(1.91, contentMode: .fit)
+                    .overlay {
+                        RemoteImage(url: image, maxPixel: 900) { phase in
+                            if case .success(let loaded) = phase {
+                                loaded.resizable().scaledToFill()
+                            }
+                        }
+                    }
+                    .clipped()
+                    .overlay(alignment: .bottom) { Hairline() }
+                    .accessibilityHidden(true)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(domain)
+                    .typeScale(.meta)
+                    .foregroundStyle(Palette.secondary)
+                    .lineLimit(1)
+                if let title = preview.title {
+                    Text(title)
+                        .typeScale(.note)
+                        .fontWeight(.medium)
+                        .foregroundStyle(Palette.ink)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                }
+                if preview.image == nil, let description = preview.description {
+                    Text(description)
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.secondary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusMini))
+        .overlay(RoundedRectangle(cornerRadius: Metrics.radiusMini).stroke(Palette.hairlineStrong, lineWidth: 1))
+        .contentShape(RoundedRectangle(cornerRadius: Metrics.radiusMini))
+    }
 }
 
 /// 노트 상세 — 원글(답글이면) · 노트 · 답글. 답글은 툴바 버튼이 여는 작성 시트로.
@@ -917,6 +994,7 @@ struct NoteComposeSheet: View {
     @State private var confirmDiscard = false
     @State private var errorMessage: String?
     @State private var altTarget: AltTarget?
+    @State private var linkCard: NoteLinkPreview?
     @FocusState private var focused: Bool
     @Environment(\.dismiss) private var dismiss
 
@@ -940,6 +1018,9 @@ struct NoteComposeSheet: View {
     private var inReplyToId: Int64? { if case let .new(_, id) = mode { id } else { nil } }
     private var quotedNote: QuotedNote? { if case let .quote(note) = mode { note } else { nil } }
     private var length: Int { NoteText.length(text) }
+    private var cardUrl: String? {
+        isEdit ? nil : NoteText.previewUrl(text, hasMedia: !picked.isEmpty, hasQuote: quote != nil || quotedNote != nil)
+    }
     private var placeholder: LocalizedStringKey {
         if quotedNote != nil { return "생각을 덧붙여 보세요" }
         return inReplyToId == nil ? "지금 떠오른 생각을 짧게 남겨 보세요" : "답글을 남겨 보세요"
@@ -990,6 +1071,10 @@ struct NoteComposeSheet: View {
                         if !picked.isEmpty { pickedStrip }
                         if let quote { quoteCard(quote) }
                         if let quotedNote { QuotedNoteCard(note: quotedNote) }
+                        if let linkCard, linkCard.url == cardUrl {
+                            NoteLinkCardView(preview: linkCard)
+                                .accessibilityIdentifier("noteCompose.linkCard")
+                        }
                         if let errorMessage {
                             Text(errorMessage)
                                 .typeScale(.meta)
@@ -1066,6 +1151,7 @@ struct NoteComposeSheet: View {
                 Task { await loadPicked(items) }
             }
             .onAppear { focused = true }
+            .task(id: cardUrl) { await loadLinkCard() }
         }
         .interactiveDismissDisabled(posting || hasDraft)
     }
@@ -1196,6 +1282,18 @@ struct NoteComposeSheet: View {
         .presentationDetents([.medium, .large])
     }
 
+    private func loadLinkCard() async {
+        guard let url = cardUrl else {
+            linkCard = nil
+            return
+        }
+        try? await Task.sleep(for: .milliseconds(500))
+        guard !Task.isCancelled else { return }
+        let fetched = try? await NoteAPI.linkPreview(url: url)
+        guard !Task.isCancelled else { return }
+        linkCard = fetched.flatMap { $0.title != nil || $0.image != nil ? $0 : nil }
+    }
+
     private func loadPicked(_ items: [PhotosPickerItem]) async {
         for item in items {
             guard picked.count < NoteAPI.maxImages,
@@ -1248,7 +1346,11 @@ struct NoteComposeSheet: View {
                 NoteDraft(
                     body: text, images: images, quotedPostId: quote?.id, inReplyToId: inReplyToId,
                     quotedNoteId: quotedNote?.id))
-            onDone(note)
+            var created = note
+            if created.linkPreview == nil, let linkCard, linkCard.url == cardUrl {
+                created.linkPreview = linkCard
+            }
+            onDone(created)
             dismiss()
         } catch {
             errorMessage = String(localized: "노트를 올리지 못했어요")

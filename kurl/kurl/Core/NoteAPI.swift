@@ -38,6 +38,10 @@ enum NoteAPI {
             authenticated: signedIn)
     }
 
+    static func linkPreview(url: String) async throws -> NoteLinkPreview {
+        try await client.get("/public/link-preview", query: ["url": url], authenticated: false)
+    }
+
     static func thread(id: Int64) async throws -> NoteThread {
         try await client.get("/public/notes/\(id)", authenticated: signedIn)
     }
@@ -125,6 +129,13 @@ struct QuotedPost: Codable, Hashable, Identifiable {
     let authorUsername: String
 }
 
+struct NoteLinkPreview: Decodable, Hashable {
+    let url: String
+    let title: String?
+    let description: String?
+    let image: String?
+}
+
 struct QuotedNote: Decodable, Hashable, Identifiable {
     let id: Int64
     let body: String
@@ -151,6 +162,8 @@ struct Note: Decodable, Identifiable, Hashable {
     let repostCount: Int64?
     let repostedByMe: Bool?
     let quotedNote: QuotedNote?
+    /// 첫 주소의 Open Graph 카드 — 서버가 올린 뒤 비동기로 채운다.
+    var linkPreview: NoteLinkPreview?
 }
 
 struct NoteFeed: Decodable {
