@@ -27,6 +27,7 @@ final class NotesViewModel {
         case author(String)
         case reposts(String)
         case quotes(Int64)
+        case tag(String)
 
         init(_ feed: NoteFeedKind) {
             switch feed {
@@ -54,6 +55,10 @@ final class NotesViewModel {
         source = .quotes(id)
     }
 
+    init(tag: String) {
+        source = .tag(tag)
+    }
+
     private func load(_ page: Int) async throws -> NoteFeed {
         switch source {
         case .everyone: try await NoteAPI.everyone(page: page)
@@ -71,6 +76,7 @@ final class NotesViewModel {
                 NoteFeed(items: [], page: 0, hasNext: false)
             }
         case let .quotes(id): try await NoteAPI.quotes(of: id, page: page)
+        case let .tag(name): try await NoteAPI.tagged(name, page: page)
         case let .author(username): try await NoteAPI.byAuthor(username, page: page)
         case let .reposts(username): try await NoteAPI.reposts(username, page: page)
         }
@@ -877,30 +883,69 @@ private struct TileFrame: ViewModifier {
     }
 }
 
-/// 본문 안의 http(s) 주소만 링크로 — 웹·서버와 같은 규칙(끝 문장부호는 링크에서 뺀다).
+/// 본문 안의 http(s) 주소와 #해시태그를 링크로 — 웹·서버와 같은 규칙(끝 문장부호는 링크에서 뺀다).
 enum NoteText {
     private static let urlPattern = try? NSRegularExpression(pattern: "https?://[^\\s<]+")
+    private static let tokenPattern = try? NSRegularExpression(
+        pattern: "(https?://[^\\s<]+)|(?<![=/)\\p{L}\\p{M}\\p{N}_#])#([\\p{L}\\p{M}\\p{N}_][\\p{L}\\p{M}\\p{N}_·・]*)")
     private static let trailing = CharacterSet(charactersIn: ".,!?:;)]'\"")
+    private static let tagSeparators = CharacterSet(charactersIn: "·・")
+    private static let tagScheme = "kurl-note-tag"
 
     static func attributed(_ body: String) -> AttributedString {
         var result = AttributedString()
         let ns = body as NSString
         var last = 0
-        for match in urlPattern?.matches(in: body, range: NSRange(location: 0, length: ns.length)) ?? [] {
-            var link = ns.substring(with: match.range)
-            while let scalar = link.unicodeScalars.last, trailing.contains(scalar) {
-                link.removeLast()
+        for match in tokenPattern?.matches(in: body, range: NSRange(location: 0, length: ns.length)) ?? [] {
+            let text: String
+            let url: URL?
+            if match.range(at: 1).location != NSNotFound {
+                var link = ns.substring(with: match.range(at: 1))
+                while let scalar = link.unicodeScalars.last, trailing.contains(scalar) {
+                    link.removeLast()
+                }
+                text = link
+                url = URL(string: link)
+            } else {
+                guard let name = tagName(ns.substring(with: match.range(at: 2))) else { continue }
+                text = "#" + name
+                url = tagURL(name)
             }
             if match.range.location > last {
                 result += AttributedString(ns.substring(with: NSRange(location: last, length: match.range.location - last)))
             }
-            var part = AttributedString(link)
-            part.link = URL(string: link)
+            var part = AttributedString(text)
+            part.link = url
             result += part
-            last = match.range.location + (link as NSString).length
+            last = match.range.location + (text as NSString).length
         }
         if last < ns.length { result += AttributedString(ns.substring(from: last)) }
         return result
+    }
+
+    static func tagName(_ raw: String) -> String? {
+        var name = raw
+        while let scalar = name.unicodeScalars.last, tagSeparators.contains(scalar) {
+            name.removeLast()
+        }
+        guard (name as NSString).length <= 40,
+              name.unicodeScalars.contains(where: { CharacterSet.letters.contains($0) && !CharacterSet.nonBaseCharacters.contains($0) })
+        else { return nil }
+        return name
+    }
+
+    static func tagURL(_ name: String) -> URL? {
+        var components = URLComponents()
+        components.scheme = tagScheme
+        components.host = "tag"
+        components.path = "/" + name
+        return components.url
+    }
+
+    static func tag(from url: URL) -> String? {
+        guard url.scheme == tagScheme else { return nil }
+        let name = String(url.path(percentEncoded: false).dropFirst())
+        return name.isEmpty ? nil : name
     }
 
     static func length(_ text: String) -> Int {
@@ -1048,6 +1093,7 @@ struct NoteDetailView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Palette.readingBg)
         .navigationBarTitleDisplayMode(.inline)
+        .noteTagLinks()
         .hidesTabBar()
         .safeAreaInset(edge: .bottom) {
             if let thread { replyBar(to: thread.note.author.username) }
@@ -1594,4 +1640,26 @@ private struct NoteLengthRing: View {
         .accessibilityElement()
         .accessibilityLabel(left < 0 ? Text("\(limit)자까지 쓸 수 있어요") : Text("\(left)자 남음"))
     }
+}
+
+/// 본문의 #해시태그를 누르면 그 태그 화면의 노트 탭으로 — 노트를 그리는 화면 루트에 단다
+/// (줄마다 달면 지연 목록 안의 navigationDestination 이 무시된다).
+struct NoteTagLinks: ViewModifier {
+    @State private var tag: String?
+
+    func body(content: Content) -> some View {
+        content
+            .environment(\.openURL, OpenURLAction { url in
+                guard let name = NoteText.tag(from: url) else { return .systemAction }
+                tag = name
+                return .handled
+            })
+            .navigationDestination(item: $tag) { name in
+                TagFeedView(tag: name, initialTab: .notes)
+            }
+    }
+}
+
+extension View {
+    func noteTagLinks() -> some View { modifier(NoteTagLinks()) }
 }

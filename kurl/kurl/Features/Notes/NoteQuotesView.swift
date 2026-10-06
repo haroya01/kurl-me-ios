@@ -41,6 +41,7 @@ struct NoteQuotesView: View {
             }
         }
         .navigationTitle("인용한 노트")
+        .noteTagLinks()
         .navigationBarTitleDisplayMode(.inline)
         .brandRefreshable { await notes.reload() }
         .task { if notes.items.isEmpty { await notes.reload() } }

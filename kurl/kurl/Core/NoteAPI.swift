@@ -38,6 +38,12 @@ enum NoteAPI {
             authenticated: signedIn)
     }
 
+    static func tagged(_ tag: String, page: Int = 0) async throws -> NoteFeed {
+        try await client.get(
+            "/public/notes/tags/\(tag)", query: ["page": String(page), "size": "20"],
+            authenticated: signedIn)
+    }
+
     static func following(page: Int = 0) async throws -> NoteFeed {
         try await client.get(
             "/notes/following", query: ["page": String(page), "size": "20"], authenticated: true)
