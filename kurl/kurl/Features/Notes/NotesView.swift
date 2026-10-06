@@ -17,9 +17,15 @@ final class NotesViewModel {
     private var page = 0
     private var hasNext = true
     private var epoch = 0
+    private let author: String?
+
+    init(author: String? = nil) {
+        self.author = author
+    }
 
     private func load(_ page: Int) async throws -> NoteFeed {
-        try await NoteAPI.everyone(page: page)
+        if let author { return try await NoteAPI.byAuthor(author, page: page) }
+        return try await NoteAPI.everyone(page: page)
     }
 
     func reload() async {
@@ -101,7 +107,7 @@ struct NoteRowView: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            NavigationLink(value: Route.author(username: note.author.username)) {
+            NavigationLink(value: Route.authorNotes(username: note.author.username)) {
                 AvatarView(author: note.author, size: 36)
             }
             .buttonStyle(.plain)
@@ -109,11 +115,14 @@ struct NoteRowView: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(note.author.username)
-                        .typeScale(.body)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(Palette.ink)
-                        .lineLimit(1)
+                    NavigationLink(value: Route.authorNotes(username: note.author.username)) {
+                        Text(note.author.username)
+                            .typeScale(.body)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Palette.ink)
+                            .lineLimit(1)
+                    }
+                    .buttonStyle(.plain)
                     if let date = note.createdAt {
                         Text(date.relativeShort)
                             .typeScale(.body)

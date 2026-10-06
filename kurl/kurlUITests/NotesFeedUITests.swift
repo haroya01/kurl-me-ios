@@ -151,6 +151,30 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(fab.waitForExistence(timeout: 4), "시트를 닫은 뒤 작성 버튼이 사라짐")
     }
 
+    func testNoteAuthorOpensTheirProfileOnTheNotesTab() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let name = app.buttons["yuki_dev"].firstMatch
+        XCTAssertTrue(name.waitForExistence(timeout: 8), "노트 행의 작가 이름이 링크가 아님")
+        name.tap()
+
+        let notesTab = app.buttons["author.tab.notes"]
+        XCTAssertTrue(notesTab.waitForExistence(timeout: 10), "프로필에 노트 탭이 없음")
+        XCTAssertTrue(notesTab.isSelected, "노트에서 들어온 프로필이 노트 탭으로 열리지 않음")
+        let note = app.staticTexts
+            .matching(NSPredicate(format: "label CONTAINS '헥사고날 포트'")).firstMatch
+        XCTAssertTrue(note.waitForExistence(timeout: 8), "프로필 노트 탭에 그 작가의 노트가 없음")
+        attach(app, "author-notes-tab")
+        XCTAssertFalse(app.buttons["notes.fab"].exists, "프로필로 들어가도 노트 작성 버튼이 남아 있음")
+
+        app.buttons["author.tab.posts"].tap()
+        XCTAssertTrue(app.buttons["author.tab.posts"].isSelected, "글 탭으로 바뀌지 않음")
+        attach(app, "author-posts-tab")
+    }
+
     func testFederationCanBeTurnedOffInSettings() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "account"]

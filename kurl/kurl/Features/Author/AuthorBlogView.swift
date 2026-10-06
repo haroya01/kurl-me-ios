@@ -10,6 +10,11 @@ import SwiftUI
 struct AuthorBlogView: View {
     let username: String
 
+    @State private var tab: AuthorTab
+    @State private var notes: NotesViewModel
+    @State private var composingNote = false
+    @State private var notesPosted = 0
+
     @State private var phase: LoadState<PublicPostListView> = .idle
     @State private var series: [SeriesListItem] = []
     /// 이 작가가 공개로 엮은 컬렉션(길) — 큐레이션을 프로필 표면으로. 미로그인도 목록은 본다.
@@ -22,11 +27,15 @@ struct AuthorBlogView: View {
     @State private var showReport = false
     @State private var showBlockConfirm = false
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @ScaledMetric(relativeTo: .body) private var railCardWidth: CGFloat = 148
     /// "명함" 버튼 라벨 — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
     @ScaledMetric(relativeTo: .headline) private var cardLabelSize: CGFloat = 14
+
+    init(username: String, initialTab: AuthorTab = .posts) {
+        self.username = username
+        _tab = State(initialValue: initialTab)
+        _notes = State(initialValue: NotesViewModel(author: username))
+    }
 
     /// 로드된 작가 id — 신고 대상. 내가 아닐 때만 신고를 노출한다.
     private var author: Author? {
@@ -37,10 +46,17 @@ struct AuthorBlogView: View {
         guard let myId = AuthStore.shared.me?.id, let author else { return false }
         return author.id == myId
     }
+    private var tabs: [AuthorTab] {
+        var all: [AuthorTab] = [.posts, .notes]
+        if !series.isEmpty { all.append(.series) }
+        if !collections.isEmpty { all.append(.collections) }
+        return all
+    }
+    private var shownTab: AuthorTab { tabs.contains(tab) ? tab : .posts }
 
     var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 0) {
+            LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
                 switch phase {
                 case .idle, .loading:
                     KurlLoadingMark()
@@ -58,7 +74,7 @@ struct AuthorBlogView: View {
         }
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
-        .background(Palette.pageBg)
+        .background(Palette.readingBg)
         // 계정 탭 루트로 임베드됐을 때만 탭바 숨김을 몬다 — 환경에 손잡이가 있을 때만
         // 동작하고(스레드식), 작가 프로필로 푸시될 땐 env 가 nil 이라 조용하다(탭 루트 전용).
         .tracksTabBarVisibility()
@@ -116,7 +132,20 @@ struct AuthorBlogView: View {
             await load()
             await BlockStore.shared.hydrateIfNeeded()
         }
-        .refreshable { await load() }
+        .refreshable {
+            await load()
+            if shownTab == .notes { await notes.reload() }
+        }
+        .task(id: shownTab) {
+            if shownTab == .notes, case .idle = notes.phase { await notes.reload() }
+        }
+        .sheet(isPresented: $composingNote) {
+            NoteComposeSheet(mode: .new(quote: nil, inReplyToId: nil)) { note in
+                notes.inserted(note)
+                notesPosted += 1
+            }
+        }
+        .sensoryFeedback(.success, trigger: notesPosted)
         // 계정 탭은 상주 임베드라 세션 내내 살아 있다 — 앱 복귀 때 내 블로그를 조용히
         // 갱신해 발행·프로필 수정이 묵지 않게(남의 페이지는 당겨서 새로고침으로 충분).
         .onChange(of: scenePhase) { _, newPhase in
@@ -185,61 +214,23 @@ struct AuthorBlogView: View {
         }
         .padding(.vertical, 18)
 
-        if !collections.isEmpty {
-            collectionsRail
-                .padding(.bottom, 18)
-        }
-
-        if !series.isEmpty {
-            VStack(alignment: .leading, spacing: 12) {
-                RailHeading("시리즈")
-                // 세로 행 대신 가로 레일 — 시리즈가 프로필의 책장처럼 읽히게.
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
-                        ForEach(series) { item in
-                            NavigationLink(
-                                value: Route.series(username: username, slug: item.slug)
-                            ) {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text(item.title)
-                                        .typeScale(.titleSmall)
-                                        .foregroundStyle(Palette.ink)
-                                        .lineLimit(3)
-                                        .multilineTextAlignment(.leading)
-                                    Spacer(minLength: 0)
-                                    Text("\(item.postCount)편")
-                                        .typeScale(.meta)
-                                        .foregroundStyle(Palette.secondary)
-                                }
-                                .padding(13)
-                                .frame(width: railCardWidth, alignment: .topLeading)
-                                .frame(minHeight: 88, alignment: .topLeading)
-                                .background(
-                                    Palette.cardBg,
-                                    in: RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous))
-                                .overlay {
-                                    if colorScheme == .dark {
-                                        RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous)
-                                            .strokeBorder(Palette.cardBorder, lineWidth: 1)
-                                    }
-                                }
-                                .cardShadow()
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(CardButtonStyle())
-                            .modifier(CardScrollFade(axis: .horizontal))
-                        }
-                    }
-                    .padding(.vertical, 6)
-                }
-                .scrollClipDisabled()
+        Section {
+            switch shownTab {
+            case .posts: postsTab(view)
+            case .notes: notesTab
+            case .series: seriesTab
+            case .collections: collectionsTab
             }
-            .padding(.bottom, 18)
+            Color.clear.frame(height: 40)
+        } header: {
+            AuthorTabBar(tabs: tabs, selection: $tab)
         }
+    }
 
-        RailHeading("글").padding(.bottom, 4)
+    @ViewBuilder
+    private func postsTab(_ view: PublicPostListView) -> some View {
         if view.posts.isEmpty {
-            // 0편 = 헤딩 아래 빈 공간 대신 자리표 — 내 페이지면 글쓰기로, 남의 페이지면 그냥 안내.
+            // 0편 = 빈 공간 대신 자리표 — 내 페이지면 글쓰기로, 남의 페이지면 그냥 안내.
             if isOwnAuthor {
                 FeedPlaceholder(
                     title: "아직 발행한 글이 없어요",
@@ -262,7 +253,6 @@ struct AuthorBlogView: View {
             }
         } else {
             // 작가 글 목록 = 카탈로그(작가의 책장) — 카드가 아니라 깔끔한 글 행(PostRow).
-            // 발견·검색·태그만 카드, 읽기·카탈로그 면은 행(3원칙 표준).
             LazyVStack(spacing: 0) {
                 ForEach(Array(view.posts.enumerated()), id: \.element.id) { index, post in
                     NavigationLink(value: Route.post(username: username, slug: post.slug)) {
@@ -274,67 +264,114 @@ struct AuthorBlogView: View {
                 }
             }
         }
-        Color.clear.frame(height: 40)
     }
 
-    // 공개 컬렉션 레일 — 시리즈 레일과 같은 문법(가로 책장). 큐레이션(엮은 길)을 프로필 표면으로.
-    // 상세는 인증 면이라 미로그인 탭은 로그인으로 잇는다(막다른 길 금지).
-    private var collectionsRail: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            RailHeading(resource: LocalizedStringResource("heading.collections", defaultValue: "컬렉션"))
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 10) {
-                    ForEach(collections) { item in
-                        if AuthStore.shared.isSignedIn {
-                            NavigationLink(value: Route.collection(id: item.id)) {
-                                collectionCard(item)
-                            }
-                            .buttonStyle(CardButtonStyle())
-                            .modifier(CardScrollFade(axis: .horizontal))
-                        } else {
-                            Button { showCollectionLogin = true } label: {
-                                collectionCard(item)
-                            }
-                            .buttonStyle(CardButtonStyle())
-                            .modifier(CardScrollFade(axis: .horizontal))
-                        }
+    @ViewBuilder
+    private var notesTab: some View {
+        switch notes.phase {
+        case .idle, .loading:
+            KurlLoadingMark().frame(maxWidth: .infinity, minHeight: 240)
+        case .failed(let message):
+            ErrorState(message: message, retry: { Task { await notes.reload() } })
+                .padding(.top, 48)
+        case .loaded:
+            if notes.items.isEmpty {
+                if isOwnAuthor {
+                    FeedPlaceholder(
+                        title: "아직 노트가 없어요",
+                        message: "제목도 형식도 없이, 지금 떠오른 한 줄을 남기는 자리예요.",
+                        actionTitle: "첫 노트 쓰기",
+                        prominent: true,
+                        action: { composingNote = true }
+                    )
+                    .padding(.top, 48)
+                } else {
+                    FeedPlaceholder(
+                        title: "아직 노트가 없어요",
+                        message: "이 작가의 첫 노트가 올라오면 여기에서 만나요.",
+                        actionTitle: "노트 둘러보기",
+                        action: { TabRouter.shared.selection = 1 }
+                    )
+                    .padding(.top, 48)
+                }
+            } else {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(notes.items.enumerated()), id: \.element.id) { index, note in
+                        NoteRowView(
+                            note: note,
+                            onChange: { notes.replaced($0) },
+                            onDelete: { notes.removed($0) }
+                        )
+                        .modifier(QuietAppear(index: index))
+                        .task { await notes.loadMoreIfNeeded(current: note) }
+                        if index < notes.items.count - 1 { Hairline() }
+                    }
+                    if notes.isLoadingMore {
+                        KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
                     }
                 }
-                .padding(.vertical, 6)
             }
-            .scrollClipDisabled()
         }
     }
 
-    private func collectionCard(_ item: CollectionSummary) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Image(systemName: item.kind == .path ? "point.topleft.down.to.point.bottomright.curvepath"
-                : "square.stack")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Palette.secondary)
-            Text(item.title)
-                .typeScale(.titleSmall)
-                .foregroundStyle(Palette.ink)
-                .lineLimit(3)
-                .multilineTextAlignment(.leading)
-            Spacer(minLength: 0)
-            Text("\(item.count)개")
-                .typeScale(.meta)
-                .foregroundStyle(Palette.secondary)
-        }
-        .padding(13)
-        .frame(width: railCardWidth, alignment: .topLeading)
-        .frame(minHeight: 96, alignment: .topLeading)
-        .background(
-            Palette.cardBg,
-            in: RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous))
-        .overlay {
-            if colorScheme == .dark {
-                RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous)
-                    .strokeBorder(Palette.cardBorder, lineWidth: 1)
+    private var seriesTab: some View {
+        LazyVStack(spacing: 0) {
+            ForEach(Array(series.enumerated()), id: \.element.id) { index, item in
+                NavigationLink(value: Route.series(username: username, slug: item.slug)) {
+                    catalogRow(title: item.title, detail: Text("\(item.postCount)편"), systemImage: nil)
+                }
+                .buttonStyle(RowButtonStyle())
+                .modifier(QuietAppear(index: index))
+                if index < series.count - 1 { Hairline() }
             }
         }
-        .cardShadow()
+    }
+
+    // 공개 컬렉션 — 상세는 인증 면이라 미로그인 탭은 로그인으로 잇는다(막다른 길 금지).
+    private var collectionsTab: some View {
+        LazyVStack(spacing: 0) {
+            ForEach(Array(collections.enumerated()), id: \.element.id) { index, item in
+                let row = catalogRow(
+                    title: item.title, detail: Text("\(item.count)개"),
+                    systemImage: item.kind == .path
+                        ? "point.topleft.down.to.point.bottomright.curvepath" : "square.stack")
+                Group {
+                    if AuthStore.shared.isSignedIn {
+                        NavigationLink(value: Route.collection(id: item.id)) { row }
+                    } else {
+                        Button { showCollectionLogin = true } label: { row }
+                    }
+                }
+                .buttonStyle(RowButtonStyle())
+                .modifier(QuietAppear(index: index))
+                if index < collections.count - 1 { Hairline() }
+            }
+        }
+    }
+
+    private func catalogRow(title: String, detail: Text, systemImage: String?) -> some View {
+        HStack(spacing: 12) {
+            if let systemImage {
+                Image(systemName: systemImage)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(Palette.secondary)
+                    .frame(width: 24)
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .typeScale(.titleSmall)
+                    .foregroundStyle(Palette.ink)
+                    .multilineTextAlignment(.leading)
+                detail
+                    .typeScale(.meta)
+                    .foregroundStyle(Palette.secondary)
+            }
+            Spacer(minLength: 0)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Palette.faint)
+        }
+        .padding(.vertical, 14)
         .contentShape(Rectangle())
     }
 
@@ -362,5 +399,65 @@ struct AuthorBlogView: View {
             if case .loaded = phase { return }
             phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
         }
+    }
+}
+
+enum AuthorTab: Hashable {
+    case posts, notes, series, collections
+
+    var label: LocalizedStringKey {
+        switch self {
+        case .posts: "글"
+        case .notes: "노트"
+        case .series: "시리즈"
+        case .collections: "컬렉션"
+        }
+    }
+
+    var key: String {
+        switch self {
+        case .posts: "posts"
+        case .notes: "notes"
+        case .series: "series"
+        case .collections: "collections"
+        }
+    }
+}
+
+private struct AuthorTabBar: View {
+    let tabs: [AuthorTab]
+    @Binding var selection: AuthorTab
+    @Namespace private var underline
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(tabs, id: \.self) { tab in
+                Button {
+                    selection = tab
+                } label: {
+                    Text(tab.label)
+                        .typeScale(.body)
+                        .fontWeight(selection == tab ? .semibold : .regular)
+                        .foregroundStyle(selection == tab ? Palette.ink : Palette.secondary)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .overlay(alignment: .bottom) {
+                            if selection == tab {
+                                Capsule()
+                                    .fill(Palette.ink)
+                                    .frame(height: 2)
+                                    .matchedGeometryEffect(id: "underline", in: underline)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(selection == tab ? .isSelected : [])
+                .accessibilityIdentifier("author.tab.\(tab.key)")
+            }
+        }
+        .background(alignment: .bottom) { Hairline() }
+        .background(Palette.readingBg)
+        .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: selection)
     }
 }

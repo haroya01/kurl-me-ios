@@ -5928,6 +5928,62 @@
         }
       }
     },
+    "노트 둘러보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Browse notes"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नोट्स देखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートを見る"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xem ghi chú"
+          }
+        }
+      }
+    },
+    "이 작가의 첫 노트가 올라오면 여기에서 만나요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This writer's first note will show up here."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस लेखक का पहला नोट यहाँ दिखेगा।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この作家の最初のノートがここに表示されます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ghi chú đầu tiên của tác giả này sẽ xuất hiện ở đây."
+          }
+        }
+      }
+    },
     "누구나 볼 수 있어요": {
       "localizations": {
         "en": {

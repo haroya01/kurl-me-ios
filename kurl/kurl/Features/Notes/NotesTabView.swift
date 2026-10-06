@@ -11,6 +11,7 @@ struct NotesTabView: View {
     @State private var notesPosted = 0
     @State private var showLoginSheet = false
     @State private var loadedSignedIn: Bool?
+    @State private var atRoot = true
     @Environment(\.tabBarVisibility) private var tabBarVisibility
 
     var body: some View {
@@ -20,6 +21,8 @@ struct NotesTabView: View {
                 composePlaceholder
                 content
             }
+            .onAppear { atRoot = true }
+            .onDisappear { atRoot = false }
             .navigationTitle("노트")
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: Route.self) {
@@ -55,15 +58,16 @@ struct NotesTabView: View {
     }
 
     private var composeButton: some View {
-        let hidden = tabBarVisibility?.hidden ?? false
-        return GlassFAB(systemImage: "plus", label: "노트 쓰기", action: compose)
-            .accessibilityIdentifier("notes.fab")
-            .padding(.trailing, Metrics.gutter)
-            .padding(.bottom, 14)
-            .offset(y: hidden ? 132 : 0)
-            .opacity(hidden ? 0 : 1)
-            .allowsHitTesting(!hidden)
-            .accessibilityHidden(hidden)
+        let hidden = !atRoot || (tabBarVisibility?.hidden ?? false)
+        return ZStack {
+            if !hidden {
+                GlassFAB(systemImage: "plus", label: "노트 쓰기", action: compose)
+                    .accessibilityIdentifier("notes.fab")
+                    .transition(.offset(y: 132).combined(with: .opacity))
+            }
+        }
+        .padding(.trailing, Metrics.gutter)
+        .padding(.bottom, 14)
     }
 
     private var composePlaceholder: some View {
