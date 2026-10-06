@@ -74,6 +74,21 @@ final class NotesFeedUITests: XCTestCase {
         shot.name = "note-thread"
         shot.lifetime = .keepAlways
         add(shot)
+
+        app.buttons["note.reply"].tap()
+        let field = app.textFields["noteCompose.text"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5), "아래 답글 줄을 눌러도 답글 시트가 안 열림")
+        XCTAssertTrue(app.navigationBars["답글"].exists, "답글 시트 제목이 답글이 아님")
+        app.navigationBars.buttons["취소"].tap()
+        XCTAssertFalse(field.waitForExistence(timeout: 2), "빈 답글 시트가 취소로 닫히지 않음")
+
+        let replyThread = app.buttons["note.replies.9551"]
+        XCTAssertTrue(replyThread.waitForExistence(timeout: 5), "답글 행에 답글 버튼이 없음")
+        replyThread.tap()
+        let parent = app.staticTexts
+            .matching(NSPredicate(format: "label CONTAINS '헥사고날 포트'")).firstMatch
+        XCTAssertTrue(parent.waitForExistence(timeout: 8), "답글 상세 위에 원글이 안 보임")
+        attach(app, "note-thread-parent")
     }
 
     func testADraftIsKeptUntilDiscardedAndPhotosOpenLarge() throws {

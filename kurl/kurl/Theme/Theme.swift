@@ -151,7 +151,9 @@ enum TypeRole {
     case eyebrow      // 섹션 라벨(RailHeading)
     // 본문 사다리 — 발췌·본문·메타도 토큰으로(raw size 산발 방지가 "에디토리얼"의 핵심 레버).
     case lede         // 발췌·소개 한 단락(카드·행 제목 아래)
-    case body         // 컴포넌트 본문(댓글·노트·답글 본문)
+    case body         // 컴포넌트 본문(댓글·답글 본문)
+    case note         // 노트 행 — 이름·시간·본문이 한 크기(스레드 문법: 15pt, 줄 높이 약 21pt)
+    case noteFocus    // 노트 상세의 본문 — 머리 줄 아래 전체 폭, 한 단계 크게
     case meta         // 작가·날짜·카운트 등 메타
     case footnote     // 가장 작은 힌트·캡션
 
@@ -165,6 +167,8 @@ enum TypeRole {
         case .titleSmall: return 16
         case .eyebrow: return 13
         case .body: return 15.5
+        case .note: return 15
+        case .noteFocus: return 16.5
         case .lede: return 14.5
         case .meta: return 12.5
         case .footnote: return 11.5
@@ -176,7 +180,7 @@ enum TypeRole {
         case .display, .masthead, .name, .featured, .eyebrow: return .bold
         case .title, .titleSmall: return .semibold
         case .meta: return .medium
-        case .lede, .body, .footnote: return .regular
+        case .lede, .body, .note, .noteFocus, .footnote: return .regular
         }
     }
 
@@ -188,7 +192,7 @@ enum TypeRole {
         case .name, .featured: return -0.4
         case .title: return -0.3
         case .titleSmall: return -0.25
-        case .lede, .body: return 0
+        case .lede, .body, .note, .noteFocus: return 0
         case .eyebrow, .meta, .footnote: return 0
         }
     }
@@ -198,6 +202,8 @@ enum TypeRole {
         switch self {
         case .lede: return 3.5
         case .body: return 4.5
+        case .note: return 2.5
+        case .noteFocus: return 3.5
         default: return 0
         }
     }
@@ -209,7 +215,7 @@ enum TypeRole {
         case .masthead, .name: return .title
         case .featured: return .title2
         case .title, .titleSmall: return .headline
-        case .body: return .callout
+        case .body, .note, .noteFocus: return .callout
         case .lede: return .subheadline
         case .eyebrow, .meta, .footnote: return .caption
         }
@@ -243,6 +249,8 @@ enum Metrics {
     /// 읽기 컬럼 불변식 — 본문 정중앙 max-w-2xl(672 ≈ 한 줄 66자)
     static let readingColumn: CGFloat = 672
     static let gutter: CGFloat = 20
+    /// 노트 행 — 스레드처럼 칼럼을 넓게 쓰고 구분선은 화면 끝까지.
+    static let noteGutter: CGFloat = 16
 
     // 코너 반경 4단 — 같은 급의 면은 같은 반경(매직넘버 산포 방지).
     /// 전폭 카드(피드·커버) — 하단 유리 띠와 동일값 강제(DESIGN.md §1.5).

@@ -323,7 +323,7 @@ struct AuthorBlogView: View {
                         )
                         .modifier(QuietAppear(index: index))
                         .task { await notes.loadMoreIfNeeded(current: note) }
-                        if index < notes.items.count - 1 { Hairline() }
+                        if index < notes.items.count - 1 { Hairline().padding(.horizontal, -Metrics.gutter) }
                     }
                     if notes.isLoadingMore {
                         KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
@@ -363,7 +363,7 @@ struct AuthorBlogView: View {
                         )
                         .modifier(QuietAppear(index: index))
                         .task { await reposts.loadMoreIfNeeded(current: note) }
-                        if index < reposts.items.count - 1 { Hairline() }
+                        if index < reposts.items.count - 1 { Hairline().padding(.horizontal, -Metrics.gutter) }
                     }
                     if reposts.isLoadingMore {
                         KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)

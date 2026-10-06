@@ -717,6 +717,34 @@
         }
       }
     },
+    "%@님에게 답글 남기기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reply to %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ को जवाब दें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@さんに返信"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trả lời %@"
+          }
+        }
+      }
+    },
     "%@님의 글 전체 보기": {
       "localizations": {
         "en": {
@@ -6176,6 +6204,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Những ghi chú bạn đăng lại sẽ hiện ở đây."
+          }
+        }
+      }
+    },
+    "방금": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "now"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "たった今"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "vừa xong"
           }
         }
       }
