@@ -99,7 +99,8 @@ enum NoteAPI {
     private struct EmptyBody: Encodable {}
 }
 
-struct NoteMedia: Decodable, Hashable {
+struct NoteMedia: Decodable, Hashable, Identifiable {
+    var id: String { url }
     let url: String
     let altText: String?
     let contentType: String

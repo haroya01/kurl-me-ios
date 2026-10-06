@@ -86,6 +86,16 @@ enum MockBackend {
                  createdAt: Date().addingTimeInterval(-7_200), likeCount: 11, authorId: 1, username: "honggildong"),
         MockNote(id: 9503, body: "라이트 모드 캔버스를 순백에서 slate-50 으로 바꿨더니 카드가 비로소 떠 보인다. 배경은 색이 아니라 깊이다.",
                  createdAt: Date().addingTimeInterval(-26_000), likeCount: 7, authorId: 3, username: "reader_kim"),
+        MockNote(id: 9504, body: "창밖 사진 두 장. 글로 정리하기 전에 남겨 둔다.",
+                 createdAt: Date().addingTimeInterval(-40_000), likeCount: 2, authorId: 1, username: "honggildong",
+                 media: [
+                    ["url": "https://picsum.photos/seed/kurl-note-a/900/700", "altText": "비 오는 창밖",
+                     "contentType": "image/jpeg"],
+                    ["url": "https://picsum.photos/seed/kurl-note-b/900/700", "altText": "젖은 골목",
+                     "contentType": "image/jpeg"],
+                 ],
+                 quotedPost: ["id": 1, "title": "헥사고날 아키텍처, 작은 서비스에 과했을까", "slug": "hexagonal",
+                              "authorUsername": "honggildong"]),
     ]
     private static var nextNoteId: Int64 = 9600
     private static var likedNotes: Set<Int64> = []

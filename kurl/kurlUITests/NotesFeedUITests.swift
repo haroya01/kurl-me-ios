@@ -5,7 +5,7 @@
 
 import XCTest
 
-/// 노트 — 서재에서 진입, 목 피드 렌더, 작성 시트 → 첫 노트 연합 안내 → 맨 위 꽂힘, 답글 화면까지.
+/// 노트 — 발견의 노트 흐름, 목 피드 렌더, 작성 시트 → 첫 노트 연합 안내 → 맨 위 꽂힘, 답글 화면까지.
 final class NotesFeedUITests: XCTestCase {
 
     override func setUpWithError() throws {
@@ -13,21 +13,14 @@ final class NotesFeedUITests: XCTestCase {
     }
 
     private func openNotes(_ app: XCUIApplication) {
-        let library = app.buttons["서재"].firstMatch
-        XCTAssertTrue(library.waitForExistence(timeout: 12), "계정 탭에 서재 버튼이 없음")
-        library.tap()
-
-        let entry = app.buttons
-            .matching(NSPredicate(format: "label CONTAINS '노트'")).firstMatch
-        var tries = 0
-        while entry.exists, !entry.isHittable, tries < 4 { app.swipeUp(); tries += 1 }
-        XCTAssertTrue(entry.waitForExistence(timeout: 10), "노트 진입 행 없음")
-        entry.tap()
+        let segment = app.buttons["노트"].firstMatch
+        XCTAssertTrue(segment.waitForExistence(timeout: 12), "발견 탭에 노트 흐름이 없음")
+        segment.tap()
     }
 
-    func testNotesReachableFromAccountAndPublishes() throws {
+    func testNotesFlowInDiscoverPublishes() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["--mocks", "--tab", "account"]
+        app.launchArguments = ["--mocks", "--tab", "discover"]
         app.launch()
         openNotes(app)
 
@@ -56,14 +49,14 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertFalse(app.textFields["noteCompose.text"].exists, "올린 뒤 시트가 닫히지 않음")
 
         let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
-        shot.name = "notes-from-account"
+        shot.name = "notes-in-discover"
         shot.lifetime = .keepAlways
         add(shot)
     }
 
     func testANotesRepliesOpenFromItsRow() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["--mocks", "--tab", "account"]
+        app.launchArguments = ["--mocks", "--tab", "discover"]
         app.launch()
         openNotes(app)
 
@@ -82,6 +75,69 @@ final class NotesFeedUITests: XCTestCase {
         add(shot)
     }
 
+    func testADraftIsKeptUntilDiscardedAndPhotosOpenLarge() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "discover"]
+        app.launch()
+        openNotes(app)
+
+        app.buttons["notes.compose"].tap()
+        let field = app.textFields["noteCompose.text"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeText("버릴지 묻는 노트")
+        app.navigationBars.buttons["취소"].tap()
+
+        let discard = app.alerts.firstMatch
+        XCTAssertTrue(discard.waitForExistence(timeout: 4), "쓰던 노트를 취소해도 묻지 않음")
+        attach(app, "note-discard-alert")
+        discard.buttons["계속 쓰기"].tap()
+        XCTAssertEqual(field.value as? String, "버릴지 묻는 노트", "계속 쓰기 뒤 내용이 사라짐")
+
+        app.navigationBars.buttons["취소"].tap()
+        app.alerts.firstMatch.buttons["버리기"].tap()
+        XCTAssertFalse(field.waitForExistence(timeout: 2), "버리기 뒤에도 시트가 남음")
+
+        let photo = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == '비 오는 창밖'")).firstMatch
+        var tries = 0
+        while !photo.isHittable, tries < 5 { app.swipeUp(); tries += 1 }
+        attach(app, "notes-photo-and-quote")
+        photo.tap()
+        let caption = app.staticTexts["비 오는 창밖"].firstMatch
+        XCTAssertTrue(caption.waitForExistence(timeout: 5), "사진을 눌러도 크게 열리지 않음")
+        attach(app, "note-photo-lightbox")
+    }
+
+    func testFederationCanBeTurnedOffInSettings() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "account"]
+        app.launch()
+
+        let settings = app.buttons["설정"].firstMatch
+        XCTAssertTrue(settings.waitForExistence(timeout: 15))
+        settings.tap()
+
+        let toggle = app.switches["settings.federation"].firstMatch
+        let screenHeight = app.windows.firstMatch.frame.height
+        var tries = 0
+        while (!toggle.exists || toggle.frame.maxY > screenHeight * 0.7), tries < 6 {
+            app.swipeUp()
+            tries += 1
+        }
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5), "설정에 노트 연합 토글이 없음")
+        XCTAssertEqual(toggle.value as? String, "1")
+        attach(app, "settings-federation")
+        toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        XCTAssertTrue(toggle.waitForValue("0", timeout: 4), "토글이 꺼지지 않음")
+    }
+
+    private func attach(_ app: XCUIApplication, _ name: String) {
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = name
+        shot.lifetime = .keepAlways
+        add(shot)
+    }
+
     func testFollowingFeedRendersCards() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--feed", "following"]
@@ -96,5 +152,13 @@ final class NotesFeedUITests: XCTestCase {
         shot.name = "following-cards"
         shot.lifetime = .keepAlways
         add(shot)
+    }
+}
+
+private extension XCUIElement {
+    func waitForValue(_ value: String, timeout: TimeInterval) -> Bool {
+        let expectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "value == %@", value), object: self)
+        return XCTWaiter().wait(for: [expectation], timeout: timeout) == .completed
     }
 }

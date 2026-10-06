@@ -3137,6 +3137,34 @@
         }
       }
     },
+    "고친 내용을 버릴까요?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discard your changes?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बदलाव छोड़ दें?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "変更を破棄しますか？"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bỏ các thay đổi?"
+          }
+        }
+      }
+    },
     "고침": {
       "localizations": {
         "en": {
@@ -5282,34 +5310,6 @@
         }
       }
     },
-    "내 노트": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "My notes"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "मेरे नोट्स"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自分のノート"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ghi chú của tôi"
-          }
-        }
-      }
-    },
     "내 명함": {
       "extractionState": "stale",
       "localizations": {
@@ -5784,34 +5784,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sửa ghi chú"
-          }
-        }
-      }
-    },
-    "노트 보기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show notes"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "नोट्स देखें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ノートの表示"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Xem ghi chú"
           }
         }
       }
@@ -18098,6 +18070,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Xuất bản ở đây là bài lên web ngay khoảnh khắc đó — cùng bài viết, cùng địa chỉ. Ai cũng đọc được bằng trình duyệt, không cần ứng dụng."
+          }
+        }
+      }
+    },
+    "작성 중인 노트를 버릴까요?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discard this note?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह नोट छोड़ दें?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "書きかけのノートを破棄しますか？"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bỏ ghi chú đang viết?"
           }
         }
       }
