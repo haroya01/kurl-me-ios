@@ -59,7 +59,7 @@ struct MyHighlightsView: View {
                 } description: {
                     Text("글을 읽다 마음에 닿는 문장을 길게 눌러 하이라이트해 보세요.")
                 } actions: {
-                    Button("발견에서 읽을 글 찾기") { TabRouter.shared.selection = 1 }
+                    Button("피드에서 읽을 글 찾기") { TabRouter.shared.selection = 0 }
                         .foregroundStyle(Palette.link)
                 }
                 .padding(.top, 60)

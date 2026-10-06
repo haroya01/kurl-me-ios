@@ -31,7 +31,7 @@ struct MyReadingHistoryView: View {
                 } description: {
                     Text("글을 읽으면 여기에 기록돼요. 기록은 나만 봅니다.")
                 } actions: {
-                    Button("발견에서 읽을 글 찾기") { TabRouter.shared.selection = 1 }
+                    Button("피드에서 읽을 글 찾기") { TabRouter.shared.selection = 0 }
                         .foregroundStyle(Palette.link)
                 }
                 .padding(.top, 56)

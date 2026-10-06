@@ -166,14 +166,6 @@ enum MockBackend {
     /// `--empty-feeds` = 구독함·추천을 빈 응답으로 — 빈 안내 화면 검증용.
     private static let emptyFeeds = ProcessInfo.processInfo.arguments.contains("--empty-feeds")
 
-    /// `--discover-global` = 발견 연결·하이라이트 흐름을 전역 폴백(source="global")으로 — 팔로우 0
-    /// 콜드스타트에서 서버가 전역 공개 흐름으로 내려주는 모드를 목으로 재현한다(맥락 캡션 검증용).
-    private static let discoverGlobal = ProcessInfo.processInfo.arguments.contains("--discover-global")
-
-    /// `--discover-no-source` = 발견 응답에서 `source` 필드를 아예 빼 옛 서버(계약 미배포)를 재현 —
-    /// 디코딩이 옵셔널로 following 을 유지해 캡션 없이 기존 동작 그대로인지 검증한다(무회귀).
-    private static let discoverNoSource = ProcessInfo.processInfo.arguments.contains("--discover-no-source")
-
     private static var nextId: Int64 = 9100
     private static var likes: [Int64: (count: Int64, liked: Bool)] = [:]
     private static var bookmarks: Set<Int64> = []
@@ -491,77 +483,6 @@ enum MockBackend {
         ["id": id, "username": username, "bio": NSNull(), "avatarUrl": NSNull()]
     }
 
-    /// 발견 흐름 목 — 팔로우한 큐레이터(minji·sori)가 공개 컬렉션에 최근 이은 것.
-    private static func discoverFeedMock() -> [[String: Any]] {
-        [
-            [
-                "id": 1, "curator": curator(2, "minji"),
-                "collectionId": 101, "collectionTitle": "느린 사고",
-                "why": "구현보다 경계를 먼저 세우는 사람의 기록. 두고두고 다시 본다.",
-                "connectedAt": iso(Date().addingTimeInterval(-3600)),
-                "blockType": "POST", "title": "헥사고날로 갈아탄 지 석 달",
-                "excerpt": "결론부터 적는다. 다시 돌아가라면 또 갈아탄다.",
-                "slug": "hexagonal-after-3-months", "username": "honggildong",
-                "quote": NSNull(), "body": NSNull(),
-            ],
-            [
-                "id": 2, "curator": curator(3, "sori"),
-                "collectionId": 201, "collectionTitle": "오늘의 문장",
-                "collectionKind": "PATH",
-                "why": "재현 안 되는 버그 앞에서 나도 늘 이 문장을 떠올린다.",
-                "connectedAt": iso(Date().addingTimeInterval(-7200)),
-                "blockType": "HIGHLIGHT", "title": "토큰이 사라진 밤",
-                "excerpt": NSNull(), "slug": "the-night-tokens-vanished",
-                "username": "honggildong",
-                "quote": "재현이 안 되는 버그는 대개 타이밍 버그다.", "body": NSNull(),
-            ],
-            [
-                "id": 3, "curator": curator(2, "minji"),
-                "collectionId": 102, "collectionTitle": "경계 긋기",
-                "why": NSNull(),
-                "connectedAt": iso(Date().addingTimeInterval(-86_400)),
-                "blockType": "NOTE", "title": NSNull(), "excerpt": NSNull(),
-                "slug": NSNull(), "username": NSNull(), "quote": NSNull(),
-                "body": "결정을 미루는 건 게으름이 아니라, 더 나은 질문을 기다리는 일일 때가 있다.",
-            ],
-            [
-                "id": 4, "curator": curator(3, "sori"),
-                "collectionId": 202, "collectionTitle": "다시 읽고 싶은",
-                "why": "레이어링을 관심사 분리로 읽어낸 글. 코드에도 그대로 적용된다.",
-                "connectedAt": iso(Date().addingTimeInterval(-172_800)),
-                "blockType": "POST", "title": "유리 위에 유리를 얹지 않기",
-                "excerpt": "겹치는 순간 둘 다 탁해진다. 레이어는 하나씩.",
-                "slug": "liquid-glass-without-glass-on-glass", "username": "honggildong",
-                "quote": NSNull(), "body": NSNull(),
-            ],
-        ]
-    }
-
-    /// 남들 하이라이트 흐름 목 — 팔로우한 큐레이터(minji·sori)가 공개 글에서 최근 칠한 구절.
-    /// 발견 세 번째 흐름(하이라이트 탭)이 목 모드에서 실서버 없이 렌더되게 한다.
-    private static func highlightsFeedMock() -> [[String: Any]] {
-        [
-            [
-                "id": 5001, "postId": 9101, "curator": curator(2, "minji"),
-                "postSlug": "hexagonal-after-3-months", "postTitle": "헥사고날로 갈아탄 지 석 달",
-                "postAuthorUsername": "honggildong",
-                "blockOrder": 1, "startOffset": 0, "endOffset": 24,
-                "quote": "경계가 없으면 모든 변경이 전역 변경이 된다.",
-                "note": "출발은 늘 여기다.",
-                "createdAt": iso(Date().addingTimeInterval(-5_400)), "replyCount": 2,
-            ],
-            [
-                "id": 5002, "postId": 9102, "curator": curator(3, "sori"),
-                "postSlug": "the-night-tokens-vanished", "postTitle": "토큰이 사라진 밤",
-                "postAuthorUsername": "honggildong",
-                "blockOrder": 6, "startOffset": 0, "endOffset": 20,
-                "quote": "재현이 안 되는 버그는 대개 타이밍 버그다.",
-                "note": NSNull(),
-                "createdAt": iso(Date().addingTimeInterval(-93_600)), "replyCount": 0,
-            ],
-        ]
-    }
-
     /// 공개 연결 흐름 목 — 비로그인 첫 피드에 인터리브할 최근 공개 연결. 세 실루엣(글·하이라이트·노트)이
     /// 번갈아 오도록 6개, 큐레이터의 산문 why 를 붙여 알고리즘이 아니라 사람의 큐레이션임이 드러나게.
     private static func publicConnectionFeedMock() -> [[String: Any]] {
@@ -812,26 +733,6 @@ enum MockBackend {
                 "shortUrl": "https://kurl.me/\(code)",
                 "claimToken": NSNull(),
             ])
-        }
-
-        // 발견 — 팔로우한 큐레이터의 연결 흐름(Phase 2). --discover-global 이면 전역 폴백으로 알린다.
-        // --discover-no-source 면 source 를 아예 빼 옛 서버(계약 미배포)를 재현한다.
-        if method == "GET", parts == ["feed", "connections"] {
-            var payload: [String: Any] = [
-                "items": discoverFeedMock(), "page": 0, "size": 20, "hasNext": false,
-            ]
-            if !discoverNoSource { payload["source"] = discoverGlobal ? "global" : "following" }
-            return json(payload)
-        }
-
-        // 남들 하이라이트 — 팔로우한 큐레이터가 칠한 공개 하이라이트 피드(발견 세 번째 흐름).
-        // --discover-global 이면 전역 폴백으로 알린다(source="global").
-        if method == "GET", parts == ["highlights", "feed"] {
-            var payload: [String: Any] = [
-                "items": highlightsFeedMock(), "page": 0, "size": 20, "hasNext": false,
-            ]
-            if !discoverNoSource { payload["source"] = discoverGlobal ? "global" : "following" }
-            return json(payload)
         }
 
         // 공개 연결 흐름 — 비로그인 첫 피드에 인터리브. 게이트 없는 공개 표면(미로그인도 본다).

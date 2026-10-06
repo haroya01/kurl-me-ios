@@ -36,7 +36,7 @@ struct TagFeedView: View {
                         } description: {
                             Text("이 태그의 글이 아직 없어요.")
                         } actions: {
-                            Button("발견 탭에서 읽을 글 찾기") { TabRouter.shared.selection = 1 }
+                            Button("피드에서 읽을 글 찾기") { TabRouter.shared.selection = 0 }
                                 .foregroundStyle(Palette.link)
                         }
                         .padding(.top, 60)

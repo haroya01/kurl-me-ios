@@ -254,8 +254,8 @@ struct AuthorBlogView: View {
                 FeedPlaceholder(
                     title: "아직 발행한 글이 없어요",
                     message: "이 작가의 첫 글이 올라오면 여기에서 만나요.",
-                    actionTitle: "발견에서 읽을 글 찾기",
-                    action: { TabRouter.shared.selection = 1 }
+                    actionTitle: "피드에서 읽을 글 찾기",
+                    action: { TabRouter.shared.selection = 0 }
                 )
                 .padding(.top, 48)
                 .padding(.bottom, 8)

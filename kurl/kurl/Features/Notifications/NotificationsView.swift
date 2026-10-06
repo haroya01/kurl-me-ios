@@ -44,13 +44,13 @@ struct NotificationsView: View {
                 ErrorState(message: loadError, retry: { Task { await load() } })
                     .padding(.top, 60)
             } else if items.isEmpty {
-                // 막다른 길 금지 — 알림은 사람을 팔로우하고 반응하면 흐른다. 발견으로 이어준다
+                // 막다른 길 금지 — 알림은 사람을 팔로우하고 반응하면 흐른다. 검색의 작가 레일로 이어준다
                 // (다른 빈 면과 같은 언어 = FeedPlaceholder).
                 FeedPlaceholder(
                     title: "아직 알림이 없어요",
                     message: "팔로우한 작가의 새 글·좋아요·댓글 소식이 여기 모여요.",
-                    actionTitle: "발견에서 작가 찾기",
-                    action: { TabRouter.shared.selection = 1 }
+                    actionTitle: "검색에서 작가 찾기",
+                    action: { TabRouter.shared.selection = 3 }
                 )
                 .frame(maxWidth: .infinity)
                 .padding(.top, 72)
