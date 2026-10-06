@@ -180,7 +180,8 @@ struct NotesTabView: View {
                             note: note,
                             onChange: { notes.replaced($0) },
                             onDelete: { notes.removed($0) },
-                            onQuoted: { notes.inserted($0) }
+                            onQuoted: { notes.inserted($0) },
+                            repostedBy: note.repostedBy?.username
                         )
                         .modifier(QuietAppear(index: index))
                         .task { await notes.loadMoreIfNeeded(current: note) }

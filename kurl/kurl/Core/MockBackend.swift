@@ -934,10 +934,13 @@ enum MockBackend {
         }
         if method == "GET", parts == ["notes", "following"] {
             let followed: Set<Int64> = [1, 2]
-            return json([
-                "items": topLevelNotes().filter { followed.contains($0.authorId) }.map(noteView),
-                "page": 0, "hasNext": false,
-            ])
+            var items = topLevelNotes().filter { followed.contains($0.authorId) }.map(noteView)
+            if let reposted = notes.first(where: { $0.id == 9503 }) {
+                var view = noteView(reposted)
+                view["repostedBy"] = ["id": 2, "username": "yuki_dev", "avatarUrl": NSNull()] as [String: Any]
+                items.insert(view, at: min(1, items.count))
+            }
+            return json(["items": items, "page": 0, "hasNext": false])
         }
         if method == "GET", parts == ["public", "notes"] {
             return json(["items": topLevelNotes().map(noteView), "page": 0, "hasNext": false])
