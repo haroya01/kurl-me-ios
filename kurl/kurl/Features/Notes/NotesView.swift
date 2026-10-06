@@ -256,10 +256,29 @@ struct NoteRowView: View {
     }
 
     private var focusedRow: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .center, spacing: 12) {
-                avatarLink
-                header
+                NavigationLink(value: Route.authorNotes(username: note.author.username)) {
+                    AvatarView(author: note.author, size: 44)
+                }
+                .buttonStyle(.plain)
+                .accessibilityHidden(true)
+                NavigationLink(value: Route.authorNotes(username: note.author.username)) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(note.author.username)
+                            .typeScale(.note)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Palette.ink)
+                        Text(verbatim: "@\(note.author.username)@\(Self.federationHost)")
+                            .typeScale(.meta)
+                            .foregroundStyle(Palette.secondary)
+                    }
+                    .lineLimit(1)
+                }
+                .buttonStyle(.plain)
+                Spacer(minLength: 8)
+                FollowButton(username: note.author.username)
+                moreMenu
             }
             if !note.body.isEmpty {
                 Text(NoteText.attributed(note.body))
@@ -270,9 +289,29 @@ struct NoteRowView: View {
                     .textSelection(.enabled)
             }
             attachments
-            footer
+            if let date = note.createdAt {
+                HStack(spacing: 4) {
+                    Text(date, format: .dateTime.hour().minute())
+                    Text(verbatim: "·")
+                    Text(date, format: .dateTime.year().month(.twoDigits).day(.twoDigits))
+                    if note.editedAt != nil {
+                        Text(verbatim: "·")
+                        Text("고침")
+                    }
+                }
+                .typeScale(.meta)
+                .foregroundStyle(Palette.secondary)
+                .accessibilityElement(children: .combine)
+            }
+            VStack(spacing: 0) {
+                Hairline()
+                actions(spread: true)
+                    .padding(.top, 10)
+            }
         }
     }
+
+    private static let federationHost = Config.apiBase.host() ?? "kurl.me"
 
     private var row: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -295,7 +334,8 @@ struct NoteRowView: View {
                     .accessibilityIdentifier("note.body.\(note.id)")
                 }
                 attachments
-                footer
+                actions(spread: false)
+                    .padding(.top, 10)
             }
         }
     }
@@ -389,8 +429,8 @@ struct NoteRowView: View {
         .accessibilityIdentifier("note.menu.\(note.id)")
     }
 
-    private var footer: some View {
-        HStack(spacing: 20) {
+    private func actions(spread: Bool) -> some View {
+        HStack(spacing: spread ? 0 : 20) {
             Button {
                 likeTaps += 1
                 Task { await toggleLike() }
@@ -398,8 +438,10 @@ struct NoteRowView: View {
                 HStack(spacing: 4) {
                     NoteGlyphView(glyph: .heart, active: liked, size: Self.actionBox)
                         .modifier(GlyphPop(trigger: reduceMotion ? false : liked))
-                    if isMine, let likeCount, likeCount > 0 {
-                        Text("\(likeCount)").monospacedDigit()
+                    if let likeCount, likeCount > 0 {
+                        Text("\(likeCount)")
+                            .monospacedDigit()
+                            .contentTransition(.numericText(value: Double(likeCount)))
                     }
                 }
                 .typeScale(.lede)
@@ -411,6 +453,7 @@ struct NoteRowView: View {
             .accessibilityLabel(Text("좋아요"))
             .accessibilityAddTraits(liked ? [.isSelected] : [])
 
+            if spread { Spacer(minLength: 0) }
             NavigationLink(value: Route.note(id: note.id)) {
                 HStack(spacing: 4) {
                     NoteGlyphView(glyph: .reply, size: Self.actionBox)
@@ -424,9 +467,11 @@ struct NoteRowView: View {
             .accessibilityLabel(Text("답글 \(note.replyCount)"))
             .accessibilityIdentifier("note.replies.\(note.id)")
 
+            if spread { Spacer(minLength: 0) }
             repostMenu
 
             if let shareURL {
+                if spread { Spacer(minLength: 0) }
                 ShareLink(item: shareURL) {
                     NoteGlyphView(glyph: .share, size: Self.actionBox)
                         .foregroundStyle(Palette.ink)
@@ -437,7 +482,6 @@ struct NoteRowView: View {
                 .accessibilityIdentifier("note.share.\(note.id)")
             }
         }
-        .padding(.top, 10)
     }
 
     private static let actionBox: CGFloat = 22
@@ -461,8 +505,10 @@ struct NoteRowView: View {
             HStack(spacing: 4) {
                 NoteGlyphView(glyph: .repost, active: reposted, size: Self.actionBox)
                     .modifier(GlyphPop(trigger: reduceMotion ? false : reposted))
-                if isMine, let repostCount, repostCount > 0 {
-                    Text("\(repostCount)").monospacedDigit()
+                if let repostCount, repostCount > 0 {
+                    Text("\(repostCount)")
+                        .monospacedDigit()
+                        .contentTransition(.numericText(value: Double(repostCount)))
                 }
             }
             .typeScale(.lede)
@@ -483,11 +529,13 @@ struct NoteRowView: View {
         }
         let target = !reposted
         let previous = repostCount
-        reposted = target
-        if let count = repostCount { repostCount = count + (target ? 1 : -1) }
+        withAnimation(.snappy(duration: 0.2)) {
+            reposted = target
+            repostCount = max((repostCount ?? 0) + (target ? 1 : -1), 0)
+        }
         do {
             let status = try await NoteAPI.setRepost(id: note.id, on: target)
-            if isMine { repostCount = status.repostCount }
+            withAnimation(.snappy(duration: 0.2)) { repostCount = status.repostCount }
         } catch {
             reposted = !target
             repostCount = previous
@@ -502,11 +550,13 @@ struct NoteRowView: View {
         }
         let target = !liked
         let previous = likeCount
-        liked = target
-        if let count = likeCount { likeCount = count + (target ? 1 : -1) }
+        withAnimation(.snappy(duration: 0.2)) {
+            liked = target
+            likeCount = max((likeCount ?? 0) + (target ? 1 : -1), 0)
+        }
         do {
             let status = try await NoteAPI.setLike(id: note.id, on: target)
-            if isMine { likeCount = status.likeCount }
+            withAnimation(.snappy(duration: 0.2)) { likeCount = status.likeCount }
         } catch {
             liked = !target
             likeCount = previous

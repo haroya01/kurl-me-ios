@@ -1033,8 +1033,7 @@ enum MockBackend {
             var mine = (repostedNotes["honggildong"] ?? []).filter { $0 != nid }
             if method == "PUT" { mine.insert(nid, at: 0) }
             repostedNotes["honggildong"] = mine
-            let ownNote = allNotes().first { $0.id == nid }?.authorId == 1
-            return json(["reposted": method == "PUT", "repostCount": ownNote ? repostCount(nid) : 0])
+            return json(["reposted": method == "PUT", "repostCount": repostCount(nid)])
         }
 
         if parts.count == 3, parts[0] == "notes", parts[2] == "like" {
@@ -1048,8 +1047,7 @@ enum MockBackend {
                     likedNotes.remove(nid)
                     notes[idx].likeCount -= 1
                 }
-                let mine = notes[idx].authorId == 1
-                return json(["liked": likedNotes.contains(nid), "likeCount": mine ? notes[idx].likeCount : 0])
+                return json(["liked": likedNotes.contains(nid), "likeCount": notes[idx].likeCount])
             }
             return json(["liked": method == "PUT", "likeCount": 0])
         }
@@ -1819,14 +1817,14 @@ enum MockBackend {
         [
             "id": n.id, "body": n.body, "createdAt": iso(n.createdAt),
             "editedAt": n.editedAt.map(iso) ?? NSNull(),
-            "likeCount": n.authorId == 1 ? n.likeCount : NSNull(),
+            "likeCount": n.likeCount,
             "likedByMe": likedNotes.contains(n.id),
             "author": ["id": n.authorId, "username": n.username, "avatarUrl": NSNull()],
             "media": n.media,
             "quotedPost": n.quotedPost ?? NSNull(),
             "inReplyToId": n.inReplyToId ?? NSNull(),
             "replyCount": replyCount(n.id),
-            "repostCount": n.authorId == 1 ? repostCount(n.id) : NSNull(),
+            "repostCount": repostCount(n.id),
             "repostedByMe": repostedNotes["honggildong"]?.contains(n.id) == true,
             "linkPreview": n.linkPreview ?? NSNull(),
             "quotedNote": n.quotedNoteId.flatMap { qid in allNotes().first { $0.id == qid } }
