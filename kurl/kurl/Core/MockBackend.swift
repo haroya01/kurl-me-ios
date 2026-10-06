@@ -77,11 +77,15 @@ enum MockBackend {
         var inReplyToId: Int64? = nil
         var media: [[String: Any]] = []
         var quotedPost: [String: Any]? = nil
+        var quotedNoteId: Int64? = nil
     }
 
     private static var notes: [MockNote] = [
         MockNote(id: 9501, body: "오늘 헥사고날 포트 이름 짓는 데 한 시간 썼다. 이름이 곧 경계라는 걸 다시 배운다.",
                  createdAt: Date().addingTimeInterval(-1_800), likeCount: 4, authorId: 2, username: "yuki_dev"),
+        MockNote(id: 9505, body: "이름 짓는 데 한 시간이면 싸게 먹힌 거다. 우리 팀은 일주일 걸렸다.",
+                 createdAt: Date().addingTimeInterval(-3_600), likeCount: 1, authorId: 1, username: "honggildong",
+                 quotedNoteId: 9501),
         MockNote(id: 9502, body: "긴 글로 정리하기 전의 생각 조각을 둘 곳이 필요했는데, 노트가 딱 그 자리다.",
                  createdAt: Date().addingTimeInterval(-7_200), likeCount: 11, authorId: 1, username: "honggildong"),
         MockNote(id: 9503, body: "라이트 모드 캔버스를 순백에서 slate-50 으로 바꿨더니 카드가 비로소 떠 보인다. 배경은 색이 아니라 깊이다.",
@@ -101,6 +105,8 @@ enum MockBackend {
     ]
     private static var nextNoteId: Int64 = 9600
     private static var likedNotes: Set<Int64> = []
+    /// 사용자별 리포스트한 노트 id(최신 먼저). 목 세션은 honggildong.
+    private static var repostedNotes: [String: [Int64]] = ["honggildong": [9503], "yuki_dev": [9505]]
     private static var noteReplies: [MockNote] = [
         MockNote(id: 9551, body: "이름이 경계라는 말, 오래 남을 것 같아요.",
                  createdAt: Date().addingTimeInterval(-1_200), likeCount: 0, authorId: 3,
@@ -914,6 +920,14 @@ enum MockBackend {
                 "page": 0, "hasNext": false,
             ])
         }
+        if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "profiles",
+           parts[3] == "reposts" {
+            let ids = repostedNotes[parts[2]] ?? []
+            return json([
+                "items": ids.compactMap { id in allNotes().first { $0.id == id } }.map(noteView),
+                "page": 0, "hasNext": false,
+            ])
+        }
         if method == "GET", parts.count == 3, parts[0] == "public", parts[1] == "notes",
            let nid = Int64(parts[2]) {
             guard let note = allNotes().first(where: { $0.id == nid }) else {
@@ -946,6 +960,7 @@ enum MockBackend {
                      "altText": (image["altText"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? NSNull(),
                      "contentType": "image/jpeg"]
                 })
+            note.quotedNoteId = (req["quotedNoteId"] as? NSNumber)?.int64Value
             if let quoted = (req["quotedPostId"] as? NSNumber)?.int64Value {
                 note.quotedPost = [
                     "id": quoted, "title": "인용한 글", "slug": "quoted", "authorUsername": "honggildong",
@@ -980,6 +995,14 @@ enum MockBackend {
             noteReplies.removeAll { $0.id == nid }
             likedNotes.remove(nid)
             return json([:] as [String: Any])
+        }
+
+        if parts.count == 3, parts[0] == "notes", parts[2] == "repost", let nid = Int64(parts[1]) {
+            var mine = (repostedNotes["honggildong"] ?? []).filter { $0 != nid }
+            if method == "PUT" { mine.insert(nid, at: 0) }
+            repostedNotes["honggildong"] = mine
+            let ownNote = allNotes().first { $0.id == nid }?.authorId == 1
+            return json(["reposted": method == "PUT", "repostCount": ownNote ? repostCount(nid) : 0])
         }
 
         if parts.count == 3, parts[0] == "notes", parts[2] == "like" {
@@ -1748,7 +1771,21 @@ enum MockBackend {
             "quotedPost": n.quotedPost ?? NSNull(),
             "inReplyToId": n.inReplyToId ?? NSNull(),
             "replyCount": noteReplies.filter { $0.inReplyToId == n.id }.count,
+            "repostCount": n.authorId == 1 ? repostCount(n.id) : NSNull(),
+            "repostedByMe": repostedNotes["honggildong"]?.contains(n.id) == true,
+            "quotedNote": n.quotedNoteId.flatMap { qid in allNotes().first { $0.id == qid } }
+                .map { q -> [String: Any] in
+                    [
+                        "id": q.id, "body": q.body, "createdAt": iso(q.createdAt),
+                        "author": ["id": q.authorId, "username": q.username, "avatarUrl": NSNull()],
+                        "media": q.media,
+                    ]
+                } ?? NSNull(),
         ]
+    }
+
+    private static func repostCount(_ noteId: Int64) -> Int {
+        repostedNotes.values.filter { $0.contains(noteId) }.count
     }
 
     private static func postView(_ p: MockPost) -> [String: Any] {

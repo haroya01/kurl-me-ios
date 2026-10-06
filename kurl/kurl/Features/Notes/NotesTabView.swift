@@ -130,7 +130,8 @@ struct NotesTabView: View {
                         NoteRowView(
                             note: note,
                             onChange: { notes.replaced($0) },
-                            onDelete: { notes.removed($0) }
+                            onDelete: { notes.removed($0) },
+                            onQuoted: { notes.inserted($0) }
                         )
                         .modifier(QuietAppear(index: index))
                         .task { await notes.loadMoreIfNeeded(current: note) }

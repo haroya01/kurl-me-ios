@@ -175,6 +175,73 @@ final class NotesFeedUITests: XCTestCase {
         attach(app, "author-posts-tab")
     }
 
+    func testRepostMenuTogglesAndQuotePostsAboveTheFeed() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let repost = app.buttons["note.repost.9501"]
+        XCTAssertTrue(repost.waitForExistence(timeout: 10), "노트 행에 리포스트 버튼이 없음")
+        XCTAssertFalse(repost.isSelected)
+        repost.tap()
+        let repostItem = app.buttons["리포스트"].firstMatch
+        XCTAssertTrue(repostItem.waitForExistence(timeout: 3), "리포스트 메뉴에 리포스트 항목이 없음")
+        XCTAssertTrue(app.buttons["인용"].firstMatch.exists, "리포스트 메뉴에 인용 항목이 없음")
+        attach(app, "note-repost-menu")
+        repostItem.tap()
+        XCTAssertTrue(repost.waitForSelected(true, timeout: 4), "리포스트해도 버튼이 켜지지 않음")
+
+        repost.tap()
+        let undo = app.buttons["리포스트 취소"].firstMatch
+        XCTAssertTrue(undo.waitForExistence(timeout: 3), "리포스트한 노트의 메뉴에 취소가 없음")
+        undo.tap()
+        XCTAssertTrue(repost.waitForSelected(false, timeout: 4), "리포스트를 취소해도 버튼이 꺼지지 않음")
+
+        repost.tap()
+        app.buttons["인용"].firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["노트 인용"].waitForExistence(timeout: 5), "인용 작성 시트가 안 열림")
+        let quoted = app.staticTexts
+            .matching(NSPredicate(format: "label CONTAINS '헥사고날 포트'")).firstMatch
+        XCTAssertTrue(quoted.exists, "인용 작성 시트에 인용할 노트가 없음")
+        let field = app.textFields["noteCompose.text"]
+        XCTAssertTrue(field.waitForExistence(timeout: 3))
+        field.typeText("uitest quote")
+        attach(app, "note-quote-sheet")
+        app.buttons["noteCompose.post"].tap()
+        let notice = app.alerts.firstMatch
+        if notice.waitForExistence(timeout: 4) { notice.buttons["알겠어요, 올릴게요"].tap() }
+
+        let posted = app.staticTexts
+            .matching(NSPredicate(format: "label CONTAINS 'uitest quote'")).firstMatch
+        XCTAssertTrue(posted.waitForExistence(timeout: 8), "인용 노트가 피드 맨 위에 안 꽂힘")
+        XCTAssertFalse(app.navigationBars["노트 인용"].exists, "올린 뒤 인용 시트가 닫히지 않음")
+        attach(app, "note-quote-posted")
+    }
+
+    func testAuthorRepostsTabShowsWhatTheyReposted() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let name = app.buttons["yuki_dev"].firstMatch
+        XCTAssertTrue(name.waitForExistence(timeout: 8))
+        name.tap()
+        let tab = app.buttons["author.tab.reposts"]
+        XCTAssertTrue(tab.waitForExistence(timeout: 10), "프로필에 리포스트 탭이 없음")
+        tab.tap()
+        XCTAssertTrue(tab.isSelected, "리포스트 탭으로 바뀌지 않음")
+
+        let line = app.staticTexts["yuki_dev님이 리포스트함"].firstMatch
+        XCTAssertTrue(line.waitForExistence(timeout: 8), "리포스트한 노트 위에 리포스트함 줄이 없음")
+        let reposted = app.staticTexts
+            .matching(NSPredicate(format: "label CONTAINS '우리 팀은 일주일'")).firstMatch
+        XCTAssertTrue(reposted.exists, "리포스트 탭에 리포스트한 노트가 없음")
+        XCTAssertTrue(app.buttons["note.quoted.9501"].exists, "인용 노트 카드가 링크가 아님")
+        attach(app, "author-reposts-tab")
+    }
+
     func testCollectionNoteBlockOpensTheNote() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--screen", "collection-detail", "--collection", "101"]
@@ -237,6 +304,12 @@ final class NotesFeedUITests: XCTestCase {
 }
 
 private extension XCUIElement {
+    func waitForSelected(_ selected: Bool, timeout: TimeInterval) -> Bool {
+        let expectation = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "isSelected == %@", NSNumber(value: selected)), object: self)
+        return XCTWaiter().wait(for: [expectation], timeout: timeout) == .completed
+    }
+
     func waitForValue(_ value: String, timeout: TimeInterval) -> Bool {
         let expectation = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "value == %@", value), object: self)

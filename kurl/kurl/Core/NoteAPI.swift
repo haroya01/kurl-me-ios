@@ -32,6 +32,12 @@ enum NoteAPI {
             authenticated: signedIn)
     }
 
+    static func reposts(_ username: String, page: Int = 0) async throws -> NoteFeed {
+        try await client.get(
+            "/public/profiles/\(username)/reposts", query: ["page": String(page), "size": "20"],
+            authenticated: signedIn)
+    }
+
     static func thread(id: Int64) async throws -> NoteThread {
         try await client.get("/public/notes/\(id)", authenticated: signedIn)
     }
@@ -53,6 +59,12 @@ enum NoteAPI {
         on
             ? try await client.put("/notes/\(id)/like", body: EmptyBody(), authenticated: true)
             : try await client.delete("/notes/\(id)/like", authenticated: true)
+    }
+
+    static func setRepost(id: Int64, on: Bool) async throws -> NoteRepostStatus {
+        on
+            ? try await client.put("/notes/\(id)/repost", body: EmptyBody(), authenticated: true)
+            : try await client.delete("/notes/\(id)/repost", authenticated: true)
     }
 
     /// presign → 저장소 직행 PUT. 노트를 쓸 때 넘길 키를 돌려준다. JPEG 로 재인코딩해 올린다.
@@ -113,6 +125,14 @@ struct QuotedPost: Codable, Hashable, Identifiable {
     let authorUsername: String
 }
 
+struct QuotedNote: Decodable, Hashable, Identifiable {
+    let id: Int64
+    let body: String
+    let createdAt: Date?
+    let author: Author
+    let media: [NoteMedia]
+}
+
 struct Note: Decodable, Identifiable, Hashable {
     let id: Int64
     let body: String
@@ -127,6 +147,10 @@ struct Note: Decodable, Identifiable, Hashable {
     let quotedPost: QuotedPost?
     let inReplyToId: Int64?
     let replyCount: Int64
+    /// 좋아요 수처럼 작성자 본인에게만 숫자.
+    let repostCount: Int64?
+    let repostedByMe: Bool?
+    let quotedNote: QuotedNote?
 }
 
 struct NoteFeed: Decodable {
@@ -151,11 +175,17 @@ struct NoteDraft: Encodable {
     let images: [Image]
     let quotedPostId: Int64?
     let inReplyToId: Int64?
+    var quotedNoteId: Int64? = nil
 }
 
 struct NoteLikeStatus: Decodable {
     let liked: Bool
     let likeCount: Int64
+}
+
+struct NoteRepostStatus: Decodable {
+    let reposted: Bool
+    let repostCount: Int64
 }
 
 struct FederationSettings: Decodable {

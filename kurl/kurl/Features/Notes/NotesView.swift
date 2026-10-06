@@ -17,15 +17,28 @@ final class NotesViewModel {
     private var page = 0
     private var hasNext = true
     private var epoch = 0
-    private let author: String?
+    private let source: Source
+
+    enum Source {
+        case everyone
+        case author(String)
+        case reposts(String)
+    }
 
     init(author: String? = nil) {
-        self.author = author
+        source = author.map(Source.author) ?? .everyone
+    }
+
+    init(repostsBy username: String) {
+        source = .reposts(username)
     }
 
     private func load(_ page: Int) async throws -> NoteFeed {
-        if let author { return try await NoteAPI.byAuthor(author, page: page) }
-        return try await NoteAPI.everyone(page: page)
+        switch source {
+        case .everyone: try await NoteAPI.everyone(page: page)
+        case let .author(username): try await NoteAPI.byAuthor(username, page: page)
+        case let .reposts(username): try await NoteAPI.reposts(username, page: page)
+        }
     }
 
     func reload() async {
@@ -84,10 +97,16 @@ struct NoteRowView: View {
     let note: Note
     let onChange: (Note) -> Void
     let onDelete: (Int64) -> Void
+    var onQuoted: ((Note) -> Void)? = nil
+    var repostedBy: String? = nil
 
     @State private var liked: Bool
     @State private var likeCount: Int64?
     @State private var likeTaps = 0
+    @State private var reposted: Bool
+    @State private var repostCount: Int64?
+    @State private var repostTaps = 0
+    @State private var quoting = false
     @State private var editing = false
     @State private var confirmDelete = false
     @State private var connecting = false
@@ -95,17 +114,88 @@ struct NoteRowView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(note: Note, onChange: @escaping (Note) -> Void,
-         onDelete: @escaping (Int64) -> Void) {
+         onDelete: @escaping (Int64) -> Void,
+         onQuoted: ((Note) -> Void)? = nil, repostedBy: String? = nil) {
         self.note = note
         self.onChange = onChange
         self.onDelete = onDelete
+        self.onQuoted = onQuoted
+        self.repostedBy = repostedBy
         _liked = State(initialValue: note.likedByMe == true)
         _likeCount = State(initialValue: note.likeCount)
+        _reposted = State(initialValue: note.repostedByMe == true)
+        _repostCount = State(initialValue: note.repostCount)
     }
 
     private var isMine: Bool { AuthStore.shared.me?.id == note.author.id }
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let repostedBy {
+                HStack(spacing: 12) {
+                    Image(systemName: "arrow.2.squarepath")
+                        .font(.system(size: 11, weight: .semibold))
+                        .frame(width: 36, alignment: .trailing)
+                    Text("\(repostedBy)님이 리포스트함")
+                        .typeScale(.meta)
+                        .fontWeight(.medium)
+                        .lineLimit(1)
+                }
+                .foregroundStyle(Palette.secondary)
+                .accessibilityElement(children: .combine)
+            }
+            row
+        }
+        .padding(.vertical, 12)
+        .contentShape(Rectangle())
+        .contextMenu {
+            if !note.body.isEmpty {
+                Button {
+                    UIPasteboard.general.string = note.body
+                } label: {
+                    Label("복사", systemImage: "doc.on.doc")
+                }
+            }
+            if isMine {
+                Button { editing = true } label: { Label("고치기", systemImage: "pencil") }
+                Button(role: .destructive) { confirmDelete = true } label: {
+                    Label("노트 삭제", systemImage: "trash")
+                }
+            }
+            if AuthStore.shared.isSignedIn {
+                Button { connecting = true } label: {
+                    Label("컬렉션에 연결", systemImage: "rectangle.stack.badge.plus")
+                }
+            }
+        }
+        .sheet(isPresented: $editing) {
+            NoteComposeSheet(mode: .edit(note)) { onChange($0) }
+        }
+        .sheet(isPresented: $quoting) {
+            NoteComposeSheet(mode: .quote(QuotedNote(note))) { created in
+                ToastCenter.shared.show(String(localized: "인용 노트를 올렸어요"))
+                onQuoted?(created)
+            }
+        }
+        .sheet(isPresented: $connecting) {
+            ConnectSheet(targetKind: "노트", targetTitle: note.body, blockType: .note, refId: note.id)
+        }
+        .alert("이 노트를 지울까요?", isPresented: $confirmDelete) {
+            Button("지우기", role: .destructive) { Task { await delete() } }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("다른 서버로 퍼진 사본에도 지우라는 요청을 보내요.")
+        }
+        .loginPrompt(isPresented: $showLoginSheet, message: "노트에 좋아요 남기기")
+        .onChange(of: note) { _, next in
+            liked = next.likedByMe == true
+            likeCount = next.likeCount
+            reposted = next.repostedByMe == true
+            repostCount = next.repostCount
+        }
+    }
+
+    private var row: some View {
         HStack(alignment: .top, spacing: 12) {
             NavigationLink(value: Route.authorNotes(username: note.author.username)) {
                 AvatarView(author: note.author, size: 36)
@@ -169,47 +259,16 @@ struct NoteRowView: View {
                     .buttonStyle(.plain)
                     .padding(.top, 6)
                 }
+                if let quoted = note.quotedNote {
+                    NavigationLink(value: Route.note(id: quoted.id)) {
+                        QuotedNoteCard(note: quoted)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 6)
+                    .accessibilityIdentifier("note.quoted.\(quoted.id)")
+                }
                 footer
             }
-        }
-        .padding(.vertical, 12)
-        .contentShape(Rectangle())
-        .contextMenu {
-            if !note.body.isEmpty {
-                Button {
-                    UIPasteboard.general.string = note.body
-                } label: {
-                    Label("복사", systemImage: "doc.on.doc")
-                }
-            }
-            if isMine {
-                Button { editing = true } label: { Label("고치기", systemImage: "pencil") }
-                Button(role: .destructive) { confirmDelete = true } label: {
-                    Label("노트 삭제", systemImage: "trash")
-                }
-            }
-            if AuthStore.shared.isSignedIn {
-                Button { connecting = true } label: {
-                    Label("컬렉션에 연결", systemImage: "rectangle.stack.badge.plus")
-                }
-            }
-        }
-        .sheet(isPresented: $editing) {
-            NoteComposeSheet(mode: .edit(note)) { onChange($0) }
-        }
-        .sheet(isPresented: $connecting) {
-            ConnectSheet(targetKind: "노트", targetTitle: note.body, blockType: .note, refId: note.id)
-        }
-        .alert("이 노트를 지울까요?", isPresented: $confirmDelete) {
-            Button("지우기", role: .destructive) { Task { await delete() } }
-            Button("취소", role: .cancel) {}
-        } message: {
-            Text("다른 서버로 퍼진 사본에도 지우라는 요청을 보내요.")
-        }
-        .loginPrompt(isPresented: $showLoginSheet, message: "노트에 좋아요 남기기")
-        .onChange(of: note) { _, next in
-            liked = next.likedByMe == true
-            likeCount = next.likeCount
         }
     }
 
@@ -285,6 +344,8 @@ struct NoteRowView: View {
             .accessibilityLabel(Text("답글 \(note.replyCount)"))
             .accessibilityIdentifier("note.replies.\(note.id)")
 
+            repostMenu
+
             if let shareURL {
                 ShareLink(item: shareURL) {
                     Image(systemName: "paperplane")
@@ -299,6 +360,60 @@ struct NoteRowView: View {
             }
         }
         .padding(.top, 8)
+    }
+
+    private var repostMenu: some View {
+        Menu {
+            Button(role: reposted ? .destructive : nil) {
+                repostTaps += 1
+                Task { await toggleRepost() }
+            } label: {
+                Label(
+                    reposted ? LocalizedStringKey("리포스트 취소") : LocalizedStringKey("리포스트"),
+                    systemImage: "arrow.2.squarepath")
+            }
+            Button {
+                if AuthStore.shared.isSignedIn { quoting = true } else { showLoginSheet = true }
+            } label: {
+                Label("인용", systemImage: "quote.opening")
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "arrow.2.squarepath")
+                    .font(.system(size: 16, weight: reposted ? .bold : .regular))
+                    .symbolEffect(.bounce, value: reduceMotion ? false : reposted)
+                if isMine, let repostCount, repostCount > 0 {
+                    Text("\(repostCount)").monospacedDigit()
+                }
+            }
+            .typeScale(.meta)
+            .foregroundStyle(reposted ? Palette.accent : Palette.ink)
+            .expandTapTarget()
+        }
+        .buttonStyle(.plain)
+        .sensoryFeedback(.impact(weight: .light), trigger: repostTaps)
+        .accessibilityLabel(Text("리포스트 메뉴"))
+        .accessibilityAddTraits(reposted ? [.isSelected] : [])
+        .accessibilityIdentifier("note.repost.\(note.id)")
+    }
+
+    private func toggleRepost() async {
+        guard AuthStore.shared.isSignedIn else {
+            showLoginSheet = true
+            return
+        }
+        let target = !reposted
+        let previous = repostCount
+        reposted = target
+        if let count = repostCount { repostCount = count + (target ? 1 : -1) }
+        do {
+            let status = try await NoteAPI.setRepost(id: note.id, on: target)
+            if isMine { repostCount = status.repostCount }
+        } catch {
+            reposted = !target
+            repostCount = previous
+            ToastCenter.shared.show(String(localized: "리포스트하지 못했어요"))
+        }
     }
 
     private func toggleLike() async {
@@ -327,6 +442,68 @@ struct NoteRowView: View {
         } catch {
             ToastCenter.shared.show(String(localized: "노트를 삭제하지 못했습니다"))
         }
+    }
+}
+
+/// 인용된 노트 — 작성자·시간·글(4줄까지)·사진 줄. 사진은 글 아래 작은 정사각형으로.
+struct QuotedNoteCard: View {
+    let note: QuotedNote
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                AvatarView(author: note.author, size: 20)
+                Text(note.author.username)
+                    .typeScale(.meta)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Palette.ink)
+                    .lineLimit(1)
+                if let date = note.createdAt {
+                    Text(date.relativeShort)
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.secondary)
+                        .lineLimit(1)
+                }
+            }
+            if !note.body.isEmpty {
+                Text(note.body)
+                    .typeScale(.body)
+                    .foregroundStyle(Palette.ink)
+                    .lineLimit(4)
+                    .multilineTextAlignment(.leading)
+            }
+            if !note.media.isEmpty {
+                HStack(spacing: 6) {
+                    ForEach(note.media) { image in
+                        RemoteImage(url: URL(string: image.url), maxPixel: 200) { phase in
+                            Palette.hairline
+                                .overlay {
+                                    if case .success(let loaded) = phase {
+                                        loaded.resizable().scaledToFill()
+                                    }
+                                }
+                        }
+                        .frame(width: 64, height: 64)
+                        .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
+                        .accessibilityLabel(Text(image.altText ?? String(localized: "사진")))
+                    }
+                }
+                .padding(.top, 4)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
+        .overlay(
+            RoundedRectangle(cornerRadius: Metrics.radiusMini)
+                .stroke(Palette.hairlineStrong, lineWidth: 1))
+        .contentShape(RoundedRectangle(cornerRadius: Metrics.radiusMini))
+    }
+}
+
+extension QuotedNote {
+    init(_ note: Note) {
+        self.init(id: note.id, body: note.body, createdAt: note.createdAt, author: note.author, media: note.media)
     }
 }
 
@@ -597,6 +774,7 @@ struct NoteDetailView: View {
 struct NoteComposeSheet: View {
     enum Mode {
         case new(quote: QuotedPost?, inReplyToId: Int64?)
+        case quote(QuotedNote)
         case edit(Note)
     }
 
@@ -632,6 +810,9 @@ struct NoteComposeSheet: View {
         case let .new(quote, _):
             _text = State(initialValue: "")
             _quote = State(initialValue: quote)
+        case .quote:
+            _text = State(initialValue: "")
+            _quote = State(initialValue: nil)
         case let .edit(note):
             _text = State(initialValue: note.body)
             _quote = State(initialValue: nil)
@@ -640,12 +821,16 @@ struct NoteComposeSheet: View {
 
     private var isEdit: Bool { if case .edit = mode { true } else { false } }
     private var inReplyToId: Int64? { if case let .new(_, id) = mode { id } else { nil } }
+    private var quotedNote: QuotedNote? { if case let .quote(note) = mode { note } else { nil } }
     private var length: Int { NoteText.length(text) }
     private var placeholder: LocalizedStringKey {
-        inReplyToId == nil ? "지금 떠오른 생각을 짧게 남겨 보세요" : "답글을 남겨 보세요"
+        if quotedNote != nil { return "생각을 덧붙여 보세요" }
+        return inReplyToId == nil ? "지금 떠오른 생각을 짧게 남겨 보세요" : "답글을 남겨 보세요"
     }
     private var title: LocalizedStringKey {
-        isEdit ? "노트 고치기" : (inReplyToId == nil ? "새 노트" : "답글")
+        if isEdit { return "노트 고치기" }
+        if quotedNote != nil { return "노트 인용" }
+        return inReplyToId == nil ? "새 노트" : "답글"
     }
     private var hasImages: Bool {
         if case let .edit(note) = mode { return !note.media.isEmpty }
@@ -687,6 +872,7 @@ struct NoteComposeSheet: View {
                         }
                         if !picked.isEmpty { pickedStrip }
                         if let quote { quoteCard(quote) }
+                        if let quotedNote { QuotedNoteCard(note: quotedNote) }
                         if let errorMessage {
                             Text(errorMessage)
                                 .typeScale(.meta)
@@ -955,7 +1141,9 @@ struct NoteComposeSheet: View {
                 images.append(NoteDraft.Image(key: key, altText: item.altText))
             }
             let note = try await NoteAPI.create(
-                NoteDraft(body: text, images: images, quotedPostId: quote?.id, inReplyToId: inReplyToId))
+                NoteDraft(
+                    body: text, images: images, quotedPostId: quote?.id, inReplyToId: inReplyToId,
+                    quotedNoteId: quotedNote?.id))
             onDone(note)
             dismiss()
         } catch {
