@@ -221,6 +221,8 @@ struct ErrorState: View {
 
 struct ReadingColumn<Content: View>: View {
     var spacing: CGFloat = 0
+    var background: Color = Palette.pageBg
+    var tracksTabBar = false
     @ViewBuilder var content: Content
 
     var body: some View {
@@ -235,7 +237,8 @@ struct ReadingColumn<Content: View>: View {
         .scrollIndicators(.hidden)
         // 콘텐츠가 유리 크롬 밑으로 흐를 때의 가장자리 — soft 가 기본 정책(DESIGN.md §1).
         .scrollEdgeEffectStyle(.soft, for: .top)
-        .background(Palette.pageBg)
+        .tracksTabBarVisibility(tracksTabBar)
+        .background(background)
     }
 }
 

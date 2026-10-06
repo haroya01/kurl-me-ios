@@ -11,17 +11,17 @@ struct NotesTabView: View {
     @State private var notesPosted = 0
     @State private var showLoginSheet = false
     @State private var loadedSignedIn: Bool?
+    @Environment(\.tabBarVisibility) private var tabBarVisibility
 
     var body: some View {
         NavigationStack {
-            ReadingColumn(spacing: 0) {
+            ReadingColumn(spacing: 0, background: Palette.readingBg, tracksTabBar: true) {
                 Color.clear.frame(height: 8)
                 composePlaceholder
                 content
             }
             .navigationTitle("노트")
             .navigationBarTitleDisplayMode(.inline)
-            .tracksTabBarVisibility()
             .navigationDestination(for: Route.self) {
                 RouteView(route: $0)
             }
@@ -43,6 +43,7 @@ struct NotesTabView: View {
             .loginPrompt(isPresented: $showLoginSheet, message: "로그인하고 노트 쓰기")
             .sensoryFeedback(.success, trigger: notesPosted)
         }
+        .overlay(alignment: .bottomTrailing) { composeButton }
     }
 
     private func compose() {
@@ -53,28 +54,53 @@ struct NotesTabView: View {
         }
     }
 
+    private var composeButton: some View {
+        let hidden = tabBarVisibility?.hidden ?? false
+        return GlassFAB(systemImage: "plus", label: "노트 쓰기", action: compose)
+            .accessibilityIdentifier("notes.fab")
+            .padding(.trailing, Metrics.gutter)
+            .padding(.bottom, 14)
+            .offset(y: hidden ? 132 : 0)
+            .opacity(hidden ? 0 : 1)
+            .allowsHitTesting(!hidden)
+            .accessibilityHidden(hidden)
+    }
+
     private var composePlaceholder: some View {
-        Button(action: compose) {
-            HStack(spacing: 10) {
-                Text("지금 떠오른 생각을 짧게 남겨 보세요")
-                    .typeScale(.body)
-                    .foregroundStyle(Palette.secondary)
+        let me = AuthStore.shared.me
+        return Button(action: compose) {
+            HStack(alignment: .center, spacing: 12) {
+                if let me, AuthStore.shared.isSignedIn {
+                    AvatarView(
+                        author: Author(id: me.id ?? 0, username: me.username ?? "", bio: nil, avatarUrl: me.avatarUrl),
+                        size: 36)
+                } else {
+                    Circle().fill(Palette.hairline).frame(width: 36, height: 36)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    if let name = me?.username, AuthStore.shared.isSignedIn {
+                        Text(name)
+                            .typeScale(.body)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Palette.ink)
+                    }
+                    Text(AuthStore.shared.isSignedIn ? "지금 떠오른 생각을 짧게 남겨 보세요" : "로그인하고 노트 쓰기")
+                        .typeScale(.body)
+                        .foregroundStyle(Palette.secondary)
+                        .lineLimit(1)
+                }
                 Spacer(minLength: 0)
-                Image(systemName: "square.and.pencil")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(Palette.link)
+                Image(systemName: "photo.on.rectangle")
+                    .font(.system(size: 17))
+                    .foregroundStyle(Palette.secondary)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 13)
-            .overlay(
-                RoundedRectangle(cornerRadius: Metrics.radiusControl)
-                    .stroke(Palette.hairlineStrong, lineWidth: 1))
-            .contentShape(RoundedRectangle(cornerRadius: Metrics.radiusControl))
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("노트 쓰기")
         .accessibilityIdentifier("notes.compose")
-        .padding(.bottom, 6)
+        .overlay(alignment: .bottom) { Hairline() }
     }
 
     @ViewBuilder

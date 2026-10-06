@@ -109,6 +109,43 @@ final class NotesFeedUITests: XCTestCase {
         attach(app, "note-photo-lightbox")
     }
 
+    func testRowCarriesMenuShareAndAltLikeThreads() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let share = app.buttons["note.share.9504"]
+        var tries = 0
+        while !share.isHittable, tries < 6 { app.swipeUp(); tries += 1 }
+        XCTAssertTrue(share.isHittable, "노트 행에 공유 버튼이 없음")
+
+        let alt = app.buttons["사진 설명 보기"].firstMatch
+        XCTAssertTrue(alt.waitForExistence(timeout: 5), "대체 텍스트가 있는 사진에 ALT 배지가 없음")
+        alt.tap()
+        XCTAssertTrue(app.staticTexts["비 오는 창밖"].firstMatch.waitForExistence(timeout: 3), "ALT 를 눌러도 설명이 안 뜸")
+        attach(app, "note-row-threads")
+
+        app.buttons["note.menu.9504"].tap()
+        XCTAssertTrue(app.buttons["고치기"].waitForExistence(timeout: 3), "내 노트 더보기 메뉴에 고치기가 없음")
+        attach(app, "note-row-menu")
+    }
+
+    func testFloatingPlusOpensComposer() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let fab = app.buttons["notes.fab"]
+        XCTAssertTrue(fab.waitForExistence(timeout: 5), "노트 탭에 떠 있는 작성 버튼이 없음")
+        attach(app, "notes-fab")
+        fab.tap()
+        XCTAssertTrue(app.textFields["noteCompose.text"].waitForExistence(timeout: 5), "작성 버튼이 시트를 열지 않음")
+        app.navigationBars.buttons["취소"].tap()
+        XCTAssertTrue(fab.waitForExistence(timeout: 4), "시트를 닫은 뒤 작성 버튼이 사라짐")
+    }
+
     func testFederationCanBeTurnedOffInSettings() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "account"]
