@@ -8,10 +8,14 @@ enum NotificationRoute {
         seriesSlug: String?,
         collectionId: Int64?,
         commentId: Int64? = nil,
-        highlightId: Int64? = nil
+        highlightId: Int64? = nil,
+        noteId: Int64? = nil
     ) -> Route? {
         if let collectionId {
             return .collection(id: collectionId)
+        }
+        if let noteId {
+            return .note(id: noteId)
         }
         if let slug = filled(postSlug), let owner = filled(ownerUsername) {
             if let commentId {
@@ -33,6 +37,12 @@ enum NotificationRoute {
 
     @MainActor
     static func route(for n: AppNotification) -> Route? {
+        switch n.type {
+        case "NOTE_LIKE", "NOTE_REPOST": return n.noteId.map { .note(id: $0) }
+        case "NOTE_REPLY", "NOTE_QUOTE": return n.sourceNoteId.map { .note(id: $0) }
+        case "REMOTE_FOLLOW": return nil
+        default: break
+        }
         let mine = AuthStore.shared.me?.username
         let owner =
             n.postSlug == nil
@@ -58,7 +68,8 @@ enum NotificationRoute {
             seriesSlug: userInfo["seriesSlug"] as? String,
             collectionId: (userInfo["collectionId"] as? NSNumber)?.int64Value,
             commentId: (userInfo["commentId"] as? NSNumber)?.int64Value,
-            highlightId: (userInfo["highlightId"] as? NSNumber)?.int64Value)
+            highlightId: (userInfo["highlightId"] as? NSNumber)?.int64Value,
+            noteId: (userInfo["noteId"] as? NSNumber)?.int64Value)
     }
 
     private static func filled(_ value: String?) -> String? {

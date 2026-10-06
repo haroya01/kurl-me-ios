@@ -58,6 +58,15 @@ struct AppNotification: Decodable, Identifiable {
     /// 연결 그래프 알림(CONNECTED·PATH_GREW)의 딥링크 대상 = 컬렉션. 다른 종류에선 비어 온다.
     let collectionId: Int64?
     let collectionName: String?
-    let read: Bool
+    var read: Bool
     let createdAt: Date?
+    /// 다른 서버 계정이면 그 서버의 프로필 — 보낸 사람 이름은 name@domain 핸들로 온다.
+    var actorProfileUrl: String? = nil
+    /// 노트 알림 — 내 노트, 답글·인용이면 그 답글·인용 노트.
+    var noteId: Int64? = nil
+    var noteExcerpt: String? = nil
+    var sourceNoteId: Int64? = nil
+    var sourceExcerpt: String? = nil
+    /// 같은 노트의 좋아요·리포스트는 날마다 묶여 온다 — 행은 가장 최근 것, count 는 묶음 크기.
+    var count: Int? = nil
 }

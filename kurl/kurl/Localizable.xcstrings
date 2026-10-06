@@ -689,6 +689,62 @@
         }
       }
     },
+    "%@님 외 %lld명이 내 노트를 리포스트했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ and %2$lld more reposted your note"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ और %2$lld अन्य ने आपका नोट रीपोस्ट किया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@さんほか%2$lld人があなたのノートをリポストしました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ và %2$lld người khác đã đăng lại ghi chú của bạn"
+          }
+        }
+      }
+    },
+    "%@님 외 %lld명이 내 노트를 좋아해요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ and %2$lld more liked your note"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ और %2$lld अन्य ने आपका नोट पसंद किया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@さんほか%2$lld人があなたのノートにいいねしました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ và %2$lld người khác đã thích ghi chú của bạn"
+          }
+        }
+      }
+    },
     "%@님에게 답글": {
       "localizations": {
         "en": {
@@ -853,6 +909,146 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ đã nhắc đến bạn"
+          }
+        }
+      }
+    },
+    "%@님이 내 노트를 리포스트했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ reposted your note"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ने आपका नोट रीपोस्ट किया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@さんがあなたのノートをリポストしました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ đã đăng lại ghi chú của bạn"
+          }
+        }
+      }
+    },
+    "%@님이 내 노트를 인용했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ quoted your note"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ने आपके नोट को उद्धृत किया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@さんがあなたのノートを引用しました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ đã trích dẫn ghi chú của bạn"
+          }
+        }
+      }
+    },
+    "%@님이 내 노트를 좋아해요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ liked your note"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ने आपका नोट पसंद किया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@さんがあなたのノートにいいねしました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ đã thích ghi chú của bạn"
+          }
+        }
+      }
+    },
+    "%@님이 내 노트에 답글을 남겼어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ replied to your note"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ने आपके नोट का जवाब दिया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@さんがあなたのノートに返信しました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ đã trả lời ghi chú của bạn"
+          }
+        }
+      }
+    },
+    "%@님이 다른 서버에서 나를 팔로우했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ followed you from another server"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ने दूसरे सर्वर से आपको फ़ॉलो किया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@さんが別のサーバーからあなたをフォローしました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ đã theo dõi bạn từ một máy chủ khác"
           }
         }
       }
@@ -5450,6 +5646,118 @@
         }
       }
     },
+    "내 노트 답글": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note replies"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नोट के जवाब"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートへの返信"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trả lời ghi chú"
+          }
+        }
+      }
+    },
+    "내 노트 리포스트": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note reposts"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नोट रीपोस्ट"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートのリポスト"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng lại ghi chú"
+          }
+        }
+      }
+    },
+    "내 노트 인용": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note quotes"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नोट उद्धरण"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートの引用"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trích dẫn ghi chú"
+          }
+        }
+      }
+    },
+    "내 노트 좋아요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note likes"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नोट की पसंद"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートへのいいね"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lượt thích ghi chú"
+          }
+        }
+      }
+    },
     "내 명함": {
       "extractionState": "stale",
       "localizations": {
@@ -6124,6 +6432,146 @@
         }
       }
     },
+    "누가 내 노트를 리포스트하거나 다른 서버에서 부스트할 때": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When someone reposts your note or boosts it from another server"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जब कोई आपका नोट रीपोस्ट करे या दूसरे सर्वर पर बूस्ट करे"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "誰かがあなたのノートをリポスト、または他のサーバーでブーストしたとき"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khi ai đó đăng lại ghi chú của bạn hoặc chia sẻ nó từ máy chủ khác"
+          }
+        }
+      }
+    },
+    "누가 내 노트를 인용할 때": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When someone quotes your note"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जब कोई आपके नोट को उद्धृत करे"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "誰かがあなたのノートを引用したとき"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khi ai đó trích dẫn ghi chú của bạn"
+          }
+        }
+      }
+    },
+    "누가 내 노트를 좋아할 때. 다른 서버의 좋아요도 포함해요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When someone likes your note, including likes from other servers"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जब कोई आपका नोट पसंद करे, दूसरे सर्वर की पसंद भी"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "誰かがあなたのノートにいいねしたとき。他のサーバーからのいいねも含みます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khi ai đó thích ghi chú của bạn, kể cả từ máy chủ khác"
+          }
+        }
+      }
+    },
+    "누가 내 노트에 답글을 남길 때": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When someone replies to your note"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जब कोई आपके नोट का जवाब दे"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "誰かがあなたのノートに返信したとき"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khi ai đó trả lời ghi chú của bạn"
+          }
+        }
+      }
+    },
+    "다른 서버의 팔로워": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Followers on other servers"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दूसरे सर्वर के फ़ॉलोअर"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "他のサーバーのフォロワー"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Người theo dõi ở máy chủ khác"
+          }
+        }
+      }
+    },
     "로그인하고 팔로잉 피드 보기": {
       "localizations": {
         "en": {
@@ -6288,6 +6736,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Không thể đăng lại"
+          }
+        }
+      }
+    },
+    "마스토돈 같은 다른 서버 계정이 나를 팔로우할 때": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When an account on another server, like Mastodon, follows you"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जब Mastodon जैसे दूसरे सर्वर का कोई खाता आपको फ़ॉलो करे"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mastodonなど他のサーバーのアカウントがあなたをフォローしたとき"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khi một tài khoản ở máy chủ khác, như Mastodon, theo dõi bạn"
           }
         }
       }

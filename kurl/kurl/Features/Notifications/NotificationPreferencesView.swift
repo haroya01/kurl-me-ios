@@ -19,6 +19,11 @@ extension NotificationKind {
         case .newPost: return "팔로우한 작가의 새 글"
         case .connected: return "내 글이 컬렉션에 엮일 때"
         case .pathGrew: return "엮인 길에 새 글이 이어질 때"
+        case .noteReply: return "내 노트 답글"
+        case .noteQuote: return "내 노트 인용"
+        case .noteLike: return "내 노트 좋아요"
+        case .noteRepost: return "내 노트 리포스트"
+        case .remoteFollow: return "다른 서버의 팔로워"
         }
     }
 
@@ -34,6 +39,11 @@ extension NotificationKind {
         case .newPost: return "팔로우한 작가가 새 글을 발행할 때"
         case .connected: return "누가 내 글·하이라이트를 컬렉션에 엮을 때"
         case .pathGrew: return "내가 엮인 길에 새 글이 이어질 때"
+        case .noteReply: return "누가 내 노트에 답글을 남길 때"
+        case .noteQuote: return "누가 내 노트를 인용할 때"
+        case .noteLike: return "누가 내 노트를 좋아할 때. 다른 서버의 좋아요도 포함해요"
+        case .noteRepost: return "누가 내 노트를 리포스트하거나 다른 서버에서 부스트할 때"
+        case .remoteFollow: return "마스토돈 같은 다른 서버 계정이 나를 팔로우할 때"
         }
     }
 
@@ -49,6 +59,11 @@ extension NotificationKind {
         case .newPost: return "doc.text"
         case .connected: return "link"
         case .pathGrew: return "arrow.triangle.branch"
+        case .noteReply: return "arrowshape.turn.up.left"
+        case .noteQuote: return "quote.bubble"
+        case .noteLike: return "heart"
+        case .noteRepost: return "arrow.2.squarepath"
+        case .remoteFollow: return "person.badge.plus"
         }
     }
 }
