@@ -109,6 +109,86 @@ final class NotesFeedUITests: XCTestCase {
         attach(app, "note-photo-lightbox")
     }
 
+    func testRowCarriesMenuShareAndAltLikeThreads() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let share = app.buttons["note.share.9504"]
+        var tries = 0
+        while !share.isHittable, tries < 6 { app.swipeUp(); tries += 1 }
+        XCTAssertTrue(share.isHittable, "노트 행에 공유 버튼이 없음")
+
+        let alt = app.buttons["사진 설명 보기"].firstMatch
+        XCTAssertTrue(alt.waitForExistence(timeout: 5), "대체 텍스트가 있는 사진에 ALT 배지가 없음")
+        alt.tap()
+        XCTAssertTrue(app.staticTexts["비 오는 창밖"].firstMatch.waitForExistence(timeout: 3), "ALT 를 눌러도 설명이 안 뜸")
+        attach(app, "note-row-threads")
+
+        app.buttons["note.menu.9504"].tap()
+        XCTAssertTrue(app.buttons["고치기"].waitForExistence(timeout: 3), "내 노트 더보기 메뉴에 고치기가 없음")
+        attach(app, "note-row-menu")
+    }
+
+    func testFloatingPlusOpensComposer() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let fab = app.buttons["notes.fab"]
+        XCTAssertTrue(fab.waitForExistence(timeout: 5), "노트 탭에 떠 있는 작성 버튼이 없음")
+        attach(app, "notes-fab")
+        fab.tap()
+        let field = app.textFields["noteCompose.text"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5), "작성 버튼이 시트를 열지 않음")
+        field.typeText("스레드처럼 가볍게 쓰는 창")
+        XCTAssertTrue(app.staticTexts["누구나 볼 수 있어요"].exists, "작성 시트 아래 공개 범위 줄이 없음")
+        attach(app, "note-compose-sheet")
+        app.navigationBars.buttons["취소"].tap()
+        app.alerts.firstMatch.buttons["버리기"].tap()
+        XCTAssertTrue(fab.waitForExistence(timeout: 4), "시트를 닫은 뒤 작성 버튼이 사라짐")
+    }
+
+    func testNoteAuthorOpensTheirProfileOnTheNotesTab() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let name = app.buttons["yuki_dev"].firstMatch
+        XCTAssertTrue(name.waitForExistence(timeout: 8), "노트 행의 작가 이름이 링크가 아님")
+        name.tap()
+
+        let notesTab = app.buttons["author.tab.notes"]
+        XCTAssertTrue(notesTab.waitForExistence(timeout: 10), "프로필에 노트 탭이 없음")
+        XCTAssertTrue(notesTab.isSelected, "노트에서 들어온 프로필이 노트 탭으로 열리지 않음")
+        let note = app.staticTexts
+            .matching(NSPredicate(format: "label CONTAINS '헥사고날 포트'")).firstMatch
+        XCTAssertTrue(note.waitForExistence(timeout: 8), "프로필 노트 탭에 그 작가의 노트가 없음")
+        attach(app, "author-notes-tab")
+        XCTAssertFalse(app.buttons["notes.fab"].exists, "프로필로 들어가도 노트 작성 버튼이 남아 있음")
+
+        app.buttons["author.tab.posts"].tap()
+        XCTAssertTrue(app.buttons["author.tab.posts"].isSelected, "글 탭으로 바뀌지 않음")
+        attach(app, "author-posts-tab")
+    }
+
+    func testCollectionNoteBlockOpensTheNote() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--screen", "collection-detail", "--collection", "101"]
+        app.launch()
+
+        let block = app.buttons
+            .matching(NSPredicate(format: "label CONTAINS '더 나은 질문을 기다리는 일'")).firstMatch
+        XCTAssertTrue(block.waitForExistence(timeout: 12), "컬렉션의 노트 블록이 링크가 아님")
+        XCTAssertTrue(block.label.contains("yuki_dev"), "노트 블록에 작성자가 없음")
+        attach(app, "collection-note-block")
+        block.tap()
+        XCTAssertTrue(app.buttons["note.reply"].waitForExistence(timeout: 8), "노트 블록을 눌러도 노트가 열리지 않음")
+    }
+
     func testFederationCanBeTurnedOffInSettings() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "account"]

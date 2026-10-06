@@ -40,7 +40,7 @@ enum CollectionKind: String, Hashable, Encodable {
 enum ConnectionBlock: Hashable {
     case post(title: String, excerpt: String, username: String, slug: String, tags: [String])
     case highlight(quote: String, postTitle: String, username: String, slug: String)
-    case note(body: String)
+    case note(body: String, noteId: Int64?, username: String?)
 
     var kindLabel: LocalizedStringKey {
         switch self {
@@ -66,7 +66,7 @@ struct ConnectionItem: Decodable, Identifiable, Hashable {
     let why: String?
 
     private enum CodingKeys: String, CodingKey {
-        case id, blockType, why, title, excerpt, slug, username, quote, body
+        case id, blockType, why, title, excerpt, slug, username, quote, body, noteId
     }
 
     init(from decoder: Decoder) throws {
@@ -88,7 +88,10 @@ struct ConnectionItem: Decodable, Identifiable, Hashable {
                 quote: try c.decodeIfPresent(String.self, forKey: .quote) ?? "",
                 postTitle: title, username: username, slug: slug)
         default:  // NOTE
-            block = .note(body: try c.decodeIfPresent(String.self, forKey: .body) ?? "")
+            block = .note(
+                body: try c.decodeIfPresent(String.self, forKey: .body) ?? "",
+                noteId: try c.decodeIfPresent(Int64.self, forKey: .noteId),
+                username: username.isEmpty ? nil : username)
         }
     }
 }
@@ -220,7 +223,7 @@ struct ConnectionEvent: Decodable, Identifiable, Hashable {
 
     private enum CodingKeys: String, CodingKey {
         case id, curator, collectionId, collectionTitle, collectionKind, why, connectedAt
-        case blockType, title, excerpt, slug, username, quote, body
+        case blockType, title, excerpt, slug, username, quote, body, noteId
     }
 
     init(from decoder: Decoder) throws {
@@ -249,7 +252,10 @@ struct ConnectionEvent: Decodable, Identifiable, Hashable {
                 quote: try c.decodeIfPresent(String.self, forKey: .quote) ?? "",
                 postTitle: title, username: username, slug: slug)
         default:  // NOTE
-            block = .note(body: try c.decodeIfPresent(String.self, forKey: .body) ?? "")
+            block = .note(
+                body: try c.decodeIfPresent(String.self, forKey: .body) ?? "",
+                noteId: try c.decodeIfPresent(Int64.self, forKey: .noteId),
+                username: username.isEmpty ? nil : username)
         }
     }
 }
@@ -327,7 +333,10 @@ struct RelatedBlock: Decodable, Identifiable, Hashable {
                 quote: try c.decodeIfPresent(String.self, forKey: .quote) ?? "",
                 postTitle: title, username: username, slug: slug)
         default:  // NOTE
-            block = .note(body: try c.decodeIfPresent(String.self, forKey: .body) ?? "")
+            block = .note(
+                body: try c.decodeIfPresent(String.self, forKey: .body) ?? "",
+                noteId: refId,
+                username: username.isEmpty ? nil : username)
         }
     }
 }

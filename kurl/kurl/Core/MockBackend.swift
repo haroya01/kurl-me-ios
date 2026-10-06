@@ -86,12 +86,14 @@ enum MockBackend {
                  createdAt: Date().addingTimeInterval(-7_200), likeCount: 11, authorId: 1, username: "honggildong"),
         MockNote(id: 9503, body: "라이트 모드 캔버스를 순백에서 slate-50 으로 바꿨더니 카드가 비로소 떠 보인다. 배경은 색이 아니라 깊이다.",
                  createdAt: Date().addingTimeInterval(-26_000), likeCount: 7, authorId: 3, username: "reader_kim"),
-        MockNote(id: 9504, body: "창밖 사진 두 장. 글로 정리하기 전에 남겨 둔다.",
+        MockNote(id: 9504, body: "창밖 사진 세 장. 글로 정리하기 전에 남겨 둔다.",
                  createdAt: Date().addingTimeInterval(-40_000), likeCount: 2, authorId: 1, username: "honggildong",
                  media: [
                     ["url": "https://picsum.photos/seed/kurl-note-a/900/700", "altText": "비 오는 창밖",
                      "contentType": "image/jpeg"],
-                    ["url": "https://picsum.photos/seed/kurl-note-b/900/700", "altText": "젖은 골목",
+                    ["url": "https://picsum.photos/seed/kurl-note-b/600/800", "altText": "젖은 골목",
+                     "contentType": "image/jpeg"],
+                    ["url": "https://picsum.photos/seed/kurl-note-c/800/800", "altText": NSNull(),
                      "contentType": "image/jpeg"],
                  ],
                  quotedPost: ["id": 1, "title": "헥사고날 아키텍처, 작은 서비스에 과했을까", "slug": "hexagonal",
@@ -432,8 +434,8 @@ enum MockBackend {
                     title: "토큰이 사라진 밤", excerpt: "디자인 토큰을 지웠더니 오히려 화면이 선명해졌다.",
                     slug: "the-night-tokens-vanished", username: "honggildong"),
                 MockConnection(
-                    id: 503, blockType: "NOTE", why: nil,
-                    body: "결정을 미루는 건 게으름이 아니라, 더 나은 질문을 기다리는 일일 때가 있다."),
+                    id: 503, blockType: "NOTE", why: nil, username: "yuki_dev",
+                    body: "결정을 미루는 건 게으름이 아니라, 더 나은 질문을 기다리는 일일 때가 있다.", refId: 9501),
             ]),
         MockCollection(
             id: 102, title: "경계 긋기", description: "도메인·관계·코드에서 선을 긋는 법.", visibility: "PRIVATE",
@@ -709,6 +711,7 @@ enum MockBackend {
                     "title": orNull(conn.title), "excerpt": orNull(conn.excerpt),
                     "slug": orNull(conn.slug), "username": orNull(conn.username),
                     "quote": orNull(conn.quote), "body": orNull(conn.body),
+                    "noteId": conn.blockType == "NOTE" ? (conn.refId.map { $0 as Any } ?? NSNull()) : NSNull(),
                 ]
             },
         ]

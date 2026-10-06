@@ -14,6 +14,7 @@ enum Route: Hashable {
     case postFocusQuote(username: String, slug: String, quote: String)
     case postSpot(username: String, slug: String, spot: PostSpot)
     case author(username: String)
+    case authorNotes(username: String)
     /// 명함(/u) — 링크인바이오 면. 블로그(/p)와 같은 정체의 다른 얼굴, 앱 안 화면으로 얹는다.
     case businessCard(username: String)
     case series(username: String, slug: String)
@@ -26,7 +27,7 @@ enum Route: Hashable {
     /// 알림 인박스 — 계정 헤더의 벨에서 연다. 값 기반으로 밀어 인박스 안의 딥링크(글·컬렉션)가
     /// 같은 스택에서 이어 밀린다(isPresented 목적지와 값 목적지가 한 스택에서 충돌하던 문제 회피).
     case notifications
-    /// 노트 하나와 그 답글 — 발견의 노트 흐름에서 행·답글 수를 누르면 열린다.
+    /// 노트 하나와 그 답글 — 노트 행·답글 수를 누르면 열린다.
     case note(id: Int64)
 }
 

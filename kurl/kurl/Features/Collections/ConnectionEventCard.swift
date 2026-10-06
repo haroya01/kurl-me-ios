@@ -118,14 +118,15 @@ private struct MinimalConnectionHero: View {
             }
             .buttonStyle(.plain)
 
-        case let .note(body):
-            // 노트 = 붙잡은 생각. 목적지 없이 종이 위 그대로, 제목 급 본문.
-            Text(body)
-                .typeScale(.title)
-                .foregroundStyle(Palette.ink)
-                .multilineTextAlignment(.leading)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
+        case let .note(body, noteId, username):
+            if let noteId {
+                NavigationLink(value: Route.note(id: noteId)) {
+                    NoteBlockLabel(text: body, username: username, scale: .title)
+                }
+                .buttonStyle(.plain)
+            } else {
+                NoteBlockLabel(text: body, username: username, scale: .title)
+            }
         }
     }
 }
@@ -186,13 +187,39 @@ struct BlockPreview: View {
             }
             .buttonStyle(.plain)
 
-        case let .note(body):
-            // 노트 = 붙잡은 생각. StickyNote 아이콘·"노트" 태그·래퍼 없이 본문이 맨 종이에 그대로.
-            Text(body)
-                .typeScale(.body)
-                .foregroundStyle(Palette.body)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
+        case let .note(body, noteId, username):
+            if let noteId {
+                NavigationLink(value: Route.note(id: noteId)) {
+                    NoteBlockLabel(text: body, username: username, scale: .body)
+                }
+                .buttonStyle(.plain)
+            } else {
+                NoteBlockLabel(text: body, username: username, scale: .body)
+            }
         }
+    }
+}
+
+private struct NoteBlockLabel: View {
+    let text: String
+    let username: String?
+    let scale: TypeRole
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            if let username {
+                Text(username)
+                    .typeScale(.meta)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Palette.ink)
+            }
+            Text(text)
+                .typeScale(scale)
+                .foregroundStyle(Palette.ink)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
     }
 }

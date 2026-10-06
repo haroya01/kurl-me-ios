@@ -17,9 +17,15 @@ final class NotesViewModel {
     private var page = 0
     private var hasNext = true
     private var epoch = 0
+    private let author: String?
+
+    init(author: String? = nil) {
+        self.author = author
+    }
 
     private func load(_ page: Int) async throws -> NoteFeed {
-        try await NoteAPI.everyone(page: page)
+        if let author { return try await NoteAPI.byAuthor(author, page: page) }
+        return try await NoteAPI.everyone(page: page)
     }
 
     func reload() async {
@@ -73,10 +79,9 @@ final class NotesViewModel {
     }
 }
 
-/// 노트 한 행 — 대화 행 문법(헤어라인 구분). 내 노트는 길게 눌러 고치기·지우기.
+/// 노트 한 행 — 스레드 행 문법(헤어라인 구분). 고치기·지우기는 더보기 메뉴나 길게 눌러서.
 struct NoteRowView: View {
     let note: Note
-    var emphasized = false
     let onChange: (Note) -> Void
     let onDelete: (Int64) -> Void
 
@@ -89,10 +94,9 @@ struct NoteRowView: View {
     @State private var showLoginSheet = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(note: Note, emphasized: Bool = false, onChange: @escaping (Note) -> Void,
+    init(note: Note, onChange: @escaping (Note) -> Void,
          onDelete: @escaping (Int64) -> Void) {
         self.note = note
-        self.emphasized = emphasized
         self.onChange = onChange
         self.onDelete = onDelete
         _liked = State(initialValue: note.likedByMe == true)
@@ -102,62 +106,73 @@ struct NoteRowView: View {
     private var isMine: Bool { AuthStore.shared.me?.id == note.author.id }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 11) {
-            NavigationLink(value: Route.author(username: note.author.username)) {
-                AvatarView(author: note.author, size: 38)
+        HStack(alignment: .top, spacing: 12) {
+            NavigationLink(value: Route.authorNotes(username: note.author.username)) {
+                AvatarView(author: note.author, size: 36)
             }
             .buttonStyle(.plain)
             .accessibilityHidden(true)
 
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) {
-                    Text(note.author.username)
-                        .typeScale(.meta)
-                        .foregroundStyle(Palette.ink)
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    NavigationLink(value: Route.authorNotes(username: note.author.username)) {
+                        Text(note.author.username)
+                            .typeScale(.body)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Palette.ink)
+                            .lineLimit(1)
+                    }
+                    .buttonStyle(.plain)
                     if let date = note.createdAt {
                         Text(date.relativeShort)
-                            .typeScale(.meta)
+                            .typeScale(.body)
                             .foregroundStyle(Palette.secondary)
+                            .lineLimit(1)
                     }
                     if note.editedAt != nil {
                         Text("고침")
-                            .typeScale(.footnote)
+                            .typeScale(.meta)
                             .foregroundStyle(Palette.secondary)
                     }
                     Spacer(minLength: 0)
+                    moreMenu
                 }
                 if !note.body.isEmpty {
                     Text(NoteText.attributed(note.body))
-                        .typeScale(emphasized ? .lede : .body)
-                        .foregroundStyle(Palette.body)
+                        .typeScale(.body)
+                        .foregroundStyle(Palette.ink)
                         .tint(Palette.link)
+                        .lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 NoteImagesView(media: note.media)
                 if let post = note.quotedPost {
                     NavigationLink(value: Route.post(username: post.authorUsername, slug: post.slug)) {
-                        VStack(alignment: .leading, spacing: 3) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(post.authorUsername)
+                                .typeScale(.meta)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(Palette.ink)
                             Text(post.title)
-                                .typeScale(.titleSmall)
+                                .typeScale(.body)
                                 .foregroundStyle(Palette.ink)
                                 .multilineTextAlignment(.leading)
-                            Text("@\(post.authorUsername)")
-                                .typeScale(.meta)
-                                .foregroundStyle(Palette.secondary)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(12)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 11)
                         .overlay(
-                            RoundedRectangle(cornerRadius: Metrics.radiusControl)
+                            RoundedRectangle(cornerRadius: Metrics.radiusMini)
                                 .stroke(Palette.hairlineStrong, lineWidth: 1))
+                        .contentShape(RoundedRectangle(cornerRadius: Metrics.radiusMini))
                     }
                     .buttonStyle(.plain)
-                    .padding(.top, 2)
+                    .padding(.top, 6)
                 }
                 footer
             }
         }
-        .padding(.vertical, 13)
+        .padding(.vertical, 12)
         .contentShape(Rectangle())
         .contextMenu {
             if !note.body.isEmpty {
@@ -198,43 +213,92 @@ struct NoteRowView: View {
         }
     }
 
-    private var footer: some View {
-        HStack(spacing: 22) {
-            NavigationLink(value: Route.note(id: note.id)) {
-                HStack(spacing: 4) {
-                    Image(systemName: "bubble.left").font(.system(size: 13))
-                    if note.replyCount > 0 { Text("\(note.replyCount)").monospacedDigit() }
-                }
-                .typeScale(.meta)
-                .foregroundStyle(Palette.secondary)
-                .expandTapTarget()
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(Text("답글 \(note.replyCount)"))
-            .accessibilityIdentifier("note.replies.\(note.id)")
+    private var shareURL: URL? {
+        URL(string: "\(Config.blogBase)/@\(note.author.username)/notes/\(note.id)")
+    }
 
+    private var moreMenu: some View {
+        Menu {
+            if !note.body.isEmpty {
+                Button {
+                    UIPasteboard.general.string = note.body
+                } label: {
+                    Label("복사", systemImage: "doc.on.doc")
+                }
+            }
+            if AuthStore.shared.isSignedIn {
+                Button { connecting = true } label: {
+                    Label("컬렉션에 연결", systemImage: "rectangle.stack.badge.plus")
+                }
+            }
+            if isMine {
+                Divider()
+                Button { editing = true } label: { Label("고치기", systemImage: "pencil") }
+                Button(role: .destructive) { confirmDelete = true } label: {
+                    Label("노트 삭제", systemImage: "trash")
+                }
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Palette.secondary)
+                .frame(width: 32, height: 22)
+                .contentShape(Rectangle())
+        }
+        .accessibilityLabel("노트 메뉴")
+        .accessibilityIdentifier("note.menu.\(note.id)")
+    }
+
+    private var footer: some View {
+        HStack(spacing: 18) {
             Button {
                 likeTaps += 1
                 Task { await toggleLike() }
             } label: {
-                HStack(spacing: 4) {
+                HStack(spacing: 5) {
                     Image(systemName: liked ? "heart.fill" : "heart")
-                        .font(.system(size: 13))
+                        .font(.system(size: 18))
                         .symbolEffect(.bounce, value: reduceMotion ? false : liked)
                     if isMine, let likeCount, likeCount > 0 {
                         Text("\(likeCount)").monospacedDigit()
                     }
                 }
                 .typeScale(.meta)
-                .foregroundStyle(liked ? Palette.accent : Palette.secondary)
+                .foregroundStyle(liked ? Palette.accent : Palette.ink)
                 .expandTapTarget()
             }
             .buttonStyle(.plain)
             .sensoryFeedback(.impact(weight: .light), trigger: likeTaps)
             .accessibilityLabel(Text("좋아요"))
             .accessibilityAddTraits(liked ? [.isSelected] : [])
+
+            NavigationLink(value: Route.note(id: note.id)) {
+                HStack(spacing: 5) {
+                    Image(systemName: "message").font(.system(size: 17)).scaleEffect(x: -1, y: 1)
+                    if note.replyCount > 0 { Text("\(note.replyCount)").monospacedDigit() }
+                }
+                .typeScale(.meta)
+                .foregroundStyle(Palette.ink)
+                .expandTapTarget()
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("답글 \(note.replyCount)"))
+            .accessibilityIdentifier("note.replies.\(note.id)")
+
+            if let shareURL {
+                ShareLink(item: shareURL) {
+                    Image(systemName: "paperplane")
+                        .font(.system(size: 16))
+                        .rotationEffect(.degrees(45))
+                        .foregroundStyle(Palette.ink)
+                        .expandTapTarget()
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("공유"))
+                .accessibilityIdentifier("note.share.\(note.id)")
+            }
         }
-        .padding(.top, 2)
+        .padding(.top, 8)
     }
 
     private func toggleLike() async {
@@ -266,45 +330,123 @@ struct NoteRowView: View {
     }
 }
 
-/// 사진 1장은 전폭, 2~4장은 2열 정사각 격자. 대체 텍스트가 곧 접근성 라벨이다.
+/// 사진 1장은 원래 비율(최대 430pt), 여러 장은 같은 높이로 가로로 넘긴다(스레드 문법). 넘기는 줄은
+/// 칼럼 밖 화면 끝까지 그려진다. 대체 텍스트가 곧 접근성 라벨이고, 있으면 ALT 배지로도 드러낸다.
 private struct NoteImagesView: View {
     let media: [NoteMedia]
     @State private var opened: NoteMedia?
 
     var body: some View {
         if !media.isEmpty {
-            LazyVGrid(
-                columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: media.count > 1 ? 2 : 1),
-                spacing: 6
-            ) {
-                ForEach(media, id: \.url) { image in
-                    // 칸은 고정 크기 면이 잡고 사진은 그 위에 채운다 — scaledToFill 사진을 frame 에
-                    // 직접 두면 사진 크기가 칸 폭을 밀어내 격자가 컬럼 밖으로 넘친다.
-                    Palette.hairline
-                        .frame(maxWidth: .infinity)
-                        .frame(height: media.count > 1 ? 150 : 240)
-                        .overlay {
-                            RemoteImage(url: URL(string: image.url), maxPixel: media.count > 1 ? 320 : 640) { phase in
-                                if case .success(let loaded) = phase {
-                                    loaded.resizable().scaledToFill()
-                                }
+            Group {
+                if media.count == 1, let image = media.first {
+                    NoteImageTile(image: image, height: nil) { opened = image }
+                } else {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 6) {
+                            ForEach(media, id: \.url) { image in
+                                NoteImageTile(image: image, height: 240) { opened = image }
                             }
                         }
-                        .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
-                    .contentShape(Rectangle())
-                    .onTapGesture { opened = image }
-                    .accessibilityElement()
-                    .accessibilityAddTraits([.isImage, .isButton])
-                    .accessibilityLabel(Text(image.altText ?? String(localized: "사진")))
-                    .accessibilityHint(Text("두 번 탭하면 크게 봅니다"))
+                    }
+                    .scrollClipDisabled()
                 }
             }
-            .padding(.top, 4)
+            .padding(.top, 6)
             .fullScreenCover(item: $opened) { image in
                 if let url = URL(string: image.url) {
                     ImageLightbox(url: url, caption: image.altText)
                 }
             }
+        }
+    }
+}
+
+private struct NoteImageTile: View {
+    let image: NoteMedia
+    /// nil = 한 장 — 칼럼 폭에 원래 비율로 맞추고 430pt 를 넘지 않는다.
+    let height: CGFloat?
+    let onOpen: () -> Void
+    @State private var showAlt = false
+
+    private static let maxPixel: CGFloat = 900
+    private var url: URL? { URL(string: image.url) }
+
+    var body: some View {
+        RemoteImage(url: url, maxPixel: Self.maxPixel) { phase in
+            Palette.hairline
+                .modifier(TileFrame(ratio: aspect(phase), height: height))
+                .overlay {
+                    if case .success(let loaded) = phase {
+                        loaded.resizable().scaledToFill()
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
+            .overlay(RoundedRectangle(cornerRadius: Metrics.radiusThumb).stroke(Palette.hairline, lineWidth: 0.5))
+            .overlay(alignment: .bottomLeading) { altLayer }
+            .contentShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
+            .onTapGesture(perform: onOpen)
+            .accessibilityElement()
+            .accessibilityAddTraits([.isImage, .isButton])
+            .accessibilityLabel(Text(image.altText ?? String(localized: "사진")))
+            .accessibilityHint(Text("두 번 탭하면 크게 봅니다"))
+        }
+    }
+
+    private func aspect(_ phase: RemoteImagePhase) -> CGFloat {
+        guard case .success = phase, let url,
+            let size = RemoteImageCache.shared.cached(url, maxPixel: Self.maxPixel)?.size,
+            size.height > 0
+        else { return 0.75 }
+        return min(max(size.width / size.height, 0.5), 2)
+    }
+
+    @ViewBuilder private var altLayer: some View {
+        if let alt = image.altText, !alt.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                if showAlt {
+                    Text(alt)
+                        .font(.footnote)
+                        .foregroundStyle(.white)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Button {
+                    showAlt.toggle()
+                } label: {
+                    Text(verbatim: "ALT")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(.black.opacity(0.7), in: Capsule())
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("사진 설명 보기")
+            }
+            .padding(8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(alignment: .bottom) {
+                if showAlt {
+                    LinearGradient(colors: [.clear, .black.opacity(0.75)], startPoint: .top, endPoint: .bottom)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
+        }
+    }
+}
+
+private struct TileFrame: ViewModifier {
+    let ratio: CGFloat
+    let height: CGFloat?
+
+    func body(content: Content) -> some View {
+        if let height {
+            content.frame(width: height * ratio, height: height)
+        } else {
+            content
+                .aspectRatio(ratio, contentMode: .fit)
+                .frame(maxWidth: .infinity, maxHeight: 430, alignment: .leading)
         }
     }
 }
@@ -362,7 +504,7 @@ struct NoteDetailView: View {
                             Hairline()
                         }
                         NoteRowView(
-                            note: thread.note, emphasized: true,
+                            note: thread.note,
                             onChange: { note in self.thread = NoteThread(note: note, parent: thread.parent, replies: thread.replies) },
                             onDelete: { _ in dismiss() })
                         Hairline()
@@ -396,7 +538,7 @@ struct NoteDetailView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Palette.pageBg)
+        .background(Palette.readingBg)
         .navigationTitle("노트")
         .navigationBarTitleDisplayMode(.inline)
         .hidesTabBar()
@@ -464,6 +606,10 @@ struct NoteComposeSheet: View {
         var altText = ""
     }
 
+    private struct AltTarget: Identifiable {
+        let id: UUID
+    }
+
     let mode: Mode
     let onDone: (Note) -> Void
 
@@ -475,6 +621,7 @@ struct NoteComposeSheet: View {
     @State private var showNotice = false
     @State private var confirmDiscard = false
     @State private var errorMessage: String?
+    @State private var altTarget: AltTarget?
     @FocusState private var focused: Bool
     @Environment(\.dismiss) private var dismiss
 
@@ -518,72 +665,49 @@ struct NoteComposeSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    TextField(placeholder, text: $text, axis: .vertical)
-                    .typeScale(.body)
-                    .lineLimit(4...12)
-                    .focused($focused)
-                    .accessibilityIdentifier("noteCompose.text")
-
-                    if !picked.isEmpty {
-                        ForEach($picked) { $item in
-                            HStack(alignment: .top, spacing: 10) {
-                                Image(uiImage: item.image)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 64, height: 64)
-                                    .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
-                                    .accessibilityHidden(true)
-                                VStack(alignment: .leading, spacing: 4) {
-                                    TextField("대체 텍스트", text: $item.altText, axis: .vertical)
-                                        .typeScale(.meta)
-                                        .lineLimit(1...3)
-                                    Text("사진을 설명해 주세요. 화면 낭독기가 읽어요")
-                                        .typeScale(.footnote)
-                                        .foregroundStyle(Palette.faint)
-                                }
-                                Button {
-                                    picked.removeAll { $0.id == item.id }
-                                } label: {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundStyle(Palette.faint)
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityLabel("사진 빼기")
-                            }
-                        }
+                HStack(alignment: .top, spacing: 12) {
+                    if let me = AuthStore.shared.me {
+                        AvatarView(
+                            author: Author(id: me.id ?? 0, username: me.username ?? "", bio: nil, avatarUrl: me.avatarUrl),
+                            size: 36)
                     }
-
-                    if let quote {
-                        HStack(alignment: .top) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("인용한 글")
-                                    .typeScale(.footnote)
-                                    .foregroundStyle(Palette.secondary)
-                                Text(quote.title)
-                                    .typeScale(.titleSmall)
+                    VStack(alignment: .leading, spacing: 10) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            if let name = AuthStore.shared.me?.username {
+                                Text(name)
+                                    .typeScale(.body)
+                                    .fontWeight(.semibold)
                                     .foregroundStyle(Palette.ink)
                             }
-                            Spacer()
-                            Button {
-                                self.quote = nil
-                            } label: {
-                                Image(systemName: "xmark.circle.fill").foregroundStyle(Palette.faint)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("인용 빼기")
+                            TextField(placeholder, text: $text, axis: .vertical)
+                                .typeScale(.body)
+                                .lineLimit(1...20)
+                                .focused($focused)
+                                .accessibilityIdentifier("noteCompose.text")
                         }
-                        .padding(12)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: Metrics.radiusControl)
-                                .stroke(Palette.hairlineStrong, lineWidth: 1))
-                    }
-
-                    if let errorMessage {
-                        Text(errorMessage)
-                            .typeScale(.meta)
-                            .foregroundStyle(Palette.ink)
-                            .fontWeight(.semibold)
+                        if !picked.isEmpty { pickedStrip }
+                        if let quote { quoteCard(quote) }
+                        if let errorMessage {
+                            Text(errorMessage)
+                                .typeScale(.meta)
+                                .foregroundStyle(Palette.danger)
+                                .fontWeight(.semibold)
+                        }
+                        if !isEdit {
+                            PhotosPicker(
+                                selection: $pickerItems,
+                                maxSelectionCount: max(0, NoteAPI.maxImages - picked.count),
+                                matching: .images
+                            ) {
+                                Image(systemName: "photo.on.rectangle")
+                                    .font(.system(size: 18))
+                                    .foregroundStyle(picked.count >= NoteAPI.maxImages ? Palette.faint : Palette.secondary)
+                                    .frame(width: 32, height: 28, alignment: .leading)
+                                    .contentShape(Rectangle())
+                            }
+                            .disabled(picked.count >= NoteAPI.maxImages)
+                            .accessibilityLabel("사진 추가")
+                        }
                     }
                 }
                 .padding(Metrics.gutter)
@@ -592,32 +716,9 @@ struct NoteComposeSheet: View {
                     Button("계속 쓰기", role: .cancel) {}
                 }
             }
-            .safeAreaInset(edge: .bottom) {
-                HStack {
-                    if !isEdit {
-                        PhotosPicker(
-                            selection: $pickerItems,
-                            maxSelectionCount: max(0, NoteAPI.maxImages - picked.count),
-                            matching: .images
-                        ) {
-                            Image(systemName: "photo.badge.plus")
-                                .font(.system(size: 18))
-                                .foregroundStyle(picked.count >= NoteAPI.maxImages ? Palette.faint : Palette.ink)
-                        }
-                        .disabled(picked.count >= NoteAPI.maxImages)
-                        .accessibilityLabel("사진 추가")
-                    }
-                    Spacer()
-                    Text("\(length)/\(NoteAPI.maxLength)")
-                        .typeScale(.footnote)
-                        .monospacedDigit()
-                        .foregroundStyle(length > NoteAPI.maxLength ? Palette.ink : Palette.faint)
-                        .fontWeight(length > NoteAPI.maxLength ? .semibold : .regular)
-                }
-                .padding(.horizontal, Metrics.gutter)
-                .padding(.vertical, 10)
-                .background(.bar)
-            }
+            .scrollDismissesKeyboard(.interactively)
+            .background(Palette.readingBg)
+            .safeAreaInset(edge: .bottom) { footer }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -630,11 +731,21 @@ struct NoteComposeSheet: View {
                     Button {
                         Task { await submit() }
                     } label: {
-                        if posting { ProgressView() } else { Text(isEdit ? LocalizedStringKey("저장") : LocalizedStringKey("올리기")) }
+                        if posting {
+                            ProgressView()
+                        } else {
+                            Text(isEdit ? LocalizedStringKey("저장") : LocalizedStringKey("올리기"))
+                        }
                     }
+                    .font(.body.weight(.semibold))
+                    .buttonStyle(.glassProminent)
+                    .tint(GlassTokens.prominentTint)
                     .disabled(!canPost)
                     .accessibilityIdentifier("noteCompose.post")
                 }
+            }
+            .sheet(item: $altTarget) { target in
+                altEditor(for: target.id)
             }
             .alert("노트는 다른 서버에도 전해져요", isPresented: $showNotice) {
                 Button("알겠어요, 올릴게요") {
@@ -654,6 +765,145 @@ struct NoteComposeSheet: View {
             .onAppear { focused = true }
         }
         .interactiveDismissDisabled(posting || hasDraft)
+    }
+
+    private var footer: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "globe")
+                .font(.system(size: 13, weight: .medium))
+            Text("누구나 볼 수 있어요")
+                .typeScale(.meta)
+            Spacer(minLength: 0)
+            if length > 0 {
+                NoteLengthRing(length: length, limit: NoteAPI.maxLength)
+            }
+        }
+        .foregroundStyle(Palette.secondary)
+        .padding(.horizontal, Metrics.gutter)
+        .padding(.vertical, 10)
+        .frame(minHeight: 44)
+        .background(Palette.readingBg)
+        .overlay(alignment: .top) { Hairline() }
+    }
+
+    private var pickedStrip: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(picked) { item in
+                    let ratio = min(max(item.image.size.width / max(item.image.size.height, 1), 0.5), 1.8)
+                    Image(uiImage: item.image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 190 * ratio, height: 190)
+                        .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
+                        .accessibilityLabel(Text(item.altText.isEmpty ? String(localized: "사진") : item.altText))
+                        .overlay(alignment: .topTrailing) {
+                            Button {
+                                withAnimation(.snappy(duration: 0.2)) { picked.removeAll { $0.id == item.id } }
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .frame(width: 24, height: 24)
+                                    .background(.black.opacity(0.6), in: Circle())
+                                    .contentShape(Circle())
+                            }
+                            .buttonStyle(.plain)
+                            .padding(6)
+                            .accessibilityLabel("사진 빼기")
+                        }
+                        .overlay(alignment: .bottomLeading) {
+                            Button {
+                                altTarget = AltTarget(id: item.id)
+                            } label: {
+                                HStack(spacing: 3) {
+                                    if !item.altText.isEmpty {
+                                        Image(systemName: "checkmark").font(.system(size: 9, weight: .bold))
+                                    }
+                                    Text(verbatim: item.altText.isEmpty ? "+ALT" : "ALT")
+                                        .font(.system(size: 11, weight: .bold))
+                                }
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 4)
+                                .background(.black.opacity(0.6), in: Capsule())
+                                .contentShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                            .padding(6)
+                            .accessibilityLabel("대체 텍스트 추가")
+                        }
+                }
+            }
+        }
+        .scrollClipDisabled()
+    }
+
+    private func quoteCard(_ quote: QuotedPost) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(quote.authorUsername)
+                    .typeScale(.meta)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Palette.ink)
+                Text(quote.title)
+                    .typeScale(.body)
+                    .foregroundStyle(Palette.ink)
+                    .multilineTextAlignment(.leading)
+            }
+            Spacer(minLength: 0)
+            Button {
+                self.quote = nil
+            } label: {
+                Image(systemName: "xmark.circle.fill").foregroundStyle(Palette.faint)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("인용 빼기")
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
+        .overlay(
+            RoundedRectangle(cornerRadius: Metrics.radiusMini)
+                .stroke(Palette.hairlineStrong, lineWidth: 1))
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(Text("인용한 글"))
+    }
+
+    private func altEditor(for id: UUID) -> some View {
+        let binding = Binding(
+            get: { picked.first { $0.id == id }?.altText ?? "" },
+            set: { value in
+                if let index = picked.firstIndex(where: { $0.id == id }) { picked[index].altText = value }
+            })
+        return NavigationStack {
+            VStack(alignment: .leading, spacing: 14) {
+                if let image = picked.first(where: { $0.id == id })?.image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxWidth: .infinity, maxHeight: 220)
+                        .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
+                        .accessibilityHidden(true)
+                }
+                TextField("대체 텍스트", text: binding, axis: .vertical)
+                    .typeScale(.body)
+                    .lineLimit(3...6)
+                    .accessibilityIdentifier("noteCompose.alt")
+                Text("사진을 설명해 주세요. 화면 낭독기가 읽어요")
+                    .typeScale(.footnote)
+                    .foregroundStyle(Palette.secondary)
+                Spacer(minLength: 0)
+            }
+            .padding(Metrics.gutter)
+            .navigationTitle("대체 텍스트")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("완료") { altTarget = nil }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
     }
 
     private func loadPicked(_ items: [PhotosPickerItem]) async {
@@ -759,5 +1009,34 @@ struct FederationSettingRow: View {
             settings = previous
             ToastCenter.shared.show(String(localized: "설정을 바꾸지 못했습니다"))
         }
+    }
+}
+
+private struct NoteLengthRing: View {
+    let length: Int
+    let limit: Int
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        let left = limit - length
+        let near = left <= 20
+        ZStack {
+            Circle().stroke(Palette.hairlineStrong, lineWidth: 2.5)
+            Circle()
+                .trim(from: 0, to: min(1, CGFloat(length) / CGFloat(max(limit, 1))))
+                .stroke(left < 0 ? Palette.danger : Palette.accent, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+            if near {
+                Text(verbatim: "\(left)")
+                    .font(.system(size: 10, weight: .semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(left < 0 ? Palette.danger : Palette.secondary)
+                    .minimumScaleFactor(0.6)
+            }
+        }
+        .frame(width: near ? 28 : 22, height: near ? 28 : 22)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: near)
+        .accessibilityElement()
+        .accessibilityLabel(left < 0 ? Text("\(limit)자까지 쓸 수 있어요") : Text("\(left)자 남음"))
     }
 }
