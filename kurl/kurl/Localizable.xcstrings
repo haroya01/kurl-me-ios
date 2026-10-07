@@ -5502,6 +5502,34 @@
         }
       }
     },
+    "글·노트 찾기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search posts and notes"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पोस्ट और नोट खोजें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記事・ノートを検索"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tìm bài viết và ghi chú"
+          }
+        }
+      }
+    },
     "글·시리즈·댓글이 모두 삭제 대상이 됩니다.": {
       "localizations": {
         "en": {

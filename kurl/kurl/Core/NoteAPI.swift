@@ -48,6 +48,12 @@ enum NoteAPI {
             authenticated: signedIn)
     }
 
+    static func search(_ query: String, page: Int = 0) async throws -> NoteFeed {
+        try await client.get(
+            "/public/notes/search", query: ["q": query, "page": String(page), "size": "20"],
+            authenticated: signedIn)
+    }
+
     static func lists() async throws -> [NoteListSummary] {
         try await client.get("/notes/lists", authenticated: true)
     }

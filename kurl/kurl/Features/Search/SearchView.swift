@@ -7,8 +7,14 @@
 
 import SwiftUI
 
+enum SearchScope: Hashable {
+    case posts, notes
+}
+
 struct SearchView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @State private var scope: SearchScope = .posts
+    @State private var noteResults = NotesViewModel(search: "")
     @State private var query = ""
     @State private var phase: LoadState<[FeedItem]> = .idle
     @State private var searchTask: Task<Void, Never>?
@@ -38,6 +44,9 @@ struct SearchView: View {
         // path 바인딩 금지 — tabBarMinimizeBehavior 가 죽는다(FeedView 참조).
         NavigationStack {
             Group {
+                if scope == .notes, !activeQuery.isEmpty || !query.trimmingCharacters(in: .whitespaces).isEmpty {
+                    notesResults
+                } else {
                 switch phase {
                 case .idle:
                     idleState
@@ -48,6 +57,7 @@ struct SearchView: View {
                     results(items)
                 case .failed(let message):
                     ErrorState(message: message, retry: { runSearch(query) })
+                }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -72,7 +82,11 @@ struct SearchView: View {
             .searchable(
                 text: $query,
                 placement: .navigationBarDrawer(displayMode: .always),
-                prompt: "글 찾기")
+                prompt: "글·노트 찾기")
+            .searchScopes($scope, activation: .onTextEntry) {
+                Text("글").tag(SearchScope.posts)
+                Text("노트").tag(SearchScope.notes)
+            }
             // 태그·작가 갈래는 결과에서도 쓰므로 phase 와 무관하게 한 번 받아 둔다.
             .task { await loadDiscovery() }
             // `--query <term>` — simctl 은 터치를 못 넣으니, 결과·갈래·페이지네이션·무결과까지
@@ -85,6 +99,7 @@ struct SearchView: View {
             }
         }
         .onChange(of: query) { _, newValue in scheduleSearch(newValue) }
+        .onChange(of: scope) { runSearch(query) }
         .onChange(of: recents) { SearchRecents.save(recents) }
         .onSubmit(of: .search) { runSearch(query) }
         // 검색 결과 도착·최근 삭제는 손끝으로도 알린다 — 토글 버튼들과 같은 가벼운 임팩트.
@@ -502,7 +517,47 @@ struct SearchView: View {
         searchTask = Task { await search(trimmed) }
     }
 
+    private var notesResults: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                switch noteResults.phase {
+                case .failed(let message):
+                    ErrorState(message: message, retry: { runSearch(query) })
+                case .loaded where noteResults.items.isEmpty:
+                    ContentUnavailableView.search(text: query)
+                        .padding(.top, 40)
+                case .loaded:
+                    ForEach(Array(noteResults.items.enumerated()), id: \.element.id) { index, note in
+                        NoteRowView(
+                            note: note,
+                            onChange: { noteResults.replaced($0) },
+                            onDelete: { noteResults.removed($0) })
+                            .task { await noteResults.loadMoreIfNeeded(current: note) }
+                        if index < noteResults.items.count - 1 {
+                            Hairline().padding(.horizontal, -Metrics.noteGutter)
+                        }
+                    }
+                default:
+                    KurlLoadingMark().frame(maxWidth: .infinity, minHeight: 240)
+                }
+            }
+            .environment(\.noteFilterContext, .public)
+            .frame(maxWidth: Metrics.readingColumn)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, Metrics.noteGutter)
+        }
+        .background(Palette.readingBg)
+        .noteTextLinks()
+        .accessibilityIdentifier("search.notes")
+    }
+
     private func search(_ text: String) async {
+        if scope == .notes {
+            activeQuery = text
+            await noteResults.show(.search(text))
+            recordRecent(text)
+            return
+        }
         generation += 1
         let myGen = generation
         // 결과를 보다가 검색어를 다듬는 경우엔 이전 결과를 그대로 둔다 — 스켈레톤으로
