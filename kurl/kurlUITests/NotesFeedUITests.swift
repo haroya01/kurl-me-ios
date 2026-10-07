@@ -545,7 +545,7 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(more.waitForExistence(timeout: 8), "원격 계정 화면에 ⋯ 메뉴가 없음")
         more.tap()
         app.buttons["mastodon.social 차단"].tap()
-        let confirm = app.buttons["remote.domain.confirm"].firstMatch
+        let confirm = app.alerts.buttons["서버 차단"].firstMatch
         XCTAssertTrue(confirm.waitForExistence(timeout: 5), "서버 차단을 되묻지 않음")
         confirm.tap()
         XCTAssertTrue(app.staticTexts["차단한 서버예요"].waitForExistence(timeout: 6), "차단한 서버 안내가 없음")

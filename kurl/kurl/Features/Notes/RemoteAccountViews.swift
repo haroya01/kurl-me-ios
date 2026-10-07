@@ -164,10 +164,9 @@ struct RemoteAccountView: View {
                 }
             }
         }
-        .confirmationDialog(
+        .alert(
             "\(account?.domain ?? "") 전체를 차단할까요?",
-            isPresented: $confirmDomainBlock,
-            titleVisibility: .visible
+            isPresented: $confirmDomainBlock
         ) {
             Button("서버 차단", role: .destructive) { Task { await setDomainBlocked(true) } }
                 .accessibilityIdentifier("remote.domain.confirm")
