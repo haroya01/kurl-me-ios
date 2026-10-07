@@ -29,6 +29,7 @@ final class NotesViewModel {
 
     enum Source: Equatable {
         case everyone
+        case federated
         case following
         case trending
         case bookmarks
@@ -43,7 +44,7 @@ final class NotesViewModel {
 
         var filterContext: NoteFilterContext? {
             switch self {
-            case .everyone, .trending, .tag, .quotes, .search: .public
+            case .everyone, .federated, .trending, .tag, .quotes, .search: .public
             case .following, .list: .home
             case .author, .reposts, .remoteAccount: .account
             case .bookmarks, .direct: nil
@@ -53,6 +54,7 @@ final class NotesViewModel {
         init(_ feed: NoteFeedKind) {
             switch feed {
             case .everyone: self = .everyone
+            case .federated: self = .federated
             case .following: self = .following
             case .trending: self = .trending
             case .bookmarks: self = .bookmarks
@@ -93,6 +95,12 @@ final class NotesViewModel {
     private func load(_ page: Int) async throws -> NoteFeed {
         switch source {
         case .everyone: try await NoteAPI.everyone(page: page)
+        case .federated:
+            if AuthStore.shared.isSignedIn {
+                try await NoteAPI.federated(page: page)
+            } else {
+                NoteFeed(items: [], page: 0, hasNext: false)
+            }
         case .following:
             if AuthStore.shared.isSignedIn {
                 try await NoteAPI.following(page: page)
