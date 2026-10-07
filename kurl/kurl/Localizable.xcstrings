@@ -625,6 +625,34 @@
         }
       }
     },
+    "%@ 추천 안 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Don't suggest %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ का सुझाव न दें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@を表示しない"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không gợi ý %@"
+          }
+        }
+      }
+    },
     "%@ 팔로우를 끊을까요?": {
       "localizations": {
         "en": {
@@ -8140,6 +8168,34 @@
         }
       }
     },
+    "내가 팔로우하는 %lld명이 팔로우": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Followed by %lld people you follow"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपके फ़ॉलो किए गए %lld लोग फ़ॉलो करते हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォロー中の%lld人がフォロー"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld người bạn theo dõi đang theo dõi"
+          }
+        }
+      }
+    },
     "내가 팔로우하지 않는 사람": {
       "localizations": {
         "en": {
@@ -12812,6 +12868,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ẩn hoàn toàn"
+          }
+        }
+      }
+    },
+    "요즘 많이 팔로우해요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Popular lately"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इन दिनों लोकप्रिय"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近よくフォローされています"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gần đây được nhiều người theo dõi"
           }
         }
       }
@@ -18483,6 +18567,34 @@
         }
       }
     },
+    "추천을 지우지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't remove the suggestion"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सुझाव हटाया नहीं जा सका"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "おすすめを消せませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể xoá gợi ý"
+          }
+        }
+      }
+    },
     "켜면 새 팔로워는 요청을 보내고, 내가 승인해야 팔로워가 돼요. 다른 서버 계정도 같아요. 지금 팔로워는 그대로예요.": {
       "localizations": {
         "en": {
@@ -18899,6 +19011,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tự duyệt người theo dõi"
+          }
+        }
+      }
+    },
+    "팔로우 추천": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Who to follow"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "किसे फ़ॉलो करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "おすすめのアカウント"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gợi ý theo dõi"
           }
         }
       }
