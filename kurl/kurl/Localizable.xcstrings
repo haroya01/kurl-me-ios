@@ -7608,6 +7608,62 @@
         }
       }
     },
+    "수정 기록": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit history"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "संपादन इतिहास"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "編集履歴"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lịch sử chỉnh sửa"
+          }
+        }
+      }
+    },
+    "수정 기록 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show edit history"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "संपादन इतिहास देखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "編集履歴を見る"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xem lịch sử chỉnh sửa"
+          }
+        }
+      }
+    },
     "숨기기": {
       "localizations": {
         "en": {
@@ -12211,6 +12267,34 @@
         }
       }
     },
+    "이전": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Earlier"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पहले"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以前"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trước đó"
+          }
+        }
+      }
+    },
     "인기 노트 보기": {
       "localizations": {
         "en": {
@@ -12347,6 +12431,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ghi chú trong tuần qua có nhiều tương tác nhất sẽ hiện trước."
+          }
+        }
+      }
+    },
+    "지금": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Now"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hiện tại"
           }
         }
       }

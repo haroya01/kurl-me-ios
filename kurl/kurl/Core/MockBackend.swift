@@ -88,7 +88,7 @@ enum MockBackend {
                  createdAt: Date().addingTimeInterval(-1_800), likeCount: 4, authorId: 2, username: "yuki_dev"),
         MockNote(id: 9505, body: "이름 짓는 데 한 시간이면 싸게 먹힌 거다. 우리 팀은 일주일 걸렸다.",
                  createdAt: Date().addingTimeInterval(-3_600), likeCount: 1, authorId: 1, username: "honggildong",
-                 quotedNoteId: 9501),
+                 editedAt: Date().addingTimeInterval(-3_000), quotedNoteId: 9501),
         MockNote(id: 9502, body: "긴 글로 정리하기 전의 생각 조각을 둘 곳이 필요했는데, 노트가 딱 그 자리다.",
                  createdAt: Date().addingTimeInterval(-7_200), likeCount: 11, authorId: 1, username: "honggildong"),
         MockNote(id: 9503, body: "라이트 모드 캔버스를 순백에서 slate-50 으로 바꿨더니 카드가 비로소 떠 보인다. 배경은 색이 아니라 깊이다. https://kurl.me/about",
@@ -126,6 +126,9 @@ enum MockBackend {
     private static var bookmarkedNotes: [Int64] = []
     private static var showReposts = true
     private static var pinnedNotes: [Int64] = []
+    private static var noteHistory: [Int64: [(body: String, at: Date)]] = [
+        9505: [("이름 짓는 데 한 시간이면 싸게 먹힌 거다.", Date().addingTimeInterval(-3_600))],
+    ]
     private static var repostsHidden: Set<String> = []
     /// 사용자별 리포스트한 노트 id(최신 먼저). 목 세션은 honggildong.
     private static var repostedNotes: [String: [Int64]] = ["honggildong": [9503], "yuki_dev": [9505]]
@@ -967,6 +970,17 @@ enum MockBackend {
             let items = allNotes().filter { $0.quotedNoteId == nid }.map(noteView)
             return json(["items": items, "page": 0, "hasNext": false])
         }
+        if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "notes", parts[3] == "history",
+           let nid = Int64(parts[2]), let note = allNotes().first(where: { $0.id == nid }) {
+            let current: [String: Any] = [
+                "body": note.body, "contentWarning": note.contentWarning ?? NSNull(),
+                "sensitive": note.sensitive, "at": iso(note.editedAt ?? note.createdAt),
+            ]
+            let earlier: [[String: Any]] = (noteHistory[nid] ?? []).reversed().map { version in
+                ["body": version.body, "contentWarning": NSNull(), "sensitive": false, "at": iso(version.at)]
+            }
+            return json(["noteId": nid, "versions": [current] + earlier])
+        }
         if parts.count == 3, parts[0] == "notes", parts[2] == "pin", let nid = Int64(parts[1]) {
             pinnedNotes.removeAll { $0 == nid }
             if method == "PUT" { pinnedNotes.insert(nid, at: 0) }
@@ -1063,6 +1077,7 @@ enum MockBackend {
             let req = decode(body)
             let text = req["body"] as? String ?? ""
             if let idx = notes.firstIndex(where: { $0.id == nid }) {
+                noteHistory[nid, default: []].append((notes[idx].body, notes[idx].editedAt ?? notes[idx].createdAt))
                 notes[idx].body = text
                 notes[idx].editedAt = Date()
                 if let warning = req["contentWarning"] as? String {

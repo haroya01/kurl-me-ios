@@ -101,6 +101,10 @@ enum NoteAPI {
             : try await client.delete("/notes/\(id)/repost", authenticated: true)
     }
 
+    static func history(of id: Int64) async throws -> NoteHistory {
+        try await client.get("/public/notes/\(id)/history", authenticated: signedIn)
+    }
+
     static func setPin(id: Int64, on: Bool) async throws -> NotePinStatus {
         on
             ? try await client.put("/notes/\(id)/pin", body: EmptyBody(), authenticated: true)
@@ -282,6 +286,19 @@ struct NoteBookmarkStatus: Decodable {
 
 struct NotePinStatus: Decodable {
     let pinned: Bool
+}
+
+/// 마스토돈 수정 기록 — 지금 판이 첫째, 그 앞의 판들이 최신순으로 뒤따른다.
+struct NoteHistory: Decodable {
+    struct Version: Decodable, Hashable {
+        let body: String
+        let contentWarning: String?
+        let sensitive: Bool
+        let at: Date?
+    }
+
+    let noteId: Int64
+    let versions: [Version]
 }
 
 struct NoteFeedPreferencesBody: Codable {
