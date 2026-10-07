@@ -1061,28 +1061,46 @@ private struct NoteImagesView: View {
     let media: [NoteMedia]
     @State private var opened: NoteMedia?
 
+    private var visual: [NoteMedia] { media.filter { !$0.isAudio } }
+    private var audio: [NoteMedia] { media.filter(\.isAudio) }
+
     var body: some View {
         if !media.isEmpty {
-            Group {
-                if media.count == 1, let image = media.first {
-                    NoteImageTile(image: image, height: nil) { opened = image }
-                } else {
+            VStack(alignment: .leading, spacing: 6) {
+                if visual.count == 1, let single = visual.first {
+                    tile(single, height: nil)
+                } else if !visual.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 6) {
-                            ForEach(media, id: \.url) { image in
-                                NoteImageTile(image: image, height: 240) { opened = image }
+                            ForEach(visual, id: \.url) { item in
+                                tile(item, height: 240)
                             }
                         }
                     }
                     .scrollClipDisabled()
                 }
-            }
-            .padding(.top, 6)
-            .fullScreenCover(item: $opened) { image in
-                if let url = URL(string: image.url) {
-                    ImageLightbox(url: url, caption: image.altText)
+                ForEach(audio, id: \.url) { item in
+                    NoteAudioRow(media: item)
                 }
             }
+            .padding(.top, 6)
+            .fullScreenCover(item: $opened) { item in
+                if let url = URL(string: item.url) {
+                    if item.isVideo {
+                        VideoLightbox(url: url)
+                    } else {
+                        ImageLightbox(url: url, caption: item.altText)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private func tile(_ item: NoteMedia, height: CGFloat?) -> some View {
+        if item.isVideo {
+            NoteVideoTile(media: item, height: height) { opened = item }
+        } else {
+            NoteImageTile(image: item, height: height) { opened = item }
         }
     }
 }
