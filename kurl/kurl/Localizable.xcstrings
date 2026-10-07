@@ -1613,6 +1613,34 @@
         }
       }
     },
+    "%@에 올릴게요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Will post at %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ पर पोस्ट होगा"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@に投稿します"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sẽ đăng lúc %@"
+          }
+        }
+      }
+    },
     "%@에 있는 계정이에요. 이 계정의 새 노트가 팔로잉 피드에 와요.": {
       "localizations": {
         "en": {
@@ -2779,6 +2807,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "5 phút"
+          }
+        }
+      }
+    },
+    "5분 뒤부터 예약할 수 있어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can schedule from 5 minutes ahead"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5 मिनट बाद से शेड्यूल कर सकते हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5分後から予約できます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn có thể đặt lịch từ 5 phút sau"
           }
         }
       }
@@ -8028,6 +8084,34 @@
         }
       }
     },
+    "노트를 쓸 때 아래의 \"예약\"으로 올릴 시각을 정할 수 있어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When writing a note, use \"Schedule\" at the bottom to pick when it posts."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नोट लिखते समय नीचे \"शेड्यूल\" से पोस्ट का समय चुनें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートを書くとき、下の「予約」で投稿日時を決められます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khi viết ghi chú, dùng \"Đặt lịch\" ở dưới để chọn thời gian đăng."
+          }
+        }
+      }
+    },
     "노트와 프로필에 사용자 이름보다 먼저 보여요. 비우면 사용자 이름이 보여요.": {
       "localizations": {
         "en": {
@@ -8416,6 +8500,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chưa có ai. Dùng \"Thêm vào danh sách\" trong menu … của hồ sơ."
+          }
+        }
+      }
+    },
+    "답글을 달 노트가 지워졌어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The note you were replying to was deleted"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जिस नोट का जवाब देना था वह हटा दिया गया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返信先のノートが削除されました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ghi chú bạn định trả lời đã bị xóa"
+          }
+        }
+      }
+    },
+    "답글을 달 수 없는 노트예요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can't reply to that note"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस नोट का जवाब नहीं दिया जा सकता"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返信できないノートです"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn không thể trả lời ghi chú này"
           }
         }
       }
@@ -10016,6 +10156,62 @@
         }
       }
     },
+    "사진 %lld장": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld photos"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld फ़ोटो"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真%lld枚"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld ảnh"
+          }
+        }
+      }
+    },
+    "사진을 찾지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't find the photo"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ोटो नहीं मिली"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真が見つかりませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không tìm thấy ảnh"
+          }
+        }
+      }
+    },
     "새 노트 알림": {
       "localizations": {
         "en": {
@@ -10716,6 +10912,202 @@
         }
       }
     },
+    "예약 시각 바꾸기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Change scheduled time"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "शेड्यूल का समय बदलें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "予約時刻を変更"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đổi thời gian đặt lịch"
+          }
+        }
+      }
+    },
+    "예약 해제": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove schedule"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "शेड्यूल हटाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "予約を解除"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bỏ lịch đăng"
+          }
+        }
+      }
+    },
+    "예약을 바꾸지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't change the schedule"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "शेड्यूल बदला नहीं जा सका"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "予約を変更できませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể thay đổi lịch đăng"
+          }
+        }
+      }
+    },
+    "예약을 취소했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schedule canceled"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "शेड्यूल रद्द किया गया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "予約を取り消しました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã hủy lịch đăng"
+          }
+        }
+      }
+    },
+    "예약한 노트": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scheduled notes"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "शेड्यूल किए गए नोट"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "予約したノート"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ghi chú đã đặt lịch"
+          }
+        }
+      }
+    },
+    "예약한 노트가 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No scheduled notes"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कोई शेड्यूल किया गया नोट नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "予約したノートはありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có ghi chú đặt lịch"
+          }
+        }
+      }
+    },
+    "예약할 수 있는 노트 수를 넘었어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You've reached the limit of scheduled notes"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "शेड्यूल किए जा सकने वाले नोट की सीमा पार हो गई"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "予約できるノートの数を超えました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã vượt quá số ghi chú có thể đặt lịch"
+          }
+        }
+      }
+    },
     "오디오": {
       "localizations": {
         "en": {
@@ -10796,6 +11188,90 @@
           "stringUnit": {
             "state": "translated",
             "value": "Dừng âm thanh"
+          }
+        }
+      }
+    },
+    "올리지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't post"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पोस्ट नहीं हो सका"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "投稿できませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể đăng"
+          }
+        }
+      }
+    },
+    "올릴 때": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Post at"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पोस्ट का समय"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "投稿日時"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng lúc"
+          }
+        }
+      }
+    },
+    "올릴 시각을 바꿨어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posting time changed"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पोस्ट करने का समय बदला गया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "投稿時刻を変更しました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã đổi thời gian đăng"
           }
         }
       }
@@ -15679,6 +16155,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Trích dẫn"
+          }
+        }
+      }
+    },
+    "인용할 글이 지워졌어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What you were quoting was deleted"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जिसे कोट करना था वह हटा दिया गया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "引用するはずの投稿が削除されました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nội dung bạn định trích dẫn đã bị xóa"
           }
         }
       }

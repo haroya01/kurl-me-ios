@@ -557,6 +557,48 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(app.buttons["note.menu.9600"].waitForExistence(timeout: 8), "차단 해제 뒤 노트가 돌아오지 않음")
     }
 
+    func testANoteScheduledFromTheComposerWaitsInScheduledNotesUntilCanceled() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+        let compose = app.buttons["notes.compose"]
+        XCTAssertTrue(compose.waitForExistence(timeout: 10), "노트 쓰기 버튼 없음")
+        compose.tap()
+        let field = app.textFields["noteCompose.text"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.typeText("uitest scheduled note")
+
+        app.buttons["noteCompose.schedule"].tap()
+        let done = app.buttons["noteSchedule.done"]
+        XCTAssertTrue(done.waitForExistence(timeout: 5), "예약 시각 시트가 안 열림")
+        done.tap()
+        let post = app.buttons["noteCompose.post"]
+        XCTAssertTrue(post.label.contains("예약"), "예약을 고른 뒤 올리기 버튼이 예약으로 바뀌지 않음")
+        attach(app, "compose-scheduled")
+        post.tap()
+        let notice = app.alerts.firstMatch
+        if notice.waitForExistence(timeout: 3) {
+            notice.buttons["알겠어요, 올릴게요"].tap()
+        }
+        XCTAssertTrue(field.waitForNonExistence(timeout: 8), "예약한 뒤 작성 시트가 닫히지 않음")
+
+        let menu = app.buttons["tab.menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 10))
+        menu.tap()
+        app.buttons["예약한 노트"].tap()
+        let mine = app.buttons.matching(NSPredicate(format: "label CONTAINS 'uitest scheduled note'")).firstMatch
+        XCTAssertTrue(mine.waitForExistence(timeout: 8), "예약한 노트 목록에 방금 예약한 노트가 없음")
+        XCTAssertTrue(
+            app.staticTexts["답글을 달 노트가 지워졌어요"].exists, "올리지 못한 예약에 이유가 보이지 않음")
+        attach(app, "scheduled-notes")
+        mine.swipeLeft()
+        let cancel = app.buttons["취소"].firstMatch
+        XCTAssertTrue(cancel.waitForExistence(timeout: 4), "밀어서 나오는 취소가 없음")
+        cancel.tap()
+        XCTAssertTrue(mine.waitForNonExistence(timeout: 6), "취소한 예약이 목록에 남음")
+    }
+
     func testMutingAConversationFromTheNoteMenuFlipsItsLabel() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]

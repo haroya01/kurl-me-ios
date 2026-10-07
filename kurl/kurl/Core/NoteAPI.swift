@@ -131,6 +131,33 @@ enum NoteAPI {
         try await client.post("/notes", body: draft, authenticated: true)
     }
 
+    static func schedule(_ draft: NoteDraft, at: Date) async throws -> ScheduledNote {
+        struct Body: Encodable {
+            let note: NoteDraft
+            let scheduledAt: String
+        }
+        return try await client.post(
+            "/notes/scheduled", body: Body(note: draft, scheduledAt: iso(at)), authenticated: true)
+    }
+
+    static func scheduled() async throws -> [ScheduledNote] {
+        try await client.get("/notes/scheduled", authenticated: true)
+    }
+
+    static func reschedule(id: Int64, at: Date) async throws -> ScheduledNote {
+        struct Body: Encodable { let scheduledAt: String }
+        return try await client.patch(
+            "/notes/scheduled/\(id)", body: Body(scheduledAt: iso(at)), authenticated: true)
+    }
+
+    private static func iso(_ date: Date) -> String {
+        ISO8601DateFormatter().string(from: date)
+    }
+
+    static func cancelScheduled(id: Int64) async throws {
+        try await client.deleteVoid("/notes/scheduled/\(id)", authenticated: true)
+    }
+
     static func edit(id: Int64, body: String, contentWarning: String, sensitive: Bool) async throws -> Note {
         struct Body: Encodable {
             let body: String
@@ -447,6 +474,21 @@ struct NoteDraft: Encodable {
         let expiresIn: Int
         let multiple: Bool
     }
+}
+
+/// 마스토돈의 예약 노트 — 쓴 그대로 두었다가 그 시각에 올린다. failure 가 있으면 올리지 못한 이유.
+struct ScheduledNote: Decodable, Identifiable, Hashable {
+    let id: Int64
+    let scheduledAt: Date
+    let body: String?
+    let contentWarning: String?
+    let visibility: String?
+    let imageCount: Int
+    let poll: Bool
+    let inReplyToId: Int64?
+    let quotedNoteId: Int64?
+    let quotedPostId: Int64?
+    let failure: String?
 }
 
 struct NoteLikeStatus: Decodable {
