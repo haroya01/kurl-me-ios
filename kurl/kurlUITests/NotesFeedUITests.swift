@@ -451,6 +451,23 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(app.buttons["note.menu.9510"].waitForExistence(timeout: 4), "보기를 눌러도 안 펼쳐짐")
     }
 
+    func testSearchFindsNotesInTheNotesScope() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "search"]
+        app.launch()
+
+        let field = app.searchFields.firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 12))
+        field.tap()
+        field.typeText("Hexagonal")
+        let notesScope = app.segmentedControls.buttons["노트"].firstMatch
+        XCTAssertTrue(notesScope.waitForExistence(timeout: 6), "검색 범위에 노트가 없음")
+        notesScope.tap()
+        XCTAssertTrue(app.buttons["note.menu.9510"].waitForExistence(timeout: 8), "노트 검색 결과가 안 보임")
+        XCTAssertFalse(app.buttons["note.menu.9501"].exists, "검색어가 없는 노트가 결과에 있음")
+        attach(app, "search-notes")
+    }
+
     func testANotesRepliesOpenFromItsRow() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]

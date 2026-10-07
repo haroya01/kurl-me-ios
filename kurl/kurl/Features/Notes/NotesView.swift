@@ -38,10 +38,11 @@ final class NotesViewModel {
         case reposts(String)
         case quotes(Int64)
         case tag(String)
+        case search(String)
 
         var filterContext: NoteFilterContext? {
             switch self {
-            case .everyone, .trending, .tag, .quotes: .public
+            case .everyone, .trending, .tag, .quotes, .search: .public
             case .following, .list: .home
             case .author, .reposts: .account
             case .bookmarks, .direct: nil
@@ -80,6 +81,10 @@ final class NotesViewModel {
         source = .tag(tag)
     }
 
+    init(search query: String) {
+        source = .search(query)
+    }
+
     private func load(_ page: Int) async throws -> NoteFeed {
         switch source {
         case .everyone: try await NoteAPI.everyone(page: page)
@@ -110,6 +115,7 @@ final class NotesViewModel {
             }
         case let .quotes(id): try await NoteAPI.quotes(of: id, page: page)
         case let .tag(name): try await NoteAPI.tagged(name, page: page)
+        case let .search(query): try await NoteAPI.search(query, page: page)
         case let .author(username): try await NoteAPI.byAuthor(username, page: page)
         case let .reposts(username): try await NoteAPI.reposts(username, page: page)
         }

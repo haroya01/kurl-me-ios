@@ -1016,6 +1016,14 @@ enum MockBackend {
             if method == "PUT" { bookmarkedNotes.insert(nid, at: 0) }
             return json(["bookmarked": method == "PUT"])
         }
+        if method == "GET", parts == ["public", "notes", "search"] {
+            let q = (query?.first(where: { $0.name == "q" })?.value ?? "").lowercased()
+            let hits = q.isEmpty
+                ? []
+                : allNotes().filter { $0.visibility == "public" && $0.body.lowercased().contains(q) }
+                    .sorted { $0.createdAt > $1.createdAt }
+            return json(["items": hits.map(noteView), "page": 0, "hasNext": false])
+        }
         if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "notes", parts[2] == "tags" {
             let needle = "#" + parts[3].lowercased()
             let items = allNotes().filter { $0.body.lowercased().contains(needle) }.map(noteView)
