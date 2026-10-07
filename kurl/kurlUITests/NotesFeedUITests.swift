@@ -518,6 +518,25 @@ final class NotesFeedUITests: XCTestCase {
         attach(app, "remote-account-notes")
     }
 
+    func testMutingAConversationFromTheNoteMenuFlipsItsLabel() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let menu = app.buttons["note.menu.9501"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 10))
+        menu.tap()
+        let mute = app.buttons["대화 알림 끄기"]
+        XCTAssertTrue(mute.waitForExistence(timeout: 5), "노트 메뉴에 대화 알림 끄기가 없음")
+        attach(app, "note-menu-conversation-mute")
+        mute.tap()
+        XCTAssertTrue(app.staticTexts["이 대화의 알림을 껐어요"].waitForExistence(timeout: 5), "끈 뒤 알림이 없음")
+
+        menu.tap()
+        XCTAssertTrue(app.buttons["대화 알림 켜기"].waitForExistence(timeout: 5), "끈 뒤 메뉴가 켜기로 바뀌지 않음")
+    }
+
     func testADisplayNameLeadsTheRowWithTheHandleBesideIt() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]

@@ -165,6 +165,8 @@ enum MockBackend {
     ]
     private static var federationEnabled = true
     /// 다른 서버 계정 — 찾으면 생기고, 팔로우 요청 뒤 다시 읽으면 수락된다(마스토돈 기본 계정처럼).
+    /// 알림을 끈 대화 — 목은 대화 루트 대신 누른 노트 id로 둔다.
+    private static var mutedConversations: Set<Int64> = []
     private static var remoteAccounts: [Int64: [String: Any]] = [
         9800: [
             "id": Int64(9800), "acct": "mina@mastodon.social", "username": "mina",
@@ -1320,6 +1322,11 @@ enum MockBackend {
             return json(["liked": method == "PUT", "likeCount": 0])
         }
 
+        if parts.count == 3, parts[0] == "notes", parts[2] == "conversation-mute",
+           let nid = Int64(parts[1]) {
+            if method == "PUT" { mutedConversations.insert(nid) } else { mutedConversations.remove(nid) }
+            return json(["muted": method == "PUT"])
+        }
         if method == "GET", parts == ["federation", "accounts", "lookup"] {
             var handle = (query?.first(where: { $0.name == "acct" })?.value ?? "")
                 .trimmingCharacters(in: .whitespaces)
@@ -2156,6 +2163,7 @@ enum MockBackend {
             "pinned": pinnedNotes.contains(n.id),
             "visibility": n.visibility,
             "poll": pollView(n) ?? NSNull(),
+            "conversationMuted": mutedConversations.contains(n.id),
             "quotedNote": n.quotedNoteId.flatMap { qid in allNotes().first { $0.id == qid } }
                 .map { q -> [String: Any] in
                     [
