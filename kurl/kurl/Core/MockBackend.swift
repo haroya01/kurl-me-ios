@@ -178,6 +178,16 @@ enum MockBackend {
             "domain": "mastodon.social", "displayName": "Mina", "avatarUrl": NSNull(),
             "url": "https://mastodon.social/@mina", "following": true, "requested": false,
         ],
+        9820: [
+            "id": Int64(9820), "acct": "alice@mastodon.social", "username": "alice",
+            "domain": "mastodon.social", "displayName": "Alice", "avatarUrl": NSNull(),
+            "url": "https://mastodon.social/@alice", "following": false, "requested": false,
+        ],
+        9830: [
+            "id": Int64(9830), "acct": "bob@fosstodon.org", "username": "bob",
+            "domain": "fosstodon.org", "displayName": "Bob", "avatarUrl": NSNull(),
+            "url": "https://fosstodon.org/@bob", "following": false, "requested": false,
+        ],
     ]
     /// 팔로우한 다른 서버 계정(mina)의 노트 — 팔로잉 피드 끝과 그 계정 화면에 보인다.
     private static func remoteNoteView() -> [String: Any] {
@@ -2149,7 +2159,7 @@ enum MockBackend {
                  "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
                  "read": true, "createdAt": iso(Date().addingTimeInterval(-432_000))],
                 ["id": 12, "type": "NOTE_LIKE", "actorUsername": "alice@mastodon.social", "actorAvatarUrl": NSNull(),
-                 "actorProfileUrl": "https://mastodon.social/@alice",
+                 "actorProfileUrl": "https://mastodon.social/@alice", "actorRemoteId": Int64(9820),
                  "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
                  "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
                  "noteId": 9502, "noteExcerpt": "긴 글로 정리하기 전의 생각 조각을 둘 곳이 필요했는데, 노트가 딱 그 자리다.",
@@ -2176,7 +2186,7 @@ enum MockBackend {
                  "noteId": 9501, "noteExcerpt": "오늘 헥사고날 포트 이름 짓는 데 한 시간 썼다.",
                  "count": 1, "read": true, "createdAt": iso(Date().addingTimeInterval(-800))],
                 ["id": 10, "type": "REMOTE_FOLLOW", "actorUsername": "bob@fosstodon.org", "actorAvatarUrl": NSNull(),
-                 "actorProfileUrl": "https://fosstodon.org/@bob",
+                 "actorProfileUrl": "https://fosstodon.org/@bob", "actorRemoteId": Int64(9830),
                  "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
                  "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
                  "count": 1, "read": true, "createdAt": iso(Date().addingTimeInterval(-900))],

@@ -80,7 +80,7 @@ struct NoteLanguagesView: View {
                     .accessibilityIdentifier("noteLanguages.\(language.code)")
                 }
             } footer: {
-                Text("모든 노트·다른 서버·인기에 고른 언어의 노트만 보여요. 언어를 정하지 않은 노트와 팔로잉·리스트는 그대로예요.")
+                Text("최신·다른 서버·인기에 고른 언어의 노트만 보여요. 언어를 정하지 않은 노트와 팔로잉·리스트는 그대로예요.")
             }
         }
         .navigationTitle("보이는 노트 언어")

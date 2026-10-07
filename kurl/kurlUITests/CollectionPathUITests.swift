@@ -99,6 +99,9 @@ final class CollectionPathUITests: XCTestCase {
         XCTAssertTrue(newPath.waitForExistence(timeout: 5), "'새 길 만들기'가 없음")
         shot("4-connect-new-path")
         newPath.tap()
+        let create = app.buttons["만들기"].firstMatch
+        XCTAssertTrue(create.waitForExistence(timeout: 5), "새 길 시트가 안 뜸")
+        create.tap()
         // 길이 생성·선택되어 '다음'이 활성.
         XCTAssertTrue(
             app.buttons.matching(NSPredicate(format: "label CONTAINS '다음'")).firstMatch

@@ -8,47 +8,48 @@ import SwiftUI
 
 enum NoteFeedKind: String, CaseIterable, Identifiable {
     case everyone
-    case federated
-    case following
     case trending
+    case following
+    case federated
     case bookmarks
     case direct
     case list
 
     var id: String { rawValue }
 
-    static let pickable: [NoteFeedKind] = [.everyone, .federated, .following, .trending, .bookmarks, .direct]
+    static let tabs: [NoteFeedKind] = [.everyone, .trending, .following]
+    static let more: [NoteFeedKind] = [.federated, .bookmarks, .direct]
 
     var title: LocalizedStringKey {
         switch self {
-        case .everyone: "노트"
-        case .federated: "다른 서버"
-        case .following: "팔로잉"
+        case .everyone: "최신"
         case .trending: "인기"
+        case .following: "팔로잉"
+        case .federated: "다른 서버"
         case .bookmarks: "북마크한 노트"
         case .direct: "개인 멘션"
         case .list: "리스트"
         }
     }
 
-    var menuLabel: LocalizedStringKey {
+    var label: String {
         switch self {
-        case .everyone: "모든 노트"
-        case .federated: "다른 서버"
-        case .following: "팔로잉"
-        case .trending: "인기"
-        case .bookmarks: "북마크한 노트"
-        case .direct: "개인 멘션"
-        case .list: "리스트"
+        case .everyone: String(localized: "최신")
+        case .trending: String(localized: "인기")
+        case .following: String(localized: "팔로잉")
+        case .federated: String(localized: "다른 서버")
+        case .bookmarks: String(localized: "북마크한 노트")
+        case .direct: String(localized: "개인 멘션")
+        case .list: String(localized: "리스트")
         }
     }
 
     var symbol: String {
         switch self {
         case .everyone: "text.bubble"
-        case .federated: "globe"
-        case .following: "person.2"
         case .trending: "flame"
+        case .following: "person.2"
+        case .federated: "globe"
         case .bookmarks: "bookmark"
         case .direct: "at"
         case .list: "list.bullet"
@@ -64,45 +65,23 @@ final class NoteFeedChoice {
     private static let key = "notes.feed"
 
     var kind: NoteFeedKind {
-        didSet { persist() }
+        didSet { UserDefaults.standard.set(kind.rawValue, forKey: Self.key) }
     }
-    private(set) var listId: Int64?
-    private(set) var listTitle: String?
-
-    var selectionKey: String { kind == .list ? "list:\(listId ?? 0)" : kind.rawValue }
-
-    var title: Text {
-        if kind == .list { return Text(verbatim: listTitle ?? "") }
-        return Text(kind.title)
-    }
+    var path = NavigationPath()
 
     private init() {
-        let saved = Config.useMocks ? nil : UserDefaults.standard.string(forKey: Self.key)
-        if let saved, saved.hasPrefix("list:"), let id = Int64(saved.dropFirst(5)) {
-            listId = id
-            kind = .list
-        } else {
-            kind = saved.flatMap(NoteFeedKind.init) ?? .everyone
-        }
+        let launched = Config.launchValue(after: "--notes-feed").flatMap(NoteFeedKind.init)
+        let saved = Config.useMocks ? nil : UserDefaults.standard.string(forKey: Self.key).flatMap(NoteFeedKind.init)
+        kind = [launched, saved].compactMap { $0 }.first { NoteFeedKind.tabs.contains($0) } ?? .everyone
     }
 
-    func show(_ list: NoteListSummary) {
-        listId = list.id
-        listTitle = list.title
-        if kind == .list { persist() } else { kind = .list }
+    func show(_ tab: NoteFeedKind) {
+        path = NavigationPath()
+        kind = tab
     }
 
-    func reconcile(with lists: [NoteListSummary]) {
-        guard kind == .list else { return }
-        if let current = lists.first(where: { $0.id == listId }) {
-            listTitle = current.title
-        } else {
-            kind = .everyone
-        }
-    }
-
-    private func persist() {
-        UserDefaults.standard.set(selectionKey, forKey: Self.key)
+    func open(_ route: Route) {
+        path.append(route)
     }
 }
 
@@ -123,7 +102,6 @@ final class NoteListsStore {
         }
         if let loaded = try? await NoteAPI.lists() {
             lists = loaded
-            NoteFeedChoice.shared.reconcile(with: loaded)
         }
     }
 
@@ -137,13 +115,11 @@ final class NoteListsStore {
     func rename(_ list: NoteListSummary, to title: String) async throws {
         let renamed = try await NoteAPI.renameList(id: list.id, title: title)
         if let index = lists.firstIndex(where: { $0.id == list.id }) { lists[index] = renamed }
-        NoteFeedChoice.shared.reconcile(with: lists)
     }
 
     func delete(_ list: NoteListSummary) async throws {
         try await NoteAPI.deleteList(id: list.id)
         lists.removeAll { $0.id == list.id }
-        NoteFeedChoice.shared.reconcile(with: lists)
     }
 
     func memberCountChanged(_ listId: Int64, by delta: Int64) {
@@ -217,20 +193,51 @@ extension NoteFeedPreferences {
     }
 }
 
-struct NoteFeedPicker: View {
-    @Bindable var choice = NoteFeedChoice.shared
-    private var preferences = NoteFeedPreferences.shared
-    private var lists = NoteListsStore.shared
+struct NoteFeedTabMenu: View {
+    @State private var choice = NoteFeedChoice.shared
 
     var body: some View {
         Picker("노트 피드", selection: $choice.kind) {
-            ForEach(NoteFeedKind.pickable) { kind in
-                Label(kind.menuLabel, systemImage: kind.symbol).tag(kind)
+            ForEach(NoteFeedKind.tabs) { kind in
+                Label(kind.title, systemImage: kind.symbol).tag(kind)
             }
         }
         .pickerStyle(.inline)
-        if choice.kind == .following, AuthStore.shared.isSignedIn {
-            Section {
+        NoteFeedMenu()
+    }
+}
+
+struct NoteFeedMenu: View {
+    @State private var choice = NoteFeedChoice.shared
+    @State private var preferences = NoteFeedPreferences.shared
+    @State private var lists = NoteListsStore.shared
+
+    var body: some View {
+        Section {
+            ForEach(NoteFeedKind.more) { kind in
+                Button {
+                    choice.open(.noteFeed(kind))
+                } label: {
+                    Label(kind.title, systemImage: kind.symbol)
+                }
+            }
+        }
+        Section("리스트") {
+            ForEach(lists.lists) { list in
+                Button {
+                    choice.open(.noteList(id: list.id, title: list.title))
+                } label: {
+                    Label(list.title, systemImage: NoteFeedKind.list.symbol)
+                }
+            }
+            Button {
+                lists.managing = true
+            } label: {
+                Label("리스트 관리", systemImage: "slider.horizontal.3")
+            }
+        }
+        Section {
+            if choice.kind == .following {
                 Toggle(isOn: Binding(
                     get: { preferences.showReposts },
                     set: { on in Task { await preferences.setShowReposts(on) } }
@@ -238,31 +245,10 @@ struct NoteFeedPicker: View {
                     Label("리포스트 보기", systemImage: "arrow.2.squarepath")
                 }
             }
-        }
-        if AuthStore.shared.isSignedIn {
-            Section("리스트") {
-                ForEach(lists.lists) { list in
-                    Button {
-                        choice.show(list)
-                    } label: {
-                        Label(
-                            list.title,
-                            systemImage: choice.kind == .list && choice.listId == list.id
-                                ? "checkmark" : "list.bullet")
-                    }
-                }
-                Button {
-                    lists.managing = true
-                } label: {
-                    Label("리스트 관리", systemImage: "slider.horizontal.3")
-                }
-            }
-            Section {
-                Button {
-                    ScheduledNotesStore.shared.showing = true
-                } label: {
-                    Label("예약한 노트", systemImage: "clock")
-                }
+            Button {
+                ScheduledNotesStore.shared.showing = true
+            } label: {
+                Label("예약한 노트", systemImage: "clock")
             }
         }
     }

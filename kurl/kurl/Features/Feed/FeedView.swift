@@ -27,136 +27,65 @@ enum FeedTab: String, CaseIterable, Identifiable {
     }
 
     var label: String { source.label }
+
+    var symbol: String {
+        switch self {
+        case .recent: "clock"
+        case .trending: "flame"
+        case .forYou: "sparkles"
+        case .following: "tray.full"
+        }
+    }
+}
+
+@MainActor
+@Observable
+final class BlogFeedChoice {
+    static let shared = BlogFeedChoice()
+
+    private static let key = "feed.tab"
+
+    var tab: FeedTab {
+        didSet { UserDefaults.standard.set(tab.rawValue, forKey: Self.key) }
+    }
+    var path = NavigationPath()
+
+    /// `--feed recent|trending|forYou|following` — 스크린샷/목 검증 진입로(--tab 과 같은 문법).
+    private init() {
+        let launched = Config.launchValue(after: "--feed").flatMap(FeedTab.init(rawValue:))
+        let saved = Config.useMocks ? nil : UserDefaults.standard.string(forKey: Self.key).flatMap(FeedTab.init(rawValue:))
+        tab = launched ?? saved ?? .recent
+    }
 }
 
 struct FeedView: View {
-    /// `--feed recent|trending|following|notes` — 스크린샷/목 검증 진입로(--tab 과 같은 문법).
-    @State private var selection: FeedTab =
-        Config.launchValue(after: "--feed").flatMap(FeedTab.init(rawValue:)) ?? .recent
+    @State private var choice = BlogFeedChoice.shared
     @Namespace private var zoomNS
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
-
-    /// 알림은 리텐션 루프의 심장인데 계정 탭 안 2뎁스였다 — 첫 화면에 벨을 둔다.
-    /// 카운트는 계정 탭 벨과 UnreadStore 공유 — 각자 fetch 해 같은 GET 이 2회 나가지 않게.
-    private var unreadCount: Int64 { UnreadStore.shared.count }
-
-    /// 좌우 스와이프 인터랙티브 — 손가락을 따라 화면이 슬라이드되어 "넘기는 중"이 느껴진다.
-    /// dragX = 현재 끌린 거리(현재 페이지 오프셋), 인접 페이지는 한 폭 옆에서 따라 들어온다.
-    @State private var dragX: CGFloat = 0
-    @State private var containerWidth: CGFloat = 0
-    /// 스와이프가 방금 selection 을 확정했음을 onChange 에 알린다 — 스와이프 경로는 dragX 를 스스로
-    /// 보정해 슬라이드하므로, 뒤이어 발화하는 onChange 가 같은 전환을 한 번 더 슬라이드시키지 않게 한다.
-    /// (dragX==0 로 구분하던 방식은 withAnimation 이 dragX 모델값을 그 프레임에 0 으로 써버려
-    /// onChange 시점엔 이미 0 이라 스와이프도 통과 → 이중 슬라이드로 튀던 것을 대체.)
-    @State private var swipeCommitted = false
+    @State private var router = TabRouter.shared
 
     var body: some View {
-        // NavigationStack 에 path 를 바인딩하면 iOS 26 의 tabBarMinimizeBehavior 가
-        // 그 탭에서 동작하지 않는다(시스템 버그, 기기에서도 재현). 깊은 푸시의 zoom
-        // 중복 발화 가드보다 바 최소화가 우선이라 path 없이 간다.
-        NavigationStack {
-            // 페이지형 TabView(UIPageViewController) 중첩은 Liquid Glass 가 활성 탭의
-            // 스크롤뷰를 못 찾게 만들어 하단 바 아래로 콘텐츠가 흐르지 않고(별도 영역처럼
-            // 보임) 스크롤 축소도 안 걸렸다. 두 페이지를 ZStack 으로 살려두고(데이터·스크롤
-            // 위치 유지) 좌우 스와이프는 제스처로 직접 — ScrollView 가 탭 콘텐츠의 직계가 된다.
-            ZStack {
-                ForEach(FeedTab.allCases) { tab in
-                    page(for: tab)
-                        // 슬라이드 중 중앙을 벗어난 분면은 살짝 가라앉는다 — 옆 칸이 "뒤에 있다"는
-                        // 얕은 깊이(페이지컨트롤 결). 드래그가 끝나 dragX 가 0 이면 중앙 분면은 1.0 으로
-                        // 복원된다(오프셋이 폭의 배수로 스냅). scale 없이 opacity 만(§10 절제).
-                        .opacity(pageOpacity(tab))
-                        // 드래그 중엔 페이지 콘텐츠를 비활성화 — 페이지가 손가락 따라 미끄러지면
-                        // 카드가 손가락과 함께 움직여 탭이 안 취소되고 글로 새던 것을 막는다.
-                        .disabled(dragX != 0)
-                        .allowsHitTesting(tab == selection)
-                        .offset(x: pageOffset(tab))
-                }
+        // 탭바가 커스텀(FloatingTabBar)이라 path 바인딩이 시스템 tabBarMinimizeBehavior 를 죽이던 함정과
+        // 무관하다 — 탭 다시 누르기로 루트까지 되돌리려면 path 가 필요하다.
+        NavigationStack(path: $choice.path) {
+            SwipePager(tabs: FeedTab.allCases, selection: $choice.tab) { tab, active, warm in
+                FeedPage(source: tab.source, active: active, warm: warm, zoom: zoomNS)
             }
-            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { containerWidth = $0 }
-            .simultaneousGesture(feedDrag)
-            // 스위처 탭 전환도 스와이프처럼 미끄러진다 — 최신·인기 카드 목록이 즉시 스냅으로 갈리면
-            // 생김새가 비슷해 "전환이 일어났나"가 안 느껴졌다. 스와이프 확정은 dragX 보정을 스스로 해
-            // 이미 슬라이드했으므로 여기선 건너뛰고(swipeCommitted), 탭 경로만 같은 문법으로 보정한다.
-            // 바인딩을 withAnimation 으로 감싸지 않는다 — 스위처 알약 활주와 충돌(메모리 함정).
-            .onChange(of: selection) { old, new in
-                if swipeCommitted {
-                    swipeCommitted = false
-                    return
-                }
-                guard !reduceMotion, containerWidth > 0,
-                      let from = FeedTab.allCases.firstIndex(of: old),
-                      let to = FeedTab.allCases.firstIndex(of: new), from != to else { return }
-                dragX = CGFloat(to - from) * containerWidth
-                withAnimation(.snappy(duration: 0.32)) { dragX = 0 }
+            .onChange(of: router.reselections) {
+                if router.reselectedTab == 0 { choice.path = NavigationPath() }
             }
-            // 전환이 손에도 닿게 — 탭이든 스와이프든 선택이 바뀌는 순간 가벼운 셀렉션 틱.
-            .sensoryFeedback(.selection, trigger: selection)
             // 고정 스트립 대신 떠 있는 유리 — 카드가 캡슐 양옆·뒤로 그대로 흐른다.
             .safeAreaInset(edge: .top) {
-                // ZStack 중첩(중앙 스위처 + 우단 벨)은 375pt 기기에서 겹쳤다 — 압축 가능한
-                // HStack 으로. 한 영역의 유리 둘은 컨테이너 하나로 묶는다(§1.4).
-                GlassEffectContainer(spacing: GlassTokens.clusterSpacing) {
-                    // spacing 0 — 좌우 Spacer 가 중앙 정렬을 맡고, 고정 10pt 간격은 네 탭이
-                    // 좁은 기기에서 넘쳐 캡슐을 줄바꿈시키던 폭을 잡아먹었다(되돌려 길쭉하게).
-                    HStack(spacing: 0) {
-                        // 오른쪽 벨과 같은 폭의 투명 균형추 — 스위처가 화면 정중앙에 오게(벨이
-                        // 한쪽으로만 밀던 것 보정). 벨이 흐름 안에 남아 좁은 기기 겹침도 없다.
-                        if AuthStore.shared.isSignedIn {
-                            Color.clear.frame(width: 40, height: 40)
-                        }
-                        Spacer(minLength: 0)
-                        GlassSegmentSwitcher(items: FeedTab.allCases, selection: $selection) {
-                            $0.label
-                        }
-                        Spacer(minLength: 0)
-                        if AuthStore.shared.isSignedIn {
-                            // 값 기반 링크로 인박스를 민다 — 인박스 안의 딥링크(글·컬렉션·프로필)가
-                            // 같은 스택에서 이어 밀리게. isPresented 목적지는 값 푸시마다 재발화해
-                            // 행을 눌러도 인박스가 한 번 더 열렸다(계정 탭 벨과 같은 수리).
-                            NavigationLink(value: Route.notifications) {
-                                Image(systemName: "bell")
-                                    .font(.system(size: 15, weight: .semibold))
-                                    .foregroundStyle(.primary)
-                                    .frame(width: 40, height: 40)
-                                    .overlay(alignment: .topTrailing) {
-                                        if unreadCount > 0 {
-                                            Circle()
-                                                .fill(Palette.accent)
-                                                .frame(width: 7, height: 7)
-                                                .offset(x: -7, y: 8)
-                                                .transition(.scale.combined(with: .opacity))
-                                        }
-                                    }
-                                    .contentShape(Circle())
-                            }
-                            .buttonStyle(.plain)
-                            .glassEffect(.regular.interactive(), in: .circle)
-                            .accessibilityLabel(Text("알림"))
-                            .accessibilityValue(
-                                unreadCount > 0 ? Text("읽지 않음 \(unreadCount)") : Text(""))
-                        }
-                    }
-                    .padding(.horizontal, Metrics.gutter)
-                }
-                .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: unreadCount > 0)
-                .padding(.top, 2)
-                .padding(.bottom, 8)
+                FeedHeaderBar(items: FeedTab.allCases, selection: $choice.tab) { $0.label }
             }
-            .task(id: AuthStore.shared.isSignedIn) { await refreshUnread() }
+            .task(id: AuthStore.shared.isSignedIn) { await UnreadStore.shared.refresh() }
             .onChange(of: scenePhase) { _, newPhase in
-                if newPhase == .active { Task { await refreshUnread() } }
+                if newPhase == .active { Task { await UnreadStore.shared.refresh() } }
             }
             // 유리는 뒤에 흐르는 것이 있을 때만 유리다 — 스위처 뒤 옅은 안개 한 겹.
             // 뷰포트 고정(스크롤 안 함)이라 카드 사이 틈으로도 첫 화면이 은은하게 물든다.
-            .background(alignment: .top) {
-                BrandMist()
-                    .frame(height: 240)
-                    .mask(LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom))
-                    .ignoresSafeArea(edges: .top)
-                    .allowsHitTesting(false)
-            }
+            .background(alignment: .top) { FeedHeaderMist() }
             .background(Palette.pageBg)
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: Route.self) { route in
@@ -173,86 +102,30 @@ struct FeedView: View {
             .navigationDestination(for: CollectionRef.self) {
                 CollectionDetailView(collectionId: $0.id)
             }
-            // 알림에서 돌아올 때의 미읽음 점 갱신은 인박스가 스스로 챙긴다(NotificationsView
-            // onDisappear → UnreadStore.refresh, 계정 탭과 동일) — count 관찰로 벨 점이 따라온다.
         }
     }
+}
 
-    private func page(for tab: FeedTab) -> some View {
-        FeedPage(source: tab.source, active: tab == selection, warm: pageVisible(tab), zoom: zoomNS)
-    }
+struct BlogFeedMenu: View {
+    @State private var choice = BlogFeedChoice.shared
 
-    private var selectionIndex: Int { FeedTab.allCases.firstIndex(of: selection) ?? 0 }
-    private func tabIndex(_ tab: FeedTab) -> Int { FeedTab.allCases.firstIndex(of: tab) ?? 0 }
-
-    /// 선택 기준 한 칸 이내만 그린다 — 인접 페이지가 슬라이드로 들어올 수 있게.
-    private func pageVisible(_ tab: FeedTab) -> Bool {
-        abs(tabIndex(tab) - selectionIndex) <= 1
-    }
-
-    /// 필름스트립 — 각 페이지를 (자기 인덱스 − 선택 인덱스)×폭 + dragX 위치에 둔다. 전환 시
-    /// 선택 인덱스와 dragX 를 같은 프레임에 맞바꿔(±폭이 상쇄) 시각이 연속이라 점프·깜빡임이 없다.
-    private func pageOffset(_ tab: FeedTab) -> CGFloat {
-        CGFloat(tabIndex(tab) - selectionIndex) * containerWidth + dragX
-    }
-
-    /// 슬라이드 중 미세 디밍 — 중앙(오프셋 0)은 1.0, 한 폭 벗어나면 0.85 까지 가라앉는다. 숨은
-    /// 분면(선택±1 밖)은 0. reduce-motion 이면 디밍 없이 pageVisible 게이트만(정지 면엔 깊이 연출
-    /// 안 함). containerWidth 0(첫 레이아웃)이나 dragX 0(정지)이면 중앙 분면은 자연히 1.0.
-    private func pageOpacity(_ tab: FeedTab) -> Double {
-        guard pageVisible(tab) else { return 0 }
-        guard !reduceMotion, containerWidth > 0 else { return 1 }
-        let offCenter = min(1, abs(pageOffset(tab)) / containerWidth)
-        return 1 - 0.15 * offCenter
-    }
-
-    private var feedDrag: some Gesture {
-        DragGesture(minimumDistance: 18)
-            .onChanged { value in
-                guard !reduceMotion,
-                      abs(value.translation.width) > abs(value.translation.height) else { return }
-                var dx = value.translation.width
-                let all = FeedTab.allCases
-                let i = all.firstIndex(of: selection) ?? 0
-                // 끝 탭에서 더 끌면 고무줄 저항 — 들어올 페이지가 없다.
-                let atEdge = (i == 0 && dx > 0) || (i == all.count - 1 && dx < 0)
-                if atEdge { dx *= 0.28 }
-                dragX = dx
+    var body: some View {
+        Picker("피드", selection: $choice.tab) {
+            ForEach(FeedTab.allCases) { tab in
+                Label(tab.label, systemImage: tab.symbol).tag(tab)
             }
-            .onEnded { value in
-                let dx = value.translation.width
-                let dy = value.translation.height
-                let vx = value.velocity.width
-                let all = FeedTab.allCases
-                let i = all.firstIndex(of: selection) ?? 0
-                // 빠른 플릭(속도) 또는 의도적 끌기(거리+방향비) 둘 다 받는다.
-                let horizontal = abs(dx) > abs(dy)
-                let flick = abs(vx) > 260 && abs(dx) > 20
-                let deliberate = abs(dx) > 48 && abs(dx) > abs(dy) * 1.2
-                let canGo = dx < 0 ? i < all.count - 1 : i > 0
-                guard horizontal, flick || deliberate, canGo else {
-                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.3)) { dragX = 0 }
-                    return
-                }
-                let newTab = all[dx < 0 ? i + 1 : i - 1]
-                // 이 selection 변경은 스와이프가 이미 슬라이드 중이므로 onChange 가 다시 슬라이드하지 않게 표시.
-                swipeCommitted = true
-                if reduceMotion {
-                    selection = newTab
-                    dragX = 0
-                    return
-                }
-                // 선택을 곧바로 바꾸고(→ 햅틱 즉시) dragX 를 ±폭만큼 보정해 한 프레임에 같이
-                // 적용 — 인덱스 변화와 상쇄돼 시각은 연속(깜빡임 없음). 그 뒤 dragX 를 0 으로
-                // 애니메이트해 새 페이지를 중앙에 안착시킨다.
-                selection = newTab
-                dragX += dx < 0 ? containerWidth : -containerWidth
-                withAnimation(.snappy(duration: 0.28)) { dragX = 0 }
-            }
+        }
+        .pickerStyle(.inline)
     }
+}
 
-    private func refreshUnread() async {
-        await UnreadStore.shared.refresh()
+struct FeedHeaderMist: View {
+    var body: some View {
+        BrandMist()
+            .frame(height: 240)
+            .mask(LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom))
+            .ignoresSafeArea(edges: .top)
+            .allowsHitTesting(false)
     }
 }
 
@@ -767,6 +640,46 @@ struct FeedSkeleton: View {
         .scrollDisabled(true)
         .allowsHitTesting(false)
         .accessibilityLabel(Text("불러오는 중"))
+    }
+}
+
+struct NoteSkeleton: View {
+    var count = 6
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(0..<count, id: \.self) { i in
+                HStack(alignment: .top, spacing: 12) {
+                    Circle().fill(Palette.hairlineStrong).frame(width: 36, height: 36)
+                    VStack(alignment: .leading, spacing: 9) {
+                        SkeletonBar(widthFraction: 0.34, height: 13)
+                        SkeletonBar(widthFraction: 0.96, height: 14)
+                        SkeletonBar(widthFraction: i.isMultiple(of: 2) ? 0.62 : 0.8, height: 14)
+                        SkeletonBar(widthFraction: 0.5, height: 12).padding(.top, 4)
+                    }
+                }
+                .padding(.vertical, 14)
+                if i < count - 1 { Hairline().padding(.horizontal, -Metrics.noteGutter) }
+            }
+        }
+        .modifier(SkeletonShimmer())
+        .allowsHitTesting(false)
+        .accessibilityElement()
+        .accessibilityLabel(Text("불러오는 중"))
+    }
+}
+
+private struct SkeletonBar: View {
+    let widthFraction: CGFloat
+    let height: CGFloat
+
+    var body: some View {
+        GeometryReader { geo in
+            Capsule()
+                .fill(Palette.hairlineStrong)
+                .frame(width: geo.size.width * widthFraction, height: height)
+        }
+        .frame(height: height)
     }
 }
 

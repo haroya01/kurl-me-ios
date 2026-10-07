@@ -410,7 +410,7 @@ enum NoteVisibility: String, CaseIterable, Identifiable {
     var detail: LocalizedStringKey {
         switch self {
         case .public: "누구나 볼 수 있어요"
-        case .unlisted: "누구나 볼 수 있지만 모든 노트·인기·태그에는 안 나와요"
+        case .unlisted: "누구나 볼 수 있지만 최신·인기·태그에는 안 나와요"
         case .private: "팔로워와 멘션한 회원만 볼 수 있어요"
         case .direct: "멘션한 회원만 볼 수 있어요"
         }

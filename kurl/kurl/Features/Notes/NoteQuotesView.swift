@@ -20,7 +20,7 @@ struct NoteQuotesView: View {
         ReadingColumn(spacing: 0, background: Palette.readingBg, gutter: Metrics.noteGutter) {
             switch notes.phase {
             case .idle, .loading:
-                KurlLoadingMark().frame(maxWidth: .infinity, minHeight: 320)
+                NoteSkeleton()
             case .failed(let message):
                 ErrorState(message: message, retry: { Task { await reload() } })
             case .loaded:
