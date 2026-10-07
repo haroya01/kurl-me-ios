@@ -25,13 +25,16 @@ struct NotesTabView: View {
             }
             .onAppear { atRoot = true }
             .onDisappear { atRoot = false }
-            .navigationTitle(choice.kind.title)
+            .navigationTitle(choice.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbarTitleMenu { NoteFeedPicker() }
-            .onChange(of: choice.kind) { _, kind in
-                Task { await notes.show(.init(kind)) }
+            .onChange(of: choice.selectionKey) {
+                Task { await notes.show(.init(choice.kind)) }
             }
-            .sensoryFeedback(.selection, trigger: choice.kind)
+            .sensoryFeedback(.selection, trigger: choice.selectionKey)
+            .sheet(isPresented: Bindable(NoteListsStore.shared).managing) {
+                NoteListsSheet()
+            }
             .onChange(of: NoteFeedPreferences.shared.changes) {
                 if choice.kind == .following { Task { await notes.reload() } }
             }
@@ -44,6 +47,7 @@ struct NotesTabView: View {
                 if loadedSignedIn == signedIn { return }
                 loadedSignedIn = signedIn
                 await NoteFeedPreferences.shared.hydrateIfNeeded()
+                await NoteListsStore.shared.reload()
                 await notes.reload()
             }
             .brandRefreshable {
@@ -182,6 +186,14 @@ struct NotesTabView: View {
                 actionTitle: "인기 노트 보기",
                 prominent: true,
                 action: { choice.kind = .trending }
+            )
+        case .list:
+            FeedPlaceholder(
+                title: "이 리스트에 아직 노트가 없어요",
+                message: "프로필의 … 메뉴에서 \"리스트에 추가\"로 사람을 담으면 그 사람들의 노트가 여기 모여요.",
+                actionTitle: "리스트 관리",
+                prominent: true,
+                action: { NoteListsStore.shared.managing = true }
             )
         case .direct:
             FeedPlaceholder(

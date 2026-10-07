@@ -25,6 +25,7 @@ final class NotesViewModel {
         case trending
         case bookmarks
         case direct
+        case list(Int64)
         case author(String)
         case reposts(String)
         case quotes(Int64)
@@ -37,6 +38,7 @@ final class NotesViewModel {
             case .trending: self = .trending
             case .bookmarks: self = .bookmarks
             case .direct: self = .direct
+            case .list: self = .list(NoteFeedChoice.shared.listId ?? 0)
             }
         }
     }
@@ -80,6 +82,12 @@ final class NotesViewModel {
         case .direct:
             if AuthStore.shared.isSignedIn {
                 try await NoteAPI.direct(page: page)
+            } else {
+                NoteFeed(items: [], page: 0, hasNext: false)
+            }
+        case let .list(id):
+            if AuthStore.shared.isSignedIn, id > 0 {
+                try await NoteAPI.listNotes(id: id, page: page)
             } else {
                 NoteFeed(items: [], page: 0, hasNext: false)
             }

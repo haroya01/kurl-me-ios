@@ -130,6 +130,9 @@ enum MockBackend {
     private static var bookmarkedNotes: [Int64] = []
     private static var showReposts = true
     private static var pinnedNotes: [Int64] = []
+    private static var noteLists: [(id: Int64, title: String, members: [String])] = []
+    private static var nextListId: Int64 = 700
+    private static let mockUserIds: [String: Int64] = ["honggildong": 1, "yuki_dev": 2, "reader_kim": 3]
     private static var noteHistory: [Int64: [(body: String, at: Date)]] = [
         9505: [("이름 짓는 데 한 시간이면 싸게 먹힌 거다.", Date().addingTimeInterval(-3_600))],
     ]
@@ -984,6 +987,45 @@ enum MockBackend {
                 ["body": version.body, "contentWarning": NSNull(), "sensitive": false, "at": iso(version.at)]
             }
             return json(["noteId": nid, "versions": [current] + earlier])
+        }
+        if parts == ["notes", "lists"] {
+            if method == "POST" {
+                let title = decode(body)["title"] as? String ?? ""
+                noteLists.append((nextListId, title, []))
+                nextListId += 1
+                return json(["id": nextListId - 1, "title": title, "memberCount": 0])
+            }
+            return json(noteLists.map { ["id": $0.id, "title": $0.title, "memberCount": $0.members.count] })
+        }
+        if parts.count >= 3, parts[0] == "notes", parts[1] == "lists", let lid = Int64(parts[2]),
+           let index = noteLists.firstIndex(where: { $0.id == lid }) {
+            if parts.count == 3, method == "PATCH" {
+                noteLists[index].title = decode(body)["title"] as? String ?? noteLists[index].title
+                let list = noteLists[index]
+                return json(["id": list.id, "title": list.title, "memberCount": list.members.count])
+            }
+            if parts.count == 3, method == "DELETE" {
+                noteLists.remove(at: index)
+                return json([String: Any]())
+            }
+            if parts.count == 4, parts[3] == "members" {
+                return json(noteLists[index].members.map { name -> [String: Any] in
+                    ["id": mockUserIds[name] ?? 99, "username": name, "avatarUrl": NSNull()]
+                })
+            }
+            if parts.count == 5, parts[3] == "members" {
+                noteLists[index].members.removeAll { $0 == parts[4] }
+                if method == "PUT" { noteLists[index].members.insert(parts[4], at: 0) }
+                return json([String: Any]())
+            }
+            if parts.count == 4, parts[3] == "notes" {
+                let members = Set(noteLists[index].members)
+                let items = topLevelNotes().filter { members.contains($0.username) && $0.visibility != "direct" }
+                return json(["items": items.map(noteView), "page": 0, "hasNext": false])
+            }
+        }
+        if method == "GET", parts.count == 3, parts[0] == "notes", parts[1] == "list-memberships" {
+            return json(["listIds": noteLists.filter { $0.members.contains(parts[2]) }.map(\.id)])
         }
         if parts.count == 3, parts[0] == "notes", parts[2] == "pin", let nid = Int64(parts[1]) {
             pinnedNotes.removeAll { $0 == nid }
