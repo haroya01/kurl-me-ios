@@ -1076,6 +1076,10 @@ enum MockBackend {
             let items = allNotes().filter { $0.body.lowercased().contains(needle) }.map(noteView)
             return json(["items": items, "page": 0, "hasNext": false])
         }
+        if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "notes", parts[3] == "posts",
+           let nid = Int64(parts[2]) {
+            return json(["items": quotingPosts[nid] ?? [], "page": 0, "size": 20, "hasNext": false])
+        }
         if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "notes", parts[3] == "quotes",
            let nid = Int64(parts[2]) {
             let items = allNotes().filter { $0.quotedNoteId == nid }.map(noteView)
@@ -1700,6 +1704,13 @@ enum MockBackend {
                 ["type": "H2", "content": "포트와 어댑터"],
                 ["type": "PARAGRAPH", "content": "경계를 먼저 긋고, 구현은 그 바깥으로 민다."],
             ]))
+            if slug == "walk-notes" {
+                blocks = ordered([
+                    ["type": "PARAGRAPH", "content": "이 글은 유키의 노트 한 줄에서 시작했다."],
+                    ["type": "EMBED", "content": "\(Config.blogBase)/@yuki_dev/notes/9501"],
+                    ["type": "PARAGRAPH", "content": "포트 이름을 고르는 일은 경계를 고르는 일이다."],
+                ])
+            }
             // `--longpost` — 실사용급 초장문 재현(진입 렉 프로파일링용): 본문을 40배로 편다.
             if ProcessInfo.processInfo.arguments.contains("--longpost") {
                 blocks = ordered(Array(repeating: blocks, count: 40).flatMap { $0 })
@@ -2211,6 +2222,11 @@ enum MockBackend {
     private static var nextSeriesId: Int64 = 100
     private static var likedComments: Set<Int64> = []
 
+    /// 노트를 카드로 실은 글 — 9501(유키의 포트 이름 노트)을 "walk-notes" 글이 싣는다.
+    private static var quotingPosts: [Int64: [[String: Any]]] {
+        [9501: [feedItem(id: 9201, title: "이름이 곧 경계다", slug: "walk-notes", excerpt: "유키의 노트에서 시작한 글.")]]
+    }
+
     private static func feedItem(
         id: Int64, title: String, slug: String,
         excerpt: String = "결론부터 적는다. 경계를 먼저 긋고, 구현은 그 바깥으로 민다.",
@@ -2255,7 +2271,7 @@ enum MockBackend {
             "repostCount": repostCount(n.id),
             "repostedByMe": repostedNotes["honggildong"]?.contains(n.id) == true,
             "bookmarkedByMe": bookmarkedNotes.contains(n.id),
-            "quoteCount": allNotes().filter { $0.quotedNoteId == n.id }.count,
+            "quoteCount": allNotes().filter { $0.quotedNoteId == n.id }.count + (quotingPosts[n.id]?.count ?? 0),
             "linkPreview": n.linkPreview ?? NSNull(),
             "mentions": ["honggildong", "yuki_dev", "reader_kim"].filter { n.body.lowercased().contains("@" + $0) },
             "contentWarning": n.contentWarning ?? NSNull(),

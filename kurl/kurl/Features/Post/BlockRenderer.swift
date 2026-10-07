@@ -992,7 +992,9 @@ private struct EmbedBlockView: View {
     let payload: EmbedPayload
 
     var body: some View {
-        if let id = YouTubeRef.videoId(from: payload.url),
+        if let noteId = NoteURL.id(from: payload.url) {
+            NoteEmbedCard(noteId: noteId) { EmbedLinkCard(payload: payload) }
+        } else if let id = YouTubeRef.videoId(from: payload.url),
            let player = URL(
             string: "https://www.youtube-nocookie.com/embed/\(id)?autoplay=1&playsinline=1&rel=0&modestbranding=1") {
             InlineVideoEmbed(

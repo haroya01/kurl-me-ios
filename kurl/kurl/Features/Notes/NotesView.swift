@@ -217,6 +217,7 @@ struct NoteRowView: View {
     @State private var conversationMuted: Bool
     @State private var reporting = false
     @State private var quoting = false
+    @State private var writingPost = false
     @State private var editing = false
     @State private var confirmDelete = false
     @State private var connecting = false
@@ -370,6 +371,9 @@ struct NoteRowView: View {
         }
         .sheet(isPresented: $connecting) {
             ConnectSheet(targetKind: "노트", targetTitle: note.body, blockType: .note, refId: note.id)
+        }
+        .fullScreenCover(isPresented: $writingPost) {
+            if let shareURL { QuotePostComposer(noteURL: shareURL) }
         }
         .alert("이 노트를 지울까요?", isPresented: $confirmDelete) {
             Button("지우기", role: .destructive) { Task { await delete() } }
@@ -779,19 +783,41 @@ struct NoteRowView: View {
 
             if let shareURL {
                 if spread { Spacer(minLength: 0) }
-                ShareLink(item: shareURL) {
-                    NoteGlyphView(glyph: .share, size: Self.actionBox)
-                        .foregroundStyle(Palette.ink)
-                        .expandTapTarget()
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(Text("공유"))
-                .accessibilityIdentifier("note.share.\(note.id)")
+                shareMenu(shareURL)
             }
         }
     }
 
     private static let actionBox: CGFloat = 22
+
+    /// X의 공유 메뉴처럼 — 시스템 공유, 링크 복사, 그리고 이 노트를 카드로 실은 새 블로그 글.
+    private func shareMenu(_ url: URL) -> some View {
+        Menu {
+            ShareLink(item: url) {
+                Label("공유…", systemImage: "square.and.arrow.up")
+            }
+            Button {
+                UIPasteboard.general.url = url
+                ToastCenter.shared.show(String(localized: "링크를 복사했어요"))
+            } label: {
+                Label("링크 복사", systemImage: "link")
+            }
+            if note.noteVisibility.shareable {
+                Button {
+                    if AuthStore.shared.isSignedIn { writingPost = true } else { showLoginSheet = true }
+                } label: {
+                    Label("블로그 글로 인용", systemImage: "square.and.pencil")
+                }
+            }
+        } label: {
+            NoteGlyphView(glyph: .share, size: Self.actionBox)
+                .foregroundStyle(Palette.ink)
+                .expandTapTarget()
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text("공유"))
+        .accessibilityIdentifier("note.share.\(note.id)")
+    }
 
     @ViewBuilder private var repostMenu: some View {
         if note.noteVisibility.shareable {
@@ -990,6 +1016,8 @@ struct QuotedPostCard: View {
 /// 인용된 노트 — 작성자·시간·글(4줄까지)·사진 줄. 사진은 글 아래 작은 정사각형으로.
 struct QuotedNoteCard: View {
     let note: QuotedNote
+    /// 글에 실린 노트 — 본문을 자르지 않는다.
+    var full = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -1017,7 +1045,7 @@ struct QuotedNoteCard: View {
                 Text(note.body)
                     .typeScale(.note)
                     .foregroundStyle(Palette.ink)
-                    .lineLimit(4)
+                    .lineLimit(full ? nil : 4)
                     .multilineTextAlignment(.leading)
             }
             if note.contentWarning == nil, note.sensitive != true, !note.media.isEmpty {

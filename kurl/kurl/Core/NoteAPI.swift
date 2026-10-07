@@ -48,6 +48,11 @@ enum NoteAPI {
             authenticated: signedIn)
     }
 
+    /// 이 노트를 카드로 실은 공개 블로그 글, 최근 발행 순.
+    static func quotingPosts(of id: Int64, page: Int = 0) async throws -> PublicFeedView {
+        try await client.get("/public/notes/\(id)/posts", query: ["page": String(page)], authenticated: false)
+    }
+
     static func tagged(_ tag: String, page: Int = 0) async throws -> NoteFeed {
         try await client.get(
             "/public/notes/tags/\(tag)", query: ["page": String(page), "size": "20"],

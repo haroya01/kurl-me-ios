@@ -116,7 +116,7 @@ final class NotesFeedUITests: XCTestCase {
         shot.lifetime = .keepAlways
         add(shot)
         quotes.tap()
-        XCTAssertTrue(app.navigationBars["인용한 노트"].waitForExistence(timeout: 6), "인용 목록이 안 열림")
+        XCTAssertTrue(app.navigationBars["인용"].waitForExistence(timeout: 6), "인용 목록이 안 열림")
         XCTAssertTrue(app.buttons["note.menu.9505"].waitForExistence(timeout: 6), "인용한 노트가 목록에 없음")
 
         app.navigationBars.buttons.element(boundBy: 0).tap()
@@ -126,6 +126,61 @@ final class NotesFeedUITests: XCTestCase {
         menu.tap()
         app.buttons["북마크한 노트"].tap()
         XCTAssertTrue(app.buttons["note.menu.9501"].waitForExistence(timeout: 8), "북마크한 노트가 북마크 피드에 없음")
+    }
+
+    func testANoteCarriedInABlogPostListsThatPostAndThePostShowsTheNoteAsACard() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let replies = app.buttons["note.replies.9501"]
+        XCTAssertTrue(replies.waitForExistence(timeout: 10), "답글 버튼 없음")
+        replies.tap()
+        let quotes = app.buttons["note.quotes.9501"]
+        XCTAssertTrue(quotes.waitForExistence(timeout: 6), "인용 줄이 없음")
+        quotes.tap()
+
+        let post = app.buttons["quotingPost.9201"]
+        XCTAssertTrue(post.waitForExistence(timeout: 6), "노트를 실은 글이 인용 목록에 없음")
+        XCTAssertTrue(app.buttons["note.menu.9505"].waitForExistence(timeout: 4), "인용한 노트가 글 아래에 없음")
+        attach(app, "note-quotes-carrying-post")
+        post.tap()
+
+        let card = app.buttons["post.noteEmbed.9501"]
+        var tries = 0
+        while !card.exists, tries < 4 { app.swipeUp(); tries += 1 }
+        XCTAssertTrue(card.waitForExistence(timeout: 10), "글 본문에 노트 카드가 없음")
+        attach(app, "post-carries-note")
+        card.tap()
+        XCTAssertTrue(app.buttons["note.replies.9501"].waitForExistence(timeout: 8), "노트 카드가 그 노트를 열지 않음")
+    }
+
+    func testTheShareMenuStartsABlogPostThatCarriesTheNote() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let share = app.buttons["note.share.9501"]
+        XCTAssertTrue(share.waitForExistence(timeout: 10), "공유 버튼 없음")
+        share.tap()
+        XCTAssertTrue(app.buttons["링크 복사"].waitForExistence(timeout: 4), "공유 메뉴에 링크 복사가 없음")
+        let quote = app.buttons["블로그 글로 인용"]
+        XCTAssertTrue(quote.exists, "공유 메뉴에 블로그 글로 인용이 없음")
+        attach(app, "note-share-menu")
+        quote.tap()
+
+        XCTAssertTrue(app.navigationBars["새 글"].waitForExistence(timeout: 8), "블로그 글 작성기가 안 열림")
+        let carried = app.descendants(matching: .any)["editor-link-card"]
+        XCTAssertTrue(carried.waitForExistence(timeout: 8), "새 글 첫 줄에 카드가 없음")
+        let card = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "label CONTAINS '헥사고날 포트'"), object: carried)
+        XCTAssertEqual(XCTWaiter().wait(for: [card], timeout: 8), .completed, "새 글 첫 줄의 카드가 노트 카드가 아님")
+        attach(app, "quote-post-composer")
+        app.navigationBars["새 글"].buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(share.waitForExistence(timeout: 6), "작성기를 닫아도 노트로 돌아오지 않음")
+        attach(app, "quote-post-closed")
     }
 
     func testRepostsHideForTheWholeFollowingFeedAndForOnePerson() throws {
