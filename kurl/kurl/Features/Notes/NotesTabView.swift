@@ -38,6 +38,9 @@ struct NotesTabView: View {
             .onChange(of: NoteFeedPreferences.shared.changes) {
                 if choice.kind == .following { Task { await notes.reload() } }
             }
+            .onChange(of: NoteFeedPreferences.shared.mutes) {
+                Task { await notes.reload() }
+            }
             .navigationDestination(for: Route.self) {
                 RouteView(route: $0)
             }

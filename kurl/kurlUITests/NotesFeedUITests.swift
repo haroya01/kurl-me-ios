@@ -379,6 +379,39 @@ final class NotesFeedUITests: XCTestCase {
         attach(app, "note-list-feed")
     }
 
+    func testMutingSomeoneFromTheirProfileTakesTheirNotesOutOfTheFeed() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        XCTAssertTrue(app.buttons["note.menu.9501"].waitForExistence(timeout: 8), "yuki_dev의 노트가 피드에 없음")
+        app.buttons["yuki_dev"].firstMatch.tap()
+        let more = app.buttons["더 보기"].firstMatch
+        XCTAssertTrue(more.waitForExistence(timeout: 10))
+        more.tap()
+        app.buttons["뮤트…"].firstMatch.tap()
+
+        let confirm = app.buttons["mute.confirm"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 6), "뮤트 시트가 안 열림")
+        attach(app, "mute-sheet")
+        confirm.tap()
+
+        more.tap()
+        XCTAssertTrue(app.buttons["뮤트 해제"].firstMatch.waitForExistence(timeout: 4), "메뉴가 뮤트 해제로 안 바뀜")
+        app.buttons["뮤트 해제"].firstMatch.tap()
+        more.tap()
+        app.buttons["뮤트…"].firstMatch.tap()
+        XCTAssertTrue(confirm.waitForExistence(timeout: 6))
+        confirm.tap()
+
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.buttons["note.menu.9502"].waitForExistence(timeout: 8), "피드로 안 돌아옴")
+        XCTAssertTrue(
+            app.buttons["note.menu.9501"].waitForNonExistence(timeout: 6), "뮤트한 사람의 노트가 피드에 남음")
+        attach(app, "muted-feed")
+    }
+
     func testANotesRepliesOpenFromItsRow() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]

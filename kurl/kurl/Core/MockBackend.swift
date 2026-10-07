@@ -145,6 +145,7 @@ enum MockBackend {
     private static var showReposts = true
     private static var pinnedNotes: [Int64] = []
     private static var noteLists: [(id: Int64, title: String, members: [String])] = []
+    private static var mutedUsers: [String: (notifications: Bool, expiresAt: Date?)] = [:]
     private static var nextListId: Int64 = 700
     private static let mockUserIds: [String: Int64] = ["honggildong": 1, "yuki_dev": 2, "reader_kim": 3]
     private static var noteHistory: [Int64: [(body: String, at: Date)]] = [
@@ -905,6 +906,36 @@ enum MockBackend {
             }
         }
 
+        if method == "GET", parts == ["users", "me", "mutes"] {
+            return json(mutedUsers.sorted { $0.key < $1.key }.map { name, mute in
+                [
+                    "id": mockUserIds[name] ?? 0, "username": name, "avatarUrl": NSNull(),
+                    "notifications": mute.notifications,
+                    "expiresAt": mute.expiresAt.map(iso) ?? NSNull(),
+                ] as [String: Any]
+            })
+        }
+        if parts.count == 3, parts[0] == "users", parts[2] == "mute" {
+            let name = parts[1]
+            switch method {
+            case "PUT":
+                let req = decode(body)
+                let duration = (req["duration"] as? NSNumber)?.doubleValue
+                mutedUsers[name] = (
+                    (req["notifications"] as? Bool) ?? true, duration.map { Date().addingTimeInterval($0) }
+                )
+            case "DELETE":
+                mutedUsers[name] = nil
+                return json([:])
+            default:
+                break
+            }
+            let mute = mutedUsers[name]
+            return json([
+                "muted": mute != nil, "notifications": mute?.notifications ?? false,
+                "expiresAt": mute?.expiresAt.map(iso) ?? NSNull(),
+            ])
+        }
         if method == "GET", parts == ["users", "me"] {
             return json([
                 "id": 1, "email": "mock@kurl.me", "username": myUsername,
@@ -1979,7 +2010,7 @@ enum MockBackend {
     }
 
     private static func topLevelNotes() -> [MockNote] {
-        notes.filter { $0.inReplyToId == nil }.sorted { $0.createdAt > $1.createdAt }
+        notes.filter { $0.inReplyToId == nil && mutedUsers[$0.username] == nil }.sorted { $0.createdAt > $1.createdAt }
     }
 
     private static func noteView(_ n: MockNote) -> [String: Any] {

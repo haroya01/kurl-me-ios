@@ -188,6 +188,24 @@ struct SettingsView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                Hairline()
+                NavigationLink {
+                    MutedUsersView()
+                } label: {
+                    HStack(spacing: 10) {
+                        Text("뮤트한 사용자")
+                            .typeScale(.body)
+                            .foregroundStyle(Palette.ink)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Palette.faint)
+                    }
+                    .padding(.vertical, 13)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("settings.muted")
 
                 Hairline()
                     .padding(.top, 16)

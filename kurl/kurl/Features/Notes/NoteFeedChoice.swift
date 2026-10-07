@@ -156,6 +156,7 @@ final class NoteFeedPreferences {
 
     private(set) var showReposts = true
     private(set) var changes = 0
+    private(set) var mutes = 0
     private var loadedFor: Int64?
 
     private init() {}
@@ -175,6 +176,10 @@ final class NoteFeedPreferences {
 
     func followingFeedChanged() {
         changes += 1
+    }
+
+    func mutesChanged() {
+        mutes += 1
     }
 
     func setShowReposts(_ on: Bool) async {
