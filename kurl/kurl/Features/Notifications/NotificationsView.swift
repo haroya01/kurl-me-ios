@@ -298,6 +298,7 @@ struct NotificationsView: View {
         case "NOTE_REPOST": return "arrow.2.squarepath"
         case "NOTE_REPLY": return "arrowshape.turn.up.left.fill"
         case "NOTE_QUOTE": return "quote.bubble.fill"
+        case "NOTE_MENTION": return "at"
         case "REMOTE_FOLLOW": return "person.fill.badge.plus"
         default: return "bell.fill"
         }
@@ -368,6 +369,7 @@ struct NotificationsView: View {
                 : Text("\(actor)님이 내 노트를 리포스트했어요")
         case "NOTE_REPLY": return Text("\(actor)님이 내 노트에 답글을 남겼어요")
         case "NOTE_QUOTE": return Text("\(actor)님이 내 노트를 인용했어요")
+        case "NOTE_MENTION": return Text("\(actor)님이 노트에서 나를 언급했어요")
         case "REMOTE_FOLLOW": return Text("\(actor)님이 다른 서버에서 나를 팔로우했어요")
         default: return actor
         }
@@ -376,7 +378,7 @@ struct NotificationsView: View {
     private func subtitle(_ n: AppNotification) -> String? {
         switch n.type {
         case "NOTE_REPLY", "NOTE_QUOTE": return n.sourceExcerpt
-        case "NOTE_LIKE", "NOTE_REPOST": return n.noteExcerpt
+        case "NOTE_LIKE", "NOTE_REPOST", "NOTE_MENTION": return n.noteExcerpt
         default: return n.postTitle ?? n.seriesTitle
         }
     }

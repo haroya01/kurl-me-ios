@@ -38,7 +38,7 @@ enum NotificationRoute {
     @MainActor
     static func route(for n: AppNotification) -> Route? {
         switch n.type {
-        case "NOTE_LIKE", "NOTE_REPOST": return n.noteId.map { .note(id: $0) }
+        case "NOTE_LIKE", "NOTE_REPOST", "NOTE_MENTION": return n.noteId.map { .note(id: $0) }
         case "NOTE_REPLY", "NOTE_QUOTE": return n.sourceNoteId.map { .note(id: $0) }
         case "REMOTE_FOLLOW": return nil
         default: break

@@ -219,6 +219,8 @@ struct Note: Decodable, Identifiable, Hashable {
     var quoteCount: Int64? = nil
     /// 비로그인 읽기면 nil. 북마크는 본인만 안다.
     var bookmarkedByMe: Bool? = nil
+    /// 본문에서 언급한 kurl 회원 중 실제로 있는 사람만 — 이 이름들만 프로필로 링크한다.
+    var mentions: [String]? = nil
 }
 
 struct NoteFeed: Decodable {

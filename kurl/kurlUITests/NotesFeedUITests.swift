@@ -196,6 +196,24 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(app.buttons["note.menu.9501"].waitForNonExistence(timeout: 6), "글 탭에 노트가 남음")
     }
 
+    func testAMentionOfAMemberOpensTheirProfile() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let replies = app.buttons["note.replies.9501"]
+        XCTAssertTrue(replies.waitForExistence(timeout: 10), "답글 버튼 없음")
+        replies.tap()
+
+        let mention = app.links["@yuki_dev"].firstMatch
+        XCTAssertTrue(mention.waitForExistence(timeout: 8), "답글의 @멘션이 링크가 아님")
+        attach(app, "note-mention")
+        mention.tap()
+        XCTAssertTrue(app.buttons["author.tab.notes"].waitForExistence(timeout: 10), "멘션한 회원의 프로필이 안 열림")
+        XCTAssertTrue(app.buttons["author.tab.notes"].isSelected, "노트에서 연 프로필이 노트 탭이 아님")
+    }
+
     func testANotesRepliesOpenFromItsRow() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]

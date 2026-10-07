@@ -50,6 +50,7 @@ enum NotificationKind: String, CaseIterable, Identifiable {
     case pathGrew = "PATH_GREW"
     case noteReply = "NOTE_REPLY"
     case noteQuote = "NOTE_QUOTE"
+    case noteMention = "NOTE_MENTION"
     case noteLike = "NOTE_LIKE"
     case noteRepost = "NOTE_REPOST"
     case remoteFollow = "REMOTE_FOLLOW"

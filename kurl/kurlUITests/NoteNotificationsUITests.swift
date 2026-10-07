@@ -32,6 +32,7 @@ final class NoteNotificationsUITests: XCTestCase {
         XCTAssertTrue(likes.waitForExistence(timeout: 12), "묶인 노트 좋아요 알림이 없음")
         XCTAssertTrue(likes.label.contains("alice@mastodon.social"), "묶음의 최신 보낸 사람이 다른 서버 핸들이 아님")
         XCTAssertTrue(row(app, contains: "다른 서버에서 나를 팔로우했어요").exists, "원격 팔로우 알림이 없음")
+        XCTAssertTrue(row(app, contains: "노트에서 나를 언급했어요").exists, "노트 멘션 알림이 없음")
         let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         shot.name = "note-notifications"
         shot.lifetime = .keepAlways
