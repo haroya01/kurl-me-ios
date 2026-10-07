@@ -36,6 +36,21 @@ struct DomainBlock: Decodable, Identifiable, Hashable {
     var id: String { domain }
 }
 
+/// 운영자의 서버 차단(마스토돈 관리자 도메인 차단) — 제한은 발견(인기·태그)에서 빼고, 정지는 끊는다.
+struct ServerBlock: Decodable, Identifiable, Hashable {
+    enum Severity: String, Codable, CaseIterable {
+        case limit = "LIMIT"
+        case suspend = "SUSPEND"
+    }
+
+    let domain: String
+    let severity: Severity
+    let reason: String?
+    let createdAt: Date?
+
+    var id: String { domain }
+}
+
 enum FederationAPI {
     private static let client = APIClient.shared
 
@@ -79,6 +94,27 @@ enum FederationAPI {
         } else {
             try await client.deleteVoid(path, authenticated: true)
         }
+    }
+
+    static func serverBlocks() async throws -> [ServerBlock] {
+        try await client.get("/admin/federation/servers", authenticated: true)
+    }
+
+    static func blockServer(_ domain: String, severity: ServerBlock.Severity, reason: String?) async throws
+        -> ServerBlock
+    {
+        struct Body: Encodable {
+            let severity: String
+            let reason: String?
+        }
+        return try await client.put(
+            "/admin/federation/servers/\(domain)",
+            body: Body(severity: severity.rawValue, reason: reason),
+            authenticated: true)
+    }
+
+    static func unblockServer(_ domain: String) async throws {
+        try await client.deleteVoid("/admin/federation/servers/\(domain)", authenticated: true)
     }
 
     static func message(for error: Error) -> String {

@@ -266,6 +266,16 @@ enum MockBackend {
         "body": "그 답글에 덧붙이려던 생각", "contentWarning": NSNull(), "visibility": "PUBLIC",
         "imageCount": 0, "poll": false, "inReplyToId": Int64(9551), "quotedNoteId": NSNull(), "quotedPostId": NSNull(), "failure": "NOTE_NOT_FOUND",
     ]]
+    private static var serverBlocks: [String: (severity: String, reason: String?, at: Date)] = [
+        "spam.example": ("SUSPEND", "광고 계정 대량", Date().addingTimeInterval(-86_400)),
+    ]
+
+    private static func serverBlockView(
+        _ domain: String, _ block: (severity: String, reason: String?, at: Date)
+    ) -> [String: Any] {
+        ["domain": domain, "severity": block.severity, "reason": block.reason ?? NSNull(), "createdAt": iso(block.at)]
+    }
+
     private static var domainBlocks: [String: Date] = {
         let args = ProcessInfo.processInfo.arguments
         guard let at = args.firstIndex(of: "--domain-block"), at + 1 < args.count else { return [:] }
@@ -1429,6 +1439,24 @@ enum MockBackend {
                 .filter { ($0["requested"] as? Bool) == true || ($0["following"] as? Bool) == true }
                 .sorted { (($0["id"] as? Int64) ?? 0) > (($1["id"] as? Int64) ?? 0) }
             return json(followed.map(withDomainBlock))
+        }
+        if method == "GET", parts == ["admin", "federation", "servers"] {
+            return json(serverBlocks.sorted { $0.key < $1.key }.map { domain, block in
+                serverBlockView(domain, block)
+            })
+        }
+        if parts.count == 4, parts[0] == "admin", parts[1] == "federation", parts[2] == "servers" {
+            let domain = parts[3].lowercased()
+            if method == "DELETE" {
+                serverBlocks[domain] = nil
+                return json([:])
+            }
+            let req = decode(body)
+            let reason = (req["reason"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+            serverBlocks[domain] = (
+                (req["severity"] as? String) ?? "LIMIT", reason, serverBlocks[domain]?.at ?? Date()
+            )
+            return json(serverBlockView(domain, serverBlocks[domain]!))
         }
         if method == "GET", parts == ["federation", "domain-blocks"] {
             return json(domainBlocks.sorted { $0.key < $1.key }.map { domain, at in

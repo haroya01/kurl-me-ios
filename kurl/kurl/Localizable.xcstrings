@@ -1781,6 +1781,34 @@
         }
       }
     },
+    "%@을(를) 정지할까요?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suspend %@?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ को निलंबित करें?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ を停止しますか?"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đình chỉ %@?"
+          }
+        }
+      }
+    },
     "%@의 노트와 알림은 보이지 않아요.": {
       "localizations": {
         "en": {
@@ -3454,6 +3482,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đăng nhập kurl"
+          }
+        }
+      }
+    },
+    "mastodon.example": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mastodon.example"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mastodon.example"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mastodon.example"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mastodon.example"
           }
         }
       }
@@ -5822,6 +5878,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Gửi bản sao ẩn danh đến quản trị viên máy chủ đó"
+          }
+        }
+      }
+    },
+    "그 서버 노트가 인기·태그에서 빠지고, 팔로우하지 않은 회원에게는 알림이 가지 않아요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Its notes leave trending and tags, and members who don't follow its accounts get no notices from it."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "उसके नोट ट्रेंडिंग और टैग से हट जाते हैं, और जो सदस्य उसे फ़ॉलो नहीं करते उन्हें सूचनाएँ नहीं मिलतीं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "そのサーバーのノートはトレンドとタグから外れ、フォローしていないメンバーには通知が届きません。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ghi chú của nó rời khỏi xu hướng và thẻ, và thành viên không theo dõi sẽ không nhận thông báo."
           }
         }
       }
@@ -8448,6 +8532,34 @@
         }
       }
     },
+    "다른 서버 전체를 제한하거나 정지할 수 있어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can limit or suspend whole servers."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आप पूरे सर्वर को सीमित या निलंबित कर सकते हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サーバー全体を制限または停止できます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn có thể giới hạn hoặc đình chỉ cả một máy chủ."
+          }
+        }
+      }
+    },
     "다른 서버 팔로잉": {
       "localizations": {
         "en": {
@@ -8528,6 +8640,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Người theo dõi ở máy chủ khác"
+          }
+        }
+      }
+    },
+    "단계": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Level"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "स्तर"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "段階"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mức"
           }
         }
       }
@@ -10072,6 +10212,34 @@
         }
       }
     },
+    "바꾸지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't change it"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बदल नहीं सके"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "変更できませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể thay đổi"
+          }
+        }
+      }
+    },
     "받은 노트가 없어요": {
       "localizations": {
         "en": {
@@ -10408,6 +10576,34 @@
         }
       }
     },
+    "사유 (선택, 운영자만 봐요)": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reason (optional, moderators only)"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कारण (वैकल्पिक, सिर्फ़ मॉडरेटर देखेंगे)"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "理由(任意・運営者のみ表示)"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lý do (tùy chọn, chỉ quản trị viên thấy)"
+          }
+        }
+      }
+    },
     "사진 %lld장": {
       "localizations": {
         "en": {
@@ -10628,6 +10824,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Thêm suy nghĩ của bạn"
+          }
+        }
+      }
+    },
+    "서버 관리": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Server moderation"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सर्वर मॉडरेशन"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サーバー管理"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quản lý máy chủ"
+          }
+        }
+      }
+    },
+    "서버 이름을 확인해 주세요. mastodon.example처럼 적어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check the server name. Write it like mastodon.example."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सर्वर का नाम जाँचें। mastodon.example की तरह लिखें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サーバー名を確認してください。mastodon.example のように書きます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kiểm tra tên máy chủ. Viết như mastodon.example."
           }
         }
       }
@@ -11640,6 +11892,34 @@
         }
       }
     },
+    "운영자": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moderator"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मॉडरेटर"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "運営者"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quản trị"
+          }
+        }
+      }
+    },
     "원글과 같은 범위": {
       "localizations": {
         "en": {
@@ -11804,6 +12084,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Danh sách này chưa có ghi chú"
+          }
+        }
+      }
+    },
+    "이 서버와의 팔로우가 양쪽 모두 끊기고 그 서버에서 온 알림이 지워져요. 해제해도 돌아오지 않아요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follows with this server end both ways and its notices are deleted. Lifting the block does not bring them back."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस सर्वर के साथ फ़ॉलो दोनों ओर से टूट जाएँगे और उसकी सूचनाएँ हट जाएँगी। ब्लॉक हटाने पर भी ये वापस नहीं आएँगे।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このサーバーとのフォローは双方向とも切れ、そこからの通知は削除されます。解除しても戻りません。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Các lượt theo dõi với máy chủ này bị hủy cả hai chiều và thông báo từ đó bị xóa. Bỏ chặn cũng không khôi phục lại."
           }
         }
       }
@@ -16607,6 +16915,174 @@
         }
       }
     },
+    "정지": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suspend"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "निलंबित"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đình chỉ"
+          }
+        }
+      }
+    },
+    "정지로 올리기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raise to suspend"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "निलंबन तक बढ़ाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止に上げる"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nâng lên đình chỉ"
+          }
+        }
+      }
+    },
+    "정지할까요?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suspend it?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "निलंबित करें?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止しますか?"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đình chỉ?"
+          }
+        }
+      }
+    },
+    "제한": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limit"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सीमित"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "制限"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Giới hạn"
+          }
+        }
+      }
+    },
+    "제한으로 낮추기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lower to limit"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सीमित तक घटाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "制限に下げる"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hạ xuống giới hạn"
+          }
+        }
+      }
+    },
+    "제한하면 그 서버 노트가 인기·태그에서 빠지고, 팔로우하지 않은 회원에게는 알림이 가지 않아요. 정지하면 주고받기를 모두 끊고 그 서버 노트를 어디서도 보이지 않게 해요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Limiting keeps a server's notes out of trending and tags, and members who don't follow its accounts get no notices from it. Suspending cuts it off entirely and hides its notes everywhere."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सीमित करने पर उस सर्वर के नोट ट्रेंडिंग और टैग से हट जाते हैं, और जो सदस्य उसे फ़ॉलो नहीं करते उन्हें उससे सूचनाएँ नहीं मिलतीं। निलंबित करने पर सारा लेन-देन बंद हो जाता है और उसके नोट कहीं नहीं दिखते।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "制限するとそのサーバーのノートはトレンドとタグから外れ、フォローしていないメンバーには通知が届きません。停止するとやり取りをすべて断ち、そのサーバーのノートをどこにも表示しません。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Giới hạn khiến ghi chú của máy chủ đó không xuất hiện ở xu hướng và thẻ, và thành viên không theo dõi sẽ không nhận thông báo từ nó. Đình chỉ cắt mọi trao đổi và ẩn ghi chú của nó ở mọi nơi."
+          }
+        }
+      }
+    },
     "조용한 공개": {
       "localizations": {
         "en": {
@@ -16659,6 +17135,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ghi chú mới từ người bạn bật chuông"
+          }
+        }
+      }
+    },
+    "주고받기를 모두 끊고, 그 서버 노트를 어디서도 보이지 않게 해요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuts it off entirely and hides its notes everywhere."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सारा लेन-देन बंद करता है और उसके नोट कहीं नहीं दिखाता।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "やり取りをすべて断ち、そのサーバーのノートをどこにも表示しません。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cắt mọi trao đổi và ẩn ghi chú của nó ở mọi nơi."
           }
         }
       }
