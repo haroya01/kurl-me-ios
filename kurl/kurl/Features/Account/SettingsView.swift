@@ -289,6 +289,29 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("settings.filters")
+                if AuthStore.shared.me?.isAdmin == true {
+                    Hairline()
+                    NavigationLink {
+                        ServerBlocksView()
+                    } label: {
+                        HStack(spacing: 10) {
+                            Text("서버 관리")
+                                .typeScale(.body)
+                                .foregroundStyle(Palette.ink)
+                            Spacer()
+                            Text("운영자")
+                                .typeScale(.meta)
+                                .foregroundStyle(Palette.secondary)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(Palette.faint)
+                        }
+                        .padding(.vertical, 13)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("settings.serverBlocks")
+                }
 
                 Hairline()
                     .padding(.top, 16)

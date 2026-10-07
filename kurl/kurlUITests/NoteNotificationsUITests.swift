@@ -102,6 +102,52 @@ final class NoteNotificationsUITests: XCTestCase {
         XCTAssertEqual(bell.value as? String, "꺼짐", "언팔로우가 종을 끄지 않음")
     }
 
+    func testAModeratorLimitsASuspendsAfterConfirmingAndLiftsAServer() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "account"]
+        app.launch()
+        let settings = app.buttons["설정"].firstMatch
+        XCTAssertTrue(settings.waitForExistence(timeout: 15), "계정 탭에 설정 버튼이 없음")
+        settings.tap()
+        let row = app.buttons["settings.serverBlocks"]
+        let scroll = app.scrollViews.firstMatch
+        for _ in 0..<8 where !(row.exists && row.isHittable) {
+            scroll.swipeUp(velocity: .slow)
+        }
+        XCTAssertTrue(row.waitForExistence(timeout: 5), "운영자 설정에 서버 관리가 없음")
+        row.tap()
+        XCTAssertTrue(
+            app.otherElements["serverBlocks.row.spam.example"].waitForExistence(timeout: 8),
+            "정지한 서버가 목록에 없음")
+
+        app.buttons["serverBlocks.add"].tap()
+        let domain = app.textFields["serverBlocks.domain"]
+        XCTAssertTrue(domain.waitForExistence(timeout: 5), "서버 차단 시트가 안 열림")
+        domain.tap()
+        domain.typeText("noisy.example")
+        app.buttons["serverBlocks.save"].tap()
+        let noisy = app.otherElements["serverBlocks.row.noisy.example"]
+        XCTAssertTrue(noisy.waitForExistence(timeout: 8), "제한한 서버가 목록에 안 생김")
+        XCTAssertTrue(noisy.staticTexts["제한"].exists, "새 서버가 제한으로 보이지 않음")
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "server-blocks"
+        shot.lifetime = .keepAlways
+        add(shot)
+
+        app.buttons["serverBlocks.menu.noisy.example"].tap()
+        app.buttons["정지로 올리기"].tap()
+        let confirm = app.alerts.buttons["정지"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5), "정지 전에 묻지 않음")
+        confirm.tap()
+        XCTAssertTrue(
+            noisy.staticTexts["정지"].waitForExistence(timeout: 5), "정지로 바뀌지 않음")
+
+        app.buttons["serverBlocks.menu.noisy.example"].tap()
+        app.buttons["차단 해제"].tap()
+        let gone = expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: noisy)
+        wait(for: [gone], timeout: 5)
+    }
+
     func testSettingsListsBlockedServersAndUnblocksThem() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "account", "--domain-block", "spam.example"]
