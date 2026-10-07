@@ -1073,6 +1073,13 @@ enum MockBackend {
             if method == "PUT" { bookmarkedNotes.insert(nid, at: 0) }
             return json(["bookmarked": method == "PUT"])
         }
+        if method == "GET", parts == ["public", "notes", "trending-tags"] {
+            return json([
+                ["tag": "아키텍처", "accounts": 4, "uses": 9, "history": [0, 1, 1, 2, 1, 2, 2]],
+                ["tag": "산책", "accounts": 3, "uses": 5, "history": [1, 0, 0, 1, 0, 1, 2]],
+                ["tag": "kurl", "accounts": 2, "uses": 2, "history": [0, 0, 0, 0, 0, 1, 1]],
+            ])
+        }
         if method == "GET", parts == ["public", "notes", "search"] {
             let q = (query?.first(where: { $0.name == "q" })?.value ?? "").lowercased()
             let hits = q.isEmpty

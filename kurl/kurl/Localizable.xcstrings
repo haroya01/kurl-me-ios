@@ -2074,6 +2074,34 @@
         }
       }
     },
+    "%lld명이 이번 주에 썼어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld people used it this week"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस हफ़्ते %lld लोगों ने इस्तेमाल किया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今週 %lld 人が使いました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld người đã dùng tuần này"
+          }
+        }
+      }
+    },
     "%lld분 남음": {
       "localizations": {
         "en": {
@@ -8976,6 +9004,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nhấn đúp để phát"
+          }
+        }
+      }
+    },
+    "뜨는 해시태그": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trending hashtags"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ट्रेंडिंग हैशटैग"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "トレンドのハッシュタグ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thẻ thịnh hành"
           }
         }
       }

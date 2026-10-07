@@ -521,6 +521,25 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(app.buttons["note.menu.9510"].waitForExistence(timeout: 4), "보기를 눌러도 안 펼쳐짐")
     }
 
+    func testSearchShowsTrendingHashtagsThatOpenTheirNotes() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "search"]
+        app.launch()
+
+        let trend = app.buttons["search.trendingTag.산책"]
+        let scroll = app.scrollViews.firstMatch
+        for _ in 0..<4 where !(trend.exists && trend.isHittable) {
+            scroll.swipeUp(velocity: .slow)
+        }
+        XCTAssertTrue(trend.waitForExistence(timeout: 12), "검색 대기 화면에 뜨는 해시태그가 없음")
+        XCTAssertTrue(trend.label.contains("3명이 이번 주에 썼어요"), "쓴 사람 수가 안 보임: \(trend.label)")
+        attach(app, "search-trending-tags")
+        trend.tap()
+        let notesTab = app.segmentedControls.buttons["노트"].firstMatch
+        XCTAssertTrue(notesTab.waitForExistence(timeout: 8), "태그 화면이 안 열림")
+        XCTAssertTrue(notesTab.isSelected, "뜨는 해시태그가 노트 탭으로 열리지 않음")
+    }
+
     func testSearchFindsNotesInTheNotesScope() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "search"]
