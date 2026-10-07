@@ -154,6 +154,8 @@ struct NoteRowView: View {
     let onDelete: (Int64) -> Void
     var onQuoted: ((Note) -> Void)? = nil
     var repostedBy: String? = nil
+    /// 프로필 노트 탭에서만 "고정됨" 줄을 보인다 — 다른 피드에선 고정이 의미 없다(마스토돈과 같다).
+    var showsPin = false
     /// 원글 → 답글을 잇는 스레드 선 — 아바타 아래에서 다음 행 아바타 위까지.
     var threadLineBelow = false
     /// 상세의 본 노트 — 머리 줄 아래로 본문을 전체 폭에 한 단계 크게(스레드·X 문법).
@@ -179,12 +181,14 @@ struct NoteRowView: View {
     init(note: Note, onChange: @escaping (Note) -> Void,
          onDelete: @escaping (Int64) -> Void,
          onQuoted: ((Note) -> Void)? = nil, repostedBy: String? = nil,
+         showsPin: Bool = false,
          threadLineBelow: Bool = false, focused: Bool = false) {
         self.note = note
         self.onChange = onChange
         self.onDelete = onDelete
         self.onQuoted = onQuoted
         self.repostedBy = repostedBy
+        self.showsPin = showsPin
         self.threadLineBelow = threadLineBelow
         self.focused = focused
         _liked = State(initialValue: note.likedByMe == true)
@@ -209,6 +213,18 @@ struct NoteRowView: View {
                 }
                 .foregroundStyle(Palette.secondary)
                 .accessibilityElement(children: .combine)
+            } else if showsPin, note.pinned == true {
+                HStack(spacing: 12) {
+                    Image(systemName: "pin.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .frame(width: 36, alignment: .trailing)
+                    Text("고정됨")
+                        .typeScale(.meta)
+                        .fontWeight(.medium)
+                }
+                .foregroundStyle(Palette.secondary)
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("note.pinned.\(note.id)")
             }
             if focused { focusedRow } else { row }
         }
@@ -234,6 +250,15 @@ struct NoteRowView: View {
                 }
             }
             if isMine {
+                if note.inReplyToId == nil {
+                    Button {
+                        Task { await togglePin() }
+                    } label: {
+                        Label(
+                            note.pinned == true ? LocalizedStringKey("고정 해제") : LocalizedStringKey("프로필에 고정"),
+                            systemImage: note.pinned == true ? "pin.slash" : "pin")
+                    }
+                }
                 Button { editing = true } label: { Label("고치기", systemImage: "pencil") }
                 Button(role: .destructive) { confirmDelete = true } label: {
                     Label("노트 삭제", systemImage: "trash")
@@ -529,6 +554,15 @@ struct NoteRowView: View {
             }
             if isMine {
                 Divider()
+                if note.inReplyToId == nil {
+                    Button {
+                        Task { await togglePin() }
+                    } label: {
+                        Label(
+                            note.pinned == true ? LocalizedStringKey("고정 해제") : LocalizedStringKey("프로필에 고정"),
+                            systemImage: note.pinned == true ? "pin.slash" : "pin")
+                    }
+                }
                 Button { editing = true } label: { Label("고치기", systemImage: "pencil") }
                 Button(role: .destructive) { confirmDelete = true } label: {
                     Label("노트 삭제", systemImage: "trash")
@@ -673,6 +707,21 @@ struct NoteRowView: View {
             reposted = !target
             repostCount = previous
             ToastCenter.shared.show(String(localized: "리포스트하지 못했어요"))
+        }
+    }
+
+    private func togglePin() async {
+        let target = note.pinned != true
+        do {
+            let status = try await NoteAPI.setPin(id: note.id, on: target)
+            var updated = note
+            updated.pinned = status.pinned
+            onChange(updated)
+            ToastCenter.shared.show(String(localized: status.pinned ? "프로필에 고정했어요" : "고정을 풀었어요"))
+        } catch let APIError.server(_, code, _) where code == "NOTE_PIN_LIMIT" {
+            ToastCenter.shared.show(String(localized: "고정은 5개까지예요. 다른 노트를 먼저 풀어 주세요"))
+        } catch {
+            ToastCenter.shared.show(String(localized: "고정을 바꾸지 못했어요"))
         }
     }
 
