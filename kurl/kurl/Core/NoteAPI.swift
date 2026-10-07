@@ -195,6 +195,12 @@ enum NoteAPI {
             : try await client.delete("/notes/\(id)/bookmark", authenticated: true)
     }
 
+    static func setConversationMuted(id: Int64, on: Bool) async throws -> NoteConversationMuteStatus {
+        on
+            ? try await client.put("/notes/\(id)/conversation-mute", body: EmptyBody(), authenticated: true)
+            : try await client.delete("/notes/\(id)/conversation-mute", authenticated: true)
+    }
+
     static func feedPreferences() async throws -> NoteFeedPreferencesBody {
         try await client.get("/notes/feed-preferences", authenticated: true)
     }
@@ -327,6 +333,8 @@ struct Note: Decodable, Identifiable, Hashable {
     /// public · unlisted · private · direct — 마스토돈 공개 범위.
     var visibility: String? = nil
     var poll: NotePoll? = nil
+    /// 이 노트가 든 대화의 알림을 껐다(마스토돈 대화 뮤트). 비로그인 읽기면 nil.
+    var conversationMuted: Bool? = nil
 
     var noteVisibility: NoteVisibility { NoteVisibility(rawValue: visibility ?? "public") ?? .public }
 }
@@ -448,6 +456,10 @@ struct NoteLikeStatus: Decodable {
 
 struct NoteBookmarkStatus: Decodable {
     let bookmarked: Bool
+}
+
+struct NoteConversationMuteStatus: Decodable {
+    let muted: Bool
 }
 
 struct NotePinStatus: Decodable {

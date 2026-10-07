@@ -8084,6 +8084,90 @@
         }
       }
     },
+    "대화 알림 끄기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mute conversation"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बातचीत की सूचनाएँ बंद करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会話の通知をオフ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tắt thông báo cuộc trò chuyện"
+          }
+        }
+      }
+    },
+    "대화 알림 켜기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unmute conversation"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बातचीत की सूचनाएँ चालू करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会話の通知をオン"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bật thông báo cuộc trò chuyện"
+          }
+        }
+      }
+    },
+    "대화 알림을 바꾸지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't change the conversation's notifications"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बातचीत की सूचनाएँ नहीं बदल सकीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会話の通知を変更できませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể đổi thông báo cuộc trò chuyện"
+          }
+        }
+      }
+    },
     "로그인하고 팔로잉 피드 보기": {
       "localizations": {
         "en": {
@@ -10236,6 +10320,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Giống bài gốc"
+          }
+        }
+      }
+    },
+    "이 대화의 알림을 껐어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muted this conversation"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस बातचीत की सूचनाएँ बंद कीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この会話の通知をオフにしました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã tắt thông báo cuộc trò chuyện này"
+          }
+        }
+      }
+    },
+    "이 대화의 알림을 다시 받아요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You'll hear from this conversation again"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस बातचीत की सूचनाएँ फिर मिलेंगी"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この会話の通知をまた受け取ります"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn sẽ lại nhận thông báo của cuộc trò chuyện này"
           }
         }
       }

@@ -214,6 +214,7 @@ struct NoteRowView: View {
     @State private var repostTaps = 0
     @State private var bookmarked: Bool
     @State private var bookmarkTaps = 0
+    @State private var conversationMuted: Bool
     @State private var quoting = false
     @State private var editing = false
     @State private var confirmDelete = false
@@ -244,6 +245,7 @@ struct NoteRowView: View {
         _reposted = State(initialValue: note.repostedByMe == true)
         _repostCount = State(initialValue: note.repostCount)
         _bookmarked = State(initialValue: note.bookmarkedByMe == true)
+        _conversationMuted = State(initialValue: note.conversationMuted == true)
     }
 
     private var isMine: Bool { AuthStore.shared.me?.id == note.author.id }
@@ -381,6 +383,7 @@ struct NoteRowView: View {
             reposted = next.repostedByMe == true
             repostCount = next.repostCount
             bookmarked = next.bookmarkedByMe == true
+            conversationMuted = next.conversationMuted == true
         }
     }
 
@@ -670,6 +673,14 @@ struct NoteRowView: View {
                 Button { connecting = true } label: {
                     Label("컬렉션에 연결", systemImage: "rectangle.stack.badge.plus")
                 }
+                Button {
+                    Task { await toggleConversationMute() }
+                } label: {
+                    Label(
+                        conversationMuted ? LocalizedStringKey("대화 알림 켜기") : LocalizedStringKey("대화 알림 끄기"),
+                        systemImage: conversationMuted ? "bell" : "bell.slash")
+                }
+                .accessibilityIdentifier("note.conversationMute.\(note.id)")
             }
             if isMine {
                 Divider()
@@ -874,6 +885,20 @@ struct NoteRowView: View {
         } catch {
             bookmarked = !target
             ToastCenter.shared.show(String(localized: "북마크를 바꾸지 못했어요"))
+        }
+    }
+
+    private func toggleConversationMute() async {
+        let target = !conversationMuted
+        conversationMuted = target
+        do {
+            _ = try await NoteAPI.setConversationMuted(id: note.id, on: target)
+            ToastCenter.shared.show(String(localized: target
+                ? "이 대화의 알림을 껐어요"
+                : "이 대화의 알림을 다시 받아요"))
+        } catch {
+            conversationMuted = !target
+            ToastCenter.shared.show(String(localized: "대화 알림을 바꾸지 못했어요"))
         }
     }
 
