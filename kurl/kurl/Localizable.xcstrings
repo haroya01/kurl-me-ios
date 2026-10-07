@@ -1193,6 +1193,34 @@
         }
       }
     },
+    "%@님이 내가 리포스트하거나 인용한 노트를 수정했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ edited a note you reposted or quoted"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ने वह नोट संपादित किया जिसे आपने रीपोस्ट या कोट किया था"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@さんがリポストまたは引用したノートを編集しました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ đã sửa một ghi chú bạn đăng lại hoặc trích dẫn"
+          }
+        }
+      }
+    },
     "%@님이 노트에서 나를 언급했어요": {
       "localizations": {
         "en": {
@@ -4649,6 +4677,34 @@
         }
       }
     },
+    "공유한 노트의 수정": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edits to notes you shared"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपके साझा किए नोट में बदलाव"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共有したノートの編集"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chỉnh sửa ghi chú bạn đã chia sẻ"
+          }
+        }
+      }
+    },
     "관리자": {
       "localizations": {
         "en": {
@@ -7212,6 +7268,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Phần tô sáng của tôi"
+          }
+        }
+      }
+    },
+    "내가 리포스트하거나 인용한 노트를 작성자가 고칠 때": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When the author edits a note you reposted or quoted"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जब लेखक वह नोट संपादित करे जिसे आपने रीपोस्ट या कोट किया था"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リポストまたは引用したノートを作者が編集したとき"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khi tác giả sửa ghi chú bạn đã đăng lại hoặc trích dẫn"
           }
         }
       }

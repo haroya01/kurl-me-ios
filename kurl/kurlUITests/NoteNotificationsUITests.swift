@@ -65,6 +65,18 @@ final class NoteNotificationsUITests: XCTestCase {
         XCTAssertTrue(note.waitForExistence(timeout: 8), "새 노트 알림이 그 노트를 열지 않음")
     }
 
+    func testAnEditNoticeOpensTheNoteThatChanged() throws {
+        let app = launchInbox()
+
+        let edited = row(app, contains: "리포스트하거나 인용한 노트를 수정했어요")
+        XCTAssertTrue(edited.waitForExistence(timeout: 12), "공유한 노트의 수정 알림이 없음")
+        XCTAssertTrue(edited.label.contains("헥사고날"), "수정 알림 부제가 노트 첫 줄이 아님")
+        edited.tap()
+        let note = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS '헥사고날 포트 이름'")).firstMatch
+        XCTAssertTrue(note.waitForExistence(timeout: 8), "수정 알림이 그 노트를 열지 않음")
+    }
+
     func testTheBellBesideFollowingTurnsOnNewNoteNoticesAndLeavesWithTheFollow() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--author", "yuki_dev"]
