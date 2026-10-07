@@ -1697,6 +1697,34 @@
         }
       }
     },
+    "%@에도 전달": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Also send to %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ को भी भेजें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@にも転送"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gửi cả đến %@"
+          }
+        }
+      }
+    },
     "%@에서 보기": {
       "localizations": {
         "en": {
@@ -5738,6 +5766,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đậm"
+          }
+        }
+      }
+    },
+    "그 서버 관리자에게 이름 없이 사본을 보내요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sends an anonymous copy to that server's moderators"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "उस सर्वर के मॉडरेटरों को बिना नाम के एक प्रति भेजता है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "そのサーバーの管理者に匿名でコピーを送ります"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gửi bản sao ẩn danh đến quản trị viên máy chủ đó"
           }
         }
       }
@@ -11496,6 +11552,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Giống bài gốc"
+          }
+        }
+      }
+    },
+    "이 노트를": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "this note"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस नोट को"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このノートを"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ghi chú này"
           }
         }
       }

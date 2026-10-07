@@ -714,7 +714,9 @@ struct NoteRowView: View {
         }
         .accessibilityLabel("노트 메뉴")
         .accessibilityIdentifier("note.menu.\(note.id)")
-        .reportDialog(isPresented: $reporting, subjectType: "NOTE", subjectId: note.id)
+        .reportDialog(
+            isPresented: $reporting, subjectType: "NOTE", subjectId: note.id,
+            forwardDomain: note.author.isRemote ? note.author.username.split(separator: "@").last.map(String.init) : nil)
     }
 
     private func actions(spread: Bool) -> some View {
