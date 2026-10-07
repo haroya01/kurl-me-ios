@@ -34,6 +34,8 @@ enum Route: Hashable {
     case noteQuotes(id: Int64)
     /// 다른 서버 계정 — 검색에서 @아이디@서버로 찾는다.
     case remoteAccount(id: Int64)
+    /// 잠긴 계정에 온 팔로우 요청 — 알림 맨 위 줄과 요청 알림 푸시에서 연다.
+    case followRequests
 }
 
 enum PostSpot: Hashable {

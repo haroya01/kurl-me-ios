@@ -168,6 +168,11 @@ enum MockBackend {
     /// 알림을 끈 대화 — 목은 대화 루트 대신 누른 노트 id로 둔다.
     private static var mutedConversations: Set<Int64> = []
     private static var remoteAccounts: [Int64: [String: Any]] = [
+        9810: [
+            "id": Int64(9810), "acct": "carol@fosstodon.org", "username": "carol",
+            "domain": "fosstodon.org", "displayName": "Carol", "avatarUrl": NSNull(),
+            "url": "https://fosstodon.org/@carol", "following": false, "requested": false,
+        ],
         9800: [
             "id": Int64(9800), "acct": "mina@mastodon.social", "username": "mina",
             "domain": "mastodon.social", "displayName": "Mina", "avatarUrl": NSNull(),
@@ -293,6 +298,15 @@ enum MockBackend {
     private static var myBio = "경계를 긋는 사람. 헥사고날·도메인 모델링."
     private static var displayNames: [String: String] = ["reader_kim": "김독자"]
     private static var myHideFollowerCount = false
+    /// 내 계정은 팔로우를 직접 승인한다 — 이 서버 회원 하나와 다른 서버 계정 하나가 기다린다.
+    private static var myLocked = true
+    private static var memberRequests: [(username: String, displayName: String?, at: Date)] = [
+        ("sori", "소리", Date().addingTimeInterval(-1_200)),
+    ]
+    private static var remoteRequests: [Int64: Date] = [9810: Date().addingTimeInterval(-3_600)]
+    /// 팔로우를 직접 승인하는 작가와, 그 작가에게 보낸 요청.
+    private static let lockedAuthors: Set<String> = ["haneul"]
+    private static var sentRequests: Set<String> = []
     private static var myUsername = "honggildong"
 
     // MARK: 긴 글 픽스처
@@ -1034,6 +1048,13 @@ enum MockBackend {
                     myUsername = u.lowercased()
                 }
                 if let hide = req["hideFollowerCount"] as? Bool { myHideFollowerCount = hide }
+                if let locked = req["locked"] as? Bool {
+                    if !locked {
+                        memberRequests = []
+                        remoteRequests = [:]
+                    }
+                    myLocked = locked
+                }
                 if let name = req["displayName"] as? String {
                     displayNames["honggildong"] = name.isEmpty ? nil : name
                 }
@@ -1042,6 +1063,7 @@ enum MockBackend {
                 "username": myUsername, "bio": myBio, "theme": "light", "socials": NSNull(),
                 "hideFollowerCount": myHideFollowerCount,
                 "displayName": displayNames["honggildong"] ?? NSNull(),
+                "locked": myLocked,
             ])
         }
         if method == "POST", parts == ["users", "me", "avatar", "presigned-url"] {
@@ -1634,10 +1656,17 @@ enum MockBackend {
         if parts.count == 3, parts[0] == "users", parts[2] == "follow" {
             let username = parts[1]
             var state = follows[username] ?? (following: username == "yuki_dev", count: 12)
-            if method == "PUT" { if !state.following { state.count += 1 }; state.following = true }
+            let locked = lockedAuthors.contains(username) || (username == myUsername && myLocked)
+            if method == "PUT", locked, !state.following {
+                sentRequests.insert(username)
+            } else if method == "PUT" {
+                if !state.following { state.count += 1 }
+                state.following = true
+            }
             if method == "DELETE" {
                 if state.following { state.count -= 1 }
                 state.following = false
+                sentRequests.remove(username)
                 noteBells.remove(username)
             }
             follows[username] = state
@@ -1646,6 +1675,7 @@ enum MockBackend {
             var payload: [String: Any] = [
                 "following": state.following, "hideFollowerCount": hidden,
                 "notifyNotes": noteBells.contains(username),
+                "requested": sentRequests.contains(username), "locked": locked,
             ]
             if !hidden {
                 payload["followerCount"] = state.count
@@ -2010,85 +2040,128 @@ enum MockBackend {
             return json([:] as [String: Any])
         }
 
+        if method == "GET", parts == ["users", "me", "follow-requests"] {
+            return json(memberRequests.map { request -> [String: Any] in
+                ["username": request.username, "displayName": request.displayName ?? NSNull(),
+                 "avatarUrl": NSNull(), "requestedAt": iso(request.at)]
+            })
+        }
+        if method == "POST", parts.count == 5, parts[0] == "users", parts[2] == "follow-requests" {
+            let username = parts[3]
+            guard memberRequests.contains(where: { $0.username == username }) else { return nil }
+            memberRequests.removeAll { $0.username == username }
+            return json([:] as [String: Any])
+        }
+        if method == "GET", parts == ["federation", "follow-requests"] {
+            return json(remoteRequests.sorted { $0.value > $1.value }.compactMap { id, at -> [String: Any]? in
+                guard let account = remoteAccounts[id] else { return nil }
+                return ["id": id, "acct": account["acct"] ?? "", "username": account["username"] ?? "",
+                        "domain": account["domain"] ?? "", "displayName": account["displayName"] ?? NSNull(),
+                        "avatarUrl": NSNull(), "url": account["url"] ?? "", "requestedAt": iso(at)]
+            })
+        }
+        if method == "POST", parts.count == 4, parts[0] == "federation", parts[1] == "follow-requests",
+           let id = Int64(parts[2]) {
+            guard remoteRequests.removeValue(forKey: id) != nil else { return nil }
+            return json([:] as [String: Any])
+        }
+
         if method == "GET", parts == ["notifications"] {
+            let requestItems: [[String: Any]] =
+                memberRequests.enumerated().map { index, request -> [String: Any] in
+                    ["id": 700 + index, "type": "FOLLOW_REQUEST", "actorUsername": request.username,
+                     "actorAvatarUrl": NSNull(),
+                     "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
+                     "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                     "count": 1, "read": false, "createdAt": iso(request.at)]
+                }
+                + remoteRequests.keys.sorted().map { id -> [String: Any] in
+                    ["id": 750 + Int(id - 9800), "type": "FOLLOW_REQUEST",
+                     "actorUsername": remoteAccounts[id]?["acct"] ?? "", "actorAvatarUrl": NSNull(),
+                     "actorProfileUrl": remoteAccounts[id]?["url"] ?? "", "actorRemoteId": id,
+                     "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
+                     "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                     "count": 1, "read": false, "createdAt": iso(remoteRequests[id] ?? Date())]
+                }
+            let fixedItems: [[String: Any]] = [
+                ["id": 1, "type": "LIKE", "actorUsername": "reader_kim", "actorAvatarUrl": NSNull(),
+                 "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글", "postAuthorUsername": NSNull(),
+                 "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                 "read": false, "createdAt": iso(Date().addingTimeInterval(-600))],
+                ["id": 2, "type": "COMMENT", "actorUsername": "yuki_dev", "actorAvatarUrl": NSNull(),
+                 "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글", "postAuthorUsername": NSNull(),
+                 "commentId": 506,
+                 "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                 "read": false, "createdAt": iso(Date().addingTimeInterval(-3600))],
+                ["id": 3, "type": "FOLLOW", "actorUsername": "stranger99", "actorAvatarUrl": NSNull(),
+                 "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
+                 "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                 "read": true, "createdAt": iso(Date().addingTimeInterval(-86_400))],
+                ["id": 4, "type": "SERIES_SUBSCRIBE", "actorUsername": "yuki_dev", "actorAvatarUrl": NSNull(),
+                 "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
+                 "seriesId": 1, "seriesSlug": "hexagonal", "seriesTitle": "헥사고날 전환기",
+                 "read": true, "createdAt": iso(Date().addingTimeInterval(-172_800))],
+                ["id": 5, "type": "REPLY", "actorUsername": "reader_kim", "actorAvatarUrl": NSNull(),
+                 "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글", "postAuthorUsername": "honggildong",
+                 "commentId": 507,
+                 "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                 "read": true, "createdAt": iso(Date().addingTimeInterval(-259_200))],
+                ["id": 6, "type": "MENTION", "actorUsername": "yuki_dev", "actorAvatarUrl": NSNull(),
+                 "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글", "postAuthorUsername": "honggildong",
+                 "highlightId": 6001,
+                 "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                 "read": true, "createdAt": iso(Date().addingTimeInterval(-345_600))],
+                ["id": 7, "type": "NEW_POST", "actorUsername": "honggildong", "actorAvatarUrl": NSNull(),
+                 "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글", "postAuthorUsername": "honggildong",
+                 "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                 "read": true, "createdAt": iso(Date().addingTimeInterval(-432_000))],
+                ["id": 12, "type": "NOTE_LIKE", "actorUsername": "alice@mastodon.social", "actorAvatarUrl": NSNull(),
+                 "actorProfileUrl": "https://mastodon.social/@alice",
+                 "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
+                 "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                 "noteId": 9502, "noteExcerpt": "긴 글로 정리하기 전의 생각 조각을 둘 곳이 필요했는데, 노트가 딱 그 자리다.",
+                 "count": 4, "read": false, "createdAt": iso(Date().addingTimeInterval(-300))],
+                ["id": 11, "type": "NOTE_REPLY", "actorUsername": "reader_kim", "actorAvatarUrl": NSNull(),
+                 "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
+                 "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                 "noteId": 9502, "noteExcerpt": "긴 글로 정리하기 전의 생각 조각을 둘 곳이 필요했는데, 노트가 딱 그 자리다.",
+                 "sourceNoteId": 9551, "sourceExcerpt": "이름이 경계라는 말, 오래 남을 것 같아요.",
+                 "count": 1, "read": false, "createdAt": iso(Date().addingTimeInterval(-450))],
+                ["id": 13, "type": "NOTE_MENTION", "actorUsername": "yuki_dev", "actorAvatarUrl": NSNull(),
+                 "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
+                 "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                 "noteId": 9501, "noteExcerpt": "오늘 헥사고날 포트 이름 짓는 데 한 시간 썼다.",
+                 "count": 1, "read": false, "createdAt": iso(Date().addingTimeInterval(-600))],
+                ["id": 14, "type": "NOTE_POST", "actorUsername": "yuki_dev", "actorAvatarUrl": NSNull(),
+                 "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
+                 "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                 "noteId": 9501, "noteExcerpt": "오늘 헥사고날 포트 이름 짓는 데 한 시간 썼다.",
+                 "count": 1, "read": false, "createdAt": iso(Date().addingTimeInterval(-700))],
+                ["id": 15, "type": "NOTE_EDIT", "actorUsername": "yuki_dev", "actorAvatarUrl": NSNull(),
+                 "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
+                 "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                 "noteId": 9501, "noteExcerpt": "오늘 헥사고날 포트 이름 짓는 데 한 시간 썼다.",
+                 "count": 1, "read": true, "createdAt": iso(Date().addingTimeInterval(-800))],
+                ["id": 10, "type": "REMOTE_FOLLOW", "actorUsername": "bob@fosstodon.org", "actorAvatarUrl": NSNull(),
+                 "actorProfileUrl": "https://fosstodon.org/@bob",
+                 "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
+                 "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                 "count": 1, "read": true, "createdAt": iso(Date().addingTimeInterval(-900))],
+                // 연결 그래프 — 내 글이 큐레이터 컬렉션에 엮임(딥링크=컬렉션 101 "느린 사고").
+                ["id": 8, "type": "CONNECTED", "actorUsername": "yuki_dev", "actorAvatarUrl": NSNull(),
+                 "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글", "postAuthorUsername": "honggildong",
+                 "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                 "collectionId": 101, "collectionName": "느린 사고",
+                 "read": false, "createdAt": iso(Date().addingTimeInterval(-1200))],
+                // 연결 그래프 — 내가 엮인 길(PATH 104)에 새 글이 이어짐. actor 없이 시스템 발행.
+                ["id": 9, "type": "PATH_GREW", "actorUsername": NSNull(), "actorAvatarUrl": NSNull(),
+                 "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
+                 "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                 "collectionId": 104, "collectionName": "경계를 긋는다는 것",
+                 "read": false, "createdAt": iso(Date().addingTimeInterval(-2400))],
+            ]
             return json([
-                "items": [
-                    ["id": 1, "type": "LIKE", "actorUsername": "reader_kim", "actorAvatarUrl": NSNull(),
-                     "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글", "postAuthorUsername": NSNull(),
-                     "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
-                     "read": false, "createdAt": iso(Date().addingTimeInterval(-600))],
-                    ["id": 2, "type": "COMMENT", "actorUsername": "yuki_dev", "actorAvatarUrl": NSNull(),
-                     "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글", "postAuthorUsername": NSNull(),
-                     "commentId": 506,
-                     "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
-                     "read": false, "createdAt": iso(Date().addingTimeInterval(-3600))],
-                    ["id": 3, "type": "FOLLOW", "actorUsername": "stranger99", "actorAvatarUrl": NSNull(),
-                     "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
-                     "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
-                     "read": true, "createdAt": iso(Date().addingTimeInterval(-86_400))],
-                    ["id": 4, "type": "SERIES_SUBSCRIBE", "actorUsername": "yuki_dev", "actorAvatarUrl": NSNull(),
-                     "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
-                     "seriesId": 1, "seriesSlug": "hexagonal", "seriesTitle": "헥사고날 전환기",
-                     "read": true, "createdAt": iso(Date().addingTimeInterval(-172_800))],
-                    ["id": 5, "type": "REPLY", "actorUsername": "reader_kim", "actorAvatarUrl": NSNull(),
-                     "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글", "postAuthorUsername": "honggildong",
-                     "commentId": 507,
-                     "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
-                     "read": true, "createdAt": iso(Date().addingTimeInterval(-259_200))],
-                    ["id": 6, "type": "MENTION", "actorUsername": "yuki_dev", "actorAvatarUrl": NSNull(),
-                     "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글", "postAuthorUsername": "honggildong",
-                     "highlightId": 6001,
-                     "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
-                     "read": true, "createdAt": iso(Date().addingTimeInterval(-345_600))],
-                    ["id": 7, "type": "NEW_POST", "actorUsername": "honggildong", "actorAvatarUrl": NSNull(),
-                     "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글", "postAuthorUsername": "honggildong",
-                     "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
-                     "read": true, "createdAt": iso(Date().addingTimeInterval(-432_000))],
-                    ["id": 12, "type": "NOTE_LIKE", "actorUsername": "alice@mastodon.social", "actorAvatarUrl": NSNull(),
-                     "actorProfileUrl": "https://mastodon.social/@alice",
-                     "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
-                     "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
-                     "noteId": 9502, "noteExcerpt": "긴 글로 정리하기 전의 생각 조각을 둘 곳이 필요했는데, 노트가 딱 그 자리다.",
-                     "count": 4, "read": false, "createdAt": iso(Date().addingTimeInterval(-300))],
-                    ["id": 11, "type": "NOTE_REPLY", "actorUsername": "reader_kim", "actorAvatarUrl": NSNull(),
-                     "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
-                     "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
-                     "noteId": 9502, "noteExcerpt": "긴 글로 정리하기 전의 생각 조각을 둘 곳이 필요했는데, 노트가 딱 그 자리다.",
-                     "sourceNoteId": 9551, "sourceExcerpt": "이름이 경계라는 말, 오래 남을 것 같아요.",
-                     "count": 1, "read": false, "createdAt": iso(Date().addingTimeInterval(-450))],
-                    ["id": 13, "type": "NOTE_MENTION", "actorUsername": "yuki_dev", "actorAvatarUrl": NSNull(),
-                     "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
-                     "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
-                     "noteId": 9501, "noteExcerpt": "오늘 헥사고날 포트 이름 짓는 데 한 시간 썼다.",
-                     "count": 1, "read": false, "createdAt": iso(Date().addingTimeInterval(-600))],
-                    ["id": 14, "type": "NOTE_POST", "actorUsername": "yuki_dev", "actorAvatarUrl": NSNull(),
-                     "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
-                     "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
-                     "noteId": 9501, "noteExcerpt": "오늘 헥사고날 포트 이름 짓는 데 한 시간 썼다.",
-                     "count": 1, "read": false, "createdAt": iso(Date().addingTimeInterval(-700))],
-                    ["id": 15, "type": "NOTE_EDIT", "actorUsername": "yuki_dev", "actorAvatarUrl": NSNull(),
-                     "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
-                     "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
-                     "noteId": 9501, "noteExcerpt": "오늘 헥사고날 포트 이름 짓는 데 한 시간 썼다.",
-                     "count": 1, "read": true, "createdAt": iso(Date().addingTimeInterval(-800))],
-                    ["id": 10, "type": "REMOTE_FOLLOW", "actorUsername": "bob@fosstodon.org", "actorAvatarUrl": NSNull(),
-                     "actorProfileUrl": "https://fosstodon.org/@bob",
-                     "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
-                     "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
-                     "count": 1, "read": true, "createdAt": iso(Date().addingTimeInterval(-900))],
-                    // 연결 그래프 — 내 글이 큐레이터 컬렉션에 엮임(딥링크=컬렉션 101 "느린 사고").
-                    ["id": 8, "type": "CONNECTED", "actorUsername": "yuki_dev", "actorAvatarUrl": NSNull(),
-                     "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글", "postAuthorUsername": "honggildong",
-                     "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
-                     "collectionId": 101, "collectionName": "느린 사고",
-                     "read": false, "createdAt": iso(Date().addingTimeInterval(-1200))],
-                    // 연결 그래프 — 내가 엮인 길(PATH 104)에 새 글이 이어짐. actor 없이 시스템 발행.
-                    ["id": 9, "type": "PATH_GREW", "actorUsername": NSNull(), "actorAvatarUrl": NSNull(),
-                     "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
-                     "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
-                     "collectionId": 104, "collectionName": "경계를 긋는다는 것",
-                     "read": false, "createdAt": iso(Date().addingTimeInterval(-2400))],
-                ],
+                "items": requestItems + fixedItems,
                 "nextCursor": NSNull(), "hasMore": false,
             ])
         }

@@ -27,6 +27,11 @@ final class NotificationRouteTests: XCTestCase {
         XCTAssertEqual(route, .collection(id: 42))
     }
 
+    func testFollowRequestPushOpensTheRequestsNotTheAsker() {
+        let route = NotificationRoute.route(push: ["type": "FOLLOW_REQUEST", "actorUsername": "sori"])
+        XCTAssertEqual(route, .followRequests)
+    }
+
     func testFollowPushOpensTheActor() {
         let route = NotificationRoute.route(push: ["type": "FOLLOW", "actorUsername": "stranger99"])
         XCTAssertEqual(route, .author(username: "stranger99"))

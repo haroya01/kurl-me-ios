@@ -25,6 +25,7 @@ struct NotificationsView: View {
     @State private var loadedForSignIn: Bool?
     @State private var showLoginSheet = false
     @State private var pushStatus: UNAuthorizationStatus?
+    @State private var followRequests = FollowRequestStore.shared
     @Environment(\.openURL) private var openURL
     /// "모두 읽음" 툴바 액션 — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
     @ScaledMetric(relativeTo: .subheadline) private var actionSize: CGFloat = 13
@@ -44,6 +45,7 @@ struct NotificationsView: View {
                 ErrorState(message: loadError, retry: { Task { await load() } })
                     .padding(.top, 60)
             } else if items.isEmpty {
+                followRequestsEntry
                 // 막다른 길 금지 — 알림은 사람을 팔로우하고 반응하면 흐른다. 검색의 작가 레일로 이어준다
                 // (다른 빈 면과 같은 언어 = FeedPlaceholder).
                 FeedPlaceholder(
@@ -181,7 +183,44 @@ struct NotificationsView: View {
     }
 
     @ViewBuilder
+    private var followRequestsEntry: some View {
+        let waiting = followRequests.requests
+        if !waiting.isEmpty {
+            NavigationLink(value: Route.followRequests) {
+                HStack(spacing: 12) {
+                    Image(systemName: "person.badge.clock")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Palette.ink)
+                        .frame(width: 38, height: 38)
+                        .background(Palette.chipBg, in: Circle())
+                        .accessibilityHidden(true)
+                    Text("팔로우 요청")
+                        .typeScale(.body)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Palette.ink)
+                    Spacer(minLength: 8)
+                    Text(verbatim: "\(waiting.count)")
+                        .typeScale(.meta)
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.secondary)
+                        .contentTransition(.numericText())
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Palette.faint)
+                        .accessibilityHidden(true)
+                }
+                .padding(.vertical, 11)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(RowButtonStyle())
+            .accessibilityIdentifier("notifications.followRequests")
+            Hairline()
+        }
+    }
+
+    @ViewBuilder
     private var list: some View {
+        followRequestsEntry
         let shown = shownItems
         ForEach(Array(shown.enumerated()), id: \.element.id) { index, notification in
             notificationRow(notification)
@@ -202,7 +241,14 @@ struct NotificationsView: View {
     @ViewBuilder
     private func notificationRow(_ n: AppNotification) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            if let remote = n.actorProfileUrl.flatMap(URL.init(string:)) {
+            if let remoteId = n.actorRemoteId {
+                NavigationLink(value: Route.remoteAccount(id: remoteId)) {
+                    avatarBadge(n)
+                }
+                .buttonStyle(.plain)
+                .simultaneousGesture(TapGesture().onEnded { markRead(n) })
+                .accessibilityLabel(Text("\(n.actorUsername ?? "") 프로필"))
+            } else if let remote = n.actorProfileUrl.flatMap(URL.init(string:)) {
                 Link(destination: remote) {
                     avatarBadge(n)
                 }
@@ -219,28 +265,53 @@ struct NotificationsView: View {
             } else {
                 avatarBadge(n)
             }
-            Group {
-                if let route = NotificationRoute.route(for: n) {
-                    NavigationLink(value: route) {
-                        content(n)
+            VStack(alignment: .leading, spacing: 8) {
+                rowBody(n)
+                if n.type == "FOLLOW_REQUEST", let origin = requestOrigin(n) {
+                    AnswerButtons(origin: origin, name: n.actorUsername ?? "") {
+                        withAnimation(.snappy(duration: 0.2)) {
+                            items.removeAll { $0.id == n.id }
+                        }
                     }
-                    .buttonStyle(RowButtonStyle())
-                    .simultaneousGesture(TapGesture().onEnded { markRead(n) })
-                } else if n.type == "REMOTE_FOLLOW", let remote = n.actorProfileUrl.flatMap(URL.init(string:)) {
-                    Link(destination: remote) {
-                        content(n)
-                    }
-                    .buttonStyle(RowButtonStyle())
-                    .simultaneousGesture(TapGesture().onEnded { markRead(n) })
-                } else {
-                    content(n)
-                        .onTapGesture { markRead(n) }
                 }
             }
-            .accessibilityElement(children: .combine)
-            .accessibilityValue(n.read ? Text(verbatim: "") : Text("읽지 않음"))
         }
         .padding(.vertical, 11)
+    }
+
+    private func rowBody(_ n: AppNotification) -> some View {
+        Group {
+            if n.type == "FOLLOW_REQUEST" {
+                NavigationLink(value: Route.followRequests) {
+                    content(n)
+                }
+                .buttonStyle(RowButtonStyle())
+                .simultaneousGesture(TapGesture().onEnded { markRead(n) })
+            } else if n.type == "REMOTE_FOLLOW", let remoteId = n.actorRemoteId {
+                NavigationLink(value: Route.remoteAccount(id: remoteId)) {
+                    content(n)
+                }
+                .buttonStyle(RowButtonStyle())
+                .simultaneousGesture(TapGesture().onEnded { markRead(n) })
+            } else if let route = NotificationRoute.route(for: n) {
+                NavigationLink(value: route) {
+                    content(n)
+                }
+                .buttonStyle(RowButtonStyle())
+                .simultaneousGesture(TapGesture().onEnded { markRead(n) })
+            } else if n.type == "REMOTE_FOLLOW", let remote = n.actorProfileUrl.flatMap(URL.init(string:)) {
+                Link(destination: remote) {
+                    content(n)
+                }
+                .buttonStyle(RowButtonStyle())
+                .simultaneousGesture(TapGesture().onEnded { markRead(n) })
+            } else {
+                content(n)
+                    .onTapGesture { markRead(n) }
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityValue(n.read ? Text(verbatim: "") : Text("읽지 않음"))
     }
 
     // 아바타 = 피드와 같은 문법(0.5px 링). 미읽음은 아바타 우하단의 그린 점 하나로 —
@@ -318,6 +389,7 @@ struct NotificationsView: View {
         case "NOTE_POST": return "bell.fill"
         case "NOTE_EDIT": return "pencil"
         case "REMOTE_FOLLOW": return "person.fill.badge.plus"
+        case "FOLLOW_REQUEST": return "person.badge.clock"
         default: return "bell.fill"
         }
     }
@@ -395,6 +467,7 @@ struct NotificationsView: View {
         case "NOTE_POST": return Text("\(actor)님이 새 노트를 올렸어요")
         case "NOTE_EDIT": return Text("\(actor)님이 내가 리포스트하거나 인용한 노트를 수정했어요")
         case "REMOTE_FOLLOW": return Text("\(actor)님이 다른 서버에서 나를 팔로우했어요")
+        case "FOLLOW_REQUEST": return Text("\(actor)님이 팔로우를 요청했어요")
         default: return actor
         }
     }
@@ -406,6 +479,12 @@ struct NotificationsView: View {
             return n.noteExcerpt
         default: return n.postTitle ?? n.seriesTitle
         }
+    }
+
+    private func requestOrigin(_ n: AppNotification) -> FollowRequest.Origin? {
+        if let remoteId = n.actorRemoteId { return .remote(id: remoteId) }
+        if let username = n.actorUsername, !username.isEmpty { return .member(username: username) }
+        return nil
     }
 
     private func markRead(_ n: AppNotification) {
@@ -438,10 +517,12 @@ struct NotificationsView: View {
             items = []
             loadError = nil
             loading = false
+            followRequests.reset()
             return
         }
         epoch += 1
         let myEpoch = epoch
+        Task { await followRequests.load() }
         do {
             let page = try await NotificationsAPI.list()
             guard myEpoch == epoch else { return }

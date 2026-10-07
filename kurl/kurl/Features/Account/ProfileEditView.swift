@@ -22,6 +22,8 @@ struct ProfileEditView: View {
     @State private var initialDisplayName = ""
     @State private var bioLoaded = false
     @State private var hideFollowerCount = false
+    @State private var locked = false
+    @State private var initialLocked = false
     @State private var initialHideFollowerCount = false
     @State private var loaded = false
     @State private var pickerItem: PhotosPickerItem?
@@ -130,6 +132,23 @@ struct ProfileEditView: View {
             } footer: {
                 Text("켜면 다른 사람에게 내 팔로워·팔로잉 목록이 보이지 않아요. 수는 원래 나에게만 보여요.")
             }
+
+            Section {
+                Toggle(isOn: $locked) {
+                    Text("팔로우 직접 승인")
+                        .typeScale(.body)
+                        .foregroundStyle(Palette.ink)
+                }
+                .tint(Palette.accent)
+                .disabled(!bioLoaded)
+                .accessibilityIdentifier("profile.locked")
+            } footer: {
+                if initialLocked && !locked {
+                    Text("끄면 기다리던 팔로우 요청이 모두 승인돼요.")
+                } else {
+                    Text("켜면 새 팔로워는 요청을 보내고, 내가 승인해야 팔로워가 돼요. 다른 서버 계정도 같아요. 지금 팔로워는 그대로예요.")
+                }
+            }
         }
         .navigationTitle("프로필 편집")
         .navigationBarTitleDisplayMode(.inline)
@@ -211,6 +230,8 @@ struct ProfileEditView: View {
             bioLoaded = true
             hideFollowerCount = profile.hideFollowerCount
             initialHideFollowerCount = profile.hideFollowerCount
+            locked = profile.locked
+            initialLocked = profile.locked
         } catch {
             bioLoaded = false
         }
@@ -251,7 +272,8 @@ struct ProfileEditView: View {
                     // 바뀐 값일 때만 — 프리필을 못 받았으면(false 기본) 켠 경우에만 보내 오설정 방지.
                     hideFollowerCount: hideFollowerCount != initialHideFollowerCount ? hideFollowerCount : nil,
                     displayName: bioLoaded && displayName != initialDisplayName
-                        ? displayName.trimmingCharacters(in: .whitespacesAndNewlines) : nil)
+                        ? displayName.trimmingCharacters(in: .whitespacesAndNewlines) : nil,
+                    locked: bioLoaded && locked != initialLocked ? locked : nil)
                 if let img = newAvatar, let jpeg = img.jpegData(compressionQuality: 0.85) {
                     _ = try await ProfileAPI.uploadAvatar(jpegData: jpeg)
                     newAvatar = nil  // 성공 — 재시도해도 다시 안 올린다.

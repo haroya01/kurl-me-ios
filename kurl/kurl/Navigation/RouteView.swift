@@ -45,6 +45,8 @@ struct RouteView: View {
             NoteQuotesView(noteId: id)
         case let .remoteAccount(id):
             RemoteAccountView(accountId: id)
+        case .followRequests:
+            FollowRequestsView()
         }
     }
 }

@@ -30,9 +30,14 @@ enum InteractionsAPI {
         let hideFollowerCount: Bool
         /// 이 작가의 새 노트마다 알림을 받는지(마스토돈의 종). 팔로우할 때만 켤 수 있다.
         let notifyNotes: Bool
+        /// 잠긴 계정에 보낸 팔로우가 승인을 기다리는 중.
+        let requested: Bool
+        /// 팔로우를 직접 승인하는 계정(마스토돈 locked) — 팔로우가 요청으로 남는다.
+        let locked: Bool
 
         enum CodingKeys: String, CodingKey {
-            case following, followerCount, followingCount, hideFollowerCount, notifyNotes
+            case following, followerCount, followingCount, hideFollowerCount, notifyNotes, requested,
+                locked
         }
 
         init(from decoder: Decoder) throws {
@@ -42,6 +47,8 @@ enum InteractionsAPI {
             followingCount = try c.decodeIfPresent(Int64.self, forKey: .followingCount)
             hideFollowerCount = try c.decodeIfPresent(Bool.self, forKey: .hideFollowerCount) ?? false
             notifyNotes = try c.decodeIfPresent(Bool.self, forKey: .notifyNotes) ?? false
+            requested = try c.decodeIfPresent(Bool.self, forKey: .requested) ?? false
+            locked = try c.decodeIfPresent(Bool.self, forKey: .locked) ?? false
         }
     }
 

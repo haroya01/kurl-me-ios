@@ -42,6 +42,7 @@ enum NotificationRoute {
             return n.noteId.map { .note(id: $0) }
         case "NOTE_REPLY", "NOTE_QUOTE": return n.sourceNoteId.map { .note(id: $0) }
         case "REMOTE_FOLLOW": return nil
+        case "FOLLOW_REQUEST": return .followRequests
         default: break
         }
         let mine = AuthStore.shared.me?.username
@@ -62,7 +63,8 @@ enum NotificationRoute {
     }
 
     static func route(push userInfo: [AnyHashable: Any]) -> Route? {
-        route(
+        if userInfo["type"] as? String == "FOLLOW_REQUEST" { return .followRequests }
+        return route(
             actorUsername: userInfo["actorUsername"] as? String,
             ownerUsername: userInfo["ownerUsername"] as? String,
             postSlug: userInfo["postSlug"] as? String,

@@ -10,6 +10,7 @@ import SwiftUI
 struct FollowButton: View {
     @State private var model: FollowModel
     @State private var showLoginPrompt = false
+    @State private var confirmWithdraw = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// 옆에 "팔로워 N"을 붙일지 — 작가 헤더처럼 탭 가능한 카운트 행이 따로 있으면 끈다.
@@ -46,10 +47,17 @@ struct FollowButton: View {
         HStack(spacing: 12) {
             // 캡슐 높이 ~33pt → expandTap 으로 탭 영역만 44pt(시각 크기 유지).
             ToggleCapsuleButton(
-                isOn: model.following, on: "팔로잉", off: "팔로우", expandTap: 6
+                isOn: model.following || model.requested,
+                on: model.requested ? "요청함" : "팔로잉", off: "팔로우",
+                onIcon: model.requested ? "clock" : nil, expandTap: 6
             ) {
-                toggle()
+                if model.requested {
+                    confirmWithdraw = true
+                } else {
+                    toggle()
+                }
             }
+            .accessibilityIdentifier("follow.button")
 
             if showsBell, model.following {
                 bellButton
@@ -71,6 +79,10 @@ struct FollowButton: View {
         .onChange(of: model.following) { _, following in onFollowingChange?(following) }
         .loginPrompt(isPresented: $showLoginPrompt, message: "이 큐레이터가 엮는 길을 따라 읽기") {
             await model.hydrate()
+        }
+        .alert("팔로우 요청을 취소할까요?", isPresented: $confirmWithdraw) {
+            Button("요청 취소", role: .destructive) { toggle() }
+            Button("닫기", role: .cancel) {}
         }
     }
 
@@ -111,8 +123,14 @@ struct FollowButton: View {
             return
         }
         Task {
-            do { try await model.toggle() }
-            catch { ToastCenter.shared.show(String(localized: "팔로우를 반영하지 못했습니다")) }
+            do {
+                try await model.toggle()
+                if model.requested {
+                    ToastCenter.shared.show(String(localized: "팔로우를 요청했어요. 승인되면 팔로잉이 돼요"))
+                }
+            } catch {
+                ToastCenter.shared.show(String(localized: "팔로우를 반영하지 못했습니다"))
+            }
         }
     }
 }
@@ -127,6 +145,9 @@ final class FollowModel {
     /// 작가가 팔로워 수를 숨겼는지 — 카운트를 서버가 내려도 이 플래그가 켜지면 감춘다.
     private(set) var hideFollowerCount = false
     private(set) var notifyNotes = false
+    /// 잠긴 계정에 보낸 팔로우가 승인을 기다리는 중 — 버튼이 "요청함"이 된다.
+    private(set) var requested = false
+    private(set) var locked = false
     private(set) var bellToggleCount = 0
     /// 호출측이 시드를 줬는지 — 줬다면 등장 시 같은 GET 을 또 치지 않는다.
     private var seeded: Bool
@@ -136,12 +157,7 @@ final class FollowModel {
     init(username: String, seed: InteractionsAPI.FollowStatus? = nil) {
         self.username = username
         self.seeded = seed != nil
-        if let seed {
-            following = seed.following
-            followerCount = seed.followerCount
-            hideFollowerCount = seed.hideFollowerCount
-            notifyNotes = seed.notifyNotes
-        }
+        if let seed { apply(seed) }
     }
 
     /// 시드를 받았으면 첫 hydrate 를 건너뛴다(작가 페이지가 이미 한 번 받아 둠).
@@ -154,29 +170,39 @@ final class FollowModel {
     func hydrate() async {
         let gen = userToggleCount
         if let status = try? await InteractionsAPI.followStatus(username: username), gen == userToggleCount {
-            following = status.following
-            followerCount = status.followerCount
-            hideFollowerCount = status.hideFollowerCount
-            notifyNotes = status.notifyNotes
+            apply(status)
         }
     }
 
+    private func apply(_ status: InteractionsAPI.FollowStatus) {
+        following = status.following
+        followerCount = status.followerCount
+        hideFollowerCount = status.hideFollowerCount
+        notifyNotes = status.notifyNotes
+        requested = status.requested
+        locked = status.locked
+    }
+
+    /// 켜기 = 팔로우(잠긴 계정이면 요청), 끄기 = 언팔로우 또는 요청 철회. 같은 PUT/DELETE 한 쌍이다.
     func toggle() async throws {
         userToggleCount += 1
         let gen = userToggleCount
-        let target = !following
-        following = target
-        if !target { notifyNotes = false }
-        if let count = followerCount {
-            followerCount = count + (target ? 1 : -1)
+        let target = !(following || requested)
+        if target, locked {
+            requested = true
+        } else if target {
+            following = true
+            followerCount = followerCount.map { $0 + 1 }
+        } else {
+            if following { followerCount = followerCount.map { $0 - 1 } }
+            following = false
+            requested = false
+            notifyNotes = false
         }
         do {
             let status = try await InteractionsAPI.setFollow(username: username, on: target)
             guard gen == userToggleCount else { return }
-            following = status.following
-            followerCount = status.followerCount
-            hideFollowerCount = status.hideFollowerCount
-            notifyNotes = status.notifyNotes
+            apply(status)
         } catch {
             guard gen == userToggleCount else { return }
             await hydrate()

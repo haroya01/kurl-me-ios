@@ -140,9 +140,14 @@ final class GraphNotificationsUITests: XCTestCase {
 
     func testHighlightMentionOpensItsConversation() throws {
         let app = launchInbox()
-        let mention = rowButton(app, contains: "나를 언급했어요")
+        let mention = app.buttons
+            .matching(NSPredicate(format: "label CONTAINS '나를 언급했어요' AND NOT label CONTAINS '노트에서'"))
+            .firstMatch
         XCTAssertTrue(mention.waitForExistence(timeout: 12), "인박스에 언급 알림이 없음")
-        if !mention.isHittable { app.swipeUp() }
+        let clearOfTabBar = app.windows.firstMatch.frame.maxY - 120
+        for _ in 0..<4 where !(mention.isHittable && mention.frame.maxY < clearOfTabBar) {
+            app.swipeUp(velocity: .slow)
+        }
         mention.tap()
         let reply = app.staticTexts
             .matching(NSPredicate(format: "label BEGINSWITH '저도요. 작게 시작했어야'")).firstMatch
