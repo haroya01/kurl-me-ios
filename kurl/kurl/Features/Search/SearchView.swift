@@ -42,6 +42,8 @@ struct SearchView: View {
     @State private var popularTags: [TagCount] = []
     @State private var trendingNoteTags: [TrendingNoteTag] = []
     @State private var suggestedAuthors: [SuggestedAuthor] = []
+    /// 로그인한 사람의 팔로우 추천(마스토돈) — 있으면 익명 "작가" 레일 대신 선다.
+    @State private var followSuggestions: [FollowSuggestion] = []
 
     var body: some View {
         // path 바인딩 금지 — tabBarMinimizeBehavior 가 죽는다(FeedView 참조).
@@ -183,11 +185,17 @@ struct SearchView: View {
 
                 trendingRail
 
+                if AuthStore.shared.isSignedIn, !followSuggestions.isEmpty {
+                    followSuggestionsRail
+                }
+
                 trendingNoteTagsRail
 
                 popularTagsRail
 
-                suggestedAuthorsRail
+                if !AuthStore.shared.isSignedIn || followSuggestions.isEmpty {
+                    suggestedAuthorsRail
+                }
             }
             .padding(.top, 18)
             .frame(maxWidth: Metrics.readingColumn)
@@ -329,6 +337,105 @@ struct SearchView: View {
         }
     }
 
+    /// 팔로우 추천 — 가로로 넘기는 카드. 카드를 누르면 그 사람 블로그, 버튼으로 바로 팔로우, ×로 다시 안 보기.
+    private var followSuggestionsRail: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            RailHeading("팔로우 추천")
+            ScrollView(.horizontal) {
+                HStack(spacing: 10) {
+                    ForEach(followSuggestions) { suggestion in
+                        suggestionCard(suggestion)
+                            .transition(.opacity.combined(with: .scale(scale: 0.92)))
+                    }
+                }
+                .scrollTargetLayout()
+                .padding(.vertical, 6)
+            }
+            .scrollIndicators(.hidden)
+            .scrollTargetBehavior(.viewAligned)
+            .scrollClipDisabled()
+            .accessibilityIdentifier("search.followSuggestions")
+        }
+    }
+
+    private func suggestionCard(_ suggestion: FollowSuggestion) -> some View {
+        VStack(spacing: 10) {
+            NavigationLink(value: Route.author(username: suggestion.username)) {
+                VStack(spacing: 6) {
+                    AvatarView(author: suggestion.asAuthor, size: 56)
+                    Text(verbatim: suggestion.shownName)
+                        .typeScale(.body)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Palette.ink)
+                        .lineLimit(1)
+                    Group {
+                        if suggestion.reason == .friends {
+                            Text("내가 팔로우하는 \(suggestion.mutuals)명이 팔로우")
+                        } else {
+                            Text("요즘 많이 팔로우해요")
+                        }
+                    }
+                    .typeScale(.meta)
+                    .foregroundStyle(Palette.secondary)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .frame(minHeight: 30, alignment: .top)
+                }
+                .frame(maxWidth: .infinity)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            FollowButton(username: suggestion.username, initialStatus: suggestion.followSeed)
+        }
+        .padding(.top, 18)
+        .padding(.bottom, 14)
+        .padding(.horizontal, 12)
+        .frame(width: 156)
+        .background(
+            Palette.cardBg, in: RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous))
+        .overlay {
+            if colorScheme == .dark {
+                RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous)
+                    .strokeBorder(Palette.cardBorder, lineWidth: 1)
+            }
+        }
+        .cardShadow()
+        .overlay(alignment: .topTrailing) {
+            Button {
+                dismissSuggestion(suggestion)
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Palette.secondary)
+                    .frame(width: 28, height: 28)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .padding(4)
+            .accessibilityLabel(Text("\(suggestion.shownName) 추천 안 보기"))
+            .accessibilityIdentifier("suggestion.dismiss.\(suggestion.username)")
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("suggestion.\(suggestion.username)")
+    }
+
+    private func dismissSuggestion(_ suggestion: FollowSuggestion) {
+        let index = followSuggestions.firstIndex(of: suggestion)
+        withAnimation(.snappy(duration: 0.25)) { followSuggestions.removeAll { $0 == suggestion } }
+        Task {
+            do {
+                try await FollowSuggestionsAPI.dismiss(suggestion.username)
+            } catch {
+                if let index {
+                    withAnimation(.snappy(duration: 0.25)) {
+                        followSuggestions.insert(suggestion, at: min(index, followSuggestions.count))
+                    }
+                }
+                ToastCenter.shared.show(String(localized: "추천을 지우지 못했어요"))
+            }
+        }
+    }
+
     @ViewBuilder private var suggestedAuthorsRail: some View {
         if !suggestedAuthors.isEmpty {
             VStack(alignment: .leading, spacing: 6) {
@@ -383,6 +490,9 @@ struct SearchView: View {
         }
         if trendingNoteTags.isEmpty {
             trendingNoteTags = Array(((try? await NoteAPI.trendingTags()) ?? []).prefix(5))
+        }
+        if AuthStore.shared.isSignedIn, followSuggestions.isEmpty {
+            followSuggestions = (try? await FollowSuggestionsAPI.suggestions()) ?? []
         }
     }
 
