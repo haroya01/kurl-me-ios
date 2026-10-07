@@ -11,6 +11,7 @@ enum NoteFeedKind: String, CaseIterable, Identifiable {
     case following
     case trending
     case bookmarks
+    case direct
 
     var id: String { rawValue }
 
@@ -20,6 +21,7 @@ enum NoteFeedKind: String, CaseIterable, Identifiable {
         case .following: "팔로잉"
         case .trending: "인기"
         case .bookmarks: "북마크한 노트"
+        case .direct: "개인 멘션"
         }
     }
 
@@ -29,6 +31,7 @@ enum NoteFeedKind: String, CaseIterable, Identifiable {
         case .following: "팔로잉"
         case .trending: "인기"
         case .bookmarks: "북마크한 노트"
+        case .direct: "개인 멘션"
         }
     }
 
@@ -38,6 +41,7 @@ enum NoteFeedKind: String, CaseIterable, Identifiable {
         case .following: "person.2"
         case .trending: "flame"
         case .bookmarks: "bookmark"
+        case .direct: "at"
         }
     }
 }

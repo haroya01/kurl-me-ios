@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 /// 노트 — 블로그 글과 분리한 짧은 글. 공개 읽기도 로그인 상태면 토큰을 실어 보내야 내 좋아요와
 /// 내 노트의 좋아요 수가 채워진다(남의 노트 좋아요 수는 서버가 숨긴다).
@@ -43,6 +44,11 @@ enum NoteAPI {
         try await client.get(
             "/public/notes/tags/\(tag)", query: ["page": String(page), "size": "20"],
             authenticated: signedIn)
+    }
+
+    static func direct(page: Int = 0) async throws -> NoteFeed {
+        try await client.get(
+            "/notes/direct", query: ["page": String(page), "size": "20"], authenticated: true)
     }
 
     static func following(page: Int = 0) async throws -> NoteFeed {
@@ -246,6 +252,46 @@ struct Note: Decodable, Identifiable, Hashable {
     var sensitive: Bool? = nil
     /// 작성자가 프로필 위에 고정했다(최대 5개, 마스토돈 pin).
     var pinned: Bool? = nil
+    /// public · unlisted · private · direct — 마스토돈 공개 범위.
+    var visibility: String? = nil
+
+    var noteVisibility: NoteVisibility { NoteVisibility(rawValue: visibility ?? "public") ?? .public }
+}
+
+/// 마스토돈의 네 가지. 리포스트·인용은 공개와 조용한 공개만 된다.
+enum NoteVisibility: String, CaseIterable, Identifiable {
+    case `public`, unlisted, `private`, direct
+
+    var id: String { rawValue }
+
+    var shareable: Bool { self == .public || self == .unlisted }
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .public: "공개"
+        case .unlisted: "조용한 공개"
+        case .private: "팔로워만"
+        case .direct: "멘션한 사람만"
+        }
+    }
+
+    var detail: LocalizedStringKey {
+        switch self {
+        case .public: "누구나 볼 수 있어요"
+        case .unlisted: "누구나 볼 수 있지만 모든 노트·인기·태그에는 안 나와요"
+        case .private: "팔로워와 멘션한 회원만 볼 수 있어요"
+        case .direct: "멘션한 회원만 볼 수 있어요"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .public: "globe"
+        case .unlisted: "moon"
+        case .private: "lock"
+        case .direct: "at"
+        }
+    }
 }
 
 struct NoteFeed: Decodable {
@@ -273,6 +319,7 @@ struct NoteDraft: Encodable {
     var quotedNoteId: Int64? = nil
     var contentWarning: String? = nil
     var sensitive: Bool = false
+    var visibility: String? = nil
 }
 
 struct NoteLikeStatus: Decodable {

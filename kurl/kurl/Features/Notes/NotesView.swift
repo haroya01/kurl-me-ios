@@ -24,6 +24,7 @@ final class NotesViewModel {
         case following
         case trending
         case bookmarks
+        case direct
         case author(String)
         case reposts(String)
         case quotes(Int64)
@@ -35,6 +36,7 @@ final class NotesViewModel {
             case .following: self = .following
             case .trending: self = .trending
             case .bookmarks: self = .bookmarks
+            case .direct: self = .direct
             }
         }
     }
@@ -72,6 +74,12 @@ final class NotesViewModel {
         case .bookmarks:
             if AuthStore.shared.isSignedIn {
                 try await NoteAPI.bookmarks(page: page)
+            } else {
+                NoteFeed(items: [], page: 0, hasNext: false)
+            }
+        case .direct:
+            if AuthStore.shared.isSignedIn {
+                try await NoteAPI.direct(page: page)
             } else {
                 NoteFeed(items: [], page: 0, hasNext: false)
             }
@@ -436,6 +444,13 @@ struct NoteRowView: View {
                     .foregroundStyle(Palette.secondary)
                     .lineLimit(1)
             }
+            if note.noteVisibility != .public {
+                Image(systemName: note.noteVisibility.symbol)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Palette.secondary)
+                    .accessibilityLabel(Text(note.noteVisibility.title))
+                    .accessibilityIdentifier("note.visibility.\(note.id)")
+            }
             if note.editedAt != nil {
                 Text("고침")
                     .typeScale(.meta)
@@ -661,7 +676,24 @@ struct NoteRowView: View {
 
     private static let actionBox: CGFloat = 22
 
-    private var repostMenu: some View {
+    @ViewBuilder private var repostMenu: some View {
+        if note.noteVisibility.shareable {
+            shareableRepostMenu
+        } else {
+            NoteGlyphView(glyph: .repost, active: false, size: Self.actionBox)
+                .foregroundStyle(Palette.faint)
+                .overlay(alignment: .bottomTrailing) {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 8, weight: .bold))
+                        .foregroundStyle(Palette.faint)
+                }
+                .expandTapTarget()
+                .accessibilityLabel(Text("리포스트할 수 없는 노트"))
+                .accessibilityIdentifier("note.repost.\(note.id)")
+        }
+    }
+
+    private var shareableRepostMenu: some View {
         Menu {
             Button(role: reposted ? .destructive : nil) {
                 repostTaps += 1
@@ -1346,6 +1378,8 @@ struct NoteComposeSheet: View {
     @State private var warning: String
     @State private var warns: Bool
     @State private var sensitive: Bool
+    /// nil = 답글이면 원글과 같은 범위(서버가 이어받는다), 아니면 공개.
+    @State private var visibility: NoteVisibility?
     @State private var quote: QuotedPost?
     @State private var picked: [PickedImage] = []
     @State private var pickerItems: [PhotosPickerItem] = []
@@ -1376,6 +1410,7 @@ struct NoteComposeSheet: View {
         _warning = State(initialValue: editing?.contentWarning ?? "")
         _warns = State(initialValue: editing?.contentWarning != nil)
         _sensitive = State(initialValue: editing?.sensitive == true && editing?.contentWarning == nil)
+        _visibility = State(initialValue: editing?.noteVisibility)
     }
 
     private var isEdit: Bool { if case .edit = mode { true } else { false } }
@@ -1565,12 +1600,57 @@ struct NoteComposeSheet: View {
         .interactiveDismissDisabled(posting || hasDraft)
     }
 
+    private var shownVisibility: NoteVisibility { visibility ?? .public }
+
+    @ViewBuilder private var visibilityLabel: some View {
+        HStack(spacing: 6) {
+            if visibility == nil, inReplyToId != nil {
+                Image(systemName: "arrowshape.turn.up.left")
+                    .font(.system(size: 13, weight: .medium))
+                Text("원글과 같은 범위")
+                    .typeScale(.meta)
+            } else {
+                Image(systemName: shownVisibility.symbol)
+                    .font(.system(size: 13, weight: .medium))
+                Text(shownVisibility == .public ? shownVisibility.detail : shownVisibility.title)
+                    .typeScale(.meta)
+            }
+            if !isEdit {
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 10, weight: .semibold))
+            }
+        }
+    }
+
     private var footer: some View {
         HStack(spacing: 6) {
-            Image(systemName: "globe")
-                .font(.system(size: 13, weight: .medium))
-            Text("누구나 볼 수 있어요")
-                .typeScale(.meta)
+            if isEdit {
+                visibilityLabel
+            } else {
+                Menu {
+                    Picker("공개 범위", selection: $visibility) {
+                        if inReplyToId != nil {
+                            Label("원글과 같은 범위", systemImage: "arrowshape.turn.up.left")
+                                .tag(NoteVisibility?.none)
+                        }
+                        ForEach(NoteVisibility.allCases) { option in
+                            Label {
+                                Text(option.title)
+                                Text(option.detail)
+                            } icon: {
+                                Image(systemName: option.symbol)
+                            }
+                            .tag(NoteVisibility?.some(option))
+                        }
+                    }
+                    .pickerStyle(.inline)
+                } label: {
+                    visibilityLabel
+                        .fixedSize()
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("noteCompose.visibility")
+            }
             Spacer(minLength: 0)
             if length > 0 {
                 NoteLengthRing(length: length, limit: NoteAPI.maxLength)
@@ -1756,7 +1836,8 @@ struct NoteComposeSheet: View {
                 NoteDraft(
                     body: text, images: images, quotedPostId: quote?.id, inReplyToId: inReplyToId,
                     quotedNoteId: quotedNote?.id,
-                    contentWarning: warningText.isEmpty ? nil : warningText, sensitive: sensitive))
+                    contentWarning: warningText.isEmpty ? nil : warningText, sensitive: sensitive,
+                    visibility: visibility?.rawValue ?? (inReplyToId == nil ? "public" : nil)))
             var created = note
             if created.linkPreview == nil, let linkCard, linkCard.url == cardUrl {
                 created.linkPreview = linkCard

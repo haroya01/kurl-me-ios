@@ -81,6 +81,7 @@ enum MockBackend {
         var linkPreview: [String: Any]? = nil
         var contentWarning: String? = nil
         var sensitive = false
+        var visibility = "public"
     }
 
     private static var notes: [MockNote] = [
@@ -120,6 +121,9 @@ enum MockBackend {
                      "contentType": "image/jpeg"],
                  ],
                  sensitive: true),
+        MockNote(id: 9508, body: "@honggildong 다음 주 회고, 둘이 먼저 맞춰 볼래요?",
+                 createdAt: Date().addingTimeInterval(-110_000), likeCount: 0, authorId: 2, username: "yuki_dev",
+                 visibility: "direct"),
     ]
     private static var nextNoteId: Int64 = 9600
     private static var likedNotes: Set<Int64> = []
@@ -1009,7 +1013,15 @@ enum MockBackend {
             return json(["items": items, "page": 0, "hasNext": false])
         }
         if method == "GET", parts == ["public", "notes"] {
-            return json(["items": topLevelNotes().map(noteView), "page": 0, "hasNext": false])
+            return json(["items": topLevelNotes().filter { $0.visibility == "public" }.map(noteView),
+                         "page": 0, "hasNext": false])
+        }
+        if method == "GET", parts == ["notes", "direct"] {
+            let items = allNotes().filter {
+                $0.visibility == "direct" && ($0.authorId == 1 || $0.body.contains("@honggildong"))
+            }
+            return json(["items": items.sorted { $0.createdAt > $1.createdAt }.map(noteView),
+                         "page": 0, "hasNext": false])
         }
         if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "profiles",
            parts[3] == "notes" {
@@ -1064,6 +1076,7 @@ enum MockBackend {
             note.quotedNoteId = (req["quotedNoteId"] as? NSNumber)?.int64Value
             note.contentWarning = (req["contentWarning"] as? String).flatMap { $0.isEmpty ? nil : $0 }
             note.sensitive = (req["sensitive"] as? Bool) ?? false
+            note.visibility = (req["visibility"] as? String) ?? "public"
             if let quoted = (req["quotedPostId"] as? NSNumber)?.int64Value {
                 note.quotedPost = [
                     "id": quoted, "title": "인용한 글", "slug": "quoted", "authorUsername": "honggildong",
@@ -1915,6 +1928,7 @@ enum MockBackend {
             "contentWarning": n.contentWarning ?? NSNull(),
             "sensitive": n.sensitive || n.contentWarning != nil,
             "pinned": pinnedNotes.contains(n.id),
+            "visibility": n.visibility,
             "quotedNote": n.quotedNoteId.flatMap { qid in allNotes().first { $0.id == qid } }
                 .map { q -> [String: Any] in
                     [

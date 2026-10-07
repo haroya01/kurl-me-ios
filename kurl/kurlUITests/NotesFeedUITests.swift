@@ -313,6 +313,37 @@ final class NotesFeedUITests: XCTestCase {
         attach(app, "note-edit-history")
     }
 
+    func testPrivateMentionsHaveTheirOwnFeedAndTheComposerChoosesAVisibility() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let menu = app.buttons["tab.menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 6))
+        menu.tap()
+        app.buttons["개인 멘션"].firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["개인 멘션"].waitForExistence(timeout: 6), "개인 멘션 피드로 안 바뀜")
+        let dm = app.descendants(matching: .any)["note.visibility.9508"].firstMatch
+        XCTAssertTrue(dm.waitForExistence(timeout: 8), "개인 멘션 노트에 범위 표시가 없음")
+        XCTAssertEqual(app.descendants(matching: .any)["note.repost.9508"].firstMatch.label, "리포스트할 수 없는 노트",
+                       "멘션한 사람만 보는 노트를 리포스트할 수 있음")
+        attach(app, "notes-direct-feed")
+
+        app.buttons["notes.fab"].tap()
+        let text = app.textFields["noteCompose.text"]
+        XCTAssertTrue(text.waitForExistence(timeout: 6))
+        text.typeText("팔로워에게만")
+        app.buttons["noteCompose.visibility"].tap()
+        app.buttons["팔로워만"].firstMatch.tap()
+        attach(app, "note-compose-visibility")
+        app.buttons["noteCompose.post"].tap()
+        let notice = app.alerts.firstMatch
+        if notice.waitForExistence(timeout: 4) { notice.buttons["알겠어요, 올릴게요"].tap() }
+        XCTAssertTrue(app.descendants(matching: .any)["note.visibility.9600"].firstMatch.waitForExistence(timeout: 8),
+                      "팔로워만 보는 노트에 범위 표시가 없음")
+    }
+
     func testANotesRepliesOpenFromItsRow() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]
