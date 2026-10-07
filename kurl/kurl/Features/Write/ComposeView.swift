@@ -13,6 +13,8 @@ import UIKit
 /// 본문은 서버 md→blocks 변환, 메타는 PATCH 부분 수정(slug 는 안 보냄 — 발행 후 frozen).
 struct ComposeView: View {
     let existing: MyPost?
+    /// 새 글을 미리 채운 본문으로 연다(노트 공유 메뉴의 "블로그 글로 인용"). 손대기 전엔 초안을 만들지 않는다.
+    let initialMarkdown: String?
     let onSaved: () -> Void
     /// 방금 발행한 글의 slug 를 들고 닫힌다 — 호스트(스튜디오)가 라이브 글로 이어 보낸다.
     var onOpenPublished: ((String) -> Void)? = nil
@@ -164,10 +166,15 @@ struct ComposeView: View {
     /// 방금 발행한 글의 slug — 셀레브레이션의 "글 보기" 한 틱이 이걸 들고 라이브로 보낸다.
     @State private var publishedSlug: String?
 
-    init(post: MyPost?, onSaved: @escaping () -> Void, onOpenPublished: ((String) -> Void)? = nil) {
+    init(
+        post: MyPost?, initialMarkdown: String? = nil, onSaved: @escaping () -> Void,
+        onOpenPublished: ((String) -> Void)? = nil
+    ) {
         self.existing = post
+        self.initialMarkdown = initialMarkdown
         self.onSaved = onSaved
         self.onOpenPublished = onOpenPublished
+        if let initialMarkdown { _markdown = State(initialValue: initialMarkdown) }
     }
 
     var body: some View {
@@ -1385,6 +1392,7 @@ struct ComposeView: View {
         } else {
             // 새 글은 읽을 본문이 없다 — 곧장 편집·저장 가능.
             bodyLoaded = true
+            if initialMarkdown != nil { lastSavedSignature = signature }
             rebuildEditorDocumentIfNeeded()
             offerRecoveryIfAny()
         }

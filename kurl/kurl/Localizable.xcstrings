@@ -4929,6 +4929,34 @@
         }
       }
     },
+    "공유…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share…"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "शेयर करें…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共有…"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chia sẻ…"
+          }
+        }
+      }
+    },
     "공유한 노트의 수정": {
       "localizations": {
         "en": {
@@ -9344,6 +9372,62 @@
         }
       }
     },
+    "링크 복사": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy link"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लिंक कॉपी करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンクをコピー"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sao chép liên kết"
+          }
+        }
+      }
+    },
+    "링크를 복사했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Link copied"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लिंक कॉपी हो गया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンクをコピーしました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã sao chép liên kết"
+          }
+        }
+      }
+    },
     "마감됨": {
       "localizations": {
         "en": {
@@ -10240,6 +10324,34 @@
         }
       }
     },
+    "블로그 글로 인용": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quote in a blog post"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ब्लॉग पोस्ट में उद्धृत करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブログ記事で引用"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trích dẫn trong bài blog"
+          }
+        }
+      }
+    },
     "블로그에서 팔로우한 사람도 함께 보여요. 인기 노트에서 시작해 보세요.": {
       "localizations": {
         "en": {
@@ -10856,30 +10968,30 @@
         }
       }
     },
-    "아직 이 노트를 인용한 노트가 없어요": {
+    "아직 이 노트를 인용한 노트나 글이 없어요": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No one has quoted this note yet"
+            "value": "No notes or posts have quoted this note yet"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "अभी तक किसी ने इस नोट को उद्धृत नहीं किया"
+            "value": "अभी तक किसी नोट या पोस्ट ने इस नोट को उद्धृत नहीं किया"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "まだこのノートを引用したノートはありません"
+            "value": "まだこのノートを引用したノートや記事はありません"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Chưa ai trích dẫn ghi chú này"
+            "value": "Chưa có ghi chú hay bài viết nào trích dẫn ghi chú này"
           }
         }
       }
@@ -11580,6 +11692,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "ghi chú này"
+          }
+        }
+      }
+    },
+    "이 노트를 실은 글": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posts that carry this note"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस नोट वाली पोस्टें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このノートを載せた記事"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bài viết đăng ghi chú này"
           }
         }
       }
@@ -16323,34 +16463,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đã đăng trích dẫn"
-          }
-        }
-      }
-    },
-    "인용한 노트": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Quotes"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "उद्धरण"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "引用したノート"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Trích dẫn"
           }
         }
       }
