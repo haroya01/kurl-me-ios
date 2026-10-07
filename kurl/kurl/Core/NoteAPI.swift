@@ -10,6 +10,7 @@ import Foundation
 enum NoteAPI {
     static let maxLength = 500
     static let maxImages = 4
+    static let maxWarningLength = 100
     static let maxAltLength = 1500
 
     private static let client = APIClient.shared
@@ -73,9 +74,15 @@ enum NoteAPI {
         try await client.post("/notes", body: draft, authenticated: true)
     }
 
-    static func edit(id: Int64, body: String) async throws -> Note {
-        struct Body: Encodable { let body: String }
-        return try await client.patch("/notes/\(id)", body: Body(body: body), authenticated: true)
+    static func edit(id: Int64, body: String, contentWarning: String, sensitive: Bool) async throws -> Note {
+        struct Body: Encodable {
+            let body: String
+            let contentWarning: String
+            let sensitive: Bool
+        }
+        return try await client.patch(
+            "/notes/\(id)", body: Body(body: body, contentWarning: contentWarning, sensitive: sensitive),
+            authenticated: true)
     }
 
     static func delete(id: Int64) async throws {
@@ -192,6 +199,8 @@ struct QuotedNote: Decodable, Hashable, Identifiable {
     let createdAt: Date?
     let author: Author
     let media: [NoteMedia]
+    var contentWarning: String? = nil
+    var sensitive: Bool? = nil
 }
 
 struct Note: Decodable, Identifiable, Hashable {
@@ -221,6 +230,10 @@ struct Note: Decodable, Identifiable, Hashable {
     var bookmarkedByMe: Bool? = nil
     /// 본문에서 언급한 kurl 회원 중 실제로 있는 사람만 — 이 이름들만 프로필로 링크한다.
     var mentions: [String]? = nil
+    /// 열람 주의 문구 — 있으면 본문·사진·카드를 이 문구 뒤로 접는다(마스토돈 CW).
+    var contentWarning: String? = nil
+    /// 사진을 흐리게 가린다. 경고 문구가 있으면 서버가 늘 켠다.
+    var sensitive: Bool? = nil
 }
 
 struct NoteFeed: Decodable {
@@ -246,6 +259,8 @@ struct NoteDraft: Encodable {
     let quotedPostId: Int64?
     let inReplyToId: Int64?
     var quotedNoteId: Int64? = nil
+    var contentWarning: String? = nil
+    var sensitive: Bool = false
 }
 
 struct NoteLikeStatus: Decodable {

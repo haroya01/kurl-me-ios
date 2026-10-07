@@ -214,6 +214,62 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(app.buttons["author.tab.notes"].isSelected, "노트에서 연 프로필이 노트 탭이 아님")
     }
 
+    func testAWarnedNoteFoldsUntilRevealedAndASensitivePhotoStaysCovered() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let warning = app.descendants(matching: .any)["note.warning.9506"]
+        for _ in 0..<8 where !warning.exists { app.swipeUp() }
+        XCTAssertTrue(warning.waitForExistence(timeout: 6), "열람 주의 노트가 안 보임")
+        let spoiler = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS '돌아오지 않는다'")).firstMatch
+        XCTAssertFalse(spoiler.exists, "펼치기 전에 본문이 보임")
+        let cover = app.buttons["note.sensitive.9507"]
+        for _ in 0..<4 where !cover.exists { app.swipeUp() }
+        XCTAssertTrue(cover.waitForExistence(timeout: 6), "민감한 사진이 가려지지 않음")
+        attach(app, "note-warning-and-sensitive")
+
+        cover.tap()
+        XCTAssertTrue(cover.waitForNonExistence(timeout: 4), "눌러도 사진이 안 보임")
+        let reveal = app.buttons["note.reveal.9506"]
+        for _ in 0..<4 where !reveal.isHittable { app.swipeDown() }
+        reveal.tap()
+        XCTAssertTrue(spoiler.waitForExistence(timeout: 4), "내용 보기를 눌러도 본문이 안 펼쳐짐")
+    }
+
+    func testTheComposerSendsAContentWarning() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let fab = app.buttons["notes.fab"]
+        XCTAssertTrue(fab.waitForExistence(timeout: 8))
+        fab.tap()
+        let text = app.textViews["noteCompose.text"].exists ? app.textViews["noteCompose.text"] : app.textFields["noteCompose.text"]
+        XCTAssertTrue(text.waitForExistence(timeout: 6))
+        text.typeText("범인은 집사였다")
+        app.buttons["noteCompose.warningToggle"].tap()
+        let field = app.textViews["noteCompose.warning"].exists ? app.textViews["noteCompose.warning"] : app.textFields["noteCompose.warning"]
+        XCTAssertTrue(field.waitForExistence(timeout: 4), "열람 주의 칸이 안 열림")
+        field.tap()
+        field.typeText("추리소설 결말")
+        attach(app, "note-compose-warning")
+        app.buttons["noteCompose.post"].tap()
+        let notice = app.alerts.firstMatch
+        XCTAssertTrue(notice.waitForExistence(timeout: 6), "첫 노트 연합 안내가 뜨지 않음")
+        notice.buttons["알겠어요, 올릴게요"].tap()
+
+        let posted = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS '추리소설 결말'")).firstMatch
+        XCTAssertTrue(posted.waitForExistence(timeout: 10), "올린 노트에 열람 주의 문구가 없음")
+        let body = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS '범인은 집사였다'")).firstMatch
+        XCTAssertFalse(body.exists, "열람 주의 노트의 본문이 펼쳐진 채 올라옴")
+    }
+
     func testANotesRepliesOpenFromItsRow() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]
