@@ -35,6 +35,9 @@ struct NotesTabView: View {
             .sheet(isPresented: Bindable(NoteListsStore.shared).managing) {
                 NoteListsSheet()
             }
+            .sheet(isPresented: Bindable(ScheduledNotesStore.shared).showing) {
+                NavigationStack { ScheduledNotesView() }
+            }
             .onChange(of: NoteFeedPreferences.shared.changes) {
                 if choice.kind == .following { Task { await notes.reload() } }
             }

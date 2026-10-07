@@ -235,6 +235,13 @@ struct NoteFeedPicker: View {
                     Label("리스트 관리", systemImage: "slider.horizontal.3")
                 }
             }
+            Section {
+                Button {
+                    ScheduledNotesStore.shared.showing = true
+                } label: {
+                    Label("예약한 노트", systemImage: "clock")
+                }
+            }
         }
     }
 }

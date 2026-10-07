@@ -1541,6 +1541,8 @@ struct NoteComposeSheet: View {
     @State private var altTarget: AltTarget?
     @State private var linkCard: NoteLinkPreview?
     @State private var poll: NotePollDraft?
+    @State private var scheduledAt: Date?
+    @State private var pickingSchedule = false
     @FocusState private var focused: Bool
     @Environment(\.dismiss) private var dismiss
 
@@ -1743,7 +1745,10 @@ struct NoteComposeSheet: View {
                         if posting {
                             ProgressView()
                         } else {
-                            Text(isEdit ? LocalizedStringKey("저장") : LocalizedStringKey("올리기"))
+                            Text(
+                                isEdit
+                                    ? LocalizedStringKey("저장")
+                                    : scheduledAt == nil ? LocalizedStringKey("올리기") : LocalizedStringKey("예약"))
                         }
                     }
                     .font(.body.weight(.semibold))
@@ -1755,6 +1760,11 @@ struct NoteComposeSheet: View {
             }
             .sheet(item: $altTarget) { target in
                 altEditor(for: target.id)
+            }
+            .sheet(isPresented: $pickingSchedule) {
+                NoteScheduleSheet(initial: scheduledAt) { picked in
+                    withAnimation(.snappy(duration: 0.2)) { scheduledAt = picked }
+                }
             }
             .alert("노트는 다른 서버에도 전해져요", isPresented: $showNotice) {
                 Button("알겠어요, 올릴게요") {
@@ -1827,6 +1837,26 @@ struct NoteComposeSheet: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("noteCompose.visibility")
+                Button {
+                    pickingSchedule = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: scheduledAt == nil ? "clock" : "clock.fill")
+                        if let scheduledAt {
+                            Text(scheduledAt, format: .dateTime.month().day().hour().minute())
+                        } else {
+                            Text("예약")
+                        }
+                    }
+                    .typeScale(.meta)
+                    .foregroundStyle(scheduledAt == nil ? Palette.secondary : Palette.ink)
+                    .padding(.horizontal, 8)
+                    .frame(minHeight: 32)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(scheduledAt == nil ? Text("예약") : Text("예약 시각 바꾸기"))
+                .accessibilityIdentifier("noteCompose.schedule")
             }
             Spacer(minLength: 0)
             if length > 0 {
@@ -2009,13 +2039,21 @@ struct NoteComposeSheet: View {
                 let key = try await NoteAPI.uploadImage(jpegData: jpeg)
                 images.append(NoteDraft.Image(key: key, altText: item.altText))
             }
-            let note = try await NoteAPI.create(
-                NoteDraft(
-                    body: text, images: images, quotedPostId: quote?.id, inReplyToId: inReplyToId,
-                    quotedNoteId: quotedNote?.id,
-                    contentWarning: warningText.isEmpty ? nil : warningText, sensitive: sensitive,
-                    visibility: visibility?.rawValue ?? (inReplyToId == nil ? "public" : nil),
-                    poll: poll?.request))
+            let draft = NoteDraft(
+                body: text, images: images, quotedPostId: quote?.id, inReplyToId: inReplyToId,
+                quotedNoteId: quotedNote?.id,
+                contentWarning: warningText.isEmpty ? nil : warningText, sensitive: sensitive,
+                visibility: visibility?.rawValue ?? (inReplyToId == nil ? "public" : nil),
+                poll: poll?.request)
+            if let scheduledAt {
+                let scheduled = try await NoteAPI.schedule(draft, at: scheduledAt)
+                ScheduledNotesStore.shared.added(scheduled)
+                ToastCenter.shared.show(
+                    String(localized: "\(scheduled.scheduledAt.formatted(.dateTime.month().day().hour().minute()))에 올릴게요"))
+                dismiss()
+                return
+            }
+            let note = try await NoteAPI.create(draft)
             var created = note
             if created.linkPreview == nil, let linkCard, linkCard.url == cardUrl {
                 created.linkPreview = linkCard
@@ -2023,7 +2061,9 @@ struct NoteComposeSheet: View {
             onDone(created)
             dismiss()
         } catch {
-            errorMessage = String(localized: "노트를 올리지 못했어요")
+            errorMessage = scheduledAt == nil
+                ? String(localized: "노트를 올리지 못했어요")
+                : NoteScheduleText.failure(error)
         }
     }
 }

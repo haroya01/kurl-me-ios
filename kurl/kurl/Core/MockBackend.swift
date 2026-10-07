@@ -259,6 +259,12 @@ enum MockBackend {
     private static var bookmarks: Set<Int64> = []
     private static var follows: [String: (following: Bool, count: Int64)] = [:]
     private static var noteBells: Set<String> = []
+    private static var nextScheduledId: Int64 = 9700
+    private static var scheduledNotes: [[String: Any]] = [[
+        "id": Int64(9699), "scheduledAt": iso(Date().addingTimeInterval(86_400)),
+        "body": "그 답글에 덧붙이려던 생각", "contentWarning": NSNull(), "visibility": "PUBLIC",
+        "imageCount": 0, "poll": false, "inReplyToId": Int64(9551), "quotedNoteId": NSNull(), "quotedPostId": NSNull(), "failure": "NOTE_NOT_FOUND",
+    ]]
     private static var domainBlocks: [String: Date] = {
         let args = ProcessInfo.processInfo.arguments
         guard let at = args.firstIndex(of: "--domain-block"), at + 1 < args.count else { return [:] }
@@ -1337,6 +1343,38 @@ enum MockBackend {
             return json(["liked": method == "PUT", "likeCount": 0])
         }
 
+        if parts == ["notes", "scheduled"] {
+            if method == "POST" {
+                let req = decode(body)
+                let note = req["note"] as? [String: Any] ?? [:]
+                let id = nextScheduledId
+                nextScheduledId += 1
+                let item: [String: Any] = [
+                    "id": id, "scheduledAt": req["scheduledAt"] as? String ?? iso(Date()),
+                    "body": note["body"] ?? NSNull(), "contentWarning": note["contentWarning"] ?? NSNull(),
+                    "visibility": note["visibility"] ?? NSNull(),
+                    "imageCount": (note["images"] as? [Any])?.count ?? 0, "poll": note["poll"] != nil,
+                    "inReplyToId": note["inReplyToId"] ?? NSNull(), "quotedNoteId": note["quotedNoteId"] ?? NSNull(),
+                    "quotedPostId": note["quotedPostId"] ?? NSNull(), "failure": NSNull(),
+                ]
+                scheduledNotes.append(item)
+                return json(item)
+            }
+            return json(scheduledNotes)
+        }
+        if parts.count == 3, parts[0] == "notes", parts[1] == "scheduled", let sid = Int64(parts[2]) {
+            if method == "DELETE" {
+                scheduledNotes.removeAll { ($0["id"] as? Int64) == sid }
+                return json([:])
+            }
+            let req = decode(body)
+            guard let at = scheduledNotes.firstIndex(where: { ($0["id"] as? Int64) == sid }) else {
+                return json([:])
+            }
+            scheduledNotes[at]["scheduledAt"] = req["scheduledAt"] as? String ?? iso(Date())
+            scheduledNotes[at]["failure"] = NSNull()
+            return json(scheduledNotes[at])
+        }
         if parts.count == 3, parts[0] == "notes", parts[2] == "conversation-mute",
            let nid = Int64(parts[1]) {
             if method == "PUT" { mutedConversations.insert(nid) } else { mutedConversations.remove(nid) }
