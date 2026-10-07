@@ -27,6 +27,8 @@ struct AuthorBlogView: View {
     @State private var followStatus: InteractionsAPI.FollowStatus?
     @State private var following = false
     @State private var repostsHidden: Bool?
+    @State private var muteStatus: InteractionsAPI.MuteStatus?
+    @State private var muting = false
     @State private var addingToList = false
     @State private var showNavTitle = false
     @State private var showReport = false
@@ -116,6 +118,19 @@ struct AuthorBlogView: View {
                                     systemImage: hidden ? "eye" : "eye.slash")
                             }
                         }
+                        if let muteStatus {
+                            if muteStatus.muted {
+                                Button {
+                                    Task { await unmute() }
+                                } label: {
+                                    Label("뮤트 해제", systemImage: "speaker.wave.2")
+                                }
+                            } else {
+                                Button { muting = true } label: {
+                                    Label("뮤트…", systemImage: "speaker.slash")
+                                }
+                            }
+                        }
                         if BlockStore.shared.isBlocked(id: author.id) {
                             Button {
                                 Task {
@@ -146,6 +161,12 @@ struct AuthorBlogView: View {
         .loginPrompt(isPresented: $showCollectionLogin, message: "컬렉션을 열려면 로그인하세요")
         .sheet(isPresented: $addingToList) {
             NoteListMembershipSheet(username: username)
+        }
+        .sheet(isPresented: $muting) {
+            MuteSheet(username: username) { status in
+                muteStatus = status
+                NoteFeedPreferences.shared.mutesChanged()
+            }
         }
         .reportDialog(isPresented: $showReport, subjectType: "USER", subjectId: author?.id ?? 0)
         .blockDialog(
@@ -489,6 +510,7 @@ struct AuthorBlogView: View {
             collections = (try? await collectionsReq) ?? collections
             phase = .loaded(view)
             await loadRepostVisibility()
+            await loadMuteStatus()
         } catch {
             // 보이던 화면을 에러로 대체하지 않는다 — 비었을 때만 실패 표시.
             if case .loaded = phase { return }
@@ -504,6 +526,25 @@ extension AuthorBlogView {
             return
         }
         repostsHidden = (try? await NoteAPI.repostVisibility(of: username))?.hidden
+    }
+
+    fileprivate func loadMuteStatus() async {
+        guard AuthStore.shared.isSignedIn, AuthStore.shared.me?.username != username else {
+            muteStatus = nil
+            return
+        }
+        muteStatus = try? await InteractionsAPI.muteStatus(username: username)
+    }
+
+    fileprivate func unmute() async {
+        do {
+            try await InteractionsAPI.unmute(username: username)
+            muteStatus = InteractionsAPI.MuteStatus(muted: false, notifications: false, expiresAt: nil)
+            NoteFeedPreferences.shared.mutesChanged()
+            ToastCenter.shared.show(String(localized: "뮤트를 해제했어요"))
+        } catch {
+            ToastCenter.shared.show(String(localized: "해제하지 못했어요"))
+        }
     }
 
     fileprivate func setRepostsHidden(_ hidden: Bool) async {

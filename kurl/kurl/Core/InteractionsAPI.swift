@@ -200,6 +200,43 @@ enum InteractionsAPI {
         try await client.deleteVoid("/users/\(username)/block", authenticated: true)
     }
 
+    struct MuteStatus: Decodable, Equatable {
+        let muted: Bool
+        let notifications: Bool
+        let expiresAt: Date?
+    }
+
+    struct MutedUser: Decodable, Identifiable, Equatable {
+        let id: Int64
+        let username: String
+        let avatarUrl: String?
+        let notifications: Bool
+        let expiresAt: Date?
+    }
+
+    static func muteStatus(username: String) async throws -> MuteStatus {
+        try await client.get("/users/\(username)/mute", authenticated: true)
+    }
+
+    /// duration = nil이면 무기한(마스토돈과 같다). notifications = 그 사람의 알림도 숨긴다.
+    static func mute(username: String, notifications: Bool, duration: Int?) async throws -> MuteStatus {
+        struct Body: Encodable {
+            let notifications: Bool
+            let duration: Int?
+        }
+        return try await client.put(
+            "/users/\(username)/mute", body: Body(notifications: notifications, duration: duration),
+            authenticated: true)
+    }
+
+    static func unmute(username: String) async throws {
+        try await client.deleteVoid("/users/\(username)/mute", authenticated: true)
+    }
+
+    static func listMuted() async throws -> [MutedUser] {
+        try await client.get("/users/me/mutes", authenticated: true)
+    }
+
     /// 내가 차단한 사용자 목록 — 관리 화면 + 클라이언트 콘텐츠 필터의 소스.
     static func listBlocked() async throws -> [BlockedUser] {
         try await client.get("/users/me/blocks", authenticated: true)
