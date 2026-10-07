@@ -259,6 +259,7 @@ enum MockBackend {
     private static var bookmarks: Set<Int64> = []
     private static var follows: [String: (following: Bool, count: Int64)] = [:]
     private static var noteBells: Set<String> = []
+    private static var feedLanguages: [String] = []
     private static var nextScheduledId: Int64 = 9700
     private static var scheduledNotes: [[String: Any]] = [[
         "id": Int64(9699), "scheduledAt": iso(Date().addingTimeInterval(86_400)),
@@ -1159,10 +1160,12 @@ enum MockBackend {
             return json(["pinned": method == "PUT"])
         }
         if parts == ["notes", "feed-preferences"] {
-            if method == "PUT", let on = decode(body)["showReposts"] as? Bool {
-                showReposts = on
+            if method == "PUT" {
+                let req = decode(body)
+                if let on = req["showReposts"] as? Bool { showReposts = on }
+                if let codes = req["languages"] as? [String] { feedLanguages = codes }
             }
-            return json(["showReposts": showReposts])
+            return json(["showReposts": showReposts, "languages": feedLanguages])
         }
         if parts.count == 3, parts[0] == "notes", parts[1] == "repost-visibility" {
             if method == "PUT" { repostsHidden.insert(parts[2]) }

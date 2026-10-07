@@ -9512,6 +9512,62 @@
         }
       }
     },
+    "모든 노트와 인기에 고른 언어의 노트만 보여요. 언어를 정하지 않은 노트와 팔로잉·리스트는 그대로예요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All notes and Trending show only notes in the languages you pick. Notes without a language, Following and lists stay as they are."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सभी नोट और ट्रेंडिंग में सिर्फ़ चुनी गई भाषाओं के नोट दिखेंगे। बिना भाषा वाले नोट, फ़ॉलो किए गए और सूचियाँ जैसी हैं वैसी रहेंगी।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべてのノートと人気には選んだ言語のノートだけが表示されます。言語が決まっていないノートとフォロー中・リストはそのままです。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tất cả ghi chú và Thịnh hành chỉ hiện ghi chú bằng ngôn ngữ bạn chọn. Ghi chú không có ngôn ngữ, Đang theo dõi và danh sách vẫn như cũ."
+          }
+        }
+      }
+    },
+    "모든 언어": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All languages"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सभी भाषाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべての言語"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tất cả ngôn ngữ"
+          }
+        }
+      }
+    },
     "무기한": {
       "localizations": {
         "en": {
@@ -9956,6 +10012,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Thu gọn hoặc ẩn ghi chú có từ bạn không muốn thấy. Ghi chú của bạn không bị lọc."
+          }
+        }
+      }
+    },
+    "보이는 노트 언어": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Note languages to show"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दिखने वाली नोट भाषाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "表示するノートの言語"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ngôn ngữ ghi chú hiển thị"
           }
         }
       }
@@ -10796,6 +10880,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ẩn cả thông báo"
+          }
+        }
+      }
+    },
+    "언어": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Language"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "भाषा"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "言語"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ngôn ngữ"
           }
         }
       }

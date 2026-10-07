@@ -162,6 +162,35 @@ struct SettingsView: View {
             }
 
             if auth.isSignedIn {
+                RailHeading("노트")
+                    .padding(.top, 28)
+                    .padding(.bottom, 4)
+                NavigationLink {
+                    NoteLanguagesView()
+                } label: {
+                    HStack(spacing: 10) {
+                        Text("보이는 노트 언어")
+                            .typeScale(.body)
+                            .foregroundStyle(Palette.ink)
+                        Spacer()
+                        Text(NoteFeedPreferences.shared.languages.isEmpty
+                            ? String(localized: "모든 언어")
+                            : NoteFeedPreferences.shared.languages.map(NoteLanguages.name).joined(separator: ", "))
+                            .typeScale(.meta)
+                            .foregroundStyle(Palette.secondary)
+                            .lineLimit(1)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Palette.faint)
+                    }
+                    .padding(.vertical, 13)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("settings.noteLanguages")
+            }
+
+            if auth.isSignedIn {
                 RailHeading("노트 연합")
                     .padding(.top, 28)
                     .padding(.bottom, 4)

@@ -155,6 +155,8 @@ final class NoteFeedPreferences {
     static let shared = NoteFeedPreferences()
 
     private(set) var showReposts = true
+    private(set) var languages: [String] = []
+    private(set) var languageChanges = 0
     private(set) var changes = 0
     private(set) var mutes = 0
     private var loadedFor: Int64?
@@ -165,11 +167,13 @@ final class NoteFeedPreferences {
         guard let me = AuthStore.shared.me?.id else {
             loadedFor = nil
             if !showReposts { showReposts = true }
+            if !languages.isEmpty { languages = [] }
             return
         }
         guard loadedFor != me else { return }
         if let preferences = try? await NoteAPI.feedPreferences() {
-            showReposts = preferences.showReposts
+            showReposts = preferences.showReposts ?? true
+            languages = preferences.languages ?? []
             loadedFor = me
         }
     }
@@ -186,10 +190,24 @@ final class NoteFeedPreferences {
         let before = showReposts
         showReposts = on
         do {
-            showReposts = try await NoteAPI.setShowReposts(on).showReposts
+            showReposts = try await NoteAPI.setShowReposts(on).showReposts ?? on
             changes += 1
         } catch {
             showReposts = before
+            ToastCenter.shared.show(String(localized: "설정을 바꾸지 못했어요"))
+        }
+    }
+}
+
+extension NoteFeedPreferences {
+    func setLanguages(_ codes: [String]) async {
+        let before = languages
+        languages = codes
+        do {
+            languages = try await NoteAPI.setLanguages(codes).languages ?? codes
+            languageChanges += 1
+        } catch {
+            languages = before
             ToastCenter.shared.show(String(localized: "설정을 바꾸지 못했어요"))
         }
     }

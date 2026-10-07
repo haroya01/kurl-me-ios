@@ -569,6 +569,12 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.typeText("uitest scheduled note")
 
+        let language = app.buttons["noteCompose.language"]
+        XCTAssertTrue(language.exists, "작성기에 언어 고르기가 없음")
+        language.tap()
+        app.buttons["English"].tap()
+        XCTAssertEqual(language.value as? String, "English", "고른 언어가 작성기에 반영되지 않음")
+
         app.buttons["noteCompose.schedule"].tap()
         let done = app.buttons["noteSchedule.done"]
         XCTAssertTrue(done.waitForExistence(timeout: 5), "예약 시각 시트가 안 열림")
