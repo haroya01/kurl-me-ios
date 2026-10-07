@@ -1542,6 +1542,7 @@ struct NoteComposeSheet: View {
     @State private var linkCard: NoteLinkPreview?
     @State private var poll: NotePollDraft?
     @State private var scheduledAt: Date?
+    @State private var language = NoteLanguages.posting
     @State private var pickingSchedule = false
     @FocusState private var focused: Bool
     @Environment(\.dismiss) private var dismiss
@@ -1837,6 +1838,26 @@ struct NoteComposeSheet: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("noteCompose.visibility")
+                Menu {
+                    Picker("언어", selection: $language) {
+                        ForEach(NoteLanguages.all) { option in
+                            Text(verbatim: option.name).tag(option.code)
+                        }
+                    }
+                    .pickerStyle(.inline)
+                } label: {
+                    Text(verbatim: language.uppercased())
+                        .typeScale(.meta)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Palette.secondary)
+                        .padding(.horizontal, 6)
+                        .frame(minHeight: 32)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("언어"))
+                .accessibilityValue(Text(verbatim: NoteLanguages.name(language)))
+                .accessibilityIdentifier("noteCompose.language")
                 Button {
                     pickingSchedule = true
                 } label: {
@@ -2044,7 +2065,8 @@ struct NoteComposeSheet: View {
                 quotedNoteId: quotedNote?.id,
                 contentWarning: warningText.isEmpty ? nil : warningText, sensitive: sensitive,
                 visibility: visibility?.rawValue ?? (inReplyToId == nil ? "public" : nil),
-                poll: poll?.request)
+                poll: poll?.request, language: language)
+            NoteLanguages.remember(language)
             if let scheduledAt {
                 let scheduled = try await NoteAPI.schedule(draft, at: scheduledAt)
                 ScheduledNotesStore.shared.added(scheduled)

@@ -44,6 +44,9 @@ struct NotesTabView: View {
             .onChange(of: NoteFeedPreferences.shared.mutes) {
                 Task { await notes.reload() }
             }
+            .onChange(of: NoteFeedPreferences.shared.languageChanges) {
+                if choice.kind == .everyone || choice.kind == .trending { Task { await notes.reload() } }
+            }
             .navigationDestination(for: Route.self) {
                 RouteView(route: $0)
             }

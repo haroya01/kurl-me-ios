@@ -232,6 +232,12 @@ enum NoteAPI {
         try await client.get("/notes/feed-preferences", authenticated: true)
     }
 
+    static func setLanguages(_ codes: [String]) async throws -> NoteFeedPreferencesBody {
+        try await client.put(
+            "/notes/feed-preferences", body: NoteFeedPreferencesBody(languages: codes),
+            authenticated: true)
+    }
+
     static func setShowReposts(_ on: Bool) async throws -> NoteFeedPreferencesBody {
         try await client.put(
             "/notes/feed-preferences", body: NoteFeedPreferencesBody(showReposts: on),
@@ -362,6 +368,8 @@ struct Note: Decodable, Identifiable, Hashable {
     var poll: NotePoll? = nil
     /// 이 노트가 든 대화의 알림을 껐다(마스토돈 대화 뮤트). 비로그인 읽기면 nil.
     var conversationMuted: Bool? = nil
+    /// 작성자가 고른 언어(ISO 639-1). 정하지 않은 노트·다른 서버가 안 알려 준 노트는 nil.
+    var language: String? = nil
 
     var noteVisibility: NoteVisibility { NoteVisibility(rawValue: visibility ?? "public") ?? .public }
 }
@@ -468,6 +476,7 @@ struct NoteDraft: Encodable {
     var sensitive: Bool = false
     var visibility: String? = nil
     var poll: Poll? = nil
+    var language: String? = nil
 
     struct Poll: Encodable {
         let options: [String]
@@ -535,8 +544,11 @@ struct NoteHistory: Decodable {
     let versions: [Version]
 }
 
+/// 비운 칸은 보내지 않는다 — 한쪽 설정만 바꿀 수 있게.
 struct NoteFeedPreferencesBody: Codable {
-    let showReposts: Bool
+    var showReposts: Bool? = nil
+    /// 모든 노트·인기에 보일 언어. 비면 모든 언어.
+    var languages: [String]? = nil
 }
 
 struct NoteRepostVisibility: Decodable {

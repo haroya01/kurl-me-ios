@@ -125,4 +125,30 @@ final class NoteNotificationsUITests: XCTestCase {
         unblock.tap()
         XCTAssertTrue(app.staticTexts["차단한 서버가 없어요"].waitForExistence(timeout: 6), "해제 뒤 빈 상태가 아님")
     }
+
+    func testSettingsPicksTheNoteLanguagesToShow() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "account"]
+        app.launch()
+        let settings = app.buttons["설정"].firstMatch
+        XCTAssertTrue(settings.waitForExistence(timeout: 15))
+        settings.tap()
+        let row = app.buttons["settings.noteLanguages"]
+        XCTAssertTrue(row.waitForExistence(timeout: 8), "설정에 보이는 노트 언어가 없음")
+        row.tap()
+        let japanese = app.buttons["noteLanguages.ja"]
+        XCTAssertTrue(japanese.waitForExistence(timeout: 8), "언어 목록이 없음")
+        japanese.tap()
+        app.buttons["noteLanguages.ko"].tap()
+        XCTAssertTrue(japanese.isSelected, "고른 언어에 체크가 없음")
+        XCTAssertFalse(app.buttons["noteLanguages.all"].isSelected, "언어를 골랐는데 모든 언어가 체크됨")
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "note-languages"
+        shot.lifetime = .keepAlways
+        add(shot)
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(
+            app.buttons.matching(NSPredicate(format: "label CONTAINS '日本語'")).firstMatch.waitForExistence(timeout: 5),
+            "설정 행에 고른 언어가 보이지 않음")
+    }
 }
