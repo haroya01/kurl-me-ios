@@ -1171,7 +1171,16 @@ enum MockBackend {
         }
         if method == "GET", parts.count == 4, parts[0] == "federation", parts[1] == "accounts",
            parts[3] == "notes" {
-            let items = parts[2] == "9800" ? [remoteNoteView()] : []
+            var withMedia = remoteNoteView()
+            withMedia["id"] = Int64(9601)
+            withMedia["body"] = "오늘 찍은 파도 소리와 영상"
+            withMedia["media"] = [
+                ["url": "https://files.mastodon.social/waves.mp4", "altText": "밀려오는 파도",
+                 "contentType": "video/mp4"],
+                ["url": "https://files.mastodon.social/waves.mp3", "altText": "파도 소리",
+                 "contentType": "audio/mpeg"],
+            ] as [Any]
+            let items = parts[2] == "9800" ? [withMedia, remoteNoteView()] : []
             return json(["items": items, "page": 0, "hasNext": false])
         }
         if method == "GET", parts == ["public", "notes"] {

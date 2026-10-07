@@ -515,7 +515,13 @@ final class NotesFeedUITests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars["@mina@mastodon.social"].waitForExistence(timeout: 8), "원격 계정 화면이 안 열림")
         XCTAssertTrue(app.buttons["note.menu.9600"].waitForExistence(timeout: 8), "계정 화면에 받은 노트가 없음")
+        let video = app.buttons["note.video"].firstMatch
+        XCTAssertTrue(video.waitForExistence(timeout: 6), "동영상 첨부가 재생 타일로 안 그려짐")
+        XCTAssertTrue(app.buttons["note.audio"].firstMatch.exists, "오디오 첨부가 재생 행으로 안 그려짐")
         attach(app, "remote-account-notes")
+        video.tap()
+        XCTAssertTrue(app.buttons["닫기"].waitForExistence(timeout: 6), "동영상 전체 화면이 안 열림")
+        app.buttons["닫기"].tap()
     }
 
     func testMutingAConversationFromTheNoteMenuFlipsItsLabel() throws {
