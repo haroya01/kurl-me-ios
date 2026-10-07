@@ -307,6 +307,18 @@ enum MockBackend {
     /// 팔로우를 직접 승인하는 작가와, 그 작가에게 보낸 요청.
     private static let lockedAuthors: Set<String> = ["haneul"]
     private static var sentRequests: Set<String> = []
+    /// 알림 거르기 — 팔로우하지 않는 사람은 거르게 해 두었고, 두 사람의 알림이 걸러져 있다.
+    private static var notificationPolicy: [String: String] = [
+        "forNotFollowing": "FILTER", "forNotFollowers": "ACCEPT", "forNewAccounts": "ACCEPT",
+        "forPrivateMentions": "FILTER",
+    ]
+    private static var filteredSenders: [[String: Any]] = [
+        ["actorUserId": Int64(9301), "actorRemoteId": NSNull(), "username": "promo_bot", "avatarUrl": NSNull(),
+         "profileUrl": NSNull(), "count": 3, "lastAt": iso(Date().addingTimeInterval(-1_500))],
+        ["actorUserId": NSNull(), "actorRemoteId": Int64(9800), "username": "mina@mastodon.social",
+         "avatarUrl": NSNull(), "profileUrl": "https://mastodon.social/@mina", "count": 1,
+         "lastAt": iso(Date().addingTimeInterval(-7_200))],
+    ]
     private static var myUsername = "honggildong"
 
     // MARK: 긴 글 픽스처
@@ -2040,6 +2052,27 @@ enum MockBackend {
             return json([:] as [String: Any])
         }
 
+        if parts == ["notifications", "policy"] {
+            if method == "PUT" {
+                for (key, value) in decode(body) {
+                    if let level = value as? String { notificationPolicy[key] = level }
+                }
+            }
+            return json(notificationPolicy)
+        }
+        if method == "GET", parts == ["notifications", "requests"] {
+            return json(filteredSenders)
+        }
+        if method == "POST", parts.count == 3, parts[0] == "notifications", parts[1] == "requests" {
+            let req = decode(body)
+            let user = (req["actorUserId"] as? NSNumber)?.int64Value
+            let remote = (req["actorRemoteId"] as? NSNumber)?.int64Value
+            filteredSenders.removeAll {
+                ($0["actorUserId"] as? Int64) == user && user != nil
+                    || ($0["actorRemoteId"] as? Int64) == remote && remote != nil
+            }
+            return json([:] as [String: Any])
+        }
         if method == "GET", parts == ["users", "me", "follow-requests"] {
             return json(memberRequests.map { request -> [String: Any] in
                 ["username": request.username, "displayName": request.displayName ?? NSNull(),

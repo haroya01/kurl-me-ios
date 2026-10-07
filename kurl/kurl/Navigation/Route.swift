@@ -36,6 +36,8 @@ enum Route: Hashable {
     case remoteAccount(id: Int64)
     /// 잠긴 계정에 온 팔로우 요청 — 알림 맨 위 줄과 요청 알림 푸시에서 연다.
     case followRequests
+    /// 알림 거르기가 따로 둔 알림 — 알림 맨 위 줄에서 연다.
+    case filteredNotifications
 }
 
 enum PostSpot: Hashable {
