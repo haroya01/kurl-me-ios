@@ -183,6 +183,21 @@ final class NotesFeedUITests: XCTestCase {
         attach(app, "quote-post-closed")
     }
 
+    func testTheFeedOfOtherServersShowsNotesThisServerReceived() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let menu = app.buttons["tab.menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 6), "노트 탭 메뉴가 없음")
+        menu.tap()
+        app.buttons["다른 서버"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["note.menu.9600"].waitForExistence(timeout: 8), "다른 서버 피드에 받은 노트가 없음")
+        XCTAssertFalse(app.buttons["note.menu.9501"].exists, "다른 서버 피드에 이 서버 노트가 섞임")
+        attach(app, "notes-federated")
+    }
+
     func testRepostsHideForTheWholeFollowingFeedAndForOnePerson() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]

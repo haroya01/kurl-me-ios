@@ -48,7 +48,7 @@ enum NoteLanguages {
     }
 }
 
-/// 설정 > 노트 > 보이는 노트 언어 — 마스토돈의 언어 거르기. 모든 노트·인기에만 적용된다.
+/// 설정 > 노트 > 보이는 노트 언어 — 마스토돈의 언어 거르기. 모든 노트·다른 서버·인기에만 적용된다.
 struct NoteLanguagesView: View {
     @State private var preferences = NoteFeedPreferences.shared
     @State private var chosen: Set<String> = []
@@ -80,7 +80,7 @@ struct NoteLanguagesView: View {
                     .accessibilityIdentifier("noteLanguages.\(language.code)")
                 }
             } footer: {
-                Text("모든 노트와 인기에 고른 언어의 노트만 보여요. 언어를 정하지 않은 노트와 팔로잉·리스트는 그대로예요.")
+                Text("모든 노트·다른 서버·인기에 고른 언어의 노트만 보여요. 언어를 정하지 않은 노트와 팔로잉·리스트는 그대로예요.")
             }
         }
         .navigationTitle("보이는 노트 언어")

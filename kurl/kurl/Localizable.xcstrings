@@ -4137,6 +4137,34 @@
         }
       }
     },
+    "검색에 @아이디@서버를 적어 다른 서버 계정을 팔로우하면, 그 노트가 여기와 팔로잉에 와요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow an account on another server by searching @name@server, and its notes come here and to Following."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "खोज में @नाम@सर्वर लिखकर दूसरे सर्वर का खाता फ़ॉलो करें, उसके नोट यहाँ और फ़ॉलोइंग में आएँगे।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検索で @名前@サーバー と入力してほかのサーバーのアカウントをフォローすると、そのノートがこことフォロー中に届きます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tìm @tên@máy-chủ để theo dõi tài khoản ở máy chủ khác, ghi chú của họ sẽ đến đây và mục Đang theo dõi."
+          }
+        }
+      }
+    },
     "검색에 @아이디@서버를 적으면 마스토돈 같은 다른 서버의 계정을 찾을 수 있어요.": {
       "localizations": {
         "en": {
@@ -8504,6 +8532,34 @@
         }
       }
     },
+    "다른 서버": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other servers"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दूसरे सर्वर"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほかのサーバー"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Máy chủ khác"
+          }
+        }
+      }
+    },
     "다른 서버 계정 화면의 ⋯ 메뉴에서 그 서버 전체를 차단할 수 있어요.": {
       "localizations": {
         "en": {
@@ -8612,6 +8668,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bạn chưa theo dõi ai ở máy chủ khác"
+          }
+        }
+      }
+    },
+    "다른 서버의 노트": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes from other servers"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दूसरे सर्वर के नोट"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほかのサーバーのノート"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ghi chú từ máy chủ khác"
           }
         }
       }
@@ -9004,6 +9088,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đăng nhập để xem ghi chú của những người bạn theo dõi trên blog và ghi chú."
+          }
+        }
+      }
+    },
+    "로그인하면 이 서버가 받은 마스토돈 같은 다른 서버의 공개 노트를 볼 수 있어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to see public notes this server received from other servers like Mastodon."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साइन इन करके देखें कि इस सर्वर को Mastodon जैसे दूसरे सर्वर से कौन से सार्वजनिक नोट मिले।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログインすると、このサーバーが受け取ったMastodonなどほかのサーバーの公開ノートを見られます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để xem các ghi chú công khai mà máy chủ này nhận từ các máy chủ khác như Mastodon."
           }
         }
       }
@@ -9764,6 +9876,62 @@
         }
       }
     },
+    "모든 노트 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "See everyone"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सभी नोट देखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべてのノートを見る"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xem mọi ghi chú"
+          }
+        }
+      }
+    },
+    "모든 노트·다른 서버·인기에 고른 언어의 노트만 보여요. 언어를 정하지 않은 노트와 팔로잉·리스트는 그대로예요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Everyone, other servers and trending show only notes in the languages you chose. Notes with no language, following and lists stay as they are."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सभी नोट, दूसरे सर्वर और ट्रेंडिंग में सिर्फ़ चुनी गई भाषाओं के नोट दिखते हैं। बिना भाषा वाले नोट, फ़ॉलोइंग और सूचियाँ वैसी ही रहती हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべてのノート・ほかのサーバー・トレンドには選んだ言語のノートだけが表示されます。言語のないノートとフォロー中・リストはそのままです。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mọi ghi chú, máy chủ khác và xu hướng chỉ hiện ghi chú bằng ngôn ngữ bạn chọn. Ghi chú không có ngôn ngữ, đang theo dõi và danh sách vẫn như cũ."
+          }
+        }
+      }
+    },
     "모든 노트·인기·태그": {
       "localizations": {
         "en": {
@@ -9788,34 +9956,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mọi ghi chú, thịnh hành, thẻ"
-          }
-        }
-      }
-    },
-    "모든 노트와 인기에 고른 언어의 노트만 보여요. 언어를 정하지 않은 노트와 팔로잉·리스트는 그대로예요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "All notes and Trending show only notes in the languages you pick. Notes without a language, Following and lists stay as they are."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "सभी नोट और ट्रेंडिंग में सिर्फ़ चुनी गई भाषाओं के नोट दिखेंगे। बिना भाषा वाले नोट, फ़ॉलो किए गए और सूचियाँ जैसी हैं वैसी रहेंगी।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "すべてのノートと人気には選んだ言語のノートだけが表示されます。言語が決まっていないノートとフォロー中・リストはそのままです。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tất cả ghi chú và Thịnh hành chỉ hiện ghi chú bằng ngôn ngữ bạn chọn. Ghi chú không có ngôn ngữ, Đang theo dõi và danh sách vẫn như cũ."
           }
         }
       }
@@ -11216,6 +11356,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chưa có lượt đăng lại"
+          }
+        }
+      }
+    },
+    "아직 받은 다른 서버 노트가 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No notes from other servers yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी दूसरे सर्वर से कोई नोट नहीं मिला"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほかのサーバーのノートはまだありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa nhận ghi chú nào từ máy chủ khác"
           }
         }
       }

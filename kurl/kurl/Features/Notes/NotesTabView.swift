@@ -45,7 +45,7 @@ struct NotesTabView: View {
                 Task { await notes.reload() }
             }
             .onChange(of: NoteFeedPreferences.shared.languageChanges) {
-                if choice.kind == .everyone || choice.kind == .trending { Task { await notes.reload() } }
+                if [.everyone, .federated, .trending].contains(choice.kind) { Task { await notes.reload() } }
             }
             .navigationDestination(for: Route.self) {
                 RouteView(route: $0)
@@ -147,6 +147,15 @@ struct NotesTabView: View {
                 action: { showFollowingLogin = true }
             )
             .padding(.top, 56)
+        } else if choice.kind == .federated, !AuthStore.shared.isSignedIn {
+            FeedPlaceholder(
+                title: "다른 서버의 노트",
+                message: "로그인하면 이 서버가 받은 마스토돈 같은 다른 서버의 공개 노트를 볼 수 있어요.",
+                actionTitle: "로그인",
+                prominent: true,
+                action: { showFollowingLogin = true }
+            )
+            .padding(.top, 56)
         } else if choice.kind == .bookmarks, !AuthStore.shared.isSignedIn {
             FeedPlaceholder(
                 title: "나만 보는 북마크",
@@ -180,6 +189,14 @@ struct NotesTabView: View {
                 actionTitle: "첫 노트 쓰기",
                 prominent: true,
                 action: compose
+            )
+        case .federated:
+            FeedPlaceholder(
+                title: "아직 받은 다른 서버 노트가 없어요",
+                message: "검색에 @아이디@서버를 적어 다른 서버 계정을 팔로우하면, 그 노트가 여기와 팔로잉에 와요.",
+                actionTitle: "모든 노트 보기",
+                prominent: true,
+                action: { choice.kind = .everyone }
             )
         case .following:
             FeedPlaceholder(

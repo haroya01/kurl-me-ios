@@ -1198,6 +1198,9 @@ enum MockBackend {
             items.append(remoteNoteView())
             return json(["items": items, "page": 0, "hasNext": false])
         }
+        if method == "GET", parts == ["notes", "federated"] {
+            return json(["items": [remoteNoteView()], "page": 0, "hasNext": false])
+        }
         if method == "GET", parts.count == 4, parts[0] == "federation", parts[1] == "accounts",
            parts[3] == "notes" {
             var withMedia = remoteNoteView()

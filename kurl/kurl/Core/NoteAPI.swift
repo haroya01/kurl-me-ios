@@ -25,6 +25,12 @@ enum NoteAPI {
             "/public/notes", query: ["page": String(page), "size": "20"], authenticated: signedIn)
     }
 
+    /// 마스토돈의 다른 서버 실시간 피드 — 이 서버가 받은 공개 노트, 최신순. 회원만.
+    static func federated(page: Int = 0) async throws -> NoteFeed {
+        try await client.get(
+            "/notes/federated", query: ["page": String(page), "size": "20"], authenticated: true)
+    }
+
     static func trending(page: Int = 0) async throws -> NoteFeed {
         try await client.get(
             "/public/notes", query: ["sort": "trending", "page": String(page), "size": "20"],

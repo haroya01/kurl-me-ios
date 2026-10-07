@@ -8,6 +8,7 @@ import SwiftUI
 
 enum NoteFeedKind: String, CaseIterable, Identifiable {
     case everyone
+    case federated
     case following
     case trending
     case bookmarks
@@ -16,11 +17,12 @@ enum NoteFeedKind: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    static let pickable: [NoteFeedKind] = [.everyone, .following, .trending, .bookmarks, .direct]
+    static let pickable: [NoteFeedKind] = [.everyone, .federated, .following, .trending, .bookmarks, .direct]
 
     var title: LocalizedStringKey {
         switch self {
         case .everyone: "노트"
+        case .federated: "다른 서버"
         case .following: "팔로잉"
         case .trending: "인기"
         case .bookmarks: "북마크한 노트"
@@ -32,6 +34,7 @@ enum NoteFeedKind: String, CaseIterable, Identifiable {
     var menuLabel: LocalizedStringKey {
         switch self {
         case .everyone: "모든 노트"
+        case .federated: "다른 서버"
         case .following: "팔로잉"
         case .trending: "인기"
         case .bookmarks: "북마크한 노트"
@@ -43,6 +46,7 @@ enum NoteFeedKind: String, CaseIterable, Identifiable {
     var symbol: String {
         switch self {
         case .everyone: "text.bubble"
+        case .federated: "globe"
         case .following: "person.2"
         case .trending: "flame"
         case .bookmarks: "bookmark"
