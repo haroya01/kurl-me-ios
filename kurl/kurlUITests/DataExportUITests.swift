@@ -30,11 +30,26 @@ final class DataExportUITests: XCTestCase {
             XCTAssertTrue(app.buttons["export.\(kind)"].waitForExistence(timeout: 5), "\(kind) 내보내기 줄이 없음")
         }
         XCTAssertTrue(app.staticTexts["following_accounts.csv"].exists, "마스토돈 파일 이름이 안 보임")
+
         let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         shot.name = "data-export"
         shot.lifetime = .keepAlways
         add(shot)
 
+        let past = app.descendants(matching: .any)["import.progress.31"]
+        for _ in 0..<5 where !past.exists {
+            app.swipeUp(velocity: .slow)
+        }
+        XCTAssertTrue(app.buttons["import.following"].exists, "가져오기 줄이 없음")
+        XCTAssertTrue(past.waitForExistence(timeout: 8), "지난 가져오기가 안 보임")
+        XCTAssertTrue(past.label.contains("120줄 중 116줄 가져옴"), "가져온 수가 틀림: \(past.label)")
+        let importShot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        importShot.name = "data-import"
+        importShot.lifetime = .keepAlways
+        add(importShot)
+        for _ in 0..<5 where !app.buttons["export.following"].isHittable {
+            app.swipeDown(velocity: .slow)
+        }
         app.buttons["export.following"].tap()
         let sheet = app.otherElements["ActivityListView"]
         XCTAssertTrue(

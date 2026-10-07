@@ -236,7 +236,7 @@ struct SettingsView: View {
                     DataExportView()
                 } label: {
                     HStack(spacing: 10) {
-                        Text("데이터 내보내기")
+                        Text("가져오기·내보내기")
                             .typeScale(.body)
                             .foregroundStyle(Palette.ink)
                         Spacer()

@@ -2596,6 +2596,62 @@
         }
       }
     },
+    "%lld줄 중 %lld줄 가져옴 · 실패 %lld줄": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Imported %2$lld of %1$lld lines · %3$lld failed"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld में से %2$lld पंक्तियाँ इम्पोर्ट · %3$lld विफल"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld行中%2$lld行をインポート · 失敗%3$lld行"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã nhập %2$lld/%1$lld dòng · %3$lld lỗi"
+          }
+        }
+      }
+    },
+    "%lld줄을 가져오는 중이에요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Importing %lld lines"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld पंक्तियाँ इम्पोर्ट हो रही हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld行をインポートしています"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đang nhập %lld dòng"
+          }
+        }
+      }
+    },
     "%lld편": {
       "localizations": {
         "en": {
@@ -4133,6 +4189,90 @@
           "stringUnit": {
             "state": "translated",
             "value": "Căn giữa"
+          }
+        }
+      }
+    },
+    "가져오기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इम्पोर्ट"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インポート"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nhập"
+          }
+        }
+      }
+    },
+    "가져오기·내보내기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import and export"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इम्पोर्ट और एक्सपोर्ट"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インポートとエクスポート"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nhập và xuất"
+          }
+        }
+      }
+    },
+    "가져오지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't import"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इम्पोर्ट नहीं हो सका"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インポートできませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể nhập"
           }
         }
       }
@@ -7436,6 +7576,34 @@
         }
       }
     },
+    "끝남": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Done"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पूरा"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完了"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xong"
+          }
+        }
+      }
+    },
     "나는 나를 더 잘 말하기 위해 남의 문장을 옮긴다.": {
       "localizations": {
         "en": {
@@ -8252,6 +8420,34 @@
         }
       }
     },
+    "내보내기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "एक्सपोर्ट"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エクスポート"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xuất"
+          }
+        }
+      }
+    },
     "내보내지 못했어요": {
       "localizations": {
         "en": {
@@ -9032,6 +9228,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ai cũng xem được, nhưng không hiện ở Mới nhất, Thịnh hành và thẻ"
+          }
+        }
+      }
+    },
+    "다른 마스토돈 서버에서 내보낸 파일을 올리면 지금 것에 더해요. 이 서버 회원과 다른 서버 계정 팔로우, 이 서버 회원 차단·뮤트·리스트, 차단한 서버, 북마크를 옮길 수 있어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Upload a file exported from another Mastodon server to add it to what you have. You can bring follows of members here and accounts elsewhere, blocks, mutes and lists of members here, blocked servers, and bookmarks."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "किसी दूसरे Mastodon सर्वर से निर्यात की गई फ़ाइल अपलोड करें, वह आपके मौजूदा डेटा में जुड़ जाएगी। यहाँ के सदस्यों और दूसरे सर्वर के खातों के फ़ॉलो, यहाँ के सदस्यों के ब्लॉक·म्यूट·सूचियाँ, ब्लॉक किए गए सर्वर और बुकमार्क ला सकते हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "他のMastodonサーバーからエクスポートしたファイルをアップロードすると、今のものに追加されます。このサーバーの会員と他のサーバーのアカウントのフォロー、このサーバーの会員のブロック・ミュート・リスト、ブロックしたサーバー、ブックマークを移せます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tải lên tệp xuất từ máy chủ Mastodon khác để thêm vào dữ liệu hiện có. Bạn có thể chuyển lượt theo dõi thành viên ở đây và tài khoản nơi khác, chặn·tắt tiếng·danh sách thành viên ở đây, máy chủ đã chặn và dấu trang."
           }
         }
       }
@@ -12280,6 +12504,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ẩn cả thông báo"
+          }
+        }
+      }
+    },
+    "앞의 가져오기가 끝나면 다시 해 주세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try again when the current import finishes"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "चल रहा इम्पोर्ट पूरा होने के बाद फिर कोशिश करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前のインポートが終わってからもう一度お試しください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hãy thử lại khi lần nhập trước xong"
           }
         }
       }
@@ -18510,6 +18762,34 @@
         }
       }
     },
+    "최근 가져오기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recent imports"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "हाल के इम्पोर्ट"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近のインポート"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lần nhập gần đây"
+          }
+        }
+      }
+    },
     "최신 노트 보기": {
       "localizations": {
         "en": {
@@ -18926,6 +19206,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Không thể bình chọn"
+          }
+        }
+      }
+    },
+    "파일을 읽지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't read the file"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ाइल पढ़ी नहीं जा सकी"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルを読めませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không đọc được tệp"
           }
         }
       }
