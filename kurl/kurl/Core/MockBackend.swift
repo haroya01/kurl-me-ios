@@ -308,6 +308,11 @@ enum MockBackend {
     private static let lockedAuthors: Set<String> = ["haneul"]
     private static var sentRequests: Set<String> = []
     private static var dismissedSuggestions: Set<String> = []
+    /// 지난 가져오기 하나 — 다른 서버에서 옮겨 온 팔로우.
+    private static var accountImports: [[String: Any]] = [
+        ["id": Int64(31), "kind": "FOLLOWING", "total": 120, "processed": 120, "imported": 116,
+         "finished": true, "createdAt": iso(Date().addingTimeInterval(-86_400))],
+    ]
     /// 알림 거르기 — 팔로우하지 않는 사람은 거르게 해 두었고, 두 사람의 알림이 걸러져 있다.
     private static var notificationPolicy: [String: String] = [
         "forNotFollowing": "FILTER", "forNotFollowers": "ACCEPT", "forNewAccounts": "ACCEPT",
@@ -2053,6 +2058,28 @@ enum MockBackend {
             return json([:] as [String: Any])
         }
 
+        if parts == ["users", "me", "imports"] {
+            if method == "POST" {
+                let req = decode(body)
+                let lines = ((req["csv"] as? String) ?? "").split(separator: "\n").count
+                let started: [String: Any] = [
+                    "id": Int64(32 + accountImports.count), "kind": ((req["kind"] as? String) ?? "following").uppercased(),
+                    "total": lines, "processed": 0, "imported": 0, "finished": false, "createdAt": iso(Date()),
+                ]
+                accountImports.insert(started, at: 0)
+                return json(started)
+            }
+            accountImports = accountImports.map { item in
+                guard item["finished"] as? Bool == false, let total = item["total"] as? Int else { return item }
+                var next = item
+                let processed = min(total, (item["processed"] as? Int ?? 0) + max(1, total / 2))
+                next["processed"] = processed
+                next["imported"] = processed
+                next["finished"] = processed >= total
+                return next
+            }
+            return json(accountImports)
+        }
         if parts.count >= 3, parts[0] == "users", parts[1] == "me", parts[2] == "suggestions" {
             if method == "DELETE", parts.count == 4 {
                 dismissedSuggestions.insert(parts[3])
