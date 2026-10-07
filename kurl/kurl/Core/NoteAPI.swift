@@ -31,6 +31,11 @@ enum NoteAPI {
             "/notes/federated", query: ["page": String(page), "size": "20"], authenticated: true)
     }
 
+    /// 마스토돈 트렌드 — 이번 주 여러 계정이 쓴 노트 해시태그와 7일 동안 날마다 쓰인 수.
+    static func trendingTags() async throws -> [TrendingNoteTag] {
+        try await client.get("/public/notes/trending-tags", authenticated: false)
+    }
+
     static func trending(page: Int = 0) async throws -> NoteFeed {
         try await client.get(
             "/public/notes", query: ["sort": "trending", "page": String(page), "size": "20"],
@@ -464,6 +469,15 @@ struct NoteFeed: Decodable {
     let items: [Note]
     let page: Int
     let hasNext: Bool
+}
+
+struct TrendingNoteTag: Decodable, Hashable, Identifiable {
+    let tag: String
+    let accounts: Int
+    let uses: Int
+    let history: [Int]
+
+    var id: String { tag }
 }
 
 struct NoteThread: Decodable {

@@ -19,6 +19,8 @@ enum Route: Hashable {
     case businessCard(username: String)
     case series(username: String, slug: String)
     case tag(String)
+    /// 노트 해시태그 — 같은 태그 화면을 노트 탭으로 연다(뜨는 해시태그에서).
+    case noteTag(String)
     /// 작가의 팔로워 / 팔로잉 목록 — 같은 화면을 미리 고른 탭으로 연다.
     case followers(username: String)
     case following(username: String)

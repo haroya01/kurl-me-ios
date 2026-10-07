@@ -40,6 +40,7 @@ struct SearchView: View {
     @State private var confirmingClear = false
     @State private var trending: [FeedItem] = []
     @State private var popularTags: [TagCount] = []
+    @State private var trendingNoteTags: [TrendingNoteTag] = []
     @State private var suggestedAuthors: [SuggestedAuthor] = []
 
     var body: some View {
@@ -182,6 +183,8 @@ struct SearchView: View {
 
                 trendingRail
 
+                trendingNoteTagsRail
+
                 popularTagsRail
 
                 suggestedAuthorsRail
@@ -274,6 +277,38 @@ struct SearchView: View {
         }
     }
 
+    /// 노트에서 뜨는 해시태그 — 마스토돈 둘러보기의 해시태그처럼 쓴 사람 수와 7일 막대.
+    @ViewBuilder private var trendingNoteTagsRail: some View {
+        if !trendingNoteTags.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                RailHeading("뜨는 해시태그")
+                ForEach(trendingNoteTags) { trend in
+                    NavigationLink(value: Route.noteTag(trend.tag)) {
+                        HStack(spacing: 12) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(verbatim: "#\(trend.tag)")
+                                    .typeScale(.body)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(Palette.ink)
+                                    .lineLimit(1)
+                                Text("\(trend.accounts)명이 이번 주에 썼어요")
+                                    .typeScale(.meta)
+                                    .foregroundStyle(Palette.secondary)
+                            }
+                            Spacer(minLength: 8)
+                            TrendSparkBars(history: trend.history)
+                        }
+                        .padding(.vertical, 10)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityIdentifier("search.trendingTag.\(trend.tag)")
+                }
+            }
+        }
+    }
+
     @ViewBuilder private var popularTagsRail: some View {
         let renderable = popularTags.filter { ContentValidity.isRenderableTag($0.tag) }
         if !renderable.isEmpty {
@@ -345,6 +380,9 @@ struct SearchView: View {
         }
         if suggestedAuthors.isEmpty {
             suggestedAuthors = (try? await BlogAPI.suggestedAuthors(limit: 5)) ?? []
+        }
+        if trendingNoteTags.isEmpty {
+            trendingNoteTags = Array(((try? await NoteAPI.trendingTags()) ?? []).prefix(5))
         }
     }
 
@@ -646,5 +684,23 @@ enum SearchRecents {
 
     static func save(_ terms: [String]) {
         UserDefaults.standard.set(terms, forKey: key)
+    }
+}
+
+/// 7일 동안 날마다 쓰인 수 — 마스토돈 트렌드 옆의 작은 막대. 가장 많은 날이 꽉 찬다.
+private struct TrendSparkBars: View {
+    let history: [Int]
+
+    var body: some View {
+        let peak = max(history.max() ?? 0, 1)
+        HStack(alignment: .bottom, spacing: 3) {
+            ForEach(Array(history.enumerated()), id: \.offset) { _, count in
+                Capsule()
+                    .fill(count == 0 ? Palette.hairlineStrong : Palette.accent)
+                    .frame(width: 4, height: max(3, 22 * CGFloat(count) / CGFloat(peak)))
+            }
+        }
+        .frame(height: 22, alignment: .bottom)
+        .accessibilityHidden(true)
     }
 }
