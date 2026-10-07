@@ -46,6 +46,43 @@ enum NoteAPI {
             authenticated: signedIn)
     }
 
+    static func lists() async throws -> [NoteListSummary] {
+        try await client.get("/notes/lists", authenticated: true)
+    }
+
+    static func createList(title: String) async throws -> NoteListSummary {
+        try await client.post("/notes/lists", body: NoteListTitle(title: title), authenticated: true)
+    }
+
+    static func renameList(id: Int64, title: String) async throws -> NoteListSummary {
+        try await client.patch("/notes/lists/\(id)", body: NoteListTitle(title: title), authenticated: true)
+    }
+
+    static func deleteList(id: Int64) async throws {
+        try await client.deleteVoid("/notes/lists/\(id)", authenticated: true)
+    }
+
+    static func listMembers(id: Int64) async throws -> [Author] {
+        try await client.get("/notes/lists/\(id)/members", authenticated: true)
+    }
+
+    static func setListMember(id: Int64, username: String, on: Bool) async throws {
+        if on {
+            try await client.putVoid("/notes/lists/\(id)/members/\(username)", authenticated: true)
+        } else {
+            try await client.deleteVoid("/notes/lists/\(id)/members/\(username)", authenticated: true)
+        }
+    }
+
+    static func listNotes(id: Int64, page: Int = 0) async throws -> NoteFeed {
+        try await client.get(
+            "/notes/lists/\(id)/notes", query: ["page": String(page), "size": "20"], authenticated: true)
+    }
+
+    static func listMemberships(username: String) async throws -> NoteListMembership {
+        try await client.get("/notes/list-memberships/\(username)", authenticated: true)
+    }
+
     static func direct(page: Int = 0) async throws -> NoteFeed {
         try await client.get(
             "/notes/direct", query: ["page": String(page), "size": "20"], authenticated: true)
@@ -333,6 +370,20 @@ struct NoteBookmarkStatus: Decodable {
 
 struct NotePinStatus: Decodable {
     let pinned: Bool
+}
+
+struct NoteListSummary: Decodable, Hashable, Identifiable {
+    let id: Int64
+    var title: String
+    var memberCount: Int64
+}
+
+struct NoteListTitle: Encodable {
+    let title: String
+}
+
+struct NoteListMembership: Decodable {
+    let listIds: [Int64]
 }
 
 /// 마스토돈 수정 기록 — 지금 판이 첫째, 그 앞의 판들이 최신순으로 뒤따른다.

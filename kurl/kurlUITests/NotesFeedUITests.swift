@@ -344,6 +344,41 @@ final class NotesFeedUITests: XCTestCase {
                       "팔로워만 보는 노트에 범위 표시가 없음")
     }
 
+    func testAPersonAddedToAListShowsUpInThatListsFeed() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let name = app.buttons["yuki_dev"].firstMatch
+        XCTAssertTrue(name.waitForExistence(timeout: 8))
+        name.tap()
+        let more = app.buttons["더 보기"].firstMatch
+        XCTAssertTrue(more.waitForExistence(timeout: 10))
+        more.tap()
+        app.buttons["리스트에 추가…"].firstMatch.tap()
+        let title = app.textFields["noteList.membership.newTitle"]
+        XCTAssertTrue(title.waitForExistence(timeout: 6), "리스트에 추가 시트가 안 열림")
+        title.tap()
+        title.typeText("동료")
+        app.buttons["noteList.membership.create"].tap()
+        let row = app.buttons["noteList.membership.700"]
+        XCTAssertTrue(row.waitForExistence(timeout: 6), "새 리스트가 안 생김")
+        XCTAssertTrue(row.isSelected, "만든 리스트에 담기지 않음")
+        attach(app, "note-list-membership")
+        app.buttons["완료"].firstMatch.tap()
+
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        let menu = app.buttons["tab.menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 6))
+        menu.tap()
+        app.buttons["동료"].firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["동료"].waitForExistence(timeout: 6), "리스트 피드로 안 바뀜")
+        XCTAssertTrue(app.buttons["note.menu.9501"].waitForExistence(timeout: 8), "담은 사람의 노트가 리스트에 없음")
+        XCTAssertFalse(app.buttons["note.menu.9503"].exists, "담지 않은 사람의 노트가 리스트에 있음")
+        attach(app, "note-list-feed")
+    }
+
     func testANotesRepliesOpenFromItsRow() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]

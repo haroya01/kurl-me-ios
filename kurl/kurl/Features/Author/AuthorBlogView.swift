@@ -27,6 +27,7 @@ struct AuthorBlogView: View {
     @State private var followStatus: InteractionsAPI.FollowStatus?
     @State private var following = false
     @State private var repostsHidden: Bool?
+    @State private var addingToList = false
     @State private var showNavTitle = false
     @State private var showReport = false
     @State private var showBlockConfirm = false
@@ -99,6 +100,13 @@ struct AuthorBlogView: View {
             if let author, !isOwnAuthor {
                 ToolbarItem(placement: .primaryAction) {
                     Menu {
+                        if AuthStore.shared.isSignedIn {
+                            Button {
+                                addingToList = true
+                            } label: {
+                                Label("리스트에 추가…", systemImage: "list.bullet")
+                            }
+                        }
                         if let hidden = repostsHidden {
                             Button {
                                 Task { await setRepostsHidden(!hidden) }
@@ -136,6 +144,9 @@ struct AuthorBlogView: View {
             }
         }
         .loginPrompt(isPresented: $showCollectionLogin, message: "컬렉션을 열려면 로그인하세요")
+        .sheet(isPresented: $addingToList) {
+            NoteListMembershipSheet(username: username)
+        }
         .reportDialog(isPresented: $showReport, subjectType: "USER", subjectId: author?.id ?? 0)
         .blockDialog(
             isPresented: $showBlockConfirm,
