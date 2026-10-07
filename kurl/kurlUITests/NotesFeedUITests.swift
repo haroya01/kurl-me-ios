@@ -537,6 +537,22 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(app.buttons["대화 알림 켜기"].waitForExistence(timeout: 5), "끈 뒤 메뉴가 켜기로 바뀌지 않음")
     }
 
+    func testSomeoneElsesNoteCanBeReportedFromItsMenu() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let menu = app.buttons["note.menu.9501"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 10))
+        menu.tap()
+        let report = app.buttons["신고"]
+        XCTAssertTrue(report.waitForExistence(timeout: 5), "남의 노트 메뉴에 신고가 없음")
+        report.tap()
+        XCTAssertTrue(app.staticTexts["신고 사유를 선택하세요"].waitForExistence(timeout: 5), "신고 사유 시트가 안 열림")
+        attach(app, "note-report-sheet")
+    }
+
     func testADisplayNameLeadsTheRowWithTheHandleBesideIt() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]

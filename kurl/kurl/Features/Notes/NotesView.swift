@@ -215,6 +215,7 @@ struct NoteRowView: View {
     @State private var bookmarked: Bool
     @State private var bookmarkTaps = 0
     @State private var conversationMuted: Bool
+    @State private var reporting = false
     @State private var quoting = false
     @State private var editing = false
     @State private var confirmDelete = false
@@ -681,6 +682,12 @@ struct NoteRowView: View {
                         systemImage: conversationMuted ? "bell" : "bell.slash")
                 }
                 .accessibilityIdentifier("note.conversationMute.\(note.id)")
+                if !isMine {
+                    Button(role: .destructive) { reporting = true } label: {
+                        Label("신고", systemImage: "flag")
+                    }
+                    .accessibilityIdentifier("note.report.\(note.id)")
+                }
             }
             if isMine {
                 Divider()
@@ -707,6 +714,7 @@ struct NoteRowView: View {
         }
         .accessibilityLabel("노트 메뉴")
         .accessibilityIdentifier("note.menu.\(note.id)")
+        .reportDialog(isPresented: $reporting, subjectType: "NOTE", subjectId: note.id)
     }
 
     private func actions(spread: Bool) -> some View {
