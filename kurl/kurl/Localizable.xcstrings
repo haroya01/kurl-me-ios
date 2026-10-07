@@ -885,6 +885,34 @@
         }
       }
     },
+    "%@님의 투표가 끝났어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@'s poll has ended"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ का पोल समाप्त हो गया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@さんの投票が終了しました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuộc bình chọn của %@ đã kết thúc"
+          }
+        }
+      }
+    },
     "%@님이 글을 좋아해요": {
       "localizations": {
         "en": {
@@ -6680,6 +6708,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Để nhận thông báo của bạn"
+          }
+        }
+      }
+    },
+    "내 투표가 끝났어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your poll has ended"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपका पोल समाप्त हो गया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あなたの投票が終了しました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuộc bình chọn của bạn đã kết thúc"
+          }
+        }
+      }
+    },
+    "내 투표나 참여한 투표가 끝났을 때": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When your poll or a poll you voted in ends"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जब आपका पोल या जिस पोल में आपने वोट किया वह समाप्त हो"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自分の投票や参加した投票が終わったとき"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khi cuộc bình chọn của bạn hoặc cuộc bạn tham gia kết thúc"
           }
         }
       }
@@ -13887,6 +13971,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bình chọn"
+          }
+        }
+      }
+    },
+    "투표 마감": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Poll results"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पोल परिणाम"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "投票の終了"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kết quả bình chọn"
           }
         }
       }

@@ -53,6 +53,7 @@ enum NotificationKind: String, CaseIterable, Identifiable {
     case noteMention = "NOTE_MENTION"
     case noteLike = "NOTE_LIKE"
     case noteRepost = "NOTE_REPOST"
+    case notePoll = "NOTE_POLL"
     case remoteFollow = "REMOTE_FOLLOW"
 
     var id: String { rawValue }
