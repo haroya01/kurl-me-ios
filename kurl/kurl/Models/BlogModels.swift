@@ -15,13 +15,25 @@ struct Author: Decodable, Hashable, Identifiable {
     let bio: String?
     let avatarUrl: String?
     var displayName: String? = nil
+    /// 다른 서버 계정 — username 자리에 아이디@서버가 오고, id 는 음수다(회원 id 와 겹치지 않게).
+    var remoteId: Int64? = nil
+    var url: String? = nil
+
+    var isRemote: Bool { remoteId != nil }
 
     var shownName: String {
         if let displayName, !displayName.isEmpty { return displayName }
+        if isRemote, let local = username.split(separator: "@").first { return String(local) }
         return username
     }
 
     var hasDisplayName: Bool { !(displayName ?? "").isEmpty }
+
+    /// 노트 행에서 이 사람에게 가는 길 — 회원은 노트 탭, 다른 서버 계정은 그 계정 화면.
+    var notesRoute: Route {
+        if let remoteId { return .remoteAccount(id: remoteId) }
+        return .authorNotes(username: username)
+    }
 }
 
 struct SuggestedAuthor: Decodable, Identifiable {

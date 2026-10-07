@@ -165,7 +165,31 @@ enum MockBackend {
     ]
     private static var federationEnabled = true
     /// 다른 서버 계정 — 찾으면 생기고, 팔로우 요청 뒤 다시 읽으면 수락된다(마스토돈 기본 계정처럼).
-    private static var remoteAccounts: [Int64: [String: Any]] = [:]
+    private static var remoteAccounts: [Int64: [String: Any]] = [
+        9800: [
+            "id": Int64(9800), "acct": "mina@mastodon.social", "username": "mina",
+            "domain": "mastodon.social", "displayName": "Mina", "avatarUrl": NSNull(),
+            "url": "https://mastodon.social/@mina", "following": true, "requested": false,
+        ],
+    ]
+    /// 팔로우한 다른 서버 계정(mina)의 노트 — 팔로잉 피드 끝과 그 계정 화면에 보인다.
+    private static func remoteNoteView() -> [String: Any] {
+        [
+            "id": Int64(9600), "body": "Hello from the fediverse 👋 #kurl",
+            "createdAt": iso(Date().addingTimeInterval(-1_800)), "editedAt": NSNull(),
+            "likeCount": 2, "likedByMe": likedNotes.contains(9600),
+            "author": [
+                "id": -9800, "username": "mina@mastodon.social", "avatarUrl": NSNull(),
+                "displayName": "Mina", "remoteId": 9800, "url": "https://mastodon.social/@mina",
+            ] as [String: Any],
+            "media": [] as [Any], "quotedPost": NSNull(), "inReplyToId": NSNull(),
+            "replyCount": 0, "repostCount": 0, "repostedByMe": false,
+            "bookmarkedByMe": bookmarkedNotes.contains(9600), "quoteCount": 0,
+            "linkPreview": NSNull(), "mentions": [] as [String], "contentWarning": NSNull(),
+            "sensitive": false, "pinned": false, "visibility": "public", "poll": NSNull(),
+            "quotedNote": NSNull(),
+        ]
+    }
     private static var nextRemoteId: Int64 = 9900
     private static var federationNoticeSeen = false
     private static var shortSeq = 0
@@ -1140,6 +1164,12 @@ enum MockBackend {
                 view["repostedBy"] = ["id": 2, "username": "yuki_dev", "avatarUrl": NSNull()] as [String: Any]
                 items.insert(view, at: min(1, items.count))
             }
+            items.append(remoteNoteView())
+            return json(["items": items, "page": 0, "hasNext": false])
+        }
+        if method == "GET", parts.count == 4, parts[0] == "federation", parts[1] == "accounts",
+           parts[3] == "notes" {
+            let items = parts[2] == "9800" ? [remoteNoteView()] : []
             return json(["items": items, "page": 0, "hasNext": false])
         }
         if method == "GET", parts == ["public", "notes"] {

@@ -103,12 +103,21 @@ struct RemoteAccountView: View {
     let accountId: Int64
     @State private var account: RemoteAccount?
     @State private var failed = false
+    @State private var notes: NotesViewModel
     @Environment(\.openURL) private var openURL
+
+    init(accountId: Int64) {
+        self.accountId = accountId
+        _notes = State(initialValue: NotesViewModel(remoteAccount: accountId))
+    }
 
     var body: some View {
         ReadingColumn(spacing: 0) {
             if let account {
                 header(account)
+                Hairline()
+                    .padding(.top, 18)
+                notesList
             } else if failed {
                 ErrorState(
                     message: String(localized: "연결을 확인하고 다시 시도해 주세요."),
@@ -122,6 +131,49 @@ struct RemoteAccountView: View {
         .navigationTitle(account.map { "@\($0.acct)" } ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
+        .task { await notes.reload() }
+        .refreshable {
+            await load()
+            await notes.reload()
+        }
+    }
+
+    /// 받은 노트만 보인다 — 팔로우하기 전 글은 그 서버에서 본다(마스토돈도 원격 프로필은 받은 것부터).
+    @ViewBuilder
+    private var notesList: some View {
+        switch notes.phase {
+        case .idle, .loading:
+            KurlLoadingMark()
+                .frame(maxWidth: .infinity, minHeight: 160)
+        case .failed(let message):
+            ErrorState(message: message, retry: { Task { await notes.reload() } })
+                .padding(.top, 40)
+        case .loaded:
+            if notes.items.isEmpty {
+                ContentUnavailableView {
+                    Label("받은 노트가 없어요", systemImage: "globe")
+                } description: {
+                    Text("팔로우하면 이 계정이 쓰는 새 노트가 여기와 팔로잉 피드에 와요.")
+                }
+                .padding(.top, 40)
+            } else {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(notes.items.enumerated()), id: \.element.id) { index, note in
+                        NoteRowView(
+                            note: note,
+                            onChange: { notes.replaced($0) },
+                            onDelete: { notes.removed($0) }
+                        )
+                        .task { await notes.loadMoreIfNeeded(current: note) }
+                        if index < notes.items.count - 1 { Hairline().padding(.horizontal, -Metrics.gutter) }
+                    }
+                    if notes.isLoadingMore {
+                        KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
+                    }
+                }
+                .environment(\.noteFilterContext, notes.filterContext)
+            }
+        }
     }
 
     private func header(_ value: RemoteAccount) -> some View {

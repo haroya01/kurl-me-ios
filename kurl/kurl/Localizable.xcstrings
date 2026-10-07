@@ -9288,6 +9288,34 @@
         }
       }
     },
+    "받은 노트가 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No notes received yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी कोई नोट नहीं मिला"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "受け取ったノートはまだありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa nhận được ghi chú nào"
+          }
+        }
+      }
+    },
     "방금": {
       "localizations": {
         "en": {
@@ -15427,6 +15455,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đã gửi yêu cầu theo dõi. Khi %@ chấp nhận, bạn sẽ theo dõi."
+          }
+        }
+      }
+    },
+    "팔로우하면 이 계정이 쓰는 새 노트가 여기와 팔로잉 피드에 와요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow to get this account's new notes here and in your Following feed."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ॉलो करें — इस खाते के नए नोट यहाँ और आपकी फ़ॉलोइंग फ़ीड में आएँगे।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォローすると、このアカウントの新しいノートがこことフォロー中のフィードに届きます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Theo dõi để nhận ghi chú mới của tài khoản này ở đây và trong bảng tin Đang theo dõi."
           }
         }
       }

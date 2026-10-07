@@ -492,6 +492,32 @@ final class NotesFeedUITests: XCTestCase {
         attach(app, "remote-account")
     }
 
+    func testANoteFromAnotherServerOpensItsAccountWithItsNotes() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+        let menu = app.buttons["tab.menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 10))
+        menu.tap()
+        app.buttons["팔로잉"].tap()
+        XCTAssertTrue(app.navigationBars["팔로잉"].waitForExistence(timeout: 5))
+
+        let remote = app.buttons["note.menu.9600"]
+        for _ in 0..<6 where !remote.exists {
+            app.swipeUp()
+        }
+        XCTAssertTrue(remote.waitForExistence(timeout: 6), "팔로잉에 다른 서버 노트가 없음")
+        let author = app.buttons.matching(NSPredicate(format: "label CONTAINS '@mina@mastodon.social'")).firstMatch
+        XCTAssertTrue(author.exists, "다른 서버 노트 머리에 @아이디@서버가 없음")
+        attach(app, "remote-note-row")
+        author.tap()
+
+        XCTAssertTrue(app.navigationBars["@mina@mastodon.social"].waitForExistence(timeout: 8), "원격 계정 화면이 안 열림")
+        XCTAssertTrue(app.buttons["note.menu.9600"].waitForExistence(timeout: 8), "계정 화면에 받은 노트가 없음")
+        attach(app, "remote-account-notes")
+    }
+
     func testADisplayNameLeadsTheRowWithTheHandleBesideIt() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]
