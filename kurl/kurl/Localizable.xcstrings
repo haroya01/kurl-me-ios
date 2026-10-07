@@ -7552,6 +7552,34 @@
         }
       }
     },
+    "노트와 프로필에 사용자 이름보다 먼저 보여요. 비우면 사용자 이름이 보여요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shown before your username on notes and your profile. Leave it empty to show your username."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नोट और प्रोफ़ाइल पर उपयोगकर्ता नाम से पहले दिखता है। खाली छोड़ें तो उपयोगकर्ता नाम दिखेगा।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートとプロフィールでユーザー名より先に表示されます。空にするとユーザー名が表示されます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hiển thị trước tên người dùng trên ghi chú và hồ sơ. Để trống sẽ hiện tên người dùng."
+          }
+        }
+      }
+    },
     "노트의 … 메뉴나 상세의 북마크로 모아 둘 수 있어요. 북마크는 나만 봐요.": {
       "localizations": {
         "en": {
@@ -14339,6 +14367,34 @@
         }
       }
     },
+    "이름이나 별명": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name or nickname"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नाम या उपनाम"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名前やニックネーム"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tên hoặc biệt danh"
+          }
+        }
+      }
+    },
     "이미 투표한 투표예요": {
       "localizations": {
         "en": {
@@ -15119,6 +15175,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đang theo dõi và danh sách"
+          }
+        }
+      }
+    },
+    "표시 이름": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Display name"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "प्रदर्शित नाम"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "表示名"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tên hiển thị"
           }
         }
       }

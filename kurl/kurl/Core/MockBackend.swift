@@ -239,6 +239,7 @@ enum MockBackend {
         "CONNECTED": true, "PATH_GREW": true,
     ]
     private static var myBio = "경계를 긋는 사람. 헥사고날·도메인 모델링."
+    private static var displayNames: [String: String] = ["reader_kim": "김독자"]
     private static var myHideFollowerCount = false
     private static var myUsername = "honggildong"
 
@@ -981,10 +982,14 @@ enum MockBackend {
                     myUsername = u.lowercased()
                 }
                 if let hide = req["hideFollowerCount"] as? Bool { myHideFollowerCount = hide }
+                if let name = req["displayName"] as? String {
+                    displayNames["honggildong"] = name.isEmpty ? nil : name
+                }
             }
             return json([
                 "username": myUsername, "bio": myBio, "theme": "light", "socials": NSNull(),
                 "hideFollowerCount": myHideFollowerCount,
+                "displayName": displayNames["honggildong"] ?? NSNull(),
             ])
         }
         if method == "POST", parts == ["users", "me", "avatar", "presigned-url"] {
@@ -1476,6 +1481,7 @@ enum MockBackend {
                 "author": [
                     // honggildong = 목 로그인 유저(내 프로필), 그 외는 남(신고 노출 검증용).
                     "id": username == "honggildong" ? 1 : 2, "username": username,
+                    "displayName": displayNames[username] as Any? ?? NSNull(),
                     "bio": "경계를 긋는 사람. 헥사고날·도메인 모델링.",
                     "avatarUrl": username == "yuki_dev"
                         ? "https://picsum.photos/seed/kurl-yuki/600/600" as Any : NSNull(),
@@ -2054,7 +2060,10 @@ enum MockBackend {
             "editedAt": n.editedAt.map(iso) ?? NSNull(),
             "likeCount": n.likeCount,
             "likedByMe": likedNotes.contains(n.id),
-            "author": ["id": n.authorId, "username": n.username, "avatarUrl": NSNull()],
+            "author": [
+                "id": n.authorId, "username": n.username, "avatarUrl": NSNull(),
+                "displayName": displayNames[n.username] ?? NSNull(),
+            ],
             "media": n.media,
             "quotedPost": n.quotedPost ?? NSNull(),
             "inReplyToId": n.inReplyToId ?? NSNull(),

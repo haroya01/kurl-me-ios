@@ -14,6 +14,14 @@ struct Author: Decodable, Hashable, Identifiable {
     let username: String
     let bio: String?
     let avatarUrl: String?
+    var displayName: String? = nil
+
+    var shownName: String {
+        if let displayName, !displayName.isEmpty { return displayName }
+        return username
+    }
+
+    var hasDisplayName: Bool { !(displayName ?? "").isEmpty }
 }
 
 struct SuggestedAuthor: Decodable, Identifiable {

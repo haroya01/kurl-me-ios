@@ -396,7 +396,7 @@ struct NoteRowView: View {
                 .accessibilityHidden(true)
                 NavigationLink(value: Route.authorNotes(username: note.author.username)) {
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(note.author.username)
+                        Text(note.author.shownName)
                             .typeScale(.note)
                             .fontWeight(.semibold)
                             .foregroundStyle(Palette.ink)
@@ -502,11 +502,18 @@ struct NoteRowView: View {
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             NavigationLink(value: Route.authorNotes(username: note.author.username)) {
-                Text(note.author.username)
-                    .typeScale(.note)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Palette.ink)
-                    .lineLimit(1)
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(note.author.shownName)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Palette.ink)
+                        .layoutPriority(1)
+                    if note.author.hasDisplayName {
+                        Text(verbatim: "@\(note.author.username)")
+                            .foregroundStyle(Palette.secondary)
+                    }
+                }
+                .typeScale(.note)
+                .lineLimit(1)
             }
             .buttonStyle(.plain)
             if let date = note.createdAt {
