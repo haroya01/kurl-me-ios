@@ -317,6 +317,7 @@ enum MockBackend {
     /// 팔로우를 직접 승인하는 작가와, 그 작가에게 보낸 요청.
     private static let lockedAuthors: Set<String> = ["haneul"]
     private static var sentRequests: Set<String> = []
+    private static var dismissedSuggestions: Set<String> = []
     /// 알림 거르기 — 팔로우하지 않는 사람은 거르게 해 두었고, 두 사람의 알림이 걸러져 있다.
     private static var notificationPolicy: [String: String] = [
         "forNotFollowing": "FILTER", "forNotFollowers": "ACCEPT", "forNewAccounts": "ACCEPT",
@@ -2062,6 +2063,35 @@ enum MockBackend {
             return json([:] as [String: Any])
         }
 
+        if parts.count >= 3, parts[0] == "users", parts[1] == "me", parts[2] == "suggestions" {
+            if method == "DELETE", parts.count == 4 {
+                dismissedSuggestions.insert(parts[3])
+                return json([:] as [String: Any])
+            }
+            let all: [[String: Any]] = [
+                ["username": "haneul", "displayName": "하늘", "avatarUrl": NSNull(), "bio": "프로덕트 디자이너",
+                 "mutuals": 3, "reason": "FRIENDS", "locked": true],
+                ["username": "minji", "displayName": NSNull(), "avatarUrl": NSNull(), "bio": NSNull(),
+                 "mutuals": 1, "reason": "FRIENDS", "locked": false],
+                ["username": "narae", "displayName": "나래", "avatarUrl": NSNull(), "bio": NSNull(),
+                 "mutuals": 0, "reason": "POPULAR", "locked": false],
+            ]
+            return json(all.filter { !dismissedSuggestions.contains($0["username"] as? String ?? "") })
+        }
+        if method == "GET", parts.count == 4, parts[0] == "users", parts[1] == "me", parts[2] == "exports" {
+            let csv: String
+            switch parts[3] {
+            case "following":
+                csv = "Account address,Show boosts,Notify on new posts,Languages\nyuki_dev@kurl.me,true,true,\nmina@mastodon.social,true,false,\n"
+            case "blocks": csv = ""
+            case "mutes": csv = "Account address,Hide notifications\n"
+            case "domain-blocks": csv = "spam.example\n"
+            case "bookmarks": csv = "https://kurl.me/ap/notes/9501\n"
+            case "lists": csv = "\"friends, close\",yuki_dev@kurl.me\n"
+            default: return nil
+            }
+            return Data(csv.utf8)
+        }
         if parts == ["notifications", "policy"] {
             if method == "PUT" {
                 for (key, value) in decode(body) {

@@ -50,6 +50,17 @@ enum InteractionsAPI {
             requested = try c.decodeIfPresent(Bool.self, forKey: .requested) ?? false
             locked = try c.decodeIfPresent(Bool.self, forKey: .locked) ?? false
         }
+
+        /// 상태를 이미 아는 자리(팔로우 추천)에서 버튼을 시드한다 — 수는 모르니 비운다.
+        init(following: Bool, locked: Bool) {
+            self.following = following
+            followerCount = nil
+            followingCount = nil
+            hideFollowerCount = false
+            notifyNotes = false
+            requested = false
+            self.locked = locked
+        }
     }
 
     struct NoteNotifications: Decodable {
