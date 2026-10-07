@@ -468,6 +468,30 @@ final class NotesFeedUITests: XCTestCase {
         attach(app, "search-notes")
     }
 
+    func testAHandleInSearchFindsAnAccountOnAnotherServerToFollow() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "search"]
+        app.launch()
+
+        let field = app.searchFields.firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 12))
+        field.tap()
+        field.typeText("@alice@mastodon.social")
+        let follow = app.buttons["remote.follow.alice@mastodon.social"]
+        XCTAssertTrue(follow.waitForExistence(timeout: 8), "원격 계정 행이 안 뜸")
+        follow.tap()
+        let requested = NSPredicate(format: "label CONTAINS '요청됨'")
+        expectation(for: requested, evaluatedWith: follow)
+        waitForExpectations(timeout: 6)
+        attach(app, "remote-search-requested")
+
+        app.buttons["remote.row.alice@mastodon.social"].tap()
+        let accepted = app.staticTexts["mastodon.social에 있는 계정이에요. 이 계정의 새 노트가 팔로잉 피드에 와요."]
+        XCTAssertTrue(accepted.waitForExistence(timeout: 8), "계정 화면이 안 열리거나 수락이 반영되지 않음")
+        XCTAssertTrue(app.navigationBars["@alice@mastodon.social"].exists, "계정 화면 제목이 핸들이 아님")
+        attach(app, "remote-account")
+    }
+
     func testADisplayNameLeadsTheRowWithTheHandleBesideIt() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]

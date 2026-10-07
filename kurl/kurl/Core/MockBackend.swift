@@ -164,6 +164,9 @@ enum MockBackend {
                  username: "reader_kim", inReplyToId: 9501),
     ]
     private static var federationEnabled = true
+    /// 다른 서버 계정 — 찾으면 생기고, 팔로우 요청 뒤 다시 읽으면 수락된다(마스토돈 기본 계정처럼).
+    private static var remoteAccounts: [Int64: [String: Any]] = [:]
+    private static var nextRemoteId: Int64 = 9900
     private static var federationNoticeSeen = false
     private static var shortSeq = 0
 
@@ -1285,6 +1288,50 @@ enum MockBackend {
                 return json(["liked": likedNotes.contains(nid), "likeCount": notes[idx].likeCount])
             }
             return json(["liked": method == "PUT", "likeCount": 0])
+        }
+
+        if method == "GET", parts == ["federation", "accounts", "lookup"] {
+            var handle = (query?.first(where: { $0.name == "acct" })?.value ?? "")
+                .trimmingCharacters(in: .whitespaces)
+            if handle.hasPrefix("@") { handle.removeFirst() }
+            let pieces = handle.split(separator: "@").map(String.init)
+            guard pieces.count == 2 else { return json([:] as [String: Any]) }
+            let acct = "\(pieces[0])@\(pieces[1].lowercased())"
+            if let known = remoteAccounts.values.first(where: { ($0["acct"] as? String) == acct }) {
+                return json(known)
+            }
+            let id = nextRemoteId
+            nextRemoteId += 1
+            let account: [String: Any] = [
+                "id": id, "acct": acct, "username": pieces[0], "domain": pieces[1].lowercased(),
+                "displayName": pieces[0].capitalized, "avatarUrl": NSNull(),
+                "url": "https://\(pieces[1].lowercased())/@\(pieces[0])",
+                "following": false, "requested": false,
+            ]
+            remoteAccounts[id] = account
+            return json(account)
+        }
+        if method == "GET", parts.count == 3, parts[0] == "federation", parts[1] == "accounts",
+           let id = Int64(parts[2]), var account = remoteAccounts[id] {
+            if (account["requested"] as? Bool) == true {
+                account["requested"] = false
+                account["following"] = true
+                remoteAccounts[id] = account
+            }
+            return json(account)
+        }
+        if parts.count == 4, parts[0] == "federation", parts[1] == "accounts", parts[3] == "follow",
+           let id = Int64(parts[2]), var account = remoteAccounts[id] {
+            account["requested"] = method == "POST"
+            account["following"] = false
+            remoteAccounts[id] = account
+            return json(account)
+        }
+        if method == "GET", parts == ["federation", "following"] {
+            let followed = remoteAccounts.values
+                .filter { ($0["requested"] as? Bool) == true || ($0["following"] as? Bool) == true }
+                .sorted { (($0["id"] as? Int64) ?? 0) > (($1["id"] as? Int64) ?? 0) }
+            return json(followed)
         }
 
         if parts == ["federation", "settings"] {

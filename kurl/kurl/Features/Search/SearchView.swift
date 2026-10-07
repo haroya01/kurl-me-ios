@@ -18,6 +18,8 @@ struct SearchView: View {
     @State private var query = ""
     @State private var phase: LoadState<[FeedItem]> = .idle
     @State private var searchTask: Task<Void, Never>?
+    @State private var remoteAccount: RemoteAccount?
+    @State private var remoteTask: Task<Void, Never>?
     @Namespace private var zoomNS
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
@@ -61,6 +63,17 @@ struct SearchView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if let account = Binding($remoteAccount) {
+                    VStack(spacing: 0) {
+                        RemoteAccountRow(account: account)
+                            .padding(.horizontal, Metrics.gutter)
+                        Hairline()
+                    }
+                    .background(Palette.pageBg)
+                    .transition(.opacity)
+                }
+            }
             .background(Palette.pageBg)
             // 스크롤을 내리면 탭바가 사라지고 올리면 돌아온다(스레드식) — 활성 스크롤 표면을 관측.
             .tracksTabBarVisibility()
@@ -98,7 +111,10 @@ struct SearchView: View {
                 }
             }
         }
-        .onChange(of: query) { _, newValue in scheduleSearch(newValue) }
+        .onChange(of: query) { _, newValue in
+            scheduleSearch(newValue)
+            scheduleRemoteLookup(newValue)
+        }
         .onChange(of: scope) { runSearch(query) }
         .onChange(of: recents) { SearchRecents.save(recents) }
         .onSubmit(of: .search) { runSearch(query) }
@@ -507,6 +523,22 @@ struct SearchView: View {
             try? await Task.sleep(for: .milliseconds(350))
             guard !Task.isCancelled else { return }
             await search(trimmed)
+        }
+    }
+
+    /// @아이디@서버 — 마스토돈 검색처럼 다른 서버 계정을 찾아 결과 위에 한 줄로 얹는다.
+    private func scheduleRemoteLookup(_ text: String) {
+        remoteTask?.cancel()
+        guard AuthStore.shared.isSignedIn, FederationAPI.looksLikeHandle(text) else {
+            remoteAccount = nil
+            return
+        }
+        remoteTask = Task {
+            try? await Task.sleep(for: .milliseconds(450))
+            guard !Task.isCancelled else { return }
+            let found = try? await FederationAPI.lookup(text)
+            guard !Task.isCancelled else { return }
+            withAnimation(.smooth(duration: 0.2)) { remoteAccount = found }
         }
     }
 
