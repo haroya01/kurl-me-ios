@@ -101,4 +101,28 @@ final class NoteNotificationsUITests: XCTestCase {
         XCTAssertTrue(bell.waitForExistence(timeout: 5), "다시 팔로우했는데 종이 없음")
         XCTAssertEqual(bell.value as? String, "꺼짐", "언팔로우가 종을 끄지 않음")
     }
+
+    func testSettingsListsBlockedServersAndUnblocksThem() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "account", "--domain-block", "spam.example"]
+        app.launch()
+        let settings = app.buttons["설정"].firstMatch
+        XCTAssertTrue(settings.waitForExistence(timeout: 15), "계정 탭에 설정 버튼이 없음")
+        settings.tap()
+        let row = app.buttons["settings.domainBlocks"]
+        let scroll = app.scrollViews.firstMatch
+        for _ in 0..<8 where !(row.exists && row.isHittable) {
+            scroll.swipeUp(velocity: .slow)
+        }
+        XCTAssertTrue(row.waitForExistence(timeout: 5), "설정 안전에 차단한 서버가 없음")
+        row.tap()
+        let unblock = app.buttons["domainBlocks.unblock.spam.example"]
+        XCTAssertTrue(unblock.waitForExistence(timeout: 8), "차단한 서버 목록에 도메인이 없음")
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "domain-blocks"
+        shot.lifetime = .keepAlways
+        add(shot)
+        unblock.tap()
+        XCTAssertTrue(app.staticTexts["차단한 서버가 없어요"].waitForExistence(timeout: 6), "해제 뒤 빈 상태가 아님")
+    }
 }

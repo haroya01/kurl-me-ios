@@ -15,6 +15,9 @@ struct RemoteAccount: Codable, Identifiable, Hashable {
     let url: String
     var following: Bool
     var requested: Bool
+    var domainBlocked: Bool?
+
+    var isDomainBlocked: Bool { domainBlocked ?? false }
 
     var shownName: String {
         if let displayName, !displayName.isEmpty { return displayName }
@@ -24,6 +27,13 @@ struct RemoteAccount: Codable, Identifiable, Hashable {
     var asAuthor: Author {
         Author(id: -id, username: acct, bio: nil, avatarUrl: avatarUrl)
     }
+}
+
+struct DomainBlock: Decodable, Identifiable, Hashable {
+    let domain: String
+    let createdAt: Date?
+
+    var id: String { domain }
 }
 
 enum FederationAPI {
@@ -58,6 +68,19 @@ enum FederationAPI {
             "/federation/following", query: ["page": String(page), "size": "30"], authenticated: true)
     }
 
+    static func domainBlocks() async throws -> [DomainBlock] {
+        try await client.get("/federation/domain-blocks", authenticated: true)
+    }
+
+    static func setDomainBlocked(_ on: Bool, domain: String) async throws {
+        let path = "/federation/domain-blocks/\(domain)"
+        if on {
+            let _: DomainBlock = try await client.put(path, authenticated: true)
+        } else {
+            try await client.deleteVoid(path, authenticated: true)
+        }
+    }
+
     static func message(for error: Error) -> String {
         if case let APIError.server(_, code, _) = error {
             switch code {
@@ -67,6 +90,8 @@ enum FederationAPI {
                 return String(localized: "그 서버에서 계정을 찾지 못했어요")
             case "REMOTE_ACCOUNT_INVALID":
                 return String(localized: "아이디@서버 모양으로 적어 주세요")
+            case "REMOTE_DOMAIN_BLOCKED":
+                return String(localized: "차단한 서버의 계정은 팔로우할 수 없어요")
             default:
                 break
             }

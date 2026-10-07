@@ -104,6 +104,7 @@ struct RemoteAccountView: View {
     @State private var account: RemoteAccount?
     @State private var failed = false
     @State private var notes: NotesViewModel
+    @State private var confirmDomainBlock = false
     @Environment(\.openURL) private var openURL
 
     init(accountId: Int64) {
@@ -117,7 +118,19 @@ struct RemoteAccountView: View {
                 header(account)
                 Hairline()
                     .padding(.top, 18)
-                notesList
+                if account.isDomainBlocked {
+                    ContentUnavailableView {
+                        Label("차단한 서버예요", systemImage: "hand.raised")
+                    } description: {
+                        Text("\(account.domain)의 노트와 알림은 보이지 않아요.")
+                    } actions: {
+                        Button("\(account.domain) 차단 해제") { Task { await setDomainBlocked(false) } }
+                            .accessibilityIdentifier("remote.domain.unblock")
+                    }
+                    .padding(.top, 40)
+                } else {
+                    notesList
+                }
             } else if failed {
                 ErrorState(
                     message: String(localized: "연결을 확인하고 다시 시도해 주세요."),
@@ -130,6 +143,38 @@ struct RemoteAccountView: View {
         }
         .navigationTitle(account.map { "@\($0.acct)" } ?? "")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if let account {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        if account.isDomainBlocked {
+                            Button("\(account.domain) 차단 해제", systemImage: "hand.raised.slash") {
+                                Task { await setDomainBlocked(false) }
+                            }
+                        } else {
+                            Button("\(account.domain) 차단", systemImage: "hand.raised", role: .destructive) {
+                                confirmDomainBlock = true
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                    }
+                    .accessibilityLabel("더 보기")
+                    .accessibilityIdentifier("remote.more")
+                }
+            }
+        }
+        .confirmationDialog(
+            "\(account?.domain ?? "") 전체를 차단할까요?",
+            isPresented: $confirmDomainBlock,
+            titleVisibility: .visible
+        ) {
+            Button("서버 차단", role: .destructive) { Task { await setDomainBlocked(true) } }
+                .accessibilityIdentifier("remote.domain.confirm")
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("그 서버의 노트와 알림이 보이지 않고, 그 서버 계정 팔로우가 끊기며 그 서버의 팔로워도 빠져요. 한 사람만 문제라면 차단이나 뮤트로 충분해요.")
+        }
         .task { await load() }
         .task { await notes.reload() }
         .refreshable {
@@ -192,8 +237,10 @@ struct RemoteAccountView: View {
                 }
             }
             HStack(spacing: 10) {
-                RemoteFollowButton(
-                    account: Binding(get: { account ?? value }, set: { account = $0 }))
+                if !value.isDomainBlocked {
+                    RemoteFollowButton(
+                        account: Binding(get: { account ?? value }, set: { account = $0 }))
+                }
                 if let url = URL(string: value.url) {
                     Button {
                         openURL(url)
@@ -205,10 +252,12 @@ struct RemoteAccountView: View {
                     .buttonStyle(.plain)
                 }
             }
-            Text(caption(value))
-                .typeScale(.footnote)
-                .foregroundStyle(Palette.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            if !value.isDomainBlocked {
+                Text(caption(value))
+                    .typeScale(.footnote)
+                    .foregroundStyle(Palette.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .padding(.top, 20)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -227,6 +276,102 @@ struct RemoteAccountView: View {
         } catch {
             failed = account == nil
         }
+    }
+
+    private func setDomainBlocked(_ on: Bool) async {
+        guard let domain = account?.domain else { return }
+        do {
+            try await FederationAPI.setDomainBlocked(on, domain: domain)
+            await load()
+            if !on { await notes.reload() }
+            ToastCenter.shared.show(
+                on
+                    ? String(localized: "\(domain)을 차단했어요")
+                    : String(localized: "\(domain) 차단을 해제했어요"))
+        } catch {
+            ToastCenter.shared.show(FederationAPI.message(for: error))
+        }
+    }
+}
+
+/// 설정 > 안전 — 차단한 서버(마스토돈의 도메인 차단). 그 서버의 노트·알림·팔로우가 모두 빠진다.
+struct DomainBlocksView: View {
+    @State private var blocks: [DomainBlock] = []
+    @State private var loading = true
+    @State private var failed = false
+
+    var body: some View {
+        ReadingColumn(spacing: 0) {
+            Color.clear.frame(height: 8)
+            if loading && blocks.isEmpty {
+                KurlLoadingMark()
+                    .frame(maxWidth: .infinity, minHeight: 240)
+            } else if failed && blocks.isEmpty {
+                ErrorState(
+                    message: String(localized: "연결을 확인하고 다시 시도해 주세요."),
+                    retry: { Task { await load() } })
+                    .padding(.top, 60)
+            } else if blocks.isEmpty {
+                ContentUnavailableView {
+                    Label("차단한 서버가 없어요", systemImage: "hand.raised")
+                } description: {
+                    Text("다른 서버 계정 화면의 ⋯ 메뉴에서 그 서버 전체를 차단할 수 있어요.")
+                }
+                .padding(.top, 60)
+            } else {
+                LazyVStack(spacing: 0) {
+                    ForEach(blocks) { block in
+                        row(block)
+                        if block.id != blocks.last?.id { Hairline() }
+                    }
+                }
+            }
+        }
+        .navigationTitle("차단한 서버")
+        .navigationBarTitleDisplayMode(.inline)
+        .hidesTabBar()
+        .task { await load() }
+    }
+
+    private func load() async {
+        loading = true
+        failed = false
+        do {
+            blocks = try await FederationAPI.domainBlocks()
+        } catch {
+            failed = true
+        }
+        loading = false
+    }
+
+    private func row(_ block: DomainBlock) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: "server.rack")
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(Palette.secondary)
+                .frame(width: 36, height: 36)
+            Text(verbatim: block.domain)
+                .typeScale(.body)
+                .foregroundStyle(Palette.ink)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            Spacer(minLength: 8)
+            Button("차단 해제") {
+                Task {
+                    do {
+                        try await FederationAPI.setDomainBlocked(false, domain: block.domain)
+                        withAnimation(.snappy(duration: 0.2)) { blocks.removeAll { $0.id == block.id } }
+                        ToastCenter.shared.show(String(localized: "\(block.domain) 차단을 해제했어요"))
+                    } catch {
+                        ToastCenter.shared.show(String(localized: "해제하지 못했어요"))
+                    }
+                }
+            }
+            .typeScale(.meta)
+            .foregroundStyle(Palette.link)
+            .accessibilityIdentifier("domainBlocks.unblock.\(block.domain)")
+        }
+        .padding(.vertical, 12)
     }
 }
 

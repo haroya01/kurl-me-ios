@@ -226,6 +226,24 @@ struct SettingsView: View {
                 .accessibilityIdentifier("settings.muted")
                 Hairline()
                 NavigationLink {
+                    DomainBlocksView()
+                } label: {
+                    HStack(spacing: 10) {
+                        Text("차단한 서버")
+                            .typeScale(.body)
+                            .foregroundStyle(Palette.ink)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Palette.faint)
+                    }
+                    .padding(.vertical, 13)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("settings.domainBlocks")
+                Hairline()
+                NavigationLink {
                     NoteFiltersView()
                 } label: {
                     HStack(spacing: 10) {
