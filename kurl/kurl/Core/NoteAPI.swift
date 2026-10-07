@@ -13,6 +13,8 @@ enum NoteAPI {
     static let maxImages = 4
     static let maxWarningLength = 100
     static let maxAltLength = 1500
+    static let maxPollOptions = 4
+    static let maxPollOptionLength = 50
 
     private static let client = APIClient.shared
 
@@ -130,6 +132,11 @@ enum NoteAPI {
 
     static func delete(id: Int64) async throws {
         try await client.deleteVoid("/notes/\(id)", authenticated: true)
+    }
+
+    static func vote(id: Int64, choices: [Int]) async throws -> NotePoll {
+        struct Body: Encodable { let choices: [Int] }
+        return try await client.post("/notes/\(id)/poll/votes", body: Body(choices: choices), authenticated: true)
     }
 
     static func setLike(id: Int64, on: Bool) async throws -> NoteLikeStatus {
@@ -291,6 +298,7 @@ struct Note: Decodable, Identifiable, Hashable {
     var pinned: Bool? = nil
     /// public · unlisted · private · direct — 마스토돈 공개 범위.
     var visibility: String? = nil
+    var poll: NotePoll? = nil
 
     var noteVisibility: NoteVisibility { NoteVisibility(rawValue: visibility ?? "public") ?? .public }
 }
@@ -331,6 +339,28 @@ enum NoteVisibility: String, CaseIterable, Identifiable {
     }
 }
 
+/// 마스토돈 투표. 수는 공개이고, 작성자는 voted = true로 와서 결과만 본다.
+struct NotePoll: Decodable, Hashable {
+    struct Option: Decodable, Hashable {
+        let title: String
+        let votesCount: Int64
+    }
+
+    let expiresAt: Date?
+    let expired: Bool
+    let multiple: Bool
+    let votesCount: Int64
+    let votersCount: Int64
+    let options: [Option]
+    let voted: Bool?
+    let ownVotes: [Int]?
+
+    func share(of option: Option) -> Double {
+        let base = multiple ? votersCount : votesCount
+        return base > 0 ? Double(option.votesCount) / Double(base) : 0
+    }
+}
+
 struct NoteFeed: Decodable {
     let items: [Note]
     let page: Int
@@ -357,6 +387,13 @@ struct NoteDraft: Encodable {
     var contentWarning: String? = nil
     var sensitive: Bool = false
     var visibility: String? = nil
+    var poll: Poll? = nil
+
+    struct Poll: Encodable {
+        let options: [String]
+        let expiresIn: Int
+        let multiple: Bool
+    }
 }
 
 struct NoteLikeStatus: Decodable {

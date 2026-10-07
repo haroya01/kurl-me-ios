@@ -82,11 +82,25 @@ enum MockBackend {
         var contentWarning: String? = nil
         var sensitive = false
         var visibility = "public"
+        var poll: MockPoll? = nil
+    }
+
+    private struct MockPoll {
+        var options: [String]
+        var expiresAt: Date
+        var multiple = false
+        var votes: [Int64]
+        var voters: Int64
+        var mine: [Int]? = nil
     }
 
     private static var notes: [MockNote] = [
         MockNote(id: 9501, body: "오늘 헥사고날 포트 이름 짓는 데 한 시간 썼다. 이름이 곧 경계라는 걸 다시 배운다. #아키텍처",
                  createdAt: Date().addingTimeInterval(-1_800), likeCount: 4, authorId: 2, username: "yuki_dev"),
+        MockNote(id: 9509, body: "회고 끝나고 점심 어디서 먹을까요?",
+                 createdAt: Date().addingTimeInterval(-2_400), likeCount: 2, authorId: 2, username: "yuki_dev",
+                 poll: MockPoll(options: ["국밥", "파스타", "샐러드"], expiresAt: Date().addingTimeInterval(21_600),
+                                votes: [5, 3, 1], voters: 9)),
         MockNote(id: 9505, body: "이름 짓는 데 한 시간이면 싸게 먹힌 거다. 우리 팀은 일주일 걸렸다.",
                  createdAt: Date().addingTimeInterval(-3_600), likeCount: 1, authorId: 1, username: "honggildong",
                  editedAt: Date().addingTimeInterval(-3_000), quotedNoteId: 9501),
@@ -1119,6 +1133,13 @@ enum MockBackend {
             note.contentWarning = (req["contentWarning"] as? String).flatMap { $0.isEmpty ? nil : $0 }
             note.sensitive = (req["sensitive"] as? Bool) ?? false
             note.visibility = (req["visibility"] as? String) ?? "public"
+            if let poll = req["poll"] as? [String: Any], let options = poll["options"] as? [String] {
+                note.poll = MockPoll(
+                    options: options,
+                    expiresAt: Date().addingTimeInterval((poll["expiresIn"] as? NSNumber)?.doubleValue ?? 86_400),
+                    multiple: (poll["multiple"] as? Bool) ?? false,
+                    votes: options.map { _ in 0 }, voters: 0)
+            }
             if let quoted = (req["quotedPostId"] as? NSNumber)?.int64Value {
                 note.quotedPost = [
                     "id": quoted, "title": "인용한 글", "slug": "quoted", "authorUsername": "honggildong",
@@ -1127,6 +1148,17 @@ enum MockBackend {
             nextNoteId += 1
             if note.inReplyToId == nil { notes.insert(note, at: 0) } else { noteReplies.append(note) }
             return json(noteView(note))
+        }
+        if method == "POST", parts.count == 4, parts[0] == "notes", parts[2] == "poll", parts[3] == "votes",
+           let nid = Int64(parts[1]), let idx = notes.firstIndex(where: { $0.id == nid }),
+           var poll = notes[idx].poll {
+            let choices = ((decode(body)["choices"] as? [NSNumber]) ?? []).map(\.intValue)
+            guard poll.mine == nil else { return json(pollView(notes[idx]) ?? [:]) }
+            for choice in choices where poll.votes.indices.contains(choice) { poll.votes[choice] += 1 }
+            poll.voters += 1
+            poll.mine = choices
+            notes[idx].poll = poll
+            return json(pollView(notes[idx]) ?? [:])
         }
         if method == "PATCH", parts.count == 2, parts[0] == "notes", let nid = Int64(parts[1]) {
             let req = decode(body)
@@ -1971,6 +2003,7 @@ enum MockBackend {
             "sensitive": n.sensitive || n.contentWarning != nil,
             "pinned": pinnedNotes.contains(n.id),
             "visibility": n.visibility,
+            "poll": pollView(n) ?? NSNull(),
             "quotedNote": n.quotedNoteId.flatMap { qid in allNotes().first { $0.id == qid } }
                 .map { q -> [String: Any] in
                     [
@@ -1981,6 +2014,17 @@ enum MockBackend {
                         "sensitive": q.sensitive || q.contentWarning != nil,
                     ]
                 } ?? NSNull(),
+        ]
+    }
+
+    private static func pollView(_ n: MockNote) -> [String: Any]? {
+        guard let poll = n.poll else { return nil }
+        let mine = n.authorId == 1
+        return [
+            "expiresAt": iso(poll.expiresAt), "expired": poll.expiresAt <= Date(), "multiple": poll.multiple,
+            "votesCount": poll.votes.reduce(0, +), "votersCount": poll.voters,
+            "options": zip(poll.options, poll.votes).map { ["title": $0, "votesCount": $1] },
+            "voted": mine || poll.mine != nil, "ownVotes": poll.mine ?? [],
         ]
     }
 
