@@ -142,6 +142,15 @@ struct NotesTabView: View {
                 action: { showFollowingLogin = true }
             )
             .padding(.top, 56)
+        } else if choice.kind == .direct, !AuthStore.shared.isSignedIn {
+            FeedPlaceholder(
+                title: "나에게 온 개인 멘션",
+                message: "로그인하면 멘션한 사람만 보는 노트가 여기 모여요.",
+                actionTitle: "로그인",
+                prominent: true,
+                action: { showFollowingLogin = true }
+            )
+            .padding(.top, 56)
         } else {
             feed
         }
@@ -173,6 +182,14 @@ struct NotesTabView: View {
                 actionTitle: "인기 노트 보기",
                 prominent: true,
                 action: { choice.kind = .trending }
+            )
+        case .direct:
+            FeedPlaceholder(
+                title: "개인 멘션이 없어요",
+                message: "공개 범위를 \"멘션한 사람만\"으로 정한 노트가 여기 모여요. 나와 멘션된 회원만 봐요.",
+                actionTitle: "노트 쓰기",
+                prominent: true,
+                action: compose
             )
         case .trending:
             FeedPlaceholder(

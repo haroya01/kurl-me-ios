@@ -3017,6 +3017,62 @@
         }
       }
     },
+    "개인 멘션": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Private mentions"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "निजी उल्लेख"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "非公開メンション"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nhắc đến riêng tư"
+          }
+        }
+      }
+    },
+    "개인 멘션이 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No private mentions"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कोई निजी उल्लेख नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "非公開メンションはありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có nhắc đến riêng tư"
+          }
+        }
+      }
+    },
     "개인정보처리방침": {
       "localizations": {
         "en": {
@@ -3777,6 +3833,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Phạm vi hiển thị"
+          }
+        }
+      }
+    },
+    "공개 범위를 \"멘션한 사람만\"으로 정한 노트가 여기 모여요. 나와 멘션된 회원만 봐요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes set to \"Mentioned people only\" gather here. Only you and the members they mention see them."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"केवल उल्लिखित लोग\" वाले नोट यहाँ दिखते हैं। केवल आप और उल्लिखित सदस्य इन्हें देखते हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "公開範囲を「メンションした人のみ」にしたノートがここに集まります。あなたとメンションされたメンバーだけが見られます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Các ghi chú đặt \"Chỉ người được nhắc đến\" sẽ ở đây. Chỉ bạn và thành viên được nhắc đến mới xem được."
           }
         }
       }
@@ -5700,6 +5784,34 @@
         }
       }
     },
+    "나에게 온 개인 멘션": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your private mentions"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपके निजी उल्लेख"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あなたへの非公開メンション"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nhắc đến riêng tư của bạn"
+          }
+        }
+      }
+    },
     "날짜": {
       "localizations": {
         "en": {
@@ -6880,6 +6992,34 @@
         }
       }
     },
+    "누구나 볼 수 있지만 모든 노트·인기·태그에는 안 나와요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anyone can see it, but it stays out of All notes, Trending and tags"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कोई भी देख सकता है, पर यह सभी नोट, ट्रेंडिंग और टैग में नहीं दिखेगा"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "誰でも見られますが、すべてのノート・人気・タグには出ません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ai cũng xem được, nhưng không hiện ở Tất cả ghi chú, Thịnh hành và thẻ"
+          }
+        }
+      }
+    },
     "다른 서버의 팔로워": {
       "localizations": {
         "en": {
@@ -6932,6 +7072,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đăng nhập để xem bảng tin đang theo dõi"
+          }
+        }
+      }
+    },
+    "로그인하면 멘션한 사람만 보는 노트가 여기 모여요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to see notes only you and the people they mention can read."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साइन इन करें ताकि केवल उल्लिखित लोगों वाले नोट यहाँ दिखें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログインすると、メンションした人だけが見るノートがここに集まります。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để xem các ghi chú chỉ người được nhắc đến mới đọc được."
           }
         }
       }
@@ -7188,6 +7356,34 @@
         }
       }
     },
+    "리포스트할 수 없는 노트": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This note can't be reposted"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह नोट रीपोस्ट नहीं हो सकता"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リポストできないノート"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể đăng lại ghi chú này"
+          }
+        }
+      }
+    },
     "마스토돈 같은 다른 서버 계정이 나를 팔로우할 때": {
       "localizations": {
         "en": {
@@ -7240,6 +7436,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Những ghi chú bạn đăng lại sẽ hiện ở đây."
+          }
+        }
+      }
+    },
+    "멘션한 사람만": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mentioned people only"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "केवल उल्लिखित लोग"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メンションした人のみ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chỉ người được nhắc đến"
+          }
+        }
+      }
+    },
+    "멘션한 회원만 볼 수 있어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only mentioned members can see it"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "केवल उल्लिखित सदस्य देख सकते हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メンションしたメンバーだけが見られます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chỉ thành viên được nhắc đến mới xem được"
           }
         }
       }
@@ -7828,6 +8080,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cảnh báo nội dung (vd: tiết lộ nội dung)"
+          }
+        }
+      }
+    },
+    "원글과 같은 범위": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Same as the original"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मूल जैसी"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元の投稿と同じ範囲"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Giống bài gốc"
           }
         }
       }
@@ -12435,6 +12715,34 @@
         }
       }
     },
+    "조용한 공개": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quiet public"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "शांत सार्वजनिक"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ひかえめな公開"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Công khai lặng lẽ"
+          }
+        }
+      }
+    },
     "지금": {
       "localizations": {
         "en": {
@@ -12515,6 +12823,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Xem ghi chú từ người bạn theo dõi"
+          }
+        }
+      }
+    },
+    "팔로워만": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Followers only"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "केवल फ़ॉलोअर"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォロワーのみ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chỉ người theo dõi"
+          }
+        }
+      }
+    },
+    "팔로워와 멘션한 회원만 볼 수 있어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only followers and mentioned members can see it"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "केवल फ़ॉलोअर और उल्लिखित सदस्य देख सकते हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォロワーとメンションしたメンバーだけが見られます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chỉ người theo dõi và thành viên được nhắc đến mới xem được"
           }
         }
       }
