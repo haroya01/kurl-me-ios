@@ -30,6 +30,8 @@ enum Route: Hashable {
     /// 노트 하나와 그 답글 — 노트 행·답글 수를 누르면 열린다.
     case note(id: Int64)
     case noteQuotes(id: Int64)
+    /// 다른 서버 계정 — 검색에서 @아이디@서버로 찾는다.
+    case remoteAccount(id: Int64)
 }
 
 enum PostSpot: Hashable {

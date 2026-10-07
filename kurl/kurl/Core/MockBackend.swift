@@ -164,6 +164,33 @@ enum MockBackend {
                  username: "reader_kim", inReplyToId: 9501),
     ]
     private static var federationEnabled = true
+    /// 다른 서버 계정 — 찾으면 생기고, 팔로우 요청 뒤 다시 읽으면 수락된다(마스토돈 기본 계정처럼).
+    private static var remoteAccounts: [Int64: [String: Any]] = [
+        9800: [
+            "id": Int64(9800), "acct": "mina@mastodon.social", "username": "mina",
+            "domain": "mastodon.social", "displayName": "Mina", "avatarUrl": NSNull(),
+            "url": "https://mastodon.social/@mina", "following": true, "requested": false,
+        ],
+    ]
+    /// 팔로우한 다른 서버 계정(mina)의 노트 — 팔로잉 피드 끝과 그 계정 화면에 보인다.
+    private static func remoteNoteView() -> [String: Any] {
+        [
+            "id": Int64(9600), "body": "Hello from the fediverse 👋 #kurl",
+            "createdAt": iso(Date().addingTimeInterval(-1_800)), "editedAt": NSNull(),
+            "likeCount": 2, "likedByMe": likedNotes.contains(9600),
+            "author": [
+                "id": -9800, "username": "mina@mastodon.social", "avatarUrl": NSNull(),
+                "displayName": "Mina", "remoteId": 9800, "url": "https://mastodon.social/@mina",
+            ] as [String: Any],
+            "media": [] as [Any], "quotedPost": NSNull(), "inReplyToId": NSNull(),
+            "replyCount": 0, "repostCount": 0, "repostedByMe": false,
+            "bookmarkedByMe": bookmarkedNotes.contains(9600), "quoteCount": 0,
+            "linkPreview": NSNull(), "mentions": [] as [String], "contentWarning": NSNull(),
+            "sensitive": false, "pinned": false, "visibility": "public", "poll": NSNull(),
+            "quotedNote": NSNull(),
+        ]
+    }
+    private static var nextRemoteId: Int64 = 9900
     private static var federationNoticeSeen = false
     private static var shortSeq = 0
 
@@ -1137,6 +1164,12 @@ enum MockBackend {
                 view["repostedBy"] = ["id": 2, "username": "yuki_dev", "avatarUrl": NSNull()] as [String: Any]
                 items.insert(view, at: min(1, items.count))
             }
+            items.append(remoteNoteView())
+            return json(["items": items, "page": 0, "hasNext": false])
+        }
+        if method == "GET", parts.count == 4, parts[0] == "federation", parts[1] == "accounts",
+           parts[3] == "notes" {
+            let items = parts[2] == "9800" ? [remoteNoteView()] : []
             return json(["items": items, "page": 0, "hasNext": false])
         }
         if method == "GET", parts == ["public", "notes"] {
@@ -1285,6 +1318,50 @@ enum MockBackend {
                 return json(["liked": likedNotes.contains(nid), "likeCount": notes[idx].likeCount])
             }
             return json(["liked": method == "PUT", "likeCount": 0])
+        }
+
+        if method == "GET", parts == ["federation", "accounts", "lookup"] {
+            var handle = (query?.first(where: { $0.name == "acct" })?.value ?? "")
+                .trimmingCharacters(in: .whitespaces)
+            if handle.hasPrefix("@") { handle.removeFirst() }
+            let pieces = handle.split(separator: "@").map(String.init)
+            guard pieces.count == 2 else { return json([:] as [String: Any]) }
+            let acct = "\(pieces[0])@\(pieces[1].lowercased())"
+            if let known = remoteAccounts.values.first(where: { ($0["acct"] as? String) == acct }) {
+                return json(known)
+            }
+            let id = nextRemoteId
+            nextRemoteId += 1
+            let account: [String: Any] = [
+                "id": id, "acct": acct, "username": pieces[0], "domain": pieces[1].lowercased(),
+                "displayName": pieces[0].capitalized, "avatarUrl": NSNull(),
+                "url": "https://\(pieces[1].lowercased())/@\(pieces[0])",
+                "following": false, "requested": false,
+            ]
+            remoteAccounts[id] = account
+            return json(account)
+        }
+        if method == "GET", parts.count == 3, parts[0] == "federation", parts[1] == "accounts",
+           let id = Int64(parts[2]), var account = remoteAccounts[id] {
+            if (account["requested"] as? Bool) == true {
+                account["requested"] = false
+                account["following"] = true
+                remoteAccounts[id] = account
+            }
+            return json(account)
+        }
+        if parts.count == 4, parts[0] == "federation", parts[1] == "accounts", parts[3] == "follow",
+           let id = Int64(parts[2]), var account = remoteAccounts[id] {
+            account["requested"] = method == "POST"
+            account["following"] = false
+            remoteAccounts[id] = account
+            return json(account)
+        }
+        if method == "GET", parts == ["federation", "following"] {
+            let followed = remoteAccounts.values
+                .filter { ($0["requested"] as? Bool) == true || ($0["following"] as? Bool) == true }
+                .sorted { (($0["id"] as? Int64) ?? 0) > (($1["id"] as? Int64) ?? 0) }
+            return json(followed)
         }
 
         if parts == ["federation", "settings"] {

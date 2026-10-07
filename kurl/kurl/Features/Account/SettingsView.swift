@@ -166,6 +166,24 @@ struct SettingsView: View {
                     .padding(.top, 28)
                     .padding(.bottom, 4)
                 FederationSettingRow()
+                Hairline()
+                NavigationLink {
+                    RemoteFollowingView()
+                } label: {
+                    HStack(spacing: 10) {
+                        Text("다른 서버 팔로잉")
+                            .typeScale(.body)
+                            .foregroundStyle(Palette.ink)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Palette.faint)
+                    }
+                    .padding(.vertical, 13)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("settings.remoteFollowing")
             }
 
             if auth.isSignedIn {

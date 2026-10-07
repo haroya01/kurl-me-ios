@@ -31,6 +31,12 @@ enum NoteAPI {
             authenticated: signedIn)
     }
 
+    static func remoteAccountNotes(id: Int64, page: Int = 0) async throws -> NoteFeed {
+        try await client.get(
+            "/federation/accounts/\(id)/notes", query: ["page": String(page), "size": "20"],
+            authenticated: true)
+    }
+
     static func bookmarks(page: Int = 0) async throws -> NoteFeed {
         try await client.get(
             "/notes/bookmarks", query: ["page": String(page), "size": "20"], authenticated: true)

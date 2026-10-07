@@ -513,6 +513,34 @@
         }
       }
     },
+    "%@ 팔로우를 끊을까요?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unfollow %@?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ को अनफ़ॉलो करें?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@のフォローを解除しますか？"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bỏ theo dõi %@?"
+          }
+        }
+      }
+    },
     "%@ 프로필": {
       "localizations": {
         "en": {
@@ -1413,6 +1441,90 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ đã kết nối bài viết của bạn vào ‘%@’"
+          }
+        }
+      }
+    },
+    "%@에 있는 계정이에요. 이 계정의 새 노트가 팔로잉 피드에 와요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This account lives on %@. Its new notes arrive in your Following feed."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह खाता %@ पर है। इसके नए नोट आपकी फ़ॉलोइंग फ़ीड में आते हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@にあるアカウントです。新しいノートがフォロー中のフィードに届きます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tài khoản này ở %@. Ghi chú mới của tài khoản sẽ đến bảng tin Đang theo dõi."
+          }
+        }
+      }
+    },
+    "%@에 있는 계정이에요. 팔로우하면 %@에 요청을 보내요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This account lives on %1$@. Following sends a request to %2$@."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह खाता %1$@ पर है। फ़ॉलो करने पर %2$@ को अनुरोध जाता है।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@にあるアカウントです。フォローすると%2$@にリクエストを送ります。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tài khoản này ở %1$@. Theo dõi sẽ gửi yêu cầu đến %2$@."
+          }
+        }
+      }
+    },
+    "%@에서 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View on %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ पर देखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@で見る"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xem trên %@"
           }
         }
       }
@@ -3661,6 +3773,34 @@
         }
       }
     },
+    "검색에 @아이디@서버를 적으면 마스토돈 같은 다른 서버의 계정을 찾을 수 있어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type @name@server in Search to find accounts on Mastodon and other servers."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "खोज में @नाम@सर्वर लिखकर Mastodon जैसे दूसरे सर्वर के खाते ढूँढें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検索に@ID@サーバーと入力すると、Mastodonなどほかのサーバーのアカウントを探せます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gõ @tên@máy chủ vào Tìm kiếm để tìm tài khoản trên Mastodon và các máy chủ khác."
+          }
+        }
+      }
+    },
     "검색에서 시리즈 찾기": {
       "localizations": {
         "en": {
@@ -5290,6 +5430,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đậm"
+          }
+        }
+      }
+    },
+    "그 서버에서 계정을 찾지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't find that account on its server"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "उस सर्वर पर खाता नहीं मिला"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "そのサーバーでアカウントが見つかりませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không tìm thấy tài khoản trên máy chủ đó"
           }
         }
       }
@@ -7776,6 +7944,62 @@
         }
       }
     },
+    "다른 서버 팔로잉": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Following elsewhere"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दूसरे सर्वर पर फ़ॉलोइंग"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほかのサーバーでフォロー中"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đang theo dõi ở máy chủ khác"
+          }
+        }
+      }
+    },
+    "다른 서버에서 팔로우하는 계정이 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You don't follow anyone on other servers"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आप दूसरे सर्वर पर किसी को फ़ॉलो नहीं करते"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほかのサーバーでフォローしているアカウントはありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn chưa theo dõi ai ở máy chủ khác"
+          }
+        }
+      }
+    },
     "다른 서버의 팔로워": {
       "localizations": {
         "en": {
@@ -9064,6 +9288,34 @@
         }
       }
     },
+    "받은 노트가 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No notes received yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी कोई नोट नहीं मिला"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "受け取ったノートはまだありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa nhận được ghi chú nào"
+          }
+        }
+      }
+    },
     "방금": {
       "localizations": {
         "en": {
@@ -9484,6 +9736,34 @@
         }
       }
     },
+    "설정 > 노트 연합을 켜야 다른 서버 계정을 팔로우할 수 있어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn on Settings > Note federation to follow accounts on other servers"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सेटिंग्स > नोट फ़ेडरेशन चालू करें, तभी दूसरे सर्वर के खाते फ़ॉलो कर सकते हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定 > ノート連合をオンにすると、ほかのサーバーのアカウントをフォローできます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bật Cài đặt > Liên kết ghi chú để theo dõi tài khoản ở máy chủ khác"
+          }
+        }
+      }
+    },
     "설정을 바꾸지 못했어요": {
       "localizations": {
         "en": {
@@ -9592,6 +9872,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ẩn"
+          }
+        }
+      }
+    },
+    "아이디@서버 모양으로 적어 주세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write it as name@server"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इसे नाम@सर्वर के रूप में लिखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ID@サーバーの形で入力してください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hãy viết theo dạng tên@máy chủ"
           }
         }
       }
@@ -9844,6 +10152,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ẩn hoàn toàn"
+          }
+        }
+      }
+    },
+    "요청 취소": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel request"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अनुरोध रद्द करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リクエストを取り消す"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hủy yêu cầu"
+          }
+        }
+      }
+    },
+    "요청됨": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Requested"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अनुरोध भेजा"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リクエスト済み"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã yêu cầu"
           }
         }
       }
@@ -15007,6 +15371,118 @@
           "stringUnit": {
             "state": "translated",
             "value": "Không thể bình chọn"
+          }
+        }
+      }
+    },
+    "팔로우 끊기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unfollow"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अनफ़ॉलो करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォロー解除"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bỏ theo dõi"
+          }
+        }
+      }
+    },
+    "팔로우 요청을 취소할까요?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel the follow request?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ॉलो अनुरोध रद्द करें?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォローリクエストを取り消しますか？"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hủy yêu cầu theo dõi?"
+          }
+        }
+      }
+    },
+    "팔로우를 요청했어요. %@이 수락하면 팔로잉이 돼요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow requested. You'll be following once %@ accepts."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ॉलो अनुरोध भेजा। %@ स्वीकार करते ही आप फ़ॉलो करने लगेंगे।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォローをリクエストしました。%@が承認するとフォロー中になります。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã gửi yêu cầu theo dõi. Khi %@ chấp nhận, bạn sẽ theo dõi."
+          }
+        }
+      }
+    },
+    "팔로우하면 이 계정이 쓰는 새 노트가 여기와 팔로잉 피드에 와요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow to get this account's new notes here and in your Following feed."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ॉलो करें — इस खाते के नए नोट यहाँ और आपकी फ़ॉलोइंग फ़ीड में आएँगे।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォローすると、このアカウントの新しいノートがこことフォロー中のフィードに届きます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Theo dõi để nhận ghi chú mới của tài khoản này ở đây và trong bảng tin Đang theo dõi."
           }
         }
       }

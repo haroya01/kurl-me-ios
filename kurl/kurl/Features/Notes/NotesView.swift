@@ -39,12 +39,13 @@ final class NotesViewModel {
         case quotes(Int64)
         case tag(String)
         case search(String)
+        case remoteAccount(Int64)
 
         var filterContext: NoteFilterContext? {
             switch self {
             case .everyone, .trending, .tag, .quotes, .search: .public
             case .following, .list: .home
-            case .author, .reposts: .account
+            case .author, .reposts, .remoteAccount: .account
             case .bookmarks, .direct: nil
             }
         }
@@ -85,6 +86,10 @@ final class NotesViewModel {
         source = .search(query)
     }
 
+    init(remoteAccount id: Int64) {
+        source = .remoteAccount(id)
+    }
+
     private func load(_ page: Int) async throws -> NoteFeed {
         switch source {
         case .everyone: try await NoteAPI.everyone(page: page)
@@ -118,6 +123,7 @@ final class NotesViewModel {
         case let .search(query): try await NoteAPI.search(query, page: page)
         case let .author(username): try await NoteAPI.byAuthor(username, page: page)
         case let .reposts(username): try await NoteAPI.reposts(username, page: page)
+        case let .remoteAccount(id): try await NoteAPI.remoteAccountNotes(id: id, page: page)
         }
     }
 
@@ -379,7 +385,7 @@ struct NoteRowView: View {
     }
 
     private var avatarLink: some View {
-        NavigationLink(value: Route.authorNotes(username: note.author.username)) {
+        NavigationLink(value: note.author.notesRoute) {
             AvatarView(author: note.author, size: 36)
         }
         .buttonStyle(.plain)
@@ -389,18 +395,20 @@ struct NoteRowView: View {
     private var focusedRow: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .center, spacing: 12) {
-                NavigationLink(value: Route.authorNotes(username: note.author.username)) {
+                NavigationLink(value: note.author.notesRoute) {
                     AvatarView(author: note.author, size: 44)
                 }
                 .buttonStyle(.plain)
                 .accessibilityHidden(true)
-                NavigationLink(value: Route.authorNotes(username: note.author.username)) {
+                NavigationLink(value: note.author.notesRoute) {
                     VStack(alignment: .leading, spacing: 1) {
                         Text(note.author.shownName)
                             .typeScale(.note)
                             .fontWeight(.semibold)
                             .foregroundStyle(Palette.ink)
-                        Text(verbatim: "@\(note.author.username)@\(Self.federationHost)")
+                        Text(verbatim: note.author.isRemote
+                            ? "@\(note.author.username)"
+                            : "@\(note.author.username)@\(Self.federationHost)")
                             .typeScale(.meta)
                             .foregroundStyle(Palette.secondary)
                     }
@@ -408,7 +416,9 @@ struct NoteRowView: View {
                 }
                 .buttonStyle(.plain)
                 Spacer(minLength: 8)
-                FollowButton(username: note.author.username)
+                if !note.author.isRemote {
+                    FollowButton(username: note.author.username)
+                }
                 moreMenu
             }
             warningBar
@@ -501,13 +511,13 @@ struct NoteRowView: View {
 
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            NavigationLink(value: Route.authorNotes(username: note.author.username)) {
+            NavigationLink(value: note.author.notesRoute) {
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text(note.author.shownName)
                         .fontWeight(.semibold)
                         .foregroundStyle(Palette.ink)
                         .layoutPriority(1)
-                    if note.author.hasDisplayName {
+                    if note.author.hasDisplayName || note.author.isRemote {
                         Text(verbatim: "@\(note.author.username)")
                             .foregroundStyle(Palette.secondary)
                     }

@@ -468,6 +468,56 @@ final class NotesFeedUITests: XCTestCase {
         attach(app, "search-notes")
     }
 
+    func testAHandleInSearchFindsAnAccountOnAnotherServerToFollow() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "search"]
+        app.launch()
+
+        let field = app.searchFields.firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 12))
+        field.tap()
+        field.typeText("@alice@mastodon.social")
+        let follow = app.buttons["remote.follow.alice@mastodon.social"]
+        XCTAssertTrue(follow.waitForExistence(timeout: 8), "원격 계정 행이 안 뜸")
+        follow.tap()
+        let requested = NSPredicate(format: "label CONTAINS '요청됨'")
+        expectation(for: requested, evaluatedWith: follow)
+        waitForExpectations(timeout: 6)
+        attach(app, "remote-search-requested")
+
+        app.buttons["remote.row.alice@mastodon.social"].tap()
+        let accepted = app.staticTexts["mastodon.social에 있는 계정이에요. 이 계정의 새 노트가 팔로잉 피드에 와요."]
+        XCTAssertTrue(accepted.waitForExistence(timeout: 8), "계정 화면이 안 열리거나 수락이 반영되지 않음")
+        XCTAssertTrue(app.navigationBars["@alice@mastodon.social"].exists, "계정 화면 제목이 핸들이 아님")
+        attach(app, "remote-account")
+    }
+
+    func testANoteFromAnotherServerOpensItsAccountWithItsNotes() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+        let menu = app.buttons["tab.menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 10))
+        menu.tap()
+        app.buttons["팔로잉"].tap()
+        XCTAssertTrue(app.navigationBars["팔로잉"].waitForExistence(timeout: 5))
+
+        let remote = app.buttons["note.menu.9600"]
+        for _ in 0..<6 where !remote.exists {
+            app.swipeUp()
+        }
+        XCTAssertTrue(remote.waitForExistence(timeout: 6), "팔로잉에 다른 서버 노트가 없음")
+        let author = app.buttons.matching(NSPredicate(format: "label CONTAINS '@mina@mastodon.social'")).firstMatch
+        XCTAssertTrue(author.exists, "다른 서버 노트 머리에 @아이디@서버가 없음")
+        attach(app, "remote-note-row")
+        author.tap()
+
+        XCTAssertTrue(app.navigationBars["@mina@mastodon.social"].waitForExistence(timeout: 8), "원격 계정 화면이 안 열림")
+        XCTAssertTrue(app.buttons["note.menu.9600"].waitForExistence(timeout: 8), "계정 화면에 받은 노트가 없음")
+        attach(app, "remote-account-notes")
+    }
+
     func testADisplayNameLeadsTheRowWithTheHandleBesideIt() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]
