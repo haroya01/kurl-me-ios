@@ -40,6 +40,7 @@ struct NoteQuotesView: View {
                 }
             }
         }
+        .environment(\.noteFilterContext, notes.filterContext)
         .navigationTitle("인용한 노트")
         .noteTextLinks()
         .navigationBarTitleDisplayMode(.inline)

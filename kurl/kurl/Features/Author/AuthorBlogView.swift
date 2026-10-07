@@ -384,6 +384,7 @@ struct AuthorBlogView: View {
                         KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
                     }
                 }
+                .environment(\.noteFilterContext, notes.filterContext)
             }
         }
     }
@@ -424,6 +425,7 @@ struct AuthorBlogView: View {
                         KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
                     }
                 }
+                .environment(\.noteFilterContext, reposts.filterContext)
             }
         }
     }

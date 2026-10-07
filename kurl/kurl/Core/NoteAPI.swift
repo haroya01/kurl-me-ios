@@ -134,6 +134,22 @@ enum NoteAPI {
         try await client.deleteVoid("/notes/\(id)", authenticated: true)
     }
 
+    static func filters() async throws -> [NoteFilter] {
+        try await client.get("/notes/filters", authenticated: true)
+    }
+
+    static func createFilter(_ draft: NoteFilterDraft) async throws -> NoteFilter {
+        try await client.post("/notes/filters", body: draft, authenticated: true)
+    }
+
+    static func updateFilter(id: Int64, _ draft: NoteFilterDraft) async throws -> NoteFilter {
+        try await client.put("/notes/filters/\(id)", body: draft, authenticated: true)
+    }
+
+    static func deleteFilter(id: Int64) async throws {
+        try await client.deleteVoid("/notes/filters/\(id)", authenticated: true)
+    }
+
     static func vote(id: Int64, choices: [Int]) async throws -> NotePoll {
         struct Body: Encodable { let choices: [Int] }
         return try await client.post("/notes/\(id)/poll/votes", body: Body(choices: choices), authenticated: true)
@@ -359,6 +375,23 @@ struct NotePoll: Decodable, Hashable {
         let base = multiple ? votersCount : votesCount
         return base > 0 ? Double(option.votesCount) / Double(base) : 0
     }
+}
+
+struct NoteFilter: Decodable, Identifiable, Hashable {
+    let id: Int64
+    let phrase: String
+    let wholeWord: Bool
+    let context: [String]
+    let action: String
+    let expiresAt: Date?
+}
+
+struct NoteFilterDraft: Encodable {
+    let phrase: String
+    let wholeWord: Bool
+    let context: [String]
+    let action: String
+    let expiresIn: Int?
 }
 
 struct NoteFeed: Decodable {

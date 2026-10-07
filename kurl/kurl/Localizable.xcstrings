@@ -3577,6 +3577,62 @@
         }
       }
     },
+    "걸리는 곳": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Applies to"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कहाँ लागू हो"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "適用する場所"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Áp dụng cho"
+          }
+        }
+      }
+    },
+    "걸리면": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When matched"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मेल खाने पर"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一致したら"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khi khớp"
+          }
+        }
+      }
+    },
     "검색": {
       "localizations": {
         "en": {
@@ -3685,6 +3741,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cảnh báo"
+          }
+        }
+      }
+    },
+    "경고와 함께 접기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fold behind a warning"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "चेतावनी के पीछे मोड़ें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "警告付きで折りたたむ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thu gọn kèm cảnh báo"
           }
         }
       }
@@ -6204,6 +6288,34 @@
         }
       }
     },
+    "끄면 \"고양이\"가 \"고양이가\"에도 걸려요. 한국어는 조사가 붙어서 꺼 두는 편이 맞아요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off, \"cat\" also matches \"cats\". Keep it off for languages that attach particles to words, like Korean."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बंद होने पर \"cat\" \"cats\" से भी मेल खाता है। कोरियाई जैसी भाषाओं के लिए इसे बंद रखें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフだと「猫」は「猫が」にも一致します。助詞が付く言語ではオフが向いています。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khi tắt, \"cat\" cũng khớp \"cats\". Nên tắt với ngôn ngữ gắn tiểu từ như tiếng Hàn."
+          }
+        }
+      }
+    },
     "끈 종류는 벨과 푸시에 오지 않아요": {
       "localizations": {
         "en": {
@@ -7636,6 +7748,34 @@
         }
       }
     },
+    "단어 전체가 맞을 때만": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Whole word only"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "केवल पूरा शब्द"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "単語全体が一致するときだけ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chỉ khớp cả từ"
+          }
+        }
+      }
+    },
     "담은 사람이 없어요. 프로필의 … 메뉴에서 \"리스트에 추가\"를 눌러 보세요.": {
       "localizations": {
         "en": {
@@ -8476,6 +8616,34 @@
         }
       }
     },
+    "모든 노트·인기·태그": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All notes, trending, tags"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सभी नोट, ट्रेंडिंग, टैग"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべてのノート・人気・タグ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mọi ghi chú, thịnh hành, thẻ"
+          }
+        }
+      }
+    },
     "무기한": {
       "localizations": {
         "en": {
@@ -8868,6 +9036,34 @@
         }
       }
     },
+    "보고 싶지 않은 말이 든 노트를 접거나 숨겨요. 내 노트에는 걸리지 않아요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fold or hide notes with words you'd rather not see. Your own notes are never filtered."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जिन शब्दों को आप नहीं देखना चाहते उनवाले नोट मोड़ें या छिपाएँ। आपके अपने नोट फ़िल्टर नहीं होते।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "見たくない言葉を含むノートを折りたたむか隠します。自分のノートには適用されません。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thu gọn hoặc ẩn ghi chú có từ bạn không muốn thấy. Ghi chú của bạn không bị lọc."
+          }
+        }
+      }
+    },
     "북마크를 바꾸지 못했어요": {
       "localizations": {
         "en": {
@@ -9088,6 +9284,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Danh sách mới"
+          }
+        }
+      }
+    },
+    "새 필터": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New filter"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नया फ़िल्टर"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しいフィルター"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bộ lọc mới"
           }
         }
       }
@@ -9536,6 +9760,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cảnh báo nội dung (vd: tiết lộ nội dung)"
+          }
+        }
+      }
+    },
+    "완전히 숨기기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide completely"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पूरी तरह छिपाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完全に隠す"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ẩn hoàn toàn"
           }
         }
       }
@@ -14003,6 +14255,34 @@
         }
       }
     },
+    "이 필터를 지울까요?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete this filter?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह फ़िल्टर हटाएँ?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このフィルターを削除しますか?"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xóa bộ lọc này?"
+          }
+        }
+      }
+    },
     "이름 바꾸기": {
       "localizations": {
         "en": {
@@ -14283,6 +14563,34 @@
         }
       }
     },
+    "접기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fold"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मोड़ें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "折りたたむ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thu gọn"
+          }
+        }
+      }
+    },
     "조용한 공개": {
       "localizations": {
         "en": {
@@ -14335,6 +14643,90 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hiện tại"
+          }
+        }
+      }
+    },
+    "키워드 필터": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keyword filters"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कीवर्ड फ़िल्टर"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーワードフィルター"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bộ lọc từ khóa"
+          }
+        }
+      }
+    },
+    "키워드 필터가 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No keyword filters"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कोई कीवर्ड फ़िल्टर नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーワードフィルターはありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có bộ lọc từ khóa"
+          }
+        }
+      }
+    },
+    "키워드나 문구": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keyword or phrase"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कीवर्ड या वाक्यांश"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーワードまたはフレーズ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Từ khóa hoặc cụm từ"
           }
         }
       }
@@ -14671,6 +15063,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đã ẩn bài đăng lại của %@ trong Đang theo dõi"
+          }
+        }
+      }
+    },
+    "팔로잉·리스트": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Following and lists"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ॉलोइंग और सूचियाँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォロー中・リスト"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đang theo dõi và danh sách"
+          }
+        }
+      }
+    },
+    "프로필": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Profiles"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "प्रोफ़ाइल"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プロフィール"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hồ sơ"
           }
         }
       }
@@ -28088,6 +28536,174 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nguồn cấp"
+          }
+        }
+      }
+    },
+    "필터 고치기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit filter"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़िल्टर बदलें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フィルターを編集"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sửa bộ lọc"
+          }
+        }
+      }
+    },
+    "필터 지우기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete filter"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़िल्टर हटाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フィルターを削除"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xóa bộ lọc"
+          }
+        }
+      }
+    },
+    "필터 추가": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add filter"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़िल्टर जोड़ें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フィルターを追加"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thêm bộ lọc"
+          }
+        }
+      }
+    },
+    "필터됨: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filtered: %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़िल्टर किया गया: %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フィルター済み: %@"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã lọc: %@"
+          }
+        }
+      }
+    },
+    "필터를 저장하지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't save the filter"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़िल्टर सहेजा नहीं जा सका"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フィルターを保存できませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể lưu bộ lọc"
+          }
+        }
+      }
+    },
+    "필터를 지우지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't delete the filter"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़िल्टर हटाया नहीं जा सका"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フィルターを削除できませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể xóa bộ lọc"
           }
         }
       }

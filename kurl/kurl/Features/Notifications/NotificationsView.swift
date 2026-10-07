@@ -166,14 +166,29 @@ struct NotificationsView: View {
         .loginPrompt(isPresented: $showLoginSheet, message: "내 알림 받기")
     }
 
+    private var shownItems: [AppNotification] {
+        let store = NoteFilterStore.shared
+        return items.filter { n in
+            let others: String? =
+                switch n.type {
+                case "NOTE_REPLY", "NOTE_QUOTE": n.sourceExcerpt
+                case "NOTE_MENTION": n.noteExcerpt
+                default: nil
+                }
+            guard let others else { return true }
+            return store.verdict(for: others, in: .notifications) != .hide
+        }
+    }
+
     @ViewBuilder
     private var list: some View {
-        ForEach(Array(items.enumerated()), id: \.element.id) { index, notification in
+        let shown = shownItems
+        ForEach(Array(shown.enumerated()), id: \.element.id) { index, notification in
             notificationRow(notification)
                 .task {
-                    if index >= items.count - 3 { await loadMore() }
+                    if index >= shown.count - 3 { await loadMore() }
                 }
-            if index < items.count - 1 { Hairline() }
+            if index < shown.count - 1 { Hairline() }
         }
         if loadingMore {
             KurlLoadingMark()

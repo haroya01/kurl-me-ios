@@ -206,6 +206,24 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("settings.muted")
+                Hairline()
+                NavigationLink {
+                    NoteFiltersView()
+                } label: {
+                    HStack(spacing: 10) {
+                        Text("키워드 필터")
+                            .typeScale(.body)
+                            .foregroundStyle(Palette.ink)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Palette.faint)
+                    }
+                    .padding(.vertical, 13)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("settings.filters")
 
                 Hairline()
                     .padding(.top, 16)
