@@ -13,7 +13,23 @@ final class NotesFeedUITests: XCTestCase {
     }
 
     private func openNotes(_ app: XCUIApplication) {
-        XCTAssertTrue(app.buttons["notes.compose"].waitForExistence(timeout: 12), "노트 탭이 열리지 않음")
+        XCTAssertTrue(app.buttons["notes.fab"].waitForExistence(timeout: 12), "노트 탭이 열리지 않음")
+    }
+
+    private func pickFeed(_ app: XCUIApplication, _ label: String) {
+        let segment = app.buttons[label].firstMatch
+        XCTAssertTrue(segment.waitForExistence(timeout: 8), "노트 머리 스위처에 \(label)이 없음")
+        segment.tap()
+        XCTAssertTrue(segment.isSelected, "\(label)로 바뀌지 않음")
+    }
+
+    private func openMore(_ app: XCUIApplication, _ label: String) {
+        let more = app.buttons["notes.more"]
+        XCTAssertTrue(more.waitForExistence(timeout: 8), "노트 머리에 더 보기 메뉴가 없음")
+        more.tap()
+        let item = app.buttons[label].firstMatch
+        XCTAssertTrue(item.waitForExistence(timeout: 4), "더 보기 메뉴에 \(label)이 없음")
+        item.tap()
     }
 
     func testNotesTabPublishes() throws {
@@ -29,7 +45,7 @@ final class NotesFeedUITests: XCTestCase {
             .matching(NSPredicate(format: "label CONTAINS '헥사고날 포트'")).firstMatch
         XCTAssertTrue(seeded.waitForExistence(timeout: 10), "노트 목 피드가 렌더되지 않음")
 
-        let compose = app.buttons["notes.compose"]
+        let compose = app.buttons["notes.fab"]
         XCTAssertTrue(compose.waitForExistence(timeout: 5), "노트 쓰기 버튼 없음")
         compose.tap()
 
@@ -55,33 +71,27 @@ final class NotesFeedUITests: XCTestCase {
         add(shot)
     }
 
-    func testTappingTheNotesTabAgainSwitchesTheFeed() throws {
+    func testTheNotesFeedSwitchesLikeTheBlogFeedByTapOrSwipe() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]
         app.launch()
         openNotes(app)
-        XCTAssertTrue(app.buttons["note.menu.9503"].waitForExistence(timeout: 10), "모든 노트에 reader_kim 노트가 없음")
+        XCTAssertTrue(app.buttons["note.menu.9503"].waitForExistence(timeout: 10), "최신에 reader_kim 노트가 없음")
+        XCTAssertTrue(app.buttons["최신"].isSelected, "노트 탭이 최신으로 열리지 않음")
+        XCTAssertTrue(app.buttons["알림"].exists, "노트 머리에 알림 벨이 없음")
+        attach(app, "notes-header")
 
-        let menu = app.buttons["tab.menu"]
-        XCTAssertTrue(menu.waitForExistence(timeout: 5), "선택된 노트 탭이 메뉴가 아님")
-        menu.tap()
-        let trending = app.buttons["인기"]
-        XCTAssertTrue(trending.waitForExistence(timeout: 5), "탭 위로 피드 메뉴가 열리지 않음")
-        let opened = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
-        opened.name = "notes-feed-menu"
-        opened.lifetime = .keepAlways
-        add(opened)
-        trending.tap()
-
-        XCTAssertTrue(app.navigationBars["인기"].waitForExistence(timeout: 5), "제목이 인기로 안 바뀜")
+        pickFeed(app, "인기")
         let top = app.buttons["note.menu.9502"]
         let newest = app.buttons["note.menu.9501"]
         XCTAssertTrue(top.waitForExistence(timeout: 8) && newest.waitForExistence(timeout: 2), "인기 피드가 안 그려짐")
         XCTAssertLessThan(top.frame.minY, newest.frame.minY, "좋아요 11개 노트가 최신 노트보다 위에 있지 않음")
 
-        menu.tap()
-        app.buttons["팔로잉"].tap()
-        XCTAssertTrue(app.navigationBars["팔로잉"].waitForExistence(timeout: 5), "제목이 팔로잉으로 안 바뀜")
+        app.swipeLeft()
+        XCTAssertTrue(
+            app.buttons.matching(NSPredicate(format: "label == '팔로잉' AND selected == true")).firstMatch
+                .waitForExistence(timeout: 5),
+            "왼쪽으로 밀어도 팔로잉으로 안 넘어감")
         XCTAssertTrue(app.buttons["note.menu.9501"].waitForExistence(timeout: 8), "팔로잉 피드가 안 그려짐")
         XCTAssertTrue(app.buttons["note.menu.9503"].waitForExistence(timeout: 4), "팔로우한 사람의 리포스트가 팔로잉에 안 흐름")
         let reposted = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'yuki_dev님이 리포스트함'")).firstMatch
@@ -92,6 +102,75 @@ final class NotesFeedUITests: XCTestCase {
         shot.name = "notes-following"
         shot.lifetime = .keepAlways
         add(shot)
+    }
+
+    private func menuOption(_ app: XCUIApplication, _ label: String) -> XCUIElement? {
+        app.buttons.matching(NSPredicate(format: "label == %@", label)).allElementsBoundByIndex
+            .first { $0.frame.minY > 200 }
+    }
+
+    func testSwipingAPhotoCarouselLeavesTheFeedPageWhereItIs() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+        XCTAssertTrue(app.buttons["note.menu.9501"].waitForExistence(timeout: 10), "노트가 안 뜸")
+
+        let photo = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == '비 오는 창밖'")).firstMatch
+        var tries = 0
+        while !(photo.exists && photo.isHittable), tries < 6 { app.swipeUp(); tries += 1 }
+        XCTAssertTrue(photo.isHittable, "사진 여러 장 노트가 안 보임")
+        photo.swipeLeft()
+        XCTAssertTrue(
+            app.buttons.matching(NSPredicate(format: "label == '최신' AND selected == true")).firstMatch
+                .waitForExistence(timeout: 3),
+            "사진 넘기기가 피드 페이지까지 넘김")
+        XCTAssertFalse(
+            app.buttons.matching(NSPredicate(format: "label == '인기' AND selected == true")).firstMatch.exists,
+            "사진 넘기기가 인기로 넘어감")
+    }
+
+    func testTappingTheNotesTabAgainPopsToTheFeedThenOpensTheFeedMenu() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+        openMore(app, "다른 서버")
+        XCTAssertTrue(app.navigationBars["다른 서버"].waitForExistence(timeout: 6), "다른 서버 화면이 안 열림")
+
+        app.buttons["노트"].firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["다른 서버"].waitForNonExistence(timeout: 5), "탭을 다시 눌러도 피드로 안 돌아감")
+
+        let menu = app.buttons["tab.menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 5), "피드에서 노트 탭이 메뉴가 아님")
+        menu.tap()
+        let trending = menuOption(app, "인기")
+        XCTAssertNotNil(trending, "탭 위로 피드 메뉴가 열리지 않음")
+        attach(app, "notes-tab-menu")
+        trending?.tap()
+        XCTAssertTrue(
+            app.buttons.matching(NSPredicate(format: "label == '인기' AND selected == true")).firstMatch
+                .waitForExistence(timeout: 5),
+            "탭 메뉴로 고른 인기가 머리 스위처에 반영되지 않음")
+    }
+
+    func testTappingTheBlogTabAgainOpensItsFeedMenuToo() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks"]
+        app.launch()
+        let menu = app.buttons["tab.menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 12), "피드 탭이 메뉴가 아님")
+        XCTAssertTrue(app.buttons["알림"].exists, "블로그 머리에 알림 벨이 없음")
+        menu.tap()
+        let following = menuOption(app, "구독함")
+        XCTAssertNotNil(following, "피드 탭 위로 피드 메뉴가 열리지 않음")
+        attach(app, "blog-tab-menu")
+        following?.tap()
+        XCTAssertTrue(
+            app.buttons.matching(NSPredicate(format: "label == '구독함' AND selected == true")).firstMatch
+                .waitForExistence(timeout: 5),
+            "탭 메뉴로 고른 구독함이 머리 스위처에 반영되지 않음")
     }
 
     func testABookmarkFromTheDetailShowsInTheBookmarksFeedAndQuotesOpenFromTheDetail() throws {
@@ -121,10 +200,8 @@ final class NotesFeedUITests: XCTestCase {
 
         app.navigationBars.buttons.element(boundBy: 0).tap()
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        let menu = app.buttons["tab.menu"]
-        XCTAssertTrue(menu.waitForExistence(timeout: 6), "노트 탭 메뉴가 없음")
-        menu.tap()
-        app.buttons["북마크한 노트"].tap()
+        openMore(app, "북마크한 노트")
+        XCTAssertTrue(app.navigationBars["북마크한 노트"].waitForExistence(timeout: 6), "북마크 화면이 안 열림")
         XCTAssertTrue(app.buttons["note.menu.9501"].waitForExistence(timeout: 8), "북마크한 노트가 북마크 피드에 없음")
     }
 
@@ -189,10 +266,8 @@ final class NotesFeedUITests: XCTestCase {
         app.launch()
         openNotes(app)
 
-        let menu = app.buttons["tab.menu"]
-        XCTAssertTrue(menu.waitForExistence(timeout: 6), "노트 탭 메뉴가 없음")
-        menu.tap()
-        app.buttons["다른 서버"].firstMatch.tap()
+        openMore(app, "다른 서버")
+        XCTAssertTrue(app.navigationBars["다른 서버"].waitForExistence(timeout: 6), "다른 서버 화면이 안 열림")
         XCTAssertTrue(app.buttons["note.menu.9600"].waitForExistence(timeout: 8), "다른 서버 피드에 받은 노트가 없음")
         XCTAssertFalse(app.buttons["note.menu.9501"].exists, "다른 서버 피드에 이 서버 노트가 섞임")
         attach(app, "notes-federated")
@@ -204,13 +279,11 @@ final class NotesFeedUITests: XCTestCase {
         app.launch()
         openNotes(app)
 
-        let menu = app.buttons["tab.menu"]
-        XCTAssertTrue(menu.waitForExistence(timeout: 6), "노트 탭 메뉴가 없음")
-        menu.tap()
-        app.buttons["팔로잉"].tap()
+        pickFeed(app, "팔로잉")
         let header = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'yuki_dev님이 리포스트함'")).firstMatch
         XCTAssertTrue(header.waitForExistence(timeout: 8), "팔로잉에 리포스트가 없음")
 
+        let menu = app.buttons["notes.more"]
         menu.tap()
         let showReposts = menuItem(app, "리포스트 보기")
         XCTAssertTrue(showReposts.waitForExistence(timeout: 4), "팔로잉 메뉴에 리포스트 보기가 없음")
@@ -255,14 +328,15 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(tag.waitForExistence(timeout: 10), "노트 본문의 해시태그가 링크가 아님")
         tag.tap()
 
-        let tabs = app.segmentedControls["tag.tabs"]
-        XCTAssertTrue(tabs.waitForExistence(timeout: 8), "태그 화면이 안 열림")
-        XCTAssertTrue(tabs.buttons["노트"].isSelected, "노트에서 연 태그가 노트 탭으로 열리지 않음")
+        let notesTab = app.buttons["tag.tab.notes"]
+        XCTAssertTrue(notesTab.waitForExistence(timeout: 8), "태그 화면이 안 열림")
+        XCTAssertTrue(notesTab.isSelected, "노트에서 연 태그가 노트 탭으로 열리지 않음")
         XCTAssertTrue(app.buttons["note.menu.9501"].waitForExistence(timeout: 8), "태그의 노트가 안 보임")
         attach(app, "tag-notes")
 
-        tabs.buttons["글"].tap()
-        XCTAssertTrue(tabs.buttons["글"].isSelected, "글 탭으로 바뀌지 않음")
+        let postsTab = app.buttons["tag.tab.posts"]
+        postsTab.tap()
+        XCTAssertTrue(postsTab.isSelected, "글 탭으로 바뀌지 않음")
         XCTAssertTrue(app.buttons["note.menu.9501"].waitForNonExistence(timeout: 6), "글 탭에 노트가 남음")
     }
 
@@ -389,10 +463,7 @@ final class NotesFeedUITests: XCTestCase {
         app.launch()
         openNotes(app)
 
-        let menu = app.buttons["tab.menu"]
-        XCTAssertTrue(menu.waitForExistence(timeout: 6))
-        menu.tap()
-        app.buttons["개인 멘션"].firstMatch.tap()
+        openMore(app, "개인 멘션")
         XCTAssertTrue(app.navigationBars["개인 멘션"].waitForExistence(timeout: 6), "개인 멘션 피드로 안 바뀜")
         let dm = app.descendants(matching: .any)["note.visibility.9508"].firstMatch
         XCTAssertTrue(dm.waitForExistence(timeout: 8), "개인 멘션 노트에 범위 표시가 없음")
@@ -400,6 +471,7 @@ final class NotesFeedUITests: XCTestCase {
                        "멘션한 사람만 보는 노트를 리포스트할 수 있음")
         attach(app, "notes-direct-feed")
 
+        app.navigationBars.buttons.element(boundBy: 0).tap()
         app.buttons["notes.fab"].tap()
         let text = app.textFields["noteCompose.text"]
         XCTAssertTrue(text.waitForExistence(timeout: 6))
@@ -439,10 +511,7 @@ final class NotesFeedUITests: XCTestCase {
         app.buttons["완료"].firstMatch.tap()
 
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        let menu = app.buttons["tab.menu"]
-        XCTAssertTrue(menu.waitForExistence(timeout: 6))
-        menu.tap()
-        app.buttons["동료"].firstMatch.tap()
+        openMore(app, "동료")
         XCTAssertTrue(app.navigationBars["동료"].waitForExistence(timeout: 6), "리스트 피드로 안 바뀜")
         XCTAssertTrue(app.buttons["note.menu.9501"].waitForExistence(timeout: 8), "담은 사람의 노트가 리스트에 없음")
         XCTAssertFalse(app.buttons["note.menu.9503"].exists, "담지 않은 사람의 노트가 리스트에 있음")
@@ -535,7 +604,7 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(trend.label.contains("3명이 이번 주에 썼어요"), "쓴 사람 수가 안 보임: \(trend.label)")
         attach(app, "search-trending-tags")
         trend.tap()
-        let notesTab = app.segmentedControls.buttons["노트"].firstMatch
+        let notesTab = app.buttons["tag.tab.notes"]
         XCTAssertTrue(notesTab.waitForExistence(timeout: 8), "태그 화면이 안 열림")
         XCTAssertTrue(notesTab.isSelected, "뜨는 해시태그가 노트 탭으로 열리지 않음")
     }
@@ -586,11 +655,7 @@ final class NotesFeedUITests: XCTestCase {
         app.launchArguments = ["--mocks", "--tab", "notes"]
         app.launch()
         openNotes(app)
-        let menu = app.buttons["tab.menu"]
-        XCTAssertTrue(menu.waitForExistence(timeout: 10))
-        menu.tap()
-        app.buttons["팔로잉"].tap()
-        XCTAssertTrue(app.navigationBars["팔로잉"].waitForExistence(timeout: 5))
+        pickFeed(app, "팔로잉")
 
         let remote = app.buttons["note.menu.9600"]
         for _ in 0..<6 where !remote.exists {
@@ -618,10 +683,7 @@ final class NotesFeedUITests: XCTestCase {
         app.launchArguments = ["--mocks", "--tab", "notes"]
         app.launch()
         openNotes(app)
-        let menu = app.buttons["tab.menu"]
-        XCTAssertTrue(menu.waitForExistence(timeout: 10))
-        menu.tap()
-        app.buttons["팔로잉"].tap()
+        pickFeed(app, "팔로잉")
         let remote = app.buttons["note.menu.9600"]
         for _ in 0..<6 where !remote.exists {
             app.swipeUp()
@@ -651,7 +713,7 @@ final class NotesFeedUITests: XCTestCase {
         app.launchArguments = ["--mocks", "--tab", "notes"]
         app.launch()
         openNotes(app)
-        let compose = app.buttons["notes.compose"]
+        let compose = app.buttons["notes.fab"]
         XCTAssertTrue(compose.waitForExistence(timeout: 10), "노트 쓰기 버튼 없음")
         compose.tap()
         let field = app.textFields["noteCompose.text"]
@@ -678,10 +740,7 @@ final class NotesFeedUITests: XCTestCase {
         }
         XCTAssertTrue(field.waitForNonExistence(timeout: 8), "예약한 뒤 작성 시트가 닫히지 않음")
 
-        let menu = app.buttons["tab.menu"]
-        XCTAssertTrue(menu.waitForExistence(timeout: 10))
-        menu.tap()
-        app.buttons["예약한 노트"].tap()
+        openMore(app, "예약한 노트")
         let mine = app.buttons.matching(NSPredicate(format: "label CONTAINS 'uitest scheduled note'")).firstMatch
         XCTAssertTrue(mine.waitForExistence(timeout: 8), "예약한 노트 목록에 방금 예약한 노트가 없음")
         XCTAssertTrue(
@@ -707,7 +766,13 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(mute.waitForExistence(timeout: 5), "노트 메뉴에 대화 알림 끄기가 없음")
         attach(app, "note-menu-conversation-mute")
         mute.tap()
-        XCTAssertTrue(app.staticTexts["이 대화의 알림을 껐어요"].waitForExistence(timeout: 5), "끈 뒤 알림이 없음")
+        let toast = app.staticTexts["이 대화의 알림을 껐어요"]
+        var appeared = false
+        for _ in 0..<30 where !appeared {
+            appeared = toast.exists
+            if !appeared { Thread.sleep(forTimeInterval: 0.1) }
+        }
+        XCTAssertTrue(appeared, "끈 뒤 알림이 없음")
 
         menu.tap()
         XCTAssertTrue(app.buttons["대화 알림 켜기"].waitForExistence(timeout: 5), "끈 뒤 메뉴가 켜기로 바뀌지 않음")
@@ -735,10 +800,7 @@ final class NotesFeedUITests: XCTestCase {
         app.launchArguments = ["--mocks", "--tab", "notes"]
         app.launch()
         openNotes(app)
-        let menu = app.buttons["tab.menu"]
-        XCTAssertTrue(menu.waitForExistence(timeout: 10))
-        menu.tap()
-        app.buttons["팔로잉"].tap()
+        pickFeed(app, "팔로잉")
         let remote = app.buttons["note.menu.9600"]
         for _ in 0..<6 where !remote.exists {
             app.swipeUp()
@@ -813,7 +875,7 @@ final class NotesFeedUITests: XCTestCase {
         app.launch()
         openNotes(app)
 
-        app.buttons["notes.compose"].tap()
+        app.buttons["notes.fab"].tap()
         let field = app.textFields["noteCompose.text"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.typeText("버릴지 묻는 노트")
@@ -845,14 +907,28 @@ final class NotesFeedUITests: XCTestCase {
         app.launchArguments = ["--mocks", "--tab", "notes"]
         app.launch()
         openNotes(app)
+        XCTAssertTrue(app.buttons["note.menu.9501"].waitForExistence(timeout: 10), "노트가 안 뜸")
 
         let share = app.buttons["note.share.9504"]
         var tries = 0
         while !share.isHittable, tries < 6 { app.swipeUp(); tries += 1 }
         XCTAssertTrue(share.isHittable, "노트 행에 공유 버튼이 없음")
 
-        let alt = app.buttons["사진 설명 보기"].firstMatch
-        XCTAssertTrue(alt.waitForExistence(timeout: 5), "대체 텍스트가 있는 사진에 ALT 배지가 없음")
+        XCTAssertTrue(
+            app.buttons["사진 설명 보기"].firstMatch.waitForExistence(timeout: 5), "대체 텍스트가 있는 사진에 ALT 배지가 없음")
+        let center = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        func onScreenAlt() -> XCUIElement? {
+            app.buttons.matching(NSPredicate(format: "label == '사진 설명 보기'")).allElementsBoundByIndex.first {
+                $0.frame.minX >= 0 && $0.frame.maxX <= app.frame.width
+                    && $0.frame.minY > 160 && $0.frame.maxY < app.frame.height - 160
+            }
+        }
+        for _ in 0..<6 where onScreenAlt() == nil {
+            center.press(
+                forDuration: 0.05,
+                thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.62)))
+        }
+        let alt = try XCTUnwrap(onScreenAlt(), "화면 안에 ALT 배지가 없음")
         alt.tap()
         XCTAssertTrue(app.staticTexts["비 오는 창밖"].firstMatch.waitForExistence(timeout: 3), "ALT 를 눌러도 설명이 안 뜸")
         attach(app, "note-row-threads")
@@ -931,7 +1007,7 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(app.buttons["note.reply"].waitForExistence(timeout: 6), "본문을 눌러도 노트 상세가 안 열림")
         attach(app, "note-body-opened")
         app.navigationBars.buttons.firstMatch.tap()
-        XCTAssertTrue(app.buttons["notes.compose"].waitForExistence(timeout: 6), "상세에서 돌아오지 못함")
+        XCTAssertTrue(app.buttons["notes.more"].waitForExistence(timeout: 6), "상세에서 돌아오지 못함")
 
         let linked = app.buttons["note.body.9503"]
         var tries = 0
@@ -957,7 +1033,9 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(card.label.contains("kurl.me"), "링크 카드에 도메인이 없음")
         attach(app, "note-link-card")
 
-        app.buttons["notes.fab"].tap()
+        let fab = app.buttons["notes.fab"]
+        for _ in 0..<3 where !fab.exists { app.swipeDown(velocity: .slow) }
+        fab.tap()
         let field = app.textFields["noteCompose.text"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.typeText("읽어 볼 글 https://example.com/essay")
@@ -1125,7 +1203,7 @@ final class NotesFeedUITests: XCTestCase {
         app.launch()
         openNotes(app)
 
-        app.buttons["notes.compose"].tap()
+        app.buttons["notes.fab"].tap()
         let field = app.textFields["noteCompose.text"]
         XCTAssertTrue(field.waitForExistence(timeout: 5), "작성 시트의 입력란 없음")
         field.typeText("uitest poll")

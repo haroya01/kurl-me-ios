@@ -59,7 +59,7 @@ final class NotesViewModel {
             case .trending: self = .trending
             case .bookmarks: self = .bookmarks
             case .direct: self = .direct
-            case .list: self = .list(NoteFeedChoice.shared.listId ?? 0)
+            case .list: self = .list(0)
             }
         }
     }
@@ -70,6 +70,10 @@ final class NotesViewModel {
 
     init(feed: NoteFeedKind) {
         source = Source(feed)
+    }
+
+    init(list id: Int64) {
+        source = .list(id)
     }
 
     init(repostsBy username: String) {
@@ -1116,6 +1120,7 @@ private struct NoteImagesView: View {
                         }
                     }
                     .scrollClipDisabled()
+                    .holdsSwipePager()
                 }
                 ForEach(audio, id: \.url) { item in
                     NoteAudioRow(media: item)
@@ -1487,22 +1492,7 @@ struct NoteDetailView: View {
         Button {
             if AuthStore.shared.isSignedIn { replying = true } else { showLoginSheet = true }
         } label: {
-            HStack(spacing: 10) {
-                if let me = AuthStore.shared.me, AuthStore.shared.isSignedIn {
-                    AvatarView(
-                        author: Author(id: me.id ?? 0, username: me.username ?? "", bio: nil, avatarUrl: me.avatarUrl),
-                        size: 28)
-                }
-                Text("\(username)님에게 답글 남기기")
-                    .typeScale(.note)
-                    .foregroundStyle(Palette.secondary)
-                    .lineLimit(1)
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Palette.chipBg, in: Capsule())
-            .contentShape(Capsule())
+            ReplyPrompt(text: Text("\(username)님에게 답글 남기기"))
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text("답글 달기"))

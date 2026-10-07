@@ -307,7 +307,9 @@ struct AuthorBlogView: View {
             }
             Color.clear.frame(height: 40)
         } header: {
-            AuthorTabBar(tabs: tabs, selection: $tab)
+            ContentTabBar(
+                tabs: tabs, selection: $tab, label: \.label, identifier: { "author.tab.\($0.key)" },
+                background: Palette.readingBg)
         }
     }
 
@@ -354,7 +356,7 @@ struct AuthorBlogView: View {
     private var notesTab: some View {
         switch notes.phase {
         case .idle, .loading:
-            KurlLoadingMark().frame(maxWidth: .infinity, minHeight: 240)
+            NoteSkeleton()
         case .failed(let message):
             ErrorState(message: message, retry: { Task { await notes.reload() } })
                 .padding(.top, 48)
@@ -409,7 +411,7 @@ struct AuthorBlogView: View {
     private var repostsTab: some View {
         switch reposts.phase {
         case .idle, .loading:
-            KurlLoadingMark().frame(maxWidth: .infinity, minHeight: 240)
+            NoteSkeleton()
         case .failed(let message):
             ErrorState(message: message, retry: { Task { await reposts.reload() } })
                 .padding(.top, 48)
@@ -661,45 +663,5 @@ private struct AvatarViewer: View {
         .onAppear {
             withAnimation(reduceMotion ? nil : .snappy(duration: 0.28)) { appeared = true }
         }
-    }
-}
-
-private struct AuthorTabBar: View {
-    let tabs: [AuthorTab]
-    @Binding var selection: AuthorTab
-    @Namespace private var underline
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        HStack(spacing: 0) {
-            ForEach(tabs, id: \.self) { tab in
-                Button {
-                    selection = tab
-                } label: {
-                    Text(tab.label)
-                        .typeScale(.body)
-                        .fontWeight(selection == tab ? .semibold : .regular)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                        .foregroundStyle(selection == tab ? Palette.ink : Palette.secondary)
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                        .overlay(alignment: .bottom) {
-                            if selection == tab {
-                                Capsule()
-                                    .fill(Palette.ink)
-                                    .frame(height: 2)
-                                    .matchedGeometryEffect(id: "underline", in: underline)
-                            }
-                        }
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(selection == tab ? .isSelected : [])
-                .accessibilityIdentifier("author.tab.\(tab.key)")
-            }
-        }
-        .background(alignment: .bottom) { Hairline() }
-        .background(Palette.readingBg)
-        .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: selection)
     }
 }

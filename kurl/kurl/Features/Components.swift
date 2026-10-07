@@ -691,3 +691,70 @@ struct CardScrollFade: ViewModifier {
         }
     }
 }
+
+struct ReplyPrompt: View {
+    let text: Text
+
+    var body: some View {
+        HStack(spacing: 10) {
+            if let me = AuthStore.shared.me, AuthStore.shared.isSignedIn {
+                AvatarView(
+                    author: Author(id: me.id ?? 0, username: me.username ?? "", bio: nil, avatarUrl: me.avatarUrl),
+                    size: 28)
+            }
+            text
+                .typeScale(.note)
+                .foregroundStyle(Palette.secondary)
+                .lineLimit(1)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Palette.chipBg, in: Capsule())
+        .contentShape(Capsule())
+    }
+}
+
+struct ContentTabBar<Tab: Hashable>: View {
+    let tabs: [Tab]
+    @Binding var selection: Tab
+    let label: (Tab) -> LocalizedStringKey
+    let identifier: (Tab) -> String
+    var background: Color = Palette.pageBg
+    @Namespace private var underline
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(tabs, id: \.self) { tab in
+                Button {
+                    selection = tab
+                } label: {
+                    Text(label(tab))
+                        .typeScale(.body)
+                        .fontWeight(selection == tab ? .semibold : .regular)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .foregroundStyle(selection == tab ? Palette.ink : Palette.secondary)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .overlay(alignment: .bottom) {
+                            if selection == tab {
+                                Capsule()
+                                    .fill(Palette.ink)
+                                    .frame(height: 2)
+                                    .matchedGeometryEffect(id: "underline", in: underline)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(selection == tab ? .isSelected : [])
+                .accessibilityIdentifier(identifier(tab))
+            }
+        }
+        .background(alignment: .bottom) { Hairline() }
+        .background(background)
+        .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: selection)
+        .sensoryFeedback(.selection, trigger: selection)
+    }
+}

@@ -63,7 +63,6 @@ private struct PostDetailReader: View {
     /// 커스텀 하단 탭바 숨김 상태 — 독이 탭바에 가리지 않게 예약 높이만큼 띄우되, 탭바가 스크롤로
     /// 사라지면 그 여백을 걷어 독이 허공에 뜨지 않게 한다(단독 상세에서만 있고, 덱 임베드엔 nil).
     @Environment(\.tabBarVisibility) private var tabBarVisibility
-    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
     /// 발견 덱이 페이지로 품을 때 true — 같은 화면을 그대로 쓰되, 내비바(제목 스밈·공유)와
@@ -1608,19 +1607,7 @@ private struct PostDetailReader: View {
                 Button {
                     composerActive = true
                 } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "bubble.left")
-                            .font(.system(size: 13 * unit))
-                            .foregroundStyle(Palette.secondary)
-                        Text("댓글을 남겨보세요")
-                            .typeScale(.lede)
-                            .foregroundStyle(Palette.secondary)
-                        Spacer(minLength: 0)
-                    }
-                    .padding(.horizontal, 13)
-                    .padding(.vertical, 11)
-                    .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radiusControl))
-                    .contentShape(Rectangle())
+                    ReplyPrompt(text: Text("댓글을 남겨보세요"))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("댓글을 남겨보세요")

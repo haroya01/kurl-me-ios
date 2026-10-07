@@ -89,7 +89,7 @@ extension NoteFilterContext {
     var titleResource: LocalizedStringResource {
         switch self {
         case .home: "팔로잉·리스트"
-        case .public: "모든 노트·인기·태그"
+        case .public: "최신·인기·태그"
         case .thread: "답글"
         case .account: "프로필"
         case .notifications: "알림"

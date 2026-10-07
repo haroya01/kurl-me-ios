@@ -9,6 +9,20 @@ import SwiftUI
 
 enum TagFeedTab: Hashable {
     case posts, notes
+
+    var label: LocalizedStringKey {
+        switch self {
+        case .posts: "글"
+        case .notes: "노트"
+        }
+    }
+
+    var key: String {
+        switch self {
+        case .posts: "posts"
+        case .notes: "notes"
+        }
+    }
 }
 
 struct TagFeedView: View {
@@ -16,6 +30,7 @@ struct TagFeedView: View {
 
     @State private var tab: TagFeedTab
     @State private var notes: NotesViewModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var phase: LoadState<[FeedItem]> = .idle
     @State private var page = 0
@@ -32,18 +47,18 @@ struct TagFeedView: View {
 
     var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 16) {
+            LazyVStack(alignment: .leading, spacing: 16, pinnedViews: [.sectionHeaders]) {
                 // 태그 마스트헤드 — 시리즈 랜딩과 같은 결(eyebrow + 큰 #태그). 로딩부터 떠 있는다.
                 masthead
-                Picker("보기", selection: $tab) {
-                    Text("글").tag(TagFeedTab.posts)
-                    Text("노트").tag(TagFeedTab.notes)
-                }
-                .pickerStyle(.segmented)
-                .accessibilityIdentifier("tag.tabs")
-                switch tab {
-                case .posts: postsContent
-                case .notes: notesContent
+                Section {
+                    switch tab {
+                    case .posts: postsContent
+                    case .notes: notesContent
+                    }
+                } header: {
+                    ContentTabBar(
+                        tabs: [TagFeedTab.posts, .notes], selection: $tab, label: \.label,
+                        identifier: { "tag.tab.\($0.key)" })
                 }
             }
             .padding(.bottom, 16)
@@ -77,8 +92,11 @@ struct TagFeedView: View {
             case .notes: if case .idle = notes.phase { await notes.reload() }
             }
         }
-        .refreshable {
-            if tab == .notes { await notes.reload() }
+        .brandRefreshable {
+            switch tab {
+            case .posts: await reload()
+            case .notes: await notes.reload()
+            }
         }
     }
 
@@ -93,15 +111,13 @@ struct TagFeedView: View {
                 .padding(.top, 60)
         case .loaded(let items):
             if items.isEmpty {
-                ContentUnavailableView {
-                    Label("글이 없어요", systemImage: "tray")
-                } description: {
-                    Text("이 태그의 글이 아직 없어요.")
-                } actions: {
-                    Button("피드에서 읽을 글 찾기") { TabRouter.shared.selection = 0 }
-                        .foregroundStyle(Palette.link)
-                }
-                .padding(.top, 60)
+                FeedPlaceholder(
+                    title: "글이 없어요",
+                    message: "이 태그의 글이 아직 없어요.",
+                    actionTitle: "피드에서 읽을 글 찾기",
+                    action: { TabRouter.shared.switchTo(0, reduceMotion: reduceMotion) }
+                )
+                .padding(.top, 48)
             }
             // 태그 피드도 browse 면 — 검색·홈과 같은 카드 문법(웹 §10.1 예외 경계).
             ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
@@ -131,19 +147,22 @@ struct TagFeedView: View {
     private var notesContent: some View {
         switch notes.phase {
         case .idle, .loading:
-            KurlLoadingMark()
-                .frame(maxWidth: .infinity, minHeight: 280)
+            NoteSkeleton()
         case .failed(let message):
             ErrorState(message: message, retry: { Task { await notes.reload() } })
                 .padding(.top, 60)
         case .loaded:
             if notes.items.isEmpty {
-                ContentUnavailableView {
-                    Label("노트가 없어요", systemImage: "text.bubble")
-                } description: {
-                    Text("이 태그의 노트가 아직 없어요.")
-                }
-                .padding(.top, 60)
+                FeedPlaceholder(
+                    title: "노트가 없어요",
+                    message: "이 태그의 노트가 아직 없어요.",
+                    actionTitle: "인기 노트 보기",
+                    action: {
+                        NoteFeedChoice.shared.show(.trending)
+                        TabRouter.shared.switchTo(1, reduceMotion: reduceMotion)
+                    }
+                )
+                .padding(.top, 48)
             } else {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(notes.items.enumerated()), id: \.element.id) { index, note in
@@ -186,13 +205,21 @@ struct TagFeedView: View {
     private func load() async {
         if case .loaded = phase { return }
         phase = .loading
+        await reload()
+    }
+
+    private func reload() async {
         do {
             let result = try await BlogAPI.feed(tag: tag, page: 0, size: 30)
             page = 0
             hasNext = result.hasNext
             phase = .loaded(result.items)
         } catch {
-            phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
+            if case .loaded = phase {
+                ToastCenter.shared.show(String(localized: "새로고침하지 못했습니다"))
+            } else {
+                phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
+            }
         }
     }
 

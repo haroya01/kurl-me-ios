@@ -1053,30 +1053,30 @@
         }
       }
     },
-    "%@님의 노트가 모든 노트·팔로잉·리스트·답글에서 숨겨져요. 프로필에서는 그대로 보이고, 상대에게 알리지 않아요.": {
+    "%@님의 노트가 최신·팔로잉·리스트·답글에서 숨겨져요. 프로필에서는 그대로 보이고, 상대에게 알리지 않아요.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@'s notes are hidden from all notes, following, lists and replies. Their profile still shows them, and they aren't told."
+            "value": "%@'s notes are hidden from Latest, Following, lists and replies. Their profile still shows them, and they aren't told."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ के नोट सभी नोट, फ़ॉलोइंग, सूचियों और जवाबों से छिप जाएँगे। प्रोफ़ाइल पर वे दिखते रहेंगे और उन्हें बताया नहीं जाएगा।"
+            "value": "%@ के नोट नवीनतम, फ़ॉलोइंग, सूचियों और जवाबों से छिप जाएँगे। प्रोफ़ाइल पर वे दिखते रहेंगे और उन्हें बताया नहीं जाएगा।"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@さんのノートが、すべてのノート・フォロー中・リスト・返信から隠れます。プロフィールではそのまま見え、相手には知らせません。"
+            "value": "%@さんのノートが、最新・フォロー中・リスト・返信から隠れます。プロフィールではそのまま見え、相手には知らせません。"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ghi chú của %@ sẽ bị ẩn khỏi mọi ghi chú, đang theo dõi, danh sách và trả lời. Hồ sơ vẫn hiển thị và họ không được thông báo."
+            "value": "Ghi chú của %@ sẽ bị ẩn khỏi Mới nhất, Đang theo dõi, danh sách và trả lời. Hồ sơ vẫn hiển thị và họ không được thông báo."
           }
         }
       }
@@ -8952,30 +8952,30 @@
         }
       }
     },
-    "노트 피드 고르기": {
+    "노트 피드 더 보기": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choose a notes feed"
+            "value": "More note feeds"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "नोट्स फ़ीड चुनें"
+            "value": "और नोट फ़ीड"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "ノートのフィードを選ぶ"
+            "value": "ほかのノートフィード"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Chọn bảng tin ghi chú"
+            "value": "Thêm bảng tin ghi chú"
           }
         }
       }
@@ -9204,30 +9204,30 @@
         }
       }
     },
-    "누구나 볼 수 있지만 모든 노트·인기·태그에는 안 나와요": {
+    "누구나 볼 수 있지만 최신·인기·태그에는 안 나와요": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Anyone can see it, but it stays out of All notes, Trending and tags"
+            "value": "Anyone can see it, but it stays out of Latest, Trending and tags"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "कोई भी देख सकता है, पर यह सभी नोट, ट्रेंडिंग और टैग में नहीं दिखेगा"
+            "value": "कोई भी देख सकता है, पर यह नवीनतम, ट्रेंडिंग और टैग में नहीं दिखेगा"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "誰でも見られますが、すべてのノート・人気・タグには出ません"
+            "value": "誰でも見られますが、最新・人気・タグには出ません"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ai cũng xem được, nhưng không hiện ở Tất cả ghi chú, Thịnh hành và thẻ"
+            "value": "Ai cũng xem được, nhưng không hiện ở Mới nhất, Thịnh hành và thẻ"
           }
         }
       }
@@ -9764,6 +9764,34 @@
         }
       }
     },
+    "로그인하고 노트 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to see notes"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नोट देखने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログインしてノートを見る"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để xem ghi chú"
+          }
+        }
+      }
+    },
     "로그인하고 팔로잉 피드 보기": {
       "localizations": {
         "en": {
@@ -9788,6 +9816,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đăng nhập để xem bảng tin đang theo dõi"
+          }
+        }
+      }
+    },
+    "로그인하면 리스트에 담은 사람의 노트를 볼 수 있어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to see notes from the people in your lists."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साइन इन करें और अपनी सूचियों के लोगों के नोट देखें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログインすると、リストに入れた人のノートを見られます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để xem ghi chú của những người trong danh sách của bạn."
           }
         }
       }
@@ -10684,118 +10740,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chỉ thành viên được nhắc đến mới xem được"
-          }
-        }
-      }
-    },
-    "모든 노트": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "All notes"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "सभी नोट्स"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "すべてのノート"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tất cả ghi chú"
-          }
-        }
-      }
-    },
-    "모든 노트 보기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "See everyone"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "सभी नोट देखें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "すべてのノートを見る"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Xem mọi ghi chú"
-          }
-        }
-      }
-    },
-    "모든 노트·다른 서버·인기에 고른 언어의 노트만 보여요. 언어를 정하지 않은 노트와 팔로잉·리스트는 그대로예요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Everyone, other servers and trending show only notes in the languages you chose. Notes with no language, following and lists stay as they are."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "सभी नोट, दूसरे सर्वर और ट्रेंडिंग में सिर्फ़ चुनी गई भाषाओं के नोट दिखते हैं। बिना भाषा वाले नोट, फ़ॉलोइंग और सूचियाँ वैसी ही रहती हैं।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "すべてのノート・ほかのサーバー・トレンドには選んだ言語のノートだけが表示されます。言語のないノートとフォロー中・リストはそのままです。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mọi ghi chú, máy chủ khác và xu hướng chỉ hiện ghi chú bằng ngôn ngữ bạn chọn. Ghi chú không có ngôn ngữ, đang theo dõi và danh sách vẫn như cũ."
-          }
-        }
-      }
-    },
-    "모든 노트·인기·태그": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "All notes, trending, tags"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "सभी नोट, ट्रेंडिंग, टैग"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "すべてのノート・人気・タグ"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mọi ghi chú, thịnh hành, thẻ"
           }
         }
       }
@@ -16599,7 +16543,6 @@
       }
     },
     "리스트": {
-      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -18847,6 +18790,90 @@
         }
       }
     },
+    "최신 노트 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "See latest notes"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नवीनतम नोट देखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最新のノートを見る"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xem ghi chú mới nhất"
+          }
+        }
+      }
+    },
+    "최신·다른 서버·인기에 고른 언어의 노트만 보여요. 언어를 정하지 않은 노트와 팔로잉·리스트는 그대로예요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Latest, other servers and Trending show only notes in the languages you chose. Notes with no language, Following and lists stay as they are."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नवीनतम, दूसरे सर्वर और ट्रेंडिंग में सिर्फ़ चुनी गई भाषाओं के नोट दिखते हैं। बिना भाषा वाले नोट, फ़ॉलोइंग और सूचियाँ वैसी ही रहती हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最新・ほかのサーバー・人気には選んだ言語のノートだけが表示されます。言語のないノートとフォロー中・リストはそのままです。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mới nhất, máy chủ khác và Thịnh hành chỉ hiện ghi chú bằng ngôn ngữ bạn chọn. Ghi chú không có ngôn ngữ, Đang theo dõi và danh sách vẫn như cũ."
+          }
+        }
+      }
+    },
+    "최신·인기·태그": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Latest, trending, tags"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नवीनतम, ट्रेंडिंग, टैग"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最新・人気・タグ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mới nhất, thịnh hành, thẻ"
+          }
+        }
+      }
+    },
     "추천을 지우지 못했어요": {
       "localizations": {
         "en": {
@@ -19851,6 +19878,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Thêm người bằng \"Thêm vào danh sách\" trong menu … của hồ sơ, ghi chú của họ sẽ ở đây."
+          }
+        }
+      }
+    },
+    "피드 고르기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a feed"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ीड चुनें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フィードを選ぶ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chọn bảng tin"
           }
         }
       }

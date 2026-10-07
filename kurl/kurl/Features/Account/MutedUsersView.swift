@@ -53,7 +53,7 @@ struct MuteSheet: View {
                     }
                     .accessibilityIdentifier("mute.duration")
                 } footer: {
-                    Text("\(username)님의 노트가 모든 노트·팔로잉·리스트·답글에서 숨겨져요. 프로필에서는 그대로 보이고, 상대에게 알리지 않아요.")
+                    Text("\(username)님의 노트가 최신·팔로잉·리스트·답글에서 숨겨져요. 프로필에서는 그대로 보이고, 상대에게 알리지 않아요.")
                 }
             }
             .navigationTitle("\(username)님 뮤트")

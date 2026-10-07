@@ -53,6 +53,14 @@ final class TabRouter {
     /// 빈 상태 CTA 의 탭 갈아타기 — 아무 피드백 없이 화면만 바뀌면 눌렀는지조차 모른다.
     /// 전환을 애니메이트해(탭 크로스페이드가 눈에 보이게) 셀렉션 틱 하나를 얹는다(§1.6 조용하지만
     /// 살아 있게). 직접 selection 대입(런치 진입로)은 이 손맛 없이 즉시 바꾼다.
+    private(set) var reselections = 0
+    private(set) var reselectedTab = 0
+
+    func reselect(_ index: Int) {
+        reselectedTab = index
+        reselections += 1
+    }
+
     func switchTo(_ index: Int, reduceMotion: Bool = false) {
         guard index != selection else { return }
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -119,6 +127,8 @@ struct RootView: View {
     /// 하단 탭바 스크롤 숨김의 단일 손잡이 — 탭 루트들이 스크롤 방향을 여기 보고하고,
     /// 커스텀 FloatingTabBar 가 그 상태로 바를 숨겼다 되살린다(스레드식).
     @State private var tabBarVisibility = TabBarVisibility()
+    @State private var blogFeed = BlogFeedChoice.shared
+    @State private var noteFeed = NoteFeedChoice.shared
     /// 한 번이라도 연 탭 — 상주시켜 스크롤 위치·상태를 보존한다(시스템 TabView 대체).
     @State private var visitedTabs: Set<Int> = []
     /// 로그인 직후 1회 웹 안내 — 이 실행이 "로그아웃 상태로 시작"했을 때만 후보(콜드런치
@@ -293,10 +303,13 @@ struct RootView: View {
             .safeAreaPadding(.bottom, Metrics.tabBarReservedHeight)
 
             FloatingTabBar(
-                tabs: tabs, selection: selection, hidden: tabBarVisibility.hidden,
-                menuTab: 1, menuLabel: "노트 피드 고르기"
-            ) {
-                NoteFeedPicker()
+                tabs: tabs, selection: selection, hidden: tabBarVisibility.hidden, menuTabs: feedMenuTabs
+            ) { index in
+                if index == 0 {
+                    BlogFeedMenu()
+                } else {
+                    NoteFeedTabMenu()
+                }
             }
                 // Rebuild glass controls when returning from a screen that force-hides them.
                 // Scroll-driven hiding keeps the same identity and its existing animation.
@@ -348,6 +361,13 @@ struct RootView: View {
         .sheet(isPresented: $showWebIntro) { WebIntroSheet() }
     }
 
+    private var feedMenuTabs: Set<Int> {
+        var tabs: Set<Int> = []
+        if blogFeed.path.isEmpty { tabs.insert(0) }
+        if noteFeed.path.isEmpty { tabs.insert(1) }
+        return tabs
+    }
+
     /// 인덱스별 탭 루트 화면. 각자 제 NavigationStack 을 든다(시스템 TabView 와 동일 계약).
     @ViewBuilder
     private func tabRoot(_ index: Int) -> some View {
@@ -370,9 +390,8 @@ private struct FloatingTabBar<TabMenu: View>: View {
     /// 숨김 여부 — 스크롤다운이면 true. 전환은 위 report 호출부(withAnimation)가 부드럽게 몰고,
     /// reduce-motion 이면 그쪽에서 즉시 토글한다(여기선 상태만 그린다).
     let hidden: Bool
-    let menuTab: Int
-    let menuLabel: LocalizedStringKey
-    @ViewBuilder let menu: TabMenu
+    let menuTabs: Set<Int>
+    @ViewBuilder let menu: (Int) -> TabMenu
     /// 아이콘 크기는 Dynamic Type 를 따른다(고정 pt 로 접근성 크기를 무시하지 않게).
     /// 네이티브 iOS 26 유리 탭바 심볼 비례(≈25pt)에 맞춘다 — 22pt 는 얇게 읽혔다.
     @ScaledMetric(relativeTo: .title3) private var iconSize: CGFloat = 25
@@ -382,21 +401,25 @@ private struct FloatingTabBar<TabMenu: View>: View {
             HStack(spacing: 0) {
                 ForEach(Array(tabs.enumerated()), id: \.offset) { index, tab in
                     let active = index == selection.wrappedValue
-                    if active, index == menuTab {
+                    if active, menuTabs.contains(index) {
                         Menu {
-                            menu
+                            menu(index)
                         } label: {
                             icon(tab.icon, active: true)
                         }
                         .menuStyle(.button)
                         .buttonStyle(.plain)
                         .accessibilityLabel(Text(tab.label))
-                        .accessibilityHint(Text(menuLabel))
+                        .accessibilityHint(Text("피드 고르기"))
                         .accessibilityAddTraits(.isSelected)
                         .accessibilityIdentifier("tab.menu")
                     } else {
                         Button {
-                            selection.wrappedValue = index
+                            if active {
+                                TabRouter.shared.reselect(index)
+                            } else {
+                                selection.wrappedValue = index
+                            }
                         } label: {
                             icon(tab.icon, active: active)
                         }
