@@ -160,6 +160,7 @@ struct TagFeedView: View {
                         KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
                     }
                 }
+                .environment(\.noteFilterContext, notes.filterContext)
             }
         }
     }

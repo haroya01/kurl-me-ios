@@ -10,9 +10,17 @@ import SwiftUI
 @MainActor
 @Observable
 final class NotesViewModel {
-    private(set) var items: [Note] = []
+    private(set) var loaded: [Note] = []
     private(set) var phase: LoadState<Bool> = .idle
     private(set) var isLoadingMore = false
+
+    var items: [Note] {
+        guard let context = source.filterContext else { return loaded }
+        let store = NoteFilterStore.shared
+        return loaded.filter { store.verdict(for: $0, in: context) != .hide }
+    }
+
+    var filterContext: NoteFilterContext? { source.filterContext }
 
     private var page = 0
     private var hasNext = true
@@ -30,6 +38,15 @@ final class NotesViewModel {
         case reposts(String)
         case quotes(Int64)
         case tag(String)
+
+        var filterContext: NoteFilterContext? {
+            switch self {
+            case .everyone, .trending, .tag, .quotes: .public
+            case .following, .list: .home
+            case .author, .reposts: .account
+            case .bookmarks, .direct: nil
+            }
+        }
 
         init(_ feed: NoteFeedKind) {
             switch feed {
@@ -102,7 +119,7 @@ final class NotesViewModel {
         guard next != source else { return }
         source = next
         epoch += 1
-        items = []
+        loaded = []
         page = 0
         hasNext = true
         phase = .loading
@@ -112,17 +129,17 @@ final class NotesViewModel {
     func reload() async {
         epoch += 1
         let myEpoch = epoch
-        if items.isEmpty { phase = .loading }
+        if loaded.isEmpty { phase = .loading }
         do {
             let feed = try await load(0)
             guard myEpoch == epoch else { return }
             page = 0
-            items = feed.items
+            loaded = feed.items
             hasNext = feed.hasNext
             phase = .loaded(true)
         } catch {
             guard myEpoch == epoch else { return }
-            if items.isEmpty {
+            if loaded.isEmpty {
                 phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
             } else {
                 ToastCenter.shared.show(String(localized: "새로고침하지 못했습니다"))
@@ -139,27 +156,27 @@ final class NotesViewModel {
             guard myEpoch == epoch else { return }
             page += 1
             hasNext = feed.hasNext
-            let seen = Set(items.map(\.id))
-            items.append(contentsOf: feed.items.filter { !seen.contains($0.id) })
+            let seen = Set(loaded.map(\.id))
+            loaded.append(contentsOf: feed.items.filter { !seen.contains($0.id) })
         }
     }
 
     func inserted(_ note: Note) {
         withAnimation(.snappy(duration: 0.3)) {
             phase = .loaded(true)
-            items.insert(note, at: 0)
+            loaded.insert(note, at: 0)
         }
     }
 
     func replaced(_ note: Note) {
-        guard let index = items.firstIndex(where: { $0.id == note.id }) else { return }
+        guard let index = loaded.firstIndex(where: { $0.id == note.id }) else { return }
         var next = note
-        next.repostedBy = next.repostedBy ?? items[index].repostedBy
-        items[index] = next
+        next.repostedBy = next.repostedBy ?? loaded[index].repostedBy
+        loaded[index] = next
     }
 
     func removed(_ id: Int64) {
-        _ = withAnimation(.snappy(duration: 0.25)) { items.removeAll { $0.id == id } }
+        _ = withAnimation(.snappy(duration: 0.25)) { loaded.removeAll { $0.id == id } }
     }
 }
 
@@ -193,7 +210,9 @@ struct NoteRowView: View {
     @State private var revealed = false
     @State private var mediaRevealed = false
     @State private var showingHistory = false
+    @State private var filterRevealed = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.noteFilterContext) private var filterContext
 
     init(note: Note, onChange: @escaping (Note) -> Void,
          onDelete: @escaping (Int64) -> Void,
@@ -217,7 +236,45 @@ struct NoteRowView: View {
 
     private var isMine: Bool { AuthStore.shared.me?.id == note.author.id }
 
+    private var filteredPhrases: [String]? {
+        guard !filterRevealed, let filterContext,
+              case let .warn(phrases) = NoteFilterStore.shared.verdict(for: note, in: filterContext)
+        else { return nil }
+        return phrases
+    }
+
     var body: some View {
+        if let filteredPhrases {
+            filteredBar(filteredPhrases)
+        } else {
+            content
+        }
+    }
+
+    private func filteredBar(_ phrases: [String]) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "line.3.horizontal.decrease.circle")
+                .font(.system(size: 15, weight: .medium))
+                .accessibilityHidden(true)
+            Text("필터됨: \(phrases.joined(separator: ", "))")
+                .typeScale(.meta)
+                .lineLimit(1)
+            Spacer(minLength: 8)
+            Button("보기") {
+                withAnimation(reduceMotion ? nil : .snappy(duration: 0.22)) { filterRevealed = true }
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+            .tint(Palette.ink)
+            .accessibilityIdentifier("note.filtered.reveal.\(note.id)")
+        }
+        .foregroundStyle(Palette.secondary)
+        .padding(.vertical, 14)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("note.filtered.\(note.id)")
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: 6) {
             if let repostedBy {
                 HStack(spacing: 12) {
@@ -1266,12 +1323,16 @@ struct NoteDetailView: View {
                                 .foregroundStyle(Palette.secondary)
                                 .padding(.vertical, 14)
                         }
-                        ForEach(Array(thread.replies.enumerated()), id: \.element.id) { index, reply in
+                        let replies = thread.replies.filter {
+                            NoteFilterStore.shared.verdict(for: $0, in: .thread) != .hide
+                        }
+                        ForEach(Array(replies.enumerated()), id: \.element.id) { index, reply in
                             NoteRowView(
                                 note: reply,
                                 onChange: { next in update { $0.replies = $0.replies.map { $0.id == next.id ? next : $0 } } },
                                 onDelete: { id in update { $0.replies.removeAll { $0.id == id } } })
-                            if index < thread.replies.count - 1 {
+                                .environment(\.noteFilterContext, .thread)
+                            if index < replies.count - 1 {
                                 Hairline().padding(.horizontal, -Metrics.noteGutter)
                             }
                         }

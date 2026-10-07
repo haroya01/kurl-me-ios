@@ -51,6 +51,7 @@ struct NotesTabView: View {
                 loadedSignedIn = signedIn
                 await NoteFeedPreferences.shared.hydrateIfNeeded()
                 await NoteListsStore.shared.reload()
+                await NoteFilterStore.shared.reload()
                 await notes.reload()
             }
             .brandRefreshable {
@@ -245,6 +246,7 @@ struct NotesTabView: View {
                         KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
                     }
                 }
+                .environment(\.noteFilterContext, notes.filterContext)
             }
         }
     }

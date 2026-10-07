@@ -412,6 +412,45 @@ final class NotesFeedUITests: XCTestCase {
         attach(app, "muted-feed")
     }
 
+    func testAKeywordFilterFoldsMatchingNotesUntilOpened() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "account"]
+        app.launch()
+
+        let settings = app.buttons["설정"].firstMatch
+        XCTAssertTrue(settings.waitForExistence(timeout: 15))
+        settings.tap()
+        let entry = app.buttons["settings.filters"].firstMatch
+        var tries = 0
+        while !entry.isHittable, tries < 8 {
+            app.swipeUp()
+            tries += 1
+        }
+        entry.tap()
+        app.buttons["noteFilter.add"].firstMatch.tap()
+        let phrase = app.textFields["noteFilter.phrase"]
+        XCTAssertTrue(phrase.waitForExistence(timeout: 6), "필터 편집기가 안 열림")
+        phrase.tap()
+        phrase.typeText("hexagonal")
+        attach(app, "note-filter-editor")
+        app.buttons["noteFilter.save"].tap()
+        XCTAssertTrue(app.buttons["noteFilter.row.800"].waitForExistence(timeout: 6), "필터가 목록에 안 생김")
+
+        let notesTab = app.buttons["노트"].firstMatch
+        var backs = 0
+        while !notesTab.isHittable, backs < 4 {
+            app.navigationBars.buttons.element(boundBy: 0).tap()
+            backs += 1
+        }
+        notesTab.tap()
+        let folded = app.descendants(matching: .any)["note.filtered.9510"]
+        XCTAssertTrue(folded.waitForExistence(timeout: 10), "걸린 노트가 접히지 않음")
+        XCTAssertFalse(app.buttons["note.menu.9510"].exists, "접힌 노트의 본문이 보임")
+        attach(app, "note-filter-folded")
+        app.buttons["note.filtered.reveal.9510"].tap()
+        XCTAssertTrue(app.buttons["note.menu.9510"].waitForExistence(timeout: 4), "보기를 눌러도 안 펼쳐짐")
+    }
+
     func testANotesRepliesOpenFromItsRow() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]

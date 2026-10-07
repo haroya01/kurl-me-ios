@@ -101,6 +101,8 @@ enum MockBackend {
                  createdAt: Date().addingTimeInterval(-2_400), likeCount: 2, authorId: 2, username: "yuki_dev",
                  poll: MockPoll(options: ["국밥", "파스타", "샐러드"], expiresAt: Date().addingTimeInterval(21_600),
                                 votes: [5, 3, 1], voters: 9)),
+        MockNote(id: 9510, body: "Hexagonal ports, named after a long afternoon.",
+                 createdAt: Date().addingTimeInterval(-2_700), likeCount: 0, authorId: 3, username: "reader_kim"),
         MockNote(id: 9505, body: "이름 짓는 데 한 시간이면 싸게 먹힌 거다. 우리 팀은 일주일 걸렸다.",
                  createdAt: Date().addingTimeInterval(-3_600), likeCount: 1, authorId: 1, username: "honggildong",
                  editedAt: Date().addingTimeInterval(-3_000), quotedNoteId: 9501),
@@ -146,6 +148,8 @@ enum MockBackend {
     private static var pinnedNotes: [Int64] = []
     private static var noteLists: [(id: Int64, title: String, members: [String])] = []
     private static var mutedUsers: [String: (notifications: Bool, expiresAt: Date?)] = [:]
+    private static var noteFilters: [[String: Any]] = []
+    private static var nextFilterId: Int64 = 800
     private static var nextListId: Int64 = 700
     private static let mockUserIds: [String: Int64] = ["honggildong": 1, "yuki_dev": 2, "reader_kim": 3]
     private static var noteHistory: [Int64: [(body: String, at: Date)]] = [
@@ -1032,6 +1036,29 @@ enum MockBackend {
                 ["body": version.body, "contentWarning": NSNull(), "sensitive": false, "at": iso(version.at)]
             }
             return json(["noteId": nid, "versions": [current] + earlier])
+        }
+        if parts == ["notes", "filters"] {
+            if method == "POST" {
+                var filter = decode(body)
+                filter["id"] = nextFilterId
+                filter["wholeWord"] = filter["wholeWord"] ?? false
+                filter["expiresAt"] = NSNull()
+                nextFilterId += 1
+                noteFilters.insert(filter, at: 0)
+                return json(filter)
+            }
+            return json(noteFilters)
+        }
+        if parts.count == 3, parts[0] == "notes", parts[1] == "filters", let fid = Int64(parts[2]) {
+            if method == "DELETE" {
+                noteFilters.removeAll { ($0["id"] as? Int64) == fid }
+                return json([:])
+            }
+            var filter = decode(body)
+            filter["id"] = fid
+            filter["expiresAt"] = NSNull()
+            noteFilters = noteFilters.map { ($0["id"] as? Int64) == fid ? filter : $0 }
+            return json(filter)
         }
         if parts == ["notes", "lists"] {
             if method == "POST" {
