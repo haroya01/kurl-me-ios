@@ -21,6 +21,7 @@ struct NoteFeedPage: View {
             Color.clear.frame(height: 8)
             content
         }
+        .environment(\.noteFilterContext, model.filterContext)
         .task(id: [warm, AuthStore.shared.isSignedIn]) {
             let signedIn = AuthStore.shared.isSignedIn
             guard warm, loadedSignedIn != signedIn else { return }
@@ -174,24 +175,21 @@ struct NoteFeedPage: View {
             if model.items.isEmpty {
                 emptyFeed.padding(.top, 56)
             } else {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(model.items.enumerated()), id: \.element.id) { index, note in
-                        NoteRowView(
-                            note: note,
-                            onChange: { model.replaced($0) },
-                            onDelete: { model.removed($0) },
-                            onQuoted: { model.inserted($0) },
-                            repostedBy: note.repostedBy?.username
-                        )
-                        .modifier(QuietAppear(index: index))
-                        .task { await model.loadMoreIfNeeded(current: note) }
-                        if index < model.items.count - 1 { Hairline().padding(.horizontal, -Metrics.noteGutter) }
-                    }
-                    if model.isLoadingMore {
-                        KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
-                    }
+                ForEach(Array(model.items.enumerated()), id: \.element.id) { index, note in
+                    NoteRowView(
+                        note: note,
+                        onChange: { model.replaced($0) },
+                        onDelete: { model.removed($0) },
+                        onQuoted: { model.inserted($0) },
+                        repostedBy: note.repostedBy?.username
+                    )
+                    .modifier(QuietAppear(index: index))
+                    .task { await model.loadMoreIfNeeded(current: note) }
+                    if index < model.items.count - 1 { Hairline().padding(.horizontal, -Metrics.noteGutter) }
                 }
-                .environment(\.noteFilterContext, model.filterContext)
+                if model.isLoadingMore {
+                    KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
+                }
             }
         }
     }

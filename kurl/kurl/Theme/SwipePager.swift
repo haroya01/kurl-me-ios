@@ -23,6 +23,9 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
     /// 스와이프가 방금 selection 을 확정했음을 onChange 에 알린다 — 스와이프 경로는 dragX 를 스스로
     /// 보정해 슬라이드하므로, 뒤이어 발화하는 onChange 가 같은 전환을 한 번 더 슬라이드시키지 않게.
     @State private var swipeCommitted = false
+    /// 페이지 안의 가로 스크롤(사진 넘기기)이 잡은 드래그는 페이지를 넘기지 않는다 — 둘이 같이 움직이던 것.
+    @State private var gate = SwipePagerGate()
+    @State private var blocked = false
 
     var body: some View {
         ZStack {
@@ -35,6 +38,7 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
                     .allowsHitTesting(tab == selection)
                     .accessibilityHidden(tab != selection)
                     .offset(x: offset(tab))
+                    .environment(\.swipePagerGate, gate)
             }
         }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { containerWidth = $0 }
@@ -74,6 +78,11 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
     private var drag: some Gesture {
         DragGesture(minimumDistance: 18)
             .onChanged { value in
+                if gate.held { blocked = true }
+                if blocked {
+                    if dragX != 0 { dragX = 0 }
+                    return
+                }
                 guard !reduceMotion,
                       abs(value.translation.width) > abs(value.translation.height) else { return }
                 var dx = value.translation.width
@@ -83,6 +92,11 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
                 dragX = dx
             }
             .onEnded { value in
+                if blocked || gate.held {
+                    blocked = false
+                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.3)) { dragX = 0 }
+                    return
+                }
                 let dx = value.translation.width
                 let dy = value.translation.height
                 let i = selectionIndex
@@ -108,4 +122,40 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
                 withAnimation(.snappy(duration: 0.28)) { dragX = 0 }
             }
     }
+}
+
+final class SwipePagerGate {
+    var held = false
+}
+
+private struct SwipePagerGateKey: EnvironmentKey {
+    static let defaultValue: SwipePagerGate? = nil
+}
+
+extension EnvironmentValues {
+    var swipePagerGate: SwipePagerGate? {
+        get { self[SwipePagerGateKey.self] }
+        set { self[SwipePagerGateKey.self] = newValue }
+    }
+}
+
+private struct HoldsSwipePager: ViewModifier {
+    @Environment(\.swipePagerGate) private var gate
+    @GestureState private var touching = false
+    @State private var scrolling = false
+
+    func body(content: Content) -> some View {
+        content
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0).updating($touching) { _, state, _ in state = true })
+            .onChange(of: touching) { _, now in gate?.held = now || scrolling }
+            .onScrollPhaseChange { _, phase in
+                scrolling = phase != .idle
+                gate?.held = touching || scrolling
+            }
+    }
+}
+
+extension View {
+    func holdsSwipePager() -> some View { modifier(HoldsSwipePager()) }
 }

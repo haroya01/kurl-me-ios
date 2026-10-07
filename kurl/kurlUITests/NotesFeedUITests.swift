@@ -109,6 +109,28 @@ final class NotesFeedUITests: XCTestCase {
             .first { $0.frame.minY > 200 }
     }
 
+    func testSwipingAPhotoCarouselLeavesTheFeedPageWhereItIs() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+        XCTAssertTrue(app.buttons["note.menu.9501"].waitForExistence(timeout: 10), "노트가 안 뜸")
+
+        let photo = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == '비 오는 창밖'")).firstMatch
+        var tries = 0
+        while !(photo.exists && photo.isHittable), tries < 6 { app.swipeUp(); tries += 1 }
+        XCTAssertTrue(photo.isHittable, "사진 여러 장 노트가 안 보임")
+        photo.swipeLeft()
+        XCTAssertTrue(
+            app.buttons.matching(NSPredicate(format: "label == '최신' AND selected == true")).firstMatch
+                .waitForExistence(timeout: 3),
+            "사진 넘기기가 피드 페이지까지 넘김")
+        XCTAssertFalse(
+            app.buttons.matching(NSPredicate(format: "label == '인기' AND selected == true")).firstMatch.exists,
+            "사진 넘기기가 인기로 넘어감")
+    }
+
     func testTappingTheNotesTabAgainPopsToTheFeedThenOpensTheFeedMenu() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]
@@ -885,14 +907,28 @@ final class NotesFeedUITests: XCTestCase {
         app.launchArguments = ["--mocks", "--tab", "notes"]
         app.launch()
         openNotes(app)
+        XCTAssertTrue(app.buttons["note.menu.9501"].waitForExistence(timeout: 10), "노트가 안 뜸")
 
         let share = app.buttons["note.share.9504"]
         var tries = 0
         while !share.isHittable, tries < 6 { app.swipeUp(); tries += 1 }
         XCTAssertTrue(share.isHittable, "노트 행에 공유 버튼이 없음")
 
-        let alt = app.buttons["사진 설명 보기"].firstMatch
-        XCTAssertTrue(alt.waitForExistence(timeout: 5), "대체 텍스트가 있는 사진에 ALT 배지가 없음")
+        XCTAssertTrue(
+            app.buttons["사진 설명 보기"].firstMatch.waitForExistence(timeout: 5), "대체 텍스트가 있는 사진에 ALT 배지가 없음")
+        let center = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        func onScreenAlt() -> XCUIElement? {
+            app.buttons.matching(NSPredicate(format: "label == '사진 설명 보기'")).allElementsBoundByIndex.first {
+                $0.frame.minX >= 0 && $0.frame.maxX <= app.frame.width
+                    && $0.frame.minY > 160 && $0.frame.maxY < app.frame.height - 160
+            }
+        }
+        for _ in 0..<6 where onScreenAlt() == nil {
+            center.press(
+                forDuration: 0.05,
+                thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.62)))
+        }
+        let alt = try XCTUnwrap(onScreenAlt(), "화면 안에 ALT 배지가 없음")
         alt.tap()
         XCTAssertTrue(app.staticTexts["비 오는 창밖"].firstMatch.waitForExistence(timeout: 3), "ALT 를 눌러도 설명이 안 뜸")
         attach(app, "note-row-threads")
@@ -971,7 +1007,7 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(app.buttons["note.reply"].waitForExistence(timeout: 6), "본문을 눌러도 노트 상세가 안 열림")
         attach(app, "note-body-opened")
         app.navigationBars.buttons.firstMatch.tap()
-        XCTAssertTrue(app.buttons["notes.fab"].waitForExistence(timeout: 6), "상세에서 돌아오지 못함")
+        XCTAssertTrue(app.buttons["notes.more"].waitForExistence(timeout: 6), "상세에서 돌아오지 못함")
 
         let linked = app.buttons["note.body.9503"]
         var tries = 0

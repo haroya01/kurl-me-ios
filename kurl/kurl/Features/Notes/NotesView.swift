@@ -1120,6 +1120,7 @@ private struct NoteImagesView: View {
                         }
                     }
                     .scrollClipDisabled()
+                    .holdsSwipePager()
                 }
                 ForEach(audio, id: \.url) { item in
                     NoteAudioRow(media: item)
