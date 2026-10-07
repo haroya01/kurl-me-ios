@@ -468,6 +468,19 @@ final class NotesFeedUITests: XCTestCase {
         attach(app, "search-notes")
     }
 
+    func testADisplayNameLeadsTheRowWithTheHandleBesideIt() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        XCTAssertTrue(app.buttons["note.menu.9503"].waitForExistence(timeout: 10))
+        let name = app.buttons.matching(NSPredicate(format: "label CONTAINS '김독자'")).firstMatch
+        XCTAssertTrue(name.waitForExistence(timeout: 6), "표시 이름이 행에 없음")
+        XCTAssertTrue(name.label.contains("@reader_kim"), "표시 이름 옆에 @아이디가 없음: \(name.label)")
+        attach(app, "display-name-row")
+    }
+
     func testANotesRepliesOpenFromItsRow() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]

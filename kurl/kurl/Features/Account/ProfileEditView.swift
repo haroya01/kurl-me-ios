@@ -18,6 +18,8 @@ struct ProfileEditView: View {
     @State private var username = ""
     @State private var initialUsername = ""
     @State private var bio = ""
+    @State private var displayName = ""
+    @State private var initialDisplayName = ""
     @State private var bioLoaded = false
     @State private var hideFollowerCount = false
     @State private var initialHideFollowerCount = false
@@ -46,6 +48,20 @@ struct ProfileEditView: View {
                     Spacer()
                 }
                 .listRowBackground(Color.clear)
+            }
+
+            Section {
+                TextField("이름이나 별명", text: $displayName)
+                    .typeScale(.body)
+                    .disabled(!bioLoaded)
+                    .onChange(of: displayName) { _, value in
+                        if value.count > 30 { displayName = String(value.prefix(30)) }
+                    }
+                    .accessibilityIdentifier("profile.displayName")
+            } header: {
+                Text("표시 이름")
+            } footer: {
+                Text("노트와 프로필에 사용자 이름보다 먼저 보여요. 비우면 사용자 이름이 보여요.")
             }
 
             Section("사용자 이름") {
@@ -190,6 +206,8 @@ struct ProfileEditView: View {
         do {
             let profile = try await ProfileAPI.myProfile()
             bio = profile.bio ?? ""
+            displayName = profile.displayName ?? ""
+            initialDisplayName = displayName
             bioLoaded = true
             hideFollowerCount = profile.hideFollowerCount
             initialHideFollowerCount = profile.hideFollowerCount
@@ -231,7 +249,9 @@ struct ProfileEditView: View {
                     username: usernameChanged ? trimmedUsername : nil,
                     bio: bioLoaded || !trimmedBio.isEmpty ? trimmedBio : nil,
                     // 바뀐 값일 때만 — 프리필을 못 받았으면(false 기본) 켠 경우에만 보내 오설정 방지.
-                    hideFollowerCount: hideFollowerCount != initialHideFollowerCount ? hideFollowerCount : nil)
+                    hideFollowerCount: hideFollowerCount != initialHideFollowerCount ? hideFollowerCount : nil,
+                    displayName: bioLoaded && displayName != initialDisplayName
+                        ? displayName.trimmingCharacters(in: .whitespacesAndNewlines) : nil)
                 if let img = newAvatar, let jpeg = img.jpegData(compressionQuality: 0.85) {
                     _ = try await ProfileAPI.uploadAvatar(jpegData: jpeg)
                     newAvatar = nil  // 성공 — 재시도해도 다시 안 올린다.

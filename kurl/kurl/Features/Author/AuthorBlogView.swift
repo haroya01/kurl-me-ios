@@ -224,10 +224,15 @@ struct AuthorBlogView: View {
                     AvatarView(author: view.author, size: 76)
                 }
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(view.author.username)
+                    Text(view.author.shownName)
                         .typeScale(.name)
                         .foregroundStyle(Palette.ink)
                         .accessibilityAddTraits(.isHeader)
+                    if view.author.hasDisplayName {
+                        Text(verbatim: "@\(view.author.username)")
+                            .typeScale(.meta)
+                            .foregroundStyle(Palette.secondary)
+                    }
                     HStack(spacing: 6) {
                         Text("글 \(view.posts.count)")
                         if !series.isEmpty {
