@@ -294,6 +294,25 @@ final class NotesFeedUITests: XCTestCase {
         attach(app, "profile-pinned-note")
     }
 
+    func testAnEditedNoteOpensItsEditHistoryFromTheDetail() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let body = app.buttons["note.body.9505"]
+        XCTAssertTrue(body.waitForExistence(timeout: 10))
+        body.tap()
+        let edited = app.buttons["note.history.9505"]
+        XCTAssertTrue(edited.waitForExistence(timeout: 8), "상세의 고침이 눌리지 않음")
+        edited.tap()
+        XCTAssertTrue(app.navigationBars["수정 기록"].waitForExistence(timeout: 6), "수정 기록이 안 열림")
+        let earlier = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS '싸게 먹힌 거다.' AND NOT (label CONTAINS '일주일')")).firstMatch
+        XCTAssertTrue(earlier.waitForExistence(timeout: 6), "이전 판이 없음")
+        attach(app, "note-edit-history")
+    }
+
     func testANotesRepliesOpenFromItsRow() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]

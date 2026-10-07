@@ -176,6 +176,7 @@ struct NoteRowView: View {
     @State private var showLoginSheet = false
     @State private var revealed = false
     @State private var mediaRevealed = false
+    @State private var showingHistory = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(note: Note, onChange: @escaping (Note) -> Void,
@@ -350,12 +351,19 @@ struct NoteRowView: View {
                     Text(date, format: .dateTime.year().month(.twoDigits).day(.twoDigits))
                     if note.editedAt != nil {
                         Text(verbatim: "·")
-                        Text("고침")
+                        Button("고침") { showingHistory = true }
+                            .buttonStyle(.plain)
+                            .underline()
+                            .accessibilityHint("수정 기록 보기")
+                            .accessibilityIdentifier("note.history.\(note.id)")
                     }
                 }
                 .typeScale(.meta)
                 .foregroundStyle(Palette.secondary)
-                .accessibilityElement(children: .combine)
+                .accessibilityElement(children: .contain)
+                .sheet(isPresented: $showingHistory) {
+                    NoteHistorySheet(noteId: note.id)
+                }
             }
             VStack(spacing: 0) {
                 Hairline()
@@ -1866,4 +1874,74 @@ struct NoteTextLinks: ViewModifier {
 
 extension View {
     func noteTextLinks() -> some View { modifier(NoteTextLinks()) }
+}
+
+/// 수정 기록 — 마스토돈처럼 판마다 시각과 본문을 위에서부터 최신순으로. 첫째가 지금 판이다.
+struct NoteHistorySheet: View {
+    let noteId: Int64
+    @State private var phase: LoadState<NoteHistory> = .idle
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                switch phase {
+                case .idle, .loading:
+                    KurlLoadingMark().frame(maxWidth: .infinity, maxHeight: .infinity)
+                case .failed(let message):
+                    ErrorState(message: message, retry: { Task { await load() } })
+                case .loaded(let history):
+                    List {
+                        ForEach(Array(history.versions.enumerated()), id: \.offset) { index, version in
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack(spacing: 6) {
+                                    Text(index == 0 ? "지금" : "이전")
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(index == 0 ? Palette.ink : Palette.secondary)
+                                    if let at = version.at {
+                                        Text(at, format: .dateTime.year().month(.twoDigits).day(.twoDigits).hour().minute())
+                                            .foregroundStyle(Palette.secondary)
+                                    }
+                                }
+                                .typeScale(.meta)
+                                if let warning = version.contentWarning {
+                                    Label(warning, systemImage: "exclamationmark.triangle")
+                                        .typeScale(.meta)
+                                        .fontWeight(.medium)
+                                        .foregroundStyle(Palette.ink)
+                                }
+                                Text(version.body)
+                                    .typeScale(.note)
+                                    .foregroundStyle(Palette.ink)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .textSelection(.enabled)
+                            }
+                            .padding(.vertical, 4)
+                            .accessibilityElement(children: .combine)
+                            .accessibilityIdentifier("note.version.\(index)")
+                        }
+                    }
+                    .listStyle(.plain)
+                }
+            }
+            .navigationTitle("수정 기록")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("닫기") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .task { await load() }
+    }
+
+    private func load() async {
+        phase = .loading
+        do {
+            phase = .loaded(try await NoteAPI.history(of: noteId))
+        } catch {
+            phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
+        }
+    }
 }
