@@ -2052,6 +2052,20 @@ enum MockBackend {
             return json([:] as [String: Any])
         }
 
+        if method == "GET", parts.count == 4, parts[0] == "users", parts[1] == "me", parts[2] == "exports" {
+            let csv: String
+            switch parts[3] {
+            case "following":
+                csv = "Account address,Show boosts,Notify on new posts,Languages\nyuki_dev@kurl.me,true,true,\nmina@mastodon.social,true,false,\n"
+            case "blocks": csv = ""
+            case "mutes": csv = "Account address,Hide notifications\n"
+            case "domain-blocks": csv = "spam.example\n"
+            case "bookmarks": csv = "https://kurl.me/ap/notes/9501\n"
+            case "lists": csv = "\"friends, close\",yuki_dev@kurl.me\n"
+            default: return nil
+            }
+            return Data(csv.utf8)
+        }
         if parts == ["notifications", "policy"] {
             if method == "PUT" {
                 for (key, value) in decode(body) {

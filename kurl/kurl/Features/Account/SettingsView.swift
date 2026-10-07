@@ -231,6 +231,24 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("settings.remoteFollowing")
+                Hairline()
+                NavigationLink {
+                    DataExportView()
+                } label: {
+                    HStack(spacing: 10) {
+                        Text("데이터 내보내기")
+                            .typeScale(.body)
+                            .foregroundStyle(Palette.ink)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Palette.faint)
+                    }
+                    .padding(.vertical, 13)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("settings.dataExport")
             }
 
             if auth.isSignedIn {
