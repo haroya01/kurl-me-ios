@@ -125,6 +125,7 @@ enum MockBackend {
     private static var likedNotes: Set<Int64> = []
     private static var bookmarkedNotes: [Int64] = []
     private static var showReposts = true
+    private static var pinnedNotes: [Int64] = []
     private static var repostsHidden: Set<String> = []
     /// 사용자별 리포스트한 노트 id(최신 먼저). 목 세션은 honggildong.
     private static var repostedNotes: [String: [Int64]] = ["honggildong": [9503], "yuki_dev": [9505]]
@@ -966,6 +967,11 @@ enum MockBackend {
             let items = allNotes().filter { $0.quotedNoteId == nid }.map(noteView)
             return json(["items": items, "page": 0, "hasNext": false])
         }
+        if parts.count == 3, parts[0] == "notes", parts[2] == "pin", let nid = Int64(parts[1]) {
+            pinnedNotes.removeAll { $0 == nid }
+            if method == "PUT" { pinnedNotes.insert(nid, at: 0) }
+            return json(["pinned": method == "PUT"])
+        }
         if parts == ["notes", "feed-preferences"] {
             if method == "PUT", let on = decode(body)["showReposts"] as? Bool {
                 showReposts = on
@@ -993,8 +999,11 @@ enum MockBackend {
         }
         if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "profiles",
            parts[3] == "notes" {
+            let own = topLevelNotes().filter { $0.username == parts[2] }
+            let pinned = pinnedNotes.compactMap { id in own.first { $0.id == id } }
+            let rest = own.filter { !pinnedNotes.contains($0.id) }
             return json([
-                "items": topLevelNotes().filter { $0.username == parts[2] }.map(noteView),
+                "items": (pinned + rest).map(noteView),
                 "page": 0, "hasNext": false,
             ])
         }
@@ -1890,6 +1899,7 @@ enum MockBackend {
             "mentions": ["honggildong", "yuki_dev", "reader_kim"].filter { n.body.lowercased().contains("@" + $0) },
             "contentWarning": n.contentWarning ?? NSNull(),
             "sensitive": n.sensitive || n.contentWarning != nil,
+            "pinned": pinnedNotes.contains(n.id),
             "quotedNote": n.quotedNoteId.flatMap { qid in allNotes().first { $0.id == qid } }
                 .map { q -> [String: Any] in
                     [

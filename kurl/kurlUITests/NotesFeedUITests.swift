@@ -270,6 +270,30 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertFalse(body.exists, "열람 주의 노트의 본문이 펼쳐진 채 올라옴")
     }
 
+    func testPinningANoteMovesItToTheTopOfMyProfileUnderAPinnedLine() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let name = app.buttons["honggildong"].firstMatch
+        XCTAssertTrue(name.waitForExistence(timeout: 10))
+        name.tap()
+        let older = app.buttons["note.menu.9504"]
+        XCTAssertTrue(older.waitForExistence(timeout: 10), "내 프로필 노트 탭에 노트가 없음")
+        older.tap()
+        let pin = app.buttons["프로필에 고정"]
+        XCTAssertTrue(pin.waitForExistence(timeout: 4), "내 노트 메뉴에 프로필에 고정이 없음")
+        pin.tap()
+
+        let pinnedLine = app.descendants(matching: .any)["note.pinned.9504"]
+        XCTAssertTrue(pinnedLine.waitForExistence(timeout: 8), "고정된 노트에 고정됨 줄이 없음")
+        let newest = app.buttons["note.menu.9505"]
+        XCTAssertTrue(newest.waitForExistence(timeout: 4))
+        XCTAssertLessThan(older.frame.minY, newest.frame.minY, "고정한 노트가 맨 위로 오지 않음")
+        attach(app, "profile-pinned-note")
+    }
+
     func testANotesRepliesOpenFromItsRow() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]

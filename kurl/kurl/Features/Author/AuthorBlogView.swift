@@ -335,9 +335,14 @@ struct AuthorBlogView: View {
                     ForEach(Array(notes.items.enumerated()), id: \.element.id) { index, note in
                         NoteRowView(
                             note: note,
-                            onChange: { notes.replaced($0) },
+                            onChange: { changed in
+                                let repins = changed.pinned != note.pinned
+                                notes.replaced(changed)
+                                if repins { Task { await notes.reload() } }
+                            },
                             onDelete: { notes.removed($0) },
-                            onQuoted: isOwnAuthor ? { notes.inserted($0) } : nil
+                            onQuoted: isOwnAuthor ? { notes.inserted($0) } : nil,
+                            showsPin: true
                         )
                         .modifier(QuietAppear(index: index))
                         .task { await notes.loadMoreIfNeeded(current: note) }

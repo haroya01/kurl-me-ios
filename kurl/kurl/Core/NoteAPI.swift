@@ -101,6 +101,12 @@ enum NoteAPI {
             : try await client.delete("/notes/\(id)/repost", authenticated: true)
     }
 
+    static func setPin(id: Int64, on: Bool) async throws -> NotePinStatus {
+        on
+            ? try await client.put("/notes/\(id)/pin", body: EmptyBody(), authenticated: true)
+            : try await client.delete("/notes/\(id)/pin", authenticated: true)
+    }
+
     static func setBookmark(id: Int64, on: Bool) async throws -> NoteBookmarkStatus {
         on
             ? try await client.put("/notes/\(id)/bookmark", body: EmptyBody(), authenticated: true)
@@ -234,6 +240,8 @@ struct Note: Decodable, Identifiable, Hashable {
     var contentWarning: String? = nil
     /// 사진을 흐리게 가린다. 경고 문구가 있으면 서버가 늘 켠다.
     var sensitive: Bool? = nil
+    /// 작성자가 프로필 위에 고정했다(최대 5개, 마스토돈 pin).
+    var pinned: Bool? = nil
 }
 
 struct NoteFeed: Decodable {
@@ -270,6 +278,10 @@ struct NoteLikeStatus: Decodable {
 
 struct NoteBookmarkStatus: Decodable {
     let bookmarked: Bool
+}
+
+struct NotePinStatus: Decodable {
+    let pinned: Bool
 }
 
 struct NoteFeedPreferencesBody: Codable {
