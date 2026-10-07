@@ -259,6 +259,11 @@ enum MockBackend {
     private static var bookmarks: Set<Int64> = []
     private static var follows: [String: (following: Bool, count: Int64)] = [:]
     private static var noteBells: Set<String> = []
+    private static var domainBlocks: [String: Date] = {
+        let args = ProcessInfo.processInfo.arguments
+        guard let at = args.firstIndex(of: "--domain-block"), at + 1 < args.count else { return [:] }
+        return [args[at + 1]: Date()]
+    }()
     private static var subscriptions: [Int64: (subscribed: Bool, count: Int64)] = [:]
     private static var followedTags: Set<String> = ["아키텍처", "스프링", "리팩터링", "디자인", "kurl"]
     private static var hiddenTags: Set<String> = []
@@ -1345,7 +1350,7 @@ enum MockBackend {
             guard pieces.count == 2 else { return json([:] as [String: Any]) }
             let acct = "\(pieces[0])@\(pieces[1].lowercased())"
             if let known = remoteAccounts.values.first(where: { ($0["acct"] as? String) == acct }) {
-                return json(known)
+                return json(withDomainBlock(known))
             }
             let id = nextRemoteId
             nextRemoteId += 1
@@ -1356,7 +1361,7 @@ enum MockBackend {
                 "following": false, "requested": false,
             ]
             remoteAccounts[id] = account
-            return json(account)
+            return json(withDomainBlock(account))
         }
         if method == "GET", parts.count == 3, parts[0] == "federation", parts[1] == "accounts",
            let id = Int64(parts[2]), var account = remoteAccounts[id] {
@@ -1365,20 +1370,39 @@ enum MockBackend {
                 account["following"] = true
                 remoteAccounts[id] = account
             }
-            return json(account)
+            return json(withDomainBlock(account))
         }
         if parts.count == 4, parts[0] == "federation", parts[1] == "accounts", parts[3] == "follow",
            let id = Int64(parts[2]), var account = remoteAccounts[id] {
             account["requested"] = method == "POST"
             account["following"] = false
             remoteAccounts[id] = account
-            return json(account)
+            return json(withDomainBlock(account))
         }
         if method == "GET", parts == ["federation", "following"] {
             let followed = remoteAccounts.values
                 .filter { ($0["requested"] as? Bool) == true || ($0["following"] as? Bool) == true }
                 .sorted { (($0["id"] as? Int64) ?? 0) > (($1["id"] as? Int64) ?? 0) }
-            return json(followed)
+            return json(followed.map(withDomainBlock))
+        }
+        if method == "GET", parts == ["federation", "domain-blocks"] {
+            return json(domainBlocks.sorted { $0.key < $1.key }.map { domain, at in
+                ["domain": domain, "createdAt": iso(at)] as [String: Any]
+            })
+        }
+        if parts.count == 3, parts[0] == "federation", parts[1] == "domain-blocks" {
+            let domain = parts[2].lowercased()
+            if method == "DELETE" {
+                domainBlocks[domain] = nil
+                return json([:])
+            }
+            domainBlocks[domain] = domainBlocks[domain] ?? Date()
+            for (id, var account) in remoteAccounts where (account["domain"] as? String) == domain {
+                account["following"] = false
+                account["requested"] = false
+                remoteAccounts[id] = account
+            }
+            return json(["domain": domain, "createdAt": iso(domainBlocks[domain] ?? Date())])
         }
 
         if parts == ["federation", "settings"] {
@@ -2368,6 +2392,12 @@ enum MockBackend {
               let obj = try? JSONSerialization.jsonObject(with: body) as? [String: Any]
         else { return [:] }
         return obj
+    }
+
+    private static func withDomainBlock(_ account: [String: Any]) -> [String: Any] {
+        var shown = account
+        shown["domainBlocked"] = domainBlocks[(account["domain"] as? String) ?? ""] != nil
+        return shown
     }
 
     private static func json(_ value: Any) -> Data {

@@ -524,6 +524,39 @@ final class NotesFeedUITests: XCTestCase {
         app.buttons["닫기"].tap()
     }
 
+    func testBlockingAServerHidesItsAccountUntilUnblocked() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+        let menu = app.buttons["tab.menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 10))
+        menu.tap()
+        app.buttons["팔로잉"].tap()
+        let remote = app.buttons["note.menu.9600"]
+        for _ in 0..<6 where !remote.exists {
+            app.swipeUp()
+        }
+        let author = app.buttons.matching(NSPredicate(format: "label CONTAINS '@mina@mastodon.social'")).firstMatch
+        XCTAssertTrue(author.waitForExistence(timeout: 6), "팔로잉에 다른 서버 노트가 없음")
+        author.tap()
+
+        let more = app.buttons["remote.more"]
+        XCTAssertTrue(more.waitForExistence(timeout: 8), "원격 계정 화면에 ⋯ 메뉴가 없음")
+        more.tap()
+        app.buttons["mastodon.social 차단"].tap()
+        let confirm = app.alerts.buttons["서버 차단"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5), "서버 차단을 되묻지 않음")
+        confirm.tap()
+        XCTAssertTrue(app.staticTexts["차단한 서버예요"].waitForExistence(timeout: 6), "차단한 서버 안내가 없음")
+        XCTAssertFalse(app.buttons["note.menu.9600"].exists, "차단한 서버의 노트가 계정 화면에 남음")
+        XCTAssertFalse(app.buttons["remote.follow.mina@mastodon.social"].exists, "차단한 서버 계정에 팔로우 버튼이 남음")
+        attach(app, "remote-domain-blocked")
+
+        app.buttons["remote.domain.unblock"].tap()
+        XCTAssertTrue(app.buttons["note.menu.9600"].waitForExistence(timeout: 8), "차단 해제 뒤 노트가 돌아오지 않음")
+    }
+
     func testMutingAConversationFromTheNoteMenuFlipsItsLabel() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]

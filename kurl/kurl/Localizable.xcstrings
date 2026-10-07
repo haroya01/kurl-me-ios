@@ -513,6 +513,118 @@
         }
       }
     },
+    "%@ 전체를 차단할까요?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Block all of %@?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पूरा %@ ब्लॉक करें?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@全体をブロックしますか？"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chặn toàn bộ %@?"
+          }
+        }
+      }
+    },
+    "%@ 차단": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Block %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ को ब्लॉक करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@をブロック"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chặn %@"
+          }
+        }
+      }
+    },
+    "%@ 차단 해제": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unblock %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ को अनब्लॉक करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@のブロックを解除"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bỏ chặn %@"
+          }
+        }
+      }
+    },
+    "%@ 차단을 해제했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unblocked %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ को अनब्लॉक किया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@のブロックを解除しました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã bỏ chặn %@"
+          }
+        }
+      }
+    },
     "%@ 팔로우를 끊을까요?": {
       "localizations": {
         "en": {
@@ -1581,6 +1693,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Xem trên %@"
+          }
+        }
+      }
+    },
+    "%@을 차단했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blocked %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ को ब्लॉक किया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@をブロックしました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã chặn %@"
+          }
+        }
+      }
+    },
+    "%@의 노트와 알림은 보이지 않아요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes and notifications from %@ are hidden."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ के नोट और सूचनाएँ नहीं दिखेंगी।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@のノートと通知は表示されません。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ghi chú và thông báo từ %@ bị ẩn."
           }
         }
       }
@@ -5546,6 +5714,34 @@
         }
       }
     },
+    "그 서버의 노트와 알림이 보이지 않고, 그 서버 계정 팔로우가 끊기며 그 서버의 팔로워도 빠져요. 한 사람만 문제라면 차단이나 뮤트로 충분해요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You won't see notes or notifications from that server, you'll unfollow its accounts, and its followers will be removed. If it's just one person, blocking or muting them is enough."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "उस सर्वर के नोट और सूचनाएँ नहीं दिखेंगी, वहाँ के खातों को अनफ़ॉलो कर दिया जाएगा और वहाँ के फ़ॉलोअर हट जाएँगे। अगर समस्या सिर्फ़ एक व्यक्ति है, तो उसे ब्लॉक या म्यूट करना काफ़ी है।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "そのサーバーのノートと通知が表示されなくなり、そのサーバーのアカウントのフォローが解除され、そのサーバーのフォロワーも外れます。一人だけが問題ならブロックやミュートで十分です。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn sẽ không thấy ghi chú hay thông báo từ máy chủ đó, sẽ bỏ theo dõi các tài khoản ở đó và người theo dõi từ đó cũng bị xóa. Nếu chỉ một người gây phiền, chặn hoặc tắt tiếng họ là đủ."
+          }
+        }
+      }
+    },
     "글": {
       "localizations": {
         "en": {
@@ -8056,6 +8252,34 @@
         }
       }
     },
+    "다른 서버 계정 화면의 ⋯ 메뉴에서 그 서버 전체를 차단할 수 있어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can block a whole server from the ⋯ menu on an account from that server."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "किसी दूसरे सर्वर के खाते के ⋯ मेनू से आप पूरा सर्वर ब्लॉक कर सकते हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "他のサーバーのアカウント画面の⋯メニューから、そのサーバー全体をブロックできます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn có thể chặn cả máy chủ từ menu ⋯ trên trang tài khoản của máy chủ đó."
+          }
+        }
+      }
+    },
     "다른 서버 팔로잉": {
       "localizations": {
         "en": {
@@ -9956,6 +10180,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Thêm suy nghĩ của bạn"
+          }
+        }
+      }
+    },
+    "서버 차단": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Block server"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सर्वर ब्लॉक करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サーバーをブロック"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chặn máy chủ"
           }
         }
       }
@@ -15623,6 +15875,118 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hiện tại"
+          }
+        }
+      }
+    },
+    "차단한 서버": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blocked servers"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ब्लॉक किए गए सर्वर"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブロックしたサーバー"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Máy chủ đã chặn"
+          }
+        }
+      }
+    },
+    "차단한 서버가 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No blocked servers"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कोई ब्लॉक किया गया सर्वर नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブロックしたサーバーはありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa chặn máy chủ nào"
+          }
+        }
+      }
+    },
+    "차단한 서버예요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You blocked this server"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपने यह सर्वर ब्लॉक किया है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブロックしたサーバーです"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn đã chặn máy chủ này"
+          }
+        }
+      }
+    },
+    "차단한 서버의 계정은 팔로우할 수 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can't follow accounts on a server you blocked"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ब्लॉक किए गए सर्वर के खाते फ़ॉलो नहीं किए जा सकते"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブロックしたサーバーのアカウントはフォローできません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn không thể theo dõi tài khoản trên máy chủ đã chặn"
           }
         }
       }
