@@ -637,7 +637,36 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(report.waitForExistence(timeout: 5), "남의 노트 메뉴에 신고가 없음")
         report.tap()
         XCTAssertTrue(app.staticTexts["신고 사유를 선택하세요"].waitForExistence(timeout: 5), "신고 사유 시트가 안 열림")
+        XCTAssertFalse(app.switches["report.forward"].exists, "우리 회원 노트 신고에 다른 서버 전달이 보임")
         attach(app, "note-report-sheet")
+    }
+
+    func testANoteFromAnotherServerCanBeReportedThereToo() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+        let menu = app.buttons["tab.menu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 10))
+        menu.tap()
+        app.buttons["팔로잉"].tap()
+        let remote = app.buttons["note.menu.9600"]
+        for _ in 0..<6 where !remote.exists {
+            app.swipeUp()
+        }
+        XCTAssertTrue(remote.waitForExistence(timeout: 6), "팔로잉에 다른 서버 노트가 없음")
+        remote.tap()
+        app.buttons["신고"].tap()
+        let forward = app.switches["report.forward"]
+        XCTAssertTrue(forward.waitForExistence(timeout: 5), "다른 서버 노트 신고에 그 서버로 전달하기가 없음")
+        XCTAssertEqual(forward.value as? String, "0", "그 서버 전달이 기본으로 켜져 있음")
+        XCTAssertTrue(app.staticTexts["mastodon.social에도 전달"].exists)
+        forward.switches.firstMatch.tap()
+        XCTAssertEqual(forward.value as? String, "1")
+        attach(app, "remote-note-report-sheet")
+        app.buttons["스팸·광고"].tap()
+        XCTAssertTrue(
+            app.staticTexts["신고가 접수되었습니다"].waitForExistence(timeout: 5), "전달을 켠 신고가 접수되지 않음")
     }
 
     func testADisplayNameLeadsTheRowWithTheHandleBesideIt() throws {

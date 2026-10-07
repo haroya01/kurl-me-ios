@@ -61,9 +61,12 @@ extension View {
     /// 신고 사유 선택 — 글/작가/댓글 어디서나 같은 문법. 사유가 여럿인 폼이라 정식 시트로 띄운다
     /// (confirmationDialog 은 화면 중앙 팝오버로 깨지고, 알럿엔 목록이 안 들어간다). 접수되면 토스트로 알린다.
     /// 익명도 가능(서버 permitAll). subjectType = "POST" | "USER" | "COMMENT".
-    func reportDialog(isPresented: Binding<Bool>, subjectType: String, subjectId: Int64) -> some View {
+    /// forwardDomain 이 있으면(다른 서버의 노트) 그 서버에도 익명으로 전달할지 고르는 줄이 붙는다.
+    func reportDialog(
+        isPresented: Binding<Bool>, subjectType: String, subjectId: Int64, forwardDomain: String? = nil
+    ) -> some View {
         sheet(isPresented: isPresented) {
-            ReportReasonSheet(subjectType: subjectType, subjectId: subjectId)
+            ReportReasonSheet(subjectType: subjectType, subjectId: subjectId, forwardDomain: forwardDomain)
         }
     }
 }
@@ -75,6 +78,7 @@ extension View {
 struct ReportReasonSheet: View {
     let subjectType: String
     let subjectId: Int64
+    var forwardDomain: String?
 
     @Environment(\.dismiss) private var dismiss
     @ScaledMetric(relativeTo: .title3) private var titleSize: CGFloat = 20
@@ -87,6 +91,8 @@ struct ReportReasonSheet: View {
     @State private var sending = false
     /// 전송 실패 — 루트 토스트는 시트에 가려 안 보이므로 인라인으로 알리고 입력을 지킨다.
     @State private var sendFailed = false
+    /// 마스토돈처럼 기본은 꺼짐 — 켜면 신고자 이름 없이 그 서버 관리자에게 사본이 간다.
+    @State private var forward = false
     @FocusState private var detailFocused: Bool
 
     private static let detailLimit = 500
@@ -95,6 +101,7 @@ struct ReportReasonSheet: View {
         switch subjectType {
         case "USER": return String(localized: "이 작가를")
         case "COMMENT": return String(localized: "이 댓글을")
+        case "NOTE": return String(localized: "이 노트를")
         default: return String(localized: "이 글을")
         }
     }
@@ -116,6 +123,22 @@ struct ReportReasonSheet: View {
                     .foregroundStyle(Palette.secondary)
                     .padding(.bottom, 10)
                     .accessibilityAddTraits(.updatesFrequently)
+            }
+
+            if let forwardDomain {
+                Toggle(isOn: $forward) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(forwardDomain)에도 전달")
+                            .typeScale(.body)
+                            .foregroundStyle(Palette.ink)
+                        Text("그 서버 관리자에게 이름 없이 사본을 보내요")
+                            .typeScale(.footnote)
+                            .foregroundStyle(Palette.secondary)
+                    }
+                }
+                .tint(GlassTokens.prominentTint)
+                .padding(.bottom, 12)
+                .accessibilityIdentifier("report.forward")
             }
 
             if expandedOther {
@@ -224,7 +247,7 @@ struct ReportReasonSheet: View {
             do {
                 try await InteractionsAPI.report(
                     subjectType: subjectType, subjectId: subjectId,
-                    reasonCode: reasonCode, detail: detail)
+                    reasonCode: reasonCode, detail: detail, forward: forwardDomain != nil && forward)
                 ToastCenter.shared.show(String(localized: "신고가 접수되었습니다"))
                 dismiss()
             } catch {
