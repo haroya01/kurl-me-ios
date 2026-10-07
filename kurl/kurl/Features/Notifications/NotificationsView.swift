@@ -26,6 +26,7 @@ struct NotificationsView: View {
     @State private var showLoginSheet = false
     @State private var pushStatus: UNAuthorizationStatus?
     @State private var followRequests = FollowRequestStore.shared
+    @State private var filtered = FilteredNotificationStore.shared
     @Environment(\.openURL) private var openURL
     /// "모두 읽음" 툴바 액션 — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
     @ScaledMetric(relativeTo: .subheadline) private var actionSize: CGFloat = 13
@@ -46,6 +47,7 @@ struct NotificationsView: View {
                     .padding(.top, 60)
             } else if items.isEmpty {
                 followRequestsEntry
+                filteredEntry
                 // 막다른 길 금지 — 알림은 사람을 팔로우하고 반응하면 흐른다. 검색의 작가 레일로 이어준다
                 // (다른 빈 면과 같은 언어 = FeedPlaceholder).
                 FeedPlaceholder(
@@ -103,6 +105,8 @@ struct NotificationsView: View {
             await load()
         }
         .refreshable { await load() }
+        // 걸러진 알림을 받으면 그 알림이 목록으로 들어온다 — 돌아왔을 때 보이게 다시 읽는다.
+        .onChange(of: filtered.acceptedCount) { Task { await load() } }
         .task { await reloadPushStatus() }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
             Task { await reloadPushStatus() }
@@ -219,8 +223,45 @@ struct NotificationsView: View {
     }
 
     @ViewBuilder
+    private var filteredEntry: some View {
+        let senders = filtered.senders
+        if !senders.isEmpty {
+            NavigationLink(value: Route.filteredNotifications) {
+                HStack(spacing: 12) {
+                    Image(systemName: "line.3.horizontal.decrease")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Palette.ink)
+                        .frame(width: 38, height: 38)
+                        .background(Palette.chipBg, in: Circle())
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("걸러진 알림")
+                            .typeScale(.body)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Palette.ink)
+                        Text("\(senders.count)명이 보낸 알림 \(senders.reduce(0) { $0 + $1.count })개")
+                            .typeScale(.meta)
+                            .foregroundStyle(Palette.secondary)
+                    }
+                    Spacer(minLength: 8)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Palette.faint)
+                        .accessibilityHidden(true)
+                }
+                .padding(.vertical, 11)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(RowButtonStyle())
+            .accessibilityIdentifier("notifications.filtered")
+            Hairline()
+        }
+    }
+
+    @ViewBuilder
     private var list: some View {
         followRequestsEntry
+        filteredEntry
         let shown = shownItems
         ForEach(Array(shown.enumerated()), id: \.element.id) { index, notification in
             notificationRow(notification)
@@ -518,11 +559,13 @@ struct NotificationsView: View {
             loadError = nil
             loading = false
             followRequests.reset()
+            filtered.reset()
             return
         }
         epoch += 1
         let myEpoch = epoch
         Task { await followRequests.load() }
+        Task { await filtered.load() }
         do {
             let page = try await NotificationsAPI.list()
             guard myEpoch == epoch else { return }

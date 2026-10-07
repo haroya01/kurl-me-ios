@@ -1109,6 +1109,34 @@
         }
       }
     },
+    "%@님의 알림을 받아요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You'll get notifications from %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अब आपको %@ की सूचनाएँ मिलेंगी"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@さんの通知を受け取ります"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn sẽ nhận thông báo từ %@"
+          }
+        }
+      }
+    },
     "%@님의 투표가 끝났어요": {
       "localizations": {
         "en": {
@@ -2126,6 +2154,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld người đã bình chọn"
+          }
+        }
+      }
+    },
+    "%lld명이 보낸 알림 %lld개": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%2$lld notifications from %1$lld people"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld लोगों से %2$lld सूचनाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld人からの通知%2$lld件"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%2$lld thông báo từ %1$lld người"
           }
         }
       }
@@ -4137,6 +4193,62 @@
         }
       }
     },
+    "거르기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filter"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़िल्टर करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フィルター"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lọc"
+          }
+        }
+      }
+    },
+    "거른 알림은 알림 맨 위 \"걸러진 알림\"에 모여요. 받기로 고른 사람의 알림은 그 뒤로 늘 와요. 버린 알림은 남지 않아요. 내가 구독한 새 글·새 노트·투표 마감·수정 알림은 거르지 않아요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filtered notifications gather under \"Filtered notifications\" at the top of your notifications. Once you accept someone, their notifications always come through. Dropped notifications aren't kept. New posts and notes you subscribed to, finished polls and edits are never filtered."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़िल्टर की गई सूचनाएँ आपकी सूचनाओं के सबसे ऊपर \"फ़िल्टर की गई सूचनाएँ\" में जमा होती हैं। जिसे आप स्वीकार करते हैं, उसकी सूचनाएँ हमेशा आती हैं। छोड़ी गई सूचनाएँ नहीं रखी जातीं। सदस्यता वाली नई पोस्ट और नोट, पूरे हुए पोल और संपादन कभी फ़िल्टर नहीं होते।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フィルターした通知は通知のいちばん上の「フィルターされた通知」に集まります。受け取ると決めた人の通知はその後いつも届きます。破棄した通知は残りません。購読している新しい記事・新しいノート・投票の締め切り・編集の通知はフィルターしません。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thông báo đã lọc được gom vào mục \"Thông báo đã lọc\" ở đầu danh sách. Khi bạn chấp nhận ai đó, thông báo của họ luôn đến. Thông báo đã bỏ không được giữ lại. Bài viết và ghi chú mới bạn đăng ký, bình chọn đã kết thúc và chỉnh sửa không bao giờ bị lọc."
+          }
+        }
+      }
+    },
     "거절": {
       "localizations": {
         "en": {
@@ -4161,6 +4273,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Từ chối"
+          }
+        }
+      }
+    },
+    "걸러진 알림": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filtered notifications"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़िल्टर की गई सूचनाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フィルターされた通知"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thông báo đã lọc"
+          }
+        }
+      }
+    },
+    "걸러진 알림이 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No filtered notifications"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कोई फ़िल्टर की गई सूचना नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フィルターされた通知はありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không có thông báo đã lọc"
           }
         }
       }
@@ -7268,6 +7436,34 @@
         }
       }
     },
+    "나를 팔로우하지 않는 사람": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "People not following you"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जो आपको फ़ॉलो नहीं करते"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あなたをフォローしていない人"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Người không theo dõi bạn"
+          }
+        }
+      }
+    },
     "나만 보는 북마크": {
       "localizations": {
         "en": {
@@ -7940,6 +8136,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Khi một bài viết mới nối vào con đường bạn tham gia"
+          }
+        }
+      }
+    },
+    "내가 팔로우하지 않는 사람": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "People you don't follow"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जिन्हें आप फ़ॉलो नहीं करते"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォローしていない人"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Người bạn không theo dõi"
+          }
+        }
+      }
+    },
+    "내가 팔로우하지 않는 사람이 나만 보이게 언급한 노트": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes only you can see, from people you don't follow"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ऐसे नोट जिनमें आपको फ़ॉलो न किए जाने वाले लोग सिर्फ़ आपको दिखने के लिए उल्लेख करते हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォローしていない人が、あなただけに見えるように言及したノート"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ghi chú chỉ bạn thấy, từ người bạn không theo dõi"
           }
         }
       }
@@ -9960,6 +10212,34 @@
         }
       }
     },
+    "만든 지 30일이 안 된 계정": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accounts created less than 30 days ago"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30 दिन से कम पुराने खाते"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "作成から30日未満のアカウント"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tài khoản tạo chưa đến 30 ngày"
+          }
+        }
+      }
+    },
     "만들고 담기": {
       "localizations": {
         "en": {
@@ -10152,6 +10432,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mọi ghi chú, thịnh hành, thẻ"
+          }
+        }
+      }
+    },
+    "모든 노트와 인기에 고른 언어의 노트만 보여요. 언어를 정하지 않은 노트와 팔로잉·리스트는 그대로예요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All notes and Trending show only notes in the languages you pick. Notes without a language, Following and lists stay as they are."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सभी नोट और ट्रेंडिंग में सिर्फ़ चुनी गई भाषाओं के नोट दिखेंगे। बिना भाषा वाले नोट, फ़ॉलो किए गए और सूचियाँ जैसी हैं वैसी रहेंगी।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべてのノートと人気には選んだ言語のノートだけが表示されます。言語が決まっていないノートとフォロー中・リストはそのままです。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tất cả ghi chú và Thịnh hành chỉ hiện ghi chú bằng ngôn ngữ bạn chọn. Ghi chú không có ngôn ngữ, Đang theo dõi và danh sách vẫn như cũ."
           }
         }
       }
@@ -10576,6 +10884,34 @@
         }
       }
     },
+    "받기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accept"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "स्वीकार करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "受け取る"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nhận"
+          }
+        }
+      }
+    },
     "받은 노트가 없어요": {
       "localizations": {
         "en": {
@@ -10996,6 +11332,34 @@
         }
       }
     },
+    "새 계정": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New accounts"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नए खाते"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しいアカウント"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tài khoản mới"
+          }
+        }
+      }
+    },
     "새 노트 알림": {
       "localizations": {
         "en": {
@@ -11388,6 +11752,34 @@
         }
       }
     },
+    "설정의 알림 거르기에서 어떤 알림을 따로 둘지 고를 수 있어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose which notifications to set aside in Settings › Notification filtering."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सेटिंग › सूचना फ़िल्टर में चुनें कि कौन-सी सूचनाएँ अलग रखनी हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定の「通知のフィルター」で、どの通知を分けておくか選べます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chọn thông báo nào để riêng trong Cài đặt › Lọc thông báo."
+          }
+        }
+      }
+    },
     "수정 기록": {
       "localizations": {
         "en": {
@@ -11636,6 +12028,90 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chưa có ghi chú hay bài viết nào trích dẫn ghi chú này"
+          }
+        }
+      }
+    },
+    "알림 %lld개": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld notifications"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld सूचनाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通知%lld件"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld thông báo"
+          }
+        }
+      }
+    },
+    "알림 거르기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notification filtering"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सूचना फ़िल्टर"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通知のフィルター"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lọc thông báo"
+          }
+        }
+      }
+    },
+    "알림 거르기가 따로 둔 알림이에요. 받으면 그 사람의 알림이 목록에 들어오고 앞으로도 와요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notifications your filters set aside. Accept someone to move theirs into your notifications and keep them coming."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ये वे सूचनाएँ हैं जिन्हें फ़िल्टर ने अलग रखा। किसी को स्वीकार करने पर उनकी सूचनाएँ सूची में आ जाएँगी और आगे भी आती रहेंगी।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通知のフィルターが分けておいた通知です。受け取ると、その人の通知が一覧に入り、この先も届きます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đây là thông báo bộ lọc đã để riêng. Chấp nhận ai đó để đưa thông báo của họ vào danh sách và tiếp tục nhận."
           }
         }
       }
@@ -12312,6 +12788,34 @@
         }
       }
     },
+    "요청하지 않은 개인 멘션": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unsolicited private mentions"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बिना माँगे निजी उल्लेख"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "求めていない非公開の返信"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lượt nhắc riêng tư không mong muốn"
+          }
+        }
+      }
+    },
     "요청함": {
       "localizations": {
         "en": {
@@ -12532,6 +13036,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Danh sách này chưa có ghi chú"
+          }
+        }
+      }
+    },
+    "이 서버 회원과 다른 서버 계정 모두": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Members here and accounts on other servers alike"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस सर्वर के सदस्य और दूसरे सर्वर के खाते, दोनों"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このサーバーの会員も他のサーバーのアカウントも"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cả thành viên ở đây lẫn tài khoản ở máy chủ khác"
           }
         }
       }
@@ -16999,6 +17531,34 @@
         }
       }
     },
+    "이런 사람의 알림은": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notifications from"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इनसे आने वाली सूचनाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "こんな人からの通知は"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thông báo từ"
+          }
+        }
+      }
+    },
     "이름 바꾸기": {
       "localizations": {
         "en": {
@@ -17755,6 +18315,34 @@
         }
       }
     },
+    "처리하지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't do that"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह नहीं हो सका"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "処理できませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể thực hiện"
+          }
+        }
+      }
+    },
     "켜면 새 팔로워는 요청을 보내고, 내가 승인해야 팔로워가 돼요. 다른 서버 계정도 같아요. 지금 팔로워는 그대로예요.": {
       "localizations": {
         "en": {
@@ -18395,6 +18983,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Xem ghi chú từ người bạn theo dõi"
+          }
+        }
+      }
+    },
+    "팔로우한 지 3일이 안 된 사람도 여기에 들어가요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Including people who followed you less than 3 days ago"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "3 दिन से कम समय पहले फ़ॉलो करने वाले भी शामिल हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォローしてから3日未満の人も含みます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bao gồm cả người theo dõi bạn chưa đến 3 ngày"
           }
         }
       }

@@ -47,6 +47,8 @@ struct RouteView: View {
             RemoteAccountView(accountId: id)
         case .followRequests:
             FollowRequestsView()
+        case .filteredNotifications:
+            FilteredNotificationsView()
         }
     }
 }

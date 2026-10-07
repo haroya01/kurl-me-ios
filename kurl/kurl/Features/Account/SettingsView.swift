@@ -118,6 +118,24 @@ struct SettingsView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                Hairline()
+                NavigationLink {
+                    NotificationPolicyView()
+                } label: {
+                    HStack(spacing: 10) {
+                        Text("알림 거르기")
+                            .typeScale(.body)
+                            .foregroundStyle(Palette.ink)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Palette.faint)
+                    }
+                    .padding(.vertical, 13)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("settings.notificationPolicy")
             }
 
             RailHeading("정책")
