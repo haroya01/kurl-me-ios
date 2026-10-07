@@ -1557,6 +1557,34 @@
         }
       }
     },
+    "%@님이 팔로우를 요청했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ requested to follow you"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ने आपको फ़ॉलो करने का अनुरोध किया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@さんがフォローをリクエストしました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ đã yêu cầu theo dõi bạn"
+          }
+        }
+      }
+    },
     "%@님이 팔로우했어요": {
       "localizations": {
         "en": {
@@ -1581,6 +1609,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ đã bắt đầu theo dõi bạn"
+          }
+        }
+      }
+    },
+    "%@님이 팔로워가 됐어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is now following you"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ अब आपको फ़ॉलो कर रहे हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@さんがフォロワーになりました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ đã trở thành người theo dõi bạn"
           }
         }
       }
@@ -4077,6 +4133,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chính sách quyền riêng tư"
+          }
+        }
+      }
+    },
+    "거절": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Decline"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अस्वीकार करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拒否"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Từ chối"
           }
         }
       }
@@ -6763,6 +6847,34 @@
         }
       }
     },
+    "기다리는 팔로우 요청이 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pending follow requests"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कोई लंबित फ़ॉलो अनुरोध नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待っているフォローリクエストはありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không có yêu cầu theo dõi đang chờ"
+          }
+        }
+      }
+    },
     "기본": {
       "localizations": {
         "en": {
@@ -7068,6 +7180,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Khi tắt, \"cat\" cũng khớp \"cats\". Nên tắt với ngôn ngữ gắn tiểu từ như tiếng Hàn."
+          }
+        }
+      }
+    },
+    "끄면 기다리던 팔로우 요청이 모두 승인돼요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turning this off approves every pending follow request."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इसे बंद करने पर सभी लंबित फ़ॉलो अनुरोध मंज़ूर हो जाएंगे।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフにすると、待っているフォローリクエストはすべて承認されます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tắt đi thì mọi yêu cầu theo dõi đang chờ sẽ được chấp nhận."
           }
         }
       }
@@ -11332,6 +11472,34 @@
         }
       }
     },
+    "승인": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Approve"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मंज़ूर करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "承認"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chấp nhận"
+          }
+        }
+      }
+    },
     "아이디@서버 모양으로 적어 주세요": {
       "localizations": {
         "en": {
@@ -12089,6 +12257,62 @@
       }
     },
     "요청됨": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Requested"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अनुरोध भेजा"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リクエスト済み"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã yêu cầu"
+          }
+        }
+      }
+    },
+    "요청에 답하지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't answer the request"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अनुरोध का जवाब नहीं दिया जा सका"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リクエストに応答できませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể phản hồi yêu cầu"
+          }
+        }
+      }
+    },
+    "요청함": {
       "localizations": {
         "en": {
           "stringUnit": {
@@ -17531,6 +17755,34 @@
         }
       }
     },
+    "켜면 새 팔로워는 요청을 보내고, 내가 승인해야 팔로워가 돼요. 다른 서버 계정도 같아요. 지금 팔로워는 그대로예요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New followers send a request and become followers once you approve. The same goes for accounts on other servers. Your current followers stay."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "चालू करने पर नए फ़ॉलोअर अनुरोध भेजेंगे और आपकी मंज़ूरी के बाद फ़ॉलोअर बनेंगे। दूसरे सर्वर के खातों पर भी यही लागू होता है। मौजूदा फ़ॉलोअर बने रहेंगे।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オンにすると、新しいフォロワーはリクエストを送り、あなたが承認するとフォロワーになります。他のサーバーのアカウントも同じです。今のフォロワーはそのままです。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khi bật, người theo dõi mới sẽ gửi yêu cầu và chỉ trở thành người theo dõi khi bạn chấp nhận. Tài khoản ở máy chủ khác cũng vậy. Người theo dõi hiện tại vẫn giữ nguyên."
+          }
+        }
+      }
+    },
     "키워드 필터": {
       "localizations": {
         "en": {
@@ -17839,6 +18091,34 @@
         }
       }
     },
+    "팔로우 요청": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow requests"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ॉलो अनुरोध"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォローリクエスト"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yêu cầu theo dõi"
+          }
+        }
+      }
+    },
     "팔로우 요청을 취소할까요?": {
       "localizations": {
         "en": {
@@ -17867,6 +18147,34 @@
         }
       }
     },
+    "팔로우 직접 승인": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Approve followers manually"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ॉलोअर्स को ख़ुद मंज़ूरी दें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォローを手動で承認"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tự duyệt người theo dõi"
+          }
+        }
+      }
+    },
     "팔로우를 요청했어요. %@이 수락하면 팔로잉이 돼요.": {
       "localizations": {
         "en": {
@@ -17891,6 +18199,118 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đã gửi yêu cầu theo dõi. Khi %@ chấp nhận, bạn sẽ theo dõi."
+          }
+        }
+      }
+    },
+    "팔로우를 요청했어요. 승인되면 팔로잉이 돼요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow requested. You'll be following once they approve"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ॉलो अनुरोध भेजा गया। मंज़ूरी मिलते ही आप फ़ॉलो करने लगेंगे"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォローをリクエストしました。承認されるとフォロー中になります"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã gửi yêu cầu theo dõi. Khi được chấp nhận, bạn sẽ theo dõi họ"
+          }
+        }
+      }
+    },
+    "팔로우를 직접 승인하는 계정": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Approves followers manually"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ॉलोअर्स को ख़ुद मंज़ूरी देने वाला खाता"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォローを手動で承認するアカウント"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tài khoản tự duyệt người theo dõi"
+          }
+        }
+      }
+    },
+    "팔로우를 직접 승인하면 새 팔로워가 여기서 기다려요. 프로필 편집에서 켤 수 있어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When you approve followers manually, new followers wait here. Turn it on in Edit profile."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ॉलोअर्स को ख़ुद मंज़ूरी देने पर नए फ़ॉलोअर यहाँ इंतज़ार करते हैं। इसे प्रोफ़ाइल संपादन में चालू करें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォローを手動で承認すると、新しいフォロワーはここで待ちます。プロフィール編集でオンにできます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khi bạn tự duyệt người theo dõi, người theo dõi mới sẽ chờ ở đây. Bật trong phần Chỉnh sửa hồ sơ."
+          }
+        }
+      }
+    },
+    "팔로우를 직접 승인할 때 누군가 팔로우를 요청하면": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When someone asks to follow you while you approve followers manually"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जब आप फ़ॉलोअर्स को ख़ुद मंज़ूरी देते हों और कोई फ़ॉलो का अनुरोध करे"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォローを手動で承認しているときに、誰かがフォローをリクエストしたら"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khi bạn đang tự duyệt và có người yêu cầu theo dõi"
           }
         }
       }

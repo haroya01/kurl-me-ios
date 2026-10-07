@@ -62,6 +62,8 @@ struct AppNotification: Decodable, Identifiable {
     let createdAt: Date?
     /// 다른 서버 계정이면 그 서버의 프로필 — 보낸 사람 이름은 name@domain 핸들로 온다.
     var actorProfileUrl: String? = nil
+    /// 다른 서버 계정의 이 서버 안 id — 앱 안 계정 화면과 요청 승인에 쓴다.
+    var actorRemoteId: Int64? = nil
     /// 노트 알림 — 내 노트, 답글·인용이면 그 답글·인용 노트.
     var noteId: Int64? = nil
     var noteExcerpt: String? = nil

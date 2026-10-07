@@ -25,6 +25,7 @@ struct AuthorBlogView: View {
     @State private var showCollectionLogin = false
     /// 작가 로드 때 한 번 받아 두는 follow status — 헤더의 팔로우 버튼·카운트 링크가 공유한다(중복 GET 제거).
     @State private var followStatus: InteractionsAPI.FollowStatus?
+    @ScaledMetric(relativeTo: .title3) private var lockSize: CGFloat = 13
     @State private var following = false
     @State private var repostsHidden: Bool?
     @State private var muteStatus: InteractionsAPI.MuteStatus?
@@ -224,10 +225,19 @@ struct AuthorBlogView: View {
                     AvatarView(author: view.author, size: 76)
                 }
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(view.author.shownName)
-                        .typeScale(.name)
-                        .foregroundStyle(Palette.ink)
-                        .accessibilityAddTraits(.isHeader)
+                    HStack(alignment: .firstTextBaseline, spacing: 5) {
+                        Text(view.author.shownName)
+                            .typeScale(.name)
+                            .foregroundStyle(Palette.ink)
+                            .accessibilityAddTraits(.isHeader)
+                        if followStatus?.locked == true {
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: lockSize, weight: .semibold))
+                                .foregroundStyle(Palette.secondary)
+                                .accessibilityLabel("팔로우를 직접 승인하는 계정")
+                                .accessibilityIdentifier("author.locked")
+                        }
+                    }
                     if view.author.hasDisplayName {
                         Text(verbatim: "@\(view.author.username)")
                             .typeScale(.meta)

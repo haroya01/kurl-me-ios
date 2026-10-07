@@ -57,6 +57,7 @@ enum NotificationKind: String, CaseIterable, Identifiable {
     case notePost = "NOTE_POST"
     case noteEdit = "NOTE_EDIT"
     case remoteFollow = "REMOTE_FOLLOW"
+    case followRequest = "FOLLOW_REQUEST"
 
     var id: String { rawValue }
 }

@@ -18,14 +18,16 @@ enum ProfileAPI {
         let displayName: String?
         /// 아직 이 키를 안 내리는 서버(배포 전)를 위해 부재 시 false.
         let hideFollowerCount: Bool
+        let locked: Bool
 
-        enum CodingKeys: String, CodingKey { case bio, displayName, hideFollowerCount }
+        enum CodingKeys: String, CodingKey { case bio, displayName, hideFollowerCount, locked }
 
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
             bio = try c.decodeIfPresent(String.self, forKey: .bio)
             displayName = try c.decodeIfPresent(String.self, forKey: .displayName)
             hideFollowerCount = try c.decodeIfPresent(Bool.self, forKey: .hideFollowerCount) ?? false
+            locked = try c.decodeIfPresent(Bool.self, forKey: .locked) ?? false
         }
     }
 
@@ -38,19 +40,20 @@ enum ProfileAPI {
     /// 만 넘겨도 theme·socials(명함) 설정은 보존된다. username 검증·중복·이전 이름 유예는 서버 몫.
     static func update(
         username: String? = nil, bio: String? = nil, hideFollowerCount: Bool? = nil,
-        displayName: String? = nil
+        displayName: String? = nil, locked: Bool? = nil
     ) async throws {
         struct Body: Encodable {
             let username: String?
             let bio: String?
             let hideFollowerCount: Bool?
             let displayName: String?
+            let locked: Bool?
         }
         let _: ProfileBio = try await client.put(
             "/users/me/profile",
             body: Body(
                 username: username, bio: bio, hideFollowerCount: hideFollowerCount,
-                displayName: displayName),
+                displayName: displayName, locked: locked),
             authenticated: true)
     }
 

@@ -28,6 +28,7 @@ extension NotificationKind {
         case .notePost: return "종을 켠 사람의 새 노트"
         case .noteEdit: return "공유한 노트의 수정"
         case .remoteFollow: return "다른 서버의 팔로워"
+        case .followRequest: return "팔로우 요청"
         }
     }
 
@@ -52,6 +53,7 @@ extension NotificationKind {
         case .notePost: return "작가 페이지에서 종을 켠 사람이 새 노트를 올릴 때"
         case .noteEdit: return "내가 리포스트하거나 인용한 노트를 작성자가 고칠 때"
         case .remoteFollow: return "마스토돈 같은 다른 서버 계정이 나를 팔로우할 때"
+        case .followRequest: return "팔로우를 직접 승인할 때 누군가 팔로우를 요청하면"
         }
     }
 
@@ -76,6 +78,7 @@ extension NotificationKind {
         case .notePost: return "bell"
         case .noteEdit: return "pencil"
         case .remoteFollow: return "person.badge.plus"
+        case .followRequest: return "person.badge.clock"
         }
     }
 }
