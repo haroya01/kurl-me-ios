@@ -8196,6 +8196,34 @@
         }
       }
     },
+    "내보내지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't export"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "निर्यात नहीं हो सका"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エクスポートできませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể xuất"
+          }
+        }
+      }
+    },
     "내부": {
       "localizations": {
         "en": {
@@ -9372,6 +9400,34 @@
         }
       }
     },
+    "데이터 내보내기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export data"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "डेटा निर्यात करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "データのエクスポート"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xuất dữ liệu"
+          }
+        }
+      }
+    },
     "두 번 탭하면 재생합니다": {
       "localizations": {
         "en": {
@@ -10184,6 +10240,34 @@
         }
       }
     },
+    "마스토돈과 같은 CSV 파일이라, 다른 서버의 가져오기에 그대로 올릴 수 있어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mastodon-compatible CSV files, ready to upload to another server's import."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mastodon जैसी CSV फ़ाइलें, जिन्हें दूसरे सर्वर के इम्पोर्ट में सीधे अपलोड कर सकते हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mastodonと同じCSVファイルなので、他のサーバーのインポートにそのまま使えます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tệp CSV giống Mastodon, có thể tải thẳng lên phần nhập của máy chủ khác."
+          }
+        }
+      }
+    },
     "마음에 든 노트를 리포스트하면 여기에 모여요.": {
       "localizations": {
         "en": {
@@ -10656,6 +10740,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Không thể tắt tiếng"
+          }
+        }
+      }
+    },
+    "뮤트한 계정": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Muted accounts"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "म्यूट किए गए खाते"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ミュートしたアカウント"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tài khoản đã tắt tiếng"
           }
         }
       }
@@ -18199,6 +18311,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hiện tại"
+          }
+        }
+      }
+    },
+    "차단한 계정": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blocked accounts"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ब्लॉक किए गए खाते"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブロックしたアカウント"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tài khoản đã chặn"
           }
         }
       }
