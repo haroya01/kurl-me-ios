@@ -258,7 +258,8 @@ struct AuthorBlogView: View {
                     FollowCountsLink(username: view.author.username, initialStatus: followStatus)
                 } else {
                     FollowButton(
-                        username: view.author.username, showCount: false, initialStatus: followStatus
+                        username: view.author.username, showCount: false, initialStatus: followStatus,
+                        showsBell: true
                     ) { now in
                         guard now != following else { return }
                         following = now

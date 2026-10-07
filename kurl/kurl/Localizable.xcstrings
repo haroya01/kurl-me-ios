@@ -1361,6 +1361,34 @@
         }
       }
     },
+    "%@님이 새 노트를 올렸어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ posted a new note"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ने एक नया नोट पोस्ट किया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@さんが新しいノートを投稿しました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ đã đăng một ghi chú mới"
+          }
+        }
+      }
+    },
     "%@님이 시리즈를 구독했어요": {
       "localizations": {
         "en": {
@@ -9680,6 +9708,90 @@
         }
       }
     },
+    "새 노트 알림": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New note notifications"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नए नोट की सूचनाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しいノートの通知"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thông báo ghi chú mới"
+          }
+        }
+      }
+    },
+    "새 노트 알림을 껐어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New note notifications are off"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नए नोट की सूचनाएँ बंद कर दी गईं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しいノートの通知をオフにしました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã tắt thông báo ghi chú mới"
+          }
+        }
+      }
+    },
+    "새 노트를 올리면 알려 드릴게요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You’ll be notified of their new notes"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नए नोट आने पर आपको सूचना मिलेगी"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しいノートを投稿したらお知らせします"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn sẽ được báo khi có ghi chú mới"
+          }
+        }
+      }
+    },
     "새 리스트": {
       "localizations": {
         "en": {
@@ -10096,6 +10208,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chưa ai trích dẫn ghi chú này"
+          }
+        }
+      }
+    },
+    "알림 설정을 바꾸지 못했습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t change the notification setting"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सूचना सेटिंग बदली नहीं जा सकी"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通知設定を変更できませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể thay đổi cài đặt thông báo"
           }
         }
       }
@@ -15235,6 +15375,34 @@
         }
       }
     },
+    "작가 페이지에서 종을 켠 사람이 새 노트를 올릴 때": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When someone whose bell you turned on posts a new note"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जब कोई जिसकी घंटी आपने लेखक पेज पर चालू की है, नया नोट पोस्ट करे"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "作家ページでベルをオンにした人が新しいノートを投稿したとき"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khi người bạn đã bật chuông trên trang tác giả đăng ghi chú mới"
+          }
+        }
+      }
+    },
     "작가 페이지의 ⋯ 메뉴에서 뮤트할 수 있어요.": {
       "localizations": {
         "en": {
@@ -15315,6 +15483,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Công khai lặng lẽ"
+          }
+        }
+      }
+    },
+    "종을 켠 사람의 새 노트": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New notes from people with the bell on"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जिनकी घंटी चालू है उनके नए नोट"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ベルをオンにした人の新しいノート"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ghi chú mới từ người bạn bật chuông"
           }
         }
       }

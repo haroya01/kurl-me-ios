@@ -28,9 +28,11 @@ enum InteractionsAPI {
         /// 숨김 의사 신호 — 카운트가 nil 인 이유가 "숨김"인지 "못 받음"인지 가른다.
         /// 아직 이 키를 안 내리는 서버(배포 전)를 위해 부재 시 false.
         let hideFollowerCount: Bool
+        /// 이 작가의 새 노트마다 알림을 받는지(마스토돈의 종). 팔로우할 때만 켤 수 있다.
+        let notifyNotes: Bool
 
         enum CodingKeys: String, CodingKey {
-            case following, followerCount, followingCount, hideFollowerCount
+            case following, followerCount, followingCount, hideFollowerCount, notifyNotes
         }
 
         init(from decoder: Decoder) throws {
@@ -39,7 +41,12 @@ enum InteractionsAPI {
             followerCount = try c.decodeIfPresent(Int64.self, forKey: .followerCount)
             followingCount = try c.decodeIfPresent(Int64.self, forKey: .followingCount)
             hideFollowerCount = try c.decodeIfPresent(Bool.self, forKey: .hideFollowerCount) ?? false
+            notifyNotes = try c.decodeIfPresent(Bool.self, forKey: .notifyNotes) ?? false
         }
+    }
+
+    struct NoteNotifications: Decodable {
+        let notifyNotes: Bool
     }
 
     // MARK: 좋아요
@@ -78,6 +85,12 @@ enum InteractionsAPI {
         on
             ? try await client.put("/users/\(username)/follow", authenticated: true)
             : try await client.delete("/users/\(username)/follow", authenticated: true)
+    }
+
+    static func setNoteNotifications(username: String, on: Bool) async throws -> NoteNotifications {
+        on
+            ? try await client.put("/users/\(username)/follow/notes", authenticated: true)
+            : try await client.delete("/users/\(username)/follow/notes", authenticated: true)
     }
 
     // MARK: 시리즈 구독
