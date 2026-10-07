@@ -507,6 +507,14 @@ struct NoteRowView: View {
     }
 
     @ViewBuilder private var attachments: some View {
+        if let poll = note.poll {
+            NotePollView(noteId: note.id, poll: poll) { updated in
+                var next = note
+                next.poll = updated
+                onChange(next)
+            }
+            .padding(.top, 8)
+        }
         NoteImagesView(media: note.media)
             .allowsHitTesting(!hidesMedia)
             .accessibilityHidden(hidesMedia)
@@ -1397,6 +1405,7 @@ struct NoteComposeSheet: View {
     @State private var errorMessage: String?
     @State private var altTarget: AltTarget?
     @State private var linkCard: NoteLinkPreview?
+    @State private var poll: NotePollDraft?
     @FocusState private var focused: Bool
     @Environment(\.dismiss) private var dismiss
 
@@ -1426,7 +1435,10 @@ struct NoteComposeSheet: View {
     private var quotedNote: QuotedNote? { if case let .quote(note) = mode { note } else { nil } }
     private var length: Int { NoteText.length(text) }
     private var cardUrl: String? {
-        isEdit ? nil : NoteText.previewUrl(text, hasMedia: !picked.isEmpty, hasQuote: quote != nil || quotedNote != nil)
+        isEdit
+            ? nil
+            : NoteText.previewUrl(
+                text, hasMedia: !picked.isEmpty || poll != nil, hasQuote: quote != nil || quotedNote != nil)
     }
     private var placeholder: LocalizedStringKey {
         if quotedNote != nil { return "생각을 덧붙여 보세요" }
@@ -1445,6 +1457,7 @@ struct NoteComposeSheet: View {
     private var canPost: Bool {
         !posting && length <= NoteAPI.maxLength && (length > 0 || hasImages)
             && NoteText.length(warningText) <= NoteAPI.maxWarningLength
+            && (poll == nil || (poll?.isValid == true && length > 0))
     }
     private var discardTitle: LocalizedStringKey {
         isEdit ? "고친 내용을 버릴까요?" : "작성 중인 노트를 버릴까요?"
@@ -1454,7 +1467,7 @@ struct NoteComposeSheet: View {
             return text != note.body || warningText != (note.contentWarning ?? "")
                 || sensitive != (note.sensitive == true && note.contentWarning == nil)
         }
-        return length > 0 || !picked.isEmpty || !warningText.isEmpty
+        return length > 0 || !picked.isEmpty || !warningText.isEmpty || poll != nil
     }
 
     var body: some View {
@@ -1492,6 +1505,10 @@ struct NoteComposeSheet: View {
                                 .focused($focused)
                                 .accessibilityIdentifier("noteCompose.text")
                         }
+                        if let draft = Binding($poll) {
+                            NotePollEditor(draft: draft)
+                                .transition(.opacity.combined(with: .move(edge: .top)))
+                        }
                         if !picked.isEmpty { pickedStrip }
                         if let quote { quoteCard(quote) }
                         if let quotedNote { QuotedNoteCard(note: quotedNote) }
@@ -1514,12 +1531,29 @@ struct NoteComposeSheet: View {
                             ) {
                                 Image(systemName: "photo.on.rectangle")
                                     .font(.system(size: 18))
-                                    .foregroundStyle(picked.count >= NoteAPI.maxImages ? Palette.faint : Palette.secondary)
+                                    .foregroundStyle(
+                                        picked.count >= NoteAPI.maxImages || poll != nil ? Palette.faint : Palette.secondary)
                                     .frame(width: 32, height: 28, alignment: .leading)
                                     .contentShape(Rectangle())
                             }
-                            .disabled(picked.count >= NoteAPI.maxImages)
+                            .disabled(picked.count >= NoteAPI.maxImages || poll != nil)
                             .accessibilityLabel("사진 추가")
+                            Button {
+                                withAnimation(.snappy(duration: 0.2)) {
+                                    poll = poll == nil ? NotePollDraft() : nil
+                                }
+                            } label: {
+                                Image(systemName: "chart.bar.xaxis")
+                                    .font(.system(size: 17))
+                                    .foregroundStyle(
+                                        poll != nil ? Palette.ink : picked.isEmpty ? Palette.secondary : Palette.faint)
+                                    .frame(width: 32, height: 28, alignment: .leading)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(!picked.isEmpty)
+                            .accessibilityLabel(poll == nil ? "투표 추가" : "투표 빼기")
+                            .accessibilityIdentifier("noteCompose.pollToggle")
                         }
                             Button {
                                 withAnimation(.snappy(duration: 0.2)) { warns.toggle() }
@@ -1845,7 +1879,8 @@ struct NoteComposeSheet: View {
                     body: text, images: images, quotedPostId: quote?.id, inReplyToId: inReplyToId,
                     quotedNoteId: quotedNote?.id,
                     contentWarning: warningText.isEmpty ? nil : warningText, sensitive: sensitive,
-                    visibility: visibility?.rawValue ?? (inReplyToId == nil ? "public" : nil)))
+                    visibility: visibility?.rawValue ?? (inReplyToId == nil ? "public" : nil),
+                    poll: poll?.request))
             var created = note
             if created.linkPreview == nil, let linkCard, linkCard.url == cardUrl {
                 created.linkPreview = linkCard

@@ -24,6 +24,7 @@ extension NotificationKind {
         case .noteMention: return "노트 멘션"
         case .noteLike: return "내 노트 좋아요"
         case .noteRepost: return "내 노트 리포스트"
+        case .notePoll: return "투표 마감"
         case .remoteFollow: return "다른 서버의 팔로워"
         }
     }
@@ -45,6 +46,7 @@ extension NotificationKind {
         case .noteMention: return "누가 노트에서 나를 언급할 때"
         case .noteLike: return "누가 내 노트를 좋아할 때. 다른 서버의 좋아요도 포함해요"
         case .noteRepost: return "누가 내 노트를 리포스트하거나 다른 서버에서 부스트할 때"
+        case .notePoll: return "내 투표나 참여한 투표가 끝났을 때"
         case .remoteFollow: return "마스토돈 같은 다른 서버 계정이 나를 팔로우할 때"
         }
     }
@@ -66,6 +68,7 @@ extension NotificationKind {
         case .noteMention: return "at"
         case .noteLike: return "heart"
         case .noteRepost: return "arrow.2.squarepath"
+        case .notePoll: return "chart.bar.xaxis"
         case .remoteFollow: return "person.badge.plus"
         }
     }

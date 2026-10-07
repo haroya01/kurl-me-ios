@@ -702,6 +702,69 @@ final class NotesFeedUITests: XCTestCase {
         shot.lifetime = .keepAlways
         add(shot)
     }
+
+    func testVotingInAPollRevealsTheResults() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let option = app.buttons["note.poll.option.9509.0"]
+        XCTAssertTrue(option.waitForExistence(timeout: 10), "투표 선택지가 안 그려짐")
+        XCTAssertFalse(app.descendants(matching: .any)["note.poll.result.9509.0"].exists, "투표 전에 결과가 보임")
+        option.tap()
+
+        let result = app.descendants(matching: .any)["note.poll.result.9509.0"]
+        XCTAssertTrue(result.waitForExistence(timeout: 6), "투표 뒤 결과가 안 보임")
+        XCTAssertTrue(result.label.contains("60%"), "내 표가 반영된 비율이 아님: \(result.label)")
+        XCTAssertTrue(
+            app.staticTexts.matching(NSPredicate(format: "label CONTAINS '10명 참여'")).firstMatch.exists,
+            "참여 수가 늘지 않음")
+
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "note-poll-voted"
+        shot.lifetime = .keepAlways
+        add(shot)
+    }
+
+    func testAPollIsWrittenInTheComposer() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        app.buttons["notes.compose"].tap()
+        let field = app.textFields["noteCompose.text"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5), "작성 시트의 입력란 없음")
+        field.typeText("uitest poll")
+        app.buttons["noteCompose.pollToggle"].tap()
+
+        let first = app.textFields["noteCompose.poll.option.0"]
+        XCTAssertTrue(first.waitForExistence(timeout: 5), "투표 편집기가 안 열림")
+        XCTAssertFalse(app.buttons["noteCompose.post"].isEnabled, "선택지가 비었는데 올리기가 켜짐")
+        first.tap()
+        first.typeText("cats")
+        let second = app.textFields["noteCompose.poll.option.1"]
+        second.tap()
+        second.typeText("dogs")
+        app.buttons["noteCompose.poll.add"].tap()
+        XCTAssertTrue(app.textFields["noteCompose.poll.option.2"].waitForExistence(timeout: 3), "선택지가 안 늘어남")
+        app.textFields["noteCompose.poll.option.2"].typeText("birds")
+
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "note-poll-composer"
+        shot.lifetime = .keepAlways
+        add(shot)
+
+        app.buttons["noteCompose.post"].tap()
+        let notice = app.alerts.firstMatch
+        XCTAssertTrue(notice.waitForExistence(timeout: 6), "첫 노트 연합 안내가 뜨지 않음")
+        notice.buttons["알겠어요, 올릴게요"].tap()
+
+        let posted = app.descendants(matching: .any)["note.poll.result.9600.2"]
+        XCTAssertTrue(posted.waitForExistence(timeout: 8), "올린 투표가 피드에 안 보임")
+        XCTAssertTrue(posted.label.contains("birds"))
+    }
 }
 
 private extension XCUIElement {
