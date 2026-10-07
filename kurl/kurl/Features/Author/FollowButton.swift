@@ -16,16 +16,21 @@ struct FollowButton: View {
     private let showCount: Bool
     /// 본인 작가 페이지/내 글에선 self-follow 가 무의미 — 버튼을 숨긴다.
     private let username: String
+    /// 팔로잉일 때 옆에 종을 띄워 새 노트마다 알림을 켠다(작가 페이지 머리만).
+    private let showsBell: Bool
     private let onFollowingChange: ((Bool) -> Void)?
+    @ScaledMetric(relativeTo: .headline) private var bellSide: CGFloat = 34
+    @ScaledMetric(relativeTo: .headline) private var bellIcon: CGFloat = 14
 
     /// 호출측이 작가 로드 때 이미 받아 둔 follow status — 같은 GET 을 또 치지 않도록 시드.
     init(
         username: String, showCount: Bool = false, initialStatus: InteractionsAPI.FollowStatus? = nil,
-        onFollowingChange: ((Bool) -> Void)? = nil
+        showsBell: Bool = false, onFollowingChange: ((Bool) -> Void)? = nil
     ) {
         _model = State(initialValue: FollowModel(username: username, seed: initialStatus))
         self.showCount = showCount
         self.username = username
+        self.showsBell = showsBell
         self.onFollowingChange = onFollowingChange
     }
 
@@ -46,6 +51,11 @@ struct FollowButton: View {
                 toggle()
             }
 
+            if showsBell, model.following {
+                bellButton
+                    .transition(reduceMotion ? .opacity : .scale(scale: 0.6).combined(with: .opacity))
+            }
+
             if showCount, !model.hideFollowerCount, let count = model.followerCount {
                 Text("팔로워 \(count)")
                     .typeScale(.meta)
@@ -54,11 +64,44 @@ struct FollowButton: View {
                     .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: count)
             }
         }
+        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: model.following)
         .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
+        .sensoryFeedback(.selection, trigger: model.bellToggleCount)
         .task { await model.hydrateIfNeeded() }
         .onChange(of: model.following) { _, following in onFollowingChange?(following) }
         .loginPrompt(isPresented: $showLoginPrompt, message: "이 큐레이터가 엮는 길을 따라 읽기") {
             await model.hydrate()
+        }
+    }
+
+    private var bellButton: some View {
+        Button { toggleBell() } label: {
+            Image(systemName: model.notifyNotes ? "bell.fill" : "bell")
+                .font(.system(size: bellIcon, weight: .semibold))
+                .foregroundStyle(Palette.ink)
+                .contentTransition(.symbolEffect(.replace))
+                .frame(width: bellSide, height: bellSide)
+                .expandTapTarget(5)
+        }
+        .buttonStyle(.plain)
+        .glassCapsule(prominent: false)
+        .accessibilityLabel("새 노트 알림")
+        .accessibilityValue(model.notifyNotes ? Text("켜짐") : Text("꺼짐"))
+        .accessibilityIdentifier("follow.bell")
+    }
+
+    private func toggleBell() {
+        Task {
+            do {
+                try await model.toggleNotes()
+                if model.notifyNotes {
+                    ToastCenter.shared.show(String(localized: "새 노트를 올리면 알려 드릴게요"))
+                } else {
+                    ToastCenter.shared.show(String(localized: "새 노트 알림을 껐어요"))
+                }
+            } catch {
+                ToastCenter.shared.show(String(localized: "알림 설정을 바꾸지 못했습니다"))
+            }
         }
     }
 
@@ -83,6 +126,8 @@ final class FollowModel {
     private(set) var followerCount: Int64?
     /// 작가가 팔로워 수를 숨겼는지 — 카운트를 서버가 내려도 이 플래그가 켜지면 감춘다.
     private(set) var hideFollowerCount = false
+    private(set) var notifyNotes = false
+    private(set) var bellToggleCount = 0
     /// 호출측이 시드를 줬는지 — 줬다면 등장 시 같은 GET 을 또 치지 않는다.
     private var seeded: Bool
 
@@ -95,6 +140,7 @@ final class FollowModel {
             following = seed.following
             followerCount = seed.followerCount
             hideFollowerCount = seed.hideFollowerCount
+            notifyNotes = seed.notifyNotes
         }
     }
 
@@ -111,6 +157,7 @@ final class FollowModel {
             following = status.following
             followerCount = status.followerCount
             hideFollowerCount = status.hideFollowerCount
+            notifyNotes = status.notifyNotes
         }
     }
 
@@ -119,6 +166,7 @@ final class FollowModel {
         let gen = userToggleCount
         let target = !following
         following = target
+        if !target { notifyNotes = false }
         if let count = followerCount {
             followerCount = count + (target ? 1 : -1)
         }
@@ -128,9 +176,26 @@ final class FollowModel {
             following = status.following
             followerCount = status.followerCount
             hideFollowerCount = status.hideFollowerCount
+            notifyNotes = status.notifyNotes
         } catch {
             guard gen == userToggleCount else { return }
             await hydrate()
+            throw error
+        }
+    }
+
+    func toggleNotes() async throws {
+        bellToggleCount += 1
+        let gen = bellToggleCount
+        let target = !notifyNotes
+        notifyNotes = target
+        do {
+            let result = try await InteractionsAPI.setNoteNotifications(username: username, on: target)
+            guard gen == bellToggleCount else { return }
+            notifyNotes = result.notifyNotes
+        } catch {
+            guard gen == bellToggleCount else { return }
+            notifyNotes = !target
             throw error
         }
     }

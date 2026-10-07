@@ -52,4 +52,41 @@ final class NoteNotificationsUITests: XCTestCase {
             .matching(NSPredicate(format: "label CONTAINS '이름이 경계라는 말'")).firstMatch
         XCTAssertTrue(replied.waitForExistence(timeout: 8), "답글 알림이 그 답글을 열지 않음")
     }
+
+    func testANewNoteNoticeOpensThatNote() throws {
+        let app = launchInbox()
+
+        let posted = row(app, contains: "새 노트를 올렸어요")
+        XCTAssertTrue(posted.waitForExistence(timeout: 12), "종을 켠 작가의 새 노트 알림이 없음")
+        XCTAssertTrue(posted.label.contains("yuki_dev"), "새 노트 알림의 보낸 사람이 작가가 아님")
+        posted.tap()
+        let note = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS '헥사고날 포트 이름'")).firstMatch
+        XCTAssertTrue(note.waitForExistence(timeout: 8), "새 노트 알림이 그 노트를 열지 않음")
+    }
+
+    func testTheBellBesideFollowingTurnsOnNewNoteNoticesAndLeavesWithTheFollow() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--author", "yuki_dev"]
+        app.launch()
+
+        let bell = app.buttons["follow.bell"]
+        XCTAssertTrue(bell.waitForExistence(timeout: 15), "팔로잉 중인 작가 머리에 종이 없음")
+        XCTAssertEqual(bell.value as? String, "꺼짐")
+        bell.tap()
+        let on = expectation(for: NSPredicate(format: "value == '켜짐'"), evaluatedWith: bell)
+        wait(for: [on], timeout: 5)
+        XCTAssertEqual(bell.value as? String, "켜짐")
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "author-bell-on"
+        shot.lifetime = .keepAlways
+        add(shot)
+
+        app.buttons["팔로잉"].firstMatch.tap()
+        let gone = expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: bell)
+        wait(for: [gone], timeout: 5)
+        app.buttons["팔로우"].firstMatch.tap()
+        XCTAssertTrue(bell.waitForExistence(timeout: 5), "다시 팔로우했는데 종이 없음")
+        XCTAssertEqual(bell.value as? String, "꺼짐", "언팔로우가 종을 끄지 않음")
+    }
 }

@@ -258,6 +258,7 @@ enum MockBackend {
     private static var likes: [Int64: (count: Int64, liked: Bool)] = [:]
     private static var bookmarks: Set<Int64> = []
     private static var follows: [String: (following: Bool, count: Int64)] = [:]
+    private static var noteBells: Set<String> = []
     private static var subscriptions: [Int64: (subscribed: Bool, count: Int64)] = [:]
     private static var followedTags: Set<String> = ["아키텍처", "스프링", "리팩터링", "디자인", "kurl"]
     private static var hiddenTags: Set<String> = []
@@ -1527,16 +1528,31 @@ enum MockBackend {
             let username = parts[1]
             var state = follows[username] ?? (following: username == "yuki_dev", count: 12)
             if method == "PUT" { if !state.following { state.count += 1 }; state.following = true }
-            if method == "DELETE" { if state.following { state.count -= 1 }; state.following = false }
+            if method == "DELETE" {
+                if state.following { state.count -= 1 }
+                state.following = false
+                noteBells.remove(username)
+            }
             follows[username] = state
             // 내 프로필 토글이 켜져 있으면 내 작가 페이지에선 카운트 키를 빼고 플래그만 내린다(실서버 계약).
             let hidden = username == myUsername && myHideFollowerCount
-            var payload: [String: Any] = ["following": state.following, "hideFollowerCount": hidden]
+            var payload: [String: Any] = [
+                "following": state.following, "hideFollowerCount": hidden,
+                "notifyNotes": noteBells.contains(username),
+            ]
             if !hidden {
                 payload["followerCount"] = state.count
                 payload["followingCount"] = 5
             }
             return json(payload)
+        }
+
+        if parts.count == 4, parts[0] == "users", parts[2] == "follow", parts[3] == "notes" {
+            let username = parts[1]
+            let following = follows[username]?.following ?? (username == "yuki_dev")
+            if method == "PUT", following { noteBells.insert(username) }
+            if method == "DELETE" { noteBells.remove(username) }
+            return json(["notifyNotes": noteBells.contains(username)])
         }
 
         if parts.count == 3, parts[0] == "series", parts[2] == "subscription" {
@@ -1931,6 +1947,11 @@ enum MockBackend {
                      "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
                      "noteId": 9501, "noteExcerpt": "오늘 헥사고날 포트 이름 짓는 데 한 시간 썼다.",
                      "count": 1, "read": false, "createdAt": iso(Date().addingTimeInterval(-600))],
+                    ["id": 14, "type": "NOTE_POST", "actorUsername": "yuki_dev", "actorAvatarUrl": NSNull(),
+                     "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
+                     "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                     "noteId": 9501, "noteExcerpt": "오늘 헥사고날 포트 이름 짓는 데 한 시간 썼다.",
+                     "count": 1, "read": false, "createdAt": iso(Date().addingTimeInterval(-700))],
                     ["id": 10, "type": "REMOTE_FOLLOW", "actorUsername": "bob@fosstodon.org", "actorAvatarUrl": NSNull(),
                      "actorProfileUrl": "https://fosstodon.org/@bob",
                      "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),

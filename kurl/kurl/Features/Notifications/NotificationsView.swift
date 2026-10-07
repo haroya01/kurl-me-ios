@@ -315,6 +315,7 @@ struct NotificationsView: View {
         case "NOTE_QUOTE": return "quote.bubble.fill"
         case "NOTE_MENTION": return "at"
         case "NOTE_POLL": return "chart.bar.xaxis"
+        case "NOTE_POST": return "bell.fill"
         case "REMOTE_FOLLOW": return "person.fill.badge.plus"
         default: return "bell.fill"
         }
@@ -390,6 +391,7 @@ struct NotificationsView: View {
             return n.actorUsername != nil && n.actorUsername == AuthStore.shared.me?.username
                 ? Text("내 투표가 끝났어요")
                 : Text("\(actor)님의 투표가 끝났어요")
+        case "NOTE_POST": return Text("\(actor)님이 새 노트를 올렸어요")
         case "REMOTE_FOLLOW": return Text("\(actor)님이 다른 서버에서 나를 팔로우했어요")
         default: return actor
         }
@@ -398,7 +400,7 @@ struct NotificationsView: View {
     private func subtitle(_ n: AppNotification) -> String? {
         switch n.type {
         case "NOTE_REPLY", "NOTE_QUOTE": return n.sourceExcerpt
-        case "NOTE_LIKE", "NOTE_REPOST", "NOTE_MENTION", "NOTE_POLL": return n.noteExcerpt
+        case "NOTE_LIKE", "NOTE_REPOST", "NOTE_MENTION", "NOTE_POLL", "NOTE_POST": return n.noteExcerpt
         default: return n.postTitle ?? n.seriesTitle
         }
     }
