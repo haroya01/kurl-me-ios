@@ -273,6 +273,10 @@ enum Metrics {
     /// RootView 의 FloatingTabBar 와 그 위에 떠 있는 독(EngagementDock)이 같은 값을 물어야 탭바에 가리지 않는다.
     /// 바 캡슐 = 아이콘 프레임 44 + 세로 패딩 7×2 ≈ 58pt, 그 위 숨 쉴 여백을 더한 값.
     static let tabBarReservedHeight: CGFloat = 66
+
+    /// 스크롤로 작아진 하단바의 배율과 그때 독이 비워 둘 높이 — 둘은 같이 바꾼다.
+    static let tabBarCompactScale: CGFloat = 0.86
+    static let tabBarCompactReservedHeight: CGFloat = 58
 }
 
 /// Liquid Glass 토큰 — "종이 본문, 액체 크롬"(DESIGN.md §1).

@@ -12,14 +12,23 @@ struct NoteFeedPage: View {
     var warm = true
 
     @State private var loadedSignedIn: Bool?
+    @State private var position = ScrollPosition(edge: .top)
+    @State private var router = TabRouter.shared
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var composing = false
     @State private var showLogin = false
     @State private var posted = 0
 
     var body: some View {
-        ReadingColumn(spacing: 0, background: .clear, tracksTabBar: active, gutter: Metrics.noteGutter) {
+        ReadingColumn(
+            spacing: 0, background: .clear, tracksTabBar: active, gutter: Metrics.noteGutter, position: $position
+        ) {
             Color.clear.frame(height: 8)
             content
+        }
+        .onChange(of: router.topRequests) {
+            guard active, router.topTab == 1 else { return }
+            withAnimation(reduceMotion ? nil : .smooth(duration: 0.35)) { position.scrollTo(edge: .top) }
         }
         .environment(\.noteFilterContext, model.filterContext)
         .task(id: [warm, AuthStore.shared.isSignedIn]) {
