@@ -63,6 +63,12 @@ enum NoteAPI {
             "/notes/bookmarks", query: ["page": String(page), "size": "20"], authenticated: true)
     }
 
+    static func postQuotes(_ postId: Int64, page: Int = 0) async throws -> PostQuotesPage {
+        try await client.get(
+            "/public/posts/\(postId)/quotes", query: ["page": String(page), "size": "20"],
+            authenticated: signedIn)
+    }
+
     static func quotes(of id: Int64, page: Int = 0) async throws -> NoteFeed {
         try await client.get(
             "/public/notes/\(id)/quotes", query: ["page": String(page), "size": "20"],
@@ -496,6 +502,13 @@ struct NoteFeed: Decodable {
     let items: [Note]
     let page: Int
     let hasNext: Bool
+}
+
+struct PostQuotesPage: Decodable {
+    let items: [Note]
+    let page: Int
+    let hasNext: Bool
+    let total: Int
 }
 
 struct TrendingNoteTag: Decodable, Hashable, Identifiable {

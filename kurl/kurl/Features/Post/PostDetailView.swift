@@ -95,6 +95,9 @@ private struct PostDetailReader: View {
     /// 덱 임베드 전용 — 댓글은 접힌 행으로 시작하고, 본문 끝에서 더 당기면
     /// 같은 작가의 다음 글로 이어진다(가로 = 다른 작가, 세로 = 이 작가 더 보기).
     @State private var commentsExpanded = false
+    @State private var discussion: Discussion = .comments
+
+    enum Discussion: Hashable { case comments, notes }
 
     /// 댓글 입력 = 키보드 위에 붙는 유리 바(채팅 문법). 본문 끝 프롬프트 행이나
     /// 답글 버튼이 이걸 깨운다 — 인라인 입력은 키보드와 위치가 따로 놀았다.
@@ -1602,53 +1605,99 @@ private struct PostDetailReader: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("댓글 \(model.comments.count) 펼치기")
             } else {
-                RailHeading(model.commentsFailed ? "댓글" : "댓글 \(model.comments.count)")
-                if model.commentsFailed {
-                    Button {
-                        Task { await model.reloadComments() }
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 12 * metaUnit, weight: .semibold))
-                            Text("댓글을 불러오지 못했습니다 — 다시 시도")
-                                .typeScale(.footnote)
-                        }
-                        .foregroundStyle(Palette.secondary)
-                        .padding(.vertical, 6)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                }
-                // 대화는 가벼운 행으로 — 스레드 사이만 헤어라인으로 나눈다(박스 카드 ❌).
-                // 차단한 작가의 댓글·답글은 숨긴다(App Store 1.2 — 차단 = 그 사용자 콘텐츠 안 보임).
-                let threads = model.comments.filter {
-                    $0.parentId == nil && !BlockStore.shared.isBlocked($0.author.username)
-                }
-                ForEach(Array(threads.enumerated()), id: \.element.id) { index, parent in
-                    CommentThread(
-                        model: model,
-                        comment: parent,
-                        replies: model.comments.filter {
-                            $0.parentId == parent.id
-                                && !BlockStore.shared.isBlocked($0.author.username)
+                if model.quotingTotal > 0 {
+                    ContentTabBar(
+                        tabs: [Discussion.comments, .notes], selection: $discussion,
+                        label: { tab in
+                            switch tab {
+                            case .comments: model.commentsFailed ? "댓글" : "댓글 \(model.comments.count)"
+                            case .notes: "노트 \(model.quotingTotal)"
+                            }
                         },
-                        replyTo: $replyTo,
-                        postAuthorId: authorId,
-                        flashCommentId: flashCommentId)
-                    if index < threads.count - 1 { Hairline() }
+                        identifier: { $0 == .comments ? "discussion.comments" : "discussion.notes" },
+                        background: Palette.readingBg)
+                } else {
+                    RailHeading(model.commentsFailed ? "댓글" : "댓글 \(model.comments.count)")
                 }
-                // 본문 끝의 조용한 프롬프트 — 탭하면 유리 바가 키보드와 함께 떠오른다.
-                Button {
-                    composerActive = true
-                } label: {
-                    ReplyPrompt(text: Text("댓글을 남겨보세요"))
+                if discussion == .notes, model.quotingTotal > 0 {
+                    quotingNotes
+                } else {
+                    commentList(authorId: authorId)
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("댓글을 남겨보세요")
-                .padding(.top, 4)
             }
         }
         .padding(.vertical, 16)
+    }
+
+    private var quotingNotes: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("이 글을 인용한 노트예요")
+                    .typeScale(.meta)
+                    .foregroundStyle(Palette.secondary)
+                Spacer(minLength: 0)
+                quoteInNoteItem
+                    .labelStyle(.titleAndIcon)
+                    .typeScale(.meta)
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Palette.ink)
+            }
+            .padding(.bottom, 4)
+            ForEach(model.quotingNotes) { note in
+                NoteRowView(
+                    note: note,
+                    onChange: { model.replaceQuotingNote($0) },
+                    onDelete: { model.removeQuotingNote($0) })
+                Hairline()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func commentList(authorId: Int64) -> some View {
+        if model.commentsFailed {
+            Button {
+                Task { await model.reloadComments() }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 12 * metaUnit, weight: .semibold))
+                    Text("댓글을 불러오지 못했습니다 — 다시 시도")
+                        .typeScale(.footnote)
+                }
+                .foregroundStyle(Palette.secondary)
+                .padding(.vertical, 6)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+        // 대화는 가벼운 행으로 — 스레드 사이만 헤어라인으로 나눈다(박스 카드 ❌).
+        // 차단한 작가의 댓글·답글은 숨긴다(App Store 1.2 — 차단 = 그 사용자 콘텐츠 안 보임).
+        let threads = model.comments.filter {
+            $0.parentId == nil && !BlockStore.shared.isBlocked($0.author.username)
+        }
+        ForEach(Array(threads.enumerated()), id: \.element.id) { index, parent in
+            CommentThread(
+                model: model,
+                comment: parent,
+                replies: model.comments.filter {
+                    $0.parentId == parent.id
+                        && !BlockStore.shared.isBlocked($0.author.username)
+                },
+                replyTo: $replyTo,
+                postAuthorId: authorId,
+                flashCommentId: flashCommentId)
+            if index < threads.count - 1 { Hairline() }
+        }
+        // 본문 끝의 조용한 프롬프트 — 탭하면 유리 바가 키보드와 함께 떠오른다.
+        Button {
+            composerActive = true
+        } label: {
+            ReplyPrompt(text: Text("댓글을 남겨보세요"))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("댓글을 남겨보세요")
+        .padding(.top, 4)
     }
 }
 
