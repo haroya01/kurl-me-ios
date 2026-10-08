@@ -117,6 +117,12 @@ final class PostDetailViewModel {
         }
     }
 
+    func addQuotingNote(_ note: Note) {
+        guard note.noteVisibility.shareable, !quotingNotes.contains(where: { $0.id == note.id }) else { return }
+        quotingNotes.insert(note, at: 0)
+        quotingTotal += 1
+    }
+
     func replaceQuotingNote(_ note: Note) {
         quotingNotes = quotingNotes.map { $0.id == note.id ? note : $0 }
     }
