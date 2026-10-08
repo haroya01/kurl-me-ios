@@ -205,6 +205,16 @@ final class GraphNotificationsUITests: XCTestCase {
         XCTAssertTrue(app.buttons["note.body.9520"].waitForExistence(timeout: 6), "노트 탭에 이 글을 인용한 노트가 없음")
         XCTAssertFalse(app.buttons["comment.reply.506"].exists, "노트 탭인데 댓글이 그대로 보임")
         shoot("post-quoting-notes")
+        app.buttons["노트로 인용"].firstMatch.tap()
+        let field = app.textFields["noteCompose.text"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5), "노트 탭에서 인용 작성기가 안 열림")
+        field.typeText("uitest post quote")
+        app.buttons["noteCompose.post"].tap()
+        let notice = app.alerts.firstMatch
+        if notice.waitForExistence(timeout: 4) { notice.buttons["알겠어요, 올릴게요"].tap() }
+        let mine = app.buttons.matching(NSPredicate(format: "label CONTAINS 'uitest post quote'")).firstMatch
+        XCTAssertTrue(mine.waitForExistence(timeout: 8), "방금 올린 인용 노트가 이 글의 노트 목록에 안 보임")
+        XCTAssertTrue(notesTab.label.contains("노트 2"), "방금 올린 인용이 노트 수에 안 더해짐")
         app.buttons["discussion.comments"].tap()
         XCTAssertTrue(app.buttons["comment.reply.506"].waitForExistence(timeout: 4), "댓글 탭으로 돌아오지 못함")
     }

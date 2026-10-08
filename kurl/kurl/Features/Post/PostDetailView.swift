@@ -425,7 +425,8 @@ private struct PostDetailReader: View {
         }
         .sheet(isPresented: $showAdminEdit) { adminEditSheet }
         .sheet(item: $quotingInNote) { quote in
-            NoteComposeSheet(mode: .new(quote: quote, inReplyToId: nil)) { _ in
+            NoteComposeSheet(mode: .new(quote: quote, inReplyToId: nil)) { note in
+                model.addQuotingNote(note)
                 ToastCenter.shared.show(String(localized: "노트를 올렸어요"))
             }
         }
