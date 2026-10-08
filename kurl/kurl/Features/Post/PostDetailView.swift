@@ -303,6 +303,7 @@ private struct PostDetailReader: View {
             }
         }
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: composerActive)
+        .hidesTabBar(composerActive)
         .onScrollGeometryChange(for: Bool.self) { geometry in
             geometry.contentOffset.y + geometry.contentInsets.top > 110
         } action: { _, passed in

@@ -140,11 +140,11 @@ extension View {
         modifier(TracksTabBarVisibility(enabled: enabled))
     }
 
-    /// 이 화면이 떠 있는 동안 커스텀 하단바를 통째로 접는다 — 설정처럼 iOS 관습상 탭바가
-    /// 없어야 하는 푸시 스택에서 쓴다(하단 행이 바에 가려 도달 못 하던 자리). 등장/퇴장으로
-    /// 제 토큰을 집합에 넣고 빼, 하위 푸시가 겹쳐도 스택을 완전히 벗어날 때만 바가 돌아온다.
-    func hidesTabBar() -> some View {
-        modifier(HidesTabBar())
+    /// 이 화면이 떠 있는 동안(active 인 동안) 커스텀 하단바를 통째로 접는다 — 설정처럼 iOS 관습상
+    /// 탭바가 없어야 하는 푸시 스택, 하단에 붙는 입력 바처럼 바가 덮으면 안 되는 순간에 쓴다.
+    /// 등장/퇴장으로 제 토큰을 집합에 넣고 빼, 하위 푸시가 겹쳐도 스택을 완전히 벗어날 때만 바가 돌아온다.
+    func hidesTabBar(_ active: Bool = true) -> some View {
+        modifier(HidesTabBar(active: active))
     }
 }
 
@@ -155,12 +155,16 @@ extension View {
 /// 같은 토큰을 다시 넣을 뿐이라 무해하고, onDisappear 는 제 토큰만 뺀다. 집합이라 넣고 빼는
 /// 순서가 뒤엉켜도 결과가 안정적이다(카운트식은 순서가 어긋나면 바가 영영 안 돌아왔다).
 private struct HidesTabBar: ViewModifier {
+    let active: Bool
     @Environment(\.tabBarVisibility) private var visibility
     @State private var token = UUID()
 
     func body(content: Content) -> some View {
         content
-            .onAppear { visibility?.addHider(token) }
+            .onAppear { if active { visibility?.addHider(token) } }
+            .onChange(of: active) { _, on in
+                if on { visibility?.addHider(token) } else { visibility?.removeHider(token) }
+            }
             .onDisappear { visibility?.removeHider(token) }
     }
 }
