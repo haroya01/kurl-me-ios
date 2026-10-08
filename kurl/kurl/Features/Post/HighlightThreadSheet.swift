@@ -295,7 +295,7 @@ struct HighlightThreadSheet: View {
                     .padding(.top, 10)
             }
             HStack(alignment: .bottom, spacing: 10) {
-                TextField("답글 남기기…", text: $text, axis: .vertical)
+                TextField("답글을 남겨보세요", text: $text, axis: .vertical)
                     .focused($composerFocused)
                     .typeScale(.body)
                     .lineLimit(1...5)

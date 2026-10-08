@@ -53,9 +53,9 @@ final class HighlightReaderUITests: XCTestCase {
         shot("2-thread-sheet")
         XCTAssertTrue(sendReply.exists, "하이라이트 탭으로 답글 스레드가 안 열림")
 
-        // (3) 답글 작성 왕복 — 시트의 입력란(placeholder "답글 남기기…")에 한 줄 적고 보낸다.
+        // (3) 답글 작성 왕복 — 시트의 입력란(placeholder "답글을 남겨보세요")에 한 줄 적고 보낸다.
         if sendReply.exists {
-            let byPlaceholder = NSPredicate(format: "placeholderValue CONTAINS '답글 남기기'")
+            let byPlaceholder = NSPredicate(format: "placeholderValue CONTAINS '답글을 남겨보세요'")
             var field = app.textViews.matching(byPlaceholder).firstMatch
             if !field.exists { field = app.textFields.matching(byPlaceholder).firstMatch }
             if field.waitForExistence(timeout: 3) {

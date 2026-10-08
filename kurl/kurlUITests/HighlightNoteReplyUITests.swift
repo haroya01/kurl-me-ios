@@ -51,7 +51,7 @@ final class HighlightNoteReplyUITests: XCTestCase {
         let app = launchPost()
         XCTAssertTrue(openThread6001(app), "하이라이트 탭으로 답글 스레드가 안 열림")
 
-        let byPlaceholder = NSPredicate(format: "placeholderValue CONTAINS '답글 남기기'")
+        let byPlaceholder = NSPredicate(format: "placeholderValue CONTAINS '답글을 남겨보세요'")
         var field = app.textViews.matching(byPlaceholder).firstMatch
         if !field.exists { field = app.textFields.matching(byPlaceholder).firstMatch }
         XCTAssertTrue(field.waitForExistence(timeout: 4), "답글 입력란 없음")
