@@ -726,6 +726,7 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(app.buttons["note.menu.9600"].waitForExistence(timeout: 8), "계정 화면에 받은 노트가 없음")
         let video = app.buttons["note.video"].firstMatch
         XCTAssertTrue(video.waitForExistence(timeout: 6), "동영상 첨부가 재생 타일로 안 그려짐")
+        XCTAssertEqual(video.value as? String, "소리 없이 재생 중", "화면에 보이는 동영상이 소리 없이 자동 재생되지 않음")
         XCTAssertTrue(app.buttons["note.audio"].firstMatch.exists, "오디오 첨부가 재생 행으로 안 그려짐")
         attach(app, "remote-account-notes")
         video.tap()
