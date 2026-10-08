@@ -16,11 +16,15 @@ extension NotificationKind {
         case .mention: return "멘션"
         case .follow: return "팔로우"
         case .seriesSubscribe: return "시리즈 구독"
+        case .highlight: return "내 글 하이라이트"
+        case .postQuote: return "내 글 인용"
+        case .commentLike: return "내 댓글 좋아요"
         case .newPost: return "팔로우한 작가의 새 글"
         case .connected: return "내 글이 컬렉션에 엮일 때"
         case .pathGrew: return "엮인 길에 새 글이 이어질 때"
         case .noteReply: return "내 노트 답글"
         case .noteQuote: return "내 노트 인용"
+        case .noteEmbed: return "글에 실린 내 노트"
         case .noteMention: return "노트 멘션"
         case .noteLike: return "내 노트 좋아요"
         case .noteRepost: return "내 노트 리포스트"
@@ -41,11 +45,15 @@ extension NotificationKind {
         case .mention: return "누가 나를 언급할 때"
         case .follow: return "누가 나를 팔로우할 때"
         case .seriesSubscribe: return "누가 내 시리즈를 구독할 때"
+        case .highlight: return "누가 내 글에 하이라이트를 남길 때"
+        case .postQuote: return "누가 노트에서 내 글을 인용할 때"
+        case .commentLike: return "누가 내 댓글을 좋아할 때"
         case .newPost: return "팔로우한 작가가 새 글을 발행할 때"
         case .connected: return "누가 내 글·하이라이트를 컬렉션에 엮을 때"
         case .pathGrew: return "내가 엮인 길에 새 글이 이어질 때"
         case .noteReply: return "누가 내 노트에 답글을 남길 때"
         case .noteQuote: return "누가 내 노트를 인용할 때"
+        case .noteEmbed: return "누가 글에서 내 노트를 인용할 때"
         case .noteMention: return "누가 노트에서 나를 언급할 때"
         case .noteLike: return "누가 내 노트를 좋아할 때. 다른 서버의 좋아요도 포함해요"
         case .noteRepost: return "누가 내 노트를 리포스트하거나 다른 서버에서 부스트할 때"
@@ -66,11 +74,15 @@ extension NotificationKind {
         case .mention: return "at"
         case .follow: return "person.badge.plus"
         case .seriesSubscribe: return "books.vertical"
+        case .highlight: return "highlighter"
+        case .postQuote: return "quote.bubble"
+        case .commentLike: return "heart"
         case .newPost: return "doc.text"
         case .connected: return "link"
         case .pathGrew: return "arrow.triangle.branch"
         case .noteReply: return "arrowshape.turn.up.left"
         case .noteQuote: return "quote.bubble"
+        case .noteEmbed: return "text.quote"
         case .noteMention: return "at"
         case .noteLike: return "heart"
         case .noteRepost: return "arrow.2.squarepath"
@@ -79,6 +91,32 @@ extension NotificationKind {
         case .noteEdit: return "pencil"
         case .remoteFollow: return "person.badge.plus"
         case .followRequest: return "person.badge.clock"
+        }
+    }
+}
+
+enum NotificationKindSection: CaseIterable, Identifiable {
+    case posts, notes, conversation, people, subscriptions
+
+    var id: Self { self }
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .posts: return "내 글"
+        case .notes: return "내 노트"
+        case .conversation: return "대화"
+        case .people: return "사람"
+        case .subscriptions: return "구독한 소식"
+        }
+    }
+
+    var kinds: [NotificationKind] {
+        switch self {
+        case .posts: return [.like, .comment, .highlight, .postQuote, .connected]
+        case .notes: return [.noteLike, .noteRepost, .noteReply, .noteQuote, .noteEmbed]
+        case .conversation: return [.reply, .commentLike, .mention, .noteMention]
+        case .people: return [.follow, .followRequest, .remoteFollow, .seriesSubscribe]
+        case .subscriptions: return [.newPost, .notePost, .notePoll, .noteEdit, .pathGrew]
         }
     }
 }
@@ -103,12 +141,14 @@ struct NotificationPreferencesView: View {
                     retry: { Task { await load() } })
                     .padding(.top, 60)
             } else {
-                RailHeading("알림 종류")
-                    .padding(.top, 24)
-                    .padding(.bottom, 4)
-                ForEach(Array(NotificationKind.allCases.enumerated()), id: \.element) { index, kind in
-                    row(kind)
-                    if index < NotificationKind.allCases.count - 1 { Hairline() }
+                ForEach(NotificationKindSection.allCases) { section in
+                    RailHeading(section.title)
+                        .padding(.top, 24)
+                        .padding(.bottom, 4)
+                    ForEach(Array(section.kinds.enumerated()), id: \.element) { index, kind in
+                        row(kind)
+                        if index < section.kinds.count - 1 { Hairline() }
+                    }
                 }
                 Text("끈 종류는 벨과 푸시에 오지 않아요")
                     .typeScale(.footnote)

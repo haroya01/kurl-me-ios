@@ -138,6 +138,7 @@ final class SignedInScreensUITests: XCTestCase {
         // 토글 리스트에 도달했는지 — 목이 꺼둔 '팔로우한 작가의 새 글' 스위치가 off 로 렌더된다.
         let newPost = app.switches.matching(NSPredicate(format: "label CONTAINS '새 글'")).firstMatch
         XCTAssertTrue(newPost.waitForExistence(timeout: 8), "알림 종류 화면에 토글이 없음")
+        for _ in 0..<6 where !newPost.isHittable { app.swipeUp() }
         // 목 기본값 = 새 글만 꺼짐. 값까지 확인해 "렌더됨"을 "off 로 렌더됨"으로 좁힌다.
         XCTAssertEqual(newPost.value as? String, "0", "새 글 토글이 목 기본값(off)으로 렌더되지 않음")
         shoot("notification-preferences")

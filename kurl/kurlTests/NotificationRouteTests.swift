@@ -86,4 +86,46 @@ final class NotificationRouteTests: XCTestCase {
     func testLegacyPayloadHasNoRoute() {
         XCTAssertNil(NotificationRoute.route(push: ["aps": ["alert": ["body": "좋아합니다"]]]))
     }
+
+    private func notice(
+        _ type: String, postSlug: String? = nil, postAuthor: String? = nil,
+        commentId: Int64? = nil, highlightId: Int64? = nil, noteId: Int64? = nil
+    ) -> AppNotification {
+        AppNotification(
+            id: 1, type: type, actorUsername: "yuki_dev", actorAvatarUrl: nil,
+            postId: postSlug == nil ? nil : 9, postSlug: postSlug, postTitle: nil,
+            postAuthorUsername: postAuthor, commentId: commentId, highlightId: highlightId,
+            seriesId: nil, seriesSlug: nil, seriesTitle: nil, collectionId: nil, collectionName: nil,
+            read: false, createdAt: nil, noteId: noteId)
+    }
+
+    @MainActor
+    func testAQuoteOfMyPostOpensTheQuotingNote() {
+        XCTAssertEqual(NotificationRoute.route(for: notice("POST_QUOTE", noteId: 9501)), .note(id: 9501))
+    }
+
+    @MainActor
+    func testMyNoteQuotedInAPostOpensThatPost() {
+        XCTAssertEqual(
+            NotificationRoute.route(for: notice("NOTE_EMBED", postSlug: "roundup", postAuthor: "yuki_dev")),
+            .post(username: "yuki_dev", slug: "roundup"))
+    }
+
+    @MainActor
+    func testCommentLikesAndHighlightsOpenTheirSpot() {
+        XCTAssertEqual(
+            NotificationRoute.route(
+                for: notice("COMMENT_LIKE", postSlug: "p", postAuthor: "honggildong", commentId: 506)),
+            .postSpot(username: "honggildong", slug: "p", spot: .comment(506)))
+        XCTAssertEqual(
+            NotificationRoute.route(
+                for: notice("HIGHLIGHT", postSlug: "p", postAuthor: "honggildong", highlightId: 6001)),
+            .postSpot(username: "honggildong", slug: "p", spot: .highlight(6001)))
+    }
+
+    func testEveryKindSitsInExactlyOneSettingsSection() {
+        let placed = NotificationKindSection.allCases.flatMap(\.kinds)
+        XCTAssertEqual(placed.count, Set(placed).count)
+        XCTAssertEqual(Set(placed), Set(NotificationKind.allCases))
+    }
 }
