@@ -135,6 +135,7 @@ struct RootView: View {
     /// 하단 탭바 상태의 단일 손잡이 — 탭 루트들이 스크롤 방향을 여기 보고하고,
     /// 커스텀 FloatingTabBar 가 그 상태로 바를 작게 줄였다 되돌린다(인스타그램식).
     @State private var tabBarVisibility = TabBarVisibility()
+    @State private var bottomInset: CGFloat = 0
     @State private var blogFeed = BlogFeedChoice.shared
     @State private var noteFeed = NoteFeedChoice.shared
     /// 한 번이라도 연 탭 — 상주시켜 스크롤 위치·상태를 보존한다(시스템 TabView 대체).
@@ -305,7 +306,7 @@ struct RootView: View {
 
             FloatingTabBar(
                 tabs: tabs, selection: selection, hidden: tabBarVisibility.forceHidden,
-                compact: tabBarVisibility.scrollHidden, menuTabs: feedMenuTabs
+                compact: tabBarVisibility.scrollHidden, bottomInset: bottomInset, menuTabs: feedMenuTabs
             ) { index in
                 if index == 0 {
                     BlogFeedMenu()
@@ -318,6 +319,12 @@ struct RootView: View {
                 .id(tabBarVisibility.forceHidden)
         }
         .ignoresSafeArea(.keyboard) // 키보드가 떠도 커스텀 바가 위로 밀려 올라오지 않게.
+        // 바 자신이 재면 옮긴 만큼 안전영역이 달라져 값이 진동한다 — 움직이지 않는 전면 층에서 잰다.
+        .background {
+            Color.clear
+                .ignoresSafeArea()
+                .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.bottom } action: { bottomInset = $0 }
+        }
         .environment(\.tabBarVisibility, tabBarVisibility)
         // 방문한 탭을 기록해 상주시킨다(첫 진입 이후 상태 보존).
         .onChange(of: selection.wrappedValue, initial: true) { _, new in
@@ -390,6 +397,7 @@ private struct FloatingTabBar<TabMenu: View>: View {
     let selection: Binding<Int>
     let hidden: Bool
     let compact: Bool
+    let bottomInset: CGFloat
     let menuTabs: Set<Int>
     @ViewBuilder let menu: (Int) -> TabMenu
     @ScaledMetric(relativeTo: .title3) private var iconSize: CGFloat = 25
@@ -453,15 +461,17 @@ private struct FloatingTabBar<TabMenu: View>: View {
         }
         .padding(.horizontal, Metrics.gutter)
         .padding(.bottom, 2)
-        .scaleEffect(scale, anchor: .bottom)
+        .scaleEffect(scale, anchor: .center)
         .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: compact)
         .animation(reduceMotion ? nil : .smooth(duration: 0.2), value: dragX == nil)
-        .offset(y: hidden ? 132 : 0)
+        .offset(y: hidden ? 132 : sink)
         .opacity(hidden ? 0 : 1)
         .allowsHitTesting(!hidden)
         .accessibilityHidden(hidden)
         .sensoryFeedback(.selection, trigger: slidIndex) { old, new in old != nil && new != nil }
     }
+
+    private var sink: CGFloat { max(0, bottomInset - 20) }
 
     private var scale: CGFloat {
         if reduceMotion { return 1 }
@@ -470,12 +480,12 @@ private struct FloatingTabBar<TabMenu: View>: View {
     }
 
     private var pill: some View {
-        let width = max(slot - 4, 0)
+        let width = max(slot + 8, 0)
         let center = dragX.map { min(max($0, slot / 2), rowWidth - slot / 2) }
             ?? (CGFloat(selection.wrappedValue) + 0.5) * slot
         return Capsule()
-            .fill(Palette.chipBg)
-            .frame(width: width, height: 44)
+            .fill(Palette.hairlineStrong)
+            .frame(width: width, height: 48)
             .offset(x: center - width / 2)
             .opacity(rowWidth > 0 ? 1 : 0)
             .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: selection.wrappedValue)
