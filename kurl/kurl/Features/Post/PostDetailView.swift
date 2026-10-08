@@ -1943,18 +1943,16 @@ struct CommentRow: View {
                     .accessibilityAddTraits(likedByMe ? [.isSelected] : [])
                     .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: likedByMe)
 
-                    // 답글은 최상위 댓글에만 — 1단 깊이 유지.
-                    if comment.parentId == nil {
-                        Button {
-                            replyTo = comment
-                        } label: {
-                            Text("답글")
-                                .typeScale(.meta)
-                                .foregroundStyle(Palette.secondary)
-                                .expandTapTarget()
-                        }
-                        .buttonStyle(.plain)
+                    Button {
+                        replyTo = comment
+                    } label: {
+                        Text("답글")
+                            .typeScale(.meta)
+                            .foregroundStyle(Palette.secondary)
+                            .expandTapTarget()
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("comment.reply.\(comment.id)")
                 }
                 .padding(.top, 1)
             }
@@ -2044,6 +2042,7 @@ struct GlassCommentBar: View {
     @State private var showLoginPrompt = false
     /// 전송 성공 햅틱 트리거 — 좋아요·팔로우와 같은 결의 가벼운 확인음.
     @State private var sentPulse = 0
+    @State private var calledHandle: String?
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -2080,6 +2079,7 @@ struct GlassCommentBar: View {
                 .typeScale(.body)
                 .lineLimit(1...4)
                 .focused($focused)
+                .accessibilityIdentifier("comment.input")
                 .submitLabel(.send)
                 .onSubmit { if canSend { send() } }
 
@@ -2121,6 +2121,17 @@ struct GlassCommentBar: View {
                 onDone()
             }
         }
+        .onChange(of: replyTo, initial: true) { _, target in
+            if let calledHandle, body_.hasPrefix(calledHandle) {
+                body_.removeFirst(calledHandle.count)
+            }
+            calledHandle = nil
+            guard let target, target.parentId != nil,
+                  target.author.username != AuthStore.shared.me?.username else { return }
+            let handle = "@\(target.author.username) "
+            body_ = handle + body_
+            calledHandle = handle
+        }
         .loginPrompt(isPresented: $showLoginPrompt, message: "이 글에 생각을 남겨보세요")
     }
 
@@ -2141,7 +2152,7 @@ struct GlassCommentBar: View {
             do {
                 try await model.postComment(
                     body: body_.trimmingCharacters(in: .whitespacesAndNewlines),
-                    parentId: replyTo?.id)
+                    parentId: replyTo.map { $0.parentId ?? $0.id })
                 body_ = ""
                 replyTo = nil
                 focused = false

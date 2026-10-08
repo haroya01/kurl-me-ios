@@ -242,8 +242,8 @@ enum MockBackend {
              "body": "저도요. 작게 시작했어야 했다는 데 200% 동의합니다.",
              "createdAt": iso(Date().addingTimeInterval(-7_000))],
             ["id": 7002, "author": ["id": 3, "username": "reader_kim", "bio": NSNull(), "avatarUrl": NSNull()],
-             "body": "첫 두 주 비용을 어떻게 줄였는지 더 듣고 싶어요.",
-             "createdAt": iso(Date().addingTimeInterval(-3_000))],
+             "body": "첫 두 주 비용을 어떻게 줄였는지 더 듣고 싶어요. @minji 님 팀은 어땠나요?",
+             "createdAt": iso(Date().addingTimeInterval(-3_000)), "mentions": ["minji"]],
         ]
     ]
     private static var commentRows: [[String: Any]] = [

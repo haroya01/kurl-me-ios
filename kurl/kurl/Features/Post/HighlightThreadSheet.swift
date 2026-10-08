@@ -27,6 +27,7 @@ struct HighlightThreadSheet: View {
     @State private var inCollections: [CollectionSummary] = []
     /// 이 문장과 같은 공개 컬렉션에 함께 놓인 다른 블록 — "이것과 이어진 것"(공동 등장 발견 고리).
     @State private var related: [RelatedBlock] = []
+    @State private var path = NavigationPath()
 
     /// 연결은 서버에 자리잡은(양수 id) 하이라이트만 — 낙관적 생성 직후(음수 id)는 refId 가 없다.
     private var canConnect: Bool { highlight.id > 0 && AuthStore.shared.isSignedIn }
@@ -43,7 +44,7 @@ struct HighlightThreadSheet: View {
     private var hasOpener: Bool { (highlight.note?.isEmpty == false) }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     // ── 앵커: 무엇에 대한 대화인가 (인용 + 큐레이터 메모) — 바짝 뭉친 한 덩어리.
@@ -80,7 +81,7 @@ struct HighlightThreadSheet: View {
                             ForEach(Array(replies.enumerated()), id: \.element.id) { index, reply in
                                 personRow(
                                     author: reply.author, date: reply.createdAt, text: reply.body,
-                                    isOpener: false, replyId: reply.id
+                                    mentions: reply.mentions ?? [], isOpener: false, replyId: reply.id
                                 )
                                 .modifier(QuietAppear(index: min(index, 6)))
                             }
@@ -156,6 +157,11 @@ struct HighlightThreadSheet: View {
                 CollectionDetailView(collectionId: $0.id)
             }
             .navigationDestination(for: Route.self) { RouteView(route: $0) }
+            .environment(\.openURL, OpenURLAction { url in
+                guard case let .member(username)? = NoteText.target(from: url) else { return .systemAction }
+                path.append(Route.author(username: username))
+                return .handled
+            })
             .scrollIndicators(.hidden)
             .safeAreaInset(edge: .bottom) { composer }
             .navigationTitle("하이라이트")
@@ -219,7 +225,8 @@ struct HighlightThreadSheet: View {
     /// 한 사람의 기여 = 아바타 + (이름·시각) + 본문, 바짝 뭉쳐 한 덩어리로(근접 그룹핑).
     /// 오프너(큐레이터 메모)는 이름 옆 그린 한 가닥으로 표시.
     private func personRow(
-        author: Author?, date: Date?, text: String, isOpener: Bool, replyId: Int64? = nil
+        author: Author?, date: Date?, text: String, mentions: [String] = [], isOpener: Bool,
+        replyId: Int64? = nil
     ) -> some View {
         HStack(alignment: .top, spacing: 10) {
             // 아바타·이름 → 그 사람 프로필(있을 때). 시트 안 스택에 push 된다.
@@ -266,7 +273,7 @@ struct HighlightThreadSheet: View {
                         .accessibilityLabel(Text("답글 삭제"))
                     }
                 }
-                Text(text)
+                Text(NoteText.attributed(text, mentions: mentions, tags: false))
                     .typeScale(.body)
                     .foregroundStyle(Palette.body)
                     .fixedSize(horizontal: false, vertical: true)
