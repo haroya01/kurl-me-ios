@@ -102,6 +102,7 @@ final class GraphNotificationsUITests: XCTestCase {
         if !connectedToggle.isHittable { app.swipeUp() }
         let pathToggle = app.switches
             .matching(NSPredicate(format: "label CONTAINS '새 글이 이어질'")).firstMatch
+        for _ in 0..<6 where !pathToggle.isHittable { app.swipeUp() }
         XCTAssertTrue(pathToggle.waitForExistence(timeout: 4), "PATH_GREW 토글이 없음")
 
         // 두 그래프 토글은 목 기본값 = 켜짐(on).

@@ -178,7 +178,7 @@ struct NotificationsView: View {
             let others: String? =
                 switch n.type {
                 case "NOTE_REPLY", "NOTE_QUOTE": n.sourceExcerpt
-                case "NOTE_MENTION": n.noteExcerpt
+                case "NOTE_MENTION", "POST_QUOTE": n.noteExcerpt
                 default: nil
                 }
             guard let others else { return true }
@@ -418,6 +418,9 @@ struct NotificationsView: View {
         case "SERIES_SUBSCRIBE": return "books.vertical.fill"
         case "NEW_POST": return "doc.text.fill"
         case "MENTION": return "at"
+        case "HIGHLIGHT": return "highlighter"
+        case "POST_QUOTE", "NOTE_EMBED": return "quote.bubble.fill"
+        case "COMMENT_LIKE": return "heart.fill"
         // 연결 그래프 — 엮임은 사슬(link), 길이 자람은 가지치는 흐름(§0 읽기 그래프).
         case "CONNECTED": return "link"
         case "PATH_GREW": return "arrow.triangle.branch"
@@ -474,7 +477,23 @@ struct NotificationsView: View {
         let actor = Text(n.actorUsername ?? String(localized: "알 수 없는 사용자"))
             .fontWeight(.semibold)
         switch n.type {
-        case "LIKE": return Text("\(actor)님이 글을 좋아해요")
+        case "LIKE":
+            let others = max((n.count ?? 1) - 1, 0)
+            return others > 0
+                ? Text("\(actor)님 외 \(others)명이 글을 좋아해요")
+                : Text("\(actor)님이 글을 좋아해요")
+        case "COMMENT_LIKE":
+            let others = max((n.count ?? 1) - 1, 0)
+            return others > 0
+                ? Text("\(actor)님 외 \(others)명이 내 댓글을 좋아해요")
+                : Text("\(actor)님이 내 댓글을 좋아해요")
+        case "HIGHLIGHT":
+            let others = max((n.count ?? 1) - 1, 0)
+            return others > 0
+                ? Text("\(actor)님 외 \(others)명이 내 글에 하이라이트를 남겼어요")
+                : Text("\(actor)님이 내 글에 하이라이트를 남겼어요")
+        case "POST_QUOTE": return Text("\(actor)님이 노트에서 내 글을 인용했어요")
+        case "NOTE_EMBED": return Text("\(actor)님이 글에서 내 노트를 인용했어요")
         case "COMMENT": return Text("\(actor)님이 댓글을 남겼어요")
         case "REPLY": return Text("\(actor)님이 답글을 남겼어요")
         case "FOLLOW": return Text("\(actor)님이 팔로우했어요")
@@ -516,7 +535,8 @@ struct NotificationsView: View {
     private func subtitle(_ n: AppNotification) -> String? {
         switch n.type {
         case "NOTE_REPLY", "NOTE_QUOTE": return n.sourceExcerpt
-        case "NOTE_LIKE", "NOTE_REPOST", "NOTE_MENTION", "NOTE_POLL", "NOTE_POST", "NOTE_EDIT":
+        case "NOTE_LIKE", "NOTE_REPOST", "NOTE_MENTION", "NOTE_POLL", "NOTE_POST", "NOTE_EDIT",
+            "POST_QUOTE":
             return n.noteExcerpt
         default: return n.postTitle ?? n.seriesTitle
         }
