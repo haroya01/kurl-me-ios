@@ -384,7 +384,7 @@ struct AuthorBlogView: View {
             } else {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(notes.items.enumerated()), id: \.element.id) { index, note in
-                        NoteRowView(
+                        NoteFeedItem(
                             note: note,
                             onChange: { changed in
                                 let repins = changed.pinned != note.pinned
@@ -430,7 +430,7 @@ struct AuthorBlogView: View {
             } else {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(reposts.items.enumerated()), id: \.element.id) { index, note in
-                        NoteRowView(
+                        NoteFeedItem(
                             note: note,
                             onChange: { reposts.replaced($0) },
                             onDelete: { reposts.removed($0) },

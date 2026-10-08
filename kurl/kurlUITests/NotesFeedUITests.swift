@@ -1286,6 +1286,35 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(toggle.waitForValue("0", timeout: 4), "토글이 꺼지지 않음")
     }
 
+    func testANoteWrittenInPartsShowsTwoPartsInTheFeedAndTheRestInItsDetail() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let first = app.staticTexts["note.position.9530"]
+        var tries = 0
+        while !first.isHittable, tries < 20 { app.swipeUp(); tries += 1 }
+        XCTAssertTrue(first.waitForExistence(timeout: 4), "이어 쓴 노트의 첫 편에 편 표시가 없음")
+        XCTAssertEqual(first.label, "이어 쓴 노트 1/4")
+        XCTAssertTrue(app.buttons["note.body.9531"].exists, "피드에 둘째 편이 이어 붙지 않음")
+        XCTAssertEqual(app.staticTexts["note.position.9531"].label, "이어 쓴 노트 2/4")
+        XCTAssertFalse(app.buttons["note.body.9532"].exists, "피드에 셋째 편까지 펼쳐짐")
+        let more = app.buttons["note.threadMore.9530"]
+        XCTAssertTrue(more.exists, "남은 편으로 가는 \"이어지는 글 N개 더\"가 없음")
+        XCTAssertTrue(more.label.contains("2개"), "남은 편 수가 틀림: \(more.label)")
+        attach(app, "note-thread-feed")
+
+        more.tap()
+        let last = app.staticTexts["note.position.9533"]
+        XCTAssertTrue(last.waitForExistence(timeout: 6), "상세에 마지막 편이 이어지지 않음")
+        XCTAssertEqual(last.label, "이어 쓴 노트 4/4")
+        XCTAssertTrue(app.buttons["note.body.9532"].exists, "상세에 셋째 편이 없음")
+        XCTAssertTrue(app.buttons["note.body.9534"].exists, "남의 답글이 사라짐")
+        XCTAssertLessThan(last.frame.minY, app.buttons["note.body.9534"].frame.minY, "남의 답글이 이어 쓴 편보다 위에 있음")
+        attach(app, "note-thread-detail")
+    }
+
     private func attach(_ app: XCUIApplication, _ name: String) {
         let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         shot.name = name

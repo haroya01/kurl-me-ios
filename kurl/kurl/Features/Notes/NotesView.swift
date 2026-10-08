@@ -223,6 +223,8 @@ struct NoteRowView: View {
     var threadLineBelow = false
     /// 상세의 본 노트 — 머리 줄 아래로 본문을 전체 폭에 한 단계 크게(스레드·X 문법).
     var focused = false
+    /// 이어 쓴 노트의 몇 번째 편인지("1/3") — 스레드처럼 머리 줄 끝에.
+    var position: String? = nil
 
     @State private var liked: Bool
     @State private var likeCount: Int64?
@@ -251,7 +253,7 @@ struct NoteRowView: View {
          onDelete: @escaping (Int64) -> Void,
          onQuoted: ((Note) -> Void)? = nil, repostedBy: String? = nil,
          showsPin: Bool = false,
-         threadLineBelow: Bool = false, focused: Bool = false) {
+         threadLineBelow: Bool = false, focused: Bool = false, position: String? = nil) {
         self.note = note
         self.onChange = onChange
         self.onDelete = onDelete
@@ -260,6 +262,7 @@ struct NoteRowView: View {
         self.showsPin = showsPin
         self.threadLineBelow = threadLineBelow
         self.focused = focused
+        self.position = position
         _liked = State(initialValue: note.likedByMe == true)
         _likeCount = State(initialValue: note.likeCount)
         _reposted = State(initialValue: note.repostedByMe == true)
@@ -442,6 +445,14 @@ struct NoteRowView: View {
                 }
                 .buttonStyle(.plain)
                 Spacer(minLength: 8)
+                if let position {
+                    Text(verbatim: position)
+                        .typeScale(.meta)
+                        .monospacedDigit()
+                        .foregroundStyle(Palette.secondary)
+                        .accessibilityLabel(Text("이어 쓴 노트 \(position)"))
+                        .accessibilityIdentifier("note.position.\(note.id)")
+                }
                 if !note.author.isRemote {
                     FollowButton(username: note.author.username)
                 }
@@ -571,6 +582,14 @@ struct NoteRowView: View {
                     .foregroundStyle(Palette.secondary)
             }
             Spacer(minLength: 0)
+            if let position {
+                Text(verbatim: position)
+                    .typeScale(.meta)
+                    .monospacedDigit()
+                    .foregroundStyle(Palette.secondary)
+                    .accessibilityLabel(Text("이어 쓴 노트 \(position)"))
+                    .accessibilityIdentifier("note.position.\(note.id)")
+            }
             moreMenu
         }
     }
@@ -1419,6 +1438,64 @@ struct NoteLinkCardView: View {
     }
 }
 
+/// 피드의 노트 한 줄 — 작성자가 이어 쓴 노트면 둘째 편을 스레드 선으로 잇고, 셋 이상이면
+/// 나머지는 "이어지는 글 N개 더"로 상세에 맡긴다(스레드·X와 같다).
+struct NoteFeedItem: View {
+    let note: Note
+    let onChange: (Note) -> Void
+    let onDelete: (Int64) -> Void
+    var onQuoted: ((Note) -> Void)? = nil
+    var repostedBy: String? = nil
+    var showsPin = false
+
+    var body: some View {
+        let thread = note.thread
+        let next = thread?.preview.first
+        VStack(alignment: .leading, spacing: 0) {
+            NoteRowView(
+                note: note,
+                onChange: { updated in
+                    var kept = updated
+                    if kept.thread == nil { kept.thread = note.thread }
+                    onChange(kept)
+                },
+                onDelete: onDelete, onQuoted: onQuoted, repostedBy: repostedBy, showsPin: showsPin,
+                threadLineBelow: next != nil,
+                position: next == nil ? nil : thread.map { "1/\($0.total)" })
+            if let thread, let next {
+                NoteRowView(
+                    note: next,
+                    onChange: { updated in
+                        var parent = note
+                        parent.thread = NoteSelfThread(total: thread.total, preview: [updated])
+                        onChange(parent)
+                    },
+                    onDelete: { _ in
+                        var parent = note
+                        parent.thread = nil
+                        onChange(parent)
+                    },
+                    onQuoted: onQuoted,
+                    position: "2/\(thread.total)")
+                if thread.total > 2 {
+                    NavigationLink(value: Route.note(id: note.id)) {
+                        Text("이어지는 글 \(thread.total - 2)개 더")
+                            .typeScale(.meta)
+                            .fontWeight(.medium)
+                            .foregroundStyle(Palette.link)
+                            .padding(.leading, 48)
+                            .padding(.bottom, 14)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("note.threadMore.\(note.id)")
+                }
+            }
+        }
+    }
+}
+
 /// 노트 상세 — 원글(답글이면) · 노트 · 답글. 답글은 툴바 버튼이 여는 작성 시트로.
 struct NoteDetailView: View {
     let noteId: Int64
@@ -1439,11 +1516,22 @@ struct NoteDetailView: View {
                             NoteRowView(
                                 note: parent, onChange: { _ in }, onDelete: { _ in }, threadLineBelow: true)
                         }
+                        let parts = thread.continuation ?? []
+                        let numbered = !parts.isEmpty && thread.parent?.author.id != thread.note.author.id
                         NoteRowView(
                             note: thread.note,
-                            onChange: { note in self.thread = NoteThread(note: note, parent: thread.parent, replies: thread.replies) },
+                            onChange: { note in update { $0.note = note } },
                             onDelete: { _ in dismiss() },
-                            focused: true)
+                            focused: true,
+                            position: numbered ? "1/\(parts.count + 1)" : nil)
+                        ForEach(Array(parts.enumerated()), id: \.element.id) { index, part in
+                            NoteRowView(
+                                note: part,
+                                onChange: { next in update { $0.continuation = $0.continuation?.map { $0.id == next.id ? next : $0 } } },
+                                onDelete: { id in update { $0.continuation?.removeAll { $0.id == id } } },
+                                threadLineBelow: index < parts.count - 1,
+                                position: numbered ? "\(index + 2)/\(parts.count + 1)" : nil)
+                        }
                         Hairline().padding(.horizontal, -Metrics.noteGutter)
                         HStack(spacing: 6) {
                             Text("답글")
@@ -1538,13 +1626,16 @@ struct NoteDetailView: View {
         var note: Note
         var parent: Note?
         var replies: [Note]
+        var continuation: [Note]?
     }
 
     private func update(_ change: (inout MutableThread) -> Void) {
         guard let thread else { return }
-        var mutable = MutableThread(note: thread.note, parent: thread.parent, replies: thread.replies)
+        var mutable = MutableThread(
+            note: thread.note, parent: thread.parent, replies: thread.replies, continuation: thread.continuation)
         change(&mutable)
-        self.thread = NoteThread(note: mutable.note, parent: mutable.parent, replies: mutable.replies)
+        self.thread = NoteThread(
+            note: mutable.note, parent: mutable.parent, replies: mutable.replies, continuation: mutable.continuation)
     }
 
     private func load() async {

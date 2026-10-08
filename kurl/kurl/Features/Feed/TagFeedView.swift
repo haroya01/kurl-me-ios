@@ -167,7 +167,7 @@ struct TagFeedView: View {
             } else {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(notes.items.enumerated()), id: \.element.id) { index, note in
-                        NoteRowView(
+                        NoteFeedItem(
                             note: note,
                             onChange: { notes.replaced($0) },
                             onDelete: { notes.removed($0) }

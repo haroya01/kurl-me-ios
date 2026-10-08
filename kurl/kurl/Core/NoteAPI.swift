@@ -419,6 +419,8 @@ struct Note: Decodable, Identifiable, Hashable {
     var conversationMuted: Bool? = nil
     /// 작성자가 고른 언어(ISO 639-1). 정하지 않은 노트·다른 서버가 안 알려 준 노트는 nil.
     var language: String? = nil
+    /// 피드에서 작성자가 이어 쓴 노트 — 전체 편 수와 바로 아래에 보일 다음 편.
+    var thread: NoteSelfThread? = nil
 
     var noteVisibility: NoteVisibility { NoteVisibility(rawValue: visibility ?? "public") ?? .public }
 }
@@ -537,10 +539,17 @@ struct TrendingNoteLink: Decodable, Hashable, Identifiable {
     }
 }
 
+struct NoteSelfThread: Decodable, Hashable {
+    let total: Int
+    let preview: [Note]
+}
+
 struct NoteThread: Decodable {
     let note: Note
     let parent: Note?
     let replies: [Note]
+    /// 작성자가 이 노트 아래로 이어 쓴 노트들(순서대로). replies 에는 남의 답글만 남는다.
+    var continuation: [Note]? = nil
 }
 
 struct NoteDraft: Encodable {

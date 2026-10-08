@@ -775,7 +775,7 @@ struct SearchView: View {
                         .padding(.top, 40)
                 case .loaded:
                     ForEach(Array(noteResults.items.enumerated()), id: \.element.id) { index, note in
-                        NoteRowView(
+                        NoteFeedItem(
                             note: note,
                             onChange: { noteResults.replaced($0) },
                             onDelete: { noteResults.removed($0) })

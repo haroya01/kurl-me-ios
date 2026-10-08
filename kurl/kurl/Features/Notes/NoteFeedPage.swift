@@ -185,7 +185,7 @@ struct NoteFeedPage: View {
                 emptyFeed.padding(.top, 56)
             } else {
                 ForEach(Array(model.items.enumerated()), id: \.element.id) { index, note in
-                    NoteRowView(
+                    NoteFeedItem(
                         note: note,
                         onChange: { model.replaced($0) },
                         onDelete: { model.removed($0) },
