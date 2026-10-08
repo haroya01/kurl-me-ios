@@ -725,36 +725,99 @@ struct ContentTabBar<Tab: Hashable>: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        HStack(spacing: 0) {
-            ForEach(tabs, id: \.self) { tab in
-                Button {
-                    selection = tab
-                } label: {
-                    Text(label(tab))
-                        .typeScale(.body)
-                        .fontWeight(selection == tab ? .semibold : .regular)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                        .foregroundStyle(selection == tab ? Palette.ink : Palette.secondary)
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                        .overlay(alignment: .bottom) {
-                            if selection == tab {
-                                Capsule()
-                                    .fill(Palette.ink)
-                                    .frame(height: 2)
-                                    .matchedGeometryEffect(id: "underline", in: underline)
-                            }
-                        }
-                        .contentShape(Rectangle())
+        ViewThatFits(in: .horizontal) {
+            TabStripLayout(gap: TabStripWidths.gap) {
+                buttons(padding: 0)
+            }
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal) {
+                    HStack(spacing: 0) {
+                        buttons(padding: TabStripWidths.gap / 2)
+                    }
                 }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(selection == tab ? .isSelected : [])
-                .accessibilityIdentifier(identifier(tab))
+                .scrollIndicators(.hidden)
+                .onAppear { proxy.scrollTo(selection, anchor: .center) }
+                .onChange(of: selection) { _, tab in
+                    withAnimation(reduceMotion ? nil : .smooth(duration: 0.25)) {
+                        proxy.scrollTo(tab, anchor: .center)
+                    }
+                }
             }
         }
         .background(alignment: .bottom) { Hairline() }
         .background(background)
         .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: selection)
         .sensoryFeedback(.selection, trigger: selection)
+    }
+
+    private func buttons(padding: CGFloat) -> some View {
+        ForEach(tabs, id: \.self) { tab in
+            Button {
+                selection = tab
+            } label: {
+                Text(label(tab))
+                    .typeScale(.body)
+                    .fontWeight(selection == tab ? .semibold : .regular)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .foregroundStyle(selection == tab ? Palette.ink : Palette.secondary)
+                    .padding(.horizontal, padding)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .overlay(alignment: .bottom) {
+                        if selection == tab {
+                            Capsule()
+                                .fill(Palette.ink)
+                                .frame(height: 2)
+                                .matchedGeometryEffect(id: "underline", in: underline)
+                        }
+                    }
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .id(tab)
+            .accessibilityAddTraits(selection == tab ? .isSelected : [])
+            .accessibilityIdentifier(identifier(tab))
+        }
+    }
+}
+
+/// 탭 폭: 가장 긴 라벨이 같은 폭 칸에 들어가면 같은 폭, 아니면 라벨 길이에 비례, 그래도 넘치면 nil(가로 스크롤).
+enum TabStripWidths {
+    static let gap: CGFloat = 16
+
+    static func widths(labels: [CGFloat], available: CGFloat) -> [CGFloat]? {
+        guard !labels.isEmpty else { return [] }
+        let count = CGFloat(labels.count)
+        let needed = labels.reduce(0) { $0 + $1 + gap }
+        guard needed <= available else { return nil }
+        let slot = available / count
+        if (labels.max() ?? 0) + gap <= slot { return labels.map { _ in slot } }
+        let extra = (available - needed) / count
+        return labels.map { $0 + gap + extra }
+    }
+}
+
+private struct TabStripLayout: Layout {
+    let gap: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let ideals = subviews.map { $0.sizeThatFits(.unspecified) }
+        let needed = ideals.reduce(0) { $0 + $1.width + gap }
+        let height = ideals.map(\.height).max() ?? 0
+        guard let width = proposal.width, width.isFinite else { return CGSize(width: needed, height: height) }
+        return CGSize(width: max(width, needed), height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let labels = subviews.map { $0.sizeThatFits(.unspecified).width }
+        let widths = TabStripWidths.widths(labels: labels, available: bounds.width)
+            ?? labels.map { $0 + gap }
+        var x = bounds.minX
+        for (subview, width) in zip(subviews, widths) {
+            subview.place(
+                at: CGPoint(x: x, y: bounds.minY),
+                proposal: ProposedViewSize(width: width, height: bounds.height))
+            x += width
+        }
     }
 }
