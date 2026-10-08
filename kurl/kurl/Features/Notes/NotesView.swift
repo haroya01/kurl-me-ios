@@ -2002,7 +2002,7 @@ struct NoteComposeSheet: View {
                             .foregroundStyle(Palette.ink)
                     }
                     Spacer(minLength: 0)
-                    if count > 0 {
+                    if count > NoteAPI.maxLength - 100 {
                         NoteLengthRing(length: count, limit: NoteAPI.maxLength)
                     }
                     Button {
