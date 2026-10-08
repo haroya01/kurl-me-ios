@@ -252,19 +252,15 @@ enum Metrics {
     /// 노트 행 — 스레드처럼 칼럼을 넓게 쓰고 구분선은 화면 끝까지.
     static let noteGutter: CGFloat = 16
 
-    // 코너 반경 4단 — 같은 급의 면은 같은 반경(매직넘버 산포 방지).
-    /// 전폭 카드(피드·커버) — 하단 유리 띠와 동일값 강제(DESIGN.md §1.5).
-    static let radiusCard: CGFloat = 20
-    /// 미니 카드(레일·다음 편·힌트 캡슐류)
-    static let radiusMini: CGFloat = 16
-    /// 컨트롤 면(코드 블록·입력 프롬프트·임베드)
-    static let radiusControl: CGFloat = 12
-    /// 썸네일(행 안의 56×42 등)
-    static let radiusThumb: CGFloat = 8
+    // 곡률은 두 단계 — 한 줄짜리 컨트롤은 Capsule, 여러 줄 면은 radius 하나.
+    // RoundedRectangle 은 반경을 짧은 변의 절반으로 자르므로 40pt 이하 면은 radius 로도 캡슐이 된다.
+    static let radius: CGFloat = 20
+    /// 행·카드 안에 들인 작은 썸네일 — 큰 radius 를 그대로 쓰면 타원이 된다.
+    static let radiusInner: CGFloat = 8
     /// 차트 막대(완주 funnel·비율 막대) — 얇은 데이터 막대의 둥근 끝.
     static let radiusBar: CGFloat = 3
 
-    /// 전폭 종이 카드 내부 여백 — radiusCard 면이 본문을 들이는 정준 인셋.
+    /// 전폭 종이 카드 내부 여백 — radius 면이 본문을 들이는 정준 인셋.
     /// 텍스트 카드·발행 미리보기·자리표시가 같은 값을 물어 카드끼리 결이 안 어긋난다.
     static let cardPadding: CGFloat = 18
 
@@ -282,8 +278,6 @@ enum GlassTokens {
     /// 커버 사진 위 맑은 유리의 가독 틴트 — 밝은 사진(흰 책상류)에서도 흰 타이포가 서야
     /// 해서 0.32 로는 모자랐다.
     static let mediaScrim = Color.black.opacity(0.40)
-    /// 큰 유리 면(독·패널) 모서리. 컨트롤은 캡슐이 기본.
-    static let panelRadius: CGFloat = 24
     /// 유리 클러스터 간격 — GlassEffectContainer 가 이 거리부터 서로 녹여 붙인다.
     static let clusterSpacing: CGFloat = 18
 }

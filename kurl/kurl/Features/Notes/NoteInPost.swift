@@ -49,7 +49,7 @@ struct NoteEmbedCard<Fallback: View>: View {
             } else if failed {
                 fallback()
             } else {
-                RoundedRectangle(cornerRadius: Metrics.radiusMini)
+                RoundedRectangle(cornerRadius: Metrics.radius)
                     .fill(Palette.hairline)
                     .frame(height: 96)
                     .padding(.vertical, 6)

@@ -314,7 +314,7 @@ private struct DeckSwipeHint: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .glassEffect(.regular, in: .rect(cornerRadius: Metrics.radiusMini))
+        .glassEffect(.regular, in: .rect(cornerRadius: Metrics.radius))
         .onAppear {
             // 상호작용 UI 위의 ambient 연속 모션 금지(§10.7) — 첫 등장 한 번만 살짝 흐르고 정지한다.
             guard !reduceMotion else { return }

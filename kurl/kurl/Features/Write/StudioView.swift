@@ -397,7 +397,7 @@ struct StudioView: View {
                     }
                 }
                 .frame(width: 72, height: 72)
-                .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusInner, style: .continuous))
             }
         }
         .padding(.vertical, 16)
@@ -609,7 +609,7 @@ struct StudioView: View {
                             .frame(width: 40, height: 40)
                             .background(
                                 Palette.accent.opacity(0.10),
-                                in: RoundedRectangle(cornerRadius: Metrics.radiusThumb, style: .continuous))
+                                in: RoundedRectangle(cornerRadius: Metrics.radiusInner, style: .continuous))
                         VStack(alignment: .leading, spacing: 2) {
                             Text(series.title)
                                 .typeScale(.titleSmall)

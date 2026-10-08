@@ -244,9 +244,9 @@ struct SeriesNextCard: View {
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous)
+            RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
                 .stroke(Palette.cardBorder, lineWidth: 1)
         )
-        .contentShape(RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
     }
 }

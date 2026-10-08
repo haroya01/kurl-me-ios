@@ -55,7 +55,7 @@ final class SnapshotSamplesTests: XCTestCase {
         VStack(alignment: .leading, spacing: 10) {
             ForEach(Self.tokens, id: \.0) { name, color in
                 HStack(spacing: 12) {
-                    RoundedRectangle(cornerRadius: Metrics.radiusThumb)
+                    RoundedRectangle(cornerRadius: Metrics.radiusInner)
                         .fill(color)
                         .frame(width: 48, height: 30)
                     Text(name).typeScale(.body).foregroundStyle(Palette.ink)

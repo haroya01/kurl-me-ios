@@ -93,9 +93,9 @@ struct EditorHarnessView: View {
                 .padding(16)
         }
         .frame(maxHeight: 220)
-        .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radiusControl))
+        .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radius))
         .overlay(
-            RoundedRectangle(cornerRadius: Metrics.radiusControl)
+            RoundedRectangle(cornerRadius: Metrics.radius)
                 .strokeBorder(Palette.hairline, lineWidth: 1)
         )
         .padding(.horizontal, 16)

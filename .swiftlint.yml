@@ -21,5 +21,5 @@ custom_rules:
   brand_magic_corner_radius:
     name: "매직넘버 반경 금지"
     regex: 'cornerRadius:\s*([3-9]\b|[1-9][0-9])'
-    message: "반경은 Metrics(radiusCard 20·radiusMini 16·radiusControl 12·radiusThumb 8)·GlassTokens.panelRadius 토큰으로(DESIGN.md §1.5). 장식용 1·2 는 허용."
-    severity: warning
+    message: "곡률은 두 단계 — 한 줄 컨트롤은 Capsule(), 여러 줄 면은 Metrics.radius(20), 행 안 작은 썸네일만 Metrics.radiusInner. 장식용 1·2 는 허용."
+    severity: error

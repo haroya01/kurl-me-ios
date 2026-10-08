@@ -246,7 +246,7 @@ struct BlockView: View {
         .overlay(alignment: .leading) {
             Rectangle().fill(Palette.calloutBar(kind)).frame(width: 4)
         }
-        .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
+        .clipShape(RoundedRectangle(cornerRadius: Metrics.radius))
         .accessibilityElement(children: .combine)
         .padding(.vertical, 6)
         .padding(.bottom, 8)
@@ -456,8 +456,8 @@ private struct CodeBlockView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .background(Palette.codeBg, in: RoundedRectangle(cornerRadius: Metrics.radiusControl))
-        .overlay(RoundedRectangle(cornerRadius: Metrics.radiusControl).strokeBorder(Palette.hairlineStrong.opacity(0.4), lineWidth: 1))
+        .background(Palette.codeBg, in: RoundedRectangle(cornerRadius: Metrics.radius))
+        .overlay(RoundedRectangle(cornerRadius: Metrics.radius).strokeBorder(Palette.hairlineStrong.opacity(0.4), lineWidth: 1))
         .padding(.top, 4)
         .padding(.bottom, 16)
     }
@@ -735,7 +735,7 @@ private struct ImageBlockView: View {
                             .transition(.opacity)
                     }
                 }
-                .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusMini))
+                .clipShape(RoundedRectangle(cornerRadius: Metrics.radius))
                 .accessibilityLabel(Text(
                     payload.caption?.isEmpty == false
                         ? payload.caption! : String(localized: "본문 이미지")))
@@ -767,7 +767,7 @@ private struct ImageBlockView: View {
     /// 로드 전·실패 자리 — 고정 높이 대신 실제 비율(모르면 사진 일반형 4:3)로 컬럼폭 기준
     /// 높이를 예약한다. 고정 200pt 는 성공 시 자연 비율과의 차이만큼 아래 본문을 밀었다.
     private func reservedBox(for url: URL) -> some View {
-        RoundedRectangle(cornerRadius: Metrics.radiusMini)
+        RoundedRectangle(cornerRadius: Metrics.radius)
             .fill(Palette.hairline)
             .aspectRatio(ImageRatioCache.ratio(for: url) ?? 4.0 / 3.0, contentMode: .fit)
     }
@@ -1062,7 +1062,7 @@ private struct EmbedLinkCard: View {
                 .padding(14)
                 .frame(maxWidth: .infinity)
                 .overlay(
-                    RoundedRectangle(cornerRadius: Metrics.radiusControl)
+                    RoundedRectangle(cornerRadius: Metrics.radius)
                         .strokeBorder(Palette.hairlineStrong, lineWidth: 1)
                 )
             }
@@ -1116,9 +1116,9 @@ private struct InlineVideoEmbed: View {
         .aspectRatio(16.0 / 9.0, contentMode: .fit)
         .frame(maxWidth: .infinity)
         .background(Color.black)
-        .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusControl, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: Metrics.radiusControl, style: .continuous)
+            RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
                 .strokeBorder(Palette.hairlineStrong.opacity(0.5), lineWidth: 1)
         )
         .padding(.vertical, 8)
@@ -1228,7 +1228,7 @@ private struct CtaBlockView: View {
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(Palette.accentFill, in: RoundedRectangle(cornerRadius: Metrics.radiusControl))
+                    .background(Palette.accentFill, in: RoundedRectangle(cornerRadius: Metrics.radius))
             }
             .padding(.vertical, 6)
         }

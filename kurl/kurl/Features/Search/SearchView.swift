@@ -257,13 +257,13 @@ struct SearchView: View {
                                 .background(
                                     Palette.cardBg,
                                     in: RoundedRectangle(
-                                        cornerRadius: Metrics.radiusMini, style: .continuous))
+                                        cornerRadius: Metrics.radius, style: .continuous))
                                 // 흰 카드가 slate-50 위에서 안 보였다 — 다른 카드처럼
                                 // 그림자(라이트)·보더(다크)로 면을 들어 올린다.
                                 .overlay {
                                     if colorScheme == .dark {
                                         RoundedRectangle(
-                                            cornerRadius: Metrics.radiusMini, style: .continuous)
+                                            cornerRadius: Metrics.radius, style: .continuous)
                                             .strokeBorder(Palette.cardBorder, lineWidth: 1)
                                     }
                                 }
@@ -361,7 +361,7 @@ struct SearchView: View {
     }
 
     @ViewBuilder private func linkThumbnail(_ trend: TrendingNoteLink) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: Metrics.radiusInner, style: .continuous)
         if let image = trend.imageUrl.flatMap(URL.init(string:)) {
             RemoteImage(url: image, maxPixel: 200) { phase in
                 if case .success(let loaded) = phase {
@@ -456,10 +456,10 @@ struct SearchView: View {
         .padding(.horizontal, 12)
         .frame(width: 156)
         .background(
-            Palette.cardBg, in: RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous))
+            Palette.cardBg, in: RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
         .overlay {
             if colorScheme == .dark {
-                RoundedRectangle(cornerRadius: Metrics.radiusMini, style: .continuous)
+                RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
                     .strokeBorder(Palette.cardBorder, lineWidth: 1)
             }
         }

@@ -601,7 +601,7 @@ struct NoteRowView: View {
             .padding(.vertical, 6)
             .padding(.leading, 10)
             .padding(.trailing, 6)
-            .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radiusMini))
+            .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radius))
             .padding(.top, 4)
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("note.warning.\(note.id)")
@@ -642,7 +642,7 @@ struct NoteRowView: View {
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("note.sensitive.\(note.id)")
                     }
-                    .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
+                    .clipShape(RoundedRectangle(cornerRadius: Metrics.radius))
                     .transition(.opacity)
                 }
             }
@@ -1025,9 +1025,9 @@ struct QuotedPostCard: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
         .overlay(
-            RoundedRectangle(cornerRadius: Metrics.radiusMini)
+            RoundedRectangle(cornerRadius: Metrics.radius)
                 .stroke(Palette.hairlineStrong, lineWidth: 1))
-        .contentShape(RoundedRectangle(cornerRadius: Metrics.radiusMini))
+        .contentShape(RoundedRectangle(cornerRadius: Metrics.radius))
     }
 }
 
@@ -1078,7 +1078,7 @@ struct QuotedNoteCard: View {
                                 }
                         }
                         .frame(width: 64, height: 64)
-                        .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
+                        .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusInner))
                         .accessibilityLabel(Text(image.altText ?? String(localized: "사진")))
                     }
                 }
@@ -1089,9 +1089,9 @@ struct QuotedNoteCard: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
         .overlay(
-            RoundedRectangle(cornerRadius: Metrics.radiusMini)
+            RoundedRectangle(cornerRadius: Metrics.radius)
                 .stroke(Palette.hairlineStrong, lineWidth: 1))
-        .contentShape(RoundedRectangle(cornerRadius: Metrics.radiusMini))
+        .contentShape(RoundedRectangle(cornerRadius: Metrics.radius))
     }
 }
 
@@ -1192,10 +1192,10 @@ private struct NoteImageTile: View {
                         loaded.resizable().scaledToFill()
                     }
                 }
-                .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
-            .overlay(RoundedRectangle(cornerRadius: Metrics.radiusThumb).stroke(Palette.hairline, lineWidth: 0.5))
+                .clipShape(RoundedRectangle(cornerRadius: Metrics.radius))
+            .overlay(RoundedRectangle(cornerRadius: Metrics.radius).stroke(Palette.hairline, lineWidth: 0.5))
             .overlay(alignment: .bottomLeading) { altLayer }
-            .contentShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
+            .contentShape(RoundedRectangle(cornerRadius: Metrics.radius))
             .onTapGesture(perform: onOpen)
             .accessibilityElement()
             .accessibilityAddTraits([.isImage, .isButton])
@@ -1234,7 +1234,7 @@ private struct NoteImageTile: View {
                     LinearGradient(colors: [.clear, .black.opacity(0.75)], startPoint: .top, endPoint: .bottom)
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
+            .clipShape(RoundedRectangle(cornerRadius: Metrics.radius))
         }
     }
 }
@@ -1405,9 +1405,9 @@ struct NoteLinkCardView: View {
             .padding(.vertical, 10)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusMini))
-        .overlay(RoundedRectangle(cornerRadius: Metrics.radiusMini).stroke(Palette.hairlineStrong, lineWidth: 1))
-        .contentShape(RoundedRectangle(cornerRadius: Metrics.radiusMini))
+        .clipShape(RoundedRectangle(cornerRadius: Metrics.radius))
+        .overlay(RoundedRectangle(cornerRadius: Metrics.radius).stroke(Palette.hairlineStrong, lineWidth: 1))
+        .contentShape(RoundedRectangle(cornerRadius: Metrics.radius))
     }
 }
 
@@ -1677,7 +1677,7 @@ struct NoteComposeSheet: View {
                                     .lineLimit(1...3)
                                     .padding(.vertical, 6)
                                     .padding(.horizontal, 10)
-                                    .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radiusMini))
+                                    .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radius))
                                     .padding(.vertical, 4)
                                     .accessibilityIdentifier("noteCompose.warning")
                                     .transition(.opacity.combined(with: .move(edge: .top)))
@@ -1946,7 +1946,7 @@ struct NoteComposeSheet: View {
                         .resizable()
                         .scaledToFill()
                         .frame(width: 190 * ratio, height: 190)
-                        .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
+                        .clipShape(RoundedRectangle(cornerRadius: Metrics.radius))
                         .accessibilityLabel(Text(item.altText.isEmpty ? String(localized: "사진") : item.altText))
                         .overlay(alignment: .topTrailing) {
                             Button {
@@ -2020,7 +2020,7 @@ struct NoteComposeSheet: View {
                         .resizable()
                         .scaledToFit()
                         .frame(maxWidth: .infinity, maxHeight: 220)
-                        .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
+                        .clipShape(RoundedRectangle(cornerRadius: Metrics.radius))
                         .accessibilityHidden(true)
                 }
                 TextField("대체 텍스트", text: binding, axis: .vertical)

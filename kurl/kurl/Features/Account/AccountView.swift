@@ -174,7 +174,7 @@ struct AccountView: View {
             }
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .glassEffect(.regular, in: .rect(cornerRadius: GlassTokens.panelRadius))
+            .glassEffect(.regular, in: .rect(cornerRadius: Metrics.radius))
             .padding(.top, 16)
         }
     }

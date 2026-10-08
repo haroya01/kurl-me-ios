@@ -108,9 +108,9 @@ struct BlockImageView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             imageBody
-                .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusMini))
+                .clipShape(RoundedRectangle(cornerRadius: Metrics.radius))
                 .overlay(
-                    RoundedRectangle(cornerRadius: Metrics.radiusMini)
+                    RoundedRectangle(cornerRadius: Metrics.radius)
                         .strokeBorder(isFocused ? Palette.accentSoft : Color.clear, lineWidth: 2)
                 )
                 .contentShape(.rect)
@@ -196,7 +196,7 @@ struct BlockImageView: View {
 
     private func placeholder(caption: String?) -> some View {
         ZStack {
-            RoundedRectangle(cornerRadius: Metrics.radiusMini)
+            RoundedRectangle(cornerRadius: Metrics.radius)
                 .fill(Palette.hairline)
                 .aspectRatio(4.0 / 3.0, contentMode: .fit)
             VStack(spacing: 6) {

@@ -57,9 +57,9 @@ struct BlockCodeView: View {
             .padding(.bottom, 14)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Palette.codeBg, in: RoundedRectangle(cornerRadius: Metrics.radiusControl))
+        .background(Palette.codeBg, in: RoundedRectangle(cornerRadius: Metrics.radius))
         .overlay(
-            RoundedRectangle(cornerRadius: Metrics.radiusControl)
+            RoundedRectangle(cornerRadius: Metrics.radius)
                 .strokeBorder(Palette.hairlineStrong.opacity(0.4), lineWidth: 1)
         )
     }

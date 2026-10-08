@@ -103,9 +103,9 @@ struct NotePollView: View {
             .padding(.vertical, 8)
             .frame(minHeight: 40)
             .overlay(
-                RoundedRectangle(cornerRadius: Metrics.radiusThumb)
+                RoundedRectangle(cornerRadius: Metrics.radius)
                     .strokeBorder(on ? Palette.link : Palette.hairlineStrong, lineWidth: on ? 1.5 : 1))
-            .contentShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
+            .contentShape(RoundedRectangle(cornerRadius: Metrics.radius))
         }
         .buttonStyle(.plain)
         .disabled(voting)
@@ -140,11 +140,11 @@ struct NotePollView: View {
         .padding(.vertical, 8)
         .frame(minHeight: 40)
         .overlay(
-            RoundedRectangle(cornerRadius: Metrics.radiusThumb)
+            RoundedRectangle(cornerRadius: Metrics.radius)
                 .strokeBorder(Palette.hairlineStrong.opacity(0.6)))
         .background(alignment: .leading) {
             GeometryReader { geo in
-                RoundedRectangle(cornerRadius: Metrics.radiusThumb)
+                RoundedRectangle(cornerRadius: Metrics.radius)
                     .fill(top ? Palette.accentSoft.opacity(0.32) : Palette.chipBg)
                     .frame(width: filled ? max(geo.size.width * share, share > 0 ? 6 : 0) : 0)
             }
@@ -274,7 +274,7 @@ struct NotePollEditor: View {
                         .padding(.horizontal, 12)
                         .frame(minHeight: 40)
                         .overlay(
-                            RoundedRectangle(cornerRadius: Metrics.radiusThumb)
+                            RoundedRectangle(cornerRadius: Metrics.radius)
                                 .strokeBorder(focused == choice.id ? Palette.link : Palette.hairlineStrong))
                         .accessibilityIdentifier("noteCompose.poll.option.\(index)")
                     if draft.choices.count > 2 {
@@ -332,7 +332,7 @@ struct NotePollEditor: View {
         }
         .padding(12)
         .background(
-            RoundedRectangle(cornerRadius: Metrics.radiusControl)
+            RoundedRectangle(cornerRadius: Metrics.radius)
                 .strokeBorder(Palette.hairlineStrong))
         .onAppear { focused = draft.choices.first?.id }
     }
