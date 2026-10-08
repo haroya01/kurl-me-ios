@@ -22,7 +22,7 @@ struct NotesTabView: View {
             SwipePager(tabs: NoteFeedKind.tabs, selection: $choice.kind) { kind, active, warm in
                 NoteFeedPage(kind: kind, model: model(kind), active: active, warm: warm)
             }
-            .safeAreaInset(edge: .top) {
+            .safeAreaBar(edge: .top) {
                 FeedHeaderBar(items: NoteFeedKind.tabs, selection: $choice.kind, label: \.label) {
                     Menu {
                         NoteFeedMenu()

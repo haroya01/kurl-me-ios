@@ -51,7 +51,7 @@ struct StudioView: View {
             // 내비바 principal 의 맨몸 세그먼트는 유리 없이 판판했다 — 피드와 같은 떠 있는 유리로 통일.
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(auth.isSignedIn ? .hidden : .automatic, for: .navigationBar)
-            .safeAreaInset(edge: .top) {
+            .safeAreaBar(edge: .top) {
                 if auth.isSignedIn {
                     // 좌측 '새 글' 폭만큼의 투명 균형추 — 스위처가 화면 정중앙에 오게(피드의 벨 보정과 같은 수법).
                     HStack(spacing: 0) {
