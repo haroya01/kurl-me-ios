@@ -223,10 +223,16 @@ enum MockBackend {
         // 다중 블록 — 첫 문단 중간부터 둘째 문단 머리까지 가로지른다(④-2 렌더 검증).
         ["id": 6002,
          "author": ["id": 3, "username": "reader_kim", "bio": NSNull(), "avatarUrl": NSNull()],
-         "blockOrder": 1, "endBlockOrder": 2, "startOffset": 30, "endOffset": 18,
+         "blockOrder": 1, "endBlockOrder": 2, "startOffset": 27, "endOffset": 18,
          "quote": "다만 첫 두 주에 들인 비용을 미리 알았다면, 훨씬 더 작게 시작했을 것이다. 레이어드 구조로 3년을",
          "note": NSNull(),
          "createdAt": iso(Date().addingTimeInterval(-5_000))],
+        ["id": 6004,
+         "author": ["id": 4, "username": "minji", "bio": NSNull(), "avatarUrl": NSNull()],
+         "blockOrder": 1, "startOffset": 30, "endOffset": 51,
+         "quote": "첫 두 주에 들인 비용을 미리 알았다면",
+         "note": NSNull(),
+         "createdAt": iso(Date().addingTimeInterval(-4_500))],
         // 내가 그은 것(author=나) — 리더에서 '내 하이라이트 삭제'를 검증할 앵커(다른 문단, 다른 테스트와
         // 무충돌). 문단 전체를 덮어(중앙 어디를 탭해도 마크에 맞게) 스크롤 위치에 덜 민감하게 한다.
         ["id": 6003,

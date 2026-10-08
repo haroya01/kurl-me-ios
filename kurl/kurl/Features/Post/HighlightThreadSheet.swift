@@ -164,7 +164,7 @@ struct HighlightThreadSheet: View {
             })
             .scrollIndicators(.hidden)
             .safeAreaInset(edge: .bottom) { composer }
-            .navigationTitle("하이라이트")
+            .navigationTitle("대화")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("닫기") { dismiss() } }
@@ -212,7 +212,7 @@ struct HighlightThreadSheet: View {
                     : "삭제하면 되돌릴 수 없어요.")
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         // 답글을 쓰던 중의 드래그 닫힘은 입력을 통째로 버린다 — 글자가 있는 동안만 잠근다
         // (보내거나 지우면 다시 닫힘, 인증 시트와 같은 관용구).
@@ -276,6 +276,7 @@ struct HighlightThreadSheet: View {
                 Text(NoteText.attributed(text, mentions: mentions, tags: false))
                     .typeScale(.body)
                     .foregroundStyle(Palette.body)
+                    .tint(Palette.link)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }

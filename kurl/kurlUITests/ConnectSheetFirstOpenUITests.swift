@@ -45,12 +45,8 @@ final class ConnectSheetFirstOpenUITests: XCTestCase {
         let paragraph = app.textViews.containing(
             NSPredicate(format: "value CONTAINS %@", "돌아가라면")).firstMatch
         XCTAssertTrue(paragraph.waitForExistence(timeout: 15), "하이라이트 문단을 못 찾음")
-        paragraph.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.16)).tap()
-        let sendReply = app.buttons["답글 보내기"]
-        if !sendReply.waitForExistence(timeout: 6) {
-            paragraph.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)).tap()
-            XCTAssertTrue(sendReply.waitForExistence(timeout: 6), "답글 스레드가 안 열림")
-        }
+        XCTAssertTrue(app.tapHighlight(in: paragraph, at: [CGVector(dx: 0.55, dy: 0.16), CGVector(dx: 0.5, dy: 0.1)]), "하이라이트 탭으로 카드가 안 뜸")
+        XCTAssertTrue(app.openConversationFromCard(), "카드에서 대화가 안 열림")
 
         // 스레드의 "컬렉션에 연결" — 첫 탭 한 번으로 시트 전환이 완주해야 한다.
         // (독의 같은 라벨 버튼이 시트 뒤에 있으니 식별자로 스레드 쪽을 못 박는다.)

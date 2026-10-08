@@ -140,3 +140,53 @@ final class NoteMediaSizeTests: XCTestCase {
         XCTAssertEqual(object["height"] as? Int, 1600)
     }
 }
+
+final class HighlightPaintTests: XCTestCase {
+
+    private func h(
+        _ id: Int64, by author: Int64?, block: Int = 0, _ start: Int, _ end: Int,
+        endBlock: Int? = nil, note: String? = nil, replies: Int = 0
+    ) -> HighlightView {
+        HighlightView(
+            id: id,
+            author: author.map { Author(id: $0, username: "u\($0)", bio: nil, avatarUrl: nil) },
+            blockOrder: block, endBlockOrder: endBlock ?? block, startOffset: start, endOffset: end,
+            quote: "q", note: note, replyCount: replies, createdAt: nil)
+    }
+
+    private func ids(_ clusters: [[HighlightView]]) -> [[Int64]] {
+        clusters.map { $0.map(\.id).sorted() }
+    }
+
+    func testOverlapAndChainsClusterButTouchingSpansDoNot() {
+        XCTAssertEqual(ids(HighlightPaint.clusters([h(1, by: 2, 0, 10), h(2, by: 3, 5, 15)])), [[1, 2]])
+        XCTAssertEqual(ids(HighlightPaint.clusters([h(1, by: 2, 0, 10), h(2, by: 3, 10, 20)])), [[1], [2]])
+        XCTAssertEqual(
+            ids(HighlightPaint.clusters([h(3, by: 4, 18, 30), h(1, by: 2, 0, 10), h(2, by: 3, 8, 20)])),
+            [[1, 2, 3]])
+        XCTAssertEqual(
+            ids(HighlightPaint.clusters([h(1, by: 2, block: 0, 0, 10), h(2, by: 3, block: 1, 0, 10)])),
+            [[1], [2]])
+        XCTAssertEqual(
+            ids(HighlightPaint.clusters([h(1, by: 2, block: 0, 5, 3, endBlock: 2), h(2, by: 3, block: 1, 0, 4)])),
+            [[1, 2]])
+    }
+
+    func testPaintsMineThreadedAndTopButNotALoneBareMark() {
+        XCTAssertEqual(HighlightPaint.paintedIds([h(1, by: 9, 0, 10)], me: 9), [1])
+        XCTAssertEqual(HighlightPaint.paintedIds([h(1, by: 2, 0, 10)], me: 9), [])
+        XCTAssertEqual(HighlightPaint.paintedIds([h(1, by: 2, 0, 10), h(2, by: 3, 5, 15)], me: 9), [1, 2])
+        XCTAssertEqual(HighlightPaint.paintedIds([h(1, by: 2, 0, 10), h(2, by: 2, 5, 15)], me: 9), [])
+        XCTAssertEqual(HighlightPaint.paintedIds([h(1, by: 9, 0, 10), h(2, by: 2, 5, 15)], me: 9), [1])
+        XCTAssertEqual(HighlightPaint.paintedIds([h(1, by: 2, 0, 10, note: "왜")], me: 9), [1])
+        XCTAssertEqual(HighlightPaint.paintedIds([h(1, by: 2, 0, 10, replies: 1)], me: 9), [1])
+        XCTAssertEqual(HighlightPaint.paintedIds([h(1, by: 2, 0, 10, note: "  ")], me: 9), [])
+        XCTAssertEqual(HighlightPaint.paintedIds([h(1, by: 2, 0, 10), h(2, by: 3, 5, 15)], me: nil), [1, 2])
+        XCTAssertEqual(HighlightPaint.paintedIds([h(1, by: nil, 0, 10), h(2, by: 3, 5, 15)], me: 9), [])
+        XCTAssertEqual(HighlightPaint.topMinReaders, 2)
+    }
+
+    func testAnOptimisticMarkIsMineBeforeTheServerAnswers() {
+        XCTAssertEqual(HighlightPaint.paintedIds([h(-1, by: nil, 0, 10)], me: 9), [-1])
+    }
+}

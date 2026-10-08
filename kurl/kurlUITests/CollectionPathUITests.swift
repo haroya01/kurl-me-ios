@@ -140,9 +140,8 @@ final class CollectionPathUITests: XCTestCase {
         let paragraph = app.textViews.containing(
             NSPredicate(format: "value CONTAINS %@", "돌아가라면")).firstMatch
         XCTAssertTrue(paragraph.waitForExistence(timeout: 15), "첫 문단 없음")
-        paragraph.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.16)).tap()
-        XCTAssertTrue(
-            app.navigationBars["하이라이트"].waitForExistence(timeout: 6), "스레드가 안 열림")
+        XCTAssertTrue(app.tapHighlight(in: paragraph, at: [CGVector(dx: 0.55, dy: 0.16), CGVector(dx: 0.5, dy: 0.1)]), "하이라이트 탭으로 카드가 안 뜸")
+        XCTAssertTrue(app.openConversationFromCard(), "카드에서 대화가 안 열림")
 
         // '이 문장이 속한 길' 섹션 + 길 제목(컬렉션 104 = '경계를 긋는다는 것').
         let section = app.descendants(matching: .any)

@@ -36,14 +36,9 @@ final class HighlightNoteReplyUITests: XCTestCase {
         let paragraph = app.textViews.containing(
             NSPredicate(format: "value CONTAINS %@", "돌아가라면")).firstMatch
         XCTAssertTrue(paragraph.waitForExistence(timeout: 15), "하이라이트가 칠해진 첫 문단을 못 찾음")
-        paragraph.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.16)).tap()
-
-        let sendReply = app.buttons["답글 보내기"]
-        if !sendReply.waitForExistence(timeout: 6) {
-            paragraph.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)).tap()
-            _ = sendReply.waitForExistence(timeout: 6)
-        }
-        return sendReply.exists
+        XCTAssertTrue(app.tapHighlight(in: paragraph, at: [CGVector(dx: 0.55, dy: 0.16), CGVector(dx: 0.5, dy: 0.1)]), "하이라이트 탭으로 카드가 안 뜸")
+        XCTAssertTrue(app.openConversationFromCard(), "카드에서 대화가 안 열림")
+        return app.buttons["답글 보내기"].waitForExistence(timeout: 6)
     }
 
     /// 답글 왕복 — 시트에 한 줄 적고 보내면, 서버에 붙은 답글을 다시 읽어 스레드에 나타난다.
@@ -101,7 +96,7 @@ final class HighlightNoteReplyUITests: XCTestCase {
         shot("1-longpress-menu")
 
         // 좁은 편집 메뉴에선 커스텀 액션이 '더 보기' chevron 뒤에 있을 수 있다.
-        let noteItem = app.menuItems["메모"]
+        let noteItem = app.menuItems["공개 메모"]
         if !noteItem.exists {
             let more = app.menuItems.matching(
                 NSPredicate(format: "label CONTAINS '더' OR label CONTAINS 'More'")).firstMatch
@@ -168,38 +163,27 @@ final class HighlightNoteReplyUITests: XCTestCase {
         XCTAssertTrue(paragraph.waitForExistence(timeout: 15), "내 하이라이트가 칠해진 문단을 못 찾음")
         var scrolls = 0
         while !paragraph.isHittable, scrolls < 6 { app.swipeUp(velocity: .slow); scrolls += 1 }
-        // 문단 전체가 내 마크라 중앙 어디를 탭해도 스레드가 열린다.
-        let onMark = paragraph.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
-        onMark.tap()
+        XCTAssertTrue(
+            app.tapHighlight(in: paragraph, at: [CGVector(dx: 0.5, dy: 0.5), CGVector(dx: 0.5, dy: 0.3)]),
+            "내 하이라이트 탭으로 카드가 안 뜸")
+        XCTAssertTrue(
+            app.staticTexts["내가 하이라이트했어요"].exists, "내 하이라이트 카드가 내 것이라고 말하지 않음")
+        let delete = app.buttons["highlightCard.delete"]
+        XCTAssertTrue(delete.exists, "내 하이라이트 카드에 지우기가 없음")
+        shot("1-card")
+        delete.tap()
 
-        let nav = app.navigationBars["하이라이트"]
-        if !nav.waitForExistence(timeout: 6) {
-            paragraph.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)).tap()
-            _ = nav.waitForExistence(timeout: 6)
-        }
-        XCTAssertTrue(nav.exists, "내 하이라이트 탭으로 스레드가 안 열림")
-        let manage = nav.buttons["하이라이트 관리"]
-        XCTAssertTrue(manage.waitForExistence(timeout: 5), "내 하이라이트인데 '관리(삭제)' 메뉴가 없음")
-        shot("1-manage-menu")
-        // SwiftUI 툴바 버튼은 접근성 트리가 중첩돼 firstMatch 탭이 헛돌 수 있다 — 네비바 우측 좌표로 폴백.
-        if manage.isHittable { manage.tap() } else {
-            nav.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
-        }
-
-        XCTAssertTrue(tapItem(app, "하이라이트 삭제"), "관리 메뉴에 '하이라이트 삭제'가 없음")
-        let confirm = app.alerts.buttons["삭제"]
-        XCTAssertTrue(confirm.waitForExistence(timeout: 4), "삭제 확인 얼럿이 안 뜸")
+        let confirm = app.alerts.buttons["지우기"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 4), "메모가 달린 하이라이트인데 지우기 확인이 안 뜸")
         shot("2-confirm-alert")
         confirm.tap()
-
-        XCTAssertTrue(nav.waitForNonExistence(timeout: 8), "삭제 후에도 스레드 시트가 안 닫힘")
-        Thread.sleep(forTimeInterval: 0.5)
+        Thread.sleep(forTimeInterval: 0.8)
         shot("3-after-delete")
-        // 지운 자리를 다시 탭 — 마크가 걷혔으면 스레드(답글 보내기)가 다시 열리지 않는다.
-        onMark.tap()
-        XCTAssertTrue(
-            app.buttons["답글 보내기"].waitForNonExistence(timeout: 5),
-            "삭제한 하이라이트 마크가 남아 스레드가 다시 열림")
+        // 지운 자리를 다시 탭 — 마크가 걷혔으면 카드가 다시 뜨지 않는다.
+        paragraph.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        XCTAssertFalse(
+            app.otherElements["highlightCard"].waitForExistence(timeout: 3),
+            "삭제한 하이라이트 마크가 남아 카드가 다시 뜸")
     }
 
     /// 소유 게이트 — 남의 하이라이트(시드 6001, author=haruka)엔 '관리/삭제' 메뉴가 없고,
@@ -207,7 +191,7 @@ final class HighlightNoteReplyUITests: XCTestCase {
     func testOthersHighlightShowsConnectNotManage() throws {
         let app = launchPost()
         XCTAssertTrue(openThread6001(app), "하이라이트 탭으로 스레드가 안 열림")
-        let nav = app.navigationBars["하이라이트"]
+        let nav = app.navigationBars["대화"]
         XCTAssertTrue(nav.waitForExistence(timeout: 6), "스레드가 안 열림")
         XCTAssertTrue(
             nav.buttons["connectHighlightButton"].waitForExistence(timeout: 4),

@@ -74,6 +74,11 @@ enum Palette {
             ? UIColor(Color(hex: 0x10B981)).withAlphaComponent(0.16)   // accent-500 @ 0.16
             : UIColor(Color(hex: 0x059669)).withAlphaComponent(0.10)   // accent-600 @ 0.10
     })
+    static let highlightWashMine = Color(uiColor: UIColor { trait in
+        trait.userInterfaceStyle == .dark
+            ? UIColor(Color(hex: 0x10B981)).withAlphaComponent(0.30)
+            : UIColor(Color(hex: 0x059669)).withAlphaComponent(0.20)
+    })
     // 모든 하이라이트의 기본 밑줄 — 낮춘 채움만으로 놓칠 수 있는 곳(색 입힌 인라인 위 등)에서도
     // 표식이 살아남는 얇은 그린 헤어라인. 다크에선 accent-400(#34D399)로 또렷하게.
     static let highlightUnderline = Color(uiColor: UIColor { trait in

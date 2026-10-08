@@ -20,8 +20,9 @@ final class PostHighlightStore {
     var paintHidden = false
     /// 미로그인 사용자가 하이라이트를 시도 — 뷰가 로그인 시트를 띄우도록 신호한다.
     var loginPrompt = false
-    /// 탭한 하이라이트 — 뷰가 답글 스레드 시트를 띄운다.
+    /// 대화 시트를 연 하이라이트 — 카드의 "대화 보기"와 알림·피드의 딥링크가 연다.
     var threadHighlightId: Int64?
+    var card: Card?
     /// 메모와 함께 하이라이트할 선택 구간 — 뷰가 메모 입력 시트를 띄운다.
     var noteDraft: NoteDraft?
     /// 컬렉션에 연결할 하이라이트 — 스레드 시트가 닫힌 뒤 뷰(PostDetailView)가 ConnectSheet 를 띄운다
@@ -31,13 +32,23 @@ final class PostHighlightStore {
     /// 고정 지연 핸드오프는 첫 해제(콜드 계층)에서 프레젠테이션을 유실했다.
     var pendingConnect: HighlightView?
 
+    static let publicNoticeKey = "seenHighlightPublicNotice"
+
     @ObservationIgnored private let isSignedIn: @MainActor () -> Bool
+    @ObservationIgnored private let viewerId: @MainActor () -> Int64?
     @ObservationIgnored private let createRequest: @MainActor (Int64, NewHighlight) async throws -> HighlightRef
     @ObservationIgnored private let listRequest: @MainActor (Int64) async throws -> [HighlightView]
     @ObservationIgnored private let deleteRequest: @MainActor (Int64) async throws -> Void
     @ObservationIgnored private var nextOptimisticId: Int64 = -1
     @ObservationIgnored private var mutationVersion = 0
     @ObservationIgnored private var pendingDeletes: Set<Int64> = []
+
+    /// anchor 는 창 좌표계의 탭한 줄 사각형.
+    struct Card: Identifiable, Equatable {
+        let ids: [Int64]
+        let anchor: CGRect
+        var id: String { ids.map(String.init).joined(separator: ",") }
+    }
 
     /// 메모 입력 시트를 구동하는 선택 구간.
     struct NoteDraft: Identifiable {
@@ -51,6 +62,7 @@ final class PostHighlightStore {
     init(
         postId: Int64,
         isSignedIn: @escaping @MainActor () -> Bool = { AuthStore.shared.isSignedIn },
+        viewerId: @escaping @MainActor () -> Int64? = { AuthStore.shared.me?.id },
         createRequest: @escaping @MainActor (Int64, NewHighlight) async throws -> HighlightRef = {
             try await HighlightsAPI.create(postId: $0, $1)
         },
@@ -63,6 +75,7 @@ final class PostHighlightStore {
     ) {
         self.postId = postId
         self.isSignedIn = isSignedIn
+        self.viewerId = viewerId
         self.createRequest = createRequest
         self.listRequest = listRequest
         self.deleteRequest = deleteRequest
@@ -79,13 +92,32 @@ final class PostHighlightStore {
 
     func highlight(id: Int64) -> HighlightView? { highlights.first { $0.id == id } }
 
+    func isMine(_ highlight: HighlightView) -> Bool { HighlightPaint.isMine(highlight, me: viewerId()) }
+
+    func openCard(ids: [Int64], anchor: CGRect) {
+        let known = ids.filter { highlight(id: $0) != nil }
+        guard !known.isEmpty else { return }
+        card = Card(ids: known, anchor: anchor)
+    }
+
+    func cardHighlights(_ card: Card) -> [HighlightView] {
+        let me = viewerId()
+        func rank(_ h: HighlightView) -> Int {
+            (HighlightPaint.isMine(h, me: me) ? 0 : 2) + (HighlightPaint.hasThread(h) ? 0 : 1)
+        }
+        return card.ids.compactMap { highlight(id: $0) }.sorted { rank($0) < rank($1) }
+    }
+
     /// 이 문단(blockOrder)에 칠할 하이라이트 — 저장된 오프셋으로 정밀하게, 메모/답글이 있으면 강조 밑줄.
     /// 다중 블록(endBlockOrder > blockOrder)은 시작 블록 꼬리·중간 블록 전체·끝 블록 머리로 나눠 칠한다
     /// (Int.max = 이 블록 끝까지, 뷰에서 본문 길이로 clamp).
     func marks(forBlock blockOrder: Int) -> [SelectableProseText.Mark] {
         // 표시를 끈 상태면 마크를 하나도 넘기지 않는다 — 본문이 조용해진다. 선택→생성은 여전히 산다.
         guard !paintHidden else { return [] }
+        let me = viewerId()
+        let painted = HighlightPaint.paintedIds(highlights, me: me)
         return highlights.compactMap { h in
+            guard painted.contains(h.id) else { return nil }
             let startBO = h.blockOrder ?? -1
             let endBO = h.endBlockOrder ?? startBO
             guard startBO >= 0, blockOrder >= startBO, blockOrder <= endBO else { return nil }
@@ -111,7 +143,8 @@ final class PostHighlightStore {
                 segment = .middle
             }
             return SelectableProseText.Mark(
-                id: h.id, start: start, end: end, quote: h.quote, hasThread: hasThread, segment: segment)
+                id: h.id, start: start, end: end, quote: h.quote, hasThread: hasThread,
+                mine: HighlightPaint.isMine(h, me: me), segment: segment)
         }
     }
 
@@ -128,6 +161,10 @@ final class PostHighlightStore {
                 try await createAndWait(
                     blockOrder: blockOrder, startOffset: startOffset, endOffset: endOffset,
                     quote: quote, note: note)
+                if !UserDefaults.standard.bool(forKey: Self.publicNoticeKey) {
+                    UserDefaults.standard.set(true, forKey: Self.publicNoticeKey)
+                    ToastCenter.shared.show(String(localized: "하이라이트했어요 · 이름과 함께 공개돼요"))
+                }
             } catch {
                 ToastCenter.shared.show((error as? HighlightValidationError)?.localizedDescription
                     ?? String(localized: "하이라이트를 저장하지 못했습니다"))

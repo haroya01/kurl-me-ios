@@ -39,16 +39,11 @@ final class HighlightReaderUITests: XCTestCase {
 
         // (2) 칠해진 하이라이트("다시 돌아가라면 또 갈아탄다") 탭 → 답글 스레드.
         // 문구는 첫 줄 중반(offset 10~24)에 있다 — textView 상단 첫 줄 중앙을 친다.
-        let onMark = paragraph.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.16))
-        onMark.tap()
-
+        XCTAssertTrue(app.tapHighlight(in: paragraph, at: [CGVector(dx: 0.55, dy: 0.16), CGVector(dx: 0.5, dy: 0.1)]), "하이라이트 탭으로 카드가 안 뜸")
+        shot("2-card")
+        XCTAssertTrue(app.openConversationFromCard(), "카드에서 대화가 안 열림")
         let sendReply = app.buttons["답글 보내기"]
-        let threadOpened = sendReply.waitForExistence(timeout: 6)
-        if !threadOpened {
-            // 첫 줄 위치 추정이 어긋났을 수 있다 — 한 줄 더 위/아래로 한 번 더 시도.
-            paragraph.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)).tap()
-            _ = sendReply.waitForExistence(timeout: 6)
-        }
+        _ = sendReply.waitForExistence(timeout: 6)
         Thread.sleep(forTimeInterval: 0.7)
         shot("2-thread-sheet")
         XCTAssertTrue(sendReply.exists, "하이라이트 탭으로 답글 스레드가 안 열림")
@@ -110,14 +105,9 @@ final class HighlightReaderUITests: XCTestCase {
         let paragraph = app.textViews.containing(
             NSPredicate(format: "value CONTAINS %@", "돌아가라면")).firstMatch
         XCTAssertTrue(paragraph.waitForExistence(timeout: 15), "첫 문단 없음")
-        paragraph.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.16)).tap()
-
-        let nav = app.navigationBars["하이라이트"]
-        if !nav.waitForExistence(timeout: 6) {
-            paragraph.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)).tap()
-            _ = nav.waitForExistence(timeout: 6)
-        }
-        XCTAssertTrue(nav.exists, "하이라이트 스레드가 안 열림")
+        XCTAssertTrue(app.tapHighlight(in: paragraph, at: [CGVector(dx: 0.55, dy: 0.16), CGVector(dx: 0.5, dy: 0.1)]), "하이라이트 탭으로 카드가 안 뜸")
+        XCTAssertTrue(app.openConversationFromCard(), "카드에서 대화가 안 열림")
+        let nav = app.navigationBars["대화"]
         let connect = nav.buttons["connectHighlightButton"]
         XCTAssertTrue(connect.waitForExistence(timeout: 4), "스레드에 '컬렉션에 연결' 버튼이 없음")
         shot("1-thread-with-connect")
@@ -162,6 +152,26 @@ final class HighlightReaderUITests: XCTestCase {
     }
 
     /// 첫 코치 — "탭하면 대화" 안내 배너(--force-coach 로 플래그 무시하고 결정적으로).
+    func testASharedPassageSaysWhoMarkedItAndOffersAConversation() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--post", "honggildong/hexagonal-after-3-months"]
+        app.launch()
+        let paragraph = app.textViews.containing(
+            NSPredicate(format: "value CONTAINS %@", "돌아가라면")).firstMatch
+        XCTAssertTrue(paragraph.waitForExistence(timeout: 15), "첫 문단 없음")
+        XCTAssertTrue(
+            app.tapHighlight(in: paragraph, at: [CGVector(dx: 0.4, dy: 0.5), CGVector(dx: 0.45, dy: 0.45)]),
+            "두 사람이 겹쳐 그은 문장을 탭해도 카드가 안 뜸")
+        XCTAssertTrue(app.staticTexts["2명이 하이라이트했어요"].exists, "겹친 하이라이트를 한 카드에 모으지 않음")
+        XCTAssertTrue(app.buttons["highlightCard.talk"].exists, "대화가 없는 문장인데 대화를 시작할 수 없음")
+        XCTAssertFalse(app.buttons["highlightCard.delete"].exists, "남의 하이라이트 카드에 지우기가 있음")
+        shot("shared-passage-card")
+
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.85)).tap()
+        XCTAssertTrue(
+            app.otherElements["highlightCard"].waitForNonExistence(timeout: 3), "카드 밖을 눌러도 카드가 안 닫힘")
+    }
+
     func testHighlightTapCoach() throws {
         let app = XCUIApplication()
         app.launchArguments = [
