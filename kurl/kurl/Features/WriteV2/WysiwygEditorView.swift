@@ -167,7 +167,7 @@ struct WysiwygEditorView: View {
         .background(alignment: .topLeading) {
             if let kind = calloutKind(block) {
                 ZStack(alignment: .topLeading) {
-                    RoundedRectangle(cornerRadius: Metrics.radiusThumb)
+                    RoundedRectangle(cornerRadius: Metrics.radius)
                         .fill(Palette.calloutWash(kind))
                     Rectangle()
                         .fill(Palette.calloutBar(kind))
@@ -179,7 +179,7 @@ struct WysiwygEditorView: View {
                         .padding(.top, 9)
                         .accessibilityIdentifier("editor-callout-label")
                 }
-                .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
+                .clipShape(RoundedRectangle(cornerRadius: Metrics.radius))
             }
         }
         .padding(.leading, CGFloat(block.listInfo?.indent ?? 0) * 18)

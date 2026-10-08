@@ -28,7 +28,7 @@ struct BlogCard: View {
     @Environment(\.colorScheme) private var colorScheme
 
     /// 카드 모서리 — 유리 시대의 연속 곡률(§1.5). 하단 유리 띠와 반드시 같은 값.
-    static let radius: CGFloat = Metrics.radiusCard
+    static let radius: CGFloat = Metrics.radius
 
     var body: some View {
         Group {
@@ -354,14 +354,8 @@ struct CardButtonStyle: ButtonStyle {
 private struct CoverBandSurface: ViewModifier {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
-    private var shape: UnevenRoundedRectangle {
-        // 하단은 카드 곡률(20)을 따르고, 사진과 만나는 위쪽 모서리도 각지지 않게 살짝 둥글린다
-        // (radiusMini) — 유리 띠가 종이 위 알약처럼 얹히도록.
-        UnevenRoundedRectangle(
-            cornerRadii: .init(
-                topLeading: Metrics.radiusMini, bottomLeading: BlogCard.radius,
-                bottomTrailing: BlogCard.radius, topTrailing: Metrics.radiusMini),
-            style: .continuous)
+    private var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: BlogCard.radius, style: .continuous)
     }
 
     func body(content: Content) -> some View {

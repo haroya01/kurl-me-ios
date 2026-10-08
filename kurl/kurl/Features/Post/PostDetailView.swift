@@ -1186,7 +1186,7 @@ private struct PostDetailReader: View {
                     // 딥링크 도착 시 잠깐 강조(그린 워시) — 그 문장이 "여기야" 신호.
                     .background(
                         flashBlockId == block.id ? Palette.highlightFlash : Color.clear,
-                        in: RoundedRectangle(cornerRadius: Metrics.radiusThumb))
+                        in: RoundedRectangle(cornerRadius: Metrics.radius))
                     // 목차가 이 블록으로 점프할 수 있게 앵커 — 헤딩만 쓰지만 전부 달아도 무해.
                     .id(block.id)
             }
@@ -1521,11 +1521,11 @@ private struct PostDetailReader: View {
         }
         .frame(width: 220, height: 214, alignment: .top)
         .background(Palette.cardBg)
-        .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
         .overlay {
             // 라이트는 그림자로 서고(보더=상자 느낌), 다크는 그림자가 죽어 보더 유지(발견 카드 규칙).
             if colorScheme == .dark {
-                RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous)
+                RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
                     .strokeBorder(Palette.cardBorder, lineWidth: 1)
             }
         }
@@ -2005,7 +2005,7 @@ private struct CommentThread: View {
     private func spot(_ row: CommentRow, _ id: Int64) -> some View {
         row
             .background {
-                RoundedRectangle(cornerRadius: Metrics.radiusThumb)
+                RoundedRectangle(cornerRadius: Metrics.radius)
                     .fill(flashCommentId == id ? Palette.highlightFlash : Color.clear)
                     .padding(.horizontal, -8)
                     .padding(.vertical, -6)
@@ -2094,7 +2094,7 @@ struct GlassCommentBar: View {
         }
         .padding(.horizontal, 15)
         .padding(.vertical, 11)
-        .glassEffect(.regular, in: .rect(cornerRadius: GlassTokens.panelRadius))
+        .glassEffect(.regular, in: .rect(cornerRadius: Metrics.radius))
         .padding(.horizontal, 10)
         .padding(.bottom, 6)
         .onAppear { focused = true }

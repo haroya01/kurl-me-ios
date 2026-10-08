@@ -204,7 +204,7 @@ struct ReportReasonSheet: View {
             .padding(14)
             .background(
                 Palette.chipBg,
-                in: RoundedRectangle(cornerRadius: Metrics.radiusControl, style: .continuous))
+                in: RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
             .onChange(of: detail) { _, new in
                 if new.count > Self.detailLimit {
                     detail = String(new.prefix(Self.detailLimit))

@@ -162,7 +162,7 @@ struct MyHighlightsView: View {
                 .padding(.vertical, 5)
                 .background(
                     Palette.highlightWash,
-                    in: RoundedRectangle(cornerRadius: Metrics.radiusThumb))
+                    in: RoundedRectangle(cornerRadius: Metrics.radius))
                 if let note = item.note, !note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     VStack(alignment: .leading, spacing: 3) {
                         Text("내 공개 메모")

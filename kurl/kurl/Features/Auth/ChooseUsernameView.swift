@@ -70,7 +70,7 @@ struct ChooseUsernameView: View {
                         .font(.system(size: fieldSize))
                         .padding(.vertical, 14)
                         .padding(.horizontal, 16)
-                        .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radiusControl))
+                        .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radius))
                         .padding(.top, 24)
 
                         Group {

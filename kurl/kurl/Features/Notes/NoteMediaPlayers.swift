@@ -28,8 +28,8 @@ struct NoteVideoTile: View {
         }
         .frame(width: height.map { $0 * 16 / 9 }, height: height ?? 220)
         .frame(maxWidth: height == nil ? .infinity : nil)
-        .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
-        .contentShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
+        .clipShape(RoundedRectangle(cornerRadius: Metrics.radius))
+        .contentShape(RoundedRectangle(cornerRadius: Metrics.radius))
         .onTapGesture(perform: onOpen)
         .accessibilityElement()
         .accessibilityAddTraits(.isButton)
@@ -96,7 +96,7 @@ struct NoteAudioRow: View {
                 Spacer(minLength: 0)
             }
             .padding(10)
-            .background(Palette.hairline.opacity(0.35), in: RoundedRectangle(cornerRadius: Metrics.radiusThumb))
+            .background(Palette.hairline.opacity(0.35), in: RoundedRectangle(cornerRadius: Metrics.radius))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

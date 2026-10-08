@@ -61,7 +61,7 @@ struct FeedRow: View {
                     }
                 }
                 .frame(width: 96, height: 72)
-                .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusThumb))
+                .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusInner))
             }
         }
         .padding(.vertical, 16)

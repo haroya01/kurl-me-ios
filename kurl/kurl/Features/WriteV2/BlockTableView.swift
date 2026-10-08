@@ -45,7 +45,7 @@ struct BlockTableView: View {
             .padding(.vertical, 6)
             .overlay(alignment: .topLeading) {
                 if isFocused {
-                    RoundedRectangle(cornerRadius: Metrics.radiusControl)
+                    RoundedRectangle(cornerRadius: Metrics.radius)
                         .strokeBorder(Palette.accentSoft.opacity(0.5), lineWidth: 1)
                         .allowsHitTesting(false)
                 }

@@ -37,7 +37,7 @@ struct SplashView: View {
                     .padding(.horizontal, 7)
                     .padding(.vertical, 2)
                     .background(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        Capsule()
                             .fill(Palette.accent.opacity(0.19))
                             .scaleEffect(x: swept ? 1 : 0.001, anchor: .leading)
                     }

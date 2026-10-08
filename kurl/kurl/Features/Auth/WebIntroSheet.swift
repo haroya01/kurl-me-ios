@@ -85,7 +85,7 @@ struct WebIntroSheet: View {
                         .minimumScaleFactor(0.7)
                         .padding(.horizontal, 3)
                         .background(
-                            RoundedRectangle(cornerRadius: 4)
+                            Capsule()
                                 .fill(Palette.accent.opacity(0.14))
                                 .scaleEffect(x: sweepOn ? 1 : 0.001, anchor: .leading))
                     Spacer(minLength: 4)
@@ -96,13 +96,13 @@ struct WebIntroSheet: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 13)
                 .background(
-                    RoundedRectangle(cornerRadius: 13, style: .continuous)
+                    RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
                         .fill(Palette.cardBg)
                         .shadow(color: .black.opacity(0.07), radius: 12, y: 4))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 13, style: .continuous)
+                    RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
                         .strokeBorder(Palette.accent.opacity(0.3), lineWidth: 1))
-                .contentShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+                .contentShape(RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
             }
             .buttonStyle(.plain)
             .padding(.leading, 16)

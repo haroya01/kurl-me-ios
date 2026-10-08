@@ -774,7 +774,7 @@ struct ComposeView: View {
                         .padding(.vertical, 11)
                         .background(
                             Palette.chipBg,
-                            in: RoundedRectangle(cornerRadius: Metrics.radiusControl, style: .continuous))
+                            in: RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
                     }
                     .modifier(QuietAppear(index: 2))
 
@@ -1046,10 +1046,10 @@ struct ComposeView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(Palette.cardBg)
-        .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
         .overlay {
             if colorScheme == .dark {
-                RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous)
+                RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
                     .strokeBorder(Palette.cardBorder, lineWidth: 1)
             }
         }
@@ -1192,7 +1192,7 @@ struct ComposeView: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 11)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radiusControl, style: .continuous))
+                .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
 
                 Spacer()
             }
@@ -2638,7 +2638,7 @@ private struct ImageCaptionSheet: View {
                     .padding(.vertical, 12)
                     .background(
                         Palette.chipBg,
-                        in: RoundedRectangle(cornerRadius: Metrics.radiusControl, style: .continuous))
+                        in: RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
                 Spacer(minLength: 0)
             }
             .padding(Metrics.gutter)
@@ -2790,7 +2790,7 @@ private struct TagsField: View {
             }
             .padding(.horizontal, 13)
             .padding(.vertical, 11)
-            .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radiusControl, style: .continuous))
+            .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
 
             if tags.isEmpty {
                 Text("첫 번째 태그가 대표 — 카드·글 위에 카테고리로 보입니다. (발행 시 1개 필수)")

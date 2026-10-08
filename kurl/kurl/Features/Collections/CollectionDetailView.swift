@@ -461,10 +461,10 @@ struct CollectionDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             // 초록 틴트 종이 캡슐 — 유리 없이(§1) accent 를 옅게 실어 "지금 여기"를 데운다.
-            RoundedRectangle(cornerRadius: Metrics.radiusControl, style: .continuous)
+            RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
                 .fill(Palette.accent.opacity(0.07))
                 .overlay(
-                    RoundedRectangle(cornerRadius: Metrics.radiusControl, style: .continuous)
+                    RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
                         .strokeBorder(Palette.accent.opacity(0.22), lineWidth: 1))
         )
         .contentShape(Rectangle())

@@ -508,9 +508,9 @@ private struct FeedSeriesCard: View {
         }
         // 1열 피드에서 4:5 는 너무 길었다 — 정사각으로 낮춰 키를 줄인다(디자인은 그대로).
         .aspectRatio(1.0, contentMode: .fit)
-        .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous)
+            RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
                 .strokeBorder(Palette.cardBorder, lineWidth: 1)
         }
         .cardShadow()
@@ -614,7 +614,7 @@ struct RowButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .background(
-                RoundedRectangle(cornerRadius: Metrics.radiusControl)
+                RoundedRectangle(cornerRadius: Metrics.radius)
                     .fill(configuration.isPressed ? Palette.rowHighlight : .clear)
                     .padding(.horizontal, -10)
             )
@@ -696,7 +696,7 @@ private struct SkeletonCard: View {
     var body: some View {
         Group {
             if cover {
-                RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous)
+                RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
                     .fill(Palette.hairlineStrong)
                     .aspectRatio(4.0 / 3.0, contentMode: .fit)
             } else {
@@ -716,9 +716,9 @@ private struct SkeletonCard: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
                     Palette.cardBg,
-                    in: RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
+                    in: RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
                 .overlay {
-                    RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous)
+                    RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
                         .strokeBorder(Palette.cardBorder.opacity(0.6), lineWidth: 1)
                 }
             }
@@ -756,7 +756,7 @@ private struct SkeletonShimmer: ViewModifier {
                     .allowsHitTesting(false)
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
             .onAppear {
                 guard !reduceMotion else { return }
                 withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: false)) {
