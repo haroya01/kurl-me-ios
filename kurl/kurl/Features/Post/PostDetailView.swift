@@ -362,6 +362,7 @@ private struct PostDetailReader: View {
             if pullTargetSlug != nil { fingerDown = newPhase == .interacting }
         }
         .sensoryFeedback(.impact(weight: .medium), trigger: advancing)
+        .noteTextLinks(memberTab: .posts)
         // 덱: 같은 작가 다음 글은 스택에 푸시(여러 장이 lazy 로 살아 있는 덱 문법). 단독 시리즈
         // 회차는 셸이 .id 로 제자리 교체하므로 여기서 push 하지 않는다.
         .navigationDestination(isPresented: $showNext) {
@@ -1912,7 +1913,7 @@ struct CommentRow: View {
                         .accessibilityLabel("댓글 더 보기")
                     }
                 }
-                Text(comment.body)
+                Text(NoteText.attributed(comment.body, mentions: comment.mentions ?? [], tags: false))
                     .typeScale(.body)
                     .foregroundStyle(Palette.body)
                     .fixedSize(horizontal: false, vertical: true)

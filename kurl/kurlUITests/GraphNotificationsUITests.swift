@@ -138,6 +138,20 @@ final class GraphNotificationsUITests: XCTestCase {
         shoot("comment-opens-at-comment")
     }
 
+    func testAMentionInACommentOpensThatMembersPosts() throws {
+        let app = launchInbox()
+        let comment = rowButton(app, contains: "댓글을 남겼어요")
+        XCTAssertTrue(comment.waitForExistence(timeout: 12), "인박스에 댓글 알림이 없음")
+        comment.tap()
+        let mention = app.links["@yuki_dev"].firstMatch
+        XCTAssertTrue(mention.waitForExistence(timeout: 10), "댓글의 회원 멘션이 링크가 아님")
+        XCTAssertFalse(app.links["@nobody_here"].exists, "회원이 아닌 @이름이 링크가 됨")
+        shoot("comment-mention")
+        mention.tap()
+        XCTAssertTrue(app.buttons["author.tab.posts"].waitForExistence(timeout: 10), "멘션한 회원의 프로필이 안 열림")
+        XCTAssertTrue(app.buttons["author.tab.posts"].isSelected, "글에서 연 프로필이 글 탭이 아님")
+    }
+
     func testHighlightMentionOpensItsConversation() throws {
         let app = launchInbox()
         let mention = app.buttons
