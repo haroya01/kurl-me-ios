@@ -180,6 +180,8 @@ final class GraphNotificationsUITests: XCTestCase {
         reply.tap()
         let input = app.descendants(matching: .any).matching(identifier: "comment.input").firstMatch
         XCTAssertTrue(input.waitForExistence(timeout: 4), "댓글 입력칸이 없음")
+        XCTAssertTrue(app.buttons["댓글을 남겨보세요"].waitForNonExistence(timeout: 3), "답글 바가 떠 있는데 본문 끝 입력 줄도 그대로 보임")
+        shoot("reply-target-marked")
         input.typeText("@")
         XCTAssertTrue(app.buttons["mention.yuki_dev"].waitForExistence(timeout: 4), "@만 쳤는데 팔로우한 사람이 안 뜸")
         XCTAssertFalse(app.buttons["mention.haruka"].exists, "@만 쳤는데 팔로우하지 않은 사람이 뜸")
