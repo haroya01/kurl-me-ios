@@ -1239,7 +1239,7 @@ private struct NoteImageTile: View {
     }
 }
 
-private struct TileFrame: ViewModifier {
+struct TileFrame: ViewModifier {
     let ratio: CGFloat
     let height: CGFloat?
 

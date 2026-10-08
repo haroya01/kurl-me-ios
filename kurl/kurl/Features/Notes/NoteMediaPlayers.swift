@@ -50,8 +50,7 @@ struct NoteVideoTile: View {
                     .background(.ultraThinMaterial, in: Circle())
             }
         }
-        .frame(width: height.map { $0 * 16 / 9 }, height: height ?? 220)
-        .frame(maxWidth: height == nil ? .infinity : nil)
+        .modifier(TileFrame(ratio: media.ratio ?? 16.0 / 9.0, height: height))
         .clipShape(RoundedRectangle(cornerRadius: Metrics.radius))
         .contentShape(RoundedRectangle(cornerRadius: Metrics.radius))
         .onTapGesture(perform: onOpen)
