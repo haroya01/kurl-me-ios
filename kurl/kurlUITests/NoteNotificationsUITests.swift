@@ -53,6 +53,67 @@ final class NoteNotificationsUITests: XCTestCase {
         XCTAssertTrue(replied.waitForExistence(timeout: 8), "답글 알림이 그 답글을 열지 않음")
     }
 
+    private func scrolledTo(_ app: XCUIApplication, _ element: XCUIElement) -> Bool {
+        for _ in 0..<8 {
+            if element.exists && element.isHittable { return true }
+            app.swipeUp()
+        }
+        return element.exists
+    }
+
+    func testPostNoticesGroupAndQuoteLikeNoteNotices() throws {
+        let app = launchInbox()
+        XCTAssertTrue(row(app, contains: "내 노트를 좋아해요").waitForExistence(timeout: 12), "인박스가 뜨지 않음")
+
+        let commentLikes = row(app, contains: "외 2명이 내 댓글을 좋아해요")
+        XCTAssertTrue(scrolledTo(app, commentLikes), "묶인 댓글 좋아요 알림이 없음")
+        let highlights = row(app, contains: "외 1명이 내 글에 하이라이트를 남겼어요")
+        XCTAssertTrue(scrolledTo(app, highlights), "묶인 하이라이트 알림이 없음")
+        let embedded = row(app, contains: "글에서 내 노트를 인용했어요")
+        XCTAssertTrue(scrolledTo(app, embedded), "글에 실린 내 노트 알림이 없음")
+        XCTAssertTrue(embedded.label.contains("이번 주 노트 모음"), "노트가 실린 글 제목이 부제에 없음")
+        let quoted = row(app, contains: "노트에서 내 글을 인용했어요")
+        XCTAssertTrue(scrolledTo(app, quoted), "내 글 인용 알림이 없음")
+        XCTAssertTrue(quoted.label.contains("헥사고날"), "글 인용 알림 부제가 인용한 노트 첫 줄이 아님")
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "post-notifications"
+        shot.lifetime = .keepAlways
+        add(shot)
+
+        quoted.tap()
+        let note = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS '헥사고날 포트 이름'")).firstMatch
+        XCTAssertTrue(note.waitForExistence(timeout: 8), "글 인용 알림이 인용한 노트를 열지 않음")
+    }
+
+    func testSettingsPairPostNoticesWithNoteNotices() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "account"]
+        app.launch()
+        let gear = app.buttons["설정"].firstMatch
+        XCTAssertTrue(gear.waitForExistence(timeout: 12), "계정 탭에 설정 버튼이 없음")
+        gear.tap()
+        let entry = app.buttons.matching(NSPredicate(format: "label CONTAINS '알림 종류'")).firstMatch
+        XCTAssertTrue(entry.waitForExistence(timeout: 8), "설정에 '알림 종류' 행이 없음")
+        if !entry.isHittable { app.swipeUp() }
+        entry.tap()
+
+        XCTAssertTrue(app.staticTexts["내 글"].waitForExistence(timeout: 8), "'내 글' 묶음이 없음")
+        let postQuote = app.switches.matching(NSPredicate(format: "label CONTAINS '내 글 인용'")).firstMatch
+        XCTAssertTrue(postQuote.exists, "'내 글' 묶음에 글 인용 토글이 없음")
+        XCTAssertEqual(postQuote.value as? String, "1", "새 종류의 기본값이 켜짐이 아님")
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "notification-preference-sections"
+        shot.lifetime = .keepAlways
+        add(shot)
+
+        let embed = app.switches.matching(NSPredicate(format: "label CONTAINS '글에 실린 내 노트'")).firstMatch
+        XCTAssertTrue(scrolledTo(app, embed), "'내 노트' 묶음에 글에 실린 노트 토글이 없음")
+        XCTAssertTrue(app.staticTexts["내 노트"].exists, "'내 노트' 묶음이 없음")
+        let commentLike = app.switches.matching(NSPredicate(format: "label CONTAINS '내 댓글 좋아요'")).firstMatch
+        XCTAssertTrue(scrolledTo(app, commentLike), "'대화' 묶음에 댓글 좋아요 토글이 없음")
+    }
+
     func testANewNoteNoticeOpensThatNote() throws {
         let app = launchInbox()
 
