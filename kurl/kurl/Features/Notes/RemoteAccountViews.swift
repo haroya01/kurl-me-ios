@@ -176,7 +176,7 @@ struct RemoteAccountView: View {
         }
         .task { await load() }
         .task { await notes.reload() }
-        .refreshable {
+        .brandRefreshable {
             await load()
             await notes.reload()
         }

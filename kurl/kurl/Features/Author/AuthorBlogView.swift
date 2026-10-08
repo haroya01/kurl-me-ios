@@ -181,7 +181,7 @@ struct AuthorBlogView: View {
             await load()
             await BlockStore.shared.hydrateIfNeeded()
         }
-        .refreshable {
+        .brandRefreshable {
             await load()
             if shownTab == .notes { await notes.reload() }
             if shownTab == .reposts { await reposts.reload() }
