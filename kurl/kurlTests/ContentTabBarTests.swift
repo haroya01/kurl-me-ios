@@ -19,3 +19,23 @@ final class ContentTabBarTests: XCTestCase {
         XCTAssertNil(TabStripWidths.widths(labels: [40, 60, 120, 95, 95], available: 362))
     }
 }
+
+final class PullTriggerTests: XCTestCase {
+
+    func testHoldingAPullFiresOnceEvenAfterTheRefreshEnds() {
+        var trigger = PullTrigger()
+        XCTAssertFalse(trigger.fires(overpull: 40, refreshing: false))
+        XCTAssertTrue(trigger.fires(overpull: 90, refreshing: false))
+        XCTAssertFalse(trigger.fires(overpull: 120, refreshing: true))
+        XCTAssertFalse(trigger.fires(overpull: 120, refreshing: false))
+    }
+
+    func testLettingGoReArmsTheNextPull() {
+        var trigger = PullTrigger()
+        XCTAssertTrue(trigger.fires(overpull: 90, refreshing: false))
+        XCTAssertFalse(trigger.fires(overpull: 30, refreshing: false))
+        XCTAssertFalse(trigger.fires(overpull: 90, refreshing: false))
+        XCTAssertFalse(trigger.fires(overpull: 0, refreshing: false))
+        XCTAssertTrue(trigger.fires(overpull: 90, refreshing: false))
+    }
+}

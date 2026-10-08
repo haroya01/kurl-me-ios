@@ -69,12 +69,26 @@ struct KurlLoadingMark: View {
 /// `.refreshable` 스피너를 대체한다. 당김 진행에 따라 마크 세 선이 차례로 그어지고
 /// (제품 로딩 마크와 같은 어휘), 임계를 넘으면 발동 — 새로고침 동안은 KurlLoadingMark 가
 /// 살아 움직인다. 발동은 임계 통과 즉시(놓기 감지는 SwiftUI 스크롤에선 불가) + 햅틱 한 번.
+/// 당김 한 번에 발동 한 번 — 붙잡고 있는 동안 새로고침이 끝나도 다시 쏘지 않고, 제자리로 돌아와야 다시 걸린다.
+struct PullTrigger {
+    static let threshold: CGFloat = 84
+    private(set) var armed = true
+
+    mutating func fires(overpull: CGFloat, refreshing: Bool) -> Bool {
+        if overpull < 1 { armed = true }
+        guard overpull > Self.threshold, armed, !refreshing else { return false }
+        armed = false
+        return true
+    }
+}
+
 struct BrandRefresh: ViewModifier {
     let action: () async -> Void
     @State private var pull: CGFloat = 0
     @State private var refreshing = false
+    @State private var trigger = PullTrigger()
     @State private var fireTick = 0
-    private let threshold: CGFloat = 84
+    private let threshold = PullTrigger.threshold
 
     func body(content: Content) -> some View {
         content
@@ -82,7 +96,7 @@ struct BrandRefresh: ViewModifier {
                 -(geo.contentOffset.y + geo.contentInsets.top)
             } action: { _, overpull in
                 pull = max(0, overpull)
-                guard overpull > threshold, !refreshing else { return }
+                guard trigger.fires(overpull: overpull, refreshing: refreshing) else { return }
                 refreshing = true
                 fireTick += 1
                 Task { @MainActor in
