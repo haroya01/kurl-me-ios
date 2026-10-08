@@ -55,7 +55,7 @@ struct StudioView: View {
                 if auth.isSignedIn {
                     // 좌측 '새 글' 폭만큼의 투명 균형추 — 스위처가 화면 정중앙에 오게(피드의 벨 보정과 같은 수법).
                     HStack(spacing: 0) {
-                        Color.clear.frame(width: 44, height: 40)
+                        Color.clear.frame(width: FeedHeaderMetrics.circle, height: FeedHeaderMetrics.circle)
                         Spacer(minLength: 0)
                         // 스위처와 '새 글'은 한 영역의 유리 둘 — 컨테이너 하나로 묶어 각자 겉돌지 않게(§1.4).
                         GlassEffectContainer(spacing: GlassTokens.clusterSpacing) {
@@ -68,17 +68,17 @@ struct StudioView: View {
                             composing = true
                         } label: {
                             Image(systemName: "square.and.pencil")
-                                .font(.system(size: 17, weight: .semibold))
+                                .font(.system(size: 17))
+                                .imageScale(.large)
                                 .foregroundStyle(.white)
-                                .frame(width: 44, height: 44)
+                                .frame(width: FeedHeaderMetrics.circle, height: FeedHeaderMetrics.circle)
                                 .contentShape(Circle())
                         }
                         .buttonStyle(.plain)
                         .glassEffect(.regular.tint(GlassTokens.prominentTint).interactive(), in: .circle)
                         .accessibilityLabel(Text("새 글 쓰기"))
                     }
-                    .padding(.horizontal, Metrics.gutter)
-                    .padding(.top, 2)
+                    .padding(.horizontal, FeedHeaderMetrics.edge)
                     .padding(.bottom, 8)
                 }
             }

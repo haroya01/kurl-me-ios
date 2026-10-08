@@ -131,7 +131,7 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable>: View {
     private var labelSize: CGFloat { min(rawLabelSize, 16) }
 
     var body: some View {
-        // 높이 ≈ 40pt — 헤더 영역의 유리 원형 버튼(벨 등)과 같은 키로 맞춘다.
+        // 높이 44pt — 헤더 영역의 유리 원형 버튼(벨 등)과 같은 키로 맞춘다.
         let row = HStack(spacing: 2) {
             ForEach(items) { item in
                 let active = item == selection
@@ -150,7 +150,7 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable>: View {
                         // 글자는 시맨틱 스타일이라 vibrancy 가 가독을 만든다(§1.2, slate 고정색 금지).
                         .foregroundStyle(active ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
                         .padding(.horizontal, 13)
-                        .padding(.vertical, bare ? 6 : 8)
+                        .padding(.vertical, bare ? 6 : 10)
                         .background {
                             if active {
                                 // 선택 알약 = 유리 위로 살짝 들린 중립 표면(라이트 slate-200·다크 slate-700).
