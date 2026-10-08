@@ -245,20 +245,22 @@ struct HighlightThreadSheet: View {
                     }
                     if let author {
                         NavigationLink(value: Route.author(username: author.username)) {
-                            Text("@\(author.username)")
+                            Text(author.username)
                                 .typeScale(.meta)
                                 .foregroundStyle(Palette.ink)
+                                .lineLimit(1)
                         }
                         .buttonStyle(.plain)
                     } else {
-                        Text("@?")
+                        Text(verbatim: "?")
                             .typeScale(.meta)
                             .foregroundStyle(Palette.ink)
                     }
                     if let date {
-                        Text(date.formatted(.dateTime.month().day()))
+                        Text(date.relativeCompact)
                             .typeScale(.meta)
                             .foregroundStyle(Palette.secondary)
+                            .fixedSize()
                     }
                     Spacer(minLength: 0)
                     if let replyId, isMyReply(replyId) {
