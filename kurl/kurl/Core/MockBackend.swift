@@ -1130,6 +1130,18 @@ enum MockBackend {
                 ["tag": "kurl", "accounts": 2, "uses": 2, "history": [0, 0, 0, 0, 0, 1, 1]],
             ])
         }
+        if method == "GET", parts == ["public", "notes", "trending-links"] {
+            return json([
+                ["url": "https://example.com/slow-web", "title": "느린 웹을 위한 변론", "description": NSNull(),
+                 "imageUrl": NSNull(), "accounts": 3, "uses": 4, "history": [0, 0, 1, 0, 1, 1, 1]],
+                ["url": "https://blog.example.org/hexagonal", "title": "Hexagonal, three years in", "description": NSNull(),
+                 "imageUrl": NSNull(), "accounts": 2, "uses": 2, "history": [0, 0, 0, 0, 1, 0, 1]],
+            ])
+        }
+        if method == "GET", parts == ["public", "notes", "links"] {
+            let hits = Array(allNotes().filter { $0.visibility == "public" }.prefix(2)).map(noteView)
+            return json(["items": hits, "page": 0, "hasNext": false])
+        }
         if method == "GET", parts == ["public", "notes", "search"] {
             let q = (query?.first(where: { $0.name == "q" })?.value ?? "").lowercased()
             let hits = q.isEmpty

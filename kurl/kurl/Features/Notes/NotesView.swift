@@ -39,12 +39,13 @@ final class NotesViewModel {
         case reposts(String)
         case quotes(Int64)
         case tag(String)
+        case link(String)
         case search(String)
         case remoteAccount(Int64)
 
         var filterContext: NoteFilterContext? {
             switch self {
-            case .everyone, .federated, .trending, .tag, .quotes, .search: .public
+            case .everyone, .federated, .trending, .tag, .link, .quotes, .search: .public
             case .following, .list: .home
             case .author, .reposts, .remoteAccount: .account
             case .bookmarks, .direct: nil
@@ -86,6 +87,10 @@ final class NotesViewModel {
 
     init(tag: String) {
         source = .tag(tag)
+    }
+
+    init(link url: String) {
+        source = .link(url)
     }
 
     init(search query: String) {
@@ -132,6 +137,7 @@ final class NotesViewModel {
             }
         case let .quotes(id): try await NoteAPI.quotes(of: id, page: page)
         case let .tag(name): try await NoteAPI.tagged(name, page: page)
+        case let .link(url): try await NoteAPI.linked(url, page: page)
         case let .search(query): try await NoteAPI.search(query, page: page)
         case let .author(username): try await NoteAPI.byAuthor(username, page: page)
         case let .reposts(username): try await NoteAPI.reposts(username, page: page)

@@ -41,6 +41,7 @@ struct SearchView: View {
     @State private var trending: [FeedItem] = []
     @State private var popularTags: [TagCount] = []
     @State private var trendingNoteTags: [TrendingNoteTag] = []
+    @State private var trendingNoteLinks: [TrendingNoteLink] = []
     @State private var suggestedAuthors: [SuggestedAuthor] = []
     /// 로그인한 사람의 팔로우 추천(마스토돈) — 있으면 익명 "작가" 레일 대신 선다.
     @State private var followSuggestions: [FollowSuggestion] = []
@@ -191,6 +192,8 @@ struct SearchView: View {
 
                 trendingNoteTagsRail
 
+                trendingNoteLinksRail
+
                 popularTagsRail
 
                 if !AuthStore.shared.isSignedIn || followSuggestions.isEmpty {
@@ -314,6 +317,67 @@ struct SearchView: View {
                     .accessibilityIdentifier("search.trendingTag.\(trend.tag)")
                 }
             }
+        }
+    }
+
+    @ViewBuilder private var trendingNoteLinksRail: some View {
+        if !trendingNoteLinks.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                RailHeading("뜨는 링크")
+                ForEach(trendingNoteLinks) { trend in
+                    NavigationLink(value: Route.noteLink(url: trend.url, title: trend.title)) {
+                        HStack(spacing: 12) {
+                            linkThumbnail(trend)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(verbatim: trend.title?.isEmpty == false ? trend.title! : trend.host)
+                                    .typeScale(.body)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(Palette.ink)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                                Group {
+                                    if trend.title?.isEmpty == false {
+                                        Text("\(trend.host) · \(trend.accounts)명이 이번 주에 공유했어요")
+                                    } else {
+                                        Text("\(trend.accounts)명이 이번 주에 공유했어요")
+                                    }
+                                }
+                                .typeScale(.meta)
+                                .foregroundStyle(Palette.secondary)
+                                .lineLimit(1)
+                            }
+                            Spacer(minLength: 8)
+                            TrendSparkBars(history: trend.history)
+                        }
+                        .padding(.vertical, 10)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityIdentifier("search.trendingLink.\(trend.host)")
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private func linkThumbnail(_ trend: TrendingNoteLink) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
+        if let image = trend.imageUrl.flatMap(URL.init(string:)) {
+            RemoteImage(url: image, maxPixel: 200) { phase in
+                if case .success(let loaded) = phase {
+                    loaded.resizable().scaledToFill()
+                } else {
+                    Palette.chipBg
+                }
+            }
+            .frame(width: 52, height: 52)
+            .clipShape(shape)
+        } else {
+            Image(systemName: "link")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Palette.secondary)
+                .frame(width: 52, height: 52)
+                .background(Palette.chipBg, in: shape)
         }
     }
 
@@ -490,6 +554,9 @@ struct SearchView: View {
         }
         if trendingNoteTags.isEmpty {
             trendingNoteTags = Array(((try? await NoteAPI.trendingTags()) ?? []).prefix(5))
+        }
+        if trendingNoteLinks.isEmpty {
+            trendingNoteLinks = Array(((try? await NoteAPI.trendingLinks()) ?? []).prefix(5))
         }
         if AuthStore.shared.isSignedIn, followSuggestions.isEmpty {
             followSuggestions = (try? await FollowSuggestionsAPI.suggestions()) ?? []
