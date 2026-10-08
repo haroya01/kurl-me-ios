@@ -1930,7 +1930,7 @@ struct CommentRow: View {
                             .background(Palette.chipBg, in: Capsule())
                     }
                     if let date = comment.createdAt {
-                        Text(date.relativeShort)
+                        Text(date.relativeCompact)
                             .typeScale(.meta)
                             .foregroundStyle(Palette.secondary)
                             .fixedSize()
