@@ -76,7 +76,7 @@ struct FeedView: View {
                 if router.reselectedTab == 0 { choice.path = NavigationPath() }
             }
             // 고정 스트립 대신 떠 있는 유리 — 카드가 캡슐 양옆·뒤로 그대로 흐른다.
-            .safeAreaInset(edge: .top) {
+            .safeAreaBar(edge: .top) {
                 FeedHeaderBar(items: FeedTab.allCases, selection: $choice.tab) { $0.label }
             }
             .task(id: AuthStore.shared.isSignedIn) { await UnreadStore.shared.refresh() }
