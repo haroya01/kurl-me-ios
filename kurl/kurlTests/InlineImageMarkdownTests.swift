@@ -93,6 +93,16 @@ final class NoteTextTests: XCTestCase {
         XCTAssertEqual(String(text.characters), "see https://kurl.me/a?b=1. and javascript:alert(1)")
     }
 
+    func testHashtagKeepsItsHashOnTheSameLineWithoutChangingWhatIsSent() {
+        let body = "다시 배운다. #아키텍처. 끝 #디자인·"
+        let text = NoteText.attributed(body)
+        let links = text.runs.compactMap { run in run.link.map { ($0, String(text[run.range].characters)) } }
+        XCTAssertEqual(links.map(\.1), ["#\u{2060}아키텍처", "#\u{2060}디자인"])
+        XCTAssertEqual(links.compactMap { NoteText.target(from: $0.0) }, [.tag("아키텍처"), .tag("디자인")])
+        XCTAssertEqual(String(text.characters), "다시 배운다. #\u{2060}아키텍처. 끝 #\u{2060}디자인·")
+        XCTAssertEqual(NoteText.plain(String(text.characters)), body)
+    }
+
     func testLengthCountsCodePointsLikeTheServer() {
         XCTAssertEqual(NoteText.length("😀😀"), 2)
         XCTAssertEqual(NoteText.length("  가나  "), 2)

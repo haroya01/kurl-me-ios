@@ -336,7 +336,7 @@ final class NotesFeedUITests: XCTestCase {
         app.launch()
         openNotes(app)
 
-        let tag = app.links["#아키텍처"].firstMatch
+        let tag = app.links.matching(NSPredicate(format: "label CONTAINS %@", "아키텍처")).firstMatch
         XCTAssertTrue(tag.waitForExistence(timeout: 10), "노트 본문의 해시태그가 링크가 아님")
         tag.tap()
 
@@ -1036,7 +1036,7 @@ final class NotesFeedUITests: XCTestCase {
         app.navigationBars.buttons.element(boundBy: 0).tap()
 
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        let tag = app.links["#아키텍처"].firstMatch
+        let tag = app.links.matching(NSPredicate(format: "label CONTAINS %@", "아키텍처")).firstMatch
         XCTAssertTrue(tag.waitForExistence(timeout: 10))
         tag.tap()
         let tagNotes = app.buttons["tag.tab.notes"]
