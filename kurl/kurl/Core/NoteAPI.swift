@@ -330,6 +330,14 @@ struct NoteMedia: Decodable, Hashable, Identifiable {
     let url: String
     let altText: String?
     let contentType: String
+    var width: Int?
+    var height: Int?
+
+    /// 원본 비율 — 피드 타일이 이미지가 오기 전부터 제 모양으로 자리를 잡는다. 극단 비율은 잘라 쓴다.
+    var ratio: CGFloat? {
+        guard let width, let height, width > 0, height > 0 else { return nil }
+        return min(max(CGFloat(width) / CGFloat(height), 0.5), 2)
+    }
 }
 
 struct QuotedPost: Codable, Hashable, Identifiable {
@@ -517,6 +525,8 @@ struct NoteDraft: Encodable {
     struct Image: Encodable {
         let key: String
         let altText: String
+        var width: Int?
+        var height: Int?
     }
 
     let body: String

@@ -1172,7 +1172,7 @@ private struct NoteImageTile: View {
         self.image = image
         self.height = height
         self.onOpen = onOpen
-        _ratio = State(initialValue: Self.cachedRatio(image.url) ?? Self.unknownRatio)
+        _ratio = State(initialValue: image.ratio ?? Self.cachedRatio(image.url) ?? Self.unknownRatio)
     }
 
     private static func cachedRatio(_ string: String) -> CGFloat? {
@@ -2111,7 +2111,10 @@ struct NoteComposeSheet: View {
             for item in picked {
                 guard let jpeg = item.image.jpegData(compressionQuality: 0.85) else { continue }
                 let key = try await NoteAPI.uploadImage(jpegData: jpeg)
-                images.append(NoteDraft.Image(key: key, altText: item.altText))
+                images.append(NoteDraft.Image(
+                    key: key, altText: item.altText,
+                    width: Int((item.image.size.width * item.image.scale).rounded()),
+                    height: Int((item.image.size.height * item.image.scale).rounded())))
             }
             let draft = NoteDraft(
                 body: NoteText.plain(text), images: images, quotedPostId: quote?.id, inReplyToId: inReplyToId,
