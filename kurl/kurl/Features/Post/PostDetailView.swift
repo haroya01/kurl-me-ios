@@ -154,9 +154,6 @@ private struct PostDetailReader: View {
     /// 끝맺음 감지선이 한 번이라도 화면 밖에 있었는가 — 처음부터 끝이 보이는 짧은 글은
     /// 래치 대상이 아니라는 표식(끝맺음까지 합치면 짧은 글도 scrollable 이라 이 가드가 필요).
     @State private var endSentinelWasHidden = false
-    /// 끝맺음 감지선에 처음 닿았을 때의 읽기 진행도 — 이 아래로 되돌아 올라오면 독이 다시 뜬다.
-    /// (감지선을 지나쳐 위로 사라져도 물러난 상태를 유지하기 위한 래치 기준점.)
-    @State private var bodyEndProgress: CGFloat?
     @State private var keyboardUp = false
 
     /// 글 끝의 작가 카드·다른 글 — 작가 글 목록은 한 번만 가져와 양쪽(카드·다음 글 큐)이 쓴다.
@@ -357,10 +354,6 @@ private struct PostDetailReader: View {
                 readComplete = true
             } else if progress < 0.9, readComplete {
                 readComplete = false
-            }
-            // 독 래치 해제 — 끝맺음에 닿았던 지점보다 본문 위로 되돌아 오면 독을 다시 띄운다.
-            if let end = bodyEndProgress, progress < end - 0.02, endVisible {
-                endVisible = false
             }
         }
         .onScrollPhaseChange { _, newPhase in
@@ -1211,23 +1204,18 @@ private struct PostDetailReader: View {
                 nav: nav, username: detail.author.username,
                 goToEpisode: embedded ? nil : goToEpisode)
         }
-        // 본문이 끝나고 '끝맺음'(레일·작가 카드·댓글)이 시작되는 감지선. 뷰포트에 들면 독이 물러난다 —
-        // 떠 있는 독이 그 아래 요소를 가리지 않게(§ 표면 매핑: "글 끝에선 후퇴"). 한 번 닿으면 그 지점의
-        // 읽기 진행도를 기록해 두고, 감지선을 지나쳐 위로 사라져도(끝맺음을 계속 보는 동안) 물러난
-        // 채로 둔다 — 예전엔 감지선을 지나치는 순간 독이 되살아나 댓글·레일을 덮었다. 본문으로
-        // 되돌아 그 진행도 아래로 올라오면 다시 뜬다. 짧은 글은 scrollable 가드가 막아 독을 유지한다.
+        // 본문이 끝나고 '끝맺음'(레일·작가 카드·댓글)이 시작되는 감지선. 스크롤을 시작한 뒤 감지선이 아래에서
+        // 올라오면(긴 글) 또는 화면 위쪽 절반으로 올라가면(첫 화면에 본문이 끝나는 짧은 글) 독이 물러나고,
+        // 맨 위나 본문으로 되돌아오면 뜬다. 보임 여부(onScrollVisibilityChange)가 아니라 위치로 판정한다 —
+        // 지연 스택은 감지선을 화면 근처에서 다시 만들 때 처음부터 보이는 상태로 만들어 변화 알림이 오지 않았다.
         Color.clear.frame(height: 1)
-            .onScrollVisibilityChange(threshold: 0.1) { visible in
-                if visible {
-                    // 처음부터 끝맺음이 보이는 짧은 글은 래치하지 않는다 — 끝맺음(댓글·레일·작가 카드)
-                    // 까지 합치면 짧은 글도 scrollable 이라, 로드와 동시에 독이 물러나 영영 못 떴다
-                    // (짧은 글 독·목차 실종). 한 번이라도 화면 밖이던 감지선이 들어올 때만 "끝"으로 본다.
-                    guard endSentinelWasHidden, scrollProgress.read > 0 else { return }
-                    endVisible = true
-                    if bodyEndProgress == nil { bodyEndProgress = scrollProgress.read }
-                } else {
-                    endSentinelWasHidden = true
-                }
+            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .scrollView).minY } action: { minY in
+                let viewport = scrollProgress.containerH
+                guard viewport > 0 else { return }
+                if minY > viewport { endSentinelWasHidden = true }
+                let reached = scrollProgress.read > 0
+                    && ((endSentinelWasHidden && minY < viewport * 0.9) || minY < viewport * 0.5)
+                if reached != endVisible { endVisible = reached }
             }
         // 글 = 엣지가 보이는 노드 — 다 읽은 뒤, 이 글이 놓인 길 · 이어진 것 · 이은 사람으로 나간다.
         // 엣지가 하나도 없으면 그려지지 않고(막다른 길 방지는 아래 태그 기반 작가 레일이 맡는다),
@@ -1840,6 +1828,7 @@ struct CommentRow: View {
                         Text(comment.author.username)
                             .typeScale(.meta)
                             .foregroundStyle(Palette.ink)
+                            .lineLimit(1)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -1847,6 +1836,7 @@ struct CommentRow: View {
                         Text("작가")
                             .font(.system(size: 10 * metaUnit, weight: .semibold))
                             .foregroundStyle(Palette.link)
+                            .fixedSize()
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
                             .background(Palette.chipBg, in: Capsule())
@@ -1855,6 +1845,7 @@ struct CommentRow: View {
                         Text(date.relativeShort)
                             .typeScale(.meta)
                             .foregroundStyle(Palette.secondary)
+                            .fixedSize()
                     }
                     Spacer(minLength: 0)
                     if isMine {
