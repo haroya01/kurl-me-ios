@@ -215,4 +215,39 @@ final class TabBarMinimizeUITests: XCTestCase {
         XCTAssertTrue(more.isHittable, "스크롤업 후에도 상단 크롬이 안 돌아옴")
         XCTAssertTrue(tabBar.isHittable, "스크롤업 후에도 탭바가 안 돌아옴")
     }
+
+    /// 글 끝 댓글 입구를 누르면 입력 바가 하단에 붙는다 — 떠 있는 탭바가 그 위를 덮으면 하드웨어 키보드이거나
+    /// 키보드를 내린 뒤(초안이 있으면 바는 남는다) 입력 칸이 탭바 뒤에 깔린다. 쓰는 동안은 탭바를 접는다.
+    func testTheCommentBarFoldsTheTabBarWhileWriting() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks"]
+        app.launch()
+
+        let probe = app.buttons["검색"]
+        XCTAssertTrue(probe.waitForExistence(timeout: 15), "탭바(검색 버튼)가 없음")
+        let card = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "엣지 비전")).firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 10), "피드 카드가 없음")
+        card.tap()
+        let prompt = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "댓글을 남겨보세요")).firstMatch
+        for _ in 0..<12 where !prompt.isHittable {
+            app.swipeUp()
+            Thread.sleep(forTimeInterval: 0.3)
+        }
+        XCTAssertTrue(prompt.isHittable, "댓글 입구까지 내려가지 못함")
+        prompt.tap()
+        Thread.sleep(forTimeInterval: 0.8)
+        app.typeText("초안")
+
+        // 본문을 탭해 키보드를 내리면 초안이 있는 입력 바는 하단에 남는다. 위 댓글을 다시 보려고 올리면
+        // 스크롤 추적이 탭바를 되살리는데, 그 바가 입력 바를 통째로 덮으면 안 된다.
+        app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "포트 이름 짓는 법")).firstMatch.tap()
+        Thread.sleep(forTimeInterval: 1)
+        for _ in 0..<2 {
+            app.swipeDown(velocity: .slow)
+            Thread.sleep(forTimeInterval: 0.4)
+        }
+        Thread.sleep(forTimeInterval: 0.6)
+        XCTAssertFalse(probe.isHittable, "초안이 남은 입력 바 위로 탭바가 돌아와 덮음")
+    }
 }
+
