@@ -108,3 +108,26 @@ final class NoteTextTests: XCTestCase {
         XCTAssertEqual(NoteText.length("  가나  "), 2)
     }
 }
+
+final class NoteMediaSizeTests: XCTestCase {
+
+    func testAKnownSizeGivesTheRatioAndAnUnknownOneDoesNot() throws {
+        let json = #"""
+        [{"url":"a","altText":null,"contentType":"image/jpeg","width":600,"height":800},
+         {"url":"b","altText":null,"contentType":"image/jpeg"},
+         {"url":"c","altText":null,"contentType":"image/jpeg","width":4000,"height":100}]
+        """#
+        let media = try JSONDecoder().decode([NoteMedia].self, from: Data(json.utf8))
+        XCTAssertEqual(try XCTUnwrap(media[0].ratio), 0.75, accuracy: 0.0001)
+        XCTAssertNil(media[1].ratio)
+        XCTAssertEqual(media[2].ratio, 2)
+    }
+
+    func testTheDraftSendsEachPicturesSize() throws {
+        let image = NoteDraft.Image(key: "k", altText: "a", width: 1200, height: 1600)
+        let object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(image)) as? [String: Any])
+        XCTAssertEqual(object["width"] as? Int, 1200)
+        XCTAssertEqual(object["height"] as? Int, 1600)
+    }
+}

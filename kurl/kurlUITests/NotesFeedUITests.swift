@@ -143,6 +143,24 @@ final class NotesFeedUITests: XCTestCase {
             "사진 넘기기가 인기로 넘어감")
     }
 
+    /// 서버가 사진 크기를 주면 타일이 처음부터 원래 비율로 그려진다 — 세로 사진은 가로 사진보다 좁다.
+    func testPhotosKeepTheirOwnShapeWhenTheServerKnowsTheirSize() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+        XCTAssertTrue(app.buttons["note.menu.9501"].waitForExistence(timeout: 10), "노트가 안 뜸")
+
+        let wide = app.descendants(matching: .any).matching(NSPredicate(format: "label == '비 오는 창밖'")).firstMatch
+        let tall = app.descendants(matching: .any).matching(NSPredicate(format: "label == '젖은 골목'")).firstMatch
+        var tries = 0
+        while !(wide.exists && wide.isHittable), tries < 6 { app.swipeUp(); tries += 1 }
+        XCTAssertTrue(tall.waitForExistence(timeout: 3), "두 번째 사진이 없음")
+        XCTAssertEqual(wide.frame.height, tall.frame.height, accuracy: 1, "넘기기 사진들의 높이가 다름")
+        XCTAssertEqual(wide.frame.width / wide.frame.height, 900.0 / 700.0, accuracy: 0.03, "가로 사진이 원래 비율이 아님")
+        XCTAssertEqual(tall.frame.width / tall.frame.height, 600.0 / 800.0, accuracy: 0.03, "세로 사진이 원래 비율이 아님")
+    }
+
     func testTappingTheNotesTabAgainPopsToTheFeedThenOpensTheFeedMenu() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]
