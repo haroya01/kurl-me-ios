@@ -91,15 +91,6 @@ struct BlogCard: View {
             // 스크린샷·다이어그램 커버의 원본 UI 잔재(말풍선·타임스탬프)가 중앙 띠에서 소란하던 것 —
             // 상단 scrim·하단 띠가 안 덮는 가운데를 아주 옅은 뉴트럴 스크림 한 겹으로 가라앉힌다(#B3).
             .overlay(Palette.coverScrim)
-            .overlay(alignment: .top) {
-                // 상단 scrim — 좌상단 태그/featured 뱃지 가독용.
-                LinearGradient(
-                    colors: [.black.opacity(0.35), .clear],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 64)
-            }
             .overlay(alignment: .topLeading) {
                 HStack(spacing: 8) {
                     if featured { FeaturedBadge(over: true) }
@@ -109,6 +100,9 @@ struct BlogCard: View {
                             Text("#\(tag)")
                                 .typeScale(.meta)
                                 .foregroundStyle(.white)
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 4)
+                                .background(GlassTokens.mediaChip, in: Capsule())
                                 .expandTapTarget(8)
                         }
                         .buttonStyle(.plain)
