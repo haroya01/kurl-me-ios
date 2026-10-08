@@ -71,6 +71,39 @@ final class NotesFeedUITests: XCTestCase {
         add(shot)
     }
 
+    /// 스레드처럼 여러 노트를 이어 써 한 번에 올린다 — 첫 노트가 피드에, 이어 쓴 노트는 그 답글로 상세에.
+    func testATwoNoteThreadPostsAtOnceAndReadsAsAReplyChain() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+        app.buttons["notes.fab"].tap()
+
+        let field = app.textFields["noteCompose.text"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5), "작성 시트의 입력란 없음")
+        field.typeText("이어 쓰기 첫 노트")
+        let add = app.buttons["noteCompose.addPart"]
+        XCTAssertTrue(add.exists, "스레드에 추가 줄이 없음")
+        add.tap()
+        let part = app.textFields["noteCompose.part"].firstMatch
+        XCTAssertTrue(part.waitForExistence(timeout: 3), "이어 쓰는 칸이 안 생김")
+        part.typeText("이어 쓰기 둘째 노트")
+        XCTAssertFalse(app.buttons["noteCompose.schedule"].exists, "이어 쓰는 중에 예약이 보임")
+        app.buttons["noteCompose.post"].tap()
+        let notice = app.alerts.firstMatch
+        if notice.waitForExistence(timeout: 4) { notice.buttons["알겠어요, 올릴게요"].tap() }
+
+        let first = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS '이어 쓰기 첫 노트'")).firstMatch
+        XCTAssertTrue(first.waitForExistence(timeout: 8), "첫 노트가 피드 맨 위에 안 꽂힘")
+        XCTAssertFalse(field.exists, "올린 뒤 시트가 닫히지 않음")
+        first.tap()
+        let second = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS '이어 쓰기 둘째 노트'")).firstMatch
+        XCTAssertTrue(second.waitForExistence(timeout: 8), "이어 쓴 노트가 첫 노트의 답글로 안 보임")
+        attach(app, "thread-posted")
+    }
+
     func testTheNotesFeedSwitchesLikeTheBlogFeedByTapOrSwipe() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]

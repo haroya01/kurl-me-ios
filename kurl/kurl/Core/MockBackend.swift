@@ -1334,36 +1334,21 @@ enum MockBackend {
             ])
         }
         if method == "POST", parts == ["notes"] {
-            let req = decode(body)
-            let images = (req["images"] as? [[String: Any]]) ?? []
-            var note = MockNote(
-                id: nextNoteId, body: req["body"] as? String ?? "",
-                createdAt: Date(), likeCount: 0, authorId: 1, username: "honggildong",
-                inReplyToId: (req["inReplyToId"] as? NSNumber)?.int64Value,
-                media: images.map { image in
-                    ["url": "https://picsum.photos/seed/kurl-note/800/600",
-                     "altText": (image["altText"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? NSNull(),
-                     "contentType": "image/jpeg"]
-                })
-            note.quotedNoteId = (req["quotedNoteId"] as? NSNumber)?.int64Value
-            note.contentWarning = (req["contentWarning"] as? String).flatMap { $0.isEmpty ? nil : $0 }
-            note.sensitive = (req["sensitive"] as? Bool) ?? false
-            note.visibility = (req["visibility"] as? String) ?? "public"
-            if let poll = req["poll"] as? [String: Any], let options = poll["options"] as? [String] {
-                note.poll = MockPoll(
-                    options: options,
-                    expiresAt: Date().addingTimeInterval((poll["expiresIn"] as? NSNumber)?.doubleValue ?? 86_400),
-                    multiple: (poll["multiple"] as? Bool) ?? false,
-                    votes: options.map { _ in 0 }, voters: 0)
+            return json(noteView(createMockNote(decode(body))))
+        }
+        if method == "POST", parts == ["notes", "threads"] {
+            var created: [[String: Any]] = []
+            var previous: MockNote?
+            for var draft in (decode(body)["notes"] as? [[String: Any]]) ?? [] {
+                if let previous {
+                    draft["inReplyToId"] = NSNumber(value: previous.id)
+                    draft["visibility"] = previous.visibility
+                }
+                let note = createMockNote(draft)
+                created.append(noteView(note))
+                previous = note
             }
-            if let quoted = (req["quotedPostId"] as? NSNumber)?.int64Value {
-                note.quotedPost = [
-                    "id": quoted, "title": "인용한 글", "slug": "quoted", "authorUsername": "honggildong",
-                ]
-            }
-            nextNoteId += 1
-            if note.inReplyToId == nil { notes.insert(note, at: 0) } else { noteReplies.append(note) }
-            return json(noteView(note))
+            return json(created)
         }
         if method == "POST", parts.count == 4, parts[0] == "notes", parts[2] == "poll", parts[3] == "votes",
            let nid = Int64(parts[1]), let idx = notes.firstIndex(where: { $0.id == nid }),
@@ -2475,6 +2460,38 @@ enum MockBackend {
 
     private static func topLevelNotes() -> [MockNote] {
         notes.filter { $0.inReplyToId == nil && mutedUsers[$0.username] == nil }.sorted { $0.createdAt > $1.createdAt }
+    }
+
+    private static func createMockNote(_ req: [String: Any]) -> MockNote {
+        let images = (req["images"] as? [[String: Any]]) ?? []
+        var note = MockNote(
+            id: nextNoteId, body: req["body"] as? String ?? "",
+            createdAt: Date(), likeCount: 0, authorId: 1, username: "honggildong",
+            inReplyToId: (req["inReplyToId"] as? NSNumber)?.int64Value,
+            media: images.map { image in
+                ["url": "https://picsum.photos/seed/kurl-note/800/600",
+                 "altText": (image["altText"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? NSNull(),
+                 "contentType": "image/jpeg"]
+            })
+        note.quotedNoteId = (req["quotedNoteId"] as? NSNumber)?.int64Value
+        note.contentWarning = (req["contentWarning"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+        note.sensitive = (req["sensitive"] as? Bool) ?? false
+        note.visibility = (req["visibility"] as? String) ?? "public"
+        if let poll = req["poll"] as? [String: Any], let options = poll["options"] as? [String] {
+            note.poll = MockPoll(
+                options: options,
+                expiresAt: Date().addingTimeInterval((poll["expiresIn"] as? NSNumber)?.doubleValue ?? 86_400),
+                multiple: (poll["multiple"] as? Bool) ?? false,
+                votes: options.map { _ in 0 }, voters: 0)
+        }
+        if let quoted = (req["quotedPostId"] as? NSNumber)?.int64Value {
+            note.quotedPost = [
+                "id": quoted, "title": "인용한 글", "slug": "quoted", "authorUsername": "honggildong",
+            ]
+        }
+        nextNoteId += 1
+        if note.inReplyToId == nil { notes.insert(note, at: 0) } else { noteReplies.append(note) }
+        return note
     }
 
     private static func noteView(_ n: MockNote) -> [String: Any] {

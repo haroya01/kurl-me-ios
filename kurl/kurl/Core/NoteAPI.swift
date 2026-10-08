@@ -153,6 +153,15 @@ enum NoteAPI {
         try await client.get("/public/notes/\(id)", authenticated: signedIn)
     }
 
+    /// 한 번에 올리는 스레드의 노트 수 상한(서버와 같은 값).
+    static let maxThreadNotes = 10
+
+    /// 이어 쓴 노트들을 한 번에 — 서버가 한 트랜잭션에서 앞 노트의 답글로 잇는다(전부 또는 하나도 없이).
+    static func createThread(_ drafts: [NoteDraft]) async throws -> [Note] {
+        struct Body: Encodable { let notes: [NoteDraft] }
+        return try await client.post("/notes/threads", body: Body(notes: drafts), authenticated: true)
+    }
+
     static func create(_ draft: NoteDraft) async throws -> Note {
         try await client.post("/notes", body: draft, authenticated: true)
     }
