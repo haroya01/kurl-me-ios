@@ -1493,7 +1493,10 @@ struct NoteDetailView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Palette.readingBg)
+        .navigationTitle("노트")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(Palette.readingBg, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .noteTextLinks()
         .hidesTabBar()
         .safeAreaInset(edge: .bottom) {
