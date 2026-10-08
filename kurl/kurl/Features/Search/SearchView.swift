@@ -434,7 +434,7 @@ struct SearchView: View {
                         .lineLimit(1)
                     Group {
                         if suggestion.reason == .friends {
-                            Text("내가 팔로우하는 \(suggestion.mutuals)명이 팔로우")
+                            Text("내가 팔로우하는\n\(suggestion.mutuals)명이 팔로우")
                         } else {
                             Text("요즘 많이 팔로우해요")
                         }
