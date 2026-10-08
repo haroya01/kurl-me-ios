@@ -204,6 +204,34 @@
         }
       }
     },
+    "%@ · %lld명이 이번 주에 공유했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · Shared by %lld people this week"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · इस हफ़्ते %lld लोगों ने शेयर किया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · 今週%lld人が共有"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · %lld người chia sẻ tuần này"
+          }
+        }
+      }
+    },
     "%@ · %lld편": {
       "extractionState": "stale",
       "localizations": {
@@ -2210,6 +2238,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "%2$lld thông báo từ %1$lld người"
+          }
+        }
+      }
+    },
+    "%lld명이 이번 주에 공유했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shared by %lld people this week"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस हफ़्ते %lld लोगों ने शेयर किया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今週%lld人が共有"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld người chia sẻ tuần này"
           }
         }
       }
@@ -9736,6 +9792,34 @@
         }
       }
     },
+    "뜨는 링크": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trending links"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ट्रेंडिंग लिंक"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "話題のリンク"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Liên kết thịnh hành"
+          }
+        }
+      }
+    },
     "뜨는 해시태그": {
       "localizations": {
         "en": {
@@ -10488,6 +10572,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sao chép liên kết"
+          }
+        }
+      }
+    },
+    "링크를 담은 노트는 카드가 붙은 뒤에 여기 모여요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes that carry this link gather here once their card is attached."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस लिंक वाले नोट, कार्ड जुड़ने के बाद यहाँ इकट्ठा होते हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このリンクを載せたノートは、カードが付いたあとここに集まります。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ghi chú chứa liên kết này sẽ tập hợp ở đây khi thẻ được gắn."
           }
         }
       }
@@ -12364,6 +12476,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chưa có ghi chú hay bài viết nào trích dẫn ghi chú này"
+          }
+        }
+      }
+    },
+    "아직 이 링크를 실은 노트가 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No notes carry this link yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस लिंक वाला कोई नोट अभी नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このリンクを載せたノートはまだありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có ghi chú nào chứa liên kết này"
           }
         }
       }

@@ -36,6 +36,16 @@ enum NoteAPI {
         try await client.get("/public/notes/trending-tags", authenticated: false)
     }
 
+    static func trendingLinks() async throws -> [TrendingNoteLink] {
+        try await client.get("/public/notes/trending-links", authenticated: false)
+    }
+
+    static func linked(_ url: String, page: Int = 0) async throws -> NoteFeed {
+        try await client.get(
+            "/public/notes/links", query: ["url": url, "page": String(page), "size": "20"],
+            authenticated: signedIn)
+    }
+
     static func trending(page: Int = 0) async throws -> NoteFeed {
         try await client.get(
             "/public/notes", query: ["sort": "trending", "page": String(page), "size": "20"],
@@ -478,6 +488,23 @@ struct TrendingNoteTag: Decodable, Hashable, Identifiable {
     let history: [Int]
 
     var id: String { tag }
+}
+
+struct TrendingNoteLink: Decodable, Hashable, Identifiable {
+    let url: String
+    let title: String?
+    let description: String?
+    let imageUrl: String?
+    let accounts: Int
+    let uses: Int
+    let history: [Int]
+
+    var id: String { url }
+
+    var host: String {
+        guard let host = URL(string: url)?.host() else { return url }
+        return host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
+    }
 }
 
 struct NoteThread: Decodable {
