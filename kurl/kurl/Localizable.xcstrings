@@ -8392,7 +8392,7 @@
         }
       }
     },
-    "내가 팔로우하는 %lld명이 팔로우": {
+    "내가 팔로우하는\n%lld명이 팔로우": {
       "localizations": {
         "en": {
           "stringUnit": {
