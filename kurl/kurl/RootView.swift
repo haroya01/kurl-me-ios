@@ -422,6 +422,7 @@ private struct FloatingTabBar<TabMenu: View>: View {
                         }
                         .menuStyle(.button)
                         .buttonStyle(.plain)
+                        .accessibilityShowsLargeContentViewer { Label(tab.label, systemImage: tab.icon) }
                         .accessibilityLabel(Text(tab.label))
                         .accessibilityHint(Text("누르면 맨 위로, 길게 누르면 피드 고르기"))
                         .accessibilityAddTraits(.isSelected)
@@ -437,6 +438,7 @@ private struct FloatingTabBar<TabMenu: View>: View {
                             icon(tab.icon, active: lit)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityShowsLargeContentViewer { Label(tab.label, systemImage: tab.icon) }
                         .accessibilityLabel(Text(tab.label))
                         .accessibilityAddTraits(active ? [.isSelected, .isButton] : .isButton)
                     }
@@ -493,7 +495,7 @@ private struct FloatingTabBar<TabMenu: View>: View {
 
     private func icon(_ name: String, active: Bool) -> some View {
         Image(systemName: name)
-            .font(.system(size: iconSize, weight: active ? .semibold : .regular))
+            .font(.system(size: min(iconSize, 28), weight: active ? .semibold : .regular))
             .foregroundStyle(active ? AnyShapeStyle(Palette.link) : AnyShapeStyle(.secondary))
             .frame(maxWidth: .infinity)
             .frame(height: 44)
