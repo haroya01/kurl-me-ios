@@ -14942,34 +14942,6 @@
         }
       }
     },
-    "답글 남기기…": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Leave a reply…"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "जवाब लिखें…"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "返信を書く…"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Viết trả lời…"
-          }
-        }
-      }
-    },
     "답글 달기": {
       "localizations": {
         "en": {
