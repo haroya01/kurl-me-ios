@@ -278,6 +278,8 @@ enum GlassTokens {
     /// 커버 사진 위 맑은 유리의 가독 틴트 — 밝은 사진(흰 책상류)에서도 흰 타이포가 서야
     /// 해서 0.32 로는 모자랐다.
     static let mediaScrim = Color.black.opacity(0.40)
+    /// 사진 위에 얹는 작은 칩(태그·ALT·사진 빼기)의 바탕 — 흰 사진 위에서도 흰 글자 대비 4.5:1 이상.
+    static let mediaChip = Color.black.opacity(0.6)
     /// 유리 클러스터 간격 — GlassEffectContainer 가 이 거리부터 서로 녹여 붙인다.
     static let clusterSpacing: CGFloat = 18
 }

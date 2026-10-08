@@ -1221,7 +1221,7 @@ private struct NoteImageTile: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 3)
-                        .background(.black.opacity(0.7), in: Capsule())
+                        .background(GlassTokens.mediaChip, in: Capsule())
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -1964,7 +1964,7 @@ struct NoteComposeSheet: View {
                                     .font(.system(size: 11, weight: .bold))
                                     .foregroundStyle(.white)
                                     .frame(width: 24, height: 24)
-                                    .background(.black.opacity(0.6), in: Circle())
+                                    .background(GlassTokens.mediaChip, in: Circle())
                                     .contentShape(Circle())
                             }
                             .buttonStyle(.plain)
@@ -1985,7 +1985,7 @@ struct NoteComposeSheet: View {
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 7)
                                 .padding(.vertical, 4)
-                                .background(.black.opacity(0.6), in: Capsule())
+                                .background(GlassTokens.mediaChip, in: Capsule())
                                 .contentShape(Capsule())
                             }
                             .buttonStyle(.plain)
