@@ -530,7 +530,7 @@ private struct PostDetailReader: View {
         }
         // 발견 피드의 하이라이트 카드로 들어오면 — 그 구절이 든 블록으로 스크롤 + 잠깐 강조(1회).
         .task(id: loadedPostId) { await focusOnQuoteIfNeeded(proxy) }
-        .task(id: spotReadiness) { await focusOnSpotIfNeeded(proxy) }
+        .task(id: spotReadiness) { focusOnSpotIfNeeded(proxy) }
         // 미로그인 사용자가 하이라이트를 시도하면 — 댓글·팔로우와 같은 공용 로그인 시트.
         .loginPrompt(
             isPresented: Binding(
@@ -905,12 +905,23 @@ private struct PostDetailReader: View {
 
     /// 댓글 행은 바깥 LazyVStack 의 한 항목(댓글 영역) 안이라 그려지기 전엔 행 id 로 scrollTo 가 닿지 않는다 —
     /// 영역으로 먼저 내려간 뒤 행에 맞춘다. 지워졌거나 차단해 안 보이는 댓글은 영역에서, 사라진 하이라이트는 글 처음에 머문다.
-    private func focusOnSpotIfNeeded(_ proxy: ScrollViewProxy) async {
+    private func focusOnSpotIfNeeded(_ proxy: ScrollViewProxy) {
         guard !didFocusSpot, let spot = focusSpot, case .loaded(let detail) = model.phase else { return }
         switch spot {
-        case .comment(let id):
+        case .comment:
             guard model.commentsLoaded else { return }
-            didFocusSpot = true
+        case .highlight:
+            guard let store = highlights, store.loaded else { return }
+        }
+        didFocusSpot = true
+        // 준비 신호(spotReadiness)가 바뀌면 .task 가 취소된다 — 하이라이트가 댓글보다 늦게 오면 기다리던 스크롤이
+        // 레이아웃 전에 튀어 나가고 다시 오지 않았다. 한 번 시작한 초점 이동은 뷰 작업과 떼어 끝까지 간다.
+        Task { await playFocus(spot, detail: detail, proxy: proxy) }
+    }
+
+    private func playFocus(_ spot: PostSpot, detail: PublicPostDetail, proxy: ScrollViewProxy) async {
+        switch spot {
+        case .comment(let id):
             let visible = model.comments.contains {
                 $0.id == id && !BlockStore.shared.isBlocked($0.author.username)
             }
@@ -928,9 +939,7 @@ private struct PostDetailReader: View {
             try? await Task.sleep(for: .milliseconds(1300))
             withAnimation(reduceMotion ? nil : .easeIn(duration: 0.7)) { flashCommentId = nil }
         case .highlight(let id):
-            guard let store = highlights, store.loaded else { return }
-            didFocusSpot = true
-            guard let highlight = store.highlight(id: id) else { return }
+            guard let store = highlights, let highlight = store.highlight(id: id) else { return }
             if let order = highlight.blockOrder, detail.blocks.contains(where: { $0.id == order }) {
                 try? await Task.sleep(for: .milliseconds(420))
                 withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.55)) {

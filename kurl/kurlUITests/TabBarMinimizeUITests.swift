@@ -60,10 +60,10 @@ final class TabBarMinimizeUITests: XCTestCase {
         let firstCard = app.scrollViews.buttons.firstMatch
         XCTAssertTrue(firstCard.waitForExistence(timeout: 15), "피드 카드가 뜨지 않음")
 
-        // 커스텀 바의 탭 = VoiceOver 라벨 달린 버튼. "발견" 은 스크롤 대상 카드와 안 겹치는
+        // 커스텀 바의 탭 = VoiceOver 라벨 달린 버튼. "검색" 은 스크롤 대상 카드와 안 겹치는
         // 안전한 탭바 프로브(피드 카드에 "피드" 라벨이 없어 유일하게 잡힌다).
-        let discoverTab = app.buttons["발견"]
-        XCTAssertTrue(discoverTab.waitForExistence(timeout: 8), "탭바(발견 버튼)가 없음")
+        let discoverTab = app.buttons["검색"]
+        XCTAssertTrue(discoverTab.waitForExistence(timeout: 8), "탭바(검색 버튼)가 없음")
 
         // before — 스크롤 전엔 탭바가 명중 가능.
         XCTAssertTrue(discoverTab.isHittable, "before: 탭바가 처음부터 보이지 않음")
@@ -87,14 +87,14 @@ final class TabBarMinimizeUITests: XCTestCase {
     }
 
     /// 설정 루트로 들어가면 커스텀 하단바가 접히고, 탭 루트로 pop 하면 되돌아온다 — iOS 관습이자,
-    /// 바에 가려 하단 행(회원 탈퇴)이 도달 불가하던 자리. 탭바 프로브 = "발견" 버튼(설정 콘텐츠와
+    /// 바에 가려 하단 행(회원 탈퇴)이 도달 불가하던 자리. 탭바 프로브 = "검색" 버튼(설정 콘텐츠와
     /// 라벨이 안 겹친다).
     func testSettingsFoldsTabBarAndRestoresOnBack() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "account"]
         app.launch()
 
-        let discoverTab = app.buttons["발견"]
+        let discoverTab = app.buttons["검색"]
         XCTAssertTrue(discoverTab.waitForExistence(timeout: 15), "계정 탭에 탭바가 없음")
         XCTAssertTrue(discoverTab.isHittable, "계정 루트에서 탭바가 처음부터 안 보임")
 
@@ -109,8 +109,8 @@ final class TabBarMinimizeUITests: XCTestCase {
 
         // 설정 → 탭 루트로 pop → 바가 돌아온다. isHittable 은 계정 루트에서 밑으로 흐르는 글
         // 카드가 바 영역과 겹쳐 프론트모스트 판정이 흔들리므로(바는 그려져 있어도 카드가 히트
-        // 포인트를 가로챈다), 되살아난 바를 실제로 눌러 항해가 되는지로 판정한다 — 발견 탭을
-        // 눌러 설정 진입점(gearshape)이 사라지는 발견 표면으로 넘어가면 바가 살아난 것.
+        // 포인트를 가로챈다), 되살아난 바를 실제로 눌러 항해가 되는지로 판정한다 — 검색 탭을
+        // 눌러 설정 진입점(gearshape)이 사라지는 검색 표면으로 넘어가면 바가 살아난 것.
         app.navigationBars.buttons.firstMatch.tap()
         expectation(for: NSPredicate(format: "exists == true"), evaluatedWith: discoverTab)
         waitForExpectations(timeout: 5)
@@ -118,16 +118,16 @@ final class TabBarMinimizeUITests: XCTestCase {
         assertTabBarNavigates(app, discoverTab: discoverTab)
     }
 
-    /// 되살아난 하단바가 실제로 동작하는지 — 발견 탭을 눌러(좌표 탭으로 겹침 무관) 발견 표면으로
+    /// 되살아난 하단바가 실제로 동작하는지 — 검색 탭을 눌러(좌표 탭으로 겹침 무관) 검색 표면으로
     /// 넘어갔음을 계정 전용 진입점(gearshape 설정 버튼)의 소멸로 확인한다.
     private func assertTabBarNavigates(_ app: XCUIApplication, discoverTab: XCUIElement) {
-        XCTAssertTrue(discoverTab.exists, "복귀 후 하단바(발견 버튼)가 트리에 없음")
+        XCTAssertTrue(discoverTab.exists, "복귀 후 하단바(검색 버튼)가 트리에 없음")
         discoverTab.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         let gear = app.buttons["설정"].firstMatch
         let gone = NSPredicate(format: "exists == false")
         expectation(for: gone, evaluatedWith: gear)
         waitForExpectations(timeout: 5)
-        XCTAssertFalse(gear.exists, "발견 탭을 눌렀는데 계정 표면(설정 버튼)이 그대로 — 하단바가 안 살아남")
+        XCTAssertFalse(gear.exists, "검색 탭을 눌렀는데 계정 표면(설정 버튼)이 그대로 — 하단바가 안 살아남")
     }
 
     /// 설정 안 하위 푸시(차단한 사용자)로 더 들어가도 하단바 접힘이 유지되고, 하위→설정→탭 루트로
@@ -138,7 +138,7 @@ final class TabBarMinimizeUITests: XCTestCase {
         app.launchArguments = ["--mocks", "--tab", "account"]
         app.launch()
 
-        let discoverTab = app.buttons["발견"]
+        let discoverTab = app.buttons["검색"]
         XCTAssertTrue(discoverTab.waitForExistence(timeout: 15), "계정 탭에 탭바가 없음")
 
         let settings = app.buttons["설정"].firstMatch
@@ -169,7 +169,7 @@ final class TabBarMinimizeUITests: XCTestCase {
 
     /// 글 상세를 탭 스택 안(피드 → 카드 탭)에서 열고 아래로 읽어 내려가면 상단 크롬(뒤로·⋯)이
     /// 하단 탭바와 함께 사라지고(초록 진행 바만 잔존), 위로 올리면 둘 다 돌아오는 동조 회귀 가드.
-    /// 크롬은 시스템 내비바라 프로브 = "더 보기"(⋯) 버튼 · 탭바 프로브 = "발견" 버튼.
+    /// 크롬은 시스템 내비바라 프로브 = "더 보기"(⋯) 버튼 · 탭바 프로브 = "검색" 버튼.
     func testPostDetailChromeHidesInSyncWithTabBar() throws {
         let app = XCUIApplication()
         // 추천(for-you) 피드로 바로 들어간다 — 목 피드에서 가장 긴 글(토큰이 사라진 밤)이 거기 있다.
@@ -188,9 +188,9 @@ final class TabBarMinimizeUITests: XCTestCase {
         // 상단 크롬의 ⋯ 메뉴 — 라벨은 글 소유에 따라 "더 보기"(남의 글)/"이 글 관리"(내 글)로 갈린다.
         let more = app.buttons.matching(
             NSPredicate(format: "label == '더 보기' OR label == '이 글 관리'")).firstMatch
-        let tabBar = app.buttons["발견"]
+        let tabBar = app.buttons["검색"]
         XCTAssertTrue(more.waitForExistence(timeout: 10), "글 상세 상단 크롬(⋯ 메뉴)이 없음")
-        XCTAssertTrue(tabBar.waitForExistence(timeout: 5), "글 상세 위에 탭바(발견)가 없음")
+        XCTAssertTrue(tabBar.waitForExistence(timeout: 5), "글 상세 위에 탭바(검색)가 없음")
         XCTAssertTrue(more.isHittable, "before: 상단 크롬이 처음부터 안 보임")
         XCTAssertTrue(tabBar.isHittable, "before: 탭바가 처음부터 안 보임")
         attach("postdetail-before-scroll-chrome-and-tabbar")

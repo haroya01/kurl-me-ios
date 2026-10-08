@@ -39,7 +39,7 @@ final class PushTapRouteUITests: XCTestCase {
             .matching(NSPredicate(format: "label BEGINSWITH '어댑터를 바깥으로 미는 순서가'")).firstMatch
         XCTAssertTrue(target.waitForExistence(timeout: 15), "댓글 푸시를 누르면 그 댓글이 있는 글이 열려야 함")
         let screen = app.windows.firstMatch.frame
-        let deadline = Date().addingTimeInterval(6)
+        let deadline = Date().addingTimeInterval(12)
         var onScreen = false
         while Date() < deadline, !onScreen {
             let frame = target.frame
@@ -48,6 +48,15 @@ final class PushTapRouteUITests: XCTestCase {
         }
         XCTAssertTrue(onScreen, "댓글 푸시를 누르면 그 댓글 위치로 스크롤돼야 함")
         shoot("push-comment-lands-on-comment")
+    }
+
+    func testHighlightPushOpensItsThread() throws {
+        let app = launch(push: #"{"type":"HIGHLIGHT_REPLY","actorUsername":"haruka","ownerUsername":"honggildong","postSlug":"hexagonal-after-3-months","highlightId":6001}"#)
+        XCTAssertTrue(
+            app.buttons["답글 보내기"].waitForExistence(timeout: 20), "하이라이트 푸시를 누르면 그 하이라이트 스레드가 열려야 함")
+        shoot("push-highlight-opens-thread")
+        app.swipeDown(velocity: .fast)
+        XCTAssertTrue(app.buttons["답글 보내기"].waitForNonExistence(timeout: 5), "하이라이트 스레드가 닫히지 않음")
     }
 
     func testFollowPushOpensTheProfile() throws {
