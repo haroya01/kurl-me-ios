@@ -302,6 +302,13 @@ struct HighlightThreadSheet: View {
                     .padding(.horizontal, Metrics.gutter)
                     .padding(.top, 10)
             }
+            if composerFocused {
+                MentionSuggestionList(query: MentionDraft.trailingQuery(in: text)) {
+                    text = MentionDraft.complete(text, with: $0.username)
+                }
+                .padding(.horizontal, Metrics.gutter)
+                .padding(.top, 6)
+            }
             HStack(alignment: .bottom, spacing: 10) {
                 TextField("답글을 남겨보세요", text: $text, axis: .vertical)
                     .focused($composerFocused)

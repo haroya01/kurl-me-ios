@@ -190,3 +190,19 @@ final class HighlightPaintTests: XCTestCase {
         XCTAssertEqual(HighlightPaint.paintedIds([h(-1, by: nil, 0, 10)], me: 9), [-1])
     }
 }
+
+final class MentionDraftTests: XCTestCase {
+
+    func testFindsTheNameBeingTypedAtTheEndOnly() {
+        XCTAssertEqual(MentionDraft.trailingQuery(in: "고마워요 @yu"), "yu")
+        XCTAssertEqual(MentionDraft.trailingQuery(in: "@"), "")
+        XCTAssertEqual(MentionDraft.trailingQuery(in: "(@하루"), "하루")
+        XCTAssertNil(MentionDraft.trailingQuery(in: "mail a@b"))
+        XCTAssertNil(MentionDraft.trailingQuery(in: "@yuna "))
+    }
+
+    func testCompletingSwapsWhatWasTypedForTheHandleAndASpace() {
+        XCTAssertEqual(MentionDraft.complete("고마워요 @yu", with: "yuna"), "고마워요 @yuna ")
+        XCTAssertEqual(MentionDraft.complete("아무것도", with: "yuna"), "아무것도")
+    }
+}

@@ -1708,6 +1708,11 @@ struct NoteComposeSheet: View {
                                     .lineLimit(1...20)
                                     .focused($focused)
                                     .accessibilityIdentifier("noteCompose.text")
+                                if focused {
+                                    MentionSuggestionList(query: MentionDraft.trailingQuery(in: text)) {
+                                        text = MentionDraft.complete(text, with: $0.username)
+                                    }
+                                }
                             }
                             if let draft = Binding($poll) {
                                 NotePollEditor(draft: draft)
@@ -2022,6 +2027,11 @@ struct NoteComposeSheet: View {
                     .lineLimit(1...20)
                     .focused($focusedPart, equals: id)
                     .accessibilityIdentifier("noteCompose.part")
+                if focusedPart == id {
+                    MentionSuggestionList(query: MentionDraft.trailingQuery(in: part.wrappedValue.text)) {
+                        part.wrappedValue.text = MentionDraft.complete(part.wrappedValue.text, with: $0.username)
+                    }
+                }
             }
             .padding(.bottom, 14)
         }
