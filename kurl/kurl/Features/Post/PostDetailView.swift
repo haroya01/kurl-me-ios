@@ -1691,14 +1691,16 @@ private struct PostDetailReader: View {
             if index < threads.count - 1 { Hairline() }
         }
         // 본문 끝의 조용한 프롬프트 — 탭하면 유리 바가 키보드와 함께 떠오른다.
-        Button {
-            composerActive = true
-        } label: {
-            ReplyPrompt(text: Text("댓글을 남겨보세요"))
+        if !composerActive {
+            Button {
+                composerActive = true
+            } label: {
+                ReplyPrompt(text: Text("댓글을 남겨보세요"))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("댓글을 남겨보세요")
+            .padding(.top, 4)
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("댓글을 남겨보세요")
-        .padding(.top, 4)
     }
 }
 
@@ -2084,9 +2086,10 @@ private struct CommentThread: View {
         row
             .background {
                 RoundedRectangle(cornerRadius: Metrics.radius)
-                    .fill(flashCommentId == id ? Palette.highlightFlash : Color.clear)
+                    .fill(flashCommentId == id ? Palette.highlightFlash : replyTo?.id == id ? Palette.chipBg : Color.clear)
                     .padding(.horizontal, -8)
                     .padding(.vertical, -6)
+                    .animation(.smooth(duration: 0.2), value: replyTo?.id)
             }
             .id(PostDetailReader.commentAnchor(id))
     }
