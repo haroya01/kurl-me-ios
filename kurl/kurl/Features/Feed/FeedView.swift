@@ -366,9 +366,9 @@ struct FeedPage: View {
 struct FeedPlaceholder: View {
     let title: LocalizedStringKey
     let message: LocalizedStringKey
-    let actionTitle: LocalizedStringKey
+    var actionTitle: LocalizedStringKey?
     var prominent: Bool = false
-    let action: () -> Void
+    var action: (() -> Void)?
     /// 주액션 라벨도 시스템 글자 크기를 따른다(제목·설명은 이미 typeScale 로 스케일).
     @ScaledMetric(relativeTo: .headline) private var actionSize: CGFloat = 15
 
@@ -402,6 +402,12 @@ struct FeedPlaceholder: View {
     }
 
     @ViewBuilder private var actionButton: some View {
+        if let actionTitle, let action {
+            actionButton(actionTitle, action: action)
+        }
+    }
+
+    @ViewBuilder private func actionButton(_ actionTitle: LocalizedStringKey, action: @escaping () -> Void) -> some View {
         if prominent {
             Button(action: action) {
                 Text(actionTitle)

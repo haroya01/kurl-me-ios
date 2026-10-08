@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-/// 작가의 팔로워 / 팔로잉 목록 — 한 화면에서 두 탭(유리 세그먼트)으로 오간다. 행 = 작가 행
+/// 작가의 팔로워 / 팔로잉 목록 — 한 화면에서 두 탭(프로필과 같은 밑줄 탭)으로 오간다. 행 = 작가 행
 /// (아바타·핸들·소개) + 행별 팔로우 토글(백엔드 followedByMe 로 시드 — 행마다 status 를 조회하는
 /// N+1 회피). 행 탭은 그 작가로. 무한 스크롤(hasNext).
 struct FollowListsView: View {
@@ -14,7 +14,7 @@ struct FollowListsView: View {
     enum FollowTab: String, Identifiable, CaseIterable {
         case followers, following
         var id: String { rawValue }
-        var title: String { self == .followers ? String(localized: "팔로워") : String(localized: "팔로잉") }
+        var title: LocalizedStringKey { self == .followers ? "팔로워" : "팔로잉" }
     }
 
     @State private var tab: FollowTab
@@ -38,8 +38,9 @@ struct FollowListsView: View {
 
     var body: some View {
         ReadingColumn(spacing: 0) {
-            GlassSegmentSwitcher(items: FollowTab.allCases, selection: $tab, label: { $0.title })
-                .padding(.top, 8)
+            ContentTabBar(
+                tabs: FollowTab.allCases, selection: $tab, label: \.title,
+                identifier: { "follow.tab.\($0.rawValue)" })
                 .padding(.bottom, 8)
 
             if loading && items.isEmpty {
@@ -49,19 +50,16 @@ struct FollowListsView: View {
                 ErrorState(retry: { Task { await reload() } })
                     .padding(.top, 56)
             } else if loadedOnce && items.isEmpty {
-                ContentUnavailableView {
-                    Label(
-                        tab == .followers ? "아직 팔로워가 없어요" : "아직 팔로우하는 사람이 없어요",
-                        systemImage: "person.2")
-                } actions: {
-                    // 내 팔로잉 0 = 콜드스타트의 한복판 — 유일하게 CTA 없던 빈 면이었다.
-                    // 사람을 찾을 경로(검색 탭)를 형제 빈 면들과 같은 문법으로 내민다.
-                    if tab == .following, AuthStore.shared.me?.username == username {
-                        Button("검색에서 작가 찾기") { TabRouter.shared.selection = 3 }
-                            .foregroundStyle(Palette.link)
-                    }
-                }
-                .padding(.top, 56)
+                let mine = AuthStore.shared.me?.username == username
+                FeedPlaceholder(
+                    title: tab == .followers ? "아직 팔로워가 없어요" : "아직 팔로우하는 사람이 없어요",
+                    message: tab == .followers
+                        ? "팔로우하는 사람이 생기면 여기 모여요."
+                        : "팔로우한 작가가 생기면 여기 모여요.",
+                    actionTitle: tab == .following && mine ? "검색에서 작가 찾기" : nil,
+                    action: tab == .following && mine ? { TabRouter.shared.switchTo(3) } : nil
+                )
+                .padding(.top, 48)
             } else {
                 LazyVStack(spacing: 0) {
                     ForEach(Array(items.enumerated()), id: \.element.id) { index, user in
@@ -83,6 +81,7 @@ struct FollowListsView: View {
                 }
             }
         }
+        .swipeSelects(FollowTab.allCases, selection: $tab)
         .navigationTitle(username)
         .navigationBarTitleDisplayMode(.inline)
         .task(id: tab) { await reload() }

@@ -1001,6 +1001,51 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(fab.waitForExistence(timeout: 4), "시트를 닫은 뒤 작성 버튼이 사라짐")
     }
 
+    func testProfileAndTagTabsSwitchBySwipeToo() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let name = app.buttons["yuki_dev"].firstMatch
+        XCTAssertTrue(name.waitForExistence(timeout: 8))
+        name.tap()
+        let notesTab = app.buttons["author.tab.notes"]
+        XCTAssertTrue(notesTab.waitForExistence(timeout: 10), "프로필에 노트 탭이 없음")
+        XCTAssertTrue(notesTab.isSelected)
+        app.swipeRight()
+        let postsTab = app.buttons["author.tab.posts"]
+        expectation(for: NSPredicate(format: "selected == true"), evaluatedWith: postsTab)
+        waitForExpectations(timeout: 5)
+        attach(app, "author-swiped-to-posts")
+        app.swipeLeft()
+        expectation(for: NSPredicate(format: "selected == true"), evaluatedWith: notesTab)
+        waitForExpectations(timeout: 5)
+        XCTAssertTrue(notesTab.exists, "가로로 밀었는데 글 행이 눌려 글이 열림")
+
+        let followers = app.buttons.matching(NSPredicate(format: "label BEGINSWITH '팔로워'")).firstMatch
+        XCTAssertTrue(followers.waitForExistence(timeout: 5), "프로필에 팔로워 링크가 없음")
+        followers.tap()
+        let followersTab = app.buttons["follow.tab.followers"]
+        XCTAssertTrue(followersTab.waitForExistence(timeout: 8), "팔로워 목록이 밑줄 탭으로 안 열림")
+        XCTAssertTrue(followersTab.isSelected)
+        app.swipeLeft()
+        expectation(for: NSPredicate(format: "selected == true"), evaluatedWith: app.buttons["follow.tab.following"])
+        waitForExpectations(timeout: 5)
+        attach(app, "follow-lists-swiped")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        let tag = app.links["#아키텍처"].firstMatch
+        XCTAssertTrue(tag.waitForExistence(timeout: 10))
+        tag.tap()
+        let tagNotes = app.buttons["tag.tab.notes"]
+        XCTAssertTrue(tagNotes.waitForExistence(timeout: 8), "태그 화면이 안 열림")
+        app.swipeRight()
+        expectation(for: NSPredicate(format: "selected == true"), evaluatedWith: app.buttons["tag.tab.posts"])
+        waitForExpectations(timeout: 5)
+    }
+
     func testNoteAuthorOpensTheirProfileOnTheNotesTab() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]

@@ -92,7 +92,7 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
                 dragX = dx
             }
             .onEnded { value in
-                if blocked || gate.held {
+                if blocked {
                     blocked = false
                     withAnimation(reduceMotion ? nil : .snappy(duration: 0.3)) { dragX = 0 }
                     return
@@ -153,9 +153,52 @@ private struct HoldsSwipePager: ViewModifier {
                 scrolling = phase != .idle
                 gate?.held = touching || scrolling
             }
+            .onDisappear { gate?.held = false }
     }
 }
 
 extension View {
     func holdsSwipePager() -> some View { modifier(HoldsSwipePager()) }
+}
+
+private struct SwipeSelects<Tab: Hashable>: ViewModifier {
+    let tabs: [Tab]
+    @Binding var selection: Tab
+    @State private var gate = SwipePagerGate()
+    @State private var blocked = false
+    @State private var swiping = false
+
+    func body(content: Content) -> some View {
+        content
+            .environment(\.swipePagerGate, gate)
+            .disabled(swiping)
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 24)
+                    .onChanged { value in
+                        if gate.held, !blocked { blocked = true }
+                        let horizontal = abs(value.translation.width) > abs(value.translation.height)
+                        if !blocked, horizontal, !swiping { swiping = true }
+                    }
+                    .onEnded { value in
+                        defer {
+                            blocked = false
+                            swiping = false
+                        }
+                        guard !blocked, let i = tabs.firstIndex(of: selection) else { return }
+                        let dx = value.translation.width
+                        let dy = value.translation.height
+                        let flick = abs(value.velocity.width) > 260 && abs(dx) > 20
+                        let deliberate = abs(dx) > 60 && abs(dx) > abs(dy) * 1.5
+                        guard abs(dx) > abs(dy) * 1.2, flick || deliberate else { return }
+                        let next = dx < 0 ? i + 1 : i - 1
+                        guard tabs.indices.contains(next) else { return }
+                        selection = tabs[next]
+                    })
+    }
+}
+
+extension View {
+    func swipeSelects<Tab: Hashable>(_ tabs: [Tab], selection: Binding<Tab>) -> some View {
+        modifier(SwipeSelects(tabs: tabs, selection: selection))
+    }
 }

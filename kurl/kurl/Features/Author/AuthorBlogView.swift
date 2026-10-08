@@ -81,6 +81,7 @@ struct AuthorBlogView: View {
             .frame(maxWidth: .infinity)
             .padding(.horizontal, Metrics.gutter)
         }
+        .swipeSelects(tabs, selection: Binding(get: { shownTab }, set: { tab = $0 }))
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
         .background(Palette.readingBg)
