@@ -192,6 +192,23 @@ final class GraphNotificationsUITests: XCTestCase {
         XCTAssertFalse(app.buttons["mention.haruka"].exists, "이름을 넣은 뒤에도 후보가 남음")
     }
 
+    func testAPostQuotedInNotesShowsANotesTabBesideItsComments() throws {
+        let app = launchInbox()
+        let comment = rowButton(app, contains: "댓글을 남겼어요")
+        XCTAssertTrue(comment.waitForExistence(timeout: 12), "인박스에 댓글 알림이 없음")
+        comment.tap()
+        let notesTab = app.buttons["discussion.notes"]
+        XCTAssertTrue(notesTab.waitForExistence(timeout: 10), "노트가 인용한 글인데 노트 탭이 없음")
+        XCTAssertTrue(notesTab.label.contains("노트 1"), "노트 탭에 인용 수가 없음")
+        for _ in 0..<4 where !notesTab.isHittable { app.swipeDown(velocity: .slow) }
+        notesTab.tap()
+        XCTAssertTrue(app.buttons["note.body.9520"].waitForExistence(timeout: 6), "노트 탭에 이 글을 인용한 노트가 없음")
+        XCTAssertFalse(app.buttons["comment.reply.506"].exists, "노트 탭인데 댓글이 그대로 보임")
+        shoot("post-quoting-notes")
+        app.buttons["discussion.comments"].tap()
+        XCTAssertTrue(app.buttons["comment.reply.506"].waitForExistence(timeout: 4), "댓글 탭으로 돌아오지 못함")
+    }
+
     func testHighlightMentionOpensItsConversation() throws {
         let app = launchInbox()
         let mention = app.buttons

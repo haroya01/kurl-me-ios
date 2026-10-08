@@ -127,6 +127,10 @@ enum MockBackend {
                  ],
                  quotedPost: ["id": 1, "title": "헥사고날 아키텍처, 작은 서비스에 과했을까", "slug": "hexagonal",
                               "authorUsername": "honggildong"]),
+        MockNote(id: 9520, body: "경계를 먼저 긋는다는 대목, 우리 팀 회고에 그대로 옮겼다.",
+                 createdAt: Date().addingTimeInterval(-400_000), likeCount: 1, authorId: 2, username: "yuki_dev",
+                 quotedPost: ["id": 8201, "title": "헥사고날로 갈아탄 지 석 달", "slug": "hexagonal-after-3-months",
+                              "authorUsername": "honggildong"]),
         MockNote(id: 9506, body: "마지막 장면에서 주인공이 결국 돌아오지 않는다. 그래서 더 오래 남는다.",
                  createdAt: Date().addingTimeInterval(-90_000), likeCount: 0, authorId: 3, username: "reader_kim",
                  contentWarning: "영화 결말 이야기"),
@@ -1165,6 +1169,11 @@ enum MockBackend {
         if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "notes", parts[3] == "posts",
            let nid = Int64(parts[2]) {
             return json(["items": quotingPosts[nid] ?? [], "page": 0, "size": 20, "hasNext": false])
+        }
+        if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "posts", parts[3] == "quotes",
+           let pid = Int64(parts[2]) {
+            let items = allNotes().filter { ($0.quotedPost?["id"] as? Int).map(Int64.init) == pid }.map(noteView)
+            return json(["items": items, "page": 0, "hasNext": false, "total": items.count])
         }
         if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "notes", parts[3] == "quotes",
            let nid = Int64(parts[2]) {
