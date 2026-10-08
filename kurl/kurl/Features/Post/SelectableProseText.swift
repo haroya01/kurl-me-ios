@@ -23,8 +23,8 @@ struct SelectableProseText: UIViewRepresentable {
     let onHighlight: ((_ startOffset: Int, _ endOffset: Int, _ quote: String) -> Void)?
     /// 선택→메모 함께(여백 노트). nil 이면 "메모" 항목을 넣지 않는다.
     let onHighlightNote: ((_ startOffset: Int, _ endOffset: Int, _ quote: String) -> Void)?
-    /// 칠해진 하이라이트 탭 → 그 답글 스레드 열기(highlight id).
-    let onOpenThread: ((_ highlightId: Int64) -> Void)?
+    /// 칠해진 하이라이트 탭 → 그 자리의 하이라이트들(겹치면 여럿)과 탭한 줄의 창 좌표.
+    let onTapMarks: ((_ highlightIds: [Int64], _ anchor: CGRect) -> Void)?
 
     /// 칠할 한 span — 렌더된 본문 텍스트 기준 문자 오프셋 [start, end) + 폴백용 인용. id 로 탭→스레드,
     /// hasThread 면 메모/답글이 있어 강조 밑줄을 더한다.
@@ -35,6 +35,7 @@ struct SelectableProseText: UIViewRepresentable {
         let end: Int
         let quote: String
         let hasThread: Bool
+        var mine = false
         var segment: Segment = .single
     }
 
@@ -42,6 +43,7 @@ struct SelectableProseText: UIViewRepresentable {
         let id: Int64
         let range: NSRange
         let hasThread: Bool
+        var mine = false
     }
 
     /// Locate the whole quoted passage, including inline formatting and paragraph boundaries.
@@ -85,11 +87,13 @@ struct SelectableProseText: UIViewRepresentable {
                 case .middle:
                     matches = !fragment.isEmpty && uniqueRange(of: fragment, in: quote as NSString) != nil
                 }
-                if matches { return ResolvedMark(id: mark.id, range: range, hasThread: mark.hasThread) }
+                if matches {
+                    return ResolvedMark(id: mark.id, range: range, hasThread: mark.hasThread, mine: mark.mine)
+                }
             }
         }
         guard mark.segment == .single, let range = uniqueRange(of: mark.quote, in: text) else { return nil }
-        return ResolvedMark(id: mark.id, range: range, hasThread: mark.hasThread)
+        return ResolvedMark(id: mark.id, range: range, hasThread: mark.hasThread, mine: mark.mine)
     }
 
     private static func normalized(_ text: String) -> String {
@@ -142,7 +146,7 @@ struct SelectableProseText: UIViewRepresentable {
     func updateUIView(_ tv: ProseTextView, context: Context) {
         tv.onHighlight = onHighlight
         tv.onHighlightNote = onHighlightNote
-        tv.onOpenThread = onOpenThread
+        tv.onTapMarks = onTapMarks
         // 베이스(파싱된 본문)는 원문·크기·행간·색이 실제로 바뀔 때만 다시 만든다 — 하이라이트 토글·
         // 부모 무효화(다른 문단의 마크 변화 등)마다 마크다운을 재파싱하던 것을 막는다. 페인트 패스는
         // 아래에서 늘 새로 얹으므로(하이라이트만 바뀌어도) 재파싱 없이 span 만 다시 칠해진다.
@@ -168,10 +172,11 @@ struct SelectableProseText: UIViewRepresentable {
         let painted = NSMutableAttributedString(attributedString: base)
         let hay = painted.string as NSString
         let wash = UIColor(Palette.highlightWash)
+        let mineWash = UIColor(Palette.highlightWashMine)
         tv.resolvedMarks = highlights.compactMap { Self.resolve($0, in: hay) }
-        for mark in tv.resolvedMarks {
+        for mark in tv.resolvedMarks.sorted(by: { !$0.mine && $1.mine }) {
             let range = mark.range
-            painted.addAttribute(.backgroundColor, value: wash, range: range)
+            painted.addAttribute(.backgroundColor, value: mark.mine ? mineWash : wash, range: range)
             // 낮춘 채움을 얇은 그린 밑줄로 보완 — 모든 하이라이트에 헤어라인 하나(놓칠 곳에서도 표식 유지).
             // 메모/답글이 달린 건 굵고 진한 밑줄로 올려 "탭하면 대화" 신호를 구분한다.
             painted.addAttribute(
@@ -190,7 +195,7 @@ struct SelectableProseText: UIViewRepresentable {
     }
 
     private static func refreshAccessibilityActions(_ tv: ProseTextView) {
-        guard tv.onOpenThread != nil else {
+        guard tv.onTapMarks != nil else {
             tv.accessibilityCustomActions = nil
             return
         }
@@ -204,11 +209,20 @@ struct SelectableProseText: UIViewRepresentable {
                 ? String(localized: "메모 열기: \(snippet)")
                 : String(localized: "하이라이트 열기: \(snippet)")
             return UIAccessibilityCustomAction(name: name) { [weak tv] _ in
-                guard let open = tv?.onOpenThread else { return false }
-                open(mark.id)
+                guard let tv, let open = tv.onTapMarks else { return false }
+                let ids = tv.resolvedMarks.filter { NSIntersectionRange($0.range, mark.range).length > 0 }.map(\.id)
+                open(ids, Self.windowRect(of: mark.range, in: tv))
                 return true
             }
         }
+    }
+
+    private static func windowRect(of range: NSRange, in tv: ProseTextView) -> CGRect {
+        let glyphs = tv.layoutManager.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+        var rect = tv.layoutManager.boundingRect(forGlyphRange: glyphs, in: tv.textContainer)
+        rect.origin.x += tv.textContainerInset.left
+        rect.origin.y += tv.textContainerInset.top
+        return tv.convert(rect, to: nil)
     }
 
     /// 제안 폭에 맞춘 높이 — isScrollEnabled=false 라 본문 높이를 직접 재서 돌려준다.
@@ -280,7 +294,7 @@ struct SelectableProseText: UIViewRepresentable {
                 })
             }
             if let onNote = tv.onHighlightNote {
-                actions.append(UIAction(title: String(localized: "메모"), image: UIImage(systemName: "text.bubble")) { _ in
+                actions.append(UIAction(title: String(localized: "공개 메모"), image: UIImage(systemName: "text.bubble")) { _ in
                     onNote(range.location, range.location + range.length, quote)
                     tv.selectedRange = after
                     tv.resignFirstResponder()
@@ -347,9 +361,9 @@ struct SelectableProseText: UIViewRepresentable {
             _ g: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer
         ) -> Bool { true }
 
-        /// 칠해진 하이라이트를 탭 → 그 스레드 열기. 글자 위가 아닌 탭(빈 줄·여백)은 무시.
+        /// 칠해진 하이라이트를 탭 → 그 자리의 카드. 글자 위가 아닌 탭(빈 줄·여백)은 무시.
         @objc func handleTap(_ gesture: UITapGestureRecognizer) {
-            guard let tv = gesture.view as? ProseTextView, let onOpen = tv.onOpenThread, !tv.resolvedMarks.isEmpty else { return }
+            guard let tv = gesture.view as? ProseTextView, let onOpen = tv.onTapMarks, !tv.resolvedMarks.isEmpty else { return }
             let lm = tv.layoutManager
             var point = gesture.location(in: tv)
             point.x -= tv.textContainerInset.left
@@ -359,9 +373,12 @@ struct SelectableProseText: UIViewRepresentable {
             let rect = lm.boundingRect(forGlyphRange: NSRange(location: glyph, length: 1), in: tv.textContainer)
             guard rect.contains(point) else { return }
             let charIndex = lm.characterIndexForGlyph(at: glyph)
-            if let mark = tv.resolvedMarks.first(where: { NSLocationInRange(charIndex, $0.range) }) {
-                onOpen(mark.id)
-            }
+            let hits = tv.resolvedMarks.filter { NSLocationInRange(charIndex, $0.range) }
+            guard !hits.isEmpty else { return }
+            var line = lm.lineFragmentUsedRect(forGlyphAt: glyph, effectiveRange: nil)
+            line.origin.x += tv.textContainerInset.left
+            line.origin.y += tv.textContainerInset.top
+            onOpen(hits.map(\.id), tv.convert(line, to: nil))
         }
     }
 
@@ -411,7 +428,7 @@ struct SelectableProseText: UIViewRepresentable {
 final class ProseTextView: UITextView {
     var onHighlight: ((_ startOffset: Int, _ endOffset: Int, _ quote: String) -> Void)?
     var onHighlightNote: ((_ startOffset: Int, _ endOffset: Int, _ quote: String) -> Void)?
-    var onOpenThread: ((_ highlightId: Int64) -> Void)?
+    var onTapMarks: ((_ highlightIds: [Int64], _ anchor: CGRect) -> Void)?
     var resolvedMarks: [SelectableProseText.ResolvedMark] = []
     /// 롱프레스(문장 스냅)가 띄우는 편집 메뉴 인터랙션.
     var highlightMenuInteraction: UIEditMenuInteraction?

@@ -36449,6 +36449,510 @@
           }
         }
       }
+    },
+    "이 문장에 대해 이야기하기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Talk about this sentence"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस वाक्य पर बात करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この文について話す"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trò chuyện về câu này"
+          }
+        }
+      }
+    },
+    "내가 하이라이트했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You highlighted this"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपने इसे हाइलाइट किया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あなたがハイライトしました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn đã đánh dấu câu này"
+          }
+        }
+      }
+    },
+    "나 외 %lld명이 하이라이트했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You and %lld others highlighted this"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आप और %lld अन्य ने इसे हाइलाइट किया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あなたほか%lld人がハイライトしました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn và %lld người khác đã đánh dấu câu này"
+          }
+        }
+      }
+    },
+    "%@님이 하이라이트했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ highlighted this"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ने इसे हाइलाइट किया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@さんがハイライトしました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ đã đánh dấu câu này"
+          }
+        }
+      }
+    },
+    "%lld명이 하이라이트했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld people highlighted this"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld लोगों ने इसे हाइलाइट किया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld人がハイライトしました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld người đã đánh dấu câu này"
+          }
+        }
+      }
+    },
+    "대화 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View conversation"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बातचीत देखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "会話を見る"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xem cuộc trò chuyện"
+          }
+        }
+      }
+    },
+    "나": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आप"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自分"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn"
+          }
+        }
+      }
+    },
+    "하이라이트 지우기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove highlight"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "हाइलाइट हटाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ハイライトを削除"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xóa đánh dấu"
+          }
+        }
+      }
+    },
+    "모두에게 공개된 하이라이트": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Highlight visible to everyone"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सभी को दिखने वाला हाइलाइट"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全員に公開されたハイライト"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đánh dấu hiển thị với mọi người"
+          }
+        }
+      }
+    },
+    "이 하이라이트를 지울까요?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove this highlight?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह हाइलाइट हटाएँ?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このハイライトを削除しますか?"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xóa đánh dấu này?"
+          }
+        }
+      }
+    },
+    "남긴 공개 메모와 답글도 함께 사라져요. 되돌릴 수 없어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Its public note and replies go with it. This can't be undone."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इसका सार्वजनिक नोट और जवाब भी हट जाएँगे। इसे वापस नहीं किया जा सकता।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "公開メモと返信も一緒に消えます。元に戻せません。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ghi chú công khai và các phản hồi cũng sẽ bị xóa. Không thể hoàn tác."
+          }
+        }
+      }
+    },
+    "하이라이트를 지웠어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Highlight removed"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "हाइलाइट हटा दिया गया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ハイライトを削除しました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã xóa đánh dấu"
+          }
+        }
+      }
+    },
+    "지우지 못했어요. 다시 시도해 주세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't remove it. Please try again"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "हटाया नहीं जा सका। फिर से कोशिश करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除できませんでした。もう一度お試しください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không xóa được. Vui lòng thử lại"
+          }
+        }
+      }
+    },
+    "하이라이트한 문장을 탭하면 누가 그었는지와 대화를 볼 수 있어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap a highlighted sentence to see who marked it and the conversation"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "हाइलाइट किए गए वाक्य पर टैप करें और देखें किसने चिह्नित किया और बातचीत"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ハイライトされた文をタップすると、誰が引いたかと会話を見られます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chạm vào câu đã đánh dấu để xem ai đánh dấu và cuộc trò chuyện"
+          }
+        }
+      }
+    },
+    "문장을 길게 눌러 하이라이트하거나 공개 메모를 남겨요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Press and hold a sentence to highlight it or leave a public note"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "किसी वाक्य को दबाकर रखें और हाइलाइट करें या सार्वजनिक नोट छोड़ें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文を長押ししてハイライトするか公開メモを残せます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nhấn giữ một câu để đánh dấu hoặc để lại ghi chú công khai"
+          }
+        }
+      }
+    },
+    "하이라이트한 문장이 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No highlighted sentences yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी तक कोई हाइलाइट किया गया वाक्य नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ハイライトした文はまだありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có câu nào được đánh dấu"
+          }
+        }
+      }
+    },
+    "문장·공개 메모·글 검색": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search sentences, public notes, posts"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "वाक्य, सार्वजनिक नोट, पोस्ट खोजें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文・公開メモ・記事を検索"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tìm câu, ghi chú công khai, bài viết"
+          }
+        }
+      }
+    },
+    "하이라이트했어요 · 이름과 함께 공개돼요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Highlighted · public with your name"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "हाइलाइट किया · आपके नाम के साथ सार्वजनिक"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ハイライトしました · 名前とともに公開されます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã đánh dấu · công khai kèm tên bạn"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

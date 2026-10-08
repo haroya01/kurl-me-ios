@@ -358,6 +358,9 @@ private struct PostDetailReader: View {
             }
         }
         .onScrollPhaseChange { _, newPhase in
+            if newPhase != .idle, highlights?.card != nil {
+                withAnimation(reduceMotion ? nil : .smooth(duration: 0.2)) { highlights?.card = nil }
+            }
             // 당길 목적지가 있을 때만 손가락 상태를 추적 — 관성 바운스로 튕겨 넘어가지 않게.
             if pullTargetSlug != nil { fingerDown = newPhase == .interacting }
         }
@@ -591,6 +594,11 @@ private struct PostDetailReader: View {
         .overlay(alignment: .bottom) {
             if showHighlightCoach { highlightCoach }
         }
+        .overlay {
+            if let store = highlights, let card = store.card {
+                HighlightCardLayer(store: store, card: card, shareURL: highlightShareURL)
+            }
+        }
         }
     }
 
@@ -773,7 +781,7 @@ private struct PostDetailReader: View {
     private var highlightHowToItem: some View {
         if highlights != nil {
             Button {
-                ToastCenter.shared.show(String(localized: "문장을 길게 눌러 하이라이트하거나 메모를 남겨요"))
+                ToastCenter.shared.show(String(localized: "문장을 길게 눌러 하이라이트하거나 공개 메모를 남겨요"))
             } label: {
                 Label("하이라이트하는 법", systemImage: "highlighter")
             }
@@ -829,7 +837,7 @@ private struct PostDetailReader: View {
             Image(systemName: "hand.tap")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Palette.accent)
-            Text("밑줄 친 문장을 탭하면 메모·대화가 열려요")
+            Text("하이라이트한 문장을 탭하면 누가 그었는지와 대화를 볼 수 있어요")
                 .typeScale(.meta)
                 .foregroundStyle(Palette.body)
         }
@@ -1141,6 +1149,13 @@ private struct PostDetailReader: View {
     private var shareURL: URL? {
         guard case .loaded(let detail) = model.phase else { return nil }
         return URL(string: "\(Config.blogBase)/@\(detail.author.username)/\(detail.post.slug)")
+    }
+
+    private func highlightShareURL(_ highlight: HighlightView) -> URL? {
+        guard let base = shareURL, highlight.id > 0,
+              var components = URLComponents(url: base, resolvingAgainstBaseURL: false) else { return nil }
+        components.queryItems = [URLQueryItem(name: "highlightId", value: String(highlight.id))]
+        return components.url
     }
 
     /// 본문 탭 시 키보드 사임 — GlassCommentBar 의 focus 변화가 이어받아 빈 컴포저를 닫는다.
@@ -1916,6 +1931,7 @@ struct CommentRow: View {
                 Text(NoteText.attributed(comment.body, mentions: comment.mentions ?? [], tags: false))
                     .typeScale(.body)
                     .foregroundStyle(Palette.body)
+                    .tint(Palette.link)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .textSelection(.enabled)

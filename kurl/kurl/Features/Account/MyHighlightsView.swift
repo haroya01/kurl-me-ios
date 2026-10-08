@@ -55,7 +55,7 @@ struct MyHighlightsView: View {
                     .padding(.top, 60)
             } else if items.isEmpty {
                 ContentUnavailableView {
-                    Label("하이라이트한 구절이 없습니다", systemImage: "highlighter")
+                    Label("하이라이트한 문장이 없어요", systemImage: "highlighter")
                 } description: {
                     Text("글을 읽다 마음에 닿는 문장을 길게 눌러 하이라이트해 보세요.")
                 } actions: {
@@ -80,7 +80,7 @@ struct MyHighlightsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .searchable(
             text: $query, placement: .navigationBarDrawer(displayMode: .always),
-            prompt: "구절·메모·글 검색")
+            prompt: "문장·공개 메모·글 검색")
         .sheet(item: $connectTarget) { h in
             ConnectSheet(
                 targetKind: "하이라이트", targetTitle: h.quote,
