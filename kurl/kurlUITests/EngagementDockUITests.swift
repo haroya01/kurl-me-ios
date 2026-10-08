@@ -77,4 +77,30 @@ final class EngagementDockUITests: XCTestCase {
         }
         XCTAssertTrue(like.isHittable, "본문으로 되돌아오면 독이 다시 떠야 함")
     }
+
+    /// 첫 화면에서 본문이 끝나는 글 — 처음엔 독이 떠 있고, 댓글로 내려가면 물러나 댓글 입구를 가리지 않는다.
+    func testDockStepsAsideForCommentsOnAPostWhoseBodyEndsOnTheFirstScreen() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--post", "honggildong/p-mock-2"]
+        app.launch()
+
+        let like = app.buttons["좋아요"]
+        XCTAssertTrue(like.waitForExistence(timeout: 15), "독에 좋아요 버튼이 없음")
+        XCTAssertTrue(like.isHittable, "처음 연 짧은 글에서도 독이 보여야 함")
+
+        for _ in 0..<10 {
+            app.swipeUp()
+            Thread.sleep(forTimeInterval: 0.3)
+        }
+        Thread.sleep(forTimeInterval: 0.5)
+        XCTAssertFalse(like.isHittable, "댓글까지 내려가도 독이 댓글 위에 떠 있음")
+        let prompt = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "댓글을 남겨보세요")).firstMatch
+        XCTAssertTrue(prompt.isHittable, "댓글 입구가 가려짐")
+
+        for _ in 0..<12 where !like.isHittable {
+            app.swipeDown()
+            Thread.sleep(forTimeInterval: 0.4)
+        }
+        XCTAssertTrue(like.isHittable, "본문으로 되돌아오면 독이 다시 떠야 함")
+    }
 }
