@@ -463,15 +463,32 @@ private struct PostDetailReader: View {
         // 마크 캡슐이 거슬린다는 피드백으로 조용한 띠로 되돌렸다.
         // 덱: 장 상단부터. 단독: 제목이 내비바로 스민 뒤(showNavTitle). 충분히 긴 글에만.
         .overlay(alignment: .top) {
-            if scrollable, embedded || showNavTitle {
-                ReadProgressBar(progress: scrollProgress)
-                    // 크롬이 떠 있으면 상단 바 바로 아래 한 줄, 접히면 크롬과 같은 커브로 맨 위에 붙는다.
-                    .padding(.top, embedded || chromeHidden ? 0 : Self.topBarHeight)
-                    .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: chromeHidden)
+            // 상단 바가 접혀도 상태바 뒤는 불투명하게 남긴다 — 진행 막대가 본문 위에 떠 보이지 않게
+            // 늘 불투명한 면의 아래 테두리에 붙는다.
+            if !embedded, showNavTitle {
+                Color.clear
+                    .frame(height: 0)
+                    .background(alignment: .bottom) {
+                        VStack(spacing: 0) {
+                            Palette.readingBg
+                            Hairline()
+                        }
+                        .ignoresSafeArea(edges: .top)
+                    }
+                    .transition(.opacity)
             }
         }
         .overlay(alignment: .top) {
             if !embedded { readerTopBar }
+        }
+        .overlay(alignment: .top) {
+            if scrollable, embedded || showNavTitle {
+                ReadProgressBar(progress: scrollProgress)
+                    // 단독: 크롬이 떠 있으면 상단 바 아래 테두리 안쪽, 접히면 상태바 바탕 아래 테두리 안쪽.
+                    .padding(.top, embedded || chromeHidden ? 0 : Self.topBarHeight)
+                    .offset(y: embedded ? 0 : -ReadProgressBar.height)
+                    .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: chromeHidden)
+            }
         }
         // 완독 = 결과 햅틱 한 번(.success). trigger 닫힘(되돌아감)엔 울리지 않게 완료에만.
         .sensoryFeedback(trigger: readComplete) { _, done in done ? .success : nil }
@@ -607,11 +624,14 @@ private struct PostDetailReader: View {
             .padding(.horizontal, 10)
         }
         .frame(height: Self.topBarHeight)
-        // 제목이 스민 뒤에만 바탕을 깐다 — 그 전엔 유리 원판 둘만 본문 위에 뜬다(종전
-        // toolbarBackground .hidden→.automatic 규칙 그대로). 바탕은 상태바 뒤까지 올려 채운다.
+        // 제목이 스민 뒤에만 바탕을 깐다 — 그 전엔 유리 원판 둘만 본문 위에 뜬다. 바탕은 읽기 면과 같은
+        // 불투명 색으로 상태바 뒤까지 올려 채운다(반투명 바 재질은 본문이 비쳐 진행 막대가 떠 보였다).
         .background {
             if showNavTitle {
-                Rectangle().fill(.bar).ignoresSafeArea(edges: .top).transition(.opacity)
+                Palette.readingBg
+                    .ignoresSafeArea(edges: .top)
+                    .overlay(alignment: .bottom) { Hairline() }
+                    .transition(.opacity)
             }
         }
         .offset(y: chromeHidden ? -140 : 0)
@@ -1715,15 +1735,16 @@ private struct ReadingScrubber: View {
 /// 값 = 본문 실측: 화면 바닥이 본문의 어디까지 왔나(본문 끝 닿으면 1). 댓글·연결 블록·
 /// 작가 카드는 분모에 없다 — "게시글에서 어느 부분을 읽고 있는지"만 정확히 반영한다.
 private struct ReadProgressBar: View {
+    static let height: CGFloat = 3
     let progress: ScrollProgress
 
     var body: some View {
         GeometryReader { geo in
             Capsule()
                 .fill(Palette.accent)
-                .frame(width: geo.size.width * progress.bodyRead, height: 3)
+                .frame(width: geo.size.width * progress.bodyRead, height: Self.height)
         }
-        .frame(height: 3)
+        .frame(height: Self.height)
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
