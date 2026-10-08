@@ -66,6 +66,7 @@ struct TagFeedView: View {
             .frame(maxWidth: .infinity)
             .padding(.horizontal, Metrics.gutter)
         }
+        .swipeSelects([TagFeedTab.posts, .notes], selection: $tab)
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
         .background(Palette.pageBg)

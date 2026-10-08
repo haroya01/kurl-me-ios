@@ -19658,6 +19658,34 @@
         }
       }
     },
+    "팔로우하는 사람이 생기면 여기 모여요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "People who follow will show up here."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ॉलो करने वाले लोग यहाँ दिखेंगे।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォローする人ができると、ここに集まります。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Người theo dõi sẽ xuất hiện ở đây."
+          }
+        }
+      }
+    },
     "팔로우하면 이 계정이 쓰는 새 노트가 여기와 팔로잉 피드에 와요.": {
       "localizations": {
         "en": {
@@ -19738,6 +19766,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Xem ghi chú từ người bạn theo dõi"
+          }
+        }
+      }
+    },
+    "팔로우한 작가가 생기면 여기 모여요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Writers you follow will show up here."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आप जिन लेखकों को फ़ॉलो करेंगे, वे यहाँ दिखेंगे।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォローした書き手がここに集まります。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Những tác giả bạn theo dõi sẽ xuất hiện ở đây."
           }
         }
       }
