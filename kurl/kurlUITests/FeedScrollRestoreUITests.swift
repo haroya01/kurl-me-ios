@@ -18,30 +18,28 @@ final class FeedScrollRestoreUITests: XCTestCase {
         app.launchArguments = ["--mocks"]
         app.launch()
 
-        // 피드가 서길 기다렸다가 아래로 내려간다 — 첫 화면 밖의 카드를 보는 상태를 만든다.
-        let firstCard = app.staticTexts["편집 제목"].firstMatch
-        XCTAssertTrue(firstCard.waitForExistence(timeout: 10), "피드 첫 카드가 안 보임")
+        // 목 레인의 최신 피드는 실서버 글을 그대로 받아 제목이 날마다 바뀐다 — 제목 대신 카드 모양으로 잡는다.
+        let cards = app.scrollViews.buttons
+        let firstCard = cards.firstMatch
+        XCTAssertTrue(firstCard.waitForExistence(timeout: 15), "피드 첫 카드가 안 보임")
+        let firstLabel = firstCard.label
+        func card(_ label: String) -> XCUIElement {
+            cards.matching(NSPredicate(format: "label == %@", label)).firstMatch
+        }
 
-        // 화면 아래쪽의 목 카드 하나가 잡힐 때까지 내려간다(레이아웃 변화에 적응).
-        let candidates = [
-            "K-means clustering accelerator 설계 (1)", "fd",
-            "조용한 웹로그라는 결정", "헥사고날로 갈아탄 지 석 달, 무엇이 남았나",
-        ]
         var target: XCUIElement?
         for _ in 0..<5 {
             app.swipeUp()
-            if firstCard.isHittable { continue }
-            if let hit = candidates
-                .map({ app.staticTexts[$0].firstMatch })
-                .first(where: { $0.exists && $0.isHittable })
-            {
-                target = hit
-                break
+            if card(firstLabel).isHittable { continue }
+            target = cards.allElementsBoundByIndex.first {
+                $0.label != firstLabel && $0.frame.height > 80 && $0.frame.minY > 150 && $0.isHittable
             }
+            if target != nil { break }
         }
         guard let target else {
             throw XCTSkip("목 피드에서 화면 밖 카드를 확보하지 못함 — 좌표 독립 검증 불가")
         }
+        let targetLabel = target.label
         target.tap()
 
         // 글 상세 진입 확인(독의 연결 버튼이 뜨면 진입 성공) 후 엣지 스와이프로 복귀
@@ -53,10 +51,11 @@ final class FeedScrollRestoreUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 1.0)
 
         // 복원 단언 — 보던 카드가 다시 화면 안에 있어야 한다(복원 없으면 맨 위로 튕겨 화면 밖).
+        let restored = card(targetLabel)
         XCTAssertTrue(
-            target.waitForExistence(timeout: 6) && target.isHittable,
+            restored.waitForExistence(timeout: 6) && restored.isHittable,
             "복귀 후 보던 카드가 화면에 없다 — 스크롤 복원 실패")
         // 그리고 맨 위 첫 카드는 화면 밖이어야 한다(맨 위로 튕기지 않았다는 반대 증거).
-        XCTAssertFalse(firstCard.isHittable, "복귀 후 리스트가 맨 위로 튕겼다")
+        XCTAssertFalse(card(firstLabel).isHittable, "복귀 후 리스트가 맨 위로 튕겼다")
     }
 }
