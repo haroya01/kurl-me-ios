@@ -1160,14 +1160,33 @@ private struct NoteImageTile: View {
     let height: CGFloat?
     let onOpen: () -> Void
     @State private var showAlt = false
+    /// 비율은 타일을 만들 때 한 번 정하고 바꾸지 않는다. 지연 스택에서 보이는 행의 높이가 이미지 로드로
+    /// 바뀌면 SwiftUI 레이아웃이 끝나지 않아 메인 스레드가 멈췄다.
+    @State private var ratio: CGFloat
 
     private static let maxPixel: CGFloat = 900
+    private static let unknownRatio: CGFloat = 4.0 / 3.0
     private var url: URL? { URL(string: image.url) }
+
+    init(image: NoteMedia, height: CGFloat?, onOpen: @escaping () -> Void) {
+        self.image = image
+        self.height = height
+        self.onOpen = onOpen
+        _ratio = State(initialValue: Self.cachedRatio(image.url) ?? Self.unknownRatio)
+    }
+
+    private static func cachedRatio(_ string: String) -> CGFloat? {
+        guard let url = URL(string: string),
+            let size = RemoteImageCache.shared.cached(url, maxPixel: maxPixel)?.size,
+            size.height > 0
+        else { return nil }
+        return min(max(size.width / size.height, 0.5), 2)
+    }
 
     var body: some View {
         RemoteImage(url: url, maxPixel: Self.maxPixel) { phase in
             Palette.hairline
-                .modifier(TileFrame(ratio: aspect(phase), height: height))
+                .modifier(TileFrame(ratio: ratio, height: height))
                 .overlay {
                     if case .success(let loaded) = phase {
                         loaded.resizable().scaledToFill()
@@ -1183,14 +1202,6 @@ private struct NoteImageTile: View {
             .accessibilityLabel(Text(image.altText ?? String(localized: "사진")))
             .accessibilityHint(Text("두 번 탭하면 크게 봅니다"))
         }
-    }
-
-    private func aspect(_ phase: RemoteImagePhase) -> CGFloat {
-        guard case .success = phase, let url,
-            let size = RemoteImageCache.shared.cached(url, maxPixel: Self.maxPixel)?.size,
-            size.height > 0
-        else { return 0.75 }
-        return min(max(size.width / size.height, 0.5), 2)
     }
 
     @ViewBuilder private var altLayer: some View {

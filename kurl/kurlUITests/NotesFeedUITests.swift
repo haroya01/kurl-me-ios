@@ -109,6 +109,18 @@ final class NotesFeedUITests: XCTestCase {
             .first { $0.frame.minY > 200 }
     }
 
+    func testSlowlyScrollingPastAPhotoNoteKeepsTheAppResponsive() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+        XCTAssertTrue(app.buttons["note.menu.9501"].waitForExistence(timeout: 10), "노트가 안 뜸")
+        let start = Date()
+        for _ in 0..<3 { app.swipeUp(velocity: .slow) }
+        let elapsed = Date().timeIntervalSince(start)
+        XCTAssertLessThan(elapsed, 40, "사진 노트를 지나는 느린 스크롤에서 앱이 \(Int(elapsed))초 동안 응답하지 않음")
+    }
+
     func testSwipingAPhotoCarouselLeavesTheFeedPageWhereItIs() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]
