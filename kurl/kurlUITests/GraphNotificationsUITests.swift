@@ -139,6 +139,36 @@ final class GraphNotificationsUITests: XCTestCase {
         shoot("comment-opens-at-comment")
     }
 
+    func testAMentionInACommentOpensThatMembersPosts() throws {
+        let app = launchInbox()
+        let comment = rowButton(app, contains: "댓글을 남겼어요")
+        XCTAssertTrue(comment.waitForExistence(timeout: 12), "인박스에 댓글 알림이 없음")
+        comment.tap()
+        let mention = app.links["@yuki_dev"].firstMatch
+        XCTAssertTrue(mention.waitForExistence(timeout: 10), "댓글의 회원 멘션이 링크가 아님")
+        XCTAssertFalse(app.links["@nobody_here"].exists, "회원이 아닌 @이름이 링크가 됨")
+        shoot("comment-mention")
+        mention.tap()
+        XCTAssertTrue(app.buttons["author.tab.posts"].waitForExistence(timeout: 10), "멘션한 회원의 프로필이 안 열림")
+        XCTAssertTrue(app.buttons["author.tab.posts"].isSelected, "글에서 연 프로필이 글 탭이 아님")
+    }
+
+    func testReplyingToAReplyCallsItsAuthorInTheSameThread() throws {
+        let app = launchInbox()
+        let comment = rowButton(app, contains: "댓글을 남겼어요")
+        XCTAssertTrue(comment.waitForExistence(timeout: 12), "인박스에 댓글 알림이 없음")
+        comment.tap()
+        let reply = app.buttons["comment.reply.507"]
+        XCTAssertTrue(reply.waitForExistence(timeout: 10), "답글에 답글 버튼이 없음")
+        for _ in 0..<4 where !reply.isHittable { app.swipeUp(velocity: .slow) }
+        reply.tap()
+        XCTAssertTrue(app.staticTexts["reader_kim님에게 답글"].waitForExistence(timeout: 6), "누구에게 답하는지 안 보임")
+        let input = app.descendants(matching: .any).matching(identifier: "comment.input").firstMatch
+        XCTAssertTrue(input.waitForExistence(timeout: 4), "답글 입력칸이 없음")
+        XCTAssertEqual(input.value as? String, "@reader_kim ", "답글 단 사람을 @로 부르지 않음")
+        shoot("reply-to-reply")
+    }
+
     func testHighlightMentionOpensItsConversation() throws {
         let app = launchInbox()
         let mention = app.buttons
@@ -154,6 +184,9 @@ final class GraphNotificationsUITests: XCTestCase {
             .matching(NSPredicate(format: "label BEGINSWITH '저도요. 작게 시작했어야'")).firstMatch
         XCTAssertTrue(reply.waitForExistence(timeout: 12), "하이라이트 언급을 누르면 그 메모 대화가 열려야 함")
         shoot("highlight-mention-opens-thread")
+
+        XCTAssertTrue(app.links["@minji"].firstMatch.waitForExistence(timeout: 8), "메모 대화의 회원 멘션이 링크가 아님")
+        app.buttons["닫기"].firstMatch.tap()
     }
 
     private func waitUntilOnScreen(_ element: XCUIElement, in app: XCUIApplication) -> Bool {

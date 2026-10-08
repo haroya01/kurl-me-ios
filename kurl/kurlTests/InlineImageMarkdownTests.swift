@@ -103,6 +103,15 @@ final class NoteTextTests: XCTestCase {
         XCTAssertEqual(NoteText.plain(String(text.characters)), body)
     }
 
+    func testACommentLinksMembersTheServerFoundAndAddressesButNoTags() {
+        let body = "@yuki_dev 봤어요 #태그 @ghost https://kurl.me"
+        let text = NoteText.attributed(body, mentions: ["yuki_dev"], tags: false)
+        let links = text.runs.compactMap { run in run.link.map { ($0, String(text[run.range].characters)) } }
+        XCTAssertEqual(links.map(\.1), ["@yuki_dev", "https://kurl.me"])
+        XCTAssertEqual(NoteText.target(from: links[0].0), .member("yuki_dev"))
+        XCTAssertEqual(String(text.characters), body)
+    }
+
     func testLengthCountsCodePointsLikeTheServer() {
         XCTAssertEqual(NoteText.length("😀😀"), 2)
         XCTAssertEqual(NoteText.length("  가나  "), 2)

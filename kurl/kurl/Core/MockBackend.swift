@@ -242,8 +242,8 @@ enum MockBackend {
              "body": "저도요. 작게 시작했어야 했다는 데 200% 동의합니다.",
              "createdAt": iso(Date().addingTimeInterval(-7_000))],
             ["id": 7002, "author": ["id": 3, "username": "reader_kim", "bio": NSNull(), "avatarUrl": NSNull()],
-             "body": "첫 두 주 비용을 어떻게 줄였는지 더 듣고 싶어요.",
-             "createdAt": iso(Date().addingTimeInterval(-3_000))],
+             "body": "첫 두 주 비용을 어떻게 줄였는지 더 듣고 싶어요. @minji 님 팀은 어땠나요?",
+             "createdAt": iso(Date().addingTimeInterval(-3_000)), "mentions": ["minji"]],
         ]
     ]
     private static var commentRows: [[String: Any]] = [
@@ -253,15 +253,16 @@ enum MockBackend {
         commentRow(504, nil, "sori", "레이어드에서 넘어올 때 테스트는 어떻게 옮기셨나요?", 60_000),
         commentRow(505, 504, "honggildong", "도메인부터 단위 테스트로 감싸고 어댑터는 나중에요.", 50_000),
         commentRow(506, nil, "yuki_dev", "어댑터를 바깥으로 미는 순서가 제일 와닿았어요. 저희 팀도 다음 분기에 해 보려고요.", 3_600),
-        commentRow(507, 506, "reader_kim", "저희도 같은 고민이에요 — 순서를 정리한 표가 있으면 좋겠어요.", 1_800),
+        commentRow(507, 506, "reader_kim", "@yuki_dev 저희도 같은 고민이에요 — 순서를 정리한 표가 있으면 좋겠어요. @nobody_here 도요.", 1_800,
+                   mentions: ["yuki_dev"]),
     ]
 
     private static func commentRow(
-        _ id: Int, _ parent: Int?, _ username: String, _ body: String, _ ago: Double
+        _ id: Int, _ parent: Int?, _ username: String, _ body: String, _ ago: Double, mentions: [String] = []
     ) -> [String: Any] {
         ["id": id, "parentId": parent.map { $0 as Any } ?? NSNull(),
          "author": ["id": id, "username": username, "bio": NSNull(), "avatarUrl": NSNull()],
-         "body": body, "createdAt": iso(Date().addingTimeInterval(-ago)), "likeCount": 0]
+         "body": body, "createdAt": iso(Date().addingTimeInterval(-ago)), "likeCount": 0, "mentions": mentions]
     }
     private static var nextHighlightId = 6100
     private static var nextHighlightReplyId = 7100

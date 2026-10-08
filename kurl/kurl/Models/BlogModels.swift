@@ -235,4 +235,5 @@ struct Comment: Decodable, Identifiable, Equatable {
     let body: String
     let createdAt: Date?
     let likeCount: Int64?
+    var mentions: [String]? = nil
 }

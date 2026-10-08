@@ -123,6 +123,7 @@ struct HighlightReplyView: Decodable, Identifiable, Hashable {
     let author: Author?
     let body: String
     let createdAt: Date?
+    var mentions: [String]? = nil
 }
 
 /// 내 서재의 하이라이트 — 원문(작가·슬러그·제목)으로 돌아가는 참조를 함께 싣는다.

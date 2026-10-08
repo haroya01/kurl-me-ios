@@ -1266,7 +1266,7 @@ enum NoteText {
     /// "#" 와 한글 태그 사이는 줄바꿈 자리라 "#" 만 줄 끝에 남는다 — 표시에만 넣고 보낼 땐 plain 으로 뺀다.
     static let tagJoiner = "\u{2060}"
 
-    static func attributed(_ body: String, mentions: [String] = []) -> AttributedString {
+    static func attributed(_ body: String, mentions: [String] = [], tags: Bool = true) -> AttributedString {
         let members = Set(mentions)
         var result = AttributedString()
         let ns = body as NSString
@@ -1283,7 +1283,7 @@ enum NoteText {
                 text = link
                 url = URL(string: link)
             } else if match.range(at: 2).location != NSNotFound {
-                guard let name = tagName(ns.substring(with: match.range(at: 2))) else { continue }
+                guard tags, let name = tagName(ns.substring(with: match.range(at: 2))) else { continue }
                 text = "#" + tagJoiner + name
                 url = link(.tag(name))
                 consumed = 1 + (name as NSString).length
@@ -2345,6 +2345,7 @@ enum NoteLinkTarget: Hashable {
 /// 본문의 #해시태그는 그 태그 화면의 노트 탭으로, @회원은 그 프로필로 — 노트를 그리는 화면
 /// 루트에 단다(줄마다 달면 지연 목록 안의 navigationDestination 이 무시된다).
 struct NoteTextLinks: ViewModifier {
+    var memberTab: AuthorTab = .notes
     @State private var target: NoteLinkTarget?
 
     func body(content: Content) -> some View {
@@ -2357,14 +2358,14 @@ struct NoteTextLinks: ViewModifier {
             .navigationDestination(item: $target) { target in
                 switch target {
                 case let .tag(name): TagFeedView(tag: name, initialTab: .notes)
-                case let .member(username): AuthorBlogView(username: username, initialTab: .notes)
+                case let .member(username): AuthorBlogView(username: username, initialTab: memberTab)
                 }
             }
     }
 }
 
 extension View {
-    func noteTextLinks() -> some View { modifier(NoteTextLinks()) }
+    func noteTextLinks(memberTab: AuthorTab = .notes) -> some View { modifier(NoteTextLinks(memberTab: memberTab)) }
 }
 
 /// 수정 기록 — 마스토돈처럼 판마다 시각과 본문을 위에서부터 최신순으로. 첫째가 지금 판이다.

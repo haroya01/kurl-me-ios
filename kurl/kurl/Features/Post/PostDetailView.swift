@@ -362,6 +362,7 @@ private struct PostDetailReader: View {
             if pullTargetSlug != nil { fingerDown = newPhase == .interacting }
         }
         .sensoryFeedback(.impact(weight: .medium), trigger: advancing)
+        .noteTextLinks(memberTab: .posts)
         // 덱: 같은 작가 다음 글은 스택에 푸시(여러 장이 lazy 로 살아 있는 덱 문법). 단독 시리즈
         // 회차는 셸이 .id 로 제자리 교체하므로 여기서 push 하지 않는다.
         .navigationDestination(isPresented: $showNext) {
@@ -1912,7 +1913,7 @@ struct CommentRow: View {
                         .accessibilityLabel("댓글 더 보기")
                     }
                 }
-                Text(comment.body)
+                Text(NoteText.attributed(comment.body, mentions: comment.mentions ?? [], tags: false))
                     .typeScale(.body)
                     .foregroundStyle(Palette.body)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1942,18 +1943,16 @@ struct CommentRow: View {
                     .accessibilityAddTraits(likedByMe ? [.isSelected] : [])
                     .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: likedByMe)
 
-                    // 답글은 최상위 댓글에만 — 1단 깊이 유지.
-                    if comment.parentId == nil {
-                        Button {
-                            replyTo = comment
-                        } label: {
-                            Text("답글")
-                                .typeScale(.meta)
-                                .foregroundStyle(Palette.secondary)
-                                .expandTapTarget()
-                        }
-                        .buttonStyle(.plain)
+                    Button {
+                        replyTo = comment
+                    } label: {
+                        Text("답글")
+                            .typeScale(.meta)
+                            .foregroundStyle(Palette.secondary)
+                            .expandTapTarget()
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("comment.reply.\(comment.id)")
                 }
                 .padding(.top, 1)
             }
@@ -2043,6 +2042,7 @@ struct GlassCommentBar: View {
     @State private var showLoginPrompt = false
     /// 전송 성공 햅틱 트리거 — 좋아요·팔로우와 같은 결의 가벼운 확인음.
     @State private var sentPulse = 0
+    @State private var calledHandle: String?
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -2079,6 +2079,7 @@ struct GlassCommentBar: View {
                 .typeScale(.body)
                 .lineLimit(1...4)
                 .focused($focused)
+                .accessibilityIdentifier("comment.input")
                 .submitLabel(.send)
                 .onSubmit { if canSend { send() } }
 
@@ -2120,6 +2121,17 @@ struct GlassCommentBar: View {
                 onDone()
             }
         }
+        .onChange(of: replyTo, initial: true) { _, target in
+            if let calledHandle, body_.hasPrefix(calledHandle) {
+                body_.removeFirst(calledHandle.count)
+            }
+            calledHandle = nil
+            guard let target, target.parentId != nil,
+                  target.author.username != AuthStore.shared.me?.username else { return }
+            let handle = "@\(target.author.username) "
+            body_ = handle + body_
+            calledHandle = handle
+        }
         .loginPrompt(isPresented: $showLoginPrompt, message: "이 글에 생각을 남겨보세요")
     }
 
@@ -2140,7 +2152,7 @@ struct GlassCommentBar: View {
             do {
                 try await model.postComment(
                     body: body_.trimmingCharacters(in: .whitespacesAndNewlines),
-                    parentId: replyTo?.id)
+                    parentId: replyTo.map { $0.parentId ?? $0.id })
                 body_ = ""
                 replyTo = nil
                 focused = false
