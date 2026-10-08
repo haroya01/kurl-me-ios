@@ -29,10 +29,9 @@ struct FeedHeaderBar<Item: Hashable & Identifiable, Leading: View>: View {
                     InboxBell(count: unread.count)
                 }
             }
-            .padding(.horizontal, Metrics.gutter)
+            .padding(.horizontal, FeedHeaderMetrics.edge)
         }
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: unread.count > 0)
-        .padding(.top, 2)
         .padding(.bottom, 8)
     }
 }
@@ -43,17 +42,30 @@ extension FeedHeaderBar where Leading == EmptyView {
     }
 }
 
+/// 시스템 내비 바의 뒤로 버튼과 같은 크기·자리 — 푸시하면 같은 자리에서 뒤로 버튼으로 바뀐다.
 enum FeedHeaderMetrics {
-    static let circle: CGFloat = 40
+    static let circle: CGFloat = 44
+    static let edge: CGFloat = 16
 }
 
 struct FeedHeaderGlyph: View {
     let systemImage: String
+    var dot = false
 
     var body: some View {
         Image(systemName: systemImage)
-            .font(.system(size: 15, weight: .semibold))
+            .font(.system(size: 17))
+            .imageScale(.large)
             .foregroundStyle(.primary)
+            .overlay(alignment: .topTrailing) {
+                if dot {
+                    Circle()
+                        .fill(Palette.accent)
+                        .frame(width: 8, height: 8)
+                        .offset(x: 3, y: -2)
+                        .transition(.scale.combined(with: .opacity))
+                }
+            }
             .frame(width: FeedHeaderMetrics.circle, height: FeedHeaderMetrics.circle)
             .contentShape(Circle())
     }
@@ -65,16 +77,7 @@ struct InboxBell: View {
 
     var body: some View {
         NavigationLink(value: Route.notifications) {
-            FeedHeaderGlyph(systemImage: "bell")
-                .overlay(alignment: .topTrailing) {
-                    if count > 0 {
-                        Circle()
-                            .fill(Palette.accent)
-                            .frame(width: 7, height: 7)
-                            .offset(x: -7, y: 8)
-                            .transition(.scale.combined(with: .opacity))
-                    }
-                }
+            FeedHeaderGlyph(systemImage: "bell", dot: count > 0)
         }
         .buttonStyle(.plain)
         .glassEffect(.regular.interactive(), in: .circle)
