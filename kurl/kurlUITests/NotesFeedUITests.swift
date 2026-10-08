@@ -194,7 +194,7 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertEqual(tall.frame.width / tall.frame.height, 600.0 / 800.0, accuracy: 0.03, "세로 사진이 원래 비율이 아님")
     }
 
-    func testTappingTheNotesTabAgainPopsToTheFeedThenOpensTheFeedMenu() throws {
+    func testTappingTheNotesTabAgainPopsToTheFeedAndHoldingItOpensTheFeedMenu() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]
         app.launch()
@@ -207,7 +207,8 @@ final class NotesFeedUITests: XCTestCase {
 
         let menu = app.buttons["tab.menu"]
         XCTAssertTrue(menu.waitForExistence(timeout: 5), "피드에서 노트 탭이 메뉴가 아님")
-        menu.tap()
+        menu.press(forDuration: 1.0)
+        Thread.sleep(forTimeInterval: 0.6)
         let trending = menuOption(app, "인기")
         XCTAssertNotNil(trending, "탭 위로 피드 메뉴가 열리지 않음")
         attach(app, "notes-tab-menu")
@@ -218,14 +219,15 @@ final class NotesFeedUITests: XCTestCase {
             "탭 메뉴로 고른 인기가 머리 스위처에 반영되지 않음")
     }
 
-    func testTappingTheBlogTabAgainOpensItsFeedMenuToo() throws {
+    func testHoldingTheBlogTabOpensItsFeedMenuToo() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks"]
         app.launch()
         let menu = app.buttons["tab.menu"]
         XCTAssertTrue(menu.waitForExistence(timeout: 12), "피드 탭이 메뉴가 아님")
         XCTAssertTrue(app.buttons["알림"].exists, "블로그 머리에 알림 벨이 없음")
-        menu.tap()
+        menu.press(forDuration: 1.0)
+        Thread.sleep(forTimeInterval: 0.6)
         let following = menuOption(app, "구독함")
         XCTAssertNotNil(following, "피드 탭 위로 피드 메뉴가 열리지 않음")
         attach(app, "blog-tab-menu")

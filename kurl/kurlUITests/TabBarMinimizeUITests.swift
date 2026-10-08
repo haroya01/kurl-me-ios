@@ -5,11 +5,8 @@
 
 import XCTest
 
-/// 스크롤 내리면 하단 탭바가 통째로 사라지고(스레드식), 올리면 되돌아오는 커스텀 동작의
-/// 회귀 가드. iOS 26/27.0 런타임은 네이티브 `.tabBarMinimizeBehavior` 를 안 태우고
-/// (2026-06-13 실기기 확정) `.toolbar(.hidden, for: .tabBar)` 도 탭 루트에선 시스템 바를
-/// 못 숨긴다(27 실측). 그래서 커스텀 FloatingTabBar 를 스크롤 방향으로 직접 숨겼다 되살린다.
-/// simctl 은 터치를 못 넣으니 — 스크롤 제스처 검증은 이 UI 테스트가 유일한 자동화 경로다.
+/// 인스타그램식 커스텀 하단바의 회귀 가드 — 스크롤하면 작아지고(5탭 유지), 끌면 탭이 넘어가고,
+/// 설정 스택에선 접힌다. simctl 은 터치를 못 넣으니 제스처 검증은 이 UI 테스트가 유일한 경로다.
 final class TabBarMinimizeUITests: XCTestCase {
 
     override func setUpWithError() throws {
@@ -51,39 +48,66 @@ final class TabBarMinimizeUITests: XCTestCase {
         add(shot)
     }
 
-    /// 스크롤다운 후 탭바가 사라지고, 스크롤업 후 되돌아오는지 — 탭바 아이콘의 존재/명중
-    /// 가능 여부로 판정(숨김 = offset 으로 밀려나 hittable 아님 + accessibilityHidden).
-    func testFeedScrollHidesAndRestoresTabBar() throws {
+    /// 인스타그램처럼 스크롤을 내리면 바가 작아지되 남아 있고(눌러진다), 올리면 원래 크기로.
+    func testFeedScrollShrinksTheTabBarAndKeepsItTappable() throws {
         let app = launch()
-
-        // 카드가 실제로 뜬 뒤에 스크롤한다 — 콜드 스켈레톤에선 스크롤이 안 먹는다.
         let firstCard = app.scrollViews.buttons.firstMatch
         XCTAssertTrue(firstCard.waitForExistence(timeout: 15), "피드 카드가 뜨지 않음")
-
-        // 커스텀 바의 탭 = VoiceOver 라벨 달린 버튼. "검색" 은 스크롤 대상 카드와 안 겹치는
-        // 안전한 탭바 프로브(피드 카드에 "피드" 라벨이 없어 유일하게 잡힌다).
         let discoverTab = app.buttons["검색"]
         XCTAssertTrue(discoverTab.waitForExistence(timeout: 8), "탭바(검색 버튼)가 없음")
-
-        // before — 스크롤 전엔 탭바가 명중 가능.
         XCTAssertTrue(discoverTab.isHittable, "before: 탭바가 처음부터 보이지 않음")
-        attach("before-scroll-tabbar-visible")
+        let full = discoverTab.frame
+        attach("before-scroll-tabbar-full")
 
-        // 스크롤다운 → 탭바가 사라진다(offset 132pt 로 밀려 hittable 아님).
         scrollDown(app)
-        let hidden = NSPredicate(format: "isHittable == false")
-        expectation(for: hidden, evaluatedWith: discoverTab)
+        let shrunk = NSPredicate { _, _ in discoverTab.frame.height < full.height * 0.95 }
+        expectation(for: shrunk, evaluatedWith: discoverTab)
         waitForExpectations(timeout: 5)
-        attach("after-scrolldown-tabbar-hidden")
-        XCTAssertFalse(discoverTab.isHittable, "after: 스크롤다운 후에도 탭바가 사라지지 않음")
+        attach("after-scrolldown-tabbar-compact")
+        XCTAssertTrue(discoverTab.isHittable, "작아진 탭바가 눌리지 않음")
+        XCTAssertGreaterThan(discoverTab.frame.minY, full.minY, "작아진 바가 아래로 붙지 않음")
 
-        // 스크롤업 → 탭바가 되돌아온다.
         scrollUp(app)
-        let shown = NSPredicate(format: "isHittable == true")
-        expectation(for: shown, evaluatedWith: discoverTab)
+        let restored = NSPredicate { _, _ in abs(discoverTab.frame.height - full.height) < 1 }
+        expectation(for: restored, evaluatedWith: discoverTab)
         waitForExpectations(timeout: 5)
-        attach("after-scrollup-tabbar-restored")
-        XCTAssertTrue(discoverTab.isHittable, "restore: 스크롤업 후에도 탭바가 돌아오지 않음")
+        attach("after-scrollup-tabbar-full")
+    }
+
+    /// 바를 누른 채 다른 탭까지 끌어 놓으면 그 탭으로 넘어간다(인스타그램·iOS 유리 탭바).
+    func testDraggingAcrossTheTabBarSwitchesTabs() throws {
+        let app = launch()
+        let notesTab = app.buttons["노트"]
+        let searchTab = app.buttons["검색"]
+        XCTAssertTrue(notesTab.waitForExistence(timeout: 15), "탭바(노트 버튼)가 없음")
+        notesTab.press(forDuration: 0.15, thenDragTo: searchTab, withVelocity: .slow, thenHoldForDuration: 0.3)
+        XCTAssertTrue(app.searchFields.firstMatch.waitForExistence(timeout: 5), "검색 탭까지 끌어 놓았는데 검색 화면이 아님")
+        attach("dragged-to-search")
+    }
+
+    /// 다시 누르면 피드 메뉴가 뜨는 활성 피드 탭에서 끌기를 시작해도 메뉴 대신 끌린 탭으로 넘어간다.
+    func testDraggingFromTheActiveFeedTabSlidesInsteadOfOpeningItsMenu() throws {
+        let app = launch()
+        let feedTab = app.buttons["tab.menu"]
+        let accountTab = app.buttons["내 계정"]
+        XCTAssertTrue(feedTab.waitForExistence(timeout: 15), "활성 피드 탭(메뉴)이 없음")
+        feedTab.press(forDuration: 0.15, thenDragTo: accountTab, withVelocity: .slow, thenHoldForDuration: 0.3)
+        XCTAssertTrue(app.buttons["설정"].firstMatch.waitForExistence(timeout: 5), "내 계정까지 끌어 놓았는데 계정 화면이 아님")
+        attach("dragged-from-feed-to-account")
+    }
+
+    /// 피드에서 활성 탭을 누르면 맨 위로 돌아간다(인스타그램) — 피드 메뉴는 길게 누를 때만.
+    func testTappingTheActiveFeedTabScrollsBackToTheTop() throws {
+        let app = launch()
+        let first = app.scrollViews.buttons.firstMatch
+        XCTAssertTrue(first.waitForExistence(timeout: 15), "피드 카드가 뜨지 않음")
+        let firstCard = app.scrollViews.buttons.matching(NSPredicate(format: "label == %@", first.label)).firstMatch
+        for _ in 0..<3 { scrollDown(app) }
+        XCTAssertFalse(firstCard.isHittable, "충분히 내려가지 않음(첫 카드가 아직 보임)")
+        app.buttons["tab.menu"].tap()
+        expectation(for: NSPredicate(format: "isHittable == true"), evaluatedWith: firstCard)
+        waitForExpectations(timeout: 5)
+        attach("tapped-active-tab-back-to-top")
     }
 
     /// 설정 루트로 들어가면 커스텀 하단바가 접히고, 탭 루트로 pop 하면 되돌아온다 — iOS 관습이자,
@@ -168,9 +192,9 @@ final class TabBarMinimizeUITests: XCTestCase {
     }
 
     /// 글 상세를 탭 스택 안(피드 → 카드 탭)에서 열고 아래로 읽어 내려가면 상단 크롬(뒤로·⋯)이
-    /// 하단 탭바와 함께 사라지고(초록 진행 바만 잔존), 위로 올리면 둘 다 돌아오는 동조 회귀 가드.
-    /// 크롬은 시스템 내비바라 프로브 = "더 보기"(⋯) 버튼 · 탭바 프로브 = "검색" 버튼.
-    func testPostDetailChromeHidesInSyncWithTabBar() throws {
+    /// 사라지고(초록 진행 바만 잔존) 하단 탭바는 같은 신호로 작아지며, 위로 올리면 둘 다 돌아온다.
+    /// 크롬 프로브 = "더 보기"(⋯) 버튼 · 탭바 프로브 = "검색" 버튼.
+    func testPostDetailChromeHidesWhileTheTabBarShrinks() throws {
         let app = XCUIApplication()
         // 추천(for-you) 피드로 바로 들어간다 — 목 피드에서 가장 긴 글(토큰이 사라진 밤)이 거기 있다.
         // 크롬·탭바가 걷히려면 충분한 스크롤 런웨이가 필요한데 최신 피드의 글은 너무 짧다.
@@ -193,27 +217,23 @@ final class TabBarMinimizeUITests: XCTestCase {
         XCTAssertTrue(tabBar.waitForExistence(timeout: 5), "글 상세 위에 탭바(검색)가 없음")
         XCTAssertTrue(more.isHittable, "before: 상단 크롬이 처음부터 안 보임")
         XCTAssertTrue(tabBar.isHittable, "before: 탭바가 처음부터 안 보임")
+        let full = tabBar.frame
         attach("postdetail-before-scroll-chrome-and-tabbar")
 
-        // 아래로 읽어 내려가면 크롬과 탭바가 함께 사라진다(같은 스크롤 신호).
         scrollDown(app)
-        let bothGone = NSPredicate(format: "isHittable == false")
-        expectation(for: bothGone, evaluatedWith: more)
-        expectation(for: bothGone, evaluatedWith: tabBar)
+        expectation(for: NSPredicate(format: "isHittable == false"), evaluatedWith: more)
+        expectation(for: NSPredicate { _, _ in tabBar.frame.height < full.height * 0.95 }, evaluatedWith: tabBar)
         waitForExpectations(timeout: 6)
-        attach("postdetail-scrolldown-chrome-and-tabbar-hidden")
+        attach("postdetail-scrolldown-chrome-hidden-tabbar-compact")
         XCTAssertFalse(more.isHittable, "스크롤다운 후에도 상단 크롬(더 보기)이 남아 있음")
-        XCTAssertFalse(tabBar.isHittable, "스크롤다운 후에도 탭바가 남아 있음")
+        XCTAssertTrue(tabBar.isHittable, "작아진 탭바가 눌리지 않음")
 
-        // 위로 올리면 둘 다 돌아온다.
         scrollUp(app)
-        let bothBack = NSPredicate(format: "isHittable == true")
-        expectation(for: bothBack, evaluatedWith: more)
-        expectation(for: bothBack, evaluatedWith: tabBar)
+        expectation(for: NSPredicate(format: "isHittable == true"), evaluatedWith: more)
+        expectation(for: NSPredicate { _, _ in abs(tabBar.frame.height - full.height) < 1 }, evaluatedWith: tabBar)
         waitForExpectations(timeout: 6)
         attach("postdetail-scrollup-chrome-and-tabbar-restored")
         XCTAssertTrue(more.isHittable, "스크롤업 후에도 상단 크롬이 안 돌아옴")
-        XCTAssertTrue(tabBar.isHittable, "스크롤업 후에도 탭바가 안 돌아옴")
     }
 
     /// 글 끝 댓글 입구를 누르면 입력 바가 하단에 붙는다 — 떠 있는 탭바가 그 위를 덮으면 하드웨어 키보드이거나

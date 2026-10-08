@@ -173,11 +173,11 @@ private struct PostDetailReader: View {
     /// 읽기 기록 비콘을 이미 보낸 글 id — pop-back 으로 task 가 재시작돼도 재전송하지 않는다.
     @State private var recordedHistoryId: Int64?
 
-    /// 독을 커스텀 탭바 위로 얼마나 띄울지 — 단독 상세에서 탭바가 떠 있을 때만 예약 높이만큼.
-    /// 덱 임베드(embedded)엔 탭바 추적이 없어(env nil) 0, 스크롤로 탭바가 숨으면 0 으로 걷힌다.
+    /// 독을 커스텀 탭바 위로 얼마나 띄울지 — 단독 상세에서 탭바가 떠 있을 때만, 바가 작아지면 작은 높이만큼.
+    /// 덱 임베드(embedded)엔 탭바 추적이 없어(env nil) 0, 바가 강제로 접히면 0.
     private var dockTabBarInset: CGFloat {
-        guard !embedded, let visibility = tabBarVisibility, !visibility.hidden else { return 0 }
-        return Metrics.tabBarReservedHeight
+        guard !embedded, let visibility = tabBarVisibility, !visibility.forceHidden else { return 0 }
+        return visibility.scrollHidden ? Metrics.tabBarCompactReservedHeight : Metrics.tabBarReservedHeight
     }
 
     /// 본문 끝맺음이 커스텀 탭바 뒤로 눌리지 않게 스크롤 콘텐츠 바닥에 늘 비워 둘 높이.

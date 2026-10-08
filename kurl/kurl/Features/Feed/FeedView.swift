@@ -148,6 +148,7 @@ struct FeedPage: View {
     /// 을 건너 오프셋을 안 물어 준다). 페이지가 ZStack 에 상주해 이 @State 가 살아남으므로,
     /// 마지막으로 보이던 카드 id 를 붙들어 두면 복귀 시 그 카드로 스크롤이 되돌아간다.
     @State private var scrollAnchor: String?
+    @State private var router = TabRouter.shared
 
     init(source: FeedSource, active: Bool, warm: Bool, zoom: Namespace.ID) {
         self.source = source
@@ -319,6 +320,10 @@ struct FeedPage: View {
         // 글로 들어갔다 돌아오면 보던 카드로 스크롤을 되돌린다 — 페이지가 상주해 앵커가 살아남는다.
         // .top 앵커라 그 카드가 다시 화면 맨 위에 온다(복귀 지점이 튀지 않게).
         .scrollPosition(id: $scrollAnchor, anchor: .top)
+        .onChange(of: router.topRequests) {
+            guard active, router.topTab == 0, let first = model.items.first else { return }
+            withAnimation(reduceMotion ? nil : .smooth(duration: 0.35)) { scrollAnchor = String(first.id) }
+        }
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
         // 활성 페이지의 스크롤만 탭바 숨김을 몬다 — ZStack 에 상주하는 숨은 페이지가

@@ -5,24 +5,18 @@
 
 import SwiftUI
 
-/// 하단 탭바 숨김/복귀의 단일 손잡이 — 스레드식 동작을 우리가 직접 태운다.
+/// 하단 탭바 상태의 단일 손잡이 — 스크롤 방향(scrollHidden: 읽어 내려가는 중 → 바 축소, 글 상세
+/// 상단 크롬 접힘)과 화면이 요구하는 강제 숨김(forceHidden: 설정 스택·댓글 작성 중)을 따로 든다.
 ///
-/// iOS 26/27.0 런타임은 `.tabBarMinimizeBehavior(.onScrollDown)` 를 시뮬·실기기 모두
-/// 안 태운다(2026-06-13 실기기 확정, 우리 구조 무관). OS 가 죽어 있는 동안 스크롤로 바가
-/// 사라지지 않아, 스레드처럼 스크롤 방향을 직접 관측해 시스템 유리 탭바를 숨겼다 되살린다
-/// (DESIGN.md §1: 시스템 유리 탭바 유지 — 커스텀 바로 갈아치우지 않는다).
-///
-/// 방향 판정은 각 탭 루트의 스크롤 표면이 `.tracksTabBarVisibility()` 로 오프셋을 보내면
-/// 여기서 누적한다. 아래로 읽어 내려가면(내용이 위로) 숨기고, 위로 되돌리면 되살린다.
+/// 방향 판정은 각 스크롤 표면이 `.tracksTabBarVisibility()` 로 오프셋을 보내면 여기서 누적한다.
 @MainActor
 @Observable
 final class TabBarVisibility {
-    /// 커스텀 바가 실제로 숨겨야 하는가 — 스크롤 숨김(scrollHidden)이거나 강제 숨김(forceHidden)이면
-    /// 숨는다. RootView 의 FloatingTabBar 가 이 값을 읽는다. 두 원천 모두 저장 프로퍼티라
-    /// @Observable 이 확실히 추적한다(집합의 isEmpty 를 computed 로 읽으면 갱신이 새는 함정이 있었다).
+    /// 읽어 내려가는 중이거나 강제로 접힌 상태 — 글 상세 상단 크롬이 이 신호로 접힌다. 두 원천 모두
+    /// 저장 프로퍼티라 @Observable 이 확실히 추적한다(집합의 isEmpty 를 computed 로 읽으면 갱신이 새는 함정이 있었다).
     var hidden: Bool { scrollHidden || forceHidden }
 
-    /// 스크롤 방향으로 확정한 숨김 — 내리면 true, 올리면 false(스레드식).
+    /// 스크롤 방향으로 확정한 상태 — 내리면 true(바 축소), 올리면 false.
     private(set) var scrollHidden = false
 
     /// 강제 숨김 상태 — 저장 프로퍼티라 @Observable 이 확실히 추적한다. forceHiders 가 바뀔 때마다 다시 계산한다.
@@ -108,7 +102,7 @@ extension EnvironmentValues {
     }
 }
 
-/// 스크롤 표면에 붙여 세로 오프셋을 공유 상태로 흘려보낸다 — 스레드식 숨김의 눈.
+/// 스크롤 표면에 붙여 세로 오프셋을 공유 상태로 흘려보낸다 — 바 축소의 눈.
 /// 커스텀 바는 푸시 화면 위에도 떠 있으므로 탭 루트만이 아니라 글 상세처럼 오래 읽는
 /// 푸시 표면도 붙인다 — 붙인 표면만 보고하는 옵트인이라, 안 붙인 화면은 상태를 안 건드린다.
 private struct TracksTabBarVisibility: ViewModifier {

@@ -238,9 +238,25 @@ struct ReadingColumn<Content: View>: View {
     var background: Color = Palette.pageBg
     var tracksTabBar = false
     var gutter: CGFloat = Metrics.gutter
+    var position: Binding<ScrollPosition>?
     @ViewBuilder var content: Content
 
     var body: some View {
+        Group {
+            if let position {
+                scroll.scrollPosition(position)
+            } else {
+                scroll
+            }
+        }
+        .scrollIndicators(.hidden)
+        // 콘텐츠가 유리 크롬 밑으로 흐를 때의 가장자리 — soft 가 기본 정책(DESIGN.md §1).
+        .scrollEdgeEffectStyle(.soft, for: .top)
+        .tracksTabBarVisibility(tracksTabBar)
+        .background(background)
+    }
+
+    private var scroll: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: spacing) {
                 content
@@ -249,11 +265,6 @@ struct ReadingColumn<Content: View>: View {
             .frame(maxWidth: .infinity)
             .padding(.horizontal, gutter)
         }
-        .scrollIndicators(.hidden)
-        // 콘텐츠가 유리 크롬 밑으로 흐를 때의 가장자리 — soft 가 기본 정책(DESIGN.md §1).
-        .scrollEdgeEffectStyle(.soft, for: .top)
-        .tracksTabBarVisibility(tracksTabBar)
-        .background(background)
     }
 }
 

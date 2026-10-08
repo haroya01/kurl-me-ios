@@ -61,6 +61,14 @@ final class TabRouter {
         reselections += 1
     }
 
+    private(set) var topRequests = 0
+    private(set) var topTab = 0
+
+    func scrollToTop(_ index: Int) {
+        topTab = index
+        topRequests += 1
+    }
+
     func switchTo(_ index: Int, reduceMotion: Bool = false) {
         guard index != selection else { return }
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -124,9 +132,10 @@ private struct NotificationsSheet: View {
 struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var showDebug = false
-    /// 하단 탭바 스크롤 숨김의 단일 손잡이 — 탭 루트들이 스크롤 방향을 여기 보고하고,
-    /// 커스텀 FloatingTabBar 가 그 상태로 바를 숨겼다 되살린다(스레드식).
+    /// 하단 탭바 상태의 단일 손잡이 — 탭 루트들이 스크롤 방향을 여기 보고하고,
+    /// 커스텀 FloatingTabBar 가 그 상태로 바를 작게 줄였다 되돌린다(인스타그램식).
     @State private var tabBarVisibility = TabBarVisibility()
+    @State private var bottomInset: CGFloat = 0
     @State private var blogFeed = BlogFeedChoice.shared
     @State private var noteFeed = NoteFeedChoice.shared
     /// 한 번이라도 연 탭 — 상주시켜 스크롤 위치·상태를 보존한다(시스템 TabView 대체).
@@ -271,17 +280,10 @@ struct RootView: View {
         // 웹 안내를 띄울 준비 — 로그인 + 핸들까지 선 상태(핸들 게이트 뒤 박자).
         let webIntroReady = AuthStore.shared.isSignedIn
             && !(AuthStore.shared.me?.username ?? "").isEmpty
-        // 스레드식 하단바: 라벨 없는 아이콘-온리 탭 + 스크롤 내릴 때 바가 통째로 사라지고
-        // 올릴 때 되돌아온다. 검색에 role 을 주지 않는 건 의도 — role: .search 는 Liquid
-        // Glass 가 검색을 독립 pill 로 분리하는데, 한 바에 5탭이 모이는 쪽을 택했다.
-        //
-        // 시스템 TabView 를 안 쓰는 이유: iOS 26 네이티브 `.tabBarMinimizeBehavior(.onScrollDown)`
-        // 은 27.0 베타에선 시뮬·실기기 모두 OS 가 안 태우고(2026-06-13 실기기 확정 — 우리 구조
-        // 무관), `.toolbar(.hidden, for: .tabBar)` 도 탭 루트에선 시스템 바를 못 숨긴다(27 실측 —
-        // 스택이 push 로 소비할 때만 먹는다). 스레드가 그렇듯 스크롤로 바를 통째로 숨기려면 바를
-        // 우리가 소유해야 한다. 그래서 콘텐츠 스위칭은 ZStack(탭별 상태 상주)으로, 하단바는
-        // 시스템 유리 결의 커스텀 FloatingTabBar 로 직접 그린다(§1 종이 본문·액체 크롬 — 유리·
-        // 5탭 아이콘-온리·brand green 은 그대로). 스크롤 방향은 TabBarVisibility 가 누적한다.
+        // 인스타그램식 하단바: 시스템 `.tabBarMinimizeBehavior` 는 선택 탭 하나만 남긴 원으로
+        // 접히는데, 인스타그램은 5탭을 둔 채 바만 작아진다 — 그 동작을 위해 바를 직접 그린다
+        // (decisions/2026-10-08-tab-bar-instagram). 검색에 role: .search 를 주지 않는 것도 한 바에
+        // 5탭을 모으기 위해서다. 스크롤 방향은 TabBarVisibility 가 누적한다.
         let tabs: [(icon: String, label: LocalizedStringKey)] = [
             ("doc.text.image", "피드"), ("text.bubble", "노트"), ("square.and.pencil", "글쓰기"),
             ("magnifyingglass", "검색"), ("person.crop.circle", "내 계정"),
@@ -303,7 +305,8 @@ struct RootView: View {
             .safeAreaPadding(.bottom, Metrics.tabBarReservedHeight)
 
             FloatingTabBar(
-                tabs: tabs, selection: selection, hidden: tabBarVisibility.hidden, menuTabs: feedMenuTabs
+                tabs: tabs, selection: selection, hidden: tabBarVisibility.forceHidden,
+                compact: tabBarVisibility.scrollHidden, bottomInset: bottomInset, menuTabs: feedMenuTabs
             ) { index in
                 if index == 0 {
                     BlogFeedMenu()
@@ -316,6 +319,12 @@ struct RootView: View {
                 .id(tabBarVisibility.forceHidden)
         }
         .ignoresSafeArea(.keyboard) // 키보드가 떠도 커스텀 바가 위로 밀려 올라오지 않게.
+        // 바 자신이 재면 옮긴 만큼 안전영역이 달라져 값이 진동한다 — 움직이지 않는 전면 층에서 잰다.
+        .background {
+            Color.clear
+                .ignoresSafeArea()
+                .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.bottom } action: { bottomInset = $0 }
+        }
         .environment(\.tabBarVisibility, tabBarVisibility)
         // 방문한 탭을 기록해 상주시킨다(첫 진입 이후 상태 보존).
         .onChange(of: selection.wrappedValue, initial: true) { _, new in
@@ -381,36 +390,49 @@ struct RootView: View {
     }
 }
 
-/// 스레드식 커스텀 하단바 — 시스템 유리 결(§1 액체 크롬)의 5탭 아이콘-온리. 스크롤을 내리면
-/// 아래로 미끄러져 사라지고(hidden) 올리면 되돌아온다. 시스템 TabView 의 바를 스크롤로 못
-/// 숨겨(27 실측) 우리가 소유한다 — 대신 스레드처럼 확실히 사라진다.
+/// 인스타그램식 커스텀 하단바 — 5탭 아이콘-온리 유리 캡슐, 선택 탭 아래 알약.
+/// 스크롤을 내리면 바 전체가 작아지고(5탭 유지), 바를 누른 채 끌면 알약이 손가락을 따라간다.
 private struct FloatingTabBar<TabMenu: View>: View {
     let tabs: [(icon: String, label: LocalizedStringKey)]
     let selection: Binding<Int>
-    /// 숨김 여부 — 스크롤다운이면 true. 전환은 위 report 호출부(withAnimation)가 부드럽게 몰고,
-    /// reduce-motion 이면 그쪽에서 즉시 토글한다(여기선 상태만 그린다).
     let hidden: Bool
+    let compact: Bool
+    let bottomInset: CGFloat
     let menuTabs: Set<Int>
     @ViewBuilder let menu: (Int) -> TabMenu
-    /// 아이콘 크기는 Dynamic Type 를 따른다(고정 pt 로 접근성 크기를 무시하지 않게).
-    /// 네이티브 iOS 26 유리 탭바 심볼 비례(≈25pt)에 맞춘다 — 22pt 는 얇게 읽혔다.
     @ScaledMetric(relativeTo: .title3) private var iconSize: CGFloat = 25
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var rowWidth: CGFloat = 0
+    @State private var dragX: CGFloat?
+
+    private var slot: CGFloat { rowWidth / CGFloat(max(tabs.count, 1)) }
+
+    private func index(at x: CGFloat) -> Int {
+        guard slot > 0 else { return selection.wrappedValue }
+        return min(max(Int(x / slot), 0), tabs.count - 1)
+    }
+
+    private var slidIndex: Int? { dragX.map(index(at:)) }
 
     var body: some View {
         GlassEffectContainer(spacing: GlassTokens.clusterSpacing) {
             HStack(spacing: 0) {
                 ForEach(Array(tabs.enumerated()), id: \.offset) { index, tab in
                     let active = index == selection.wrappedValue
+                    let lit = index == (slidIndex ?? selection.wrappedValue)
                     if active, menuTabs.contains(index) {
                         Menu {
                             menu(index)
                         } label: {
-                            icon(tab.icon, active: true)
+                            icon(tab.icon, active: lit)
+                        } primaryAction: {
+                            TabRouter.shared.scrollToTop(index)
                         }
                         .menuStyle(.button)
                         .buttonStyle(.plain)
+                        .accessibilityShowsLargeContentViewer { Label(tab.label, systemImage: tab.icon) }
                         .accessibilityLabel(Text(tab.label))
-                        .accessibilityHint(Text("피드 고르기"))
+                        .accessibilityHint(Text("누르면 맨 위로, 길게 누르면 피드 고르기"))
                         .accessibilityAddTraits(.isSelected)
                         .accessibilityIdentifier("tab.menu")
                     } else {
@@ -421,34 +443,69 @@ private struct FloatingTabBar<TabMenu: View>: View {
                                 selection.wrappedValue = index
                             }
                         } label: {
-                            icon(tab.icon, active: active)
+                            icon(tab.icon, active: lit)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityShowsLargeContentViewer { Label(tab.label, systemImage: tab.icon) }
                         .accessibilityLabel(Text(tab.label))
                         .accessibilityAddTraits(active ? [.isSelected, .isButton] : .isButton)
                     }
                 }
             }
+            .background(alignment: .leading) { pill }
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { rowWidth = $0 }
+            .simultaneousGesture(slide)
             .padding(.horizontal, 10)
             .padding(.vertical, 7)
             .glassEffect(.regular.interactive(), in: .capsule)
         }
         .padding(.horizontal, Metrics.gutter)
-        // 네이티브 유리 탭바처럼 하단 세이프에어리어에 바짝 앉힌다 — 4pt 는 위로 떠 보였다.
         .padding(.bottom, 2)
-        // 스크롤다운 = 바 높이만큼 아래로 미끄러져 완전히 사라진다(스레드식). 페이드도 얹어
-        // 세이프에어리어 여백에서도 흔적이 남지 않게. reduce-motion 은 위 report 호출이 즉시 토글.
-        .offset(y: hidden ? 132 : 0)
+        .scaleEffect(scale, anchor: .center)
+        .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: compact)
+        .animation(reduceMotion ? nil : .smooth(duration: 0.2), value: dragX == nil)
+        .offset(y: hidden ? 132 : sink)
         .opacity(hidden ? 0 : 1)
-        // 숨겨졌을 땐 손가락도 안 받는다(투명 바가 하단 탭을 가로채지 않게).
         .allowsHitTesting(!hidden)
         .accessibilityHidden(hidden)
+        .sensoryFeedback(.selection, trigger: slidIndex) { old, new in old != nil && new != nil }
+    }
+
+    private var sink: CGFloat { max(0, bottomInset - 20) }
+
+    private var scale: CGFloat {
+        if reduceMotion { return 1 }
+        if dragX != nil { return 1.04 }
+        return compact ? Metrics.tabBarCompactScale : 1
+    }
+
+    private var pill: some View {
+        let width = max(slot + 8, 0)
+        let center = dragX.map { min(max($0, slot / 2), rowWidth - slot / 2) }
+            ?? (CGFloat(selection.wrappedValue) + 0.5) * slot
+        return Capsule()
+            .fill(Palette.hairlineStrong)
+            .frame(width: width, height: 48)
+            .offset(x: center - width / 2)
+            .opacity(rowWidth > 0 ? 1 : 0)
+            .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: selection.wrappedValue)
+            .animation(reduceMotion ? nil : .interactiveSpring(duration: 0.18), value: dragX)
+            .accessibilityHidden(true)
+    }
+
+    private var slide: some Gesture {
+        DragGesture(minimumDistance: 8)
+            .onChanged { value in dragX = value.location.x }
+            .onEnded { value in
+                let target = index(at: value.location.x)
+                dragX = nil
+                if target != selection.wrappedValue { selection.wrappedValue = target }
+            }
     }
 
     private func icon(_ name: String, active: Bool) -> some View {
         Image(systemName: name)
-            .font(.system(size: iconSize, weight: active ? .semibold : .regular))
-            // active = brand green(§10.3 데이터/주액션), 나머지는 잉크로 가라앉힌다.
+            .font(.system(size: min(iconSize, 28), weight: active ? .semibold : .regular))
             .foregroundStyle(active ? AnyShapeStyle(Palette.link) : AnyShapeStyle(.secondary))
             .frame(maxWidth: .infinity)
             .frame(height: 44)
