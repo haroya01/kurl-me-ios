@@ -1578,6 +1578,11 @@ struct NoteComposeSheet: View {
         let id: UUID
     }
 
+    private struct ThreadPart: Identifiable {
+        let id = UUID()
+        var text = ""
+    }
+
     let mode: Mode
     let onDone: (Note) -> Void
 
@@ -1600,7 +1605,9 @@ struct NoteComposeSheet: View {
     @State private var scheduledAt: Date?
     @State private var language = NoteLanguages.posting
     @State private var pickingSchedule = false
+    @State private var parts: [ThreadPart] = []
     @FocusState private var focused: Bool
+    @FocusState private var focusedPart: UUID?
     @Environment(\.dismiss) private var dismiss
 
     init(mode: Mode, onDone: @escaping (Note) -> Void) {
@@ -1652,6 +1659,11 @@ struct NoteComposeSheet: View {
         !posting && length <= NoteAPI.maxLength && (length > 0 || hasImages)
             && NoteText.length(warningText) <= NoteAPI.maxWarningLength
             && (poll == nil || (poll?.isValid == true && length > 0))
+            && parts.allSatisfy { NoteText.length($0.text) <= NoteAPI.maxLength }
+    }
+    /// 스레드 이어 쓰기 — 고치기·예약에선 쓸 수 없다(서버가 예약 스레드를 받지 않는다).
+    private var canAddPart: Bool {
+        !isEdit && scheduledAt == nil && parts.count < NoteAPI.maxThreadNotes - 1
     }
     private var discardTitle: LocalizedStringKey {
         isEdit ? "고친 내용을 버릴까요?" : "작성 중인 노트를 버릴까요?"
@@ -1662,121 +1674,125 @@ struct NoteComposeSheet: View {
                 || sensitive != (note.sensitive == true && note.contentWarning == nil)
         }
         return length > 0 || !picked.isEmpty || !warningText.isEmpty || poll != nil
+            || parts.contains { NoteText.length($0.text) > 0 }
     }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                HStack(alignment: .top, spacing: 12) {
-                    if let me = AuthStore.shared.me {
-                        AvatarView(
-                            author: Author(id: me.id ?? 0, username: me.username ?? "", bio: nil, avatarUrl: me.avatarUrl),
-                            size: 36)
-                    }
-                    VStack(alignment: .leading, spacing: 10) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            if let name = AuthStore.shared.me?.username {
-                                Text(name)
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(alignment: .top, spacing: 12) {
+                        threadColumn(size: 36, line: !parts.isEmpty || canAddPart)
+                        VStack(alignment: .leading, spacing: 10) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                if let name = AuthStore.shared.me?.username {
+                                    Text(name)
+                                        .typeScale(.note)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(Palette.ink)
+                                }
+                                if warns {
+                                    TextField("열람 주의 문구 (예: 스포일러)", text: $warning, axis: .vertical)
+                                        .typeScale(.note)
+                                        .fontWeight(.medium)
+                                        .lineLimit(1...3)
+                                        .padding(.vertical, 6)
+                                        .padding(.horizontal, 10)
+                                        .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radius))
+                                        .padding(.vertical, 4)
+                                        .accessibilityIdentifier("noteCompose.warning")
+                                        .transition(.opacity.combined(with: .move(edge: .top)))
+                                }
+                                TextField(placeholder, text: $text, axis: .vertical)
                                     .typeScale(.note)
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(Palette.ink)
+                                    .lineLimit(1...20)
+                                    .focused($focused)
+                                    .accessibilityIdentifier("noteCompose.text")
                             }
-                            if warns {
-                                TextField("열람 주의 문구 (예: 스포일러)", text: $warning, axis: .vertical)
-                                    .typeScale(.note)
-                                    .fontWeight(.medium)
-                                    .lineLimit(1...3)
-                                    .padding(.vertical, 6)
-                                    .padding(.horizontal, 10)
-                                    .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radius))
-                                    .padding(.vertical, 4)
-                                    .accessibilityIdentifier("noteCompose.warning")
+                            if let draft = Binding($poll) {
+                                NotePollEditor(draft: draft)
                                     .transition(.opacity.combined(with: .move(edge: .top)))
                             }
-                            TextField(placeholder, text: $text, axis: .vertical)
-                                .typeScale(.note)
-                                .lineLimit(1...20)
-                                .focused($focused)
-                                .accessibilityIdentifier("noteCompose.text")
-                        }
-                        if let draft = Binding($poll) {
-                            NotePollEditor(draft: draft)
-                                .transition(.opacity.combined(with: .move(edge: .top)))
-                        }
-                        if !picked.isEmpty { pickedStrip }
-                        if let quote { quoteCard(quote) }
-                        if let quotedNote { QuotedNoteCard(note: quotedNote) }
-                        if let linkCard, linkCard.url == cardUrl {
-                            NoteLinkCardView(preview: linkCard)
-                                .accessibilityIdentifier("noteCompose.linkCard")
-                        }
-                        if let errorMessage {
-                            Text(errorMessage)
-                                .typeScale(.meta)
-                                .foregroundStyle(Palette.danger)
-                                .fontWeight(.semibold)
-                        }
-                        HStack(spacing: 14) {
-                        if !isEdit {
-                            PhotosPicker(
-                                selection: $pickerItems,
-                                maxSelectionCount: max(0, NoteAPI.maxImages - picked.count),
-                                matching: .images
-                            ) {
-                                Image(systemName: "photo.on.rectangle")
-                                    .font(.system(size: 18))
-                                    .foregroundStyle(
-                                        picked.count >= NoteAPI.maxImages || poll != nil ? Palette.faint : Palette.secondary)
-                                    .frame(width: 32, height: 28, alignment: .leading)
-                                    .contentShape(Rectangle())
+                            if !picked.isEmpty { pickedStrip }
+                            if let quote { quoteCard(quote) }
+                            if let quotedNote { QuotedNoteCard(note: quotedNote) }
+                            if let linkCard, linkCard.url == cardUrl {
+                                NoteLinkCardView(preview: linkCard)
+                                    .accessibilityIdentifier("noteCompose.linkCard")
                             }
-                            .disabled(picked.count >= NoteAPI.maxImages || poll != nil)
-                            .accessibilityLabel("사진 추가")
-                            Button {
-                                withAnimation(.snappy(duration: 0.2)) {
-                                    poll = poll == nil ? NotePollDraft() : nil
+                            if let errorMessage {
+                                Text(errorMessage)
+                                    .typeScale(.meta)
+                                    .foregroundStyle(Palette.danger)
+                                    .fontWeight(.semibold)
+                            }
+                            HStack(spacing: 14) {
+                            if !isEdit {
+                                PhotosPicker(
+                                    selection: $pickerItems,
+                                    maxSelectionCount: max(0, NoteAPI.maxImages - picked.count),
+                                    matching: .images
+                                ) {
+                                    Image(systemName: "photo.on.rectangle")
+                                        .font(.system(size: 18))
+                                        .foregroundStyle(
+                                            picked.count >= NoteAPI.maxImages || poll != nil ? Palette.faint : Palette.secondary)
+                                        .frame(width: 32, height: 28, alignment: .leading)
+                                        .contentShape(Rectangle())
                                 }
-                            } label: {
-                                Image(systemName: "chart.bar.xaxis")
-                                    .font(.system(size: 17))
-                                    .foregroundStyle(
-                                        poll != nil ? Palette.ink : picked.isEmpty ? Palette.secondary : Palette.faint)
-                                    .frame(width: 32, height: 28, alignment: .leading)
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(!picked.isEmpty)
-                            .accessibilityLabel(poll == nil ? "투표 추가" : "투표 빼기")
-                            .accessibilityIdentifier("noteCompose.pollToggle")
-                        }
-                            Button {
-                                withAnimation(.snappy(duration: 0.2)) { warns.toggle() }
-                            } label: {
-                                Image(systemName: warns ? "exclamationmark.triangle.fill" : "exclamationmark.triangle")
-                                    .font(.system(size: 17))
-                                    .foregroundStyle(warns ? Palette.ink : Palette.secondary)
-                                    .frame(width: 32, height: 28, alignment: .leading)
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel(warns ? "열람 주의 끄기" : "열람 주의")
-                            .accessibilityIdentifier("noteCompose.warningToggle")
-                            if hasImages, !warns {
+                                .disabled(picked.count >= NoteAPI.maxImages || poll != nil)
+                                .accessibilityLabel("사진 추가")
                                 Button {
-                                    sensitive.toggle()
+                                    withAnimation(.snappy(duration: 0.2)) {
+                                        poll = poll == nil ? NotePollDraft() : nil
+                                    }
                                 } label: {
-                                    Image(systemName: sensitive ? "eye.slash.fill" : "eye.slash")
+                                    Image(systemName: "chart.bar.xaxis")
                                         .font(.system(size: 17))
-                                        .foregroundStyle(sensitive ? Palette.ink : Palette.secondary)
+                                        .foregroundStyle(
+                                            poll != nil ? Palette.ink : picked.isEmpty ? Palette.secondary : Palette.faint)
                                         .frame(width: 32, height: 28, alignment: .leading)
                                         .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
-                                .accessibilityLabel(sensitive ? "민감한 사진 표시 끄기" : "민감한 사진으로 표시")
-                                .accessibilityIdentifier("noteCompose.sensitiveToggle")
+                                .disabled(!picked.isEmpty)
+                                .accessibilityLabel(poll == nil ? "투표 추가" : "투표 빼기")
+                                .accessibilityIdentifier("noteCompose.pollToggle")
+                            }
+                                Button {
+                                    withAnimation(.snappy(duration: 0.2)) { warns.toggle() }
+                                } label: {
+                                    Image(systemName: warns ? "exclamationmark.triangle.fill" : "exclamationmark.triangle")
+                                        .font(.system(size: 17))
+                                        .foregroundStyle(warns ? Palette.ink : Palette.secondary)
+                                        .frame(width: 32, height: 28, alignment: .leading)
+                                        .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel(warns ? "열람 주의 끄기" : "열람 주의")
+                                .accessibilityIdentifier("noteCompose.warningToggle")
+                                if hasImages, !warns {
+                                    Button {
+                                        sensitive.toggle()
+                                    } label: {
+                                        Image(systemName: sensitive ? "eye.slash.fill" : "eye.slash")
+                                            .font(.system(size: 17))
+                                            .foregroundStyle(sensitive ? Palette.ink : Palette.secondary)
+                                            .frame(width: 32, height: 28, alignment: .leading)
+                                            .contentShape(Rectangle())
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityLabel(sensitive ? "민감한 사진 표시 끄기" : "민감한 사진으로 표시")
+                                    .accessibilityIdentifier("noteCompose.sensitiveToggle")
+                                }
                             }
                         }
+                        .padding(.bottom, !parts.isEmpty || canAddPart ? 14 : 0)
                     }
+                    ForEach($parts) { $part in
+                        partRow($part, last: part.id == parts.last?.id)
+                    }
+                    if canAddPart { addPartRow }
                 }
                 .padding(Metrics.gutter)
                 .alert(discardTitle, isPresented: $confirmDiscard) {
@@ -1914,26 +1930,28 @@ struct NoteComposeSheet: View {
                 .accessibilityLabel(Text("언어"))
                 .accessibilityValue(Text(verbatim: NoteLanguages.name(language)))
                 .accessibilityIdentifier("noteCompose.language")
-                Button {
-                    pickingSchedule = true
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: scheduledAt == nil ? "clock" : "clock.fill")
-                        if let scheduledAt {
-                            Text(scheduledAt, format: .dateTime.month().day().hour().minute())
-                        } else {
-                            Text("예약")
+                if parts.isEmpty {
+                    Button {
+                        pickingSchedule = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: scheduledAt == nil ? "clock" : "clock.fill")
+                            if let scheduledAt {
+                                Text(scheduledAt, format: .dateTime.month().day().hour().minute())
+                            } else {
+                                Text("예약")
+                            }
                         }
+                        .typeScale(.meta)
+                        .foregroundStyle(scheduledAt == nil ? Palette.secondary : Palette.ink)
+                        .padding(.horizontal, 8)
+                        .frame(minHeight: 32)
+                        .contentShape(Rectangle())
                     }
-                    .typeScale(.meta)
-                    .foregroundStyle(scheduledAt == nil ? Palette.secondary : Palette.ink)
-                    .padding(.horizontal, 8)
-                    .frame(minHeight: 32)
-                    .contentShape(Rectangle())
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(scheduledAt == nil ? Text("예약") : Text("예약 시각 바꾸기"))
+                    .accessibilityIdentifier("noteCompose.schedule")
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(scheduledAt == nil ? Text("예약") : Text("예약 시각 바꾸기"))
-                .accessibilityIdentifier("noteCompose.schedule")
             }
             Spacer(minLength: 0)
             if length > 0 {
@@ -1946,6 +1964,90 @@ struct NoteComposeSheet: View {
         .frame(minHeight: 44)
         .background(Palette.readingBg)
         .overlay(alignment: .top) { Hairline() }
+    }
+
+    @ViewBuilder private func myAvatar(size: CGFloat) -> some View {
+        if let me = AuthStore.shared.me {
+            AvatarView(
+                author: Author(id: me.id ?? 0, username: me.username ?? "", bio: nil, avatarUrl: me.avatarUrl),
+                size: size)
+        }
+    }
+
+    /// 아바타 아래로 다음 노트까지 잇는 스레드 선 — 스레드 작성 화면과 같은 문법.
+    private func threadColumn(size: CGFloat, line: Bool) -> some View {
+        VStack(spacing: 4) {
+            myAvatar(size: size)
+            if line {
+                Capsule()
+                    .fill(Palette.hairlineStrong)
+                    .frame(width: 2)
+                    .frame(maxHeight: .infinity)
+            }
+        }
+        .frame(width: 36)
+    }
+
+    private func partRow(_ part: Binding<ThreadPart>, last: Bool) -> some View {
+        let count = NoteText.length(part.wrappedValue.text)
+        let id = part.wrappedValue.id
+        return HStack(alignment: .top, spacing: 12) {
+            threadColumn(size: 28, line: !last || canAddPart)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 8) {
+                    if let name = AuthStore.shared.me?.username {
+                        Text(name)
+                            .typeScale(.note)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Palette.ink)
+                    }
+                    Spacer(minLength: 0)
+                    if count > 0 {
+                        NoteLengthRing(length: count, limit: NoteAPI.maxLength)
+                    }
+                    Button {
+                        withAnimation(.snappy(duration: 0.2)) { parts.removeAll { $0.id == id } }
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Palette.secondary)
+                            .frame(width: 28, height: 28)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("이 노트 빼기")
+                }
+                TextField("이어서 써 보세요", text: part.text, axis: .vertical)
+                    .typeScale(.note)
+                    .lineLimit(1...20)
+                    .focused($focusedPart, equals: id)
+                    .accessibilityIdentifier("noteCompose.part")
+            }
+            .padding(.bottom, 14)
+        }
+        .transition(.opacity.combined(with: .move(edge: .top)))
+    }
+
+    private var addPartRow: some View {
+        Button {
+            let next = ThreadPart()
+            withAnimation(.snappy(duration: 0.2)) { parts.append(next) }
+            Task { @MainActor in focusedPart = next.id }
+        } label: {
+            HStack(spacing: 12) {
+                myAvatar(size: 20)
+                    .opacity(0.45)
+                    .frame(width: 36)
+                Text("스레드에 추가")
+                    .typeScale(.note)
+                    .foregroundStyle(Palette.faint)
+                Spacer(minLength: 0)
+            }
+            .frame(minHeight: 32)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("noteCompose.addPart")
     }
 
     private var pickedStrip: some View {
@@ -2134,8 +2236,17 @@ struct NoteComposeSheet: View {
                 dismiss()
                 return
             }
-            let note = try await NoteAPI.create(draft)
-            var created = note
+            let rest = parts.map(\.text).filter { NoteText.length($0) > 0 }
+            var created: Note
+            if rest.isEmpty {
+                created = try await NoteAPI.create(draft)
+            } else {
+                let thread = try await NoteAPI.createThread([draft] + rest.map {
+                    NoteDraft(body: NoteText.plain($0), images: [], quotedPostId: nil, inReplyToId: nil, language: language)
+                })
+                guard let first = thread.first else { throw URLError(.badServerResponse) }
+                created = first
+            }
             if created.linkPreview == nil, let linkCard, linkCard.url == cardUrl {
                 created.linkPreview = linkCard
             }
