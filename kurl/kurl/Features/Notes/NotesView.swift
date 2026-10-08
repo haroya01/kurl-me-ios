@@ -1263,6 +1263,8 @@ enum NoteText {
     private static let trailing = CharacterSet(charactersIn: ".,!?:;)]'\"")
     private static let tagSeparators = CharacterSet(charactersIn: "·・")
     private static let linkScheme = "kurl-note"
+    /// "#" 와 한글 태그 사이는 줄바꿈 자리라 "#" 만 줄 끝에 남는다 — 표시에만 넣고 보낼 땐 plain 으로 뺀다.
+    static let tagJoiner = "\u{2060}"
 
     static func attributed(_ body: String, mentions: [String] = []) -> AttributedString {
         let members = Set(mentions)
@@ -1272,6 +1274,7 @@ enum NoteText {
         for match in tokenPattern?.matches(in: body, range: NSRange(location: 0, length: ns.length)) ?? [] {
             let text: String
             let url: URL?
+            var consumed: Int?
             if match.range(at: 1).location != NSNotFound {
                 var link = ns.substring(with: match.range(at: 1))
                 while let scalar = link.unicodeScalars.last, trailing.contains(scalar) {
@@ -1281,8 +1284,9 @@ enum NoteText {
                 url = URL(string: link)
             } else if match.range(at: 2).location != NSNotFound {
                 guard let name = tagName(ns.substring(with: match.range(at: 2))) else { continue }
-                text = "#" + name
+                text = "#" + tagJoiner + name
                 url = link(.tag(name))
+                consumed = 1 + (name as NSString).length
             } else {
                 let handle = ns.substring(with: match.range(at: 3))
                 guard members.contains(handle.lowercased()) else { continue }
@@ -1295,10 +1299,14 @@ enum NoteText {
             var part = AttributedString(text)
             part.link = url
             result += part
-            last = match.range.location + (text as NSString).length
+            last = match.range.location + (consumed ?? (text as NSString).length)
         }
         if last < ns.length { result += AttributedString(ns.substring(from: last)) }
         return result
+    }
+
+    static func plain(_ text: String) -> String {
+        text.replacingOccurrences(of: tagJoiner, with: "")
     }
 
     static func tagName(_ raw: String) -> String? {
@@ -2074,7 +2082,7 @@ struct NoteComposeSheet: View {
             defer { posting = false }
             do {
                 onDone(try await NoteAPI.edit(
-                    id: note.id, body: text, contentWarning: warningText, sensitive: sensitive))
+                    id: note.id, body: NoteText.plain(text), contentWarning: warningText, sensitive: sensitive))
                 dismiss()
             } catch {
                 errorMessage = String(localized: "노트를 고치지 못했어요")
@@ -2106,7 +2114,7 @@ struct NoteComposeSheet: View {
                 images.append(NoteDraft.Image(key: key, altText: item.altText))
             }
             let draft = NoteDraft(
-                body: text, images: images, quotedPostId: quote?.id, inReplyToId: inReplyToId,
+                body: NoteText.plain(text), images: images, quotedPostId: quote?.id, inReplyToId: inReplyToId,
                 quotedNoteId: quotedNote?.id,
                 contentWarning: warningText.isEmpty ? nil : warningText, sensitive: sensitive,
                 visibility: visibility?.rawValue ?? (inReplyToId == nil ? "public" : nil),
