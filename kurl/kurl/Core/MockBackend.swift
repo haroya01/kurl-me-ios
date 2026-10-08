@@ -2094,6 +2094,23 @@ enum MockBackend {
             }
             return json(accountImports)
         }
+        if method == "GET", parts == ["users", "me", "mention-candidates"] {
+            let q = (query?.first(where: { $0.name == "q" })?.value ?? "").lowercased()
+            let people: [[String: Any]] = [
+                ["username": "yuki_dev", "displayName": "유키", "avatarUrl": NSNull(), "following": true],
+                ["username": "reader_kim", "displayName": "김독자", "avatarUrl": NSNull(), "following": true],
+                ["username": "haruka", "displayName": NSNull(), "avatarUrl": NSNull(), "following": false],
+                ["username": "minji", "displayName": "민지", "avatarUrl": NSNull(), "following": false],
+            ]
+            let found = people.filter { person in
+                guard !q.isEmpty else { return person["following"] as? Bool == true }
+                let name = (person["username"] as? String) ?? ""
+                let display = ((person["displayName"] as? String) ?? "").lowercased()
+                return name.hasPrefix(q) || display.hasPrefix(q)
+            }
+            return json(found)
+        }
+
         if parts.count >= 3, parts[0] == "users", parts[1] == "me", parts[2] == "suggestions" {
             if method == "DELETE", parts.count == 4 {
                 dismissedSuggestions.insert(parts[3])

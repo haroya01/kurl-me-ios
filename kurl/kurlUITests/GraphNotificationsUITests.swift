@@ -169,6 +169,29 @@ final class GraphNotificationsUITests: XCTestCase {
         shoot("reply-to-reply")
     }
 
+    func testTypingAnAtSignInACommentOffersPeopleAndFillsTheHandle() throws {
+        let app = launchInbox()
+        let comment = rowButton(app, contains: "댓글을 남겼어요")
+        XCTAssertTrue(comment.waitForExistence(timeout: 12), "인박스에 댓글 알림이 없음")
+        comment.tap()
+        let reply = app.buttons["comment.reply.506"]
+        XCTAssertTrue(reply.waitForExistence(timeout: 10), "댓글 답글 버튼이 없음")
+        for _ in 0..<4 where !reply.isHittable { app.swipeUp(velocity: .slow) }
+        reply.tap()
+        let input = app.descendants(matching: .any).matching(identifier: "comment.input").firstMatch
+        XCTAssertTrue(input.waitForExistence(timeout: 4), "댓글 입력칸이 없음")
+        input.typeText("@")
+        XCTAssertTrue(app.buttons["mention.yuki_dev"].waitForExistence(timeout: 4), "@만 쳤는데 팔로우한 사람이 안 뜸")
+        XCTAssertFalse(app.buttons["mention.haruka"].exists, "@만 쳤는데 팔로우하지 않은 사람이 뜸")
+        input.typeText("ha")
+        let haruka = app.buttons["mention.haruka"]
+        XCTAssertTrue(haruka.waitForExistence(timeout: 4), "글자를 쳐도 맞는 사람이 안 뜸")
+        shoot("comment-mention-suggestions")
+        haruka.tap()
+        XCTAssertEqual(input.value as? String, "@haruka ", "고른 사람의 @이름으로 바뀌지 않음")
+        XCTAssertFalse(app.buttons["mention.haruka"].exists, "이름을 넣은 뒤에도 후보가 남음")
+    }
+
     func testHighlightMentionOpensItsConversation() throws {
         let app = launchInbox()
         let mention = app.buttons

@@ -36953,6 +36953,34 @@
           }
         }
       }
+    },
+    "멘션할 사람": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "People to mention"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "उल्लेख करने के लिए लोग"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メンションする人"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Người để nhắc đến"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

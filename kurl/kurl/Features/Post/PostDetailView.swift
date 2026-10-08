@@ -2085,6 +2085,11 @@ struct GlassCommentBar: View {
                     .typeScale(.footnote)
                     .foregroundStyle(Palette.danger)
             }
+            if focused {
+                MentionSuggestionList(query: MentionDraft.trailingQuery(in: body_)) {
+                    body_ = MentionDraft.complete(body_, with: $0.username)
+                }
+            }
             // 한 줄일 때 입력칸이 보내기 버튼(34pt)보다 낮게 깔려 위에 빈 띠가 생기던 것 —
             // 가운데 정렬로 입력칸이 버튼과 나란히 올라와 키보드 바로 위에 딱 붙는다.
             HStack(alignment: .center, spacing: 10) {
