@@ -283,6 +283,7 @@ final class AuthStore {
         BookmarkStore.shared.reset()
         LikeStore.shared.reset()
         PostReadStore.shared.reset()
+        PostReadStore.notes.reset()
         PathResumeStore.shared.reset()
         BlockStore.shared.reset()
         OfflineStore.shared.removeAll()

@@ -1512,6 +1512,15 @@ struct NoteDetailView: View {
             if let thread {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
+                        if let trail = thread.series {
+                            // 시리즈 속 노트 — 글 상세와 같은 자리에서 "여정의 몇 번째"부터 세운다.
+                            AnyView(
+                                SeriesBanner(
+                                    nav: trail, username: thread.note.author.username,
+                                    currentId: "note-\(thread.note.id)")
+                                    .padding(.top, 12)
+                                    .padding(.bottom, 8))
+                        }
                         if let parent = thread.parent {
                             NoteRowView(
                                 note: parent, onChange: { _ in }, onDelete: { _ in }, threadLineBelow: true)
@@ -1531,6 +1540,11 @@ struct NoteDetailView: View {
                                 onDelete: { id in update { $0.continuation?.removeAll { $0.id == id } } },
                                 threadLineBelow: index < parts.count - 1,
                                 position: numbered ? "\(index + 2)/\(parts.count + 1)" : nil)
+                        }
+                        if let trail = thread.series {
+                            AnyView(
+                                SeriesNextCard(nav: trail, username: thread.note.author.username)
+                                    .padding(.bottom, 14))
                         }
                         Hairline().padding(.horizontal, -Metrics.noteGutter)
                         HStack(spacing: 6) {
@@ -1635,13 +1649,16 @@ struct NoteDetailView: View {
             note: thread.note, parent: thread.parent, replies: thread.replies, continuation: thread.continuation)
         change(&mutable)
         self.thread = NoteThread(
-            note: mutable.note, parent: mutable.parent, replies: mutable.replies, continuation: mutable.continuation)
+            note: mutable.note, parent: mutable.parent, replies: mutable.replies,
+            continuation: mutable.continuation, series: thread.series)
     }
 
     private func load() async {
         do {
-            thread = try await NoteAPI.thread(id: noteId)
+            let fresh = try await NoteAPI.thread(id: noteId)
+            thread = fresh
             failed = nil
+            if fresh.series != nil { PostReadStore.notes.markRead(noteId) }
         } catch {
             if thread == nil {
                 failed = (error as? APIError)?.localizedDescription ?? error.localizedDescription

@@ -41,7 +41,7 @@ final class QASeriesPullUITests: XCTestCase {
         shot(app, "02-ep2")
         // 배너 스텝퍼가 02/06 로
         XCTAssertTrue(app.staticTexts.matching(
-            NSPredicate(format: "label CONTAINS '02 / 06' OR label CONTAINS '2/6'")).firstMatch
+            NSPredicate(format: "label CONTAINS '02 / 07' OR label CONTAINS '2/7'")).firstMatch
             .waitForExistence(timeout: 4)
             || app.staticTexts.matching(NSPredicate(format: "label CONTAINS '02'")).firstMatch.exists,
             "회차 인디케이터가 2편으로 안 바뀜")

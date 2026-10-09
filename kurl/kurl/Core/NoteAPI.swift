@@ -550,6 +550,8 @@ struct NoteThread: Decodable {
     let replies: [Note]
     /// 작성자가 이 노트 아래로 이어 쓴 노트들(순서대로). replies 에는 남의 답글만 남는다.
     var continuation: [Note]? = nil
+    /// 이 노트가 든 시리즈와 그 안의 앞뒤 편(글·노트). 시리즈 밖이거나 옛 서버면 nil.
+    var series: SeriesTrail? = nil
 }
 
 struct NoteDraft: Encodable {

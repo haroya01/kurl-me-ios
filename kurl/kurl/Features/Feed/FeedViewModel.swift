@@ -50,6 +50,11 @@ final class FeedViewModel {
     /// 표면이라 실패는 조용히 흡수한다(피드를 막지 않게). id 를 이미 물어봤으면 다시 묻지 않는다.
     private(set) var belonging: [Int64: [CollectionSummary]] = [:]
     private var belongingAsked: Set<Int64> = []
+    /// 구독함에 걸린 구독 시리즈의 노트 — 서버 페이지가 글과 같은 시간순 스트림에서 잘라 준다.
+    private(set) var seriesNotes: [FeedSeriesNote] = []
+    /// 시리즈 노트의 자리 — 자기보다 오래된 첫 글 앞(글 id 키), 모든 글보다 오래됐으면 끝.
+    private(set) var notesBefore: [Int64: [FeedSeriesNote]] = [:]
+    private(set) var trailingNotes: [FeedSeriesNote] = []
 
     private var page = 0
     private var hasNext = true
@@ -89,9 +94,10 @@ final class FeedViewModel {
         cap: Int = chaseCap,
         isKept: (FeedItem) -> Bool = keepsCard,
         fetch: (Int) async throws -> PublicFeedView
-    ) async throws -> (kept: [FeedItem], page: Int, hasNext: Bool) {
+    ) async throws -> (kept: [FeedItem], notes: [FeedSeriesNote], page: Int, hasNext: Bool) {
         var seen = seen
         var kept: [FeedItem] = []
+        var notes: [FeedSeriesNote] = []
         var page = startPage
         var hops = 0
         while true {
@@ -101,9 +107,10 @@ final class FeedViewModel {
                 guard seen.insert(item.id).inserted, isKept(item) else { continue }
                 kept.append(item)
             }
+            notes += (view.seriesNotes ?? []).filter { !BlockStore.shared.isBlocked($0.author.username) }
             hops += 1
-            if !kept.isEmpty || !view.hasNext || hops >= cap {
-                return (kept, page, view.hasNext)
+            if !kept.isEmpty || !notes.isEmpty || !view.hasNext || hops >= cap {
+                return (kept, notes, page, view.hasNext)
             }
             page += 1
         }
@@ -122,6 +129,8 @@ final class FeedViewModel {
         connectionEvents = []
         belonging = [:]
         belongingAsked = []
+        seriesNotes = []
+        placeSeriesNotes()
         page = 0
         hasNext = true
         loadMoreFailed = false
@@ -142,6 +151,8 @@ final class FeedViewModel {
             loadMoreFailed = false
             withAnimation(.easeInOut(duration: 0.2)) {
                 items = head.kept
+                seriesNotes = head.notes
+                placeSeriesNotes()
                 phase = .loaded(items)
             }
             // 새로 들어온 피드는 소속을 다시 묻는다 — 이전 세대의 물어본 표식을 비우고 배치로 긁는다.
@@ -182,9 +193,18 @@ final class FeedViewModel {
     }
 
     func loadMoreIfNeeded(current item: FeedItem) async {
-        guard hasNext, !isLoadingMore else { return }
         // 마지막 카드에서만 발화하면 페이지 경계마다 스피너를 본다 — 태그 피드처럼 5개 선행.
         guard items.suffix(5).contains(where: { $0.id == item.id }) else { return }
+        await loadMore()
+    }
+
+    /// 끝에 붙은 시리즈 노트에서 — 글이 없는 페이지(노트만)도 다음 장을 부른다.
+    func loadMoreAfterTrailingNote() async {
+        await loadMore()
+    }
+
+    private func loadMore() async {
+        guard hasNext, !isLoadingMore else { return }
         isLoadingMore = true
         loadMoreFailed = false
         defer { isLoadingMore = false }
@@ -200,6 +220,8 @@ final class FeedViewModel {
             page = next.page
             hasNext = next.hasNext
             items.append(contentsOf: next.kept)
+            seriesNotes.append(contentsOf: next.notes)
+            placeSeriesNotes()
             phase = .loaded(items)
             // 다음 페이지 카드들의 소속도 곁에서 배치로 — 이미 물어본 id 는 method 안에서 걸러진다.
             loadBelonging(for: next.kept, epoch: myEpoch)
@@ -228,8 +250,7 @@ final class FeedViewModel {
 
     /// footer '다시 시도' — 아이템별 .task 는 1회성이라 실패 뒤 같은 화면에선 재발화가 없다.
     func retryLoadMore() async {
-        guard let last = items.last else { return }
-        await loadMoreIfNeeded(current: last)
+        await loadMore()
     }
 
     /// 차단 반영 — 글을 읽다 작가를 차단하고 피드로 돌아왔을 때, 재조회 없이 그 작가의 카드를
@@ -237,10 +258,30 @@ final class FeedViewModel {
     /// 차단분이 없으면 대입을 생략해 @Observable 헛 무효화를 피한다.
     func pruneBlocked() {
         let kept = items.filter { !BlockStore.shared.isBlocked($0.author.username) }
-        guard kept.count != items.count else { return }
+        let keptNotes = seriesNotes.filter { !BlockStore.shared.isBlocked($0.author.username) }
+        guard kept.count != items.count || keptNotes.count != seriesNotes.count else { return }
         withAnimation(.easeInOut(duration: 0.2)) {
             items = kept
+            seriesNotes = keptNotes
+            placeSeriesNotes()
             phase = .loaded(items)
         }
+    }
+
+    /// 서버는 글과 노트를 한 시간순 스트림으로 잘라 주므로, 노트는 자기보다 늦게 나온 첫 글 앞에 서면
+    /// 그 순서가 그대로 복원된다. 모든 글보다 오래된 노트는 끝에 — 다음 장의 글은 그보다 더 오래됐다.
+    private func placeSeriesNotes() {
+        var before: [Int64: [FeedSeriesNote]] = [:]
+        var trailing: [FeedSeriesNote] = []
+        for note in seriesNotes {
+            let at = note.createdAt ?? .distantPast
+            if let post = items.first(where: { ($0.publishedAt ?? .distantPast) < at }) {
+                before[post.id, default: []].append(note)
+            } else {
+                trailing.append(note)
+            }
+        }
+        notesBefore = before
+        trailingNotes = trailing
     }
 }

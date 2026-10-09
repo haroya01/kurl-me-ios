@@ -95,6 +95,9 @@ enum MockBackend {
     }
 
     private static var notes: [MockNote] = [
+        // 시리즈 "헥사고날 전환기"의 4편과 5편 사이에 든 노트 — 시리즈 배너·목차·구독함 카드 검증용.
+        MockNote(id: 9540, body: "4편을 쓰고 남은 메모. 어댑터를 갈아 끼우던 날, 실패한 테스트가 먼저 경계를 알려 줬다.",
+                 createdAt: Date().addingTimeInterval(-216_000), likeCount: 3, authorId: 1, username: "honggildong"),
         MockNote(id: 9530, body: "헥사고날로 옮긴 지 석 달. 남은 것 세 가지를 적어 둔다.",
                  createdAt: Date().addingTimeInterval(-500_000), likeCount: 2, authorId: 2, username: "yuki_dev"),
         MockNote(id: 9501, body: "오늘 헥사고날 포트 이름 짓는 데 한 시간 썼다. 이름이 곧 경계라는 걸 다시 배운다. #아키텍처",
@@ -775,7 +778,35 @@ enum MockBackend {
         ]
         nav["prev"] = i > 0 ? link(i - 1) : NSNull()
         nav["next"] = i < episodeTitles.count - 1 ? link(i + 1) : NSNull()
+        // 글·노트를 함께 센 자리 — 4편과 5편 사이에 노트(9540)가 한 편 든다.
+        let items = seriesItems
+        guard let at = items.firstIndex(where: { ($0["slug"] as? String) == slug }) else { return nav }
+        nav["itemPosition"] = at + 1
+        nav["itemTotal"] = items.count
+        nav["prevItem"] = at > 0 ? items[at - 1] : NSNull()
+        nav["nextItem"] = at < items.count - 1 ? items[at + 1] : NSNull()
         return nav
+    }
+
+    /// 시리즈의 글·노트 순서(이웃 링크 모양) — 글 내비·노트 내비가 같은 순서를 읽는다.
+    private static var seriesItems: [[String: Any]] {
+        var items: [[String: Any]] = episodeTitles.enumerated().map { i, title in
+            ["type": "POST", "slug": "ep-\(i + 1)", "noteId": NSNull(), "title": title]
+        }
+        items.insert(["type": "NOTE", "slug": NSNull(), "noteId": 9540, "title": seriesNoteExcerpt], at: 4)
+        return items
+    }
+
+    private static let seriesNoteExcerpt = "4편을 쓰고 남은 메모. 어댑터를 갈아 끼우던 날, 실패한 테스트가 먼저 경계를 알려 줬다."
+
+    /// 노트 상세의 시리즈 자리(9540 만).
+    private static func noteSeriesTrail(_ noteId: Int64) -> Any {
+        guard noteId == 9540 else { return NSNull() }
+        let items = seriesItems
+        return [
+            "slug": "hexagonal", "title": "헥사고날 전환기", "position": 5, "total": items.count,
+            "prev": items[3], "next": items[5],
+        ] as [String: Any]
     }
 
     /// 회차 본문 — 화면보다 길어야 스크롤·오버스크롤 당김이 성립한다(문단 여럿).
@@ -1357,6 +1388,7 @@ enum MockBackend {
                 "replies": allNotes().filter { $0.inReplyToId == nid && !partIds.contains($0.id) }
                     .sorted { $0.createdAt < $1.createdAt }.map(noteView),
                 "continuation": parts.map(noteView),
+                "series": noteSeriesTrail(nid),
             ])
         }
         if method == "POST", parts == ["notes", "images", "presign"] {
@@ -1888,9 +1920,21 @@ enum MockBackend {
                     // 수정 후 재로드가 새 제목·주소를 반영하게 override 를 우선 읽는다(없으면 기본값).
                     "id": 7, "slug": seriesTitles[7]?.0 ?? parts[4],
                     "title": seriesTitles[7]?.1 ?? "헥사고날 전환기",
-                    "postCount": titles.count, "tags": ["아키텍처"],
+                    "postCount": titles.count, "itemCount": titles.count + 1, "tags": ["아키텍처"],
                 ],
                 "posts": posts,
+                "items": {
+                    var items: [[String: Any]] = posts.map { ["type": "POST", "post": $0, "note": NSNull()] }
+                    items.insert([
+                        "type": "NOTE", "post": NSNull(),
+                        "note": [
+                            "id": 9540, "body": seriesNoteExcerpt, "contentWarning": NSNull(),
+                            "excerpt": seriesNoteExcerpt,
+                            "createdAt": iso(Date().addingTimeInterval(-2.5 * 86_400)),
+                        ] as [String: Any],
+                    ], at: 4)
+                    return items
+                }(),
             ])
         }
 
@@ -1900,7 +1944,7 @@ enum MockBackend {
                 [
                     "id": 1,
                     "author": ["id": 1, "username": "honggildong", "bio": NSNull(), "avatarUrl": NSNull()],
-                    "slug": "hexagonal", "title": "헥사고날 전환기", "postCount": 6,
+                    "slug": "hexagonal", "title": "헥사고날 전환기", "postCount": 6, "itemCount": 7,
                     "lastPublishedAt": iso(Date().addingTimeInterval(-86_400)),
                     "posts": [
                         // 앞장은 사진 커버(사진 변형), 뒷장은 무이미지(종이 변형) — 둘 다 확인용.
@@ -1929,6 +1973,19 @@ enum MockBackend {
                         ],
                         ["slug": "e2", "title": "탭바와 몰입", "ogImageUrl": NSNull()],
                     ],
+                    "itemCount": 4,
+                    "items": [
+                        [
+                            "type": "POST", "slug": "e1", "noteId": NSNull(), "title": "리퀴드 글래스, 종이 본문",
+                            "ogImageUrl": "https://picsum.photos/seed/glass2/900/1100",
+                        ],
+                        [
+                            "type": "NOTE", "slug": NSNull(), "noteId": 9540,
+                            "title": "글래스는 크롬에만, 본문은 종이에. 이 한 줄로 디자인 회의가 끝났다.",
+                            "ogImageUrl": NSNull(),
+                        ],
+                        ["type": "POST", "slug": "e2", "noteId": NSNull(), "title": "탭바와 몰입", "ogImageUrl": NSNull()],
+                    ],
                 ],
             ])
         }
@@ -1954,7 +2011,7 @@ enum MockBackend {
         if method == "GET", parts == ["users", "me", "subscribed-series"] {
             return json([[
                 "id": 1, "author": ["id": 1, "username": "honggildong", "bio": NSNull(), "avatarUrl": NSNull()],
-                "slug": "hexagonal", "title": "헥사고날 전환기", "postCount": 6,
+                "slug": "hexagonal", "title": "헥사고날 전환기", "postCount": 6, "itemCount": 7,
                 "lastPublishedAt": iso(Date().addingTimeInterval(-86_400)),
                 "posts": [["slug": "p-mock-2", "title": "발행된 목 글"]],
             ]])
@@ -1963,7 +2020,17 @@ enum MockBackend {
         if method == "GET", parts == ["feed", "following"] {
             // `--empty-feeds` = 빈 구독함/추천 안내 화면 스크린샷 검증용.
             let items = emptyFeeds ? [] : [feedItem(id: 9002, title: "발행된 목 글", slug: "p-mock-2")]
-            return json(["items": items, "page": 0, "size": 20, "hasNext": false])
+            // 구독한 시리즈에 들어온 노트 — 글보다 늦게 나와 글 앞에 선다.
+            let seriesNotes: [[String: Any]] = emptyFeeds ? [] : [[
+                "id": 9540,
+                "author": ["id": 1, "username": "honggildong", "bio": NSNull(), "avatarUrl": NSNull()],
+                "body": seriesNoteExcerpt, "contentWarning": NSNull(), "excerpt": seriesNoteExcerpt,
+                "createdAt": iso(Date().addingTimeInterval(-3_000)),
+                "series": ["id": 7, "slug": "hexagonal", "title": "헥사고날 전환기"],
+            ]]
+            return json([
+                "items": items, "page": 0, "size": 20, "hasNext": false, "seriesNotes": seriesNotes,
+            ])
         }
 
         if method == "GET", parts == ["feed", "for-you"] {
