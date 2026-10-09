@@ -212,8 +212,8 @@ struct FeedPage: View {
         .loginPrompt(
             isPresented: $showLoginSheet,
             message: source == .forYou
-                ? "읽을수록 정확해지는 추천 받기"
-                : "팔로우한 작가의 새 글 모아 보기")
+                ? "추천을 받으려면 로그인하세요"
+                : "구독함을 보려면 로그인하세요")
     }
 
     // 발견(browse) 면 = 1열 카드 그리드(#707 웹과 동일 문법). 구독함도 같은 카드 —

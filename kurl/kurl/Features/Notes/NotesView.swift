@@ -276,6 +276,7 @@ struct NoteRowView: View {
     @State private var confirmDelete = false
     @State private var connecting = false
     @State private var showLoginSheet = false
+    @State private var loginMessage: LocalizedStringKey = "좋아요를 누르려면 로그인하세요"
     @State private var revealed = false
     @State private var mediaRevealed = false
     @State private var showingHistory = false
@@ -447,7 +448,7 @@ struct NoteRowView: View {
         } message: {
             Text("다른 서버로 퍼진 사본에도 지우라는 요청을 보내요.")
         }
-        .loginPrompt(isPresented: $showLoginSheet, message: "노트에 좋아요 남기기")
+        .loginPrompt(isPresented: $showLoginSheet, message: loginMessage)
         .onChange(of: note) { _, next in
             liked = next.likedByMe == true
             likeCount = next.likeCount
@@ -892,7 +893,7 @@ struct NoteRowView: View {
             }
             if note.noteVisibility.shareable {
                 Button {
-                    if AuthStore.shared.isSignedIn { writingPost = true } else { showLoginSheet = true }
+                    if AuthStore.shared.isSignedIn { writingPost = true } else { askLogin("블로그 글로 인용하려면 로그인하세요") }
                 } label: {
                     Label("블로그 글로 인용", systemImage: "square.and.pencil")
                 }
@@ -935,7 +936,7 @@ struct NoteRowView: View {
                     systemImage: "arrow.2.squarepath")
             }
             Button {
-                if AuthStore.shared.isSignedIn { quoting = true } else { showLoginSheet = true }
+                if AuthStore.shared.isSignedIn { quoting = true } else { askLogin("인용하려면 로그인하세요") }
             } label: {
                 Label("인용", systemImage: "quote.opening")
             }
@@ -962,7 +963,7 @@ struct NoteRowView: View {
 
     private func toggleRepost() async {
         guard AuthStore.shared.isSignedIn else {
-            showLoginSheet = true
+            askLogin("리포스트하려면 로그인하세요")
             return
         }
         let target = !reposted
@@ -998,7 +999,7 @@ struct NoteRowView: View {
 
     private func toggleBookmark() async {
         guard AuthStore.shared.isSignedIn else {
-            showLoginSheet = true
+            askLogin("북마크하려면 로그인하세요")
             return
         }
         let target = !bookmarked
@@ -1026,9 +1027,14 @@ struct NoteRowView: View {
         }
     }
 
+    private func askLogin(_ message: LocalizedStringKey) {
+        loginMessage = message
+        showLoginSheet = true
+    }
+
     private func toggleLike() async {
         guard AuthStore.shared.isSignedIn else {
-            showLoginSheet = true
+            askLogin("좋아요를 누르려면 로그인하세요")
             return
         }
         let target = !liked
@@ -1667,7 +1673,7 @@ struct NoteDetailView: View {
             }
         }
         .sensoryFeedback(.success, trigger: replied)
-        .loginPrompt(isPresented: $showLoginSheet, message: "답글 남기기")
+        .loginPrompt(isPresented: $showLoginSheet, message: "답글을 달려면 로그인하세요")
         .task { if thread == nil { await load() } }
     }
 
