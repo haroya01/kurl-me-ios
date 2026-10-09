@@ -32,6 +32,10 @@ enum MockBackend {
         var scheduledAt: Date?
     }
 
+    /// `--published-body-image` — 발행 목 글 본문에 커버 없는 사진 한 줄(글 정보 시트의 "본문 첫 이미지를 커버로" 제안 검증용).
+    private static let publishedBodyImage =
+        ProcessInfo.processInfo.arguments.contains("--published-body-image") ? "\n\n![](\(mockUploadedImageURL))" : ""
+
     private static var posts: [MockPost] = [
         MockPost(id: 9001, slug: "p-mock-1", title: "목 초안 — 헥사고날 정리", status: "DRAFT",
                  markdown: "# 헥사고날\n\n포트와 어댑터.", publishedAt: nil, updatedAt: Date(),
@@ -63,7 +67,7 @@ enum MockBackend {
                  publishedAt: nil, updatedAt: Date(),
                  tags: ["개발"], excerpt: "블록 종류가 두루 든 미리보기 데모."),
         MockPost(id: 9002, slug: "p-mock-2", title: "발행된 목 글", status: "PUBLISHED",
-                 markdown: "# 발행됨\n\n본문.", publishedAt: Date().addingTimeInterval(-86_400), updatedAt: Date(),
+                 markdown: "# 발행됨\n\n본문." + publishedBodyImage, publishedAt: Date().addingTimeInterval(-86_400), updatedAt: Date(),
                  tags: ["회고", "iOS"], excerpt: "한 달간의 작업을 정리했다."),
     ]
     private struct MockNote {

@@ -126,7 +126,7 @@ struct ComposeView: View {
 
     // 커버
     @State private var coverUrl: String?
-    /// 라이브 글에 처음 넣은 본문 사진으로 정한 기본 커버 — 명시 저장 때 서버에 반영한다.
+    /// 라이브 글에서 정한 커버(본문 첫 사진·직접 고른 사진·제안) — 명시 저장 때 서버에 반영한다.
     @State private var pendingCover: PendingCover?
     @State private var coverItem: PhotosPickerItem?
     @State private var uploadingCover = false
@@ -621,7 +621,7 @@ struct ComposeView: View {
             if busy {
                 ProgressView().controlSize(.small)
             } else if lastSavedAt != nil || saveStatusVisible {
-                let dirty = signature != lastSavedSignature
+                let dirty = hasUnsavedChanges
                 Button {
                     showSaveStatus = true
                 } label: {
@@ -1096,9 +1096,13 @@ struct ComposeView: View {
         return (markdown as NSString).substring(with: m.range(at: 1))
     }
 
-    /// 제안 커버 적용 — 카드는 즉시 바뀌고, 서버 반영은 뒤에서(초안이 없으면 만든다).
+    /// 제안 커버 적용 — 카드는 즉시 바뀌고, 서버 반영은 뒤에서(초안이 없으면 만든다). 라이브 글은 저장 때.
     private func applySuggestedCover(_ url: String) {
         coverUrl = url
+        guard allowsAutosave else {
+            pendingCover = PendingCover(url: url, key: nil, fromBodyImage: false)
+            return
+        }
         Task {
             guard let id = try? await ensurePost() else { return }
             try? await WriteAPI.updateCover(postId: id, url: url, key: nil)
@@ -1329,8 +1333,10 @@ struct ComposeView: View {
 
     /// 저장 상태 표시를 띄울 조건 — 저장 이력이 있거나, 실패했거나, 저장할 미저장 변경이 있을 때.
     private var saveStatusVisible: Bool {
-        lastSavedAt != nil || autosaveFailed || (hasLocalContent && signature != lastSavedSignature)
+        lastSavedAt != nil || autosaveFailed || (hasLocalContent && hasUnsavedChanges)
     }
+
+    private var hasUnsavedChanges: Bool { signature != lastSavedSignature || pendingCover != nil }
 
     /// 인증이 아닌 저장 실패가 거듭되는가(서버 5xx·네트워크 단절) — 자동 재시도만 조용히 도는 대신
     /// 지금 다시 시도할 손잡이를 줄 근거. 첫 실패는 일시적일 수 있어 두 번째부터 격상한다.
@@ -1341,7 +1347,7 @@ struct ComposeView: View {
     private var saveStatusIcon: String {
         if autosavePersistentFailure { return "exclamationmark.triangle" }
         if autosaveFailed { return "exclamationmark.icloud" }
-        if signature != lastSavedSignature { return !allowsAutosave || !canSave ? "iphone" : "circle.dotted" }
+        if hasUnsavedChanges { return !allowsAutosave || !canSave ? "iphone" : "circle.dotted" }
         return "checkmark.circle"
     }
 
@@ -1350,7 +1356,7 @@ struct ComposeView: View {
     private var saveStatusLabel: String? {
         if autosaveNeedsLogin { return String(localized: "로그인 필요") }
         if autosaveFailed { return String(localized: "저장 실패") }
-        if signature != lastSavedSignature {
+        if hasUnsavedChanges {
             if !allowsAutosave { return String(localized: "저장 필요") }
             if !canSave {
                 return locallySavedBodySignature == bodyRecoverySignature
@@ -1381,7 +1387,9 @@ struct ComposeView: View {
         if autosavePersistentFailure { return String(localized: "계속 저장하지 못하고 있어요 — 지금 다시 시도해 보세요") }
         if autosaveFailed { return String(localized: "저장하지 못했어요 — 자동으로 다시 시도해요") }
         if dirty, !allowsAutosave {
-            return String(localized: "수정한 본문은 이 기기에 보관해요. 저장을 누르면 글에 반영돼요.")
+            return signature == lastSavedSignature
+                ? String(localized: "바꾼 커버는 저장을 누르면 글에 반영돼요.")
+                : String(localized: "수정한 본문은 이 기기에 보관해요. 저장을 누르면 글에 반영돼요.")
         }
         if dirty, !canSave {
             return String(localized: "제목과 본문을 채우면 다른 기기에서도 이어 쓸 수 있어요. 지금 쓰는 내용은 이 기기에 보관해요.")
@@ -1536,7 +1544,7 @@ struct ComposeView: View {
                 tagDraft = ""
             }
         }
-        guard publish || signature != lastSavedSignature else { return }
+        guard publish || hasUnsavedChanges else { return }
         busy = true
         defer { busy = false }
         // 비행 중 타이핑이 "저장된 셈" 되지 않게 — 전송 시점 스냅샷을 기록한다.
@@ -1568,9 +1576,11 @@ struct ComposeView: View {
             }
             if let cover = pendingCover {
                 try await WriteAPI.updateCover(postId: id, url: cover.url, key: cover.key)
-                pendingCover = nil
-                ToastCenter.shared.show(
-                    String(localized: "첫 이미지를 커버로 설정했어요 — 발행 시트에서 바꿀 수 있어요"))
+                if pendingCover == cover { pendingCover = nil }
+                if cover.fromBodyImage {
+                    ToastCenter.shared.show(
+                        String(localized: "첫 이미지를 커버로 설정했어요 — 발행 시트에서 바꿀 수 있어요"))
+                }
             }
             if publish {
                 let published = try await WriteAPI.publish(postId: id)
@@ -1711,9 +1721,13 @@ struct ComposeView: View {
                       let jpeg = await Self.encodeUploadJPEG(from: data)
                 else { return }
                 let uploaded = try await WriteAPI.uploadImage(postId: id, jpegData: jpeg)
+                guard allowsAutosave else {
+                    coverUrl = uploaded.url
+                    pendingCover = PendingCover(url: uploaded.url, key: uploaded.key, fromBodyImage: false)
+                    return
+                }
                 try await WriteAPI.updateCover(postId: id, url: uploaded.url, key: uploaded.key)
                 coverUrl = uploaded.url
-                pendingCover = nil
                 // 커버만 올린 것 — 본문 저장 표시(lastSavedAt)는 건드리지 않는다(거짓 "저장됨" 방지).
                 onSaved()
             } catch {
@@ -1936,7 +1950,7 @@ struct ComposeView: View {
         guard coverUrl == nil, let postId, let key else { return }
         coverUrl = url
         guard allowsAutosave else {
-            pendingCover = PendingCover(url: url, key: key)
+            pendingCover = PendingCover(url: url, key: key, fromBodyImage: true)
             return
         }
         Task {
@@ -2778,7 +2792,8 @@ private struct RevisionsSheet: View {
 
 private struct PendingCover: Equatable {
     let url: String
-    let key: String
+    let key: String?
+    let fromBodyImage: Bool
 }
 
 /// 한도의 90%부터만 보이는 글자 수(서버와 같은 UTF-16 기준).

@@ -2,8 +2,9 @@
 //  ComposeLiveCoverUITests.swift
 //  kurlUITests
 //
-//  라이브(발행) 글 편집 중 본문에 첫 사진을 넣어도 '저장' 전에는 독자 앞 커버가 바뀌지 않고,
-//  저장할 때 그 사진이 커버가 된다(라이브 글 명시 저장 원칙). 사진은 클립보드 붙여넣기로 넣는다.
+//  라이브(발행) 글 편집 중 본문에 첫 사진을 넣거나 글 정보 시트에서 커버를 정해도 '저장' 전에는 독자 앞
+//  커버가 바뀌지 않고, 저장할 때 반영된다(라이브 글 명시 저장 원칙). 본문 사진은 클립보드 붙여넣기로,
+//  시트 경로는 "본문 첫 이미지를 커버로" 제안으로 넣는다(사진 선택기는 프로세스 밖이라 UI 테스트 밖).
 //
 
 import XCTest
@@ -21,6 +22,24 @@ final class ComposeLiveCoverUITests: XCTestCase {
 
     override func setUpWithError() throws {
         continueAfterFailure = false
+    }
+
+    private func launchWithBodyImage() -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "--mocks", "--tab", "write", "--editor", "legacy", "--reset-recovery", "--published-body-image",
+        ]
+        app.launch()
+        return app
+    }
+
+    private func applySuggestedCoverInInfoSheet(_ app: XCUIApplication) {
+        openInfoSheet(app)
+        let suggest = app.buttons.matching(NSPredicate(format: "label CONTAINS '본문 첫 이미지를 커버로'")).firstMatch
+        XCTAssertTrue(suggest.waitForExistence(timeout: 5), "본문 사진이 있는데 커버 제안이 없음")
+        suggest.tap()
+        XCTAssertTrue(app.staticTexts["변경"].waitForExistence(timeout: 5), "제안을 눌러도 카드 커버가 안 바뀜")
+        app.buttons["닫기"].tap()
     }
 
     private func launch() -> XCUIApplication {
@@ -97,6 +116,37 @@ final class ComposeLiveCoverUITests: XCTestCase {
         XCTAssertTrue(
             app.staticTexts["커버 이미지 추가"].waitForExistence(timeout: 5), "저장하지 않았는데 라이브 글 커버가 바뀜")
         shot("live-cover-unchanged-before-save")
+    }
+
+    func testSuggestedCoverInInfoSheetDoesNotChangeLiveCoverBeforeSave() throws {
+        let app = launchWithBodyImage()
+        openPublishedPost(app)
+        applySuggestedCoverInInfoSheet(app)
+
+        app.navigationBars.buttons.firstMatch.tap()
+        openPublishedPost(app)
+        let recovery = app.alerts["저장되지 못한 본문이 있어요"]
+        if recovery.waitForExistence(timeout: 4) { recovery.buttons["버리기"].tap() }
+        openInfoSheet(app)
+        XCTAssertTrue(
+            app.staticTexts["커버 이미지 추가"].waitForExistence(timeout: 5), "저장하지 않았는데 라이브 글 커버가 바뀜")
+        shot("suggested-cover-unchanged-before-save")
+    }
+
+    func testSuggestedCoverInInfoSheetBecomesLiveCoverOnSave() throws {
+        let app = launchWithBodyImage()
+        openPublishedPost(app)
+        applySuggestedCoverInInfoSheet(app)
+
+        XCTAssertTrue(app.staticTexts["저장 필요"].waitForExistence(timeout: 5), "커버만 바꿔도 저장할 변경으로 안 보임")
+        app.buttons["저장"].tap()
+        XCTAssertTrue(app.staticTexts["저장됨"].waitForExistence(timeout: 10), "커버만 바꾼 저장이 돌지 않음")
+
+        app.navigationBars.buttons.firstMatch.tap()
+        openPublishedPost(app)
+        openInfoSheet(app)
+        XCTAssertTrue(app.staticTexts["변경"].waitForExistence(timeout: 5), "저장 뒤 다시 열어도 커버가 없음")
+        shot("suggested-cover-after-save")
     }
 
     func testBodyImageBecomesLiveCoverOnSave() throws {
