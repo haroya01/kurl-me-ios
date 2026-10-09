@@ -72,7 +72,7 @@ struct NotesTabView: View {
                 notesPosted += 1
             }
         }
-        .loginPrompt(isPresented: $showLoginSheet, message: "로그인하고 노트 쓰기")
+        .loginPrompt(isPresented: $showLoginSheet, message: "노트를 쓰려면 로그인하세요")
         .sensoryFeedback(.success, trigger: notesPosted)
         .overlay(alignment: .bottomTrailing) { composeButton }
     }

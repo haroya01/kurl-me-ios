@@ -36,7 +36,7 @@ struct ConnectionEventCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 14)
-        .loginPrompt(isPresented: $showLoginPrompt, message: "큐레이터가 엮은 컬렉션 이어 보기")
+        .loginPrompt(isPresented: $showLoginPrompt, message: "컬렉션을 열려면 로그인하세요")
     }
 
     @ViewBuilder

@@ -182,7 +182,7 @@ struct RootView: View {
             // 로그인 시트는 인게이지 탭으로만 떠 simctl 로 못 띄운다 — 검증 진입로.
             Color(uiColor: .systemBackground).ignoresSafeArea()
                 .sheet(isPresented: .constant(true)) {
-                    LoginSheet(message: "좋아한 글은 내 라이브러리에 쌓여요")
+                    LoginSheet(message: "좋아요를 누르려면 로그인하세요")
                 }
         } else if Config.launchValue(after: "--screen") == "webintro" {
             // 로그인 직후 1회 시트는 로그인 전환으로만 떠 simctl 로 못 띄운다 — 검증 진입로.

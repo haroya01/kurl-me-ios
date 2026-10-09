@@ -59,7 +59,7 @@ struct NotePollView: View {
             footer
         }
         .sensoryFeedback(.success, trigger: votedTick)
-        .loginPrompt(isPresented: $showLogin, message: "투표에 참여하기")
+        .loginPrompt(isPresented: $showLogin, message: "투표하려면 로그인하세요")
         .onChange(of: showsResults) { _, shows in
             guard shows else {
                 filled = false

@@ -6162,6 +6162,34 @@
         }
       }
     },
+    "구독함을 보려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to see your Inbox"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इनबॉक्स देखने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "受信箱を見るにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để xem Hộp thư"
+          }
+        }
+      }
+    },
     "구독함이 비어 있어요": {
       "localizations": {
         "en": {
@@ -8224,34 +8252,6 @@
         }
       }
     },
-    "내 알림 받기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Get my notifications"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "मेरी सूचनाएँ पाएँ"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自分の通知を受け取る"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nhận thông báo của tôi"
-          }
-        }
-      }
-    },
     "내 알림을 받으려면": {
       "localizations": {
         "en": {
@@ -9064,6 +9064,62 @@
         }
       }
     },
+    "노트를 보려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to see these notes"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नोट्स देखने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートを見るにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để xem ghi chú"
+          }
+        }
+      }
+    },
+    "노트를 쓰려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to write a note"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नोट लिखने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートを書くにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để viết ghi chú"
+          }
+        }
+      }
+    },
     "노트를 쓸 때 아래의 \"예약\"으로 올릴 시각을 정할 수 있어요.": {
       "localizations": {
         "en": {
@@ -9708,6 +9764,34 @@
         }
       }
     },
+    "답글을 달려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to reply"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जवाब देने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返信するにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để trả lời"
+          }
+        }
+      }
+    },
     "대화 알림 끄기": {
       "localizations": {
         "en": {
@@ -9788,6 +9872,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Không thể đổi thông báo cuộc trò chuyện"
+          }
+        }
+      }
+    },
+    "댓글을 달려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to comment"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "टिप्पणी करने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コメントするにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để bình luận"
           }
         }
       }
@@ -9900,62 +10012,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Thẻ thịnh hành"
-          }
-        }
-      }
-    },
-    "로그인하고 노트 보기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign in to see notes"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "नोट देखने के लिए साइन इन करें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ログインしてノートを見る"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Đăng nhập để xem ghi chú"
-          }
-        }
-      }
-    },
-    "로그인하고 팔로잉 피드 보기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign in to see your following feed"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "फ़ॉलोइंग फ़ीड देखने के लिए साइन इन करें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ログインしてフォロー中のフィードを見る"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Đăng nhập để xem bảng tin đang theo dõi"
           }
         }
       }
@@ -10572,6 +10628,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bỏ đăng lại"
+          }
+        }
+      }
+    },
+    "리포스트하려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to repost"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रीपोस्ट करने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リポストするにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để đăng lại"
           }
         }
       }
@@ -11640,6 +11724,34 @@
         }
       }
     },
+    "북마크하려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to bookmark"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बुकमार्क करने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブックマークするにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để đánh dấu"
+          }
+        }
+      }
+    },
     "북마크한 노트": {
       "localizations": {
         "en": {
@@ -11720,6 +11832,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Trích dẫn trong bài blog"
+          }
+        }
+      }
+    },
+    "블로그 글로 인용하려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to quote in a blog post"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ब्लॉग पोस्ट में उद्धृत करने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブログ記事で引用するにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để trích dẫn trong bài blog"
           }
         }
       }
@@ -12788,6 +12928,34 @@
         }
       }
     },
+    "알림을 보려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to see notifications"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सूचनाएँ देखने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通知を見るにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để xem thông báo"
+          }
+        }
+      }
+    },
     "앞의 가져오기가 끝나면 다시 해 주세요": {
       "localizations": {
         "en": {
@@ -13796,6 +13964,34 @@
         }
       }
     },
+    "이 시리즈를 구독하려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to subscribe to this series"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस सीरीज़ को सब्सक्राइब करने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このシリーズを購読するにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để đăng ký series này"
+          }
+        }
+      }
+    },
     "이 작가가 리포스트한 노트가 여기에 모여요.": {
       "localizations": {
         "en": {
@@ -13876,34 +14072,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ai cũng có thể xem"
-          }
-        }
-      }
-    },
-    "로그인하고 노트 쓰기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign in to write a note"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "नोट लिखने के लिए साइन इन करें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ログインしてノートを書く"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Đăng nhập để viết ghi chú"
           }
         }
       }
@@ -14156,34 +14324,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Không đăng được ghi chú"
-          }
-        }
-      }
-    },
-    "노트에 좋아요 남기기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Like this note"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "इस नोट को पसंद करें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ノートにいいねする"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Thích ghi chú này"
           }
         }
       }
@@ -15078,34 +15218,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld phản hồi"
-          }
-        }
-      }
-    },
-    "답글 남기기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Write a reply"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "जवाब लिखें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "返信する"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Viết trả lời"
           }
         }
       }
@@ -18146,6 +18258,62 @@
         }
       }
     },
+    "이 태그를 구독하려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to subscribe to this tag"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस टैग को सब्सक्राइब करने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このタグを購読するにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để đăng ký thẻ này"
+          }
+        }
+      }
+    },
+    "이 태그를 숨기려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to hide this tag"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस टैग को छिपाने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このタグを非表示にするにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để ẩn thẻ này"
+          }
+        }
+      }
+    },
     "이 필터를 지울까요?": {
       "localizations": {
         "en": {
@@ -18450,6 +18618,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đã đăng trích dẫn"
+          }
+        }
+      }
+    },
+    "인용하려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to quote"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "उद्धृत करने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "引用するにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để trích dẫn"
           }
         }
       }
@@ -18818,6 +19014,34 @@
         }
       }
     },
+    "좋아요를 누르려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to like"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पसंद करने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "いいねするにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để thích"
+          }
+        }
+      }
+    },
     "주고받기를 모두 끊고, 그 서버 노트를 어디서도 보이지 않게 해요.": {
       "localizations": {
         "en": {
@@ -19154,6 +19378,34 @@
         }
       }
     },
+    "추천을 받으려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to get recommendations"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सुझाव पाने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "おすすめを受け取るにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để nhận gợi ý"
+          }
+        }
+      }
+    },
     "추천을 지우지 못했어요": {
       "localizations": {
         "en": {
@@ -19178,6 +19430,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Không thể xoá gợi ý"
+          }
+        }
+      }
+    },
+    "컬렉션에 연결하려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to connect to a collection"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "संग्रह से जोड़ने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コレクションにつなぐにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để kết nối vào bộ sưu tập"
           }
         }
       }
@@ -19434,30 +19714,30 @@
         }
       }
     },
-    "투표에 참여하기": {
+    "투표하려면 로그인하세요": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vote in polls"
+            "value": "Sign in to vote"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "पोल में वोट करें"
+            "value": "वोट करने के लिए साइन इन करें"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "投票に参加する"
+            "value": "投票するにはログインしてください"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tham gia bình chọn"
+            "value": "Đăng nhập để bình chọn"
           }
         }
       }
@@ -19826,6 +20106,34 @@
         }
       }
     },
+    "팔로우하려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to follow"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ॉलो करने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォローするにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để theo dõi"
+          }
+        }
+      }
+    },
     "팔로우하면 이 계정이 쓰는 새 노트가 여기와 팔로잉 피드에 와요.": {
       "localizations": {
         "en": {
@@ -20018,6 +20326,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chỉ người theo dõi và thành viên được nhắc đến mới xem được"
+          }
+        }
+      }
+    },
+    "팔로잉 피드를 보려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to see your Following feed"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ॉलोइंग फ़ीड देखने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォロー中のフィードを見るにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để xem bảng tin Đang theo dõi"
           }
         }
       }
@@ -23253,34 +23589,6 @@
         }
       }
     },
-    "시리즈 새 글을 놓치지 않게": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "So you don't miss new posts in this series"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ताकि आप इस सीरीज़ की नई पोस्ट न चूकें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "シリーズの新着を見逃さないように"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Để không bỏ lỡ bài mới trong series này"
-          }
-        }
-      }
-    },
     "시리즈 수정": {
       "localizations": {
         "en": {
@@ -25871,34 +26179,6 @@
         }
       }
     },
-    "이 글에 생각을 남겨보세요": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Leave your thoughts on this post"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "इस पोस्ट पर अपने विचार लिखें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "この記事に感想を残しましょう"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Để lại suy nghĩ của bạn về bài viết này"
-          }
-        }
-      }
-    },
     "이 글을": {
       "localizations": {
         "en": {
@@ -26515,34 +26795,6 @@
         }
       }
     },
-    "이 작가의 새 글을 피드에서 받기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Get this writer's new posts in your feed"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "इस लेखक की नई पोस्ट अपने फ़ीड में पाएँ"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "この書き手の新着をフィードで受け取る"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nhận bài mới của tác giả này trong nguồn cấp của bạn"
-          }
-        }
-      }
-    },
     "이 작가의 첫 글이 올라오면 여기에서 만나요.": {
       "localizations": {
         "en": {
@@ -26595,34 +26847,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Xóa bộ sưu tập này?"
-          }
-        }
-      }
-    },
-    "이 큐레이터가 엮는 길을 따라 읽기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Follow the paths this curator connects"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "इस क्यूरेटर के जोड़े हुए रास्तों को फ़ॉलो करें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "このキュレーターがつなぐ道を追って読む"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Theo dõi những lối đi mà người tuyển chọn này kết nối"
           }
         }
       }
@@ -26707,34 +26931,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chưa có bài nào với thẻ này."
-          }
-        }
-      }
-    },
-    "이 태그의 새 글을 구독함에 모으기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gather this tag's new posts in your inbox"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "इस टैग की नई पोस्ट अपने इनबॉक्स में इकट्ठा करें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "このタグの新着を受信箱に集める"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gom bài mới của thẻ này vào hộp thư của bạn"
           }
         }
       }
@@ -28374,34 +28570,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chưa có gì để đọc"
-          }
-        }
-      }
-    },
-    "읽을수록 정확해지는 추천 받기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Get recommendations that sharpen as you read"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "जितना पढ़ें उतने सटीक होते सुझाव पाएँ"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "読むほど精度が上がる推薦を受け取る"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nhận gợi ý chính xác hơn khi bạn đọc nhiều"
           }
         }
       }
@@ -30117,34 +30285,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đã thích"
-          }
-        }
-      }
-    },
-    "좋아한 글은 내 라이브러리에 쌓여요": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Posts you like collect in your library"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आपकी पसंद की पोस्ट आपकी लाइब्रेरी में जमा होती हैं"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "いいねした記事はライブラリに集まります"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bài bạn thích sẽ gom vào thư viện của bạn"
           }
         }
       }
@@ -32428,34 +32568,6 @@
         }
       }
     },
-    "큐레이터가 엮은 컬렉션 이어 보기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Keep exploring collections woven by curators"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "क्यूरेटर के बुने संग्रह देखते रहें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キュレーターが編んだコレクションを続けて見る"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Xem tiếp các bộ sưu tập do người tuyển chọn kết nối"
-          }
-        }
-      }
-    },
     "크래시 진단": {
       "localizations": {
         "en": {
@@ -33098,34 +33210,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bài viết mới từ tác giả bạn theo dõi"
-          }
-        }
-      }
-    },
-    "팔로우한 작가의 새 글 모아 보기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "See new posts from writers you follow"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "अपने फ़ॉलो किए लेखकों की नई पोस्ट देखें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フォロー中の書き手の新着をまとめて見る"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Xem bài mới từ tác giả bạn theo dõi"
           }
         }
       }
@@ -33915,34 +33999,6 @@
         }
       }
     },
-    "하이라이트는 kurl 계정에 저장됩니다.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Highlights are saved to your kurl account."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "हाइलाइट आपके kurl खाते में सहेजे जाते हैं."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ハイライトはkurlアカウントに保存されます。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Phần tô sáng được lưu vào tài khoản kurl của bạn."
-          }
-        }
-      }
-    },
     "하이라이트를 삭제하지 못했습니다": {
       "localizations": {
         "en": {
@@ -34023,6 +34079,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cách tô sáng"
+          }
+        }
+      }
+    },
+    "하이라이트하려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to highlight"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "हाइलाइट करने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ハイライトするにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để tô sáng"
           }
         }
       }
