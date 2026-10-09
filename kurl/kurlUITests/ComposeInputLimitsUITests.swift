@@ -57,6 +57,7 @@ final class ComposeInputLimitsUITests: XCTestCase {
         editor.tap()
         editor.typeText("본문")
         if app.buttons["키보드 내리기"].exists { app.buttons["키보드 내리기"].tap() }
+        XCTAssertTrue(app.staticTexts["저장됨"].waitForExistence(timeout: 10), "자동저장이 안 끝남(그동안 발행 버튼이 잠긴다)")
         app.buttons["발행"].tap()
         XCTAssertTrue(app.navigationBars["발행 준비"].waitForExistence(timeout: 5), "발행 시트가 안 뜸")
 
