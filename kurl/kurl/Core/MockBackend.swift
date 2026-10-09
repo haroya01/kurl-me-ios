@@ -180,6 +180,10 @@ enum MockBackend {
         MockNote(id: 9534, body: "셋째가 제일 공감돼요.",
                  createdAt: Date().addingTimeInterval(-400_000), likeCount: 0, authorId: 3,
                  username: "reader_kim", inReplyToId: 9530),
+        // 투표 노트(9509)에 단 답글 — 답글 상세 위쪽 원글 자리의 투표가 투표 뒤 결과로 바뀌는지 검증용.
+        MockNote(id: 9542, body: "파스타에 한 표 던지고 갑니다.",
+                 createdAt: Date().addingTimeInterval(-2_300), likeCount: 0, authorId: 3,
+                 username: "reader_kim", inReplyToId: 9509),
         MockNote(id: 9551, body: "@yuki_dev 이름이 경계라는 말, 오래 남을 것 같아요.",
                  createdAt: Date().addingTimeInterval(-1_200), likeCount: 0, authorId: 3,
                  username: "reader_kim", inReplyToId: 9501),

@@ -1541,7 +1541,10 @@ struct NoteDetailView: View {
                         }
                         if let parent = thread.parent {
                             NoteRowView(
-                                note: parent, onChange: { _ in }, onDelete: { _ in }, threadLineBelow: true)
+                                note: parent,
+                                onChange: { next in update { $0.parent = next } },
+                                onDelete: { _ in update { $0.parent = nil } },
+                                threadLineBelow: true)
                         }
                         let parts = thread.continuation ?? []
                         let numbered = !parts.isEmpty && thread.parent?.author.id != thread.note.author.id

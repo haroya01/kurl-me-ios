@@ -37569,6 +37569,62 @@
           }
         }
       }
+    },
+    "탭하면 바로 투표돼요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tapping votes right away"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "टैप करते ही वोट हो जाता है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タップするとすぐに投票されます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chạm là bỏ phiếu ngay"
+          }
+        }
+      }
+    },
+    "선택한 뒤 투표 버튼을 눌러요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose, then press Vote"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "चुनें, फिर वोट दबाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選んでから投票ボタンを押します"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chọn rồi nhấn Bỏ phiếu"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

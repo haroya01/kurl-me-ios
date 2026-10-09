@@ -110,6 +110,8 @@ struct NotePollView: View {
         .buttonStyle(.plain)
         .disabled(voting)
         .accessibilityAddTraits(poll.multiple && on ? .isSelected : [])
+        // 단일 선택은 탭이 곧 투표이고 되돌릴 수 없다 — 눈으로는 즉시 결과로 바뀌어 알지만 VoiceOver 는 미리 알아야 한다.
+        .accessibilityHint(poll.multiple ? Text("선택한 뒤 투표 버튼을 눌러요") : Text("탭하면 바로 투표돼요"))
         .accessibilityIdentifier("note.poll.option.\(noteId).\(index)")
     }
 

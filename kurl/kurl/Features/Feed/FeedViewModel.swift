@@ -141,6 +141,7 @@ final class FeedViewModel {
         epoch += 1
         let myEpoch = epoch
         if items.isEmpty { phase = .loading }
+        defer { LaunchReadiness.shared.markFirstFeedSettled() }
         do {
             // 걸러서 빈 페이지(차단 작가 전량 등)는 이어 받는다 — 첫 화면이 빈 피드로 위장하지 않게.
             let head = try await Self.collectKept(from: 0, seen: []) { try await self.fetch(page: $0) }
