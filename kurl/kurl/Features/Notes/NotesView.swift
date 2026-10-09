@@ -1700,6 +1700,7 @@ struct NoteComposeSheet: View {
     private struct PickedImage: Identifiable {
         let id = UUID()
         let image: UIImage
+        let upload: NoteUploadImage
         var altText = ""
     }
 
@@ -2312,9 +2313,10 @@ struct NoteComposeSheet: View {
         for item in items {
             guard picked.count < NoteAPI.maxImages,
                   let data = try? await item.loadTransferable(type: Data.self),
-                  let image = UIImage(data: data)
+                  let upload = await NoteUploadImage.prepare(data),
+                  let image = UIImage(data: upload.data)
             else { continue }
-            picked.append(PickedImage(image: image))
+            picked.append(PickedImage(image: image, upload: upload))
         }
         pickerItems = []
     }
@@ -2353,12 +2355,9 @@ struct NoteComposeSheet: View {
         do {
             var images: [NoteDraft.Image] = []
             for item in picked {
-                guard let jpeg = item.image.jpegData(compressionQuality: 0.85) else { continue }
-                let key = try await NoteAPI.uploadImage(jpegData: jpeg)
+                let key = try await NoteAPI.uploadImage(item.upload)
                 images.append(NoteDraft.Image(
-                    key: key, altText: item.altText,
-                    width: Int((item.image.size.width * item.image.scale).rounded()),
-                    height: Int((item.image.size.height * item.image.scale).rounded())))
+                    key: key, altText: item.altText, width: item.upload.pixelWidth, height: item.upload.pixelHeight))
             }
             let draft = NoteDraft(
                 body: NoteText.plain(text), images: images, quotedPostId: quote?.id, inReplyToId: inReplyToId,
@@ -2391,6 +2390,8 @@ struct NoteComposeSheet: View {
             }
             onDone(created)
             dismiss()
+        } catch let tooLarge as NoteImageTooLarge {
+            errorMessage = tooLarge.errorDescription
         } catch {
             errorMessage = scheduledAt == nil
                 ? String(localized: "노트를 올리지 못했어요")
