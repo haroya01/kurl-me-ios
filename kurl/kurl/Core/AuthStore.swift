@@ -78,6 +78,28 @@ final class AuthStore {
 
     var bearerToken: String? { accessToken }
 
+    /// 공개 읽기에 실을 토큰 — 공개 경로는 만료된 토큰도 401 없이 익명으로 받아 401 리프레시가 돌지 않으므로,
+    /// 만료가 가까우면 먼저 리프레시한다. 로그아웃이거나 리프레시하지 못하면 익명(nil 또는 서버가 무시할 옛 토큰).
+    func viewerBearerToken() async -> String? {
+        guard isSignedIn else { return nil }
+        if let accessToken, !Self.accessTokenExpires(accessToken, within: 30) { return accessToken }
+        try? await refreshTokens()
+        return accessToken
+    }
+
+    /// JWT 의 exp 가 지금부터 `within` 초 안인가. JWT 가 아니거나 exp 가 없으면 판단하지 않는다(false).
+    nonisolated static func accessTokenExpires(_ token: String, within leeway: TimeInterval, now: Date = Date()) -> Bool {
+        let segments = token.split(separator: ".", omittingEmptySubsequences: false)
+        guard segments.count == 3 else { return false }
+        var payload = segments[1].replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
+        payload += String(repeating: "=", count: (4 - payload.count % 4) % 4)
+        guard let data = Data(base64Encoded: payload),
+              let claims = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let exp = (claims["exp"] as? NSNumber)?.doubleValue
+        else { return false }
+        return Date(timeIntervalSince1970: exp) <= now.addingTimeInterval(leeway)
+    }
+
     // MARK: 로그인
 
     func signIn() async throws -> SignInOutcome {
