@@ -1645,7 +1645,7 @@ private struct PostDetailReader: View {
             }
             .padding(.bottom, 4)
             ForEach(model.quotingNotes) { note in
-                NoteRowView(
+                NoteFeedItem(
                     note: note,
                     onChange: { model.replaceQuotingNote($0) },
                     onDelete: { model.removeQuotingNote($0) })

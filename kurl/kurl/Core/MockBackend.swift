@@ -95,6 +95,8 @@ enum MockBackend {
     }
 
     private static var notes: [MockNote] = [
+        MockNote(id: 9530, body: "헥사고날로 옮긴 지 석 달. 남은 것 세 가지를 적어 둔다.",
+                 createdAt: Date().addingTimeInterval(-500_000), likeCount: 2, authorId: 2, username: "yuki_dev"),
         MockNote(id: 9501, body: "오늘 헥사고날 포트 이름 짓는 데 한 시간 썼다. 이름이 곧 경계라는 걸 다시 배운다. #아키텍처",
                  createdAt: Date().addingTimeInterval(-1_800), likeCount: 4, authorId: 2, username: "yuki_dev"),
         MockNote(id: 9509, body: "회고 끝나고 점심 어디서 먹을까요?",
@@ -163,6 +165,18 @@ enum MockBackend {
     /// 사용자별 리포스트한 노트 id(최신 먼저). 목 세션은 honggildong.
     private static var repostedNotes: [String: [Int64]] = ["honggildong": [9503], "yuki_dev": [9505]]
     private static var noteReplies: [MockNote] = [
+        MockNote(id: 9531, body: "하나. 테스트가 빨라졌다.",
+                 createdAt: Date().addingTimeInterval(-499_990), likeCount: 0, authorId: 2,
+                 username: "yuki_dev", inReplyToId: 9530),
+        MockNote(id: 9532, body: "둘. 경계를 먼저 긋게 됐다.",
+                 createdAt: Date().addingTimeInterval(-499_980), likeCount: 0, authorId: 2,
+                 username: "yuki_dev", inReplyToId: 9531),
+        MockNote(id: 9533, body: "셋. 이름 짓는 데 시간을 쓴다.",
+                 createdAt: Date().addingTimeInterval(-499_970), likeCount: 0, authorId: 2,
+                 username: "yuki_dev", inReplyToId: 9532),
+        MockNote(id: 9534, body: "셋째가 제일 공감돼요.",
+                 createdAt: Date().addingTimeInterval(-400_000), likeCount: 0, authorId: 3,
+                 username: "reader_kim", inReplyToId: 9530),
         MockNote(id: 9551, body: "@yuki_dev 이름이 경계라는 말, 오래 남을 것 같아요.",
                  createdAt: Date().addingTimeInterval(-1_200), likeCount: 0, authorId: 3,
                  username: "reader_kim", inReplyToId: 9501),
@@ -1334,12 +1348,15 @@ enum MockBackend {
             guard let note = allNotes().first(where: { $0.id == nid }) else {
                 return json(["status": 404])
             }
+            let parts = selfChain(note)
+            let partIds = Set(parts.map(\.id))
             return json([
                 "note": noteView(note),
                 "parent": note.inReplyToId.flatMap { pid in allNotes().first { $0.id == pid } }
                     .map(noteView) ?? NSNull(),
-                "replies": allNotes().filter { $0.inReplyToId == nid }
+                "replies": allNotes().filter { $0.inReplyToId == nid && !partIds.contains($0.id) }
                     .sorted { $0.createdAt < $1.createdAt }.map(noteView),
+                "continuation": parts.map(noteView),
             ])
         }
         if method == "POST", parts == ["notes", "images", "presign"] {
@@ -2507,6 +2524,19 @@ enum MockBackend {
 
     private static func allNotes() -> [MockNote] { notes + noteReplies }
 
+    /// 작성자가 자기 노트에 이어 단 답글 사슬(이어 쓰기) — 한 노트에 둘이면 먼저 단 것을 따라간다.
+    private static func selfChain(_ root: MockNote) -> [MockNote] {
+        var chain: [MockNote] = []
+        var current = root.id
+        while chain.count < 9,
+              let next = allNotes().filter({ $0.inReplyToId == current && $0.authorId == root.authorId })
+                .min(by: { $0.createdAt < $1.createdAt }) {
+            chain.append(next)
+            current = next.id
+        }
+        return chain
+    }
+
     private static func replyCount(_ id: Int64) -> Int {
         noteReplies.filter { $0.inReplyToId == id }.count
     }
@@ -2548,6 +2578,17 @@ enum MockBackend {
     }
 
     private static func noteView(_ n: MockNote) -> [String: Any] {
+        var view = baseNoteView(n)
+        if n.inReplyToId == nil {
+            let chain = selfChain(n)
+            if let next = chain.first {
+                view["thread"] = ["total": chain.count + 1, "preview": [baseNoteView(next)]] as [String: Any]
+            }
+        }
+        return view
+    }
+
+    private static func baseNoteView(_ n: MockNote) -> [String: Any] {
         [
             "id": n.id, "body": n.body, "createdAt": iso(n.createdAt),
             "editedAt": n.editedAt.map(iso) ?? NSNull(),
