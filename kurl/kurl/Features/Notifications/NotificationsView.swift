@@ -69,8 +69,8 @@ struct NotificationsView: View {
             ToolbarItem(placement: .primaryAction) {
                 // 목록이 있고 안 읽은 게 있으면 실행 버튼, 모두 읽었으면 흐린 회색 대신
                 // 체크마크로 "이미 다 읽음"을 분명히 표시한다(비활성이 안 보이던 문제).
-                if !items.isEmpty {
-                    if items.allSatisfy(\.read) {
+                if !shownItems.isEmpty {
+                    if shownItems.allSatisfy(\.read) {
                         Label("모두 읽음", systemImage: "checkmark")
                             .labelStyle(.titleAndIcon)
                             .font(.system(size: actionSize))
@@ -173,17 +173,20 @@ struct NotificationsView: View {
     }
 
     private var shownItems: [AppNotification] {
-        let store = NoteFilterStore.shared
-        return items.filter { n in
-            let others: String? =
-                switch n.type {
-                case "NOTE_REPLY", "NOTE_QUOTE": n.sourceExcerpt
-                case "NOTE_MENTION", "POST_QUOTE": n.noteExcerpt
-                default: nil
-                }
-            guard let others else { return true }
-            return store.verdict(for: others, in: .notifications) != .hide
-        }
+        items.filter { !hiddenByFilter($0) }
+    }
+
+    // 서버(RecordBlogNotificationUseCase.othersText)와 같은 규칙 — 남의 노트 발췌가 실린 알림만 필터가 읽는다.
+    private func hiddenByFilter(_ n: AppNotification) -> Bool {
+        let others: String? =
+            switch n.type {
+            case "NOTE_REPLY", "NOTE_QUOTE": n.sourceExcerpt
+            case "NOTE_MENTION", "POST_QUOTE", "NOTE_POST", "NOTE_EDIT": n.noteExcerpt
+            case "NOTE_POLL" where n.actorUsername != AuthStore.shared.me?.username: n.noteExcerpt
+            default: nil
+            }
+        guard let others else { return false }
+        return NoteFilterStore.shared.verdict(for: others, in: .notifications) == .hide
     }
 
     @ViewBuilder
@@ -593,6 +596,7 @@ struct NotificationsView: View {
             nextCursor = page.nextCursor
             hasMore = page.hasMore
             loadError = nil
+            readHidden()
         } catch {
             guard myEpoch == epoch else { return }
             // 실패가 빈 상태로 위장하지 않게 — 이미 보이던 목록은 보존한다.
@@ -612,6 +616,17 @@ struct NotificationsView: View {
             items = sortedByRecency(items + page.items)
             nextCursor = page.nextCursor
             hasMore = page.hasMore
+            readHidden()
+        }
+    }
+
+    private func readHidden() {
+        let ids = Set(items.filter { !$0.read && hiddenByFilter($0) }.map(\.id))
+        guard !ids.isEmpty else { return }
+        items = items.map { ids.contains($0.id) ? asRead($0) : $0 }
+        Task {
+            for id in ids { try? await NotificationsAPI.markRead(id: id) }
+            await UnreadStore.shared.refresh()
         }
     }
 
