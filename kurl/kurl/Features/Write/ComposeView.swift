@@ -129,6 +129,9 @@ struct ComposeView: View {
     /// 라이브 글에서 정한 커버(본문 첫 사진·직접 고른 사진·제안) — 명시 저장 때 서버에 반영한다.
     @State private var pendingCover: PendingCover?
     @State private var coverItem: PhotosPickerItem?
+    @State private var showCoverPicker = false
+    /// 커버를 직접 뺐다 — 이번 편집에선 본문 첫 사진으로 커버를 다시 정하지 않는다(웹 coverDismissed 와 같다).
+    @State private var coverDismissed = false
     @State private var uploadingCover = false
 
     // 본문 이미지 — 스니펫 바의 사진 버튼이 연다. 업로드되면 곧장 커서 자리에 삽입(막는 캡션 다이얼로그 없이).
@@ -993,34 +996,7 @@ struct ComposeView: View {
     /// 살아있는 카드 미리보기 — 발행 결과를 그대로. 커버 영역 탭 = 사진 선택.
     private var publishPreview: some View {
         VStack(alignment: .leading, spacing: 0) {
-            PhotosPicker(selection: $coverItem, matching: .images) {
-                coverArea
-            }
-            .buttonStyle(.plain)
-            // 업로드가 도는 동안엔 재선택을 막는다 — 안 그러면 두 번째 선택이 조용히 버려진다(스피너로 진행을 보인다).
-            .disabled(uploadingCover)
-            // 커버가 비었는데 본문에 이미지가 있으면 한 탭 제안 — 웹 발행 다이얼로그의 커버 제안 미러.
-            // 안 그러면 "글엔 이미지가 있는데 대표 이미지 자리가 빈 타일"이라는 기대 불일치가 남는다.
-            .overlay(alignment: .bottomLeading) {
-                if !uploadingCover, coverUrl == nil, let suggestion = suggestedCoverURL {
-                    Button {
-                        applySuggestedCover(suggestion)
-                    } label: {
-                        HStack(spacing: 5) {
-                            Image(systemName: "photo.on.rectangle")
-                                .font(.system(size: 11 * metaUnit, weight: .semibold))
-                            Text("본문 첫 이미지를 커버로")
-                                .typeScale(.meta)
-                        }
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(.black.opacity(0.45), in: Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    .padding(10)
-                }
-            }
+            coverArea
 
             VStack(alignment: .leading, spacing: 8) {
                 if let tag = tags.first {
@@ -1035,6 +1011,7 @@ struct ComposeView: View {
                 }
                 Text(title.trimmingCharacters(in: .whitespaces).isEmpty
                     ? String(localized: "제목을 적어 주세요") : title)
+                    .accessibilityIdentifier("composeCardTitle")
                     .font(.system(size: 20 * unit, weight: .bold))
                     .tracking(-0.3)
                     .foregroundStyle(title.trimmingCharacters(in: .whitespaces).isEmpty
@@ -1080,6 +1057,7 @@ struct ComposeView: View {
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: tags)
         // 커버가 자리잡는 순간 가벼운 햅틱 — 손에 닿는 확인.
         .sensoryFeedback(.impact(weight: .light), trigger: coverUrl)
+        .photosPicker(isPresented: $showCoverPicker, selection: $coverItem, matching: .images)
     }
 
     /// 본문 첫 이미지 URL — 커버가 빈 발행 카드의 한 탭 제안 재료(웹 coverSuggestion 미러).
@@ -1110,16 +1088,41 @@ struct ComposeView: View {
         }
     }
 
-    /// 미리보기 카드의 커버 — 채워졌으면 16:9 이미지(+변경), 없으면 추가 타일. 업로드 중엔 스피너.
+    /// 커버 제거 — 빈 ogImageUrl 이 서버 계약상 커버 지우기다. 라이브 글은 저장 때.
+    private func removeCover() {
+        let previous = coverUrl
+        coverUrl = nil
+        coverDismissed = true
+        guard allowsAutosave else {
+            pendingCover = PendingCover(url: "", key: nil, fromBodyImage: false)
+            return
+        }
+        guard let postId else { return }
+        Task {
+            do {
+                try await WriteAPI.updateCover(postId: postId, url: "", key: nil)
+                onSaved()
+            } catch {
+                if coverUrl == nil { coverUrl = previous }
+                ToastCenter.shared.show(String(localized: "커버를 빼지 못했어요"))
+            }
+        }
+    }
+
+    /// 미리보기 카드의 커버 — 채워졌으면 16:9 이미지(+변경 메뉴), 없으면 추가 타일(+본문 첫 이미지 제안).
+    /// 업로드 중엔 스피너(그동안 재선택을 막는다 — 두 번째 선택이 조용히 버려지지 않게).
     @ViewBuilder
     private var coverArea: some View {
-        Group {
-            if uploadingCover {
-                ZStack {
-                    Palette.chipBg
-                    ProgressView().controlSize(.small)
-                }
-            } else if let coverUrl, let url = URL(string: coverUrl) {
+        if uploadingCover {
+            ZStack {
+                Palette.chipBg
+                ProgressView().controlSize(.small)
+            }
+            .frame(height: 176)
+        } else if let coverUrl, let url = URL(string: coverUrl) {
+            Button {
+                showCoverPicker = true
+            } label: {
                 RemoteImage(url: url) { phase in
                     if case .success(let image) = phase {
                         image.resizable().scaledToFill()
@@ -1127,39 +1130,88 @@ struct ComposeView: View {
                         Rectangle().fill(Palette.hairline)
                     }
                 }
-                .overlay(alignment: .bottomTrailing) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "photo")
-                            .font(.system(size: 11 * metaUnit, weight: .semibold))
-                        Text("변경")
-                            .typeScale(.meta)
-                    }
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(.black.opacity(0.45), in: Capsule())
-                    .padding(10)
-                }
-                // 커버가 들어오면 카드가 펼쳐지며 이미지가 살짝 부풀어 자리잡는다.
-                .transition(.scale(scale: 1.04).combined(with: .opacity))
-            } else {
-                ZStack {
-                    Palette.chipBg
+                // 최소 0 이 있어야 채움 이미지가 틀보다 커도 틀 크기로 잘린다(없으면 자식 크기를 따라 넘친다).
+                .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
+                .clipped()
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("커버"))
+            .frame(height: 176)
+            // 칩은 잘린 이미지가 아니라 고정 틀에 붙인다 — 채움(scaledToFill) 이미지는 틀보다 커서 그 모서리가 화면 밖이다.
+            .overlay(alignment: .bottomTrailing) {
+                coverMenu.padding(10)
+            }
+            // 커버가 들어오면 카드가 펼쳐지며 이미지가 살짝 부풀어 자리잡는다.
+            .transition(.scale(scale: 1.04).combined(with: .opacity))
+        } else {
+            // 커버가 비었는데 본문에 이미지가 있으면 한 탭 제안 — 웹 발행 다이얼로그의 커버 제안 미러.
+            let suggestion = suggestedCoverURL
+            VStack(spacing: 0) {
+                Button {
+                    showCoverPicker = true
+                } label: {
                     VStack(spacing: 6) {
                         Image(systemName: "photo.badge.plus")
                             .font(.system(size: 22 * unit, weight: .regular))
+                            .accessibilityHidden(true)
                         Text("커버 이미지 추가")
                             .typeScale(.meta)
                     }
                     .foregroundStyle(Palette.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                if let suggestion {
+                    Button {
+                        applySuggestedCover(suggestion)
+                    } label: {
+                        coverChip("본문 첫 이미지를 커버로", systemImage: "photo.on.rectangle")
+                    }
+                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding([.horizontal, .bottom], 10)
                 }
             }
+            // 빈 상태는 컴팩트(제안 칩이 있으면 그 줄만큼), 커버가 들어오면 176 으로 펼쳐진다(높이 변화가 곧 언폴드).
+            .frame(height: suggestion == nil ? 96 : 132)
+            .frame(maxWidth: .infinity)
+            .background(Palette.chipBg)
         }
-        // 빈 상태는 컴팩트, 커버가 들어오면 176 으로 펼쳐진다(높이 변화가 곧 언폴드).
-        .frame(height: (coverUrl == nil && !uploadingCover) ? 96 : 176)
-        .frame(maxWidth: .infinity)
-        .clipped()
-        .contentShape(Rectangle())
+    }
+
+    /// 커버 위 "변경" — 사진 바꾸기·커버 제거.
+    private var coverMenu: some View {
+        Menu {
+            Button {
+                showCoverPicker = true
+            } label: {
+                Label("사진 바꾸기", systemImage: "photo")
+            }
+            Button(role: .destructive) {
+                removeCover()
+            } label: {
+                Label("커버 제거", systemImage: "trash")
+            }
+        } label: {
+            coverChip("변경", systemImage: "photo")
+                .expandTapTarget(8)
+        }
+        .accessibilityLabel(Text("커버 변경"))
+    }
+
+    private func coverChip(_ title: LocalizedStringKey, systemImage: String) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: systemImage)
+                .font(.system(size: 11 * metaUnit, weight: .semibold))
+            Text(title)
+                .typeScale(.meta)
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(GlassTokens.mediaChip, in: Capsule())
     }
 
     /// 시트 필드 한 단 — 작은 라벨 + 컨트롤.
@@ -1947,7 +1999,7 @@ struct ComposeView: View {
     /// 커버가 비어 있으면 방금 본문에 넣은 이미지를 기본 커버로 — 이미지 글이 커버 없이 발행되지
     /// 않게(작성자는 발행 시트에서 언제든 바꾼다). 본문 저장 표시는 건드리지 않는다.
     private func maybeSetCoverFromBodyImage(url: String, key: String?) {
-        guard coverUrl == nil, let postId, let key else { return }
+        guard coverUrl == nil, !coverDismissed, let postId, let key else { return }
         coverUrl = url
         guard allowsAutosave else {
             pendingCover = PendingCover(url: url, key: key, fromBodyImage: true)
@@ -2890,8 +2942,8 @@ private struct TagsField: View {
                 Text(tag).typeScale(.meta)
             }
             .buttonStyle(.plain)
-            .disabled(isPrimary)
             .accessibilityLabel(Text(isPrimary ? "대표 태그 \(tag)" : "\(tag) — 대표로 지정"))
+            .accessibilityAddTraits(isPrimary ? .isSelected : [])
 
             Button {
                 tags.removeAll { $0 == tag }

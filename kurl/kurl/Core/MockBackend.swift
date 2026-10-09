@@ -1676,7 +1676,7 @@ enum MockBackend {
             if let title = req["title"] as? String { posts[idx].title = title }
             if let excerpt = req["excerpt"] as? String { posts[idx].excerpt = excerpt.isEmpty ? nil : excerpt }
             if let tags = req["tags"] as? [String] { posts[idx].tags = tags }
-            if let cover = req["ogImageUrl"] as? String { posts[idx].ogImageUrl = cover }
+            if let cover = req["ogImageUrl"] as? String { posts[idx].ogImageUrl = cover.isEmpty ? nil : cover }
             posts[idx].updatedAt = Date()
             return json(postView(posts[idx]))
         }

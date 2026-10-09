@@ -38,7 +38,7 @@ final class ComposeLiveCoverUITests: XCTestCase {
         let suggest = app.buttons.matching(NSPredicate(format: "label CONTAINS '본문 첫 이미지를 커버로'")).firstMatch
         XCTAssertTrue(suggest.waitForExistence(timeout: 5), "본문 사진이 있는데 커버 제안이 없음")
         suggest.tap()
-        XCTAssertTrue(app.staticTexts["변경"].waitForExistence(timeout: 5), "제안을 눌러도 카드 커버가 안 바뀜")
+        XCTAssertTrue(labeled(app, "커버 변경").waitForExistence(timeout: 5), "제안을 눌러도 카드 커버가 안 바뀜")
         app.buttons["닫기"].tap()
     }
 
@@ -93,6 +93,10 @@ final class ComposeLiveCoverUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["글 정보"].waitForExistence(timeout: 5), "글 정보 시트가 안 뜸")
     }
 
+    private func labeled(_ app: XCUIApplication, _ label: String) -> XCUIElement {
+        app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", label)).firstMatch
+    }
+
     private func shot(_ name: String) {
         let s = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         s.name = name
@@ -114,7 +118,7 @@ final class ComposeLiveCoverUITests: XCTestCase {
 
         openInfoSheet(app)
         XCTAssertTrue(
-            app.staticTexts["커버 이미지 추가"].waitForExistence(timeout: 5), "저장하지 않았는데 라이브 글 커버가 바뀜")
+            labeled(app, "커버 이미지 추가").waitForExistence(timeout: 5), "저장하지 않았는데 라이브 글 커버가 바뀜")
         shot("live-cover-unchanged-before-save")
     }
 
@@ -129,7 +133,7 @@ final class ComposeLiveCoverUITests: XCTestCase {
         if recovery.waitForExistence(timeout: 4) { recovery.buttons["버리기"].tap() }
         openInfoSheet(app)
         XCTAssertTrue(
-            app.staticTexts["커버 이미지 추가"].waitForExistence(timeout: 5), "저장하지 않았는데 라이브 글 커버가 바뀜")
+            labeled(app, "커버 이미지 추가").waitForExistence(timeout: 5), "저장하지 않았는데 라이브 글 커버가 바뀜")
         shot("suggested-cover-unchanged-before-save")
     }
 
@@ -145,7 +149,7 @@ final class ComposeLiveCoverUITests: XCTestCase {
         app.navigationBars.buttons.firstMatch.tap()
         openPublishedPost(app)
         openInfoSheet(app)
-        XCTAssertTrue(app.staticTexts["변경"].waitForExistence(timeout: 5), "저장 뒤 다시 열어도 커버가 없음")
+        XCTAssertTrue(labeled(app, "커버 변경").waitForExistence(timeout: 5), "저장 뒤 다시 열어도 커버가 없음")
         shot("suggested-cover-after-save")
     }
 
@@ -160,7 +164,7 @@ final class ComposeLiveCoverUITests: XCTestCase {
         app.navigationBars.buttons.firstMatch.tap()
         openPublishedPost(app)
         openInfoSheet(app)
-        XCTAssertTrue(app.staticTexts["변경"].waitForExistence(timeout: 5), "저장 뒤 다시 열어도 커버가 없음")
+        XCTAssertTrue(labeled(app, "커버 변경").waitForExistence(timeout: 5), "저장 뒤 다시 열어도 커버가 없음")
         shot("live-cover-after-save")
     }
 }
