@@ -5,14 +5,15 @@
 
 import SwiftUI
 
-/// 계정 탭 — 들어오면 내 블로그(내가 발행한 글)가 바로 뜬다. 서재(내가 모은 것)는 오른쪽 헤더
-/// 버튼으로, 설정·프로필·로그아웃은 왼쪽 톱니(SettingsView)로.
+/// 계정 탭 — 들어오면 내 블로그(내가 발행한 글)가 바로 뜬다. 스튜디오(내가 쓰는 것)·서재(내가 모은 것)는
+/// 오른쪽 헤더 버튼으로, 설정·프로필·로그아웃은 왼쪽 톱니(SettingsView)로.
 struct AccountView: View {
     private var auth: AuthStore { .shared }
 
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showNotifications = false
+    @State private var showStudio = false
     // 피드 탭 벨과 UnreadStore 공유 — 각자 fetch 해 같은 GET 이 2회 나가지 않게.
     private var unreadCount: Int64 { UnreadStore.shared.count }
     // me 로드가 실패했는가 — 로그인 상태의 스피너가 재시도 없는 막다른 길이 되지 않게.
@@ -55,6 +56,17 @@ struct AccountView: View {
                     .accessibilityLabel("설정")
                 }
                 if auth.isSignedIn {
+                    // 스튜디오 — 내가 쓰는 것(글·시리즈·분석). 서재·벨과 한 묶음의 "내 것" 목적지.
+                    ToolbarItem(placement: .primaryAction) {
+                        Button {
+                            showStudio = true
+                        } label: {
+                            Image(systemName: "chart.bar.doc.horizontal")
+                        }
+                        .tint(.primary)
+                        .accessibilityLabel("스튜디오")
+                        .accessibilityIdentifier("account.studio")
+                    }
                     // 서재 — 내가 모은 것(북마크·좋아요·구독·하이라이트·컬렉션·기록·노트).
                     ToolbarItem(placement: .primaryAction) {
                         NavigationLink {
@@ -92,6 +104,14 @@ struct AccountView: View {
             .navigationDestination(isPresented: $showNotifications) {
                 NotificationsView()
             }
+            .navigationDestination(isPresented: $showStudio) {
+                StudioView()
+            }
+            .onChange(of: TabRouter.shared.pendingStudio, initial: true) { _, pending in
+                guard pending else { return }
+                TabRouter.shared.pendingStudio = false
+                showStudio = true
+            }
             .onChange(of: showNotifications) { _, open in
                 // 알림에서 돌아오면 미읽음 점 갱신 — 모두 읽었는데 점이 남지 않게.
                 if !open, auth.isSignedIn {
@@ -120,7 +140,9 @@ struct AccountView: View {
                 if auth.isSignedIn {
                     await UnreadStore.shared.refresh()
                 }
-                if Config.consumeLaunchValue(after: "--open") == "notifications" {
+                // `--open compose|analytics` 는 스튜디오 몫이라 알림일 때만 소비한다.
+                if Config.launchValue(after: "--open") == "notifications",
+                    Config.consumeLaunchValue(after: "--open") != nil {
                     showNotifications = true
                 }
             }

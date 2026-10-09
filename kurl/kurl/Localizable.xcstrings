@@ -7408,6 +7408,90 @@
         }
       }
     },
+    "긴 글로 쓰기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write a long post"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लंबी पोस्ट लिखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "長い記事で書く"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viết bài dài"
+          }
+        }
+      }
+    },
+    "긴 글로 옮기기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move to a long post"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लंबी पोस्ट में ले जाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "長い記事に移す"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chuyển sang bài dài"
+          }
+        }
+      }
+    },
+    "긴 글로 옮길까요?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Move this to a long post?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इसे लंबी पोस्ट में ले जाएँ?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "長い記事に移しますか?"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chuyển sang bài dài?"
+          }
+        }
+      }
+    },
     "길": {
       "localizations": {
         "en": {
@@ -12564,6 +12648,34 @@
         }
       }
     },
+    "스튜디오": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Studio"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "स्टूडियो"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スタジオ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Studio"
+          }
+        }
+      }
+    },
     "승인": {
       "localizations": {
         "en": {
@@ -12616,6 +12728,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bài viết, loạt bài và phân tích của bạn sẽ gom về đây."
+          }
+        }
+      }
+    },
+    "쓴 내용이 새 글 본문으로 옮겨져요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What you wrote becomes the body of a new post."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपने जो लिखा वह नई पोस्ट का मुख्य भाग बन जाएगा।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "書いた内容が新しい記事の本文に移ります。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nội dung bạn đã viết sẽ thành phần thân của bài mới."
+          }
+        }
+      }
+    },
+    "쓴 내용이 새 글 본문으로 옮겨져요. 사진과 투표는 옮겨지지 않아요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What you wrote becomes the body of a new post. Photos and polls don't move."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपने जो लिखा वह नई पोस्ट का मुख्य भाग बन जाएगा। फ़ोटो और पोल नहीं जाएँगे।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "書いた内容が新しい記事の本文に移ります。写真と投票は移りません。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nội dung bạn đã viết sẽ thành phần thân của bài mới. Ảnh và bình chọn không được chuyển."
           }
         }
       }

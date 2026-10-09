@@ -17,8 +17,10 @@ final class TabRouter {
 
     var selection: Int
 
-    /// 위젯 딥링크의 대기석 — 탭을 갈아탄 뒤 스튜디오가 스스로 소비한다(StudioSection rawValue).
+    /// 스튜디오는 계정 탭 스택에 민다 — 계정 탭이 소비해 스튜디오를 열고, 분면·새 글은 스튜디오가 소비한다.
+    var pendingStudio = false
     var pendingStudioSection: String?
+    var pendingStudioCompose = false
     /// 위젯에서 탭한 저장 글 — RootView 가 시트로 띄운다. 탭 스택에 미는 방식은 path 바인딩이
     /// 필요한데, 그 바인딩이 tabBarMinimizeBehavior 를 죽이는 함정이 있어(§DiscoverDeckView) 시트로.
     var pendingPost: WidgetPostRef?
@@ -29,14 +31,15 @@ final class TabRouter {
 
     private init() {
         // `--tab notes|write|search|account` — simctl 은 터치를 못 넣으니 검증용 진입로.
+        // 가운데는 탭이 아니라 쓰기 동작이라, `write` 는 계정 탭에 스튜디오를 연 상태로 들어간다.
         selection =
             switch Config.launchValue(after: "--tab") {
             case "notes": 1
-            case "write": 2
             case "search": 3
-            case "account": 4
+            case "account", "write": 4
             default: 0
             }
+        pendingStudio = Config.launchValue(after: "--tab") == "write"
         // `--open notifications`(단독) — 푸시 탭(didReceive)과 같은 대기석을 지나는 검증 진입로.
         // `--tab account --open notifications` 는 기존대로 AccountView 가 소비한다(이중 발화 방지).
         if Config.launchValue(after: "--tab") == nil,
@@ -69,6 +72,13 @@ final class TabRouter {
         topRequests += 1
     }
 
+    func openStudio(section: StudioSection? = nil, compose: Bool = false) {
+        pendingStudioSection = section?.rawValue
+        pendingStudioCompose = compose
+        pendingStudio = true
+        selection = 4
+    }
+
     func switchTo(_ index: Int, reduceMotion: Bool = false) {
         guard index != selection else { return }
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -95,8 +105,7 @@ enum WidgetDeepLink {
         guard url.scheme == "kurlwidget" else { return }
         switch url.host {
         case "analytics":
-            TabRouter.shared.selection = 2
-            TabRouter.shared.pendingStudioSection = StudioSection.analytics.rawValue
+            TabRouter.shared.openStudio(section: .analytics)
         case "library":
             TabRouter.shared.selection = 4
         case "post":
@@ -141,6 +150,12 @@ struct RootView: View {
     /// 한 번이라도 연 탭 — 상주시켜 스크롤 위치·상태를 보존한다(시스템 TabView 대체).
     @State private var visitedTabs: Set<Int> = []
     @State private var showWriteLogin = false
+    @State private var composeAfterSignIn = false
+    @State private var composingNote = false
+    @State private var notesPosted = 0
+    @State private var longFormDraft: String?
+    @State private var writingLongForm = false
+    @State private var webIntroAfterCompose = false
     /// 로그인 직후 1회 웹 안내 — 이 실행이 "로그아웃 상태로 시작"했을 때만 후보(콜드런치
     /// 세션 복원에는 안 뜬다). RootView 생성 시점의 세션 상태를 그대로 박는다.
     @State private var didStartSignedOut = !AuthStore.shared.isSignedIn
@@ -237,21 +252,35 @@ struct RootView: View {
         }
     }
 
+    /// 탭바 가운데 칸 — 탭이 아니라 쓰기 동작이다. 선택되지 않고 누르거나 끌어다 놓으면 노트 작성기를 연다.
+    private static let composeSlot = 2
+
     private var tabs: some View {
         @Bindable var router = TabRouter.shared
         let selection = Binding<Int>(
             get: { TabRouter.shared.selection },
             set: { index in
-                if index == 2, !AuthStore.shared.isSignedIn {
-                    showWriteLogin = true
+                if index == Self.composeSlot {
+                    compose()
                 } else {
                     TabRouter.shared.selection = index
                 }
             })
         return tabView(selection: selection)
-            .loginPrompt(isPresented: $showWriteLogin, message: "글을 쓰려면 로그인하세요") {
-                TabRouter.shared.selection = 2
+            .loginPrompt(isPresented: $showWriteLogin, message: "글을 쓰려면 로그인하세요")
+            .onChange(of: showWriteLogin) { _, open in
+                if !open, !AuthStore.shared.isSignedIn { composeAfterSignIn = false }
             }
+            .sheet(isPresented: $composingNote, onDismiss: noteComposerClosed) {
+                NoteComposeSheet(mode: .new(quote: nil, inReplyToId: nil), onLongForm: { longFormDraft = $0 }) { note in
+                    NoteFeedChoice.shared.didPost(note)
+                    notesPosted += 1
+                }
+            }
+            .fullScreenCover(isPresented: $writingLongForm, onDismiss: composeFinished) {
+                PostComposerCover(initialMarkdown: longFormDraft ?? "", isDraft: true)
+            }
+            .sensoryFeedback(.success, trigger: notesPosted)
             // 위젯이 가리킨 저장 글 — 현재 탭 위 시트로. 읽기가 끝나면 원래 자리로 그대로 돌아온다.
             .sheet(item: $router.pendingPost) { ref in
                 NavigationStack {
@@ -280,6 +309,12 @@ struct RootView: View {
             }
             // 위젯 몫의 분석 신선도 — 분석 화면을 열지 않아도 앱이 열릴 때 조용히 당겨 둔다.
             .task { await AnalyticsSnapshot.refreshIfStale() }
+            // `--widget kurlwidget://…` — 위젯 탭은 simctl·UITest 로 못 넣으니 검증 진입로.
+            .task {
+                if let link = Config.launchValue(after: "--widget").flatMap(URL.init(string:)) {
+                    WidgetDeepLink.open(link)
+                }
+            }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { Task { await AnalyticsSnapshot.refreshIfStale() } }
             }
@@ -306,7 +341,7 @@ struct RootView: View {
             // (시스템 TabView 의 상태 보존을 손으로 재현). 방문 전 탭은 만들지 않아 첫 화면이 다섯
             // 탭을 한꺼번에 fetch 하지 않게 한다(각 탭 뷰의 .task 는 보일 때 발화).
             ForEach(0..<tabs.count, id: \.self) { index in
-                if index == selection.wrappedValue || visitedTabs.contains(index) {
+                if index != Self.composeSlot, index == selection.wrappedValue || visitedTabs.contains(index) {
                     tabRoot(index)
                         .opacity(index == selection.wrappedValue ? 1 : 0)
                         .allowsHitTesting(index == selection.wrappedValue)
@@ -371,16 +406,50 @@ struct RootView: View {
         // 핸들 게이트가 걷힌 뒤(webIntroReady) 뜨고, 콜드런치 세션 복원(didStartSignedOut=false)
         // 이나 이미 본 기기(seenWebIntro)에는 안 뜬다.
         .onChange(of: webIntroReady) { was, now in
-            guard now, !was, didStartSignedOut, !seenWebIntro else { return }
-            seenWebIntro = true
+            guard now, !was else { return }
+            let intro = didStartSignedOut && !seenWebIntro
+            guard intro || composeAfterSignIn else { return }
+            if intro { seenWebIntro = true }
             // 핸들 게이트(fullScreenCover)가 닫히는 전환과 겹치면 시트 프레젠테이션이
-            // 드랍될 수 있다 — 전환이 끝난 뒤 한 박자 쉬고 띄운다.
+            // 드랍될 수 있다 — 전환이 끝난 뒤 한 박자 쉬고 띄운다. 시트는 한 번에 하나라,
+            // 글쓰기에서 로그인했으면 작성기가 먼저고 웹 안내는 작성이 끝난 뒤에 띄운다.
             Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(700))
-                showWebIntro = true
+                if composeAfterSignIn {
+                    composeAfterSignIn = false
+                    webIntroAfterCompose = intro
+                    composingNote = true
+                } else {
+                    showWebIntro = true
+                }
             }
         }
         .sheet(isPresented: $showWebIntro) { WebIntroSheet() }
+    }
+
+    private func compose() {
+        if AuthStore.shared.isSignedIn {
+            composingNote = true
+        } else {
+            composeAfterSignIn = true
+            showWriteLogin = true
+        }
+    }
+
+    private func noteComposerClosed() {
+        if longFormDraft != nil {
+            writingLongForm = true
+        } else {
+            composeFinished()
+        }
+    }
+
+    private func composeFinished() {
+        longFormDraft = nil
+        if webIntroAfterCompose {
+            webIntroAfterCompose = false
+            showWebIntro = true
+        }
     }
 
     private var feedMenuTabs: Set<Int> {
@@ -395,7 +464,6 @@ struct RootView: View {
     private func tabRoot(_ index: Int) -> some View {
         switch index {
         case 1: NotesTabView()
-        case 2: StudioView()
         case 3: SearchView()
         case 4: AccountView()
         default: FeedView()

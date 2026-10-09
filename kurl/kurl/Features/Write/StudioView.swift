@@ -5,10 +5,10 @@
 
 import SwiftUI
 
-/// 글쓰기 탭 = 작가 스튜디오 — 웹 /write 허브 철학의 네이티브 번역.
+/// 작가 스튜디오 — 웹 /write 허브 철학의 네이티브 번역.
 /// [글 | 시리즈 | 분석] 이 한 지붕: 목록만 있던 허브에서, 시리즈와 분석이 1급으로 승격됐다
-/// (분석이 무라벨 차트 아이콘 뒤에 숨어 있던 시절을 끝낸다). 비로그인이면 RootView 가 탭 전환
-/// 대신 로그인 시트를 띄우므로, 여기 비로그인 상태는 이 탭에 선 채 세션이 끊겼을 때만 보인다.
+/// (분석이 무라벨 차트 아이콘 뒤에 숨어 있던 시절을 끝낸다). 계정 탭 스택에 밀려 열리고(툴바·위젯 딥링크·
+/// "첫 글 쓰기"), 계정 탭은 로그인해야 진입점을 보이므로 여기 비로그인 상태는 연 채로 세션이 끊겼을 때만 보인다.
 struct StudioView: View {
     private var auth: AuthStore { .shared }
 
@@ -39,84 +39,61 @@ struct StudioView: View {
     @State private var deleteTarget: MyPost?
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if auth.isSignedIn {
-                    studio
-                } else {
-                    SignedOutState(
-                        systemImage: "square.and.pencil",
-                        description: "쓴 글과 시리즈, 분석이 여기 모여요.",
-                        message: "글을 쓰려면 로그인하세요")
-                        .navigationTitle("글쓰기")
+        Group {
+            if auth.isSignedIn {
+                studio
+            } else {
+                SignedOutState(
+                    systemImage: "square.and.pencil",
+                    description: "쓴 글과 시리즈, 분석이 여기 모여요.",
+                    message: "글을 쓰려면 로그인하세요")
+            }
+        }
+        .navigationTitle("스튜디오")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if auth.isSignedIn {
+                ToolbarItem(placement: .principal) {
+                    GlassSegmentSwitcher(
+                        items: StudioSection.allCases, selection: $section, label: { $0.label }, bare: true)
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Button("새 글 쓰기", systemImage: "square.and.pencil") { composing = true }
+                        .buttonStyle(.glassProminent)
+                        .tint(GlassTokens.prominentTint)
                 }
             }
-            // 글·시리즈·분석 = 떠 있는 액체 유리 캡슐(내비바 대신) — 분면이 이 밑으로 흐른다.
-            // 콘텐츠와 같은 표면에서 좌우로 넘기고, 스위처는 그 위에 뜬 크롬(§1 액체 크롬/종이 본문).
-            // 내비바 principal 의 맨몸 세그먼트는 유리 없이 판판했다 — 피드와 같은 떠 있는 유리로 통일.
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar(auth.isSignedIn ? .hidden : .automatic, for: .navigationBar)
-            .safeAreaBar(edge: .top) {
-                if auth.isSignedIn {
-                    // 좌측 '새 글' 폭만큼의 투명 균형추 — 스위처가 화면 정중앙에 오게(피드의 벨 보정과 같은 수법).
-                    HStack(spacing: 0) {
-                        Color.clear.frame(width: FeedHeaderMetrics.circle, height: FeedHeaderMetrics.circle)
-                        Spacer(minLength: 0)
-                        // 스위처와 '새 글'은 한 영역의 유리 둘 — 컨테이너 하나로 묶어 각자 겉돌지 않게(§1.4).
-                        GlassEffectContainer(spacing: GlassTokens.clusterSpacing) {
-                            GlassSegmentSwitcher(
-                                items: StudioSection.allCases, selection: $section, label: { $0.label })
-                        }
-                        Spacer(minLength: 0)
-                        // 새 글 = 떠 있는 prominent 유리 버튼(컴포즈 툴바의 발행과 같은 문법).
-                        Button {
-                            composing = true
-                        } label: {
-                            Image(systemName: "square.and.pencil")
-                                .font(.system(size: 17))
-                                .imageScale(.large)
-                                .foregroundStyle(.white)
-                                .frame(width: FeedHeaderMetrics.circle, height: FeedHeaderMetrics.circle)
-                                .contentShape(Circle())
-                        }
-                        .buttonStyle(.plain)
-                        .glassEffect(.regular.tint(GlassTokens.prominentTint).interactive(), in: .circle)
-                        .accessibilityLabel(Text("새 글 쓰기"))
-                    }
-                    .padding(.horizontal, FeedHeaderMetrics.edge)
-                    .padding(.bottom, 8)
-                }
+        }
+        .navigationDestination(isPresented: $composing) {
+            ComposeView(post: nil, onSaved: { reloadSoon() }, onOpenPublished: openPublished)
+        }
+        .navigationDestination(item: $editing) { post in
+            ComposeView(post: post, onSaved: { reloadSoon() }, onOpenPublished: openPublished)
+        }
+        // 발행 직후 "글 보기" — 에디터가 닫히면 그 자리로 라이브 상세를 띄운다(뒤로 = 스튜디오).
+        .navigationDestination(item: $justPublished) { ref in
+            PostDetailView(username: ref.username, slug: ref.slug)
+        }
+        .onAppear {
+            // `--open analytics|compose` — 목/스크린샷 검증용 자동 진입.
+            switch Config.consumeLaunchValue(after: "--open") {
+            case "analytics": section = .analytics
+            case "series": section = .series
+            case "compose": composing = true
+            default: break
             }
-            // 푸시된 화면(에디터·상세)은 탭바 숨김을 추적하지 않는다(탭 루트 전용).
-            .navigationDestination(isPresented: $composing) {
-                ComposeView(post: nil, onSaved: { reloadSoon() }, onOpenPublished: openPublished)
-            }
-            .navigationDestination(item: $editing) { post in
-                ComposeView(post: post, onSaved: { reloadSoon() }, onOpenPublished: openPublished)
-            }
-            // 발행 직후 "글 보기" — 에디터가 닫히면 그 자리로 라이브 상세를 띄운다(뒤로 = 스튜디오).
-            .navigationDestination(item: $justPublished) { ref in
-                PostDetailView(username: ref.username, slug: ref.slug)
-            }
-            .navigationDestination(for: Route.self) {
-                RouteView(route: $0)
-            }
-            .onAppear {
-                // `--open analytics|compose` — 목/스크린샷 검증용 자동 진입.
-                switch Config.consumeLaunchValue(after: "--open") {
-                case "analytics": section = .analytics
-                case "series": section = .series
-                case "compose": composing = true
-                default: break
-                }
-            }
-            // 위젯 딥링크(분석 위젯 탭)가 남긴 목적 분면 — 탭 전환 직후에도, 이미 이 탭에
-            // 서 있던 중에도 받는다. 소비 즉시 비워 다음 진입에 재발화하지 않는다.
-            .onChange(of: TabRouter.shared.pendingStudioSection, initial: true) { _, pending in
-                guard let pending, let target = StudioSection(rawValue: pending) else { return }
-                section = target
-                TabRouter.shared.pendingStudioSection = nil
-            }
+        }
+        // 위젯 딥링크(분석 위젯 탭)·"첫 글 쓰기"가 남긴 목적 — 스튜디오가 열린 직후에도, 이미 열려
+        // 있던 중에도 받는다. 소비 즉시 비워 다음 진입에 재발화하지 않는다.
+        .onChange(of: TabRouter.shared.pendingStudioSection, initial: true) { _, pending in
+            guard let pending, let target = StudioSection(rawValue: pending) else { return }
+            section = target
+            TabRouter.shared.pendingStudioSection = nil
+        }
+        .onChange(of: TabRouter.shared.pendingStudioCompose, initial: true) { _, pending in
+            guard pending else { return }
+            composing = true
+            TabRouter.shared.pendingStudioCompose = false
         }
     }
 
