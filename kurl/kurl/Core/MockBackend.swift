@@ -2469,11 +2469,14 @@ enum MockBackend {
             // (초안 한 편 섞어 발행 전 회차 표식까지 확인 가능하게). 나머지 id 는 실제 멤버십을 읽는다.
             if sid == 7 {
                 let member = seriesFixtureMembers()
+                var items = member.map(ownerPostItem)
+                items.insert(ownerNoteItem(9540), at: 4)
                 return json([
                     "series": ["id": 7, "slug": seriesTitles[7]?.0 ?? "hexagonal",
                                "title": seriesTitles[7]?.1 ?? "헥사고날 전환기",
                                "postCount": member.count, "createdAt": iso(Date()), "updatedAt": iso(Date())],
                     "posts": member,
+                    "items": ownerItems[7] ?? items,
                 ])
             }
             let members = (seriesMembers[sid] ?? []).compactMap { id in posts.first { $0.id == id } }
@@ -2482,6 +2485,7 @@ enum MockBackend {
                            "title": seriesTitles[sid]?.1 ?? "시리즈",
                            "postCount": members.count, "createdAt": iso(Date()), "updatedAt": iso(Date())],
                 "posts": members.map(postView),
+                "items": ownerItems[sid] ?? members.map(postView).map(ownerPostItem),
             ])
         }
 
@@ -2508,6 +2512,19 @@ enum MockBackend {
             seriesMembers[sid] = []
             seriesTitles[sid] = nil
             return json([:])
+        }
+
+        // 항목 지정(글·노트 한 순서) — 목은 주인 상세가 다시 읽을 항목만 기억한다.
+        if method == "PUT", parts.count == 3, parts[0] == "series", parts[2] == "items" {
+            let sid = Int64(parts[1]) ?? 0
+            let requested = (decode(body)["items"] as? [[String: Any]]) ?? []
+            let members = seriesFixtureMembers() + posts.map(postView)
+            ownerItems[sid] = requested.compactMap { item -> [String: Any]? in
+                guard let id = (item["id"] as? NSNumber)?.int64Value else { return nil }
+                if (item["type"] as? String) == "NOTE" { return ownerNoteItem(id) }
+                return members.first { ($0["id"] as? NSNumber)?.int64Value == id }.map(ownerPostItem)
+            }
+            return json(["series": ["id": sid, "slug": "s", "title": "시리즈", "postCount": 0, "createdAt": iso(Date()), "updatedAt": iso(Date())], "posts": []])
         }
 
         if method == "PUT", parts.count == 3, parts[0] == "series", parts[2] == "posts" {
@@ -2563,6 +2580,21 @@ enum MockBackend {
             ]
         }
     }
+    /// 항목 지정으로 바뀐 주인 항목 — 없으면 기본(글 + 7번 시리즈의 노트 한 편).
+    private static var ownerItems: [Int64: [[String: Any]]] = [:]
+
+    private static func ownerPostItem(_ post: [String: Any]) -> [String: Any] {
+        [
+            "type": "POST", "note": NSNull(),
+            "post": ["id": post["id"] ?? 0, "title": post["title"] ?? "", "status": post["status"] ?? "PUBLISHED"],
+        ]
+    }
+
+    private static func ownerNoteItem(_ id: Int64) -> [String: Any] {
+        let body = allNotes().first { $0.id == id }?.body ?? ""
+        return ["type": "NOTE", "post": NSNull(), "note": ["id": id, "excerpt": body]]
+    }
+
     private static var createdSeries: [(Int64, String, String)] = []
     private static var nextSeriesId: Int64 = 100
     private static var likedComments: Set<Int64> = []

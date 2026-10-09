@@ -75,4 +75,62 @@ final class SeriesNotesUITests: XCTestCase {
             element(app, labelBeginsWith: "시리즈 헥사고날 전환기 — 5/7").waitForExistence(timeout: 8),
             "카드가 노트 상세로 가지 않음")
     }
+
+    func testAnOwnNoteGoesIntoASeriesFromItsMenu() {
+        let app = launch(["--tab", "notes"])
+
+        let menu = app.buttons["note.menu.9505"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 10), "내 노트(9505)가 피드에 없음")
+        menu.tap()
+        let add = app.buttons["note.addToSeries.9505"]
+        XCTAssertTrue(add.waitForExistence(timeout: 4), "내 노트 메뉴에 시리즈에 넣기가 없음")
+        add.tap()
+
+        let series = app.buttons["series.pick.1"]
+        XCTAssertTrue(series.waitForExistence(timeout: 8), "내 시리즈 목록이 안 뜸")
+        series.tap()
+        XCTAssertTrue(
+            element(app, labelBeginsWith: "‘헥사고날 전환기’에 넣었어요").waitForExistence(timeout: 6),
+            "넣었다는 안내가 없음")
+    }
+
+    func testSomeoneElsesNoteOffersNoSeries() {
+        let app = launch(["--tab", "notes"])
+
+        let menu = app.buttons["note.menu.9501"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 10))
+        menu.tap()
+        XCTAssertFalse(app.buttons["note.addToSeries.9501"].waitForExistence(timeout: 2), "남의 노트에 시리즈에 넣기가 뜸")
+    }
+
+    func testTheEpisodeEditorAddsANoteAndKeepsItsPlace() {
+        let app = launch(["--series", "honggildong/hexagonal"])
+
+        let manage = app.buttons["시리즈 관리"]
+        XCTAssertTrue(manage.waitForExistence(timeout: 10))
+        manage.tap()
+        app.buttons["회차 편집"].tap()
+        XCTAssertTrue(app.navigationBars["회차 편집"].waitForExistence(timeout: 8))
+        XCTAssertTrue(
+            app.descendants(matching: .any)
+                .matching(NSPredicate(format: "label CONTAINS '4편을 쓰고 남은 메모'")).firstMatch
+                .waitForExistence(timeout: 6),
+            "회차 편집에 시리즈 속 노트가 없음")
+
+        let addNote = app.buttons["series.addNote"]
+        if !addNote.waitForExistence(timeout: 2) { app.swipeUp() }
+        XCTAssertTrue(addNote.waitForExistence(timeout: 4), "노트 더하기가 없음")
+        addNote.tap()
+        let pick = app.buttons["series.pickNote.9505"]
+        XCTAssertTrue(pick.waitForExistence(timeout: 8), "고를 내 노트가 없음")
+        XCTAssertFalse(app.buttons["series.pickNote.9540"].exists, "이미 든 노트가 다시 후보에 뜸")
+        pick.tap()
+
+        let save = app.navigationBars["회차 편집"].buttons["저장"]
+        XCTAssertTrue(save.waitForExistence(timeout: 4))
+        XCTAssertTrue(save.isEnabled, "노트를 더해도 저장이 켜지지 않음")
+        save.tap()
+        expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: app.navigationBars["회차 편집"])
+        waitForExpectations(timeout: 8)
+    }
 }
