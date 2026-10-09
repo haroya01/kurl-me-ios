@@ -1587,10 +1587,10 @@ struct ComposeView: View {
             let latest = try await body
             let post = try await posts.first { $0.id == postId }
             adoptServerCopy(latest, post: post)
-            ToastCenter.shared.show(String(localized: "지금 쓴 내용은 이 기기에 보관했어요 — 다시 열면 되살릴 수 있어요"))
+            ToastCenter.shared.show(String(localized: "지금 쓴 내용은 이 기기에 보관했어요. 다시 열면 되살릴 수 있어요."))
         } catch {
             editConflict = conflict
-            ToastCenter.shared.show(String(localized: "최신 내용을 불러오지 못했어요 — 네트워크를 확인해 주세요"))
+            ToastCenter.shared.show(String(localized: "최신 내용을 불러오지 못했어요. 네트워크를 확인해 주세요."))
         }
     }
 

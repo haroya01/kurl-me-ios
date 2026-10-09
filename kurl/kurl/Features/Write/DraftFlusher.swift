@@ -71,7 +71,7 @@ final class DraftFlusher {
             } catch is PostEditConflict {
                 // 다른 기기가 먼저 고쳤다 — 덮지 않는다. 내 내용은 기기 금고 슬롯에 남아 다시 열면 이어 쓸 수 있다.
                 ToastCenter.shared.show(
-                    String(localized: "다른 기기에서 이 글을 고쳐서 저장하지 않았어요 — 다시 열면 내가 쓴 내용을 이어 쓸 수 있어요"))
+                    String(localized: "다른 기기에서 고친 글이라 저장하지 않았어요. 다시 열면 이어 쓸 수 있어요."))
             } catch {
                 // 화면은 이미 사라졌다 — 루트에 살아있는 토스트로 반드시 알린다(조용한 유실 금지).
                 // '다시 시도'는 이미 만든 초안 id 를 든 스냅샷으로 재플러시한다(초안 중복 생성 방지).

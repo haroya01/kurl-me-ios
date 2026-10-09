@@ -9288,30 +9288,30 @@
         }
       }
     },
-    "다른 기기에서 이 글을 고쳐서 저장하지 않았어요 — 다시 열면 내가 쓴 내용을 이어 쓸 수 있어요": {
+    "다른 기기에서 고친 글이라 저장하지 않았어요. 다시 열면 이어 쓸 수 있어요.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Not saved because the post was edited on another device — open it again to continue with what you wrote"
+            "value": "This post was edited on another device, so it wasn't saved. Open it again to keep writing."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "पोस्ट किसी दूसरे डिवाइस पर बदली गई थी, इसलिए सेव नहीं हुआ — दोबारा खोलकर अपना लिखा जारी रखें"
+            "value": "यह पोस्ट किसी दूसरे डिवाइस पर बदली गई थी, इसलिए सेव नहीं हुई। दोबारा खोलकर लिखना जारी रखें।"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "別の端末で編集されていたため保存しませんでした — 開き直すと書いた内容の続きから編集できます"
+            "value": "別の端末で編集された記事なので保存しませんでした。開き直すと続きから書けます。"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Chưa lưu vì bài viết đã được sửa trên thiết bị khác — mở lại để tiếp tục với nội dung bạn đã viết"
+            "value": "Bài viết đã được sửa trên thiết bị khác nên chưa được lưu. Mở lại để viết tiếp."
           }
         }
       }
@@ -18958,30 +18958,30 @@
         }
       }
     },
-    "지금 쓴 내용은 이 기기에 보관했어요 — 다시 열면 되살릴 수 있어요": {
+    "지금 쓴 내용은 이 기기에 보관했어요. 다시 열면 되살릴 수 있어요.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "What you wrote is kept on this device — open the post again to bring it back"
+            "value": "What you wrote is kept on this device. Open the post again to bring it back."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "आपका लिखा इस डिवाइस पर रखा गया है — पोस्ट दोबारा खोलकर उसे वापस लाएँ"
+            "value": "आपका लिखा इस डिवाइस पर रखा गया है। पोस्ट दोबारा खोलकर उसे वापस लाएँ।"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "いま書いた内容はこの端末に保管しました — 開き直すと復元できます"
+            "value": "いま書いた内容はこの端末に保管しました。開き直すと復元できます。"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nội dung bạn vừa viết đã được lưu trên thiết bị — mở lại bài viết để khôi phục"
+            "value": "Nội dung bạn vừa viết đã được lưu trên thiết bị này. Mở lại bài viết để khôi phục."
           }
         }
       }
@@ -31557,30 +31557,30 @@
         }
       }
     },
-    "최신 내용을 불러오지 못했어요 — 네트워크를 확인해 주세요": {
+    "최신 내용을 불러오지 못했어요. 네트워크를 확인해 주세요.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Couldn't load the latest version — check your connection"
+            "value": "Couldn't load the latest version. Check your connection."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "नवीनतम संस्करण लोड नहीं हो सका — कनेक्शन जाँचें"
+            "value": "नवीनतम संस्करण लोड नहीं हो सका। कनेक्शन जाँचें।"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "最新の内容を読み込めませんでした — 通信状況を確認してください"
+            "value": "最新の内容を読み込めませんでした。通信状況を確認してください。"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Không tải được bản mới nhất — hãy kiểm tra kết nối"
+            "value": "Không tải được bản mới nhất. Hãy kiểm tra kết nối."
           }
         }
       }
