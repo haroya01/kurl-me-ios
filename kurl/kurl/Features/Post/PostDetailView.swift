@@ -203,43 +203,49 @@ private struct PostDetailReader: View {
     /// 자리가 이 값을 공유하고, 상수라 크롬이 접혀도 스크롤 메트릭이 흔들리지 않는다.
     private static let topBarHeight: CGFloat = 44
 
+    // 본문·끝맺음·댓글을 담은 스크롤 내용은 타입 경계(AnyView) 뒤에 둔다 — 수정자 사슬과 한 타입으로
+    // 중첩되면 실기기(작은 메인 스레드 스택)에서 타입 정보를 풀다 스택이 넘쳐 글을 열자마자 꺼졌다.
+    private var scrollContent: some View {
+        VStack(spacing: 0) {
+            // 커스텀 상단 바 자리 — 시스템 내비바가 접힌 만큼 본문 시작을 상수로 내려
+            // 앉힌다(바는 오버레이라 크롬이 접혀도 이 여백은 변하지 않아 본문이 출렁이지
+            // 않는다). contentMargins 는 하위 중첩 스크롤에도 전파돼 쓰지 않는다.
+            if !embedded {
+                Color.clear.frame(height: Self.topBarHeight)
+            }
+            switch model.phase {
+            case .idle, .loading:
+                KurlLoadingMark()
+                    .frame(maxWidth: .infinity, minHeight: 320)
+            case .failed(let message):
+                ErrorState(message: message, retry: { Task { await model.load() } })
+                    .padding(.top, 80)
+            case .loaded(let detail):
+                // 커버 헤더 없음 — 제목이 항상 맨 위(커버·무커버 글 제목 위치 일관).
+                // 커버 이미지가 의미 있으면 작가가 본문에 넣고, 발견 카드엔 그대로 남는다.
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    content(detail)
+                }
+                .frame(maxWidth: Metrics.readingColumn)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, Metrics.gutter)
+                // 접근성 크기에선 한 줄이 예닐곱 자라 우측에 뜬 인게이지 독(52pt 원판)이
+                // 글자를 정통으로 가린다 — 독 폭만큼 본문을 비켜 감는다. 평상 크기에선
+                // 문단 오른끝 여백이 자연 완충이라 그대로 둔다.
+                .padding(.trailing, dynamicTypeSize.isAccessibilitySize ? 56 : 0)
+                // 본문 문단이 선택→하이라이트 + 공개 하이라이트 페인트를 띄울 수 있게.
+                .environment(\.postHighlightStore, highlights)
+            }
+        }
+    }
+
     // 상세 body 는 모디파이어 사슬이 길어 하나의 식으로는 타입 검사 예산을 넘는다 —
     // ScrollView + 스크롤/툴바 계열을 scrollBody 로 잘라 불투명 경계(some View)를 만들고,
     // 나머지(시트·태스크·오버레이)는 body 에서 이어 붙여 두 개의 작은 식으로 나눈다.
     @ViewBuilder
     private func scrollBody(_ proxy: ScrollViewProxy) -> some View {
         ScrollView {
-            VStack(spacing: 0) {
-                // 커스텀 상단 바 자리 — 시스템 내비바가 접힌 만큼 본문 시작을 상수로 내려
-                // 앉힌다(바는 오버레이라 크롬이 접혀도 이 여백은 변하지 않아 본문이 출렁이지
-                // 않는다). contentMargins 는 하위 중첩 스크롤에도 전파돼 쓰지 않는다.
-                if !embedded {
-                    Color.clear.frame(height: Self.topBarHeight)
-                }
-                switch model.phase {
-                case .idle, .loading:
-                    KurlLoadingMark()
-                        .frame(maxWidth: .infinity, minHeight: 320)
-                case .failed(let message):
-                    ErrorState(message: message, retry: { Task { await model.load() } })
-                        .padding(.top, 80)
-                case .loaded(let detail):
-                    // 커버 헤더 없음 — 제목이 항상 맨 위(커버·무커버 글 제목 위치 일관).
-                    // 커버 이미지가 의미 있으면 작가가 본문에 넣고, 발견 카드엔 그대로 남는다.
-                    LazyVStack(alignment: .leading, spacing: 0) {
-                        content(detail)
-                    }
-                    .frame(maxWidth: Metrics.readingColumn)
-                    .frame(maxWidth: .infinity)
-                    .padding(.horizontal, Metrics.gutter)
-                    // 접근성 크기에선 한 줄이 예닐곱 자라 우측에 뜬 인게이지 독(52pt 원판)이
-                    // 글자를 정통으로 가린다 — 독 폭만큼 본문을 비켜 감는다. 평상 크기에선
-                    // 문단 오른끝 여백이 자연 완충이라 그대로 둔다.
-                    .padding(.trailing, dynamicTypeSize.isAccessibilitySize ? 56 : 0)
-                    // 본문 문단이 선택→하이라이트 + 공개 하이라이트 페인트를 띄울 수 있게.
-                    .environment(\.postHighlightStore, highlights)
-                }
-            }
+            AnyView(scrollContent)
         }
         .scrollIndicators(.hidden)
         .scrollDismissesKeyboard(.interactively)
@@ -390,7 +396,7 @@ private struct PostDetailReader: View {
 
     var body: some View {
         ScrollViewReader { proxy in
-        scrollBody(proxy)
+        AnyView(scrollBody(proxy))
         .reportDialog(isPresented: $showReport, subjectType: "POST", subjectId: loadedPostId ?? 0)
         .blockDialog(
             isPresented: $showBlockConfirm,
@@ -1266,7 +1272,7 @@ private struct PostDetailReader: View {
                 .padding(.top, 10)
         }
         authorCard(detail.author)
-        comments(authorId: detail.author.id)
+        AnyView(comments(authorId: detail.author.id))
             .id(Self.commentsAnchor)
         // 끝에서 이어 당기기 큐 — 덱은 같은 작가 다음 글, 단독 시리즈는 다음 편. 손가락 따라 셰브론이
         // 돌고 제목이 떠오른다. 탭으로도 넘어간다(짧은 글은 러버밴드가 없어 당김이 성립 안 함).
