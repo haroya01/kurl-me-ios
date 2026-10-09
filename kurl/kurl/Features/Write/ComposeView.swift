@@ -106,6 +106,8 @@ struct ComposeView: View {
     @State private var recoveryStashTask: Task<Void, Never>?
     /// 열었을 때 금고에서 발견한 "서버에 못 실린 변경" — 복구/버리기 제안의 재료.
     @State private var pendingRecovery: ComposeRecoveryStore.Draft?
+    /// 초안 id 를 얻기 전 이 편집의 금고 슬롯 키 — 새 글끼리 한 슬롯을 나눠 쓰지 않게 편집마다 따로.
+    @State private var draftKey = UUID()
     /// 세션이 풀렸을 때 컴포즈를 떠나지 않고 다시 로그인하는 시트.
     @State private var showLoginSheet = false
 
@@ -218,12 +220,13 @@ struct ComposeView: View {
             // 디바운스를 기다리지 않고 즉시 금고에 눕힌다 — 이탈 플러시가 실패해도 기기에 남는다.
             recoveryStashTask?.cancel()
             if signature != lastSavedSignature {
-                ComposeRecoveryStore.stash(postId: postId, title: title, markdown: markdown)
+                ComposeRecoveryStore.stash(postId: postId, draftKey: draftKey, title: title, markdown: markdown)
             }
             if allowsAutosave, canSave, signature != lastSavedSignature {
                 DraftFlusher.shared.flush(
                     .init(
                         postId: postId,
+                        draftKey: draftKey,
                         title: title,
                         markdown: markdown,
                         savedTitle: savedTitle,
@@ -276,7 +279,7 @@ struct ComposeView: View {
                 pendingRecovery = nil
             }
             Button("버리기", role: .destructive) {
-                ComposeRecoveryStore.clear(postId: postId)
+                ComposeRecoveryStore.clear(postId: postId, draftKey: draftKey)
                 pendingRecovery = nil
             }
         } message: {
@@ -1401,10 +1404,20 @@ struct ComposeView: View {
 
     /// 금고에 "서버에 못 실린 변경"이 남아 있으면 복구를 제안한다 — 지난 세션이 저장 실패/강제
     /// 종료로 끝났다는 뜻. 서버 본문과 같으면(이미 실렸으면) 조용히 슬롯만 비운다.
+    /// 새 글은 아직 플러시가 서버로 나르는 중인 다른 새 글을 빼고, 고른 슬롯을 이 편집의 슬롯으로 이어 쓴다.
     private func offerRecoveryIfAny() {
-        guard let draft = ComposeRecoveryStore.peek(postId: postId) else { return }
+        let draft: ComposeRecoveryStore.Draft
+        if postId == nil {
+            guard let orphan = ComposeRecoveryStore.latestNewDraft(
+                excluding: DraftFlusher.shared.pendingDraftKeys) else { return }
+            draftKey = orphan.key
+            draft = orphan.draft
+        } else {
+            guard let stashed = ComposeRecoveryStore.peek(postId: postId, draftKey: draftKey) else { return }
+            draft = stashed
+        }
         if draft.markdown == markdown, draft.title == title {
-            ComposeRecoveryStore.clear(postId: postId)
+            ComposeRecoveryStore.clear(postId: postId, draftKey: draftKey)
             return
         }
         pendingRecovery = draft
@@ -1473,12 +1486,13 @@ struct ComposeView: View {
         // 서버 자동저장과 별개로 기기 금고에도 눕힌다(0.8초 디바운스) — 서버가 실패하든 앱이
         // 죽든, 마지막 몇 초의 변경까지 기기에 남는다. 제목만 있어도 스태시(canSave 와 무관).
         recoveryStashTask?.cancel()
-        let stash = (postId: postId, title: title, markdown: markdown)
+        let stash = (title: title, markdown: markdown)
         recoveryStashTask = Task {
             try? await Task.sleep(for: .milliseconds(800))
             guard !Task.isCancelled else { return }
-            ComposeRecoveryStore.stash(postId: stash.postId, title: stash.title, markdown: stash.markdown)
-            if let saved = ComposeRecoveryStore.peek(postId: stash.postId),
+            // 슬롯은 쓰는 순간의 것 — 디바운스 사이 초안 id 가 생겼으면 승격된 id 슬롯에 써야 새 글 슬롯이 고아로 안 남는다.
+            ComposeRecoveryStore.stash(postId: postId, draftKey: draftKey, title: stash.title, markdown: stash.markdown)
+            if let saved = ComposeRecoveryStore.peek(postId: postId, draftKey: draftKey),
                saved.title == stash.title, saved.markdown == stash.markdown {
                 locallySavedBodySignature = [stash.title, stash.markdown].joined(separator: "\u{1F}")
             }
@@ -1547,7 +1561,7 @@ struct ComposeView: View {
             autosaveRetryStreak = 0
             // 서버에 실렸다 — 금고 슬롯을 비운다(스냅샷 이후 입력은 다음 스태시가 다시 눕힌다).
             recoveryStashTask?.cancel()
-            ComposeRecoveryStore.clear(postId: postId)
+            ComposeRecoveryStore.clear(postId: postId, draftKey: draftKey)
             onSaved()
             // 스냅샷 이후 입력이 있었으면 디바운스를 다시 무장한다.
             if signature != snapshot { scheduleAutosave() }
@@ -1611,8 +1625,8 @@ struct ComposeView: View {
         defer { createTask = nil }
         let id = try await task.value
         postId = id
-        // 새 글이 초안 id 를 얻었다 — 금고의 new 슬롯을 이 id 로 승격(중간에 죽어도 이어지게).
-        ComposeRecoveryStore.promote(to: id)
+        // 새 글이 초안 id 를 얻었다 — 금고의 이 편집 슬롯을 이 id 로 승격(중간에 죽어도 이어지게).
+        ComposeRecoveryStore.promote(draftKey, to: id)
         return id
     }
 

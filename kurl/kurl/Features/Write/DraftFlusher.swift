@@ -25,6 +25,8 @@ final class DraftFlusher {
     /// 떠나는 편집에서 넘겨받는, 저장에 필요한 값 스냅샷(뷰 상태 참조 없음).
     struct Payload {
         var postId: Int64?
+        /// 새 글의 기기 금고 슬롯 키 — 초안이 생기면 이 슬롯을 id 슬롯으로 승격한다.
+        var draftKey: UUID
         var title: String
         var markdown: String
         /// 서버에 이미 반영된 값 — 바뀐 필드만 PATCH 하기 위한 비교 기준.
@@ -37,35 +39,48 @@ final class DraftFlusher {
         var seriesId: Int64?
     }
 
-    private var inFlight = false
+    /// 차례를 기다리거나 서버로 가는 중인 플러시 — 맨 앞이 지금 보내는 것.
+    private var queue: [Payload] = []
+    private let perform: @MainActor (inout Payload) async throws -> Void
 
-    /// 편집을 떠날 때 호출 — 넘겨받은 스냅샷으로 저장을 끝까지 수행한다.
-    /// 성공하면 조용히, 실패하면 루트 토스트로 알리고 '다시 시도'로 재플러시할 수 있게 한다.
+    init(perform: @escaping @MainActor (inout Payload) async throws -> Void = DraftFlusher.saveToServer) {
+        self.perform = perform
+    }
+
+    /// 아직 서버에 닿지 않은 새 글의 금고 키 — 새 글 화면이 이 슬롯을 복구 대상으로 오인하지 않게.
+    var pendingDraftKeys: Set<UUID> { Set(queue.map(\.draftKey)) }
+
+    /// 편집을 떠날 때 호출 — 넘겨받은 스냅샷으로 저장을 끝까지 수행한다. 앞 플러시가 가는 중이면
+    /// 버리지 않고 뒤에 세운다. 성공하면 조용히, 실패하면 루트 토스트로 알리고 '다시 시도'로 재플러시할 수 있게 한다.
     func flush(_ payload: Payload) {
-        guard !inFlight else { return }
-        inFlight = true
-        Task { [payload] in
-            defer { inFlight = false }
+        queue.append(payload)
+        guard queue.count == 1 else { return }
+        Task { await drain() }
+    }
+
+    private func drain() async {
+        while var payload = queue.first {
             do {
-                try await Self.perform(payload)
-                // 서버에 실렸다 — 기기 금고 슬롯을 비운다(new 슬롯 포함: 플러시가 초안을 만든 경우).
-                ComposeRecoveryStore.clear(postId: payload.postId)
-                if payload.postId == nil { ComposeRecoveryStore.clear(postId: nil) }
+                try await perform(&payload)
+                // 서버에 실렸다 — 기기 금고 슬롯을 비운다(초안을 만들었으면 승격된 id 슬롯).
+                ComposeRecoveryStore.clear(postId: payload.postId, draftKey: payload.draftKey)
                 // 저장이 끝났음을 알려 스튜디오가 목록을 다시 읽게 한다(뷰 밖 생성분 반영).
                 completedTick &+= 1
             } catch {
                 // 화면은 이미 사라졌다 — 루트에 살아있는 토스트로 반드시 알린다(조용한 유실 금지).
-                // '다시 시도'로 같은 스냅샷을 재플러시(초안 미생성이면 그때 생성).
+                // '다시 시도'는 이미 만든 초안 id 를 든 스냅샷으로 재플러시한다(초안 중복 생성 방지).
                 // 원인이 인증이면 "네트워크 확인" 은 거짓 처방 — 다시 로그인을 말한다.
+                let retry = payload
                 ToastCenter.shared.show(
                     Self.isAuthFailure(error)
                         ? String(localized: "로그인이 풀려 저장하지 못했어요 — 다시 로그인한 뒤 시도해 주세요")
                         : String(localized: "저장하지 못했어요 — 네트워크를 확인하고 다시 시도해 주세요"),
                     actionLabel: String(localized: "다시 시도")
-                ) {
-                    DraftFlusher.shared.flush(payload)
+                ) { [weak self] in
+                    self?.flush(retry)
                 }
             }
+            queue.removeFirst()
         }
     }
 
@@ -77,12 +92,14 @@ final class DraftFlusher {
     }
 
     /// 저장 본체 — save(silent:) 의 성공 경로와 같은 순서(초안 생성 → 본문 교체 → 바뀐 메타 PATCH → 시리즈).
-    private static func perform(_ p: Payload) async throws {
+    static func saveToServer(_ p: inout Payload) async throws {
         let id: Int64
         if let existing = p.postId {
             id = existing
         } else {
             id = try await WriteAPI.createDraft(title: p.title.trimmingCharacters(in: .whitespaces)).id
+            p.postId = id
+            ComposeRecoveryStore.promote(p.draftKey, to: id)
         }
         _ = try await WriteAPI.replaceMarkdown(postId: id, markdown: p.markdown)
         let newTitle = p.title.trimmingCharacters(in: .whitespaces)
