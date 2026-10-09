@@ -492,26 +492,35 @@ struct ComposeView: View {
     }
 
     private var meta: some View {
-        TextField("제목", text: $title, axis: .vertical)
-            .accessibilityIdentifier("제목")
-            .lineLimit(1...4)
-            .typeScale(.masthead)
-            .focused($focusedField, equals: .title)
-            .submitLabel(.next)
-            .onChange(of: title) { oldValue, newValue in
-                guard newValue.contains("\n") else { return }
-                if let split = Self.splitAtReturn(from: oldValue, to: newValue) {
-                    title = split.title
-                    focusBodyEditor(carrying: split.carried)
-                } else {
-                    title = newValue
-                        .replacingOccurrences(of: "\n", with: " ")
-                        .trimmingCharacters(in: .whitespaces)
+        VStack(alignment: .trailing, spacing: 4) {
+            TextField("제목", text: $title, axis: .vertical)
+                .accessibilityIdentifier("제목")
+                .lineLimit(1...4)
+                .typeScale(.masthead)
+                .focused($focusedField, equals: .title)
+                .submitLabel(.next)
+                .onChange(of: title) { oldValue, newValue in
+                    guard newValue.contains("\n") else {
+                        if newValue.utf16.count > PostLimits.title {
+                            // 같은 갱신 안에서 직전 값으로 되돌리면 TextField 가 이미 그린 넘친 글자를 지우지 않는다.
+                            Task { title = PostLimits.clamped(title, to: PostLimits.title) }
+                        }
+                        return
+                    }
+                    if let split = Self.splitAtReturn(from: oldValue, to: newValue) {
+                        title = split.title
+                        focusBodyEditor(carrying: split.carried)
+                    } else {
+                        title = newValue
+                            .replacingOccurrences(of: "\n", with: " ")
+                            .trimmingCharacters(in: .whitespaces)
+                    }
                 }
-            }
-            .padding(.horizontal, Metrics.gutter)
-            .padding(.top, 16)
-            .padding(.bottom, 12)
+            LengthLimitCount(text: title, limit: PostLimits.title)
+        }
+        .padding(.horizontal, Metrics.gutter)
+        .padding(.top, 16)
+        .padding(.bottom, 12)
     }
 
     /// 본문 캔버스 — 옵트인이면 WriteV2 블록 에디터, 아니면 현행 마크다운 에디터(default).
@@ -768,16 +777,24 @@ struct ComposeView: View {
                     .modifier(QuietAppear(index: 1))
 
                     sheetField("소개글") {
-                        TextField(
-                            "소개글 — 카드와 검색에 보이는 한 단락", text: $excerpt, axis: .vertical
-                        )
-                        .typeScale(.lede)
-                        .lineLimit(2...4)
-                        .padding(.horizontal, 13)
-                        .padding(.vertical, 11)
-                        .background(
-                            Palette.chipBg,
-                            in: RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
+                        VStack(alignment: .trailing, spacing: 4) {
+                            TextField(
+                                "소개글 — 카드와 검색에 보이는 한 단락", text: $excerpt, axis: .vertical
+                            )
+                            .typeScale(.lede)
+                            .lineLimit(2...4)
+                            .padding(.horizontal, 13)
+                            .padding(.vertical, 11)
+                            .background(
+                                Palette.chipBg,
+                                in: RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
+                            .onChange(of: excerpt) { _, value in
+                                if value.utf16.count > PostLimits.excerpt {
+                                    Task { excerpt = PostLimits.clamped(excerpt, to: PostLimits.excerpt) }
+                                }
+                            }
+                            LengthLimitCount(text: excerpt, limit: PostLimits.excerpt)
+                        }
                     }
                     .modifier(QuietAppear(index: 2))
 
@@ -1511,11 +1528,9 @@ struct ComposeView: View {
         guard !busy, canSave, !silent || allowsAutosave else { return }
         // 명시 저장·발행이면 아직 +/Enter 안 누른 입력 중 태그도 포함한다(유실 방지).
         if !silent {
-            let pending = normalizedTag(tagDraft)
-            // 대소문자 무시 중복 검사 — TagsField.commit 과 같은 규칙(중복 태그 방지).
-            if !pending.isEmpty,
-                !tags.contains(where: { $0.caseInsensitiveCompare(pending) == .orderedSame }) {
-                tags.append(pending)
+            let next = PostLimits.adding(tagDraft, to: tags)
+            if next != tags {
+                tags = next
                 tagDraft = ""
             }
         }
@@ -2748,14 +2763,21 @@ private struct RevisionsSheet: View {
     }
 }
 
-/// 태그 정규화 — '#' 제거(태그는 해시태그가 아니라 주제어) + 공백 트림 + 최대 길이 캡
-/// (백엔드 PostEntity.MAX_TAG_LENGTH = 40 과 정합). 빈 입력이면 빈 문자열을 돌려준다.
-private func normalizedTag(_ raw: String) -> String {
-    String(
-        raw.replacingOccurrences(of: "#", with: "")
-            .trimmingCharacters(in: .whitespaces)
-            .prefix(40)
-    )
+/// 한도의 90%부터만 보이는 글자 수(서버와 같은 UTF-16 기준).
+private struct LengthLimitCount: View {
+    let text: String
+    let limit: Int
+
+    var body: some View {
+        let length = text.utf16.count
+        if length >= limit * 9 / 10 {
+            Text(verbatim: "\(length)/\(limit)")
+                .typeScale(.meta)
+                .monospacedDigit()
+                .foregroundStyle(length >= limit ? Palette.danger : Palette.secondary)
+                .accessibilityLabel(length >= limit ? Text("\(limit)자까지 쓸 수 있어요") : Text("\(limit - length)자 남음"))
+        }
+    }
 }
 
 /// 대표 태그 칩 에디터 — 입력해서 칩으로 쌓고, 첫 칩이 "대표"(카드·글 위 카테고리).
@@ -2774,6 +2796,7 @@ private struct TagsField: View {
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
                     .submitLabel(.done)
+                    .disabled(atMax)
                     .onSubmit { commit() }
                     .onChange(of: draft) { _, value in
                         // '#'는 태그에서 못 쓰게 — 입력 즉시 제거(태그는 해시태그가 아니라 주제어).
@@ -2786,7 +2809,7 @@ private struct TagsField: View {
                         .foregroundStyle(isDraftEmpty ? Palette.faint : Palette.accent)
                 }
                 .buttonStyle(.plain)
-                .disabled(isDraftEmpty)
+                .disabled(isDraftEmpty || atMax)
                 .accessibilityLabel(Text("태그 추가"))
             }
             .padding(.horizontal, 13)
@@ -2803,9 +2826,20 @@ private struct TagsField: View {
                         chip(tag, isPrimary: index == 0)
                     }
                 }
-                Text("탭하면 대표로 · ✕ 로 삭제")
-                    .typeScale(.footnote)
-                    .foregroundStyle(Palette.secondary)
+                HStack(alignment: .firstTextBaseline) {
+                    if atMax {
+                        Text("태그는 \(PostLimits.tags)개까지 달 수 있어요")
+                    } else {
+                        Text("탭하면 대표로 · ✕ 로 삭제")
+                    }
+                    Spacer(minLength: 8)
+                    if tags.count >= PostLimits.tags - 2 {
+                        Text(verbatim: "\(tags.count)/\(PostLimits.tags)")
+                            .monospacedDigit()
+                    }
+                }
+                .typeScale(.footnote)
+                .foregroundStyle(Palette.secondary)
             }
         }
     }
@@ -2848,14 +2882,10 @@ private struct TagsField: View {
         draft.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
+    private var atMax: Bool { tags.count >= PostLimits.tags }
+
     private func commit() {
-        let parts = draft
-            .split(whereSeparator: { $0 == "," })
-            .map { normalizedTag(String($0)) }
-            .filter { !$0.isEmpty }
-        for part in parts where !tags.contains(where: { $0.caseInsensitiveCompare(part) == .orderedSame }) {
-            tags.append(part)
-        }
+        tags = PostLimits.adding(draft, to: tags)
         draft = ""
     }
 

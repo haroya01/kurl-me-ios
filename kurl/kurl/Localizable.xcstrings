@@ -32596,6 +32596,34 @@
         }
       }
     },
+    "태그는 %lld개까지 달 수 있어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can add up to %lld tags"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आप %lld टैग तक जोड़ सकते हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タグは%lld個までつけられます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn có thể thêm tối đa %lld thẻ"
+          }
+        }
+      }
+    },
     "태블릿": {
       "localizations": {
         "en": {
