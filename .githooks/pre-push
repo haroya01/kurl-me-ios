@@ -11,7 +11,7 @@
 DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode-27-beta.app/Contents/Developer}"
 export DEVELOPER_DIR
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-LOG=/tmp/kurl_prepush.log
+LOG="/tmp/kurl_prepush-$(basename "$ROOT").log"
 
 # Xcode 27 베타 toolchain 없으면(다른 머신/CI) 조용히 통과.
 [ -d "$DEVELOPER_DIR" ] || { echo "↷ pre-push: Xcode 27 베타 없음 — 가드 건너뜀"; exit 0; }
