@@ -73,8 +73,23 @@ final class BlogFeedChoice {
         }
     }
 
+    struct LoginRequest {
+        let route: Route
+        let message: LocalizedStringKey
+    }
+
+    var pendingLogin: LoginRequest?
+
     func open(_ route: Route) {
         path.append(route)
+    }
+
+    func open(_ route: Route, orAskLogin message: LocalizedStringKey) {
+        if AuthStore.shared.isSignedIn {
+            open(route)
+        } else {
+            pendingLogin = LoginRequest(route: route, message: message)
+        }
     }
 
     func signedOut() {
@@ -113,6 +128,14 @@ struct FeedView: View {
             }
             .onChange(of: AuthStore.shared.isSignedIn) { _, signedIn in
                 if !signedIn { choice.signedOut() }
+            }
+            .loginPrompt(
+                isPresented: Binding(
+                    get: { choice.pendingLogin != nil },
+                    set: { if !$0 { choice.pendingLogin = nil } }),
+                message: choice.pendingLogin?.message ?? ""
+            ) { [route = choice.pendingLogin?.route] in
+                if let route { choice.open(route) }
             }
             .background(alignment: .top) { FeedHeaderMist() }
             .background(Palette.readingBg)
@@ -154,9 +177,19 @@ struct BlogFeedMoreMenu: View {
     var body: some View {
         Section {
             Button {
-                choice.open(.blogFeed(.forYou))
+                choice.open(.blogFeed(.forYou), orAskLogin: "추천을 받으려면 로그인하세요")
             } label: {
                 Label(FeedSource.forYou.label, systemImage: "sparkles")
+            }
+            Button {
+                choice.open(.subscribedTags, orAskLogin: "구독한 태그를 보려면 로그인하세요")
+            } label: {
+                Label("구독한 태그", systemImage: "number")
+            }
+            Button {
+                choice.open(.myCollections, orAskLogin: "컬렉션을 열려면 로그인하세요")
+            } label: {
+                Label("내 컬렉션", systemImage: "rectangle.stack")
             }
         }
     }

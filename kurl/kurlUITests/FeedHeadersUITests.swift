@@ -108,19 +108,38 @@ final class FeedHeadersUITests: XCTestCase {
         app.buttons.matching(NSPredicate(format: "label == %@", label)).firstMatch
     }
 
+    private let blogMoreItems: [(label: String, screen: String, login: String)] = [
+        ("추천", "추천", "추천을 받으려면 로그인하세요"),
+        ("구독한 태그", "구독한 태그", "구독한 태그를 보려면 로그인하세요"),
+        ("내 컬렉션", "컬렉션", "컬렉션을 열려면 로그인하세요"),
+    ]
+
+    private func openBlogMore(_ app: XCUIApplication) {
+        let more = app.buttons["feed.more"]
+        XCTAssertTrue(more.waitForExistence(timeout: 15), "블로그 더 보기가 없음")
+        more.tap()
+    }
+
     func testTheMoreMenusHoldTheirOwnFeeds() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "feed"]
         app.launch()
 
-        let blogMore = app.buttons["feed.more"]
-        XCTAssertTrue(blogMore.waitForExistence(timeout: 15), "블로그 더 보기가 없음")
-        blogMore.tap()
-        let forYou = menuItem(app, "추천")
-        XCTAssertTrue(forYou.waitForExistence(timeout: 4), "블로그 더 보기에 추천이 없음")
-        shot("blog-more-menu")
-        forYou.tap()
-        XCTAssertTrue(app.navigationBars["추천"].waitForExistence(timeout: 6), "추천 화면이 열리지 않음")
+        for (index, item) in blogMoreItems.enumerated() {
+            openBlogMore(app)
+            if index == 0 {
+                for other in blogMoreItems {
+                    XCTAssertTrue(menuItem(app, other.label).waitForExistence(timeout: 4), "블로그 더 보기에 \(other.label)이 없음")
+                }
+                shot("blog-more-menu")
+            }
+            menuItem(app, item.label).tap()
+            XCTAssertTrue(
+                app.navigationBars[item.screen].waitForExistence(timeout: 6), "\(item.label)이 \(item.screen) 화면을 열지 않음")
+            shot("blog-more-\(item.screen)")
+            app.navigationBars[item.screen].buttons["BackButton"].tap()
+            XCTAssertTrue(app.buttons["feed.more"].waitForExistence(timeout: 6), "피드 머리로 돌아오지 못함")
+        }
 
         openNotesTab(app)
         let notesMore = app.buttons["notes.more"]
@@ -130,5 +149,25 @@ final class FeedHeadersUITests: XCTestCase {
             XCTAssertTrue(menuItem(app, label).waitForExistence(timeout: 4), "노트 더 보기에 \(label)이 없음")
         }
         shot("notes-more-menu")
+    }
+
+    func testSignedOutBlogMoreItemsAskToSignIn() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--logged-out", "--screen", "none", "--tab", "feed"]
+        app.launch()
+        let sheet = app.descendants(matching: .any).matching(identifier: "login.sheet").firstMatch
+
+        for item in blogMoreItems {
+            openBlogMore(app)
+            menuItem(app, item.label).tap()
+            XCTAssertTrue(sheet.waitForExistence(timeout: 5), "비로그인 \(item.label)이 로그인 시트를 열지 않음")
+            XCTAssertTrue(app.staticTexts[item.login].exists, "\(item.label) 로그인 시트 문구가 맥락과 다름")
+            XCTAssertFalse(app.navigationBars[item.screen].exists, "비로그인인데 \(item.screen) 화면이 열림")
+            shot("blog-more-login-\(item.screen)")
+            sheet.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.05)).press(
+                forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.99)),
+                withVelocity: .fast, thenHoldForDuration: 0)
+            XCTAssertTrue(sheet.waitForNonExistence(timeout: 5), "로그인 시트가 닫히지 않음")
+        }
     }
 }
