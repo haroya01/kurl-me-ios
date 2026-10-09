@@ -126,6 +126,45 @@ final class NoteNotificationsUITests: XCTestCase {
         XCTAssertTrue(note.waitForExistence(timeout: 8), "새 노트 알림이 그 노트를 열지 않음")
     }
 
+    func testAHidingNotificationFilterHidesEveryNoticeQuotingSomeoneElsesNote() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "account"]
+        app.launch()
+
+        let settings = app.buttons["설정"].firstMatch
+        XCTAssertTrue(settings.waitForExistence(timeout: 15))
+        settings.tap()
+        let entry = app.buttons["settings.filters"].firstMatch
+        for _ in 0..<8 where !entry.isHittable { app.swipeUp() }
+        entry.tap()
+        app.buttons["noteFilter.add"].firstMatch.tap()
+        let phrase = app.textFields["noteFilter.phrase"]
+        XCTAssertTrue(phrase.waitForExistence(timeout: 6), "필터 편집기가 안 열림")
+        phrase.tap()
+        phrase.typeText("헥사고날")
+        let notices = app.switches["noteFilter.context.notifications"].firstMatch
+        for _ in 0..<4 where !notices.isHittable { app.swipeUp() }
+        notices.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+        XCTAssertEqual(notices.value as? String, "1", "알림 맥락이 켜지지 않음")
+        app.buttons["noteFilter.action"].firstMatch.tap()
+        app.buttons["완전히 숨기기"].firstMatch.tap()
+        app.buttons["noteFilter.save"].tap()
+        XCTAssertTrue(app.buttons["noteFilter.row.800"].waitForExistence(timeout: 6), "필터가 목록에 안 생김")
+
+        let bell = app.buttons["알림"].firstMatch
+        for _ in 0..<4 where !bell.isHittable { app.navigationBars.buttons.element(boundBy: 0).tap() }
+        bell.tap()
+
+        XCTAssertTrue(row(app, contains: "내 노트에 답글을 남겼어요").waitForExistence(timeout: 12), "인박스가 뜨지 않음")
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "notices-hidden-by-filter"
+        shot.lifetime = .keepAlways
+        add(shot)
+        for label in ["노트에서 나를 언급했어요", "새 노트를 올렸어요", "리포스트하거나 인용한 노트를 수정했어요", "노트에서 내 글을 인용했어요"] {
+            XCTAssertFalse(scrolledTo(app, row(app, contains: label)), "필터에 걸린 알림이 보임: \(label)")
+        }
+    }
+
     func testAnEditNoticeOpensTheNoteThatChanged() throws {
         let app = launchInbox()
 
