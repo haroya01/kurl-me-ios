@@ -6,9 +6,8 @@
 import AuthenticationServices
 import SwiftUI
 
-/// Apple + Google 로그인 버튼 한 쌍 — 계정 탭·글쓰기 게이트·웰컴·로그인 시트가 공유하는 단일 출처.
-/// 이 묶음(공식 Apple 버튼 + 그린 캡슐 Google + 2FA 시트 + 실패 알럿)이 네 곳에 복제돼 있던 것을
-/// 한 자리로. 2FA 가 걸리면 TwoFactorSheet 를 여기서 직접 띄워 끝까지 간다(면마다 따로 처리 X).
+/// Apple + Google 로그인 버튼 한 쌍 — 웰컴과 로그인 시트가 공유하는 단일 출처.
+/// 2FA 가 걸리면 TwoFactorSheet 를 여기서 직접 띄워 끝까지 간다(면마다 따로 처리 X).
 /// 로그인이 끝나면 `onSignedIn`(보통 시트 닫기·hydrate)을 부른다.
 struct AuthProviderButtons: View {
     var onSignedIn: () async -> Void = {}

@@ -140,6 +140,7 @@ struct RootView: View {
     @State private var noteFeed = NoteFeedChoice.shared
     /// 한 번이라도 연 탭 — 상주시켜 스크롤 위치·상태를 보존한다(시스템 TabView 대체).
     @State private var visitedTabs: Set<Int> = []
+    @State private var showWriteLogin = false
     /// 로그인 직후 1회 웹 안내 — 이 실행이 "로그아웃 상태로 시작"했을 때만 후보(콜드런치
     /// 세션 복원에는 안 뜬다). RootView 생성 시점의 세션 상태를 그대로 박는다.
     @State private var didStartSignedOut = !AuthStore.shared.isSignedIn
@@ -181,7 +182,7 @@ struct RootView: View {
             // 로그인 시트는 인게이지 탭으로만 떠 simctl 로 못 띄운다 — 검증 진입로.
             Color(uiColor: .systemBackground).ignoresSafeArea()
                 .sheet(isPresented: .constant(true)) {
-                    LoginSheet(message: "좋아한 글은 내 라이브러리에 쌓여요")
+                    LoginSheet(message: "좋아요를 누르려면 로그인하세요")
                 }
         } else if Config.launchValue(after: "--screen") == "webintro" {
             // 로그인 직후 1회 시트는 로그인 전환으로만 떠 simctl 로 못 띄운다 — 검증 진입로.
@@ -238,7 +239,19 @@ struct RootView: View {
 
     private var tabs: some View {
         @Bindable var router = TabRouter.shared
-        return tabView(selection: $router.selection)
+        let selection = Binding<Int>(
+            get: { TabRouter.shared.selection },
+            set: { index in
+                if index == 2, !AuthStore.shared.isSignedIn {
+                    showWriteLogin = true
+                } else {
+                    TabRouter.shared.selection = index
+                }
+            })
+        return tabView(selection: selection)
+            .loginPrompt(isPresented: $showWriteLogin, message: "글을 쓰려면 로그인하세요") {
+                TabRouter.shared.selection = 2
+            }
             // 위젯이 가리킨 저장 글 — 현재 탭 위 시트로. 읽기가 끝나면 원래 자리로 그대로 돌아온다.
             .sheet(item: $router.pendingPost) { ref in
                 NavigationStack {

@@ -73,9 +73,9 @@ struct NoteFeedPage: View {
 
     private var loginMessage: LocalizedStringKey {
         switch kind {
-        case .following: "로그인하고 팔로잉 피드 보기"
-        case .everyone, .trending: "로그인하고 노트 쓰기"
-        default: "로그인하고 노트 보기"
+        case .following: "팔로잉 피드를 보려면 로그인하세요"
+        case .everyone, .trending: "노트를 쓰려면 로그인하세요"
+        default: "노트를 보려면 로그인하세요"
         }
     }
 

@@ -169,7 +169,7 @@ struct NotificationsView: View {
         )
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.top, 80)
-        .loginPrompt(isPresented: $showLoginSheet, message: "내 알림 받기")
+        .loginPrompt(isPresented: $showLoginSheet, message: "알림을 보려면 로그인하세요")
     }
 
     private var shownItems: [AppNotification] {

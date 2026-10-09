@@ -77,7 +77,7 @@ struct FollowButton: View {
         .sensoryFeedback(.selection, trigger: model.bellToggleCount)
         .task { await model.hydrateIfNeeded() }
         .onChange(of: model.following) { _, following in onFollowingChange?(following) }
-        .loginPrompt(isPresented: $showLoginPrompt, message: "이 큐레이터가 엮는 길을 따라 읽기") {
+        .loginPrompt(isPresented: $showLoginPrompt, message: "팔로우하려면 로그인하세요") {
             await model.hydrate()
         }
         .alert("팔로우 요청을 취소할까요?", isPresented: $confirmWithdraw) {

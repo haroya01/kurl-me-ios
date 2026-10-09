@@ -6,7 +6,7 @@
 import SwiftUI
 
 /// 계정 탭 — 들어오면 내 블로그(내가 발행한 글)가 바로 뜬다. 서재(내가 모은 것)는 오른쪽 헤더
-/// 버튼으로, 설정·프로필·로그아웃은 왼쪽 톱니(SettingsView)로. 로그아웃 상태는 로그인 패널.
+/// 버튼으로, 설정·프로필·로그아웃은 왼쪽 톱니(SettingsView)로.
 struct AccountView: View {
     private var auth: AuthStore { .shared }
 
@@ -34,7 +34,12 @@ struct AccountView: View {
                             .frame(maxWidth: .infinity, minHeight: 320)
                     }
                 } else {
-                    signedOutColumn
+                    SignedOutState(
+                        systemImage: "person.crop.circle",
+                        description: "내 글과 노트, 라이브러리가 여기 모여요.",
+                        message: "kurl에 로그인하세요")
+                        .navigationTitle("내 계정")
+                        .navigationBarTitleDisplayMode(.inline)
                 }
             }
             .toolbar {
@@ -128,57 +133,6 @@ struct AccountView: View {
         await auth.loadMe()
         meLoadFailed = auth.isSignedIn && auth.me == nil
     }
-
-    /// 로그아웃 상태 — 안개 위 로그인 패널. 블로그가 없으니 계정 탭은 로그인부터.
-    private var signedOutColumn: some View {
-        ReadingColumn(spacing: 0) {
-            signedOut
-                .background(alignment: .top) {
-                    BrandMist()
-                        .frame(height: 300)
-                        .mask(LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom))
-                        .padding(.horizontal, -Metrics.gutter)
-                }
-        }
-        .navigationTitle("내 계정")
-        .navigationBarTitleDisplayMode(.inline)
-    }
-
-    // MARK: 로그아웃 상태
-
-    private var signedOut: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            RailHeading("계정")
-                .padding(.top, 28)
-
-            // 환대의 유리 패널 — 안개 위에 뜬 한 장. 본문 타이포는 유리 위 시맨틱.
-            VStack(alignment: .leading, spacing: 0) {
-                Text("kurl에 로그인")
-                    .typeScale(.masthead)
-                    .foregroundStyle(.primary)
-
-                Text("좋아요와 북마크, 구독, 그리고 글쓰기까지 — 웹과 같은 계정 하나로 이어집니다.")
-                    .typeScale(.body)
-                    .foregroundStyle(.secondary)
-                    .lineSpacing(4)
-                    .padding(.top, 8)
-
-                // Apple/Google 버튼 한 쌍은 공유 컴포넌트 — 글쓰기 게이트·웰컴·로그인 시트와 같은 출처.
-                AuthProviderButtons()
-                    .padding(.top, 24)
-
-                Text("로그인은 시스템 브라우저에서 안전하게 진행됩니다.")
-                    .typeScale(.footnote)
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 12)
-            }
-            .padding(20)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .glassEffect(.regular, in: .rect(cornerRadius: Metrics.radius))
-            .padding(.top, 16)
-        }
-    }
-
 }
 
 #Preview {

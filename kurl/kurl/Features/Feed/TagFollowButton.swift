@@ -10,6 +10,7 @@ import SwiftUI
 struct TagFollowButton: View {
     @State private var model: TagFollowModel
     @State private var showLoginPrompt = false
+    @State private var loginMessage: LocalizedStringKey = "이 태그를 구독하려면 로그인하세요"
 
     init(tag: String) {
         _model = State(initialValue: TagFollowModel(tag: tag))
@@ -47,14 +48,19 @@ struct TagFollowButton: View {
         }
         .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
         .task { await model.hydrate() }
-        .loginPrompt(isPresented: $showLoginPrompt, message: "이 태그의 새 글을 팔로잉에 모으기") {
+        .loginPrompt(isPresented: $showLoginPrompt, message: loginMessage) {
             await model.hydrate()
         }
     }
 
+    private func askLogin(_ message: LocalizedStringKey) {
+        loginMessage = message
+        showLoginPrompt = true
+    }
+
     private func toggle() {
         guard AuthStore.shared.isSignedIn else {
-            showLoginPrompt = true
+            askLogin("이 태그를 구독하려면 로그인하세요")
             return
         }
         Task {
@@ -65,7 +71,7 @@ struct TagFollowButton: View {
 
     private func mute() {
         guard AuthStore.shared.isSignedIn else {
-            showLoginPrompt = true
+            askLogin("이 태그를 숨기려면 로그인하세요")
             return
         }
         Task {

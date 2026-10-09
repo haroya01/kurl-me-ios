@@ -561,7 +561,7 @@ private struct PostDetailReader: View {
             isPresented: Binding(
                 get: { highlights?.loginPrompt ?? false },
                 set: { highlights?.loginPrompt = $0 }),
-            message: "하이라이트는 kurl 계정에 저장됩니다.")
+            message: "하이라이트하려면 로그인하세요")
         // 칠해진 하이라이트 탭 → 답글 스레드. "컬렉션에 연결"은 시트 위 시트를 피해
         // 여기 onDismiss(해제 완료가 보장되는 유일한 시점)에서 이어 띄운다 — 고정 지연으로
         // 넘기면 첫 해제(콜드 계층)가 더 느려 프레젠테이션이 통째로 유실된다.
@@ -2212,7 +2212,7 @@ struct GlassCommentBar: View {
             body_ = handle + body_
             calledHandle = handle
         }
-        .loginPrompt(isPresented: $showLoginPrompt, message: "이 글에 생각을 남겨보세요")
+        .loginPrompt(isPresented: $showLoginPrompt, message: "댓글을 달려면 로그인하세요")
     }
 
     private var canSend: Bool {
