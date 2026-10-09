@@ -24,7 +24,7 @@ final class NotesViewModel {
         return NoteFilterStore.shared.verdict(for: note, in: context) != .hide
     }
 
-    private static let chaseCap = 5
+    private nonisolated static let chaseCap = 5
 
     /// 받은 페이지의 노트가 필터로 전부 숨겨지면 다음 페이지를 이어 받는다(상한 `chaseCap`).
     static func collectVisible(

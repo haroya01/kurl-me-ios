@@ -22,7 +22,7 @@ final class BlockStore {
     private var hydrating = false
     private let api: API
 
-    struct API {
+    nonisolated struct API {
         var list: () async throws -> [InteractionsAPI.BlockedUser] = { try await InteractionsAPI.listBlocked() }
         var block: (String) async throws -> Void = { try await InteractionsAPI.block(username: $0) }
         var unblock: (String) async throws -> Void = { try await InteractionsAPI.unblock(username: $0) }
