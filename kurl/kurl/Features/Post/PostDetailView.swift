@@ -165,6 +165,10 @@ private struct PostDetailReader: View {
     /// 리더 소셜 하이라이트 — 본 글(단독)에서만. 본문 문단이 환경에서 읽어 칠하고 만든다.
     /// 임베드(덱)는 만들지 않아 종전 렌더 그대로다.
     @State private var highlights: PostHighlightStore?
+    @State private var translations = ContentTranslations.shared
+    @State private var translationSource: Locale.Language?
+    @State private var translationRequest: TranslationRequest?
+    @State private var translatedDetail: (key: String, detail: PublicPostDetail)?
 
     /// 하이라이트 표시/숨기기 — 남들 형광펜이 많으면 어지럽다는 독자를 위해. 기기 전역 취향이라
     /// 글마다 다시 정하지 않게 @AppStorage 로 영속하고, 로드 시 스토어에 밀어 넣는다(기본 = 표시).
@@ -221,10 +225,12 @@ private struct PostDetailReader: View {
                 ErrorState(message: message, retry: { Task { await model.load() } })
                     .padding(.top, 80)
             case .loaded(let detail):
+                let key = translationKey(detail)
+                let showingTranslation = translations.phases[key] == .shown
                 // 커버 헤더 없음 — 제목이 항상 맨 위(커버·무커버 글 제목 위치 일관).
                 // 커버 이미지가 의미 있으면 작가가 본문에 넣고, 발견 카드엔 그대로 남는다.
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    content(detail)
+                    content(showingTranslation ? translatedDetail.flatMap { $0.key == key ? $0.detail : nil } ?? detail : detail)
                 }
                 .frame(maxWidth: Metrics.readingColumn)
                 .frame(maxWidth: .infinity)
@@ -233,8 +239,17 @@ private struct PostDetailReader: View {
                 // 글자를 정통으로 가린다 — 독 폭만큼 본문을 비켜 감는다. 평상 크기에선
                 // 문단 오른끝 여백이 자연 완충이라 그대로 둔다.
                 .padding(.trailing, dynamicTypeSize.isAccessibilitySize ? 56 : 0)
-                // 본문 문단이 선택→하이라이트 + 공개 하이라이트 페인트를 띄울 수 있게.
-                .environment(\.postHighlightStore, highlights)
+                // 본문 문단이 선택→하이라이트 + 공개 하이라이트 페인트를 띄울 수 있게. 하이라이트는 원문
+                // 오프셋에 묶여 있어 번역문을 보이는 동안엔 끈다.
+                .environment(\.postHighlightStore, showingTranslation ? nil : highlights)
+                .task(id: detail.post.id) { await probeTranslation(detail) }
+                .translationRunner($translationRequest)
+                .onChange(of: showingTranslation, initial: true) { _, shown in
+                    guard shown, translatedDetail?.key != key, let texts = translations.shown(key),
+                          let applied = PostTranslationPlan(title: detail.post.title, blocks: detail.blocks).apply(texts)
+                    else { return }
+                    translatedDetail = (key, detail.replacing(title: applied.title, blocks: applied.blocks))
+                }
             }
         }
     }
@@ -1177,9 +1192,39 @@ private struct PostDetailReader: View {
     // 읽기 흐름 우선: 제목 → 작가 한 줄 → 본문(커버 헤더 없음 — 제목이 항상 맨 위).
     // 태그와 좋아요는 다 읽은 뒤 자연스럽게 만나도록 본문 끝으로 — 헤더에 끼어 있던
     // 인터랙션 바가 진입을 막지 않는다.
+    private func translationKey(_ detail: PublicPostDetail) -> String {
+        "post-\(detail.post.id)-\(TranslationGate.target().minimalIdentifier)"
+    }
+
+    private func probeTranslation(_ detail: PublicPostDetail) async {
+        let sample = ([detail.post.title] + detail.blocks.lazy.filter { $0.kind == .paragraph }.prefix(4)
+            .map { PostTranslationPlan.plain($0.content ?? "") }).joined(separator: "\n")
+        guard let source = TranslationGate.source(declared: detail.post.languageTag, text: sample) else {
+            translationSource = nil
+            return
+        }
+        translationSource = await translations.isAvailable(from: source, to: TranslationGate.target()) ? source : nil
+    }
+
+    private func translate(_ detail: PublicPostDetail) {
+        guard let source = translationSource else { return }
+        let key = translationKey(detail)
+        if translations.showCached(key) { return }
+        translations.begin(key)
+        translationRequest = TranslationRequest(
+            key: key, source: source, target: TranslationGate.target(),
+            texts: PostTranslationPlan(title: detail.post.title, blocks: detail.blocks).texts)
+    }
+
     @ViewBuilder
     private func content(_ detail: PublicPostDetail) -> some View {
         header(detail)
+        if let source = translationSource {
+            PostTranslationBanner(
+                source: source, phase: translations.phases[translationKey(detail)],
+                translate: { translate(detail) },
+                showOriginal: { translations.showOriginal(translationKey(detail)) })
+        }
         if model.isOfflineCopy {
             // 기기 사본 렌더 중 — 조용한 한 줄. 댓글·좋아요가 비어 있는 이유까지 여기서 설명된다.
             HStack(spacing: 6) {
