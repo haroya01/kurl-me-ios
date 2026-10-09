@@ -241,7 +241,7 @@ struct SubscribedSeriesView: View {
                                     if let author = card.author?.username {
                                         Text(author)
                                     }
-                                    Text("\(card.postCount)편")
+                                    Text("\(card.episodeCount)편")
                                 }
                                 .typeScale(.meta)
                                 .foregroundStyle(Palette.secondary)

@@ -230,6 +230,7 @@ struct NoteRowView: View {
     @State private var likeCount: Int64?
     @State private var likeTaps = 0
     @State private var reposted: Bool
+    @State private var addingToSeries = false
     @State private var repostCount: Int64?
     @State private var repostTaps = 0
     @State private var bookmarked: Bool
@@ -272,6 +273,8 @@ struct NoteRowView: View {
     }
 
     private var isMine: Bool { AuthStore.shared.me?.id == note.author.id }
+    /// 시리즈에 넣을 수 있는 노트 — 내 노트이고 시리즈 독자가 읽을 수 있는 범위(공개·조용한 공개).
+    private var seriesAddable: Bool { isMine && note.noteVisibility.shareable }
 
     private var filteredPhrases: [String]? {
         guard !filterRevealed, let filterContext,
@@ -370,6 +373,11 @@ struct NoteRowView: View {
                             systemImage: note.pinned == true ? "pin.slash" : "pin")
                     }
                 }
+                if seriesAddable {
+                    Button { addingToSeries = true } label: {
+                        Label("시리즈에 넣기", systemImage: "books.vertical")
+                    }
+                }
                 Button { editing = true } label: { Label("고치기", systemImage: "pencil") }
                 Button(role: .destructive) { confirmDelete = true } label: {
                     Label("노트 삭제", systemImage: "trash")
@@ -392,6 +400,10 @@ struct NoteRowView: View {
         }
         .sheet(isPresented: $connecting) {
             ConnectSheet(targetKind: "노트", targetTitle: note.body, blockType: .note, refId: note.id)
+        }
+        .sheet(isPresented: $addingToSeries) {
+            AddNoteToSeriesSheet(noteId: note.id)
+                .presentationDetents([.medium, .large])
         }
         .fullScreenCover(isPresented: $writingPost) {
             if let shareURL { QuotePostComposer(noteURL: shareURL) }
@@ -740,6 +752,12 @@ struct NoteRowView: View {
                             note.pinned == true ? LocalizedStringKey("고정 해제") : LocalizedStringKey("프로필에 고정"),
                             systemImage: note.pinned == true ? "pin.slash" : "pin")
                     }
+                }
+                if seriesAddable {
+                    Button { addingToSeries = true } label: {
+                        Label("시리즈에 넣기", systemImage: "books.vertical")
+                    }
+                    .accessibilityIdentifier("note.addToSeries.\(note.id)")
                 }
                 Button { editing = true } label: { Label("고치기", systemImage: "pencil") }
                 Button(role: .destructive) { confirmDelete = true } label: {
@@ -1512,6 +1530,15 @@ struct NoteDetailView: View {
             if let thread {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
+                        if let trail = thread.series {
+                            // 시리즈 속 노트 — 글 상세와 같은 자리에서 "여정의 몇 번째"부터 세운다.
+                            AnyView(
+                                SeriesBanner(
+                                    nav: trail, username: thread.note.author.username,
+                                    currentId: "note-\(thread.note.id)")
+                                    .padding(.top, 12)
+                                    .padding(.bottom, 8))
+                        }
                         if let parent = thread.parent {
                             NoteRowView(
                                 note: parent,
@@ -1534,6 +1561,11 @@ struct NoteDetailView: View {
                                 onDelete: { id in update { $0.continuation?.removeAll { $0.id == id } } },
                                 threadLineBelow: index < parts.count - 1,
                                 position: numbered ? "\(index + 2)/\(parts.count + 1)" : nil)
+                        }
+                        if let trail = thread.series {
+                            AnyView(
+                                SeriesNextCard(nav: trail, username: thread.note.author.username)
+                                    .padding(.bottom, 14))
                         }
                         Hairline().padding(.horizontal, -Metrics.noteGutter)
                         HStack(spacing: 6) {
@@ -1638,13 +1670,16 @@ struct NoteDetailView: View {
             note: thread.note, parent: thread.parent, replies: thread.replies, continuation: thread.continuation)
         change(&mutable)
         self.thread = NoteThread(
-            note: mutable.note, parent: mutable.parent, replies: mutable.replies, continuation: mutable.continuation)
+            note: mutable.note, parent: mutable.parent, replies: mutable.replies,
+            continuation: mutable.continuation, series: thread.series)
     }
 
     private func load() async {
         do {
-            thread = try await NoteAPI.thread(id: noteId)
+            let fresh = try await NoteAPI.thread(id: noteId)
+            thread = fresh
             failed = nil
+            if fresh.series != nil { PostReadStore.notes.markRead(noteId) }
         } catch {
             if thread == nil {
                 failed = (error as? APIError)?.localizedDescription ?? error.localizedDescription

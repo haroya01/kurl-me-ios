@@ -45,7 +45,7 @@ final class SeriesManagementUITests: XCTestCase {
         manage.tap()
         // 메뉴가 열려 세 액션이 보인다.
         XCTAssertTrue(app.buttons["수정"].waitForExistence(timeout: 5), "수정 액션 없음")
-        XCTAssertTrue(app.buttons["순서 편집"].exists, "순서 편집 액션 없음")
+        XCTAssertTrue(app.buttons["회차 편집"].exists, "회차 편집 액션 없음")
         XCTAssertTrue(app.buttons["시리즈 삭제"].exists, "삭제 액션 없음")
         shot("2-manage-menu-open")
 
@@ -59,16 +59,16 @@ final class SeriesManagementUITests: XCTestCase {
         app.swipeDown(velocity: .fast)
         Thread.sleep(forTimeInterval: 0.6)
 
-        // 순서 편집 시트 — 회차가 순번과 함께 뜬다.
+        // 회차 편집 시트 — 글·노트가 순번과 함께 뜬다.
         manage.tap()
-        app.buttons["순서 편집"].tap()
+        app.buttons["회차 편집"].tap()
         XCTAssertTrue(
-            app.navigationBars["순서 편집"].waitForExistence(timeout: 8), "순서 편집 시트가 안 뜸")
+            app.navigationBars["회차 편집"].waitForExistence(timeout: 8), "회차 편집 시트가 안 뜸")
         XCTAssertTrue(
             app.descendants(matching: .any)
                 .matching(NSPredicate(format: "label CONTAINS '포트와 어댑터'")).firstMatch
                 .waitForExistence(timeout: 8),
-            "순서 편집에 회차가 없음")
+            "회차 편집에 회차가 없음")
         shot("4-reorder-sheet")
 
         // 취소로 닫고 삭제 확인 알림까지 — 파괴적 액션은 .alert 로 되묻는다.

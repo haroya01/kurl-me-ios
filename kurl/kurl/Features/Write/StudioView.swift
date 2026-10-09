@@ -615,7 +615,7 @@ struct StudioView: View {
                                 .typeScale(.titleSmall)
                                 .foregroundStyle(Palette.ink)
                                 .lineLimit(1)
-                            Text("\(series.postCount)편")
+                            Text("\(series.episodeCount)편")
                                 .typeScale(.meta)
                                 .foregroundStyle(Palette.secondary)
                         }

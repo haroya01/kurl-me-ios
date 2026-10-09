@@ -1695,7 +1695,7 @@ struct ComposeView: View {
         Task {
             defer { creatingSeries = false }
             do {
-                let slug = makeSeriesSlug(from: title)
+                let slug = WriteAPI.seriesSlug(from: title)
                 let list = try await WriteAPI.createSeries(slug: slug, title: title)
                 seriesList = list
                 seriesId = (list.first { $0.slug == slug } ?? list.first { $0.title == title })?.id
@@ -1704,19 +1704,6 @@ struct ComposeView: View {
                 ToastCenter.shared.show(String(localized: "시리즈를 만들지 못했습니다"))
             }
         }
-    }
-
-    /// 제목 → 유저별 유니크 slug. ASCII 영숫자만 남기고(한글은 떨궈) 짧은 토큰을 붙여 충돌 회피.
-    private func makeSeriesSlug(from title: String) -> String {
-        let mapped = title.lowercased().unicodeScalars.map {
-            ($0.isASCII && CharacterSet.alphanumerics.contains($0)) ? Character($0) : "-"
-        }
-        var base = String(mapped)
-        while base.contains("--") { base = base.replacingOccurrences(of: "--", with: "-") }
-        base = base.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
-        if base.count < 2 { base = "series" }
-        let token = String(Int.random(in: 1_000_000...9_999_999), radix: 36)
-        return "\(base.prefix(40))-\(token)"
     }
 
     // MARK: 마크다운 스니펫 삽입 — 커서/선택 기준

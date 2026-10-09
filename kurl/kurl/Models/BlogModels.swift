@@ -65,6 +65,25 @@ struct PublicFeedView: Decodable {
     let page: Int
     let size: Int
     let hasNext: Bool
+    /// 구독함 페이지에 걸린 구독 시리즈의 노트 — 글 사이에 시각으로 끼운다. 다른 피드·옛 서버는 nil.
+    var seriesNotes: [FeedSeriesNote]? = nil
+}
+
+/// 구독한 시리즈에 들어온 노트 한 편(구독함 전용). 본문 대신 발췌·경고만 카드에 쓴다.
+struct FeedSeriesNote: Decodable, Hashable, Identifiable {
+    let id: Int64
+    let author: Author
+    let body: String
+    let contentWarning: String?
+    let excerpt: String
+    let createdAt: Date?
+    let series: Ref
+
+    struct Ref: Decodable, Hashable {
+        let id: Int64
+        let slug: String
+        let title: String
+    }
 }
 
 /// 작가 글 목록/상세 헤더 아이템.
@@ -166,11 +185,58 @@ struct PostSeriesNav: Decodable, Hashable {
     let total: Int
     let prev: NavLink?
     let next: NavLink?
+    /// 글·노트를 함께 센 자리(서버가 노트를 담기 시작한 뒤). 없으면 글만 센 위 필드로 폴백.
+    var itemPosition: Int? = nil
+    var itemTotal: Int? = nil
+    var prevItem: SeriesItemLink? = nil
+    var nextItem: SeriesItemLink? = nil
 
     struct NavLink: Decodable, Hashable {
         let slug: String
         let title: String
     }
+
+    /// 배너·다음 편 카드가 읽는 한 모양 — 글과 노트를 함께 걷는다.
+    var trail: SeriesTrail {
+        SeriesTrail(
+            slug: slug, title: title,
+            position: itemPosition ?? position, total: itemTotal ?? total,
+            prev: prevItem ?? prev.map { SeriesItemLink(post: $0.slug, title: $0.title) },
+            next: nextItem ?? next.map { SeriesItemLink(post: $0.slug, title: $0.title) })
+    }
+}
+
+/// 시리즈의 이웃 한 편 — 글은 slug 로, 노트는 id 로 연다.
+struct SeriesItemLink: Decodable, Hashable {
+    let type: String
+    let slug: String?
+    let noteId: Int64?
+    let title: String
+
+    init(post slug: String, title: String) {
+        type = "POST"
+        self.slug = slug
+        noteId = nil
+        self.title = title
+    }
+
+    var isNote: Bool { type == "NOTE" }
+
+    func route(username: String) -> Route? {
+        if isNote, let noteId { return .note(id: noteId) }
+        if let slug { return .post(username: username, slug: slug) }
+        return nil
+    }
+}
+
+/// 글·노트 공통의 시리즈 내 위치(배너·다음 편 카드). 노트 상세는 서버가 이 모양 그대로 준다.
+struct SeriesTrail: Decodable, Hashable {
+    let slug: String
+    let title: String
+    let position: Int
+    let total: Int
+    let prev: SeriesItemLink?
+    let next: SeriesItemLink?
 }
 
 // MARK: 시리즈
@@ -190,6 +256,22 @@ struct PublicSeriesCard: Decodable, Identifiable {
     let postCount: Int
     let lastPublishedAt: Date?
     let posts: [SeriesPostRef]
+    /// 글·노트 함께(서버가 노트를 담기 시작한 뒤). 옛 서버면 nil → 글만으로 폴백.
+    var itemCount: Int? = nil
+    var items: [SeriesItemPreview]? = nil
+
+    var episodeCount: Int { itemCount ?? postCount }
+}
+
+/// 시리즈 카드의 한 편 미리보기 — 노트는 커버 없이 발췌가 제목 자리에 온다.
+struct SeriesItemPreview: Decodable, Hashable {
+    let type: String
+    let slug: String?
+    let noteId: Int64?
+    let title: String
+    let ogImageUrl: String?
+
+    var isNote: Bool { type == "NOTE" }
 }
 
 struct SeriesListItem: Decodable, Hashable, Identifiable {
@@ -198,6 +280,9 @@ struct SeriesListItem: Decodable, Hashable, Identifiable {
     let title: String
     let postCount: Int
     let tags: [String]
+    var itemCount: Int? = nil
+
+    var episodeCount: Int { itemCount ?? postCount }
 }
 
 struct PublicSeriesListView: Decodable {
@@ -209,6 +294,77 @@ struct PublicSeriesDetail: Decodable {
     let author: Author
     let series: SeriesListItem
     let posts: [PostListItem]
+    /// 글·노트 혼합 목차(서버가 노트를 담기 시작한 뒤). 옛 서버면 nil → posts 로 폴백.
+    var items: [PublicSeriesItem]? = nil
+
+    var entries: [SeriesEntry] {
+        guard let items else { return posts.map(SeriesEntry.post) }
+        return items.compactMap { item in
+            if let post = item.post { return .post(post) }
+            if let note = item.note { return .note(note) }
+            return nil
+        }
+    }
+}
+
+struct PublicSeriesItem: Decodable {
+    let type: String
+    let post: PostListItem?
+    let note: SeriesNoteSummary?
+}
+
+struct SeriesNoteSummary: Decodable, Hashable {
+    let id: Int64
+    let body: String
+    let contentWarning: String?
+    let excerpt: String
+    let createdAt: Date?
+}
+
+/// 시리즈 목차의 한 편 — 글 또는 노트.
+enum SeriesEntry: Hashable, Identifiable {
+    case post(PostListItem)
+    case note(SeriesNoteSummary)
+
+    var id: String {
+        switch self {
+        case .post(let post): "post-\(post.id)"
+        case .note(let note): "note-\(note.id)"
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .post(let post): post.title
+        case .note(let note): note.excerpt
+        }
+    }
+
+    func route(username: String) -> Route {
+        switch self {
+        case .post(let post): .post(username: username, slug: post.slug)
+        case .note(let note): .note(id: note.id)
+        }
+    }
+
+    var date: Date? {
+        switch self {
+        case .post(let post): post.publishedAt
+        case .note(let note): note.createdAt
+        }
+    }
+
+    var isNoteEntry: Bool {
+        if case .note = self { return true }
+        return false
+    }
+
+    var isRead: Bool {
+        switch self {
+        case .post(let post): PostReadStore.shared.isRead(post.id)
+        case .note(let note): PostReadStore.notes.isRead(note.id)
+        }
+    }
 }
 
 // MARK: 발견 / 태그 / 댓글

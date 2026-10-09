@@ -222,6 +222,12 @@ struct FeedPage: View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 16) {
                 ForEach(Array(model.items.enumerated()), id: \.element.id) { index, item in
+                    // 구독함 — 구독한 시리즈에 들어온 노트가 시각 순서대로 이 글 앞에 선다.
+                    ForEach(model.notesBefore[item.id] ?? []) { note in
+                        SeriesNoteFeedCard(note: note)
+                            .modifier(QuietAppear(index: index))
+                            .modifier(CardScrollFade())
+                    }
                     NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
                         BlogCard(
                             item: item,
@@ -263,6 +269,13 @@ struct FeedPage: View {
                             .modifier(CardScrollFade())
                     }
                 }
+                ForEach(model.trailingNotes) { note in
+                    SeriesNoteFeedCard(note: note)
+                        .modifier(CardScrollFade())
+                        .task {
+                            if note.id == model.trailingNotes.last?.id { await model.loadMoreAfterTrailingNote() }
+                        }
+                }
                 if model.isLoadingMore {
                     KurlLoadingMark()
                         .frame(maxWidth: .infinity).padding(.vertical, 18)
@@ -285,7 +298,7 @@ struct FeedPage: View {
                     }
                     .buttonStyle(.plain)
                 }
-                if model.items.isEmpty {
+                if model.items.isEmpty && model.seriesNotes.isEmpty {
                     if source == .following {
                         FeedPlaceholder(
                             title: "구독함이 비어 있어요",
@@ -464,7 +477,13 @@ private struct FeedSeriesCard: View {
     @ScaledMetric(relativeTo: .title) private var epNumSize: CGFloat = 34
     @ScaledMetric(relativeTo: .footnote) private var epTotalSize: CGFloat = 15
 
-    private var posts: [SeriesPostRef] { Array(series.posts.prefix(4)) }
+    /// 넘겨 볼 앞 편들 — 서버가 글·노트 혼합 미리보기를 주면 그것, 옛 서버면 글만.
+    private var posts: [SeriesItemPreview] {
+        let mixed = series.items ?? series.posts.map {
+            SeriesItemPreview(type: "POST", slug: $0.slug, noteId: nil, title: $0.title, ogImageUrl: $0.ogImageUrl)
+        }
+        return Array(mixed.prefix(4))
+    }
 
     var body: some View {
         let n = max(posts.count, 1)
@@ -522,7 +541,7 @@ private struct FeedSeriesCard: View {
         // 회차 넘김에 가벼운 촉감 하나 — 스위처 pill·좋아요와 같은 결(§1.6 조용하지만 살아 있게).
         .sensoryFeedback(.selection, trigger: idx)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(Text("시리즈 \(series.title), \(series.postCount)편"))
+        .accessibilityLabel(Text("시리즈 \(series.title), \(series.episodeCount)편"))
     }
 
     /// 장의 수평 위치 — 보이는 장은 중앙(0), 방금 떠난 장은 왼쪽(-inset)으로 밀려 나가고,
@@ -533,7 +552,7 @@ private struct FeedSeriesCard: View {
         return slideInset
     }
 
-    private func episodePage(index i: Int, ep: SeriesPostRef, loadImage: Bool) -> some View {
+    private func episodePage(index i: Int, ep: SeriesItemPreview, loadImage: Bool) -> some View {
         let imageURL = ep.ogImageUrl.flatMap { $0.isEmpty ? nil : URL(string: $0) }
         let onImage = imageURL != nil
         return ZStack(alignment: .topLeading) {
@@ -581,13 +600,17 @@ private struct FeedSeriesCard: View {
                 (Text(String(format: "%02d", i + 1))
                     .font(.system(size: epNumSize, weight: .bold).monospacedDigit())
                     .foregroundStyle(onImage ? Color.white : Palette.ink)
-                    + Text(" / \(String(format: "%02d", series.postCount))")
+                    + Text(" / \(String(format: "%02d", series.episodeCount))")
                     .font(.system(size: epTotalSize, weight: .bold).monospacedDigit())
                     .foregroundStyle(onImage ? Color.white.opacity(0.75) : Palette.secondary))
                     .lineLimit(1)
-                // 에피소드 제목(웹: 18px bold, 3줄).
+                if ep.isNote {
+                    SeriesNoteMark(size: seriesNameSize, current: false)
+                        .padding(.top, 4)
+                }
+                // 에피소드 제목(웹: 18px bold, 3줄). 노트 편은 제목 대신 발췌라 한 단 가볍게.
                 Text(ep.title)
-                    .typeScale(.title)
+                    .typeScale(ep.isNote ? .lede : .title)
                     .foregroundStyle(onImage ? Color.white : Palette.ink)
                     .lineLimit(3)
                     .multilineTextAlignment(.leading)

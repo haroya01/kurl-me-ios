@@ -116,22 +116,25 @@ struct PostRow: View {
 @MainActor
 @Observable
 final class PostReadStore {
-    static let shared = PostReadStore()
+    static let shared = PostReadStore(key: "postReadIds", seedFlag: "--seed-read")
+    /// 시리즈에 든 노트 — 글과 id 공간이 달라 따로 기억한다(같은 숫자 id 가 겹치지 않게).
+    static let notes = PostReadStore(key: "noteReadIds", seedFlag: "--seed-read-notes")
 
-    private static let key = "postReadIds"
+    private let key: String
     private static let cap = 600
     // 단일 진실원 = 메모리. order 가 최근순(오래된 것 앞) 링버퍼이고, lookup 은 set 으로 O(1).
     // 둘은 항상 같이 갱신 — 쓸 때 UserDefaults 를 되읽지 않는다(과거 분기 원인).
     private var order: [Int64]
     private var lookup: Set<Int64>
 
-    private init() {
-        let stored = ((UserDefaults.standard.array(forKey: Self.key) as? [NSNumber]) ?? [])
+    private init(key: String, seedFlag: String) {
+        self.key = key
+        let stored = ((UserDefaults.standard.array(forKey: key) as? [NSNumber]) ?? [])
             .map(\.int64Value)
         order = stored
         lookup = Set(stored)
         // 검증용 시드 — 목 모드에서 시리즈 진행/체크 상태를 그려보기 위함(`--seed-read 8001,8002`).
-        if Config.useMocks, let seed = Config.launchValue(after: "--seed-read") {
+        if Config.useMocks, let seed = Config.launchValue(after: seedFlag) {
             for id in seed.split(separator: ",").compactMap({ Int64($0) }) where lookup.insert(id).inserted {
                 order.append(id)
             }
@@ -148,7 +151,7 @@ final class PostReadStore {
             lookup.subtract(dropped)
             order.removeFirst(order.count - Self.cap)
         }
-        UserDefaults.standard.set(order.map(NSNumber.init(value:)), forKey: Self.key)
+        UserDefaults.standard.set(order.map(NSNumber.init(value:)), forKey: key)
     }
 
     /// 로그아웃 시 — 읽음 기록은 기기 로컬이라 계정 전환 시 비워야 다음 사용자가 이전
@@ -156,7 +159,7 @@ final class PostReadStore {
     func reset() {
         order = []
         lookup = []
-        UserDefaults.standard.removeObject(forKey: Self.key)
+        UserDefaults.standard.removeObject(forKey: key)
     }
 }
 

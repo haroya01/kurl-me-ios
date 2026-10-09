@@ -885,16 +885,16 @@ private struct PostDetailReader: View {
         return nil
     }
 
-    /// 이 글이 속한 시리즈의 다음 회차(있으면). 단독 리더에서 "끝에서 이어 당기기"의 목적지.
-    private var seriesNext: PostSeriesNav.NavLink? {
-        if case .loaded(let detail) = model.phase { return detail.series?.next }
+    /// 이 글이 속한 시리즈의 다음 편(글·노트). 단독 리더에서 "끝에서 이어 당기기"의 목적지 후보.
+    private var seriesNextItem: SeriesItemLink? {
+        if case .loaded(let detail) = model.phase { return detail.series?.trail.next }
         return nil
     }
 
-    /// 이 글의 이전 회차(배너 이전 버튼용).
-    private var seriesPrev: PostSeriesNav.NavLink? {
-        if case .loaded(let detail) = model.phase { return detail.series?.prev }
-        return nil
+    /// 당겨서 제자리 교체할 다음 회차 — 다음 편이 노트면 없다(노트는 다른 화면이라 다음 편 카드로 연다).
+    private var seriesNext: SeriesItemLink? {
+        guard let next = seriesNextItem, !next.isNote, next.slug != nil else { return nil }
+        return next
     }
 
     /// 끝에서 당길 때 넘어갈 대상 — 단독 시리즈 회차면 다음 회차(제자리 교체), 덱이면 같은 작가
@@ -1198,7 +1198,7 @@ private struct PostDetailReader: View {
         // 이전/다음 버튼은 끝에서 당기기와 같은 제자리 교체(가로 슬라이드 금지) — 단독 리더에서만.
         if let nav = detail.series {
             SeriesBanner(
-                nav: nav, username: detail.author.username, currentSlug: detail.post.slug,
+                nav: nav.trail, username: detail.author.username, currentId: "post-\(detail.post.id)",
                 goToEpisode: embedded ? nil : goToEpisode)
                 .padding(.top, 22)
         }
@@ -1248,7 +1248,7 @@ private struct PostDetailReader: View {
         // 완독 직후의 연결 — 다음 편 카드(시리즈) → 작가 카드 → 댓글 순. 카드 탭도 제자리 교체.
         if let nav = detail.series {
             SeriesNextCard(
-                nav: nav, username: detail.author.username,
+                nav: nav.trail, username: detail.author.username,
                 goToEpisode: embedded ? nil : goToEpisode)
         }
         // 본문이 끝나고 '끝맺음'(레일·작가 카드·댓글)이 시작되는 감지선. 스크롤을 시작한 뒤 감지선이 아래에서
@@ -1282,7 +1282,7 @@ private struct PostDetailReader: View {
             NextPostCue(title: next.title, episode: true, progress: scrollProgress) {
                 advanceToPullTarget()
             }
-        } else if !embedded, let series = detail.series, series.next == nil {
+        } else if !embedded, let series = detail.series, series.trail.next == nil {
             // 마지막 회차 — 당길 다음 편이 없다. 조용한 마무리 한 줄(§10). 아래 SeriesNextCard 가
             // "시리즈 전체 보기"를 이미 세우므로 여기선 여정의 끝만 담담히 알린다.
             LastEpisodeCue()
@@ -1304,9 +1304,9 @@ private struct PostDetailReader: View {
     /// 프레임 재발화를 막는다 — 교체가 한 프레임 늦어도 임계를 다시 통과해 두 편을 건너뛰지 않게.
     private func advanceToPullTarget() {
         guard !advancing else { return }
-        if !embedded, let next = seriesNext, let go = goToEpisode {
+        if !embedded, let slug = seriesNext?.slug, let go = goToEpisode {
             advancing = true
-            go(next.slug)   // .id 교체 → 이 뷰는 곧 사라지므로 advancing 리셋 불필요.
+            go(slug)   // .id 교체 → 이 뷰는 곧 사라지므로 advancing 리셋 불필요.
         } else if embedded, nextPost != nil, !showNext {
             advancing = true
             showNext = true
