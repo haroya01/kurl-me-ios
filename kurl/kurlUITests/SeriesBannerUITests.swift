@@ -49,7 +49,7 @@ final class SeriesBannerUITests: XCTestCase {
         expand.tap()
         // 행 자식은 accessibilityLabel 뒤로 숨는다 — 현재 글 행의 라벨로 목록 도착을 판정.
         let currentRow = app.descendants(matching: .any).matching(
-            NSPredicate(format: "label CONTAINS '현재 글'")).firstMatch
+            NSPredicate(format: "label CONTAINS '현재 편'")).firstMatch
         XCTAssertTrue(currentRow.waitForExistence(timeout: 8), "펼침 후 회차 목록이 안 옴")
 
         let banner = XCTAttachment(screenshot: XCUIScreen.main.screenshot())

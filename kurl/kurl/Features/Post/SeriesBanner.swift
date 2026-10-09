@@ -9,15 +9,16 @@ import SwiftUI
 /// 접이식 회차 목록). 읽기 전에 "이 글이 여정의 몇 번째인지"를 세우는 자리라 본문(종이)
 /// 문법을 쓴다 — 유리 금지. 회차 목록은 첫 펼침에만 가져온다(안 펼치면 네트워크 0).
 struct SeriesBanner: View {
-    let nav: PostSeriesNav
+    let nav: SeriesTrail
     let username: String
-    let currentSlug: String
-    /// 회차 전환 — 이전/다음 버튼이 끝에서 당기기와 같은 제자리 교체를 쓴다(가로 슬라이드 금지).
-    /// nil 이면(덱 임베드 등) 버튼을 감춘다.
+    /// 지금 보는 편(목록에서 강조하고 링크를 끊는다) — 글이든 노트든 SeriesEntry.id 로 가린다.
+    let currentId: String
+    /// 글 회차 전환 — 이전/다음이 글이면 끝에서 당기기와 같은 제자리 교체(가로 슬라이드 금지).
+    /// nil 이면(덱 임베드·노트 상세) 글도 푸시로 연다. 노트는 늘 푸시(노트 상세는 다른 화면).
     var goToEpisode: ((String) -> Void)? = nil
 
     @State private var expanded = false
-    @State private var episodes: [PostListItem]?
+    @State private var episodes: [SeriesEntry]?
     @State private var loadFailed = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     // 핵심 읽기면이라 고정 pt 금지 — typeScale 못 쓰는 자리(monospacedDigit·소형 라벨)는 배수로 키운다.
@@ -60,7 +61,7 @@ struct SeriesBanner: View {
                     toggle()
                 } label: {
                     HStack(spacing: 4) {
-                        Text("이 시리즈의 글")
+                        Text("이 시리즈 목차")
                             .typeScale(.meta)
                         Image(systemName: "chevron.down")
                             .font(.system(size: 10 * metaUnit, weight: .semibold))
@@ -74,11 +75,9 @@ struct SeriesBanner: View {
 
                 Spacer(minLength: 8)
 
-                // 이전/다음 회차 — 끝에서 당기기와 같은 제자리 교체(가로 슬라이드 금지). 없는 방향은 비활성.
-                if goToEpisode != nil {
-                    episodeArrow(systemName: "chevron.left", link: nav.prev, label: String(localized: "이전 편"))
-                    episodeArrow(systemName: "chevron.right", link: nav.next, label: String(localized: "다음 편"))
-                }
+                // 이전/다음 편 — 글이면 끝에서 당기기와 같은 제자리 교체, 노트면 노트 상세로. 없는 방향은 비활성.
+                episodeArrow(systemName: "chevron.left", link: nav.prev, label: String(localized: "이전 편"))
+                episodeArrow(systemName: "chevron.right", link: nav.next, label: String(localized: "다음 편"))
             }
             .padding(.top, 10)
 
@@ -100,11 +99,11 @@ struct SeriesBanner: View {
         if let episodes {
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(episodes.enumerated()), id: \.element.id) { index, episode in
-                    if episode.slug == currentSlug {
-                        episodeRow(index: index, title: episode.title, current: true)
+                    if episode.id == currentId {
+                        episodeRow(index: index, episode: episode, current: true)
                     } else {
-                        NavigationLink(value: Route.post(username: username, slug: episode.slug)) {
-                            episodeRow(index: index, title: episode.title, current: false)
+                        NavigationLink(value: episode.route(username: username)) {
+                            episodeRow(index: index, episode: episode, current: false)
                                 .contentShape(Rectangle())
                         }
                         .buttonStyle(RowButtonStyle())
@@ -123,36 +122,53 @@ struct SeriesBanner: View {
         }
     }
 
-    private func episodeRow(index: Int, title: String, current: Bool) -> some View {
+    private func episodeRow(index: Int, episode: SeriesEntry, current: Bool) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(verbatim: String(format: "%02d", index + 1))
                 .font(.system(size: 11 * metaUnit).monospacedDigit())
                 .foregroundStyle(current ? Palette.link : Palette.secondary)
-            Text(title)
+            if case .note = episode {
+                SeriesNoteMark(size: 10 * metaUnit, current: current)
+            }
+            Text(episode.title)
                 .font(.system(size: 13 * metaUnit, weight: current ? .semibold : .regular))
                 .foregroundStyle(current ? Palette.link : Palette.body)
                 .lineLimit(1)
             Spacer(minLength: 0)
         }
         .padding(.vertical, 5)
-        .accessibilityLabel(current ? Text("\(index + 1)편 — \(title), 현재 글") : Text("\(index + 1)편 — \(title)"))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(episodeLabel(index: index, episode: episode, current: current))
     }
 
-    /// 배너의 이전/다음 회차 원형 버튼 — 링크가 있으면 goToEpisode 로 제자리 교체, 없으면(끝) 비활성.
+    private func episodeLabel(index: Int, episode: SeriesEntry, current: Bool) -> Text {
+        let kind = episode.isNoteEntry ? String(localized: "노트") : String(localized: "글")
+        return current
+            ? Text("\(index + 1)편 — \(kind) \(episode.title), 현재 편")
+            : Text("\(index + 1)편 — \(kind) \(episode.title)")
+    }
+
+    /// 배너의 이전/다음 편 원형 버튼 — 글이고 제자리 교체가 있으면 교체, 아니면 그 편으로 푸시. 없으면(끝) 비활성.
     @ViewBuilder
-    private func episodeArrow(systemName: String, link: PostSeriesNav.NavLink?, label: String) -> some View {
-        Button {
-            if let link { goToEpisode?(link.slug) }
-        } label: {
-            Image(systemName: systemName)
-                .font(.system(size: 13 * metaUnit, weight: .semibold))
-                .foregroundStyle(link != nil ? Palette.link : Palette.faint)
-                .frame(width: 44, height: 44)
-                .contentShape(Rectangle())
+    private func episodeArrow(systemName: String, link: SeriesItemLink?, label: String) -> some View {
+        let icon = Image(systemName: systemName)
+            .font(.system(size: 13 * metaUnit, weight: .semibold))
+            .foregroundStyle(link != nil ? Palette.link : Palette.faint)
+            .frame(width: 44, height: 44)
+            .contentShape(Rectangle())
+        if let link, !link.isNote, let slug = link.slug, let go = goToEpisode {
+            Button { go(slug) } label: { icon }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("\(label) — \(link.title)"))
+        } else if let link, let route = link.route(username: username) {
+            NavigationLink(value: route) { icon }
+                .buttonStyle(.plain)
+                .accessibilityLabel(
+                    link.isNote ? Text("\(label) — 노트 \(link.title)") : Text("\(label) — \(link.title)"))
+        } else {
+            icon
+                .accessibilityLabel(Text("\(label) 없음"))
         }
-        .buttonStyle(.plain)
-        .disabled(link == nil)
-        .accessibilityLabel(link != nil ? Text("\(label) — \(link!.title)") : Text("\(label) 없음"))
     }
 
     private func toggle() {
@@ -163,7 +179,7 @@ struct SeriesBanner: View {
         Task {
             do {
                 let detail = try await BlogAPI.seriesDetail(username: username, slug: nav.slug)
-                episodes = detail.posts
+                episodes = detail.entries
             } catch {
                 loadFailed = true
             }
@@ -175,10 +191,10 @@ struct SeriesBanner: View {
 /// 상단 배너가 갖지 못한 "이어서 읽기"를 여기 카드 하나에 몰아준다. 마지막 편이면
 /// 전체 보기 링크만 남는다(웹 SeriesNext 와 같은 규칙).
 struct SeriesNextCard: View {
-    let nav: PostSeriesNav
+    let nav: SeriesTrail
     let username: String
-    /// 다음 편 카드 탭도 끝에서 당기기·배너 버튼과 같은 제자리 교체를 쓴다(가로 슬라이드 금지).
-    /// nil 이면(덱 등) 링크 푸시로 폴백.
+    /// 다음 편이 글이면 끝에서 당기기·배너 버튼과 같은 제자리 교체(가로 슬라이드 금지).
+    /// nil 이거나 다음 편이 노트면 그 편으로 푸시.
     var goToEpisode: ((String) -> Void)? = nil
 
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
@@ -203,44 +219,48 @@ struct SeriesNextCard: View {
         .padding(.top, 14)
     }
 
-    /// 다음 편 카드 내용 — goToEpisode 가 있으면 버튼(제자리 교체), 없으면 NavigationLink(푸시).
     @ViewBuilder
-    private func nextEpisodeButton(_ next: PostSeriesNav.NavLink) -> some View {
-        if let go = goToEpisode {
-            Button { go(next.slug) } label: { nextEpisodeLabel(next) }
+    private func nextEpisodeButton(_ next: SeriesItemLink) -> some View {
+        if !next.isNote, let slug = next.slug, let go = goToEpisode {
+            Button { go(slug) } label: { nextEpisodeLabel(next) }
                 .buttonStyle(RowButtonStyle())
                 .accessibilityLabel("다음 편 — \(next.title)")
-        } else {
-            NavigationLink(value: Route.post(username: username, slug: next.slug)) {
+        } else if let route = next.route(username: username) {
+            NavigationLink(value: route) {
                 nextEpisodeLabel(next)
             }
             .buttonStyle(RowButtonStyle())
-            .accessibilityLabel("다음 편 — \(next.title)")
+            .accessibilityLabel(next.isNote ? "다음 편 — 노트 \(next.title)" : "다음 편 — \(next.title)")
         }
     }
 
-    private func nextEpisodeLabel(_ next: PostSeriesNav.NavLink) -> some View {
+    private func nextEpisodeLabel(_ next: SeriesItemLink) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-                        Text("다음 편")
-                            .typeScale(.eyebrow)
-                            .foregroundStyle(Palette.link)
-                        HStack(alignment: .center, spacing: 12) {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(verbatim: String(format: "%02d", nav.position + 1))
-                                    .font(.system(size: 12 * metaUnit).monospacedDigit())
-                                    .foregroundStyle(Palette.secondary)
-                                Text(next.title)
-                                    .typeScale(.titleSmall)
-                                    .foregroundStyle(Palette.ink)
-                                    .lineLimit(2)
-                                    .multilineTextAlignment(.leading)
-                            }
-                            Spacer(minLength: 8)
-                            Image(systemName: "arrow.right")
-                                .font(.system(size: 16 * metaUnit, weight: .medium))
-                                .foregroundStyle(Palette.faint)
+            Text("다음 편")
+                .typeScale(.eyebrow)
+                .foregroundStyle(Palette.link)
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text(verbatim: String(format: "%02d", nav.position + 1))
+                            .font(.system(size: 12 * metaUnit).monospacedDigit())
+                            .foregroundStyle(Palette.secondary)
+                        if next.isNote {
+                            SeriesNoteMark(size: 11 * metaUnit, current: false)
                         }
                     }
+                    Text(next.title)
+                        .typeScale(.titleSmall)
+                        .foregroundStyle(Palette.ink)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer(minLength: 8)
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 16 * metaUnit, weight: .medium))
+                    .foregroundStyle(Palette.faint)
+            }
+        }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
@@ -248,5 +268,22 @@ struct SeriesNextCard: View {
                 .stroke(Palette.cardBorder, lineWidth: 1)
         )
         .contentShape(RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
+    }
+}
+
+/// 시리즈 목차에서 노트 편을 글과 가르는 작은 표식 — 노트 탭과 같은 말풍선에 "노트" 한 마디.
+struct SeriesNoteMark: View {
+    let size: CGFloat
+    let current: Bool
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Image(systemName: "text.bubble")
+                .font(.system(size: size, weight: .semibold))
+            Text("노트")
+                .font(.system(size: size, weight: .semibold))
+        }
+        .foregroundStyle(current ? Palette.link : Palette.faint)
+        .accessibilityHidden(true)
     }
 }

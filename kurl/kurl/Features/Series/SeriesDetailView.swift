@@ -69,7 +69,7 @@ struct SeriesDetailView: View {
                         // "발행 하나 + 초안 여럿" 시리즈는 여기서 편수가 1로 보이지만, 순서 편집 시트는
                         // 주인 상세를 따로 읽어 초안·예약까지 전부 다룬다 — 발행글 수로 문을 닫으면
                         // 정작 순서를 짤 회차들이 가려진다. 실제로 한 편뿐이면 시트의 저장이 비활성.
-                        if !detail.posts.isEmpty {
+                        if !detail.entries.isEmpty {
                             Button {
                                 showReorder = true
                             } label: {
@@ -114,7 +114,7 @@ struct SeriesDetailView: View {
             Button("삭제", role: .destructive) { Task { await deleteSeries() } }
             Button("취소", role: .cancel) {}
         } message: {
-            Text("시리즈 묶음만 풀려요. 회차 글 자체는 지워지지 않아요.")
+            Text("시리즈 묶음만 풀려요. 회차의 글과 노트는 지워지지 않아요.")
         }
         .task { await load() }
     }
@@ -149,9 +149,9 @@ struct SeriesDetailView: View {
 
     @ViewBuilder
     private func content(_ detail: PublicSeriesDetail) -> some View {
-        let posts = detail.posts
-        // 읽은(연 적 있는) 회차 — 기기 로컬 기억. @Observable 이라 글을 읽고 돌아오면 갱신된다.
-        let readFlags = posts.map { PostReadStore.shared.isRead($0.id) }
+        let posts = detail.entries
+        // 읽은(연 적 있는) 회차 — 기기 로컬 기억. @Observable 이라 글·노트를 읽고 돌아오면 갱신된다.
+        let readFlags = posts.map(\.isRead)
         let readCount = readFlags.filter { $0 }.count
         let firstUnread = readFlags.firstIndex(of: false)
 
@@ -166,9 +166,9 @@ struct SeriesDetailView: View {
         } else {
             LazyVStack(spacing: 0) {
                 ForEach(Array(posts.enumerated()), id: \.element.id) { index, post in
-                    NavigationLink(value: Route.post(username: username, slug: post.slug)) {
+                    NavigationLink(value: post.route(username: username)) {
                         EpisodeRow(
-                            number: index + 1, post: post,
+                            number: index + 1, entry: post,
                             state: readFlags[index]
                                 ? .read
                                 : (readCount > 0 && firstUnread == index ? .next : .unread))
@@ -188,7 +188,7 @@ struct SeriesDetailView: View {
     /// "이어서 읽기" 한 동작으로 목차를 연다. 종이 세계라 유리는 컨트롤(구독·읽기 캡슐)에만.
     @ViewBuilder
     private func masthead(
-        detail: PublicSeriesDetail, posts: [PostListItem], readCount: Int, firstUnread: Int?
+        detail: PublicSeriesDetail, posts: [SeriesEntry], readCount: Int, firstUnread: Int?
     ) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 7) {
@@ -244,7 +244,7 @@ struct SeriesDetailView: View {
 
     /// 규모 + 주제 한 줄. 총 편수는 시리즈의 뼈대(몇 편짜리 여정인지), 태그는 눌러 그 주제 피드로.
     @ViewBuilder
-    private func scopeLine(posts: [PostListItem], tags: [String]) -> some View {
+    private func scopeLine(posts: [SeriesEntry], tags: [String]) -> some View {
         HStack(spacing: 8) {
             Text("\(posts.count)편")
                 .typeScale(.meta)
@@ -269,7 +269,7 @@ struct SeriesDetailView: View {
 
     /// 진행 막대 + 주행동. 시작 전이면 막대 없이 '첫 화부터'만, 읽는 중이면 진행 위에 '이어 읽기'.
     @ViewBuilder
-    private func continueBlock(posts: [PostListItem], readCount: Int, firstUnread: Int?) -> some View {
+    private func continueBlock(posts: [SeriesEntry], readCount: Int, firstUnread: Int?) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             if readCount > 0 {
                 VStack(alignment: .leading, spacing: 7) {
@@ -295,7 +295,7 @@ struct SeriesDetailView: View {
             // 시리즈의 본업은 순서대로 읽기 — 읽은 데까지 이어서, 안 시작했으면 첫 화로.
             // 주행동이라 그린 유리 캡슐(흰 라벨). 화면에 그린 primary 는 이 하나뿐이게 한다.
             if let action = seriesAction(posts: posts, readCount: readCount, firstUnread: firstUnread) {
-                NavigationLink(value: Route.post(username: username, slug: action.post.slug)) {
+                NavigationLink(value: action.post.route(username: username)) {
                     HStack(spacing: 7) {
                         Image(systemName: action.icon)
                             .font(.subheadline.weight(.semibold))
@@ -318,7 +318,7 @@ struct SeriesDetailView: View {
     /// 의도(kind)를 명시해 둬 라벨·아이콘이 아이콘 문자열 비교로 갈리지 않게 한다.
     private struct SeriesAction {
         enum Kind { case start, resume(Int), restart }
-        let post: PostListItem
+        let post: SeriesEntry
         let kind: Kind
 
         var icon: String {
@@ -330,7 +330,7 @@ struct SeriesDetailView: View {
         }
     }
 
-    private func seriesAction(posts: [PostListItem], readCount: Int, firstUnread: Int?) -> SeriesAction? {
+    private func seriesAction(posts: [SeriesEntry], readCount: Int, firstUnread: Int?) -> SeriesAction? {
         guard let first = posts.first else { return nil }
         if readCount == 0 {
             return SeriesAction(post: first, kind: .start)
@@ -373,7 +373,7 @@ private enum EpisodeState { case read, next, unread }
 /// 카탈로그(순서대로 읽는 책장)라 카드가 아니라 깔끔한 글 행(3원칙 표준).
 private struct EpisodeRow: View {
     let number: Int
-    let post: PostListItem
+    let entry: SeriesEntry
     let state: EpisodeState
     // 큰 글씨에서도 뼈대 번호가 제목과 함께 커지게(고정 pt 우회).
     @ScaledMetric(relativeTo: .footnote) private var spineUnit: CGFloat = 1
@@ -387,11 +387,12 @@ private struct EpisodeRow: View {
                 .padding(.top, 3)
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
-                    Text(post.title)
-                        .typeScale(.title)
+                    Text(entry.title)
+                        // 노트 편은 제목이 없어 발췌가 그 자리에 선다 — 글 제목보다 한 단 가볍게.
+                        .typeScale(entry.isNoteEntry ? .lede : .title)
                         // 읽은 회차는 한 톤 가라앉혀 — 남은 회차로 눈이 가게.
                         .foregroundStyle(state == .read ? Palette.secondary : Palette.ink)
-                        .lineLimit(2)
+                        .lineLimit(entry.isNoteEntry ? 3 : 2)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                     if state == .next {
@@ -402,7 +403,7 @@ private struct EpisodeRow: View {
                             .foregroundStyle(Palette.link)
                     }
                 }
-                if let excerpt = post.excerpt, !excerpt.isEmpty {
+                if case .post(let post) = entry, let excerpt = post.excerpt, !excerpt.isEmpty {
                     Text(excerpt)
                         .typeScale(.lede)
                         .foregroundStyle(Palette.secondary)
@@ -410,12 +411,17 @@ private struct EpisodeRow: View {
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                if let date = post.publishedAt {
-                    Text(date.relativeShort)
-                        .typeScale(.meta)
-                        .foregroundStyle(Palette.secondary)
-                        .padding(.top, 1)
+                HStack(spacing: 6) {
+                    if entry.isNoteEntry {
+                        SeriesNoteMark(size: 11 * spineUnit, current: false)
+                    }
+                    if let date = entry.date {
+                        Text(date.relativeShort)
+                            .typeScale(.meta)
+                            .foregroundStyle(Palette.secondary)
+                    }
                 }
+                .padding(.top, 1)
             }
             Spacer(minLength: 0)
         }
@@ -446,7 +452,9 @@ private struct EpisodeRow: View {
     }
 
     private var a11yLabel: Text {
-        let base = String(localized: "\(number)편 — \(post.title)")
+        let base = entry.isNoteEntry
+            ? String(localized: "\(number)편 — 노트 \(entry.title)")
+            : String(localized: "\(number)편 — \(entry.title)")
         switch state {
         case .read: return Text(verbatim: String(localized: "\(base), 읽음"))
         case .next: return Text(verbatim: String(localized: "\(base), 다음 읽을 글"))

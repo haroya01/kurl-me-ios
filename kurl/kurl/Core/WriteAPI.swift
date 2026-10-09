@@ -290,6 +290,10 @@ struct MySeries: Decodable, Identifiable, Hashable {
     let slug: String
     let title: String
     let postCount: Int
+    /// 글·노트 함께(서버가 노트를 담기 시작한 뒤). 옛 서버면 nil.
+    var itemCount: Int? = nil
+
+    var episodeCount: Int { itemCount ?? postCount }
 }
 
 /// 시리즈 회차 한 줄(주인 뷰) — 순서 편집이 다루는 최소 부분집합. 발행 전 회차도 오므로 상태를 함께

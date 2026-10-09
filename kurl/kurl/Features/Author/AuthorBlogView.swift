@@ -453,7 +453,7 @@ struct AuthorBlogView: View {
         LazyVStack(spacing: 0) {
             ForEach(Array(series.enumerated()), id: \.element.id) { index, item in
                 NavigationLink(value: Route.series(username: username, slug: item.slug)) {
-                    catalogRow(title: item.title, detail: Text("\(item.postCount)편"), systemImage: nil)
+                    catalogRow(title: item.title, detail: Text("\(item.episodeCount)편"), systemImage: nil)
                 }
                 .buttonStyle(RowButtonStyle())
                 .modifier(QuietAppear(index: index))
