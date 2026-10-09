@@ -15,9 +15,39 @@ final class NotesViewModel {
     private(set) var isLoadingMore = false
 
     var items: [Note] {
-        guard let context = source.filterContext else { return loaded }
-        let store = NoteFilterStore.shared
-        return loaded.filter { store.verdict(for: $0, in: context) != .hide }
+        guard source.filterContext != nil else { return loaded }
+        return loaded.filter(isVisible)
+    }
+
+    private func isVisible(_ note: Note) -> Bool {
+        guard let context = source.filterContext else { return true }
+        return NoteFilterStore.shared.verdict(for: note, in: context) != .hide
+    }
+
+    private static let chaseCap = 5
+
+    /// 받은 페이지의 노트가 필터로 전부 숨겨지면 다음 페이지를 이어 받는다(상한 `chaseCap`).
+    static func collectVisible(
+        from startPage: Int,
+        seen: Set<Int64>,
+        cap: Int = chaseCap,
+        isVisible: (Note) -> Bool,
+        fetch: (Int) async throws -> NoteFeed
+    ) async throws -> (notes: [Note], page: Int, hasNext: Bool) {
+        var seen = seen
+        var notes: [Note] = []
+        var page = startPage
+        var hops = 0
+        while true {
+            let feed = try await fetch(page)
+            let fresh = feed.items.filter { seen.insert($0.id).inserted }
+            notes += fresh
+            hops += 1
+            if fresh.contains(where: isVisible) || !feed.hasNext || hops >= cap {
+                return (notes, page, feed.hasNext)
+            }
+            page += 1
+        }
     }
 
     var filterContext: NoteFilterContext? { source.filterContext }
@@ -161,11 +191,13 @@ final class NotesViewModel {
         let myEpoch = epoch
         if loaded.isEmpty { phase = .loading }
         do {
-            let feed = try await load(0)
+            let head = try await Self.collectVisible(from: 0, seen: [], isVisible: isVisible) {
+                try await self.load($0)
+            }
             guard myEpoch == epoch else { return }
-            page = 0
-            loaded = feed.items
-            hasNext = feed.hasNext
+            page = head.page
+            loaded = head.notes
+            hasNext = head.hasNext
             phase = .loaded(true)
         } catch {
             guard myEpoch == epoch else { return }
@@ -182,12 +214,13 @@ final class NotesViewModel {
         isLoadingMore = true
         defer { isLoadingMore = false }
         let myEpoch = epoch
-        if let feed = try? await load(page + 1) {
+        if let next = try? await Self.collectVisible(
+            from: page + 1, seen: Set(loaded.map(\.id)), isVisible: isVisible, fetch: { try await self.load($0) }
+        ) {
             guard myEpoch == epoch else { return }
-            page += 1
-            hasNext = feed.hasNext
-            let seen = Set(loaded.map(\.id))
-            loaded.append(contentsOf: feed.items.filter { !seen.contains($0.id) })
+            page = next.page
+            hasNext = next.hasNext
+            loaded.append(contentsOf: next.notes)
         }
     }
 
