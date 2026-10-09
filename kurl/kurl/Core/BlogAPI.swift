@@ -7,9 +7,10 @@
 
 import Foundation
 
-/// 공개(비인증) 블로그 엔드포인트 모음.
+/// 공개 블로그 엔드포인트 모음. 발견 경로(전역·태그·검색 피드, 추천 작가, 시리즈 발견, 주제별 인기)는
+/// 로그인했으면 토큰을 실어 서버가 차단·뮤트한 작가를 거르게 한다.
 enum BlogAPI {
-    private static let client = APIClient.shared
+    static var client = APIClient.shared
 
     // MARK: 전역 피드 / 검색
 
@@ -20,7 +21,7 @@ enum BlogAPI {
         page: Int = 0,
         size: Int = 20
     ) async throws -> PublicFeedView {
-        try await client.get(
+        try await client.getAsViewer(
             "/public/posts",
             query: [
                 "sort": sort.rawValue,
@@ -35,7 +36,7 @@ enum BlogAPI {
     // MARK: 발견
 
     static func trendingByTag(tagLimit: Int = 6, perTag: Int = 8) async throws -> [TrendingTagSection] {
-        try await client.get(
+        try await client.getAsViewer(
             "/public/feed/trending-by-tag",
             query: ["tagLimit": String(tagLimit), "perTag": String(perTag)]
         )
@@ -46,11 +47,11 @@ enum BlogAPI {
     }
 
     static func suggestedAuthors(limit: Int = 5) async throws -> [SuggestedAuthor] {
-        try await client.get("/public/authors", query: ["limit": String(limit)])
+        try await client.getAsViewer("/public/authors", query: ["limit": String(limit)])
     }
 
     static func discoverSeries(limit: Int = 6) async throws -> [PublicSeriesCard] {
-        try await client.get("/public/series", query: ["limit": String(limit)])
+        try await client.getAsViewer("/public/series", query: ["limit": String(limit)])
     }
 
     // MARK: 작가 블로그

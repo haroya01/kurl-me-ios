@@ -48,10 +48,25 @@ struct APIClient {
 
     private let session: URLSession
     private let decoder: JSONDecoder
+    private let viewerToken: () async -> String?
 
-    init(session: URLSession = .shared) {
+    init(
+        session: URLSession = .shared,
+        viewerToken: @escaping () async -> String? = { await AuthStore.shared.viewerBearerToken() }
+    ) {
         self.session = session
         self.decoder = JSONDecoder.blog
+        self.viewerToken = viewerToken
+    }
+
+    /// 공개 읽기에 로그인한 사람의 토큰을 싣는다 — 서버가 그 사람이 차단·뮤트한 작가를 걸러 준다.
+    /// 로그아웃이면 익명 그대로. 공개 경로는 무효 토큰도 401 없이 익명으로 받으므로 401 재시도는 없다.
+    func getAsViewer<T: Decodable>(_ path: String, query: [String: String?] = [:]) async throws -> T {
+        var request = try makeRequest(path: path, query: query, method: "GET")
+        if let token = await viewerToken() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        return try decode(try await rawData(request))
     }
 
     func get<T: Decodable>(
