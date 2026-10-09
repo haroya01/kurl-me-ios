@@ -58,7 +58,7 @@ struct TagFeedView: View {
                 } header: {
                     ContentTabBar(
                         tabs: [TagFeedTab.posts, .notes], selection: $tab, label: \.label,
-                        identifier: { "tag.tab.\($0.key)" })
+                        identifier: { "tag.tab.\($0.key)" }, background: Palette.readingBg)
                 }
             }
             .padding(.bottom, 16)
@@ -69,7 +69,7 @@ struct TagFeedView: View {
         .swipeSelects([TagFeedTab.posts, .notes], selection: $tab)
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
-        .background(Palette.pageBg)
+        .background(Palette.readingBg)
         // 마스트헤드를 지나면 태그 이름이 내비바로 스민다(읽기 앱 문법) — 상단 중복 제거.
         .onScrollGeometryChange(for: Bool.self) { geometry in
             geometry.contentOffset.y + geometry.contentInsets.top > 56
@@ -120,26 +120,28 @@ struct TagFeedView: View {
                 )
                 .padding(.top, 48)
             }
-            // 태그 피드도 browse 면 — 검색·홈과 같은 카드 문법(웹 §10.1 예외 경계).
-            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
-                    BlogCard(item: item, omittingTag: tag)
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                    NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
+                        FeedRow(item: item, omittingTag: tag, linked: true)
+                    }
+                    .buttonStyle(RowButtonStyle())
+                    .cardQuickActions(item)
+                    .accessibilityIdentifier("tag.row.\(item.id)")
+                    .modifier(ZoomSource(
+                        active: true,
+                        id: "tag-\(item.author.username)-\(item.slug)",
+                        ns: zoomNS))
+                    .rowDivider(index > 0)
+                    .modifier(QuietAppear(index: index))
+                    .task {
+                        if index >= items.count - 5 { await loadMore() }
+                    }
                 }
-                .buttonStyle(CardButtonStyle())
-                .cardQuickActions(item)
-                .modifier(ZoomSource(
-                    active: true,
-                    id: "tag-\(item.author.username)-\(item.slug)",
-                    ns: zoomNS))
-                .modifier(QuietAppear(index: index))
-                .modifier(CardScrollFade())
-                .task {
-                    if index >= items.count - 5 { await loadMore() }
+                if loadingMore {
+                    KurlLoadingMark()
+                        .frame(maxWidth: .infinity).padding(.vertical, 18)
                 }
-            }
-            if loadingMore {
-                KurlLoadingMark()
-                    .frame(maxWidth: .infinity).padding(.vertical, 18)
             }
         }
     }
