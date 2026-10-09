@@ -23,17 +23,11 @@ struct NotesTabView: View {
                 NoteFeedPage(kind: kind, model: model(kind), active: active, warm: warm)
             }
             .safeAreaBar(edge: .top) {
-                FeedHeaderBar(items: NoteFeedKind.tabs, selection: $choice.kind, label: \.label) {
-                    Menu {
-                        NoteFeedMenu()
-                    } label: {
-                        FeedHeaderGlyph(systemImage: "line.3.horizontal")
-                    }
-                    .menuOrder(.fixed)
-                    .buttonStyle(.plain)
-                    .glassEffect(.regular.interactive(), in: .circle)
-                    .accessibilityLabel(Text("노트 피드 더 보기"))
-                    .accessibilityIdentifier("notes.more")
+                FeedHeaderBar(
+                    items: NoteFeedKind.tabs, selection: $choice.kind, label: \.label,
+                    moreLabel: "노트 피드 더 보기", moreIdentifier: "notes.more"
+                ) {
+                    NoteFeedMenu()
                 }
             }
             .background(alignment: .top) { FeedHeaderMist() }
@@ -55,6 +49,9 @@ struct NotesTabView: View {
             }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { Task { await UnreadStore.shared.refresh() } }
+            }
+            .onChange(of: AuthStore.shared.isSignedIn) { _, signedIn in
+                if !signedIn { choice.signedOut() }
             }
         }
         .onChange(of: router.reselections) {

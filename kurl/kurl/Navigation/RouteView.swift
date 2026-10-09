@@ -49,6 +49,8 @@ struct RouteView: View {
             FollowRequestsView()
         case .filteredNotifications:
             FilteredNotificationsView()
+        case let .blogFeed(source):
+            BlogFeedScreen(source: source)
         case let .noteFeed(kind):
             NoteFeedScreen(kind: kind)
         case let .noteList(id, title):

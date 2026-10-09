@@ -8,7 +8,7 @@
 import SwiftUI
 import Observation
 
-/// 피드 탭 — 최신/인기는 공개, 추천(For You)·구독함은 인증 피드.
+/// 피드 탭 — 최신/인기는 공개, 추천(For You)·팔로잉은 인증 피드.
 enum FeedSource: String, CaseIterable, Identifiable {
     case recent
     case trending
@@ -22,7 +22,7 @@ enum FeedSource: String, CaseIterable, Identifiable {
         case .recent: String(localized: "최신")
         case .trending: String(localized: "인기")
         case .forYou: String(localized: "추천")
-        case .following: String(localized: "구독함")
+        case .following: String(localized: "팔로잉")
         }
     }
 

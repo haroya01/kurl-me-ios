@@ -6,7 +6,7 @@
 import SwiftUI
 
 /// 태그 구독 버튼 — 시리즈 구독과 같은 유리 캡슐 문법(구독 전=그린 유리, 구독 중=맑은 유리).
-/// 구독한 태그의 새 글은 구독함 피드로 흘러든다(웹 tag-prefs parity).
+/// 구독한 태그의 새 글은 팔로잉 피드로 흘러든다(웹 tag-prefs parity).
 struct TagFollowButton: View {
     @State private var model: TagFollowModel
     @State private var showLoginPrompt = false
@@ -47,7 +47,7 @@ struct TagFollowButton: View {
         }
         .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
         .task { await model.hydrate() }
-        .loginPrompt(isPresented: $showLoginPrompt, message: "이 태그의 새 글을 구독함에 모으기") {
+        .loginPrompt(isPresented: $showLoginPrompt, message: "이 태그의 새 글을 팔로잉에 모으기") {
             await model.hydrate()
         }
     }
