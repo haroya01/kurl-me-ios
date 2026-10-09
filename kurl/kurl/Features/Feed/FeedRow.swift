@@ -19,11 +19,15 @@ struct RowLayout<Top: View, Byline: View>: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     @ScaledMetric(relativeTo: .headline) private var thumbSize: CGFloat = 72
 
+    private var thumbnail: URL? {
+        typeSize.isAccessibilitySize ? nil : cover
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            top
-            HStack(alignment: .top, spacing: 14) {
+        HStack(alignment: .top, spacing: 14) {
+            VStack(alignment: .leading, spacing: 0) {
                 VStack(alignment: .leading, spacing: 6) {
+                    top
                     if let title {
                         Text(title)
                             .typeScale(.title)
@@ -42,14 +46,17 @@ struct RowLayout<Top: View, Byline: View>: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                if let cover, !typeSize.isAccessibilitySize {
-                    RowThumbnail(url: cover, size: thumbSize)
-                }
+                Spacer(minLength: 0)
+                byline
+                    .padding(.top, 8)
             }
-            byline
-                .padding(.top, 2)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            if let thumbnail {
+                RowThumbnail(url: thumbnail, size: thumbSize)
+            }
         }
+        // 행 높이 = max(글 열, 썸네일). 그 높이로 글 열을 다시 채워 작가 줄이 썸네일 아래 끝선까지 내려앉는다.
+        .fixedSize(horizontal: false, vertical: true)
         .padding(.vertical, 16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
