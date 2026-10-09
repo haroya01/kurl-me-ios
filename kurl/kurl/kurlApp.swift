@@ -63,10 +63,12 @@ struct kurlApp: App {
                 // 안 그러면 웰컴이 목적 화면을 덮어 터치를 삼킨다.
                 showWelcome = forceWelcome
                     || (!AuthStore.shared.isSignedIn && !Config.hasDeepLinkEntry)
-                // 마크 드로잉(~0.4s)→워드마크(~0.8s)→형광 한 획(~1.05s)이 끝난 뒤 걷는다.
-                // 웰컴(첫 실행)은 한 박자 더 머물고, 매일 보는 로그인 커튼은 가볍게 1.15s.
-                let hold: Double = reduceMotion ? 0.6 : 1.15
-                try? await Task.sleep(for: .seconds(hold))
+                // 첫 피드가 도착하면 바로, 늦어도 상한에 걷는다 — 고정 1.15s 는 피드가 이미 와 있어도 매
+                // 실행에 바닥을 깔았다. 마크 드로잉은 걷히는 페이드와 겹쳐 끝난다.
+                let cap = ContinuousClock.now + .seconds(reduceMotion ? 0.3 : 0.4)
+                while ContinuousClock.now < cap, !LaunchReadiness.shared.firstFeedSettled {
+                    try? await Task.sleep(for: .milliseconds(40))
+                }
                 // 막이 걷히며 마크가 스플래시 자리에서 웰컴 자리로 글라이드한다(matched). 같은
                 // 트랜잭션에서 reveal 을 켜 마크 핸드오프와 텍스트 스태거가 한 호흡으로 이어진다.
                 withAnimation(.timingCurve(0.16, 1, 0.3, 1, duration: reduceMotion ? 0.35 : 0.6)) {
