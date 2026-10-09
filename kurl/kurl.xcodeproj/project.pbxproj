@@ -22,6 +22,7 @@
 		DEF2000000000000000000D1 /* WriteV2AdversarialTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEF2000000000000000000D2 /* WriteV2AdversarialTests.swift */; };
 		DEF2000000000000000000E1 /* WriteV2StressTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEF2000000000000000000E2 /* WriteV2StressTests.swift */; };
 		F1A0000000000000000000A1 /* ComposeRecoveryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A0000000000000000000A2 /* ComposeRecoveryTests.swift */; };
+		F1A0000000000000000000B1 /* FollowBlockRollbackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A0000000000000000000B2 /* FollowBlockRollbackTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -80,6 +81,7 @@
 		DEF2000000000000000000D2 /* WriteV2AdversarialTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WriteV2AdversarialTests.swift; sourceTree = "<group>"; };
 		DEF2000000000000000000E2 /* WriteV2StressTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WriteV2StressTests.swift; sourceTree = "<group>"; };
 		F1A0000000000000000000A2 /* ComposeRecoveryTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ComposeRecoveryTests.swift; sourceTree = "<group>"; };
+		F1A0000000000000000000B2 /* FollowBlockRollbackTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FollowBlockRollbackTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -201,6 +203,7 @@
 				DEF2000000000000000000D2 /* WriteV2AdversarialTests.swift */,
 				DEF2000000000000000000E2 /* WriteV2StressTests.swift */,
 				F1A0000000000000000000A2 /* ComposeRecoveryTests.swift */,
+				F1A0000000000000000000B2 /* FollowBlockRollbackTests.swift */,
 			);
 			path = kurlTests;
 			sourceTree = "<group>";
@@ -391,6 +394,7 @@
 				DEF2000000000000000000D1 /* WriteV2AdversarialTests.swift in Sources */,
 				DEF2000000000000000000E1 /* WriteV2StressTests.swift in Sources */,
 				F1A0000000000000000000A1 /* ComposeRecoveryTests.swift in Sources */,
+				F1A0000000000000000000B1 /* FollowBlockRollbackTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
