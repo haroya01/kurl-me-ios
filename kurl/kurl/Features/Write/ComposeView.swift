@@ -106,6 +106,8 @@ struct ComposeView: View {
     @State private var recoveryStashTask: Task<Void, Never>?
     /// 열었을 때 금고에서 발견한 "서버에 못 실린 변경" — 복구/버리기 제안의 재료.
     @State private var pendingRecovery: ComposeRecoveryStore.Draft?
+    /// 초안 id 를 얻기 전 이 편집의 금고 슬롯 키 — 새 글끼리 한 슬롯을 나눠 쓰지 않게 편집마다 따로.
+    @State private var draftKey = UUID()
     /// 세션이 풀렸을 때 컴포즈를 떠나지 않고 다시 로그인하는 시트.
     @State private var showLoginSheet = false
 
@@ -124,6 +126,8 @@ struct ComposeView: View {
 
     // 커버
     @State private var coverUrl: String?
+    /// 라이브 글에 처음 넣은 본문 사진으로 정한 기본 커버 — 명시 저장 때 서버에 반영한다.
+    @State private var pendingCover: PendingCover?
     @State private var coverItem: PhotosPickerItem?
     @State private var uploadingCover = false
 
@@ -218,12 +222,13 @@ struct ComposeView: View {
             // 디바운스를 기다리지 않고 즉시 금고에 눕힌다 — 이탈 플러시가 실패해도 기기에 남는다.
             recoveryStashTask?.cancel()
             if signature != lastSavedSignature {
-                ComposeRecoveryStore.stash(postId: postId, title: title, markdown: markdown)
+                ComposeRecoveryStore.stash(postId: postId, draftKey: draftKey, title: title, markdown: markdown)
             }
             if allowsAutosave, canSave, signature != lastSavedSignature {
                 DraftFlusher.shared.flush(
                     .init(
                         postId: postId,
+                        draftKey: draftKey,
                         title: title,
                         markdown: markdown,
                         savedTitle: savedTitle,
@@ -276,7 +281,7 @@ struct ComposeView: View {
                 pendingRecovery = nil
             }
             Button("버리기", role: .destructive) {
-                ComposeRecoveryStore.clear(postId: postId)
+                ComposeRecoveryStore.clear(postId: postId, draftKey: draftKey)
                 pendingRecovery = nil
             }
         } message: {
@@ -489,26 +494,35 @@ struct ComposeView: View {
     }
 
     private var meta: some View {
-        TextField("제목", text: $title, axis: .vertical)
-            .accessibilityIdentifier("제목")
-            .lineLimit(1...4)
-            .typeScale(.masthead)
-            .focused($focusedField, equals: .title)
-            .submitLabel(.next)
-            .onChange(of: title) { oldValue, newValue in
-                guard newValue.contains("\n") else { return }
-                if let split = Self.splitAtReturn(from: oldValue, to: newValue) {
-                    title = split.title
-                    focusBodyEditor(carrying: split.carried)
-                } else {
-                    title = newValue
-                        .replacingOccurrences(of: "\n", with: " ")
-                        .trimmingCharacters(in: .whitespaces)
+        VStack(alignment: .trailing, spacing: 4) {
+            TextField("제목", text: $title, axis: .vertical)
+                .accessibilityIdentifier("제목")
+                .lineLimit(1...4)
+                .typeScale(.masthead)
+                .focused($focusedField, equals: .title)
+                .submitLabel(.next)
+                .onChange(of: title) { oldValue, newValue in
+                    guard newValue.contains("\n") else {
+                        if newValue.utf16.count > PostLimits.title {
+                            // 같은 갱신 안에서 직전 값으로 되돌리면 TextField 가 이미 그린 넘친 글자를 지우지 않는다.
+                            Task { title = PostLimits.clamped(title, to: PostLimits.title) }
+                        }
+                        return
+                    }
+                    if let split = Self.splitAtReturn(from: oldValue, to: newValue) {
+                        title = split.title
+                        focusBodyEditor(carrying: split.carried)
+                    } else {
+                        title = newValue
+                            .replacingOccurrences(of: "\n", with: " ")
+                            .trimmingCharacters(in: .whitespaces)
+                    }
                 }
-            }
-            .padding(.horizontal, Metrics.gutter)
-            .padding(.top, 16)
-            .padding(.bottom, 12)
+            LengthLimitCount(text: title, limit: PostLimits.title)
+        }
+        .padding(.horizontal, Metrics.gutter)
+        .padding(.top, 16)
+        .padding(.bottom, 12)
     }
 
     /// 본문 캔버스 — 옵트인이면 WriteV2 블록 에디터, 아니면 현행 마크다운 에디터(default).
@@ -765,16 +779,24 @@ struct ComposeView: View {
                     .modifier(QuietAppear(index: 1))
 
                     sheetField("소개글") {
-                        TextField(
-                            "소개글 — 카드와 검색에 보이는 한 단락", text: $excerpt, axis: .vertical
-                        )
-                        .typeScale(.lede)
-                        .lineLimit(2...4)
-                        .padding(.horizontal, 13)
-                        .padding(.vertical, 11)
-                        .background(
-                            Palette.chipBg,
-                            in: RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
+                        VStack(alignment: .trailing, spacing: 4) {
+                            TextField(
+                                "소개글 — 카드와 검색에 보이는 한 단락", text: $excerpt, axis: .vertical
+                            )
+                            .typeScale(.lede)
+                            .lineLimit(2...4)
+                            .padding(.horizontal, 13)
+                            .padding(.vertical, 11)
+                            .background(
+                                Palette.chipBg,
+                                in: RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
+                            .onChange(of: excerpt) { _, value in
+                                if value.utf16.count > PostLimits.excerpt {
+                                    Task { excerpt = PostLimits.clamped(excerpt, to: PostLimits.excerpt) }
+                                }
+                            }
+                            LengthLimitCount(text: excerpt, limit: PostLimits.excerpt)
+                        }
                     }
                     .modifier(QuietAppear(index: 2))
 
@@ -1401,10 +1423,20 @@ struct ComposeView: View {
 
     /// 금고에 "서버에 못 실린 변경"이 남아 있으면 복구를 제안한다 — 지난 세션이 저장 실패/강제
     /// 종료로 끝났다는 뜻. 서버 본문과 같으면(이미 실렸으면) 조용히 슬롯만 비운다.
+    /// 새 글은 아직 플러시가 서버로 나르는 중인 다른 새 글을 빼고, 고른 슬롯을 이 편집의 슬롯으로 이어 쓴다.
     private func offerRecoveryIfAny() {
-        guard let draft = ComposeRecoveryStore.peek(postId: postId) else { return }
+        let draft: ComposeRecoveryStore.Draft
+        if postId == nil {
+            guard let orphan = ComposeRecoveryStore.latestNewDraft(
+                excluding: DraftFlusher.shared.pendingDraftKeys) else { return }
+            draftKey = orphan.key
+            draft = orphan.draft
+        } else {
+            guard let stashed = ComposeRecoveryStore.peek(postId: postId, draftKey: draftKey) else { return }
+            draft = stashed
+        }
         if draft.markdown == markdown, draft.title == title {
-            ComposeRecoveryStore.clear(postId: postId)
+            ComposeRecoveryStore.clear(postId: postId, draftKey: draftKey)
             return
         }
         pendingRecovery = draft
@@ -1473,12 +1505,13 @@ struct ComposeView: View {
         // 서버 자동저장과 별개로 기기 금고에도 눕힌다(0.8초 디바운스) — 서버가 실패하든 앱이
         // 죽든, 마지막 몇 초의 변경까지 기기에 남는다. 제목만 있어도 스태시(canSave 와 무관).
         recoveryStashTask?.cancel()
-        let stash = (postId: postId, title: title, markdown: markdown)
+        let stash = (title: title, markdown: markdown)
         recoveryStashTask = Task {
             try? await Task.sleep(for: .milliseconds(800))
             guard !Task.isCancelled else { return }
-            ComposeRecoveryStore.stash(postId: stash.postId, title: stash.title, markdown: stash.markdown)
-            if let saved = ComposeRecoveryStore.peek(postId: stash.postId),
+            // 슬롯은 쓰는 순간의 것 — 디바운스 사이 초안 id 가 생겼으면 승격된 id 슬롯에 써야 새 글 슬롯이 고아로 안 남는다.
+            ComposeRecoveryStore.stash(postId: postId, draftKey: draftKey, title: stash.title, markdown: stash.markdown)
+            if let saved = ComposeRecoveryStore.peek(postId: postId, draftKey: draftKey),
                saved.title == stash.title, saved.markdown == stash.markdown {
                 locallySavedBodySignature = [stash.title, stash.markdown].joined(separator: "\u{1F}")
             }
@@ -1497,11 +1530,9 @@ struct ComposeView: View {
         guard !busy, canSave, !silent || allowsAutosave else { return }
         // 명시 저장·발행이면 아직 +/Enter 안 누른 입력 중 태그도 포함한다(유실 방지).
         if !silent {
-            let pending = normalizedTag(tagDraft)
-            // 대소문자 무시 중복 검사 — TagsField.commit 과 같은 규칙(중복 태그 방지).
-            if !pending.isEmpty,
-                !tags.contains(where: { $0.caseInsensitiveCompare(pending) == .orderedSame }) {
-                tags.append(pending)
+            let next = PostLimits.adding(tagDraft, to: tags)
+            if next != tags {
+                tags = next
                 tagDraft = ""
             }
         }
@@ -1535,6 +1566,12 @@ struct ComposeView: View {
                 try await WriteAPI.assign(postId: id, from: savedSeriesId, to: seriesId)
                 savedSeriesId = seriesId
             }
+            if let cover = pendingCover {
+                try await WriteAPI.updateCover(postId: id, url: cover.url, key: cover.key)
+                pendingCover = nil
+                ToastCenter.shared.show(
+                    String(localized: "첫 이미지를 커버로 설정했어요 — 발행 시트에서 바꿀 수 있어요"))
+            }
             if publish {
                 let published = try await WriteAPI.publish(postId: id)
                 status = published.status
@@ -1547,7 +1584,7 @@ struct ComposeView: View {
             autosaveRetryStreak = 0
             // 서버에 실렸다 — 금고 슬롯을 비운다(스냅샷 이후 입력은 다음 스태시가 다시 눕힌다).
             recoveryStashTask?.cancel()
-            ComposeRecoveryStore.clear(postId: postId)
+            ComposeRecoveryStore.clear(postId: postId, draftKey: draftKey)
             onSaved()
             // 스냅샷 이후 입력이 있었으면 디바운스를 다시 무장한다.
             if signature != snapshot { scheduleAutosave() }
@@ -1611,8 +1648,8 @@ struct ComposeView: View {
         defer { createTask = nil }
         let id = try await task.value
         postId = id
-        // 새 글이 초안 id 를 얻었다 — 금고의 new 슬롯을 이 id 로 승격(중간에 죽어도 이어지게).
-        ComposeRecoveryStore.promote(to: id)
+        // 새 글이 초안 id 를 얻었다 — 금고의 이 편집 슬롯을 이 id 로 승격(중간에 죽어도 이어지게).
+        ComposeRecoveryStore.promote(draftKey, to: id)
         return id
     }
 
@@ -1676,6 +1713,7 @@ struct ComposeView: View {
                 let uploaded = try await WriteAPI.uploadImage(postId: id, jpegData: jpeg)
                 try await WriteAPI.updateCover(postId: id, url: uploaded.url, key: uploaded.key)
                 coverUrl = uploaded.url
+                pendingCover = nil
                 // 커버만 올린 것 — 본문 저장 표시(lastSavedAt)는 건드리지 않는다(거짓 "저장됨" 방지).
                 onSaved()
             } catch {
@@ -1897,6 +1935,10 @@ struct ComposeView: View {
     private func maybeSetCoverFromBodyImage(url: String, key: String?) {
         guard coverUrl == nil, let postId, let key else { return }
         coverUrl = url
+        guard allowsAutosave else {
+            pendingCover = PendingCover(url: url, key: key)
+            return
+        }
         Task {
             do {
                 try await WriteAPI.updateCover(postId: postId, url: url, key: key)
@@ -2734,14 +2776,26 @@ private struct RevisionsSheet: View {
     }
 }
 
-/// 태그 정규화 — '#' 제거(태그는 해시태그가 아니라 주제어) + 공백 트림 + 최대 길이 캡
-/// (백엔드 PostEntity.MAX_TAG_LENGTH = 40 과 정합). 빈 입력이면 빈 문자열을 돌려준다.
-private func normalizedTag(_ raw: String) -> String {
-    String(
-        raw.replacingOccurrences(of: "#", with: "")
-            .trimmingCharacters(in: .whitespaces)
-            .prefix(40)
-    )
+private struct PendingCover: Equatable {
+    let url: String
+    let key: String
+}
+
+/// 한도의 90%부터만 보이는 글자 수(서버와 같은 UTF-16 기준).
+private struct LengthLimitCount: View {
+    let text: String
+    let limit: Int
+
+    var body: some View {
+        let length = text.utf16.count
+        if length >= limit * 9 / 10 {
+            Text(verbatim: "\(length)/\(limit)")
+                .typeScale(.meta)
+                .monospacedDigit()
+                .foregroundStyle(length >= limit ? Palette.danger : Palette.secondary)
+                .accessibilityLabel(length >= limit ? Text("\(limit)자까지 쓸 수 있어요") : Text("\(limit - length)자 남음"))
+        }
+    }
 }
 
 /// 대표 태그 칩 에디터 — 입력해서 칩으로 쌓고, 첫 칩이 "대표"(카드·글 위 카테고리).
@@ -2760,6 +2814,7 @@ private struct TagsField: View {
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
                     .submitLabel(.done)
+                    .disabled(atMax)
                     .onSubmit { commit() }
                     .onChange(of: draft) { _, value in
                         // '#'는 태그에서 못 쓰게 — 입력 즉시 제거(태그는 해시태그가 아니라 주제어).
@@ -2772,7 +2827,7 @@ private struct TagsField: View {
                         .foregroundStyle(isDraftEmpty ? Palette.faint : Palette.accent)
                 }
                 .buttonStyle(.plain)
-                .disabled(isDraftEmpty)
+                .disabled(isDraftEmpty || atMax)
                 .accessibilityLabel(Text("태그 추가"))
             }
             .padding(.horizontal, 13)
@@ -2789,9 +2844,20 @@ private struct TagsField: View {
                         chip(tag, isPrimary: index == 0)
                     }
                 }
-                Text("탭하면 대표로 · ✕ 로 삭제")
-                    .typeScale(.footnote)
-                    .foregroundStyle(Palette.secondary)
+                HStack(alignment: .firstTextBaseline) {
+                    if atMax {
+                        Text("태그는 \(PostLimits.tags)개까지 달 수 있어요")
+                    } else {
+                        Text("탭하면 대표로 · ✕ 로 삭제")
+                    }
+                    Spacer(minLength: 8)
+                    if tags.count >= PostLimits.tags - 2 {
+                        Text(verbatim: "\(tags.count)/\(PostLimits.tags)")
+                            .monospacedDigit()
+                    }
+                }
+                .typeScale(.footnote)
+                .foregroundStyle(Palette.secondary)
             }
         }
     }
@@ -2834,14 +2900,10 @@ private struct TagsField: View {
         draft.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
+    private var atMax: Bool { tags.count >= PostLimits.tags }
+
     private func commit() {
-        let parts = draft
-            .split(whereSeparator: { $0 == "," })
-            .map { normalizedTag(String($0)) }
-            .filter { !$0.isEmpty }
-        for part in parts where !tags.contains(where: { $0.caseInsensitiveCompare(part) == .orderedSame }) {
-            tags.append(part)
-        }
+        tags = PostLimits.adding(draft, to: tags)
         draft = ""
     }
 

@@ -20,8 +20,17 @@ final class BlockStore {
     private(set) var blocked: [InteractionsAPI.BlockedUser] = []
     private var hydrated = false
     private var hydrating = false
+    private let api: API
 
-    private init() {}
+    nonisolated struct API {
+        var list: () async throws -> [InteractionsAPI.BlockedUser] = { try await InteractionsAPI.listBlocked() }
+        var block: (String) async throws -> Void = { try await InteractionsAPI.block(username: $0) }
+        var unblock: (String) async throws -> Void = { try await InteractionsAPI.unblock(username: $0) }
+    }
+
+    init(api: API = API()) {
+        self.api = api
+    }
 
     func isBlocked(_ username: String) -> Bool { blockedUsernames.contains(username) }
     func isBlocked(id: Int64) -> Bool { blockedIds.contains(id) }
@@ -46,7 +55,7 @@ final class BlockStore {
     /// 성공하면 true, 실패(전송오류 등)면 false — 호출부가 '실패'와 '빈 목록'을 구분할 수 있게.
     @discardableResult
     func reload() async -> Bool {
-        if let items = try? await InteractionsAPI.listBlocked() {
+        if let items = try? await api.list() {
             blocked = items
             blockedUsernames = Set(items.map(\.username))
             blockedIds = Set(items.map(\.id))
@@ -61,7 +70,7 @@ final class BlockStore {
         let insertedName = blockedUsernames.insert(username).inserted
         let insertedId = blockedIds.insert(id).inserted
         do {
-            try await InteractionsAPI.block(username: username)
+            try await api.block(username)
             await reload() // 서버 기준 최신순 목록(관리 화면)으로 정렬.
         } catch {
             if insertedName { blockedUsernames.remove(username) }
@@ -70,15 +79,20 @@ final class BlockStore {
         }
     }
 
-    /// 차단 해제 — 낙관적으로 빼고, 실패하면 서버 기준으로 재수화.
+    /// 차단 해제 — 낙관적으로 빼고, 실패하면 뺀 것만 되돌린다.
     func unblock(id: Int64, username: String) async throws {
-        blockedUsernames.remove(username)
-        blockedIds.remove(id)
-        blocked.removeAll { $0.id == id }
+        let removedName = blockedUsernames.remove(username)
+        let removedId = blockedIds.remove(id)
+        let removedIndex = blocked.firstIndex { $0.id == id }
+        let removedRow = removedIndex.map { blocked.remove(at: $0) }
         do {
-            try await InteractionsAPI.unblock(username: username)
+            try await api.unblock(username)
         } catch {
-            await reload()
+            if let removedName { blockedUsernames.insert(removedName) }
+            if let removedId { blockedIds.insert(removedId) }
+            if let removedIndex, let removedRow, !blocked.contains(where: { $0.id == id }) {
+                blocked.insert(removedRow, at: min(removedIndex, blocked.count))
+            }
             throw error
         }
     }

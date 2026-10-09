@@ -6,7 +6,7 @@
 import SwiftUI
 
 /// 작가 페이지의 팔로우 버튼 + 팔로워 수 — 유리 캡슐 문법: 팔로우 전 = 그린(700) 유리,
-/// 팔로잉 상태는 맑은 유리로 가라앉는다. 토글은 낙관, 실패 시 서버 상태로 복귀.
+/// 팔로잉 상태는 맑은 유리로 가라앉는다. 토글은 낙관, 실패 시 누르기 전 상태로 복귀.
 struct FollowButton: View {
     @State private var model: FollowModel
     @State private var showLoginPrompt = false
@@ -149,13 +149,22 @@ final class FollowModel {
     private(set) var requested = false
     private(set) var locked = false
     private(set) var bellToggleCount = 0
+    /// 팔로우 요청이 가는 중 — 끝날 때까지 다음 탭은 무시한다.
+    private(set) var busy = false
     /// 호출측이 시드를 줬는지 — 줬다면 등장 시 같은 GET 을 또 치지 않는다.
     private var seeded: Bool
 
     private let username: String
+    private let setFollow: (String, Bool) async throws -> InteractionsAPI.FollowStatus
 
-    init(username: String, seed: InteractionsAPI.FollowStatus? = nil) {
+    init(
+        username: String, seed: InteractionsAPI.FollowStatus? = nil,
+        setFollow: @escaping (String, Bool) async throws -> InteractionsAPI.FollowStatus = {
+            try await InteractionsAPI.setFollow(username: $0, on: $1)
+        }
+    ) {
         self.username = username
+        self.setFollow = setFollow
         self.seeded = seed != nil
         if let seed { apply(seed) }
     }
@@ -185,8 +194,11 @@ final class FollowModel {
 
     /// 켜기 = 팔로우(잠긴 계정이면 요청), 끄기 = 언팔로우 또는 요청 철회. 같은 PUT/DELETE 한 쌍이다.
     func toggle() async throws {
+        guard !busy else { return }
+        busy = true
+        defer { busy = false }
         userToggleCount += 1
-        let gen = userToggleCount
+        let before = (following: following, requested: requested, followerCount: followerCount, notifyNotes: notifyNotes)
         let target = !(following || requested)
         if target, locked {
             requested = true
@@ -200,12 +212,12 @@ final class FollowModel {
             notifyNotes = false
         }
         do {
-            let status = try await InteractionsAPI.setFollow(username: username, on: target)
-            guard gen == userToggleCount else { return }
-            apply(status)
+            apply(try await setFollow(username, target))
         } catch {
-            guard gen == userToggleCount else { return }
-            await hydrate()
+            following = before.following
+            requested = before.requested
+            followerCount = before.followerCount
+            notifyNotes = before.notifyNotes
             throw error
         }
     }

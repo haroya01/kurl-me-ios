@@ -18034,6 +18034,34 @@
         }
       }
     },
+    "사진이 너무 커서 올리지 못했어요 — 한 장에 %lldMB까지 올릴 수 있어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That photo is too large to upload — each photo can be up to %lldMB"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ोटो बहुत बड़ी है, अपलोड नहीं हो सकी — हर फ़ोटो %lldMB तक हो सकती है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真が大きすぎてアップロードできませんでした — 1枚%lldMBまでです"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ảnh quá lớn nên không tải lên được — mỗi ảnh tối đa %lldMB"
+          }
+        }
+      }
+    },
     "이 필터를 지울까요?": {
       "localizations": {
         "en": {
@@ -32564,6 +32592,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Thêm thẻ"
+          }
+        }
+      }
+    },
+    "태그는 %lld개까지 달 수 있어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can add up to %lld tags"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आप %lld टैग तक जोड़ सकते हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タグは%lld個までつけられます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn có thể thêm tối đa %lld thẻ"
           }
         }
       }

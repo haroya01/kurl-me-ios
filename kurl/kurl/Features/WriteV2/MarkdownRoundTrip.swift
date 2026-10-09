@@ -8,7 +8,8 @@
 //  방언 근거(kurl-ios 소스에서 확정):
 //   • 제목 = ATX `# `/`## `/`### ` (h1~3, 해시 뒤 공백 필수) — MarkdownSyntaxHighlighter L160.
 //   • 인용 = 줄머리 `> ` (또는 단독 `>`) — 같은 파일 L169. 여러 줄 인용은 줄마다 `> `.
-//   • 코드펜스 = ``` (백틱 3) 여는 줄에 언어 선택 — L138~150. 같은 마커로 닫는다.
+//   • 코드펜스 = 백틱 3개 이상, 여는 줄에 언어 선택 — L138~150. 코드 안 최장 백틱보다 길게 쓰고(서버 fenceFor),
+//     같은 문자로 여는 길이 이상인 줄에서 닫는다.
 //   • 구분선 = 단독 줄 `---`(3 하이픈) — MarkdownTextView.insertDivider L753. `***`/`___` 안 씀.
 //   • 글머리 리스트 = `- `(정본; `* ` 도 허용) — MarkdownSyntaxHighlighter L360. 중첩=2칸/레벨(L358·리더 lead/2).
 //   • 번호 리스트 = `N. `(숫자+점+공백) — 같은 파일 L124. 발행 시 1,2,3 재번호되지만 왕복은 원문 번호 보존.
@@ -90,8 +91,8 @@ nonisolated enum MarkdownSerializer {
                 .map { $0.isEmpty ? ">" : "> \($0)" }
                 .joined(separator: "\n")
         case .code(let language):
-            let fenceOpen = "```" + (language?.trimmingCharacters(in: .whitespaces) ?? "")
-            return "\(fenceOpen)\n\(block.text)\n```"
+            let fence = backtickFence(for: block.text)
+            return "\(fence)\(language?.trimmingCharacters(in: .whitespaces) ?? "")\n\(block.text)\n\(fence)"
         case .divider:
             return "---"
         case .linkCard(let url):
@@ -106,6 +107,16 @@ nonisolated enum MarkdownSerializer {
         case .table(let table):
             return serializeTable(table)
         }
+    }
+
+    static func backtickFence(for code: String) -> String {
+        var longest = 0
+        var run = 0
+        for ch in code {
+            run = ch == "`" ? run + 1 : 0
+            longest = max(longest, run)
+        }
+        return String(repeating: "`", count: max(3, longest + 1))
     }
 
     /// 표 → GFM. 헤더\n구분선(정렬 토큰)\n본문. 셀 안 파이프는 `\|` 로 이스케이프(TableMarkdown.cells 규칙).
@@ -168,15 +179,15 @@ nonisolated enum MarkdownBlockParser {
                 continue
             }
 
-            // 코드펜스 ``` 또는 ~~~ (여는 줄 언어 선택) — 연 것과 같은 마커로 닫힐 때까지 원문 보존.
-            // ~~~ 는 웹 파리티로 코드로 인식하되, 직렬화는 ``` 로 정규화한다(웹과 같은 무해 정규화).
+            // 코드펜스 ``` 또는 ~~~ 3개 이상(여는 줄 언어 선택) — 같은 문자로 여는 길이 이상인 줄에서 닫힌다.
+            // ~~~ 는 웹 파리티로 코드로 인식하되, 직렬화는 백틱으로 정규화한다(웹과 같은 무해 정규화).
             if let (fence, lang) = fenceOpen(trimmed) {
                 flushParagraph()
                 var codeLines: [String] = []
                 i += 1
                 while i < lines.count {
                     let t = lines[i].trimmingCharacters(in: .whitespaces)
-                    if t == fence { i += 1; break }
+                    if closesFence(t, opened: fence) { i += 1; break }
                     codeLines.append(lines[i])
                     i += 1
                 }
@@ -329,13 +340,18 @@ nonisolated enum MarkdownBlockParser {
         return (count, String(afterHashes.dropFirst()))
     }
 
-    /// 여는 코드펜스면 (펜스 마커, 언어)를, 아니면 nil. ``` 또는 ~~~ 뒤 나머지가 언어(공백 트림).
-    /// 반환된 마커로 닫힘을 판정한다(웹 파리티 — ~~~ 도 코드로 인식). 직렬화는 ``` 로 정규화한다.
+    /// 여는 코드펜스면 (펜스 마커, 언어)를, 아니면 nil. 3개 이상 이어진 ` 또는 ~ 전체가 마커이고 뒤 나머지가 언어(공백 트림).
+    /// 반환된 마커로 닫힘을 판정한다(웹 파리티 — ~~~ 도 코드로 인식).
     static func fenceOpen(_ trimmed: String) -> (fence: String, language: String)? {
-        for fence in ["```", "~~~"] where trimmed.hasPrefix(fence) {
-            return (fence, String(trimmed.dropFirst(fence.count)).trimmingCharacters(in: .whitespaces))
-        }
-        return nil
+        guard let mark = trimmed.first, mark == "`" || mark == "~" else { return nil }
+        let fence = trimmed.prefix(while: { $0 == mark })
+        guard fence.count >= 3 else { return nil }
+        return (String(fence), String(trimmed.dropFirst(fence.count)).trimmingCharacters(in: .whitespaces))
+    }
+
+    static func closesFence(_ trimmed: String, opened fence: String) -> Bool {
+        guard let mark = fence.first else { return false }
+        return trimmed.count >= fence.count && trimmed.allSatisfy { $0 == mark }
     }
 
     /// 단독 `>` 또는 `> ...` (방언 L169).

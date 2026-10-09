@@ -74,6 +74,48 @@ final class WriteV2RoundTripTests: XCTestCase {
         XCTAssertEqual(blocks[0].text, "no lang")
     }
 
+    // 서버(MarkdownBlocksConverter.fenceFor)·웹은 코드 안 최장 백틱보다 긴 펜스를 쓴다 — 코드 안 ``` 가
+    // 블록을 끊지 않아야 하고, 다시 저장해도 같은 마크다운으로 돌아와야 한다.
+    func testLongerBacktickFenceKeepsInnerFence() {
+        let md = "````markdown\n```swift\nlet x = 1\n```\n````"
+        let blocks = MarkdownBlockParser.parse(md)
+        XCTAssertEqual(blocks.count, 1)
+        XCTAssertEqual(blocks[0].kind, .code(language: "markdown"))
+        XCTAssertEqual(blocks[0].text, "```swift\nlet x = 1\n```")
+        assertRoundTrip(md)
+    }
+
+    func testRepeatedSavesDoNotGrowEmptyCodeBlocks() {
+        let original = "앞 문단\n\n````\n```\ninner\n```\n````\n\n뒤 문단"
+        var md = original
+        for _ in 0..<3 {
+            md = MarkdownSerializer.markdown(from: MarkdownBlockParser.parse(md))
+        }
+        XCTAssertEqual(md, original)
+        XCTAssertEqual(MarkdownBlockParser.parse(md).count, 3)
+    }
+
+    func testSerializerPicksFenceLongerThanInnerBackticks() {
+        let block = EditorBlock(kind: .code(language: "md"), text: "a ``` b\n`````\nc")
+        XCTAssertEqual(MarkdownSerializer.serialize(block), "``````md\na ``` b\n`````\nc\n``````")
+        let plain = EditorBlock(kind: .code(language: nil), text: "no ticks `x`")
+        XCTAssertEqual(MarkdownSerializer.serialize(plain), "```\nno ticks `x`\n```")
+    }
+
+    func testClosingFenceNeedsSameCharAndAtLeastOpeningLength() {
+        let blocks = MarkdownBlockParser.parse("~~~~\n~~~\n```\n~~~~~\n\n후속")
+        XCTAssertEqual(blocks.count, 2)
+        XCTAssertEqual(blocks[0].kind, .code(language: nil))
+        XCTAssertEqual(blocks[0].text, "~~~\n```")
+        XCTAssertEqual(blocks[1].text, "후속")
+    }
+
+    func testFenceLineWithTrailingTextDoesNotClose() {
+        let blocks = MarkdownBlockParser.parse("```\n``` not a close\n```")
+        XCTAssertEqual(blocks.count, 1)
+        XCTAssertEqual(blocks[0].text, "``` not a close")
+    }
+
     // MARK: 여러 블록 문서
 
     func testMixedDocument() {

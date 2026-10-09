@@ -296,8 +296,8 @@ enum NoteAPI {
             : try await client.delete("/notes/repost-visibility/\(username)", authenticated: true)
     }
 
-    /// presign → 저장소 직행 PUT. 노트를 쓸 때 넘길 키를 돌려준다. JPEG 로 재인코딩해 올린다.
-    static func uploadImage(jpegData: Data) async throws -> String {
+    /// presign → 저장소 직행 PUT. 노트를 쓸 때 넘길 키를 돌려준다.
+    static func uploadImage(_ image: NoteUploadImage) async throws -> String {
         struct PresignBody: Encodable { let contentType: String }
         struct Presign: Decodable {
             let uploadUrl: String
@@ -305,14 +305,14 @@ enum NoteAPI {
             let maxBytes: Int64
         }
         let presign: Presign = try await client.post(
-            "/notes/images/presign", body: PresignBody(contentType: "image/jpeg"),
+            "/notes/images/presign", body: PresignBody(contentType: image.contentType),
             authenticated: true)
-        guard jpegData.count <= presign.maxBytes else { throw APIError.invalidURL }
+        guard Int64(image.data.count) <= presign.maxBytes else { throw NoteImageTooLarge(maxBytes: presign.maxBytes) }
         if !Config.useMocks, let url = URL(string: presign.uploadUrl) {
             var request = URLRequest(url: url)
             request.httpMethod = "PUT"
-            request.setValue("image/jpeg", forHTTPHeaderField: "Content-Type")
-            let (_, response) = try await URLSession.shared.upload(for: request, from: jpegData)
+            request.setValue(image.contentType, forHTTPHeaderField: "Content-Type")
+            let (_, response) = try await URLSession.shared.upload(for: request, from: image.data)
             guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
                 throw APIError.http(status: (response as? HTTPURLResponse)?.statusCode ?? -1)
             }
