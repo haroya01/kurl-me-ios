@@ -53,6 +53,26 @@ enum ComposeRecoveryStore {
         try? FileManager.default.removeItem(at: fileURL(for: postId, draftKey: draftKey))
     }
 
+    /// 다른 기기 편집과 충돌해 서버 최신본을 불러올 때 밀려난 내 내용 — 이후 편집이 덮는 글 슬롯과 따로 둔다.
+    private static func conflictURL(_ postId: Int64) -> URL {
+        directory.appendingPathComponent("conflict-post-\(postId).json")
+    }
+
+    static func stashConflict(postId: Int64, title: String, markdown: String) {
+        let draft = Draft(postId: postId, title: title, markdown: markdown, savedAt: Date())
+        guard let data = try? JSONEncoder().encode(draft) else { return }
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try? data.write(to: conflictURL(postId), options: .atomic)
+    }
+
+    static func peekConflict(postId: Int64) -> Draft? {
+        read(conflictURL(postId))
+    }
+
+    static func clearConflict(postId: Int64) {
+        try? FileManager.default.removeItem(at: conflictURL(postId))
+    }
+
     /// 새 글을 열 때 복구를 제안할 슬롯 — 아직 서버로 가는 중인(claimed) 새 글은 빼고 가장 최근 것.
     static func latestNewDraft(excluding claimed: Set<UUID>) -> (key: UUID, draft: Draft)? {
         let fm = FileManager.default
