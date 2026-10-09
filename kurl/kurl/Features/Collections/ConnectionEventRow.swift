@@ -19,7 +19,7 @@ struct ConnectionEventRow: View {
                 layout
             }
         }
-        .loginPrompt(isPresented: $showLoginPrompt, message: "큐레이터가 엮은 컬렉션 이어 보기")
+        .loginPrompt(isPresented: $showLoginPrompt, message: "컬렉션을 열려면 로그인하세요")
         .accessibilityIdentifier("feed.connection.\(event.id)")
     }
 
