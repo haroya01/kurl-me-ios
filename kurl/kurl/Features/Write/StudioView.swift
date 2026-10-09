@@ -7,7 +7,8 @@ import SwiftUI
 
 /// 글쓰기 탭 = 작가 스튜디오 — 웹 /write 허브 철학의 네이티브 번역.
 /// [글 | 시리즈 | 분석] 이 한 지붕: 목록만 있던 허브에서, 시리즈와 분석이 1급으로 승격됐다
-/// (분석이 무라벨 차트 아이콘 뒤에 숨어 있던 시절을 끝낸다). 로그아웃 상태는 표면 전체가 게이트.
+/// (분석이 무라벨 차트 아이콘 뒤에 숨어 있던 시절을 끝낸다). 비로그인이면 RootView 가 탭 전환
+/// 대신 로그인 시트를 띄우므로, 여기 비로그인 상태는 이 탭에 선 채 세션이 끊겼을 때만 보인다.
 struct StudioView: View {
     private var auth: AuthStore { .shared }
 
@@ -43,7 +44,11 @@ struct StudioView: View {
                 if auth.isSignedIn {
                     studio
                 } else {
-                    signedOutGate
+                    SignedOutState(
+                        systemImage: "square.and.pencil",
+                        description: "쓴 글과 시리즈, 분석이 여기 모여요.",
+                        message: "글을 쓰려면 로그인하세요")
+                        .navigationTitle("글쓰기")
                 }
             }
             // 글·시리즈·분석 = 떠 있는 액체 유리 캡슐(내비바 대신) — 분면이 이 밑으로 흐른다.
@@ -639,28 +644,6 @@ struct StudioView: View {
         }
         .refreshable {
             seriesList = (try? await WriteAPI.mySeries()) ?? seriesList
-        }
-    }
-
-    // MARK: 로그인 게이트
-
-    private var signedOutGate: some View {
-        ReadingColumn(spacing: 0) {
-            VStack(alignment: .leading, spacing: 0) {
-                RailHeading("글쓰기")
-                    .padding(.top, 28)
-                Text("로그인하고 글을 쓰세요")
-                    .typeScale(.featured)
-                    .foregroundStyle(Palette.ink)
-                    .padding(.top, 12)
-                Text("마크다운으로 쓰면 웹과 똑같이 발행됩니다.")
-                    .typeScale(.lede)
-                    .foregroundStyle(Palette.secondary)
-                    .padding(.top, 6)
-                // Apple/Google 버튼 한 쌍은 공유 컴포넌트 — 계정 탭·웰컴·로그인 시트와 같은 출처.
-                AuthProviderButtons()
-                    .padding(.top, 22)
-            }
         }
     }
 }

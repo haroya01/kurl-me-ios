@@ -3710,7 +3710,7 @@
         }
       }
     },
-    "kurl에 로그인": {
+    "kurl에 로그인하세요": {
       "localizations": {
         "en": {
           "stringUnit": {
@@ -3727,13 +3727,13 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "kurl にログイン"
+            "value": "kurl にログインしてください"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Đăng nhập kurl"
+            "value": "Đăng nhập vào kurl"
           }
         }
       }
@@ -6958,6 +6958,34 @@
         }
       }
     },
+    "글을 쓰려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to write"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लिखने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "書くにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để viết"
+          }
+        }
+      }
+    },
     "글을 쓰면 여기에서 발행 후 모습을 미리 볼 수 있어요.": {
       "localizations": {
         "en": {
@@ -7882,6 +7910,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bài viết của tôi"
+          }
+        }
+      }
+    },
+    "내 글과 노트, 라이브러리가 여기 모여요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your posts, notes, and library collect here."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपकी पोस्ट, नोट्स और लाइब्रेरी यहाँ जमा होती हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自分の記事やノート、ライブラリがここに集まります。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bài viết, ghi chú và thư viện của bạn sẽ gom về đây."
           }
         }
       }
@@ -9484,6 +9540,34 @@
         }
       }
     },
+    "다시 로그인하면 쓰던 글이 이어서 저장돼요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in again and your writing keeps saving"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फिर साइन इन करें, लेखन सेव होता रहेगा"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再ログインすると執筆中の記事が引き続き保存されます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập lại để bài viết tiếp tục được lưu"
+          }
+        }
+      }
+    },
     "단계": {
       "localizations": {
         "en": {
@@ -10012,6 +10096,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đăng nhập để xem các ghi chú công khai mà máy chủ này nhận từ các máy chủ khác như Mastodon."
+          }
+        }
+      }
+    },
+    "로그인하지 않았어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You're not signed in"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपने साइन इन नहीं किया है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログインしていません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn chưa đăng nhập"
           }
         }
       }
@@ -12336,6 +12448,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chấp nhận"
+          }
+        }
+      }
+    },
+    "쓴 글과 시리즈, 분석이 여기 모여요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your posts, series, and analytics collect here."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपकी पोस्ट, श्रृंखला और विश्लेषण यहाँ जमा होते हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "書いた記事やシリーズ、分析がここに集まります。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bài viết, loạt bài và phân tích của bạn sẽ gom về đây."
           }
         }
       }
@@ -16233,34 +16373,6 @@
         }
       }
     },
-    "로그인은 시스템 브라우저에서 안전하게 진행됩니다.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign-in happens securely in the system browser."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "साइन इन सिस्टम ब्राउज़र में सुरक्षित रूप से होता है."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ログインはシステムブラウザで安全に行われます。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Đăng nhập diễn ra an toàn trong trình duyệt hệ thống."
-          }
-        }
-      }
-    },
     "로그인이 풀려 저장하지 못했어요 — 다시 로그인한 뒤 시도해 주세요": {
       "localizations": {
         "en": {
@@ -16313,34 +16425,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bạn đã bị đăng xuất nên không lưu được — vui lòng đăng nhập lại"
-          }
-        }
-      }
-    },
-    "로그인이 풀렸어요 — 다시 로그인하면 쓰던 글이 이어서 저장돼요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "You've been signed out — sign in again and your writing keeps saving."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आप साइन-आउट हो गए — फिर साइन इन करें, लेखन सेव होता रहेगा।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ログインが切れました — 再ログインすると執筆中の記事が引き続き保存されます。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bạn đã bị đăng xuất — đăng nhập lại để bài viết tiếp tục được lưu."
           }
         }
       }
@@ -16425,34 +16509,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cần đăng nhập."
-          }
-        }
-      }
-    },
-    "로그인하고 글을 쓰세요": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign in to write"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "साइन इन करें और लिखें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ログインして書きましょう"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Đăng nhập để viết"
           }
         }
       }
@@ -17189,34 +17245,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Xem markdown"
-          }
-        }
-      }
-    },
-    "마크다운으로 쓰면 웹과 똑같이 발행됩니다.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Write in Markdown — it publishes exactly like the web."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "मार्कडाउन में लिखें — यह वेब की तरह ही प्रकाशित होता है."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "マークダウンで書けば、ウェブと同じように公開されます。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Viết bằng Markdown — đăng giống hệt như trên web."
           }
         }
       }
@@ -29976,34 +30004,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Không thể cập nhật lượt thích"
-          }
-        }
-      }
-    },
-    "좋아요와 북마크, 구독, 그리고 글쓰기까지 — 웹과 같은 계정 하나로 이어집니다.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Likes, bookmarks, subscriptions, and writing — one account, same as the web."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "पसंद, बुकमार्क, सब्सक्रिप्शन और लेखन तक — एक ही खाता, वेब जैसा."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "いいね・ブックマーク・購読、そして執筆まで — ウェブと同じひとつのアカウントでつながります。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Thích, đánh dấu, đăng ký và cả viết bài — một tài khoản, giống hệt như trên web."
           }
         }
       }

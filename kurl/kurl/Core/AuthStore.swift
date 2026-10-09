@@ -56,6 +56,7 @@ final class AuthStore {
     @ObservationIgnored private var activeSession: ASWebAuthenticationSession?
     @ObservationIgnored private let presenter = WebAuthPresenter()
 
+    private static let mockMe = Me(id: 1, email: "mock@kurl.me", username: "honggildong", avatarUrl: nil, role: "ADMIN")
     private static let accessAccount = "access-token"
     private static let refreshAccount = "refresh-token"
 
@@ -65,7 +66,7 @@ final class AuthStore {
             // `--logged-out` = 로그아웃 게이트(추천·구독함) 스크린샷 검증용 진입로.
             if ProcessInfo.processInfo.arguments.contains("--logged-out") { return }
             isSignedIn = true
-            me = Me(id: 1, email: "mock@kurl.me", username: "honggildong", avatarUrl: nil, role: "ADMIN")
+            me = Self.mockMe
             return
         }
         accessToken = Keychain.load(account: Self.accessAccount)
@@ -81,6 +82,11 @@ final class AuthStore {
     // MARK: 로그인
 
     func signIn() async throws -> SignInOutcome {
+        if Config.useMocks {
+            isSignedIn = true
+            me = Self.mockMe
+            return .signedIn
+        }
         let callbackURL = try await startBrowserDance()
         let items = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false)?.queryItems ?? []
         func value(_ name: String) -> String? {
