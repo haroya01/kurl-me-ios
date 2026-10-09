@@ -27,7 +27,7 @@ final class RemoteImageCache {
     private var failed: Set<URL> = []
 
     // 요청 크기를 몇 단계 버킷으로 반올림해, 40pt·46pt 아바타가 한 캐시 엔트리를 공유하게 한다.
-    private static let buckets: [CGFloat] = [128, 256, 512, 1024]
+    nonisolated private static let buckets: [CGFloat] = [128, 256, 512, 1024]
 
     /// 표시 프레임(pt)을 화면 스케일로 px 로 올린 뒤, 그보다 크거나 같은 최소 버킷으로 올림.
     /// nil 이면 원본 그대로(라이트박스·본문 이미지) — 이 경우 URL 만으로 키를 만든다.
@@ -60,7 +60,16 @@ final class RemoteImageCache {
                 return nil
             }
             let image: UIImage
-            if let maxPixel, let downsampled = Self.downsample(data, maxPixel: maxPixel) {
+            let scale = UIScreen.main.scale > 0 ? UIScreen.main.scale : 3
+            // 축소·디코드는 이미지 크기만큼 걸리는 동기 작업 — 메인 액터(기본 격리)에서 돌면 스크롤 중
+            // 카드가 들어올 때마다 프레임을 먹는다. 분리된 작업에서 하고 결과만 받는다.
+            var downsampled: UIImage?
+            if let maxPixel {
+                downsampled = await Task.detached(priority: .userInitiated) {
+                    Self.downsample(data, maxPixel: maxPixel, scale: scale)
+                }.value
+            }
+            if let downsampled {
                 // 축소본은 이미 그릴 준비가 끝난 비트맵 — byPreparingForDisplay 를 다시 밟지 않는다.
                 image = downsampled
             } else {
@@ -84,8 +93,7 @@ final class RemoteImageCache {
     }
 
     /// ImageIO 썸네일 — 원본을 통째로 디코드하지 않고 maxPixel(px) 이하로 바로 줄인다.
-    private static func downsample(_ data: Data, maxPixel: CGFloat) -> UIImage? {
-        let scale = UIScreen.main.scale > 0 ? UIScreen.main.scale : 3
+    nonisolated private static func downsample(_ data: Data, maxPixel: CGFloat, scale: CGFloat) -> UIImage? {
         let px = maxPixel * scale
         let bucket = buckets.first { px <= $0 } ?? buckets.last!
         let srcOptions = [kCGImageSourceShouldCache: false] as CFDictionary
