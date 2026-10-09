@@ -17922,6 +17922,34 @@
         }
       }
     },
+    "바꾼 커버는 저장을 누르면 글에 반영돼요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The new cover goes live when you tap Save."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नया कवर सेव पर टैप करने पर पोस्ट में लागू होगा।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "変えたカバーは保存を押すと記事に反映されます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ảnh bìa mới sẽ được áp dụng khi bạn nhấn Lưu."
+          }
+        }
+      }
+    },
     "박스": {
       "localizations": {
         "en": {
@@ -18030,6 +18058,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Khám phá"
+          }
+        }
+      }
+    },
+    "사진 바꾸기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Replace photo"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ोटो बदलें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真を変える"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thay ảnh"
           }
         }
       }
@@ -31699,6 +31755,34 @@
         }
       }
     },
+    "커버 변경": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Change cover"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कवर बदलें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カバーを変更"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đổi ảnh bìa"
+          }
+        }
+      }
+    },
     "커버 이미지 추가": {
       "localizations": {
         "en": {
@@ -31755,6 +31839,34 @@
         }
       }
     },
+    "커버 제거": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove cover"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कवर हटाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カバーを削除"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gỡ ảnh bìa"
+          }
+        }
+      }
+    },
     "커버 추가": {
       "extractionState": "stale",
       "localizations": {
@@ -31780,6 +31892,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Thêm ảnh bìa"
+          }
+        }
+      }
+    },
+    "커버를 빼지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't remove the cover"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कवर नहीं हटाया जा सका"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カバーを外せませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không gỡ được ảnh bìa"
           }
         }
       }
