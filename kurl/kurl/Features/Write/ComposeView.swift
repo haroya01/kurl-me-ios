@@ -126,6 +126,8 @@ struct ComposeView: View {
 
     // 커버
     @State private var coverUrl: String?
+    /// 라이브 글에 처음 넣은 본문 사진으로 정한 기본 커버 — 명시 저장 때 서버에 반영한다.
+    @State private var pendingCover: PendingCover?
     @State private var coverItem: PhotosPickerItem?
     @State private var uploadingCover = false
 
@@ -1564,6 +1566,12 @@ struct ComposeView: View {
                 try await WriteAPI.assign(postId: id, from: savedSeriesId, to: seriesId)
                 savedSeriesId = seriesId
             }
+            if let cover = pendingCover {
+                try await WriteAPI.updateCover(postId: id, url: cover.url, key: cover.key)
+                pendingCover = nil
+                ToastCenter.shared.show(
+                    String(localized: "첫 이미지를 커버로 설정했어요 — 발행 시트에서 바꿀 수 있어요"))
+            }
             if publish {
                 let published = try await WriteAPI.publish(postId: id)
                 status = published.status
@@ -1705,6 +1713,7 @@ struct ComposeView: View {
                 let uploaded = try await WriteAPI.uploadImage(postId: id, jpegData: jpeg)
                 try await WriteAPI.updateCover(postId: id, url: uploaded.url, key: uploaded.key)
                 coverUrl = uploaded.url
+                pendingCover = nil
                 // 커버만 올린 것 — 본문 저장 표시(lastSavedAt)는 건드리지 않는다(거짓 "저장됨" 방지).
                 onSaved()
             } catch {
@@ -1926,6 +1935,10 @@ struct ComposeView: View {
     private func maybeSetCoverFromBodyImage(url: String, key: String?) {
         guard coverUrl == nil, let postId, let key else { return }
         coverUrl = url
+        guard allowsAutosave else {
+            pendingCover = PendingCover(url: url, key: key)
+            return
+        }
         Task {
             do {
                 try await WriteAPI.updateCover(postId: postId, url: url, key: key)
@@ -2761,6 +2774,11 @@ private struct RevisionsSheet: View {
             }
         }
     }
+}
+
+private struct PendingCover: Equatable {
+    let url: String
+    let key: String
 }
 
 /// 한도의 90%부터만 보이는 글자 수(서버와 같은 UTF-16 기준).
