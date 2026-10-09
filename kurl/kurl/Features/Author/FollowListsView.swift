@@ -86,7 +86,7 @@ struct FollowListsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task(id: tab) { await reload() }
         .refreshable { await reload() }
-        .loginPrompt(isPresented: $showLoginPrompt, message: "이 작가의 새 글을 피드에서 받기") {
+        .loginPrompt(isPresented: $showLoginPrompt, message: "팔로우하려면 로그인하세요") {
             // 로그인 후 followedByMe 시드가 stale — 목록을 다시 받아 행 토글을 새로 시드.
             await reload()
         }

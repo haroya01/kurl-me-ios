@@ -13,6 +13,7 @@ import SwiftUI
 struct EngagementDock: View {
     @State private var model: EngagementModel
     @State private var showLoginPrompt = false
+    @State private var loginMessage: LocalizedStringKey = "좋아요를 누르려면 로그인하세요"
     @State private var showConnect = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Namespace private var glassNS
@@ -47,7 +48,7 @@ struct EngagementDock: View {
         }
         .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
         .task(id: AuthStore.shared.isSignedIn) { await model.hydrate() }
-        .loginPrompt(isPresented: $showLoginPrompt, message: "좋아한 글은 내 라이브러리에 쌓여요") {
+        .loginPrompt(isPresented: $showLoginPrompt, message: loginMessage) {
             await model.hydrate()
         }
         .sheet(isPresented: $showConnect) {
@@ -61,7 +62,7 @@ struct EngagementDock: View {
 
     private var connect: some View {
         Button {
-            guard AuthStore.shared.isSignedIn else { showLoginPrompt = true; return }
+            guard AuthStore.shared.isSignedIn else { askLogin("컬렉션에 연결하려면 로그인하세요"); return }
             showConnect = true
         } label: {
             Image(systemName: "rectangle.stack.badge.plus")
@@ -79,7 +80,7 @@ struct EngagementDock: View {
 
     private var like: some View {
         Button {
-            interact(failure: String(localized: "좋아요를 반영하지 못했습니다")) {
+            interact(failure: String(localized: "좋아요를 반영하지 못했습니다"), login: "좋아요를 누르려면 로그인하세요") {
                 try await model.toggleLike()
             }
         } label: {
@@ -106,7 +107,7 @@ struct EngagementDock: View {
 
     private var bookmark: some View {
         Button {
-            interact(failure: String(localized: "북마크를 반영하지 못했습니다")) {
+            interact(failure: String(localized: "북마크를 반영하지 못했습니다"), login: "북마크하려면 로그인하세요") {
                 try await model.toggleBookmark()
             }
         } label: {
@@ -126,9 +127,16 @@ struct EngagementDock: View {
         .accessibilityAddTraits(model.bookmarked ? [.isSelected] : [])
     }
 
-    private func interact(failure: String, _ action: @escaping () async throws -> Void) {
+    private func askLogin(_ message: LocalizedStringKey) {
+        loginMessage = message
+        showLoginPrompt = true
+    }
+
+    private func interact(
+        failure: String, login: LocalizedStringKey, _ action: @escaping () async throws -> Void
+    ) {
         guard AuthStore.shared.isSignedIn else {
-            showLoginPrompt = true
+            askLogin(login)
             return
         }
         Task {

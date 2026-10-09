@@ -314,7 +314,7 @@ struct ComposeView: View {
         }
         // 세션이 풀렸을 때 — 컴포즈를 떠나지 않고 여기서 다시 로그인해 이어서 저장한다.
         .sheet(isPresented: $showLoginSheet) {
-            LoginSheet(message: "로그인이 풀렸어요 — 다시 로그인하면 쓰던 글이 이어서 저장돼요.") {
+            LoginSheet(message: "다시 로그인하면 쓰던 글이 이어서 저장돼요") {
                 autosaveNeedsLogin = false
                 scheduleAutosave(after: .zero)
             }
