@@ -214,6 +214,44 @@ enum WriteAPI {
         return res.series.title
     }
 
+    /// 시리즈 항목(주인) — 글·노트를 한 순서로. 서버가 아직 항목을 모르면(옛 서버) nil → 글만 다루는 길로.
+    static func seriesItems(seriesId: Int64) async throws -> [SeriesOwnerItem]? {
+        struct Detail: Decodable { let items: [SeriesOwnerItem]? }
+        let detail: Detail = try await client.get("/series/\(seriesId)", authenticated: true)
+        return detail.items
+    }
+
+    /// 항목 전체 교체 — 빠진 글·노트는 시리즈에서 빠지고, 다른 시리즈에 있던 것은 이리 옮겨 온다.
+    static func setSeriesItems(seriesId: Int64, items: [SeriesOwnerItem]) async throws {
+        struct Item: Encodable { let type: String; let id: Int64 }
+        struct Body: Encodable { let items: [Item] }
+        struct Ignored: Decodable {}
+        let _: Ignored = try await client.put(
+            "/series/\(seriesId)/items",
+            body: Body(items: items.map { Item(type: $0.type, id: $0.refId) }), authenticated: true)
+    }
+
+    /// 노트를 시리즈 끝에 넣는다(이미 들어 있으면 그대로). 다른 시리즈에 있었다면 서버가 옮긴다.
+    static func addNote(_ noteId: Int64, toSeries seriesId: Int64) async throws {
+        guard var items = try await seriesItems(seriesId: seriesId) else { throw APIError.http(status: 501) }
+        guard !items.contains(where: { $0.isNote && $0.refId == noteId }) else { return }
+        items.append(.note(id: noteId))
+        try await setSeriesItems(seriesId: seriesId, items: items)
+    }
+
+    /// 제목 → 유저별 유니크 slug. ASCII 영숫자만 남기고(한글은 떨궈) 짧은 토큰을 붙여 충돌 회피.
+    static func seriesSlug(from title: String) -> String {
+        let mapped = title.lowercased().unicodeScalars.map {
+            ($0.isASCII && CharacterSet.alphanumerics.contains($0)) ? Character($0) : "-"
+        }
+        var base = String(mapped)
+        while base.contains("--") { base = base.replacingOccurrences(of: "--", with: "-") }
+        base = base.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+        if base.count < 2 { base = "series" }
+        let token = String(Int.random(in: 1_000_000...9_999_999), radix: 36)
+        return "\(base.prefix(40))-\(token)"
+    }
+
     /// 회차 순서 재배치 — 전체 멤버를 원하는 순서대로 다시 보낸다(리스트 순서 = 회차 순서).
     /// 세트/재배치가 같은 엔드포인트라, 빠진 회차는 시리즈에서 떨어져 나간다 — 호출측이 전체를 넘긴다.
     static func reorderSeries(id: Int64, postIds: [Int64]) async throws {
@@ -294,6 +332,35 @@ struct MySeries: Decodable, Identifiable, Hashable {
     var itemCount: Int? = nil
 
     var episodeCount: Int { itemCount ?? postCount }
+}
+
+/// 시리즈 항목 한 줄(주인 뷰) — 글이면 제목·상태, 노트면 발췌. 항목 편집 시트가 이 순서를 그대로 보낸다.
+struct SeriesOwnerItem: Decodable, Identifiable, Hashable {
+    let type: String
+    let post: Post?
+    let note: Note?
+
+    struct Post: Decodable, Hashable {
+        let id: Int64
+        let title: String
+        let status: String
+    }
+
+    struct Note: Decodable, Hashable {
+        let id: Int64
+        let excerpt: String
+    }
+
+    static func note(id: Int64, excerpt: String = "") -> SeriesOwnerItem {
+        SeriesOwnerItem(type: "NOTE", post: nil, note: Note(id: id, excerpt: excerpt))
+    }
+
+    var isNote: Bool { type == "NOTE" }
+    var refId: Int64 { post?.id ?? note?.id ?? 0 }
+    var id: String { "\(type)-\(refId)" }
+    var title: String { post?.title ?? note?.excerpt ?? "" }
+    var isPublished: Bool { post.map { $0.status == "PUBLISHED" } ?? true }
+    var status: String? { post?.status }
 }
 
 /// 시리즈 회차 한 줄(주인 뷰) — 순서 편집이 다루는 최소 부분집합. 발행 전 회차도 오므로 상태를 함께

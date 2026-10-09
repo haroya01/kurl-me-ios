@@ -73,7 +73,7 @@ struct SeriesDetailView: View {
                             Button {
                                 showReorder = true
                             } label: {
-                                Label("순서 편집", systemImage: "arrow.up.arrow.down")
+                                Label("회차 편집", systemImage: "arrow.up.arrow.down")
                             }
                         }
                         Button(role: .destructive) {

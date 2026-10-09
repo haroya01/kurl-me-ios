@@ -230,6 +230,7 @@ struct NoteRowView: View {
     @State private var likeCount: Int64?
     @State private var likeTaps = 0
     @State private var reposted: Bool
+    @State private var addingToSeries = false
     @State private var repostCount: Int64?
     @State private var repostTaps = 0
     @State private var bookmarked: Bool
@@ -272,6 +273,8 @@ struct NoteRowView: View {
     }
 
     private var isMine: Bool { AuthStore.shared.me?.id == note.author.id }
+    /// 시리즈에 넣을 수 있는 노트 — 내 노트이고 시리즈 독자가 읽을 수 있는 범위(공개·조용한 공개).
+    private var seriesAddable: Bool { isMine && note.noteVisibility.shareable }
 
     private var filteredPhrases: [String]? {
         guard !filterRevealed, let filterContext,
@@ -370,6 +373,11 @@ struct NoteRowView: View {
                             systemImage: note.pinned == true ? "pin.slash" : "pin")
                     }
                 }
+                if seriesAddable {
+                    Button { addingToSeries = true } label: {
+                        Label("시리즈에 넣기", systemImage: "books.vertical")
+                    }
+                }
                 Button { editing = true } label: { Label("고치기", systemImage: "pencil") }
                 Button(role: .destructive) { confirmDelete = true } label: {
                     Label("노트 삭제", systemImage: "trash")
@@ -392,6 +400,10 @@ struct NoteRowView: View {
         }
         .sheet(isPresented: $connecting) {
             ConnectSheet(targetKind: "노트", targetTitle: note.body, blockType: .note, refId: note.id)
+        }
+        .sheet(isPresented: $addingToSeries) {
+            AddNoteToSeriesSheet(noteId: note.id)
+                .presentationDetents([.medium, .large])
         }
         .fullScreenCover(isPresented: $writingPost) {
             if let shareURL { QuotePostComposer(noteURL: shareURL) }
@@ -740,6 +752,12 @@ struct NoteRowView: View {
                             note.pinned == true ? LocalizedStringKey("고정 해제") : LocalizedStringKey("프로필에 고정"),
                             systemImage: note.pinned == true ? "pin.slash" : "pin")
                     }
+                }
+                if seriesAddable {
+                    Button { addingToSeries = true } label: {
+                        Label("시리즈에 넣기", systemImage: "books.vertical")
+                    }
+                    .accessibilityIdentifier("note.addToSeries.\(note.id)")
                 }
                 Button { editing = true } label: { Label("고치기", systemImage: "pencil") }
                 Button(role: .destructive) { confirmDelete = true } label: {
