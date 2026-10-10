@@ -252,6 +252,7 @@ struct NoteRowView: View {
     var repostedBy: String? = nil
     /// 프로필 노트 탭에서만 "고정됨" 줄을 보인다 — 다른 피드에선 고정이 의미 없다(마스토돈과 같다).
     var showsPin = false
+    var replyHeader: ReplyHeader? = nil
     /// 원글 → 답글을 잇는 스레드 선 — 아바타 아래에서 다음 행 아바타 위까지.
     var threadLineBelow = false
     /// 상세의 본 노트 — 머리 줄 아래로 본문을 전체 폭에 한 단계 크게(스레드·X 문법).
@@ -286,11 +287,14 @@ struct NoteRowView: View {
     @State private var translationRequest: TranslationRequest?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.noteFilterContext) private var filterContext
+    @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
+
+    private var unit: CGFloat { min(scale, 1.8) }
 
     init(note: Note, onChange: @escaping (Note) -> Void,
          onDelete: @escaping (Int64) -> Void,
          onQuoted: ((Note) -> Void)? = nil, repostedBy: String? = nil,
-         showsPin: Bool = false,
+         showsPin: Bool = false, replyHeader: ReplyHeader? = nil,
          threadLineBelow: Bool = false, focused: Bool = false, position: String? = nil) {
         self.note = note
         self.onChange = onChange
@@ -298,6 +302,7 @@ struct NoteRowView: View {
         self.onQuoted = onQuoted
         self.repostedBy = repostedBy
         self.showsPin = showsPin
+        self.replyHeader = replyHeader
         self.threadLineBelow = threadLineBelow
         self.focused = focused
         self.position = position
@@ -331,7 +336,7 @@ struct NoteRowView: View {
     private func filteredBar(_ phrases: [String]) -> some View {
         HStack(spacing: 10) {
             Image(systemName: "line.3.horizontal.decrease.circle")
-                .font(.system(size: 15, weight: .medium))
+                .font(.system(size: 15 * unit, weight: .medium))
                 .accessibilityHidden(true)
             Text("필터됨: \(phrases.joined(separator: ", "))")
                 .typeScale(.meta)
@@ -355,8 +360,8 @@ struct NoteRowView: View {
         VStack(alignment: .leading, spacing: 6) {
             if let repostedBy {
                 HStack(spacing: 12) {
-                    NoteGlyphView(glyph: .repost, size: 14)
-                        .frame(width: 36, alignment: .trailing)
+                    NoteGlyphView(glyph: .repost, size: 14 * unit)
+                        .frame(width: 36 * unit, alignment: .trailing)
                     Text("\(repostedBy)님이 리포스트함")
                         .typeScale(.meta)
                         .fontWeight(.medium)
@@ -364,11 +369,13 @@ struct NoteRowView: View {
                 }
                 .foregroundStyle(Palette.secondary)
                 .accessibilityElement(children: .combine)
+            } else if let replyHeader {
+                ReplyHeaderLine(header: replyHeader)
             } else if showsPin, note.pinned == true {
                 HStack(spacing: 12) {
                     Image(systemName: "pin.fill")
-                        .font(.system(size: 12, weight: .semibold))
-                        .frame(width: 36, alignment: .trailing)
+                        .font(.system(size: 12 * unit, weight: .semibold))
+                        .frame(width: 36 * unit, alignment: .trailing)
                     Text("고정됨")
                         .typeScale(.meta)
                         .fontWeight(.medium)
@@ -385,9 +392,9 @@ struct NoteRowView: View {
                 Capsule()
                     .fill(Palette.hairlineStrong)
                     .frame(width: 2)
-                    .padding(.top, 14 + 36 + 6)
+                    .padding(.top, 14 + 36 * unit + 6)
                     .padding(.bottom, -8)
-                    .padding(.leading, 17)
+                    .padding(.leading, 18 * unit - 1)
                     .accessibilityHidden(true)
             }
         }
@@ -466,17 +473,17 @@ struct NoteRowView: View {
 
     private var avatarLink: some View {
         NavigationLink(value: note.author.notesRoute) {
-            AvatarView(author: note.author, size: 36)
+            ConversationAvatar(author: note.author)
         }
         .buttonStyle(.plain)
-        .accessibilityHidden(true)
+        .accessibilityLabel(Text("\(ConversationName.spoken(note.author))님 프로필"))
     }
 
     private var focusedRow: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .center, spacing: 12) {
                 NavigationLink(value: note.author.notesRoute) {
-                    AvatarView(author: note.author, size: 44)
+                    AvatarView(author: note.author, size: 44 * unit)
                 }
                 .buttonStyle(.plain)
                 .accessibilityHidden(true)
@@ -555,7 +562,7 @@ struct NoteRowView: View {
                                 .fontWeight(.semibold)
                             Spacer(minLength: 0)
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(.system(size: 12 * unit, weight: .semibold))
                         }
                         .foregroundStyle(Palette.secondary)
                         .padding(.top, 12)
@@ -575,23 +582,31 @@ struct NoteRowView: View {
             avatarLink
 
             VStack(alignment: .leading, spacing: 2) {
-                header
-                warningBar
-                if !folded, !note.body.isEmpty {
-                    NavigationLink(value: Route.note(id: note.id)) {
-                        Text(NoteText.attributed(shownBody, mentions: note.mentions ?? []))
-                            .typeScale(.note)
-                            .foregroundStyle(Palette.ink)
-                            .tint(Palette.link)
-                            .multilineTextAlignment(.leading)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .contentShape(Rectangle())
+                VStack(alignment: .leading, spacing: 2) {
+                    header
+                    warningBar
+                    if !folded, !note.body.isEmpty {
+                        NavigationLink(value: Route.note(id: note.id)) {
+                            Text(NoteText.attributed(shownBody, mentions: note.mentions ?? []))
+                                .typeScale(.note)
+                                .foregroundStyle(Palette.ink)
+                                .tint(Palette.link)
+                                .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("note.body.\(note.id)")
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("note.body.\(note.id)")
-                    translationLine
                 }
+                .conversationGrouping(label: spokenLine, identifier: "note.row.\(note.id)") {
+                    if note.contentWarning != nil {
+                        Button(revealed ? LocalizedStringKey("숨기기") : LocalizedStringKey("내용 보기")) { revealed.toggle() }
+                    }
+                }
+                .overlay(alignment: .topTrailing) { moreMenu }
+                if !folded, !note.body.isEmpty { translationLine }
                 if !folded { attachments }
                 actions(spread: false)
                     .padding(.top, 10)
@@ -599,32 +614,27 @@ struct NoteRowView: View {
         }
     }
 
+    /// ⋯ 는 VoiceOver 묶음 밖에 얹어야 따로 닿는다 — 여기선 자리만 비운다.
     private var header: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 6) {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
             NavigationLink(value: note.author.notesRoute) {
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text(note.author.shownName)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(Palette.ink)
-                        .layoutPriority(1)
-                    if note.author.hasDisplayName || note.author.isRemote {
-                        Text(verbatim: "@\(note.author.username)")
-                            .foregroundStyle(Palette.secondary)
-                    }
-                }
-                .typeScale(.note)
-                .lineLimit(1)
+                ConversationName(author: note.author)
+                    .typeScale(.note)
             }
             .buttonStyle(.plain)
             if let date = note.createdAt {
+                Text(verbatim: "·")
+                    .typeScale(.note)
+                    .foregroundStyle(Palette.faint)
+                    .accessibilityHidden(true)
                 Text(date.relativeCompact)
                     .typeScale(.note)
                     .foregroundStyle(Palette.secondary)
-                    .lineLimit(1)
+                    .fixedSize()
             }
             if note.noteVisibility != .public {
                 Image(systemName: note.noteVisibility.symbol)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 11 * unit, weight: .semibold))
                     .foregroundStyle(Palette.secondary)
                     .accessibilityLabel(Text(note.noteVisibility.title))
                     .accessibilityIdentifier("note.visibility.\(note.id)")
@@ -643,8 +653,26 @@ struct NoteRowView: View {
                     .accessibilityLabel(Text("이어 쓴 노트 \(position)"))
                     .accessibilityIdentifier("note.position.\(note.id)")
             }
-            moreMenu
+            Color.clear
+                .frame(width: 32 * unit, height: 22 * unit)
+                .accessibilityHidden(true)
         }
+    }
+
+    private var spokenLine: String {
+        var parts = [ConversationName.spoken(note.author)]
+        if let date = note.createdAt { parts.append(date.relativeCompact) }
+        switch note.noteVisibility {
+        case .public: break
+        case .unlisted: parts.append(String(localized: "조용한 공개"))
+        case .private: parts.append(String(localized: "팔로워만"))
+        case .direct: parts.append(String(localized: "멘션한 사람만"))
+        }
+        if note.editedAt != nil { parts.append(String(localized: "고침")) }
+        if let position { parts.append(String(localized: "이어 쓴 노트 \(position)")) }
+        if let warning = note.contentWarning { parts.append(translated?.warning ?? warning) }
+        if !folded, !note.body.isEmpty { parts.append(shownBody) }
+        return parts.joined(separator: ", ")
     }
 
     private var folded: Bool { note.contentWarning != nil && !revealed }
@@ -696,7 +724,7 @@ struct NoteRowView: View {
         if let warning = note.contentWarning {
             HStack(alignment: .center, spacing: 8) {
                 Image(systemName: "exclamationmark.triangle")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 13 * unit, weight: .semibold))
                     .accessibilityHidden(true)
                 Text(translated?.warning ?? warning)
                     .typeScale(focused ? .noteFocus : .note)
@@ -849,9 +877,9 @@ struct NoteRowView: View {
             }
         } label: {
             Image(systemName: "ellipsis")
-                .font(.system(size: 15, weight: .semibold))
+                .font(.system(size: 15 * unit, weight: .semibold))
                 .foregroundStyle(Palette.secondary)
-                .frame(width: 32, height: 22)
+                .frame(width: 32 * unit, height: 22 * unit)
                 .contentShape(Rectangle())
         }
         .accessibilityLabel("노트 메뉴")
@@ -868,7 +896,7 @@ struct NoteRowView: View {
                 Task { await toggleLike() }
             } label: {
                 HStack(spacing: 4) {
-                    NoteGlyphView(glyph: .heart, active: liked, size: Self.actionBox)
+                    NoteGlyphView(glyph: .heart, active: liked, size: Self.actionBox * unit)
                         .modifier(GlyphPop(trigger: reduceMotion ? false : liked))
                     if let likeCount, likeCount > 0 {
                         Text("\(likeCount)")
@@ -888,7 +916,7 @@ struct NoteRowView: View {
             if spread { Spacer(minLength: 0) }
             NavigationLink(value: Route.note(id: note.id)) {
                 HStack(spacing: 4) {
-                    NoteGlyphView(glyph: .reply, size: Self.actionBox)
+                    NoteGlyphView(glyph: .reply, size: Self.actionBox * unit)
                     if note.replyCount > 0 { Text("\(note.replyCount)").monospacedDigit() }
                 }
                 .typeScale(.lede)
@@ -908,7 +936,7 @@ struct NoteRowView: View {
                     bookmarkTaps += 1
                     Task { await toggleBookmark() }
                 } label: {
-                    NoteGlyphView(glyph: .bookmark, active: bookmarked, size: Self.actionBox)
+                    NoteGlyphView(glyph: .bookmark, active: bookmarked, size: Self.actionBox * unit)
                         .modifier(GlyphPop(trigger: reduceMotion ? false : bookmarked))
                         .foregroundStyle(bookmarked ? Palette.accent : Palette.ink)
                         .expandTapTarget()
@@ -948,7 +976,7 @@ struct NoteRowView: View {
                 }
             }
         } label: {
-            NoteGlyphView(glyph: .share, size: Self.actionBox)
+            NoteGlyphView(glyph: .share, size: Self.actionBox * unit)
                 .foregroundStyle(Palette.ink)
                 .expandTapTarget()
         }
@@ -961,11 +989,11 @@ struct NoteRowView: View {
         if note.noteVisibility.shareable {
             shareableRepostMenu
         } else {
-            NoteGlyphView(glyph: .repost, active: false, size: Self.actionBox)
+            NoteGlyphView(glyph: .repost, active: false, size: Self.actionBox * unit)
                 .foregroundStyle(Palette.faint)
                 .overlay(alignment: .bottomTrailing) {
                     Image(systemName: "lock.fill")
-                        .font(.system(size: 8, weight: .bold))
+                        .font(.system(size: 8 * unit, weight: .bold))
                         .foregroundStyle(Palette.faint)
                 }
                 .expandTapTarget()
@@ -991,7 +1019,7 @@ struct NoteRowView: View {
             }
         } label: {
             HStack(spacing: 4) {
-                NoteGlyphView(glyph: .repost, active: reposted, size: Self.actionBox)
+                NoteGlyphView(glyph: .repost, active: reposted, size: Self.actionBox * unit)
                     .modifier(GlyphPop(trigger: reduceMotion ? false : reposted))
                 if let repostCount, repostCount > 0 {
                     Text("\(repostCount)")
@@ -1098,7 +1126,7 @@ struct NoteRowView: View {
         } catch {
             liked = !target
             likeCount = previous
-            ToastCenter.shared.show(String(localized: "좋아요를 반영하지 못했습니다"))
+            ToastCenter.shared.show(String(localized: "좋아요를 반영하지 못했어요"))
         }
     }
 
@@ -1558,6 +1586,7 @@ struct NoteFeedItem: View {
     var onQuoted: ((Note) -> Void)? = nil
     var repostedBy: String? = nil
     var showsPin = false
+    var replyHeader: ReplyHeader? = nil
 
     var body: some View {
         let thread = note.thread
@@ -1571,6 +1600,7 @@ struct NoteFeedItem: View {
                     onChange(kept)
                 },
                 onDelete: onDelete, onQuoted: onQuoted, repostedBy: repostedBy, showsPin: showsPin,
+                replyHeader: replyHeader,
                 threadLineBelow: next != nil,
                 position: next == nil ? nil : thread.map { "1/\($0.total)" })
             if let thread, let next {

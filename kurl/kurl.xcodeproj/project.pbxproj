@@ -32,6 +32,7 @@
 		F1A0000000000000000000E1 /* DiscoveryViewerTokenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A0000000000000000000E2 /* DiscoveryViewerTokenTests.swift */; };
 		F1A0000000000000000000F1 /* EditConflictTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A0000000000000000000F2 /* EditConflictTests.swift */; };
 		F1A0000000000000000001B1 /* BlockedReadsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A0000000000000000001B2 /* BlockedReadsTests.swift */; };
+		F1A0000000000000000001C1 /* ProfileTabsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A0000000000000000001C2 /* ProfileTabsTests.swift */; };
 		F1A000000000000000000111 /* RelativeDateFormatTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000112 /* RelativeDateFormatTests.swift */; };
 		F1A000000000000000000121 /* HeaderActionsLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000122 /* HeaderActionsLayoutTests.swift */; };
 		F1A000000000000000000131 /* EnglishPluralTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000132 /* EnglishPluralTests.swift */; };
@@ -103,6 +104,7 @@
 		F1A0000000000000000000E2 /* DiscoveryViewerTokenTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DiscoveryViewerTokenTests.swift; sourceTree = "<group>"; };
 		F1A0000000000000000000F2 /* EditConflictTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EditConflictTests.swift; sourceTree = "<group>"; };
 		F1A0000000000000000001B2 /* BlockedReadsTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BlockedReadsTests.swift; sourceTree = "<group>"; };
+		F1A0000000000000000001C2 /* ProfileTabsTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProfileTabsTests.swift; sourceTree = "<group>"; };
 		F1A000000000000000000112 /* RelativeDateFormatTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RelativeDateFormatTests.swift; sourceTree = "<group>"; };
 		F1A000000000000000000122 /* HeaderActionsLayoutTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HeaderActionsLayoutTests.swift; sourceTree = "<group>"; };
 		F1A000000000000000000132 /* EnglishPluralTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EnglishPluralTests.swift; sourceTree = "<group>"; };
@@ -237,6 +239,7 @@
 				F1A0000000000000000000E2 /* DiscoveryViewerTokenTests.swift */,
 				F1A0000000000000000000F2 /* EditConflictTests.swift */,
 				F1A0000000000000000001B2 /* BlockedReadsTests.swift */,
+				F1A0000000000000000001C2 /* ProfileTabsTests.swift */,
 				F1A000000000000000000112 /* RelativeDateFormatTests.swift */,
 				F1A000000000000000000122 /* HeaderActionsLayoutTests.swift */,
 				F1A000000000000000000132 /* EnglishPluralTests.swift */,
@@ -440,6 +443,7 @@
 				F1A0000000000000000000E1 /* DiscoveryViewerTokenTests.swift in Sources */,
 				F1A0000000000000000000F1 /* EditConflictTests.swift in Sources */,
 				F1A0000000000000000001B1 /* BlockedReadsTests.swift in Sources */,
+				F1A0000000000000000001C1 /* ProfileTabsTests.swift in Sources */,
 				F1A000000000000000000111 /* RelativeDateFormatTests.swift in Sources */,
 				F1A000000000000000000121 /* HeaderActionsLayoutTests.swift in Sources */,
 				F1A000000000000000000131 /* EnglishPluralTests.swift in Sources */,

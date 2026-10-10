@@ -7,13 +7,21 @@ import Foundation
 
 /// 인앱 알림 — 좋아요·댓글·답글·팔로우·시리즈 구독·새 글·멘션, 그리고 연결 그래프
 /// (내 글이 컬렉션에 엮임 · 내 글이 엮인 컬렉션에 새 글). 커서 페이지네이션(before).
-enum NotificationsAPI {
-    private static let client = APIClient.shared
+enum NotificationFilter: Hashable {
+    case all, mentions
 
-    static func list(before: Int64? = nil, limit: Int = 20) async throws -> NotificationsPage {
+    var queryValue: String? { self == .mentions ? "mentions" : nil }
+}
+
+enum NotificationsAPI {
+    static var client = APIClient.shared
+
+    static func list(
+        before: Int64? = nil, limit: Int = 20, filter: NotificationFilter = .all
+    ) async throws -> NotificationsPage {
         try await client.get(
             "/notifications",
-            query: ["before": before.map(String.init), "limit": String(limit)],
+            query: ["before": before.map(String.init), "limit": String(limit), "filter": filter.queryValue],
             authenticated: true
         )
     }
@@ -29,9 +37,13 @@ enum NotificationsAPI {
         try await client.post("/notifications/\(id)/read", body: Empty(), authenticated: true)
     }
 
-    static func markAllRead() async throws {
-        struct Empty: Encodable {}
-        try await client.post("/notifications/read-all", body: Empty(), authenticated: true)
+    /// 남은 안 읽은 수를 돌려준다 — 멘션만 읽으면 나머지가 남는다.
+    @discardableResult
+    static func markAllRead(filter: NotificationFilter = .all) async throws -> Int64 {
+        struct Response: Decodable { let count: Int64 }
+        let res: Response = try await client.postWithQuery(
+            "/notifications/read-all", query: ["filter": filter.queryValue], authenticated: true)
+        return res.count
     }
 }
 

@@ -8,13 +8,15 @@
 import SwiftUI
 
 enum SearchScope: Hashable {
-    case posts, notes
+    case posts, notes, people
 }
 
 struct SearchView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var scope: SearchScope = .posts
     @State private var noteResults = NotesViewModel(search: "")
+    @State private var peopleResults = PeopleSearchModel()
+    @State private var matchedPeople: [PersonMatch] = []
     @State private var query = ""
     @State private var phase: LoadState<[FeedItem]> = .idle
     @State private var searchTask: Task<Void, Never>?
@@ -50,7 +52,9 @@ struct SearchView: View {
         // path 바인딩 금지 — tabBarMinimizeBehavior 가 죽는다(FeedView 참조).
         NavigationStack {
             Group {
-                if scope == .notes, !activeQuery.isEmpty || !query.trimmingCharacters(in: .whitespaces).isEmpty {
+                if scope == .people, !activeQuery.isEmpty || !query.trimmingCharacters(in: .whitespaces).isEmpty {
+                    PeopleResultsList(model: peopleResults, query: query, retry: { runSearch(query) })
+                } else if scope == .notes, !activeQuery.isEmpty || !query.trimmingCharacters(in: .whitespaces).isEmpty {
                     notesResults
                 } else {
                 switch phase {
@@ -103,6 +107,7 @@ struct SearchView: View {
             .searchScopes($scope, activation: .onTextEntry) {
                 Text("글").tag(SearchScope.posts)
                 Text("노트").tag(SearchScope.notes)
+                Text("사람").tag(SearchScope.people)
             }
             // 태그·작가 갈래는 결과에서도 쓰므로 phase 와 무관하게 한 번 받아 둔다.
             .task { await loadDiscovery() }
@@ -570,15 +575,6 @@ struct SearchView: View {
         return popularTags.filter { $0.tag.localizedCaseInsensitiveContains(activeQuery) }
     }
 
-    /// 검색어와 겹치는 추천 작가(이름/소개).
-    private var matchedAuthors: [SuggestedAuthor] {
-        guard !activeQuery.isEmpty else { return [] }
-        return suggestedAuthors.filter {
-            $0.author.username.localizedCaseInsensitiveContains(activeQuery)
-                || ($0.author.bio?.localizedCaseInsensitiveContains(activeQuery) ?? false)
-        }
-    }
-
     /// 결과의 태그 칩 — 검색어와 겹치는 *실제* 인기 태그만. 입력어를 무조건 첫 칩으로 끼워 넣던
     /// 것을 뺀다: 아무 태그도 안 겹치는 검색어면 그 에코 칩이 tags 를 비우지 않아 무결과 폴백이
     /// 영영 안 뜨고, 존재하지 않는 태그 피드(빈 페이지 = 막다른 길)로 데려갔다. 입력어가 실제
@@ -598,12 +594,12 @@ struct SearchView: View {
         // 피드와 같은 가드 — 자모·구두점만 있는 제목("ㅇㅇ")은 결과 카드로 그리지 않는다.
         let items = rawItems.filter(\.isRenderableCard)
         let tags = tagOptions
-        let authors = matchedAuthors
-        if items.isEmpty, tags.isEmpty, authors.isEmpty {
+        let people = matchedPeople
+        if items.isEmpty, tags.isEmpty, people.isEmpty {
             noResults
         } else {
-            // 결과는 태그 → 작가 → 글 갈래로. 다른 갈래가 있을 때만 "글" 라벨을 붙인다.
-            let labelled = !tags.isEmpty || !authors.isEmpty
+            // 결과는 태그 → 사람 → 글 갈래로. 다른 갈래가 있을 때만 "글" 라벨을 붙인다.
+            let labelled = !tags.isEmpty || !people.isEmpty
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 16) {
                     if !tags.isEmpty {
@@ -621,22 +617,21 @@ struct SearchView: View {
                             }
                         }
                     }
-                    if !authors.isEmpty {
+                    if !people.isEmpty {
                         VStack(alignment: .leading, spacing: 6) {
-                            RailHeading("관련 작가")
-                            ForEach(authors) { suggestion in
-                                NavigationLink(
-                                    value: Route.author(username: suggestion.author.username)
-                                ) {
+                            RailHeading("사람")
+                            ForEach(people) { person in
+                                NavigationLink(value: Route.author(username: person.username)) {
                                     HStack(spacing: 11) {
-                                        AvatarView(author: suggestion.author, size: 44)
+                                        AvatarView(author: person.asAuthor, size: 44)
                                         VStack(alignment: .leading, spacing: 2) {
-                                            Text("@\(suggestion.author.username)")
+                                            Text(verbatim: person.shownName)
                                                 .typeScale(.titleSmall)
                                                 .foregroundStyle(Palette.ink)
-                                            if let bio = suggestion.author.bio, !bio.isEmpty {
-                                                Text(bio)
-                                                    .typeScale(.lede)
+                                                .lineLimit(1)
+                                            if person.shownName != person.username {
+                                                Text(verbatim: "@\(person.username)")
+                                                    .typeScale(.meta)
                                                     .foregroundStyle(Palette.secondary)
                                                     .lineLimit(1)
                                             }
@@ -650,6 +645,7 @@ struct SearchView: View {
                                     .contentShape(Rectangle())
                                 }
                                 .buttonStyle(RowButtonStyle())
+                                .accessibilityIdentifier("search.person.\(person.username)")
                             }
                         }
                     }
@@ -802,6 +798,12 @@ struct SearchView: View {
     }
 
     private func search(_ text: String) async {
+        if scope == .people {
+            activeQuery = text
+            await peopleResults.show(text)
+            if PeopleAPI.isSearchable(text) { recordRecent(text) }
+            return
+        }
         if scope == .notes {
             activeQuery = text
             await noteResults.show(.search(text))
@@ -815,11 +817,14 @@ struct SearchView: View {
         // 스켈레톤은 보여줄 결과가 아예 없는 첫 검색에만.
         if case .loaded = phase {} else { phase = .loading }
         do {
+            async let people = try? PeopleAPI.search(text, size: 3)
             let result = try await BlogAPI.feed(query: text, page: 0, size: 30)
+            let found = await people
             guard !Task.isCancelled, myGen == generation else { return }
             activeQuery = text
             page = 0
             hasNext = result.hasNext
+            matchedPeople = found?.items ?? []
             phase = .loaded(result.items)
             // 결과가 실제로 온 뒤에 최근 검색에 남긴다 — 취소·실패한 검색어는 기록하지 않는다.
             recordRecent(text)

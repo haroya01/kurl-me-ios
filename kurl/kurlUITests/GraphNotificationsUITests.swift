@@ -162,7 +162,7 @@ final class GraphNotificationsUITests: XCTestCase {
         XCTAssertTrue(reply.waitForExistence(timeout: 10), "답글에 답글 버튼이 없음")
         for _ in 0..<4 where !reply.isHittable { app.swipeUp(velocity: .slow) }
         reply.tap()
-        XCTAssertTrue(app.staticTexts["reader_kim님에게 답글"].waitForExistence(timeout: 6), "누구에게 답하는지 안 보임")
+        XCTAssertTrue(app.staticTexts["@reader_kim에게 답글"].waitForExistence(timeout: 6), "누구에게 답하는지 안 보임")
         let input = app.descendants(matching: .any).matching(identifier: "comment.input").firstMatch
         XCTAssertTrue(input.waitForExistence(timeout: 4), "답글 입력칸이 없음")
         XCTAssertEqual(input.value as? String, "@reader_kim ", "답글 단 사람을 @로 부르지 않음")
