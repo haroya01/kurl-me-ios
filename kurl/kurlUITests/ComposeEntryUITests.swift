@@ -5,8 +5,8 @@
 
 import XCTest
 
-/// 쓰기 입구는 탭바 가운데 하나 — 누르면 노트 작성기가 열리고, "긴 글로 쓰기"가 쓰던 본문을
-/// 블로그 에디터로 옮긴다. 노트 탭의 떠 있는 작성 버튼은 없다.
+/// 쓰기 입구는 탭바 가운데 하나 — 누르면 무엇을 쓸지 고르는 시트(노트·긴 글·이어 쓰기)가 뜬다.
+/// 노트 작성기의 "긴 글로 옮기기"는 쓴 내용이 있을 때만 보이고, 본문을 블로그 에디터로 옮긴다.
 final class ComposeEntryUITests: XCTestCase {
 
     override func setUpWithError() throws {
@@ -27,42 +27,139 @@ final class ComposeEntryUITests: XCTestCase {
         add(shot)
     }
 
-    private func openComposer(_ app: XCUIApplication) -> XCUIElement {
+    private func openChooser(_ app: XCUIApplication) {
         let center = app.buttons["글쓰기"]
         XCTAssertTrue(center.waitForExistence(timeout: 15), "탭바 가운데(글쓰기)가 없음")
         center.tap()
+        XCTAssertTrue(app.buttons["compose.chooser.note"].waitForExistence(timeout: 5), "가운데 탭이 글쓰기 고르기를 열지 않음")
+    }
+
+    private func openNoteComposer(_ app: XCUIApplication) -> XCUIElement {
+        openChooser(app)
+        app.buttons["compose.chooser.note"].tap()
         let field = app.textFields["noteCompose.text"]
-        XCTAssertTrue(field.waitForExistence(timeout: 5), "가운데 탭이 노트 작성기를 열지 않음")
+        XCTAssertTrue(field.waitForExistence(timeout: 5), "노트를 골랐는데 노트 작성기가 열리지 않음")
         return field
     }
 
-    func testTheCenterTabOpensTheNoteComposerOverTheCurrentTab() throws {
+    private func moveToLongPost(_ app: XCUIApplication) {
+        let move = app.buttons["noteCompose.longForm"]
+        XCTAssertTrue(move.waitForExistence(timeout: 4), "쓴 내용이 있는데 긴 글로 옮기기가 없음")
+        move.tap()
+        let confirm = app.buttons.matching(
+            NSPredicate(format: "label == %@ AND identifier != %@", "긴 글로 옮기기", "noteCompose.longForm")).firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 4), "옮기기 전에 묻지 않음")
+        attach("long-form-confirm")
+        confirm.tap()
+    }
+
+    func testTheCenterTabOpensTheChooserOverTheCurrentTab() throws {
         let app = launch(["--mocks", "--screen", "none", "--tab", "notes"])
         XCTAssertTrue(app.buttons["notes.more"].waitForExistence(timeout: 15), "노트 탭이 열리지 않음")
-        _ = openComposer(app)
+        openChooser(app)
+        XCTAssertTrue(app.buttons["compose.chooser.post"].exists, "고르기에 긴 글이 없음")
+        attach("compose-chooser")
+
+        app.buttons["compose.chooser.note"].swipeDown(velocity: .fast)
+        XCTAssertTrue(app.buttons["notes.more"].waitForExistence(timeout: 5), "고르기를 닫았는데 보던 노트 탭이 아님")
+        XCTAssertFalse(app.buttons["글쓰기"].isSelected, "가운데가 탭처럼 선택됨")
+    }
+
+    func testTheChooserStaysReadableAtTheLargestTextSize() throws {
+        let app = launch([
+            "--mocks", "--screen", "none", "--tab", "notes",
+            "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL",
+        ])
+        openChooser(app)
+        XCTAssertTrue(app.buttons["compose.chooser.note"].isHittable, "가장 큰 글자에서 노트를 누를 수 없음")
+        XCTAssertTrue(app.buttons["compose.chooser.post"].isHittable, "가장 큰 글자에서 긴 글을 누를 수 없음")
+        attach("compose-chooser-axxxl")
+    }
+
+    func testNoteOpensTheNoteComposer() throws {
+        let app = launch(["--mocks", "--screen", "none", "--tab", "notes"])
+        _ = openNoteComposer(app)
         XCTAssertTrue(app.navigationBars["새 노트"].exists, "작성기가 새 노트가 아님")
-        XCTAssertTrue(app.buttons["noteCompose.longForm"].exists, "작성기에 긴 글로 쓰기가 없음")
         attach("center-note-composer")
 
         app.navigationBars.buttons["취소"].tap()
         XCTAssertTrue(app.buttons["notes.more"].waitForExistence(timeout: 5), "작성기를 닫았는데 보던 노트 탭이 아님")
-        XCTAssertFalse(app.buttons["글쓰기"].isSelected, "가운데가 탭처럼 선택됨")
     }
 
-    func testLongFormCarriesTheNoteBodyIntoTheBlogEditor() throws {
+    func testLongPostOpensAnEmptyEditor() throws {
         let app = launch(["--mocks", "--screen", "none", "--tab", "notes", "--editor", "v2", "--reset-recovery"])
-        let field = openComposer(app)
-        field.typeText("노트에서 시작한 긴 글 첫 문단")
+        openChooser(app)
+        app.buttons["compose.chooser.post"].tap()
 
-        app.buttons["noteCompose.longForm"].tap()
-        let move = app.buttons["긴 글로 옮기기"]
-        XCTAssertTrue(move.waitForExistence(timeout: 4), "옮기기 전에 묻지 않음")
-        attach("long-form-confirm")
-        move.tap()
+        XCTAssertTrue(app.navigationBars["새 글"].waitForExistence(timeout: 10), "긴 글을 골랐는데 새 글 에디터가 열리지 않음")
+        let title = app.textFields["제목"]
+        XCTAssertTrue(title.waitForExistence(timeout: 5), "에디터에 제목 칸이 없음")
+        XCTAssertNotEqual(title.value as? String, "목 초안 — 헥사고날 정리", "새 글인데 초안이 열림")
+        XCTAssertFalse(
+            app.textViews.matching(NSPredicate(format: "value CONTAINS %@", "포트와 어댑터")).firstMatch.exists,
+            "새 글인데 초안 본문이 들어 있음")
+        attach("long-post-empty-editor")
+    }
+
+    func testASeededDraftOpensFromContinueWritingWithItsContent() throws {
+        let app = launch(["--mocks", "--screen", "none", "--tab", "notes", "--editor", "v2", "--reset-recovery"])
+        openChooser(app)
+        let draft = app.buttons["compose.chooser.draft.9001"]
+        XCTAssertTrue(draft.waitForExistence(timeout: 8), "이어 쓰기에 목 초안이 없음")
+        XCTAssertTrue(draft.label.contains("목 초안 — 헥사고날 정리"), "이어 쓰기 행이 초안 제목을 보이지 않음")
+        attach("compose-chooser-drafts")
+        draft.tap()
+
+        XCTAssertTrue(app.navigationBars["편집"].waitForExistence(timeout: 10), "초안을 골랐는데 에디터가 열리지 않음")
+        XCTAssertEqual(app.textFields["제목"].value as? String, "목 초안 — 헥사고날 정리", "초안 제목이 아님")
+        let body = app.textViews.matching(NSPredicate(format: "value CONTAINS %@", "포트와 어댑터")).firstMatch
+        XCTAssertTrue(body.waitForExistence(timeout: 10), "초안 본문이 에디터에 없음")
+        attach("draft-editor")
+    }
+
+    func testNoDraftsHidesContinueWriting() throws {
+        let app = launch(["--mocks", "--screen", "none", "--tab", "notes", "--no-drafts"])
+        openChooser(app)
+        let anyDraft = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "compose.chooser.draft.")).firstMatch
+        XCTAssertFalse(anyDraft.waitForExistence(timeout: 3), "초안이 없는데 이어 쓰기 행이 있음")
+        XCTAssertFalse(app.staticTexts["이어 쓰기"].exists, "초안이 없는데 이어 쓰기 머리가 있음")
+        attach("compose-chooser-no-drafts")
+    }
+
+    func testMoreThanThreeDraftsShowAllInStudioDrafts() throws {
+        let app = launch(["--mocks", "--screen", "none", "--tab", "notes", "--many-drafts"])
+        openChooser(app)
+        let all = app.buttons["compose.chooser.allDrafts"]
+        XCTAssertTrue(all.waitForExistence(timeout: 8), "초안이 넷 이상인데 모두 보기가 없음")
+        let rows = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "compose.chooser.draft."))
+        XCTAssertEqual(rows.count, 3, "이어 쓰기는 최근 초안 셋까지")
+        all.tap()
+
+        XCTAssertTrue(app.navigationBars["스튜디오"].waitForExistence(timeout: 10), "모두 보기가 스튜디오를 열지 않음")
+        XCTAssertTrue(app.staticTexts["목 초안 3"].waitForExistence(timeout: 8), "스튜디오에 초안이 다 보이지 않음")
+        XCTAssertFalse(app.staticTexts["발행된 목 글"].exists, "모두 보기인데 발행 글까지 보임(초안만 보여야 함)")
+    }
+
+    func testMoveToLongPostAppearsOnlyOnceTheNoteHasText() throws {
+        let app = launch(["--mocks", "--screen", "none", "--tab", "notes"])
+        let field = openNoteComposer(app)
+        XCTAssertFalse(app.buttons["noteCompose.longForm"].exists, "빈 노트에 긴 글로 옮기기가 보임")
+        field.typeText("a note that grows longer")
+        let move = app.buttons["noteCompose.longForm"]
+        XCTAssertTrue(move.waitForExistence(timeout: 3), "쓴 내용이 있는데 긴 글로 옮기기가 없음")
+        XCTAssertEqual(move.label, "긴 글로 옮기기")
+        attach("note-composer-move")
+    }
+
+    func testMovingCarriesTheNoteBodyIntoTheBlogEditor() throws {
+        let app = launch(["--mocks", "--screen", "none", "--tab", "notes", "--editor", "v2", "--reset-recovery"])
+        let field = openNoteComposer(app)
+        field.typeText("first paragraph that started as a note")
+        moveToLongPost(app)
 
         XCTAssertTrue(app.navigationBars["새 글"].waitForExistence(timeout: 10), "블로그 에디터가 열리지 않음")
         let carried = app.textViews.matching(
-            NSPredicate(format: "value CONTAINS %@", "노트에서 시작한 긴 글 첫 문단")).firstMatch
+            NSPredicate(format: "value CONTAINS %@", "first paragraph that started as a note")).firstMatch
         XCTAssertTrue(carried.waitForExistence(timeout: 10), "노트 본문이 글 본문으로 옮겨지지 않음")
         XCTAssertFalse(app.textFields["noteCompose.text"].exists, "노트 작성기가 남아 있음")
         attach("long-form-editor")
@@ -70,47 +167,36 @@ final class ComposeEntryUITests: XCTestCase {
 
     func testAMovedBodyClosedWithoutATitleComesBackAsRecovery() throws {
         let app = launch(["--mocks", "--screen", "none", "--tab", "notes", "--editor", "v2", "--reset-recovery"])
-        let field = openComposer(app)
-        field.typeText("제목 없이 닫아도 남는 본문")
-        app.buttons["noteCompose.longForm"].tap()
-        let move = app.buttons["긴 글로 옮기기"]
-        XCTAssertTrue(move.waitForExistence(timeout: 4), "옮기기 전에 묻지 않음")
-        move.tap()
+        let field = openNoteComposer(app)
+        field.typeText("body kept without a title")
+        moveToLongPost(app)
 
         let editor = app.navigationBars["새 글"]
         XCTAssertTrue(editor.waitForExistence(timeout: 10), "블로그 에디터가 열리지 않음")
         editor.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(app.buttons["notes.more"].waitForExistence(timeout: 6), "에디터를 닫았는데 보던 노트 탭이 아님")
 
-        _ = openComposer(app)
-        app.buttons["noteCompose.longForm"].tap()
+        openChooser(app)
+        app.buttons["compose.chooser.post"].tap()
         let recovery = app.alerts["저장되지 못한 본문이 있어요"]
         XCTAssertTrue(recovery.waitForExistence(timeout: 10), "옮긴 본문이 제목 없이 닫히자 사라짐")
         recovery.buttons["이어서 쓰기"].tap()
         let restored = app.textViews.matching(
-            NSPredicate(format: "value CONTAINS %@", "제목 없이 닫아도 남는 본문")).firstMatch
+            NSPredicate(format: "value CONTAINS %@", "body kept without a title")).firstMatch
         XCTAssertTrue(restored.waitForExistence(timeout: 10), "복구한 본문이 캔버스에 없음")
     }
 
-    func testAnEmptyNoteSwitchesToTheBlogEditorWithoutAsking() throws {
-        let app = launch(["--mocks", "--screen", "none", "--tab", "notes", "--editor", "v2", "--reset-recovery"])
-        _ = openComposer(app)
-        app.buttons["noteCompose.longForm"].tap()
-
-        XCTAssertTrue(app.navigationBars["새 글"].waitForExistence(timeout: 10), "빈 노트에서 블로그 에디터가 열리지 않음")
-        XCTAssertFalse(app.buttons["긴 글로 옮기기"].exists, "옮길 본문이 없는데 물음")
-    }
-
-    func testDroppingADragOnTheCenterOpensTheComposerAndKeepsTheTab() throws {
+    func testDroppingADragOnTheCenterOpensTheChooserAndKeepsTheTab() throws {
         let app = launch(["--mocks", "--screen", "none", "--tab", "search"])
         let searchTab = app.buttons["검색"]
         let center = app.buttons["글쓰기"]
         XCTAssertTrue(searchTab.waitForExistence(timeout: 15), "탭바가 없음")
         searchTab.press(forDuration: 0.15, thenDragTo: center, withVelocity: .slow, thenHoldForDuration: 0.3)
-        XCTAssertTrue(app.textFields["noteCompose.text"].waitForExistence(timeout: 5), "가운데에 끌어다 놓았는데 작성기가 안 열림")
+        let note = app.buttons["compose.chooser.note"]
+        XCTAssertTrue(note.waitForExistence(timeout: 5), "가운데에 끌어다 놓았는데 고르기가 안 열림")
 
-        app.navigationBars.buttons["취소"].tap()
-        XCTAssertTrue(app.searchFields.firstMatch.waitForExistence(timeout: 5), "작성기를 닫았는데 보던 검색 탭이 아님")
+        note.swipeDown(velocity: .fast)
+        XCTAssertTrue(app.searchFields.firstMatch.waitForExistence(timeout: 5), "고르기를 닫았는데 보던 검색 탭이 아님")
         XCTAssertFalse(app.buttons["글쓰기"].isSelected, "끌어다 놓은 가운데가 선택된 탭이 됨")
     }
 

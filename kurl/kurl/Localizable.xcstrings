@@ -7436,30 +7436,30 @@
         }
       }
     },
-    "긴 글로 쓰기": {
+    "긴 글": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Write a long post"
+            "value": "Long post"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "लंबी पोस्ट लिखें"
+            "value": "लंबी पोस्ट"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "長い記事で書く"
+            "value": "長い記事"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Viết bài dài"
+            "value": "Bài dài"
           }
         }
       }
@@ -11216,6 +11216,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chỉ thành viên được nhắc đến mới xem được"
+          }
+        }
+      }
+    },
+    "모두 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "See all"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सभी देखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべて表示"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xem tất cả"
           }
         }
       }
@@ -18874,6 +18902,34 @@
         }
       }
     },
+    "이어 쓰기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue a draft"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ड्राफ़्ट जारी रखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下書きの続き"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viết tiếp"
+          }
+        }
+      }
+    },
     "이어서 써 보세요": {
       "localizations": {
         "en": {
@@ -19266,6 +19322,62 @@
         }
       }
     },
+    "제목 없는 초안": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Untitled draft"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बिना शीर्षक का ड्राफ़्ट"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無題の下書き"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bản nháp chưa có tiêu đề"
+          }
+        }
+      }
+    },
+    "제목과 본문, 초안으로 다듬기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Title and body, refined as a draft"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "शीर्षक और मुख्य भाग, ड्राफ़्ट में निखारें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タイトルと本文、下書きで仕上げる"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tiêu đề và nội dung, trau chuốt dần"
+          }
+        }
+      }
+    },
     "제한": {
       "localizations": {
         "en": {
@@ -19514,6 +19626,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nội dung bạn vừa viết đã được lưu trên thiết bị này. Mở lại bài viết để khôi phục."
+          }
+        }
+      }
+    },
+    "짧게, 바로 올리기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Short, posted right away"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "छोटा, तुरंत पोस्ट"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "短く、すぐに投稿"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ngắn gọn, đăng ngay"
           }
         }
       }
