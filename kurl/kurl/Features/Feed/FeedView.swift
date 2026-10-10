@@ -383,7 +383,7 @@ struct FeedPage: View {
 /// 로그인 CTA), 빈 피드 안내는 조용한 그린 텍스트로 — 초록 과용을 피한다(§10 색 규율).
 struct FeedPlaceholder: View {
     let title: LocalizedStringKey
-    let message: LocalizedStringKey
+    var message: LocalizedStringKey?
     var actionTitle: LocalizedStringKey?
     var prominent: Bool = false
     var action: (() -> Void)?
@@ -405,13 +405,15 @@ struct FeedPlaceholder: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.bottom, 9)
 
-            Text(message)
-                .typeScale(.lede)
-                .foregroundStyle(Palette.secondary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: 272)
-                .padding(.bottom, 22)
+            if let message {
+                Text(message)
+                    .typeScale(.lede)
+                    .foregroundStyle(Palette.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: 272)
+                    .padding(.bottom, 22)
+            }
 
             actionButton
         }

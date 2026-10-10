@@ -268,13 +268,15 @@ struct AuthorBlogView: View {
                 if isOwnAuthor {
                     FollowCountsLink(username: view.author.username, initialStatus: followStatus)
                 } else {
-                    FollowButton(
-                        username: view.author.username, showCount: false, initialStatus: followStatus,
-                        showsBell: true
-                    ) { now in
-                        guard now != following else { return }
-                        following = now
-                        Task { await loadRepostVisibility() }
+                    if gate(view) == .open {
+                        FollowButton(
+                            username: view.author.username, showCount: false, initialStatus: followStatus,
+                            showsBell: true
+                        ) { now in
+                            guard now != following else { return }
+                            following = now
+                            Task { await loadRepostVisibility() }
+                        }
                     }
                     FollowCountsLink(username: view.author.username, initialStatus: followStatus, showsCounts: false)
                 }
@@ -299,12 +301,30 @@ struct AuthorBlogView: View {
         .padding(.vertical, 18)
 
         Section {
-            switch shownTab {
-            case .posts: postsTab(view)
-            case .notes: notesTab
-            case .reposts: repostsTab
-            case .series: seriesTab
-            case .collections: collectionsTab
+            switch gate(view) {
+            case .blockedByViewer:
+                FeedPlaceholder(
+                    title: "차단한 사용자예요",
+                    message: "글·댓글·노트가 보이지 않아요.",
+                    actionTitle: "차단 해제",
+                    action: { Task { await unblock(view.author) } }
+                )
+                .padding(.top, 48)
+                .padding(.bottom, 8)
+                .accessibilityIdentifier("author.blockedByViewer")
+            case .blocksViewer:
+                FeedPlaceholder(title: "이 사용자의 글을 볼 수 없어요")
+                    .padding(.top, 48)
+                    .padding(.bottom, 8)
+                    .accessibilityIdentifier("author.blocksViewer")
+            case .open:
+                switch shownTab {
+                case .posts: postsTab(view)
+                case .notes: notesTab
+                case .reposts: repostsTab
+                case .series: seriesTab
+                case .collections: collectionsTab
+                }
             }
             Color.clear.frame(height: 40)
         } header: {
@@ -510,6 +530,16 @@ struct AuthorBlogView: View {
         .contentShape(Rectangle())
     }
 
+    private func gate(_ view: PublicPostListView) -> AuthorBlockGate {
+        AuthorBlockGate.of(view, blockedHere: BlockStore.shared.isBlocked(id: view.author.id))
+    }
+
+    private func unblock(_ author: Author) async {
+        try? await BlockStore.shared.unblock(id: author.id, username: author.username)
+        ToastCenter.shared.show(String(localized: "차단을 해제했어요"))
+        await load()
+    }
+
     private func load() async {
         // 이미 로드된 화면은 유지한 채 조용히 다시 받는다 — 당겨서 새로고침·재방문·복귀.
         if case .loaded = phase {} else { phase = .loading }
@@ -582,6 +612,17 @@ extension AuthorBlogView {
             repostsHidden = before
             ToastCenter.shared.show(String(localized: "설정을 바꾸지 못했어요"))
         }
+    }
+}
+
+/// 작가 페이지 탭 내용 자리에 무엇을 보일지. 이 기기에서 방금 막은 차단(BlockStore)은 서버 플래그보다 먼저 반영한다.
+enum AuthorBlockGate: Equatable {
+    case open, blockedByViewer, blocksViewer
+
+    static func of(_ view: PublicPostListView, blockedHere: Bool) -> AuthorBlockGate {
+        if blockedHere || view.blockedByViewer == true { return .blockedByViewer }
+        if view.blocksViewer == true { return .blocksViewer }
+        return .open
     }
 }
 
