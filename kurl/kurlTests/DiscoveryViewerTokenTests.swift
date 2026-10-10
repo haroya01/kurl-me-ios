@@ -15,6 +15,9 @@ final class DiscoveryViewerTokenTests: XCTestCase {
 
     override func tearDown() async throws {
         BlogAPI.client = .shared
+        HighlightsAPI.client = .shared
+        CollectionsAPI.client = .shared
+        NoteAPI.client = .shared
         CapturingProtocol.reset()
     }
 
@@ -58,6 +61,76 @@ final class DiscoveryViewerTokenTests: XCTestCase {
         for request in requests {
             XCTAssertNil(request.value(forHTTPHeaderField: "Authorization"), request.url?.absoluteString ?? "")
         }
+    }
+
+    // MARK: 차단·뮤트를 거르는 나머지 읽기(백엔드 #798)와 노트 읽기
+
+    private func useEverywhere(_ client: APIClient) {
+        BlogAPI.client = client
+        HighlightsAPI.client = client
+        CollectionsAPI.client = client
+        NoteAPI.client = client
+    }
+
+    /// 응답 모양은 보지 않는다 — 나간 요청의 헤더만 본다(빈 응답이 디코딩에 실패해도 요청은 이미 나갔다).
+    private func callEveryViewerRead() async {
+        _ = try? await BlogAPI.authorPosts(username: "writer")
+        _ = try? await BlogAPI.postDetail(username: "writer", slug: "a-post")
+        _ = try? await BlogAPI.postDetailData(username: "writer", slug: "a-post")
+        _ = try? await BlogAPI.comments(postId: 1)
+        _ = try? await HighlightsAPI.list(postId: 1)
+        _ = try? await HighlightsAPI.replies(highlightId: 2)
+        _ = try? await CollectionsAPI.publicConnectionFeed()
+        _ = try? await NoteAPI.quotingPosts(of: 3)
+        _ = try? await NoteAPI.byAuthor("writer")
+        _ = try? await NoteAPI.reposts("writer")
+        _ = try? await NoteAPI.thread(id: 3)
+        _ = try? await NoteAPI.everyone()
+        _ = try? await NoteAPI.trending()
+        _ = try? await NoteAPI.linked("https://kurl.me")
+        _ = try? await NoteAPI.tagged("swift")
+        _ = try? await NoteAPI.search("kurl")
+        _ = try? await NoteAPI.quotes(of: 3)
+        _ = try? await NoteAPI.postQuotes(1)
+        _ = try? await NoteAPI.history(of: 3)
+    }
+
+    func testEveryViewerReadCarriesTheSignedInViewerToken() async throws {
+        useEverywhere(client(token: "viewer-token"))
+        await callEveryViewerRead()
+
+        let requests = CapturingProtocol.requests
+        XCTAssertEqual(requests.count, 19)
+        for request in requests {
+            XCTAssertEqual(
+                request.value(forHTTPHeaderField: "Authorization"), "Bearer viewer-token",
+                request.url?.absoluteString ?? "")
+        }
+    }
+
+    func testEveryViewerReadStaysAnonymousWhenSignedOut() async throws {
+        useEverywhere(client(token: nil))
+        await callEveryViewerRead()
+
+        let requests = CapturingProtocol.requests
+        XCTAssertEqual(requests.count, 19)
+        for request in requests {
+            XCTAssertNil(request.value(forHTTPHeaderField: "Authorization"), request.url?.absoluteString ?? "")
+        }
+    }
+
+    func testAuthorPostListReadsTheBlockFlagsAndLeavesThemNilWhenAbsent() throws {
+        let author = #"{"id":2,"username":"writer","bio":null,"avatarUrl":null}"#
+        let flagged = try JSONDecoder.blog.decode(
+            PublicPostListView.self,
+            from: Data(#"{"author":\#(author),"posts":[],"blockedByViewer":false,"blocksViewer":true}"#.utf8))
+        XCTAssertEqual(flagged.blockedByViewer, false)
+        XCTAssertEqual(flagged.blocksViewer, true)
+
+        let older = try JSONDecoder.blog.decode(
+            PublicPostListView.self, from: Data(#"{"author":\#(author),"posts":[]}"#.utf8))
+        XCTAssertNil(older.blockedByViewer)
+        XCTAssertNil(older.blocksViewer)
     }
 
     // MARK: 만료 판정

@@ -316,6 +316,7 @@ final class AuthStore {
         BlockStore.shared.reset()
         OfflineStore.shared.removeAll()
         AnalyticsSnapshot.clear()
+        MyPostsCache.posts = nil
         WidgetCenter.shared.reloadAllTimelines()
     }
 }

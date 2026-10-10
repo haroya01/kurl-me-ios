@@ -20,6 +20,18 @@ final class NotesFeedUITests: XCTestCase {
         app.buttons["글쓰기"]
     }
 
+    /// 가운데 글쓰기 → 고르기 시트의 노트.
+    private func openNoteComposer(_ app: XCUIApplication) {
+        composeTab(app).tap()
+        chooseNote(app)
+    }
+
+    private func chooseNote(_ app: XCUIApplication) {
+        let note = app.buttons["compose.chooser.note"]
+        XCTAssertTrue(note.waitForExistence(timeout: 5), "글쓰기 고르기 시트가 뜨지 않음")
+        note.tap()
+    }
+
     private func pickFeed(_ app: XCUIApplication, _ label: String) {
         let segment = app.buttons[label].firstMatch
         XCTAssertTrue(segment.waitForExistence(timeout: 8), "노트 머리 스위처에 \(label)이 없음")
@@ -52,6 +64,7 @@ final class NotesFeedUITests: XCTestCase {
         let compose = composeTab(app)
         XCTAssertTrue(compose.waitForExistence(timeout: 5), "탭바 가운데 글쓰기가 없음")
         compose.tap()
+        chooseNote(app)
 
         let field = app.textFields["noteCompose.text"]
         XCTAssertTrue(field.waitForExistence(timeout: 5), "작성 시트의 입력란 없음")
@@ -81,7 +94,7 @@ final class NotesFeedUITests: XCTestCase {
         app.launchArguments = ["--mocks", "--tab", "notes"]
         app.launch()
         openNotes(app)
-        composeTab(app).tap()
+        openNoteComposer(app)
 
         let field = app.textFields["noteCompose.text"]
         XCTAssertTrue(field.waitForExistence(timeout: 5), "작성 시트의 입력란 없음")
@@ -467,6 +480,7 @@ final class NotesFeedUITests: XCTestCase {
         let compose = composeTab(app)
         XCTAssertTrue(compose.waitForExistence(timeout: 8))
         compose.tap()
+        chooseNote(app)
         let text = app.textViews["noteCompose.text"].exists ? app.textViews["noteCompose.text"] : app.textFields["noteCompose.text"]
         XCTAssertTrue(text.waitForExistence(timeout: 6))
         text.typeText("범인은 집사였다")
@@ -547,7 +561,7 @@ final class NotesFeedUITests: XCTestCase {
         attach(app, "notes-direct-feed")
 
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        composeTab(app).tap()
+        openNoteComposer(app)
         let text = app.textFields["noteCompose.text"]
         XCTAssertTrue(text.waitForExistence(timeout: 6))
         text.typeText("팔로워에게만")
@@ -817,6 +831,7 @@ final class NotesFeedUITests: XCTestCase {
         let compose = composeTab(app)
         XCTAssertTrue(compose.waitForExistence(timeout: 10), "탭바 가운데 글쓰기가 없음")
         compose.tap()
+        chooseNote(app)
         let field = app.textFields["noteCompose.text"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.typeText("uitest scheduled note")
@@ -976,7 +991,7 @@ final class NotesFeedUITests: XCTestCase {
         app.launch()
         openNotes(app)
 
-        composeTab(app).tap()
+        openNoteComposer(app)
         let field = app.textFields["noteCompose.text"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.typeText("버릴지 묻는 노트")
@@ -1055,6 +1070,7 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(compose.waitForExistence(timeout: 5), "탭바 가운데 글쓰기가 없음")
         attach(app, "notes-tab")
         compose.tap()
+        chooseNote(app)
         let field = app.textFields["noteCompose.text"]
         XCTAssertTrue(field.waitForExistence(timeout: 5), "가운데 탭이 작성 시트를 열지 않음")
         field.typeText("스레드처럼 가볍게 쓰는 창")
@@ -1178,7 +1194,7 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(card.label.contains("kurl.me"), "링크 카드에 도메인이 없음")
         attach(app, "note-link-card")
 
-        composeTab(app).tap()
+        openNoteComposer(app)
         let field = app.textFields["noteCompose.text"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.typeText("읽어 볼 글 https://example.com/essay")
@@ -1375,7 +1391,7 @@ final class NotesFeedUITests: XCTestCase {
         app.launch()
         openNotes(app)
 
-        composeTab(app).tap()
+        openNoteComposer(app)
         let field = app.textFields["noteCompose.text"]
         XCTAssertTrue(field.waitForExistence(timeout: 5), "작성 시트의 입력란 없음")
         field.typeText("uitest poll")
