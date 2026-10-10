@@ -206,6 +206,42 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("settings.noteLanguages")
+                Hairline()
+                NavigationLink {
+                    NoteListsView()
+                } label: {
+                    HStack(spacing: 10) {
+                        Text("리스트")
+                            .typeScale(.body)
+                            .foregroundStyle(Palette.ink)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Palette.faint)
+                    }
+                    .padding(.vertical, 13)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("settings.noteLists")
+                Hairline()
+                NavigationLink {
+                    ScheduledNotesView()
+                } label: {
+                    HStack(spacing: 10) {
+                        Text("예약한 노트")
+                            .typeScale(.body)
+                            .foregroundStyle(Palette.ink)
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Palette.faint)
+                    }
+                    .padding(.vertical, 13)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("settings.scheduledNotes")
             }
 
             if auth.isSignedIn {

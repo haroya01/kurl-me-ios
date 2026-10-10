@@ -4591,6 +4591,34 @@
         }
       }
     },
+    "개인 멘션을 보려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to see private mentions"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "निजी उल्लेख देखने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "非公開メンションを見るにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để xem nhắc đến riêng tư"
+          }
+        }
+      }
+    },
     "개인 멘션이 없어요": {
       "localizations": {
         "en": {
@@ -6376,34 +6404,6 @@
         }
       }
     },
-    "구독한 태그를 보려면 로그인하세요": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign in to see your subscribed tags"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "सब्सक्राइब किए गए टैग देखने के लिए साइन इन करें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "購読中のタグを見るにはログインしてください"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Đăng nhập để xem các thẻ đã đăng ký"
-          }
-        }
-      }
-    },
     "구독한 태그가 없습니다": {
       "localizations": {
         "en": {
@@ -6428,6 +6428,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chưa có thẻ nào được đăng ký"
+          }
+        }
+      }
+    },
+    "다른 서버의 노트를 보려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to see notes from other servers"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दूसरे सर्वर के नोट्स देखने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほかのサーバーのノートを見るにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để xem ghi chú từ máy chủ khác"
+          }
+        }
+      }
+    },
+    "북마크한 노트를 보려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to see your bookmarked notes"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बुकमार्क किए गए नोट्स देखने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブックマークしたノートを見るにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để xem ghi chú đã đánh dấu"
           }
         }
       }
@@ -8994,34 +9050,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Khi cuộc bình chọn của bạn hoặc cuộc bạn tham gia kết thúc"
-          }
-        }
-      }
-    },
-    "내 컬렉션": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "My Collections"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "मेरे कलेक्शन"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "マイコレクション"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bộ sưu tập của tôi"
           }
         }
       }

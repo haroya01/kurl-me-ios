@@ -116,12 +116,16 @@ private struct GlassCapsule: ViewModifier {
 /// 상단 고정 스트립을 대체하는 떠 있는 유리 캡슐. 콘텐츠는 이 밑으로 흐른다.
 /// 위계는 색 채움이 아니라 무게+잉크 대비가 진다 — 선택 알약은 유리 위로 살짝 들린 중립
 /// 표면이고, matchedGeometry 로 오버슈트 없이 조용히 활주한다.
-struct GlassSegmentSwitcher<T: Hashable & Identifiable>: View {
+struct GlassSegmentSwitcher<T: Hashable & Identifiable, More: View>: View {
     let items: [T]
     @Binding var selection: T
     let label: (T) -> String
     /// 내비바(유리) 안에 들 때 true — 자기 유리 배경을 빼서 glass-on-glass(§1.4)를 피한다.
     var bare = false
+    var moreChoice: SegmentMoreChoice?
+    var moreLabel: LocalizedStringKey = ""
+    var moreIdentifier = ""
+    @ViewBuilder var more: More
     @Namespace private var ns
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -143,20 +147,22 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable>: View {
                     row(scale: 1, padding: 13)
                     row(scale: 0.93, padding: 10)
                     row(scale: 0.86, padding: 8)
+                    if moreChoice != nil { row(scale: 0.86, padding: 8, named: false) }
                     menu
                 }
             }
         }
         // 분면 선택 = selection 햅틱 — 토글(.impact)·결과(.success)와 구분되는 세 번째 어휘.
         .sensoryFeedback(.selection, trigger: selection)
+        .sensoryFeedback(.selection, trigger: moreChoice)
     }
 
     @ViewBuilder
-    private func row(scale: CGFloat, padding: CGFloat) -> some View {
+    private func row(scale: CGFloat, padding: CGFloat, named: Bool = true) -> some View {
         // 높이 44pt — 헤더 영역의 유리 원형 버튼(벨 등)과 같은 키로 맞춘다.
         let row = HStack(spacing: 2) {
             ForEach(items) { item in
-                let active = item == selection
+                let active = item == selection && moreChoice == nil
                 Button {
                     selection = item
                 } label: {
@@ -184,12 +190,14 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable>: View {
                 .accessibilityAddTraits(active ? [.isSelected] : [])
                 .accessibilityIdentifier("segment.\(item.id)")
             }
+            if hasMore { moreMenu(scale: scale, padding: padding, named: named) }
         }
         .padding(bare ? 0 : 4)
         // 알약은 selection 이 어떻게 바뀌든(탭이든 스와이프든) 항상 미끄러진다 — 호출측
         // withAnimation 에 기대지 않고 자체 애니메이션으로 matchedGeometry 를 굴린다. 스프링
         // 오버슈트 없이 조용히 활주하도록 bounce 0 인 smooth 커브로 민다(§10.7 조용함).
         .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: selection)
+        .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: moreChoice)
 
         if bare {
             row // 내비바 유리가 배경 — 자기 유리는 얹지 않는다.
@@ -217,15 +225,69 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable>: View {
                 Text(label(selection)).font(.body.weight(.semibold))
                 Image(systemName: "chevron.down").font(.footnote.weight(.semibold))
             }
-            .foregroundStyle(.primary)
+            .foregroundStyle(moreChoice == nil ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
         }
         .tint(.primary)
         .accessibilityIdentifier("segment.menu")
 
-        if bare { menu } else { menu.glassEffect(.regular.interactive(), in: .capsule) }
+        let collapsed = HStack(spacing: 0) {
+            menu
+            if hasMore { moreMenu(scale: 1, padding: 13, named: false) }
+        }
+
+        if bare { collapsed } else { collapsed.glassEffect(.regular.interactive(), in: .capsule) }
     }
+
+    private var hasMore: Bool { More.self != EmptyView.self }
+
+    private func moreMenu(scale: CGFloat, padding: CGFloat, named: Bool) -> some View {
+        let active = moreChoice != nil
+        return Menu {
+            more
+        } label: {
+            HStack(spacing: 5 * scale) {
+                if let choice = moreChoice {
+                    Image(systemName: choice.symbol)
+                    if named {
+                        Text(choice.title).lineLimit(1).fixedSize()
+                    }
+                }
+                Image(systemName: "chevron.down")
+                    .font(.system(size: labelSize * scale * 0.8, weight: .semibold))
+            }
+            .font(.system(size: labelSize * scale, weight: active ? .semibold : .medium))
+            .foregroundStyle(active ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
+            .padding(.horizontal, active ? padding : padding - 2)
+            .padding(.vertical, bare ? 6 : 10)
+            .background {
+                if active {
+                    Capsule()
+                        .fill(Palette.hairlineStrong)
+                        .matchedGeometryEffect(id: "thumb", in: ns)
+                }
+            }
+            .contentShape(Capsule())
+        }
+        .menuOrder(.fixed)
+        .buttonStyle(SegmentPressStyle())
+        .accessibilityLabel(moreChoice.map { Text(verbatim: $0.title) } ?? Text(moreLabel))
+        .accessibilityHint(active ? Text(moreLabel) : Text(""))
+        .accessibilityAddTraits(active ? [.isSelected] : [])
+        .accessibilityIdentifier(moreIdentifier)
+    }
+}
+
+extension GlassSegmentSwitcher where More == EmptyView {
+    init(items: [T], selection: Binding<T>, label: @escaping (T) -> String, bare: Bool = false) {
+        self.init(items: items, selection: selection, label: label, bare: bare) { EmptyView() }
+    }
+}
+
+struct SegmentMoreChoice: Equatable {
+    let title: String
+    let symbol: String
 }
 
 /// 세그먼트 탭의 눌림 피드백 — 카드 press(스케일+스프링)와 같은 어휘의 작은 판. 좁은 타깃이라

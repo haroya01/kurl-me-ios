@@ -204,37 +204,19 @@ struct NoteFeedPage: View {
     }
 }
 
-struct NoteFeedScreen: View {
-    let kind: NoteFeedKind
-    private let listId: Int64?
-    private let listTitle: String?
+struct NoteMoreFeedPage: View {
+    let feed: NoteMoreFeed
     @State private var model: NotesViewModel
-    @State private var lists = NoteListsStore.shared
 
-    init(kind: NoteFeedKind) {
-        self.kind = kind
-        listId = nil
-        listTitle = nil
-        _model = State(initialValue: NotesViewModel(feed: kind))
-    }
-
-    init(listId: Int64, title: String) {
-        kind = .list
-        self.listId = listId
-        listTitle = title
-        _model = State(initialValue: NotesViewModel(list: listId))
+    init(feed: NoteMoreFeed) {
+        self.feed = feed
+        switch feed {
+        case .kind(let kind): _model = State(initialValue: NotesViewModel(feed: kind))
+        case .list(let id): _model = State(initialValue: NotesViewModel(list: id))
+        }
     }
 
     var body: some View {
-        NoteFeedPage(kind: kind, model: model)
-            .background(Palette.readingBg)
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarRole(.editor)
-    }
-
-    private var title: Text {
-        guard let listId else { return Text(kind.title) }
-        return Text(verbatim: lists.lists.first { $0.id == listId }?.title ?? listTitle ?? "")
+        NoteFeedPage(kind: feed.kind, model: model)
     }
 }
