@@ -71,16 +71,25 @@ struct NoteEmbedCard<Fallback: View>: View {
     }
 }
 
-/// 탭 스택 밖에서 여는 새 글 — 공유 메뉴의 "블로그 글로 인용"(노트 주소가 첫 줄, 발행된 글에서 노트 카드가 된다)과
-/// 노트 작성기의 "긴 글로 쓰기"(쓰던 본문)가 쓴다.
+/// 전체 화면으로 여는 글 에디터의 대상 — 새 글(빈 본문·옮긴 노트 본문) 또는 이어 쓸 초안.
+struct PostCover: Identifiable {
+    let id = UUID()
+    var post: MyPost?
+    var markdown = ""
+    var isDraft = false
+}
+
+/// 탭 스택 밖에서 여는 글 에디터 — 공유 메뉴의 "블로그 글로 인용"(노트 주소가 첫 줄, 발행된 글에서 노트 카드가 된다),
+/// 노트 작성기의 "긴 글로 옮기기"(쓰던 본문), 글쓰기 고르기의 새 긴 글·이어 쓰기가 쓴다.
 struct PostComposerCover: View {
+    var post: MyPost?
     let initialMarkdown: String
     var isDraft = false
 
     var body: some View {
         NavigationStack {
             ComposeView(
-                post: nil, initialMarkdown: initialMarkdown.isEmpty ? nil : initialMarkdown,
+                post: post, initialMarkdown: initialMarkdown.isEmpty ? nil : initialMarkdown,
                 initialMarkdownIsDraft: isDraft, onSaved: {})
                 .navigationDestination(for: Route.self) { RouteView(route: $0) }
         }
