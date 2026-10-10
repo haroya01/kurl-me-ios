@@ -148,6 +148,12 @@ private struct PostDetailReader: View {
     @State private var didFocus = false
     @State private var flashCommentId: Int64?
     @State private var didFocusSpot = false
+    /// 딥링크로 맞춘 자리 — 엣지처럼 늦게 그려지는 위쪽 콘텐츠가 높이를 바꿔도 다시 맞춘다. 사용자가 스크롤·탭·작성을
+    /// 시작하거나, 엣지가 온 뒤 높이가 1초 잠잠하거나, 3초가 지나면 놓는다.
+    @State private var spotPin: SpotPin?
+    @State private var pinSettle: Task<Void, Never>?
+    @State private var edgesPending = false
+    @State private var focusCancelled = false
 
     /// 떠 있는 유리 독 — 글 끝(컴포저·다음 글 큐 영역)에 닿으면 materialize 로 물러나
     /// 입력을 가리지 않는다. 후퇴는 "스크롤 여유가 충분한 글"에만 — 한 화면 남짓 글은
@@ -299,6 +305,12 @@ private struct PostDetailReader: View {
         } action: { _, isScrollable in
             if isScrollable { scrollable = true }
         }
+        .onScrollGeometryChange(for: CGFloat.self) { $0.contentSize.height } action: { _, _ in
+            guard let spotPin else { return }
+            proxy.scrollTo(spotPin.id, anchor: spotPin.anchor)
+            settlePin(spotPin.token)
+        }
+        .simultaneousGesture(spotPin == nil ? nil : TapGesture().onEnded { spotPin = nil })
         .onReceive(
             NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)
         ) { _ in keyboardUp = true }
@@ -313,6 +325,9 @@ private struct PostDetailReader: View {
         }
         .onChange(of: replyTo) { _, target in
             if target != nil { composerActive = true }
+        }
+        .onChange(of: composerActive) { _, active in
+            if active { spotPin = nil }
         }
         // 목차·읽는 시간 재계산 — 오프라인 사본 → 온라인 갱신은 글 id 가 그대로라
         // (isOfflineCopy 만 바뀐다) 두 트리거를 함께 둔다.
@@ -394,6 +409,10 @@ private struct PostDetailReader: View {
             }
         }
         .onScrollPhaseChange { _, newPhase in
+            if newPhase == .interacting {
+                spotPin = nil
+                focusCancelled = true
+            }
             if newPhase != .idle, highlights?.card != nil {
                 withAnimation(reduceMotion ? nil : .smooth(duration: 0.2)) { highlights?.card = nil }
             }
@@ -582,6 +601,7 @@ private struct PostDetailReader: View {
         }
         // 발견 피드의 하이라이트 카드로 들어오면 — 그 구절이 든 블록으로 스크롤 + 잠깐 강조(1회).
         .task(id: loadedPostId) { await focusOnQuoteIfNeeded(proxy) }
+        .task(id: loadedPostId) { await prefetchEdgesForSpot() }
         .task(id: spotReadiness) { focusOnSpotIfNeeded(proxy) }
         // 미로그인 사용자가 하이라이트를 시도하면 — 댓글·팔로우와 같은 공용 로그인 시트.
         .loginPrompt(
@@ -979,9 +999,39 @@ private struct PostDetailReader: View {
         Task { await playFocus(spot, detail: detail, proxy: proxy) }
     }
 
+    /// 딥링크면 엣지를 글과 함께 받는다 — 내려가는 길에 엣지가 늦게 그려지면 그 아래 댓글이 밀린다.
+    private func prefetchEdgesForSpot() async {
+        guard focusSpot != nil, !embedded, case .loaded(let detail) = model.phase else { return }
+        edgesPending = true
+        _ = await PostEdgesPrefetch.shared.start(postId: detail.post.id, authorUsername: detail.author.username).value
+        edgesPending = false
+        if let spotPin { settlePin(spotPin.token) }
+    }
+
+    private func pin(_ id: AnyHashable, anchor: UnitPoint) {
+        let pin = SpotPin(id: id, anchor: anchor)
+        spotPin = pin
+        settlePin(pin.token)
+        Task {
+            try? await Task.sleep(for: .seconds(3))
+            if spotPin?.token == pin.token { spotPin = nil }
+        }
+    }
+
+    private func settlePin(_ token: UUID) {
+        pinSettle?.cancel()
+        guard !edgesPending else { return }
+        pinSettle = Task {
+            try? await Task.sleep(for: .seconds(1))
+            guard !Task.isCancelled, spotPin?.token == token else { return }
+            spotPin = nil
+        }
+    }
+
     private func playFocus(_ spot: PostSpot, detail: PublicPostDetail, proxy: ScrollViewProxy) async {
         switch spot {
         case .comment(let id):
+            guard !focusCancelled else { return }
             let visible = model.comments.contains {
                 guard $0.id == id, let author = $0.author else { return false }
                 return !BlockStore.shared.isBlocked(author.username)
@@ -993,9 +1043,11 @@ private struct PostDetailReader: View {
             }
             guard visible else { return }
             try? await Task.sleep(for: .milliseconds(reduceMotion ? 50 : 600))
+            guard !focusCancelled else { return }
             withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.35)) {
                 proxy.scrollTo(Self.commentAnchor(id), anchor: UnitPoint(x: 0, y: 0.3))
             }
+            pin(Self.commentAnchor(id), anchor: UnitPoint(x: 0, y: 0.3))
             withAnimation(reduceMotion ? nil : .easeOut(duration: 0.35)) { flashCommentId = id }
             try? await Task.sleep(for: .milliseconds(1300))
             withAnimation(reduceMotion ? nil : .easeIn(duration: 0.7)) { flashCommentId = nil }
@@ -1006,6 +1058,7 @@ private struct PostDetailReader: View {
                 withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.55)) {
                     proxy.scrollTo(order, anchor: UnitPoint(x: 0, y: 0.18))
                 }
+                pin(order, anchor: UnitPoint(x: 0, y: 0.18))
                 withAnimation(reduceMotion ? nil : .easeOut(duration: 0.35)) { flashBlockId = order }
                 try? await Task.sleep(for: .milliseconds(700))
             }
@@ -2084,6 +2137,12 @@ struct CommentRow: View {
             ToastCenter.shared.show(String(localized: "차단을 해제했어요"))
         }
     }
+}
+
+private struct SpotPin: Equatable {
+    let id: AnyHashable
+    let anchor: UnitPoint
+    let token = UUID()
 }
 
 /// 댓글 한 묶음(원댓글 + 답글) — 대화는 가벼운 행으로(박스 카드 ❌, 조용한 웹로그 표준).
