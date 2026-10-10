@@ -15,7 +15,7 @@ struct NotesTabView: View {
 
     var body: some View {
         NavigationStack(path: $choice.path) {
-            SwipePager(tabs: NoteFeedKind.tabs, selection: $choice.kind) { kind, active, warm in
+            SwipePager(tabs: NoteFeedKind.tabs, selection: $choice.kind, loadOnSelect: [.following]) { kind, active, warm in
                 NoteFeedPage(kind: kind, model: model(kind), active: active, warm: warm)
             }
             .safeAreaBar(edge: .top) {

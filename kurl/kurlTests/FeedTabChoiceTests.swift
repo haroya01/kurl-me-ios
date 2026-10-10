@@ -45,4 +45,17 @@ final class FeedTabChoiceTests: XCTestCase {
         XCTAssertEqual(FeedTab.initialTab(launched: "following", saved: nil, signedIn: false), .following)
         XCTAssertEqual(NoteFeedKind.initialTab(launched: "bookmarks", saved: "trending", signedIn: true), .trending)
     }
+
+    func testFollowingNextToLatestWaitsUntilItIsFirstChosen() {
+        let tabs = FeedTab.allCases
+        func warm(_ tab: FeedTab, selection: FeedTab, opened: Set<FeedTab> = []) -> Bool {
+            SwipePagerWarmth.warm(tab, tabs: tabs, selection: selection, loadOnSelect: [.following], opened: opened)
+        }
+        XCTAssertFalse(warm(.following, selection: .recent), "최신으로 열자마자 팔로잉까지 받으면 안 된다")
+        XCTAssertTrue(warm(.trending, selection: .recent))
+        XCTAssertTrue(warm(.following, selection: .following))
+        XCTAssertTrue(warm(.following, selection: .recent, opened: [.following]), "한 번 연 팔로잉은 옆에 있으면 계속 산다")
+        XCTAssertFalse(warm(.following, selection: .trending, opened: [.following]), "두 칸 떨어진 페이지는 그리지 않는다")
+        XCTAssertTrue(warm(.recent, selection: .following))
+    }
 }

@@ -108,7 +108,7 @@ struct FeedView: View {
         // 탭바가 커스텀(FloatingTabBar)이라 path 바인딩이 시스템 tabBarMinimizeBehavior 를 죽이던 함정과
         // 무관하다 — 탭 다시 누르기로 루트까지 되돌리려면 path 가 필요하다.
         NavigationStack(path: $choice.path) {
-            SwipePager(tabs: FeedTab.allCases, selection: $choice.tab) { tab, active, warm in
+            SwipePager(tabs: FeedTab.allCases, selection: $choice.tab, loadOnSelect: [.following]) { tab, active, warm in
                 FeedPage(source: tab.source, active: active, warm: warm, zoom: zoomNS)
             }
             .onChange(of: router.reselections) {
