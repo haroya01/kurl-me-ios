@@ -86,6 +86,8 @@ final class DiscoveryViewerTokenTests: XCTestCase {
         _ = try? await NoteAPI.quotingPosts(of: 3)
         _ = try? await NoteAPI.byAuthor("writer")
         _ = try? await NoteAPI.reposts("writer")
+        _ = try? await NoteAPI.profileReplies("writer")
+        _ = try? await NoteAPI.profileMedia("writer")
         _ = try? await NoteAPI.thread(id: 3)
         _ = try? await NoteAPI.everyone()
         _ = try? await NoteAPI.trending()
@@ -102,7 +104,7 @@ final class DiscoveryViewerTokenTests: XCTestCase {
         await callEveryViewerRead()
 
         let requests = CapturingProtocol.requests
-        XCTAssertEqual(requests.count, 19)
+        XCTAssertEqual(requests.count, 21)
         for request in requests {
             XCTAssertEqual(
                 request.value(forHTTPHeaderField: "Authorization"), "Bearer viewer-token",
@@ -115,7 +117,7 @@ final class DiscoveryViewerTokenTests: XCTestCase {
         await callEveryViewerRead()
 
         let requests = CapturingProtocol.requests
-        XCTAssertEqual(requests.count, 19)
+        XCTAssertEqual(requests.count, 21)
         for request in requests {
             XCTAssertNil(request.value(forHTTPHeaderField: "Authorization"), request.url?.absoluteString ?? "")
         }

@@ -226,6 +226,10 @@ enum MockBackend {
         MockNote(id: 9551, body: "@yuki_dev 이름이 경계라는 말, 오래 남을 것 같아요.",
                  createdAt: Date().addingTimeInterval(-1_200), likeCount: 0, authorId: 3,
                  username: "reader_kim", inReplyToId: 9501),
+        // 원래 글이 지워진 답글 — 프로필 답글 탭의 "원래 글을 볼 수 없어요" 줄 검증용.
+        MockNote(id: 9552, body: "지금은 사라진 노트에 남겼던 답글.",
+                 createdAt: Date().addingTimeInterval(-600), likeCount: 0, authorId: 3,
+                 username: "reader_kim", inReplyToId: 9599),
     ]
     private static var federationEnabled = true
     /// 다른 서버 계정 — 찾으면 생기고, 팔로우 요청 뒤 다시 읽으면 수락된다(마스토돈 기본 계정처럼).
@@ -1408,6 +1412,43 @@ enum MockBackend {
                 "items": (pinned + rest).map(noteView),
                 "page": 0, "hasNext": false,
             ])
+        }
+        if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "profiles",
+           parts[3] == "replies" {
+            let all = allNotes()
+            let items: [[String: Any]] = all
+                .filter { $0.username == parts[2] && $0.inReplyToId != nil }
+                .filter { reply in all.first { $0.id == reply.inReplyToId }?.username != parts[2] }
+                .sorted { $0.createdAt > $1.createdAt }
+                .map { reply in
+                    let parent = all.first { $0.id == reply.inReplyToId }
+                    return [
+                        "note": noteView(reply),
+                        "replyingTo": parent.map { p -> [String: Any] in [
+                            "id": p.id,
+                            "author": [
+                                "id": p.authorId, "username": p.username, "avatarUrl": NSNull(),
+                                "displayName": displayNames[p.username] ?? NSNull(),
+                            ],
+                            "excerpt": p.contentWarning == nil ? String(p.body.prefix(80)) : NSNull(),
+                            "contentWarning": p.contentWarning ?? NSNull(),
+                        ] } ?? NSNull(),
+                    ]
+                }
+            return json(["items": items, "page": 0, "hasNext": false])
+        }
+        if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "profiles",
+           parts[3] == "media" {
+            let items: [[String: Any]] = allNotes()
+                .filter { $0.username == parts[2] && !$0.media.isEmpty }
+                .sorted { $0.createdAt > $1.createdAt }
+                .map { note in [
+                    "noteId": note.id, "createdAt": iso(note.createdAt),
+                    "media": note.media[0], "mediaCount": note.media.count,
+                    "sensitive": note.sensitive || note.contentWarning != nil,
+                    "contentWarning": note.contentWarning ?? NSNull(),
+                ] }
+            return json(["items": items, "page": 0, "hasNext": false])
         }
         if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "profiles",
            parts[3] == "reposts" {
