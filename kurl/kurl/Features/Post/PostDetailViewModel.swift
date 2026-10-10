@@ -25,6 +25,7 @@ final class PostDetailViewModel {
     /// 공개 댓글 API 실패 — "댓글 0"으로 위장하지 않고 재시도 행을 세우기 위한 구분.
     private(set) var commentsFailed = false
     private(set) var commentsLoaded = false
+    var commentCount: Int { comments.filter { !$0.isDeleted }.count }
     private(set) var quotingNotes: [Note] = []
     private(set) var quotingTotal = 0
     /// 보는 사람이 좋아요한 댓글 id — 공개 목록과 별도의 인증 엔드포인트로 hydrate(#538 패턴).
@@ -193,13 +194,21 @@ final class PostDetailViewModel {
             guard gen == commentToggleGen[comment.id] else { return }
             if on { likedCommentIds.remove(comment.id) } else { likedCommentIds.insert(comment.id) }
             commentLikeDelta[comment.id, default: 0] += on ? -1 : 1
-            ToastCenter.shared.show(String(localized: "좋아요를 반영하지 못했습니다"))
+            ToastCenter.shared.show(String(localized: "좋아요를 반영하지 못했어요"))
         }
     }
 
     func deleteComment(_ comment: Comment) async throws {
         try await InteractionsAPI.deleteComment(commentId: comment.id)
-        comments.removeAll { $0.id == comment.id || $0.parentId == comment.id }
+        guard comment.parentId == nil, comments.contains(where: { $0.parentId == comment.id }),
+              let index = comments.firstIndex(where: { $0.id == comment.id }) else {
+            comments.removeAll { $0.id == comment.id }
+            return
+        }
+        comments[index] = Comment(
+            id: comment.id, parentId: nil, author: nil, body: nil,
+            createdAt: comment.createdAt, likeCount: nil, deleted: true)
+        if case .loaded(let detail) = phase { await loadComments(postId: detail.post.id) }
     }
 
     /// 댓글 작성 → 공개 목록 재로드(생성 응답 형태에 의존하지 않는다).

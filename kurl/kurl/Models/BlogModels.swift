@@ -410,12 +410,16 @@ struct TrendingTagSection: Decodable, Identifiable {
     var id: String { tag }
 }
 
+/// 지운 맨 위 댓글은 답글이 남아 있으면 자리(`deleted: true`, 작성자·본문 null)로 온다 — `tombstones=1` 옵트인.
 struct Comment: Decodable, Identifiable, Equatable {
     let id: Int64
     let parentId: Int64?
-    let author: Author
-    let body: String
+    let author: Author?
+    let body: String?
     let createdAt: Date?
     let likeCount: Int64?
     var mentions: [String]? = nil
+    var deleted: Bool? = nil
+
+    var isDeleted: Bool { deleted == true }
 }
