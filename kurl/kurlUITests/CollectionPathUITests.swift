@@ -237,7 +237,7 @@ final class CollectionPathUITests: XCTestCase {
     }
 
     /// 회귀 — 컬렉션 수정 시트의 '저장'이 실제로 눌린다(같은 유리 캡슐 사고 가족).
-    /// 순서 없는 컬렉션에 '순서대로 읽기'를 켜고 저장하면 그 자리에서 가이드 워크(번호)로 바뀐다.
+    /// 순서 없는 컬렉션에 '순서대로 읽기'를 켜고 저장하면 그 자리에서 순서 있는 컬렉션(순서 편집)이 된다.
     func testEditCollectionSaveIsTappable() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--screen", "collection-detail", "--collection", "101"]
@@ -245,15 +245,16 @@ final class CollectionPathUITests: XCTestCase {
 
         let manage = app.buttons["컬렉션 관리"]
         XCTAssertTrue(manage.waitForExistence(timeout: 15), "관리 메뉴가 없음")
-        XCTAssertFalse(anyElement(containing: "지금 여기").exists, "순서 없는 컬렉션에 진행 길잡이가 있음")
         manage.tap()
         let edit = app.buttons.matching(NSPredicate(format: "label CONTAINS '수정'")).firstMatch
         XCTAssertTrue(edit.waitForExistence(timeout: 5), "'수정' 메뉴가 없음")
+        XCTAssertFalse(app.buttons["순서 편집"].exists, "순서 없는 컬렉션에 순서 편집이 있음")
         edit.tap()
         let ordered = app.switches["collection.ordered"]
         XCTAssertTrue(ordered.waitForExistence(timeout: 6), "수정 시트에 '순서대로 읽기'가 없음")
         XCTAssertEqual(ordered.value as? String, "0")
         ordered.switches.firstMatch.tap()
+        XCTAssertEqual(ordered.value as? String, "1", "'순서대로 읽기'가 켜지지 않음")
         let save = app.buttons.matching(NSPredicate(format: "label CONTAINS '저장'")).firstMatch
         XCTAssertTrue(save.waitForExistence(timeout: 6), "'저장'이 없음")
         save.tap()
@@ -264,9 +265,10 @@ final class CollectionPathUITests: XCTestCase {
                     .matching(NSPredicate(format: "label CONTAINS '컬렉션 수정'")).firstMatch,
                 timeout: 8),
             "'저장' 탭 후 수정 시트가 안 닫힘(캡슐 히트테스트 회귀)")
+        manage.tap()
         XCTAssertTrue(
-            anyElement(containing: "지금 여기").waitForExistence(timeout: 6),
-            "순서대로 읽기를 켠 뒤 가이드 워크로 바뀌지 않음")
+            app.buttons["순서 편집"].waitForExistence(timeout: 6),
+            "순서대로 읽기를 켜고 저장한 뒤 순서 있는 컬렉션이 되지 않음")
         shot("11-edit-saved-ordered")
     }
 
