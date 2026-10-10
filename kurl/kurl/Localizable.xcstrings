@@ -6246,6 +6246,62 @@
         }
       }
     },
+    "아직 단 답글이 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No replies yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी तक कोई जवाब नहीं दिया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだ返信していません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có trả lời nào"
+          }
+        }
+      }
+    },
+    "아직 올린 사진이 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No photos yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी तक कोई फ़ोटो नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだ写真がありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có ảnh nào"
+          }
+        }
+      }
+    },
     "원래 글을 볼 수 없어요": {
       "localizations": {
         "en": {
@@ -6270,146 +6326,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Không thể xem bài gốc"
-          }
-        }
-      }
-    },
-    "다른 사람의 노트에 단 답글이 여기에 모여요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Your replies to other people's notes collect here."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "दूसरों के नोट्स पर आपके जवाब यहाँ जमा होते हैं।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ほかの人のノートへの返信がここに集まります。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Các trả lời của bạn cho ghi chú của người khác sẽ hiện ở đây."
-          }
-        }
-      }
-    },
-    "이 작가가 다른 사람에게 단 답글이 여기에 모여요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This writer's replies to others collect here."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "इस लेखक के दूसरों को दिए जवाब यहाँ जमा होते हैं।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "この作家がほかの人に送った返信がここに集まります。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Các trả lời của tác giả này cho người khác sẽ hiện ở đây."
-          }
-        }
-      }
-    },
-    "아직 미디어가 없어요": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No media yet"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "अभी कोई मीडिया नहीं"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "まだメディアがありません"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Chưa có phương tiện nào"
-          }
-        }
-      }
-    },
-    "사진을 붙인 노트가 여기에 모여요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notes with photos collect here."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "फ़ोटो वाले नोट्स यहाँ जमा होते हैं।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "写真を添えたノートがここに集まります。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Các ghi chú có ảnh sẽ hiện ở đây."
-          }
-        }
-      }
-    },
-    "이 작가가 노트에 붙인 사진이 여기에 모여요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Photos this writer adds to notes collect here."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "इस लेखक के नोट्स की फ़ोटो यहाँ जमा होती हैं।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "この作家がノートに添えた写真がここに集まります。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ảnh tác giả này đính kèm trong ghi chú sẽ hiện ở đây."
           }
         }
       }

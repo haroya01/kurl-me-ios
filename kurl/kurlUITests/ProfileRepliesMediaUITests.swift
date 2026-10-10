@@ -19,9 +19,12 @@ final class ProfileRepliesMediaUITests: XCTestCase {
         add(s)
     }
 
-    private func launch(author: String) -> XCUIApplication {
+    private func launch(author: String, language: String? = nil) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--author", author]
+        if let language {
+            app.launchArguments += ["-AppleLanguages", "(\(language))", "-AppleLocale", language]
+        }
         app.launch()
         return app
     }
@@ -59,6 +62,28 @@ final class ProfileRepliesMediaUITests: XCTestCase {
             text(app, containing: "이름이 곧 경계라는 걸 다시 배운다").waitForExistence(timeout: 10),
             "원래 글 줄을 눌러 그 노트로 가지 못함")
         shot("2-parent-note")
+    }
+
+    func testTheTabStripKeepsTheChosenTabInViewWhenItOverflows() throws {
+        let app = launch(author: "reader_kim", language: "ja")
+        let replies = app.buttons["author.tab.replies"]
+        XCTAssertTrue(replies.waitForExistence(timeout: 15), "프로필에 답글 탭이 없음")
+        replies.tap()
+        XCTAssertTrue(app.buttons["profile.reply.context.9501"].waitForExistence(timeout: 5))
+        shot("ja-replies")
+        app.buttons["author.tab.media"].tap()
+        shot("ja-media")
+
+        let last = app.buttons["author.tab.collections"]
+        let window = app.windows.firstMatch.frame
+        for _ in 0..<4 where !last.isSelected {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.85, dy: 0.75))
+                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.15, dy: 0.75)))
+        }
+        XCTAssertTrue(last.isSelected, "옆으로 밀어 마지막 탭까지 가지 못함")
+        XCTAssertTrue(last.isHittable, "고른 탭이 탭 줄 밖에 남음")
+        XCTAssertLessThanOrEqual(last.frame.maxX, window.maxX)
+        shot("ja-last-tab")
     }
 
     func testMediaGridHidesSensitivePhotosAndOpensTheNote() throws {

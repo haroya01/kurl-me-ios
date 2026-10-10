@@ -747,6 +747,7 @@ struct ContentTabBar<Tab: Hashable>: View {
     let identifier: (Tab) -> String
     var background: Color = Palette.pageBg
     @Namespace private var underline
+    @State private var hidden = TabStripOverflow()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -761,7 +762,13 @@ struct ContentTabBar<Tab: Hashable>: View {
                     }
                 }
                 .scrollIndicators(.hidden)
-                .onAppear { proxy.scrollTo(selection, anchor: .center) }
+                .onScrollGeometryChange(for: TabStripOverflow.self) { geometry in
+                    TabStripOverflow(geometry)
+                } action: { _, overflow in
+                    hidden = overflow
+                }
+                .mask { TabStripFade(overflow: hidden) }
+                .task { proxy.scrollTo(selection, anchor: .center) }
                 .onChange(of: selection) { _, tab in
                     withAnimation(reduceMotion ? nil : .smooth(duration: 0.25)) {
                         proxy.scrollTo(tab, anchor: .center)
@@ -802,6 +809,35 @@ struct ContentTabBar<Tab: Hashable>: View {
             .id(tab)
             .accessibilityAddTraits(selection == tab ? .isSelected : [])
             .accessibilityIdentifier(identifier(tab))
+        }
+    }
+}
+
+struct TabStripOverflow: Equatable {
+    var leading = false
+    var trailing = false
+
+    init() {}
+
+    init(_ geometry: ScrollGeometry) {
+        let start = -geometry.contentInsets.leading
+        let end = geometry.contentSize.width + geometry.contentInsets.trailing - geometry.containerSize.width
+        leading = geometry.contentOffset.x > start + 1
+        trailing = geometry.contentOffset.x < end - 1
+    }
+}
+
+private struct TabStripFade: View {
+    let overflow: TabStripOverflow
+    private let width: CGFloat = 28
+
+    var body: some View {
+        HStack(spacing: 0) {
+            LinearGradient(colors: [.clear, .black], startPoint: .leading, endPoint: .trailing)
+                .frame(width: overflow.leading ? width : 0)
+            Rectangle()
+            LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing)
+                .frame(width: overflow.trailing ? width : 0)
         }
     }
 }

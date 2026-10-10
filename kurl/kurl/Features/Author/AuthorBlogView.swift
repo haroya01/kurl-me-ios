@@ -451,13 +451,8 @@ struct AuthorBlogView: View {
                 NoteFilterStore.shared.verdict(for: $0.note, in: .account) != .hide
             }
             if shown.isEmpty {
-                FeedPlaceholder(
-                    title: "아직 답글이 없어요",
-                    message: isOwnAuthor
-                        ? "다른 사람의 노트에 단 답글이 여기에 모여요."
-                        : "이 작가가 다른 사람에게 단 답글이 여기에 모여요."
-                )
-                .padding(.top, 48)
+                FeedPlaceholder(title: "아직 단 답글이 없어요")
+                    .padding(.top, 48)
             } else {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(shown.enumerated()), id: \.element.id) { index, item in
@@ -491,13 +486,8 @@ struct AuthorBlogView: View {
                 .padding(.top, 48)
         case .loaded:
             if media.items.isEmpty {
-                FeedPlaceholder(
-                    title: "아직 미디어가 없어요",
-                    message: isOwnAuthor
-                        ? "사진을 붙인 노트가 여기에 모여요."
-                        : "이 작가가 노트에 붙인 사진이 여기에 모여요."
-                )
-                .padding(.top, 48)
+                FeedPlaceholder(title: "아직 올린 사진이 없어요")
+                    .padding(.top, 48)
             } else {
                 LazyVGrid(
                     columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 3),
