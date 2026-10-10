@@ -196,11 +196,13 @@ struct FollowCountsLink: View {
                 countLabel(String(localized: "팔로워"), followers)
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("follow.followers")
             Text("·").foregroundStyle(Palette.faint)
             NavigationLink(value: Route.following(username: username)) {
                 countLabel(String(localized: "팔로잉"), followingCount)
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("follow.following")
             if failed, !hidden {
                 Button { Task { await load() } } label: {
                     Image(systemName: "arrow.clockwise")
@@ -250,6 +252,7 @@ struct FollowCountsLink: View {
         HStack(spacing: 4) {
             // 숨김이면 숫자 없이 라벨만(목록 링크는 살아 있다). 미로딩은 "—" 플레이스홀더.
             Text(hidden ? label : (count.map { "\(label) \($0)" } ?? "\(label) —"))
+                .lineLimit(1)
                 .contentTransition(.numericText())
             Image(systemName: "chevron.right")
                 .font(.system(size: 9, weight: .semibold))

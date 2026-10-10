@@ -209,7 +209,29 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ · Shared by %lld people this week"
+            "value": "%1$@ · Shared by %#@people@ this week"
+          },
+          "substitutions": {
+            "people": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg person"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg people"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -238,7 +260,29 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ · %lld posts"
+            "value": "%1$@ · %#@posts@"
+          },
+          "substitutions": {
+            "posts": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg post"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg posts"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -2161,9 +2205,21 @@
     "%lld명": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld people"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld person"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld people"
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -2189,9 +2245,21 @@
     "%lld명 참여": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld people voted"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld person voted"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld people voted"
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -2219,7 +2287,49 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%2$lld notifications from %1$lld people"
+            "value": "%#@notifications@ from %#@people@"
+          },
+          "substitutions": {
+            "notifications": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg notification"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg notifications"
+                    }
+                  }
+                }
+              }
+            },
+            "people": {
+              "argNum": 1,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg person"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg people"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -2245,9 +2355,21 @@
     "%lld명이 이번 주에 공유했어요": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Shared by %lld people this week"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Shared by %lld person this week"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Shared by %lld people this week"
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -2273,9 +2395,21 @@
     "%lld명이 이번 주에 썼어요": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld people used it this week"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld person used it this week"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld people used it this week"
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -2481,9 +2615,21 @@
     "%lld개 컬렉션에 추가됩니다.": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Adding to %lld collections."
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Adding to %lld collection."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Adding to %lld collections."
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -2683,9 +2829,21 @@
     "%lld줄을 가져오는 중이에요": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Importing %lld lines"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Importing %lld line"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Importing %lld lines"
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -3264,7 +3422,29 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "@%1$@ · %2$lld posts"
+            "value": "@%1$@ · %#@posts@"
+          },
+          "substitutions": {
+            "posts": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg post"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg posts"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -4057,7 +4237,29 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "In ‘%1$@’ and %2$lld more collections"
+            "value": "In ‘%1$@’ and %#@more@"
+          },
+          "substitutions": {
+            "more": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg more collection"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg more collections"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -5996,9 +6198,21 @@
     "구독자 %lld": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld subscribers"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld subscriber"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld subscribers"
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -7716,6 +7930,34 @@
         }
       }
     },
+    "길을 만들지 못했습니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't create the path"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "राह नहीं बनाई जा सकी"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "道を作成できませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể tạo lối đi"
+          }
+        }
+      }
+    },
     "꺼짐": {
       "localizations": {
         "en": {
@@ -8619,9 +8861,21 @@
     "내가 팔로우하는\n%lld명이 팔로우": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Followed by %lld people you follow"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Followed by %lld person you follow"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Followed by %lld people you follow"
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -9288,6 +9542,34 @@
         }
       }
     },
+    "노트가 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No notes"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कोई नोट नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートはありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không có ghi chú"
+          }
+        }
+      }
+    },
     "노트를 보려면 로그인하세요": {
       "localizations": {
         "en": {
@@ -9592,6 +9874,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ai cũng xem được, nhưng không hiện ở Mới nhất, Thịnh hành và thẻ"
+          }
+        }
+      }
+    },
+    "누르면 맨 위로, 길게 누르면 피드 고르기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap to go to the top, touch and hold to choose a feed"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ऊपर जाने के लिए टैप करें, फ़ीड चुनने के लिए दबाकर रखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タップで先頭へ、長押しでフィードを選ぶ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chạm để lên đầu trang, chạm và giữ để chọn bảng tin"
           }
         }
       }
@@ -12315,9 +12625,21 @@
     "사진 %lld장": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld photos"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld photo"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld photos"
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -13239,9 +13561,21 @@
     "알림 %lld개": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld notifications"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld notification"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld notifications"
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -16121,9 +16455,21 @@
     "댓글 %lld 펼치기": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show %lld comments"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Show %lld comment"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Show %lld comments"
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -16708,6 +17054,34 @@
         }
       }
     },
+    "두 번 탭하면 소리와 함께 재생합니다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Double-tap to play with sound"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आवाज़ के साथ चलाने के लिए दो बार टैप करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ダブルタップで音声付きで再生します"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chạm hai lần để phát có tiếng"
+          }
+        }
+      }
+    },
     "두 번 탭하면 크게 봅니다": {
       "localizations": {
         "en": {
@@ -16789,6 +17163,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Khám phá"
+          }
+        }
+      }
+    },
+    "뒤로": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "वापस"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "戻る"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quay lại"
           }
         }
       }
@@ -17554,9 +17956,21 @@
       "extractionState": "stale",
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld link clicks"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld link click"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld link clicks"
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -18762,6 +19176,34 @@
         }
       }
     },
+    "소리 없이 재생 중": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Playing without sound"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बिना आवाज़ के चल रहा है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "消音で再生中"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đang phát không có tiếng"
+          }
+        }
+      }
+    },
     "이 태그를 구독하려면 로그인하세요": {
       "localizations": {
         "en": {
@@ -18814,6 +19256,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đăng nhập để ẩn thẻ này"
+          }
+        }
+      }
+    },
+    "이 태그의 노트가 아직 없어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No notes with this tag yet."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस टैग के साथ अभी कोई नोट नहीं है।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このタグのノートはまだありません。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có ghi chú nào với thẻ này."
           }
         }
       }
@@ -19101,9 +19571,21 @@
     "인용 %lld": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld quotes"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld quote"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld quotes"
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -24120,7 +24602,29 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Series %@, %lld posts"
+            "value": "Series %1$@, %#@posts@"
+          },
+          "substitutions": {
+            "posts": {
+              "argNum": 2,
+              "formatSpecifier": "lld",
+              "variations": {
+                "plural": {
+                  "one": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg post"
+                    }
+                  },
+                  "other": {
+                    "stringUnit": {
+                      "state": "translated",
+                      "value": "%arg posts"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -24348,9 +24852,21 @@
     "시리즈 전체 보기 (%lld편)": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "See the whole series (%lld posts)"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "See the whole series (%lld post)"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "See the whole series (%lld posts)"
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -27890,9 +28406,21 @@
     "이미지 %lld장을 올리지 못했습니다": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Couldn't upload %lld images"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Couldn't upload %lld image"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Couldn't upload %lld images"
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -28142,9 +28670,21 @@
     "이어 읽기 — %lld편": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Keep reading — %lld parts"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Keep reading — %lld part"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Keep reading — %lld parts"
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -30681,9 +31221,21 @@
       "extractionState": "stale",
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld views"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld view"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld views"
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -30766,9 +31318,21 @@
       "extractionState": "stale",
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld likes"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld like"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld likes"
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -32092,9 +32656,21 @@
     "최근 %lld일": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Last %lld days"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Last %lld day"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Last %lld days"
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -33804,9 +34380,21 @@
       "extractionState": "stale",
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "+%lld follows"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld follow"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld follows"
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -34029,9 +34617,21 @@
     "팔로워 %lld": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld followers"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld follower"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld followers"
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -37461,9 +38061,21 @@
     "나 외 %lld명이 하이라이트했어요": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "You and %lld others highlighted this"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "You and %lld other highlighted this"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "You and %lld others highlighted this"
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -37517,9 +38129,21 @@
     "%lld명이 하이라이트했어요": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld people highlighted this"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld person highlighted this"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld people highlighted this"
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -38658,6 +39282,202 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chọn rồi nhấn Bỏ phiếu"
+          }
+        }
+      }
+    },
+    "번역 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translate"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अनुवाद देखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻訳する"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xem bản dịch"
+          }
+        }
+      }
+    },
+    "번역하는 중…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translating…"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अनुवाद हो रहा है…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻訳中…"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đang dịch…"
+          }
+        }
+      }
+    },
+    "%@에서 번역됨": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translated from %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ से अनुवादित"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@から翻訳"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã dịch từ %@"
+          }
+        }
+      }
+    },
+    "원문 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show original"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मूल देखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原文を表示"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xem bản gốc"
+          }
+        }
+      }
+    },
+    "%@로 쓴 글이에요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Written in %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ में लिखी पोस्ट"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@で書かれた記事です"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bài viết bằng %@"
+          }
+        }
+      }
+    },
+    "번역문을 보여 줘요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Showing the translation"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अनुवाद दिखाया जा रहा है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻訳を表示しています"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đang hiển thị bản dịch"
+          }
+        }
+      }
+    },
+    "원문을 보여 줘요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Showing the original"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मूल दिखाया जा रहा है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原文を表示しています"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đang hiển thị bản gốc"
           }
         }
       }
