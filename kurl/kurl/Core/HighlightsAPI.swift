@@ -63,6 +63,14 @@ enum HighlightsAPI {
     static func deleteReply(id: Int64) async throws {
         try await client.deleteVoid("/highlight-replies/\(id)", authenticated: true)
     }
+
+    /// 인증 — 답글 좋아요. 두 번 눌러도 한 번으로 센다.
+    static func setReplyLike(id: Int64, on: Bool) async throws -> HighlightReplyLikeStatus {
+        struct Empty: Encodable {}
+        return on
+            ? try await client.post("/highlight-replies/\(id)/like", body: Empty(), authenticated: true)
+            : try await client.delete("/highlight-replies/\(id)/like", authenticated: true)
+    }
 }
 
 enum HighlightValidationError: LocalizedError {
@@ -124,6 +132,14 @@ struct HighlightReplyView: Decodable, Identifiable, Hashable {
     let body: String
     let createdAt: Date?
     var mentions: [String]? = nil
+    var likeCount: Int64? = nil
+    /// 보는 사람이 좋아요했는지 — 로그아웃이면 늘 false.
+    var liked: Bool? = nil
+}
+
+struct HighlightReplyLikeStatus: Decodable {
+    let likeCount: Int64
+    let liked: Bool
 }
 
 /// 내 서재의 하이라이트 — 원문(작가·슬러그·제목)으로 돌아가는 참조를 함께 싣는다.

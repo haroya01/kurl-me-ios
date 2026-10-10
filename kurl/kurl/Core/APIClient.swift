@@ -115,6 +115,16 @@ struct APIClient {
         _ = try await rawData(request)
     }
 
+    func postWithQuery<T: Decodable>(
+        _ path: String,
+        query: [String: String?],
+        as type: T.Type = T.self,
+        authenticated: Bool = false
+    ) async throws -> T {
+        let request = try makeRequest(path: path, query: query, method: "POST")
+        return try decode(try await perform(request, authenticated: authenticated))
+    }
+
     /// JSON 바디 POST + 디코딩 응답.
     func post<B: Encodable, T: Decodable>(
         _ path: String,

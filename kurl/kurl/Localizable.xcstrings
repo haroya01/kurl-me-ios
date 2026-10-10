@@ -843,6 +843,34 @@
         }
       }
     },
+    "%@, 사진 %lld장": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, %lld photos"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, %lld फ़ोटो"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@、写真%lld枚"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, %lld ảnh"
+          }
+        }
+      }
+    },
     "%@, 읽음": {
       "localizations": {
         "en": {
@@ -1041,30 +1069,30 @@
         }
       }
     },
-    "%@님에게 답글": {
+    "%@님 프로필": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Replying to %@"
+            "value": "%@’s profile"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ को जवाब"
+            "value": "%@ की प्रोफ़ाइल"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@さんへの返信"
+            "value": "%@さんのプロフィール"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Trả lời %@"
+            "value": "Hồ sơ của %@"
           }
         }
       }
@@ -1177,34 +1205,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đã hiện lại bài đăng lại của %@"
-          }
-        }
-      }
-    },
-    "%@님의 블로그": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@’s blog"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ का ब्लॉग"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@さんのブログ"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Blog của %@"
           }
         }
       }
@@ -3467,6 +3467,62 @@
         }
       }
     },
+    "@%@에게 답글": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Replying to @%@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "@%@ को जवाब"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "@%@さんへの返信"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trả lời @%@"
+          }
+        }
+      }
+    },
+    "@%@ 님에게 답글": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Replying to @%@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "@%@ को जवाब"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "@%@さんへの返信"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trả lời @%@"
+          }
+        }
+      }
+    },
     "@?": {
       "localizations": {
         "en": {
@@ -4535,6 +4591,34 @@
         }
       }
     },
+    "개인 멘션을 보려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to see private mentions"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "निजी उल्लेख देखने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "非公開メンションを見るにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để xem nhắc đến riêng tư"
+          }
+        }
+      }
+    },
     "개인 멘션이 없어요": {
       "localizations": {
         "en": {
@@ -5271,62 +5355,6 @@
         }
       }
     },
-    "계정이 일시 정지된 동안에는 글을 공개하거나 공개된 글을 고칠 수 없어요. 초안은 계속 쓸 수 있어요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "While your account is suspended, you can't make posts public or edit public posts. You can keep writing drafts."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "खाता निलंबित रहने तक आप पोस्ट सार्वजनिक नहीं कर सकते और न ही सार्वजनिक पोस्ट संपादित कर सकते हैं। ड्राफ़्ट लिखना जारी रख सकते हैं।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アカウントの一時停止中は、記事を公開したり公開中の記事を編集したりできません。下書きは引き続き書けます。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Trong thời gian tài khoản bị tạm khóa, bạn không thể công khai bài viết hoặc sửa bài đang công khai. Bạn vẫn có thể viết bản nháp."
-          }
-        }
-      }
-    },
-    "계정이 일시 정지된 동안에는 글을 쓰거나 반응할 수 없어요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Your account is suspended, so you can't post or react for now."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आपका खाता निलंबित है, इसलिए अभी आप पोस्ट या प्रतिक्रिया नहीं कर सकते।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アカウントが一時停止中のため、投稿やリアクションはできません。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tài khoản của bạn đang bị tạm khóa nên hiện không thể đăng bài hay tương tác."
-          }
-        }
-      }
-    },
     "고유 방문": {
       "localizations": {
         "en": {
@@ -5547,34 +5575,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đã bỏ ghim"
-          }
-        }
-      }
-    },
-    "고쳐서 저장할 수는 있지만 다시 공개할 수는 없어요. 이의가 있으면 이용약관의 문의처로 연락해 주세요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "You can still edit and save it, but you can't make it public again. If you disagree, contact us at the address in the Terms."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आप इसे संपादित करके सहेज सकते हैं, लेकिन फिर से सार्वजनिक नहीं कर सकते। असहमत हों तो शर्तों में दिए पते पर हमसे संपर्क करें।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "編集して保存はできますが、再公開はできません。異議がある場合は利用規約のお問い合わせ先までご連絡ください。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bạn vẫn có thể chỉnh sửa và lưu, nhưng không thể công khai lại. Nếu không đồng ý, hãy liên hệ qua địa chỉ trong Điều khoản."
           }
         }
       }
@@ -6404,34 +6404,6 @@
         }
       }
     },
-    "구독한 태그를 보려면 로그인하세요": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign in to see your subscribed tags"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "सब्सक्राइब किए गए टैग देखने के लिए साइन इन करें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "購読中のタグを見るにはログインしてください"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Đăng nhập để xem các thẻ đã đăng ký"
-          }
-        }
-      }
-    },
     "구독한 태그가 없습니다": {
       "localizations": {
         "en": {
@@ -6460,170 +6432,282 @@
         }
       }
     },
-    "내려짐": {
+    "다른 서버의 노트를 보려면 로그인하세요": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Taken down"
+            "value": "Sign in to see notes from other servers"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "हटाई गई"
+            "value": "दूसरे सर्वर के नोट्स देखने के लिए साइन इन करें"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "運営により非公開"
+            "value": "ほかのサーバーのノートを見るにはログインしてください"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Đã bị gỡ"
+            "value": "Đăng nhập để xem ghi chú từ máy chủ khác"
           }
         }
       }
     },
-    "운영 정책으로 내려진 글이라 다시 공개할 수 없어요.": {
+    "북마크한 노트를 보려면 로그인하세요": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This post was taken down under our content policy, so it can't be made public again."
+            "value": "Sign in to see your bookmarked notes"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "यह पोस्ट सामग्री नीति के तहत हटाई गई है, इसलिए फिर से सार्वजनिक नहीं की जा सकती।"
+            "value": "बुकमार्क किए गए नोट्स देखने के लिए साइन इन करें"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "運営ポリシーにより非公開にされた記事のため、再公開できません。"
+            "value": "ブックマークしたノートを見るにはログインしてください"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bài viết đã bị gỡ theo chính sách nội dung nên không thể công khai lại."
+            "value": "Đăng nhập để xem ghi chú đã đánh dấu"
           }
         }
       }
     },
-    "운영 정책으로 내려진 글이에요": {
+    "미디어": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This post was taken down under our content policy"
+            "value": "Media"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "यह पोस्ट हमारी सामग्री नीति के तहत हटाई गई है"
+            "value": "मीडिया"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "運営ポリシーにより非公開にされた記事です"
+            "value": "メディア"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bài viết này đã bị gỡ theo chính sách nội dung"
+            "value": "Phương tiện"
           }
         }
       }
     },
-    "이용약관 보기": {
+    "아직 단 답글이 없어요": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Read the Terms"
+            "value": "No replies yet"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "शर्तें पढ़ें"
+            "value": "अभी तक कोई जवाब नहीं दिया"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "利用規約を見る"
+            "value": "まだ返信していません"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Xem Điều khoản"
+            "value": "Chưa có trả lời nào"
           }
         }
       }
     },
-    "이용이 제한된 계정이라 글을 공개하거나 공개된 글을 고칠 수 없어요.": {
+    "아직 올린 사진이 없어요": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your account is restricted, so you can't make posts public or edit public posts."
+            "value": "No photos yet"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "आपका खाता प्रतिबंधित है, इसलिए आप पोस्ट सार्वजनिक नहीं कर सकते और न ही सार्वजनिक पोस्ट संपादित कर सकते हैं।"
+            "value": "अभी तक कोई फ़ोटो नहीं"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "利用が制限されたアカウントのため、記事を公開したり公開中の記事を編集したりできません。"
+            "value": "まだ写真がありません"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tài khoản của bạn bị hạn chế nên không thể công khai bài viết hoặc sửa bài đang công khai."
+            "value": "Chưa có ảnh nào"
           }
         }
       }
     },
-    "이용이 제한된 계정이라 글을 쓰거나 반응할 수 없어요.": {
+    "원래 글을 볼 수 없어요": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Your account is restricted, so you can't post or react."
+            "value": "The original post isn't available"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "आपका खाता प्रतिबंधित है, इसलिए आप पोस्ट या प्रतिक्रिया नहीं कर सकते।"
+            "value": "मूल पोस्ट उपलब्ध नहीं है"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "利用が制限されたアカウントのため、投稿やリアクションはできません。"
+            "value": "元の投稿は表示できません"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tài khoản của bạn bị hạn chế nên không thể đăng bài hay tương tác."
+            "value": "Không thể xem bài gốc"
+          }
+        }
+      }
+    },
+    "민감한 사진 %lld장": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld sensitive photos"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld संवेदनशील फ़ोटो"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "センシティブな写真%lld枚"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld ảnh nhạy cảm"
+          }
+        }
+      }
+    },
+    "두 글자 이상 입력하면 사람을 찾아요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type at least two characters to find people"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लोगों को खोजने के लिए कम से कम दो अक्षर लिखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2文字以上入力すると人を探せます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nhập ít nhất hai ký tự để tìm người"
+          }
+        }
+      }
+    },
+    "아직 멘션이나 답글이 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No mentions or replies yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी तक कोई उल्लेख या जवाब नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メンションや返信はまだありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có lượt nhắc đến hay trả lời nào"
+          }
+        }
+      }
+    },
+    "알림 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show notifications"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सूचनाएँ दिखाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通知の表示"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hiển thị thông báo"
           }
         }
       }
@@ -8970,34 +9054,6 @@
         }
       }
     },
-    "내 컬렉션": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "My Collections"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "मेरे कलेक्शन"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "マイコレクション"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bộ sưu tập của tôi"
-          }
-        }
-      }
-    },
     "내 하이라이트": {
       "localizations": {
         "en": {
@@ -10522,6 +10578,34 @@
         }
       }
     },
+    "답글 메뉴": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reply menu"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जवाब मेनू"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返信メニュー"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menu trả lời"
+          }
+        }
+      }
+    },
     "답글을 달 노트가 지워졌어요": {
       "localizations": {
         "en": {
@@ -10686,6 +10770,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Không thể đổi thông báo cuộc trò chuyện"
+          }
+        }
+      }
+    },
+    "댓글 메뉴": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comment menu"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "टिप्पणी मेनू"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コメントメニュー"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menu bình luận"
           }
         }
       }
@@ -12914,6 +13026,34 @@
         }
       }
     },
+    "삭제된 댓글이에요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This comment was deleted"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह टिप्पणी हटा दी गई है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除されたコメントです"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bình luận này đã bị xóa"
+          }
+        }
+      }
+    },
     "새 계정": {
       "localizations": {
         "en": {
@@ -14830,6 +14970,34 @@
         }
       }
     },
+    "이 답글을": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "this reply"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस जवाब को"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この返信を"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Câu trả lời này"
+          }
+        }
+      }
+    },
     "이 대화의 알림을 껐어요": {
       "localizations": {
         "en": {
@@ -16716,34 +16884,6 @@
         }
       }
     },
-    "댓글 더 보기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "See more comments"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "और टिप्पणियाँ देखें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コメントをもっと見る"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Xem thêm bình luận"
-          }
-        }
-      }
-    },
     "댓글 보내기": {
       "localizations": {
         "en": {
@@ -16796,34 +16936,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Xóa bình luận"
-          }
-        }
-      }
-    },
-    "댓글 좋아요": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Like comment"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "टिप्पणी पसंद करें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コメントにいいね"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Thích bình luận"
           }
         }
       }
@@ -20336,6 +20448,34 @@
         }
       }
     },
+    "좋아요를 반영하지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t update the like"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पसंद लागू नहीं हो सकी"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "いいねを反映できませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể cập nhật lượt thích"
+          }
+        }
+      }
+    },
     "주고받기를 모두 끊고, 그 서버 노트를 어디서도 보이지 않게 해요.": {
       "localizations": {
         "en": {
@@ -21956,6 +22096,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chọn bảng tin"
+          }
+        }
+      }
+    },
+    "피드 둘러보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Browse the feed"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ीड देखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フィードを見る"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xem bảng tin"
           }
         }
       }
@@ -31539,7 +31707,6 @@
       }
     },
     "좋아요 %lld": {
-      "extractionState": "stale",
       "localizations": {
         "en": {
           "variations": {
@@ -31580,7 +31747,6 @@
       }
     },
     "좋아요 취소": {
-      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -31604,34 +31770,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bỏ thích"
-          }
-        }
-      }
-    },
-    "좋아요를 반영하지 못했습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Couldn’t update the like"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "पसंद लागू नहीं हो सकी"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "いいねを反映できませんでした"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Không thể cập nhật lượt thích"
           }
         }
       }
@@ -39702,6 +39840,258 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đang hiển thị bản gốc"
+          }
+        }
+      }
+    },
+    "계정이 일시 정지된 동안에는 글을 공개하거나 공개된 글을 고칠 수 없어요. 초안은 계속 쓸 수 있어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "While your account is suspended, you can't make posts public or edit public posts. You can keep writing drafts."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "खाता निलंबित रहने तक आप पोस्ट सार्वजनिक नहीं कर सकते और न ही सार्वजनिक पोस्ट संपादित कर सकते हैं। ड्राफ़्ट लिखना जारी रख सकते हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アカウントの一時停止中は、記事を公開したり公開中の記事を編集したりできません。下書きは引き続き書けます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trong thời gian tài khoản bị tạm khóa, bạn không thể công khai bài viết hoặc sửa bài đang công khai. Bạn vẫn có thể viết bản nháp."
+          }
+        }
+      }
+    },
+    "계정이 일시 정지된 동안에는 글을 쓰거나 반응할 수 없어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your account is suspended, so you can't post or react for now."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपका खाता निलंबित है, इसलिए अभी आप पोस्ट या प्रतिक्रिया नहीं कर सकते।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アカウントが一時停止中のため、投稿やリアクションはできません。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tài khoản của bạn đang bị tạm khóa nên hiện không thể đăng bài hay tương tác."
+          }
+        }
+      }
+    },
+    "고쳐서 저장할 수는 있지만 다시 공개할 수는 없어요. 이의가 있으면 이용약관의 문의처로 연락해 주세요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can still edit and save it, but you can't make it public again. If you disagree, contact us at the address in the Terms."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आप इसे संपादित करके सहेज सकते हैं, लेकिन फिर से सार्वजनिक नहीं कर सकते। असहमत हों तो शर्तों में दिए पते पर हमसे संपर्क करें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "編集して保存はできますが、再公開はできません。異議がある場合は利用規約のお問い合わせ先までご連絡ください。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn vẫn có thể chỉnh sửa và lưu, nhưng không thể công khai lại. Nếu không đồng ý, hãy liên hệ qua địa chỉ trong Điều khoản."
+          }
+        }
+      }
+    },
+    "내려짐": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Taken down"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "हटाई गई"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "運営により非公開"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã bị gỡ"
+          }
+        }
+      }
+    },
+    "운영 정책으로 내려진 글이라 다시 공개할 수 없어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This post was taken down under our content policy, so it can't be made public again."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह पोस्ट सामग्री नीति के तहत हटाई गई है, इसलिए फिर से सार्वजनिक नहीं की जा सकती।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "運営ポリシーにより非公開にされた記事のため、再公開できません。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bài viết đã bị gỡ theo chính sách nội dung nên không thể công khai lại."
+          }
+        }
+      }
+    },
+    "운영 정책으로 내려진 글이에요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This post was taken down under our content policy"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह पोस्ट हमारी सामग्री नीति के तहत हटाई गई है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "運営ポリシーにより非公開にされた記事です"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bài viết này đã bị gỡ theo chính sách nội dung"
+          }
+        }
+      }
+    },
+    "이용약관 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read the Terms"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "शर्तें पढ़ें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "利用規約を見る"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xem Điều khoản"
+          }
+        }
+      }
+    },
+    "이용이 제한된 계정이라 글을 공개하거나 공개된 글을 고칠 수 없어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your account is restricted, so you can't make posts public or edit public posts."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपका खाता प्रतिबंधित है, इसलिए आप पोस्ट सार्वजनिक नहीं कर सकते और न ही सार्वजनिक पोस्ट संपादित कर सकते हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "利用が制限されたアカウントのため、記事を公開したり公開中の記事を編集したりできません。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tài khoản của bạn bị hạn chế nên không thể công khai bài viết hoặc sửa bài đang công khai."
+          }
+        }
+      }
+    },
+    "이용이 제한된 계정이라 글을 쓰거나 반응할 수 없어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your account is restricted, so you can't post or react."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपका खाता प्रतिबंधित है, इसलिए आप पोस्ट या प्रतिक्रिया नहीं कर सकते।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "利用が制限されたアカウントのため、投稿やリアクションはできません。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tài khoản của bạn bị hạn chế nên không thể đăng bài hay tương tác."
           }
         }
       }
