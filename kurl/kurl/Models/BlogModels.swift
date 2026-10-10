@@ -99,6 +99,12 @@ struct PostListItem: Decodable, Hashable, Identifiable {
     let publishedAt: Date?
     let lastEditedAt: Date?
     let pinned: Bool
+
+    func withTitle(_ title: String) -> PostListItem {
+        PostListItem(
+            id: id, slug: slug, title: title, excerpt: excerpt, ogImageUrl: ogImageUrl, languageTag: languageTag,
+            tags: tags, likeCount: likeCount, publishedAt: publishedAt, lastEditedAt: lastEditedAt, pinned: pinned)
+    }
 }
 
 struct PublicPostListView: Decodable {
@@ -121,6 +127,17 @@ struct PublicPostDetail: Decodable {
         case author, post, blocks, series
     }
 
+    init(author: Author, post: PostListItem, blocks: [PostBlock], series: PostSeriesNav?) {
+        self.author = author
+        self.post = post
+        self.blocks = blocks
+        self.series = series
+    }
+
+    func replacing(title: String, blocks: [PostBlock]) -> PublicPostDetail {
+        PublicPostDetail(author: author, post: post.withTitle(title), blocks: blocks, series: series)
+    }
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         author = try container.decode(Author.self, forKey: .author)
@@ -136,7 +153,7 @@ struct PublicPostDetail: Decodable {
 
 struct PostBlock: Decodable, Identifiable {
     let type: String
-    let content: String?
+    private(set) var content: String?
     let blockOrder: Int?
     let cta: CtaInfo?
     /// 디코드 시점에 배열 인덱스로 박는 안정 식별자. blockOrder 가 nil 이어도 TOC 점프·딥링크가 안 깨진다.
@@ -152,6 +169,12 @@ struct PostBlock: Decodable, Identifiable {
     func withDecodeIndex(_ index: Int) -> PostBlock {
         var copy = self
         copy.decodeIndex = index
+        return copy
+    }
+
+    func withContent(_ content: String) -> PostBlock {
+        var copy = self
+        copy.content = content
         return copy
     }
 }

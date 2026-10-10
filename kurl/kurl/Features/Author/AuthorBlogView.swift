@@ -272,7 +272,7 @@ struct AuthorBlogView: View {
             }
             (dynamicTypeSize.isAccessibilitySize
                 ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
-                : AnyLayout(HStackLayout(spacing: 10))) {
+                : AnyLayout(HeaderActionsLayout(spacing: 10))) {
                 if isOwnAuthor {
                     FollowCountsLink(username: view.author.username, initialStatus: followStatus)
                 } else {
@@ -288,13 +288,14 @@ struct AuthorBlogView: View {
                     }
                     FollowCountsLink(username: view.author.username, initialStatus: followStatus, showsCounts: false)
                 }
-                Spacer(minLength: 0)
                 NavigationLink(value: Route.businessCard(username: username)) {
                     HStack(spacing: 5) {
                         Image(systemName: "person.crop.rectangle")
                             .font(.system(size: 12, weight: .semibold))
                         Text("명함")
                             .font(.system(size: cardLabelSize, weight: .semibold))
+                            .lineLimit(1)
+                            .fixedSize()
                     }
                     .foregroundStyle(.primary)
                     .padding(.horizontal, 14)
@@ -303,6 +304,7 @@ struct AuthorBlogView: View {
                 }
                 .buttonStyle(.plain)
                 .glassCapsule(prominent: false)
+                .accessibilityIdentifier("author.card")
             }
             .padding(.top, 14)
         }
@@ -730,6 +732,72 @@ enum AuthorTab: Hashable {
         case .series: "series"
         case .collections: "collections"
         }
+    }
+}
+
+/// [앞][가운데…][뒤] 한 줄, 폭이 모자라면 가운데를(없으면 뒤를) 둘째 줄로 내린다. ViewThatFits 는 후보마다
+/// 서브뷰를 따로 만들어 팔로우 버튼 상태가 갈라지므로, 한 벌을 자리만 옮겨 놓는다.
+struct HeaderActionsLayout: Layout {
+    var spacing: CGFloat = 10
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        Self.arrange(sizes: subviews.map { $0.sizeThatFits(.unspecified) }, width: proposal.width, spacing: spacing).size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let frames = Self.arrange(
+            sizes: subviews.map { $0.sizeThatFits(.unspecified) }, width: bounds.width, spacing: spacing
+        ).frames
+        for (subview, frame) in zip(subviews, frames) {
+            subview.place(
+                at: CGPoint(x: bounds.minX + frame.minX, y: bounds.minY + frame.minY),
+                proposal: ProposedViewSize(frame.size))
+        }
+    }
+
+    static func arrange(sizes: [CGSize], width: CGFloat?, spacing: CGFloat) -> (frames: [CGRect], size: CGSize) {
+        guard sizes.count > 1, let lead = sizes.first, let trail = sizes.last else {
+            return (sizes.map { CGRect(origin: .zero, size: $0) }, sizes.first ?? .zero)
+        }
+        let middle = Array(sizes.dropFirst().dropLast())
+        let shown = middle.filter { $0.width > 0 }
+        let oneRow = lead.width + shown.reduce(0) { $0 + spacing + $1.width } + spacing + trail.width
+        let available = width.flatMap { $0.isFinite ? $0 : nil } ?? oneRow
+
+        if oneRow <= available {
+            let height = sizes.map(\.height).max() ?? 0
+            var frames: [CGRect] = []
+            var x: CGFloat = 0
+            for size in sizes.dropLast() {
+                frames.append(CGRect(x: x, y: (height - size.height) / 2, width: size.width, height: size.height))
+                if size.width > 0 { x += size.width + spacing }
+            }
+            frames.append(CGRect(
+                x: available - trail.width, y: (height - trail.height) / 2, width: trail.width, height: trail.height))
+            return (frames, CGSize(width: available, height: height))
+        }
+
+        if shown.isEmpty {
+            var frames = [CGRect(x: 0, y: 0, width: min(lead.width, available), height: lead.height)]
+            frames += middle.map { _ in CGRect.zero }
+            let trailY = lead.height + spacing
+            frames.append(CGRect(x: available - trail.width, y: trailY, width: trail.width, height: trail.height))
+            return (frames, CGSize(width: available, height: trailY + trail.height))
+        }
+
+        let top = max(lead.height, trail.height)
+        let bottom = shown.map(\.height).max() ?? 0
+        let bottomY = top + spacing
+        var frames = [CGRect(x: 0, y: (top - lead.height) / 2, width: lead.width, height: lead.height)]
+        var x: CGFloat = 0
+        for size in middle {
+            let width = min(size.width, max(0, available - x))
+            frames.append(CGRect(x: x, y: bottomY + (bottom - size.height) / 2, width: width, height: size.height))
+            if size.width > 0 { x += width + spacing }
+        }
+        frames.append(CGRect(
+            x: available - trail.width, y: (top - trail.height) / 2, width: trail.width, height: trail.height))
+        return (frames, CGSize(width: available, height: bottomY + bottom))
     }
 }
 
