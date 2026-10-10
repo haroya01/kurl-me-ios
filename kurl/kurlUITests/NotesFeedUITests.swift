@@ -1005,7 +1005,7 @@ final class NotesFeedUITests: XCTestCase {
             .matching(NSPredicate(format: "label == '비 오는 창밖'")).firstMatch
         var tries = 0
         while !photo.isHittable, tries < 5 { app.swipeUp(); tries += 1 }
-        // 떠 있는 탭바가 화면 아래를 덮는다 — 사진 가운데가 탭바 밑이면 탭이 탭바(맨 위로)로 간다.
+        // 떠 있는 탭바가 화면 아래를 덮는다 — 사진 가운데가 탭바 밑이면 탭이 탭바로 간다.
         let bottom = app.windows.firstMatch.frame.maxY
         while photo.frame.minY > bottom - 260, tries < 8 { app.swipeUp(velocity: .slow); tries += 1 }
         attach(app, "notes-photo-and-quote")
