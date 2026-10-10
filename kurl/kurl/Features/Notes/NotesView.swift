@@ -252,6 +252,7 @@ struct NoteRowView: View {
     var repostedBy: String? = nil
     /// 프로필 노트 탭에서만 "고정됨" 줄을 보인다 — 다른 피드에선 고정이 의미 없다(마스토돈과 같다).
     var showsPin = false
+    var replyHeader: ReplyHeader? = nil
     /// 원글 → 답글을 잇는 스레드 선 — 아바타 아래에서 다음 행 아바타 위까지.
     var threadLineBelow = false
     /// 상세의 본 노트 — 머리 줄 아래로 본문을 전체 폭에 한 단계 크게(스레드·X 문법).
@@ -287,7 +288,7 @@ struct NoteRowView: View {
     init(note: Note, onChange: @escaping (Note) -> Void,
          onDelete: @escaping (Int64) -> Void,
          onQuoted: ((Note) -> Void)? = nil, repostedBy: String? = nil,
-         showsPin: Bool = false,
+         showsPin: Bool = false, replyHeader: ReplyHeader? = nil,
          threadLineBelow: Bool = false, focused: Bool = false, position: String? = nil) {
         self.note = note
         self.onChange = onChange
@@ -295,6 +296,7 @@ struct NoteRowView: View {
         self.onQuoted = onQuoted
         self.repostedBy = repostedBy
         self.showsPin = showsPin
+        self.replyHeader = replyHeader
         self.threadLineBelow = threadLineBelow
         self.focused = focused
         self.position = position
@@ -361,6 +363,8 @@ struct NoteRowView: View {
                 }
                 .foregroundStyle(Palette.secondary)
                 .accessibilityElement(children: .combine)
+            } else if let replyHeader {
+                ReplyHeaderLine(header: replyHeader)
             } else if showsPin, note.pinned == true {
                 HStack(spacing: 12) {
                     Image(systemName: "pin.fill")
@@ -1504,6 +1508,7 @@ struct NoteFeedItem: View {
     var onQuoted: ((Note) -> Void)? = nil
     var repostedBy: String? = nil
     var showsPin = false
+    var replyHeader: ReplyHeader? = nil
 
     var body: some View {
         let thread = note.thread
@@ -1517,6 +1522,7 @@ struct NoteFeedItem: View {
                     onChange(kept)
                 },
                 onDelete: onDelete, onQuoted: onQuoted, repostedBy: repostedBy, showsPin: showsPin,
+                replyHeader: replyHeader,
                 threadLineBelow: next != nil,
                 position: next == nil ? nil : thread.map { "1/\($0.total)" })
             if let thread, let next {
