@@ -57,8 +57,8 @@ struct SearchView: View {
                 case .idle:
                     idleState
                 case .loading:
-                    // 결과 카드가 뜰 자리에 카드 그리드 스켈레톤(피드와 같은 문법) — 중앙 마크→상단 카드 점프 제거.
                     FeedSkeleton()
+                        .background(Palette.readingBg)
                 case .loaded(let items):
                     results(items)
                 case .failed(let message):
@@ -602,7 +602,6 @@ struct SearchView: View {
         if items.isEmpty, tags.isEmpty, authors.isEmpty {
             noResults
         } else {
-            // 검색도 browse 면 — 피드와 같은 카드 문법(웹 §10.1 예외와 동일 경계).
             // 결과는 태그 → 작가 → 글 갈래로. 다른 갈래가 있을 때만 "글" 라벨을 붙인다.
             let labelled = !tags.isEmpty || !authors.isEmpty
             ScrollView {
@@ -655,23 +654,26 @@ struct SearchView: View {
                         }
                     }
                     if !items.isEmpty {
-                        if labelled {
-                            RailHeading("글").padding(.top, tags.isEmpty && authors.isEmpty ? 0 : 4)
-                        }
-                        ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                            NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
-                                BlogCard(item: item)
+                        LazyVStack(alignment: .leading, spacing: 0) {
+                            if labelled {
+                                RailHeading("글").padding(.top, 4)
                             }
-                            .buttonStyle(CardButtonStyle())
-                            .cardQuickActions(item)
-                            .modifier(ZoomSource(
-                                active: true,
-                                id: "search-\(item.author.username)-\(item.slug)",
-                                ns: zoomNS))
-                            .modifier(QuietAppear(index: index))
-                            .modifier(CardScrollFade())
-                            .task {
-                                if index >= items.count - 5 { await loadMore() }
+                            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                                NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
+                                    FeedRow(item: item, linked: true)
+                                }
+                                .buttonStyle(RowButtonStyle())
+                                .cardQuickActions(item)
+                                .accessibilityIdentifier("search.row.\(item.id)")
+                                .modifier(ZoomSource(
+                                    active: true,
+                                    id: "search-\(item.author.username)-\(item.slug)",
+                                    ns: zoomNS))
+                                .rowDivider(index > 0)
+                                .modifier(QuietAppear(index: index))
+                                .task {
+                                    if index >= items.count - 5 { await loadMore() }
+                                }
                             }
                         }
                     }
@@ -687,6 +689,7 @@ struct SearchView: View {
             }
             .scrollIndicators(.hidden)
             .scrollEdgeEffectStyle(.soft, for: .top)
+            .background(Palette.readingBg)
         }
     }
 

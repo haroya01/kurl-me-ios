@@ -234,28 +234,6 @@ private struct SegmentPressStyle: ButtonStyle {
     }
 }
 
-// MARK: 떠 있는 주행동 버튼
-
-/// 유리 원판 FAB — 흰 심볼 + 브랜드 그린 틴트. 탭바 위 우하단에 띄운다.
-struct GlassFAB: View {
-    let systemImage: String
-    let label: LocalizedStringKey
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.system(size: 19, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(width: 56, height: 56)
-                .contentShape(Circle())
-        }
-        .buttonStyle(.plain)
-        .glassEffect(.regular.tint(GlassTokens.prominentTint).interactive(), in: .circle)
-        .accessibilityLabel(Text(label))
-    }
-}
-
 // MARK: 조용한 그린 안개 — 유리가 설 수 있는 배경
 
 /// 유리는 뒤에 흐르는 것이 있을 때만 유리다 — 빈 종이 위 유리 패널(계정 정체 카드)이

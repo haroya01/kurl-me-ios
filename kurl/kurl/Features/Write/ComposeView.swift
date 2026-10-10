@@ -15,6 +15,8 @@ struct ComposeView: View {
     let existing: MyPost?
     /// 새 글을 미리 채운 본문으로 연다(노트 공유 메뉴의 "블로그 글로 인용"). 손대기 전엔 초안을 만들지 않는다.
     let initialMarkdown: String?
+    /// 미리 채운 본문이 사용자가 쓴 글이다(노트 작성기의 "긴 글로 쓰기") — 직접 친 본문처럼 이탈 때 금고·초안으로 지킨다.
+    let initialMarkdownIsDraft: Bool
     let onSaved: () -> Void
     /// 방금 발행한 글의 slug 를 들고 닫힌다 — 호스트(스튜디오)가 라이브 글로 이어 보낸다.
     var onOpenPublished: ((String) -> Void)? = nil
@@ -181,11 +183,12 @@ struct ComposeView: View {
     @State private var publishedSlug: String?
 
     init(
-        post: MyPost?, initialMarkdown: String? = nil, onSaved: @escaping () -> Void,
-        onOpenPublished: ((String) -> Void)? = nil
+        post: MyPost?, initialMarkdown: String? = nil, initialMarkdownIsDraft: Bool = false,
+        onSaved: @escaping () -> Void, onOpenPublished: ((String) -> Void)? = nil
     ) {
         self.existing = post
         self.initialMarkdown = initialMarkdown
+        self.initialMarkdownIsDraft = initialMarkdownIsDraft
         self.onSaved = onSaved
         self.onOpenPublished = onOpenPublished
         if let initialMarkdown { _markdown = State(initialValue: initialMarkdown) }
@@ -1507,7 +1510,7 @@ struct ComposeView: View {
         } else {
             // 새 글은 읽을 본문이 없다 — 곧장 편집·저장 가능.
             bodyLoaded = true
-            if initialMarkdown != nil { lastSavedSignature = signature }
+            if initialMarkdown != nil, !initialMarkdownIsDraft { lastSavedSignature = signature }
             rebuildEditorDocumentIfNeeded()
             offerRecoveryIfAny()
         }

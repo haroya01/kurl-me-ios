@@ -75,7 +75,6 @@ struct FeedView: View {
             .onChange(of: router.reselections) {
                 if router.reselectedTab == 0 { choice.path = NavigationPath() }
             }
-            // 고정 스트립 대신 떠 있는 유리 — 카드가 캡슐 양옆·뒤로 그대로 흐른다.
             .safeAreaBar(edge: .top) {
                 FeedHeaderBar(items: FeedTab.allCases, selection: $choice.tab) { $0.label }
             }
@@ -83,10 +82,8 @@ struct FeedView: View {
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .active { Task { await UnreadStore.shared.refresh() } }
             }
-            // 유리는 뒤에 흐르는 것이 있을 때만 유리다 — 스위처 뒤 옅은 안개 한 겹.
-            // 뷰포트 고정(스크롤 안 함)이라 카드 사이 틈으로도 첫 화면이 은은하게 물든다.
             .background(alignment: .top) { FeedHeaderMist() }
-            .background(Palette.pageBg)
+            .background(Palette.readingBg)
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: Route.self) { route in
                 // 글 푸시만 zoom. 소스 카드가 화면에 없으면(깊은 푸시) 시스템이 표준
@@ -98,7 +95,6 @@ struct FeedView: View {
                     RouteView(route: route)
                 }
             }
-            // 인터리브한 공개 연결 카드의 컬렉션 칩 → 컬렉션 상세(발견 표면과 같은 목적지).
             .navigationDestination(for: CollectionRef.self) {
                 CollectionDetailView(collectionId: $0.id)
             }
@@ -166,9 +162,7 @@ struct FeedPage: View {
             } else {
             switch model.phase {
             case .idle, .loading:
-                // 콜드 로딩은 중앙 마크 대신 카드 그리드 스켈레톤 — 실제 리스트와 같은 레이아웃이라
-                // 카드가 착지해도 위치가 안 튄다(중앙→상단 점프 제거). 첫 장은 커버(피처드) 모양.
-                FeedSkeleton(leadingCover: source == .recent)
+                FeedSkeleton()
             case .failed(let message):
                 failed(message)
             case .loaded:
@@ -216,62 +210,50 @@ struct FeedPage: View {
                 : "구독함을 보려면 로그인하세요")
     }
 
-    // 발견(browse) 면 = 1열 카드 그리드(#707 웹과 동일 문법). 구독함도 같은 카드 —
-    // 최신·인기와 같은 발견 피드(팔로우한 작가의 새 글)라, 알림 같던 인박스 행 대신 카드로.
     private var list: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 16) {
+            LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(model.items.enumerated()), id: \.element.id) { index, item in
                     // 구독함 — 구독한 시리즈에 들어온 노트가 시각 순서대로 이 글 앞에 선다.
-                    ForEach(model.notesBefore[item.id] ?? []) { note in
-                        SeriesNoteFeedCard(note: note)
+                    let notes = model.notesBefore[item.id] ?? []
+                    ForEach(Array(notes.enumerated()), id: \.element.id) { offset, note in
+                        SeriesNoteRow(note: note)
+                            .rowDivider(index > 0 || offset > 0)
                             .modifier(QuietAppear(index: index))
-                            .modifier(CardScrollFade())
                     }
                     NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
-                        BlogCard(
-                            item: item,
-                            featured: false,
-                            belonging: model.belonging[item.id] ?? [])
+                        FeedRow(item: item, belonging: model.belonging[item.id] ?? [], linked: true)
                     }
-                    .buttonStyle(CardButtonStyle())
+                    .buttonStyle(RowButtonStyle())
                     .cardQuickActions(item)
-                    // 복원 앵커의 좌표 — 카드 id 문자열로 못 박아, 복귀 시 이 id 로 스크롤이 되돌아간다.
+                    .accessibilityIdentifier("feed.row.\(item.id)")
+                    // 복원 앵커의 좌표 — 행 id 문자열로 못 박아, 복귀 시 이 id 로 스크롤이 되돌아간다.
                     .id(String(item.id))
                     .modifier(ZoomSource(
                         active: active,
                         id: "post-\(item.author.username)-\(item.slug)",
                         ns: zoom))
+                    .rowDivider(index > 0 || !notes.isEmpty)
                     .modifier(QuietAppear(index: index))
-                    .modifier(CardScrollFade())
                     .task { await model.loadMoreIfNeeded(current: item) }
 
-                    // 최신 피드 4번째 글 뒤에 발견 시리즈 한 장(웹 메인 피드와 같은 자리). 글이 적으면 끝에.
-                    // 카드가 자체 내비(시리즈)·넘김을 들고 있어 바깥 NavigationLink 로 감싸지 않는다.
                     if source == .recent, let series = model.series,
                         index == min(3, model.items.count - 1),
                         let author = series.author, !author.username.isEmpty {
-                        FeedSeriesCard(series: series, author: author)
+                        FeedSeriesRow(series: series, author: author)
+                            .rowDivider(true)
                             .modifier(QuietAppear(index: index))
-                            .modifier(CardScrollFade())
                     }
 
-                    // 공개 연결 흐름을 몇 칸마다 인터리브(웹 #828 미러) — 비로그인 첫 피드에도 흐른다.
-                    // 연결 카드는 종이 본문(§1) — 유리 없이 컬렉션·왜·블록 실루엣만. 첫 인서트 위에만
-                    // 초록 마커 섹션 라벨을 얹어(§10.3 비텍스트 마커=accent) 한 흐름임을 조용히 알린다.
-                    if source == .recent, let slot = connectionSlot(afterIndex: index) {
-                        if slot.isFirst {
-                            connectionHeading
-                                .padding(.top, 2)
-                        }
-                        ConnectionEventCard(event: slot.event)
+                    if source == .recent, let event = connectionEvent(afterIndex: index) {
+                        ConnectionEventRow(event: event)
+                            .rowDivider(true)
                             .modifier(QuietAppear(index: index))
-                            .modifier(CardScrollFade())
                     }
                 }
-                ForEach(model.trailingNotes) { note in
-                    SeriesNoteFeedCard(note: note)
-                        .modifier(CardScrollFade())
+                ForEach(Array(model.trailingNotes.enumerated()), id: \.element.id) { offset, note in
+                    SeriesNoteRow(note: note)
+                        .rowDivider(!model.items.isEmpty || offset > 0)
                         .task {
                             if note.id == model.trailingNotes.last?.id { await model.loadMoreAfterTrailingNote() }
                         }
@@ -320,18 +302,18 @@ struct FeedPage: View {
                     }
                 }
             }
-            .padding(.vertical, 16)
+            .padding(.bottom, 16)
             .frame(maxWidth: Metrics.readingColumn)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, Metrics.gutter)
-            // 카드 행마다 붙인 .id 를 복원 좌표로 노출 — scrollPosition 이 이 레이아웃에서 앵커를 읽는다.
+            // 행마다 붙인 .id 를 복원 좌표로 노출 — scrollPosition 이 이 레이아웃에서 앵커를 읽는다.
             .scrollTargetLayout()
-            // 발견 시리즈는 본 피드 반영 뒤 별도로 도착한다(피드를 막지 않는 설계) — 카드 한 장
+            // 발견 시리즈는 본 피드 반영 뒤 별도로 도착한다(피드를 막지 않는 설계) — 한 행
             // 높이가 리스트 중간에 순간 끼어들어 아래를 보던 화면이 튀던 것을 애니메이트로 밀어낸다.
             .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: model.series?.id)
         }
-        // 글로 들어갔다 돌아오면 보던 카드로 스크롤을 되돌린다 — 페이지가 상주해 앵커가 살아남는다.
-        // .top 앵커라 그 카드가 다시 화면 맨 위에 온다(복귀 지점이 튀지 않게).
+        // 글로 들어갔다 돌아오면 보던 행으로 스크롤을 되돌린다 — 페이지가 상주해 앵커가 살아남는다.
+        // .top 앵커라 그 행이 다시 화면 맨 위에 온다(복귀 지점이 튀지 않게).
         .scrollPosition(id: $scrollAnchor, anchor: .top)
         .onChange(of: router.topRequests) {
             guard active, router.topTab == 0, let first = model.items.first else { return }
@@ -345,31 +327,17 @@ struct FeedPage: View {
         .brandRefreshable { await model.reload() }
     }
 
-    // 공개 연결을 인터리브할 자리 — 시리즈 카드(index 3) 뒤로 충분히 띄워 index 5 부터 5칸마다
-    // 한 장씩(5·10·15…), 이벤트가 남아 있는 동안만. "글 뒤에만" 끼우므로 마지막 글 뒤로는 새지
-    // 않고 항상 다음 글 행이 따라온다(웹 #828 의 "뒤에 실제 행이 있을 때만"과 같은 규칙).
-    private struct ConnectionSlot { let event: ConnectionEvent; let isFirst: Bool }
-
-    private func connectionSlot(afterIndex index: Int) -> ConnectionSlot? {
+    // 공개 연결을 인터리브할 자리 — index 1 부터 5칸마다 한 행씩, 이벤트가 남아 있는 동안만.
+    // "글 뒤에만" 끼우므로 마지막 글 뒤로는 새지 않고 항상 다음 글 행이 따라온다(웹 #828 과 같은 규칙).
+    private func connectionEvent(afterIndex index: Int) -> ConnectionEvent? {
         let events = model.connectionEvents
         guard !events.isEmpty else { return nil }
-        // 시작 5, 간격 5 — (index-5)가 5의 배수이고 시작 이상일 때만 슬롯이 열린다.
         let start = 1, gap = 5
         guard index >= start, (index - start) % gap == 0 else { return nil }
-        // 마지막 글 뒤에는 끼우지 않는다 — 연결 카드가 피드 끝에 홀로 매달리지 않게.
         guard index < model.items.count - 1 else { return nil }
         let slotOrdinal = (index - start) / gap
         guard slotOrdinal < events.count else { return nil }
-        return ConnectionSlot(event: events[slotOrdinal], isFirst: slotOrdinal == 0)
-    }
-
-    // "지금 이어지는 것들" — 공개 연결 흐름의 머릿글. 형제 발견 머릿글과 같은 RailHeading 로
-    // 맞춘다 — §10 색 규율로 섹션 마커는 잉크로 가라앉힌 지 오래고, 초록은 아래 카드가 제 몫으로
-    // 낸다(연결 칩·하이라이트 룰). 머릿글에까지 초록을 다시 얹으면 그 규율을 되돌리는 셈이다.
-    private var connectionHeading: some View {
-        RailHeading("지금 이어지는 것들")
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .modifier(CardScrollFade())
+        return events[slotOrdinal]
     }
 
     private func failed(_ message: String) -> some View {
@@ -454,186 +422,42 @@ struct FeedPlaceholder: View {
     }
 }
 
-/// 최신 피드에 끼워 넣는 발견 시리즈 한 장 — 웹 DiscoverySeriesCard 대응. 4:5 "에피소드 페이지":
-/// 종이 + 미묘한 그린 그라디언트, 우상단을 비껴 잘리는 거대한 흐린 mono 번호, 위에 마크+시리즈명,
-/// 아래에 01/04 + 에피소드 제목 + 작가·날짜. 우측 모서리로 한 장씩 넘긴다. 카드 탭은 시리즈 상세.
-private struct FeedSeriesCard: View {
+private struct FeedSeriesRow: View {
     let series: PublicSeriesCard
     let author: Author
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var idx = 0
-    // 방금 떠난 장 — 넘김이 "카드 넘어가듯" 방향성 슬라이드로 보이게, 나가는 장은 왼쪽으로
-    // 미세하게 밀려 나가고(페이드 아웃) 새 장은 오른쪽에서 들어온다. 순환이라 항상 전진 방향.
-    @State private var prevIdx = 0
-    // 모든 장이 ZStack 에 살아 있어(크로스페이드용) 숨은 장의 커버까지 즉시 받게 된다 —
-    // 커버 로드는 현재 장 + 다음 장만 켜고, 한 번 켠 장은 유지해 페이드아웃 중
-    // 이미지가 placeholder 로 되돌아가지 않게 한다.
-    @State private var imagePages: Set<Int> = [0, 1]
-    // 슬라이드 이동량 — §10 절제(카드 폭 전체 활주는 과하다). 들고 나는 장이 살짝 미끄러지는 정도.
-    private let slideInset: CGFloat = 26
-    // 하드코딩 크기가 Dynamic Type 를 무시하던 것 — 텍스트 스타일에 묶어 글자 크기 설정을 따른다.
-    // (우상단의 148pt 장식 mono 번호만 고정 — 레이아웃을 이루는 배경 장식이라 스케일 제외.)
-    @ScaledMetric(relativeTo: .caption) private var seriesNameSize: CGFloat = 12
-    @ScaledMetric(relativeTo: .title) private var epNumSize: CGFloat = 34
-    @ScaledMetric(relativeTo: .footnote) private var epTotalSize: CGFloat = 15
 
-    /// 넘겨 볼 앞 편들 — 서버가 글·노트 혼합 미리보기를 주면 그것, 옛 서버면 글만.
-    private var posts: [SeriesItemPreview] {
-        let mixed = series.items ?? series.posts.map {
+    private var episodes: [SeriesItemPreview] {
+        series.items ?? series.posts.map {
             SeriesItemPreview(type: "POST", slug: $0.slug, noteId: nil, title: $0.title, ogImageUrl: $0.ogImageUrl)
         }
-        return Array(mixed.prefix(4))
+    }
+
+    private var cover: URL? {
+        episodes.lazy.compactMap { $0.ogImageUrl.flatMap { $0.isEmpty ? nil : URL(string: $0) } }.first
     }
 
     var body: some View {
-        let n = max(posts.count, 1)
-        // 새로고침이 series 를 편수 적은 것으로 교체해도 @State idx 는 살아남는다 — 범위 밖이면
-        // 모든 장이 opacity 0(빈 카드)이 되므로 표시 인덱스를 클램프해 항상 한 장은 보이게.
-        let shown = min(idx, n - 1)
-        let prevShown = min(prevIdx, n - 1)
-        ZStack(alignment: .topTrailing) {
-            // 에피소드 페이지들 — 앞장만 보이고, 넘김은 방향성 슬라이드+크로스페이드.
-            // 쉬는 장은 오른쪽(+inset)에서 대기하다 보여질 때 0으로 미끄러져 들어오고,
-            // 방금 떠난 장만 왼쪽(-inset)으로 밀려 나간다 — "카드 한 장 넘어가듯". reduce-motion 은
-            // 이동량 0 이라 기존 크로스페이드만 남는다.
-            ForEach(Array(posts.enumerated()), id: \.offset) { i, ep in
-                episodePage(index: i, ep: ep, loadImage: imagePages.contains(i))
-                    .opacity(i == shown ? 1 : 0)
-                    .offset(x: reduceMotion ? 0 : pageOffset(i, shown: shown, prevShown: prevShown))
-            }
-            // 카드 전체 탭 → 시리즈 상세(투명 링크가 비주얼 위에 깔린다).
-            NavigationLink(value: Route.series(username: author.username, slug: series.slug)) {
-                Color.clear.contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            // 우측 모서리 한 장 넘김(여러 편일 때만) — 링크 위에 올려 그 영역만 가로챈다.
-            if n > 1 {
-                Button {
-                    // 넘길 대상 장(+그 다음 장) 커버를 미리 켜 크로스페이드가 빈 채로 뜨지 않게.
-                    let next = (shown + 1) % n
-                    imagePages.insert(next)
-                    if next + 1 < n { imagePages.insert(next + 1) }
-                    // 떠나는 장을 기억해 그 장만 왼쪽으로 밀어낸다(나머지 쉬는 장은 오른쪽 대기).
-                    prevIdx = shown
-                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.42)) {
-                        idx = next
-                    }
-                } label: {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(Palette.secondary)
-                        .frame(width: 48)
-                        .frame(maxHeight: .infinity)
-                        .contentShape(Rectangle())
+        NavigationLink(value: Route.series(username: author.username, slug: series.slug)) {
+            RowLayout(
+                title: series.title,
+                excerpt: Text(episodes.prefix(4).map(\.title.cleanedPreview).joined(separator: " · ")),
+                cover: cover
+            ) {
+                HStack(spacing: 6) {
+                    Text("시리즈")
+                    Text(verbatim: "·").foregroundStyle(Palette.faint)
+                    Text("\(series.episodeCount)편")
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("다음 편")
+                .typeScale(.meta)
+                .foregroundStyle(Palette.secondary)
+            } byline: {
+                AuthorByline(author: author, date: series.lastPublishedAt)
             }
         }
-        // 1열 피드에서 4:5 는 너무 길었다 — 정사각으로 낮춰 키를 줄인다(디자인은 그대로).
-        .aspectRatio(1.0, contentMode: .fit)
-        .clipShape(RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
-                .strokeBorder(Palette.cardBorder, lineWidth: 1)
-        }
-        .cardShadow()
-        // 회차 넘김에 가벼운 촉감 하나 — 스위처 pill·좋아요와 같은 결(§1.6 조용하지만 살아 있게).
-        .sensoryFeedback(.selection, trigger: idx)
+        .buttonStyle(RowButtonStyle())
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text("시리즈 \(series.title), \(series.episodeCount)편"))
-    }
-
-    /// 장의 수평 위치 — 보이는 장은 중앙(0), 방금 떠난 장은 왼쪽(-inset)으로 밀려 나가고,
-    /// 그 밖의 쉬는 장은 오른쪽(+inset)에 대기해 다음에 보여질 때 오른쪽에서 미끄러져 들어온다.
-    private func pageOffset(_ i: Int, shown: Int, prevShown: Int) -> CGFloat {
-        if i == shown { return 0 }
-        if i == prevShown { return -slideInset }
-        return slideInset
-    }
-
-    private func episodePage(index i: Int, ep: SeriesItemPreview, loadImage: Bool) -> some View {
-        let imageURL = ep.ogImageUrl.flatMap { $0.isEmpty ? nil : URL(string: $0) }
-        let onImage = imageURL != nil
-        return ZStack(alignment: .topLeading) {
-            if let url = imageURL {
-                // 사진 커버 변형 — 에피소드 사진 + 상하 스크림 위 흰 글씨(웹 이미지 장 대응).
-                // 숨은 뒷장은 loadImage 가 켜질 때만 RemoteImage 를 만든다 — 안 보는 커버를 미리 안 받게.
-                Color.clear.overlay {
-                    if loadImage {
-                        RemoteImage(url: url) { phase in
-                            if case .success(let img) = phase {
-                                // 채움 이미지는 프레임 밖으로 넘친다 — 클립은 그림만 자르고 히트는 못 잘라, 이웃 카드 탭을 먹는다.
-                                img.resizable().scaledToFill().allowsHitTesting(false)
-                            } else {
-                                Palette.accent.opacity(0.12)
-                            }
-                        }
-                    } else {
-                        Palette.accent.opacity(0.12)
-                    }
-                }
-                .clipped()
-                LinearGradient(
-                    stops: [
-                        .init(color: .black.opacity(0.32), location: 0),
-                        .init(color: .clear, location: 0.34),
-                        .init(color: .black.opacity(0.66), location: 1.0),
-                    ], startPoint: .top, endPoint: .bottom)
-            } else {
-                Palette.cardBg
-            }
-
-            VStack(alignment: .leading, spacing: 0) {
-                // 시리즈 정체 — 마크 + 시리즈명(웹: 12px semibold).
-                HStack(spacing: 6) {
-                    KurlMark(drawn: [true, true, true], tint: onImage ? .white : Palette.secondary)
-                        .frame(width: 16, height: 10)
-                    Text(series.title)
-                        .font(.system(size: seriesNameSize, weight: .semibold))
-                        .tracking(0.4)
-                        .foregroundStyle(onImage ? Color.white : Palette.ink)
-                        .lineLimit(1)
-                }
-                Spacer(minLength: 0)
-                // 에피소드 번호 01 / 04 (웹: 34px accent-700 + 15px slate-500).
-                (Text(String(format: "%02d", i + 1))
-                    .font(.system(size: epNumSize, weight: .bold).monospacedDigit())
-                    .foregroundStyle(onImage ? Color.white : Palette.ink)
-                    + Text(" / \(String(format: "%02d", series.episodeCount))")
-                    .font(.system(size: epTotalSize, weight: .bold).monospacedDigit())
-                    .foregroundStyle(onImage ? Color.white.opacity(0.75) : Palette.secondary))
-                    .lineLimit(1)
-                if ep.isNote {
-                    SeriesNoteMark(size: seriesNameSize, current: false)
-                        .padding(.top, 4)
-                }
-                // 에피소드 제목(웹: 18px bold, 3줄). 노트 편은 제목 대신 발췌라 한 단 가볍게.
-                Text(ep.title)
-                    .typeScale(ep.isNote ? .lede : .title)
-                    .foregroundStyle(onImage ? Color.white : Palette.ink)
-                    .lineLimit(3)
-                    .multilineTextAlignment(.leading)
-                    .padding(.top, 6)
-                HStack(spacing: 6) {
-                    AvatarView(author: author, size: 18)
-                    Text(author.username)
-                        .typeScale(.meta)
-                        .foregroundStyle(onImage ? Color.white.opacity(0.9) : Palette.secondary)
-                        .lineLimit(1)
-                    if let date = series.lastPublishedAt {
-                        Text("·").foregroundStyle(onImage ? Color.white.opacity(0.6) : Palette.faint)
-                        Text(date.relativeShort)
-                            .typeScale(.meta)
-                            .foregroundStyle(onImage ? Color.white.opacity(0.9) : Palette.secondary)
-                    }
-                }
-                .padding(.top, 9)
-            }
-            .padding(16)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .allowsHitTesting(false)
-        }
+        .accessibilityIdentifier("feed.series.\(series.id)")
     }
 }
 
@@ -651,22 +475,17 @@ struct RowButtonStyle: ButtonStyle {
     }
 }
 
-/// 콜드 로딩 스켈레톤 — 피드·검색 결과가 뜰 자리에 카드 그리드 모양 자리표시를 그린다.
-/// 실제 리스트와 같은 간격·컬럼이라 카드가 착지해도 위치가 안 튄다(중앙 마크→상단 카드 점프 제거).
-/// 글/시리즈/작가 단일 로드엔 쓰지 않는다(그쪽은 브랜드 마크 유지).
 struct FeedSkeleton: View {
-    /// recent 피드는 첫 장이 피처드 커버라 커버 모양으로, 그 외는 전부 종이 카드 모양.
-    var leadingCover = false
     var count = 5
 
     var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 16) {
+            LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(0..<count, id: \.self) { i in
-                    SkeletonCard(cover: leadingCover && i == 0)
+                    SkeletonRow(index: i)
+                        .rowDivider(i > 0)
                 }
             }
-            .padding(.vertical, 16)
             .frame(maxWidth: Metrics.readingColumn)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, Metrics.gutter)
@@ -717,50 +536,23 @@ private struct SkeletonBar: View {
     }
 }
 
-/// 한 장의 카드 자리표시 — 커버(4:3 한 덩어리) 또는 종이(태그·제목·발췌·메타 바). 절제된 shimmer.
-private struct SkeletonCard: View {
-    let cover: Bool
+private struct SkeletonRow: View {
+    let index: Int
 
     var body: some View {
-        Group {
-            if cover {
-                RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
-                    .fill(Palette.hairlineStrong)
-                    .aspectRatio(4.0 / 3.0, contentMode: .fit)
-            } else {
-                VStack(alignment: .leading, spacing: 11) {
-                    bar(0.4, 13)                         // 태그
-                    bar(0.92, 19)                        // 제목 1
-                    bar(0.66, 19)                        // 제목 2
-                    bar(0.98, 14).padding(.top, 2)       // 발췌 1
-                    bar(0.55, 14)                        // 발췌 2
-                    HStack(spacing: 8) {                 // 메타
-                        Circle().fill(Palette.hairlineStrong).frame(width: 16, height: 16)
-                        bar(0.3, 12)
-                    }
-                    .padding(.top, 2)
-                }
-                .padding(Metrics.cardPadding)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    Palette.cardBg,
-                    in: RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
-                        .strokeBorder(Palette.cardBorder.opacity(0.6), lineWidth: 1)
-                }
+        VStack(alignment: .leading, spacing: 10) {
+            SkeletonBar(widthFraction: 0.3, height: 12)
+            SkeletonBar(widthFraction: 0.92, height: 18)
+            SkeletonBar(widthFraction: index.isMultiple(of: 2) ? 0.6 : 0.74, height: 18)
+            SkeletonBar(widthFraction: 0.96, height: 14).padding(.top, 2)
+            HStack(spacing: 6) {
+                Circle().fill(Palette.hairlineStrong).frame(width: 16, height: 16)
+                SkeletonBar(widthFraction: 0.32, height: 12)
             }
+            .padding(.top, 2)
         }
+        .padding(.vertical, 16)
         .modifier(SkeletonShimmer())
-    }
-
-    private func bar(_ widthFraction: CGFloat, _ height: CGFloat) -> some View {
-        GeometryReader { geo in
-            Capsule()
-                .fill(Palette.hairlineStrong)
-                .frame(width: geo.size.width * widthFraction, height: height)
-        }
-        .frame(height: height)
     }
 }
 
