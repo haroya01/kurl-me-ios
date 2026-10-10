@@ -1199,11 +1199,13 @@ private struct PostDetailReader: View {
     private func probeTranslation(_ detail: PublicPostDetail) async {
         let sample = ([detail.post.title] + detail.blocks.lazy.filter { $0.kind == .paragraph }.prefix(4)
             .map { PostTranslationPlan.plain($0.content ?? "") }).joined(separator: "\n")
-        guard let source = TranslationGate.source(declared: detail.post.languageTag, text: sample) else {
-            translationSource = nil
-            return
-        }
-        translationSource = await translations.isAvailable(from: source, to: TranslationGate.target()) ? source : nil
+        let declared = detail.post.languageTag
+        let source = await Task.detached(priority: .utility) {
+            TranslationGate.source(declared: declared, text: sample)
+        }.value
+        guard !Task.isCancelled else { return }
+        let available = if let source { await translations.isAvailable(from: source, to: TranslationGate.target()) } else { false }
+        translationSource = available ? source : nil
     }
 
     private func translate(_ detail: PublicPostDetail) {

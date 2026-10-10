@@ -681,11 +681,14 @@ struct NoteRowView: View {
 
     private func probeTranslation() async {
         let text = NoteTranslation.requests(NoteTranslation.parts(note.body)).joined(separator: " ")
-        guard let source = TranslationGate.source(declared: note.language, text: text) else {
-            translationSource = nil
-            return
-        }
-        translationSource = await translations.isAvailable(from: source, to: TranslationGate.target()) ? source : nil
+        let declared = note.language
+        let source = await Task.detached(priority: .utility) {
+            TranslationGate.source(declared: declared, text: text)
+        }.value
+        guard !Task.isCancelled else { return }
+        let available = if let source { await translations.isAvailable(from: source, to: TranslationGate.target()) } else { false }
+        let next = available ? source : nil
+        if translationSource != next { translationSource = next }
     }
 
     /// 열람 주의 — 문구만 보이고 본문·사진·카드는 접힌다. 펼치면 사진도 함께 보인다(한 번만 누르게).

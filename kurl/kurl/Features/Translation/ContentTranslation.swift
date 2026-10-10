@@ -7,7 +7,7 @@ import NaturalLanguage
 import SwiftUI
 import Translation
 
-enum TranslationGate {
+nonisolated enum TranslationGate {
     static let minimumLetters = 8
     static let minimumConfidence = 0.85
 
