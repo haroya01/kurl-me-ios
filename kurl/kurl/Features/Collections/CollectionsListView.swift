@@ -116,8 +116,8 @@ struct CollectionsListView: View {
             }
 
             HStack(spacing: 6) {
-                if c.kind == .path {
-                    Text("길")
+                if c.isOrdered {
+                    Text("순서대로 읽기")
                     Text("·").foregroundStyle(Palette.faint)
                 }
                 Image(systemName: c.visibility.icon)
@@ -153,37 +153,27 @@ struct CollectionsListView: View {
     }
 }
 
-/// 새 컬렉션 만들기 — 제목 + 공개 범위. 만들면 목록에 즉시 끼운다.
+/// 새 컬렉션 만들기 — 제목 + 공개 범위 + 순서대로 읽기. 만들면 목록에 즉시 끼운다.
 struct CreateCollectionSheet: View {
-    let kind: CollectionKind
     let onCreated: (CollectionSummary) -> Void
 
-    @State private var title: String
+    @State private var title = ""
     @State private var visibility: CollectionVisibility = .private
+    @State private var ordered = false
     @State private var saving = false
     @Environment(\.dismiss) private var dismiss
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
 
-    /// 길(PATH)은 타깃 글 제목을 시작 이름으로 *제안*만 한다 — 자동 확정 대신 사용자가 고쳐 쓴다.
-    init(
-        kind: CollectionKind = .collection, initialTitle: String = "",
-        onCreated: @escaping (CollectionSummary) -> Void
-    ) {
-        self.kind = kind
-        self.onCreated = onCreated
-        _title = State(initialValue: initialTitle)
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(kind == .path ? "새 길" : "새 컬렉션")
+            Text("새 컬렉션")
                 .typeScale(.titleSmall)
                 .foregroundStyle(Palette.ink)
                 .padding(.top, 26)
 
             // 회색 채움 박스 대신 밑줄 — 수정 시트(EditCollectionSheet)와 같은 입력 문법(§10).
             VStack(alignment: .leading, spacing: 9) {
-                TextField(kind == .path ? "길 이름" : "컬렉션 이름", text: $title)
+                TextField("컬렉션 이름", text: $title)
                     .font(.system(size: 17 * unit))
                     .foregroundStyle(Palette.ink)
                 Hairline()
@@ -197,6 +187,9 @@ struct CreateCollectionSheet: View {
             }
             .pickerStyle(.segmented)
             .padding(.top, 12)
+
+            OrderedToggle(isOn: $ordered)
+                .padding(.top, 16)
 
             Spacer(minLength: 0)
 
@@ -219,7 +212,7 @@ struct CreateCollectionSheet: View {
             .padding(.bottom, 16)
         }
         .padding(.horizontal, Metrics.gutter)
-        .presentationDetents([.height(280)])
+        .presentationDetents([.height(360)])
         .presentationDragIndicator(.visible)
         .background(Palette.readingBg)
     }
@@ -230,54 +223,63 @@ struct CreateCollectionSheet: View {
         do {
             let created = try await CollectionsAPI.create(
                 title: title.trimmingCharacters(in: .whitespaces),
-                description: nil, visibility: visibility, kind: kind)
+                description: nil, visibility: visibility, ordered: ordered)
             onCreated(created)
             dismiss()
         } catch {
-            ToastCenter.shared.show(
-                kind == .path
-                    ? String(localized: "길을 만들지 못했습니다")
-                    : String(localized: "컬렉션을 만들지 못했습니다"))
+            ToastCenter.shared.show(String(localized: "컬렉션을 만들지 못했습니다"))
         }
     }
 }
 
-/// 컬렉션 수정 — 이름 + 공개 범위. 소개(blurb)는 보존해 함께 보낸다.
-/// 길(PATH)이면 제목·플레이스홀더를 "길"로 — 삭제 라벨과 어휘를 맞춘다.
+struct OrderedToggle: View {
+    @Binding var isOn: Bool
+
+    var body: some View {
+        Toggle(isOn: $isOn) {
+            Text("순서대로 읽기")
+            Text("번호를 붙여 차례로 읽게 하고, 어디까지 읽었는지 이어 줘요.")
+        }
+        .tint(.brand)
+        .accessibilityIdentifier("collection.ordered")
+    }
+}
+
+/// 컬렉션 수정 — 이름 + 공개 범위 + 순서대로 읽기. 소개(blurb)는 보존해 함께 보낸다.
 struct EditCollectionSheet: View {
     let id: Int64
-    let kind: CollectionKind
     let initialBlurb: String?
     let onSaved: () -> Void
 
     @State private var title: String
     @State private var visibility: CollectionVisibility
+    @State private var ordered: Bool
     @State private var saving = false
     @Environment(\.dismiss) private var dismiss
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
 
     init(
-        id: Int64, kind: CollectionKind, initialTitle: String, initialBlurb: String?,
-        initialVisibility: CollectionVisibility, onSaved: @escaping () -> Void
+        id: Int64, initialTitle: String, initialBlurb: String?,
+        initialVisibility: CollectionVisibility, initialOrdered: Bool, onSaved: @escaping () -> Void
     ) {
         self.id = id
-        self.kind = kind
         self.initialBlurb = initialBlurb
         self.onSaved = onSaved
         _title = State(initialValue: initialTitle)
         _visibility = State(initialValue: initialVisibility)
+        _ordered = State(initialValue: initialOrdered)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(kind == .path ? "길 수정" : "컬렉션 수정")
+            Text("컬렉션 수정")
                 .typeScale(.titleSmall)
                 .foregroundStyle(Palette.ink)
                 .padding(.top, 26)
 
             // 회색 채움 박스 대신 밑줄 — 입력이되 박스 없이(§10).
             VStack(alignment: .leading, spacing: 9) {
-                TextField(kind == .path ? "길 이름" : "컬렉션 이름", text: $title)
+                TextField("컬렉션 이름", text: $title)
                     .font(.system(size: 17 * unit))
                     .foregroundStyle(Palette.ink)
                 Hairline()
@@ -291,6 +293,9 @@ struct EditCollectionSheet: View {
             }
             .pickerStyle(.segmented)
             .padding(.top, 16)
+
+            OrderedToggle(isOn: $ordered)
+                .padding(.top, 16)
 
             Spacer(minLength: 0)
 
@@ -313,7 +318,7 @@ struct EditCollectionSheet: View {
             .padding(.bottom, 16)
         }
         .padding(.horizontal, Metrics.gutter)
-        .presentationDetents([.height(280)])
+        .presentationDetents([.height(360)])
         .presentationDragIndicator(.visible)
         .background(Palette.readingBg)
     }
@@ -324,7 +329,7 @@ struct EditCollectionSheet: View {
         do {
             try await CollectionsAPI.edit(
                 id: id, title: title.trimmingCharacters(in: .whitespaces),
-                description: initialBlurb, visibility: visibility)
+                description: initialBlurb, visibility: visibility, ordered: ordered)
             onSaved()
             dismiss()
         } catch {

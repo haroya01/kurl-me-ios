@@ -24,7 +24,7 @@ enum Route: Hashable {
     /// 작가의 팔로워 / 팔로잉 목록 — 같은 화면을 미리 고른 탭으로 연다.
     case followers(username: String)
     case following(username: String)
-    /// 공개 컬렉션 상세 — 작가 프로필의 컬렉션 레일에서 엮은 길로 들어간다.
+    /// 공개 컬렉션 상세 — 작가 프로필의 컬렉션 레일에서 엮은 컬렉션으로 들어간다.
     case collection(id: Int64)
     /// 알림 인박스 — 계정 헤더의 벨에서 연다. 값 기반으로 밀어 인박스 안의 딥링크(글·컬렉션)가
     /// 같은 스택에서 이어 밀린다(isPresented 목적지와 값 목적지가 한 스택에서 충돌하던 문제 회피).

@@ -1311,7 +1311,7 @@ private struct PostDetailReader: View {
                     && ((endSentinelWasHidden && minY < viewport * 0.9) || minY < viewport * 0.5)
                 if reached != endVisible { endVisible = reached }
             }
-        // 글 = 엣지가 보이는 노드 — 다 읽은 뒤, 이 글이 놓인 길 · 이어진 것 · 이은 사람으로 나간다.
+        // 글 = 엣지가 보이는 노드 — 다 읽은 뒤, 이 글이 담긴 컬렉션 · 이어진 것 · 이은 사람으로 나간다.
         // 엣지가 하나도 없으면 그려지지 않고(막다른 길 방지는 아래 태그 기반 작가 레일이 맡는다),
         // 덱 임베드는 여러 장이 lazy 로 살아 있어 켜지 않는다(본 글에서만).
         if !embedded {

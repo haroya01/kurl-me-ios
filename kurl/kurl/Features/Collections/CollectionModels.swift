@@ -29,11 +29,13 @@ enum CollectionVisibility: String, Hashable {
     }
 }
 
-/// 컬렉션 종류 — collection(주제 묶음) | path(순서로 엮은 reading path, A 척추). path 는 리스트가 아니라
-/// 가이드 워크(문장→왜→문장)로 읽는다. 백엔드 `CollectionKind` 와 같은 와이어 값.
+/// 옛 컬렉션 종류 와이어 값. 순서는 이제 `ordered` 가 말하고, 이 값은 `ordered` 를 모르는 서버 응답을
+/// 읽을 때와 그런 서버가 받는 만들기 요청에만 쓴다.
 enum CollectionKind: String, Hashable, Encodable {
     case collection = "COLLECTION"
     case path = "PATH"
+
+    init(ordered: Bool) { self = ordered ? .path : .collection }
 }
 
 /// 컬렉션에 "연결"된 한 블록 — 글·하이라이트·노트. 같은 것이 여러 컬렉션에 걸릴 수 있다.
@@ -103,15 +105,16 @@ struct CollectionSummary: Decodable, Identifiable, Hashable {
     let blurb: String?
     let visibility: CollectionVisibility
     let kind: CollectionKind
+    let ordered: Bool?
     let count: Int
     /// 최근 담긴 항목 라벨 몇 개 — "안에 뭐가 들었는지" 떠올리게(어디 넣을지 결정 보조).
     let preview: [String]
-    /// "이 글이 놓인 길"(PostEdges)의 리치 소속 — 이 길을 엮은 큐레이터 · 이 글이 그 안에서 몇 번째(position)
+    /// "이 글이 담긴 컬렉션"(PostEdges)의 리치 소속 — 엮은 큐레이터 · 이 글이 그 안에서 몇 번째(position)
     /// / 전체 몇 편(total). 글 단위 소속 응답(#607)에만 오고, 다른 목록 표면엔 없어 nil 로 조용히 빠진다.
     let curatorUsername: String?
-    /// 이 글이 길 안에서 몇 번째인가(1부터). position 과 count/total 로 "N of M"으로 읽힌다. 없으면 count 폴백.
+    /// 이 글이 순서 있는 컬렉션 안에서 몇 번째인가(1부터). 없으면 순서 맥락 없이 담긴 수로 읽힌다.
     let position: Int?
-    /// 이 길의 전체 편 수(선택). 목록 응답엔 없어 count 로 폴백한다 — position 과 짝지어 순서 맥락을 준다.
+    /// 그 컬렉션의 전체 편 수(선택). 목록 응답엔 없어 count 로 폴백한다 — position 과 짝지어 순서 맥락을 준다.
     let total: Int?
     /// 이 컬렉션에 지금 대상(blockType·refId)이 이미 연결돼 있으면 그 연결 PK. "이 글을 어디에 남길까"를
     /// 물으며 부를 때(mine(blockType:refId:))만 채워져, 이미 담긴 컬렉션은 "연결됨"으로 표시하고 이 id 로 해제한다.
@@ -119,7 +122,7 @@ struct CollectionSummary: Decodable, Identifiable, Hashable {
     let connectionId: Int64?
 
     private enum CodingKeys: String, CodingKey {
-        case id, title, description, visibility, kind, count, preview
+        case id, title, description, visibility, kind, ordered, count, preview
         case curatorUsername, position, total, connectionId
     }
 
@@ -132,6 +135,7 @@ struct CollectionSummary: Decodable, Identifiable, Hashable {
         visibility = CollectionVisibility(rawValue: vis) ?? .private
         kind = CollectionKind(rawValue: try c.decodeIfPresent(String.self, forKey: .kind) ?? "")
             ?? .collection
+        ordered = try c.decodeIfPresent(Bool.self, forKey: .ordered)
         count = try c.decode(Int.self, forKey: .count)
         preview = try c.decodeIfPresent([String].self, forKey: .preview) ?? []
         curatorUsername = try c.decodeIfPresent(String.self, forKey: .curatorUsername)
@@ -143,13 +147,14 @@ struct CollectionSummary: Decodable, Identifiable, Hashable {
     /// 로컬 생성(낙관) — 새 컬렉션을 목록에 즉시 끼워 넣을 때.
     init(
         id: Int64, title: String, blurb: String?, visibility: CollectionVisibility,
-        kind: CollectionKind = .collection, count: Int
+        ordered: Bool = false, count: Int
     ) {
         self.id = id
         self.title = title
         self.blurb = blurb
         self.visibility = visibility
-        self.kind = kind
+        self.kind = CollectionKind(ordered: ordered)
+        self.ordered = ordered
         self.count = count
         self.preview = []
         self.curatorUsername = nil
@@ -186,11 +191,12 @@ struct CollectionDetail: Decodable, Identifiable, Hashable {
     let blurb: String?
     let visibility: CollectionVisibility
     let kind: CollectionKind
+    let ordered: Bool?
     let curatorUsername: String?
     let connections: [ConnectionItem]
 
     private enum CodingKeys: String, CodingKey {
-        case id, title, description, visibility, kind, curatorUsername, connections
+        case id, title, description, visibility, kind, ordered, curatorUsername, connections
     }
 
     init(from decoder: Decoder) throws {
@@ -202,6 +208,7 @@ struct CollectionDetail: Decodable, Identifiable, Hashable {
         visibility = CollectionVisibility(rawValue: vis) ?? .private
         kind = CollectionKind(rawValue: try c.decodeIfPresent(String.self, forKey: .kind) ?? "")
             ?? .collection
+        ordered = try c.decodeIfPresent(Bool.self, forKey: .ordered)
         curatorUsername = try c.decodeIfPresent(String.self, forKey: .curatorUsername)
         connections = try c.decodeIfPresent([ConnectionItem].self, forKey: .connections) ?? []
     }
@@ -217,12 +224,13 @@ struct ConnectionEvent: Decodable, Identifiable, Hashable {
     let collectionTitle: String
     let collectionId: Int64
     let collectionKind: CollectionKind
+    let collectionOrdered: Bool?
     let block: ConnectionBlock
     let why: String?
     let connectedAt: Date?
 
     private enum CodingKeys: String, CodingKey {
-        case id, curator, collectionId, collectionTitle, collectionKind, why, connectedAt
+        case id, curator, collectionId, collectionTitle, collectionKind, collectionOrdered, why, connectedAt
         case blockType, title, excerpt, slug, username, quote, body, noteId
     }
 
@@ -235,6 +243,7 @@ struct ConnectionEvent: Decodable, Identifiable, Hashable {
         collectionKind = CollectionKind(
             rawValue: try c.decodeIfPresent(String.self, forKey: .collectionKind) ?? "")
             ?? .collection
+        collectionOrdered = try c.decodeIfPresent(Bool.self, forKey: .collectionOrdered)
         why = try c.decodeIfPresent(String.self, forKey: .why)
         connectedAt = try c.decodeIfPresent(Date.self, forKey: .connectedAt)
         let type = try c.decode(String.self, forKey: .blockType)
@@ -290,6 +299,20 @@ struct DiscoverFeedResponse: Decodable {
         hasNext = try c.decodeIfPresent(Bool.self, forKey: .hasNext) ?? false
         source = try c.decodeIfPresent(DiscoverScope.self, forKey: .source) ?? .following
     }
+}
+
+/// 순서대로 읽는 컬렉션인가 — `ordered` 를 먼저 보고, 그 필드를 모르는 서버면 옛 `PATH` 로 읽는다.
+/// 모든 화면 분기는 이것 하나만 본다.
+extension CollectionSummary {
+    var isOrdered: Bool { ordered ?? (kind == .path) }
+}
+
+extension CollectionDetail {
+    var isOrdered: Bool { ordered ?? (kind == .path) }
+}
+
+extension ConnectionEvent {
+    var isOrdered: Bool { collectionOrdered ?? (collectionKind == .path) }
 }
 
 /// 컬렉션 상세로 가는 내비 값 — id 만 들고 가서 상세에서 API 로 불러온다.

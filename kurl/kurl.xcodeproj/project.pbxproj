@@ -14,6 +14,7 @@
 		C0A7B1E2D3F4A5B6C7D8E902 /* ContentTabBarTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0A7B1E2D3F4A5B6C7D8E901 /* ContentTabBarTests.swift */; };
 		AB10CE11F0A1B2C3D4E5F621 /* FeedPageChaseTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10CE11F0A1B2C3D4E5F622 /* FeedPageChaseTests.swift */; };
 		AB10CE11F0A1B2C3D4E5F651 /* ContentTranslationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10CE11F0A1B2C3D4E5F652 /* ContentTranslationTests.swift */; };
+		AB10CE11F0A1B2C3D4E5F661 /* CollectionOrderedTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10CE11F0A1B2C3D4E5F662 /* CollectionOrderedTests.swift */; };
 		AB10CE11F0A1B2C3D4E5F631 /* FeedRowLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10CE11F0A1B2C3D4E5F632 /* FeedRowLayoutTests.swift */; };
 		AB10CE11F0A1B2C3D4E5F641 /* FeedTabChoiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10CE11F0A1B2C3D4E5F642 /* FeedTabChoiceTests.swift */; };
 		C3BF9305E467C9F295C69974 /* SnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = 866D5741CA182CC42D365DD5 /* SnapshotTesting */; };
@@ -84,6 +85,7 @@
 		C0A7B1E2D3F4A5B6C7D8E901 /* ContentTabBarTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ContentTabBarTests.swift; sourceTree = "<group>"; };
 		AB10CE11F0A1B2C3D4E5F622 /* FeedPageChaseTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FeedPageChaseTests.swift; sourceTree = "<group>"; };
 		AB10CE11F0A1B2C3D4E5F652 /* ContentTranslationTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ContentTranslationTests.swift; sourceTree = "<group>"; };
+		AB10CE11F0A1B2C3D4E5F662 /* CollectionOrderedTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CollectionOrderedTests.swift; sourceTree = "<group>"; };
 		AB10CE11F0A1B2C3D4E5F632 /* FeedRowLayoutTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FeedRowLayoutTests.swift; sourceTree = "<group>"; };
 		AB10CE11F0A1B2C3D4E5F642 /* FeedTabChoiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FeedTabChoiceTests.swift; sourceTree = "<group>"; };
 		D3696C7C2FD48A89006D9F90 /* kurl.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = kurl.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -220,6 +222,7 @@
 				C0A7B1E2D3F4A5B6C7D8E901 /* ContentTabBarTests.swift */,
 				AB10CE11F0A1B2C3D4E5F622 /* FeedPageChaseTests.swift */,
 				AB10CE11F0A1B2C3D4E5F652 /* ContentTranslationTests.swift */,
+				AB10CE11F0A1B2C3D4E5F662 /* CollectionOrderedTests.swift */,
 				AB10CE11F0A1B2C3D4E5F632 /* FeedRowLayoutTests.swift */,
 				AB10CE11F0A1B2C3D4E5F642 /* FeedTabChoiceTests.swift */,
 				DEF2000000000000000000A2 /* WriteV2RoundTripTests.swift */,
@@ -422,6 +425,7 @@
 				C0A7B1E2D3F4A5B6C7D8E902 /* ContentTabBarTests.swift in Sources */,
 				AB10CE11F0A1B2C3D4E5F621 /* FeedPageChaseTests.swift in Sources */,
 				AB10CE11F0A1B2C3D4E5F651 /* ContentTranslationTests.swift in Sources */,
+				AB10CE11F0A1B2C3D4E5F661 /* CollectionOrderedTests.swift in Sources */,
 				AB10CE11F0A1B2C3D4E5F631 /* FeedRowLayoutTests.swift in Sources */,
 				AB10CE11F0A1B2C3D4E5F641 /* FeedTabChoiceTests.swift in Sources */,
 				DEF2000000000000000000A1 /* WriteV2RoundTripTests.swift in Sources */,

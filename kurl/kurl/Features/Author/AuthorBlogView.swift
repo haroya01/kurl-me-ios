@@ -19,7 +19,7 @@ struct AuthorBlogView: View {
 
     @State private var phase: LoadState<PublicPostListView> = .idle
     @State private var series: [SeriesListItem] = []
-    /// 이 작가가 공개로 엮은 컬렉션(길) — 큐레이션을 프로필 표면으로. 미로그인도 목록은 본다.
+    /// 이 작가가 공개로 엮은 컬렉션 — 큐레이션을 프로필 표면으로. 미로그인도 목록은 본다.
     @State private var collections: [CollectionSummary] = []
     /// 미로그인이 컬렉션을 누르면 — 상세는 인증 면이라 로그인으로 잇는다(막다른 길 금지).
     @State private var showCollectionLogin = false
@@ -489,9 +489,11 @@ struct AuthorBlogView: View {
         LazyVStack(spacing: 0) {
             ForEach(Array(collections.enumerated()), id: \.element.id) { index, item in
                 let row = catalogRow(
-                    title: item.title, detail: Text("\(item.count)개"),
-                    systemImage: item.kind == .path
-                        ? "point.topleft.down.to.point.bottomright.curvepath" : "square.stack")
+                    title: item.title,
+                    detail: item.isOrdered
+                        ? Text("순서대로 읽기") + Text(verbatim: " · ") + Text("\(item.count)개")
+                        : Text("\(item.count)개"),
+                    systemImage: "folder")
                 Group {
                     if AuthStore.shared.isSignedIn {
                         NavigationLink(value: Route.collection(id: item.id)) { row }

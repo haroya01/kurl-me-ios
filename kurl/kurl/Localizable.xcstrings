@@ -871,35 +871,6 @@
         }
       }
     },
-    "%@가 %@ 길에 엮음": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ wove into %@"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ ने %@ पथ में पिरोया"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@が%@の道に編んだ"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ đã đan vào %@"
-          }
-        }
-      }
-    },
     "%@가 %@에 연결": {
       "extractionState": "manual",
       "localizations": {
@@ -2962,6 +2933,34 @@
         }
       }
     },
+    "%lld편 중 %lld번째": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%2$lld of %1$lld"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld में से %2$lld"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld編中 %2$lld番目"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%2$lld trên %1$lld"
+          }
+        }
+      }
+    },
     "%lld편 중 %lld편 읽음": {
       "localizations": {
         "en": {
@@ -3389,59 +3388,21 @@
         }
       }
     },
-    "@%@ · %lld번째 / 전체 %lld": {
+    "@%@ · %lld개": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "@%1$@ · %2$lld of %3$lld"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "@%1$@ · %3$lld में से %2$lld"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "@%1$@ · %3$lld本中 %2$lld番目"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "@%1$@ · %2$lld trên %3$lld"
-          }
-        }
-      }
-    },
-    "@%@ · %lld편": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "@%1$@ · %#@posts@"
-          },
-          "substitutions": {
-            "posts": {
-              "argNum": 2,
-              "formatSpecifier": "lld",
-              "variations": {
-                "plural": {
-                  "one": {
-                    "stringUnit": {
-                      "state": "translated",
-                      "value": "%arg post"
-                    }
-                  },
-                  "other": {
-                    "stringUnit": {
-                      "state": "translated",
-                      "value": "%arg posts"
-                    }
-                  }
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "@%@ · %lld item"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "@%@ · %lld items"
                 }
               }
             }
@@ -3450,19 +3411,47 @@
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "@%1$@ · %2$lld पोस्ट"
+            "value": "@%@ · %lld आइटम"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "@%1$@ · %2$lld本"
+            "value": "@%@ · %lld件"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "@%1$@ · %2$lld bài"
+            "value": "@%@ · %lld mục"
+          }
+        }
+      }
+    },
+    "@%@ · %lld편 중 %lld번째": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "@%1$@ · %3$lld of %2$lld"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "@%1$@ · %2$lld में से %3$lld"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "@%1$@ · %2$lld編中 %3$lld番目"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "@%1$@ · %3$lld trên %2$lld"
           }
         }
       }
@@ -6376,6 +6365,174 @@
         }
       }
     },
+    "내 글이 엮인 컬렉션에 새 글이 이어질 때": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When a new post is connected to a collection that has your post"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जब आपकी पोस्ट वाले संग्रह में कोई नई पोस्ट जुड़े"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自分の記事がつながっているコレクションに、新しい記事がつながったとき"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khi một bài mới được nối vào bộ sưu tập có bài của bạn"
+          }
+        }
+      }
+    },
+    "번호를 붙여 차례로 읽게 하고, 어디까지 읽었는지 이어 줘요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Numbers each item and remembers how far you've read."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "हर आइटम पर क्रमांक लगाता है और याद रखता है कि आपने कहाँ तक पढ़ा।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "番号を付けて順に読み、どこまで読んだかを引き継ぎます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đánh số từng mục và nhớ bạn đã đọc đến đâu."
+          }
+        }
+      }
+    },
+    "순서대로 읽기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read in order"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "क्रम से पढ़ें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "順番に読む"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đọc theo thứ tự"
+          }
+        }
+      }
+    },
+    "엮인 컬렉션에 새 글이 이어질 때": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New posts in a collection with your post"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपकी पोस्ट वाले संग्रह में नई पोस्ट"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "つながっているコレクションの新着"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bài mới trong bộ sưu tập có bài của bạn"
+          }
+        }
+      }
+    },
+    "이 글이 담긴 컬렉션": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collections this post is in"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस पोस्ट वाले संग्रह"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この記事が入っているコレクション"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bộ sưu tập có bài viết này"
+          }
+        }
+      }
+    },
+    "이 문장이 담긴 컬렉션": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Collections this sentence is in"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस वाक्य वाले संग्रह"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この文が入っているコレクション"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bộ sưu tập có câu này"
+          }
+        }
+      }
+    },
     "팔로잉을 보려면 로그인하세요": {
       "localizations": {
         "en": {
@@ -7734,174 +7891,6 @@
         }
       }
     },
-    "길": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Path"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "पथ"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "パス"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lối đi"
-          }
-        }
-      }
-    },
-    "길 삭제": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Delete path"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "राह हटाएँ"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "道を削除"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Xóa đường"
-          }
-        }
-      }
-    },
-    "길 수정": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Edit path"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "पथ संपादित करें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "パスを編集"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sửa lối đi"
-          }
-        }
-      }
-    },
-    "길 이름": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Path name"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "पथ का नाम"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "パス名"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tên lối đi"
-          }
-        }
-      }
-    },
-    "길에 엮음": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "· woven into a path"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "· राह में पिरोया"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "に編む"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "· đan vào đường"
-          }
-        }
-      }
-    },
-    "길을 만들지 못했습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Couldn't create the path"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "राह नहीं बनाई जा सकी"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "道を作成できませんでした"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Không thể tạo lối đi"
-          }
-        }
-      }
-    },
     "꺼짐": {
       "localizations": {
         "en": {
@@ -8798,34 +8787,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Khi tác giả sửa ghi chú bạn đã đăng lại hoặc trích dẫn"
-          }
-        }
-      }
-    },
-    "내가 엮인 길에 새 글이 이어질 때": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "When a new post joins a path you’re part of"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "जब कोई नई पोस्ट आपकी शामिल राह में जुड़े"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "あなたがつながっている道に新しい記事が加わったとき"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Khi một bài viết mới nối vào con đường bạn tham gia"
           }
         }
       }
@@ -23698,62 +23659,6 @@
         }
       }
     },
-    "새 길": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "New path"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "नई राह"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "新しい道"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Đường mới"
-          }
-        }
-      }
-    },
-    "새 길 만들기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Create a new path"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "नई राह बनाएँ"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "新しい道を作成"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tạo đường mới"
-          }
-        }
-      }
-    },
     "새 노트": {
       "localizations": {
         "en": {
@@ -24368,34 +24273,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sắp xếp lại"
-          }
-        }
-      }
-    },
-    "순서로 엮기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ordered"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "क्रम में"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "順序あり"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "có thứ tự"
           }
         }
       }
@@ -26185,34 +26062,6 @@
         }
       }
     },
-    "엮인 길에 새 글이 이어질 때": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "When a path you’re part of grows"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "जब आपकी शामिल राह में नई पोस्ट जुड़े"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "つながっている道に新しい記事が続くとき"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Khi con đường bạn tham gia có bài viết mới"
-          }
-        }
-      }
-    },
     "연결 끊기": {
       "localizations": {
         "en": {
@@ -27451,34 +27300,6 @@
         }
       }
     },
-    "이 글이 놓인 길": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Paths this post is on"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "इस पोस्ट की राहें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "この記事が置かれた道"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Đường mà bài này nằm trên"
-          }
-        }
-      }
-    },
     "이 글이 들어갈 새 시리즈를 만듭니다. 제목은 나중에 시리즈에서 바꿀 수 있어요.": {
       "localizations": {
         "en": {
@@ -27503,34 +27324,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tạo series mới chứa bài này. Bạn có thể đổi tiêu đề trong series sau."
-          }
-        }
-      }
-    },
-    "이 길을 삭제할까요?": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Delete this path?"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "क्या इस राह को हटाना चाहते हैं?"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "この道を削除しますか？"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Xóa đường này?"
           }
         }
       }
@@ -27727,34 +27520,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bỏ câu này"
-          }
-        }
-      }
-    },
-    "이 문장이 속한 길": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Paths this sentence belongs to"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "वे राहें जिनसे यह वाक्य जुड़ा है"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "この文が属する道"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Những đường mà câu này thuộc về"
           }
         }
       }
@@ -35815,7 +35580,7 @@
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "‘%@’ में एक नई पोस्ट जुड़ी, जिस राह का हिस्सा आप हैं"
+            "value": "‘%@’ में एक नई पोस्ट जुड़ी, जिसमें आपकी पोस्ट है"
           }
         },
         "ja": {
@@ -35827,7 +35592,7 @@
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Một bài viết mới đã nối vào ‘%@’, con đường bạn tham gia"
+            "value": "Một bài viết mới đã nối vào ‘%@’, nơi có bài của bạn"
           }
         }
       }

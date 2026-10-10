@@ -2,15 +2,15 @@
 //  PathResumeStore.swift
 //  kurl
 //
-//  길(PATH)을 "목록"이 아니라 "이어서 읽어 내려가는 것"으로 만드는 기기 로컬 이어읽기 기억.
+//  순서대로 읽는 컬렉션을 "목록"이 아니라 "이어서 읽어 내려가는 것"으로 만드는 기기 로컬 이어읽기 기억.
 //  연결 응답엔 postId 가 없어(username/slug 만) PostReadStore(postId 키)를 그대로 쓸 수 없다 —
-//  그래서 길 단위로 "어디까지 걸었나"(가장 멀리 도달한 스텝 index)만 기기에 남긴다. 서버 0.
+//  그래서 컬렉션 단위로 "어디까지 걸었나"(가장 멀리 도달한 스텝 index)만 기기에 남긴다. 서버 0.
 //  PostReadStore 와 같은 결: 메모리가 단일 진실원, UserDefaults 는 영속 사본, 로그아웃 시 reset.
 //
 
 import SwiftUI
 
-/// 길별 이어읽기 위치 — key = collectionId, value = 가장 멀리 도달한 스텝 index(0-based).
+/// 컬렉션별 이어읽기 위치 — key = collectionId, value = 가장 멀리 도달한 스텝 index(0-based).
 /// 스텝을 열 때만 앞으로 나아가고 뒤로는 안 간다(한 번 지나온 길은 지나온 것). @Observable 이라
 /// 스텝을 읽고 돌아오면 현재 스텝 강조·진행률·연속성 바가 곧바로 갱신된다.
 @MainActor
@@ -40,7 +40,7 @@ final class PathResumeStore {
         }
     }
 
-    /// 이 길에서 가장 멀리 도달한 스텝 index. 아직 아무 데도 안 걸었으면 nil.
+    /// 이 컬렉션에서 가장 멀리 도달한 스텝 index. 아직 아무 데도 안 걸었으면 nil.
     func furthestStep(collectionId: Int64) -> Int? {
         furthest[collectionId]
     }

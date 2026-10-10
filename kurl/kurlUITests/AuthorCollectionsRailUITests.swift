@@ -5,7 +5,7 @@
 
 import XCTest
 
-/// 작가 프로필의 "컬렉션" 탭 — 큐레이션(엮은 길)이 프로필 탭으로 뜨고,
+/// 작가 프로필의 "컬렉션" 탭 — 큐레이션(엮은 컬렉션)이 프로필 탭으로 뜨고,
 /// 카드를 탭하면 그 컬렉션 상세로 항해하는지 실기기 경로로 확인한다(목 공개 컬렉션).
 final class AuthorCollectionsRailUITests: XCTestCase {
 

@@ -5,8 +5,8 @@
 
 import XCTest
 
-/// A 척추 — reading path(PATH 컬렉션)가 리스트가 아니라 가이드 워크(문장→왜→문장)로 읽히고,
-/// 인용을 탭하면 그 글의 그 지점으로 딥링크되는지 실기기 경로로 확인한다(목 PATH 컬렉션 104).
+/// A 척추 — 순서대로 읽는 컬렉션이 리스트가 아니라 가이드 워크(문장→왜→문장)로 읽히고,
+/// 인용을 탭하면 그 글의 그 지점으로 딥링크되는지 실기기 경로로 확인한다(목 컬렉션 104, ordered).
 final class CollectionPathUITests: XCTestCase {
 
     override func setUpWithError() throws {
@@ -35,13 +35,13 @@ final class CollectionPathUITests: XCTestCase {
             app.descendants(matching: .any)
                 .matching(NSPredicate(format: "label CONTAINS '경계를 긋는다는 것'")).firstMatch
                 .waitForExistence(timeout: 15),
-            "길 헤더가 없음")
+            "컬렉션 헤더가 없음")
         for quote in ["경계가 없으면", "다시 돌아가라면", "재현이 안 되는 버그"] {
             XCTAssertTrue(
                 app.descendants(matching: .any)
                     .matching(NSPredicate(format: "label CONTAINS %@", quote)).firstMatch
                     .waitForExistence(timeout: 5),
-                "길에 인용이 빠짐: \(quote)")
+                "가이드 워크에 인용이 빠짐: \(quote)")
         }
         shot("1-path-guided-walk")
 
@@ -59,7 +59,7 @@ final class CollectionPathUITests: XCTestCase {
         }
     }
 
-    /// Stage 3 — 길 주인이 순서 편집 시트를 열어 저장(드래그 reorder → reorder API).
+    /// Stage 3 — 주인이 순서 편집 시트를 열어 저장(드래그 reorder → reorder API).
     func testPathReorderSheetOpensAndSaves() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--screen", "collection-detail", "--collection", "104"]
@@ -78,40 +78,52 @@ final class CollectionPathUITests: XCTestCase {
         let save = app.buttons["저장"]
         XCTAssertTrue(save.waitForExistence(timeout: 3))
         save.tap()
-        // 저장 후 길 상세로 복귀.
+        // 저장 후 컬렉션 상세로 복귀.
         XCTAssertTrue(
             app.descendants(matching: .any)
                 .matching(NSPredicate(format: "label CONTAINS '경계를 긋는다는 것'")).firstMatch
                 .waitForExistence(timeout: 6),
-            "저장 후 길 상세 복귀 실패")
+            "저장 후 컬렉션 상세 복귀 실패")
     }
 
-    /// Stage 3 — 연결 시트가 '새 길 만들기'(PATH)를 제공하고, 누르면 길이 만들어져 선택된다.
-    func testConnectSheetOffersNewPath() throws {
+    /// 연결 시트는 길·컬렉션을 고르게 하지 않는다 — 만들기는 하나이고, 순서는 그 안의 스위치다.
+    func testConnectSheetMakesAnOrderedCollection() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--screen", "connect"]
         app.launch()
 
         XCTAssertTrue(
             app.navigationBars["어디에 남길까요?"].waitForExistence(timeout: 15), "연결 시트가 안 뜸")
-        let newPath =
-            app.buttons.matching(NSPredicate(format: "label CONTAINS '새 길 만들기'")).firstMatch
-        XCTAssertTrue(newPath.waitForExistence(timeout: 5), "'새 길 만들기'가 없음")
-        shot("4-connect-new-path")
-        newPath.tap()
-        let create = app.buttons["만들기"].firstMatch
-        XCTAssertTrue(create.waitForExistence(timeout: 5), "새 길 시트가 안 뜸")
-        create.tap()
-        // 길이 생성·선택되어 '다음'이 활성.
+        let newCollection =
+            app.buttons.matching(NSPredicate(format: "label CONTAINS '새 컬렉션 만들기'")).firstMatch
+        XCTAssertTrue(newCollection.waitForExistence(timeout: 5), "'새 컬렉션 만들기'가 없음")
+        XCTAssertFalse(anyElement(containing: "새 길").exists, "고르게 하는 '새 길' 줄이 남음")
+        newCollection.tap()
+
+        let name = app.textFields["컬렉션 이름"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5), "새 컬렉션 시트가 안 뜸")
+        name.tap()
+        name.typeText("경계 읽기")
+        let ordered = app.switches["collection.ordered"]
+        XCTAssertTrue(ordered.waitForExistence(timeout: 3), "'순서대로 읽기' 스위치가 없음")
+        XCTAssertEqual(ordered.value as? String, "0", "순서대로 읽기 기본값이 켜져 있음")
+        ordered.switches.firstMatch.tap()
+        XCTAssertEqual(ordered.value as? String, "1", "'순서대로 읽기'가 켜지지 않음")
+        shot("4-new-collection-ordered")
+        app.buttons["만들기"].firstMatch.tap()
+
         XCTAssertTrue(
             app.buttons.matching(NSPredicate(format: "label CONTAINS '다음'")).firstMatch
                 .waitForExistence(timeout: 5),
-            "새 길 생성 후 선택 안 됨")
-        shot("5-new-path-created")
+            "새 컬렉션 생성 후 선택 안 됨")
+        let made = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS '경계 읽기' AND label CONTAINS '순서대로 읽기'")).firstMatch
+        XCTAssertTrue(made.waitForExistence(timeout: 5), "새 컬렉션 줄에 '순서대로 읽기' 표식이 없음")
+        shot("5-ordered-collection-created")
     }
 
-    /// Stage 4a — 홈 피드에 끼는 공개 연결에서 PATH 연결이 '길에 엮음'으로 구분된다.
-    func testFeedMarksPathConnections() throws {
+    /// 홈 피드의 공개 연결은 순서와 상관없이 같은 문장 하나로 읽힌다('길에 엮음' 없음).
+    func testFeedConnectionsReadTheSameForOrderedCollections() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--logged-out", "--feed", "recent"]
         app.launch()
@@ -122,17 +134,17 @@ final class CollectionPathUITests: XCTestCase {
         }
         _ = app.buttons["최신"].firstMatch.waitForExistence(timeout: 12)
 
-        let pathLabel = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "label CONTAINS '길에 엮음'")).firstMatch
-        for _ in 0..<8 where !(pathLabel.exists && pathLabel.isHittable) {
+        let line = anyElement(containing: "경계를 긋는다는 것에 연결")
+        for _ in 0..<8 where !(line.exists && line.isHittable) {
             app.swipeUp()
         }
-        XCTAssertTrue(pathLabel.exists, "홈 피드의 공개 연결에 '길에 엮음' 표시가 없음")
-        shot("6-feed-path-card")
+        XCTAssertTrue(line.exists, "순서 있는 컬렉션 연결이 '…에 연결'로 읽히지 않음")
+        XCTAssertFalse(anyElement(containing: "길에 엮음").exists, "'길에 엮음'이 남음")
+        shot("6-feed-ordered-connection")
     }
 
-    /// Stage 4b — 하이라이트 스레드에 '이 문장이 속한 길' 섹션이 뜨고, 길을 탭하면 가이드 워크로.
-    func testThreadShowsContainingPaths() throws {
+    /// 하이라이트 스레드에 '이 문장이 담긴 컬렉션' 섹션이 뜨고, 순서 있는 컬렉션을 탭하면 가이드 워크로.
+    func testThreadShowsContainingCollections() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--post", "honggildong/hexagonal-after-3-months"]
         app.launch()
@@ -143,23 +155,44 @@ final class CollectionPathUITests: XCTestCase {
         XCTAssertTrue(app.tapHighlight(in: paragraph, at: [CGVector(dx: 0.55, dy: 0.16), CGVector(dx: 0.5, dy: 0.1)]), "하이라이트 탭으로 카드가 안 뜸")
         XCTAssertTrue(app.openConversationFromCard(), "카드에서 대화가 안 열림")
 
-        // '이 문장이 속한 길' 섹션 + 길 제목(컬렉션 104 = '경계를 긋는다는 것').
-        let section = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "label CONTAINS '이 문장이 속한 길'")).firstMatch
-        XCTAssertTrue(section.waitForExistence(timeout: 6), "'이 문장이 속한 길' 섹션이 없음")
-        shot("7-thread-containing-paths")
-        let pathTitle = app.buttons.matching(
+        let section = anyElement(containing: "이 문장이 담긴 컬렉션")
+        XCTAssertTrue(section.waitForExistence(timeout: 6), "'이 문장이 담긴 컬렉션' 섹션이 없음")
+        XCTAssertFalse(anyElement(containing: "이 문장이 속한 길").exists)
+        shot("7-thread-containing-collections")
+        let ordered = app.buttons.matching(
             NSPredicate(format: "label CONTAINS '경계를 긋는다는 것'")).firstMatch
-        if pathTitle.waitForExistence(timeout: 4) {
-            pathTitle.tap()
-            // 길로 진입 — 워크 첫 인용(상단, 렌더됨)으로 확인. 3번째는 medium 시트 밖이라 lazy 미렌더.
+        if ordered.waitForExistence(timeout: 4) {
+            ordered.tap()
+            // 워크 첫 인용(상단, 렌더됨)으로 확인. 3번째는 medium 시트 밖이라 lazy 미렌더.
             XCTAssertTrue(
-                app.descendants(matching: .any)
-                    .matching(NSPredicate(format: "label CONTAINS '경계가 없으면'")).firstMatch
-                    .waitForExistence(timeout: 8),
-                "길 탭 후 가이드 워크가 안 열림")
-            shot("8-path-from-thread")
+                anyElement(containing: "경계가 없으면").waitForExistence(timeout: 8),
+                "순서 있는 컬렉션 탭 후 가이드 워크가 안 열림")
+            shot("8-ordered-from-thread")
         }
+    }
+
+    /// 글 끝은 '이 글이 담긴 컬렉션' 하나 — 자리를 아는 순서 있는 컬렉션은 "N편 중 M번째",
+    /// 나머지는 "@큐레이터 · N개"(목 소속: 104 ordered 2/4 · 101 sori 12개 · 107 큐레이터 없음 8개).
+    func testPostEndListsTheCollectionsItIsIn() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--post", "honggildong/hexagonal-after-3-months"]
+        app.launch()
+
+        let ordered = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS '다시 읽는 아키텍처'")).firstMatch
+        _ = anyElement(containing: "돌아가라면").waitForExistence(timeout: 15)
+        for _ in 0..<14 where !(ordered.exists && ordered.isHittable) {
+            app.swipeUp()
+        }
+        XCTAssertTrue(ordered.exists, "글 끝에 담긴 컬렉션이 없음")
+        XCTAssertTrue(anyElement(containing: "이 글이 담긴 컬렉션").exists, "'이 글이 담긴 컬렉션' 제목이 없음")
+        XCTAssertFalse(anyElement(containing: "이 글이 놓인 길").exists)
+        XCTAssertTrue(ordered.label.contains("@minji · 4편 중 2번째"), "순서 줄: \(ordered.label)")
+        let curated = app.buttons.matching(NSPredicate(format: "label CONTAINS '경계를 긋는 법'")).firstMatch
+        XCTAssertTrue(curated.label.contains("@sori · 12개"), "큐레이터 줄: \(curated.label)")
+        let bare = app.buttons.matching(NSPredicate(format: "label CONTAINS '회고 모음'")).firstMatch
+        XCTAssertTrue(bare.label.contains("8개"), "개수 줄: \(bare.label)")
+        shot("13-post-end-collections")
     }
 
     /// 회귀 — 연결 시트의 '다음'·'추가'가 실제로 눌린다(유리 캡슐이 라벨 안에 있어 히트테스트가
@@ -172,13 +205,16 @@ final class CollectionPathUITests: XCTestCase {
         // 콜드 부팅 직후 첫 UI 테스트는 AX 서버 응답이 느리다 — 첫 대기만 넉넉히.
         XCTAssertTrue(
             app.navigationBars["어디에 남길까요?"].waitForExistence(timeout: 40), "연결 시트가 안 뜸")
-        // 새 길 만들기 = 이름 시트(타깃 제목이 제안으로 채워짐)를 거쳐 만들어지며 선택됨 → '다음' 활성.
-        let newPath =
-            app.buttons.matching(NSPredicate(format: "label CONTAINS '새 길 만들기'")).firstMatch
-        XCTAssertTrue(newPath.waitForExistence(timeout: 5), "'새 길 만들기'가 없음")
-        newPath.tap()
+        // 새 컬렉션 만들기 = 이름 시트를 거쳐 만들어지며 선택됨 → '다음' 활성.
+        let newCollection =
+            app.buttons.matching(NSPredicate(format: "label CONTAINS '새 컬렉션 만들기'")).firstMatch
+        XCTAssertTrue(newCollection.waitForExistence(timeout: 5), "'새 컬렉션 만들기'가 없음")
+        newCollection.tap()
+        let name = app.textFields["컬렉션 이름"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5), "컬렉션 이름 시트가 안 뜸")
+        name.tap()
+        name.typeText("다시 볼 것")
         let createButton = app.buttons["만들기"].firstMatch
-        XCTAssertTrue(createButton.waitForExistence(timeout: 5), "길 이름 시트가 안 뜸")
         createButton.tap()
         let next = app.buttons.matching(NSPredicate(format: "label CONTAINS '다음'")).firstMatch
         XCTAssertTrue(next.waitForExistence(timeout: 5), "'다음'이 없음")
@@ -201,6 +237,7 @@ final class CollectionPathUITests: XCTestCase {
     }
 
     /// 회귀 — 컬렉션 수정 시트의 '저장'이 실제로 눌린다(같은 유리 캡슐 사고 가족).
+    /// 순서 없는 컬렉션에 '순서대로 읽기'를 켜고 저장하면 그 자리에서 가이드 워크(번호)로 바뀐다.
     func testEditCollectionSaveIsTappable() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--screen", "collection-detail", "--collection", "101"]
@@ -208,10 +245,15 @@ final class CollectionPathUITests: XCTestCase {
 
         let manage = app.buttons["컬렉션 관리"]
         XCTAssertTrue(manage.waitForExistence(timeout: 15), "관리 메뉴가 없음")
+        XCTAssertFalse(anyElement(containing: "지금 여기").exists, "순서 없는 컬렉션에 진행 길잡이가 있음")
         manage.tap()
         let edit = app.buttons.matching(NSPredicate(format: "label CONTAINS '수정'")).firstMatch
         XCTAssertTrue(edit.waitForExistence(timeout: 5), "'수정' 메뉴가 없음")
         edit.tap()
+        let ordered = app.switches["collection.ordered"]
+        XCTAssertTrue(ordered.waitForExistence(timeout: 6), "수정 시트에 '순서대로 읽기'가 없음")
+        XCTAssertEqual(ordered.value as? String, "0")
+        ordered.switches.firstMatch.tap()
         let save = app.buttons.matching(NSPredicate(format: "label CONTAINS '저장'")).firstMatch
         XCTAssertTrue(save.waitForExistence(timeout: 6), "'저장'이 없음")
         save.tap()
@@ -222,7 +264,10 @@ final class CollectionPathUITests: XCTestCase {
                     .matching(NSPredicate(format: "label CONTAINS '컬렉션 수정'")).firstMatch,
                 timeout: 8),
             "'저장' 탭 후 수정 시트가 안 닫힘(캡슐 히트테스트 회귀)")
-        shot("11-edit-saved")
+        XCTAssertTrue(
+            anyElement(containing: "지금 여기").waitForExistence(timeout: 6),
+            "순서대로 읽기를 켠 뒤 가이드 워크로 바뀌지 않음")
+        shot("11-edit-saved-ordered")
     }
 
     /// 회귀 — 피드 카드의 "…에 담김" 줄을 탭하면 글이 아니라 그 컬렉션 상세로 간다

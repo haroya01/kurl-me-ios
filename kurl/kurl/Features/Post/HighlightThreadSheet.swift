@@ -23,7 +23,7 @@ struct HighlightThreadSheet: View {
     @State private var busy = false
     @State private var sendFailed = false
     @State private var showDeleteConfirm = false
-    /// 이 문장이 속한 공개 길/컬렉션 — A 척추 발견 고리(한 문장 → 그것이 엮인 길들로).
+    /// 이 문장이 담긴 공개 컬렉션 — A 척추 발견 고리(한 문장 → 그것이 엮인 컬렉션들로).
     @State private var inCollections: [CollectionSummary] = []
     /// 이 문장과 같은 공개 컬렉션에 함께 놓인 다른 블록 — "이것과 이어진 것"(공동 등장 발견 고리).
     @State private var related: [RelatedBlock] = []
@@ -108,14 +108,14 @@ struct HighlightThreadSheet: View {
                         .buttonStyle(.plain)
                     }
 
-                    // ── 이 문장이 속한 길 — 한 문장에서 그것이 엮인 길/컬렉션으로(A 척추 발견 고리).
+                    // ── 이 문장이 담긴 컬렉션 — 한 문장에서 그것이 엮인 컬렉션으로(A 척추 발견 고리).
                     if !inCollections.isEmpty {
                         Rectangle()
                             .fill(Palette.hairline)
                             .frame(height: 1)
                             .padding(.horizontal, Metrics.gutter)
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("이 문장이 속한 길")
+                            Text("이 문장이 담긴 컬렉션")
                                 .typeScale(.eyebrow)
                                 .tracking(0.4)
                                 .foregroundStyle(Palette.faint)
@@ -365,10 +365,10 @@ struct HighlightThreadSheet: View {
             ?? []
     }
 
-    /// "이 문장이 속한 길" 한 줄 — 길 글리프(또는 컬렉션) + 제목 + 담긴 수.
+    /// "이 문장이 담긴 컬렉션" 한 줄 — 폴더 글리프 + 제목 + 담긴 수.
     private func containingRow(_ c: CollectionSummary) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: c.kind == .path ? "arrow.turn.down.right" : "square.grid.2x2")
+            Image(systemName: "folder")
                 .font(.system(size: 12 * metaUnit, weight: .bold))
                 .foregroundStyle(Palette.accent)
             Text(c.title)
@@ -376,7 +376,7 @@ struct HighlightThreadSheet: View {
                 .foregroundStyle(Palette.ink)
                 .lineLimit(1)
             Spacer(minLength: 6)
-            Text("\(c.count)")
+            Text("\(c.count)개")
                 .typeScale(.meta)
                 .foregroundStyle(Palette.faint)
             Image(systemName: "chevron.right")

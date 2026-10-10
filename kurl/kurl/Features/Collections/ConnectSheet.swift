@@ -29,14 +29,7 @@ struct ConnectSheet: View {
     @State private var loading = true
     @State private var failed = false
     @State private var saving = false
-    /// 생성 시트 요청 — kind 를 item 에 실어 원자적으로 전달한다. isPresented+별도 상태 조합은
-    /// 같은 틱에 세팅하면 시트 콘텐츠가 stale kind 로 캡처되는 함정(길이 컬렉션으로 뜸).
-    @State private var createRequest: CreateRequest?
-
-    private struct CreateRequest: Identifiable {
-        let kind: CollectionKind
-        var id: String { kind.rawValue }
-    }
+    @State private var creating = false
     /// 성공 햅틱 트리거 — 만들기·연결이 끝나면 +1(§10 살아 있는 절제).
     @State private var didConnect = 0
     @State private var didCreate = 0
@@ -56,11 +49,8 @@ struct ConnectSheet: View {
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .background(Palette.readingBg)
-        .sheet(item: $createRequest) { req in
-            CreateCollectionSheet(
-                kind: req.kind,
-                initialTitle: req.kind == .path ? targetTitle : ""
-            ) { created in
+        .sheet(isPresented: $creating) {
+            CreateCollectionSheet { created in
                 collections.insert(created, at: 0)
                 selected.insert(created.id)
                 didCreate += 1
@@ -127,7 +117,6 @@ struct ConnectSheet: View {
                             Hairline()
                         }
                         newCollectionRow
-                        newPathRow
                     }
                 }
                 .scrollIndicators(.hidden)
@@ -194,7 +183,7 @@ struct ConnectSheet: View {
         }
     }
 
-    /// 행 왼쪽 — 제목 · 미리보기 한 줄 · 메타(길·공개범위·개수). 선택 행과 연결됨 행이 함께 쓴다.
+    /// 행 왼쪽 — 제목 · 미리보기 한 줄 · 메타(순서·공개범위·개수). 선택 행과 연결됨 행이 함께 쓴다.
     private func rowMeta(_ c: CollectionSummary) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(c.title)
@@ -210,12 +199,11 @@ struct ConnectSheet: View {
                     .truncationMode(.tail)
             }
             HStack(spacing: 5) {
-                if c.kind == .path {
-                    Image(systemName: "arrow.turn.down.right")
+                if c.isOrdered {
+                    Image(systemName: "list.number")
                         .font(.system(size: 10 * metaUnit, weight: .bold))
                         .foregroundStyle(Palette.accent)
-                    Text("길")
-                        .foregroundStyle(Palette.accent)
+                    Text("순서대로 읽기")
                     Text("·")
                 }
                 Image(systemName: c.visibility.icon)
@@ -269,7 +257,7 @@ struct ConnectSheet: View {
 
     private var newCollectionRow: some View {
         Button {
-            createRequest = CreateRequest(kind: .collection)
+            creating = true
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: "plus")
@@ -279,31 +267,6 @@ struct ConnectSheet: View {
                 Text("새 컬렉션 만들기")
                     .typeScale(.titleSmall)
                     .foregroundStyle(Palette.ink)
-                Spacer(minLength: 0)
-            }
-            .padding(.vertical, 13)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(RowButtonStyle())
-    }
-
-    /// 새 길(PATH) 만들기 — 순서로 엮는 reading path. 문장을 가로질러 하나의 흐름으로.
-    /// 타깃 제목은 시작 이름 *제안*으로만 넘긴다 — 자동 확정 명명은 06-17 리뷰 지적.
-    private var newPathRow: some View {
-        Button {
-            createRequest = CreateRequest(kind: .path)
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "arrow.turn.down.right")
-                    .font(.system(size: 14 * unit, weight: .semibold))
-                    .foregroundStyle(Palette.accent)
-                    .frame(width: 22)
-                Text("새 길 만들기")
-                    .typeScale(.titleSmall)
-                    .foregroundStyle(Palette.ink)
-                Text("순서로 엮기")
-                    .typeScale(.meta)
-                    .foregroundStyle(Palette.faint)
                 Spacer(minLength: 0)
             }
             .padding(.vertical, 13)

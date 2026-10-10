@@ -101,10 +101,7 @@ struct ConnectionEventRow: View {
     private var contextText: Text {
         let curator = Text(event.curator.username).foregroundStyle(Palette.secondary)
         let collection = Text(event.collectionTitle).foregroundStyle(Palette.link)
-        let phrase: Text = event.collectionKind == .path
-            ? Text("\(curator)가 \(collection) 길에 엮음")
-            : Text("\(curator)가 \(collection)에 연결")
-        var line = phrase.foregroundStyle(Palette.secondary)
+        var line = Text("\(curator)가 \(collection)에 연결").foregroundStyle(Palette.secondary)
         if let at = event.connectedAt {
             line = line
                 + Text(verbatim: "  ·  ").foregroundStyle(Palette.faint)

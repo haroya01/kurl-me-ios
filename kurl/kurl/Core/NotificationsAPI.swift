@@ -6,7 +6,7 @@
 import Foundation
 
 /// 인앱 알림 — 좋아요·댓글·답글·팔로우·시리즈 구독·새 글·멘션, 그리고 연결 그래프
-/// (내 글이 컬렉션에 엮임 · 내가 엮인 길에 새 글). 커서 페이지네이션(before).
+/// (내 글이 컬렉션에 엮임 · 내 글이 엮인 컬렉션에 새 글). 커서 페이지네이션(before).
 enum NotificationsAPI {
     private static let client = APIClient.shared
 

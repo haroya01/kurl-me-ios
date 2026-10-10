@@ -2,13 +2,13 @@
 //  PostEdges.swift
 //  kurl
 //
-//  글 = 엣지가 보이는 노드(§0). 다 읽은 뒤 본문 끝에서, 이 글이 놓인 길 · 이어진 것 · 이은 사람으로
+//  글 = 엣지가 보이는 노드(§0). 다 읽은 뒤 본문 끝에서, 이 글이 담긴 컬렉션 · 이어진 것 · 이은 사람으로
 //  엣지를 따라 나간다 — 시간순 "다음 글"이 아니라 사람이 손으로 엮은 연결로. 막다른 길을 지운다.
 //  전부 공개 read(미로그인도 본다)라 게이트 없이 뜬다. 엣지가 하나도 없으면 통째로 그려지지 않고,
 //  태그 기반 추천(작가 카드·이 작가의 다른 글)이 아래에 폴백으로 남는다.
 //
 //  §1: 여긴 종이 세계(콘텐츠)라 유리 없이 slate + hairline + 그린 한 가닥. 그린은 비텍스트
-//  마커(길 글리프)에만(§10.3 accent 600) — 카피는 조용한 슬레이트로. 노드-엣지 그림은 그리지 않는다.
+//  마커(폴더 글리프·순번 배지)에만(§10.3 accent 600) — 카피는 조용한 슬레이트로. 노드-엣지 그림은 그리지 않는다.
 //
 
 import SwiftUI
@@ -25,6 +25,7 @@ struct PostEdges: View {
     @State private var loaded = false
 
     @ScaledMetric(relativeTo: .caption) private var glyph: CGFloat = 11
+    @ScaledMetric(relativeTo: .caption) private var lead: CGFloat = 20
 
     private var hasEdges: Bool {
         !collections.isEmpty || !related.isEmpty || !kindred.isEmpty
@@ -51,11 +52,11 @@ struct PostEdges: View {
         }
     }
 
-    // MARK: 이 글이 놓인 길 — 담긴 공개 컬렉션(소속 한 올과 같은 그린 글리프 문법)
+    // MARK: 이 글이 담긴 컬렉션 — 담긴 공개 컬렉션(소속 한 올과 같은 그린 글리프 문법)
 
     private var pathsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            RailHeading("이 글이 놓인 길")
+            RailHeading("이 글이 담긴 컬렉션")
             ForEach(collections) { collection in
                 NavigationLink(value: Route.collection(id: collection.id)) {
                     pathChip(collection)
@@ -65,15 +66,30 @@ struct PostEdges: View {
         }
     }
 
-    /// 길/컬렉션 한 줄(리치) — 그린 ↳ 글리프(§10.3 비텍스트=accent) + 제목, 그 아래 조용한 메타 한 줄.
-    /// 메타 = "@큐레이터 · N번째 / 전체 M"(#607 curatorUsername·position·total). 순서 맥락 없으면 담긴 수로
-    /// 폴백. 아바타·그림 없이 종이 위 슬레이트 텍스트(§1·§10) — 초록은 오직 글리프 한 실.
+    /// 순서 있는 컬렉션에서 이 글의 자리를 알 때만 순번 — 그 밖엔 담긴 수로 읽는다.
+    private func step(_ c: CollectionSummary) -> Int? {
+        c.isOrdered ? c.position : nil
+    }
+
     private func pathChip(_ collection: CollectionSummary) -> some View {
         HStack(alignment: .top, spacing: 7) {
-            Image(systemName: collection.kind == .path ? "arrow.turn.down.right" : "square.grid.2x2")
-                .font(.system(size: glyph, weight: .semibold))
-                .foregroundStyle(Palette.accent)
-                .padding(.top, 1)
+            Group {
+                if let step = step(collection) {
+                    Text("\(step)")
+                        .typeScale(.meta)
+                        .fontWeight(.bold)
+                        .foregroundStyle(Palette.accent)
+                        .frame(width: lead, height: lead)
+                        .background(Circle().strokeBorder(Palette.accent, lineWidth: 1))
+                        .accessibilityHidden(true)
+                } else {
+                    Image(systemName: "folder")
+                        .font(.system(size: glyph, weight: .semibold))
+                        .foregroundStyle(Palette.accent)
+                        .padding(.top, 2)
+                }
+            }
+            .frame(width: lead, alignment: .center)
             VStack(alignment: .leading, spacing: 2) {
                 Text(collection.title)
                     .typeScale(.body)
@@ -95,19 +111,20 @@ struct PostEdges: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// 길 메타 한 줄 — 큐레이터와 순서를 한 번역 문자열로(로케일이 조사·어순 소유). position/total 이 오면
-    /// "@큐레이터 · N번째 / 전체 M", 큐레이터만 있으면 "@큐레이터 · M편", 둘 다 없으면 "M편"으로 폴백.
+    /// 메타 한 줄 — 로케일이 조사·어순을 갖도록 한 번역 문자열로. total 은 글 단위 소속 응답(#607)에만
+    /// 오고 목록 응답엔 count 만 오므로 분모는 count 로 폴백한다.
     private func pathMeta(_ c: CollectionSummary) -> Text {
-        // 전체 편 수 — total 은 글 단위 소속 응답에만 오고(#607), 목록 응답엔 count 만 온다.
-        // total 을 분모로 못 박으면 순서 맥락이 프로덕션에서 통째로 빠지므로 count 로 폴백한다.
-        let m = c.total ?? c.count
-        if let curator = c.curatorUsername, let pos = c.position {
-            return Text("@\(curator) · \(pos)번째 / 전체 \(m)")
+        let total = c.total ?? c.count
+        if let pos = step(c) {
+            if let curator = c.curatorUsername {
+                return Text("@\(curator) · \(total)편 중 \(pos)번째")
+            }
+            return Text("\(total)편 중 \(pos)번째")
         }
         if let curator = c.curatorUsername {
-            return Text("@\(curator) · \(m)편")
+            return Text("@\(curator) · \(c.count)개")
         }
-        return Text("\(m)편")
+        return Text("\(c.count)개")
     }
 
     // MARK: 이어진 것 — 같은 공개 컬렉션에 나란히 엮인 다른 블록(공동 등장)
