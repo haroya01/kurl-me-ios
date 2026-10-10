@@ -11,10 +11,12 @@ import SwiftUI
 /// 하단 바 아래로 콘텐츠가 흐르지 않고 스크롤 축소도 안 걸렸다. 페이지를 ZStack 으로 살려두고(데이터·
 /// 스크롤 위치 유지) 좌우 스와이프는 제스처로 직접 — ScrollView 가 탭 콘텐츠의 직계가 된다.
 /// 선택 ±1 칸만 그려 곧 보일 페이지만 첫 로드한다(`warm`). `loadOnSelect` 탭은 처음 고를 때까지 미룬다.
+/// `suspended` 면 페이지를 숨기고 손이 닿지 않게 하되 데이터·스크롤은 그대로 둔다(더 보기 피드가 위에 설 때).
 struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
     let tabs: [Tab]
     @Binding var selection: Tab
     var loadOnSelect: Set<Tab> = []
+    var suspended = false
     @ViewBuilder let page: (_ tab: Tab, _ active: Bool, _ warm: Bool) -> Page
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -38,8 +40,8 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
                     .opacity(opacity(tab))
                     // 드래그 중엔 페이지 콘텐츠를 비활성화 — 카드가 손가락과 함께 움직여 탭이 안 취소되던 것.
                     .disabled(dragX != 0)
-                    .allowsHitTesting(tab == selection)
-                    .accessibilityHidden(tab != selection)
+                    .allowsHitTesting(tab == selection && !suspended)
+                    .accessibilityHidden(tab != selection || suspended)
                     .offset(x: offset(tab))
                     .environment(\.swipePagerGate, gate)
             }
@@ -74,7 +76,7 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
     }
 
     private func opacity(_ tab: Tab) -> Double {
-        guard visible(tab) else { return 0 }
+        guard visible(tab), !suspended else { return 0 }
         guard !reduceMotion, containerWidth > 0 else { return 1 }
         return 1 - 0.15 * min(1, abs(offset(tab)) / containerWidth)
     }
