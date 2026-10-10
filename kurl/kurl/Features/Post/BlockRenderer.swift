@@ -829,7 +829,7 @@ private struct ListBlockView: View {
     // 작업 항목의 음성 라벨 — "완료/미완료, 본문". 보통 항목은 빈 텍스트(자식 낭독에 맡김).
     private func taskAXLabel(_ item: ListItem) -> Text {
         guard let checked = item.task else { return Text("") }
-        return Text(checked ? "완료됨" : "미완료") + Text(", ") + Text(item.text)
+        return Text(checked ? "완료됨" : "미완료") + Text(", ") + Text(inline(item.text))
     }
 
     // 중첩 단계별 글머리(•→◦→▪). 번호 목록은 그대로 번호(중첩 번호 재시작은 생략).
