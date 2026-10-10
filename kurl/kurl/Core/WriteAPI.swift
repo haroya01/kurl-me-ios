@@ -8,7 +8,7 @@ import Foundation
 /// 글쓰기(작성·발행) 엔드포인트. 본문은 마크다운 하나로 다룬다 — md↔blocks 변환은
 /// 서버가 소유(PUT /posts/{id}/markdown)해서 웹 에디터와 동일한 블록 스트림이 만들어진다.
 enum WriteAPI {
-    private static let client = APIClient.shared
+    static var client = APIClient.shared
 
     /// 새 글(임시저장 상태) 생성. 슬러그는 앱에서 시각 기반으로 자동 생성 —
     /// 백엔드 규칙 ^[a-z0-9]+(-[a-z0-9]+)*$ 을 항상 만족하고, 웹 에디터에서 언제든 바꿀 수 있다.
@@ -33,23 +33,30 @@ enum WriteAPI {
         try await client.get("/posts", authenticated: true)
     }
 
-    static func markdown(postId: Int64) async throws -> String {
-        struct Response: Decodable { let markdown: String }
-        let res: Response = try await client.get("/posts/\(postId)/markdown", authenticated: true)
-        return res.markdown
+    static func markdown(postId: Int64) async throws -> PostBody {
+        try await client.get("/posts/\(postId)/markdown", authenticated: true)
     }
 
-    /// 본문 교체 — 응답은 서버가 왕복 정규화한 마크다운(이걸 채택해 편집 상태를 canonical 로 유지).
+    /// 본문 교체 — 응답은 서버가 왕복 정규화한 마크다운(이걸 채택해 편집 상태를 canonical 로 유지)과 새 버전.
+    /// baseVersion 이 서버 버전과 다르면 PostEditConflict(아무것도 쓰이지 않음). overwrite 는 그 검사를 건너뛴다.
     @discardableResult
-    static func replaceMarkdown(postId: Int64, markdown: String) async throws -> String {
-        struct Body: Encodable { let markdown: String }
-        struct Response: Decodable { let markdown: String }
-        let res: Response = try await client.put(
-            "/posts/\(postId)/markdown",
-            body: Body(markdown: markdown),
-            authenticated: true
-        )
-        return res.markdown
+    static func replaceMarkdown(
+        postId: Int64, markdown: String, baseVersion: Int64? = nil, overwrite: Bool = false
+    ) async throws -> PostBody {
+        struct Body: Encodable {
+            let markdown: String
+            let baseVersion: Int64?
+            let overwrite: Bool?
+        }
+        do {
+            return try await client.put(
+                "/posts/\(postId)/markdown",
+                body: Body(markdown: markdown, baseVersion: baseVersion, overwrite: overwrite ? true : nil),
+                authenticated: true
+            )
+        } catch APIError.server(let status, let code, _) where status == 409 && code == "POST_EDIT_CONFLICT" {
+            throw PostEditConflict()
+        }
     }
 
     static func publish(postId: Int64) async throws -> MyPost {
@@ -83,18 +90,28 @@ enum WriteAPI {
         postId: Int64,
         title: String? = nil,
         excerpt: String? = nil,
-        tags: [String]? = nil
+        tags: [String]? = nil,
+        baseVersion: Int64? = nil,
+        overwrite: Bool = false
     ) async throws -> MyPost {
         struct Body: Encodable {
             let title: String?
             let excerpt: String?
             let tags: [String]?
+            let baseVersion: Int64?
+            let overwrite: Bool?
         }
-        return try await client.patch(
-            "/posts/\(postId)",
-            body: Body(title: title, excerpt: excerpt, tags: tags),
-            authenticated: true
-        )
+        do {
+            return try await client.patch(
+                "/posts/\(postId)",
+                body: Body(
+                    title: title, excerpt: excerpt, tags: tags, baseVersion: baseVersion,
+                    overwrite: overwrite ? true : nil),
+                authenticated: true
+            )
+        } catch APIError.server(let status, let code, _) where status == 409 && code == "POST_EDIT_CONFLICT" {
+            throw PostEditConflict()
+        }
     }
 
     // MARK: 프로필 고정 (핀)
@@ -314,14 +331,37 @@ enum WriteAPI {
     /// 커버 지정 — key 는 업로드 경로에서만 안다(발행 카드의 "본문 첫 이미지" 제안은 URL 뿐).
     /// PATCH 는 null 필드를 무시하므로 key 없이 보내면 서버의 기존 키 상태를 건드리지 않는다.
     @discardableResult
-    static func updateCover(postId: Int64, url: String, key: String?) async throws -> MyPost {
-        struct Body: Encodable { let ogImageUrl: String, ogImageKey: String? }
-        return try await client.patch(
-            "/posts/\(postId)", body: Body(ogImageUrl: url, ogImageKey: key), authenticated: true)
+    static func updateCover(
+        postId: Int64, url: String, key: String?, baseVersion: Int64? = nil, overwrite: Bool = false
+    ) async throws -> MyPost {
+        struct Body: Encodable {
+            let ogImageUrl: String
+            let ogImageKey: String?
+            let baseVersion: Int64?
+            let overwrite: Bool?
+        }
+        do {
+            return try await client.patch(
+                "/posts/\(postId)",
+                body: Body(
+                    ogImageUrl: url, ogImageKey: key, baseVersion: baseVersion, overwrite: overwrite ? true : nil),
+                authenticated: true)
+        } catch APIError.server(let status, let code, _) where status == 409 && code == "POST_EDIT_CONFLICT" {
+            throw PostEditConflict()
+        }
     }
 
     private struct EmptyBody: Encodable {}
 }
+
+/// 본문 마크다운과 그 버전(GET·PUT /posts/{id}/markdown).
+struct PostBody: Decodable, Equatable {
+    let markdown: String
+    var contentVersion: Int64? = nil
+}
+
+/// 다른 기기가 먼저 저장해 서버 버전이 달라졌다(409 POST_EDIT_CONFLICT) — 이 요청은 아무것도 쓰지 않았다.
+struct PostEditConflict: Error, Equatable {}
 
 struct MySeries: Decodable, Identifiable, Hashable {
     let id: Int64
@@ -393,6 +433,8 @@ struct MyPost: Decodable, Identifiable, Hashable {
     let excerpt: String?
     let ogImageUrl: String?
     let seriesId: Int64?
+    /// 작성자가 고치는 내용(본문·메타)의 서버 버전 — 다음 저장의 baseVersion. 옛 서버는 안 준다(nil).
+    var contentVersion: Int64? = nil
 
     var isDraft: Bool { status == "DRAFT" }
     var isScheduled: Bool { status == "SCHEDULED" }

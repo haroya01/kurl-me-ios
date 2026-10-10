@@ -108,6 +108,13 @@ struct ComposeView: View {
     @State private var pendingRecovery: ComposeRecoveryStore.Draft?
     /// 초안 id 를 얻기 전 이 편집의 금고 슬롯 키 — 새 글끼리 한 슬롯을 나눠 쓰지 않게 편집마다 따로.
     @State private var draftKey = UUID()
+    /// 복구 제안이 편집 충돌 때 밀려난 내 내용(충돌 슬롯)에서 왔는가.
+    @State private var pendingRecoveryIsConflict = false
+    /// 서버 내용 버전 — 다음 저장의 base. 버전을 올리는 쓰기를 한 줄로 세운다.
+    @State private var versionGate = PostVersionGate()
+    /// 다른 기기가 먼저 저장해 이 편집의 저장이 막혔다 — 자동저장을 멈추고 불러오기·덮기를 묻는다.
+    @State private var editConflict: EditConflict?
+    @Environment(\.scenePhase) private var scenePhase
     /// 세션이 풀렸을 때 컴포즈를 떠나지 않고 다시 로그인하는 시트.
     @State private var showLoginSheet = false
 
@@ -240,7 +247,8 @@ struct ComposeView: View {
                         excerpt: excerpt,
                         tags: tags,
                         savedSeriesId: savedSeriesId,
-                        seriesId: seriesId))
+                        seriesId: seriesId,
+                        gate: versionGate))
             }
         }
         // 발행 준비 = 살아있는 카드 미리보기 폼(전체 화면). 미리보기·예약은 이 폼 위에
@@ -261,7 +269,8 @@ struct ComposeView: View {
         }
         .sheet(isPresented: $showRevisions) {
             RevisionsSheet(postId: postId) { restored in
-                markdown = restored
+                markdown = restored.markdown
+                versionGate.adopt(restored.contentVersion)
                 // WriteV2 라면 복원 본문으로 문서를 다시 짓는다(제자리 교체 API 가 없어 재생성이 계약).
                 rebuildEditorDocumentIfNeeded()
                 // 복원 본문을 곧장 '저장됨'으로 맞춰(동기) 2초 디바운스가 복원본문+옛메타로
@@ -277,6 +286,7 @@ struct ComposeView: View {
         ) {
             Button("이어서 쓰기") {
                 guard let draft = pendingRecovery else { return }
+                if pendingRecoveryIsConflict, let postId { ComposeRecoveryStore.clearConflict(postId: postId) }
                 title = draft.title
                 markdown = draft.markdown
                 rebuildEditorDocumentIfNeeded()
@@ -284,11 +294,23 @@ struct ComposeView: View {
                 pendingRecovery = nil
             }
             Button("버리기", role: .destructive) {
-                ComposeRecoveryStore.clear(postId: postId, draftKey: draftKey)
+                if pendingRecoveryIsConflict, let postId {
+                    ComposeRecoveryStore.clearConflict(postId: postId)
+                } else {
+                    ComposeRecoveryStore.clear(postId: postId, draftKey: draftKey)
+                }
                 pendingRecovery = nil
             }
         } message: {
             Text("지난 편집이 서버에 저장되지 못한 채 끝났어요. 기기에 남아 있는 내용을 이어서 쓸까요?")
+        }
+        .alert("다른 기기에서 이 글을 고쳤어요", isPresented: editConflictPresented(inPublishSheet: false)) {
+            editConflictActions
+        } message: {
+            editConflictMessage
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await refreshIfChangedElsewhere() } }
         }
         // 세션이 풀렸을 때 — 컴포즈를 떠나지 않고 여기서 다시 로그인해 이어서 저장한다.
         .sheet(isPresented: $showLoginSheet) {
@@ -941,6 +963,11 @@ struct ComposeView: View {
             } message: {
                 Text(publishSheetError ?? "")
             }
+            .alert("다른 기기에서 이 글을 고쳤어요", isPresented: editConflictPresented(inPublishSheet: true)) {
+                editConflictActions
+            } message: {
+                editConflictMessage
+            }
             // 미리보기·예약은 폼 위에 직접 — 폼을 잃지 않는다. 폼 전용 상태(formPreviewItem)로,
             // 루트의 ⋯ 미리보기와 같은 바인딩을 공유해 두 presenter 가 동시에 뜨던 것을 막는다.
             .sheet(item: $formPreviewItem) { item in
@@ -1083,8 +1110,12 @@ struct ComposeView: View {
         }
         Task {
             guard let id = try? await ensurePost() else { return }
-            try? await WriteAPI.updateCover(postId: id, url: url, key: nil)
-            onSaved()
+            do {
+                try await PostSave.cover(postId: id, url: url, key: nil, gate: versionGate)
+                onSaved()
+            } catch is PostEditConflict {
+                holdCoverForConflict(PendingCover(url: url, key: nil, fromBodyImage: false))
+            } catch {}
         }
     }
 
@@ -1100,8 +1131,10 @@ struct ComposeView: View {
         guard let postId else { return }
         Task {
             do {
-                try await WriteAPI.updateCover(postId: postId, url: "", key: nil)
+                try await PostSave.cover(postId: postId, url: "", key: nil, gate: versionGate)
                 onSaved()
+            } catch is PostEditConflict {
+                holdCoverForConflict(PendingCover(url: "", key: nil, fromBodyImage: false))
             } catch {
                 if coverUrl == nil { coverUrl = previous }
                 ToastCenter.shared.show(String(localized: "커버를 빼지 못했어요"))
@@ -1484,22 +1517,124 @@ struct ComposeView: View {
     /// 금고에 "서버에 못 실린 변경"이 남아 있으면 복구를 제안한다 — 지난 세션이 저장 실패/강제
     /// 종료로 끝났다는 뜻. 서버 본문과 같으면(이미 실렸으면) 조용히 슬롯만 비운다.
     /// 새 글은 아직 플러시가 서버로 나르는 중인 다른 새 글을 빼고, 고른 슬롯을 이 편집의 슬롯으로 이어 쓴다.
+    /// 기존 글은 기기 슬롯 다음으로, 편집 충돌 때 최신본에 밀려난 내 내용(충돌 슬롯)을 제안한다.
     private func offerRecoveryIfAny() {
-        let draft: ComposeRecoveryStore.Draft
-        if postId == nil {
+        pendingRecoveryIsConflict = false
+        guard let postId else {
             guard let orphan = ComposeRecoveryStore.latestNewDraft(
                 excluding: DraftFlusher.shared.pendingDraftKeys) else { return }
             draftKey = orphan.key
-            draft = orphan.draft
-        } else {
-            guard let stashed = ComposeRecoveryStore.peek(postId: postId, draftKey: draftKey) else { return }
-            draft = stashed
-        }
-        if draft.markdown == markdown, draft.title == title {
-            ComposeRecoveryStore.clear(postId: postId, draftKey: draftKey)
+            if isCurrent(orphan.draft) {
+                ComposeRecoveryStore.clear(postId: nil, draftKey: draftKey)
+            } else {
+                pendingRecovery = orphan.draft
+            }
             return
         }
-        pendingRecovery = draft
+        if let stashed = ComposeRecoveryStore.peek(postId: postId, draftKey: draftKey) {
+            guard isCurrent(stashed) else {
+                pendingRecovery = stashed
+                return
+            }
+            ComposeRecoveryStore.clear(postId: postId, draftKey: draftKey)
+        }
+        if let conflicted = ComposeRecoveryStore.peekConflict(postId: postId) {
+            guard isCurrent(conflicted) else {
+                pendingRecoveryIsConflict = true
+                pendingRecovery = conflicted
+                return
+            }
+            ComposeRecoveryStore.clearConflict(postId: postId)
+        }
+    }
+
+    private func isCurrent(_ draft: ComposeRecoveryStore.Draft) -> Bool {
+        draft.markdown == markdown && draft.title == title
+    }
+
+    // MARK: 편집 충돌
+
+    /// 루트 알럿은 발행 폼(fullScreenCover) 뒤에 가려지므로 폼이 떠 있으면 폼 쪽 알럿이 같은 충돌을 띄운다.
+    private func editConflictPresented(inPublishSheet: Bool) -> Binding<Bool> {
+        Binding(get: { editConflict != nil && showPublish == inPublishSheet }, set: { _ in })
+    }
+
+    @ViewBuilder
+    private var editConflictActions: some View {
+        Button("최신으로 불러오기") {
+            Task { await loadLatestAfterConflict() }
+        }
+        Button("내 내용으로 덮기", role: .destructive) {
+            guard let conflict = editConflict else { return }
+            editConflict = nil
+            Task { await save(publish: conflict.publish, overwrite: true) }
+        }
+    }
+
+    private var editConflictMessage: Text {
+        Text("최신 내용을 불러오면 지금 쓴 내용은 이 기기에 보관해 두었다가, 다시 열 때 되살릴 수 있어요.")
+    }
+
+    /// 서버 최신본으로 바꾼다 — 밀려나는 내 내용은 충돌 슬롯에 남겨 다음에 열 때 복구로 제안한다.
+    private func loadLatestAfterConflict() async {
+        guard let postId, let conflict = editConflict else { return }
+        editConflict = nil
+        ComposeRecoveryStore.stashConflict(postId: postId, title: title, markdown: markdown)
+        ComposeRecoveryStore.clear(postId: postId, draftKey: draftKey)
+        do {
+            async let body = WriteAPI.markdown(postId: postId)
+            async let posts = WriteAPI.myPosts()
+            let latest = try await body
+            let post = try await posts.first { $0.id == postId }
+            adoptServerCopy(latest, post: post)
+            ToastCenter.shared.show(String(localized: "지금 쓴 내용은 이 기기에 보관했어요. 다시 열면 되살릴 수 있어요."))
+        } catch {
+            editConflict = conflict
+            ToastCenter.shared.show(String(localized: "최신 내용을 불러오지 못했어요. 네트워크를 확인해 주세요."))
+        }
+    }
+
+    /// 앱이 앞으로 돌아왔을 때 — 저장 안 한 편집이 없고 다른 기기가 고쳤으면 조용히 최신본으로 바꾼다
+    /// (백그라운드에 남은 옛 사본에 한 글자 쳐서 다른 기기 편집을 덮던 경로).
+    private func refreshIfChangedElsewhere() async {
+        guard let postId, bodyLoaded, !busy, editConflict == nil, !hasUnsavedChanges,
+              let known = versionGate.version
+        else { return }
+        guard let latest = try? await WriteAPI.markdown(postId: postId),
+              let current = latest.contentVersion, current != known
+        else { return }
+        let post = (try? await WriteAPI.myPosts())?.first { $0.id == postId }
+        guard !busy, editConflict == nil, !hasUnsavedChanges, versionGate.version == known else { return }
+        adoptServerCopy(latest, post: post)
+    }
+
+    private func adoptServerCopy(_ body: PostBody, post: MyPost?) {
+        autosaveTask?.cancel()
+        recoveryStashTask?.cancel()
+        if let post {
+            title = post.title
+            tags = post.tags ?? []
+            excerpt = post.excerpt ?? ""
+            savedTitle = title
+            savedTags = tags
+            savedExcerpt = excerpt
+            coverUrl = post.ogImageUrl
+            seriesId = post.seriesId
+            savedSeriesId = post.seriesId
+            status = post.status
+        }
+        pendingCover = nil
+        markdown = body.markdown
+        versionGate.adopt(body.contentVersion)
+        lastSavedSignature = signature
+        autosaveFailed = false
+        rebuildEditorDocumentIfNeeded()
+    }
+
+    /// 버전이 어긋나 커버 지정이 막혔다 — 다음 저장(덮기 포함)이 이 커버를 마저 싣는다.
+    private func holdCoverForConflict(_ cover: PendingCover) {
+        pendingCover = cover
+        if editConflict == nil { editConflict = EditConflict(publish: false) }
     }
 
     /// 리비전 복원 후 — 서버가 본문(과 메타)을 바꿨으므로 화면 상태 전체를 다시 읽어 맞춘다.
@@ -1543,8 +1678,9 @@ struct ComposeView: View {
         let bodyAtEntry = markdown
         do {
             let body = try await WriteAPI.markdown(postId: postId)
+            versionGate.adopt(body.contentVersion)
             if markdown == bodyAtEntry {
-                markdown = body
+                markdown = body.markdown
                 lastSavedSignature = signature
                 // 서버 본문이 확정된 순간에만 WriteV2 문서를 짓는다 — 로드 중 친 입력으로 덮지 않는다.
                 rebuildEditorDocumentIfNeeded()
@@ -1576,7 +1712,7 @@ struct ComposeView: View {
                 locallySavedBodySignature = [stash.title, stash.markdown].joined(separator: "\u{1F}")
             }
         }
-        guard allowsAutosave, canSave, signature != lastSavedSignature else { return }
+        guard editConflict == nil, allowsAutosave, canSave, signature != lastSavedSignature else { return }
         autosaveTask = Task {
             try? await Task.sleep(for: delay)
             guard !Task.isCancelled else { return }
@@ -1586,7 +1722,8 @@ struct ComposeView: View {
 
     /// silent = 자동저장(디바운스·이탈) — 실패해도 타이핑 위로 모달을 띄우지 않고 첫 실패에만
     /// 토스트로 알린 뒤 백오프 간격으로 재무장한다. 명시 저장(버튼·발행·예약)은 silent=false 로 모달을 띄운다.
-    private func save(publish: Bool, silent: Bool = false) async {
+    /// overwrite = 편집 충돌 알럿의 '내 내용으로 덮기' — 막혔던 저장을 서버 검사 없이 다시 보낸다.
+    private func save(publish: Bool, silent: Bool = false, overwrite: Bool = false) async {
         guard !busy, canSave, !silent || allowsAutosave else { return }
         // 명시 저장·발행이면 아직 +/Enter 안 누른 입력 중 태그도 포함한다(유실 방지).
         if !silent {
@@ -1603,31 +1740,31 @@ struct ComposeView: View {
         let snapshot = signature
         do {
             let id = try await ensurePost()
-            let canonical = try await WriteAPI.replaceMarkdown(postId: id, markdown: markdown)
+            // 바뀐 메타 필드만 PATCH — 본문만 고쳤는데 제목·태그·소개글을 매번 덮어써
+            // 다른 기기(웹)의 동시 편집을 지우던 것을 막는다(null=무변경 계약 이용).
+            let newTitle = title.trimmingCharacters(in: .whitespaces)
+            let sentExcerpt = excerpt
+            let sentTags = tags
+            let canonical = try await PostSave.send(
+                postId: id, markdown: markdown,
+                metadata: .init(
+                    title: newTitle != savedTitle ? newTitle : nil,
+                    excerpt: sentExcerpt != savedExcerpt ? sentExcerpt : nil,
+                    tags: sentTags != savedTags ? sentTags : nil),
+                gate: versionGate, overwrite: overwrite)
             // 사용자가 그 사이 더 입력했으면 정규화 본문으로 덮지 않는다(타이핑 손실 방지).
             if markdown == canonical || signature == lastSavedSignature {
                 markdown = canonical
             }
-            // 바뀐 메타 필드만 PATCH — 본문만 고쳤는데 제목·태그·소개글을 매번 덮어써
-            // 다른 기기(웹)의 동시 편집을 지우던 것을 막는다(null=무변경 계약 이용).
-            let newTitle = title.trimmingCharacters(in: .whitespaces)
-            if newTitle != savedTitle || excerpt != savedExcerpt || tags != savedTags {
-                try await WriteAPI.updateMetadata(
-                    postId: id,
-                    title: newTitle != savedTitle ? newTitle : nil,
-                    excerpt: excerpt != savedExcerpt ? excerpt : nil,
-                    tags: tags != savedTags ? tags : nil
-                )
-                savedTitle = newTitle
-                savedExcerpt = excerpt
-                savedTags = tags
-            }
+            savedTitle = newTitle
+            savedExcerpt = sentExcerpt
+            savedTags = sentTags
             if seriesId != savedSeriesId {
                 try await WriteAPI.assign(postId: id, from: savedSeriesId, to: seriesId)
                 savedSeriesId = seriesId
             }
             if let cover = pendingCover {
-                try await WriteAPI.updateCover(postId: id, url: cover.url, key: cover.key)
+                try await PostSave.cover(postId: id, url: cover.url, key: cover.key, gate: versionGate)
                 if pendingCover == cover { pendingCover = nil }
                 if cover.fromBodyImage {
                     ToastCenter.shared.show(
@@ -1648,6 +1785,9 @@ struct ComposeView: View {
             recoveryStashTask?.cancel()
             ComposeRecoveryStore.clear(postId: postId, draftKey: draftKey)
             onSaved()
+            if overwrite {
+                ToastCenter.shared.show(String(localized: "덮인 내용은 리비전에서 되돌릴 수 있어요"))
+            }
             // 스냅샷 이후 입력이 있었으면 디바운스를 다시 무장한다.
             if signature != snapshot { scheduleAutosave() }
             if publish {
@@ -1662,6 +1802,9 @@ struct ComposeView: View {
                 celebrationSubtitle = nil
                 celebrating = true
             }
+        } catch is PostEditConflict {
+            autosaveTask?.cancel()
+            editConflict = EditConflict(publish: publish)
         } catch {
             // 새 입력이 이전 비행을 취소한 것은 실패가 아니다 — scheduleAutosave 가 매 입력마다
             // 이전 태스크를 cancel 하는데, 그 태스크가 이미 네트워크 비행 중이면 여기로 취소가
@@ -1704,6 +1847,7 @@ struct ComposeView: View {
         let task = Task<Int64, Error> {
             let created = try await WriteAPI.createDraft(
                 title: title.trimmingCharacters(in: .whitespaces))
+            versionGate.adopt(created.contentVersion)
             return created.id
         }
         createTask = task
@@ -1778,8 +1922,13 @@ struct ComposeView: View {
                     pendingCover = PendingCover(url: uploaded.url, key: uploaded.key, fromBodyImage: false)
                     return
                 }
-                try await WriteAPI.updateCover(postId: id, url: uploaded.url, key: uploaded.key)
                 coverUrl = uploaded.url
+                do {
+                    try await PostSave.cover(postId: id, url: uploaded.url, key: uploaded.key, gate: versionGate)
+                } catch is PostEditConflict {
+                    holdCoverForConflict(PendingCover(url: uploaded.url, key: uploaded.key, fromBodyImage: false))
+                    return
+                }
                 // 커버만 올린 것 — 본문 저장 표시(lastSavedAt)는 건드리지 않는다(거짓 "저장됨" 방지).
                 onSaved()
             } catch {
@@ -2007,10 +2156,12 @@ struct ComposeView: View {
         }
         Task {
             do {
-                try await WriteAPI.updateCover(postId: postId, url: url, key: key)
+                try await PostSave.cover(postId: postId, url: url, key: key, gate: versionGate)
                 onSaved()
                 ToastCenter.shared.show(
                     String(localized: "첫 이미지를 커버로 설정했어요 — 발행 시트에서 바꿀 수 있어요"))
+            } catch is PostEditConflict {
+                holdCoverForConflict(PendingCover(url: url, key: key, fromBodyImage: true))
             } catch {
                 ToastCenter.shared.show(
                     String(localized: "커버를 저장하지 못했어요 — 발행 시트에서 다시 지정해 주세요"))
@@ -2764,7 +2915,7 @@ private struct ImageCaptionSheet: View {
 /// 리비전 목록 + 복원 — 복원하면 서버 상태가 바뀌므로 본문을 다시 읽어 에디터에 반영한다.
 private struct RevisionsSheet: View {
     let postId: Int64?
-    let onRestored: (String) -> Void
+    let onRestored: (PostBody) -> Void
 
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @Environment(\.dismiss) private var dismiss
@@ -2840,6 +2991,11 @@ private struct RevisionsSheet: View {
             }
         }
     }
+}
+
+private struct EditConflict: Equatable {
+    /// 막힌 저장이 발행이었나 — 덮기가 같은 저장(발행 포함)을 다시 보낸다.
+    let publish: Bool
 }
 
 private struct PendingCover: Equatable {
