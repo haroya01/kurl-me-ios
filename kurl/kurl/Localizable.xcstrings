@@ -1069,6 +1069,34 @@
         }
       }
     },
+    "%@님 외 %lld명이 하이라이트에 단 내 답글을 좋아해요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ and %2$lld more liked your reply on a highlight"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ और %2$lld अन्य ने हाइलाइट पर आपका जवाब पसंद किया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@さんほか%2$lld人がハイライトへのあなたの返信にいいねしました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ và %2$lld người khác đã thích phản hồi của bạn trên một đoạn tô sáng"
+          }
+        }
+      }
+    },
     "%@님 프로필": {
       "localizations": {
         "en": {
@@ -1765,6 +1793,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@ đã trở thành người theo dõi bạn"
+          }
+        }
+      }
+    },
+    "%@님이 하이라이트에 단 내 답글을 좋아해요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ liked your reply on a highlight"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ ने हाइलाइट पर आपका जवाब पसंद किया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@さんがハイライトへのあなたの返信にいいねしました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ đã thích phản hồi của bạn trên một đoạn tô sáng"
           }
         }
       }
