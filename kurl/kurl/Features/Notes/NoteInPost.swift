@@ -71,13 +71,17 @@ struct NoteEmbedCard<Fallback: View>: View {
     }
 }
 
-/// 공유 메뉴의 "블로그 글로 인용" — 노트 주소를 첫 줄로 둔 새 글. 그 줄은 발행된 글에서 노트 카드가 된다.
-struct QuotePostComposer: View {
-    let noteURL: URL
+/// 탭 스택 밖에서 여는 새 글 — 공유 메뉴의 "블로그 글로 인용"(노트 주소가 첫 줄, 발행된 글에서 노트 카드가 된다)과
+/// 노트 작성기의 "긴 글로 쓰기"(쓰던 본문)가 쓴다.
+struct PostComposerCover: View {
+    let initialMarkdown: String
+    var isDraft = false
 
     var body: some View {
         NavigationStack {
-            ComposeView(post: nil, initialMarkdown: "\(noteURL.absoluteString)\n\n", onSaved: {})
+            ComposeView(
+                post: nil, initialMarkdown: initialMarkdown.isEmpty ? nil : initialMarkdown,
+                initialMarkdownIsDraft: isDraft, onSaved: {})
                 .navigationDestination(for: Route.self) { RouteView(route: $0) }
         }
     }

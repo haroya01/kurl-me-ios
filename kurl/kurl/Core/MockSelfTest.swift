@@ -28,9 +28,9 @@ enum MockSelfTest {
             log("write.create: id=\(created.id) status=\(created.status)")
             let canonical = try await WriteAPI.replaceMarkdown(
                 postId: created.id, markdown: "# 제목\n\n첫 문단\n\n- 항목 하나\n- 항목 둘")
-            log("write.save: roundtrip=\(canonical.hasPrefix("# 제목"))")
+            log("write.save: roundtrip=\(canonical.markdown.hasPrefix("# 제목"))")
             let reloaded = try await WriteAPI.markdown(postId: created.id)
-            log("write.reload: matches=\(reloaded == canonical)")
+            log("write.reload: matches=\(reloaded.markdown == canonical.markdown)")
             let patched = try await WriteAPI.updateMetadata(
                 postId: created.id, title: "셀프테스트 글(수정)",
                 excerpt: "소개글 한 단락", tags: ["테스트", "셀프"])
@@ -44,7 +44,7 @@ enum MockSelfTest {
             let revisions = try await WriteAPI.revisions(postId: created.id)
             try await WriteAPI.restoreRevision(postId: created.id, version: 1)
             let restored = try await WriteAPI.markdown(postId: created.id)
-            log("write.revisions: count=\(revisions.count) restored=\(restored.contains("복원된"))")
+            log("write.revisions: count=\(revisions.count) restored=\(restored.markdown.contains("복원된"))")
             let cover = try await WriteAPI.uploadImage(postId: created.id, jpegData: Data([0xFF, 0xD8]))
             try await WriteAPI.updateCover(postId: created.id, url: cover.url, key: cover.key)
             log("write.cover: url=\(cover.url.hasSuffix(".jpg"))")
