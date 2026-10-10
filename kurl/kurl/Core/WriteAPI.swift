@@ -330,13 +330,15 @@ enum WriteAPI {
 
     /// 커버 지정 — key 는 업로드 경로에서만 안다(발행 카드의 "본문 첫 이미지" 제안은 URL 뿐).
     /// PATCH 는 null 필드를 무시하므로 key 없이 보내면 서버의 기존 키 상태를 건드리지 않는다.
+    /// `chosen` — 작성자가 고른 표지만 피드 썸네일이 된다. 본문에 넣은 이미지를 자동으로 채운 표지는 false.
     @discardableResult
     static func updateCover(
-        postId: Int64, url: String, key: String?, baseVersion: Int64? = nil, overwrite: Bool = false
+        postId: Int64, url: String, key: String?, chosen: Bool, baseVersion: Int64? = nil, overwrite: Bool = false
     ) async throws -> MyPost {
         struct Body: Encodable {
             let ogImageUrl: String
             let ogImageKey: String?
+            let coverChosen: Bool
             let baseVersion: Int64?
             let overwrite: Bool?
         }
@@ -344,7 +346,8 @@ enum WriteAPI {
             return try await client.patch(
                 "/posts/\(postId)",
                 body: Body(
-                    ogImageUrl: url, ogImageKey: key, baseVersion: baseVersion, overwrite: overwrite ? true : nil),
+                    ogImageUrl: url, ogImageKey: key, coverChosen: chosen, baseVersion: baseVersion,
+                    overwrite: overwrite ? true : nil),
                 authenticated: true)
         } catch APIError.server(let status, let code, _) where status == 409 && code == "POST_EDIT_CONFLICT" {
             throw PostEditConflict()
@@ -432,6 +435,8 @@ struct MyPost: Decodable, Identifiable, Hashable {
     let tags: [String]?
     let excerpt: String?
     let ogImageUrl: String?
+    /// 작성자가 직접 고른 표지인가(본문 첫 이미지 자동 채움은 false). 옛 서버는 안 준다.
+    var coverChosen: Bool? = nil
     let seriesId: Int64?
     /// 작성자가 고치는 내용(본문·메타)의 서버 버전 — 다음 저장의 baseVersion. 옛 서버는 안 준다(nil).
     var contentVersion: Int64? = nil

@@ -53,6 +53,8 @@ struct FeedItem: Decodable, Hashable, Identifiable {
     let title: String
     let excerpt: String?
     let ogImageUrl: String?
+    /// 피드 행 썸네일 — 작성자가 고른 표지일 때만 온다. 본문 첫 이미지를 자동으로 채운 표지·옛 서버는 nil.
+    var thumbnailUrl: String? = nil
     let languageTag: String?
     let tags: [String]
     let publishedAt: Date?
@@ -93,6 +95,7 @@ struct PostListItem: Decodable, Hashable, Identifiable {
     let title: String
     let excerpt: String?
     let ogImageUrl: String?
+    var thumbnailUrl: String? = nil
     let languageTag: String?
     let tags: [String]
     let likeCount: Int64
@@ -102,7 +105,8 @@ struct PostListItem: Decodable, Hashable, Identifiable {
 
     func withTitle(_ title: String) -> PostListItem {
         PostListItem(
-            id: id, slug: slug, title: title, excerpt: excerpt, ogImageUrl: ogImageUrl, languageTag: languageTag,
+            id: id, slug: slug, title: title, excerpt: excerpt, ogImageUrl: ogImageUrl, thumbnailUrl: thumbnailUrl,
+            languageTag: languageTag,
             tags: tags, likeCount: likeCount, publishedAt: publishedAt, lastEditedAt: lastEditedAt, pinned: pinned)
     }
 }
