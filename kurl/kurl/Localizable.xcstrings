@@ -843,6 +843,34 @@
         }
       }
     },
+    "%@, 사진 %lld장": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, %lld photos"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, %lld फ़ोटो"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@、写真%lld枚"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, %lld ảnh"
+          }
+        }
+      }
+    },
     "%@, 읽음": {
       "localizations": {
         "en": {
@@ -1041,30 +1069,30 @@
         }
       }
     },
-    "%@님에게 답글": {
+    "%@님 프로필": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Replying to %@"
+            "value": "%@’s profile"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ को जवाब"
+            "value": "%@ की प्रोफ़ाइल"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@さんへの返信"
+            "value": "%@さんのプロフィール"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Trả lời %@"
+            "value": "Hồ sơ của %@"
           }
         }
       }
@@ -1177,34 +1205,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đã hiện lại bài đăng lại của %@"
-          }
-        }
-      }
-    },
-    "%@님의 블로그": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@’s blog"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ का ब्लॉग"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@さんのブログ"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Blog của %@"
           }
         }
       }
@@ -3467,6 +3467,62 @@
         }
       }
     },
+    "@%@에게 답글": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Replying to @%@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "@%@ को जवाब"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "@%@さんへの返信"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trả lời @%@"
+          }
+        }
+      }
+    },
+    "@%@ 님에게 답글": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Replying to @%@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "@%@ को जवाब"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "@%@さんへの返信"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trả lời @%@"
+          }
+        }
+      }
+    },
     "@?": {
       "localizations": {
         "en": {
@@ -4531,6 +4587,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nhắc đến riêng tư"
+          }
+        }
+      }
+    },
+    "개인 멘션을 보려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to see private mentions"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "निजी उल्लेख देखने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "非公開メンションを見るにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để xem nhắc đến riêng tư"
           }
         }
       }
@@ -6320,34 +6404,6 @@
         }
       }
     },
-    "구독한 태그를 보려면 로그인하세요": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign in to see your subscribed tags"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "सब्सक्राइब किए गए टैग देखने के लिए साइन इन करें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "購読中のタグを見るにはログインしてください"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Đăng nhập để xem các thẻ đã đăng ký"
-          }
-        }
-      }
-    },
     "구독한 태그가 없습니다": {
       "localizations": {
         "en": {
@@ -6372,6 +6428,286 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chưa có thẻ nào được đăng ký"
+          }
+        }
+      }
+    },
+    "다른 서버의 노트를 보려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to see notes from other servers"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दूसरे सर्वर के नोट्स देखने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほかのサーバーのノートを見るにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để xem ghi chú từ máy chủ khác"
+          }
+        }
+      }
+    },
+    "북마크한 노트를 보려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to see your bookmarked notes"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बुकमार्क किए गए नोट्स देखने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブックマークしたノートを見るにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để xem ghi chú đã đánh dấu"
+          }
+        }
+      }
+    },
+    "미디어": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Media"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मीडिया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メディア"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phương tiện"
+          }
+        }
+      }
+    },
+    "아직 단 답글이 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No replies yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी तक कोई जवाब नहीं दिया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだ返信していません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có trả lời nào"
+          }
+        }
+      }
+    },
+    "아직 올린 사진이 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No photos yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी तक कोई फ़ोटो नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだ写真がありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có ảnh nào"
+          }
+        }
+      }
+    },
+    "원래 글을 볼 수 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The original post isn't available"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मूल पोस्ट उपलब्ध नहीं है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元の投稿は表示できません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể xem bài gốc"
+          }
+        }
+      }
+    },
+    "민감한 사진 %lld장": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld sensitive photos"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld संवेदनशील फ़ोटो"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "センシティブな写真%lld枚"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld ảnh nhạy cảm"
+          }
+        }
+      }
+    },
+    "두 글자 이상 입력하면 사람을 찾아요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type at least two characters to find people"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लोगों को खोजने के लिए कम से कम दो अक्षर लिखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2文字以上入力すると人を探せます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nhập ít nhất hai ký tự để tìm người"
+          }
+        }
+      }
+    },
+    "아직 멘션이나 답글이 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No mentions or replies yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी तक कोई उल्लेख या जवाब नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メンションや返信はまだありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có lượt nhắc đến hay trả lời nào"
+          }
+        }
+      }
+    },
+    "알림 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Show notifications"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सूचनाएँ दिखाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通知の表示"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hiển thị thông báo"
           }
         }
       }
@@ -8718,34 +9054,6 @@
         }
       }
     },
-    "내 컬렉션": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "My Collections"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "मेरे कलेक्शन"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "マイコレクション"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bộ sưu tập của tôi"
-          }
-        }
-      }
-    },
     "내 하이라이트": {
       "localizations": {
         "en": {
@@ -10270,6 +10578,34 @@
         }
       }
     },
+    "답글 메뉴": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reply menu"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जवाब मेनू"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返信メニュー"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menu trả lời"
+          }
+        }
+      }
+    },
     "답글을 달 노트가 지워졌어요": {
       "localizations": {
         "en": {
@@ -10434,6 +10770,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Không thể đổi thông báo cuộc trò chuyện"
+          }
+        }
+      }
+    },
+    "댓글 메뉴": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comment menu"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "टिप्पणी मेनू"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コメントメニュー"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menu bình luận"
           }
         }
       }
@@ -12662,6 +13026,34 @@
         }
       }
     },
+    "삭제된 댓글이에요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This comment was deleted"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह टिप्पणी हटा दी गई है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除されたコメントです"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bình luận này đã bị xóa"
+          }
+        }
+      }
+    },
     "새 계정": {
       "localizations": {
         "en": {
@@ -14578,6 +14970,34 @@
         }
       }
     },
+    "이 답글을": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "this reply"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस जवाब को"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この返信を"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Câu trả lời này"
+          }
+        }
+      }
+    },
     "이 대화의 알림을 껐어요": {
       "localizations": {
         "en": {
@@ -16200,34 +16620,6 @@
         }
       }
     },
-    "답글을 남기려면 로그인하세요": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign in to reply"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "जवाब देने के लिए साइन इन करें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "返信するにはログインしてください"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Đăng nhập để phản hồi"
-          }
-        }
-      }
-    },
     "답글을 불러오지 못했어요": {
       "localizations": {
         "en": {
@@ -16548,34 +16940,6 @@
         }
       }
     },
-    "댓글 더 보기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "See more comments"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "और टिप्पणियाँ देखें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コメントをもっと見る"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Xem thêm bình luận"
-          }
-        }
-      }
-    },
     "댓글 보내기": {
       "localizations": {
         "en": {
@@ -16628,34 +16992,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Xóa bình luận"
-          }
-        }
-      }
-    },
-    "댓글 좋아요": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Like comment"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "टिप्पणी पसंद करें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コメントにいいね"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Thích bình luận"
           }
         }
       }
@@ -20224,6 +20560,34 @@
         }
       }
     },
+    "좋아요를 반영하지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t update the like"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पसंद लागू नहीं हो सकी"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "いいねを反映できませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể cập nhật lượt thích"
+          }
+        }
+      }
+    },
     "주고받기를 모두 끊고, 그 서버 노트를 어디서도 보이지 않게 해요.": {
       "localizations": {
         "en": {
@@ -21844,6 +22208,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chọn bảng tin"
+          }
+        }
+      }
+    },
+    "피드 둘러보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Browse the feed"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ीड देखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フィードを見る"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xem bảng tin"
           }
         }
       }
@@ -31427,7 +31819,6 @@
       }
     },
     "좋아요 %lld": {
-      "extractionState": "stale",
       "localizations": {
         "en": {
           "variations": {
@@ -31468,7 +31859,6 @@
       }
     },
     "좋아요 취소": {
-      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -31492,34 +31882,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bỏ thích"
-          }
-        }
-      }
-    },
-    "좋아요를 반영하지 못했습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Couldn’t update the like"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "पसंद लागू नहीं हो सकी"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "いいねを反映できませんでした"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Không thể cập nhật lượt thích"
           }
         }
       }

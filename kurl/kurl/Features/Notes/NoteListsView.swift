@@ -6,85 +6,92 @@
 import SwiftUI
 
 struct NoteListsSheet: View {
-    private var store = NoteListsStore.shared
-    @State private var newTitle = ""
-    @State private var renaming: NoteListSummary?
-    @State private var renameTitle = ""
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    if store.lists.isEmpty {
-                        Text("아직 리스트가 없어요. 아래에서 만들어 보세요.")
-                            .typeScale(.meta)
-                            .foregroundStyle(Palette.secondary)
-                    }
-                    ForEach(store.lists) { list in
-                        NavigationLink(value: list) {
-                            HStack {
-                                Text(list.title)
-                                    .foregroundStyle(Palette.ink)
-                                Spacer()
-                                Text("\(list.memberCount)명")
-                                    .foregroundStyle(Palette.secondary)
-                                    .monospacedDigit()
-                            }
-                        }
-                        .swipeActions {
-                            Button(role: .destructive) {
-                                Task { try? await store.delete(list) }
-                            } label: {
-                                Label("지우기", systemImage: "trash")
-                            }
-                            Button {
-                                renameTitle = list.title
-                                renaming = list
-                            } label: {
-                                Label("이름 바꾸기", systemImage: "pencil")
-                            }
-                        }
-                        .accessibilityIdentifier("noteList.row.\(list.id)")
-                    }
-                } footer: {
-                    Text("리스트는 나만 봐요. 담은 사람의 노트만 모아 노트 탭 메뉴에서 볼 수 있어요.")
-                }
-                Section("새 리스트") {
-                    HStack {
-                        TextField("리스트 이름", text: $newTitle)
-                            .submitLabel(.done)
-                            .onSubmit { Task { await create() } }
-                            .accessibilityIdentifier("noteList.newTitle")
-                        Button("만들기") { Task { await create() } }
-                            .disabled(newTitle.trimmingCharacters(in: .whitespaces).isEmpty)
-                            .accessibilityIdentifier("noteList.create")
+            NoteListsView()
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("완료") { dismiss() }
                     }
                 }
-            }
-            .navigationTitle("리스트")
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationDestination(for: NoteListSummary.self) { list in
-                NoteListMembersView(list: list)
-            }
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("완료") { dismiss() }
-                }
-            }
-            .alert("리스트 이름 바꾸기", isPresented: Binding(
-                get: { renaming != nil }, set: { if !$0 { renaming = nil } }
-            )) {
-                TextField("리스트 이름", text: $renameTitle)
-                Button("바꾸기") {
-                    if let list = renaming {
-                        Task { try? await store.rename(list, to: renameTitle) }
-                    }
-                }
-                Button("취소", role: .cancel) {}
-            }
-            .task { await store.reload() }
         }
+    }
+}
+
+struct NoteListsView: View {
+    private var store = NoteListsStore.shared
+    @State private var newTitle = ""
+    @State private var renaming: NoteListSummary?
+    @State private var renameTitle = ""
+
+    var body: some View {
+        List {
+            Section {
+                if store.lists.isEmpty {
+                    Text("아직 리스트가 없어요. 아래에서 만들어 보세요.")
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.secondary)
+                }
+                ForEach(store.lists) { list in
+                    NavigationLink(value: list) {
+                        HStack {
+                            Text(list.title)
+                                .foregroundStyle(Palette.ink)
+                            Spacer()
+                            Text("\(list.memberCount)명")
+                                .foregroundStyle(Palette.secondary)
+                                .monospacedDigit()
+                        }
+                    }
+                    .swipeActions {
+                        Button(role: .destructive) {
+                            Task { try? await store.delete(list) }
+                        } label: {
+                            Label("지우기", systemImage: "trash")
+                        }
+                        Button {
+                            renameTitle = list.title
+                            renaming = list
+                        } label: {
+                            Label("이름 바꾸기", systemImage: "pencil")
+                        }
+                    }
+                    .accessibilityIdentifier("noteList.row.\(list.id)")
+                }
+            } footer: {
+                Text("리스트는 나만 봐요. 담은 사람의 노트만 모아 노트 탭 메뉴에서 볼 수 있어요.")
+            }
+            Section("새 리스트") {
+                HStack {
+                    TextField("리스트 이름", text: $newTitle)
+                        .submitLabel(.done)
+                        .onSubmit { Task { await create() } }
+                        .accessibilityIdentifier("noteList.newTitle")
+                    Button("만들기") { Task { await create() } }
+                        .disabled(newTitle.trimmingCharacters(in: .whitespaces).isEmpty)
+                        .accessibilityIdentifier("noteList.create")
+                }
+            }
+        }
+        .navigationTitle("리스트")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(for: NoteListSummary.self) { list in
+            NoteListMembersView(list: list)
+        }
+        .alert("리스트 이름 바꾸기", isPresented: Binding(
+            get: { renaming != nil }, set: { if !$0 { renaming = nil } }
+        )) {
+            TextField("리스트 이름", text: $renameTitle)
+            Button("바꾸기") {
+                if let list = renaming {
+                    Task { try? await store.rename(list, to: renameTitle) }
+                }
+            }
+            Button("취소", role: .cancel) {}
+        }
+        .task { await store.reload() }
     }
 
     private func create() async {

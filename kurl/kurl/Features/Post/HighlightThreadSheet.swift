@@ -13,19 +13,17 @@ struct HighlightThreadSheet: View {
     let store: PostHighlightStore
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
-    /// 답글 작성기 포커스 — 빈 스레드의 '첫 답글 쓰기' 어포던스가 이 포커스를 세운다.
-    @FocusState private var composerFocused: Bool
     @State private var replies: [HighlightReplyView] = []
     @State private var repliesLoaded = false
     @State private var repliesFailed = false
     @State private var text = ""
+    @State private var noReplyTarget: ConversationReplyTarget?
+    @State private var focusRequest = 0
     @State private var busy = false
-    @State private var sendFailed = false
+    @State private var likeGen: [Int64: Int] = [:]
+    @State private var showLikeLogin = false
     @State private var showDeleteConfirm = false
-    @State private var showLoginPrompt = false
     @State private var showDiscardConfirm = false
     @State private var replyToDelete: Int64?
     /// 이 문장이 속한 공개 길/컬렉션 — A 척추 발견 고리(한 문장 → 그것이 엮인 길들로).
@@ -68,7 +66,20 @@ struct HighlightThreadSheet: View {
                                 Label("공개 메모", systemImage: "globe")
                                     .typeScale(.meta)
                                     .foregroundStyle(Palette.secondary)
-                                personRow(author: highlight.author, date: highlight.createdAt, text: note, isOpener: true)
+                                ConversationRow(
+                                    author: highlight.author, date: highlight.createdAt,
+                                    spoken: ConversationName.spokenLine(
+                                        highlight.author, date: highlight.createdAt, body: note),
+                                    identifier: "highlight.opener"
+                                ) {
+                                    ConversationBody(text: note)
+                                } actions: {
+                                    EmptyView()
+                                } trailing: {
+                                    EmptyView()
+                                } spokenActions: {
+                                    EmptyView()
+                                }
                             }
                         }
                     }
@@ -77,17 +88,18 @@ struct HighlightThreadSheet: View {
                     .padding(.bottom, 22)
 
                     // ── 대화: 앵커와 한 칸 떨어진 별도 그룹. 구분은 폭 좁힌 hairline 한 가닥.
-                    if !replies.isEmpty {
+                    if !visibleReplies.isEmpty {
                         Rectangle()
                             .fill(Palette.hairline)
                             .frame(height: 1)
                             .padding(.horizontal, Metrics.gutter)
                         VStack(alignment: .leading, spacing: 22) {
-                            ForEach(Array(replies.enumerated()), id: \.element.id) { index, reply in
-                                personRow(
-                                    author: reply.author, date: reply.createdAt, text: reply.body,
-                                    mentions: reply.mentions ?? [], isOpener: false, replyId: reply.id
-                                )
+                            ForEach(Array(visibleReplies.enumerated()), id: \.element.id) { index, reply in
+                                HighlightReplyRow(
+                                    reply: reply, busy: busy,
+                                    onLike: { toggleLike(reply.id) },
+                                    onReply: { self.reply(to: $0) },
+                                    onDelete: { replyToDelete = reply.id })
                                 .modifier(QuietAppear(index: min(index, 6)))
                             }
                         }
@@ -115,7 +127,7 @@ struct HighlightThreadSheet: View {
                         // 하이라이트 없다"로 오독됐다(웹 #893 미러) — 왼쪽 정렬 muted 한 줄로 낮춘다.
                         // 막다른 길은 아니게, 탭하면 여전히 작성기가 열린다(어포던스 유지).
                         Button {
-                            composerFocused = true
+                            focusRequest += 1
                         } label: {
                             Text("아직 답글이 없어요")
                                 .typeScale(.meta)
@@ -248,10 +260,9 @@ struct HighlightThreadSheet: View {
                 Button("답글 버리기", role: .destructive) { dismiss() }
                 Button("계속 쓰기", role: .cancel) {}
             }
-            .loginPrompt(isPresented: $showLoginPrompt, message: "답글을 남기려면 로그인하세요") {
-                await loadReplies()
-            }
         }
+        .modifier(ToastHost())
+        .loginPrompt(isPresented: $showLikeLogin, message: "좋아요를 누르려면 로그인하세요")
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         // 답글을 쓰던 중의 드래그 닫힘은 입력을 통째로 버린다 — 글자가 있는 동안만 잠근다
@@ -262,132 +273,65 @@ struct HighlightThreadSheet: View {
         .task { await loadRelated() }
     }
 
-    /// 한 사람의 기여 = 아바타 + (이름·시각) + 본문, 바짝 뭉쳐 한 덩어리로(근접 그룹핑).
-    /// 오프너(큐레이터 메모)는 이름 옆 그린 한 가닥으로 표시.
-    private func personRow(
-        author: Author?, date: Date?, text: String, mentions: [String] = [], isOpener: Bool,
-        replyId: Int64? = nil
-    ) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            // 아바타·이름 → 그 사람 프로필(있을 때). 시트 안 스택에 push 된다.
-            if let author {
-                NavigationLink(value: Route.author(username: author.username)) {
-                    avatar(author)
-                }
-                .buttonStyle(.plain)
-            } else {
-                avatar(author)
-            }
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    if isOpener {
-                        Circle().fill(Palette.accent).frame(width: 5, height: 5)
-                    }
-                    if let author {
-                        NavigationLink(value: Route.author(username: author.username)) {
-                            Text(author.username)
-                                .typeScale(.meta)
-                                .foregroundStyle(Palette.ink)
-                                .lineLimit(1)
-                        }
-                        .buttonStyle(.plain)
-                    } else {
-                        Text(verbatim: "?")
-                            .typeScale(.meta)
-                            .foregroundStyle(Palette.ink)
-                    }
-                    if let date {
-                        Text(date.relativeCompact)
-                            .typeScale(.meta)
-                            .foregroundStyle(Palette.secondary)
-                            .fixedSize()
-                    }
-                    Spacer(minLength: 0)
-                    if let replyId, isMyReply(replyId) {
-                        Button { replyToDelete = replyId } label: {
-                            Image(systemName: "trash")
-                                .font(.system(size: 12 * metaUnit))
-                                .foregroundStyle(Palette.secondary)
-                                .expandTapTarget()  // 12pt 아이콘 → 44pt 터치 타깃
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(busy)
-                        .accessibilityLabel(Text("답글 삭제"))
-                    }
-                }
-                Text(NoteText.attributed(text, mentions: mentions, tags: false))
-                    .typeScale(.body)
-                    .foregroundStyle(Palette.body)
-                    .tint(Palette.link)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func avatar(_ author: Author?) -> some View {
-        if let author {
-            AvatarView(author: author, size: 26 * metaUnit)
-        } else {
-            Circle().fill(Palette.chipBg).frame(width: 26 * metaUnit, height: 26 * metaUnit)
-        }
+    /// 차단한 사람의 답글은 숨긴다(App Store 1.2 — 글 댓글과 같은 규칙).
+    private var visibleReplies: [HighlightReplyView] {
+        replies.filter { reply in reply.author.map { !BlockStore.shared.isBlocked($0.username) } ?? true }
     }
 
     private var composer: some View {
-        VStack(spacing: 0) {
-            Rectangle().fill(Palette.hairline).frame(height: 1)
-            if sendFailed {
-                Text("전송하지 못했습니다 — 다시 시도해 주세요.")
-                    .typeScale(.footnote)
-                    .foregroundStyle(Palette.danger)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, Metrics.gutter)
-                    .padding(.top, 10)
-            }
-            if composerFocused {
-                MentionSuggestionList(query: MentionDraft.trailingQuery(in: text)) {
-                    text = MentionDraft.complete(text, with: $0.username)
-                }
-                .padding(.horizontal, Metrics.gutter)
-                .padding(.top, 6)
-            }
-            HStack(alignment: .bottom, spacing: 10) {
-                TextField("답글을 남겨보세요", text: $text, axis: .vertical)
-                    .focused($composerFocused)
-                    .typeScale(.body)
-                    .lineLimit(1...5)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 9)
-                    .background(Palette.chipBg, in: Capsule())
-                    .disabled(busy)
-                    .accessibilityIdentifier("highlightReply.field")
-                Button { submit() } label: {
-                    Image(systemName: "arrow.up.circle.fill")
-                        .font(.system(size: 30 * unit))
-                        .foregroundStyle(canSend ? Palette.accent : Palette.faint)
-                        .symbolEffect(.bounce, value: reduceMotion ? false : busy)
-                }
-                .buttonStyle(.plain)
-                .disabled(!canSend || busy)
-                .scaleEffect(canSend ? 1 : 0.92)
-                .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: canSend)
-                .accessibilityLabel(Text("답글 보내기"))
-                .accessibilityIdentifier("highlightReply.send")
-            }
-            .padding(.horizontal, Metrics.gutter)
-            .padding(.vertical, 11)
+        ConversationComposer(
+            text: $text,
+            replyTarget: $noReplyTarget,
+            placeholder: "답글을 남겨보세요",
+            replyPlaceholder: "답글을 남겨보세요",
+            sendLabel: "답글 보내기",
+            loginMessage: "답글을 달려면 로그인하세요",
+            inputIdentifier: "highlightReply.field",
+            sendIdentifier: "highlightReply.send",
+            focusRequest: focusRequest
+        ) { body in
+            _ = try await HighlightsAPI.reply(highlightId: highlight.id, body: body)
+            await loadReplies()
+            await store.load() // replyCount 갱신 → 본문 밑줄 표식
         }
-        .background(.bar)
     }
 
-    private var canSend: Bool { hasDraft }
+    private func toggleLike(_ id: Int64) {
+        guard AuthStore.shared.isSignedIn else {
+            showLikeLogin = true
+            return
+        }
+        guard let current = replies.first(where: { $0.id == id }) else { return }
+        let on = !(current.liked ?? false)
+        let gen = (likeGen[id] ?? 0) + 1
+        likeGen[id] = gen
+        setLike(id, on: on, count: max(0, (current.likeCount ?? 0) + (on ? 1 : -1)))
+        Task {
+            do {
+                let status = try await HighlightsAPI.setReplyLike(id: id, on: on)
+                guard likeGen[id] == gen else { return }
+                setLike(id, on: status.liked, count: status.likeCount)
+            } catch {
+                guard likeGen[id] == gen else { return }
+                setLike(id, on: !on, count: current.likeCount ?? 0)
+                ToastCenter.shared.show(String(localized: "좋아요를 반영하지 못했어요"))
+            }
+        }
+    }
+
+    private func setLike(_ id: Int64, on: Bool, count: Int64) {
+        guard let index = replies.firstIndex(where: { $0.id == id }) else { return }
+        replies[index].liked = on
+        replies[index].likeCount = count
+    }
+
+    private func reply(to handle: String) {
+        let mention = "@\(handle) "
+        if !text.hasPrefix(mention) { text = mention + text }
+        focusRequest += 1
+    }
 
     private var hasDraft: Bool { !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-
-    private func isMyReply(_ replyId: Int64) -> Bool {
-        guard let myId = AuthStore.shared.me?.id, replyId > 0 else { return false }
-        return replies.first(where: { $0.id == replyId })?.author?.id == myId
-    }
 
     private func loadReplies() async {
         // 재조회 실패가 이미 떠 있는 스레드를 지우지 않도록 — 성공했을 때만 교체.
@@ -434,28 +378,6 @@ struct HighlightThreadSheet: View {
         .contentShape(Rectangle())
     }
 
-    private func submit() {
-        guard AuthStore.shared.isSignedIn else {
-            showLoginPrompt = true
-            return
-        }
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, !busy else { return }
-        busy = true
-        sendFailed = false
-        Task {
-            defer { busy = false }
-            do {
-                _ = try await HighlightsAPI.reply(highlightId: highlight.id, body: trimmed)
-                text = ""
-                await loadReplies()
-                await store.load() // replyCount 갱신 → 본문 밑줄 표식
-            } catch {
-                sendFailed = true // 입력은 보존 — 실패를 보이게.
-            }
-        }
-    }
-
     private func remove(_ id: Int64) {
         busy = true
         Task {
@@ -489,6 +411,94 @@ struct HighlightThreadSheet: View {
                 ToastCenter.shared.show(String(localized: "하이라이트를 삭제하지 못했습니다"))
             }
         }
+    }
+}
+
+private struct HighlightReplyRow: View {
+    let reply: HighlightReplyView
+    let busy: Bool
+    let onLike: () -> Void
+    let onReply: (String) -> Void
+    let onDelete: () -> Void
+
+    @State private var showReport = false
+    @State private var showBlockConfirm = false
+    @State private var likeTaps = 0
+
+    private var isMine: Bool {
+        guard let myId = AuthStore.shared.me?.id, reply.id > 0 else { return false }
+        return reply.author?.id == myId
+    }
+
+    private var liked: Bool { reply.liked ?? false }
+    private var likeCount: Int64 { reply.likeCount ?? 0 }
+
+    private var other: Author? {
+        guard AuthStore.shared.isSignedIn, !isMine else { return nil }
+        return reply.author
+    }
+
+    var body: some View {
+        ConversationRow(
+            author: reply.author, date: reply.createdAt,
+            spoken: ConversationName.spokenLine(
+                reply.author, date: reply.createdAt, body: reply.body, likes: likeCount),
+            identifier: "highlightReply.\(reply.id)"
+        ) {
+            ConversationBody(text: reply.body, mentions: reply.mentions ?? [])
+        } actions: {
+            ConversationLikeButton(liked: liked, count: likeCount, action: like)
+                .sensoryFeedback(.impact(weight: .light), trigger: likeTaps)
+                .accessibilityIdentifier("highlightReply.like.\(reply.id)")
+            if let other {
+                ConversationReplyButton { onReply(other.username) }
+                    .accessibilityIdentifier("highlightReply.reply.\(reply.id)")
+            }
+        } trailing: {
+            if isMine {
+                Button(action: onDelete) { ConversationIcon(systemName: "trash") }
+                    .buttonStyle(.plain)
+                    .disabled(busy)
+                    .accessibilityLabel("답글 삭제")
+                    .accessibilityIdentifier("highlightReply.delete.\(reply.id)")
+            } else {
+                Menu {
+                    if other != nil {
+                        Button(role: .destructive) { showBlockConfirm = true } label: {
+                            Label("차단", systemImage: "hand.raised")
+                        }
+                    }
+                    Button(role: .destructive) { showReport = true } label: {
+                        Label("신고", systemImage: "flag")
+                    }
+                } label: {
+                    ConversationIcon(systemName: "ellipsis")
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("답글 메뉴")
+                .accessibilityIdentifier("highlightReply.more.\(reply.id)")
+            }
+        } spokenActions: {
+            Button(liked ? LocalizedStringKey("좋아요 취소") : LocalizedStringKey("좋아요"), action: like)
+            if let other {
+                Button("답글") { onReply(other.username) }
+                Button("차단") { showBlockConfirm = true }
+            }
+            if isMine {
+                Button("삭제", action: onDelete)
+            } else {
+                Button("신고") { showReport = true }
+            }
+        }
+        .reportDialog(isPresented: $showReport, subjectType: "HIGHLIGHT_REPLY", subjectId: reply.id)
+        .blockDialog(
+            isPresented: $showBlockConfirm,
+            username: reply.author?.username ?? "", userId: reply.author?.id ?? 0)
+    }
+
+    private func like() {
+        if AuthStore.shared.isSignedIn { likeTaps += 1 }
+        onLike()
     }
 }
 

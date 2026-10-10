@@ -102,6 +102,7 @@ struct ReportReasonSheet: View {
         case "USER": return String(localized: "이 작가를")
         case "COMMENT": return String(localized: "이 댓글을")
         case "NOTE": return String(localized: "이 노트를")
+        case "HIGHLIGHT_REPLY": return String(localized: "이 답글을")
         default: return String(localized: "이 글을")
         }
     }

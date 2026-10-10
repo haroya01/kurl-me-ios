@@ -9,6 +9,7 @@ struct FeedHeaderBar<Item: Hashable & Identifiable, More: View>: View {
     let items: [Item]
     @Binding var selection: Item
     let label: (Item) -> String
+    let moreChoice: SegmentMoreChoice?
     let moreLabel: LocalizedStringKey
     let moreIdentifier: String
     @ViewBuilder var more: More
@@ -19,19 +20,14 @@ struct FeedHeaderBar<Item: Hashable & Identifiable, More: View>: View {
     var body: some View {
         GlassEffectContainer(spacing: GlassTokens.clusterSpacing) {
             HStack(spacing: 0) {
-                Menu {
+                Spacer(minLength: 0)
+                GlassSegmentSwitcher(
+                    items: items, selection: $selection, label: label, moreChoice: moreChoice,
+                    moreLabel: moreLabel, moreIdentifier: moreIdentifier
+                ) {
                     more
-                } label: {
-                    FeedHeaderGlyph(systemImage: "line.3.horizontal")
                 }
-                .menuOrder(.fixed)
-                .buttonStyle(.plain)
-                .glassEffect(.regular.interactive(), in: .circle)
-                .accessibilityLabel(Text(moreLabel))
-                .accessibilityIdentifier(moreIdentifier)
-                Spacer(minLength: 0)
-                GlassSegmentSwitcher(items: items, selection: $selection, label: label)
-                Spacer(minLength: 0)
+                Spacer(minLength: FeedHeaderMetrics.gap)
                 if AuthStore.shared.isSignedIn {
                     InboxBell(count: unread.count)
                 } else {
@@ -50,6 +46,8 @@ struct FeedHeaderBar<Item: Hashable & Identifiable, More: View>: View {
 enum FeedHeaderMetrics {
     static let circle: CGFloat = 44
     static let edge: CGFloat = 16
+    /// GlassTokens.clusterSpacing 보다 넓어야 스위처와 벨의 유리가 녹아 붙지 않는다.
+    static let gap: CGFloat = 24
 }
 
 struct FeedHeaderGlyph: View {

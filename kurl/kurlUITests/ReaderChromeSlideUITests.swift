@@ -54,9 +54,9 @@ final class ReaderChromeSlideUITests: XCTestCase {
         waitForExpectations(timeout: 5)
         attach("3-chrome-returned-title-spilled")
 
-        // 복귀한 뒤로가 실제로 pop 한다 — 상세가 닫히고 글을 연 추천 화면으로 돌아온다.
+        // 복귀한 뒤로가 실제로 pop 한다 — 상세가 닫히고 추천을 띄운 피드 머리로 돌아온다.
         back.tap()
-        XCTAssertTrue(app.navigationBars["추천"].waitForExistence(timeout: 5), "뒤로가 상세를 닫지 않음")
+        XCTAssertTrue(more.waitForExistence(timeout: 5) && more.label == "추천", "뒤로가 상세를 닫지 않음")
     }
 
     private func attach(_ name: String) {

@@ -57,7 +57,7 @@ final class HighlightReplySafetyUITests: XCTestCase {
         app.buttons["highlightReply.send"].tap()
 
         XCTAssertTrue(loginSheet(app).waitForExistence(timeout: 6), "비로그인 보내기에 로그인 시트가 안 뜸")
-        XCTAssertTrue(app.staticTexts["답글을 남기려면 로그인하세요"].exists, "로그인 문구가 답글 맥락이 아님")
+        XCTAssertTrue(app.staticTexts["답글을 달려면 로그인하세요"].exists, "로그인 문구가 답글 맥락이 아님")
         shot(app, "reply-signed-out-login")
 
         let start = loginSheet(app).coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.05))

@@ -79,8 +79,9 @@ enum BlogAPI {
         try await client.getDataAsViewer("/public/profiles/\(username)/posts/\(slug)")
     }
 
+    /// `tombstones=1` — 답글이 남은 지운 댓글을 자리로 받는다(웹과 같은 옵트인, 모르는 서버는 무시한다).
     static func comments(postId: Int64) async throws -> [Comment] {
-        try await client.getAsViewer("/public/posts/\(postId)/comments")
+        try await client.getAsViewer("/public/posts/\(postId)/comments", query: ["tombstones": "1"])
     }
 
     /// 읽기 측정 비콘. 실패는 조용히 무시한다.
