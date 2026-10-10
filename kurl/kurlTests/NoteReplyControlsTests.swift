@@ -71,6 +71,15 @@ final class NoteReplyControlsTests: XCTestCase {
         XCTAssertNil(old.viewerCanModerate, "옛 서버 — 첫 노트가 보일 때만 추론한다")
     }
 
+    func testTheHiddenRepliesRowCountsInEnglish() {
+        let english = Bundle(path: Bundle.main.path(forResource: "en", ofType: "lproj")!)!
+        func en(_ value: String.LocalizationValue) -> String {
+            String(localized: value, bundle: english, locale: Locale(identifier: "en_US"))
+        }
+        XCTAssertEqual(en("숨긴 답글 \(1)개 보기"), "Show 1 hidden reply")
+        XCTAssertEqual(en("숨긴 답글 \(3)개 보기"), "Show 3 hidden replies")
+    }
+
     func testTheDraftSendsAReplyPolicyOnlyWhenOneIsSet() throws {
         func encoded(_ draft: NoteDraft) throws -> [String: Any] {
             try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(draft)) as? [String: Any])

@@ -6771,9 +6771,21 @@
     "숨긴 답글 %lld개 보기": {
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show hidden replies (%lld)"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Show %lld hidden reply"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Show %lld hidden replies"
+                }
+              }
+            }
           }
         },
         "hi": {

@@ -2312,13 +2312,14 @@ struct NoteComposeSheet: View {
     private var replyPolicyRow: some View {
         Menu {
             Picker("답글 권한", selection: $replyPolicy) {
-                Section("내가 멘션한 사람은 언제나 답글을 달 수 있어요") {
-                    ForEach(NoteReplyPolicy.allCases) { policy in
-                        Label(policy.title, systemImage: policy.symbol).tag(policy)
-                    }
+                ForEach(NoteReplyPolicy.allCases) { policy in
+                    Label(policy.title, systemImage: policy.symbol).tag(policy)
                 }
             }
             .pickerStyle(.inline)
+            Section {
+                Text("내가 멘션한 사람은 언제나 답글을 달 수 있어요")
+            }
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: replyPolicy.symbol)

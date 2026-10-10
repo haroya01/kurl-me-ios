@@ -180,7 +180,7 @@ final class NoteReplyControlsUITests: XCTestCase {
         XCTAssertTrue(sawToast(app, "답글을 다시 보여요"), "숨김 해제 뒤 토스트가 안 뜸")
         XCTAssertFalse(app.buttons["note.body.9572"].waitForExistence(timeout: 2), "숨김을 푼 답글이 숨긴 목록에 남음")
 
-        app.buttons["뒤로"].firstMatch.tap()
+        app.navigationBars.buttons["BackButton"].tap()
         XCTAssertTrue(app.buttons["note.body.9572"].waitForExistence(timeout: 6), "숨김을 푼 답글이 스레드로 돌아오지 않음")
         XCTAssertTrue(hiddenRow.label.contains("숨긴 답글 1개 보기"), hiddenRow.label)
     }
