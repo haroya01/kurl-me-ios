@@ -69,7 +69,7 @@ final class ProfileRepliesMediaUITests: XCTestCase {
         let replies = app.buttons["author.tab.replies"]
         XCTAssertTrue(replies.waitForExistence(timeout: 15), "프로필에 답글 탭이 없음")
         replies.tap()
-        XCTAssertTrue(app.buttons["profile.reply.context.9501"].waitForExistence(timeout: 5))
+        XCTAssertTrue(text(app, containing: "지금은 사라진 노트에 남겼던 답글").waitForExistence(timeout: 5))
         shot("ja-replies")
         app.buttons["author.tab.media"].tap()
         shot("ja-media")
