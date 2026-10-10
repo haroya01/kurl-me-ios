@@ -997,30 +997,30 @@
         }
       }
     },
-    "%@님에게 답글": {
+    "%@님 프로필": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Replying to %@"
+            "value": "%@’s profile"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ को जवाब"
+            "value": "%@ की प्रोफ़ाइल"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@さんへの返信"
+            "value": "%@さんのプロフィール"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Trả lời %@"
+            "value": "Hồ sơ của %@"
           }
         }
       }
@@ -1133,34 +1133,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đã hiện lại bài đăng lại của %@"
-          }
-        }
-      }
-    },
-    "%@님의 블로그": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@’s blog"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ का ब्लॉग"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@さんのブログ"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Blog của %@"
           }
         }
       }
@@ -3283,6 +3255,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "@%1$@ · %2$lld bài"
+          }
+        }
+      }
+    },
+    "@%@에게 답글": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Replying to @%@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "@%@ को जवाब"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "@%@さんへの返信"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trả lời @%@"
           }
         }
       }
@@ -9904,6 +9904,34 @@
         }
       }
     },
+    "답글 메뉴": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reply menu"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जवाब मेनू"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返信メニュー"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menu trả lời"
+          }
+        }
+      }
+    },
     "답글을 달 노트가 지워졌어요": {
       "localizations": {
         "en": {
@@ -10068,6 +10096,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Không thể đổi thông báo cuộc trò chuyện"
+          }
+        }
+      }
+    },
+    "댓글 메뉴": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comment menu"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "टिप्पणी मेनू"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コメントメニュー"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Menu bình luận"
           }
         }
       }
@@ -12284,6 +12340,34 @@
         }
       }
     },
+    "삭제된 댓글이에요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This comment was deleted"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह टिप्पणी हटा दी गई है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除されたコメントです"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bình luận này đã bị xóa"
+          }
+        }
+      }
+    },
     "새 계정": {
       "localizations": {
         "en": {
@@ -14188,6 +14272,34 @@
         }
       }
     },
+    "이 답글을": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "this reply"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस जवाब को"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この返信を"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Câu trả lời này"
+          }
+        }
+      }
+    },
     "이 대화의 알림을 껐어요": {
       "localizations": {
         "en": {
@@ -16062,34 +16174,6 @@
         }
       }
     },
-    "댓글 더 보기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "See more comments"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "और टिप्पणियाँ देखें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コメントをもっと見る"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Xem thêm bình luận"
-          }
-        }
-      }
-    },
     "댓글 보내기": {
       "localizations": {
         "en": {
@@ -16142,34 +16226,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Xóa bình luận"
-          }
-        }
-      }
-    },
-    "댓글 좋아요": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Like comment"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "टिप्पणी पसंद करें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "コメントにいいね"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Thích bình luận"
           }
         }
       }
@@ -19542,6 +19598,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đăng nhập để thích"
+          }
+        }
+      }
+    },
+    "좋아요를 반영하지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t update the like"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पसंद लागू नहीं हो सकी"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "いいねを反映できませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể cập nhật lượt thích"
           }
         }
       }
@@ -30679,12 +30763,23 @@
       }
     },
     "좋아요 %lld": {
-      "extractionState": "stale",
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld likes"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld like"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld likes"
+                }
+              }
+            }
           }
         },
         "hi": {
@@ -30708,7 +30803,6 @@
       }
     },
     "좋아요 취소": {
-      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -30732,34 +30826,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bỏ thích"
-          }
-        }
-      }
-    },
-    "좋아요를 반영하지 못했습니다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Couldn’t update the like"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "पसंद लागू नहीं हो सकी"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "いいねを反映できませんでした"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Không thể cập nhật lượt thích"
           }
         }
       }

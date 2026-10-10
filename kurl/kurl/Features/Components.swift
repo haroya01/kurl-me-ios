@@ -521,7 +521,7 @@ enum CardQuickActions {
         let alreadyLiked = LikeStore.shared.contains(
             username: item.author.username, slug: item.slug)
         perform(
-            failure: String(localized: "좋아요를 반영하지 못했습니다"),
+            failure: String(localized: "좋아요를 반영하지 못했어요"),
             done: String(localized: "좋아요했습니다")
         ) {
             _ = try await InteractionsAPI.setLike(postId: item.id, on: true)

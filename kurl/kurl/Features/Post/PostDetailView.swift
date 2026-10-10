@@ -102,6 +102,7 @@ private struct PostDetailReader: View {
     /// 댓글 입력 = 키보드 위에 붙는 유리 바(채팅 문법). 본문 끝 프롬프트 행이나
     /// 답글 버튼이 이걸 깨운다 — 인라인 입력은 키보드와 위치가 따로 놀았다.
     @State private var composerActive = false
+    @State private var commentDraft = ""
     @State private var nextPost: PostListItem?
     @State private var nextFetched = false
     @State private var showNext = false
@@ -305,8 +306,19 @@ private struct PostDetailReader: View {
         // 키보드 위에 붙는 유리 댓글 바 — safeAreaInset 이 키보드를 따라 위치를 보장한다.
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if composerActive {
-                GlassCommentBar(model: model, replyTo: $replyTo) {
-                    composerActive = false
+                ConversationComposer(
+                    text: $commentDraft,
+                    replyTarget: commentReplyTarget,
+                    placeholder: "댓글을 남겨보세요",
+                    replyPlaceholder: "답글을 남겨보세요",
+                    sendLabel: "댓글 보내기",
+                    loginMessage: "댓글을 달려면 로그인하세요",
+                    inputIdentifier: "comment.input",
+                    sendIdentifier: "comment.send",
+                    focusOnAppear: true,
+                    onIdle: { composerActive = false }
+                ) { body in
+                    try await model.postComment(body: body, parentId: replyTo.map { $0.parentId ?? $0.id })
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
@@ -956,7 +968,8 @@ private struct PostDetailReader: View {
         switch spot {
         case .comment(let id):
             let visible = model.comments.contains {
-                $0.id == id && !BlockStore.shared.isBlocked($0.author.username)
+                guard $0.id == id, let author = $0.author else { return false }
+                return !BlockStore.shared.isBlocked(author.username)
             }
             try? await Task.sleep(for: .milliseconds(420))
             withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.55)) {
@@ -1168,7 +1181,17 @@ private struct PostDetailReader: View {
         return components.url
     }
 
-    /// 본문 탭 시 키보드 사임 — GlassCommentBar 의 focus 변화가 이어받아 빈 컴포저를 닫는다.
+    private var commentReplyTarget: Binding<ConversationReplyTarget?> {
+        Binding(
+            get: {
+                replyTo.map {
+                    ConversationReplyTarget(id: $0.id, handle: $0.author?.username ?? "?", prefill: $0.parentId != nil)
+                }
+            },
+            set: { if $0 == nil { replyTo = nil } })
+    }
+
+    /// 본문 탭 시 키보드 사임 — 작성기의 focus 변화가 이어받아 빈 작성기를 닫는다.
     private func dismissComposerEditing() {
         UIApplication.shared.sendAction(
             #selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
@@ -1600,7 +1623,7 @@ private struct PostDetailReader: View {
                     withAnimation(.snappy(duration: 0.25)) { commentsExpanded = true }
                 } label: {
                     HStack(spacing: 8) {
-                        RailHeading(model.commentsFailed ? "댓글" : "댓글 \(model.comments.count)")
+                        RailHeading(model.commentsFailed ? "댓글" : "댓글 \(model.commentCount)")
                         Spacer()
                         Image(systemName: "chevron.down")
                             .font(.system(size: 12 * metaUnit, weight: .semibold))
@@ -1610,21 +1633,21 @@ private struct PostDetailReader: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("댓글 \(model.comments.count) 펼치기")
+                .accessibilityLabel("댓글 \(model.commentCount) 펼치기")
             } else {
                 if model.quotingTotal > 0 {
                     ContentTabBar(
                         tabs: [Discussion.comments, .notes], selection: $discussion,
                         label: { tab in
                             switch tab {
-                            case .comments: model.commentsFailed ? "댓글" : "댓글 \(model.comments.count)"
+                            case .comments: model.commentsFailed ? "댓글" : "댓글 \(model.commentCount)"
                             case .notes: "노트 \(model.quotingTotal)"
                             }
                         },
                         identifier: { $0 == .comments ? "discussion.comments" : "discussion.notes" },
                         background: Palette.readingBg)
                 } else {
-                    RailHeading(model.commentsFailed ? "댓글" : "댓글 \(model.comments.count)")
+                    RailHeading(model.commentsFailed ? "댓글" : "댓글 \(model.commentCount)")
                 }
                 if discussion == .notes, model.quotingTotal > 0 {
                     quotingNotes
@@ -1680,17 +1703,18 @@ private struct PostDetailReader: View {
         }
         // 대화는 가벼운 행으로 — 스레드 사이만 헤어라인으로 나눈다(박스 카드 ❌).
         // 차단한 작가의 댓글·답글은 숨긴다(App Store 1.2 — 차단 = 그 사용자 콘텐츠 안 보임).
-        let threads = model.comments.filter {
-            $0.parentId == nil && !BlockStore.shared.isBlocked($0.author.username)
+        let visible: (Comment) -> Bool = { comment in
+            comment.author.map { !BlockStore.shared.isBlocked($0.username) } ?? true
+        }
+        let threads = model.comments.filter { comment in
+            guard comment.parentId == nil, visible(comment) else { return false }
+            return !comment.isDeleted || model.comments.contains { $0.parentId == comment.id && visible($0) }
         }
         ForEach(Array(threads.enumerated()), id: \.element.id) { index, parent in
             CommentThread(
                 model: model,
                 comment: parent,
-                replies: model.comments.filter {
-                    $0.parentId == parent.id
-                        && !BlockStore.shared.isBlocked($0.author.username)
-                },
+                replies: model.comments.filter { $0.parentId == parent.id && visible($0) },
                 replyTo: $replyTo,
                 postAuthorId: authorId,
                 flashCommentId: flashCommentId)
@@ -1889,6 +1913,8 @@ struct CommentRow: View {
     @Binding var replyTo: Comment?
     /// 글쓴이 표시용 — 댓글 작성자가 글 작가면 "작가" 칩이 붙는다.
     var postAuthorId: Int64?
+    /// 지운 댓글 자리 밑의 답글엔 답글을 달 수 없다(서버가 COMMENT_PARENT_INVALID 로 거절).
+    var canReply = true
 
     @State private var confirmDelete = false
     @State private var showReport = false
@@ -1896,139 +1922,70 @@ struct CommentRow: View {
     @State private var likeTaps = 0
     @State private var deleteFailed = false
     @State private var showLoginPrompt = false
-    @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var likedByMe: Bool { model.likedCommentIds.contains(comment.id) }
+    private var likeCount: Int64 { model.displayLikeCount(comment) }
     private var isMine: Bool {
-        guard let myId = AuthStore.shared.me?.id else { return false }
-        return comment.author.id == myId
+        guard let myId = AuthStore.shared.me?.id, let author = comment.author else { return false }
+        return author.id == myId
+    }
+    private var isPostAuthor: Bool {
+        guard let postAuthorId, let author = comment.author else { return false }
+        return author.id == postAuthorId
+    }
+    private var authorBlocked: Bool {
+        comment.author.map { BlockStore.shared.isBlocked(id: $0.id) } ?? false
     }
 
-    /// 답글은 한 단 작은 아바타로 — 들여쓰기와 함께 "이 사람 밑"임이 읽힌다.
-    private var avatarSize: CGFloat { comment.parentId == nil ? 32 : 26 }
-
     var body: some View {
-        // 2열 — 왼쪽 아바타, 오른쪽에 이름·본문·액션이 한 기둥으로 정렬된다.
-        // (본문을 32pt 행잉 인덴트로 띄우던 옛 레이아웃은 한글에서 폭만 깎고 떠 보였다.)
-        HStack(alignment: .top, spacing: 10) {
-            NavigationLink(value: Route.author(username: comment.author.username)) {
-                AvatarView(author: comment.author, size: avatarSize)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(Text("\(comment.author.username)님의 블로그"))
-
-            VStack(alignment: .leading, spacing: 5) {
-                HStack(spacing: 6) {
-                    NavigationLink(value: Route.author(username: comment.author.username)) {
-                        Text(comment.author.username)
-                            .typeScale(.meta)
-                            .foregroundStyle(Palette.ink)
-                            .lineLimit(1)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    if let postAuthorId, comment.author.id == postAuthorId {
-                        Text("작가")
-                            .font(.system(size: 10 * metaUnit, weight: .semibold))
-                            .foregroundStyle(Palette.link)
-                            .fixedSize()
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(Palette.chipBg, in: Capsule())
-                    }
-                    if let date = comment.createdAt {
-                        Text(date.relativeCompact)
-                            .typeScale(.meta)
-                            .foregroundStyle(Palette.secondary)
-                            .fixedSize()
-                    }
-                    Spacer(minLength: 0)
-                    if isMine {
-                        Button {
-                            confirmDelete = true
-                        } label: {
-                            Image(systemName: "trash")
-                                .font(.system(size: 12 * metaUnit))
-                                .foregroundStyle(Palette.secondary)
-                                .expandTapTarget()
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("댓글 삭제")
-                    } else {
-                        // 남의 댓글 — 더 보기 메뉴에 차단·신고(글·작가 프로필과 같은 문법).
-                        Menu {
-                            if BlockStore.shared.isBlocked(id: comment.author.id) {
-                                Button {
-                                    Task {
-                                        try? await BlockStore.shared.unblock(
-                                            id: comment.author.id, username: comment.author.username)
-                                        ToastCenter.shared.show(String(localized: "차단을 해제했어요"))
-                                    }
-                                } label: {
-                                    Label("차단 해제", systemImage: "hand.raised.slash")
-                                }
-                            } else {
-                                Button(role: .destructive) { showBlockConfirm = true } label: {
-                                    Label("차단", systemImage: "hand.raised")
-                                }
-                            }
-                            Button(role: .destructive) { showReport = true } label: {
-                                Label("신고", systemImage: "flag")
-                            }
-                        } label: {
-                            Image(systemName: "ellipsis")
-                                .font(.system(size: 12 * metaUnit))
-                                .foregroundStyle(Palette.secondary)
-                                .expandTapTarget()
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("댓글 더 보기")
-                    }
-                }
-                Text(NoteText.attributed(comment.body, mentions: comment.mentions ?? [], tags: false))
-                    .typeScale(.body)
-                    .foregroundStyle(Palette.body)
-                    .tint(Palette.link)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .textSelection(.enabled)
-                HStack(spacing: 16) {
-                    Button {
-                        // 미로그인은 침묵 대신 로그인 유도 — 컴포저·하이라이트와 같은 공용 시트.
-                        guard AuthStore.shared.isSignedIn else {
-                            showLoginPrompt = true
-                            return
-                        }
-                        likeTaps += 1
-                        Task { await model.toggleCommentLike(comment) }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: likedByMe ? "heart.fill" : "heart")
-                                .font(.system(size: 11 * metaUnit))
-                                .symbolEffect(.bounce, value: reduceMotion ? false : likedByMe)
-                        }
-                        .foregroundStyle(likedByMe ? Palette.link : Palette.secondary)
-                        .expandTapTarget()
-                    }
-                    .buttonStyle(.plain)
-                    .sensoryFeedback(.impact(weight: .light), trigger: likeTaps)
-                    .accessibilityLabel(Text("댓글 좋아요"))
-                    .accessibilityAddTraits(likedByMe ? [.isSelected] : [])
-                    .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: likedByMe)
-
-                    Button {
-                        replyTo = comment
-                    } label: {
-                        Text("답글")
-                            .typeScale(.meta)
-                            .foregroundStyle(Palette.secondary)
-                            .expandTapTarget()
-                    }
-                    .buttonStyle(.plain)
+        ConversationRow(
+            author: comment.author, date: comment.createdAt, nested: comment.parentId != nil,
+            badge: isPostAuthor ? "작가" : nil,
+            spoken: ConversationName.spokenLine(
+                comment.author, badge: isPostAuthor ? String(localized: "작가") : nil, date: comment.createdAt,
+                body: comment.body ?? "", likes: likeCount),
+            identifier: "comment.row.\(comment.id)"
+        ) {
+            ConversationBody(text: comment.body ?? "", mentions: comment.mentions ?? [])
+        } actions: {
+            ConversationLikeButton(liked: likedByMe, count: likeCount, action: toggleLike)
+                .sensoryFeedback(.impact(weight: .light), trigger: likeTaps)
+                .accessibilityIdentifier("comment.like.\(comment.id)")
+            if canReply {
+                ConversationReplyButton { replyTo = comment }
                     .accessibilityIdentifier("comment.reply.\(comment.id)")
+            }
+        } trailing: {
+            if isMine {
+                Button { confirmDelete = true } label: { ConversationIcon(systemName: "trash") }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("댓글 삭제")
+                    .accessibilityIdentifier("comment.delete.\(comment.id)")
+            } else if comment.author != nil {
+                Menu {
+                    blockButton
+                    Button(role: .destructive) { showReport = true } label: {
+                        Label("신고", systemImage: "flag")
+                    }
+                } label: {
+                    ConversationIcon(systemName: "ellipsis")
                 }
-                .padding(.top, 1)
+                .buttonStyle(.plain)
+                .accessibilityLabel("댓글 메뉴")
+                .accessibilityIdentifier("comment.more.\(comment.id)")
+            }
+        } spokenActions: {
+            Button(likedByMe ? LocalizedStringKey("좋아요 취소") : LocalizedStringKey("좋아요"), action: toggleLike)
+            if canReply { Button("답글") { replyTo = comment } }
+            if isMine {
+                Button("삭제") { confirmDelete = true }
+            } else if comment.author != nil {
+                Button("신고") { showReport = true }
+                if authorBlocked {
+                    Button("차단 해제") { unblock() }
+                } else {
+                    Button("차단") { showBlockConfirm = true }
+                }
             }
         }
         // 알럿(중앙 모달) — confirmationDialog 은 regular width·세로 모두 부리 팝오버로 새어 나갔다.
@@ -2047,13 +2004,42 @@ struct CommentRow: View {
         .reportDialog(isPresented: $showReport, subjectType: "COMMENT", subjectId: comment.id)
         .blockDialog(
             isPresented: $showBlockConfirm,
-            username: comment.author.username, userId: comment.author.id)
+            username: comment.author?.username ?? "", userId: comment.author?.id ?? 0)
         .loginPrompt(isPresented: $showLoginPrompt, message: "이 댓글에 공감하려면 로그인하세요")
+    }
+
+    @ViewBuilder private var blockButton: some View {
+        if authorBlocked {
+            Button { unblock() } label: {
+                Label("차단 해제", systemImage: "hand.raised.slash")
+            }
+        } else {
+            Button(role: .destructive) { showBlockConfirm = true } label: {
+                Label("차단", systemImage: "hand.raised")
+            }
+        }
+    }
+
+    private func toggleLike() {
+        // 미로그인은 침묵 대신 로그인 유도 — 컴포저·하이라이트와 같은 공용 시트.
+        guard AuthStore.shared.isSignedIn else {
+            showLoginPrompt = true
+            return
+        }
+        likeTaps += 1
+        Task { await model.toggleCommentLike(comment) }
+    }
+
+    private func unblock() {
+        guard let author = comment.author else { return }
+        Task {
+            try? await BlockStore.shared.unblock(id: author.id, username: author.username)
+            ToastCenter.shared.show(String(localized: "차단을 해제했어요"))
+        }
     }
 }
 
 /// 댓글 한 묶음(원댓글 + 답글) — 대화는 가벼운 행으로(박스 카드 ❌, 조용한 웹로그 표준).
-/// 답글은 부모 아바타 중심선에서 내려오는 연결 스파인 + 들여쓰기로 "이 사람 밑"임이 읽힌다.
 private struct CommentThread: View {
     let model: PostDetailViewModel
     let comment: Comment
@@ -2062,33 +2048,35 @@ private struct CommentThread: View {
     var postAuthorId: Int64?
     var flashCommentId: Int64?
 
+    @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            spot(CommentRow(
-                model: model, comment: comment, replyTo: $replyTo, postAuthorId: postAuthorId),
-                comment.id)
+            if comment.isDeleted {
+                spot(ConversationTombstone(), comment.id)
+                    .accessibilityIdentifier("comment.tombstone.\(comment.id)")
+            } else {
+                spot(CommentRow(
+                    model: model, comment: comment, replyTo: $replyTo, postAuthorId: postAuthorId),
+                    comment.id)
+            }
             if !replies.isEmpty {
-                HStack(alignment: .top, spacing: 12) {
-                    RoundedRectangle(cornerRadius: 1)
-                        .fill(Palette.hairlineStrong)
-                        .frame(width: 2)
-                    VStack(alignment: .leading, spacing: 18) {
-                        ForEach(replies) { reply in
-                            spot(CommentRow(
-                                model: model, comment: reply, replyTo: $replyTo,
-                                postAuthorId: postAuthorId),
-                                reply.id)
-                        }
+                VStack(alignment: .leading, spacing: 18) {
+                    ForEach(replies) { reply in
+                        spot(CommentRow(
+                            model: model, comment: reply, replyTo: $replyTo,
+                            postAuthorId: postAuthorId, canReply: !comment.isDeleted),
+                            reply.id)
                     }
                 }
                 .padding(.top, 16)
-                .padding(.leading, 15)
+                .padding(.leading, 36 * min(scale, 1.8) + 12)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func spot(_ row: CommentRow, _ id: Int64) -> some View {
+    private func spot(_ row: some View, _ id: Int64) -> some View {
         row
             .background {
                 RoundedRectangle(cornerRadius: Metrics.radius)
@@ -2099,152 +2087,6 @@ private struct CommentThread: View {
             }
             .id(PostDetailReader.commentAnchor(id))
     }
-}
-
-/// 키보드 위에 붙는 유리 댓글 바 — 입력은 떠 있는 크롬이므로 유리(DESIGN.md §1).
-/// safeAreaInset(.bottom) 이 키보드를 따라가 위치는 시스템이 보장한다.
-/// 유리 위 주행동(보내기)은 솔리드 그린 원(§1.4 유리 중첩 금지).
-struct GlassCommentBar: View {
-    let model: PostDetailViewModel
-    @Binding var replyTo: Comment?
-    let onDone: () -> Void
-
-    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
-    @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
-    @State private var body_ = ""
-    @State private var sending = false
-    @State private var sendFailed = false
-    @State private var showLoginPrompt = false
-    /// 전송 성공 햅틱 트리거 — 좋아요·팔로우와 같은 결의 가벼운 확인음.
-    @State private var sentPulse = 0
-    @State private var calledHandle: String?
-    @FocusState private var focused: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if let replyTo {
-                HStack(spacing: 6) {
-                    Text("\(replyTo.author.username)님에게 답글")
-                        .typeScale(.footnote)
-                        .foregroundStyle(Palette.link)
-                    Button {
-                        self.replyTo = nil
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 13 * unit))
-                            .foregroundStyle(.secondary)
-                            .expandTapTarget()
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("답글 취소")
-                }
-            }
-            if sendFailed {
-                Text("전송하지 못했습니다 — 다시 시도해 주세요.")
-                    .typeScale(.footnote)
-                    .foregroundStyle(Palette.danger)
-            }
-            if focused {
-                MentionSuggestionList(query: MentionDraft.trailingQuery(in: body_)) {
-                    body_ = MentionDraft.complete(body_, with: $0.username)
-                }
-            }
-            // 한 줄일 때 입력칸이 보내기 버튼(34pt)보다 낮게 깔려 위에 빈 띠가 생기던 것 —
-            // 가운데 정렬로 입력칸이 버튼과 나란히 올라와 키보드 바로 위에 딱 붙는다.
-            HStack(alignment: .center, spacing: 10) {
-                TextField(
-                    replyTo == nil ? "댓글을 남겨보세요" : "답글을 남겨보세요",
-                    text: $body_, axis: .vertical
-                )
-                .typeScale(.body)
-                .lineLimit(1...4)
-                .focused($focused)
-                .accessibilityIdentifier("comment.input")
-                .submitLabel(.send)
-                .onSubmit { if canSend { send() } }
-
-                Button {
-                    send()
-                } label: {
-                    if sending {
-                        ProgressView()
-                            .tint(.white)
-                            .frame(width: 34 * unit, height: 34 * unit)
-                            .background(GlassTokens.prominentTint, in: Circle())
-                    } else {
-                        Image(systemName: "arrow.up")
-                            .font(.system(size: 15 * unit, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 34 * unit, height: 34 * unit)
-                            .background(
-                                canSend ? GlassTokens.prominentTint : Color.secondary.opacity(0.45),
-                                in: Circle())
-                    }
-                }
-                .buttonStyle(.plain)
-                .disabled(!canSend || sending)
-                .accessibilityLabel("댓글 보내기")
-            }
-        }
-        .padding(.horizontal, 15)
-        .padding(.vertical, 11)
-        .glassEffect(.regular, in: .rect(cornerRadius: Metrics.radius))
-        .padding(.horizontal, 10)
-        .padding(.bottom, 6)
-        .onAppear { focused = true }
-        .sensoryFeedback(.impact(weight: .light), trigger: sentPulse)
-        .onChange(of: focused) { _, isFocused in
-            // 키보드를 내렸고 쓰던 글도 없으면 바도 물러난다(초안이 있으면 남아서 지킨다).
-            if !isFocused, !sending,
-               body_.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                replyTo = nil
-                onDone()
-            }
-        }
-        .onChange(of: replyTo, initial: true) { _, target in
-            if let calledHandle, body_.hasPrefix(calledHandle) {
-                body_.removeFirst(calledHandle.count)
-            }
-            calledHandle = nil
-            guard let target, target.parentId != nil,
-                  target.author.username != AuthStore.shared.me?.username else { return }
-            let handle = "@\(target.author.username) "
-            body_ = handle + body_
-            calledHandle = handle
-        }
-        .loginPrompt(isPresented: $showLoginPrompt, message: "댓글을 달려면 로그인하세요")
-    }
-
-    private var canSend: Bool {
-        !body_.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    private func send() {
-        guard AuthStore.shared.isSignedIn else {
-            showLoginPrompt = true
-            return
-        }
-        guard !sending else { return }
-        sendFailed = false
-        sending = true
-        Task {
-            defer { sending = false }
-            do {
-                try await model.postComment(
-                    body: body_.trimmingCharacters(in: .whitespacesAndNewlines),
-                    parentId: replyTo.map { $0.parentId ?? $0.id })
-                body_ = ""
-                replyTo = nil
-                focused = false
-                sendFailed = false
-                sentPulse += 1
-                onDone()
-            } catch {
-                sendFailed = true // 입력은 보존 — 실패를 보이게.
-            }
-        }
-    }
-
 }
 
 /// 태그 줄바꿈 래핑 — muted 칩.

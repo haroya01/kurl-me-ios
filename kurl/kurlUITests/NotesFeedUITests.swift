@@ -377,7 +377,7 @@ final class NotesFeedUITests: XCTestCase {
         menuItem(app, "리포스트 보기").tap()
         XCTAssertTrue(header.waitForExistence(timeout: 8), "리포스트를 다시 켜도 안 돌아옴")
 
-        let name = app.buttons["yuki_dev"].firstMatch
+        let name = app.buttons["@yuki_dev"].firstMatch
         XCTAssertTrue(name.waitForExistence(timeout: 6))
         name.tap()
         let more = app.buttons["더 보기"].firstMatch
@@ -503,7 +503,7 @@ final class NotesFeedUITests: XCTestCase {
         app.launch()
         openNotes(app)
 
-        let name = app.buttons["honggildong"].firstMatch
+        let name = app.buttons["@honggildong"].firstMatch
         XCTAssertTrue(name.waitForExistence(timeout: 10))
         name.tap()
         let older = app.buttons["note.menu.9504"]
@@ -575,7 +575,7 @@ final class NotesFeedUITests: XCTestCase {
         app.launch()
         openNotes(app)
 
-        let name = app.buttons["yuki_dev"].firstMatch
+        let name = app.buttons["@yuki_dev"].firstMatch
         XCTAssertTrue(name.waitForExistence(timeout: 8))
         name.tap()
         let more = app.buttons["더 보기"].firstMatch
@@ -608,7 +608,7 @@ final class NotesFeedUITests: XCTestCase {
         openNotes(app)
 
         XCTAssertTrue(app.buttons["note.menu.9501"].waitForExistence(timeout: 8), "yuki_dev의 노트가 피드에 없음")
-        app.buttons["yuki_dev"].firstMatch.tap()
+        app.buttons["@yuki_dev"].firstMatch.tap()
         let more = app.buttons["더 보기"].firstMatch
         XCTAssertTrue(more.waitForExistence(timeout: 10))
         more.tap()
@@ -937,7 +937,8 @@ final class NotesFeedUITests: XCTestCase {
         openNotes(app)
 
         XCTAssertTrue(app.buttons["note.menu.9503"].waitForExistence(timeout: 10))
-        let name = app.buttons.matching(NSPredicate(format: "label CONTAINS '김독자'")).firstMatch
+        let name = app.buttons.matching(NSPredicate(
+            format: "label CONTAINS '김독자' AND NOT (label ENDSWITH '님 프로필')")).firstMatch
         XCTAssertTrue(name.waitForExistence(timeout: 6), "표시 이름이 행에 없음")
         XCTAssertTrue(name.label.contains("@reader_kim"), "표시 이름 옆에 @아이디가 없음: \(name.label)")
         attach(app, "display-name-row")
@@ -1081,7 +1082,7 @@ final class NotesFeedUITests: XCTestCase {
         app.launch()
         openNotes(app)
 
-        let name = app.buttons["yuki_dev"].firstMatch
+        let name = app.buttons["@yuki_dev"].firstMatch
         XCTAssertTrue(name.waitForExistence(timeout: 8))
         name.tap()
         let notesTab = app.buttons["author.tab.notes"]
@@ -1126,7 +1127,7 @@ final class NotesFeedUITests: XCTestCase {
         app.launch()
         openNotes(app)
 
-        let name = app.buttons["yuki_dev"].firstMatch
+        let name = app.buttons["@yuki_dev"].firstMatch
         XCTAssertTrue(name.waitForExistence(timeout: 8), "노트 행의 작가 이름이 링크가 아님")
         name.tap()
 
@@ -1249,7 +1250,7 @@ final class NotesFeedUITests: XCTestCase {
         app.launch()
         openNotes(app)
 
-        let name = app.buttons["yuki_dev"].firstMatch
+        let name = app.buttons["@yuki_dev"].firstMatch
         XCTAssertTrue(name.waitForExistence(timeout: 8))
         name.tap()
         let tab = app.buttons["author.tab.reposts"]
