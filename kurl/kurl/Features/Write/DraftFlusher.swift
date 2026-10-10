@@ -37,6 +37,8 @@ final class DraftFlusher {
         var tags: [String]
         var savedSeriesId: Int64?
         var seriesId: Int64?
+        /// 편집 화면의 버전 게이트 — 화면에서 가던 쓰기 뒤에 줄 서고, 그 쓰기가 받은 버전을 base 로 쓴다.
+        var gate = PostVersionGate()
     }
 
     /// 차례를 기다리거나 서버로 가는 중인 플러시 — 맨 앞이 지금 보내는 것.
@@ -66,6 +68,10 @@ final class DraftFlusher {
                 ComposeRecoveryStore.clear(postId: payload.postId, draftKey: payload.draftKey)
                 // 저장이 끝났음을 알려 스튜디오가 목록을 다시 읽게 한다(뷰 밖 생성분 반영).
                 completedTick &+= 1
+            } catch is PostEditConflict {
+                // 다른 기기가 먼저 고쳤다 — 덮지 않는다. 내 내용은 기기 금고 슬롯에 남아 다시 열면 이어 쓸 수 있다.
+                ToastCenter.shared.show(
+                    String(localized: "다른 기기에서 고친 글이라 저장하지 않았어요. 다시 열면 이어 쓸 수 있어요."))
             } catch {
                 // 화면은 이미 사라졌다 — 루트에 살아있는 토스트로 반드시 알린다(조용한 유실 금지).
                 // '다시 시도'는 이미 만든 초안 id 를 든 스냅샷으로 재플러시한다(초안 중복 생성 방지).
@@ -97,20 +103,20 @@ final class DraftFlusher {
         if let existing = p.postId {
             id = existing
         } else {
-            id = try await WriteAPI.createDraft(title: p.title.trimmingCharacters(in: .whitespaces)).id
+            let created = try await WriteAPI.createDraft(title: p.title.trimmingCharacters(in: .whitespaces))
+            id = created.id
             p.postId = id
+            p.gate.adopt(created.contentVersion)
             ComposeRecoveryStore.promote(p.draftKey, to: id)
         }
-        _ = try await WriteAPI.replaceMarkdown(postId: id, markdown: p.markdown)
         let newTitle = p.title.trimmingCharacters(in: .whitespaces)
-        if newTitle != p.savedTitle || p.excerpt != p.savedExcerpt || p.tags != p.savedTags {
-            try await WriteAPI.updateMetadata(
-                postId: id,
+        _ = try await PostSave.send(
+            postId: id, markdown: p.markdown,
+            metadata: .init(
                 title: newTitle != p.savedTitle ? newTitle : nil,
                 excerpt: p.excerpt != p.savedExcerpt ? p.excerpt : nil,
-                tags: p.tags != p.savedTags ? p.tags : nil
-            )
-        }
+                tags: p.tags != p.savedTags ? p.tags : nil),
+            gate: p.gate)
         if p.seriesId != p.savedSeriesId {
             try await WriteAPI.assign(postId: id, from: p.savedSeriesId, to: p.seriesId)
         }

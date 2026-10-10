@@ -26,6 +26,7 @@
 		F1A0000000000000000000C1 /* NoteImageUploadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A0000000000000000000C2 /* NoteImageUploadTests.swift */; };
 		F1A0000000000000000000D1 /* PostLimitsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A0000000000000000000D2 /* PostLimitsTests.swift */; };
 		F1A0000000000000000000E1 /* DiscoveryViewerTokenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A0000000000000000000E2 /* DiscoveryViewerTokenTests.swift */; };
+		F1A0000000000000000000F1 /* EditConflictTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A0000000000000000000F2 /* EditConflictTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -88,6 +89,7 @@
 		F1A0000000000000000000C2 /* NoteImageUploadTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NoteImageUploadTests.swift; sourceTree = "<group>"; };
 		F1A0000000000000000000D2 /* PostLimitsTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PostLimitsTests.swift; sourceTree = "<group>"; };
 		F1A0000000000000000000E2 /* DiscoveryViewerTokenTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DiscoveryViewerTokenTests.swift; sourceTree = "<group>"; };
+		F1A0000000000000000000F2 /* EditConflictTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EditConflictTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -213,6 +215,7 @@
 				F1A0000000000000000000C2 /* NoteImageUploadTests.swift */,
 				F1A0000000000000000000D2 /* PostLimitsTests.swift */,
 				F1A0000000000000000000E2 /* DiscoveryViewerTokenTests.swift */,
+				F1A0000000000000000000F2 /* EditConflictTests.swift */,
 			);
 			path = kurlTests;
 			sourceTree = "<group>";
@@ -407,6 +410,7 @@
 				F1A0000000000000000000C1 /* NoteImageUploadTests.swift in Sources */,
 				F1A0000000000000000000D1 /* PostLimitsTests.swift in Sources */,
 				F1A0000000000000000000E1 /* DiscoveryViewerTokenTests.swift in Sources */,
+				F1A0000000000000000000F1 /* EditConflictTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
