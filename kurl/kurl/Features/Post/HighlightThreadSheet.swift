@@ -19,10 +19,15 @@ struct HighlightThreadSheet: View {
     /// 답글 작성기 포커스 — 빈 스레드의 '첫 답글 쓰기' 어포던스가 이 포커스를 세운다.
     @FocusState private var composerFocused: Bool
     @State private var replies: [HighlightReplyView] = []
+    @State private var repliesLoaded = false
+    @State private var repliesFailed = false
     @State private var text = ""
     @State private var busy = false
     @State private var sendFailed = false
     @State private var showDeleteConfirm = false
+    @State private var showLoginPrompt = false
+    @State private var showDiscardConfirm = false
+    @State private var replyToDelete: Int64?
     /// 이 문장이 속한 공개 길/컬렉션 — A 척추 발견 고리(한 문장 → 그것이 엮인 길들로).
     @State private var inCollections: [CollectionSummary] = []
     /// 이 문장과 같은 공개 컬렉션에 함께 놓인 다른 블록 — "이것과 이어진 것"(공동 등장 발견 고리).
@@ -89,7 +94,22 @@ struct HighlightThreadSheet: View {
                         .padding(.horizontal, Metrics.gutter)
                         .padding(.top, 22)
                         .padding(.bottom, 8)
-                    } else if !hasOpener {
+                    } else if repliesFailed {
+                        HStack(spacing: 12) {
+                            Text("답글을 불러오지 못했어요")
+                                .typeScale(.meta)
+                                .foregroundStyle(Palette.secondary)
+                            Spacer(minLength: 0)
+                            Button("다시 시도") { Task { await loadReplies() } }
+                                .typeScale(.meta)
+                                .tint(Palette.link)
+                                .accessibilityIdentifier("highlightReply.retry")
+                        }
+                        .padding(.horizontal, Metrics.gutter)
+                        .padding(.vertical, 14)
+                        .accessibilityElement(children: .contain)
+                        .accessibilityIdentifier("highlightReply.loadError")
+                    } else if repliesLoaded && !hasOpener {
                         // 답글 0개 — 하이라이트(따옴표+작성자)는 이미 위에 있으므로 이 자리는 "답글이
                         // 없다"만 조용히 말한다. 예전 "첫 답글 쓰기"는 큰 중앙 블록이라 "여기 비어 있다/
                         // 하이라이트 없다"로 오독됐다(웹 #893 미러) — 왼쪽 정렬 muted 한 줄로 낮춘다.
@@ -163,11 +183,24 @@ struct HighlightThreadSheet: View {
                 return .handled
             })
             .scrollIndicators(.hidden)
+            .alert(
+                "이 답글을 삭제할까요?",
+                isPresented: Binding(get: { replyToDelete != nil }, set: { if !$0 { replyToDelete = nil } })
+            ) {
+                Button("삭제", role: .destructive) {
+                    if let id = replyToDelete { remove(id) }
+                }
+                Button("취소", role: .cancel) {}
+            }
             .safeAreaInset(edge: .bottom) { composer }
             .navigationTitle("대화")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("닫기") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("닫기") {
+                        if hasDraft { showDiscardConfirm = true } else { dismiss() }
+                    }
+                }
                 if isMine {
                     // 내 하이라이트 — 연결과 삭제를 한 메뉴로(컬렉션 상세와 같은 ellipsis 관리 문법).
                     ToolbarItem(placement: .primaryAction) {
@@ -211,12 +244,19 @@ struct HighlightThreadSheet: View {
                     ? "남긴 메모와 답글도 함께 사라져요. 되돌릴 수 없어요."
                     : "삭제하면 되돌릴 수 없어요.")
             }
+            .confirmationDialog("작성한 답글을 버릴까요?", isPresented: $showDiscardConfirm, titleVisibility: .visible) {
+                Button("답글 버리기", role: .destructive) { dismiss() }
+                Button("계속 쓰기", role: .cancel) {}
+            }
+            .loginPrompt(isPresented: $showLoginPrompt, message: "답글을 남기려면 로그인하세요") {
+                await loadReplies()
+            }
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         // 답글을 쓰던 중의 드래그 닫힘은 입력을 통째로 버린다 — 글자가 있는 동안만 잠근다
         // (보내거나 지우면 다시 닫힘, 인증 시트와 같은 관용구).
-        .interactiveDismissDisabled(!text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        .interactiveDismissDisabled(hasDraft)
         .task { await loadReplies() }
         .task { await loadContainingCollections() }
         .task { await loadRelated() }
@@ -264,7 +304,7 @@ struct HighlightThreadSheet: View {
                     }
                     Spacer(minLength: 0)
                     if let replyId, isMyReply(replyId) {
-                        Button { remove(replyId) } label: {
+                        Button { replyToDelete = replyId } label: {
                             Image(systemName: "trash")
                                 .font(.system(size: 12 * metaUnit))
                                 .foregroundStyle(Palette.secondary)
@@ -320,6 +360,7 @@ struct HighlightThreadSheet: View {
                     .padding(.vertical, 9)
                     .background(Palette.chipBg, in: Capsule())
                     .disabled(busy)
+                    .accessibilityIdentifier("highlightReply.field")
                 Button { submit() } label: {
                     Image(systemName: "arrow.up.circle.fill")
                         .font(.system(size: 30 * unit))
@@ -331,6 +372,7 @@ struct HighlightThreadSheet: View {
                 .scaleEffect(canSend ? 1 : 0.92)
                 .animation(reduceMotion ? nil : .snappy(duration: 0.22), value: canSend)
                 .accessibilityLabel(Text("답글 보내기"))
+                .accessibilityIdentifier("highlightReply.send")
             }
             .padding(.horizontal, Metrics.gutter)
             .padding(.vertical, 11)
@@ -338,7 +380,9 @@ struct HighlightThreadSheet: View {
         .background(.bar)
     }
 
-    private var canSend: Bool { !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    private var canSend: Bool { hasDraft }
+
+    private var hasDraft: Bool { !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
     private func isMyReply(_ replyId: Int64) -> Bool {
         guard let myId = AuthStore.shared.me?.id, replyId > 0 else { return false }
@@ -347,8 +391,12 @@ struct HighlightThreadSheet: View {
 
     private func loadReplies() async {
         // 재조회 실패가 이미 떠 있는 스레드를 지우지 않도록 — 성공했을 때만 교체.
-        if let fetched = try? await HighlightsAPI.replies(highlightId: highlight.id) {
-            replies = fetched
+        do {
+            replies = try await HighlightsAPI.replies(highlightId: highlight.id)
+            repliesFailed = false
+            repliesLoaded = true
+        } catch {
+            repliesFailed = replies.isEmpty
         }
     }
 
@@ -388,8 +436,7 @@ struct HighlightThreadSheet: View {
 
     private func submit() {
         guard AuthStore.shared.isSignedIn else {
-            dismiss()
-            store.loginPrompt = true
+            showLoginPrompt = true
             return
         }
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)

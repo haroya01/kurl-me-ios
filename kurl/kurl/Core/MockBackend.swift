@@ -41,6 +41,14 @@ enum MockBackend {
         return Int64(args[at + 1])
     }()
 
+    /// `--mock-fail-highlight-replies <n>` — 하이라이트 답글 목록 n번째 조회만 500 으로 실패시킨다.
+    private static var failingReplyFetch: Int? = {
+        let args = ProcessInfo.processInfo.arguments
+        guard let at = args.firstIndex(of: "--mock-fail-highlight-replies"), at + 1 < args.count else { return nil }
+        return Int(args[at + 1])
+    }()
+    private static var replyFetches = 0
+
     /// 서버 편집 버전 계약 — baseVersion 이 다르면 409(아무것도 안 씀), overwrite 면 검사를 건너뛴다.
     private static func requireEditVersion(_ idx: Int, _ req: [String: Any]) throws {
         let overwrite = req["overwrite"] as? Bool ?? false
@@ -2140,6 +2148,10 @@ enum MockBackend {
         // 답글 — 목록 / 작성 / 삭제.
         if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "highlights",
            parts[3] == "replies", let hid = Int(parts[2]) {
+            replyFetches += 1
+            if replyFetches == failingReplyFetch {
+                throw APIError.server(status: 500, code: nil, detail: "mock reply fetch failure")
+            }
             return json(highlightReplies[hid] ?? [])
         }
         // "이 문장이 속한 길" — 이 하이라이트를 담은 공개 길/컬렉션(목: PATH 104 + 컬렉션 101).

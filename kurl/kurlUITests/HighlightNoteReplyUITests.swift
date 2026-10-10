@@ -78,6 +78,9 @@ final class HighlightNoteReplyUITests: XCTestCase {
         XCTAssertTrue(delete.waitForExistence(timeout: 4), "내 답글에 삭제 버튼이 없음")
         if !delete.isHittable { app.swipeUp(velocity: .slow) }
         delete.tap()
+        let confirm = app.alerts.buttons["삭제"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 4), "답글 삭제 확인이 뜨지 않음")
+        confirm.tap()
 
         XCTAssertTrue(mine.waitForNonExistence(timeout: 8), "삭제해도 내 답글이 스레드에 남음")
         shot("own-reply-deleted")

@@ -15698,6 +15698,34 @@
         }
       }
     },
+    "답글 버리기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discard reply"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जवाब छोड़ दें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返信を破棄"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bỏ phản hồi"
+          }
+        }
+      }
+    },
     "답글 보내기": {
       "localizations": {
         "en": {
@@ -15834,6 +15862,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Viết một câu trả lời"
+          }
+        }
+      }
+    },
+    "답글을 남기려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to reply"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जवाब देने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返信するにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để phản hồi"
+          }
+        }
+      }
+    },
+    "답글을 불러오지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't load replies"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जवाब लोड नहीं हो सके"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返信を読み込めませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không tải được phản hồi"
           }
         }
       }
@@ -18734,6 +18818,34 @@
         }
       }
     },
+    "이 답글을 삭제할까요?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete this reply?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "क्या इस जवाब को हटाना चाहते हैं?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この返信を削除しますか？"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xóa phản hồi này?"
+          }
+        }
+      }
+    },
     "이 태그를 구독하려면 로그인하세요": {
       "localizations": {
         "en": {
@@ -19262,6 +19374,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bạn có thể tắt tiếng từ menu ⋯ trên trang của họ."
+          }
+        }
+      }
+    },
+    "작성한 답글을 버릴까요?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discard your reply?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लिखा हुआ जवाब छोड़ दें?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力した返信を破棄しますか？"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bỏ phản hồi đã viết?"
           }
         }
       }
