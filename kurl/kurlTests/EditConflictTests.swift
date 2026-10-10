@@ -103,6 +103,17 @@ final class EditConflictTests: XCTestCase {
         XCTAssertEqual(gate.version, 5)
     }
 
+    func testCoverSavesSayWhetherTheAuthorChoseIt() async throws {
+        ScriptedServer.script("PATCH /posts/7", 200, postView(version: 4))
+        ScriptedServer.script("PATCH /posts/7", 200, postView(version: 5))
+        let gate = PostVersionGate(version: 3)
+
+        try await PostSave.cover(postId: 7, url: "https://img/body.jpg", key: "b", chosen: false, gate: gate)
+        try await PostSave.cover(postId: 7, url: "https://img/picked.jpg", key: "p", chosen: true, gate: gate)
+
+        XCTAssertEqual(ScriptedServer.requests.map { $0.json["coverChosen"] as? Bool }, [false, true])
+    }
+
     func testServerWithoutVersionsGetsNoBaseVersion() async throws {
         ScriptedServer.script("PUT /posts/7/markdown", 200, #"{"markdown":"본문"}"#)
         let gate = PostVersionGate()

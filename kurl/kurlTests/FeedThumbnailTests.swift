@@ -2,8 +2,8 @@
 //  FeedThumbnailTests.swift
 //  kurlTests
 //
-//  피드 행 썸네일은 작성자가 고른 표지만(서버 #817) — 행은 ogImageUrl 이 아니라 thumbnailUrl 을 그리고,
-//  표지 저장은 작성자가 고른 것인지(coverChosen)를 함께 보낸다. 본문 첫 이미지 자동 채움은 false.
+//  피드 행 썸네일은 작성자가 고른 표지만(서버 #817) — 행은 ogImageUrl 이 아니라 thumbnailUrl 을 그린다.
+//  표지 저장이 coverChosen 을 싣는지는 EditConflictTests(ScriptedServer)에서 본다.
 //
 
 import SwiftUI
@@ -13,18 +13,6 @@ import XCTest
 
 @MainActor
 final class FeedThumbnailTests: XCTestCase {
-
-    override func setUp() async throws {
-        ScriptedServer.reset()
-        let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [ScriptedServer.self]
-        WriteAPI.client = APIClient(session: URLSession(configuration: config), viewerToken: { nil })
-    }
-
-    override func tearDown() async throws {
-        WriteAPI.client = .shared
-        ScriptedServer.reset()
-    }
 
     private func item(og: String?, thumbnail: String?) -> FeedItem {
         FeedItem(
@@ -72,18 +60,5 @@ final class FeedThumbnailTests: XCTestCase {
         let decoded = try JSONDecoder.blog.decode(FeedItem.self, from: Data(json.utf8))
         XCTAssertEqual(decoded.ogImageUrl, "https://cdn/a.png")
         XCTAssertNil(decoded.thumbnailUrl)
-    }
-
-    func testCoverSavesSayWhetherTheAuthorChoseIt() async throws {
-        let post = #"{"id":7,"slug":"p-7","title":"제목","status":"DRAFT","tags":[]}"#
-        ScriptedServer.script("PATCH /posts/7", 200, post)
-        ScriptedServer.script("PATCH /posts/7", 200, post)
-
-        try await PostSave.cover(
-            postId: 7, url: "https://img/body.jpg", key: "b", chosen: false, gate: PostVersionGate())
-        try await PostSave.cover(
-            postId: 7, url: "https://img/picked.jpg", key: "p", chosen: true, gate: PostVersionGate())
-
-        XCTAssertEqual(ScriptedServer.requests.map { $0.json["coverChosen"] as? Bool }, [false, true])
     }
 }
