@@ -315,29 +315,59 @@ enum MockBackend {
             ["id": 7001, "author": ["id": 1, "username": "honggildong", "bio": NSNull(), "avatarUrl": NSNull()],
              "body": "저도요. 작게 시작했어야 했다는 데 200% 동의합니다.",
              "createdAt": iso(Date().addingTimeInterval(-7_000))],
-            ["id": 7002, "author": ["id": 3, "username": "reader_kim", "bio": NSNull(), "avatarUrl": NSNull()],
+            ["id": 7002, "author": ["id": 3, "username": "reader_kim", "bio": NSNull(), "avatarUrl": NSNull(), "displayName": "김독자"],
              "body": "첫 두 주 비용을 어떻게 줄였는지 더 듣고 싶어요. @minji 님 팀은 어땠나요?",
-             "createdAt": iso(Date().addingTimeInterval(-3_000)), "mentions": ["minji"]],
+             "createdAt": iso(Date().addingTimeInterval(-3_000)), "mentions": ["minji"], "likeCount": 3],
         ]
     ]
     private static var commentRows: [[String: Any]] = [
-        commentRow(501, nil, "haruka", "경계를 먼저 긋는다는 말이 오래 남네요.", 86_400),
+        commentRow(501, nil, "haruka", "경계를 먼저 긋는다는 말이 오래 남네요.", 86_400, likes: 2),
         commentRow(502, 501, "honggildong", "그 한 줄 쓰려고 두 주를 돌아왔어요.", 80_000),
         commentRow(503, nil, "minji", "포트 이름 짓는 법을 따로 글로 써 주세요.", 70_000),
-        commentRow(504, nil, "sori", "레이어드에서 넘어올 때 테스트는 어떻게 옮기셨나요?", 60_000),
+        commentRow(504, nil, "sori", "레이어드에서 넘어올 때 테스트는 어떻게 옮기셨나요?", 60_000, likes: 1),
         commentRow(505, 504, "honggildong", "도메인부터 단위 테스트로 감싸고 어댑터는 나중에요.", 50_000),
-        commentRow(506, nil, "yuki_dev", "어댑터를 바깥으로 미는 순서가 제일 와닿았어요. 저희 팀도 다음 분기에 해 보려고요.", 3_600),
+        commentRow(506, nil, "yuki_dev", "어댑터를 바깥으로 미는 순서가 제일 와닿았어요. 저희 팀도 다음 분기에 해 보려고요.", 3_600, likes: 5),
         commentRow(507, 506, "reader_kim", "@yuki_dev 저희도 같은 고민이에요 — 순서를 정리한 표가 있으면 좋겠어요. @nobody_here 도요.", 1_800,
                    mentions: ["yuki_dev"]),
-    ]
+    ] + (ProcessInfo.processInfo.arguments.contains("--my-comment-thread") ? [
+        commentRow(508, nil, "honggildong", "다음 글에서 어댑터 순서를 표로 정리해 볼게요.", 900, authorId: 1),
+        commentRow(509, 508, "sori", "기다릴게요!", 600),
+    ] : [])
+
+    /// `--comment-tombstone` = 답글이 남은 504 를 지운 채로 시작한다.
+    private static var deletedComments: Set<Int> =
+        ProcessInfo.processInfo.arguments.contains("--comment-tombstone") ? [504] : []
 
     private static func commentRow(
-        _ id: Int, _ parent: Int?, _ username: String, _ body: String, _ ago: Double, mentions: [String] = []
+        _ id: Int, _ parent: Int?, _ username: String, _ body: String, _ ago: Double,
+        mentions: [String] = [], likes: Int = 0, authorId: Int? = nil
     ) -> [String: Any] {
         ["id": id, "parentId": parent.map { $0 as Any } ?? NSNull(),
-         "author": ["id": id, "username": username, "bio": NSNull(), "avatarUrl": NSNull()],
-         "body": body, "createdAt": iso(Date().addingTimeInterval(-ago)), "likeCount": 0, "mentions": mentions]
+         "author": ["id": authorId ?? id, "username": username, "bio": NSNull(), "avatarUrl": NSNull(),
+                    "displayName": displayNames[username] ?? NSNull()],
+         "body": body, "createdAt": iso(Date().addingTimeInterval(-ago)), "likeCount": likes, "mentions": mentions]
     }
+
+    /// 지운 댓글은 빠지고, `tombstones=1` 이면 답글이 남은 것만 작성자·본문 없는 자리로 온다(서버 계약).
+    private static func publicComments(tombstones: Bool) -> [[String: Any]] {
+        commentRows.compactMap { row in
+            guard let id = row["id"] as? Int, deletedComments.contains(id) else { return row }
+            let hasReplies = commentRows.contains {
+                ($0["parentId"] as? Int) == id && !deletedComments.contains(($0["id"] as? Int) ?? 0)
+            }
+            guard tombstones, hasReplies else { return nil }
+            var stone = row
+            stone["author"] = NSNull()
+            stone["body"] = NSNull()
+            stone["likeCount"] = 0
+            stone["mentions"] = [String]()
+            stone["deleted"] = true
+            return stone
+        }
+    }
+    private static var likedHighlightReplies: Set<Int> = []
+    /// `--fail-reply-like` = 하이라이트 답글 좋아요가 500 으로 실패한다(낙관 되돌림 검증용).
+    private static let failReplyLike = ProcessInfo.processInfo.arguments.contains("--fail-reply-like")
     private static var nextHighlightId = 6100
     private static var nextHighlightReplyId = 7100
 
@@ -1894,7 +1924,8 @@ enum MockBackend {
 
         if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "posts",
            parts[3] == "comments" {
-            return json(commentRows)
+            return json(publicComments(
+                tombstones: query?.contains { $0.name == "tombstones" && $0.value == "1" } == true))
         }
 
         // 공개 작가 글 목록 — 실서버 미목이라 작가 페이지 검증 불가했음.
@@ -2192,7 +2223,12 @@ enum MockBackend {
         // 답글 — 목록 / 작성 / 삭제.
         if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "highlights",
            parts[3] == "replies", let hid = Int(parts[2]) {
-            return json(highlightReplies[hid] ?? [])
+            return json((highlightReplies[hid] ?? []).map { row -> [String: Any] in
+                var row = row
+                row["likeCount"] = row["likeCount"] ?? 0
+                row["liked"] = likedHighlightReplies.contains((row["id"] as? Int) ?? 0)
+                return row
+            })
         }
         // "이 문장이 속한 길" — 이 하이라이트를 담은 공개 길/컬렉션(목: PATH 104 + 컬렉션 101).
         if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "highlights",
@@ -2214,6 +2250,25 @@ enum MockBackend {
             ]
             highlightReplies[hid, default: []].append(reply)
             return json(reply)
+        }
+        if parts.count == 3, parts[0] == "highlight-replies", parts[2] == "like", let rid = Int(parts[1]) {
+            if failReplyLike {
+                throw APIError.server(status: 500, code: "INTERNAL_ERROR", detail: "mock reply like failure")
+            }
+            let on = method == "POST"
+            var count = 0
+            for (hid, list) in highlightReplies {
+                highlightReplies[hid] = list.map { row in
+                    guard (row["id"] as? Int) == rid else { return row }
+                    var row = row
+                    let base = row["likeCount"] as? Int ?? 0
+                    count = likedHighlightReplies.contains(rid) == on ? base : max(0, base + (on ? 1 : -1))
+                    row["likeCount"] = count
+                    return row
+                }
+            }
+            if on { likedHighlightReplies.insert(rid) } else { likedHighlightReplies.remove(rid) }
+            return json(["likeCount": count, "liked": on])
         }
         if method == "DELETE", parts.count == 2, parts[0] == "highlight-replies", let rid = Int(parts[1]) {
             for (hid, list) in highlightReplies {
@@ -2262,7 +2317,8 @@ enum MockBackend {
             let cid = Int64(parts[1]) ?? 0
             if method == "POST" { likedComments.insert(cid) }
             if method == "DELETE" { likedComments.remove(cid) }
-            return json(["likeCount": likedComments.contains(cid) ? 3 : 2, "liked": likedComments.contains(cid)])
+            let base = commentRows.first { ($0["id"] as? Int) == Int(cid) }?["likeCount"] as? Int ?? 2
+            return json(["likeCount": base + (likedComments.contains(cid) ? 1 : 0), "liked": likedComments.contains(cid)])
         }
 
         if method == "GET", parts.count == 4, parts[0] == "posts", parts[2] == "comments", parts[3] == "liked" {
@@ -2270,6 +2326,7 @@ enum MockBackend {
         }
 
         if method == "DELETE", parts.count == 2, parts[0] == "comments" {
+            deletedComments.insert(Int(parts[1]) ?? 0)
             return json([:] as [String: Any])
         }
 

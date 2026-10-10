@@ -80,7 +80,7 @@ struct EngagementDock: View {
 
     private var like: some View {
         Button {
-            interact(failure: String(localized: "좋아요를 반영하지 못했습니다"), login: "좋아요를 누르려면 로그인하세요") {
+            interact(failure: String(localized: "좋아요를 반영하지 못했어요"), login: "좋아요를 누르려면 로그인하세요") {
                 try await model.toggleLike()
             }
         } label: {
