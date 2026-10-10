@@ -195,6 +195,18 @@ struct ComposeView: View {
     }
 
     var body: some View {
+        insertDialogs(stateDialogs(chrome))
+    }
+
+    private var recoveryAlertPresented: Binding<Bool> {
+        Binding(get: { pendingRecovery != nil }, set: { if !$0 { pendingRecovery = nil } })
+    }
+
+    private var errorAlertPresented: Binding<Bool> {
+        Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })
+    }
+
+    private var chrome: some View {
         compositionSurface
         .navigationTitle(existing == nil ? "새 글" : "편집")
         .toolbarRole(.editor)
@@ -282,11 +294,12 @@ struct ComposeView: View {
                 Task { await syncAfterRestore() }
             }
         }
+    }
+
+    private func stateDialogs(_ content: some View) -> some View {
+        content
         // 지난 세션이 저장 실패/강제 종료로 끝났다 — 기기 금고의 변경을 이어 쓸지 묻는다.
-        .alert(
-            "저장되지 못한 본문이 있어요",
-            isPresented: .init(get: { pendingRecovery != nil }, set: { if !$0 { pendingRecovery = nil } })
-        ) {
+        .alert("저장되지 못한 본문이 있어요", isPresented: recoveryAlertPresented) {
             Button("이어서 쓰기") {
                 guard let draft = pendingRecovery else { return }
                 if pendingRecoveryIsConflict, let postId { ComposeRecoveryStore.clearConflict(postId: postId) }
@@ -323,14 +336,15 @@ struct ComposeView: View {
             }
         }
         // 저장·발행·예약·미리보기 모두 이 알럿을 쓰므로 제목은 중립으로 — 본문에 서버가 준 사유를 보인다.
-        .alert(
-            "문제가 생겼어요",
-            isPresented: .init(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })
-        ) {
+        .alert("문제가 생겼어요", isPresented: errorAlertPresented) {
             Button("확인", role: .cancel) {}
         } message: {
             Text(errorMessage ?? "")
         }
+    }
+
+    private func insertDialogs(_ content: some View) -> some View {
+        content
         // 링크 추가 — 주소만 받아 본문에 `[라벨](주소)` 로. 본문에 `(url)` 가 보이지 않는다.
         .alert("링크 추가", isPresented: $showLinkDialog) {
             TextField("https://…", text: $linkURL)
