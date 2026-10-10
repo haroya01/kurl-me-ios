@@ -48,8 +48,11 @@ final class SignedInScreensUITests: XCTestCase {
         app.launchArguments = ["--mocks"]
         app.launch()
 
+        let more = app.buttons["feed.more"]
+        XCTAssertTrue(more.waitForExistence(timeout: 12), "피드 머리에 더 보기가 없음")
+        more.tap()
         let forYou = app.buttons["추천"].firstMatch
-        XCTAssertTrue(forYou.waitForExistence(timeout: 12), "피드 세그먼트에 '추천' 탭이 없음")
+        XCTAssertTrue(forYou.waitForExistence(timeout: 4), "피드 더 보기에 '추천'이 없음")
         forYou.tap()
         _ = app.staticTexts["발행된 목 글"].firstMatch.waitForExistence(timeout: 8)
         shoot("for-you-feed")
