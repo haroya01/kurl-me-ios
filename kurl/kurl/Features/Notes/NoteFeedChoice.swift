@@ -68,6 +68,7 @@ final class NoteFeedChoice {
         didSet { UserDefaults.standard.set(kind.rawValue, forKey: Self.key) }
     }
     var path = NavigationPath()
+    private(set) var posted: Note?
 
     private init() {
         let launched = Config.launchValue(after: "--notes-feed").flatMap(NoteFeedKind.init)
@@ -82,6 +83,10 @@ final class NoteFeedChoice {
 
     func open(_ route: Route) {
         path.append(route)
+    }
+
+    func didPost(_ note: Note) {
+        posted = note
     }
 }
 

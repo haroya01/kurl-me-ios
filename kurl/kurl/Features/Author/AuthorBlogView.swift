@@ -344,7 +344,7 @@ struct AuthorBlogView: View {
                     message: "첫 글을 발행하면 여기 카탈로그로 쌓입니다.",
                     actionTitle: "글쓰기",
                     prominent: true,
-                    action: { TabRouter.shared.selection = 2 }
+                    action: { TabRouter.shared.openStudio(compose: true) }
                 )
                 .padding(.top, 48)
                 .padding(.bottom, 8)
