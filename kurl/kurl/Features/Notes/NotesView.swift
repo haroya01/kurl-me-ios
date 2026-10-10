@@ -1719,6 +1719,9 @@ struct NoteDetailView: View {
             thread = fresh
             failed = nil
             if fresh.series != nil { PostReadStore.notes.markRead(noteId) }
+        } catch let error as APIError where error.statusCode == 404 {
+            thread = nil
+            failed = String(localized: "볼 수 없는 노트예요")
         } catch {
             if thread == nil {
                 failed = (error as? APIError)?.localizedDescription ?? error.localizedDescription

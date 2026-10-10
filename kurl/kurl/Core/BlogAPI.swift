@@ -57,7 +57,7 @@ enum BlogAPI {
     // MARK: 작가 블로그
 
     static func authorPosts(username: String) async throws -> PublicPostListView {
-        try await client.get("/public/profiles/\(username)/posts")
+        try await client.getAsViewer("/public/profiles/\(username)/posts")
     }
 
     static func authorSeries(username: String) async throws -> PublicSeriesListView {
@@ -71,16 +71,16 @@ enum BlogAPI {
     // MARK: 글 상세
 
     static func postDetail(username: String, slug: String) async throws -> PublicPostDetail {
-        try await client.get("/public/profiles/\(username)/posts/\(slug)")
+        try await client.getAsViewer("/public/profiles/\(username)/posts/\(slug)")
     }
 
     /// 상세 응답 원문 — 오프라인 저장소가 서버 바이트를 그대로 보관·재생하기 위한 경로.
     static func postDetailData(username: String, slug: String) async throws -> Data {
-        try await client.getData("/public/profiles/\(username)/posts/\(slug)")
+        try await client.getDataAsViewer("/public/profiles/\(username)/posts/\(slug)")
     }
 
     static func comments(postId: Int64) async throws -> [Comment] {
-        try await client.get("/public/posts/\(postId)/comments")
+        try await client.getAsViewer("/public/posts/\(postId)/comments")
     }
 
     /// 읽기 측정 비콘. 실패는 조용히 무시한다.

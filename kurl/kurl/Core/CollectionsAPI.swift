@@ -8,7 +8,7 @@
 import Foundation
 
 enum CollectionsAPI {
-    private static let client = APIClient.shared
+    static var client = APIClient.shared
 
     /// 내 컬렉션 목록(최근 손댄 순). blockType·refId 를 주면 "이 블록을 어디에 남길까"를 물으며 부르는
     /// 것으로, 각 컬렉션에 그 블록이 이미 연결돼 있으면 connectionId 가 채워져 온다("연결됨" 표시·해제용).
@@ -31,7 +31,7 @@ enum CollectionsAPI {
     /// 공개 연결 흐름 — 비로그인 첫 피드에 인터리브할 최근 공개 연결(누가 무엇을 어느 컬렉션에 이었나).
     /// 게이트 없는 공개 엔드포인트라 미로그인도 본다. 실패는 호출측에서 빈 배열로 조용히 흡수한다(피드를 막지 않게).
     static func publicConnectionFeed(page: Int = 0, size: Int = 6) async throws -> [ConnectionEvent] {
-        let view: DiscoverFeedResponse = try await client.get(
+        let view: DiscoverFeedResponse = try await client.getAsViewer(
             "/public/feed/connections",
             query: ["page": String(page), "size": String(size)])
         return view.items
