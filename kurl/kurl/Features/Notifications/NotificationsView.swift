@@ -10,6 +10,7 @@ import UserNotifications
 /// 미읽음은 왼쪽 그린 점 하나로 조용히 표시한다.
 struct NotificationsView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @State private var filter: NotificationFilter = .all
     @State private var items: [AppNotification] = []
     @State private var nextCursor: Int64?
     @State private var hasMore = false
@@ -45,6 +46,14 @@ struct NotificationsView: View {
             } else if items.isEmpty, let loadError {
                 ErrorState(message: loadError, retry: { Task { await load() } })
                     .padding(.top, 60)
+            } else if items.isEmpty, filter == .mentions {
+                FeedPlaceholder(
+                    title: "아직 멘션이나 답글이 없어요",
+                    actionTitle: "피드 둘러보기",
+                    action: { TabRouter.shared.selection = 0 }
+                )
+                .frame(maxWidth: .infinity)
+                .padding(.top, 72)
             } else if items.isEmpty {
                 followRequestsEntry
                 filteredEntry
@@ -66,6 +75,17 @@ struct NotificationsView: View {
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            if AuthStore.shared.isSignedIn {
+                ToolbarItem(placement: .principal) {
+                    Picker("알림 보기", selection: $filter) {
+                        Text("전체").tag(NotificationFilter.all)
+                        Text("멘션").tag(NotificationFilter.mentions)
+                    }
+                    .pickerStyle(.segmented)
+                    .fixedSize()
+                    .accessibilityIdentifier("notifications.filter")
+                }
+            }
             ToolbarItem(placement: .primaryAction) {
                 // 목록이 있고 안 읽은 게 있으면 실행 버튼, 모두 읽었으면 흐린 회색 대신
                 // 체크마크로 "이미 다 읽음"을 분명히 표시한다(비활성이 안 보이던 문제).
@@ -80,7 +100,7 @@ struct NotificationsView: View {
                         Button("모두 읽음") {
                             Task {
                                 do {
-                                    try await NotificationsAPI.markAllRead()
+                                    try await NotificationsAPI.markAllRead(filter: filter)
                                     withAnimation(.easeOut(duration: 0.25)) {
                                         items = items.map(asRead)
                                     }
@@ -105,6 +125,12 @@ struct NotificationsView: View {
             await load()
         }
         .refreshable { await load() }
+        .onChange(of: filter) {
+            items = []
+            loading = true
+            Task { await load() }
+        }
+        .sensoryFeedback(.selection, trigger: filter)
         // 걸러진 알림을 받으면 그 알림이 목록으로 들어온다 — 돌아왔을 때 보이게 다시 읽는다.
         .onChange(of: filtered.acceptedCount) { Task { await load() } }
         .task { await reloadPushStatus() }
@@ -263,8 +289,10 @@ struct NotificationsView: View {
 
     @ViewBuilder
     private var list: some View {
-        followRequestsEntry
-        filteredEntry
+        if filter == .all {
+            followRequestsEntry
+            filteredEntry
+        }
         let shown = shownItems
         ForEach(Array(shown.enumerated()), id: \.element.id) { index, notification in
             notificationRow(notification)
@@ -590,7 +618,7 @@ struct NotificationsView: View {
         Task { await followRequests.load() }
         Task { await filtered.load() }
         do {
-            let page = try await NotificationsAPI.list()
+            let page = try await NotificationsAPI.list(filter: filter)
             guard myEpoch == epoch else { return }
             items = sortedByRecency(page.items)
             nextCursor = page.nextCursor
@@ -610,7 +638,7 @@ struct NotificationsView: View {
         loadingMore = true
         defer { loadingMore = false }
         let myEpoch = epoch
-        if let page = try? await NotificationsAPI.list(before: cursor) {
+        if let page = try? await NotificationsAPI.list(before: cursor, filter: filter) {
             // refresh 가 끼어들었으면 이 응답은 옛 세대 — 버린다(append 도 커서 갱신도 없음).
             guard myEpoch == epoch else { return }
             items = sortedByRecency(items + page.items)

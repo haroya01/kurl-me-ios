@@ -2243,6 +2243,30 @@ enum MockBackend {
             }
             return json(accountImports)
         }
+        if method == "GET", parts == ["public", "users", "search"] {
+            let q = (query?.first(where: { $0.name == "q" })?.value ?? "").lowercased()
+            let page = Int(query?.first(where: { $0.name == "page" })?.value ?? "") ?? 0
+            let size = Int(query?.first(where: { $0.name == "size" })?.value ?? "") ?? 20
+            let people: [[String: Any]] = [
+                ["username": "haneul", "displayName": "하늘", "avatarUrl": NSNull(), "bio": "프로덕트 디자이너",
+                 "followerCount": 128, "following": false, "requested": sentRequests.contains("haneul")],
+                ["username": "hanbit", "displayName": NSNull(), "avatarUrl": NSNull(), "bio": NSNull(),
+                 "followerCount": NSNull(), "following": false, "requested": false],
+                ["username": "yuki_dev", "displayName": "유키", "avatarUrl": NSNull(), "bio": "도쿄에서 읽고 씁니다",
+                 "followerCount": 54, "following": follows["yuki_dev"]?.following ?? true, "requested": false],
+                ["username": "minji", "displayName": "민지", "avatarUrl": NSNull(), "bio": NSNull(),
+                 "followerCount": 12, "following": false, "requested": false],
+            ]
+            let found = q.count < 2 ? [] : people.filter { person in
+                let name = (person["username"] as? String) ?? ""
+                let display = ((person["displayName"] as? String) ?? "").lowercased()
+                return name.hasPrefix(q) || display.contains(q)
+            }
+            let slice = Array(found.dropFirst(page * size).prefix(size))
+            return json([
+                "items": slice, "page": page, "size": size, "hasNext": found.count > (page + 1) * size,
+            ])
+        }
         if method == "GET", parts == ["users", "me", "mention-candidates"] {
             let q = (query?.first(where: { $0.name == "q" })?.value ?? "").lowercased()
             let people: [[String: Any]] = [
@@ -2450,8 +2474,11 @@ enum MockBackend {
                  "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
                  "count": 1, "read": true, "createdAt": iso(Date().addingTimeInterval(-430_000))],
             ]
+            let mentionTypes: Set<String> = ["MENTION", "NOTE_MENTION", "REPLY", "NOTE_REPLY", "COMMENT"]
+            let mentionsOnly = query?.first(where: { $0.name == "filter" })?.value == "mentions"
+            let all = requestItems + fixedItems
             return json([
-                "items": requestItems + fixedItems,
+                "items": mentionsOnly ? all.filter { mentionTypes.contains(($0["type"] as? String) ?? "") } : all,
                 "nextCursor": NSNull(), "hasMore": false,
             ])
         }

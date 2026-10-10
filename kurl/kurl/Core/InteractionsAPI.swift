@@ -52,13 +52,13 @@ enum InteractionsAPI {
         }
 
         /// 상태를 이미 아는 자리(팔로우 추천)에서 버튼을 시드한다 — 수는 모르니 비운다.
-        init(following: Bool, locked: Bool) {
+        init(following: Bool, requested: Bool = false, locked: Bool) {
             self.following = following
             followerCount = nil
             followingCount = nil
             hideFollowerCount = false
             notifyNotes = false
-            requested = false
+            self.requested = requested
             self.locked = locked
         }
     }

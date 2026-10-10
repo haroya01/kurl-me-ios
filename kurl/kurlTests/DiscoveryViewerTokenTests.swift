@@ -18,6 +18,8 @@ final class DiscoveryViewerTokenTests: XCTestCase {
         HighlightsAPI.client = .shared
         CollectionsAPI.client = .shared
         NoteAPI.client = .shared
+        PeopleAPI.client = .shared
+        NotificationsAPI.client = .shared
         CapturingProtocol.reset()
     }
 
@@ -131,6 +133,49 @@ final class DiscoveryViewerTokenTests: XCTestCase {
             PublicPostListView.self, from: Data(#"{"author":\#(author),"posts":[]}"#.utf8))
         XCTAssertNil(older.blockedByViewer)
         XCTAssertNil(older.blocksViewer)
+    }
+
+    // MARK: 사람 검색·알림 멘션 탭
+
+    private func query(_ request: URLRequest) -> [String: String] {
+        let items = request.url.flatMap { URLComponents(url: $0, resolvingAgainstBaseURL: false)?.queryItems } ?? []
+        return Dictionary(uniqueKeysWithValues: items.map { ($0.name, $0.value ?? "") })
+    }
+
+    func testPeopleSearchAsksAsTheViewerWithTheQueryTheServerReads() async throws {
+        PeopleAPI.client = client(token: "viewer-token")
+        _ = try? await PeopleAPI.search(" @Ha ", page: 1, size: 3)
+        _ = try? await PeopleAPI.search("@h")
+
+        let requests = CapturingProtocol.requests
+        XCTAssertEqual(requests.count, 1, "두 글자 미만은 묻지 않는다")
+        let request = try XCTUnwrap(requests.first)
+        XCTAssertEqual(request.url?.path.hasSuffix("/public/users/search"), true)
+        XCTAssertEqual(query(request), ["q": "Ha", "page": "1", "size": "3"])
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer viewer-token")
+    }
+
+    func testPeopleQueryDropsOneAtAndStopsAtThirtyCharacters() {
+        XCTAssertEqual(PeopleAPI.normalized("  @minji "), "minji")
+        XCTAssertEqual(PeopleAPI.normalized(String(repeating: "가", count: 40)).count, 30)
+        XCTAssertFalse(PeopleAPI.isSearchable("@ 가"))
+        XCTAssertTrue(PeopleAPI.isSearchable("가나"))
+    }
+
+    func testTheMentionsTabListsAndReadsOnlyMentions() async throws {
+        NotificationsAPI.client = client(token: nil)
+        _ = try? await NotificationsAPI.list(filter: .mentions)
+        _ = try? await NotificationsAPI.markAllRead(filter: .mentions)
+        _ = try? await NotificationsAPI.list()
+        _ = try? await NotificationsAPI.markAllRead()
+
+        let requests = CapturingProtocol.requests
+        XCTAssertEqual(requests.map(\.httpMethod), ["GET", "POST", "GET", "POST"])
+        XCTAssertEqual(query(requests[0])["filter"], "mentions")
+        XCTAssertEqual(requests[1].url?.path.hasSuffix("/notifications/read-all"), true)
+        XCTAssertEqual(query(requests[1]), ["filter": "mentions"])
+        XCTAssertNil(query(requests[2])["filter"])
+        XCTAssertEqual(query(requests[3]), [:])
     }
 
     // MARK: 만료 판정
