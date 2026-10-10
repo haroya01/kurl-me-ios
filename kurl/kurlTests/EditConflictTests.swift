@@ -95,12 +95,23 @@ final class EditConflictTests: XCTestCase {
         ScriptedServer.script("PATCH /posts/7", 200, postView(version: 5))
         let gate = PostVersionGate(version: 3)
 
-        async let first: Void = PostSave.cover(postId: 7, url: "https://img/a.jpg", key: "a", gate: gate)
-        async let second: Void = PostSave.cover(postId: 7, url: "https://img/b.jpg", key: "b", gate: gate)
+        async let first: Void = PostSave.cover(postId: 7, url: "https://img/a.jpg", key: "a", chosen: true, gate: gate)
+        async let second: Void = PostSave.cover(postId: 7, url: "https://img/b.jpg", key: "b", chosen: true, gate: gate)
         _ = try await (first, second)
 
         XCTAssertEqual(ScriptedServer.requests.map { $0.json["baseVersion"] as? Int }, [3, 4])
         XCTAssertEqual(gate.version, 5)
+    }
+
+    func testCoverSavesSayWhetherTheAuthorChoseIt() async throws {
+        ScriptedServer.script("PATCH /posts/7", 200, postView(version: 4))
+        ScriptedServer.script("PATCH /posts/7", 200, postView(version: 5))
+        let gate = PostVersionGate(version: 3)
+
+        try await PostSave.cover(postId: 7, url: "https://img/body.jpg", key: "b", chosen: false, gate: gate)
+        try await PostSave.cover(postId: 7, url: "https://img/picked.jpg", key: "p", chosen: true, gate: gate)
+
+        XCTAssertEqual(ScriptedServer.requests.map { $0.json["coverChosen"] as? Bool }, [false, true])
     }
 
     func testServerWithoutVersionsGetsNoBaseVersion() async throws {
@@ -118,7 +129,8 @@ final class EditConflictTests: XCTestCase {
         ScriptedServer.script(
             "PATCH /posts/7", 409, #"{"status":409,"title":"Conflict","code":"SLUG_FROZEN","detail":"slug is frozen"}"#)
         do {
-            try await PostSave.cover(postId: 7, url: "https://img/a.jpg", key: nil, gate: PostVersionGate(version: 3))
+            try await PostSave.cover(
+                postId: 7, url: "https://img/a.jpg", key: nil, chosen: true, gate: PostVersionGate(version: 3))
             XCTFail("실패해야 한다")
         } catch is PostEditConflict {
             XCTFail("다른 409 를 편집 충돌로 오인했다")

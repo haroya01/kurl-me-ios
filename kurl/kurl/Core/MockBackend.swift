@@ -29,6 +29,7 @@ enum MockBackend {
         var excerpt: String?
         var seriesId: Int64?
         var ogImageUrl: String?
+        var coverChosen = false
         var scheduledAt: Date?
         var contentVersion: Int64 = 0
     }
@@ -1783,7 +1784,11 @@ enum MockBackend {
             if let title = req["title"] as? String { posts[idx].title = title }
             if let excerpt = req["excerpt"] as? String { posts[idx].excerpt = excerpt.isEmpty ? nil : excerpt }
             if let tags = req["tags"] as? [String] { posts[idx].tags = tags }
-            if let cover = req["ogImageUrl"] as? String { posts[idx].ogImageUrl = cover.isEmpty ? nil : cover }
+            if let cover = req["ogImageUrl"] as? String {
+                let same = posts[idx].ogImageUrl == cover
+                posts[idx].ogImageUrl = cover.isEmpty ? nil : cover
+                posts[idx].coverChosen = !cover.isEmpty && ((req["coverChosen"] as? Bool) ?? (same && posts[idx].coverChosen))
+            }
             posts[idx].contentVersion += 1
             posts[idx].updatedAt = Date()
             return json(postView(posts[idx]))
@@ -2942,6 +2947,7 @@ enum MockBackend {
             "scheduledAt": p.scheduledAt.map(iso) ?? NSNull(),
             "excerpt": p.excerpt ?? NSNull(),
             "ogImageUrl": p.ogImageUrl ?? NSNull(),
+            "coverChosen": p.coverChosen,
             "seriesId": p.seriesId ?? NSNull(),
             "contentVersion": p.contentVersion,
             "viewCount": 42, "likeCount": 3, "tags": p.tags,
