@@ -14,6 +14,8 @@ struct AuthorBlogView: View {
     @State private var notes: NotesViewModel
     @State private var viewingAvatar: AvatarTarget?
     @State private var reposts: NotesViewModel
+    @State private var replies: ProfilePager<ProfileReplies.Item>
+    @State private var media: ProfilePager<ProfileMedia.Item>
     @State private var composingNote = false
     @State private var notesPosted = 0
 
@@ -44,6 +46,8 @@ struct AuthorBlogView: View {
         _tab = State(initialValue: initialTab)
         _notes = State(initialValue: NotesViewModel(author: username))
         _reposts = State(initialValue: NotesViewModel(repostsBy: username))
+        _replies = State(initialValue: .replies(of: username))
+        _media = State(initialValue: .media(of: username))
     }
 
     /// 로드된 작가 id — 신고 대상. 내가 아닐 때만 신고를 노출한다.
@@ -56,7 +60,7 @@ struct AuthorBlogView: View {
         return author.id == myId
     }
     private var tabs: [AuthorTab] {
-        var all: [AuthorTab] = [.posts, .notes, .reposts]
+        var all: [AuthorTab] = [.posts, .notes, .replies, .media, .reposts]
         if !series.isEmpty { all.append(.series) }
         if !collections.isEmpty { all.append(.collections) }
         return all
@@ -184,10 +188,14 @@ struct AuthorBlogView: View {
         .brandRefreshable {
             await load()
             if shownTab == .notes { await notes.reload() }
+            if shownTab == .replies { await replies.reload() }
+            if shownTab == .media { await media.reload() }
             if shownTab == .reposts { await reposts.reload() }
         }
         .task(id: shownTab) {
             if shownTab == .notes, case .idle = notes.phase { await notes.reload() }
+            if shownTab == .replies, case .idle = replies.phase { await replies.reload() }
+            if shownTab == .media, case .idle = media.phase { await media.reload() }
             if shownTab == .reposts, case .idle = reposts.phase { await reposts.reload() }
         }
         .sheet(isPresented: $composingNote) {
@@ -323,6 +331,8 @@ struct AuthorBlogView: View {
                 switch shownTab {
                 case .posts: postsTab(view)
                 case .notes: notesTab
+                case .replies: repliesTab
+                case .media: mediaTab
                 case .reposts: repostsTab
                 case .series: seriesTab
                 case .collections: collectionsTab
@@ -426,6 +436,75 @@ struct AuthorBlogView: View {
                     }
                 }
                 .environment(\.noteFilterContext, notes.filterContext)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var repliesTab: some View {
+        switch replies.phase {
+        case .idle, .loading:
+            NoteSkeleton()
+        case .failed(let message):
+            ErrorState(message: message, retry: { Task { await replies.reload() } })
+                .padding(.top, 48)
+        case .loaded:
+            let shown = replies.items.filter {
+                NoteFilterStore.shared.verdict(for: $0.note, in: .account) != .hide
+            }
+            if shown.isEmpty {
+                FeedPlaceholder(title: "아직 단 답글이 없어요")
+                    .padding(.top, 48)
+            } else {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(shown.enumerated()), id: \.element.id) { index, item in
+                        NoteFeedItem(
+                            note: item.note,
+                            onChange: { replies.replace(.init(note: $0, replyingTo: item.replyingTo)) },
+                            onDelete: { id in replies.remove { $0.id == id } },
+                            replyHeader: ReplyHeader(item.replyingTo)
+                        )
+                        .modifier(QuietAppear(index: index))
+                        .task { await replies.loadMoreIfNeeded(current: item) }
+                        if index < shown.count - 1 { Hairline().padding(.horizontal, -Metrics.gutter) }
+                    }
+                    if replies.isLoadingMore {
+                        KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
+                    }
+                }
+                .environment(\.noteFilterContext, .account)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var mediaTab: some View {
+        switch media.phase {
+        case .idle, .loading:
+            KurlLoadingMark()
+                .frame(maxWidth: .infinity, minHeight: 200)
+        case .failed(let message):
+            ErrorState(message: message, retry: { Task { await media.reload() } })
+                .padding(.top, 48)
+        case .loaded:
+            if media.items.isEmpty {
+                FeedPlaceholder(title: "아직 올린 사진이 없어요")
+                    .padding(.top, 48)
+            } else {
+                LazyVGrid(
+                    columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 3),
+                    spacing: 2
+                ) {
+                    ForEach(media.items) { item in
+                        ProfileMediaCell(item: item)
+                            .task { await media.loadMoreIfNeeded(current: item) }
+                    }
+                }
+                .padding(.top, 2)
+                .accessibilityIdentifier("profile.media.grid")
+                if media.isLoadingMore {
+                    KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
+                }
             }
         }
     }
@@ -629,12 +708,14 @@ enum AuthorBlockGate: Equatable {
 }
 
 enum AuthorTab: Hashable {
-    case posts, notes, reposts, series, collections
+    case posts, notes, replies, media, reposts, series, collections
 
     var label: LocalizedStringKey {
         switch self {
         case .posts: "글"
         case .notes: "노트"
+        case .replies: "답글"
+        case .media: "미디어"
         case .reposts: "리포스트"
         case .series: "시리즈"
         case .collections: "컬렉션"
@@ -645,6 +726,8 @@ enum AuthorTab: Hashable {
         switch self {
         case .posts: "posts"
         case .notes: "notes"
+        case .replies: "replies"
+        case .media: "media"
         case .reposts: "reposts"
         case .series: "series"
         case .collections: "collections"

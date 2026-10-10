@@ -141,6 +141,16 @@ enum NoteAPI {
             "/public/profiles/\(username)/reposts", query: ["page": String(page), "size": "20"])
     }
 
+    static func profileReplies(_ username: String, page: Int = 0) async throws -> ProfileReplies {
+        try await client.getAsViewer(
+            "/public/profiles/\(username)/replies", query: ["page": String(page), "size": "20"])
+    }
+
+    static func profileMedia(_ username: String, page: Int = 0) async throws -> ProfileMedia {
+        try await client.getAsViewer(
+            "/public/profiles/\(username)/media", query: ["page": String(page), "size": "30"])
+    }
+
     static func linkPreview(url: String) async throws -> NoteLinkPreview {
         try await client.get("/public/link-preview", query: ["url": url], authenticated: false)
     }
@@ -555,6 +565,46 @@ struct NoteFilterDraft: Encodable {
 
 struct NoteFeed: Decodable {
     let items: [Note]
+    let page: Int
+    let hasNext: Bool
+}
+
+/// 프로필 답글 탭 — 답글마다 무엇에 답했는지. replyingTo 가 nil 이면 원래 글이 없거나 이 사람이 볼 수 없다.
+struct ProfileReplies: Decodable {
+    struct Item: Decodable, Hashable, Identifiable {
+        var note: Note
+        let replyingTo: ReplyContext?
+
+        var id: Int64 { note.id }
+    }
+
+    /// 원래 글에 경고가 있으면 서버가 발췌를 싣지 않는다.
+    struct ReplyContext: Decodable, Hashable {
+        let id: Int64
+        let author: Author
+        let excerpt: String?
+        let contentWarning: String?
+    }
+
+    let items: [Item]
+    let page: Int
+    let hasNext: Bool
+}
+
+/// 프로필 미디어 탭 — 첨부가 있는 노트마다 한 칸. sensitive 는 경고가 있어도 켜진다.
+struct ProfileMedia: Decodable {
+    struct Item: Decodable, Hashable, Identifiable {
+        let noteId: Int64
+        let createdAt: Date?
+        let media: NoteMedia
+        let mediaCount: Int
+        let sensitive: Bool
+        let contentWarning: String?
+
+        var id: Int64 { noteId }
+    }
+
+    let items: [Item]
     let page: Int
     let hasNext: Bool
 }
