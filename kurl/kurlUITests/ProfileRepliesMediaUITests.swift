@@ -86,6 +86,18 @@ final class ProfileRepliesMediaUITests: XCTestCase {
         shot("ja-last-tab")
     }
 
+    func testATwoTabStripThatFitsShowsNoFade() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tag", "아키텍처", "-AppleLanguages", "(ja)", "-AppleLocale", "ja"]
+        app.launch()
+        let posts = app.buttons["tag.tab.posts"]
+        let notes = app.buttons["tag.tab.notes"]
+        XCTAssertTrue(posts.waitForExistence(timeout: 15), "태그 화면에 탭 줄이 없음")
+        XCTAssertTrue(posts.isHittable)
+        XCTAssertTrue(notes.isHittable)
+        shot("ja-tag-tabs")
+    }
+
     func testMediaGridHidesSensitivePhotosAndOpensTheNote() throws {
         let app = launch(author: "yuki_dev")
         let tab = app.buttons["author.tab.media"]

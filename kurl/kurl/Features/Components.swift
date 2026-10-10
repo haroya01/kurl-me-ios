@@ -780,7 +780,7 @@ struct ContentTabBar<Tab: Hashable>: View {
                     hidden = overflow
                 }
                 .mask { TabStripFade(overflow: hidden) }
-                .task { proxy.scrollTo(selection, anchor: .center) }
+                .onAppear { proxy.scrollTo(selection, anchor: .center) }
                 .onChange(of: selection) { _, tab in
                     withAnimation(reduceMotion ? nil : .smooth(duration: 0.25)) {
                         proxy.scrollTo(tab, anchor: .center)
