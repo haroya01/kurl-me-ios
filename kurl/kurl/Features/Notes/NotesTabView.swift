@@ -9,12 +9,8 @@ struct NotesTabView: View {
     @State private var choice = NoteFeedChoice.shared
     @State private var models = Dictionary(
         uniqueKeysWithValues: NoteFeedKind.tabs.map { ($0, NotesViewModel(feed: $0)) })
-    @State private var composingNote = false
-    @State private var notesPosted = 0
-    @State private var showLoginSheet = false
     @State private var loadedSignedIn: Bool?
     @State private var router = TabRouter.shared
-    @Environment(\.tabBarVisibility) private var tabBarVisibility
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
@@ -60,45 +56,18 @@ struct NotesTabView: View {
         .onChange(of: router.reselections) {
             if router.reselectedTab == 1 { choice.path = NavigationPath() }
         }
+        .onChange(of: choice.posted?.id) {
+            if let note = choice.posted { model(choice.kind).inserted(note) }
+        }
         .sheet(isPresented: Bindable(NoteListsStore.shared).managing) {
             NoteListsSheet()
         }
         .sheet(isPresented: Bindable(ScheduledNotesStore.shared).showing) {
             NavigationStack { ScheduledNotesView() }
         }
-        .sheet(isPresented: $composingNote) {
-            NoteComposeSheet(mode: .new(quote: nil, inReplyToId: nil)) { note in
-                model(choice.kind).inserted(note)
-                notesPosted += 1
-            }
-        }
-        .loginPrompt(isPresented: $showLoginSheet, message: "노트를 쓰려면 로그인하세요")
-        .sensoryFeedback(.success, trigger: notesPosted)
-        .overlay(alignment: .bottomTrailing) { composeButton }
     }
 
     private func model(_ kind: NoteFeedKind) -> NotesViewModel {
         models[kind] ?? NotesViewModel(feed: kind)
-    }
-
-    private func compose() {
-        if AuthStore.shared.isSignedIn {
-            composingNote = true
-        } else {
-            showLoginSheet = true
-        }
-    }
-
-    private var composeButton: some View {
-        let hidden = !choice.path.isEmpty || (tabBarVisibility?.hidden ?? false)
-        return ZStack {
-            if !hidden {
-                GlassFAB(systemImage: "plus", label: "노트 쓰기", action: compose)
-                    .accessibilityIdentifier("notes.fab")
-                    .transition(.offset(y: 132).combined(with: .opacity))
-            }
-        }
-        .padding(.trailing, Metrics.gutter)
-        .padding(.bottom, 14)
     }
 }

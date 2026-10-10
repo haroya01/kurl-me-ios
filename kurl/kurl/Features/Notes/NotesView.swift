@@ -440,7 +440,7 @@ struct NoteRowView: View {
                 .presentationDetents([.medium, .large])
         }
         .fullScreenCover(isPresented: $writingPost) {
-            if let shareURL { QuotePostComposer(noteURL: shareURL) }
+            if let shareURL { PostComposerCover(initialMarkdown: "\(shareURL.absoluteString)\n\n") }
         }
         .alert("이 노트를 지울까요?", isPresented: $confirmDelete) {
             Button("지우기", role: .destructive) { Task { await delete() } }
@@ -1753,6 +1753,7 @@ struct NoteComposeSheet: View {
     }
 
     let mode: Mode
+    let onLongForm: ((String) -> Void)?
     let onDone: (Note) -> Void
 
     @State private var text: String
@@ -1775,12 +1776,14 @@ struct NoteComposeSheet: View {
     @State private var language = NoteLanguages.posting
     @State private var pickingSchedule = false
     @State private var parts: [ThreadPart] = []
+    @State private var confirmLongForm = false
     @FocusState private var focused: Bool
     @FocusState private var focusedPart: UUID?
     @Environment(\.dismiss) private var dismiss
 
-    init(mode: Mode, onDone: @escaping (Note) -> Void) {
+    init(mode: Mode, onLongForm: ((String) -> Void)? = nil, onDone: @escaping (Note) -> Void) {
         self.mode = mode
+        self.onLongForm = onLongForm
         self.onDone = onDone
         switch mode {
         case let .new(quote, _):
@@ -1959,6 +1962,15 @@ struct NoteComposeSheet: View {
                                     .accessibilityLabel(sensitive ? "민감한 사진 표시 끄기" : "민감한 사진으로 표시")
                                     .accessibilityIdentifier("noteCompose.sensitiveToggle")
                                 }
+                                if onLongForm != nil {
+                                    Spacer(minLength: 0)
+                                    Button("긴 글로 쓰기", systemImage: "doc.text", action: requestLongForm)
+                                        .typeScale(.meta)
+                                        .foregroundStyle(Palette.secondary)
+                                        .buttonStyle(.plain)
+                                        .frame(minHeight: 28)
+                                        .accessibilityIdentifier("noteCompose.longForm")
+                                }
                             }
                         }
                         .padding(.bottom, !parts.isEmpty || canAddPart ? 14 : 0)
@@ -1972,6 +1984,14 @@ struct NoteComposeSheet: View {
                 .alert(discardTitle, isPresented: $confirmDiscard) {
                     Button("버리기", role: .destructive) { dismiss() }
                     Button("계속 쓰기", role: .cancel) {}
+                }
+                .confirmationDialog("긴 글로 옮길까요?", isPresented: $confirmLongForm, titleVisibility: .visible) {
+                    Button("긴 글로 옮기기", action: handOffLongForm)
+                } message: {
+                    Text(
+                        picked.isEmpty && poll == nil
+                            ? "쓴 내용이 새 글 본문으로 옮겨져요."
+                            : "쓴 내용이 새 글 본문으로 옮겨져요. 사진과 투표는 옮겨지지 않아요.")
                 }
             }
             .scrollDismissesKeyboard(.interactively)
@@ -2032,6 +2052,26 @@ struct NoteComposeSheet: View {
             .task(id: cardUrl) { await loadLinkCard() }
         }
         .interactiveDismissDisabled(posting || hasDraft)
+    }
+
+    private var longFormBody: String {
+        ([text] + parts.map(\.text))
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n\n")
+    }
+
+    private func requestLongForm() {
+        if longFormBody.isEmpty, picked.isEmpty, poll == nil {
+            handOffLongForm()
+        } else {
+            confirmLongForm = true
+        }
+    }
+
+    private func handOffLongForm() {
+        onLongForm?(longFormBody)
+        dismiss()
     }
 
     private var shownVisibility: NoteVisibility { visibility ?? .public }

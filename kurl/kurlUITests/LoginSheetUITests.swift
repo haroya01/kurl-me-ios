@@ -61,7 +61,7 @@ final class LoginSheetUITests: XCTestCase {
         attach("guest-write-after-dismiss")
     }
 
-    func testSigningInFromTheWriteSheetOpensTheStudio() throws {
+    func testSigningInFromTheWriteSheetOpensTheNoteComposer() throws {
         let app = launch(["--mocks", "--logged-out", "--screen", "none"])
         let writeTab = app.buttons["글쓰기"]
         XCTAssertTrue(writeTab.waitForExistence(timeout: 15), "탭바(글쓰기 버튼)가 없음")
@@ -75,13 +75,8 @@ final class LoginSheetUITests: XCTestCase {
         expectation(for: gone, evaluatedWith: loginSheet(app))
         waitForExpectations(timeout: 8)
 
-        if app.buttons["내 블로그 웹 주소 열기"].waitForExistence(timeout: 3) {
-            app.buttons["확인"].firstMatch.tap()
-        }
-
-        XCTAssertTrue(app.buttons["새 글 쓰기"].waitForExistence(timeout: 8), "로그인했는데 스튜디오가 열리지 않음")
-        XCTAssertTrue(app.buttons["글쓰기"].isSelected, "로그인했는데 글쓰기 탭이 아님")
-        attach("guest-write-signed-in-studio")
+        XCTAssertTrue(app.textFields["noteCompose.text"].waitForExistence(timeout: 8), "로그인했는데 노트 작성기가 열리지 않음")
+        attach("guest-write-signed-in-composer")
     }
 
     func testGuestAccountTabShowsTheEmptyStateAndOpensTheSameSheet() throws {
@@ -120,14 +115,13 @@ final class LoginSheetUITests: XCTestCase {
         }
     }
 
-    func testSignedInWriteTabOpensTheStudioDirectly() throws {
+    func testSignedInWriteTabOpensTheNoteComposerDirectly() throws {
         let app = launch(["--mocks", "--screen", "none"])
         let writeTab = app.buttons["글쓰기"]
         XCTAssertTrue(writeTab.waitForExistence(timeout: 15), "탭바(글쓰기 버튼)가 없음")
         writeTab.tap()
 
-        XCTAssertTrue(app.buttons["새 글 쓰기"].waitForExistence(timeout: 8), "로그인 상태인데 스튜디오가 열리지 않음")
-        XCTAssertTrue(app.buttons["글쓰기"].isSelected, "로그인 상태인데 글쓰기 탭이 아님")
+        XCTAssertTrue(app.textFields["noteCompose.text"].waitForExistence(timeout: 8), "로그인 상태인데 노트 작성기가 열리지 않음")
         XCTAssertFalse(loginSheet(app).exists, "로그인 상태인데 로그인 시트가 뜸")
     }
 }

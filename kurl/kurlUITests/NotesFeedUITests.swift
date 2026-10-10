@@ -13,7 +13,11 @@ final class NotesFeedUITests: XCTestCase {
     }
 
     private func openNotes(_ app: XCUIApplication) {
-        XCTAssertTrue(app.buttons["notes.fab"].waitForExistence(timeout: 12), "노트 탭이 열리지 않음")
+        XCTAssertTrue(app.buttons["notes.more"].waitForExistence(timeout: 12), "노트 탭이 열리지 않음")
+    }
+
+    private func composeTab(_ app: XCUIApplication) -> XCUIElement {
+        app.buttons["글쓰기"]
     }
 
     private func pickFeed(_ app: XCUIApplication, _ label: String) {
@@ -45,8 +49,8 @@ final class NotesFeedUITests: XCTestCase {
             .matching(NSPredicate(format: "label CONTAINS '헥사고날 포트'")).firstMatch
         XCTAssertTrue(seeded.waitForExistence(timeout: 10), "노트 목 피드가 렌더되지 않음")
 
-        let compose = app.buttons["notes.fab"]
-        XCTAssertTrue(compose.waitForExistence(timeout: 5), "노트 쓰기 버튼 없음")
+        let compose = composeTab(app)
+        XCTAssertTrue(compose.waitForExistence(timeout: 5), "탭바 가운데 글쓰기가 없음")
         compose.tap()
 
         let field = app.textFields["noteCompose.text"]
@@ -77,7 +81,7 @@ final class NotesFeedUITests: XCTestCase {
         app.launchArguments = ["--mocks", "--tab", "notes"]
         app.launch()
         openNotes(app)
-        app.buttons["notes.fab"].tap()
+        composeTab(app).tap()
 
         let field = app.textFields["noteCompose.text"]
         XCTAssertTrue(field.waitForExistence(timeout: 5), "작성 시트의 입력란 없음")
@@ -454,9 +458,9 @@ final class NotesFeedUITests: XCTestCase {
         app.launch()
         openNotes(app)
 
-        let fab = app.buttons["notes.fab"]
-        XCTAssertTrue(fab.waitForExistence(timeout: 8))
-        fab.tap()
+        let compose = composeTab(app)
+        XCTAssertTrue(compose.waitForExistence(timeout: 8))
+        compose.tap()
         let text = app.textViews["noteCompose.text"].exists ? app.textViews["noteCompose.text"] : app.textFields["noteCompose.text"]
         XCTAssertTrue(text.waitForExistence(timeout: 6))
         text.typeText("범인은 집사였다")
@@ -537,7 +541,7 @@ final class NotesFeedUITests: XCTestCase {
         attach(app, "notes-direct-feed")
 
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        app.buttons["notes.fab"].tap()
+        composeTab(app).tap()
         let text = app.textFields["noteCompose.text"]
         XCTAssertTrue(text.waitForExistence(timeout: 6))
         text.typeText("팔로워에게만")
@@ -804,8 +808,8 @@ final class NotesFeedUITests: XCTestCase {
         app.launchArguments = ["--mocks", "--tab", "notes"]
         app.launch()
         openNotes(app)
-        let compose = app.buttons["notes.fab"]
-        XCTAssertTrue(compose.waitForExistence(timeout: 10), "노트 쓰기 버튼 없음")
+        let compose = composeTab(app)
+        XCTAssertTrue(compose.waitForExistence(timeout: 10), "탭바 가운데 글쓰기가 없음")
         compose.tap()
         let field = app.textFields["noteCompose.text"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
@@ -966,7 +970,7 @@ final class NotesFeedUITests: XCTestCase {
         app.launch()
         openNotes(app)
 
-        app.buttons["notes.fab"].tap()
+        composeTab(app).tap()
         let field = app.textFields["noteCompose.text"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.typeText("버릴지 묻는 노트")
@@ -1035,24 +1039,24 @@ final class NotesFeedUITests: XCTestCase {
         attach(app, "note-row-menu")
     }
 
-    func testFloatingPlusOpensComposer() throws {
+    func testTheCenterTabOpensTheComposerOverTheNotesFeed() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]
         app.launch()
         openNotes(app)
 
-        let fab = app.buttons["notes.fab"]
-        XCTAssertTrue(fab.waitForExistence(timeout: 5), "노트 탭에 떠 있는 작성 버튼이 없음")
-        attach(app, "notes-fab")
-        fab.tap()
+        let compose = composeTab(app)
+        XCTAssertTrue(compose.waitForExistence(timeout: 5), "탭바 가운데 글쓰기가 없음")
+        attach(app, "notes-tab")
+        compose.tap()
         let field = app.textFields["noteCompose.text"]
-        XCTAssertTrue(field.waitForExistence(timeout: 5), "작성 버튼이 시트를 열지 않음")
+        XCTAssertTrue(field.waitForExistence(timeout: 5), "가운데 탭이 작성 시트를 열지 않음")
         field.typeText("스레드처럼 가볍게 쓰는 창")
         XCTAssertTrue(app.staticTexts["누구나 볼 수 있어요"].exists, "작성 시트 아래 공개 범위 줄이 없음")
         attach(app, "note-compose-sheet")
         app.navigationBars.buttons["취소"].tap()
         app.alerts.firstMatch.buttons["버리기"].tap()
-        XCTAssertTrue(fab.waitForExistence(timeout: 4), "시트를 닫은 뒤 작성 버튼이 사라짐")
+        XCTAssertTrue(app.buttons["notes.more"].waitForExistence(timeout: 4), "시트를 닫은 뒤 노트 탭으로 돌아오지 않음")
     }
 
     func testProfileAndTagTabsSwitchBySwipeToo() throws {
@@ -1117,7 +1121,6 @@ final class NotesFeedUITests: XCTestCase {
             .matching(NSPredicate(format: "label CONTAINS '헥사고날 포트'")).firstMatch
         XCTAssertTrue(note.waitForExistence(timeout: 8), "프로필 노트 탭에 그 작가의 노트가 없음")
         attach(app, "author-notes-tab")
-        XCTAssertFalse(app.buttons["notes.fab"].exists, "프로필로 들어가도 노트 작성 버튼이 남아 있음")
 
         app.buttons["author.tab.posts"].tap()
         XCTAssertTrue(app.buttons["author.tab.posts"].isSelected, "글 탭으로 바뀌지 않음")
@@ -1169,9 +1172,7 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(card.label.contains("kurl.me"), "링크 카드에 도메인이 없음")
         attach(app, "note-link-card")
 
-        let fab = app.buttons["notes.fab"]
-        for _ in 0..<3 where !fab.exists { app.swipeDown(velocity: .slow) }
-        fab.tap()
+        composeTab(app).tap()
         let field = app.textFields["noteCompose.text"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.typeText("읽어 볼 글 https://example.com/essay")
@@ -1368,7 +1369,7 @@ final class NotesFeedUITests: XCTestCase {
         app.launch()
         openNotes(app)
 
-        app.buttons["notes.fab"].tap()
+        composeTab(app).tap()
         let field = app.textFields["noteCompose.text"]
         XCTAssertTrue(field.waitForExistence(timeout: 5), "작성 시트의 입력란 없음")
         field.typeText("uitest poll")
