@@ -31,6 +31,7 @@ enum MockBackend {
         var ogImageUrl: String?
         var scheduledAt: Date?
         var contentVersion: Int64 = 0
+        var takenDown = false
     }
 
     /// `--mock-remote-edit <글 id>` — 그 글 본문을 처음 읽어 간 직후 다른 기기가 고친 것처럼 본문·버전을 바꾼다
@@ -92,8 +93,15 @@ enum MockBackend {
     ])
 
     /// `--no-drafts`·`--many-drafts` — 글쓰기 고르기의 '이어 쓰기' 없음·'모두 보기' 검증용.
+    /// `--taken-down-post` — 운영 정책으로 내려진 글 하나(스튜디오·작성 화면의 내려짐 표시 검증용).
     private static func draftFixtures(_ base: [MockPost]) -> [MockPost] {
         let args = ProcessInfo.processInfo.arguments
+        let base = args.contains("--taken-down-post")
+            ? base + [MockPost(
+                id: 9004, slug: "p-mock-4", title: "신고로 내려진 글", status: "UNPUBLISHED",
+                markdown: "# 내려진 글\n\n고쳐서 저장할 수는 있다.", publishedAt: Date().addingTimeInterval(-5 * 86_400),
+                updatedAt: Date(), tags: ["회고"], excerpt: "운영 정책 위반으로 관리자가 내린 예시 글.", takenDown: true)]
+            : base
         if args.contains("--no-drafts") { return base.filter { $0.status != "DRAFT" } }
         guard args.contains("--many-drafts") else { return base }
         let extra = (1...3).map { n in
@@ -1754,6 +1762,10 @@ enum MockBackend {
 
         if method == "POST", parts.count == 3, parts[0] == "posts", parts[2] == "publish" {
             guard let idx = posts.firstIndex(where: { String($0.id) == parts[1] }) else { return nil }
+            if posts[idx].takenDown {
+                throw APIError.server(
+                    status: 409, code: "POST_TAKEN_DOWN", detail: "post was taken down by an admin and cannot be made public")
+            }
             posts[idx].status = "PUBLISHED"
             posts[idx].publishedAt = Date()
             return json(postView(posts[idx]))
@@ -2819,6 +2831,7 @@ enum MockBackend {
             "ogImageUrl": p.ogImageUrl ?? NSNull(),
             "seriesId": p.seriesId ?? NSNull(),
             "contentVersion": p.contentVersion,
+            "takenDown": p.takenDown,
             "viewCount": 42, "likeCount": 3, "tags": p.tags,
             "createdAt": iso(p.updatedAt), "updatedAt": iso(p.updatedAt),
         ]

@@ -75,6 +75,7 @@ struct ComposeView: View {
     @State private var v2LinkTargetFocus: EditorFocus?
     @State private var postId: Int64?
     @State private var status = "DRAFT"
+    @State private var takenDown = false
     @State private var busy = false
     /// 발행 성공 모먼트(전체화면 블룸) 표시.
     @State private var celebrating = false
@@ -537,6 +538,9 @@ struct ComposeView: View {
 
     private var meta: some View {
         VStack(alignment: .trailing, spacing: 4) {
+            if takenDown {
+                TakenDownNotice().padding(.bottom, 12)
+            }
             TextField("제목", text: $title, axis: .vertical)
                 .accessibilityIdentifier("제목")
                 .lineLimit(1...4)
@@ -774,7 +778,7 @@ struct ComposeView: View {
                     Button {
                         showPublish = true
                     } label: {
-                        Label(status == "UNPUBLISHED" ? "다시 게시…" : status == "SCHEDULED" ? "발행 설정…" : "글 정보…", systemImage: "info.circle")
+                        Label(status == "UNPUBLISHED" && !takenDown ? "다시 게시…" : status == "SCHEDULED" ? "발행 설정…" : "글 정보…", systemImage: "info.circle")
                     }
                 }
                 Button {
@@ -803,6 +807,9 @@ struct ComposeView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
+                    if takenDown {
+                        TakenDownNotice()
+                    }
                     // 살아있는 미리보기 — 발행하면 이 카드로 보인다. 커버는 카드 위를 탭해 넣고,
                     // 아래 필드(태그·소개글)를 다듬으면 카드가 그 자리에서 따라 바뀐다.
                     VStack(alignment: .leading, spacing: 10) {
@@ -887,11 +894,11 @@ struct ComposeView: View {
             .safeAreaInset(edge: .bottom) {
                 VStack(spacing: 10) {
                     Button {
-                        let willPublish = status != "PUBLISHED"
+                        let publishing = willPublish
                         // 발행이면 폼을 유지한다 — 그 위로 성공 모먼트가 뜨고, 끝나면 onDone 이 닫는다.
                         // 글 정보 저장(발행됨)은 모먼트 없이 폼만 닫는다.
-                        if !willPublish { showPublish = false }
-                        Task { await save(publish: willPublish) }
+                        if !publishing { showPublish = false }
+                        Task { await save(publish: publishing) }
                     } label: {
                         Text(primaryPublishLabel)
                             .typeScale(.titleSmall)
@@ -905,7 +912,7 @@ struct ComposeView: View {
                             .contentShape(Capsule())
                     }
                     .buttonStyle(.plain)
-                    .disabled((status != "PUBLISHED" ? !canPublish : !canSave) || busy)
+                    .disabled((willPublish ? !canPublish : !canSave) || busy)
 
                     // 비활성엔 이유를 — 흐린 버튼만 보여주고 침묵하지 않는다.
                     if let reason = publishBlockReason {
@@ -923,7 +930,7 @@ struct ComposeView: View {
                         .foregroundStyle(Palette.link)
                         .disabled(postId == nil)
 
-                        if isPrePublish {
+                        if isPrePublish && !takenDown {
                             Button("예약 발행…") {
                                 // 컴포즈를 오래 열어둬 기본 예약 시각이 지났으면 다시 한 시간 뒤로 클램프.
                                 if scheduleDate <= Date() {
@@ -1400,14 +1407,19 @@ struct ComposeView: View {
     /// Scheduled content may become public at any moment, so it needs the same explicit save as a live post.
     private var allowsAutosave: Bool { status == "DRAFT" }
 
+    /// 내려진 글은 고쳐 저장만 한다 — 발행·다시 게시는 서버가 막는다(POST_TAKEN_DOWN).
+    private var willPublish: Bool { status != "PUBLISHED" && !takenDown }
+
     private var primaryPublishLabel: String {
-        isPrePublish
+        takenDown ? String(localized: "저장")
+        : isPrePublish
             ? String(localized: "지금 발행")
             : status == "UNPUBLISHED" ? String(localized: "다시 게시") : String(localized: "저장")
     }
 
     private var publishSheetTitle: String {
-        isPrePublish
+        takenDown ? String(localized: "글 정보")
+        : isPrePublish
             ? String(localized: "발행 준비")
             : status == "UNPUBLISHED" ? String(localized: "다시 게시") : String(localized: "글 정보")
     }
@@ -1415,7 +1427,7 @@ struct ComposeView: View {
     /// 발행 버튼이 흐릴 때의 이유 한 줄 — 침묵하지 않는다.
     private var publishBlockReason: String? {
         if !canSave { return String(localized: "제목과 본문을 채우면 발행할 수 있어요.") }
-        if status != "PUBLISHED", tags.isEmpty {
+        if willPublish, tags.isEmpty {
             return String(localized: "대표 태그를 1개 이상 정하면 발행할 수 있어요.")
         }
         return nil
@@ -1470,6 +1482,26 @@ struct ComposeView: View {
         return nil
     }
 
+    /// 편집기에서 받는 정지·제한 오류는 공개 쓰기에서만 난다 — 초안은 계속 쓸 수 있다고 알려 준다.
+    static func composeReason(_ error: Error) -> String {
+        if case APIError.server(_, let code?, _) = error {
+            switch code {
+            case "ACCOUNT_SUSPENDED":
+                return String(localized: "계정이 일시 정지된 동안에는 글을 공개하거나 공개된 글을 고칠 수 없어요. 초안은 계속 쓸 수 있어요.")
+            case "ACCOUNT_BANNED":
+                return String(localized: "이용이 제한된 계정이라 글을 공개하거나 공개된 글을 고칠 수 없어요.")
+            default:
+                break
+            }
+        }
+        return error.localizedDescription
+    }
+
+    static func isTakenDownRefusal(_ error: Error) -> Bool {
+        if case APIError.server(_, "POST_TAKEN_DOWN"?, _) = error { return true }
+        return false
+    }
+
     /// 저장 실패가 인증(401·세션 만료) 때문인가 — 배지·토스트가 "다시 로그인"을 말할 근거(플러셔와 공용 판정).
     private static func isAuthFailure(_ error: Error) -> Bool {
         DraftFlusher.isAuthFailure(error)
@@ -1520,6 +1552,7 @@ struct ComposeView: View {
             savedSeriesId = post.seriesId
             postId = post.id
             status = post.status
+            takenDown = post.isTakenDown
             await reloadBody(postId: post.id)
         } else {
             // 새 글은 읽을 본문이 없다 — 곧장 편집·저장 가능.
@@ -1639,6 +1672,7 @@ struct ComposeView: View {
             seriesId = post.seriesId
             savedSeriesId = post.seriesId
             status = post.status
+            takenDown = post.isTakenDown
         }
         pendingCover = nil
         markdown = body.markdown
@@ -1673,6 +1707,7 @@ struct ComposeView: View {
             seriesId = post.seriesId
             savedSeriesId = post.seriesId
             status = post.status
+            takenDown = post.isTakenDown
         }
         if markdown == bodyAtRestore {
             // 복원 후 본문에 손대지 않았으면 깨끗한 상태로.
@@ -1791,6 +1826,7 @@ struct ComposeView: View {
             if publish {
                 let published = try await WriteAPI.publish(postId: id)
                 status = published.status
+                takenDown = published.isTakenDown
                 publishedSlug = published.slug
             }
             lastSavedSignature = snapshot
@@ -1828,6 +1864,7 @@ struct ComposeView: View {
             // 떨어진다. 더 새 저장이 이미 디바운스에 무장돼 있으므로 조용히 물러난다
             // (타이핑이 빠를수록 "실패했다고 뜨는데 실제론 저장됨"이 잦던 허위 실패의 뿌리).
             if silent, Self.isCancellation(error) { return }
+            if Self.isTakenDownRefusal(error) { takenDown = true }
             if silent {
                 // 자동저장 실패는 조용히 — 토스트(+VoiceOver 낭독)는 첫 실패에만 한 번.
                 // 지속 상태는 saveStatusIcon 배지가 보여주므로 재시도마다 다시 알리지 않는다.
@@ -1837,7 +1874,7 @@ struct ComposeView: View {
                 if !autosaveFailed {
                     ToastCenter.shared.show(needsLogin
                         ? String(localized: "로그인이 풀려 저장하지 못했어요 — 다시 로그인해 주세요")
-                        : String(localized: "자동저장에 실패했어요 — \(error.localizedDescription)"))
+                        : String(localized: "자동저장에 실패했어요 — \(Self.composeReason(error))"))
                 }
                 autosaveNeedsLogin = needsLogin
                 autosaveFailed = true
@@ -1848,9 +1885,9 @@ struct ComposeView: View {
                 scheduleAutosave(after: .seconds(backoff))
             } else if showPublish, !showSchedule {
                 // 발행 폼은 fullScreenCover 라 루트의 에러 알럿이 가려진다 — 폼 자체에 띄운다.
-                publishSheetError = error.localizedDescription
+                publishSheetError = Self.composeReason(error)
             } else {
-                errorMessage = error.localizedDescription
+                errorMessage = Self.composeReason(error)
             }
         }
     }
@@ -1918,7 +1955,8 @@ struct ComposeView: View {
             celebrating = true
         } catch {
             // 시트가 떠 있는 동안 본체 알럿은 가려진다 — 시트 안에서 보여준다.
-            scheduleError = error.localizedDescription
+            if Self.isTakenDownRefusal(error) { takenDown = true }
+            scheduleError = Self.composeReason(error)
         }
     }
 

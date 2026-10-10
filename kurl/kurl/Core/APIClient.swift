@@ -20,9 +20,19 @@ enum APIError: LocalizedError {
         switch self {
         case .invalidURL: return String(localized: "잘못된 요청입니다.")
         case .http(let status): return String(localized: "서버 오류 (\(status))")
-        case .server(_, _, let detail): return detail
+        case .server(_, let code, let detail): return code.flatMap(Self.localizedReason) ?? detail
         case .decoding: return String(localized: "응답을 읽지 못했습니다.")
         case .transport: return String(localized: "네트워크에 연결할 수 없습니다.")
+        }
+    }
+
+    /// 서버 detail 은 영어 기술 문구라, 사람에게 보이는 이유가 정해진 코드는 그 문구로 바꾼다.
+    private static func localizedReason(_ code: String) -> String? {
+        switch code {
+        case "POST_TAKEN_DOWN": return String(localized: "운영 정책으로 내려진 글이라 다시 공개할 수 없어요.")
+        case "ACCOUNT_SUSPENDED": return String(localized: "계정이 일시 정지된 동안에는 글을 쓰거나 반응할 수 없어요.")
+        case "ACCOUNT_BANNED": return String(localized: "이용이 제한된 계정이라 글을 쓰거나 반응할 수 없어요.")
+        default: return nil
         }
     }
 
