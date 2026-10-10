@@ -1968,6 +1968,17 @@ enum MockBackend {
                 ["type": "H2", "content": "포트와 어댑터"],
                 ["type": "PARAGRAPH", "content": "경계를 먼저 긋고, 구현은 그 바깥으로 민다."],
             ]))
+            let japanese = slug == "kyoukai-wo-hiku"
+            if japanese {
+                blocks = ordered([
+                    ["type": "PARAGRAPH", "content": "境界を先に引き、実装はその外側へ押し出す。三か月使ってみて、**変更が一か所に留まる**ことを実感した。"],
+                    ["type": "H2", "content": "ポートとアダプター"],
+                    ["type": "LIST_BULLET", "content": "- ドメインはフレームワークを知らない\n- [x] アダプターは差し替えられる"],
+                    ["type": "CODE", "content": #"{"lang":"swift","code":"protocol PostStore { func save() }"}"#],
+                    ["type": "QUOTE", "content": "境界がなければ、すべての変更が全体の変更になる。"],
+                    ["type": "TABLE", "content": "| 層 | 役割 |\n|---|---|\n| ドメイン | 規則を持つ |"],
+                ])
+            }
             if slug == "walk-notes" {
                 blocks = ordered([
                     ["type": "PARAGRAPH", "content": "이 글은 유키의 노트 한 줄에서 시작했다."],
@@ -1986,9 +1997,9 @@ enum MockBackend {
                 ],
                 "post": [
                     "id": 8201, "slug": slug,
-                    "title": seriesNav?["title"] as? String ?? article?.title ?? "헥사고날로 가는 길",
+                    "title": japanese ? "境界を先に引く" : seriesNav?["title"] as? String ?? article?.title ?? "헥사고날로 가는 길",
                     "excerpt": article?.excerpt ?? "경계를 긋는 이야기",
-                    "ogImageUrl": NSNull(), "languageTag": "ko",
+                    "ogImageUrl": NSNull(), "languageTag": japanese ? "ja" : "ko",
                     "tags": article?.tags ?? ["아키텍처"], "likeCount": article?.likeCount ?? 8,
                     "pinned": false, "lastEditedAt": NSNull(),
                     "publishedAt": iso(Date().addingTimeInterval(
