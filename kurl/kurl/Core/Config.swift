@@ -36,6 +36,15 @@ enum Config {
         #endif
     }()
 
+    /// `--translation-fails` — 목 번역기가 실패한다. 번역 실패 안내를 검증한다(DEBUG 전용).
+    static let translationFails: Bool = {
+        #if DEBUG
+        return ProcessInfo.processInfo.arguments.contains("--translation-fails")
+        #else
+        return false
+        #endif
+    }()
+
     /// `--reset-recovery` — 시작 시 기기 복구 금고(ComposeRecoveryStore)를 비운다(DEBUG 전용).
     /// 컴포즈 계열 UITest 가 앞선 테스트의 잔여 스태시(→ 복구 다이얼로그)에 오염되지 않게 setUp 에서 쓴다.
     static let resetRecovery: Bool = {
