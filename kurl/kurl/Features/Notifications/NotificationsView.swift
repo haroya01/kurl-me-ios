@@ -515,6 +515,12 @@ struct NotificationsView: View {
                 : Text("\(actor)님이 글을 좋아해요")
         case "COMMENT_LIKE":
             let others = max((n.count ?? 1) - 1, 0)
+            // 서버는 하이라이트 답글 좋아요도 COMMENT_LIKE 로 보낸다 — commentId 없이 highlightId 만 온다.
+            if n.commentId == nil, n.highlightId != nil {
+                return others > 0
+                    ? Text("\(actor)님 외 \(others)명이 하이라이트에 단 내 답글을 좋아해요")
+                    : Text("\(actor)님이 하이라이트에 단 내 답글을 좋아해요")
+            }
             return others > 0
                 ? Text("\(actor)님 외 \(others)명이 내 댓글을 좋아해요")
                 : Text("\(actor)님이 내 댓글을 좋아해요")
