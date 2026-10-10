@@ -16,13 +16,11 @@ enum NoteAPI {
     static let maxPollOptions = 4
     static let maxPollOptionLength = 50
 
-    private static let client = APIClient.shared
-
-    private static var signedIn: Bool { AuthStore.shared.isSignedIn }
+    static var client = APIClient.shared
 
     static func everyone(page: Int = 0) async throws -> NoteFeed {
-        try await client.get(
-            "/public/notes", query: ["page": String(page), "size": "20"], authenticated: signedIn)
+        try await client.getAsViewer(
+            "/public/notes", query: ["page": String(page), "size": "20"])
     }
 
     /// 마스토돈의 다른 서버 실시간 피드 — 이 서버가 받은 공개 노트, 최신순. 회원만.
@@ -41,15 +39,13 @@ enum NoteAPI {
     }
 
     static func linked(_ url: String, page: Int = 0) async throws -> NoteFeed {
-        try await client.get(
-            "/public/notes/links", query: ["url": url, "page": String(page), "size": "20"],
-            authenticated: signedIn)
+        try await client.getAsViewer(
+            "/public/notes/links", query: ["url": url, "page": String(page), "size": "20"])
     }
 
     static func trending(page: Int = 0) async throws -> NoteFeed {
-        try await client.get(
-            "/public/notes", query: ["sort": "trending", "page": String(page), "size": "20"],
-            authenticated: signedIn)
+        try await client.getAsViewer(
+            "/public/notes", query: ["sort": "trending", "page": String(page), "size": "20"])
     }
 
     static func remoteAccountNotes(id: Int64, page: Int = 0) async throws -> NoteFeed {
@@ -64,32 +60,28 @@ enum NoteAPI {
     }
 
     static func postQuotes(_ postId: Int64, page: Int = 0) async throws -> PostQuotesPage {
-        try await client.get(
-            "/public/posts/\(postId)/quotes", query: ["page": String(page), "size": "20"],
-            authenticated: signedIn)
+        try await client.getAsViewer(
+            "/public/posts/\(postId)/quotes", query: ["page": String(page), "size": "20"])
     }
 
     static func quotes(of id: Int64, page: Int = 0) async throws -> NoteFeed {
-        try await client.get(
-            "/public/notes/\(id)/quotes", query: ["page": String(page), "size": "20"],
-            authenticated: signedIn)
+        try await client.getAsViewer(
+            "/public/notes/\(id)/quotes", query: ["page": String(page), "size": "20"])
     }
 
     /// 이 노트를 카드로 실은 공개 블로그 글, 최근 발행 순.
     static func quotingPosts(of id: Int64, page: Int = 0) async throws -> PublicFeedView {
-        try await client.get("/public/notes/\(id)/posts", query: ["page": String(page)], authenticated: false)
+        try await client.getAsViewer("/public/notes/\(id)/posts", query: ["page": String(page)])
     }
 
     static func tagged(_ tag: String, page: Int = 0) async throws -> NoteFeed {
-        try await client.get(
-            "/public/notes/tags/\(tag)", query: ["page": String(page), "size": "20"],
-            authenticated: signedIn)
+        try await client.getAsViewer(
+            "/public/notes/tags/\(tag)", query: ["page": String(page), "size": "20"])
     }
 
     static func search(_ query: String, page: Int = 0) async throws -> NoteFeed {
-        try await client.get(
-            "/public/notes/search", query: ["q": query, "page": String(page), "size": "20"],
-            authenticated: signedIn)
+        try await client.getAsViewer(
+            "/public/notes/search", query: ["q": query, "page": String(page), "size": "20"])
     }
 
     static func lists() async throws -> [NoteListSummary] {
@@ -140,15 +132,13 @@ enum NoteAPI {
     }
 
     static func byAuthor(_ username: String, page: Int = 0) async throws -> NoteFeed {
-        try await client.get(
-            "/public/profiles/\(username)/notes", query: ["page": String(page), "size": "20"],
-            authenticated: signedIn)
+        try await client.getAsViewer(
+            "/public/profiles/\(username)/notes", query: ["page": String(page), "size": "20"])
     }
 
     static func reposts(_ username: String, page: Int = 0) async throws -> NoteFeed {
-        try await client.get(
-            "/public/profiles/\(username)/reposts", query: ["page": String(page), "size": "20"],
-            authenticated: signedIn)
+        try await client.getAsViewer(
+            "/public/profiles/\(username)/reposts", query: ["page": String(page), "size": "20"])
     }
 
     static func linkPreview(url: String) async throws -> NoteLinkPreview {
@@ -156,7 +146,7 @@ enum NoteAPI {
     }
 
     static func thread(id: Int64) async throws -> NoteThread {
-        try await client.get("/public/notes/\(id)", authenticated: signedIn)
+        try await client.getAsViewer("/public/notes/\(id)")
     }
 
     /// 한 번에 올리는 스레드의 노트 수 상한(서버와 같은 값).
@@ -248,7 +238,7 @@ enum NoteAPI {
     }
 
     static func history(of id: Int64) async throws -> NoteHistory {
-        try await client.get("/public/notes/\(id)/history", authenticated: signedIn)
+        try await client.getAsViewer("/public/notes/\(id)/history")
     }
 
     static func setPin(id: Int64, on: Bool) async throws -> NotePinStatus {

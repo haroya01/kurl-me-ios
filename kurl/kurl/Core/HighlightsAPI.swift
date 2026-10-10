@@ -8,7 +8,7 @@ import Foundation
 /// 리더 소셜 하이라이트 — 공개 읽기(누가 어디를)는 인증 없이, 생성/삭제·답글·내 서재는 인증.
 /// 백엔드 `PostHighlightController`/`PublicHighlightController`/`HighlightReplyController` 와 1:1.
 enum HighlightsAPI {
-    private static let client = APIClient.shared
+    static var client = APIClient.shared
     // Java String.length / @Size count UTF-16 units; match the server before it truncates a quote.
     static let maxQuoteLength = 1000
     static let maxNoteLength = 500
@@ -26,7 +26,7 @@ enum HighlightsAPI {
 
     /// 공개 — 이 글의 모든 하이라이트(attributed). 미로그인도 읽는다.
     static func list(postId: Int64) async throws -> [HighlightView] {
-        try await client.get("/public/posts/\(postId)/highlights")
+        try await client.getAsViewer("/public/posts/\(postId)/highlights")
     }
 
     /// 인증 — 발행된 글에 하이라이트 생성(선택적 공개 메모 포함). 생성된 것을 그대로 돌려받는다.
@@ -48,7 +48,7 @@ enum HighlightsAPI {
 
     /// 공개 — 한 하이라이트의 답글 스레드(오래된 순). 작성자 메모가 오프너, 답글이 그 아래.
     static func replies(highlightId: Int64) async throws -> [HighlightReplyView] {
-        try await client.get("/public/highlights/\(highlightId)/replies")
+        try await client.getAsViewer("/public/highlights/\(highlightId)/replies")
     }
 
     /// 인증 — 하이라이트에 답글(작성자·@멘션에게 알림).

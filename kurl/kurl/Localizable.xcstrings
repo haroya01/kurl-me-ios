@@ -11724,6 +11724,34 @@
         }
       }
     },
+    "볼 수 없는 노트예요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This note isn't available"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह नोट उपलब्ध नहीं है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このノートは表示できません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể xem ghi chú này"
+          }
+        }
+      }
+    },
     "북마크를 바꾸지 못했어요": {
       "localizations": {
         "en": {
