@@ -20,8 +20,10 @@ struct kurlApp: App {
 
     var body: some Scene {
         WindowGroup {
-            // 격리 WYSIWYG 에디터 하네스 진입로(스크린샷 검증 전용) — 다른 UI 를 전혀 안 태운다.
-            if Config.launchValue(after: "--screen") == "editor2" {
+            if Config.isUnitTestHost {
+                Color.clear
+            } else if Config.launchValue(after: "--screen") == "editor2" {
+                // 격리 WYSIWYG 에디터 하네스 진입로(스크린샷 검증 전용) — 다른 UI 를 전혀 안 태운다.
                 EditorHarnessRoot()
             } else {
             ZStack {
