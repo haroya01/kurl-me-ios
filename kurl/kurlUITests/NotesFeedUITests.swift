@@ -227,10 +227,10 @@ final class NotesFeedUITests: XCTestCase {
         app.launchArguments = ["--mocks", "--tab", "notes"]
         app.launch()
         openNotes(app)
-        let replies = app.buttons["note.replies.9501"]
-        XCTAssertTrue(replies.waitForExistence(timeout: 10), "답글 버튼 없음")
-        replies.tap()
-        XCTAssertTrue(app.navigationBars.buttons["BackButton"].waitForExistence(timeout: 6), "노트 상세가 안 열림")
+        let name = app.buttons["yuki_dev"].firstMatch
+        XCTAssertTrue(name.waitForExistence(timeout: 10), "노트 작가 이름이 없음")
+        name.tap()
+        XCTAssertTrue(app.buttons["더 보기"].firstMatch.waitForExistence(timeout: 10), "작가 화면이 안 열림")
 
         app.buttons["노트"].firstMatch.tap()
         XCTAssertTrue(app.buttons["notes.more"].waitForExistence(timeout: 5), "탭을 다시 눌러도 피드로 안 돌아감")
