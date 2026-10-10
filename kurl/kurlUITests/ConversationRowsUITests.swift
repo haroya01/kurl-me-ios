@@ -46,14 +46,6 @@ final class ConversationRowsUITests: XCTestCase {
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.08)).tap()
     }
 
-    /// 댓글 알림을 누른 것처럼 그 댓글 자리로 바로 연다 — 큰 글자에서도 긴 본문을 손으로 넘기지 않게.
-    private func launchAtComment(_ id: Int, _ extra: [String] = []) -> XCUIApplication {
-        launch(["--mocks"] + extra + [
-            "--push",
-            #"{"type":"COMMENT","actorUsername":"haruka","ownerUsername":"honggildong","postSlug":"hexagonal-after-3-months","commentId":\#(id)}"#,
-        ])
-    }
-
     private func waitUntilHittable(_ element: XCUIElement, timeout: TimeInterval = 12) -> Bool {
         let expectation = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "exists == true AND hittable == true"), object: element)
@@ -342,18 +334,18 @@ final class ConversationRowsUITests: XCTestCase {
         XCTAssertTrue(named.waitForExistence(timeout: 6), "노트 답글 이름 줄이 댓글과 다름")
     }
 
-    /// 큰 글자에서 아바타가 글자를 따라 커진다(상한 1.8배).
+    /// 큰 글자에서 아바타가 글자를 따라 커진다(상한 1.8배). 대화 행 아바타는 노트 피드 첫 행과 같은 컴포넌트다.
     func testAvatarsGrowWithLargerText() throws {
-        var app = launchAtComment(501)
-        var avatar = app.buttons["haruka님 프로필"]
-        XCTAssertTrue(waitUntilHittable(avatar), "아바타 링크가 없음")
+        var app = launch(["--mocks", "--tab", "notes"])
+        var avatar = app.buttons["yuki_dev님 프로필"].firstMatch
+        XCTAssertTrue(avatar.waitForExistence(timeout: 12), "아바타 링크가 없음")
         let base = avatar.frame.width
 
         app.terminate()
-        app = launchAtComment(501, ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"])
-        avatar = app.buttons["haruka님 프로필"]
-        XCTAssertTrue(waitUntilHittable(avatar, timeout: 20), "큰 글자에서 아바타 링크가 없음")
+        app = launch(["--mocks", "--tab", "notes", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"])
+        avatar = app.buttons["yuki_dev님 프로필"].firstMatch
+        XCTAssertTrue(avatar.waitForExistence(timeout: 12), "큰 글자에서 아바타 링크가 없음")
         XCTAssertGreaterThan(avatar.frame.width, base * 1.5, "큰 글자에서도 아바타가 그대로: \(base) → \(avatar.frame.width)")
-        attach("comments-ax")
+        attach("notes-ax")
     }
 }
