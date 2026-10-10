@@ -18,12 +18,11 @@ struct NotesTabView: View {
     var body: some View {
         NavigationStack(path: $choice.path) {
             ZStack {
-                SwipePager(tabs: NoteFeedKind.tabs, selection: $choice.kind, loadOnSelect: [.following]) { kind, active, warm in
+                SwipePager(
+                    tabs: NoteFeedKind.tabs, selection: $choice.kind, loadOnSelect: [.following], suspended: choice.more != nil
+                ) { kind, active, warm in
                     NoteFeedPage(kind: kind, model: model(kind), active: active && choice.more == nil, warm: warm)
                 }
-                .opacity(choice.more == nil ? 1 : 0)
-                .allowsHitTesting(choice.more == nil)
-                .accessibilityHidden(choice.more != nil)
                 if let more = choice.more {
                     NoteMoreFeedPage(feed: more)
                         .id(more)

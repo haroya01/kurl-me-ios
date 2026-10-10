@@ -128,12 +128,11 @@ struct FeedView: View {
         // 무관하다 — 탭 다시 누르기로 루트까지 되돌리려면 path 가 필요하다.
         NavigationStack(path: $choice.path) {
             ZStack {
-                SwipePager(tabs: FeedTab.allCases, selection: $choice.tab, loadOnSelect: [.following]) { tab, active, warm in
+                SwipePager(
+                    tabs: FeedTab.allCases, selection: $choice.tab, loadOnSelect: [.following], suspended: choice.more != nil
+                ) { tab, active, warm in
                     FeedPage(source: tab.source, active: active && choice.more == nil, warm: warm, zoom: zoomNS)
                 }
-                .opacity(choice.more == nil ? 1 : 0)
-                .allowsHitTesting(choice.more == nil)
-                .accessibilityHidden(choice.more != nil)
                 if let more = choice.more {
                     FeedPage(source: more, active: true, warm: true, zoom: zoomNS)
                         .id(more)
