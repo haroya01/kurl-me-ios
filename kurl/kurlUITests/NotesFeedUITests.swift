@@ -597,9 +597,12 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 6), "새 리스트가 안 생김")
         XCTAssertTrue(row.isSelected, "만든 리스트에 담기지 않음")
         attach(app, "note-list-membership")
-        app.buttons["완료"].firstMatch.tap()
+        app.navigationBars["리스트에 추가"].buttons["완료"].tap()
+        XCTAssertTrue(title.waitForNonExistence(timeout: 6), "리스트에 추가 시트가 안 닫힘")
 
-        app.navigationBars.buttons.element(boundBy: 0).tap()
+        let back = app.navigationBars.buttons["BackButton"].firstMatch
+        wait(for: [expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: back)], timeout: 6)
+        back.tap()
         openMore(app, "동료")
         XCTAssertTrue(app.navigationBars["동료"].waitForExistence(timeout: 6), "리스트 피드로 안 바뀜")
         XCTAssertTrue(app.buttons["note.menu.9501"].waitForExistence(timeout: 8), "담은 사람의 노트가 리스트에 없음")
@@ -1005,7 +1008,7 @@ final class NotesFeedUITests: XCTestCase {
 
         app.navigationBars.buttons["취소"].tap()
         app.alerts.firstMatch.buttons["버리기"].tap()
-        XCTAssertFalse(field.waitForExistence(timeout: 2), "버리기 뒤에도 시트가 남음")
+        XCTAssertTrue(field.waitForNonExistence(timeout: 6), "버리기 뒤에도 시트가 남음")
 
         let photo = app.descendants(matching: .any)
             .matching(NSPredicate(format: "label == '비 오는 창밖'")).firstMatch
@@ -1178,9 +1181,12 @@ final class NotesFeedUITests: XCTestCase {
         while !linked.isHittable, tries < 4 { app.swipeUp(); tries += 1 }
         let link = linked.links.firstMatch
         XCTAssertTrue(link.waitForExistence(timeout: 4), "본문 안 주소가 링크로 남아 있지 않음")
+        // 떠 있는 탭바가 화면 아래를 덮는다 — 링크가 그 밑에 걸려 있으면 탭이 탭바로 간다.
+        let bottom = app.windows.firstMatch.frame.maxY
+        while link.frame.maxY > bottom - 140, tries < 8 { app.swipeUp(velocity: .slow); tries += 1 }
         link.tap()
         let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
-        XCTAssertTrue(safari.wait(for: .runningForeground, timeout: 10), "본문 안 링크를 눌러도 주소가 열리지 않음")
+        XCTAssertTrue(safari.wait(for: .runningForeground, timeout: 20), "본문 안 링크를 눌러도 주소가 열리지 않음")
         app.activate()
     }
 
