@@ -8,7 +8,7 @@
 import SwiftUI
 import Observation
 
-/// 피드 탭 — 최신/인기는 공개, 추천(For You)·구독함은 인증 피드.
+/// 피드 탭 — 최신/인기는 공개, 추천(For You)·팔로잉은 인증 피드.
 enum FeedSource: String, CaseIterable, Identifiable {
     case recent
     case trending
@@ -22,7 +22,7 @@ enum FeedSource: String, CaseIterable, Identifiable {
         case .recent: String(localized: "최신")
         case .trending: String(localized: "인기")
         case .forYou: String(localized: "추천")
-        case .following: String(localized: "구독함")
+        case .following: String(localized: "팔로잉")
         }
     }
 
@@ -159,7 +159,7 @@ final class FeedViewModel {
             // 새로 들어온 피드는 소속을 다시 묻는다 — 이전 세대의 물어본 표식을 비우고 배치로 긁는다.
             belongingAsked = []
             loadBelonging(for: items, epoch: myEpoch)
-            // 구독함 머리쪽은 조용히 기기로 — 도착한 글은 지하철에서도 읽혀야 한다.
+            // 팔로잉 머리쪽은 조용히 기기로 — 도착한 글은 지하철에서도 읽혀야 한다.
             if source == .following {
                 let arrivals = head.kept.prefix(10).map { ($0.author.username, $0.slug) }
                 Task(priority: .utility) {

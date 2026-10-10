@@ -296,7 +296,7 @@ struct SubscribedTagsView: View {
                 ContentUnavailableView {
                     Label("구독한 태그가 없습니다", systemImage: "number")
                 } description: {
-                    Text("글에서 태그를 구독하면 그 주제의 새 글이 구독함에 모여요.")
+                    Text("글에서 태그를 구독하면 그 주제의 새 글이 팔로잉에 모여요.")
                 } actions: {
                     Button("피드에서 읽을 글 찾기") { TabRouter.shared.selection = 0 }
                         .foregroundStyle(Palette.link)

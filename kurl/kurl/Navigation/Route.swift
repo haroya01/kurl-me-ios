@@ -38,6 +38,9 @@ enum Route: Hashable {
     case followRequests
     /// 알림 거르기가 따로 둔 알림 — 알림 맨 위 줄에서 연다.
     case filteredNotifications
+    case blogFeed(FeedSource)
+    case subscribedTags
+    case myCollections
     case noteFeed(NoteFeedKind)
     case noteList(id: Int64, title: String)
     case noteLink(url: String, title: String?)

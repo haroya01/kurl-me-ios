@@ -6,7 +6,7 @@
 import SwiftUI
 
 /// 태그 구독 버튼 — 시리즈 구독과 같은 유리 캡슐 문법(구독 전=그린 유리, 구독 중=맑은 유리).
-/// 구독한 태그의 새 글은 구독함 피드로 흘러든다(웹 tag-prefs parity).
+/// 구독한 태그의 새 글은 팔로잉 피드로 흘러든다(웹 tag-prefs parity).
 struct TagFollowButton: View {
     @State private var model: TagFollowModel
     @State private var showLoginPrompt = false

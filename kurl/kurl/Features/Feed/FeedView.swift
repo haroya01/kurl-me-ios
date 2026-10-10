@@ -7,22 +7,18 @@
 
 import SwiftUI
 
-/// 피드 상단 스위처 — 글 셋(최신·인기·구독함). 짧은 글(노트)은 1급 탭에서 강등,
-/// 내 계정 탭의 진입으로 옮겼다(블로그=긴 글 정체성을 흐리지 않게).
 enum FeedTab: String, CaseIterable, Identifiable {
+    case following
     case recent
     case trending
-    case forYou
-    case following
 
     var id: String { rawValue }
 
     var source: FeedSource {
         switch self {
+        case .following: return .following
         case .recent: return .recent
         case .trending: return .trending
-        case .forYou: return .forYou
-        case .following: return .following
         }
     }
 
@@ -30,10 +26,25 @@ enum FeedTab: String, CaseIterable, Identifiable {
 
     var symbol: String {
         switch self {
+        case .following: "person.2"
         case .recent: "clock"
         case .trending: "flame"
-        case .forYou: "sparkles"
-        case .following: "tray.full"
+        }
+    }
+
+    static func initialTab(launched: String?, saved: String?, signedIn: Bool) -> FeedTab {
+        for value in [launched, signedIn ? saved : nil] {
+            if let value, let tab = FeedTab(stored: value) { return tab }
+        }
+        return .recent
+    }
+
+    /// 저장값 이전 — 구독함은 같은 원시값("following")으로 팔로잉이 됐고, 추천("forYou")은 더 보기 메뉴로 옮겨 최신으로 연다.
+    init?(stored: String) {
+        if stored == FeedSource.forYou.rawValue {
+            self = .recent
+        } else {
+            self.init(rawValue: stored)
         }
     }
 }
@@ -50,11 +61,39 @@ final class BlogFeedChoice {
     }
     var path = NavigationPath()
 
-    /// `--feed recent|trending|forYou|following` — 스크린샷/목 검증 진입로(--tab 과 같은 문법).
+    /// `--feed following|recent|trending|forYou` — 스크린샷/목 검증 진입로. forYou 는 최신 위에 추천 화면을 밀어 연다.
     private init() {
-        let launched = Config.launchValue(after: "--feed").flatMap(FeedTab.init(rawValue:))
-        let saved = Config.useMocks ? nil : UserDefaults.standard.string(forKey: Self.key).flatMap(FeedTab.init(rawValue:))
-        tab = launched ?? saved ?? .recent
+        let launched = Config.launchValue(after: "--feed")
+        tab = FeedTab.initialTab(
+            launched: launched,
+            saved: Config.useMocks ? nil : UserDefaults.standard.string(forKey: Self.key),
+            signedIn: AuthStore.shared.isSignedIn)
+        if launched == FeedSource.forYou.rawValue {
+            path.append(Route.blogFeed(.forYou))
+        }
+    }
+
+    struct LoginRequest {
+        let route: Route
+        let message: LocalizedStringKey
+    }
+
+    var pendingLogin: LoginRequest?
+
+    func open(_ route: Route) {
+        path.append(route)
+    }
+
+    func open(_ route: Route, orAskLogin message: LocalizedStringKey) {
+        if AuthStore.shared.isSignedIn {
+            open(route)
+        } else {
+            pendingLogin = LoginRequest(route: route, message: message)
+        }
+    }
+
+    func signedOut() {
+        if tab.source.requiresAuth { tab = .recent }
     }
 }
 
@@ -69,18 +108,34 @@ struct FeedView: View {
         // 탭바가 커스텀(FloatingTabBar)이라 path 바인딩이 시스템 tabBarMinimizeBehavior 를 죽이던 함정과
         // 무관하다 — 탭 다시 누르기로 루트까지 되돌리려면 path 가 필요하다.
         NavigationStack(path: $choice.path) {
-            SwipePager(tabs: FeedTab.allCases, selection: $choice.tab) { tab, active, warm in
+            SwipePager(tabs: FeedTab.allCases, selection: $choice.tab, loadOnSelect: [.following]) { tab, active, warm in
                 FeedPage(source: tab.source, active: active, warm: warm, zoom: zoomNS)
             }
             .onChange(of: router.reselections) {
                 if router.reselectedTab == 0 { choice.path = NavigationPath() }
             }
             .safeAreaBar(edge: .top) {
-                FeedHeaderBar(items: FeedTab.allCases, selection: $choice.tab) { $0.label }
+                FeedHeaderBar(
+                    items: FeedTab.allCases, selection: $choice.tab, label: \.label,
+                    moreLabel: "블로그 피드 더 보기", moreIdentifier: "feed.more"
+                ) {
+                    BlogFeedMoreMenu()
+                }
             }
             .task(id: AuthStore.shared.isSignedIn) { await UnreadStore.shared.refresh() }
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .active { Task { await UnreadStore.shared.refresh() } }
+            }
+            .onChange(of: AuthStore.shared.isSignedIn) { _, signedIn in
+                if !signedIn { choice.signedOut() }
+            }
+            .loginPrompt(
+                isPresented: Binding(
+                    get: { choice.pendingLogin != nil },
+                    set: { if !$0 { choice.pendingLogin = nil } }),
+                message: choice.pendingLogin?.message ?? ""
+            ) { [route = choice.pendingLogin?.route] in
+                if let route { choice.open(route) }
             }
             .background(alignment: .top) { FeedHeaderMist() }
             .background(Palette.readingBg)
@@ -112,6 +167,44 @@ struct BlogFeedMenu: View {
             }
         }
         .pickerStyle(.inline)
+        BlogFeedMoreMenu()
+    }
+}
+
+struct BlogFeedMoreMenu: View {
+    @State private var choice = BlogFeedChoice.shared
+
+    var body: some View {
+        Section {
+            Button {
+                choice.open(.blogFeed(.forYou), orAskLogin: "추천을 받으려면 로그인하세요")
+            } label: {
+                Label(FeedSource.forYou.label, systemImage: "sparkles")
+            }
+            Button {
+                choice.open(.subscribedTags, orAskLogin: "구독한 태그를 보려면 로그인하세요")
+            } label: {
+                Label("구독한 태그", systemImage: "number")
+            }
+            Button {
+                choice.open(.myCollections, orAskLogin: "컬렉션을 열려면 로그인하세요")
+            } label: {
+                Label("내 컬렉션", systemImage: "rectangle.stack")
+            }
+        }
+    }
+}
+
+struct BlogFeedScreen: View {
+    let source: FeedSource
+    @Namespace private var zoom
+
+    var body: some View {
+        FeedPage(source: source, active: true, warm: true, zoom: zoom)
+            .background(Palette.readingBg)
+            .navigationTitle(source.label)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarRole(.editor)
     }
 }
 
@@ -130,13 +223,13 @@ struct FeedPage: View {
     let source: FeedSource
     let active: Bool
     /// 선택 ±1(곧 보일 수 있는 페이지)만 true — 이때만 첫 로드를 발화한다. ZStack 상주라
-    /// 숨은 페이지의 .task 도 기동 즉시 돌아 4개 피드가 전부 fetch(구독함은 오프라인
+    /// 숨은 페이지의 .task 도 기동 즉시 돌아 피드가 전부 fetch(팔로잉은 오프라인
     /// 다운로드까지 연쇄)하며 첫 화면 로딩과 대역폭을 다투던 것.
     let warm: Bool
     let zoom: Namespace.ID
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var model: FeedViewModel
-    /// 구독함 게이트의 로그인 — 다른 인게이지 면과 같은 정식 로그인 시트로.
+    /// 팔로잉·추천 게이트의 로그인 — 다른 인게이지 면과 같은 정식 로그인 시트로.
     @State private var showLoginSheet = false
     /// 직전 로그인 상태 — 실제 인증 전환에서만 리셋한다(첫 로드 헛 epoch·빈 깜빡임 방지).
     @State private var wasSignedIn = AuthStore.shared.isSignedIn
@@ -156,7 +249,7 @@ struct FeedPage: View {
 
     var body: some View {
         Group {
-            // 추천·구독함은 인증 피드 — 로그아웃이면 게이트(이때는 fetch 도 하지 않는다).
+            // 추천·팔로잉은 인증 피드 — 로그아웃이면 게이트(이때는 fetch 도 하지 않는다).
             if source.requiresAuth, !AuthStore.shared.isSignedIn {
                 followingGate
             } else {
@@ -207,14 +300,14 @@ struct FeedPage: View {
             isPresented: $showLoginSheet,
             message: source == .forYou
                 ? "추천을 받으려면 로그인하세요"
-                : "구독함을 보려면 로그인하세요")
+                : "팔로잉을 보려면 로그인하세요")
     }
 
     private var list: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(model.items.enumerated()), id: \.element.id) { index, item in
-                    // 구독함 — 구독한 시리즈에 들어온 노트가 시각 순서대로 이 글 앞에 선다.
+                    // 팔로잉 — 구독한 시리즈에 들어온 노트가 시각 순서대로 이 글 앞에 선다.
                     let notes = model.notesBefore[item.id] ?? []
                     ForEach(Array(notes.enumerated()), id: \.element.id) { offset, note in
                         SeriesNoteRow(note: note)
@@ -283,7 +376,7 @@ struct FeedPage: View {
                 if model.items.isEmpty && model.seriesNotes.isEmpty {
                     if source == .following {
                         FeedPlaceholder(
-                            title: "구독함이 비어 있어요",
+                            title: "팔로잉 피드가 비어 있어요",
                             message: "작가를 팔로우하면 새 글이 여기 도착해요.",
                             actionTitle: "검색에서 작가 찾기",
                             action: { TabRouter.shared.switchTo(3, reduceMotion: reduceMotion) }

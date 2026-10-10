@@ -10,10 +10,11 @@ import SwiftUI
 /// 페이지형 TabView(UIPageViewController) 중첩은 Liquid Glass 가 활성 탭의 스크롤뷰를 못 찾게 만들어
 /// 하단 바 아래로 콘텐츠가 흐르지 않고 스크롤 축소도 안 걸렸다. 페이지를 ZStack 으로 살려두고(데이터·
 /// 스크롤 위치 유지) 좌우 스와이프는 제스처로 직접 — ScrollView 가 탭 콘텐츠의 직계가 된다.
-/// 선택 ±1 칸만 그려 곧 보일 페이지만 첫 로드한다(`warm`).
+/// 선택 ±1 칸만 그려 곧 보일 페이지만 첫 로드한다(`warm`). `loadOnSelect` 탭은 처음 고를 때까지 미룬다.
 struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
     let tabs: [Tab]
     @Binding var selection: Tab
+    var loadOnSelect: Set<Tab> = []
     @ViewBuilder let page: (_ tab: Tab, _ active: Bool, _ warm: Bool) -> Page
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -26,11 +27,13 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
     /// 페이지 안의 가로 스크롤(사진 넘기기)이 잡은 드래그는 페이지를 넘기지 않는다 — 둘이 같이 움직이던 것.
     @State private var gate = SwipePagerGate()
     @State private var blocked = false
+    @State private var opened: Set<Tab> = []
 
     var body: some View {
         ZStack {
             ForEach(tabs) { tab in
-                page(tab, tab == selection, visible(tab))
+                page(tab, tab == selection, SwipePagerWarmth.warm(
+                    tab, tabs: tabs, selection: selection, loadOnSelect: loadOnSelect, opened: opened))
                     // 슬라이드 중 중앙을 벗어난 분면은 살짝 가라앉는다 — 옆 칸이 "뒤에 있다"는 얕은 깊이.
                     .opacity(opacity(tab))
                     // 드래그 중엔 페이지 콘텐츠를 비활성화 — 카드가 손가락과 함께 움직여 탭이 안 취소되던 것.
@@ -46,6 +49,7 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
         // 스위처를 눌러 바꿔도 스와이프처럼 미끄러진다 — 비슷한 카드 목록이 스냅으로 갈리면 전환이
         // 안 느껴졌다. 바인딩을 withAnimation 으로 감싸지 않는다 — 스위처 알약 활주와 충돌(함정).
         .onChange(of: selection) { old, new in
+            opened.insert(new)
             if swipeCommitted {
                 swipeCommitted = false
                 return
@@ -121,6 +125,16 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
                 dragX += dx < 0 ? containerWidth : -containerWidth
                 withAnimation(.snappy(duration: 0.28)) { dragX = 0 }
             }
+    }
+}
+
+enum SwipePagerWarmth {
+    static func warm<Tab: Hashable>(
+        _ tab: Tab, tabs: [Tab], selection: Tab, loadOnSelect: Set<Tab>, opened: Set<Tab>
+    ) -> Bool {
+        guard let index = tabs.firstIndex(of: tab), let selected = tabs.firstIndex(of: selection),
+              abs(index - selected) <= 1 else { return false }
+        return tab == selection || !loadOnSelect.contains(tab) || opened.contains(tab)
     }
 }
 
