@@ -10,7 +10,6 @@ import SwiftUI
 final class ScheduledNotesStore {
     static let shared = ScheduledNotesStore()
 
-    var showing = false
     private(set) var items: [ScheduledNote] = []
     private(set) var loaded = false
     private(set) var failed = false
@@ -134,11 +133,10 @@ struct NoteScheduleSheet: View {
     }
 }
 
-/// 노트 탭 제목 메뉴의 "예약한 노트" — 올릴 차례를 기다리는 노트와 올리지 못한 노트.
+/// 설정 > 노트의 "예약한 노트" — 올릴 차례를 기다리는 노트와 올리지 못한 노트.
 struct ScheduledNotesView: View {
     @State private var store = ScheduledNotesStore.shared
     @State private var moving: ScheduledNote?
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         Group {
@@ -180,11 +178,6 @@ struct ScheduledNotesView: View {
         }
         .navigationTitle("예약한 노트")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("완료") { dismiss() }
-            }
-        }
         .sheet(item: $moving) { note in
             NoteScheduleSheet(initial: note.scheduledAt) { picked in
                 if let picked {

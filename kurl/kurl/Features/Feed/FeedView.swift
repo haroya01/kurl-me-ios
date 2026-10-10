@@ -24,13 +24,7 @@ enum FeedTab: String, CaseIterable, Identifiable {
 
     var label: String { source.label }
 
-    var symbol: String {
-        switch self {
-        case .following: "person.2"
-        case .recent: "clock"
-        case .trending: "flame"
-        }
-    }
+    var symbol: String { source.symbol }
 
     static func initialTab(launched: String?, saved: String?, signedIn: Bool) -> FeedTab {
         for value in [launched, signedIn ? saved : nil] {
@@ -59,41 +53,66 @@ final class BlogFeedChoice {
     var tab: FeedTab {
         didSet { UserDefaults.standard.set(tab.rawValue, forKey: Self.key) }
     }
+    private(set) var more: FeedSource?
     var path = NavigationPath()
+    var pendingLogin: FeedSource?
 
-    /// `--feed following|recent|trending|forYou` — 스크린샷/목 검증 진입로. forYou 는 최신 위에 추천 화면을 밀어 연다.
+    /// `--feed following|recent|trending|forYou` — 스크린샷/목 검증 진입로. forYou 는 최신 자리에서 추천으로 바꿔 연다.
     private init() {
         let launched = Config.launchValue(after: "--feed")
         tab = FeedTab.initialTab(
             launched: launched,
             saved: Config.useMocks ? nil : UserDefaults.standard.string(forKey: Self.key),
             signedIn: AuthStore.shared.isSignedIn)
-        if launched == FeedSource.forYou.rawValue {
-            path.append(Route.blogFeed(.forYou))
+        if launched == FeedSource.forYou.rawValue, AuthStore.shared.isSignedIn {
+            more = .forYou
         }
     }
 
-    struct LoginRequest {
-        let route: Route
-        let message: LocalizedStringKey
+    func select(_ next: FeedTab) {
+        more = nil
+        tab = next
     }
 
-    var pendingLogin: LoginRequest?
-
-    func open(_ route: Route) {
-        path.append(route)
+    func show(_ next: FeedTab) {
+        path = NavigationPath()
+        select(next)
     }
 
-    func open(_ route: Route, orAskLogin message: LocalizedStringKey) {
-        if AuthStore.shared.isSignedIn {
-            open(route)
-        } else {
-            pendingLogin = LoginRequest(route: route, message: message)
+    func show(_ feed: FeedSource) {
+        guard AuthStore.shared.isSignedIn else {
+            pendingLogin = feed
+            return
         }
+        path = NavigationPath()
+        more = feed
     }
 
     func signedOut() {
         if tab.source.requiresAuth { tab = .recent }
+        more = nil
+    }
+}
+
+extension FeedSource {
+    var moreChoice: SegmentMoreChoice {
+        SegmentMoreChoice(title: label, symbol: symbol)
+    }
+
+    var symbol: String {
+        switch self {
+        case .recent: "clock"
+        case .trending: "flame"
+        case .forYou: "sparkles"
+        case .following: "person.2"
+        }
+    }
+
+    var loginMessage: LocalizedStringKey {
+        switch self {
+        case .forYou: "추천을 받으려면 로그인하세요"
+        default: "팔로잉을 보려면 로그인하세요"
+        }
     }
 }
 
@@ -108,15 +127,28 @@ struct FeedView: View {
         // 탭바가 커스텀(FloatingTabBar)이라 path 바인딩이 시스템 tabBarMinimizeBehavior 를 죽이던 함정과
         // 무관하다 — 탭 다시 누르기로 루트까지 되돌리려면 path 가 필요하다.
         NavigationStack(path: $choice.path) {
-            SwipePager(tabs: FeedTab.allCases, selection: $choice.tab, loadOnSelect: [.following]) { tab, active, warm in
-                FeedPage(source: tab.source, active: active, warm: warm, zoom: zoomNS)
+            ZStack {
+                SwipePager(tabs: FeedTab.allCases, selection: $choice.tab, loadOnSelect: [.following]) { tab, active, warm in
+                    FeedPage(source: tab.source, active: active && choice.more == nil, warm: warm, zoom: zoomNS)
+                }
+                .opacity(choice.more == nil ? 1 : 0)
+                .allowsHitTesting(choice.more == nil)
+                .accessibilityHidden(choice.more != nil)
+                if let more = choice.more {
+                    FeedPage(source: more, active: true, warm: true, zoom: zoomNS)
+                        .id(more)
+                        .transition(.opacity)
+                }
             }
+            .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: choice.more)
             .onChange(of: router.reselections) {
                 if router.reselectedTab == 0 { choice.path = NavigationPath() }
             }
             .safeAreaBar(edge: .top) {
                 FeedHeaderBar(
-                    items: FeedTab.allCases, selection: $choice.tab, label: \.label,
+                    items: FeedTab.allCases,
+                    selection: Binding(get: { choice.tab }, set: { choice.select($0) }),
+                    label: \.label, moreChoice: choice.more?.moreChoice,
                     moreLabel: "블로그 피드 더 보기", moreIdentifier: "feed.more"
                 ) {
                     BlogFeedMoreMenu()
@@ -133,9 +165,9 @@ struct FeedView: View {
                 isPresented: Binding(
                     get: { choice.pendingLogin != nil },
                     set: { if !$0 { choice.pendingLogin = nil } }),
-                message: choice.pendingLogin?.message ?? ""
-            ) { [route = choice.pendingLogin?.route] in
-                if let route { choice.open(route) }
+                message: choice.pendingLogin?.loginMessage ?? ""
+            ) { [feed = choice.pendingLogin] in
+                if let feed { choice.show(feed) }
             }
             .background(alignment: .top) { FeedHeaderMist() }
             .background(Palette.readingBg)
@@ -161,9 +193,12 @@ struct BlogFeedMenu: View {
     @State private var choice = BlogFeedChoice.shared
 
     var body: some View {
-        Picker("피드", selection: $choice.tab) {
+        Picker("피드", selection: Binding<FeedTab?>(
+            get: { choice.more == nil ? choice.tab : nil },
+            set: { if let tab = $0 { choice.show(tab) } }
+        )) {
             ForEach(FeedTab.allCases) { tab in
-                Label(tab.label, systemImage: tab.symbol).tag(tab)
+                Label(tab.label, systemImage: tab.symbol).tag(Optional(tab))
             }
         }
         .pickerStyle(.inline)
@@ -172,39 +207,22 @@ struct BlogFeedMenu: View {
 }
 
 struct BlogFeedMoreMenu: View {
+    static let feeds: [FeedSource] = [.forYou]
+
     @State private var choice = BlogFeedChoice.shared
 
     var body: some View {
-        Section {
-            Button {
-                choice.open(.blogFeed(.forYou), orAskLogin: "추천을 받으려면 로그인하세요")
-            } label: {
-                Label(FeedSource.forYou.label, systemImage: "sparkles")
+        Picker(selection: Binding<FeedSource?>(
+            get: { choice.more },
+            set: { if let feed = $0 { choice.show(feed) } }
+        )) {
+            ForEach(Self.feeds) { feed in
+                Label(feed.label, systemImage: feed.symbol).tag(Optional(feed))
             }
-            Button {
-                choice.open(.subscribedTags, orAskLogin: "구독한 태그를 보려면 로그인하세요")
-            } label: {
-                Label("구독한 태그", systemImage: "number")
-            }
-            Button {
-                choice.open(.myCollections, orAskLogin: "컬렉션을 열려면 로그인하세요")
-            } label: {
-                Label("내 컬렉션", systemImage: "rectangle.stack")
-            }
+        } label: {
+            EmptyView()
         }
-    }
-}
-
-struct BlogFeedScreen: View {
-    let source: FeedSource
-    @Namespace private var zoom
-
-    var body: some View {
-        FeedPage(source: source, active: true, warm: true, zoom: zoom)
-            .background(Palette.readingBg)
-            .navigationTitle(source.label)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarRole(.editor)
+        .pickerStyle(.inline)
     }
 }
 
