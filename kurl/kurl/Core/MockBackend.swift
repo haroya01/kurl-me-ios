@@ -30,6 +30,26 @@ enum MockBackend {
         var seriesId: Int64?
         var ogImageUrl: String?
         var scheduledAt: Date?
+        var contentVersion: Int64 = 0
+    }
+
+    /// `--mock-remote-edit <글 id>` — 그 글 본문을 처음 읽어 간 직후 다른 기기가 고친 것처럼 본문·버전을 바꾼다
+    /// (편집 충돌 검증용).
+    private static var remoteEditTarget: Int64? = {
+        let args = ProcessInfo.processInfo.arguments
+        guard let at = args.firstIndex(of: "--mock-remote-edit"), at + 1 < args.count else { return nil }
+        return Int64(args[at + 1])
+    }()
+
+    /// 서버 편집 버전 계약 — baseVersion 이 다르면 409(아무것도 안 씀), overwrite 면 검사를 건너뛴다.
+    private static func requireEditVersion(_ idx: Int, _ req: [String: Any]) throws {
+        let overwrite = req["overwrite"] as? Bool ?? false
+        guard !overwrite, let base = (req["baseVersion"] as? NSNumber)?.int64Value,
+              base != posts[idx].contentVersion
+        else { return }
+        throw APIError.server(
+            status: 409, code: "POST_EDIT_CONFLICT",
+            detail: "post was changed by another save; current content version is \(posts[idx].contentVersion)")
     }
 
     /// `--published-body-image` — 발행 목 글 본문에 커버 없는 사진 한 줄(글 정보 시트의 "본문 첫 이미지를 커버로" 제안 검증용).
@@ -940,7 +960,7 @@ enum MockBackend {
     /// 응답 형태를 여기서 가른다.
     static func respond(
         path: String, method: String, query: [URLQueryItem]? = nil, body: Data?
-    ) -> Data? {
+    ) throws -> Data? {
         let parts = path.split(separator: "/").map(String.init)
 
         if method == "GET", parts == ["public", "link-preview"],
@@ -1673,10 +1693,12 @@ enum MockBackend {
         if method == "PATCH", parts.count == 2, parts[0] == "posts" {
             guard let idx = posts.firstIndex(where: { String($0.id) == parts[1] }) else { return nil }
             let req = decode(body)
+            try requireEditVersion(idx, req)
             if let title = req["title"] as? String { posts[idx].title = title }
             if let excerpt = req["excerpt"] as? String { posts[idx].excerpt = excerpt.isEmpty ? nil : excerpt }
             if let tags = req["tags"] as? [String] { posts[idx].tags = tags }
             if let cover = req["ogImageUrl"] as? String { posts[idx].ogImageUrl = cover.isEmpty ? nil : cover }
+            posts[idx].contentVersion += 1
             posts[idx].updatedAt = Date()
             return json(postView(posts[idx]))
         }
@@ -1699,10 +1721,20 @@ enum MockBackend {
         if parts.count == 3, parts[0] == "posts", parts[2] == "markdown" {
             guard let idx = posts.firstIndex(where: { String($0.id) == parts[1] }) else { return nil }
             if method == "PUT" {
-                posts[idx].markdown = decode(body)["markdown"] as? String ?? ""
+                let req = decode(body)
+                try requireEditVersion(idx, req)
+                posts[idx].markdown = req["markdown"] as? String ?? ""
+                posts[idx].contentVersion += 1
                 posts[idx].updatedAt = Date()
             }
-            return json(["markdown": posts[idx].markdown])
+            let response = json(["markdown": posts[idx].markdown, "contentVersion": posts[idx].contentVersion])
+            if method == "GET", remoteEditTarget == posts[idx].id {
+                remoteEditTarget = nil
+                posts[idx].markdown += "\n\n다른 기기에서 고친 문단."
+                posts[idx].contentVersion += 1
+                posts[idx].updatedAt = Date()
+            }
+            return response
         }
 
         if method == "POST", parts.count == 3, parts[0] == "posts", parts[2] == "publish" {
@@ -2467,6 +2499,7 @@ enum MockBackend {
         if method == "POST", parts.count == 5, parts[0] == "posts", parts[2] == "revisions", parts[4] == "restore" {
             guard let idx = posts.firstIndex(where: { String($0.id) == parts[1] }) else { return nil }
             posts[idx].markdown = "# 복원된 본문 v\(parts[3])\n\n리비전에서 돌아왔다."
+            posts[idx].contentVersion += 1
             return json(postView(posts[idx]))
         }
 
@@ -2770,6 +2803,7 @@ enum MockBackend {
             "excerpt": p.excerpt ?? NSNull(),
             "ogImageUrl": p.ogImageUrl ?? NSNull(),
             "seriesId": p.seriesId ?? NSNull(),
+            "contentVersion": p.contentVersion,
             "viewCount": 42, "likeCount": 3, "tags": p.tags,
             "createdAt": iso(p.updatedAt), "updatedAt": iso(p.updatedAt),
         ]
