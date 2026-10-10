@@ -281,6 +281,9 @@ struct NoteRowView: View {
     @State private var mediaRevealed = false
     @State private var showingHistory = false
     @State private var filterRevealed = false
+    @State private var translations = ContentTranslations.shared
+    @State private var translationSource: Locale.Language?
+    @State private var translationRequest: TranslationRequest?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.noteFilterContext) private var filterContext
     @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
@@ -452,6 +455,8 @@ struct NoteRowView: View {
             Text("다른 서버로 퍼진 사본에도 지우라는 요청을 보내요.")
         }
         .loginPrompt(isPresented: $showLoginSheet, message: loginMessage)
+        .task(id: "\(note.id)|\(note.body.hashValue)|\(note.language ?? "")") { await probeTranslation() }
+        .translationRunner($translationRequest)
         .onChange(of: note) { _, next in
             liked = next.likedByMe == true
             likeCount = next.likeCount
@@ -510,12 +515,13 @@ struct NoteRowView: View {
             warningBar
             if !folded {
                 if !note.body.isEmpty {
-                    Text(NoteText.attributed(note.body, mentions: note.mentions ?? []))
+                    Text(NoteText.attributed(shownBody, mentions: note.mentions ?? []))
                         .typeScale(.noteFocus)
                         .foregroundStyle(Palette.ink)
                         .tint(Palette.link)
                         .fixedSize(horizontal: false, vertical: true)
                         .textSelection(.enabled)
+                    translationLine
                 }
                 attachments
             }
@@ -577,7 +583,7 @@ struct NoteRowView: View {
                     warningBar
                     if !folded, !note.body.isEmpty {
                         NavigationLink(value: Route.note(id: note.id)) {
-                            Text(NoteText.attributed(note.body, mentions: note.mentions ?? []))
+                            Text(NoteText.attributed(shownBody, mentions: note.mentions ?? []))
                                 .typeScale(.note)
                                 .foregroundStyle(Palette.ink)
                                 .tint(Palette.link)
@@ -596,6 +602,7 @@ struct NoteRowView: View {
                     }
                 }
                 .overlay(alignment: .topTrailing) { moreMenu }
+                if !folded, !note.body.isEmpty { translationLine }
                 if !folded { attachments }
                 actions(spread: false)
                     .padding(.top, 10)
@@ -659,12 +666,54 @@ struct NoteRowView: View {
         }
         if note.editedAt != nil { parts.append(String(localized: "고침")) }
         if let position { parts.append(String(localized: "이어 쓴 노트 \(position)")) }
-        if let warning = note.contentWarning { parts.append(warning) }
-        if !folded, !note.body.isEmpty { parts.append(note.body) }
+        if let warning = note.contentWarning { parts.append(translated?.warning ?? warning) }
+        if !folded, !note.body.isEmpty { parts.append(shownBody) }
         return parts.joined(separator: ", ")
     }
 
     private var folded: Bool { note.contentWarning != nil && !revealed }
+
+    private var translationKey: String {
+        "note-\(note.id)-\(note.body.hashValue)-\(note.contentWarning?.hashValue ?? 0)-\(TranslationGate.target().minimalIdentifier)"
+    }
+
+    private var translated: (body: String, warning: String?)? {
+        translations.shown(translationKey).map {
+            NoteTranslation.apply($0, body: note.body, warning: note.contentWarning)
+        }
+    }
+
+    private var shownBody: String { translated?.body ?? note.body }
+
+    @ViewBuilder private var translationLine: some View {
+        if let source = translationSource {
+            NoteTranslationLine(
+                noteId: note.id, source: source, phase: translations.phases[translationKey],
+                translate: translate, showOriginal: { translations.showOriginal(translationKey) })
+        }
+    }
+
+    private func translate() {
+        guard let source = translationSource else { return }
+        let key = translationKey
+        if translations.showCached(key) { return }
+        translations.begin(key)
+        translationRequest = TranslationRequest(
+            key: key, source: source, target: TranslationGate.target(),
+            texts: NoteTranslation.requests(body: note.body, warning: note.contentWarning))
+    }
+
+    private func probeTranslation() async {
+        let text = NoteTranslation.requests(NoteTranslation.parts(note.body)).joined(separator: " ")
+        let declared = note.language
+        let source = await Task.detached(priority: .utility) {
+            TranslationGate.source(declared: declared, text: text)
+        }.value
+        guard !Task.isCancelled else { return }
+        let available = if let source { await translations.isAvailable(from: source, to: TranslationGate.target()) } else { false }
+        let next = available ? source : nil
+        if translationSource != next { translationSource = next }
+    }
 
     /// 열람 주의 — 문구만 보이고 본문·사진·카드는 접힌다. 펼치면 사진도 함께 보인다(한 번만 누르게).
     @ViewBuilder private var warningBar: some View {
@@ -673,7 +722,7 @@ struct NoteRowView: View {
                 Image(systemName: "exclamationmark.triangle")
                     .font(.system(size: 13 * unit, weight: .semibold))
                     .accessibilityHidden(true)
-                Text(warning)
+                Text(translated?.warning ?? warning)
                     .typeScale(focused ? .noteFocus : .note)
                     .fontWeight(.medium)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -1407,6 +1456,11 @@ enum NoteText {
 
     static func plain(_ text: String) -> String {
         text.replacingOccurrences(of: tagJoiner, with: "")
+    }
+
+    static func tokenRanges(in body: String) -> [NSRange] {
+        let ns = body as NSString
+        return tokenPattern?.matches(in: body, range: NSRange(location: 0, length: ns.length)).map(\.range) ?? []
     }
 
     static func tagName(_ raw: String) -> String? {

@@ -17,8 +17,14 @@ enum NoteFeedKind: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    static let tabs: [NoteFeedKind] = [.everyone, .trending, .following]
+    static let tabs: [NoteFeedKind] = [.following, .everyone, .trending]
     static let more: [NoteFeedKind] = [.federated, .bookmarks, .direct]
+
+    static func initialTab(launched: String?, saved: String?, signedIn: Bool) -> NoteFeedKind {
+        [launched, signedIn ? saved : nil]
+            .compactMap { $0.flatMap(NoteFeedKind.init(rawValue:)) }
+            .first { tabs.contains($0) } ?? .everyone
+    }
 
     var title: LocalizedStringKey {
         switch self {
@@ -46,7 +52,7 @@ enum NoteFeedKind: String, CaseIterable, Identifiable {
 
     var symbol: String {
         switch self {
-        case .everyone: "text.bubble"
+        case .everyone: "clock"
         case .trending: "flame"
         case .following: "person.2"
         case .federated: "globe"
@@ -71,9 +77,14 @@ final class NoteFeedChoice {
     private(set) var posted: Note?
 
     private init() {
-        let launched = Config.launchValue(after: "--notes-feed").flatMap(NoteFeedKind.init)
-        let saved = Config.useMocks ? nil : UserDefaults.standard.string(forKey: Self.key).flatMap(NoteFeedKind.init)
-        kind = [launched, saved].compactMap { $0 }.first { NoteFeedKind.tabs.contains($0) } ?? .everyone
+        kind = NoteFeedKind.initialTab(
+            launched: Config.launchValue(after: "--notes-feed"),
+            saved: Config.useMocks ? nil : UserDefaults.standard.string(forKey: Self.key),
+            signedIn: AuthStore.shared.isSignedIn)
+    }
+
+    func signedOut() {
+        if kind == .following { kind = .everyone }
     }
 
     func show(_ tab: NoteFeedKind) {
@@ -227,33 +238,35 @@ struct NoteFeedMenu: View {
                 }
             }
         }
-        Section("리스트") {
-            ForEach(lists.lists) { list in
+        if AuthStore.shared.isSignedIn {
+            Section("리스트") {
+                ForEach(lists.lists) { list in
+                    Button {
+                        choice.open(.noteList(id: list.id, title: list.title))
+                    } label: {
+                        Label(list.title, systemImage: NoteFeedKind.list.symbol)
+                    }
+                }
                 Button {
-                    choice.open(.noteList(id: list.id, title: list.title))
+                    lists.managing = true
                 } label: {
-                    Label(list.title, systemImage: NoteFeedKind.list.symbol)
+                    Label("리스트 관리", systemImage: "slider.horizontal.3")
                 }
             }
-            Button {
-                lists.managing = true
-            } label: {
-                Label("리스트 관리", systemImage: "slider.horizontal.3")
-            }
-        }
-        Section {
-            if choice.kind == .following {
-                Toggle(isOn: Binding(
-                    get: { preferences.showReposts },
-                    set: { on in Task { await preferences.setShowReposts(on) } }
-                )) {
-                    Label("리포스트 보기", systemImage: "arrow.2.squarepath")
+            Section {
+                if choice.kind == .following {
+                    Toggle(isOn: Binding(
+                        get: { preferences.showReposts },
+                        set: { on in Task { await preferences.setShowReposts(on) } }
+                    )) {
+                        Label("리포스트 보기", systemImage: "arrow.2.squarepath")
+                    }
                 }
-            }
-            Button {
-                ScheduledNotesStore.shared.showing = true
-            } label: {
-                Label("예약한 노트", systemImage: "clock")
+                Button {
+                    ScheduledNotesStore.shared.showing = true
+                } label: {
+                    Label("예약한 노트", systemImage: "calendar.badge.clock")
+                }
             }
         }
     }

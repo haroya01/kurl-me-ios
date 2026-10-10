@@ -5,40 +5,44 @@
 
 import SwiftUI
 
-struct FeedHeaderBar<Item: Hashable & Identifiable, Leading: View>: View {
+struct FeedHeaderBar<Item: Hashable & Identifiable, More: View>: View {
     let items: [Item]
     @Binding var selection: Item
     let label: (Item) -> String
-    @ViewBuilder var leading: Leading
+    let moreLabel: LocalizedStringKey
+    let moreIdentifier: String
+    @ViewBuilder var more: More
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var unread = UnreadStore.shared
 
     var body: some View {
-        let signedIn = AuthStore.shared.isSignedIn
         GlassEffectContainer(spacing: GlassTokens.clusterSpacing) {
             HStack(spacing: 0) {
-                if signedIn {
-                    ZStack { leading }
-                        .frame(width: FeedHeaderMetrics.circle, height: FeedHeaderMetrics.circle)
+                Menu {
+                    more
+                } label: {
+                    FeedHeaderGlyph(systemImage: "line.3.horizontal")
                 }
+                .menuOrder(.fixed)
+                .buttonStyle(.plain)
+                .glassEffect(.regular.interactive(), in: .circle)
+                .accessibilityLabel(Text(moreLabel))
+                .accessibilityIdentifier(moreIdentifier)
                 Spacer(minLength: 0)
                 GlassSegmentSwitcher(items: items, selection: $selection, label: label)
                 Spacer(minLength: 0)
-                if signedIn {
+                if AuthStore.shared.isSignedIn {
                     InboxBell(count: unread.count)
+                } else {
+                    Color.clear
+                        .frame(width: FeedHeaderMetrics.circle, height: FeedHeaderMetrics.circle)
                 }
             }
             .padding(.horizontal, FeedHeaderMetrics.edge)
         }
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: unread.count > 0)
         .padding(.bottom, 8)
-    }
-}
-
-extension FeedHeaderBar where Leading == EmptyView {
-    init(items: [Item], selection: Binding<Item>, label: @escaping (Item) -> String) {
-        self.init(items: items, selection: selection, label: label) { EmptyView() }
     }
 }
 

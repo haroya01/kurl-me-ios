@@ -137,11 +137,16 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(top.waitForExistence(timeout: 8) && newest.waitForExistence(timeout: 2), "인기 피드가 안 그려짐")
         XCTAssertLessThan(top.frame.minY, newest.frame.minY, "좋아요 11개 노트가 최신 노트보다 위에 있지 않음")
 
-        app.swipeLeft()
+        app.swipeRight()
+        XCTAssertTrue(
+            app.buttons.matching(NSPredicate(format: "label == '최신' AND selected == true")).firstMatch
+                .waitForExistence(timeout: 5),
+            "오른쪽으로 밀어도 최신으로 안 돌아감")
+        app.swipeRight()
         XCTAssertTrue(
             app.buttons.matching(NSPredicate(format: "label == '팔로잉' AND selected == true")).firstMatch
                 .waitForExistence(timeout: 5),
-            "왼쪽으로 밀어도 팔로잉으로 안 넘어감")
+            "오른쪽으로 밀어도 팔로잉으로 안 넘어감")
         XCTAssertTrue(app.buttons["note.menu.9501"].waitForExistence(timeout: 8), "팔로잉 피드가 안 그려짐")
         XCTAssertTrue(app.buttons["note.menu.9503"].waitForExistence(timeout: 4), "팔로우한 사람의 리포스트가 팔로잉에 안 흐름")
         let reposted = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'yuki_dev님이 리포스트함'")).firstMatch
@@ -245,14 +250,15 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(app.buttons["알림"].exists, "블로그 머리에 알림 벨이 없음")
         menu.press(forDuration: 1.0)
         Thread.sleep(forTimeInterval: 0.6)
-        let following = menuOption(app, "구독함")
+        let following = menuOption(app, "팔로잉")
         XCTAssertNotNil(following, "피드 탭 위로 피드 메뉴가 열리지 않음")
+        XCTAssertNotNil(menuOption(app, "추천"), "피드 탭 메뉴에 더 보기 항목(추천)이 없음")
         attach(app, "blog-tab-menu")
         following?.tap()
         XCTAssertTrue(
-            app.buttons.matching(NSPredicate(format: "label == '구독함' AND selected == true")).firstMatch
+            app.buttons.matching(NSPredicate(format: "label == '팔로잉' AND selected == true")).firstMatch
                 .waitForExistence(timeout: 5),
-            "탭 메뉴로 고른 구독함이 머리 스위처에 반영되지 않음")
+            "탭 메뉴로 고른 팔로잉이 머리 스위처에 반영되지 않음")
     }
 
     func testABookmarkFromTheDetailShowsInTheBookmarksFeedAndQuotesOpenFromTheDetail() throws {
@@ -1006,8 +1012,11 @@ final class NotesFeedUITests: XCTestCase {
             .matching(NSPredicate(format: "label == '비 오는 창밖'")).firstMatch
         var tries = 0
         while !photo.isHittable, tries < 5 { app.swipeUp(); tries += 1 }
+        // 떠 있는 탭바가 화면 아래를 덮는다 — 사진 가운데가 탭바 밑이면 탭이 탭바로 간다.
+        let bottom = app.windows.firstMatch.frame.maxY
+        while photo.frame.minY > bottom - 260, tries < 8 { app.swipeUp(velocity: .slow); tries += 1 }
         attach(app, "notes-photo-and-quote")
-        photo.tap()
+        photo.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2)).tap()
         let caption = app.staticTexts["비 오는 창밖"].firstMatch
         XCTAssertTrue(caption.waitForExistence(timeout: 5), "사진을 눌러도 크게 열리지 않음")
         attach(app, "note-photo-lightbox")

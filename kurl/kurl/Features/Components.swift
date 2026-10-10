@@ -386,11 +386,14 @@ struct AvatarView: View {
 extension Date {
     // 생성 시 로케일 데이터를 로드해 비싸다 — 목록 행마다 만들지 않게 캐시.
     // 스레드 안전하지 않은 클래스라 메인 액터(뷰 body)로 묶는다.
-    @MainActor private static let relativeShortFormatter: RelativeDateTimeFormatter = {
+    @MainActor private static let relativeShortFormatter = makeRelativeShortFormatter()
+
+    static func makeRelativeShortFormatter(locale: Locale = .autoupdatingCurrent) -> RelativeDateTimeFormatter {
         let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .short
+        formatter.locale = locale
+        formatter.unitsStyle = .abbreviated
         return formatter
-    }()
+    }
 
     @MainActor var relativeShort: String {
         // 1분 미만은 "0초 후" 같은 미래형 라운딩이 나온다 — 방금 전으로 바닥을 깐다.
@@ -413,13 +416,22 @@ extension Date {
             : formatted(.dateTime.year().month(.abbreviated).day())
     }
 
-    @MainActor private static let compactFormatter: DateComponentsFormatter = {
+    @MainActor private static let compactFormatter = makeCompactFormatter()
+
+    /// CLDR 축약형이 뜻을 잃는 언어(vi: "30ph"·"1g")는 한 단계 긴 형태를 쓴다.
+    static let spelledOutCompactLanguages: Set<String> = ["vi"]
+
+    static func makeCompactFormatter(locale: Locale = .autoupdatingCurrent) -> DateComponentsFormatter {
         let formatter = DateComponentsFormatter()
-        formatter.unitsStyle = .abbreviated
+        var calendar = Calendar.current
+        calendar.locale = locale
+        formatter.calendar = calendar
+        let language = locale.language.languageCode?.identifier ?? ""
+        formatter.unitsStyle = spelledOutCompactLanguages.contains(language) ? .short : .abbreviated
         formatter.maximumUnitCount = 1
         formatter.allowedUnits = [.minute, .hour, .day]
         return formatter
-    }()
+    }
 
     var mediumDate: String {
         formatted(.dateTime.year().month(.abbreviated).day())

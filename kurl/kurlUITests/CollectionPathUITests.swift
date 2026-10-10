@@ -227,14 +227,14 @@ final class CollectionPathUITests: XCTestCase {
 
     /// 회귀 — 피드 카드의 "…에 담김" 줄을 탭하면 글이 아니라 그 컬렉션 상세로 간다
     /// (표시 전용이던 줄에 항해를 붙인 계약). 최신 피드는 목 모드에서도 공개 읽기 fall-through 로
-    /// 실서버 데이터를 그리므로, 목 라우트가 잡는 구독함(팔로잉) 피드에서 검증한다
+    /// 실서버 데이터를 그리므로, 목 라우트가 잡는 팔로잉 피드에서 검증한다
     /// (목 씨앗: 글 9002 → 컬렉션 101, 요약 제목 '경계를 긋는 법'/상세 제목 '느린 사고').
     func testFeedBelongingLineOpensCollection() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks"]
         app.launch()
 
-        let following = app.buttons["구독함"]
+        let following = app.buttons["팔로잉"]
         XCTAssertTrue(following.waitForExistence(timeout: 40), "피드 소스 스위처가 없음")
         following.tap()
 

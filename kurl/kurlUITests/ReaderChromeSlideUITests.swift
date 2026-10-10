@@ -25,9 +25,12 @@ final class ReaderChromeSlideUITests: XCTestCase {
         XCTAssertTrue(app.wait(for: .runningForeground, timeout: 15), "런치 실패")
 
         // 이 제목은 추천(for-you) 피드 첫 항목 — 최신 피드엔 없다(ReadingStress 가
-        // 조용히 skip 하던 함정). 추천 탭으로 건너가 첫 카드로 결정적으로 진입한다.
+        // 조용히 skip 하던 함정). 피드 더 보기의 추천으로 건너가 첫 행으로 결정적으로 진입한다.
+        let more = app.buttons["feed.more"]
+        XCTAssertTrue(more.waitForExistence(timeout: 10), "피드 머리에 더 보기가 없음")
+        more.tap()
         let forYou = app.buttons["추천"].firstMatch
-        XCTAssertTrue(forYou.waitForExistence(timeout: 10), "피드 상단 추천 탭이 없음")
+        XCTAssertTrue(forYou.waitForExistence(timeout: 4), "피드 더 보기에 추천이 없음")
         forYou.tap()
         XCTAssertTrue(
             openFromFeed(app, title: "헥사고날로 갈아탄 지 석 달, 무엇이 남았나"),
@@ -51,10 +54,9 @@ final class ReaderChromeSlideUITests: XCTestCase {
         waitForExpectations(timeout: 5)
         attach("3-chrome-returned-title-spilled")
 
-        // 복귀한 뒤로가 실제로 pop 한다 — 상세가 닫히면 버튼 자체가 사라진다.
+        // 복귀한 뒤로가 실제로 pop 한다 — 상세가 닫히고 글을 연 추천 화면으로 돌아온다.
         back.tap()
-        expectation(for: NSPredicate(format: "exists == false"), evaluatedWith: back)
-        waitForExpectations(timeout: 5)
+        XCTAssertTrue(app.navigationBars["추천"].waitForExistence(timeout: 5), "뒤로가 상세를 닫지 않음")
     }
 
     private func attach(_ name: String) {
