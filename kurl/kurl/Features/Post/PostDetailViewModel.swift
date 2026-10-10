@@ -82,6 +82,11 @@ final class PostDetailViewModel {
                 }
             }
             await loadComments(postId: detail.post.id)
+        } catch let error as APIError where error.statusCode == 404 || error.statusCode == 410 {
+            OfflineStore.shared.remove(username: username, slug: slug)
+            isOfflineCopy = false
+            stopConnectivityWatch()
+            phase = .failed(String(localized: "볼 수 없는 글이에요"))
         } catch {
             // 사본을 이미 띄운 채의 갱신 실패 — 화면을 실패로 덮지 않고 그대로 둔다.
             if refreshingOfflineCopy { return }

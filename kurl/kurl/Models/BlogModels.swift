@@ -110,6 +110,9 @@ struct PostListItem: Decodable, Hashable, Identifiable {
 struct PublicPostListView: Decodable {
     let author: Author
     let posts: [PostListItem]
+    /// 보는 사람과 작가 사이의 차단 — 어느 쪽이든 서버는 글 목록을 비워 보낸다. 익명·옛 서버는 없음(nil).
+    let blockedByViewer: Bool?
+    let blocksViewer: Bool?
 }
 
 // MARK: 글 상세 + 블록

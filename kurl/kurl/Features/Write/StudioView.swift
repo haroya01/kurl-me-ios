@@ -95,6 +95,11 @@ struct StudioView: View {
             composing = true
             TabRouter.shared.pendingStudioCompose = false
         }
+        .onChange(of: TabRouter.shared.pendingStudioDrafts, initial: true) { _, pending in
+            guard pending else { return }
+            filter = .draft
+            TabRouter.shared.pendingStudioDrafts = false
+        }
     }
 
     // MARK: 스튜디오 3분면
@@ -491,7 +496,9 @@ struct StudioView: View {
     private func load() async {
         if case .idle = phase { phase = .loading }
         do {
-            phase = .loaded(try await WriteAPI.myPosts())
+            let posts = try await WriteAPI.myPosts()
+            MyPostsCache.posts = posts
+            phase = .loaded(posts)
         } catch {
             // 보이던 목록을 에러 화면으로 대체하지 않는다 — 비었을 때만 실패 표시.
             if case .loaded(let posts) = phase, !posts.isEmpty { return }

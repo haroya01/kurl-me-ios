@@ -21,6 +21,7 @@ final class TabRouter {
     var pendingStudio = false
     var pendingStudioSection: String?
     var pendingStudioCompose = false
+    var pendingStudioDrafts = false
     /// 위젯에서 탭한 저장 글 — RootView 가 시트로 띄운다. 탭 스택에 미는 방식은 path 바인딩이
     /// 필요한데, 그 바인딩이 tabBarMinimizeBehavior 를 죽이는 함정이 있어(§DiscoverDeckView) 시트로.
     var pendingPost: WidgetPostRef?
@@ -72,9 +73,10 @@ final class TabRouter {
         topRequests += 1
     }
 
-    func openStudio(section: StudioSection? = nil, compose: Bool = false) {
-        pendingStudioSection = section?.rawValue
+    func openStudio(section: StudioSection? = nil, compose: Bool = false, drafts: Bool = false) {
+        pendingStudioSection = (drafts ? .posts : section)?.rawValue
         pendingStudioCompose = compose
+        pendingStudioDrafts = drafts
         pendingStudio = true
         selection = 4
     }
@@ -151,10 +153,12 @@ struct RootView: View {
     @State private var visitedTabs: Set<Int> = []
     @State private var showWriteLogin = false
     @State private var composeAfterSignIn = false
+    @State private var choosingKind = false
+    @State private var chosen: ComposeChoice?
     @State private var composingNote = false
     @State private var notesPosted = 0
-    @State private var longFormDraft: String?
-    @State private var writingLongForm = false
+    @State private var movedToPost: PostCover?
+    @State private var postCover: PostCover?
     @State private var webIntroAfterCompose = false
     /// 로그인 직후 1회 웹 안내 — 이 실행이 "로그아웃 상태로 시작"했을 때만 후보(콜드런치
     /// 세션 복원에는 안 뜬다). RootView 생성 시점의 세션 상태를 그대로 박는다.
@@ -271,14 +275,23 @@ struct RootView: View {
             .onChange(of: showWriteLogin) { _, open in
                 if !open, !AuthStore.shared.isSignedIn { composeAfterSignIn = false }
             }
+            .sheet(isPresented: $choosingKind, onDismiss: kindChosen) {
+                ComposeChooserSheet { choice in
+                    chosen = choice
+                    choosingKind = false
+                }
+            }
             .sheet(isPresented: $composingNote, onDismiss: noteComposerClosed) {
-                NoteComposeSheet(mode: .new(quote: nil, inReplyToId: nil), onLongForm: { longFormDraft = $0 }) { note in
+                NoteComposeSheet(
+                    mode: .new(quote: nil, inReplyToId: nil),
+                    onLongForm: { movedToPost = PostCover(markdown: $0, isDraft: true) }
+                ) { note in
                     NoteFeedChoice.shared.didPost(note)
                     notesPosted += 1
                 }
             }
-            .fullScreenCover(isPresented: $writingLongForm, onDismiss: composeFinished) {
-                PostComposerCover(initialMarkdown: longFormDraft ?? "", isDraft: true)
+            .fullScreenCover(item: $postCover, onDismiss: composeFinished) { cover in
+                PostComposerCover(post: cover.post, initialMarkdown: cover.markdown, isDraft: cover.isDraft)
             }
             .sensoryFeedback(.success, trigger: notesPosted)
             // 위젯이 가리킨 저장 글 — 현재 탭 위 시트로. 읽기가 끝나면 원래 자리로 그대로 돌아온다.
@@ -418,7 +431,7 @@ struct RootView: View {
                 if composeAfterSignIn {
                     composeAfterSignIn = false
                     webIntroAfterCompose = intro
-                    composingNote = true
+                    choosingKind = true
                 } else {
                     showWebIntro = true
                 }
@@ -429,23 +442,37 @@ struct RootView: View {
 
     private func compose() {
         if AuthStore.shared.isSignedIn {
-            composingNote = true
+            choosingKind = true
         } else {
             composeAfterSignIn = true
             showWriteLogin = true
         }
     }
 
+    private func kindChosen() {
+        let choice = chosen
+        chosen = nil
+        switch choice {
+        case .note: composingNote = true
+        case .newPost: postCover = PostCover()
+        case .draft(let post): postCover = PostCover(post: post)
+        case .allDrafts:
+            TabRouter.shared.openStudio(drafts: true)
+            composeFinished()
+        case nil: composeFinished()
+        }
+    }
+
     private func noteComposerClosed() {
-        if longFormDraft != nil {
-            writingLongForm = true
+        if let moved = movedToPost {
+            movedToPost = nil
+            postCover = moved
         } else {
             composeFinished()
         }
     }
 
     private func composeFinished() {
-        longFormDraft = nil
         if webIntroAfterCompose {
             webIntroAfterCompose = false
             showWebIntro = true

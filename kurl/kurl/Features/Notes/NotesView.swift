@@ -1773,6 +1773,9 @@ struct NoteDetailView: View {
             thread = fresh
             failed = nil
             if fresh.series != nil { PostReadStore.notes.markRead(noteId) }
+        } catch let error as APIError where error.statusCode == 404 {
+            thread = nil
+            failed = String(localized: "볼 수 없는 노트예요")
         } catch {
             if thread == nil {
                 failed = (error as? APIError)?.localizedDescription ?? error.localizedDescription
@@ -2016,9 +2019,9 @@ struct NoteComposeSheet: View {
                                     .accessibilityLabel(sensitive ? "민감한 사진 표시 끄기" : "민감한 사진으로 표시")
                                     .accessibilityIdentifier("noteCompose.sensitiveToggle")
                                 }
-                                if onLongForm != nil {
+                                if onLongForm != nil, !longFormBody.isEmpty {
                                     Spacer(minLength: 0)
-                                    Button("긴 글로 쓰기", systemImage: "doc.text", action: requestLongForm)
+                                    Button("긴 글로 옮기기", systemImage: "doc.text") { confirmLongForm = true }
                                         .typeScale(.meta)
                                         .foregroundStyle(Palette.secondary)
                                         .buttonStyle(.plain)
@@ -2113,14 +2116,6 @@ struct NoteComposeSheet: View {
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
             .joined(separator: "\n\n")
-    }
-
-    private func requestLongForm() {
-        if longFormBody.isEmpty, picked.isEmpty, poll == nil {
-            handOffLongForm()
-        } else {
-            confirmLongForm = true
-        }
     }
 
     private func handOffLongForm() {
