@@ -352,6 +352,11 @@ struct StudioView: View {
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
+                if post.isTakenDown {
+                    Text("운영 정책으로 내려진 글이에요")
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.danger)
+                }
                 if let excerpt = post.excerpt, !excerpt.isEmpty {
                     Text(excerpt)
                         .typeScale(.lede)
@@ -437,12 +442,14 @@ struct StudioView: View {
     /// 상태 점 + (발행 외엔) 라벨 + 날짜. 점 색이 상태를 인코딩한다(초록=라이브, 흐림=초안).
     private func statusEyebrow(_ post: MyPost) -> some View {
         let dotColor: Color =
-            post.isDraft ? Palette.faint
+            post.isTakenDown ? Palette.danger
+            : post.isDraft ? Palette.faint
             : post.isScheduled ? Palette.link
             : post.isUnpublished ? Palette.secondary
             : Palette.accentMarker
         let label: String? =
-            post.isDraft ? String(localized: "임시저장")
+            post.isTakenDown ? String(localized: "내려짐")
+            : post.isDraft ? String(localized: "임시저장")
             : post.isScheduled ? String(localized: "예약됨")
             : post.isUnpublished ? String(localized: "비공개")
             : nil
