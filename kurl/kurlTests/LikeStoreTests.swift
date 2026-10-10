@@ -58,14 +58,18 @@ final class LikeStoreTests: XCTestCase {
 final class WidgetDeepLinkTests: XCTestCase {
 
     override func tearDown() {
+        TabRouter.shared.pendingStudio = false
         TabRouter.shared.pendingStudioSection = nil
+        TabRouter.shared.pendingStudioCompose = false
         TabRouter.shared.pendingPost = nil
     }
 
-    func testAnalyticsLinkSwitchesToWriteTabAndQueuesSection() {
+    func testAnalyticsLinkOpensTheStudioOnTheAccountTabAndQueuesSection() {
         WidgetDeepLink.open(URL(string: "kurlwidget://analytics")!)
-        XCTAssertEqual(TabRouter.shared.selection, 2, "분석은 글쓰기 탭의 분면")
+        XCTAssertEqual(TabRouter.shared.selection, 4, "스튜디오는 계정 탭 스택에 열린다 — 가운데는 탭이 아니다")
+        XCTAssertTrue(TabRouter.shared.pendingStudio, "계정 탭이 스튜디오를 열 요청이 없음")
         XCTAssertEqual(TabRouter.shared.pendingStudioSection, StudioSection.analytics.rawValue)
+        XCTAssertFalse(TabRouter.shared.pendingStudioCompose, "분석 링크인데 새 글까지 열려 함")
     }
 
     func testLibraryLinkSwitchesToAccountTab() {
