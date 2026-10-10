@@ -122,6 +122,8 @@ enum MockBackend {
         var sensitive = false
         var visibility = "public"
         var poll: MockPoll? = nil
+        var replyPolicy = "everyone"
+        var hidden = false
     }
 
     private struct MockPoll {
@@ -188,7 +190,18 @@ enum MockBackend {
         MockNote(id: 9508, body: "@honggildong 다음 주 회고, 둘이 먼저 맞춰 볼래요?",
                  createdAt: Date().addingTimeInterval(-110_000), likeCount: 0, authorId: 2, username: "yuki_dev",
                  visibility: "direct"),
+        MockNote(id: 9560, body: "@reader_kim 이번 주말 산책 코스 정해요.",
+                 createdAt: Date().addingTimeInterval(-800_000), likeCount: 0, authorId: 2, username: "yuki_dev",
+                 replyPolicy: "mentioned"),
+        MockNote(id: 9561, body: "팔로우한 분들께만 답을 받을게요.",
+                 createdAt: Date().addingTimeInterval(-800_100), likeCount: 0, authorId: 2, username: "yuki_dev",
+                 replyPolicy: "following"),
+        MockNote(id: 9570, body: "스레드 정리 연습 — 답글을 숨기고 지워 본다.",
+                 createdAt: Date().addingTimeInterval(-800_200), likeCount: 0, authorId: 1, username: "honggildong"),
     ]
+    private static let followersOfViewer: Set<String> = ["yuki_dev"]
+    /// 답 칸은 열어 둔 채 보내기만 막는다 — 읽은 뒤 작성자가 답글 권한을 좁힌 경우.
+    private static let closedThreads: Set<Int64> = [9561]
     private static var nextNoteId: Int64 = 9600
     private static var likedNotes: Set<Int64> = []
     private static var bookmarkedNotes: [Int64] = []
@@ -226,6 +239,18 @@ enum MockBackend {
         MockNote(id: 9551, body: "@yuki_dev 이름이 경계라는 말, 오래 남을 것 같아요.",
                  createdAt: Date().addingTimeInterval(-1_200), likeCount: 0, authorId: 3,
                  username: "reader_kim", inReplyToId: 9501),
+        MockNote(id: 9571, body: "숨기기 전에 남겨 둔 답글.",
+                 createdAt: Date().addingTimeInterval(-799_000), likeCount: 0, authorId: 2,
+                 username: "yuki_dev", inReplyToId: 9570),
+        MockNote(id: 9572, body: "이미 숨긴 답글.",
+                 createdAt: Date().addingTimeInterval(-798_000), likeCount: 0, authorId: 3,
+                 username: "reader_kim", inReplyToId: 9570, hidden: true),
+        MockNote(id: 9573, body: "답글에 다는 답글.",
+                 createdAt: Date().addingTimeInterval(-797_000), likeCount: 0, authorId: 3,
+                 username: "reader_kim", inReplyToId: 9571),
+        MockNote(id: 9574, body: "스레드 깊은 곳의 답글.",
+                 createdAt: Date().addingTimeInterval(-796_000), likeCount: 0, authorId: 2,
+                 username: "yuki_dev", inReplyToId: 9573),
     ]
     private static var federationEnabled = true
     /// 다른 서버 계정 — 찾으면 생기고, 팔로우 요청 뒤 다시 읽으면 수락된다(마스토돈 기본 계정처럼).
@@ -1428,10 +1453,12 @@ enum MockBackend {
                 "note": noteView(note),
                 "parent": note.inReplyToId.flatMap { pid in allNotes().first { $0.id == pid } }
                     .map(noteView) ?? NSNull(),
-                "replies": allNotes().filter { $0.inReplyToId == nid && !partIds.contains($0.id) }
+                "replies": allNotes().filter { $0.inReplyToId == nid && !partIds.contains($0.id) && !$0.hidden }
                     .sorted { $0.createdAt < $1.createdAt }.map(noteView),
                 "continuation": parts.map(noteView),
                 "series": noteSeriesTrail(nid),
+                "hiddenReplyCount": allNotes().filter { $0.inReplyToId == nid && $0.hidden }.count,
+                "viewerCanModerate": threadRoot(nid)?.authorId == 1,
             ])
         }
         if method == "POST", parts == ["notes", "images", "presign"] {
@@ -1441,8 +1468,31 @@ enum MockBackend {
                 "publicUrl": "https://cdn.kurl.me/mock-note.jpg", "maxBytes": 5_242_880,
             ])
         }
+        if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "notes",
+           parts[3] == "hidden-replies", let nid = Int64(parts[2]) {
+            return json(
+                allNotes().filter { $0.inReplyToId == nid && $0.hidden }
+                    .sorted { $0.createdAt < $1.createdAt }.map(noteView))
+        }
+        if parts.count == 3, parts[0] == "notes", parts[2] == "hidden", let nid = Int64(parts[1]),
+           let idx = noteReplies.firstIndex(where: { $0.id == nid }) {
+            noteReplies[idx].hidden = method == "PUT"
+            return json(["hidden": noteReplies[idx].hidden])
+        }
+        if method == "PUT", parts.count == 3, parts[0] == "notes", parts[2] == "reply-policy",
+           let nid = Int64(parts[1]), let idx = notes.firstIndex(where: { $0.id == nid }) {
+            notes[idx].replyPolicy = decode(body)["replyPolicy"] as? String ?? "everyone"
+            return json(["replyPolicy": notes[idx].replyPolicy])
+        }
         if method == "POST", parts == ["notes"] {
-            return json(noteView(createMockNote(decode(body))))
+            let req = decode(body)
+            if let parent = (req["inReplyToId"] as? NSNumber)?.int64Value,
+               let root = threadRoot(parent), closedThreads.contains(root.id) || !viewerMayReply(root) {
+                throw APIError.server(
+                    status: 403, code: "NOTE_REPLY_RESTRICTED",
+                    detail: "the writer of this thread limited who can reply")
+            }
+            return json(noteView(createMockNote(req)))
         }
         if method == "POST", parts == ["notes", "threads"] {
             var created: [[String: Any]] = []
@@ -2694,7 +2744,22 @@ enum MockBackend {
     }
 
     private static func replyCount(_ id: Int64) -> Int {
-        noteReplies.filter { $0.inReplyToId == id }.count
+        noteReplies.filter { $0.inReplyToId == id && !$0.hidden }.count
+    }
+
+    private static func threadRoot(_ id: Int64) -> MockNote? {
+        var current = allNotes().first { $0.id == id }
+        while let note = current, let parent = note.inReplyToId {
+            current = allNotes().first { $0.id == parent }
+        }
+        return current
+    }
+
+    /// 목의 독자는 늘 홍길동이다.
+    private static func viewerMayReply(_ root: MockNote) -> Bool {
+        root.replyPolicy == "everyone" || root.authorId == 1
+            || root.body.lowercased().contains("@honggildong")
+            || (root.replyPolicy == "following" && followersOfViewer.contains(root.username))
     }
 
     private static func topLevelNotes() -> [MockNote] {
@@ -2716,6 +2781,7 @@ enum MockBackend {
         note.contentWarning = (req["contentWarning"] as? String).flatMap { $0.isEmpty ? nil : $0 }
         note.sensitive = (req["sensitive"] as? Bool) ?? false
         note.visibility = (req["visibility"] as? String) ?? "public"
+        note.replyPolicy = (req["replyPolicy"] as? String) ?? "everyone"
         if let poll = req["poll"] as? [String: Any], let options = poll["options"] as? [String] {
             note.poll = MockPoll(
                 options: options,
@@ -2770,6 +2836,9 @@ enum MockBackend {
             "visibility": n.visibility,
             "poll": pollView(n) ?? NSNull(),
             "conversationMuted": mutedConversations.contains(n.id),
+            "replyPolicy": (threadRoot(n.id) ?? n).replyPolicy,
+            "canReply": threadRoot(n.id).map(viewerMayReply) ?? true,
+            "hidden": n.hidden,
             "quotedNote": n.quotedNoteId.flatMap { qid in allNotes().first { $0.id == qid } }
                 .map { q -> [String: Any] in
                     [

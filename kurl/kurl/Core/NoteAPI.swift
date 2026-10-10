@@ -204,6 +204,24 @@ enum NoteAPI {
         try await client.deleteVoid("/notes/\(id)", authenticated: true)
     }
 
+    /// 스레드의 답글 권한 — 첫 노트의 작성자만 바꾸고, 스레드 전체에 걸린다.
+    static func setReplyPolicy(id: Int64, _ policy: NoteReplyPolicy) async throws -> NoteReplyPolicyStatus {
+        struct Body: Encodable { let replyPolicy: String }
+        return try await client.put(
+            "/notes/\(id)/reply-policy", body: Body(replyPolicy: policy.rawValue), authenticated: true)
+    }
+
+    /// 스레드의 첫 노트 작성자만 쓸 수 있다.
+    static func setReplyHidden(id: Int64, hidden: Bool) async throws -> NoteReplyHiddenStatus {
+        hidden
+            ? try await client.put("/notes/\(id)/hidden", body: EmptyBody(), authenticated: true)
+            : try await client.delete("/notes/\(id)/hidden", authenticated: true)
+    }
+
+    static func hiddenReplies(of id: Int64) async throws -> [Note] {
+        try await client.getAsViewer("/public/notes/\(id)/hidden-replies")
+    }
+
     static func filters() async throws -> [NoteFilter] {
         try await client.get("/notes/filters", authenticated: true)
     }
@@ -411,8 +429,53 @@ struct Note: Decodable, Identifiable, Hashable {
     var language: String? = nil
     /// 피드에서 작성자가 이어 쓴 노트 — 전체 편 수와 바로 아래에 보일 다음 편.
     var thread: NoteSelfThread? = nil
+    /// 스레드의 답글 권한(첫 노트가 정한 것). 옛 서버면 nil.
+    var replyPolicy: String? = nil
+    /// 이 독자가 답글을 달 수 있는지. 비로그인이거나 옛 서버면 nil.
+    var canReply: Bool? = nil
+    var hidden: Bool? = nil
 
     var noteVisibility: NoteVisibility { NoteVisibility(rawValue: visibility ?? "public") ?? .public }
+    var noteReplyPolicy: NoteReplyPolicy { NoteReplyPolicy(rawValue: replyPolicy ?? "everyone") ?? .everyone }
+}
+
+/// 스레드의 첫 노트에서 정하고 스레드 전체에 걸린다. 첫 노트가 멘션한 사람과 작성자는 언제나 답할 수 있다.
+enum NoteReplyPolicy: String, CaseIterable, Identifiable {
+    case everyone, following, mentioned
+
+    var id: String { rawValue }
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .everyone: "모두"
+        case .following: "내가 팔로우하는 사람"
+        case .mentioned: "내가 멘션한 사람만"
+        }
+    }
+
+    var label: LocalizedStringKey {
+        switch self {
+        case .everyone: "답글: 모두"
+        case .following: "답글: 내가 팔로우하는 사람"
+        case .mentioned: "답글: 내가 멘션한 사람만"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .everyone: "bubble.left.and.bubble.right"
+        case .following: "person.2"
+        case .mentioned: "at"
+        }
+    }
+
+    var closedReason: String {
+        switch self {
+        case .everyone: String(localized: "이 스레드에는 답글을 달 수 없어요")
+        case .following: String(localized: "작성자가 팔로우하거나 멘션한 사람만 답글을 달 수 있어요")
+        case .mentioned: String(localized: "작성자가 멘션한 사람만 답글을 달 수 있어요")
+        }
+    }
 }
 
 /// 마스토돈의 네 가지. 리포스트·인용은 공개와 조용한 공개만 된다.
@@ -542,6 +605,10 @@ struct NoteThread: Decodable {
     var continuation: [Note]? = nil
     /// 이 노트가 든 시리즈와 그 안의 앞뒤 편(글·노트). 시리즈 밖이거나 옛 서버면 nil.
     var series: SeriesTrail? = nil
+    /// 이 노트 아래 숨긴 답글 중 독자가 볼 수 있는 수. 옛 서버면 nil.
+    var hiddenReplyCount: Int? = nil
+    /// 독자가 스레드 첫 노트의 작성자다(남의 답글을 숨기거나 지울 수 있다). 옛 서버면 nil.
+    var viewerCanModerate: Bool? = nil
 }
 
 struct NoteDraft: Encodable {
@@ -562,6 +629,8 @@ struct NoteDraft: Encodable {
     var visibility: String? = nil
     var poll: Poll? = nil
     var language: String? = nil
+    /// 새 스레드의 첫 노트에만 — 답글은 스레드의 것을 따른다.
+    var replyPolicy: String? = nil
 
     struct Poll: Encodable {
         let options: [String]
@@ -600,6 +669,14 @@ struct NoteConversationMuteStatus: Decodable {
 
 struct NotePinStatus: Decodable {
     let pinned: Bool
+}
+
+struct NoteReplyPolicyStatus: Decodable {
+    let replyPolicy: String
+}
+
+struct NoteReplyHiddenStatus: Decodable {
+    let hidden: Bool
 }
 
 struct NoteListSummary: Decodable, Hashable, Identifiable {

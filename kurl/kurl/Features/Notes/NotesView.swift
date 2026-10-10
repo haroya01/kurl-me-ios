@@ -258,6 +258,8 @@ struct NoteRowView: View {
     var focused = false
     /// 이어 쓴 노트의 몇 번째 편인지("1/3") — 스레드처럼 머리 줄 끝에.
     var position: String? = nil
+    /// 보는 사람이 이 스레드의 첫 노트 작성자이고 이 행이 남의 답글일 때만 준다.
+    var threadModeration: NoteThreadModeration? = nil
 
     @State private var liked: Bool
     @State private var likeCount: Int64?
@@ -274,6 +276,7 @@ struct NoteRowView: View {
     @State private var writingPost = false
     @State private var editing = false
     @State private var confirmDelete = false
+    @State private var confirmThreadDelete = false
     @State private var connecting = false
     @State private var showLoginSheet = false
     @State private var loginMessage: LocalizedStringKey = "좋아요를 누르려면 로그인하세요"
@@ -288,7 +291,8 @@ struct NoteRowView: View {
          onDelete: @escaping (Int64) -> Void,
          onQuoted: ((Note) -> Void)? = nil, repostedBy: String? = nil,
          showsPin: Bool = false,
-         threadLineBelow: Bool = false, focused: Bool = false, position: String? = nil) {
+         threadLineBelow: Bool = false, focused: Bool = false, position: String? = nil,
+         threadModeration: NoteThreadModeration? = nil) {
         self.note = note
         self.onChange = onChange
         self.onDelete = onDelete
@@ -298,6 +302,7 @@ struct NoteRowView: View {
         self.threadLineBelow = threadLineBelow
         self.focused = focused
         self.position = position
+        self.threadModeration = threadModeration
         _liked = State(initialValue: note.likedByMe == true)
         _likeCount = State(initialValue: note.likeCount)
         _reposted = State(initialValue: note.repostedByMe == true)
@@ -447,6 +452,12 @@ struct NoteRowView: View {
             Button("취소", role: .cancel) {}
         } message: {
             Text("다른 서버로 퍼진 사본에도 지우라는 요청을 보내요.")
+        }
+        .alert("이 답글을 스레드에서 지울까요?", isPresented: $confirmThreadDelete) {
+            Button("지우기", role: .destructive) { Task { await delete() } }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("다른 서버에서 온 답글은 kurl에서만 사라져요.")
         }
         .loginPrompt(isPresented: $showLoginSheet, message: loginMessage)
         .onChange(of: note) { _, next in
@@ -786,6 +797,9 @@ struct NoteRowView: View {
                             note.pinned == true ? LocalizedStringKey("고정 해제") : LocalizedStringKey("프로필에 고정"),
                             systemImage: note.pinned == true ? "pin.slash" : "pin")
                     }
+                    if note.replyPolicy != nil {
+                        replyPolicyMenu
+                    }
                 }
                 if seriesAddable {
                     Button { addingToSeries = true } label: {
@@ -797,6 +811,21 @@ struct NoteRowView: View {
                 Button(role: .destructive) { confirmDelete = true } label: {
                     Label("노트 삭제", systemImage: "trash")
                 }
+            }
+            if threadModeration != nil, !isMine {
+                Divider()
+                Button {
+                    Task { await toggleHidden() }
+                } label: {
+                    Label(
+                        note.hidden == true ? LocalizedStringKey("숨김 해제") : LocalizedStringKey("숨기기"),
+                        systemImage: note.hidden == true ? "eye" : "eye.slash")
+                }
+                .accessibilityIdentifier("note.hideReply.\(note.id)")
+                Button(role: .destructive) { confirmThreadDelete = true } label: {
+                    Label("삭제", systemImage: "trash")
+                }
+                .accessibilityIdentifier("note.removeReply.\(note.id)")
             }
         } label: {
             Image(systemName: "ellipsis")
@@ -1061,6 +1090,57 @@ struct NoteRowView: View {
             ToastCenter.shared.show(String(localized: "노트를 삭제하지 못했습니다"))
         }
     }
+
+    private var replyPolicyMenu: some View {
+        Menu {
+            Picker(
+                "답글 권한",
+                selection: Binding(
+                    get: { note.noteReplyPolicy },
+                    set: { policy in Task { await setReplyPolicy(policy) } })
+            ) {
+                ForEach(NoteReplyPolicy.allCases) { policy in
+                    Label(policy.title, systemImage: policy.symbol).tag(policy)
+                }
+            }
+            .pickerStyle(.inline)
+        } label: {
+            Label("답글 권한", systemImage: "arrowshape.turn.up.left.2")
+        }
+        .accessibilityIdentifier("note.replyPolicy.\(note.id)")
+    }
+
+    private func setReplyPolicy(_ policy: NoteReplyPolicy) async {
+        guard policy != note.noteReplyPolicy else { return }
+        do {
+            let status = try await NoteAPI.setReplyPolicy(id: note.id, policy)
+            var next = note
+            next.replyPolicy = status.replyPolicy
+            onChange(next)
+            ToastCenter.shared.show(String(localized: "답글 권한을 바꿨어요"))
+        } catch {
+            ToastCenter.shared.show(String(localized: "답글 권한을 바꾸지 못했어요"))
+        }
+    }
+
+    private func toggleHidden() async {
+        let hide = note.hidden != true
+        do {
+            let status = try await NoteAPI.setReplyHidden(id: note.id, hidden: hide)
+            var next = note
+            next.hidden = status.hidden
+            threadModeration?.onHiddenChange(next)
+            ToastCenter.shared.show(
+                status.hidden ? String(localized: "답글을 숨겼어요") : String(localized: "답글을 다시 보여요"))
+        } catch {
+            ToastCenter.shared.show(
+                hide ? String(localized: "답글을 숨기지 못했어요") : String(localized: "숨김을 해제하지 못했어요"))
+        }
+    }
+}
+
+struct NoteThreadModeration {
+    let onHiddenChange: (Note) -> Void
 }
 
 /// 좋아요·리포스트를 켜고 끌 때 아이콘이 한 번 부풀었다 돌아온다.
@@ -1557,6 +1637,7 @@ struct NoteFeedItem: View {
 struct NoteDetailView: View {
     let noteId: Int64
     @State private var thread: NoteThread?
+    @State private var hiddenCount = 0
     @State private var failed: String?
     @State private var replying = false
     @State private var deleted = false
@@ -1583,7 +1664,10 @@ struct NoteDetailView: View {
                                 note: parent,
                                 onChange: { next in update { $0.parent = next } },
                                 onDelete: { _ in update { $0.parent = nil } },
-                                threadLineBelow: true)
+                                threadLineBelow: true,
+                                threadModeration: moderation(of: parent, in: thread) { next in
+                                    update { $0.parent = next }
+                                })
                         }
                         let parts = thread.continuation ?? []
                         let numbered = !parts.isEmpty && thread.parent?.author.id != thread.note.author.id
@@ -1592,7 +1676,10 @@ struct NoteDetailView: View {
                             onChange: { note in update { $0.note = note } },
                             onDelete: { _ in dismiss() },
                             focused: true,
-                            position: numbered ? "1/\(parts.count + 1)" : nil)
+                            position: numbered ? "1/\(parts.count + 1)" : nil,
+                            threadModeration: moderation(of: thread.note, in: thread) { next in
+                                update { $0.note = next }
+                            })
                         ForEach(Array(parts.enumerated()), id: \.element.id) { index, part in
                             NoteRowView(
                                 note: part,
@@ -1634,11 +1721,15 @@ struct NoteDetailView: View {
                             NoteRowView(
                                 note: reply,
                                 onChange: { next in update { $0.replies = $0.replies.map { $0.id == next.id ? next : $0 } } },
-                                onDelete: { id in update { $0.replies.removeAll { $0.id == id } } })
+                                onDelete: { id in update { $0.replies.removeAll { $0.id == id } } },
+                                threadModeration: moderation(ofReply: reply, in: thread))
                                 .environment(\.noteFilterContext, .thread)
                             if index < replies.count - 1 {
                                 Hairline().padding(.horizontal, -Metrics.noteGutter)
                             }
+                        }
+                        if hiddenCount > 0 {
+                            hiddenRepliesRow(in: thread)
                         }
                     }
                     .padding(.vertical, 6)
@@ -1662,10 +1753,19 @@ struct NoteDetailView: View {
         .noteTextLinks()
         .hidesTabBar()
         .safeAreaInset(edge: .bottom) {
-            if let thread { replyBar(to: thread.note.author.username) }
+            if let thread {
+                if thread.note.canReply == false {
+                    closedReplyBar(thread.note.noteReplyPolicy)
+                } else {
+                    replyBar(to: thread.note.author.username)
+                }
+            }
         }
         .sheet(isPresented: $replying) {
-            NoteComposeSheet(mode: .new(quote: nil, inReplyToId: noteId)) { reply in
+            NoteComposeSheet(
+                mode: .new(quote: nil, inReplyToId: noteId),
+                threadReplyPolicy: thread?.note.noteReplyPolicy
+            ) { reply in
                 update {
                     $0.replies.append(reply)
                 }
@@ -1696,6 +1796,80 @@ struct NoteDetailView: View {
         .overlay(alignment: .top) { Hairline() }
     }
 
+    private func closedReplyBar(_ policy: NoteReplyPolicy) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "lock")
+                .font(.system(size: 13, weight: .medium))
+            Text(policy.closedReason)
+                .typeScale(.meta)
+                .lineLimit(2)
+            Spacer(minLength: 0)
+        }
+        .foregroundStyle(Palette.secondary)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("note.replyClosed")
+        .padding(.horizontal, Metrics.noteGutter)
+        .padding(.top, 8)
+        .padding(.bottom, 6)
+        .frame(maxWidth: Metrics.readingColumn)
+        .frame(maxWidth: .infinity)
+        .background(Palette.readingBg)
+        .overlay(alignment: .top) { Hairline() }
+    }
+
+    /// 옛 서버는 viewerCanModerate 를 주지 않는다 — 연 노트나 그 부모가 첫 노트일 때만 작성자를 안다.
+    private func moderates(_ thread: NoteThread) -> Bool {
+        guard let me = AuthStore.shared.me?.id else { return false }
+        if let given = thread.viewerCanModerate { return given }
+        if thread.note.inReplyToId == nil { return thread.note.author.id == me }
+        if let parent = thread.parent, parent.inReplyToId == nil { return parent.author.id == me }
+        return false
+    }
+
+    private func moderation(
+        of note: Note, in thread: NoteThread, onHiddenChange: @escaping (Note) -> Void
+    ) -> NoteThreadModeration? {
+        guard note.inReplyToId != nil, note.author.id != AuthStore.shared.me?.id, moderates(thread)
+        else { return nil }
+        return NoteThreadModeration(onHiddenChange: onHiddenChange)
+    }
+
+    private func moderation(ofReply reply: Note, in thread: NoteThread) -> NoteThreadModeration? {
+        moderation(of: reply, in: thread) { hidden in
+            guard hidden.hidden == true else { return }
+            update { $0.replies.removeAll { $0.id == hidden.id } }
+            hiddenCount += 1
+        }
+    }
+
+    private func hiddenRepliesRow(in thread: NoteThread) -> some View {
+        NavigationLink {
+            HiddenRepliesView(noteId: noteId, threadWriter: moderates(thread)) { shown in
+                update { $0.replies.append(shown) }
+                hiddenCount = max(0, hiddenCount - 1)
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "eye.slash")
+                    .font(.system(size: 13, weight: .medium))
+                Text("숨긴 답글 \(hiddenCount)개 보기")
+                    .typeScale(.meta)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+            }
+            .foregroundStyle(Palette.secondary)
+            .padding(.vertical, 14)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .overlay(alignment: .top) { Hairline().padding(.horizontal, -Metrics.noteGutter) }
+        .accessibilityIdentifier("note.hiddenReplies")
+    }
+
     private struct MutableThread {
         var note: Note
         var parent: Note?
@@ -1710,13 +1884,15 @@ struct NoteDetailView: View {
         change(&mutable)
         self.thread = NoteThread(
             note: mutable.note, parent: mutable.parent, replies: mutable.replies,
-            continuation: mutable.continuation, series: thread.series)
+            continuation: mutable.continuation, series: thread.series,
+            hiddenReplyCount: thread.hiddenReplyCount, viewerCanModerate: thread.viewerCanModerate)
     }
 
     private func load() async {
         do {
             let fresh = try await NoteAPI.thread(id: noteId)
             thread = fresh
+            hiddenCount = fresh.hiddenReplyCount ?? 0
             failed = nil
             if fresh.series != nil { PostReadStore.notes.markRead(noteId) }
         } catch let error as APIError where error.statusCode == 404 {
@@ -1757,6 +1933,7 @@ struct NoteComposeSheet: View {
 
     let mode: Mode
     let onLongForm: ((String) -> Void)?
+    let threadReplyPolicy: NoteReplyPolicy?
     let onDone: (Note) -> Void
 
     @State private var text: String
@@ -1777,6 +1954,7 @@ struct NoteComposeSheet: View {
     @State private var poll: NotePollDraft?
     @State private var scheduledAt: Date?
     @State private var language = NoteLanguages.posting
+    @State private var replyPolicy = NoteReplyPolicy.everyone
     @State private var pickingSchedule = false
     @State private var parts: [ThreadPart] = []
     @State private var confirmLongForm = false
@@ -1784,9 +1962,13 @@ struct NoteComposeSheet: View {
     @FocusState private var focusedPart: UUID?
     @Environment(\.dismiss) private var dismiss
 
-    init(mode: Mode, onLongForm: ((String) -> Void)? = nil, onDone: @escaping (Note) -> Void) {
+    init(
+        mode: Mode, onLongForm: ((String) -> Void)? = nil, threadReplyPolicy: NoteReplyPolicy? = nil,
+        onDone: @escaping (Note) -> Void
+    ) {
         self.mode = mode
         self.onLongForm = onLongForm
+        self.threadReplyPolicy = threadReplyPolicy
         self.onDone = onDone
         switch mode {
         case let .new(quote, _):
@@ -1905,7 +2087,9 @@ struct NoteComposeSheet: View {
                                     .typeScale(.meta)
                                     .foregroundStyle(Palette.danger)
                                     .fontWeight(.semibold)
+                                    .accessibilityIdentifier("noteCompose.error")
                             }
+                            if !isEdit, inReplyToId == nil { replyPolicyRow }
                             HStack(spacing: 14) {
                             if !isEdit {
                                 PhotosPicker(
@@ -2070,6 +2254,33 @@ struct NoteComposeSheet: View {
     }
 
     private var shownVisibility: NoteVisibility { visibility ?? .public }
+
+    private var replyPolicyRow: some View {
+        Menu {
+            Picker("답글 권한", selection: $replyPolicy) {
+                Section("내가 멘션한 사람은 언제나 답글을 달 수 있어요") {
+                    ForEach(NoteReplyPolicy.allCases) { policy in
+                        Label(policy.title, systemImage: policy.symbol).tag(policy)
+                    }
+                }
+            }
+            .pickerStyle(.inline)
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: replyPolicy.symbol)
+                    .font(.system(size: 13, weight: .medium))
+                Text(replyPolicy.label)
+                    .typeScale(.meta)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 10, weight: .semibold))
+            }
+            .foregroundStyle(replyPolicy == .everyone ? Palette.secondary : Palette.link)
+            .frame(minHeight: 32)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("noteCompose.replyPolicy")
+    }
 
     @ViewBuilder private var visibilityLabel: some View {
         HStack(spacing: 6) {
@@ -2438,7 +2649,8 @@ struct NoteComposeSheet: View {
                 quotedNoteId: quotedNote?.id,
                 contentWarning: warningText.isEmpty ? nil : warningText, sensitive: sensitive,
                 visibility: visibility?.rawValue ?? (inReplyToId == nil ? "public" : nil),
-                poll: poll?.request, language: language)
+                poll: poll?.request, language: language,
+                replyPolicy: inReplyToId == nil && replyPolicy != .everyone ? replyPolicy.rawValue : nil)
             NoteLanguages.remember(language)
             if let scheduledAt {
                 let scheduled = try await NoteAPI.schedule(draft, at: scheduledAt)
@@ -2466,6 +2678,8 @@ struct NoteComposeSheet: View {
             dismiss()
         } catch let tooLarge as NoteImageTooLarge {
             errorMessage = tooLarge.errorDescription
+        } catch let APIError.server(status, code, _) where status == 403 && code == "NOTE_REPLY_RESTRICTED" {
+            errorMessage = (threadReplyPolicy ?? .everyone).closedReason
         } catch {
             errorMessage = scheduledAt == nil
                 ? String(localized: "노트를 올리지 못했어요")
