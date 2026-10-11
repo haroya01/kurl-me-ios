@@ -113,7 +113,6 @@ jobs:
       - name: Run kurlUITests
         # -retry-tests-on-failure + -test-iterations 2: 전체 스위트는 60분 안에 못 끝나 매번 취소됐다 — 알림·푸시·독 스모크만 돌리고, 실패한 테스트만 최대
         # 2회까지 재시도한다.
-        # continue-on-error(job) 이므로 실패해도 다음 스텝(아티팩트 업로드)은 돈다.
         # xcbeautify 는 macos 러너 기본 설치. 없으면 raw 로그로 폴백.
         run: |
           set -o pipefail
@@ -128,7 +127,7 @@ jobs:
             -retry-tests-on-failure \
             -test-iterations 2 \
             CODE_SIGNING_ALLOWED=NO \
-            | $FORMAT || echo "::warning::xcodebuild test 실패 — 아래 아티팩트/요약에서 원인 확인."
+            | $FORMAT
 
       - name: Summarize result
         if: always()
