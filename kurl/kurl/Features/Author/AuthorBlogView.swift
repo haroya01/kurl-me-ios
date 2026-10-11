@@ -290,8 +290,6 @@ struct AuthorBlogView: View {
                 }
                 NavigationLink(value: Route.businessCard(username: username)) {
                     HStack(spacing: 5) {
-                        Image(systemName: "person.crop.rectangle")
-                            .font(.system(size: 12, weight: .semibold))
                         Text("명함")
                             .font(.system(size: cardLabelSize, weight: .semibold))
                             .lineLimit(1)

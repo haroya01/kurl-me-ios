@@ -24,9 +24,6 @@ struct ToggleCapsuleButton: View {
     var isOn: Bool
     var onLabel: LocalizedStringKey
     var offLabel: LocalizedStringKey
-    /// 라벨 앞 상태 아이콘(태그 구독의 checkmark/plus) — 없으면 라벨만.
-    var onIcon: String?
-    var offIcon: String?
     /// nil = 기본 문법(꺼짐이 주행동 → 그린 유리). 켜짐/꺼짐과 무관하게 가라앉는
     /// 자리(구독 secondary)는 false 를 넘긴다.
     var prominent: Bool?
@@ -39,19 +36,15 @@ struct ToggleCapsuleButton: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .headline) private var labelSize: CGFloat = 14
-    @ScaledMetric(relativeTo: .headline) private var iconSize: CGFloat = 12
 
     init(
         isOn: Bool, on onLabel: LocalizedStringKey, off offLabel: LocalizedStringKey,
-        onIcon: String? = nil, offIcon: String? = nil,
         prominent: Bool? = nil, labelStyle: AnyShapeStyle? = nil, expandTap: CGFloat? = nil,
         action: @escaping () -> Void
     ) {
         self.isOn = isOn
         self.onLabel = onLabel
         self.offLabel = offLabel
-        self.onIcon = onIcon
-        self.offIcon = offIcon
         self.prominent = prominent
         self.labelStyle = labelStyle
         self.expandTap = expandTap
@@ -75,10 +68,6 @@ struct ToggleCapsuleButton: View {
 
     private var capsuleLabel: some View {
         HStack(spacing: 5) {
-            if let name = isOn ? onIcon : offIcon {
-                Image(systemName: name)
-                    .font(.system(size: iconSize, weight: .semibold))
-            }
             Text(isOn ? onLabel : offLabel)
                 .font(.system(size: labelSize, weight: .semibold))
                 .lineLimit(1)

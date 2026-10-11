@@ -25,7 +25,7 @@ struct BlockedUsersView: View {
                     .padding(.top, 60)
             } else if BlockStore.shared.blocked.isEmpty {
                 ContentUnavailableView {
-                    Label("차단한 사용자가 없어요", systemImage: "hand.raised")
+                    Text("차단한 사용자가 없어요")
                 } description: {
                     Text("작가 페이지의 ⋯ 메뉴에서 차단할 수 있어요.")
                 }

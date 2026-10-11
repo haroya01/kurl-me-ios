@@ -335,9 +335,6 @@ struct NoteRowView: View {
 
     private func filteredBar(_ phrases: [String]) -> some View {
         HStack(spacing: 10) {
-            Image(systemName: "line.3.horizontal.decrease.circle")
-                .font(.system(size: 15 * unit, weight: .medium))
-                .accessibilityHidden(true)
             Text("필터됨: \(phrases.joined(separator: ", "))")
                 .typeScale(.meta)
                 .lineLimit(1)
@@ -773,7 +770,7 @@ struct NoteRowView: View {
                         Button {
                             withAnimation(reduceMotion ? nil : .snappy(duration: 0.22)) { mediaRevealed = true }
                         } label: {
-                            Label("민감한 사진 · 눌러서 보기", systemImage: "eye.slash")
+                            Text("민감한 사진 · 눌러서 보기")
                                 .typeScale(.meta)
                                 .fontWeight(.semibold)
                                 .foregroundStyle(Palette.ink)
@@ -2158,13 +2155,9 @@ struct NoteComposeSheet: View {
     @ViewBuilder private var visibilityLabel: some View {
         HStack(spacing: 6) {
             if visibility == nil, inReplyToId != nil {
-                Image(systemName: "arrowshape.turn.up.left")
-                    .font(.system(size: 13, weight: .medium))
                 Text("원글과 같은 범위")
                     .typeScale(.meta)
             } else {
-                Image(systemName: shownVisibility.symbol)
-                    .font(.system(size: 13, weight: .medium))
                 Text(shownVisibility == .public ? shownVisibility.detail : shownVisibility.title)
                     .typeScale(.meta)
             }
@@ -2228,8 +2221,8 @@ struct NoteComposeSheet: View {
                         pickingSchedule = true
                     } label: {
                         HStack(spacing: 4) {
-                            Image(systemName: scheduledAt == nil ? "clock" : "clock.fill")
                             if let scheduledAt {
+                                Image(systemName: "clock.fill")
                                 Text(scheduledAt, format: .dateTime.month().day().hour().minute())
                             } else {
                                 Text("예약")
@@ -2379,9 +2372,6 @@ struct NoteComposeSheet: View {
                                 altTarget = AltTarget(id: item.id)
                             } label: {
                                 HStack(spacing: 3) {
-                                    if !item.altText.isEmpty {
-                                        Image(systemName: "checkmark").font(.system(size: 9, weight: .bold))
-                                    }
                                     Text(verbatim: item.altText.isEmpty ? "+ALT" : "ALT")
                                         .font(.system(size: 11, weight: .bold))
                                 }

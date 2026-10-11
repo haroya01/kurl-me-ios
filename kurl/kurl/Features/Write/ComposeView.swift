@@ -636,9 +636,6 @@ struct ComposeView: View {
         .overlay {
             if loadFailed {
                 VStack(spacing: 12) {
-                    Image(systemName: "arrow.clockwise.circle")
-                        .font(.system(size: 30 * unit))
-                        .foregroundStyle(Palette.secondary)
                     Text("본문을 불러오지 못했어요")
                         .typeScale(.body)
                         .foregroundStyle(Palette.ink)
@@ -917,7 +914,7 @@ struct ComposeView: View {
                     HStack(spacing: 18) {
                         // 폼을 닫지 않고 그 위로 — 보고 닫으면 폼으로 돌아온다.
                         Button { openPreview() } label: {
-                            Label("전체 미리보기", systemImage: "doc.text.magnifyingglass")
+                            Text("전체 미리보기")
                                 .typeScale(.footnote)
                         }
                         .foregroundStyle(Palette.link)
@@ -1217,7 +1214,7 @@ struct ComposeView: View {
                     Button {
                         applySuggestedCover(suggestion)
                     } label: {
-                        coverChip("본문 첫 이미지를 커버로", systemImage: "photo.on.rectangle")
+                        coverChip("본문 첫 이미지를 커버로")
                     }
                     .buttonStyle(.plain)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -1245,23 +1242,19 @@ struct ComposeView: View {
                 Label("커버 제거", systemImage: "trash")
             }
         } label: {
-            coverChip("변경", systemImage: "photo")
+            coverChip("변경")
                 .expandTapTarget(8)
         }
         .accessibilityLabel(Text("커버 변경"))
     }
 
-    private func coverChip(_ title: LocalizedStringKey, systemImage: String) -> some View {
-        HStack(spacing: 5) {
-            Image(systemName: systemImage)
-                .font(.system(size: 11 * metaUnit, weight: .semibold))
-            Text(title)
-                .typeScale(.meta)
-        }
-        .foregroundStyle(.white)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(GlassTokens.mediaChip, in: Capsule())
+    private func coverChip(_ title: LocalizedStringKey) -> some View {
+        Text(title)
+            .typeScale(.meta)
+            .foregroundStyle(.white)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(GlassTokens.mediaChip, in: Capsule())
     }
 
     /// 시트 필드 한 단 — 작은 라벨 + 컨트롤.
@@ -1310,8 +1303,6 @@ struct ComposeView: View {
 
                 // 무엇이 정해졌는지 한 줄로 — 그래프 픽커만으론 결정이 흐릿했다.
                 HStack(spacing: 8) {
-                    Image(systemName: "clock")
-                        .font(.system(size: 13 * unit, weight: .semibold))
                     Text(scheduleSummary)
                         .typeScale(.meta)
                         .contentTransition(.numericText())
@@ -2947,7 +2938,7 @@ private struct RevisionsSheet: View {
                     KurlLoadingMark()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if revisions.isEmpty {
-                    ContentUnavailableView("리비전이 없습니다", systemImage: "clock.arrow.circlepath")
+                    ContentUnavailableView { Text("리비전이 없습니다") }
                 } else {
                     List(revisions) { revision in
                         HStack {
