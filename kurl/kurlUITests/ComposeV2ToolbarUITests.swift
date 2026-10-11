@@ -166,19 +166,17 @@ final class ComposeV2ToolbarUITests: XCTestCase {
         add(shot)
     }
 
-    func testLinkDialogAddsALinkCard() throws {
+    func testLinkSheetAddsALinkCard() throws {
         let app = launchCompose()
         let body = app.textViews.firstMatch
         XCTAssertTrue(body.waitForExistence(timeout: 5))
         body.tap()
         app.typeText("Read this first")
         app.buttons["composeLink"].tap()
-        let dialog = app.alerts["링크"]
-        XCTAssertTrue(dialog.waitForExistence(timeout: 5), "링크 다이얼로그가 떠야 함")
-        let url = dialog.textFields["https://…"]
-        url.tap()
-        url.typeText("https://docs.spring.io/spring-framework/reference/web/webflux.html")
-        dialog.buttons["카드로 추가"].tap()
+        XCTAssertTrue(app.navigationBars["링크 넣기"].waitForExistence(timeout: 5), "링크 시트가 떠야 함")
+        app.textFields["editor-link-address"].typeText("https://docs.spring.io/spring-framework/reference/web/webflux.html")
+        app.segmentedControls["editor-link-kind"].buttons["카드"].tap()
+        app.buttons["editor-link-submit"].tap()
         XCTAssertTrue(app.descendants(matching: .any)["editor-link-card"].waitForExistence(timeout: 8), "링크 카드 블록이 들어가야 함")
         XCTAssertTrue(bodyContains(app, "Read this first").exists, "앞 문단은 그대로")
         let shot = XCTAttachment(screenshot: app.screenshot())

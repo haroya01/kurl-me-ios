@@ -422,8 +422,13 @@ final class EditorDocument {
         let anchorIndex = focus.flatMap { index(of: $0.blockID) } ?? (blocks.count - 1)
         let insertAt = min(anchorIndex + 1, blocks.count)
         blocks.insert(block, at: insertAt)
-        // 비텍스트 블록 뒤엔 캐럿이 놓일 문단이 필요 — 없으면(문서 끝) 하나 만든다.
-        let trailingIndex = insertAt + 1
+        return focusAfterNonText(at: insertAt)
+    }
+
+    // 비텍스트 블록 뒤엔 캐럿이 놓일 문단이 필요 — 없으면(문서 끝) 하나 만든다.
+    @discardableResult
+    private func focusAfterNonText(at index: Int) -> EditorFocus {
+        let trailingIndex = index + 1
         let trailing: EditorBlock
         if trailingIndex < blocks.count, !blocks[trailingIndex].isNonText {
             trailing = blocks[trailingIndex]
@@ -437,27 +442,91 @@ final class EditorDocument {
         return f
     }
 
-    // MARK: 링크 / 임베드 삽입 (툴바) — 하나의 "링크"로 통합
+    @discardableResult
+    func placeLinkCard(_ url: String, after blockID: UUID?) -> EditorFocus? {
+        beginEdit(); defer { endEdit() }
+        if let blockID, let i = index(of: blockID) {
+            if blocks[i].isEmptyParagraph {
+                blocks[i] = .linkCard(url)
+                return focusAfterNonText(at: i)
+            }
+            blocks.insert(.linkCard(url), at: i + 1)
+            return focusAfterNonText(at: i + 1)
+        }
+        return insertNonText(.linkCard(url))
+    }
 
-    /// 툴바 링크 삽입 — URL 이 동영상(YouTube·Vimeo)이면 발행 시 플레이어가 되도록 **단독 URL 문단**으로
-    /// 넣고(백엔드 md→blocks 가 그 줄을 EMBED 블록으로 접는다), 아니면 `[라벨](url)` 문단으로 넣는다.
-    /// 링크는 인라인이 자연스럽지만(캔버스에서 직접 `[..](..)` 를 쳐도 라이브 렌더된다), 이 버튼은
-    /// 주소를 손에 든 채 한 번에 떨어뜨리는 편의라 자체 문단으로 앉힌다(구분선·이미지·표와 같은 결).
-    /// `label` 이 비면 URL 자체를 라벨로 쓴다. 반환: 이어서 쓸 새 후속 문단의 포커스.
+    @discardableResult
+    func convertToLinkCard(_ id: UUID, url: String) -> Bool {
+        beginEdit(); defer { endEdit() }
+        guard let i = index(of: id), blocks[i].kind == .paragraph,
+              [url, "<\(url)>"].contains(blocks[i].text.trimmingCharacters(in: .whitespaces))
+        else { return false }
+        blocks[i] = .linkCard(url)
+        focusAfterNonText(at: i)
+        return true
+    }
+
+    func linkTarget(at target: EditorFocus?) -> EditorLinkTarget? {
+        guard let target, let i = index(of: target.blockID), !blocks[i].isNonText else { return nil }
+        let text = blocks[i].text
+        let start = clampIndex(target.caret, in: text)
+        let end = clampIndex(target.caret + target.selectionLength, in: text)
+        let lo = text.index(text.startIndex, offsetBy: min(start, end))
+        let hi = text.index(text.startIndex, offsetBy: max(start, end))
+        let range = NSRange(lo..<hi, in: text)
+        if let span = EditorLinkMarkup.spans(in: text).first(where: { span in
+            range.length == 0
+                ? range.location > span.range.location && range.location < NSMaxRange(span.range)
+                : range.location >= span.labelRange.location && NSMaxRange(range) <= NSMaxRange(span.labelRange)
+        }) {
+            return .editing(span, in: target.blockID, text: text)
+        }
+        let selected = String(text[lo..<hi])
+        return EditorLinkTarget(
+            blockID: target.blockID, range: range, original: selected,
+            label: selected.isEmpty ? nil : selected,
+            shownText: EditorLinkMarkup.visibleText(selected), url: "")
+    }
+
+    @discardableResult
+    func applyLink(_ target: EditorLinkTarget, text: String, url: String) -> Bool {
+        let typed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let label = !typed.isEmpty && typed != target.shownText ? typed : (target.label ?? typed)
+        return replaceText(
+            target.blockID, range: target.range, expected: target.original,
+            with: EditorLinkMarkup.markup(label: label, url: url))
+    }
+
+    @discardableResult
+    func unlink(_ id: UUID, span: EditorLinkSpan) -> Bool {
+        guard let i = index(of: id), EditorLinkMarkup.spans(in: blocks[i].text).contains(span) else { return false }
+        let original = (blocks[i].text as NSString).substring(with: span.range)
+        return replaceText(id, range: span.range, expected: original, with: span.label)
+    }
+
+    /// Replaces `range` (UTF-16, as the text view reports it) only while it still holds `expected`.
+    @discardableResult
+    func replaceText(_ id: UUID, range: NSRange, expected: String, with replacement: String) -> Bool {
+        beginEdit(); defer { endEdit() }
+        guard let i = index(of: id), !blocks[i].isNonText else { return false }
+        let ns = blocks[i].text as NSString
+        guard NSMaxRange(range) <= ns.length, ns.substring(with: range) == expected else { return false }
+        blocks[i].text = ns.replacingCharacters(in: range, with: replacement)
+        let caret = ns.substring(to: range.location).count + replacement.count
+        focus = EditorFocus(blockID: id, caret: caret)
+        suppressRevealOnceBlockID = id
+        return true
+    }
+
+    // MARK: 링크 삽입 (툴바)
+
     @discardableResult
     func insertLink(url: String, label: String) -> EditorFocus? {
         beginEdit(); defer { endEdit() }
         let trimmedURL = url.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedURL.isEmpty else { return focus }
-        let block: EditorBlock
-        if WriteV2VideoDetect.isVideoURL(trimmedURL) {
-            // 임베드는 URL 이 제 문단에 홀로 서야 플레이어로 렌더된다(insertVideoEmbed 방언과 동형).
-            block = .paragraph(trimmedURL)
-        } else {
-            let text = label.trimmingCharacters(in: .whitespacesAndNewlines)
-            block = .paragraph("[\(text.isEmpty ? trimmedURL : text)](\(trimmedURL))")
-        }
-        return insertNonText(block)
+        return insertNonText(.paragraph(EditorLinkMarkup.markup(label: label, url: trimmedURL)))
     }
 
     // MARK: 표 셀 편집

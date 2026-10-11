@@ -66,13 +66,8 @@ struct ComposeView: View {
     /// WriteV2 캔버스에 이미지를 넣는 사진 선택 — 실제 업로드 후 `insertNonText(.image)` 로 삽입한다.
     @State private var showV2ImagePicker = false
     @State private var v2ImageItem: PhotosPickerItem?
-    /// WriteV2 통합 링크 삽입 — 주소(+선택 라벨)를 받아 동영상이면 임베드, 아니면 링크로 문서에 넣는다.
-    @State private var showV2LinkDialog = false
-    @State private var v2LinkURL = ""
-    @State private var v2LinkLabel = ""
-    /// 링크 알럿을 열기 직전에 잡아둔 캔버스 포커스(블록·선택) — 알럿이 first responder 를 뺏어 선택이
-    /// 접히므로, 확인 시 이 포커스로 원래 선택을 감싼다. nil 이면 포커스 없이 눌린 것(문단 삽입 폴백).
-    @State private var v2LinkTargetFocus: EditorFocus?
+    @State private var linkRequest: EditorLinkRequest?
+    @State private var openedLink: LegalLink?
     @State private var postId: Int64?
     @State private var status = "DRAFT"
     @State private var busy = false
@@ -369,20 +364,12 @@ struct ComposeView: View {
         } message: {
             Text("YouTube·Vimeo 주소를 붙여넣거나 입력하세요.")
         }
-        // WriteV2 통합 링크 — 하나의 입력으로 링크·동영상을 다 받는다. 주소가 동영상이면 발행 시
-        // 플레이어(임베드), 아니면 링크. 라벨은 링크일 때만 쓰이고, 동영상이면 주소 자체가 문단이 된다.
-        .alert("링크", isPresented: $showV2LinkDialog) {
-            TextField("표시할 텍스트 (선택)", text: $v2LinkLabel)
-            TextField("https://…", text: $v2LinkURL)
-                .textInputAutocapitalization(.never)
-                .keyboardType(.URL)
-                .autocorrectionDisabled()
-            Button("링크로 추가") { confirmV2Link(asCard: false) }
-            Button("카드로 추가") { confirmV2Link(asCard: true) }
-            Button("취소", role: .cancel) {}
-        } message: {
-            Text("카드로 추가하면 제목·사진이 담긴 미리보기로 보여요. YouTube·Vimeo 주소는 재생돼요.")
+        .sheet(item: $linkRequest) { request in
+            EditorLinkSheet(request: request, shorten: { try? await WriteAPI.shorten($0) }) { result in
+                submitLink(result, for: request)
+            }
         }
+        .sheet(item: $openedLink) { SafariView(url: $0.url).ignoresSafeArea() }
         // 이미 넣은 이미지의 캡션 고치기 — 이미지 편집 바의 ‘캡션’ 버튼이 연다(막는 알럿 대신 종이 시트).
         .sheet(isPresented: $showEditImageCaption) {
             ImageCaptionSheet(initial: editImageCaptionText) { text in
@@ -571,7 +558,7 @@ struct ComposeView: View {
     @ViewBuilder
     private var editorCanvas: some View {
         if let editorDocument {
-            WysiwygComposeCanvas(document: editorDocument, pasteHandlers: v2PasteHandlers)
+            WysiwygComposeCanvas(document: editorDocument, pasteHandlers: v2PasteHandlers, linkHandlers: v2LinkHandlers)
                 // 블록 편집을 저장 계약(마크다운 문자열)으로 흘려보낸다 — 기존 자동저장·서명·발행 파이프
                 // 는 이 `markdown` 하나만 본다. 여기가 WriteV2 배선의 유일한 접합점이다.
                 .onChange(of: editorDocument.blocks) {
@@ -2280,13 +2267,18 @@ struct ComposeView: View {
 
     // MARK: WriteV2 붙여넣기 훅 — 현행(V1) 캔버스와 같은 계약을 블록 문서에 잇는다
 
-    /// 이미지 바이트 → 업로드 후 IMAGE 블록 / 이미지 URL → 재호스팅 후 IMAGE 블록 /
-    /// 일반 URL → 캔버스가 원문을 넣고, 이 훅의 단축 결과로 그 자리를 치환한다.
+    /// 이미지 바이트 → 업로드 후 IMAGE 블록 / 이미지 URL → 재호스팅 후 IMAGE 블록.
     private var v2PasteHandlers: EditorPasteHandlers {
         EditorPasteHandlers(
             images: { images in uploadV2PastedImages(images) },
-            imageURL: { url in importV2PastedImage(url) },
-            shorten: { url in try? await WriteAPI.shorten(url) }
+            imageURL: { url in importV2PastedImage(url) }
+        )
+    }
+
+    private var v2LinkHandlers: EditorLinkHandlers {
+        EditorLinkHandlers(
+            open: { url in openedLink = LegalLink(url: url) },
+            edit: { target in linkRequest = EditorLinkRequest(target: target) }
         )
     }
 
@@ -2356,37 +2348,22 @@ struct ComposeView: View {
         markdown = editorDocument.markdown
     }
 
-    /// WriteV2 통합 링크 삽입 — 클립보드에 URL 이 있으면 미리 채워 다이얼로그를 연다.
-    /// 다이얼로그(알럿)가 뜨면 캔버스 선택이 접히므로, 지금의 포커스(블록·선택)를 잡아둔다.
     private func presentV2LinkSheet() {
-        v2LinkTargetFocus = editorDocument?.focus
-        v2LinkLabel = ""
-        if let clip = UIPasteboard.general.string, Self.looksLikeURL(clip) {
-            v2LinkURL = clip.trimmingCharacters(in: .whitespacesAndNewlines)
-        } else {
-            v2LinkURL = ""
-        }
-        showV2LinkDialog = true
+        linkRequest = EditorLinkRequest(target: editorDocument?.linkTarget(at: editorDocument?.focus))
     }
 
-    /// 다이얼로그 확인 — 링크/임베드를 넣고 저장 계약을 즉시 맞춘다. 동영상 URL 은 단독 문단(임베드),
-    /// 아니면 알럿 열기 전 잡아둔 포커스의 선택을 `[선택](url)` 로 감싼다. 포커스가 없거나(캔버스 미포커스)
-    /// 비텍스트 블록이면 문단으로 삽입(폴백) — 링크가 조용히 사라지지 않게.
-    private func confirmV2Link(asCard: Bool) {
-        let url = Self.normalizedURL(v2LinkURL)
-        guard !url.isEmpty, let editorDocument else { return }
-        if asCard || WriteV2VideoDetect.isVideoURL(url) {
-            editorDocument.insertNonText(.linkCard(url))
-        } else if let target = v2LinkTargetFocus,
-                  editorDocument.linkSelection(at: target, url: url, label: v2LinkLabel) {
-            // 잡아둔 선택을 감쌌다.
-        } else {
-            editorDocument.insertLink(url: url, label: v2LinkLabel)  // 포커스 없음·비텍스트 → 문단 폴백
+    private func submitLink(_ result: EditorLinkResult, for request: EditorLinkRequest) {
+        guard let editorDocument else { return }
+        switch result.kind {
+        case .card:
+            editorDocument.placeLinkCard(result.url, after: request.target?.blockID)
+        case .link:
+            if let target = request.target, editorDocument.applyLink(target, text: result.text, url: result.url) {
+                break
+            }
+            editorDocument.insertLink(url: result.url, label: result.text)
         }
         syncFromDocument()
-        v2LinkURL = ""
-        v2LinkLabel = ""
-        v2LinkTargetFocus = nil
     }
 
     /// WriteV2 캔버스의 사진 삽입 — 실제 업로드 후 IMAGE 블록으로 넣는다(현행 경로와 같은 업로드 계약).
@@ -3371,9 +3348,10 @@ private struct ConfettiBurst: View {
 private struct WysiwygComposeCanvas: View {
     let document: EditorDocument
     let pasteHandlers: EditorPasteHandlers
+    let linkHandlers: EditorLinkHandlers
 
     var body: some View {
-        WysiwygEditorView(document: document, pasteHandlers: pasteHandlers)
+        WysiwygEditorView(document: document, pasteHandlers: pasteHandlers, linkHandlers: linkHandlers)
             .id(ObjectIdentifier(document))
     }
 }

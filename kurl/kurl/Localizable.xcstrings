@@ -3918,30 +3918,30 @@
         }
       }
     },
-    "kurl 링크로 단축했어요": {
+    "kurl 단축 주소로": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Shortened to a kurl link"
+            "value": "Shorten with kurl"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "kurl लिंक में छोटा किया गया"
+            "value": "kurl से छोटा करें"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "kurl リンクに短縮しました"
+            "value": "kurl 短縮URLにする"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Đã rút gọn thành liên kết kurl"
+            "value": "Rút gọn bằng kurl"
           }
         }
       }
@@ -6432,6 +6432,34 @@
         }
       }
     },
+    "넣기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insert"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जोड़ें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "挿入"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chèn"
+          }
+        }
+      }
+    },
     "다른 서버의 노트를 보려면 로그인하세요": {
       "localizations": {
         "en": {
@@ -6456,6 +6484,146 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đăng nhập để xem ghi chú từ máy chủ khác"
+          }
+        }
+      }
+    },
+    "단축 주소를 만들지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't make a short link"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "छोटा लिंक नहीं बन सका"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "短縮URLを作成できませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không tạo được liên kết rút gọn"
+          }
+        }
+      }
+    },
+    "링크 고치기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit link"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लिंक बदलें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンクを編集"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sửa liên kết"
+          }
+        }
+      }
+    },
+    "링크 넣기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insert link"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लिंक जोड़ें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンクを挿入"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chèn liên kết"
+          }
+        }
+      }
+    },
+    "링크 모양 고르기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose how the link appears"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लिंक कैसे दिखे, चुनें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンクの表示を選ぶ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chọn cách hiển thị liên kết"
+          }
+        }
+      }
+    },
+    "링크 빼기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove link"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लिंक निकालें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンクを外す"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gỡ liên kết"
           }
         }
       }
@@ -6516,6 +6684,34 @@
         }
       }
     },
+    "비우면 주소가 보여요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leave empty to show the address"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "खाली छोड़ें तो पता दिखेगा"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "空欄ならアドレスを表示します"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Để trống để hiện địa chỉ"
+          }
+        }
+      }
+    },
     "아직 단 답글이 없어요": {
       "localizations": {
         "en": {
@@ -6568,6 +6764,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chưa có ảnh nào"
+          }
+        }
+      }
+    },
+    "열기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "खोलें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "開く"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mở"
           }
         }
       }
@@ -6708,6 +6932,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hiển thị thông báo"
+          }
+        }
+      }
+    },
+    "카드": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Card"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कार्ड"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カード"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thẻ"
+          }
+        }
+      }
+    },
+    "클립보드에서 가져왔어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "From your clipboard"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "क्लिपबोर्ड से लिया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クリップボードから取得しました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lấy từ bộ nhớ tạm"
           }
         }
       }
@@ -18329,34 +18609,6 @@
         }
       }
     },
-    "링크로 추가": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Add as link"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "लिंक के रूप में जोड़ें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "リンクで追加"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Thêm dạng liên kết"
-          }
-        }
-      }
-    },
     "링크별 클릭": {
       "localizations": {
         "en": {
@@ -21872,6 +22124,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tên hiển thị"
+          }
+        }
+      }
+    },
+    "표시 텍스트": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Display text"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दिखने वाला टेक्स्ट"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "表示テキスト"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Văn bản hiển thị"
           }
         }
       }
@@ -33336,62 +33616,6 @@
         }
       }
     },
-    "카드로 추가": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Add as card"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "कार्ड के रूप में जोड़ें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "カードで追加"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Thêm dạng thẻ"
-          }
-        }
-      }
-    },
-    "카드로 추가하면 제목·사진이 담긴 미리보기로 보여요. YouTube·Vimeo 주소는 재생돼요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A card shows a preview with the title and image. YouTube · Vimeo links play."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "कार्ड शीर्षक और तस्वीर के साथ पूर्वावलोकन दिखाता है। YouTube · Vimeo लिंक चलते हैं।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "カードで追加するとタイトル・画像付きのプレビューで表示されます。YouTube・Vimeoは再生されます。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Thẻ hiển thị bản xem trước có tiêu đề và hình ảnh. Liên kết YouTube · Vimeo sẽ phát được."
-          }
-        }
-      }
-    },
     "캡션": {
       "localizations": {
         "en": {
@@ -35069,34 +35293,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đã xóa bảng"
-          }
-        }
-      }
-    },
-    "표시할 텍스트 (선택)": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Display text (optional)"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "प्रदर्शित टेक्स्ट (वैकल्पिक)"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "表示テキスト（任意）"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Văn bản hiển thị (tùy chọn)"
           }
         }
       }

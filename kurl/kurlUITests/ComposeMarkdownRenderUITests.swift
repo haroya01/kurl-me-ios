@@ -66,8 +66,8 @@ final class ComposeMarkdownRenderUITests: XCTestCase {
         shot("link-inserted")
     }
 
-    /// 붙여넣은 외부 URL → kurl 단축링크 자동 변환.
-    func testPasteUrlBecomesKurlShortLink() throws {
+    /// 붙여넣은 외부 URL 은 쓴 그대로 남는다(단축은 하지 않는다).
+    func testPastedUrlIsNotShortened() throws {
         UIPasteboard.general.string = "https://example.com/very/long/path?utm=abcdef123456"
 
         // 페이스트보드 동의 알럿이 뜨면 허용(다른 프로세스가 채운 보드라 한 번 물을 수 있다).
@@ -99,14 +99,14 @@ final class ComposeMarkdownRenderUITests: XCTestCase {
         (pasteEN.exists ? pasteEN : pasteKO).tap()
         app.tap() // 인터럽션 모니터가 동의 알럿을 처리하도록 한 번 건드린다.
 
-        // 비동기 단축 교체를 기다린다.
-        let shortened = NSPredicate(format: "value CONTAINS 'kurl.me/'")
-        expectation(for: shortened, evaluatedWith: editor, handler: nil)
+        let pasted = NSPredicate(format: "value CONTAINS 'example.com/very/long/path'")
+        expectation(for: pasted, evaluatedWith: editor, handler: nil)
         waitForExpectations(timeout: 10)
+        Thread.sleep(forTimeInterval: 3)
 
         let value = (editor.value as? String) ?? ""
-        XCTAssertTrue(value.contains("kurl.me/"), "단축링크로 안 바뀜: \(value)")
-        XCTAssertFalse(value.contains("example.com/very/long"), "원문 URL 이 남음: \(value)")
-        shot("paste-shortened")
+        XCTAssertFalse(value.contains("kurl.me/"), "붙여넣은 주소가 단축됨: \(value)")
+        XCTAssertTrue(value.contains("https://example.com/very/long/path?utm=abcdef123456"), "원문 URL 이 그대로여야 함: \(value)")
+        shot("paste-kept")
     }
 }

@@ -499,20 +499,17 @@ final class WriteV2RoundTripTests: XCTestCase {
             let doc = EditorDocument(blocks: [.paragraph("")])
             doc.focus = EditorFocus(blockID: doc.blocks[0].id, caret: 0)
             doc.insertLink(url: "https://example.com/a", label: "")
-            XCTAssertTrue(doc.markdown.contains("[https://example.com/a](https://example.com/a)"))
+            XCTAssertTrue(doc.markdown.contains("<https://example.com/a>"))
         }
     }
 
-    func testInsertVideoLinkProducesStandaloneURLForEmbed() async {
+    func testInsertVideoLinkStaysALink() async {
         await MainActor.run {
             let doc = EditorDocument(blocks: [.paragraph("본문")])
             doc.focus = EditorFocus(blockID: doc.blocks[0].id, caret: 2)
-            doc.insertLink(url: "https://youtu.be/dQw4w9WgXcQ", label: "무시됨")
-            // 동영상은 단독 URL 문단으로 — 발행 md→blocks 가 EMBED 로 접는다(대괄호 링크 아님).
-            XCTAssertFalse(doc.markdown.contains("["))
-            XCTAssertTrue(doc.markdown.contains("https://youtu.be/dQw4w9WgXcQ"))
-            // 그 URL 이 제 문단에 홀로 서야 한다(앞뒤 빈 줄).
-            XCTAssertTrue(doc.markdown.contains("\n\nhttps://youtu.be/dQw4w9WgXcQ"))
+            doc.insertLink(url: "https://youtu.be/dQw4w9WgXcQ", label: "보기")
+            XCTAssertTrue(doc.markdown.contains("\n\n[보기](https://youtu.be/dQw4w9WgXcQ)"))
+            XCTAssertFalse(doc.markdown.contains("\n\nhttps://youtu.be/dQw4w9WgXcQ"))
         }
     }
 
@@ -1173,7 +1170,22 @@ final class InlineFormatInvariantGuardTests: XCTestCase {
         let kinds = MarkdownBlockParser.parse(md).map(\.kind)
         XCTAssertEqual(kinds, [.paragraph, .linkCard(url: "https://r2dbc.io/"), .paragraph])
         XCTAssertEqual(MarkdownSerializer.markdown(from: MarkdownBlockParser.parse(md)), md)
-        XCTAssertEqual(MarkdownBlockParser.parse("<https://x.com/a>").map(\.kind), [.linkCard(url: "https://x.com/a")])
+    }
+
+    func testOnlyABareURLLineIsACard() {
+        for line in ["<https://x.com/a>", "[읽어 볼 글](https://x.com/a)", "<https://youtu.be/dQw4w9WgXcQ>", "https://x.com/a\\"] {
+            let blocks = MarkdownBlockParser.parse(line)
+            XCTAssertEqual(blocks.map(\.kind), [.paragraph], line)
+            XCTAssertEqual(MarkdownSerializer.markdown(from: blocks), line)
+        }
+        XCTAssertEqual(MarkdownBlockParser.parse("intro\\\nhttps://youtu.be/x").map(\.kind), [.paragraph])
+        XCTAssertEqual(MarkdownBlockParser.parse("intro\\\nhttps://example.com/article\\\noutro").map(\.kind), [.paragraph])
+        XCTAssertEqual(
+            MarkdownBlockParser.parse("intro\nhttps://youtu.be/x").map(\.kind),
+            [.paragraph, .linkCard(url: "https://youtu.be/x")])
+        XCTAssertEqual(
+            MarkdownBlockParser.parse("C:\\\\\nhttps://youtu.be/x").map(\.kind),
+            [.paragraph, .linkCard(url: "https://youtu.be/x")])
     }
 
     func testURLInsideTextOrImageURLStaysAsIs() {
