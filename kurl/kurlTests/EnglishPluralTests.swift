@@ -26,9 +26,10 @@ final class EnglishPluralTests: XCTestCase {
     }
 
     func testCountNextToTextUsesItsOwnArgument() {
-        XCTAssertEqual(en("@\("kurl") · \(1)편"), "@kurl · 1 post")
-        XCTAssertEqual(en("@\("kurl") · \(4)편"), "@kurl · 4 posts")
-        XCTAssertEqual(en("‘\("길")’ 외 \(1)개 컬렉션에 담김"), "In ‘길’ and 1 more collection")
+        XCTAssertEqual(en("@\("kurl") · \(1)개"), "@kurl · 1 item")
+        XCTAssertEqual(en("@\("kurl") · \(4)개"), "@kurl · 4 items")
+        XCTAssertEqual(en("@\("minji") · \(4)편 중 \(2)번째"), "@minji · 2 of 4")
+        XCTAssertEqual(en("‘\("경계")’ 외 \(1)개 컬렉션에 담김"), "In ‘경계’ and 1 more collection")
     }
 
     func testTwoCountsPluralizeIndependently() {

@@ -1340,11 +1340,11 @@ private struct PostDetailReader: View {
                     && ((endSentinelWasHidden && minY < viewport * 0.9) || minY < viewport * 0.5)
                 if reached != endVisible { endVisible = reached }
             }
-        // 글 = 엣지가 보이는 노드 — 다 읽은 뒤, 이 글이 놓인 길 · 이어진 것 · 이은 사람으로 나간다.
-        // 엣지가 하나도 없으면 그려지지 않고(막다른 길 방지는 아래 태그 기반 작가 레일이 맡는다),
+        // 글 = 엣지가 보이는 노드 — 다 읽은 뒤, 이 글이 담긴 컬렉션으로 나간다.
+        // 담긴 공개 컬렉션이 없으면 그려지지 않고(막다른 길 방지는 아래 태그 기반 작가 레일이 맡는다),
         // 덱 임베드는 여러 장이 lazy 로 살아 있어 켜지 않는다(본 글에서만).
         if !embedded {
-            PostEdges(postId: detail.post.id, authorUsername: detail.author.username)
+            PostCollectionsRail(postId: detail.post.id)
                 .padding(.top, 10)
         }
         authorCard(detail.author)
@@ -1369,7 +1369,7 @@ private struct PostDetailReader: View {
         // 끝에서 독이 후퇴하므로 이 여백이 남아돌 뿐 해가 없다(scrollable 에 의존하지 않아
         // 여백↔scrollable 되먹임 진동도 없다). 덱 임베드는 페이지마다 독이 함께 밀려 나가 제외.
         //
-        // 탭 스택에 푸시된 단독 글은 커스텀 탭바가 떠 그 뒤로 끝맺음("이어진 것" 연결 블록·작가
+        // 탭 스택에 푸시된 단독 글은 커스텀 탭바가 떠 그 뒤로 끝맺음(작가
         // 카드)이 눌려 잘렸다 — 커스텀 바는 시스템 인셋을 안 주므로(Root, 독과 같은 사연) 예약
         // 높이만큼 더 비운다. 스크롤 중 높이가 흔들려 튀지 않게 hidden 무관 상수로 둔다.
         Color.clear.frame(height: (embedded ? 56 : 78) + pushedTabBarBottomInset)

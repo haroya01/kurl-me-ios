@@ -43,7 +43,7 @@ final class GraphNotificationsUITests: XCTestCase {
         return app
     }
 
-    /// 인박스에 두 그래프 알림이 선다 — CONNECTED(회원 글이 컬렉션에 엮임)·PATH_GREW(엮인 길에 새 글).
+    /// 인박스에 두 그래프 알림이 선다 — CONNECTED(회원 글이 컬렉션에 엮임)·PATH_GREW(엮인 컬렉션에 새 글).
     func testGraphNotificationsRender() throws {
         let app = launchInbox()
 

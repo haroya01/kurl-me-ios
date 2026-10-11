@@ -2,7 +2,7 @@
 //  PathReorderSheet.swift
 //  kurl
 //
-//  길(PATH)의 연결 순서를 드래그로 짠다 — PATH 에선 이 순서가 곧 논증의 흐름이다(A 척추 Stage 3).
+//  순서 있는 컬렉션의 연결 순서를 드래그로 짠다 — 이 순서가 곧 논증의 흐름이다(A 척추 Stage 3).
 //  네이티브 List `.onMove` 로 끌어 옮기고, 저장 시 백엔드 reorder(연결 id 전체 순서) 한 번.
 //
 
@@ -18,7 +18,7 @@ struct PathReorderSheet: View {
     @ScaledMetric(relativeTo: .caption) private var indexSize: CGFloat = 12
     @State private var saving = false
 
-    // 순서가 그대로면 저장은 무의미한 POST + reload — 막아 둔다(미로딩 빈 길도 여기서 걸린다).
+    // 순서가 그대로면 저장은 무의미한 POST + reload — 막아 둔다(미로딩 빈 목록도 여기서 걸린다).
     private var reordered: Bool { items.map(\.id) != detail.connections.map(\.id) }
 
     init(detail: CollectionDetail, onSaved: @escaping () -> Void) {
