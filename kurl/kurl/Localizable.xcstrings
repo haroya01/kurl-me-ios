@@ -30291,30 +30291,30 @@
         }
       }
     },
-    "자기소개를 적어보세요": {
+    "자기소개": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Write a short bio"
+            "value": "Bio"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "अपना परिचय लिखें"
+            "value": "अपना परिचय"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "自己紹介を書いてみましょう"
+            "value": "自己紹介"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Viết đôi dòng giới thiệu"
+            "value": "Giới thiệu bản thân"
           }
         }
       }
