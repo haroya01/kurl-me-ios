@@ -371,6 +371,19 @@ enum MockBackend {
     private static var nextHighlightId = 6100
     private static var nextHighlightReplyId = 7100
 
+    /// `--slow-edges [초]` = 글 끝 엣지(이 글이 놓인 길·이어진 것·이은 사람)가 늦게 온다(기본 1초) — 딥링크로
+    /// 내려간 뒤 위쪽이 늦게 커지는 경우를 재현한다.
+    private static let slowEdges: Duration? = {
+        guard ProcessInfo.processInfo.arguments.contains("--slow-edges") else { return nil }
+        return .seconds(Config.launchValue(after: "--slow-edges").flatMap(Double.init) ?? 1)
+    }()
+
+    static func delay(for path: String) -> Duration? {
+        guard let slowEdges else { return nil }
+        let edges = path.hasSuffix("/public/posts/collections") || path.hasSuffix("/related") || path.hasSuffix("/kindred")
+        return edges ? slowEdges : nil
+    }
+
     /// `--empty-feeds` = 구독함·추천을 빈 응답으로 — 빈 안내 화면 검증용.
     private static let emptyFeeds = ProcessInfo.processInfo.arguments.contains("--empty-feeds")
 

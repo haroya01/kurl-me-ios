@@ -29,10 +29,23 @@ final class ConversationRowsUITests: XCTestCase {
         add(shot)
     }
 
+    /// 화면 위·아래 끝(내비바·홈 표시줄 쪽)에 걸친 채 멈추면 탭이 화면 밖에 떨어진다 — 안쪽 띠에 들 때까지 민다.
     private func scrollTo(_ element: XCUIElement, in app: XCUIApplication, tries: Int = 14) {
+        let screen = app.windows.firstMatch.frame
         var n = 0
-        while !(element.exists && element.isHittable), n < tries {
-            app.swipeUp(velocity: .slow)
+        while n < tries {
+            if element.exists, element.isHittable {
+                let frame = element.frame
+                if frame.minY < screen.minY + 100 {
+                    app.swipeDown(velocity: .slow)
+                } else if frame.maxY > screen.maxY - 100 {
+                    app.swipeUp(velocity: .slow)
+                } else {
+                    return
+                }
+            } else {
+                app.swipeUp(velocity: .slow)
+            }
             n += 1
         }
     }

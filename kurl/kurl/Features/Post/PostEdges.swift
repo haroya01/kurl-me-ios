@@ -174,17 +174,48 @@ struct PostEdges: View {
     private func load() async {
         guard !loaded else { return }
         loaded = true
-        // 세 요청을 병렬로 — 서로를 기다리지 않게. 실패는 조용히 흡수(엣지는 부가 표면, 읽기를 막지 않는다).
-        async let collectionsTask = try? CollectionsAPI.publicPostCollectionsBatch(ids: [postId])
-        async let relatedTask = try? CollectionsAPI.relatedBlocks(blockType: "POST", refId: postId)
-        async let kindredTask = try? CollectionsAPI.kindredCurators(username: authorUsername)
+        let edges = await (PostEdgesPrefetch.shared.take(postId: postId)
+            ?? PostEdgesPrefetch.fetch(postId: postId, authorUsername: authorUsername)).value
+        collections = edges.collections
+        related = edges.related
+        kindred = edges.kindred
+    }
+}
 
-        let fetchedCollections = (await collectionsTask)?.first?.collections ?? []
-        let fetchedRelated = (await relatedTask) ?? []
-        let fetchedKindred = (await kindredTask) ?? []
+struct PostEdgesData {
+    var collections: [CollectionSummary] = []
+    var related: [RelatedBlock] = []
+    var kindred: [KindredCurator] = []
+}
 
-        collections = fetchedCollections
-        related = fetchedRelated
-        kindred = fetchedKindred
+/// 댓글로 바로 내려가는 딥링크는 엣지를 글과 함께 받아 둔다 — 엣지가 늦게 그려지면 그 아래 댓글이 밀린다.
+@MainActor
+final class PostEdgesPrefetch {
+    static let shared = PostEdgesPrefetch()
+    private var pending: [Int64: Task<PostEdgesData, Never>] = [:]
+
+    @discardableResult
+    func start(postId: Int64, authorUsername: String) -> Task<PostEdgesData, Never> {
+        if let task = pending[postId] { return task }
+        let task = Self.fetch(postId: postId, authorUsername: authorUsername)
+        pending = [postId: task]
+        return task
+    }
+
+    func take(postId: Int64) -> Task<PostEdgesData, Never>? {
+        pending.removeValue(forKey: postId)
+    }
+
+    /// 세 요청을 병렬로 — 서로를 기다리지 않게. 실패는 조용히 흡수(엣지는 부가 표면, 읽기를 막지 않는다).
+    static func fetch(postId: Int64, authorUsername: String) -> Task<PostEdgesData, Never> {
+        Task {
+            async let collections = try? CollectionsAPI.publicPostCollectionsBatch(ids: [postId])
+            async let related = try? CollectionsAPI.relatedBlocks(blockType: "POST", refId: postId)
+            async let kindred = try? CollectionsAPI.kindredCurators(username: authorUsername)
+            return PostEdgesData(
+                collections: (await collections)?.first?.collections ?? [],
+                related: (await related) ?? [],
+                kindred: (await kindred) ?? [])
+        }
     }
 }
