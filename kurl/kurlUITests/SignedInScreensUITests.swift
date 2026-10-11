@@ -35,7 +35,7 @@ final class SignedInScreensUITests: XCTestCase {
         app.buttons.matching(NSPredicate(format: "label CONTAINS %@", label)).firstMatch
     }
 
-    /// 계정 탭 = 내 블로그. 서재(북마크·하이라이트·기록·노트)는 오른쪽 헤더의 책 버튼으로 들어간다.
+    /// 계정 탭 = 내 블로그. 서재(북마크·하이라이트·기록·노트)는 프로필 버튼 줄의 '서재'로 들어간다.
     /// 하이라이트·읽기 기록·노트 행은 이 서재 목록 안에 있어, 먼저 서재를 열어야 도달한다.
     private func openLibrary(_ app: XCUIApplication) {
         let library = app.buttons["서재"].firstMatch

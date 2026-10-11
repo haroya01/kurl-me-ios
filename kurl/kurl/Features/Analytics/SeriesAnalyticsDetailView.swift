@@ -148,8 +148,6 @@ struct SeriesAnalyticsDetailView: View {
                             ? Int((Double(member.continuedToNext) / Double(member.uniqueReaders) * 100).rounded())
                             : 0
                         HStack(spacing: 3) {
-                            Image(systemName: "arrow.turn.down.right")
-                                .font(.system(size: 10 * metaUnit))
                             Text("다음 화 \(pct)%")
                                 .lineLimit(1)
                         }

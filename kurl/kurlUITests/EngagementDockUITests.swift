@@ -19,9 +19,9 @@ final class EngagementDockUITests: XCTestCase {
         app.launchArguments = ["--mocks", "--post", "honggildong/p-mock-2"]
         app.launch()
 
-        let like = app.buttons["좋아요"]
-        let bookmark = app.buttons["북마크"]
-        let connect = app.buttons["컬렉션에 연결"]
+        let like = app.buttons["dock.like"]
+        let bookmark = app.buttons["dock.bookmark"]
+        let connect = app.buttons["dock.connect"]
         XCTAssertTrue(like.waitForExistence(timeout: 15), "독에 좋아요 버튼이 없음")
         XCTAssertTrue(bookmark.exists, "독에 북마크 버튼이 없음")
         XCTAssertTrue(connect.exists, "독에 연결 버튼이 없음")
@@ -36,13 +36,14 @@ final class EngagementDockUITests: XCTestCase {
         XCTAssertFalse(app.sheets.firstMatch.exists, "좋아요를 눌렀는데 연결 시트가 뜸 — 독립성 깨짐")
     }
 
-    func testDockStaysStackedAtBottomTrailingWhileScrolling() throws {
+    /// 읽어 내려가는 동안엔 독이 본문을 가리지 않고, 멈춰도 숨은 채이며, 위로 올리면 돌아온다.
+    func testDockHidesWhileReadingDownAndReturnsOnlyWhenScrolledBackUp() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--post", "honggildong/hexagonal-after-3-months"]
         app.launch()
 
-        let like = app.buttons["좋아요"]
-        let bookmark = app.buttons["북마크"]
+        let like = app.buttons["dock.like"]
+        let bookmark = app.buttons["dock.bookmark"]
         XCTAssertTrue(like.waitForExistence(timeout: 15), "독에 좋아요 버튼이 없음")
 
         let window = app.windows.firstMatch.frame
@@ -52,8 +53,22 @@ final class EngagementDockUITests: XCTestCase {
 
         app.swipeUp()
         Thread.sleep(forTimeInterval: 0.8)
-        XCTAssertTrue(like.isHittable, "스크롤하면 독이 숨음 — 읽는 동안 계속 보여야 함")
-        XCTAssertTrue(bookmark.isHittable, "스크롤하면 북마크가 숨음")
+        XCTAssertFalse(like.isHittable, "읽어 내려가는데 독이 본문 위에 떠 있음")
+        Thread.sleep(forTimeInterval: 1.5)
+        XCTAssertFalse(like.isHittable, "스크롤을 멈췄더니 독이 돌아와 읽던 문장을 덮음")
+        attach("dock-hidden-while-reading")
+
+        nudgeContentDown(app)
+        XCTAssertTrue(like.isHittable, "위로 올렸는데 독이 돌아오지 않음")
+        XCTAssertTrue(bookmark.isHittable, "위로 올렸는데 북마크가 돌아오지 않음")
+        attach("dock-back-after-scrolling-up")
+    }
+
+    private func attach(_ name: String) {
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = name
+        shot.lifetime = .keepAlways
+        add(shot)
     }
 
     func testDockRetreatsAtTheEndAndReturnsInTheBody() throws {
@@ -61,15 +76,16 @@ final class EngagementDockUITests: XCTestCase {
         app.launchArguments = ["--mocks", "--post", "honggildong/hexagonal-after-3-months"]
         app.launch()
 
-        let like = app.buttons["좋아요"]
+        let like = app.buttons["dock.like"]
         XCTAssertTrue(like.waitForExistence(timeout: 15), "독에 좋아요 버튼이 없음")
         XCTAssertTrue(like.isHittable, "처음 연 글에서 독이 보여야 함")
 
-        for _ in 0..<12 where like.isHittable {
+        for _ in 0..<12 {
             app.swipeUp()
-            Thread.sleep(forTimeInterval: 0.4)
+            Thread.sleep(forTimeInterval: 0.3)
         }
-        XCTAssertFalse(like.isHittable, "글 끝맺음에 닿으면 독이 물러나야 함")
+        nudgeContentDown(app)
+        XCTAssertFalse(like.isHittable, "글 끝맺음에서 살짝 올렸는데 독이 끝맺음 위로 돌아옴")
 
         for _ in 0..<12 where !like.isHittable {
             app.swipeDown()
@@ -84,7 +100,7 @@ final class EngagementDockUITests: XCTestCase {
         app.launchArguments = ["--mocks", "--post", "honggildong/p-mock-2"]
         app.launch()
 
-        let like = app.buttons["좋아요"]
+        let like = app.buttons["dock.like"]
         XCTAssertTrue(like.waitForExistence(timeout: 15), "독에 좋아요 버튼이 없음")
         XCTAssertTrue(like.isHittable, "처음 연 짧은 글에서도 독이 보여야 함")
 
@@ -93,14 +109,22 @@ final class EngagementDockUITests: XCTestCase {
             Thread.sleep(forTimeInterval: 0.3)
         }
         Thread.sleep(forTimeInterval: 0.5)
-        XCTAssertFalse(like.isHittable, "댓글까지 내려가도 독이 댓글 위에 떠 있음")
         let prompt = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "댓글을 남겨보세요")).firstMatch
         XCTAssertTrue(prompt.isHittable, "댓글 입구가 가려짐")
+        nudgeContentDown(app)
+        XCTAssertFalse(like.isHittable, "댓글에서 살짝 올렸는데 독이 댓글 위에 떠 있음")
 
         for _ in 0..<12 where !like.isHittable {
             app.swipeDown()
             Thread.sleep(forTimeInterval: 0.4)
         }
         XCTAssertTrue(like.isHittable, "본문으로 되돌아오면 독이 다시 떠야 함")
+    }
+
+    /// 관성 없이 150pt 만 끌어 내용을 아래로 — 스크롤 방향 판정 임계(44pt)는 넘고, 글 끝 영역은 화면에 남긴다.
+    private func nudgeContentDown(_ app: XCUIApplication) {
+        let start = app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45))
+        start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: 150)))
+        Thread.sleep(forTimeInterval: 0.8)
     }
 }

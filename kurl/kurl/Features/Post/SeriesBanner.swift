@@ -271,19 +271,15 @@ struct SeriesNextCard: View {
     }
 }
 
-/// 시리즈 목차에서 노트 편을 글과 가르는 작은 표식 — 노트 탭과 같은 말풍선에 "노트" 한 마디.
+/// 시리즈 목차에서 노트 편을 글과 가르는 작은 표식 — "노트" 한 마디.
 struct SeriesNoteMark: View {
     let size: CGFloat
     let current: Bool
 
     var body: some View {
-        HStack(spacing: 3) {
-            Image(systemName: "text.bubble")
-                .font(.system(size: size, weight: .semibold))
-            Text("노트")
-                .font(.system(size: size, weight: .semibold))
-        }
-        .foregroundStyle(current ? Palette.link : Palette.faint)
-        .accessibilityHidden(true)
+        Text("노트")
+            .font(.system(size: size, weight: .semibold))
+            .foregroundStyle(current ? Palette.link : Palette.faint)
+            .accessibilityHidden(true)
     }
 }

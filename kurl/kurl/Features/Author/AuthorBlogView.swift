@@ -9,6 +9,7 @@ import SwiftUI
 
 struct AuthorBlogView: View {
     let username: String
+    private let showsOwnerTools: Bool
 
     @State private var tab: AuthorTab
     @State private var notes: NotesViewModel
@@ -41,8 +42,9 @@ struct AuthorBlogView: View {
     /// "명함" 버튼 라벨 — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
     @ScaledMetric(relativeTo: .headline) private var cardLabelSize: CGFloat = 14
 
-    init(username: String, initialTab: AuthorTab = .posts) {
+    init(username: String, initialTab: AuthorTab = .posts, showsOwnerTools: Bool = false) {
         self.username = username
+        self.showsOwnerTools = showsOwnerTools
         _tab = State(initialValue: initialTab)
         _notes = State(initialValue: NotesViewModel(author: username))
         _reposts = State(initialValue: NotesViewModel(repostsBy: username))
@@ -58,6 +60,45 @@ struct AuthorBlogView: View {
     private var isOwnAuthor: Bool {
         guard let myId = AuthStore.shared.me?.id, let author else { return false }
         return author.id == myId
+    }
+    private var ownerToolsShown: Bool { showsOwnerTools && isOwnAuthor }
+
+    private var ownerTools: some View {
+        (dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: 10))
+            : AnyLayout(HStackLayout(spacing: 10))) {
+            Button {
+                TabRouter.shared.openStudio()
+            } label: {
+                ownerToolLabel("스튜디오")
+            }
+            .buttonStyle(.plain)
+            .glassCapsule(prominent: false)
+            .accessibilityIdentifier("account.studio")
+            NavigationLink {
+                LibraryView()
+            } label: {
+                ownerToolLabel("서재")
+            }
+            .buttonStyle(.plain)
+            .glassCapsule(prominent: false)
+            .accessibilityIdentifier("account.library")
+            NavigationLink(value: Route.businessCard(username: username)) {
+                ownerToolLabel("명함")
+            }
+            .buttonStyle(.plain)
+            .glassCapsule(prominent: false)
+            .accessibilityIdentifier("author.card")
+        }
+    }
+
+    private func ownerToolLabel(_ title: LocalizedStringKey) -> some View {
+        Text(title)
+            .font(.system(size: cardLabelSize, weight: .semibold))
+            .lineLimit(1)
+            .foregroundStyle(.primary)
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .contentShape(Capsule())
     }
     private var tabs: [AuthorTab] {
         var all: [AuthorTab] = [.posts, .notes, .replies, .media, .reposts]
@@ -288,25 +329,29 @@ struct AuthorBlogView: View {
                     }
                     FollowCountsLink(username: view.author.username, initialStatus: followStatus, showsCounts: false)
                 }
-                NavigationLink(value: Route.businessCard(username: username)) {
-                    HStack(spacing: 5) {
-                        Image(systemName: "person.crop.rectangle")
-                            .font(.system(size: 12, weight: .semibold))
-                        Text("명함")
-                            .font(.system(size: cardLabelSize, weight: .semibold))
-                            .lineLimit(1)
-                            .fixedSize()
+                if !ownerToolsShown {
+                    NavigationLink(value: Route.businessCard(username: username)) {
+                        HStack(spacing: 5) {
+                            Text("명함")
+                                .font(.system(size: cardLabelSize, weight: .semibold))
+                                .lineLimit(1)
+                                .fixedSize()
+                        }
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 14)
+                        .frame(minHeight: 44)
+                        .contentShape(Capsule())
                     }
-                    .foregroundStyle(.primary)
-                    .padding(.horizontal, 14)
-                    .frame(minHeight: 44)
-                    .contentShape(Capsule())
+                    .buttonStyle(.plain)
+                    .glassCapsule(prominent: false)
+                    .accessibilityIdentifier("author.card")
                 }
-                .buttonStyle(.plain)
-                .glassCapsule(prominent: false)
-                .accessibilityIdentifier("author.card")
             }
             .padding(.top, 14)
+            if ownerToolsShown {
+                ownerTools
+                    .padding(.top, 12)
+            }
         }
         .padding(.vertical, 18)
 

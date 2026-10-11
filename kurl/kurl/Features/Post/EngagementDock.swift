@@ -76,6 +76,7 @@ struct EngagementDock: View {
         .glassEffectID("connect", in: glassNS)
         .glassEffectTransition(.materialize)
         .accessibilityLabel(Text("컬렉션에 연결"))
+        .accessibilityIdentifier("dock.connect")
     }
 
     private var like: some View {
@@ -101,6 +102,7 @@ struct EngagementDock: View {
         .glassEffectTransition(.materialize)
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: model.liked)
         .accessibilityLabel(Text("좋아요"))
+        .accessibilityIdentifier("dock.like")
         .accessibilityAddTraits(model.liked ? [.isSelected] : [])
 
     }
@@ -124,6 +126,7 @@ struct EngagementDock: View {
         .glassEffectTransition(.materialize)
         .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: model.bookmarked)
         .accessibilityLabel(Text("북마크"))
+        .accessibilityIdentifier("dock.bookmark")
         .accessibilityAddTraits(model.bookmarked ? [.isSelected] : [])
     }
 

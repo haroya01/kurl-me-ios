@@ -85,8 +85,6 @@ struct ImageLightbox: View {
                     .accessibilityHint(Text("두 번 탭하면 확대, 아래로 쓸어 닫기"))
             case .failure:
                 VStack(spacing: 8) {
-                    Image(systemName: "photo")
-                        .font(.system(size: 26))
                     Text("이미지를 불러오지 못했어요")
                         .typeScale(.meta)
                 }

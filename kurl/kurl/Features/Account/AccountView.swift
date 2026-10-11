@@ -25,7 +25,7 @@ struct AccountView: View {
                 if auth.isSignedIn {
                     if let username = auth.me?.username, !username.isEmpty {
                         // 내 계정 = 내 블로그 — 들어오면 내가 발행한 글이 바로 뜬다.
-                        AuthorBlogView(username: username)
+                        AuthorBlogView(username: username, showsOwnerTools: true)
                     } else if meLoadFailed {
                         // me 로드 실패(오프라인 등) — StateView 실패 상태와 같은 결의 재시도 길.
                         ErrorState(retry: { Task { await reloadMe() } })
@@ -36,7 +36,6 @@ struct AccountView: View {
                     }
                 } else {
                     SignedOutState(
-                        systemImage: "person.crop.circle",
                         description: "내 글과 노트, 라이브러리가 여기 모여요.",
                         message: "kurl에 로그인하세요")
                         .navigationTitle("내 계정")
@@ -56,27 +55,6 @@ struct AccountView: View {
                     .accessibilityLabel("설정")
                 }
                 if auth.isSignedIn {
-                    // 스튜디오 — 내가 쓰는 것(글·시리즈·분석). 서재·벨과 한 묶음의 "내 것" 목적지.
-                    ToolbarItem(placement: .primaryAction) {
-                        Button {
-                            showStudio = true
-                        } label: {
-                            Image(systemName: "chart.bar.doc.horizontal")
-                        }
-                        .tint(.primary)
-                        .accessibilityLabel("스튜디오")
-                        .accessibilityIdentifier("account.studio")
-                    }
-                    // 서재 — 내가 모은 것(북마크·좋아요·구독·하이라이트·컬렉션·기록·노트).
-                    ToolbarItem(placement: .primaryAction) {
-                        NavigationLink {
-                            LibraryView()
-                        } label: {
-                            Image(systemName: "books.vertical")
-                        }
-                        .tint(.primary)
-                        .accessibilityLabel("서재")
-                    }
                     ToolbarItem(placement: .primaryAction) {
                         // 값 기반 링크로 인박스를 민다 — 인박스 안의 딥링크(글·컬렉션)가 같은 스택에서
                         // 이어 밀리게 하려면 벨도 값 목적지를 써야 한다(isPresented 목적지는 값 푸시와 충돌).

@@ -64,35 +64,6 @@ extension NotificationKind {
         case .followRequest: return "팔로우를 직접 승인할 때 누군가 팔로우를 요청하면"
         }
     }
-
-    /// 행 아이콘 — 종류의 성격을 한눈에(SF Symbols).
-    var icon: String {
-        switch self {
-        case .like: return "heart"
-        case .comment: return "bubble.left"
-        case .reply: return "arrowshape.turn.up.left"
-        case .mention: return "at"
-        case .follow: return "person.badge.plus"
-        case .seriesSubscribe: return "books.vertical"
-        case .highlight: return "highlighter"
-        case .postQuote: return "quote.bubble"
-        case .commentLike: return "heart"
-        case .newPost: return "doc.text"
-        case .connected: return "link"
-        case .pathGrew: return "arrow.triangle.branch"
-        case .noteReply: return "arrowshape.turn.up.left"
-        case .noteQuote: return "quote.bubble"
-        case .noteEmbed: return "text.quote"
-        case .noteMention: return "at"
-        case .noteLike: return "heart"
-        case .noteRepost: return "arrow.2.squarepath"
-        case .notePoll: return "chart.bar.xaxis"
-        case .notePost: return "bell"
-        case .noteEdit: return "pencil"
-        case .remoteFollow: return "person.badge.plus"
-        case .followRequest: return "person.badge.clock"
-        }
-    }
 }
 
 enum NotificationKindSection: CaseIterable, Identifiable {
@@ -169,10 +140,6 @@ struct NotificationPreferencesView: View {
     private func row(_ kind: NotificationKind) -> some View {
         Toggle(isOn: binding(for: kind)) {
             HStack(spacing: 10) {
-                Image(systemName: kind.icon)
-                    .font(.system(size: 14))
-                    .foregroundStyle(Palette.accentMarker)
-                    .frame(width: 22)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(kind.title)
                         .typeScale(.body)

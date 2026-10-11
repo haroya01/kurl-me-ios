@@ -25,7 +25,6 @@ struct CollectionDetailView: View {
     // 돌아오면 현재 스텝 강조·진행률·연속성 바가 곧바로 갱신된다. 서버 0.
     @State private var resume = PathResumeStore.shared
     @Environment(\.dismiss) private var dismiss
-    @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
     /// 내 컬렉션일 때만 수정·삭제·끊기 — 남의 공개 컬렉션은 보기만.
     private var isOwner: Bool {
@@ -252,8 +251,6 @@ struct CollectionDetailView: View {
                     .buttonStyle(.plain)
                     Text("·").foregroundStyle(Palette.faint)
                 }
-                Image(systemName: detail.visibility.icon)
-                    .font(.system(size: 11 * metaUnit, weight: .medium))
                 Text(detail.visibility.label)
                 Text("·").foregroundStyle(Palette.faint)
                 Text("\(connections.count)개")

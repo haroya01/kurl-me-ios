@@ -149,10 +149,6 @@ struct NotificationsView: View {
 
     private func pushPrompt(_ status: UNAuthorizationStatus) -> some View {
         HStack(alignment: .center, spacing: 12) {
-            Image(systemName: "bell.badge")
-                .font(.title3)
-                .foregroundStyle(Palette.secondary)
-                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text("푸시 알림이 꺼져 있어요")
                     .font(.subheadline.weight(.semibold))
