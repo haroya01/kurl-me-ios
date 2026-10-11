@@ -91,7 +91,7 @@ struct SeriesReorderSheet: View {
                     SeriesNoteMark(size: indexSize, current: false)
                 } else if !item.isPublished {
                     // 발행 전 회차는 한 줄로 표식 — 목차엔 안 뜨지만 시리즈엔 속한다는 걸 여기선 보여준다.
-                    Text(item.status == "SCHEDULED" ? "예약" : "초안")
+                    Text(item.status == "SCHEDULED" ? "예약" : "임시저장")
                         .typeScale(.meta)
                         .foregroundStyle(Palette.faint)
                 }

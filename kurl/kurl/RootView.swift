@@ -21,7 +21,6 @@ final class TabRouter {
     var pendingStudio = false
     var pendingStudioSection: String?
     var pendingStudioCompose = false
-    var pendingStudioDrafts = false
     /// 위젯에서 탭한 저장 글 — RootView 가 시트로 띄운다. 탭 스택에 미는 방식은 path 바인딩이
     /// 필요한데, 그 바인딩이 tabBarMinimizeBehavior 를 죽이는 함정이 있어(§DiscoverDeckView) 시트로.
     var pendingPost: WidgetPostRef?
@@ -73,10 +72,9 @@ final class TabRouter {
         topRequests += 1
     }
 
-    func openStudio(section: StudioSection? = nil, compose: Bool = false, drafts: Bool = false) {
-        pendingStudioSection = (drafts ? .posts : section)?.rawValue
+    func openStudio(section: StudioSection? = nil, compose: Bool = false) {
+        pendingStudioSection = section?.rawValue
         pendingStudioCompose = compose
-        pendingStudioDrafts = drafts
         pendingStudio = true
         selection = 4
     }
@@ -456,9 +454,6 @@ struct RootView: View {
         case .note: composingNote = true
         case .newPost: postCover = PostCover()
         case .draft(let post): postCover = PostCover(post: post)
-        case .allDrafts:
-            TabRouter.shared.openStudio(drafts: true)
-            composeFinished()
         case nil: composeFinished()
         }
     }
