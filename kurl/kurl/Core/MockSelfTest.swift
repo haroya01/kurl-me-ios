@@ -46,7 +46,7 @@ enum MockSelfTest {
             let restored = try await WriteAPI.markdown(postId: created.id)
             log("write.revisions: count=\(revisions.count) restored=\(restored.markdown.contains("복원된"))")
             let cover = try await WriteAPI.uploadImage(postId: created.id, jpegData: Data([0xFF, 0xD8]))
-            try await WriteAPI.updateCover(postId: created.id, url: cover.url, key: cover.key)
+            try await WriteAPI.updateCover(postId: created.id, url: cover.url, key: cover.key, chosen: true)
             log("write.cover: url=\(cover.url.hasSuffix(".jpg"))")
             let scheduled = try await WriteAPI.schedule(postId: created.id, at: Date().addingTimeInterval(3600))
             log("write.schedule: status=\(scheduled.status)")

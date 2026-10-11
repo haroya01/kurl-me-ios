@@ -73,9 +73,10 @@ enum PostSave {
         return canonical
     }
 
-    static func cover(postId: Int64, url: String, key: String?, gate: PostVersionGate) async throws {
+    static func cover(postId: Int64, url: String, key: String?, chosen: Bool, gate: PostVersionGate) async throws {
         let _: MyPost = try await gate.write { base in
-            let post = try await WriteAPI.updateCover(postId: postId, url: url, key: key, baseVersion: base)
+            let post = try await WriteAPI.updateCover(
+                postId: postId, url: url, key: key, chosen: chosen, baseVersion: base)
             return (post, post.contentVersion)
         }
     }

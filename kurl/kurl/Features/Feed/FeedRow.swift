@@ -102,7 +102,7 @@ struct FeedRow: View {
         RowLayout(
             title: item.title.cleanedPreview,
             excerpt: item.excerpt.flatMap { $0.isEmpty ? nil : Text($0.cleanedPreview) },
-            cover: item.ogImageUrl.flatMap { URL(string: $0) },
+            cover: item.thumbnailUrl.flatMap { URL(string: $0) },
             read: PostReadStore.shared.isRead(item.id)
         ) {
             if let tag {
@@ -166,7 +166,7 @@ struct PostRow: View {
         RowLayout(
             title: item.title.cleanedPreview,
             excerpt: item.excerpt.flatMap { $0.isEmpty ? nil : Text($0.cleanedPreview) },
-            cover: item.ogImageUrl.flatMap { URL(string: $0) },
+            cover: item.thumbnailUrl.flatMap { URL(string: $0) },
             read: PostReadStore.shared.isRead(item.id)
         ) {
             if item.pinned || tag != nil {

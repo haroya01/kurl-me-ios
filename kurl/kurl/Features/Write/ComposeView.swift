@@ -1132,7 +1132,7 @@ struct ComposeView: View {
         Task {
             guard let id = try? await ensurePost() else { return }
             do {
-                try await PostSave.cover(postId: id, url: url, key: nil, gate: versionGate)
+                try await PostSave.cover(postId: id, url: url, key: nil, chosen: true, gate: versionGate)
                 onSaved()
             } catch is PostEditConflict {
                 holdCoverForConflict(PendingCover(url: url, key: nil, fromBodyImage: false))
@@ -1152,7 +1152,7 @@ struct ComposeView: View {
         guard let postId else { return }
         Task {
             do {
-                try await PostSave.cover(postId: postId, url: "", key: nil, gate: versionGate)
+                try await PostSave.cover(postId: postId, url: "", key: nil, chosen: false, gate: versionGate)
                 onSaved()
             } catch is PostEditConflict {
                 holdCoverForConflict(PendingCover(url: "", key: nil, fromBodyImage: false))
@@ -1807,7 +1807,8 @@ struct ComposeView: View {
                 savedSeriesId = seriesId
             }
             if let cover = pendingCover {
-                try await PostSave.cover(postId: id, url: cover.url, key: cover.key, gate: versionGate)
+                try await PostSave.cover(
+                    postId: id, url: cover.url, key: cover.key, chosen: cover.chosen, gate: versionGate)
                 if pendingCover == cover { pendingCover = nil }
                 if cover.fromBodyImage {
                     ToastCenter.shared.show(
@@ -1970,7 +1971,8 @@ struct ComposeView: View {
                 }
                 coverUrl = uploaded.url
                 do {
-                    try await PostSave.cover(postId: id, url: uploaded.url, key: uploaded.key, gate: versionGate)
+                    try await PostSave.cover(
+                        postId: id, url: uploaded.url, key: uploaded.key, chosen: true, gate: versionGate)
                 } catch is PostEditConflict {
                     holdCoverForConflict(PendingCover(url: uploaded.url, key: uploaded.key, fromBodyImage: false))
                     return
@@ -2202,7 +2204,7 @@ struct ComposeView: View {
         }
         Task {
             do {
-                try await PostSave.cover(postId: postId, url: url, key: key, gate: versionGate)
+                try await PostSave.cover(postId: postId, url: url, key: key, chosen: false, gate: versionGate)
                 onSaved()
                 ToastCenter.shared.show(
                     String(localized: "첫 이미지를 커버로 설정했어요 — 발행 시트에서 바꿀 수 있어요"))
@@ -3048,6 +3050,8 @@ private struct PendingCover: Equatable {
     let url: String
     let key: String?
     let fromBodyImage: Bool
+
+    var chosen: Bool { !url.isEmpty && !fromBodyImage }
 }
 
 /// 한도의 90%부터만 보이는 글자 수(서버와 같은 UTF-16 기준).
