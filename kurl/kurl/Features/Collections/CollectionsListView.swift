@@ -17,7 +17,6 @@ struct CollectionsListView: View {
     @State private var didLoad = false
     /// 상세로 실제로 벗어났다 돌아온 경우에만 갱신 — 첫 등장의 .onAppear 를 재진입과 구분한다.
     @State private var wentAway = false
-    @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
     var body: some View {
         ReadingColumn(spacing: 0) {
@@ -120,8 +119,6 @@ struct CollectionsListView: View {
                     Text("길")
                     Text("·").foregroundStyle(Palette.faint)
                 }
-                Image(systemName: c.visibility.icon)
-                    .font(.system(size: 11 * metaUnit, weight: .medium))
                 Text(c.visibility.label)
                 Text("·").foregroundStyle(Palette.faint)
                 Text("\(c.count)개")
@@ -137,7 +134,7 @@ struct CollectionsListView: View {
 
     private var emptyState: some View {
         ContentUnavailableView {
-            Label("아직 컬렉션이 없어요", systemImage: "square.grid.2x2")
+            Text("아직 컬렉션이 없어요").bold()
         } description: {
             Text("글을 읽다 마음에 닿는 것을 주제로 이어 보세요.")
         } actions: {

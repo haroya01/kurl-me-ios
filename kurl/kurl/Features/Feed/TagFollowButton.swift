@@ -18,10 +18,7 @@ struct TagFollowButton: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            ToggleCapsuleButton(
-                isOn: model.following, on: "구독 중", off: "구독",
-                onIcon: "checkmark", offIcon: "plus"
-            ) {
+            ToggleCapsuleButton(isOn: model.following, on: "구독 중", off: "구독") {
                 toggle()
             }
             .accessibilityLabel(Text("태그 구독"))

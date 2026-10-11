@@ -59,7 +59,7 @@ struct HighlightThreadSheet: View {
                         }
                         if let note = highlight.note, !note.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
-                                Label("공개 메모", systemImage: "globe")
+                                Text("공개 메모")
                                     .typeScale(.meta)
                                     .foregroundStyle(Palette.secondary)
                                 ConversationRow(
@@ -513,7 +513,7 @@ struct HighlightNoteComposerSheet: View {
             GeometryReader { geometry in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
-                        Label("이 글의 독자에게 공개돼요", systemImage: "globe")
+                        Text("이 글의 독자에게 공개돼요")
                             .typeScale(.footnote)
                             .foregroundStyle(Palette.secondary)
                             .fixedSize(horizontal: false, vertical: true)

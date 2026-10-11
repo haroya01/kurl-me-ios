@@ -213,13 +213,9 @@ struct ConversationLikeButton: View {
 struct ConversationReplyButton: View {
     let action: () -> Void
 
-    @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
-
     var body: some View {
         Button(action: action) {
             HStack(spacing: 4) {
-                Image(systemName: "arrow.turn.down.right")
-                    .font(.system(size: 12 * metaUnit, weight: .medium))
                 Text("답글")
             }
             .typeScale(.meta)

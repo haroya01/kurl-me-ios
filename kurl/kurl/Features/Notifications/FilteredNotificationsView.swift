@@ -71,7 +71,7 @@ struct FilteredNotificationsView: View {
                     .padding(.top, 60)
             } else if store.senders.isEmpty {
                 ContentUnavailableView {
-                    Label("걸러진 알림이 없어요", systemImage: "line.3.horizontal.decrease.circle")
+                    Text("걸러진 알림이 없어요").bold()
                 } description: {
                     Text("설정의 알림 거르기에서 어떤 알림을 따로 둘지 고를 수 있어요.")
                 }

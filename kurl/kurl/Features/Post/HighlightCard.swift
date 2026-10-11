@@ -100,7 +100,7 @@ struct HighlightCard: View {
                 Button {
                     open(lead)
                 } label: {
-                    Label("이 문장에 대해 이야기하기", systemImage: "bubble.left")
+                    Text("이 문장에 대해 이야기하기")
                         .typeScale(.footnote)
                         .foregroundStyle(Palette.link)
                 }
@@ -215,7 +215,7 @@ struct HighlightCard: View {
                 Button(role: .destructive) {
                     onDelete(mine)
                 } label: {
-                    Label("지우기", systemImage: "trash")
+                    Text("지우기")
                 }
                 .foregroundStyle(Palette.danger)
                 .accessibilityLabel(Text("하이라이트 지우기"))

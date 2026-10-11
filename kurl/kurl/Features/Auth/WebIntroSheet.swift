@@ -75,9 +75,6 @@ struct WebIntroSheet: View {
                 }
             } label: {
                 HStack(spacing: 8) {
-                    Image(systemName: "globe")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Palette.accent)
                     Text(verbatim: address)
                         .font(.system(size: 15, weight: .semibold, design: .monospaced))
                         .foregroundStyle(Palette.accent)

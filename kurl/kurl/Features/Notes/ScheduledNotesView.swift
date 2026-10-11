@@ -168,7 +168,7 @@ struct ScheduledNotesView: View {
                 .overlay {
                     if store.items.isEmpty {
                         ContentUnavailableView {
-                            Label("예약한 노트가 없어요", systemImage: "clock")
+                            Text("예약한 노트가 없어요").bold()
                         } description: {
                             Text("노트를 쓸 때 아래의 \"예약\"으로 올릴 시각을 정할 수 있어요.")
                         }
@@ -193,8 +193,10 @@ struct ScheduledNotesView: View {
     private func row(_ note: ScheduledNote) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 6) {
-                Image(systemName: note.failure == nil ? "clock" : "exclamationmark.circle")
-                    .foregroundStyle(note.failure == nil ? Palette.secondary : Palette.danger)
+                if note.failure != nil {
+                    Image(systemName: "exclamationmark.circle")
+                        .foregroundStyle(Palette.danger)
+                }
                 Text(note.scheduledAt, format: .dateTime.month().day().weekday().hour().minute())
                     .typeScale(.meta)
                     .fontWeight(.semibold)
@@ -213,19 +215,18 @@ struct ScheduledNotesView: View {
             }
             HStack(spacing: 10) {
                 if note.imageCount > 0 {
-                    Label("사진 \(note.imageCount)장", systemImage: "photo")
+                    Text("사진 \(note.imageCount)장")
                 }
                 if note.poll {
-                    Label("투표", systemImage: "chart.bar.xaxis")
+                    Text("투표")
                 }
                 if note.inReplyToId != nil {
-                    Label("답글", systemImage: "arrowshape.turn.up.left")
+                    Text("답글")
                 }
                 if note.quotedNoteId != nil || note.quotedPostId != nil {
-                    Label("인용", systemImage: "quote.bubble")
+                    Text("인용")
                 }
             }
-            .labelStyle(.titleAndIcon)
             .typeScale(.footnote)
             .foregroundStyle(Palette.secondary)
             if let failure = note.failure {

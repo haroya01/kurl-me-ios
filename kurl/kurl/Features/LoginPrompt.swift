@@ -21,7 +21,6 @@ extension View {
 
 /// 로그인해야 채워지는 탭 루트의 비로그인 상태 — "로그인"을 누르면 같은 로그인 시트가 뜬다.
 struct SignedOutState: View {
-    let systemImage: String
     let description: LocalizedStringKey
     let message: LocalizedStringKey
 
@@ -29,7 +28,7 @@ struct SignedOutState: View {
 
     var body: some View {
         ContentUnavailableView {
-            Label("로그인하지 않았어요", systemImage: systemImage)
+            Text("로그인하지 않았어요").bold()
         } description: {
             Text(description)
         } actions: {

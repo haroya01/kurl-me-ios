@@ -130,9 +130,6 @@ struct WelcomeView: View {
             .padding(.leading, 96)
             .scaleEffect(y: threadOn ? 1 : 0.01, anchor: .top)
             HStack(spacing: 8) {
-                Image(systemName: "arrow.turn.down.right")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(Palette.accent)
                 Text("'다시 읽고 싶은'에 이어짐")
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(Palette.ink)

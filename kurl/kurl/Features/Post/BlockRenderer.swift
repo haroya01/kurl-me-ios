@@ -431,8 +431,6 @@ private struct CodeBlockView: View {
                 Spacer(minLength: 0)
                 Button(action: copy) {
                     HStack(spacing: 4) {
-                        Image(systemName: copied ? "checkmark" : "doc.on.doc")
-                            .font(.system(size: 11, weight: .semibold))
                         Text(copied ? "복사됨" : "복사")
                             .typeScale(.meta)
                     }

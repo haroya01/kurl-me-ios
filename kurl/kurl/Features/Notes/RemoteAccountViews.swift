@@ -120,7 +120,7 @@ struct RemoteAccountView: View {
                     .padding(.top, 18)
                 if account.isDomainBlocked {
                     ContentUnavailableView {
-                        Label("차단한 서버예요", systemImage: "hand.raised")
+                        Text("차단한 서버예요").bold()
                     } description: {
                         Text("\(account.domain)의 노트와 알림은 보이지 않아요.")
                     } actions: {
@@ -195,7 +195,7 @@ struct RemoteAccountView: View {
         case .loaded:
             if notes.items.isEmpty {
                 ContentUnavailableView {
-                    Label("받은 노트가 없어요", systemImage: "globe")
+                    Text("받은 노트가 없어요").bold()
                 } description: {
                     Text("팔로우하면 이 계정이 쓰는 새 노트가 여기와 팔로잉 피드에 와요.")
                 }
@@ -244,7 +244,7 @@ struct RemoteAccountView: View {
                     Button {
                         openURL(url)
                     } label: {
-                        Label("\(value.domain)에서 보기", systemImage: "arrow.up.right.square")
+                        Text("\(value.domain)에서 보기")
                             .typeScale(.meta)
                             .foregroundStyle(Palette.link)
                     }
@@ -312,7 +312,7 @@ struct DomainBlocksView: View {
                     .padding(.top, 60)
             } else if blocks.isEmpty {
                 ContentUnavailableView {
-                    Label("차단한 서버가 없어요", systemImage: "hand.raised")
+                    Text("차단한 서버가 없어요").bold()
                 } description: {
                     Text("다른 서버 계정 화면의 ⋯ 메뉴에서 그 서버 전체를 차단할 수 있어요.")
                 }
@@ -393,7 +393,7 @@ struct RemoteFollowingView: View {
                     .padding(.top, 60)
             } else if accounts.isEmpty {
                 ContentUnavailableView {
-                    Label("다른 서버에서 팔로우하는 계정이 없어요", systemImage: "globe")
+                    Text("다른 서버에서 팔로우하는 계정이 없어요").bold()
                 } description: {
                     Text("검색에 @아이디@서버를 적으면 마스토돈 같은 다른 서버의 계정을 찾을 수 있어요.")
                 }

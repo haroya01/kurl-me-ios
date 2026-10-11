@@ -211,9 +211,6 @@ struct ConnectSheet: View {
             }
             HStack(spacing: 5) {
                 if c.kind == .path {
-                    Image(systemName: "arrow.turn.down.right")
-                        .font(.system(size: 10 * metaUnit, weight: .bold))
-                        .foregroundStyle(Palette.accent)
                     Text("길")
                         .foregroundStyle(Palette.accent)
                     Text("·")
@@ -231,20 +228,17 @@ struct ConnectSheet: View {
     /// 이미 담긴 행의 우측 — "연결됨" 표식 + "해제" 버튼. 선택 원 자리를 대신한다(§10 조용히, 종이 문법).
     private func connectedControls(_ c: CollectionSummary) -> some View {
         HStack(spacing: 10) {
-            // "연결됨" = 조용한 초록 한 점(비텍스트 마커라 §10.3 accent 허용) + 라벨.
-            HStack(spacing: 4) {
+            // 접근성 크기에선 "연결됨"이 두 줄로 쪼개져 "해제"에 붙는다 — 그때만 글자 대신 초록 체크.
+            if dynamicTypeSize.isAccessibilitySize {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 13 * metaUnit, weight: .semibold))
                     .foregroundStyle(Palette.accent)
                     .accessibilityLabel(Text("연결됨"))
-                // 접근성 크기에선 "연결됨"이 두 줄로 쪼개져 "해제"에 붙는다 — 초록 체크가
-                // 이미 상태를 말하므로 라벨은 접고 마커만 남긴다(VoiceOver 는 위 라벨로 유지).
-                if !dynamicTypeSize.isAccessibilitySize {
-                    Text("연결됨")
-                        .typeScale(.meta)
-                        .foregroundStyle(Palette.secondary)
-                        .lineLimit(1)
-                }
+            } else {
+                Text("연결됨")
+                    .typeScale(.meta)
+                    .foregroundStyle(Palette.secondary)
+                    .lineLimit(1)
             }
             Button {
                 Task { await disconnect(c.id) }
