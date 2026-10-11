@@ -266,27 +266,19 @@ struct ReadingColumn<Content: View>: View {
     }
 }
 
-// MARK: 섹션 라벨 — RailHeading (그린 마커 + 13px bold)
+// MARK: 섹션 라벨 — RailHeading (13px bold)
 
 struct RailHeading: View {
     let text: Text
-    @ScaledMetric(relativeTo: .footnote) private var unit: CGFloat = 1
     init(_ text: LocalizedStringKey) { self.text = Text(text) }
     init(resource: LocalizedStringResource) { self.text = Text(resource) }
 
     var body: some View {
-        HStack(spacing: 8) {
-            // 섹션 마커 = 구조 신호일 뿐 — 초록은 주액션·데이터 전용이라 중립(잉크)으로 가라앉힌다.
-            // 25곳 섹션 머릿글에서 초록이 한꺼번에 빠져 "초록 과용"의 큰 몫이 정리된다(§10 색 규율).
-            RoundedRectangle(cornerRadius: 1)
-                .fill(Palette.hairlineStrong)
-                .frame(width: 3, height: 12 * unit)
-            text
-                .typeScale(.eyebrow)
-                .foregroundStyle(Palette.heading)
-        }
-        // 섹션 제목 — VoiceOver 헤딩 로터로 화면을 점프할 수 있어야 한다(25곳 일괄).
-        .accessibilityAddTraits(.isHeader)
+        text
+            .typeScale(.eyebrow)
+            .foregroundStyle(Palette.heading)
+            // 섹션 제목 — VoiceOver 헤딩 로터로 화면을 점프할 수 있어야 한다(25곳 일괄).
+            .accessibilityAddTraits(.isHeader)
     }
 }
 
