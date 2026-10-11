@@ -354,6 +354,10 @@ struct RootView: View {
             ForEach(0..<tabs.count, id: \.self) { index in
                 if index != Self.composeSlot, index == selection.wrappedValue || visitedTabs.contains(index) {
                     tabRoot(index)
+                        .environment(
+                            \.isFrontmostTab,
+                            Self.isFrontmostTab(
+                                index, selection: selection.wrappedValue, coverShown: postCover != nil || needsUsername))
                         .opacity(index == selection.wrappedValue ? 1 : 0)
                         .allowsHitTesting(index == selection.wrappedValue)
                         .accessibilityHidden(index != selection.wrappedValue)
@@ -479,6 +483,10 @@ struct RootView: View {
         if blogFeed.path.isEmpty { tabs.insert(0) }
         if noteFeed.path.isEmpty { tabs.insert(1) }
         return tabs
+    }
+
+    static func isFrontmostTab(_ index: Int, selection: Int, coverShown: Bool) -> Bool {
+        index == selection && !coverShown
     }
 
     /// 인덱스별 탭 루트 화면. 각자 제 NavigationStack 을 든다(시스템 TabView 와 동일 계약).
