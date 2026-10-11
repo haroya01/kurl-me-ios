@@ -20,7 +20,7 @@ extension MockStoreDemo {
     static let hayoung = Person(id: 21, username: "hayoung", name: "하영", avatar: pic(82, 300, 300))
     static let jiho = Person(id: 22, username: "jiho_reads", name: "지호", avatar: nil)
     static let mirae = Person(id: 23, username: "mirae_kitchen", name: "미래", avatar: pic(63, 300, 300))
-    static let dowon = Person(id: 24, username: "dowon", name: "도원", avatar: pic(91, 300, 300))
+    static let dowon = Person(id: 24, username: "dowon", name: "도원", avatar: pic(49, 300, 300))
     static let seojin = Person(id: 25, username: "seojin", name: "서진", avatar: nil)
     static let nari = Person(id: 26, username: "nari", name: "나리", avatar: pic(40, 300, 300))
 
