@@ -159,6 +159,7 @@ private struct PostDetailReader: View {
     /// 래치 대상이 아니라는 표식(끝맺음까지 합치면 짧은 글도 scrollable 이라 이 가드가 필요).
     @State private var endSentinelWasHidden = false
     @State private var keyboardUp = false
+    @State private var readingDirection = TabBarVisibility()
 
     /// 글 끝의 작가 카드·다른 글 — 작가 글 목록은 한 번만 가져와 양쪽(카드·다음 글 큐)이 쓴다.
     @State private var authorPosts: [PostListItem] = []
@@ -276,6 +277,14 @@ private struct PostDetailReader: View {
         // 읽는 동안 홈바도 비켜선다 — 다른 스크롤 면과 같은 문법(내리면 숨고 올리면 돌아온다).
         // 덱(임베드)은 장 넘김이 주라 제외.
         .tracksTabBarVisibility(!embedded)
+        .onScrollGeometryChange(for: CGFloat.self) { geometry in
+            geometry.contentOffset.y + geometry.contentInsets.top
+        } action: { _, offset in
+            guard !embedded, !voiceOverOn else { return }
+            withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) {
+                readingDirection.report(offset: offset)
+            }
+        }
         // 오른쪽 읽기 스크러버 — 시스템 인디케이터(전체 콘텐츠 기준·제어 불가) 대신 앱 소유.
         // 초록 바와 같은 본문 실측 위치를 보여주고, 끌면 본문의 그 지점(블록)으로 점프한다.
         .overlay(alignment: .trailing) {
@@ -477,7 +486,8 @@ private struct PostDetailReader: View {
             // 숨김은 opacity 로만 — hierarchy 에서 빼면 독의 @State 모델이 새로 만들어져
             // 숨김↔표시 사이클마다 hydrate GET 2건이 재발사되고 좋아요가 잠깐 꺼져 깜빡였다.
             if case .loaded(let detail) = model.phase {
-                let dockHidden = keyboardUp || composerActive || (endVisible && scrollable && !voiceOverOn)
+                let readingDown = !embedded && !voiceOverOn && readingDirection.scrollHidden
+                let dockHidden = keyboardUp || composerActive || readingDown || (endVisible && scrollable && !voiceOverOn)
                 // 목차를 상단 크롬에서 내려 독 바로 위에 얹는다 — 항해 보조와 인게이지를 한 손
                 // 닿는 자리에 모은다. 목차·독은 성격이 다른 독립 컨트롤이라 spacing 12 로 띄워
                 // 각자 제 유리로 읽히게 하고(독 내부 문법과 동일), 후퇴는 독과 함께 한다.

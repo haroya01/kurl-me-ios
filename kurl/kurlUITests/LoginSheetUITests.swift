@@ -98,11 +98,11 @@ final class LoginSheetUITests: XCTestCase {
     func testTheSheetSaysWhatEachDockActionNeedsSignInFor() throws {
         let app = launch(["--mocks", "--logged-out", "--post", "honggildong/p-mock-2"])
         let cases: [(button: String, message: String)] = [
-            ("좋아요", "좋아요를 누르려면 로그인하세요"),
-            ("북마크", "북마크하려면 로그인하세요"),
-            ("컬렉션에 연결", "컬렉션에 연결하려면 로그인하세요"),
+            ("dock.like", "좋아요를 누르려면 로그인하세요"),
+            ("dock.bookmark", "북마크하려면 로그인하세요"),
+            ("dock.connect", "컬렉션에 연결하려면 로그인하세요"),
         ]
-        XCTAssertTrue(app.buttons["좋아요"].waitForExistence(timeout: 15), "글 상세에 독이 없음")
+        XCTAssertTrue(app.buttons["dock.like"].waitForExistence(timeout: 15), "글 상세에 독이 없음")
         for (button, message) in cases {
             app.buttons[button].tap()
             XCTAssertTrue(loginSheet(app).waitForExistence(timeout: 5), "\(button)에서 로그인 시트가 뜨지 않음")
