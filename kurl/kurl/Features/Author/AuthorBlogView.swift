@@ -199,7 +199,7 @@ struct AuthorBlogView: View {
                     } label: {
                         Image(systemName: "ellipsis")
                     }
-                    .tint(.brand)
+                    .tint(.primary)
                     .accessibilityLabel("더 보기")
                     .id(author.id)
                 }

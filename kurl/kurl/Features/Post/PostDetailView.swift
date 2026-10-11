@@ -707,10 +707,11 @@ private struct PostDetailReader: View {
         } label: {
             Image(systemName: "ellipsis")
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Color.brand)
+                .foregroundStyle(.primary)
                 .frame(width: 44, height: 44)
                 .contentShape(Circle())
         }
+        .tint(.primary)
         .glassEffect(.regular.interactive(), in: .circle)
         // 관리(발행취소·삭제)를 품을 땐 접근성 라벨을 관리 진입로로 유지한다.
         .accessibilityLabel(isOwnPost ? "이 글 관리" : "더 보기")
