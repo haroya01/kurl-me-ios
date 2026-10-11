@@ -223,7 +223,7 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable, More: View>: View {
 
         let collapsed = HStack(spacing: 0) {
             menu
-            if hasMore { moreMenu(scale: 1, padding: 13, named: false) }
+            if hasMore { moreMenu(scale: 1, padding: 13, named: false, collapsed: true) }
         }
 
         if bare { collapsed } else { collapsed.glassEffect(.regular.interactive(), in: .capsule) }
@@ -231,7 +231,7 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable, More: View>: View {
 
     private var hasMore: Bool { More.self != EmptyView.self }
 
-    private func moreMenu(scale: CGFloat, padding: CGFloat, named: Bool) -> some View {
+    private func moreMenu(scale: CGFloat, padding: CGFloat, named: Bool, collapsed: Bool = false) -> some View {
         let active = moreChoice != nil
         return Menu {
             more
@@ -242,9 +242,13 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable, More: View>: View {
                     if named {
                         Text(choice.title).lineLimit(1).fixedSize()
                     }
+                } else if collapsed {
+                    Image(systemName: "ellipsis")
                 }
-                Image(systemName: "chevron.down")
-                    .font(.system(size: labelSize * scale * 0.8, weight: .semibold))
+                if !collapsed {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: labelSize * scale * 0.8, weight: .semibold))
+                }
             }
             .font(.system(size: labelSize * scale, weight: active ? .semibold : .medium))
             .foregroundStyle(active ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
