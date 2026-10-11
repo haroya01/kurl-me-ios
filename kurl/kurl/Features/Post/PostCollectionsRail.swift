@@ -1,5 +1,5 @@
 //
-//  PostEdges.swift
+//  PostCollectionsRail.swift
 //  kurl
 //
 //  글 = 엣지가 보이는 노드(§0). 다 읽은 뒤 본문 끝에서, 이 글이 담긴 공개 컬렉션으로 나간다 — 시간순
@@ -12,7 +12,7 @@
 
 import SwiftUI
 
-struct PostEdges: View {
+struct PostCollectionsRail: View {
     let postId: Int64
 
     @State private var collections: [CollectionSummary] = []

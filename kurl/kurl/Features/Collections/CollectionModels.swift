@@ -109,7 +109,7 @@ struct CollectionSummary: Decodable, Identifiable, Hashable {
     let count: Int
     /// 최근 담긴 항목 라벨 몇 개 — "안에 뭐가 들었는지" 떠올리게(어디 넣을지 결정 보조).
     let preview: [String]
-    /// "이 글이 담긴 컬렉션"(PostEdges)의 리치 소속 — 엮은 큐레이터 · 이 글이 그 안에서 몇 번째(position)
+    /// "이 글이 담긴 컬렉션"(PostCollectionsRail)의 리치 소속 — 엮은 큐레이터 · 이 글이 그 안에서 몇 번째(position)
     /// / 전체 몇 편(total). 글 단위 소속 응답(#607)에만 오고, 다른 목록 표면엔 없어 nil 로 조용히 빠진다.
     let curatorUsername: String?
     /// 이 글이 순서 있는 컬렉션 안에서 몇 번째인가(1부터). 없으면 순서 맥락 없이 담긴 수로 읽힌다.

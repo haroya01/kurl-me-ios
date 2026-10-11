@@ -1343,7 +1343,7 @@ private struct PostDetailReader: View {
         // 담긴 공개 컬렉션이 없으면 그려지지 않고(막다른 길 방지는 아래 태그 기반 작가 레일이 맡는다),
         // 덱 임베드는 여러 장이 lazy 로 살아 있어 켜지 않는다(본 글에서만).
         if !embedded {
-            PostEdges(postId: detail.post.id)
+            PostCollectionsRail(postId: detail.post.id)
                 .padding(.top, 10)
         }
         authorCard(detail.author)
