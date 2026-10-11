@@ -23,9 +23,6 @@ struct DraftPreviewView: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    // 마스트헤드 메타 크기(읽는 시간 등) — Dynamic Type 따라간다.
-    @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
-
     private var readingMinutes: Int? {
         let prose: Set<BlockKind> = [.paragraph, .h1, .h2, .h3, .quote]
         let chars = blocks.reduce(0) { sum, block in
@@ -74,8 +71,6 @@ struct DraftPreviewView: View {
 
             if let minutes = readingMinutes {
                 HStack(spacing: 5) {
-                    Image(systemName: "book")
-                        .font(.system(size: 11 * metaUnit, weight: .medium))
                     Text("\(minutes)분 읽기")
                         .typeScale(.footnote)
                 }

@@ -45,7 +45,7 @@ struct SeriesReorderSheet: View {
                             Button {
                                 pickingNote = true
                             } label: {
-                                Label("내 노트 더하기", systemImage: "text.bubble")
+                                Text("내 노트 더하기")
                                     .foregroundStyle(Palette.link)
                             }
                             .accessibilityIdentifier("series.addNote")

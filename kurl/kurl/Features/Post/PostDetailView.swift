@@ -871,9 +871,6 @@ private struct PostDetailReader: View {
     /// 첫 1회 — 하이라이트가 "탭하면 대화·메모"라는 걸 조용히 알려준다. 탭하거나 5초 지나면 사라진다.
     private var highlightCoach: some View {
         HStack(spacing: 8) {
-            Image(systemName: "hand.tap")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Palette.accent)
             Text("하이라이트한 문장을 탭하면 누가 그었는지와 대화를 볼 수 있어요")
                 .typeScale(.meta)
                 .foregroundStyle(Palette.body)
@@ -1253,8 +1250,6 @@ private struct PostDetailReader: View {
         if model.isOfflineCopy {
             // 기기 사본 렌더 중 — 조용한 한 줄. 댓글·좋아요가 비어 있는 이유까지 여기서 설명된다.
             HStack(spacing: 6) {
-                Image(systemName: "wifi.slash")
-                    .font(.system(size: 11 * metaUnit, weight: .semibold))
                 Text("오프라인 사본 — 연결되면 최신으로 갱신됩니다")
                     .typeScale(.footnote)
             }
@@ -1555,8 +1550,6 @@ private struct PostDetailReader: View {
             // 읽는 시간 — 글 입구에서 "얼마나 걸릴지" 한 호흡(에디토리얼 마스트헤드 메타).
             if let minutes = readingMinutes {
                 HStack(spacing: 5) {
-                    Image(systemName: "book")
-                        .font(.system(size: 11 * metaUnit, weight: .medium))
                     Text("\(minutes)분 읽기")
                         .typeScale(.footnote)
                 }
@@ -1737,8 +1730,6 @@ private struct PostDetailReader: View {
                 Task { await model.reloadComments() }
             } label: {
                 HStack(spacing: 6) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 12 * metaUnit, weight: .semibold))
                     Text("댓글을 불러오지 못했습니다 — 다시 시도")
                         .typeScale(.footnote)
                 }
@@ -1940,8 +1931,6 @@ private struct NextPostCue: View {
 private struct LastEpisodeCue: View {
     var body: some View {
         HStack(spacing: 6) {
-            Image(systemName: "checkmark.circle")
-                .font(.system(size: 13, weight: .semibold))
             Text("시리즈의 마지막 회차예요")
                 .typeScale(.footnote)
         }

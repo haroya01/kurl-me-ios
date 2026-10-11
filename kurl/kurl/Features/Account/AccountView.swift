@@ -36,7 +36,6 @@ struct AccountView: View {
                     }
                 } else {
                     SignedOutState(
-                        systemImage: "person.crop.circle",
                         description: "내 글과 노트, 라이브러리가 여기 모여요.",
                         message: "kurl에 로그인하세요")
                         .navigationTitle("내 계정")

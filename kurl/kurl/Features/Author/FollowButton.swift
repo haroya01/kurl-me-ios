@@ -49,7 +49,7 @@ struct FollowButton: View {
             ToggleCapsuleButton(
                 isOn: model.following || model.requested,
                 on: model.requested ? "요청함" : "팔로잉", off: "팔로우",
-                onIcon: model.requested ? "clock" : nil, expandTap: 6
+                expandTap: 6
             ) {
                 if model.requested {
                     confirmWithdraw = true

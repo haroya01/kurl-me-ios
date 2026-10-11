@@ -55,7 +55,7 @@ struct MyHighlightsView: View {
                     .padding(.top, 60)
             } else if items.isEmpty {
                 ContentUnavailableView {
-                    Label("하이라이트한 문장이 없어요", systemImage: "highlighter")
+                    Text("하이라이트한 문장이 없어요").bold()
                 } description: {
                     Text("글을 읽다 마음에 닿는 문장을 길게 눌러 하이라이트해 보세요.")
                 } actions: {

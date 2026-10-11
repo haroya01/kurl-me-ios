@@ -304,7 +304,7 @@ struct NotePollEditor: View {
                         withAnimation(.snappy(duration: 0.2)) { draft.choices.append(choice) }
                         focused = choice.id
                     } label: {
-                        Label("선택지 추가", systemImage: "plus")
+                        Text("선택지 추가")
                     }
                     .accessibilityIdentifier("noteCompose.poll.add")
                 }

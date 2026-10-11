@@ -207,8 +207,6 @@ struct ErrorState: View {
                     HStack(spacing: 3) {
                         Text("다시 시도")
                             .font(.system(size: actionSize, weight: .semibold))
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 12, weight: .semibold))
                     }
                     // 텍스트/인라인 CTA = link(700), accent(600)는 비텍스트 마커 몫(§10.3).
                     .foregroundStyle(Palette.link)

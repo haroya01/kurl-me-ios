@@ -27,17 +27,6 @@ struct DataExportView: View {
             }
         }
 
-        var icon: String {
-            switch self {
-            case .following: "person.2"
-            case .blocks: "hand.raised"
-            case .mutes: "speaker.slash"
-            case .domainBlocks: "server.rack"
-            case .bookmarks: "bookmark"
-            case .lists: "list.bullet"
-            }
-        }
-
         var filename: String {
             switch self {
             case .following: "following_accounts.csv"
@@ -130,10 +119,6 @@ struct DataExportView: View {
             pickingFor = kind
         } label: {
             HStack(spacing: 12) {
-                Image(systemName: kind.icon)
-                    .font(.system(size: 15))
-                    .foregroundStyle(Palette.accentMarker)
-                    .frame(width: 22)
                 Text(kind.title)
                     .typeScale(.body)
                     .foregroundStyle(Palette.ink)
@@ -225,10 +210,6 @@ struct DataExportView: View {
             download(kind)
         } label: {
             HStack(spacing: 12) {
-                Image(systemName: kind.icon)
-                    .font(.system(size: 15))
-                    .foregroundStyle(Palette.accentMarker)
-                    .frame(width: 22)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(kind.title)
                         .typeScale(.body)
