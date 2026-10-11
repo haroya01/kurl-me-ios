@@ -20224,62 +20224,6 @@
         }
       }
     },
-    "제목 없는 초안": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Untitled draft"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "बिना शीर्षक का ड्राफ़्ट"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "無題の下書き"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bản nháp chưa có tiêu đề"
-          }
-        }
-      }
-    },
-    "제목과 본문, 초안으로 다듬기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Title and body, refined as a draft"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "शीर्षक और मुख्य भाग, ड्राफ़्ट में निखारें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "タイトルと本文、下書きで仕上げる"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tiêu đề và nội dung, trau chuốt dần"
-          }
-        }
-      }
-    },
     "제한": {
       "localizations": {
         "en": {
@@ -20556,34 +20500,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nội dung bạn vừa viết đã được lưu trên thiết bị này. Mở lại bài viết để khôi phục."
-          }
-        }
-      }
-    },
-    "짧게, 바로 올리기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Short, posted right away"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "छोटा, तुरंत पोस्ट"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "短く、すぐに投稿"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ngắn gọn, đăng ngay"
           }
         }
       }
@@ -30290,34 +30206,6 @@
         }
       }
     },
-    "임시": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Drafts"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ड्राफ़्ट"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "下書き"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bản nháp"
-          }
-        }
-      }
-    },
     "임시저장": {
       "localizations": {
         "en": {
@@ -32983,34 +32871,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Danh sách kiểm"
-          }
-        }
-      }
-    },
-    "초안": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Draft"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "मसौदा"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "下書き"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bản nháp"
           }
         }
       }
@@ -37709,6 +37569,41 @@
           "stringUnit": {
             "state": "translated",
             "value": "संग्रह"
+          }
+        }
+      }
+    },
+    "heading.drafts": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "임시저장"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drafts"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下書き"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bản nháp"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ड्राफ़्ट"
           }
         }
       }

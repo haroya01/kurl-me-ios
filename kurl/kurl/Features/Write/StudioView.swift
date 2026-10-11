@@ -95,11 +95,6 @@ struct StudioView: View {
             composing = true
             TabRouter.shared.pendingStudioCompose = false
         }
-        .onChange(of: TabRouter.shared.pendingStudioDrafts, initial: true) { _, pending in
-            guard pending else { return }
-            filter = .draft
-            TabRouter.shared.pendingStudioDrafts = false
-        }
     }
 
     // MARK: 스튜디오 3분면
@@ -667,7 +662,7 @@ enum HubFilter: String, CaseIterable, Identifiable {
     var label: String {
         switch self {
         case .all: return String(localized: "전체")
-        case .draft: return String(localized: "임시")
+        case .draft: return String(localized: "heading.drafts", defaultValue: "임시저장")
         case .published: return String(localized: "발행")
         }
     }
