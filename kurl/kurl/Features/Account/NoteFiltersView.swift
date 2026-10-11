@@ -15,7 +15,7 @@ struct NoteFiltersView: View {
         List {
             if store.filters.isEmpty, !loading {
                 ContentUnavailableView {
-                    Text("키워드 필터가 없어요")
+                    Text("키워드 필터가 없어요").bold()
                 } description: {
                     Text("보고 싶지 않은 말이 든 노트를 접거나 숨겨요. 내 노트에는 걸리지 않아요.")
                 }

@@ -168,7 +168,7 @@ struct ScheduledNotesView: View {
                 .overlay {
                     if store.items.isEmpty {
                         ContentUnavailableView {
-                            Text("예약한 노트가 없어요")
+                            Text("예약한 노트가 없어요").bold()
                         } description: {
                             Text("노트를 쓸 때 아래의 \"예약\"으로 올릴 시각을 정할 수 있어요.")
                         }

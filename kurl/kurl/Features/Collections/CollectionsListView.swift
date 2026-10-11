@@ -134,7 +134,7 @@ struct CollectionsListView: View {
 
     private var emptyState: some View {
         ContentUnavailableView {
-            Text("아직 컬렉션이 없어요")
+            Text("아직 컬렉션이 없어요").bold()
         } description: {
             Text("글을 읽다 마음에 닿는 것을 주제로 이어 보세요.")
         } actions: {

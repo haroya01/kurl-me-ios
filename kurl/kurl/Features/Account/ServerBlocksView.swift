@@ -28,7 +28,7 @@ struct ServerBlocksView: View {
                     .padding(.top, 60)
             } else if blocks.isEmpty {
                 ContentUnavailableView {
-                    Text("차단한 서버가 없어요")
+                    Text("차단한 서버가 없어요").bold()
                 } description: {
                     Text("다른 서버 전체를 제한하거나 정지할 수 있어요.")
                 }

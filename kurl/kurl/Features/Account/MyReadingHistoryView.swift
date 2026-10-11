@@ -27,7 +27,7 @@ struct MyReadingHistoryView: View {
                     .padding(.top, 60)
             } else if loadedOnce && items.isEmpty {
                 ContentUnavailableView {
-                    Text("아직 읽기 기록이 없어요")
+                    Text("아직 읽기 기록이 없어요").bold()
                 } description: {
                     Text("글을 읽으면 여기에 기록돼요. 기록은 나만 봅니다.")
                 } actions: {

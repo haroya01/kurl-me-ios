@@ -2938,7 +2938,7 @@ private struct RevisionsSheet: View {
                     KurlLoadingMark()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if revisions.isEmpty {
-                    ContentUnavailableView { Text("리비전이 없습니다") }
+                    ContentUnavailableView { Text("리비전이 없습니다").bold() }
                 } else {
                     List(revisions) { revision in
                         HStack {

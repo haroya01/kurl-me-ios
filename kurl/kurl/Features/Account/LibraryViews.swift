@@ -25,7 +25,7 @@ struct BookmarksView: View {
                 LibraryFailedState { Task { loading = true; await load() } }
             } else if items.isEmpty {
                 ContentUnavailableView {
-                    Text("북마크한 글이 없습니다")
+                    Text("북마크한 글이 없습니다").bold()
                 } description: {
                     Text("북마크한 글은 오프라인에서도 읽을 수 있어요.")
                 } actions: {
@@ -153,7 +153,7 @@ struct LikedPostsView: View {
                 LibraryFailedState { Task { loading = true; await load() } }
             } else if items.isEmpty {
                 ContentUnavailableView {
-                    Text("좋아요한 글이 없습니다")
+                    Text("좋아요한 글이 없습니다").bold()
                 } actions: {
                     Button("피드에서 읽을 글 찾기") { TabRouter.shared.selection = 0 }
                         .foregroundStyle(Palette.link)
@@ -209,7 +209,7 @@ struct SubscribedSeriesView: View {
                 LibraryFailedState { Task { loading = true; await load() } }
             } else if items.isEmpty {
                 ContentUnavailableView {
-                    Text("구독한 시리즈가 없습니다")
+                    Text("구독한 시리즈가 없습니다").bold()
                 } actions: {
                     Button("검색에서 시리즈 찾기") { TabRouter.shared.selection = 3 }
                         .foregroundStyle(Palette.link)
@@ -287,7 +287,7 @@ struct SubscribedTagsView: View {
                 LibraryFailedState { Task { loading = true; await load() } }
             } else if tags.isEmpty {
                 ContentUnavailableView {
-                    Text("구독한 태그가 없습니다")
+                    Text("구독한 태그가 없습니다").bold()
                 } description: {
                     Text("글에서 태그를 구독하면 그 주제의 새 글이 팔로잉에 모여요.")
                 } actions: {

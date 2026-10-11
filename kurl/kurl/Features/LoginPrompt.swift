@@ -28,7 +28,7 @@ struct SignedOutState: View {
 
     var body: some View {
         ContentUnavailableView {
-            Text("로그인하지 않았어요")
+            Text("로그인하지 않았어요").bold()
         } description: {
             Text(description)
         } actions: {

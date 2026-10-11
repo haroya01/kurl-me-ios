@@ -109,7 +109,7 @@ struct MutedUsersView: View {
                     .padding(.top, 60)
             } else if muted.isEmpty {
                 ContentUnavailableView {
-                    Text("뮤트한 사용자가 없어요")
+                    Text("뮤트한 사용자가 없어요").bold()
                 } description: {
                     Text("작가 페이지의 ⋯ 메뉴에서 뮤트할 수 있어요.")
                 }
