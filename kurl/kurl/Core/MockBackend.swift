@@ -17,7 +17,7 @@ enum MockBackend {
 
     // MARK: 상태
 
-    private struct MockPost {
+    struct MockPost {
         var id: Int64
         var slug: String
         var title: String
@@ -56,7 +56,7 @@ enum MockBackend {
     private static let publishedBodyImage =
         ProcessInfo.processInfo.arguments.contains("--published-body-image") ? "\n\n![](\(mockUploadedImageURL))" : ""
 
-    private static var posts: [MockPost] = draftFixtures([
+    private static var posts: [MockPost] = MockStoreDemo.isOn ? storeDemoPosts : draftFixtures([
         MockPost(id: 9001, slug: "p-mock-1", title: "목 초안 — 헥사고날 정리", status: "DRAFT",
                  markdown: "# 헥사고날\n\n포트와 어댑터.", publishedAt: nil, updatedAt: Date(),
                  tags: ["개발"], excerpt: "포트와 어댑터로 다시 그린다."),
@@ -105,7 +105,7 @@ enum MockBackend {
         return base + extra
     }
 
-    private struct MockNote {
+    struct MockNote {
         var id: Int64
         var body: String
         var createdAt: Date
@@ -124,7 +124,7 @@ enum MockBackend {
         var poll: MockPoll? = nil
     }
 
-    private struct MockPoll {
+    struct MockPoll {
         var options: [String]
         var expiresAt: Date
         var multiple = false
@@ -133,7 +133,7 @@ enum MockBackend {
         var mine: [Int]? = nil
     }
 
-    private static var notes: [MockNote] = [
+    private static var notes: [MockNote] = MockStoreDemo.isOn ? storeDemoNotes : [
         // 시리즈 "헥사고날 전환기"의 4편과 5편 사이에 든 노트 — 시리즈 배너·목차·구독함 카드 검증용.
         MockNote(id: 9540, body: "4편을 쓰고 남은 메모. 어댑터를 갈아 끼우던 날, 실패한 테스트가 먼저 경계를 알려 줬다.",
                  createdAt: Date().addingTimeInterval(-216_000), likeCount: 3, authorId: 1, username: "honggildong"),
@@ -205,8 +205,9 @@ enum MockBackend {
     ]
     private static var repostsHidden: Set<String> = []
     /// 사용자별 리포스트한 노트 id(최신 먼저). 목 세션은 honggildong.
-    private static var repostedNotes: [String: [Int64]] = ["honggildong": [9503], "yuki_dev": [9505]]
-    private static var noteReplies: [MockNote] = [
+    private static var repostedNotes: [String: [Int64]] =
+        MockStoreDemo.isOn ? [:] : ["honggildong": [9503], "yuki_dev": [9505]]
+    private static var noteReplies: [MockNote] = MockStoreDemo.isOn ? storeDemoNoteReplies : [
         MockNote(id: 9531, body: "하나. 테스트가 빨라졌다.",
                  createdAt: Date().addingTimeInterval(-499_990), likeCount: 0, authorId: 2,
                  username: "yuki_dev", inReplyToId: 9530),
@@ -281,7 +282,7 @@ enum MockBackend {
 
     // 리더 소셜 하이라이트 + 답글 스레드 — 본 글 리더의 칠하기·탭→스레드·메모·답글 왕복을 검증.
     // 긴 글 픽스처(blockOrder=1 문단 중간)에 메모와 답글을 미리 깔아 둔다.
-    private static var highlightRows: [[String: Any]] = [
+    private static var highlightRows: [[String: Any]] = MockStoreDemo.isOn ? storeDemoHighlights : [
         ["id": 6001,
          "author": ["id": 2, "username": "haruka", "bio": NSNull(), "avatarUrl": NSNull()],
          "blockOrder": 1, "startOffset": 10, "endOffset": 25,
@@ -310,7 +311,7 @@ enum MockBackend {
          "note": "포트 이름 짓기가 설계의 절반이라는 대목, 두고두고 곱씹는다.",
          "createdAt": iso(Date().addingTimeInterval(-4_000))],
     ]
-    private static var highlightReplies: [Int: [[String: Any]]] = [
+    private static var highlightReplies: [Int: [[String: Any]]] = MockStoreDemo.isOn ? storeDemoHighlightReplies : [
         6001: [
             ["id": 7001, "author": ["id": 1, "username": "honggildong", "bio": NSNull(), "avatarUrl": NSNull()],
              "body": "저도요. 작게 시작했어야 했다는 데 200% 동의합니다.",
@@ -411,7 +412,8 @@ enum MockBackend {
         "CONNECTED": true, "PATH_GREW": true,
     ]
     private static var myBio = "경계를 긋는 사람. 헥사고날·도메인 모델링."
-    private static var displayNames: [String: String] = ["reader_kim": "김독자"]
+    private static var displayNames: [String: String] =
+        MockStoreDemo.isOn ? storeDemoDisplayNames : ["reader_kim": "김독자"]
     private static var myHideFollowerCount = false
     /// 내 계정은 팔로우를 직접 승인한다 — 이 서버 회원 하나와 다른 서버 계정 하나가 기다린다.
     private static var myLocked = true
@@ -669,9 +671,10 @@ enum MockBackend {
         var visibility: String
         var kind: String = "COLLECTION"
         var connections: [MockConnection]
+        var curator: String?
     }
 
-    static var collections: [MockCollection] = [
+    static var collections: [MockCollection] = MockStoreDemo.isOn ? storeDemoCollections : [
         MockCollection(
             id: 101, title: "느린 사고", description: "빨리 답하지 않고 오래 머문 글들.", visibility: "PUBLIC",
             connections: [
@@ -988,7 +991,7 @@ enum MockBackend {
         [
             "id": c.id, "title": c.title,
             "description": orNull(c.description),
-            "visibility": c.visibility, "kind": c.kind, "curatorUsername": myUsername,
+            "visibility": c.visibility, "kind": c.kind, "curatorUsername": c.curator ?? myUsername,
             "connections": c.connections.map { conn in
                 [
                     "id": conn.id, "blockType": conn.blockType,
@@ -1011,6 +1014,10 @@ enum MockBackend {
         path: String, method: String, query: [URLQueryItem]? = nil, body: Data?
     ) throws -> Data? {
         let parts = path.split(separator: "/").map(String.init)
+
+        if MockStoreDemo.isOn, method == "GET", let demo = storeDemoResponse(parts) {
+            return json(demo)
+        }
 
         if method == "GET", parts == ["public", "link-preview"],
            let url = query?.first(where: { $0.name == "url" })?.value {
@@ -2880,6 +2887,10 @@ enum MockBackend {
         return view
     }
 
+    private static func avatarValue(_ username: String) -> Any {
+        MockStoreDemo.avatar(username) ?? NSNull()
+    }
+
     private static func baseNoteView(_ n: MockNote) -> [String: Any] {
         [
             "id": n.id, "body": n.body, "createdAt": iso(n.createdAt),
@@ -2887,7 +2898,7 @@ enum MockBackend {
             "likeCount": n.likeCount,
             "likedByMe": likedNotes.contains(n.id),
             "author": [
-                "id": n.authorId, "username": n.username, "avatarUrl": NSNull(),
+                "id": n.authorId, "username": n.username, "avatarUrl": avatarValue(n.username),
                 "displayName": displayNames[n.username] ?? NSNull(),
             ],
             "media": n.media,
@@ -2910,7 +2921,7 @@ enum MockBackend {
                 .map { q -> [String: Any] in
                     [
                         "id": q.id, "body": q.body, "createdAt": iso(q.createdAt),
-                        "author": ["id": q.authorId, "username": q.username, "avatarUrl": NSNull()],
+                        "author": ["id": q.authorId, "username": q.username, "avatarUrl": avatarValue(q.username)],
                         "media": q.media,
                         "contentWarning": q.contentWarning ?? NSNull(),
                         "sensitive": q.sensitive || q.contentWarning != nil,

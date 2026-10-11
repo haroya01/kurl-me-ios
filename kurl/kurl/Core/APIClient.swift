@@ -296,6 +296,10 @@ struct APIClient {
            ) {
             return mocked
         }
+        if Config.useMocks, MockStoreDemo.isOn {
+            NSLog("store-demo blocked %@ %@", request.httpMethod ?? "GET", request.url?.path ?? "")
+            throw APIError.transport(URLError(.notConnectedToInternet))
+        }
         let data: Data
         let response: URLResponse
         do {
