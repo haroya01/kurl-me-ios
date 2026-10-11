@@ -6,7 +6,7 @@
 import XCTest
 
 /// 작성 화면 라이브 렌더 — 마크다운을 치면 그 자리에서 제목·굵게·인용·리스트·코드블록으로 입혀지고,
-/// 코드블록은 한 번 탭으로 빠져나오며, 링크는 `(url)` 리터럴 없이 다이얼로그로 들어가는지
+/// 코드블록은 한 번 탭으로 빠져나오며, 링크는 `(url)` 리터럴 없이 링크 시트로 들어가는지
 /// 실기기 경로로 확인하고 스크린샷을 남긴다(simctl 은 키보드를 못 넣으니 XCUITest 가 유일).
 final class ComposeMarkdownRenderUITests: XCTestCase {
 
@@ -49,25 +49,53 @@ final class ComposeMarkdownRenderUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 0.5)
         shot("code-block-exited")
 
-        // 4) 링크 — `(url)` 리터럴 대신 다이얼로그로 주소를 받아 넣는다.
+        // 4) 링크 — `(url)` 리터럴 대신 링크 시트로 주소를 받아 넣는다.
         editor.typeText("\n")
         app.buttons["링크"].tap()
-        let dialog = app.alerts["링크 추가"]
-        XCTAssertTrue(dialog.waitForExistence(timeout: 5), "링크 다이얼로그가 안 뜸")
-        let field = dialog.textFields.firstMatch
+        XCTAssertTrue(app.navigationBars["링크 넣기"].waitForExistence(timeout: 5), "링크 시트가 안 뜸")
+        let field = app.textFields["editor-link-address"]
         field.tap()
         field.typeText("kurl.me/blog")
-        dialog.buttons["추가"].tap()
+        app.buttons["editor-link-submit"].tap()
         Thread.sleep(forTimeInterval: 0.5)
 
         let value = (editor.value as? String) ?? ""
-        XCTAssertTrue(value.contains("](https://kurl.me/blog)"), "링크 마크다운이 안 들어감: \(value)")
+        XCTAssertTrue(value.contains("<https://kurl.me/blog>"), "링크 마크다운이 안 들어감: \(value)")
         XCTAssertFalse(value.contains("(url)"), "본문에 (url) 리터럴이 남음")
         shot("link-inserted")
     }
 
-    /// 붙여넣은 외부 URL → kurl 단축링크 자동 변환.
-    func testPasteUrlBecomesKurlShortLink() throws {
+    /// 링크 버튼은 새 글쓰기와 같은 시트를 연다 — 고른 글자가 표시 텍스트, 넣으면 `[글자](주소)`.
+    func testLinkButtonOpensTheLinkSheetWithTheSelection() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "write", "--open", "compose", "--focus", "editor", "--editor", "legacy"]
+        app.launch()
+
+        let editor = app.textViews.firstMatch
+        XCTAssertTrue(editor.waitForExistence(timeout: 12), "본문 캔버스 없음")
+        editor.tap()
+        editor.typeText("guide")
+        editor.press(forDuration: 1.2)
+        let selectAll = ["Select All", "전체 선택", "모두 선택"].map { app.menuItems[$0] }
+        XCTAssertTrue(selectAll[0].waitForExistence(timeout: 3) || selectAll[1].exists || selectAll[2].exists, "전체 선택 메뉴가 안 뜸")
+        selectAll.first { $0.exists }?.tap()
+
+        app.buttons["링크"].tap()
+        XCTAssertTrue(app.navigationBars["링크 넣기"].waitForExistence(timeout: 5), "링크 시트가 안 뜸")
+        XCTAssertFalse(app.alerts.firstMatch.exists, "경고창이 아니라 시트")
+        XCTAssertEqual(app.textFields["editor-link-text"].value as? String, "guide")
+        XCTAssertFalse(app.segmentedControls["editor-link-kind"].exists, "글자를 골랐으면 카드 전환이 없다")
+        app.textFields["editor-link-address"].typeText("example.com/guide")
+        shot("legacy-link-sheet")
+        app.buttons["editor-link-submit"].tap()
+
+        let linked = NSPredicate(format: "value CONTAINS %@", "[guide](https://example.com/guide)")
+        expectation(for: linked, evaluatedWith: editor, handler: nil)
+        waitForExpectations(timeout: 5)
+    }
+
+    /// 붙여넣은 외부 URL 은 쓴 그대로 남는다(단축은 하지 않는다).
+    func testPastedUrlIsNotShortened() throws {
         UIPasteboard.general.string = "https://example.com/very/long/path?utm=abcdef123456"
 
         // 페이스트보드 동의 알럿이 뜨면 허용(다른 프로세스가 채운 보드라 한 번 물을 수 있다).
@@ -99,14 +127,14 @@ final class ComposeMarkdownRenderUITests: XCTestCase {
         (pasteEN.exists ? pasteEN : pasteKO).tap()
         app.tap() // 인터럽션 모니터가 동의 알럿을 처리하도록 한 번 건드린다.
 
-        // 비동기 단축 교체를 기다린다.
-        let shortened = NSPredicate(format: "value CONTAINS 'kurl.me/'")
-        expectation(for: shortened, evaluatedWith: editor, handler: nil)
+        let pasted = NSPredicate(format: "value CONTAINS 'example.com/very/long/path'")
+        expectation(for: pasted, evaluatedWith: editor, handler: nil)
         waitForExpectations(timeout: 10)
+        Thread.sleep(forTimeInterval: 3)
 
         let value = (editor.value as? String) ?? ""
-        XCTAssertTrue(value.contains("kurl.me/"), "단축링크로 안 바뀜: \(value)")
-        XCTAssertFalse(value.contains("example.com/very/long"), "원문 URL 이 남음: \(value)")
-        shot("paste-shortened")
+        XCTAssertFalse(value.contains("kurl.me/"), "붙여넣은 주소가 단축됨: \(value)")
+        XCTAssertTrue(value.contains("https://example.com/very/long/path?utm=abcdef123456"), "원문 URL 이 그대로여야 함: \(value)")
+        shot("paste-kept")
     }
 }

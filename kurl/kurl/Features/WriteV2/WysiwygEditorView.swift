@@ -12,13 +12,19 @@ import UIKit
 
 struct WysiwygEditorView: View {
     @State private var document: EditorDocument
-    /// 붙여넣기 훅 — 호스트(컴포즈)가 업로드·재호스팅·단축을 잇는다. 하네스는 기본값(빈 훅)으로 돈다.
+    /// 붙여넣기 훅 — 호스트(컴포즈)가 업로드·재호스팅을 잇는다. 하네스는 기본값(빈 훅)으로 돈다.
     private let pasteHandlers: EditorPasteHandlers
+    private let linkHandlers: EditorLinkHandlers
     @ScaledMetric(relativeTo: .body) private var placeholderSize: CGFloat = 18
 
-    init(document: EditorDocument, pasteHandlers: EditorPasteHandlers = EditorPasteHandlers()) {
+    init(
+        document: EditorDocument,
+        pasteHandlers: EditorPasteHandlers = EditorPasteHandlers(),
+        linkHandlers: EditorLinkHandlers = EditorLinkHandlers()
+    ) {
         _document = State(initialValue: document)
         self.pasteHandlers = pasteHandlers
+        self.linkHandlers = linkHandlers
     }
 
     var body: some View {
@@ -254,6 +260,9 @@ struct WysiwygEditorView: View {
                 }
             },
             pasteHandlers: pasteHandlers,
+            linkHandlers: linkHandlers,
+            onMakeLinkCard: { url in document.convertToLinkCard(block.id, url: url) },
+            onUnlink: { span in document.unlink(block.id, span: span) },
             documentUndoManager: document.undoManager,
             onEditingEnded: { document.endEditing(block.id) },
             onSeparateEdit: { document.breakUndoCoalescing() },

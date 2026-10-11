@@ -6,11 +6,9 @@
 import SwiftUI
 import UIKit
 
-/// 붙여넣기를 가로채 단일 URL 이면 원문을 먼저 커서 자리에 넣고(즉시 반응) 그 범위를 훅에 넘긴다 —
-/// 호스트가 비동기로 kurl 단축링크로 교체한다. URL 이 아니면(텍스트 덩어리 등) 기본 붙여넣기.
+/// 붙여넣기를 가로채 단일 URL 이면 공백을 걷어 커서 자리에 넣는다. URL 이 아니면(텍스트 덩어리 등) 기본 붙여넣기.
 final class MarkdownInputTextView: UITextView {
-    var onPasteURL: ((_ url: String, _ range: NSRange) -> Void)?
-    /// 붙여넣은 단일 URL 이 이미지 파일을 가리킬 때 — 단축 대신 호스트가 재호스팅 후 `![](url)` 로 넣는다.
+    /// 붙여넣은 단일 URL 이 이미지 파일을 가리킬 때 — 호스트가 재호스팅 후 `![](url)` 로 넣는다.
     var onPasteImageURL: ((_ url: String) -> Void)?
     /// 클립보드에 이미지 바이트가 실려 있을 때(스크린샷·노션 이미지 복사 등) — 호스트가 업로드 후 `![](url)` 로 넣는다.
     var onPasteImages: ((_ images: [UIImage]) -> Void)?
@@ -106,14 +104,12 @@ final class MarkdownInputTextView: UITextView {
         if markedTextRange == nil,
             let raw = UIPasteboard.general.string,
             let url = Self.singleURL(in: raw) {
-            // 이미지 URL 은 단축하지 않는다 — 호스트가 우리 버킷으로 재호스팅 후 이미지로 넣는다(링크카드 X).
+            // 이미지 URL 은 호스트가 우리 버킷으로 재호스팅 후 이미지로 넣는다(링크카드 X).
             if Self.isImageURL(url), let onPasteImageURL {
                 onPasteImageURL(url)
                 return
             }
-            let location = selectedRange.location
             insertText(url)
-            onPasteURL?(url, NSRange(location: location, length: (url as NSString).length))
             return
         }
         super.paste(sender)
@@ -137,7 +133,7 @@ final class MarkdownInputTextView: UITextView {
     }
 
     /// 단일 URL 의 경로가 이미지 확장자로 끝나는가(쿼리·프래그먼트 무시) — 서버 import 가 재호스팅할 수
-    /// 있는 형식(jpeg/png/gif/webp)만. 그러면 링크 단축 대신 이미지로 넣는다.
+    /// 있는 형식(jpeg/png/gif/webp)만. 그러면 링크 대신 이미지로 넣는다.
     static func isImageURL(_ s: String) -> Bool {
         guard let comps = URLComponents(string: s),
             let scheme = comps.scheme?.lowercased(), scheme == "http" || scheme == "https"
@@ -194,35 +190,6 @@ struct MarkdownTextView: UIViewRepresentable {
         // 클립보드 이미지 바이트 → 호스트(컴포즈)가 업로드 후 본문에 이미지로 넣는다.
         textView.onPasteImages = onPasteImages
 
-        // 붙여넣은 URL → kurl 단축링크. 원문을 먼저 넣어 즉시 반응하고, 단축되면 그 자리만 교체한다
-        // (그 사이 사용자가 더 입력해 범위가 바뀌었으면 건너뛴다 — 손실 없이 원문 유지).
-        let coordinator = context.coordinator
-        textView.onPasteURL = { [weak textView] original, range in
-            guard let textView else { return }
-            Task { @MainActor in
-                guard let short = try? await WriteAPI.shorten(original) else { return }
-                let ns = textView.text as NSString
-                guard range.location + range.length <= ns.length,
-                    ns.substring(with: range) == original,
-                    let start = textView.position(from: textView.beginningOfDocument, offset: range.location),
-                    let end = textView.position(from: start, offset: range.length),
-                    let textRange = textView.textRange(from: start, to: end)
-                else { return }
-                textView.replace(textRange, withText: short)
-                textView.selectedRange = NSRange(
-                    location: range.location + (short as NSString).length, length: 0)
-                coordinator.textViewDidChange(textView)
-                // 조용히 바꾸지 않는다 — 단축됐음을 알리고 원래 주소로 되돌릴 길을 준다.
-                ToastCenter.shared.show(
-                    String(localized: "kurl 링크로 단축했어요"),
-                    actionLabel: String(localized: "되돌리기")
-                ) { [weak textView] in
-                    guard let textView, let undo = textView.undoManager, undo.canUndo else { return }
-                    undo.undo()
-                    coordinator.textViewDidChange(textView)
-                }
-            }
-        }
         return textView
     }
 
@@ -703,15 +670,14 @@ final class MarkdownEditorController {
         return (textView.text as NSString).substring(with: range)
     }
 
-    /// 링크 삽입 2단계 — 다이얼로그가 받은 주소로 보관해둔 자리에 `[라벨](주소)` 를 넣는다.
-    /// 라벨이 비면 주소를 라벨로(보이는 글자=주소). 주소가 비면 아무것도 하지 않는다.
+    /// 링크 삽입 2단계 — 시트가 받은 주소로 보관해둔 자리에 `[라벨](주소)` 를 넣는다.
+    /// 라벨이 비면 `<주소>`. 주소가 비면 아무것도 하지 않는다.
     func commitLink(label: String, url: String) {
         defer { pendingLinkRange = nil }
         guard let textView, let range = pendingLinkRange else { return }
         let trimmed = url.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        let shownLabel = label.isEmpty ? trimmed : label
-        let snippet = "[\(shownLabel)](\(trimmed))"
+        let snippet = EditorLinkMarkup.markup(label: label, url: trimmed)
         guard let start = textView.position(from: textView.beginningOfDocument, offset: range.location),
               let end = textView.position(from: start, offset: range.length),
               let textRange = textView.textRange(from: start, to: end)
@@ -753,10 +719,10 @@ final class MarkdownEditorController {
         insertBlock("\n\n---\n\n", caretOffsetFromStart: nil)
     }
 
-    /// 단독 줄 동영상 URL — 백엔드가 EMBED 블록으로(YouTube/Vimeo), 리더(EmbedBlockView)가 플레이어로.
-    func insertVideoEmbed(url: String) {
+    /// 단독 줄 URL — 백엔드가 EMBED 블록으로, 리더(EmbedBlockView)가 카드·플레이어로.
+    func insertEmbedLine(url: String) {
         // 빈 줄로 띄워 URL 이 제 문단에 홀로 서게 한다 — 안 그러면 앞뒤 산문과 한 문단으로 묶여
-        // 임베드(플레이어)가 아니라 평범한 인라인 링크로 렌더된다.
+        // 임베드(카드·플레이어)가 아니라 평범한 인라인 링크로 렌더된다.
         insertBlock("\n\n\(url)\n\n", caretOffsetFromStart: nil)
     }
 

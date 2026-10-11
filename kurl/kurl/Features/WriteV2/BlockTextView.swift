@@ -16,15 +16,13 @@
 import SwiftUI
 import UIKit
 
-/// 캔버스 붙여넣기 훅 — 실제 업로드·재호스팅·단축은 호스트(컴포즈)가 잇는다(현행 V1 캔버스와 같은 계약).
+/// 캔버스 붙여넣기 훅 — 실제 업로드·재호스팅은 호스트(컴포즈)가 잇는다(현행 V1 캔버스와 같은 계약).
 /// 하네스(EditorHarnessView)는 기본값(전부 nil)로 살아 네트워크 없이 돈다.
 struct EditorPasteHandlers {
     /// 클립보드 이미지 바이트 — 호스트가 업로드 후 IMAGE 블록으로 넣는다.
     var images: (([UIImage]) -> Void)?
     /// 붙여넣은 외부 이미지 URL — 호스트가 우리 버킷으로 재호스팅 후 IMAGE 블록으로 넣는다(핫링크 방지).
     var imageURL: ((String) -> Void)?
-    /// 붙여넣은 일반 URL 의 kurl 단축 — nil 반환(실패 포함)이면 원문을 그대로 둔다.
-    var shorten: ((String) async -> String?)?
 }
 
 struct EditorSplitContinuation {
@@ -58,6 +56,9 @@ struct BlockTextView: UIViewRepresentable {
     let onSelectionChange: (Int, Int) -> Void
     /// 붙여넣기 훅 — 이미지·URL 붙여넣기를 기본 텍스트 붙여넣기보다 먼저 가로챈다(V1 캔버스 계약 미러).
     var pasteHandlers: EditorPasteHandlers = EditorPasteHandlers()
+    var linkHandlers: EditorLinkHandlers = EditorLinkHandlers()
+    var onMakeLinkCard: (String) -> Void = { _ in }
+    var onUnlink: (EditorLinkSpan) -> Void = { _ in }
     var documentUndoManager: UndoManager? = nil
     var onEditingEnded: () -> Void = {}
     var onSeparateEdit: () -> Void = {}
@@ -79,19 +80,18 @@ struct BlockTextView: UIViewRepresentable {
         tv.setContentHuggingPriority(.defaultLow, for: .horizontal)
         context.coordinator.textView = tv
         context.coordinator.onEmptyBackspace = onMergeBackward
+        context.coordinator.installLinkInteractions(on: tv)
         wirePaste(tv, coordinator: context.coordinator)
         apply(block, to: tv, coordinator: context.coordinator)
         return tv
     }
 
-    /// 붙여넣기 경로 배선 — 이미지/이미지 URL 은 호스트로 넘기고, 일반 URL 은 원문을 먼저 넣어
-    /// 즉시 반응한 뒤(맨 URL 도 링크색으로 라이브 렌더된다) 단축이 오면 그 자리만 치환한다.
     private func wirePaste(_ tv: BlockUITextView, coordinator: Coordinator) {
         tv.onPasteImages = pasteHandlers.images
         tv.onPasteImageURL = pasteHandlers.imageURL
-        tv.onPastedURL = { [weak tv, weak coordinator] url, range in
-            guard let tv, let coordinator else { return }
-            coordinator.shortenPastedURL(url, at: range, in: tv)
+        tv.pasteBlockKind = block.kind
+        tv.onPastedLinkChoice = { [weak coordinator] url, video, range in
+            coordinator?.presentLinkMenu(.choice(url: url, video: video, range: range))
         }
     }
 
@@ -186,7 +186,7 @@ struct BlockTextView: UIViewRepresentable {
     // MARK: Coordinator
 
     @MainActor
-    final class Coordinator: NSObject, UITextViewDelegate {
+    final class Coordinator: NSObject, UITextViewDelegate, UIGestureRecognizerDelegate, UIEditMenuInteractionDelegate {
         var parent: BlockTextView
         weak var textView: BlockUITextView?
         var renderedKind: EditorBlockKind?
@@ -223,13 +223,25 @@ struct BlockTextView: UIViewRepresentable {
             let caret = swiftCaret(in: tv, nsLocation: range.location)
             let end = swiftCaret(in: tv, nsLocation: range.location + range.length)
             parent.onSelectionChange(caret, max(0, end - caret))
+            if let anchor = linkMenu?.anchor,
+               range.location < anchor.location - 1 || NSMaxRange(range) > NSMaxRange(anchor) + 1 {
+                dismissLinkMenu()
+            }
 
             // 드래그 선택 중(길이>0)엔 재렌더하지 않는다 — attributedText 교체가 확대경/드래그를 끊고,
             // 선택 중엔 반개봉이 굳이 필요 없다(선택을 놓으면 캐럿이 되고 그때 열린다).
             guard range.length == 0 else { return }
+            if let touch = linkTouch, Date().timeIntervalSince(touch.at) < 1 {
+                if markersHiddenAt != range.location { reRenderInline(tv, hidingMarkers: true) }
+                return
+            }
+            if let hiddenAt = markersHiddenAt {
+                if hiddenAt == range.location { return }
+                markersHiddenAt = nil
+            }
             // 인라인 마커가 아예 없는 블록은 반개봉할 게 없으니 건너뛴다(캐럿 이동마다 재렌더 낭비 방지).
             let text = tv.text ?? ""
-            guard text.contains("*") || text.contains("`") || text.contains("[") else { return }
+            guard text.contains("*") || text.contains("`") || text.contains("[") || text.contains("<") else { return }
             // 반개봉 상태(어느 마크업이 열렸나)가 캐럿 이동으로 실제 바뀔 때만 다시 칠한다 — 마크업과
             // 무관한 위치들 사이 이동엔 재렌더를 생략(방향키 네비 낭비 방지).
             let active = BlockInlineRenderer.activeMarkupSpan(in: text, caret: range.location)
@@ -296,6 +308,8 @@ struct BlockTextView: UIViewRepresentable {
 
         func textViewDidChange(_ textView: UITextView) {
             guard !isProgrammaticEdit, let tv = textView as? BlockUITextView else { return }
+            dismissLinkMenu()
+            linkTouch = nil
             let newText = tv.text ?? ""
 
             // 줄머리 마크다운 지름길 — 조합 중이 아닐 때만(한글 IME 가드).
@@ -320,62 +334,151 @@ struct BlockTextView: UIViewRepresentable {
         /// 인라인 마크다운(`**볼드**`·`[라벨](url)` 등)을 최종 모습으로 다시 입힌다 — 캐럿을 보존한 채,
         /// 그 캐럿이 걸친 마크업만 마커를 반개봉한다(activeRange). attributedText 교체가 selection 을
         /// 리셋하므로 곧바로 되돌린다.
-        private func reRenderInline(_ tv: BlockUITextView) {
+        func reRenderInline(_ tv: BlockUITextView, hidingMarkers hideMarkers: Bool = false) {
             let selected = tv.selectedRange
             let block = EditorBlock(kind: parent.block.kind, text: tv.text ?? "")
             isProgrammaticEdit = true
-            tv.attributedText = BlockInlineRenderer.render(block, activeRange: selected)
+            tv.attributedText = BlockInlineRenderer.render(block, activeRange: hideMarkers ? nil : selected)
             tv.typingAttributes = BlockInlineRenderer.typingAttributes(for: block.kind)
             if selected.location <= (tv.text as NSString).length {
                 tv.selectedRange = selected
             }
             // 방금 반개봉한 span 을 캐시에 기록 — 이어지는 selection 콜백이 같은 상태로 재렌더 반복하지 않게.
-            lastRevealedSpan = BlockInlineRenderer.activeMarkupSpan(in: block.text, caret: selected.location)
+            lastRevealedSpan = hideMarkers ? nil : BlockInlineRenderer.activeMarkupSpan(in: block.text, caret: selected.location)
+            markersHiddenAt = hideMarkers ? selected.location : nil
             isProgrammaticEdit = false
         }
 
-        /// 붙여넣은 일반 URL 을 kurl 단축링크로 치환한다 — V1(MarkdownTextView.onPasteURL) 계약 미러.
-        /// 원문은 이미 캐럿 자리에 들어가 있다(즉시 반응). 단축이 돌아오면 그 사이 사용자가 그 범위를
-        /// 안 건드렸을 때만 제자리 교체하고, 조용히 바꾸지 않도록 되돌리기 토스트를 띄운다.
-        /// 동영상(YouTube·Vimeo) URL 은 단축하지 않는다 — 단독 문단 원문이어야 발행 시 플레이어가 된다.
-        func shortenPastedURL(_ original: String, at range: NSRange, in tv: BlockUITextView) {
-            guard let shorten = parent.pasteHandlers.shorten,
-                  !WriteV2VideoDetect.isVideoURL(original) else { return }
-            Task { @MainActor [weak tv, weak self] in
-                guard let short = await shorten(original), short != original,
-                      let tv, let self, tv.markedTextRange == nil else { return }
-                let ns = tv.text as NSString
-                guard range.location + range.length <= ns.length,
-                      ns.substring(with: range) == original,
-                      let start = tv.position(from: tv.beginningOfDocument, offset: range.location),
-                      let end = tv.position(from: start, offset: range.length),
-                      let textRange = tv.textRange(from: start, to: end)
-                else { return }
-                self.parent.onSeparateEdit()
-                tv.replace(textRange, withText: short)
-                tv.selectedRange = NSRange(
-                    location: range.location + (short as NSString).length, length: 0)
-                self.textViewDidChange(tv)
-                self.parent.onSeparateEdit()
-                ToastCenter.shared.show(
-                    String(localized: "kurl 링크로 단축했어요"),
-                    actionLabel: String(localized: "되돌리기")
-                ) { [weak tv, weak self] in
-                    // Reverse this replacement only; a later edit in another block must not be undone.
-                    guard let tv, let self, tv.markedTextRange == nil else { return }
-                    let shortRange = NSRange(location: range.location, length: (short as NSString).length)
-                    let current = tv.text as NSString
-                    guard NSMaxRange(shortRange) <= current.length,
-                          current.substring(with: shortRange) == short,
-                          let start = tv.position(from: tv.beginningOfDocument, offset: shortRange.location),
-                          let end = tv.position(from: start, offset: shortRange.length),
-                          let target = tv.textRange(from: start, to: end) else { return }
-                    self.parent.onSeparateEdit()
-                    tv.replace(target, withText: original)
-                    self.textViewDidChange(tv)
-                    self.parent.onSeparateEdit()
+        enum LinkMenu {
+            case choice(url: String, video: Bool, range: NSRange)
+            case actions(EditorLinkSpan)
+
+            var anchor: NSRange {
+                switch self {
+                case .choice(_, _, let range): return range
+                case .actions(let span): return span.labelRange
                 }
             }
+        }
+
+        private var linkMenu: LinkMenu?
+        private var linkMenuInteraction: UIEditMenuInteraction?
+        private var linkTouch: (span: EditorLinkSpan, at: Date)?
+        private var markersHiddenAt: Int?
+
+        func installLinkInteractions(on tv: BlockUITextView) {
+            let tap = UITapGestureRecognizer(target: self, action: #selector(linkTapped(_:)))
+            tap.cancelsTouchesInView = false
+            tap.delaysTouchesEnded = false
+            tap.delegate = self
+            tv.addGestureRecognizer(tap)
+            let menu = UIEditMenuInteraction(delegate: self)
+            tv.addInteraction(menu)
+            linkMenuInteraction = menu
+        }
+
+        func gestureRecognizer(
+            _ gestureRecognizer: UIGestureRecognizer,
+            shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+        ) -> Bool { true }
+
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+            linkTouch = nil
+            guard let tv = textView, tv.markedTextRange == nil else { return true }
+            let point = touch.location(in: tv)
+            if let range = tv.characterRange(at: point), tv.firstRect(for: range).insetBy(dx: -2, dy: -4).contains(point),
+               let span = EditorLinkMarkup.span(
+                atLabel: tv.offset(from: tv.beginningOfDocument, to: range.start), in: tv.text ?? "") {
+                linkTouch = (span, Date())
+            }
+            return true
+        }
+
+        @objc private func linkTapped(_ recognizer: UITapGestureRecognizer) {
+            guard recognizer.state == .ended, let span = linkTouch?.span else { return }
+            DispatchQueue.main.async { [weak self] in
+                guard let self, self.textView?.isFirstResponder == true else { return }
+                self.presentLinkMenu(.actions(span))
+            }
+        }
+
+        func presentLinkMenu(_ menu: LinkMenu) {
+            guard let tv = textView, let rect = rect(for: menu.anchor, in: tv) else { return }
+            linkMenu = menu
+            let configuration = UIEditMenuConfiguration(
+                identifier: "editor-link-menu", sourcePoint: CGPoint(x: rect.midX, y: rect.minY))
+            linkMenuInteraction?.presentEditMenu(with: configuration)
+        }
+
+        func dismissLinkMenu() {
+            guard linkMenu != nil else { return }
+            linkMenu = nil
+            linkMenuInteraction?.dismissMenu()
+        }
+
+        private func rect(for range: NSRange, in tv: UITextView) -> CGRect? {
+            guard NSMaxRange(range) <= (tv.text as NSString).length,
+                  let start = tv.position(from: tv.beginningOfDocument, offset: range.location),
+                  let end = tv.position(from: start, offset: range.length),
+                  let textRange = tv.textRange(from: start, to: end) else { return nil }
+            let rect = tv.firstRect(for: textRange)
+            return rect.isNull || rect.isInfinite ? nil : rect
+        }
+
+        func editMenuInteraction(
+            _ interaction: UIEditMenuInteraction,
+            menuFor configuration: UIEditMenuConfiguration,
+            suggestedActions: [UIMenuElement]
+        ) -> UIMenu? {
+            switch linkMenu {
+            case .choice(let url, let video, _):
+                return UIMenu(children: [
+                    UIAction(title: String(localized: "링크"), state: .on) { [weak self] _ in self?.linkMenu = nil },
+                    UIAction(title: video ? String(localized: "동영상") : String(localized: "카드")) { [weak self] _ in
+                        self?.linkMenu = nil
+                        self?.parent.onMakeLinkCard(url)
+                    },
+                ])
+            case .actions(let span):
+                return UIMenu(children: linkActions(for: span))
+            case nil:
+                return nil
+            }
+        }
+
+        func editMenuInteraction(
+            _ interaction: UIEditMenuInteraction,
+            targetRectFor configuration: UIEditMenuConfiguration
+        ) -> CGRect {
+            guard let tv = textView, let menu = linkMenu, let rect = rect(for: menu.anchor, in: tv) else { return .null }
+            return rect
+        }
+
+        func editMenuInteraction(
+            _ interaction: UIEditMenuInteraction,
+            willDismissMenuFor configuration: UIEditMenuConfiguration,
+            animator: any UIEditMenuInteractionAnimating
+        ) {
+            linkMenu = nil
+        }
+
+        private func linkActions(for span: EditorLinkSpan) -> [UIMenuElement] {
+            var actions: [UIMenuElement] = []
+            if let url = URL(string: span.url) {
+                actions.append(UIAction(title: String(localized: "열기")) { [weak self] _ in
+                    if let open = self?.parent.linkHandlers.open { open(url) } else { UIApplication.shared.open(url) }
+                })
+            }
+            if let edit = parent.linkHandlers.edit, let tv = textView {
+                let target = EditorLinkTarget.editing(span, in: parent.block.id, text: tv.text ?? "")
+                actions.append(UIAction(title: String(localized: "고치기")) { _ in edit(target) })
+            }
+            if span.label != span.url {
+                actions.append(UIAction(title: String(localized: "링크 빼기"), attributes: .destructive) { [weak self] _ in
+                    self?.parent.onUnlink(span)
+                })
+            }
+            return actions
         }
 
         /// NSString(UTF-16) location → Swift String 캐럿(문서 연산은 String 인덱스 기준).
@@ -420,10 +523,18 @@ final class BlockUITextView: UITextView {
     /// 문서가 아는 이 블록의 현재 text — SwiftUI 왕복 시 캐럿 튐/재렌더 루프 방지용 캐시.
     var currentBlockText: String = ""
     var onEmptyBackspaceOverride: (() -> Void)?
-    /// 붙여넣기 가로채기 — 이미지 바이트 / 이미지 URL / 일반 URL(삽입 범위 통지). 없으면 기본 붙여넣기.
+    /// 붙여넣기 가로채기 — 이미지 바이트 / 이미지 URL / 일반 URL(링크로). 없으면 기본 붙여넣기.
     var onPasteImages: (([UIImage]) -> Void)?
     var onPasteImageURL: ((String) -> Void)?
-    var onPastedURL: ((String, NSRange) -> Void)?
+    var pasteBlockKind: EditorBlockKind = .paragraph
+    var onPastedLinkChoice: ((String, Bool, NSRange) -> Void)?
+
+    private func insertLink(_ markup: String) {
+        insertText(markup)
+        if let coordinator = delegate as? BlockTextView.Coordinator {
+            coordinator.reRenderInline(self, hidingMarkers: true)
+        }
+    }
 
     override func paste(_ sender: Any?) {
         onSeparateEdit?()
@@ -437,18 +548,43 @@ final class BlockUITextView: UITextView {
                 return
             }
         }
-        if markedTextRange == nil,
-           let raw = UIPasteboard.general.string,
-           let url = MarkdownInputTextView.singleURL(in: raw) {
-            // 이미지 URL 은 단축하지 않는다 — 호스트가 우리 버킷으로 재호스팅 후 이미지 블록으로 넣는다.
-            if MarkdownInputTextView.isImageURL(url), let onPasteImageURL {
-                onPasteImageURL(url)
+        if markedTextRange == nil, let raw = UIPasteboard.general.string {
+            let text = self.text ?? ""
+            let selection = selectedRange
+            switch EditorLinkMarkup.plan(
+                pasted: raw, kind: pasteBlockKind, text: text, selection: selection,
+                canImportImage: onPasteImageURL != nil) {
+            case .plain:
+                break
+            case .image(let url):
+                onPasteImageURL?(url)
+                return
+            case .linkSelection(let url):
+                let selected = (text as NSString).substring(with: selection)
+                let core = selected.trimmingCharacters(in: .whitespaces)
+                let lead = selected.prefix { $0 == " " }
+                let trail = String(selected.reversed().prefix { $0 == " " })
+                insertLink(lead + EditorLinkMarkup.markup(label: core, url: url) + trail)
+                return
+            case .relink(let span, let url):
+                selectedRange = span.range
+                insertLink(EditorLinkMarkup.markup(label: span.label, url: url))
+                return
+            case .linkWithChoice(let url, let video):
+                let markup = EditorLinkMarkup.markup(label: "", url: url)
+                let location = selection.location
+                insertLink(markup)
+                let anchor = NSRange(location: location + 1, length: (url as NSString).length)
+                DispatchQueue.main.async { [weak self] in self?.onPastedLinkChoice?(url, video, anchor) }
+                return
+            case .linkInline(let url):
+                insertLink(EditorLinkMarkup.markup(label: "", url: url))
                 return
             }
-            let location = selectedRange.location
-            insertText(url)
-            onPastedURL?(url, NSRange(location: location, length: (url as NSString).length))
-            return
+            if let url = MarkdownInputTextView.singleURL(in: raw) {
+                insertText(url)
+                return
+            }
         }
         super.paste(sender)
     }

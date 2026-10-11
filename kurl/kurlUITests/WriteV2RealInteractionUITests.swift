@@ -178,9 +178,9 @@ final class WriteV2RealInteractionUITests: XCTestCase {
         shot(app, "paste-image-block")
     }
 
-    // MARK: 여정 3 — URL 붙여넣기 → kurl 단축 치환 (신고 3)
+    // MARK: 여정 3 — URL 붙여넣기 → 쓴 주소 그대로 링크
 
-    func testPasteURLShortensInPlace() throws {
+    func testPasteURLKeepsTheAddress() throws {
         UIPasteboard.general.string = "https://example.com/very/deep/link"
         installPasteConsentMonitor()
 
@@ -188,14 +188,12 @@ final class WriteV2RealInteractionUITests: XCTestCase {
         tapCanvas(app)
         pasteViaMenu(app, on: app.textViews.firstMatch)
 
-        // 원문이 먼저 들어가고(즉시 반응) 목 단축(kurl.me/mkN)이 제자리 치환된다.
+        let original = app.textViews.containing(
+            NSPredicate(format: "value CONTAINS %@", "<https://example.com/very/deep/link>")).firstMatch
+        XCTAssertTrue(original.waitForExistence(timeout: 6), "붙여넣은 주소가 링크로 들어가야 함")
         let shortened = app.textViews.containing(
             NSPredicate(format: "value CONTAINS %@", "kurl.me/")).firstMatch
-        let original = app.textViews.containing(
-            NSPredicate(format: "value CONTAINS %@", "example.com/very/deep/link")).firstMatch
-        XCTAssertTrue(
-            shortened.waitForExistence(timeout: 12) || original.exists,
-            "붙여넣은 URL 이 본문에 없음(원문도 단축본도 실종)")
+        XCTAssertFalse(shortened.waitForExistence(timeout: 4), "붙여넣은 주소를 말없이 단축하지 않아야 함")
         shot(app, "paste-url")
     }
 
