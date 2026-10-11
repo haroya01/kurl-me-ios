@@ -66,7 +66,7 @@ struct ProfileEditView: View {
                 Text("노트와 프로필에 사용자 이름보다 먼저 보여요. 비우면 사용자 이름이 보여요.")
             }
 
-            Section("사용자 이름") {
+            Section {
                 HStack(spacing: 1) {
                     // 접근성 크기에선 도메인 접두가 세 줄로 감겨 입력과 겹친다 — "@"만 남긴다
                     // (주소 맥락은 섹션 제목·아랫줄 안내가 진다). fixedSize = 접두 중간 줄바꿈 금지.
@@ -86,36 +86,35 @@ struct ProfileEditView: View {
                         }
                 }
                 .typeScale(.body)
+            } header: {
+                Text("사용자 이름")
+            } footer: {
                 if let usernameError {
-                    Text(usernameError).font(.caption).foregroundStyle(Palette.danger)
+                    Text(usernameError).foregroundStyle(Palette.danger)
                 } else if usernameChanged {
                     Text("이전 이름은 30일간 예약돼 기존 링크가 바로 깨지지 않아요.")
-                        .font(.caption).foregroundStyle(Palette.secondary)
                 } else {
                     // 바꾸기 전에도 제약을 미리 알린다 — 첫 편집 때 "왜 안 바뀌지"를 없앤다(§10 조용한 각주).
                     Text("이름을 바꾸면 30일 동안 다시 바꿀 수 없어요.")
-                        .font(.caption).foregroundStyle(Palette.secondary)
                 }
             }
 
-            Section("소개") {
-                TextField("자기소개를 적어보세요", text: $bio, axis: .vertical)
+            Section {
+                TextField("자기소개", text: $bio, axis: .vertical)
                     .lineLimit(3...6)
-                if loaded && !bioLoaded {
-                    HStack(spacing: 6) {
+            } header: {
+                Text("소개")
+            } footer: {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    if loaded && !bioLoaded {
                         Text("기존 소개글을 불러오지 못했어요.")
-                            .font(.caption)
-                            .foregroundStyle(Palette.secondary)
                         Button("다시 불러오기") { Task { await loadBio() } }
-                            .font(.caption)
                             .buttonStyle(.plain)
                             .foregroundStyle(Palette.link)
                     }
-                }
-                HStack {
-                    Spacer()
+                    Spacer(minLength: 0)
                     Text(String(localized: "\(bio.count) / \(bioLimit)자"))
-                        .font(.caption.monospacedDigit())
+                        .monospacedDigit()
                         .foregroundStyle(bio.count > bioLimit ? Palette.danger : Palette.secondary)
                 }
             }
