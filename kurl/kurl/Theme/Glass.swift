@@ -312,12 +312,15 @@ private struct SegmentPressStyle: ButtonStyle {
 
 /// 유리는 뒤에 흐르는 것이 있을 때만 유리다 — 빈 종이 위 유리 패널(계정 정체 카드)이
 /// 설 자리를 만드는, 아주 옅은 브랜드 그린 메시. reduce-motion 이면 정지,
-/// 저전력 모드·씬 비활성이면 마지막 프레임에서 멈춘다(장식이 배터리를 태우지 않게).
+/// 저전력 모드·씬 비활성·화면 밖이면 마지막 프레임에서 멈춘다(장식이 배터리를 태우지 않게).
 struct BrandMist: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.isFrontmostTab) private var isFrontmostTab
     @State private var lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
+    @State private var onScreen = false
+    @State private var clock = MistClock()
 
     var body: some View {
         if reduceTransparency { Color.clear } else { mist }
@@ -326,12 +329,20 @@ struct BrandMist: View {
     /// 화면이 실제로 앞에 있고 여유 전력이 있을 때만 흐른다 — 앱 스위처·컨트롤 센터
     /// 뒤에서까지 20fps 재렌더를 돌릴 이유가 없다.
     private var paused: Bool {
-        reduceMotion || lowPower || scenePhase != .active
+        Self.isPaused(
+            reduceMotion: reduceMotion, lowPower: lowPower, sceneActive: scenePhase == .active,
+            onScreen: onScreen, frontmostTab: isFrontmostTab)
+    }
+
+    static func isPaused(
+        reduceMotion: Bool, lowPower: Bool, sceneActive: Bool, onScreen: Bool, frontmostTab: Bool
+    ) -> Bool {
+        reduceMotion || lowPower || !sceneActive || !onScreen || !frontmostTab
     }
 
     private var mist: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 20.0, paused: paused)) { context in
-            let t = reduceMotion ? 0 : context.date.timeIntervalSinceReferenceDate * 0.18
+            let t = reduceMotion ? 0 : clock.time(at: context.date) * 0.18
             MeshGradient(
                 width: 3, height: 3,
                 points: [
@@ -357,5 +368,44 @@ struct BrandMist: View {
         ) { _ in
             lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
         }
+        .onAppear { onScreen = true }
+        .onDisappear { onScreen = false }
+        .onChange(of: paused, initial: true) { _, paused in
+            clock.setRunning(!paused, at: .now)
+        }
+    }
+}
+
+struct MistClock: Equatable {
+    private(set) var banked: TimeInterval?
+    private(set) var runningSince: Date?
+
+    func time(at date: Date) -> TimeInterval {
+        let base = banked ?? date.timeIntervalSinceReferenceDate
+        guard let runningSince else { return base }
+        return base + date.timeIntervalSince(runningSince)
+    }
+
+    mutating func setRunning(_ running: Bool, at date: Date) {
+        if running {
+            guard runningSince == nil else { return }
+            if banked == nil { banked = date.timeIntervalSinceReferenceDate }
+            runningSince = date
+        } else {
+            guard runningSince != nil else { return }
+            banked = time(at: date)
+            runningSince = nil
+        }
+    }
+}
+
+private struct FrontmostTabKey: EnvironmentKey {
+    static let defaultValue = true
+}
+
+extension EnvironmentValues {
+    var isFrontmostTab: Bool {
+        get { self[FrontmostTabKey.self] }
+        set { self[FrontmostTabKey.self] = newValue }
     }
 }

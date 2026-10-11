@@ -81,3 +81,50 @@ final class FeedTabChoiceTests: XCTestCase {
         XCTAssertTrue(NoteMoreFeed.kind(.bookmarks).isListed(in: []), "리스트가 아닌 피드는 목록과 상관없다")
     }
 }
+
+@MainActor
+final class BrandMistPauseTests: XCTestCase {
+
+    private func paused(
+        reduceMotion: Bool = false, lowPower: Bool = false, sceneActive: Bool = true,
+        onScreen: Bool = true, frontmostTab: Bool = true
+    ) -> Bool {
+        BrandMist.isPaused(
+            reduceMotion: reduceMotion, lowPower: lowPower, sceneActive: sceneActive,
+            onScreen: onScreen, frontmostTab: frontmostTab)
+    }
+
+    func testTheMistFlowsOnlyWhileItIsOnScreenInTheSelectedTab() {
+        XCTAssertFalse(paused())
+        XCTAssertTrue(paused(onScreen: false), "푸시로 가려지면 멈춘다")
+        XCTAssertTrue(paused(frontmostTab: false), "다른 탭이나 글쓰기 덮개가 앞에 있으면 멈춘다")
+        XCTAssertTrue(paused(sceneActive: false))
+        XCTAssertTrue(paused(lowPower: true))
+        XCTAssertTrue(paused(reduceMotion: true))
+    }
+
+    func testOnlyTheSelectedTabWithoutTheComposerOrHandleCoverIsInFront() {
+        XCTAssertTrue(RootView.isFrontmostTab(0, selection: 0, coverShown: false))
+        XCTAssertFalse(RootView.isFrontmostTab(1, selection: 0, coverShown: false), "숨은 탭은 앞이 아니다")
+        XCTAssertFalse(RootView.isFrontmostTab(0, selection: 0, coverShown: true), "글쓰기·핸들 덮개 아래 탭은 앞이 아니다")
+    }
+
+    func testAnUninterruptedMistKeepsTheWallClockPhase() {
+        var clock = MistClock()
+        let start = Date(timeIntervalSinceReferenceDate: 5_000)
+        clock.setRunning(true, at: start)
+        let later = start.addingTimeInterval(37.5)
+        XCTAssertEqual(clock.time(at: later), later.timeIntervalSinceReferenceDate, accuracy: 1e-9)
+    }
+
+    func testResumingContinuesFromTheFrameWhereItStopped() {
+        var clock = MistClock()
+        let start = Date(timeIntervalSinceReferenceDate: 1_000)
+        clock.setRunning(true, at: start)
+        clock.setRunning(false, at: start.addingTimeInterval(3))
+        XCTAssertEqual(clock.time(at: start.addingTimeInterval(60)), 1_003, accuracy: 1e-9, "멈춘 동안은 그 프레임에 머문다")
+        clock.setRunning(true, at: start.addingTimeInterval(60))
+        XCTAssertEqual(clock.time(at: start.addingTimeInterval(60)), 1_003, accuracy: 1e-9, "다시 흐를 때 튀지 않는다")
+        XCTAssertEqual(clock.time(at: start.addingTimeInterval(61)), 1_004, accuracy: 1e-9)
+    }
+}
