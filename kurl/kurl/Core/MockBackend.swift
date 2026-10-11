@@ -949,8 +949,8 @@ enum MockBackend {
         ]
     }
 
-    /// "이어진 것" 목 — 이 글과 같은 공개 컬렉션에 나란히 엮인 다른 블록(공동 등장 큰 순). 세 실루엣
-    /// (글·하이라이트·노트)이 다 나오게 섞어 본문 끝 PostEdges 가 실제로 어떻게 서는지 보이게 한다.
+    /// "이것과 이어진 것" 목 — 이 블록과 같은 공개 컬렉션에 나란히 엮인 다른 블록(공동 등장 큰 순). 세 실루엣
+    /// (글·하이라이트·노트)이 다 나오게 섞는다.
     private static func relatedBlocksMock() -> [[String: Any]] {
         [
             [
@@ -1054,13 +1054,13 @@ enum MockBackend {
             return json(postCollectionsMock())
         }
 
-        // "이어진 것" — 이 블록과 같은 공개 컬렉션에 함께 놓인 다른 블록(본문 끝 PostEdges). 공개 표면.
+        // "이것과 이어진 것" — 이 블록과 같은 공개 컬렉션에 함께 놓인 다른 블록(하이라이트 대화 시트). 공개 표면.
         if method == "GET", parts.count == 6, parts[0] == "public", parts[1] == "graph",
             parts[2] == "blocks", parts[5] == "related" {
             return json(relatedBlocksMock())
         }
 
-        // "이 글을 엮은 사람" — 같은 것을 자기 공개 컬렉션에도 엮은 취향 겹치는 큐레이터. 공개 표면.
+        // "취향이 겹치는 큐레이터" — 같은 것을 자기 공개 컬렉션에도 엮은 큐레이터(컬렉션 상세). 공개 표면.
         if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "profiles",
             parts[3] == "kindred" {
             return json(kindredCuratorsMock())

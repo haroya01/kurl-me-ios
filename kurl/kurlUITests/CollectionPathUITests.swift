@@ -195,6 +195,33 @@ final class CollectionPathUITests: XCTestCase {
         shot("13-post-end-collections")
     }
 
+    func testPostEndHasNoRelatedOrKindredRails() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--post", "honggildong/hexagonal-after-3-months"]
+        app.launch()
+
+        _ = anyElement(containing: "돌아가라면").waitForExistence(timeout: 15)
+        let heading = anyElement(containing: "이 글이 담긴 컬렉션")
+        var sawRelated = false
+        var sawKindred = false
+        func look() {
+            sawRelated = sawRelated || anyElement(containing: "이어진 것").exists
+            sawKindred = sawKindred || anyElement(containing: "이 글을 엮은 사람").exists
+        }
+        for _ in 0..<14 where !(heading.exists && heading.isHittable) {
+            look()
+            app.swipeUp()
+        }
+        XCTAssertTrue(heading.exists, "글 끝에 '이 글이 담긴 컬렉션'이 없음")
+        for _ in 0..<4 {
+            look()
+            app.swipeUp()
+        }
+        look()
+        XCTAssertFalse(sawRelated, "글 끝에 '이어진 것' 레일이 남음")
+        XCTAssertFalse(sawKindred, "글 끝에 '이 글을 엮은 사람' 레일이 남음")
+    }
+
     /// 회귀 — 연결 시트의 '다음'·'추가'가 실제로 눌린다(유리 캡슐이 라벨 안에 있어 히트테스트가
     /// 죽었던 사고). 고르고 → 다음 → 왜 화면 → 추가까지 탭으로 완주해야 통과.
     func testConnectSheetNextAndAddAreTappable() throws {

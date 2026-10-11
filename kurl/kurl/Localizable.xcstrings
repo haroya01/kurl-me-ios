@@ -27580,34 +27580,6 @@
         }
       }
     },
-    "이 글을 엮은 사람": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Who wove this in"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "किसने इसे पिरोया"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "この記事を編んだ人"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Người đã đan bài này"
-          }
-        }
-      }
-    },
     "이 글의 발행을 취소할까요?": {
       "localizations": {
         "en": {
@@ -28872,34 +28844,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đọc tiếp · %1$lld / %2$lld"
-          }
-        }
-      }
-    },
-    "이어진 것": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Connected to this"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "इससे जुड़े"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "つながっているもの"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Được kết nối"
           }
         }
       }
