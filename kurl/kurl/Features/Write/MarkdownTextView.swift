@@ -670,15 +670,14 @@ final class MarkdownEditorController {
         return (textView.text as NSString).substring(with: range)
     }
 
-    /// 링크 삽입 2단계 — 다이얼로그가 받은 주소로 보관해둔 자리에 `[라벨](주소)` 를 넣는다.
-    /// 라벨이 비면 주소를 라벨로(보이는 글자=주소). 주소가 비면 아무것도 하지 않는다.
+    /// 링크 삽입 2단계 — 시트가 받은 주소로 보관해둔 자리에 `[라벨](주소)` 를 넣는다.
+    /// 라벨이 비면 `<주소>`. 주소가 비면 아무것도 하지 않는다.
     func commitLink(label: String, url: String) {
         defer { pendingLinkRange = nil }
         guard let textView, let range = pendingLinkRange else { return }
         let trimmed = url.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        let shownLabel = label.isEmpty ? trimmed : label
-        let snippet = "[\(shownLabel)](\(trimmed))"
+        let snippet = EditorLinkMarkup.markup(label: label, url: trimmed)
         guard let start = textView.position(from: textView.beginningOfDocument, offset: range.location),
               let end = textView.position(from: start, offset: range.length),
               let textRange = textView.textRange(from: start, to: end)
@@ -720,10 +719,10 @@ final class MarkdownEditorController {
         insertBlock("\n\n---\n\n", caretOffsetFromStart: nil)
     }
 
-    /// 단독 줄 동영상 URL — 백엔드가 EMBED 블록으로(YouTube/Vimeo), 리더(EmbedBlockView)가 플레이어로.
-    func insertVideoEmbed(url: String) {
+    /// 단독 줄 URL — 백엔드가 EMBED 블록으로, 리더(EmbedBlockView)가 카드·플레이어로.
+    func insertEmbedLine(url: String) {
         // 빈 줄로 띄워 URL 이 제 문단에 홀로 서게 한다 — 안 그러면 앞뒤 산문과 한 문단으로 묶여
-        // 임베드(플레이어)가 아니라 평범한 인라인 링크로 렌더된다.
+        // 임베드(카드·플레이어)가 아니라 평범한 인라인 링크로 렌더된다.
         insertBlock("\n\n\(url)\n\n", caretOffsetFromStart: nil)
     }
 

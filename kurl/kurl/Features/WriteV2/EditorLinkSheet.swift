@@ -8,6 +8,26 @@ import SwiftUI
 struct EditorLinkRequest: Identifiable {
     let id = UUID()
     let target: EditorLinkTarget?
+    let text: String
+    let url: String
+    let editing: Bool
+    let canPickCard: Bool
+
+    init(target: EditorLinkTarget?) {
+        self.target = target
+        text = target?.shownText ?? ""
+        url = target?.url ?? ""
+        editing = target?.editing ?? false
+        canPickCard = target?.canPickCard ?? true
+    }
+
+    init(selectedText: String) {
+        target = nil
+        text = selectedText
+        url = ""
+        editing = false
+        canPickCard = selectedText.isEmpty
+    }
 }
 
 enum EditorLinkKind: Hashable {
@@ -47,12 +67,12 @@ struct EditorLinkSheet: View {
         self.request = request
         self.shorten = shorten
         self.onSubmit = onSubmit
-        _text = State(initialValue: request.target?.shownText ?? "")
-        _address = State(initialValue: request.target?.url ?? "")
+        _text = State(initialValue: request.text)
+        _address = State(initialValue: request.url)
     }
 
-    private var editing: Bool { request.target?.editing ?? false }
-    private var canPickCard: Bool { request.target?.canPickCard ?? true }
+    private var editing: Bool { request.editing }
+    private var canPickCard: Bool { request.canPickCard }
     private var url: String? { Self.normalized(address) }
     private var video: Bool { url.map { WriteV2VideoDetect.isVideoURL($0) } ?? false }
     private var motion: Animation? { reduceMotion ? nil : .snappy(duration: 0.25) }
@@ -91,6 +111,7 @@ struct EditorLinkSheet: View {
                                 Task { @MainActor in address = value }
                             }
                             .labelStyle(.titleOnly)
+                            .buttonBorderShape(.capsule)
                         } else {
                             Button {
                                 address = ""
@@ -180,7 +201,7 @@ struct EditorLinkSheet: View {
         }
         .onChange(of: shortens) { shortenFailed = false }
         .onAppear {
-            if request.target.map({ $0.editing || !$0.shownText.isEmpty }) ?? false { focus = .address }
+            if request.editing || !request.text.isEmpty { focus = .address }
         }
     }
 

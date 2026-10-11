@@ -168,10 +168,7 @@ struct ComposeView: View {
     @State private var scheduleError: String?
     @State private var showRevisions = false
 
-    // 링크 추가 다이얼로그 — 본문에 `(url)` 리터럴을 떨구지 않고 주소를 받아서 넣는다.
-    @State private var showLinkDialog = false
-    @State private var linkURL = ""
-    @State private var linkLabel = ""
+    @State private var legacyLinkLabel = ""
     @State private var showVideoDialog = false
     @State private var videoURL = ""
 
@@ -341,19 +338,6 @@ struct ComposeView: View {
 
     private func insertDialogs(_ content: some View) -> some View {
         content
-        // 링크 추가 — 주소만 받아 본문에 `[라벨](주소)` 로. 본문에 `(url)` 가 보이지 않는다.
-        .alert("링크 추가", isPresented: $showLinkDialog) {
-            TextField("https://…", text: $linkURL)
-                .textInputAutocapitalization(.never)
-                .keyboardType(.URL)
-                .autocorrectionDisabled()
-            Button("추가") { confirmLink() }
-            Button("취소", role: .cancel) {}
-        } message: {
-            Text(linkLabel.isEmpty
-                ? "주소를 붙여넣거나 입력하세요."
-                : "‘\(linkLabel)’에 연결할 주소를 입력하세요.")
-        }
         // 동영상 추가 — YouTube/Vimeo 주소를 한 줄로 넣으면 발행 시 플레이어로(EMBED).
         .alert("동영상 추가", isPresented: $showVideoDialog) {
             TextField("https://youtu.be/…", text: $videoURL)
@@ -2106,38 +2090,32 @@ struct ComposeView: View {
         editorController.focus()
     }
 
-    /// 링크 버튼 — 선택을 라벨 후보로 들고, 클립보드에 URL 이 있으면 미리 채워 다이얼로그를 연다.
-    /// 어르신도 "주소 붙여넣고 추가"만 하면 되게 — 본문에 `(url)` 가 보이지 않는다.
     private func presentLinkDialog() {
-        linkLabel = editorController.beginLinkInsertion()
-        if let clip = UIPasteboard.general.string, Self.looksLikeURL(clip) {
-            linkURL = clip.trimmingCharacters(in: .whitespacesAndNewlines)
-        } else {
-            linkURL = ""
-        }
-        showLinkDialog = true
+        legacyLinkLabel = editorController.beginLinkInsertion()
+        linkRequest = EditorLinkRequest(selectedText: legacyLinkLabel)
     }
 
-    private func confirmLink() {
-        editorController.commitLink(label: linkLabel, url: Self.normalizedURL(linkURL))
+    private func submitLegacyLink(_ result: EditorLinkResult) {
+        switch result.kind {
+        case .card:
+            editorController.insertEmbedLine(url: result.url)
+        case .link:
+            editorController.commitLink(label: result.text.isEmpty ? legacyLinkLabel : result.text, url: result.url)
+        }
         syncMarkdownFromEditor()
         editorController.focus() // 키보드·스니펫 바를 다시 불러 흐름이 끊기지 않게.
+        linkInsertTick &+= 1
     }
 
-    /// 동영상 버튼 — 클립보드에 URL 이 있으면 미리 채워 다이얼로그를 연다.
     private func presentVideoDialog() {
-        if let clip = UIPasteboard.general.string, Self.looksLikeURL(clip) {
-            videoURL = clip.trimmingCharacters(in: .whitespacesAndNewlines)
-        } else {
-            videoURL = ""
-        }
+        videoURL = ""
         showVideoDialog = true
     }
 
     private func confirmVideo() {
         let url = Self.normalizedURL(videoURL)
         guard !url.isEmpty else { return }
-        editorController.insertVideoEmbed(url: url)
+        editorController.insertEmbedLine(url: url)
         syncMarkdownFromEditor()
         editorController.focus()
     }
@@ -2164,13 +2142,6 @@ struct ComposeView: View {
                     String(localized: "커버를 저장하지 못했어요 — 발행 시트에서 다시 지정해 주세요"))
             }
         }
-    }
-
-    private static func looksLikeURL(_ s: String) -> Bool {
-        let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !t.isEmpty, !t.contains(" "), !t.contains("\n"), t.count <= 2000 else { return false }
-        if t.hasPrefix("http://") || t.hasPrefix("https://") { return true }
-        return t.contains(".")
     }
 
     /// 스킴이 없으면 https 를 붙인다 — "example.com" 만 적어도 살아있는 링크가 되게.
@@ -2355,7 +2326,7 @@ struct ComposeView: View {
     }
 
     private func submitLink(_ result: EditorLinkResult, for request: EditorLinkRequest) {
-        guard let editorDocument else { return }
+        guard let editorDocument else { submitLegacyLink(result); return }
         switch result.kind {
         case .card:
             editorDocument.placeLinkCard(result.url, after: request.target?.blockID)
