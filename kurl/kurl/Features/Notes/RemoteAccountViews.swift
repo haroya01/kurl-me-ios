@@ -345,10 +345,6 @@ struct DomainBlocksView: View {
 
     private func row(_ block: DomainBlock) -> some View {
         HStack(spacing: 12) {
-            Image(systemName: "server.rack")
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(Palette.secondary)
-                .frame(width: 36, height: 36)
             Text(verbatim: block.domain)
                 .typeScale(.body)
                 .foregroundStyle(Palette.ink)

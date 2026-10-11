@@ -391,16 +391,11 @@ struct SettingsView: View {
                     confirmDelete = true
                 } label: {
                     HStack(spacing: 10) {
-                        if deleting {
-                            ProgressView()
-                                .frame(width: 22)
-                        } else {
-                            Image(systemName: "person.crop.circle.badge.minus")
-                                .font(.system(size: 14))
-                                .frame(width: 22)
-                        }
                         Text("회원 탈퇴")
                             .typeScale(.body)
+                        if deleting {
+                            ProgressView()
+                        }
                     }
                     .foregroundStyle(Palette.danger)
                     .contentShape(Rectangle())

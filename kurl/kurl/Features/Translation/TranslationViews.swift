@@ -46,8 +46,6 @@ struct PostTranslationBanner: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: "translate")
-                .accessibilityHidden(true)
             switch phase {
             case .translating:
                 Text("번역하는 중…")

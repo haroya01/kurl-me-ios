@@ -30,7 +30,7 @@ final class ConnectSheetFirstOpenUITests: XCTestCase {
             "첫 탭에서 연결 시트가 안 떴다 — 최초 1회 로딩 실패 재현")
 
         // 내용 로드까지 — 목 컬렉션 행 또는 '새 컬렉션 만들기' 행이 보이면 로드 성공.
-        let newRow = app.staticTexts["새 컬렉션 만들기"].firstMatch
+        let newRow = app.buttons["새 컬렉션 만들기"].firstMatch
         XCTAssertTrue(newRow.waitForExistence(timeout: 6), "시트는 떴지만 내용이 로드되지 않음")
     }
 

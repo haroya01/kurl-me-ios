@@ -266,10 +266,6 @@ struct ConnectSheet: View {
             createRequest = CreateRequest(kind: .collection)
         } label: {
             HStack(spacing: 10) {
-                Image(systemName: "plus")
-                    .font(.system(size: 14 * unit, weight: .semibold))
-                    .foregroundStyle(Palette.secondary)
-                    .frame(width: 22)
                 Text("새 컬렉션 만들기")
                     .typeScale(.titleSmall)
                     .foregroundStyle(Palette.ink)
@@ -288,10 +284,6 @@ struct ConnectSheet: View {
             createRequest = CreateRequest(kind: .path)
         } label: {
             HStack(spacing: 10) {
-                Image(systemName: "arrow.turn.down.right")
-                    .font(.system(size: 14 * unit, weight: .semibold))
-                    .foregroundStyle(Palette.accent)
-                    .frame(width: 22)
                 Text("새 길 만들기")
                     .typeScale(.titleSmall)
                     .foregroundStyle(Palette.ink)

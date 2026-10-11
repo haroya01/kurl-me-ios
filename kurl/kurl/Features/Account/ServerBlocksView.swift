@@ -118,10 +118,6 @@ struct ServerBlocksView: View {
 
     private func row(_ block: ServerBlock) -> some View {
         HStack(spacing: 12) {
-            Image(systemName: block.severity == .suspend ? "nosign" : "speaker.slash")
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(block.severity == .suspend ? Palette.danger : Palette.secondary)
-                .frame(width: 36, height: 36)
             VStack(alignment: .leading, spacing: 2) {
                 Text(verbatim: block.domain)
                     .typeScale(.body)
