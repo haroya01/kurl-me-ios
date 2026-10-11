@@ -39,9 +39,9 @@ struct ComposeChooserSheet: View {
         NavigationStack(path: $path) {
             List {
                 Section {
-                    kindRow("노트", systemImage: "text.bubble") { onChoose(.note) }
+                    kindRow("노트") { onChoose(.note) }
                         .accessibilityIdentifier("compose.chooser.note")
-                    kindRow("긴 글", systemImage: "doc.text") { onChoose(.newPost) }
+                    kindRow("긴 글") { onChoose(.newPost) }
                         .accessibilityIdentifier("compose.chooser.post")
                 }
                 if !drafts.isEmpty {
@@ -102,41 +102,30 @@ struct ComposeChooserSheet: View {
         .toolbar(.visible, for: .navigationBar)
     }
 
-    private func kindRow(
-        _ title: LocalizedStringKey, systemImage: String, action: @escaping () -> Void
-    ) -> some View {
+    private func kindRow(_ title: LocalizedStringKey, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Label {
-                Text(title)
-                    .foregroundStyle(Palette.ink)
-            } icon: {
-                Image(systemName: systemImage)
-            }
+            Text(title)
+                .foregroundStyle(Palette.ink)
         }
     }
 
     private func draftRow(_ draft: MyPost) -> some View {
         Button { onChoose(.draft(draft)) } label: {
-            Label {
-                VStack(alignment: .leading, spacing: 2) {
-                    Group {
-                        if draft.title.isEmpty {
-                            Text("제목 없음")
-                        } else {
-                            Text(verbatim: draft.title)
-                        }
-                    }
-                    .foregroundStyle(Palette.ink)
-                    .lineLimit(2)
-                    if let date = draft.updatedAt {
-                        Text(date.relativeShort)
-                            .typeScale(.meta)
-                            .foregroundStyle(Palette.secondary)
+            VStack(alignment: .leading, spacing: 2) {
+                Group {
+                    if draft.title.isEmpty {
+                        Text("제목 없음")
+                    } else {
+                        Text(verbatim: draft.title)
                     }
                 }
-            } icon: {
-                Image(systemName: "doc.text")
-                    .foregroundStyle(Palette.secondary)
+                .foregroundStyle(Palette.ink)
+                .lineLimit(2)
+                if let date = draft.updatedAt {
+                    Text(date.relativeShort)
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.secondary)
+                }
             }
         }
     }
