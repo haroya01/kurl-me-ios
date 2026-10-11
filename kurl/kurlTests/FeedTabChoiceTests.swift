@@ -65,7 +65,7 @@ final class FeedTabChoiceTests: XCTestCase {
     }
 
     func testTheMoreSlotShowsTheChosenFeedWithAShortName() {
-        XCTAssertEqual(FeedSource.forYou.moreChoice, SegmentMoreChoice(title: String(localized: "추천"), symbol: "sparkles"))
+        XCTAssertEqual(FeedSource.forYou.moreChoice, SegmentMoreChoice(title: String(localized: "추천"), symbol: "binoculars"))
         let lists = [NoteListSummary(id: 7, title: "동료", memberCount: 2)]
         XCTAssertEqual(NoteMoreFeed.kind(.federated).choice(lists: lists), SegmentMoreChoice(title: String(localized: "다른 서버"), symbol: "globe"))
         XCTAssertEqual(NoteMoreFeed.kind(.bookmarks).choice(lists: lists), SegmentMoreChoice(title: String(localized: "북마크"), symbol: "bookmark"))

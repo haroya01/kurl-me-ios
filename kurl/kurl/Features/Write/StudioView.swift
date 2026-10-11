@@ -44,7 +44,6 @@ struct StudioView: View {
                 studio
             } else {
                 SignedOutState(
-                    systemImage: "square.and.pencil",
                     description: "쓴 글과 시리즈, 분석이 여기 모여요.",
                     message: "글을 쓰려면 로그인하세요")
             }
@@ -94,11 +93,6 @@ struct StudioView: View {
             guard pending else { return }
             composing = true
             TabRouter.shared.pendingStudioCompose = false
-        }
-        .onChange(of: TabRouter.shared.pendingStudioDrafts, initial: true) { _, pending in
-            guard pending else { return }
-            filter = .draft
-            TabRouter.shared.pendingStudioDrafts = false
         }
     }
 
@@ -462,11 +456,6 @@ struct StudioView: View {
     /// 빈 상태 — 막다른 길 금지(DESIGN.md 폴리시). 인사 + 또렷한 시작 버튼.
     private var emptyState: some View {
         VStack(spacing: 16) {
-            Image(systemName: "square.and.pencil")
-                .font(.system(size: 26))
-                .foregroundStyle(Palette.accent)
-                .frame(width: 68, height: 68)
-                .background(Palette.accent.opacity(0.10), in: Circle())
             VStack(spacing: 6) {
                 Text(auth.me?.username.map { "\($0) 님의 첫 글" } ?? "첫 글을 시작하세요")
                     .typeScale(.title)
@@ -667,7 +656,7 @@ enum HubFilter: String, CaseIterable, Identifiable {
     var label: String {
         switch self {
         case .all: return String(localized: "전체")
-        case .draft: return String(localized: "임시")
+        case .draft: return String(localized: "heading.drafts", defaultValue: "임시저장")
         case .published: return String(localized: "발행")
         }
     }

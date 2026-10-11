@@ -103,7 +103,7 @@ extension FeedSource {
         switch self {
         case .recent: "clock"
         case .trending: "flame"
-        case .forYou: "sparkles"
+        case .forYou: "binoculars"
         case .following: "person.2"
         }
     }
@@ -380,8 +380,6 @@ struct FeedPage: View {
                         HStack(spacing: 4) {
                             Text("더 불러오지 못했습니다 — 다시 시도")
                                 .typeScale(.meta)
-                            Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 12, weight: .semibold))
                         }
                         .foregroundStyle(Palette.link)
                         .frame(maxWidth: .infinity)
@@ -522,8 +520,6 @@ struct FeedPlaceholder: View {
                 HStack(spacing: 3) {
                     Text(actionTitle)
                         .typeScale(.meta)
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 12, weight: .semibold))
                 }
                 // 텍스트/인라인 CTA = link(700), accent(600)는 비텍스트 마커 몫(§10.3).
                 .foregroundStyle(Palette.link)

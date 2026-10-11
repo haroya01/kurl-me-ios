@@ -67,12 +67,15 @@ final class ComposeEntryUITests: XCTestCase {
 
     func testTheChooserStaysReadableAtTheLargestTextSize() throws {
         let app = launch([
-            "--mocks", "--screen", "none", "--tab", "notes",
+            "--mocks", "--screen", "none", "--tab", "notes", "--many-drafts",
             "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL",
         ])
         openChooser(app)
         XCTAssertTrue(app.buttons["compose.chooser.note"].isHittable, "가장 큰 글자에서 노트를 누를 수 없음")
         XCTAssertTrue(app.buttons["compose.chooser.post"].isHittable, "가장 큰 글자에서 긴 글을 누를 수 없음")
+        let all = app.buttons["compose.chooser.allDrafts"]
+        XCTAssertTrue(all.waitForExistence(timeout: 8), "가장 큰 글자에서 모두 보기가 없음")
+        XCTAssertTrue(all.isHittable, "가장 큰 글자에서 모두 보기를 누를 수 없음")
         attach("compose-chooser-axxxl")
     }
 
@@ -126,18 +129,33 @@ final class ComposeEntryUITests: XCTestCase {
         attach("compose-chooser-no-drafts")
     }
 
-    func testMoreThanThreeDraftsShowAllInStudioDrafts() throws {
-        let app = launch(["--mocks", "--screen", "none", "--tab", "notes", "--many-drafts"])
+    func testMoreThanThreeDraftsShowAllInsideTheSheetAndKeepTheTab() throws {
+        let app = launch(["--mocks", "--screen", "none", "--tab", "notes", "--editor", "v2", "--reset-recovery", "--many-drafts"])
+        XCTAssertTrue(app.buttons["notes.more"].waitForExistence(timeout: 15), "노트 탭이 열리지 않음")
         openChooser(app)
         let all = app.buttons["compose.chooser.allDrafts"]
         XCTAssertTrue(all.waitForExistence(timeout: 8), "초안이 넷 이상인데 모두 보기가 없음")
         let rows = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "compose.chooser.draft."))
         XCTAssertEqual(rows.count, 3, "이어 쓰기는 최근 초안 셋까지")
+        attach("compose-chooser-many-drafts")
         all.tap()
 
-        XCTAssertTrue(app.navigationBars["스튜디오"].waitForExistence(timeout: 10), "모두 보기가 스튜디오를 열지 않음")
-        XCTAssertTrue(app.staticTexts["목 초안 3"].waitForExistence(timeout: 8), "스튜디오에 초안이 다 보이지 않음")
-        XCTAssertFalse(app.staticTexts["발행된 목 글"].exists, "모두 보기인데 발행 글까지 보임(초안만 보여야 함)")
+        XCTAssertTrue(app.navigationBars["임시저장"].waitForExistence(timeout: 5), "모두 보기가 시트 안에서 임시저장 목록을 열지 않음")
+        XCTAssertFalse(app.navigationBars["스튜디오"].exists, "모두 보기가 계정 탭 스튜디오로 넘어감")
+        let listed = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "compose.chooser.allDrafts."))
+        XCTAssertEqual(listed.count, 5, "임시저장 목록에 초안이 다 보이지 않음")
+        XCTAssertFalse(app.staticTexts["발행된 목 글"].exists, "임시저장 목록에 발행 글까지 보임")
+        attach("compose-chooser-all-drafts")
+
+        let oldest = app.buttons["compose.chooser.allDrafts.9203"]
+        XCTAssertTrue(oldest.label.contains("목 초안 3"), "가장 오래된 초안이 목록 끝에 없음")
+        oldest.tap()
+        let editor = app.navigationBars["편집"]
+        XCTAssertTrue(editor.waitForExistence(timeout: 10), "임시저장 목록에서 고른 초안이 에디터로 열리지 않음")
+        XCTAssertEqual(app.textFields["제목"].value as? String, "목 초안 3", "고른 초안이 아닌 글이 열림")
+
+        editor.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.buttons["notes.more"].waitForExistence(timeout: 6), "에디터를 닫았는데 보던 노트 탭이 아님")
     }
 
     func testMoveToLongPostAppearsOnlyOnceTheNoteHasText() throws {

@@ -24,9 +24,6 @@ struct ToggleCapsuleButton: View {
     var isOn: Bool
     var onLabel: LocalizedStringKey
     var offLabel: LocalizedStringKey
-    /// 라벨 앞 상태 아이콘(태그 구독의 checkmark/plus) — 없으면 라벨만.
-    var onIcon: String?
-    var offIcon: String?
     /// nil = 기본 문법(꺼짐이 주행동 → 그린 유리). 켜짐/꺼짐과 무관하게 가라앉는
     /// 자리(구독 secondary)는 false 를 넘긴다.
     var prominent: Bool?
@@ -39,19 +36,15 @@ struct ToggleCapsuleButton: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .headline) private var labelSize: CGFloat = 14
-    @ScaledMetric(relativeTo: .headline) private var iconSize: CGFloat = 12
 
     init(
         isOn: Bool, on onLabel: LocalizedStringKey, off offLabel: LocalizedStringKey,
-        onIcon: String? = nil, offIcon: String? = nil,
         prominent: Bool? = nil, labelStyle: AnyShapeStyle? = nil, expandTap: CGFloat? = nil,
         action: @escaping () -> Void
     ) {
         self.isOn = isOn
         self.onLabel = onLabel
         self.offLabel = offLabel
-        self.onIcon = onIcon
-        self.offIcon = offIcon
         self.prominent = prominent
         self.labelStyle = labelStyle
         self.expandTap = expandTap
@@ -75,10 +68,6 @@ struct ToggleCapsuleButton: View {
 
     private var capsuleLabel: some View {
         HStack(spacing: 5) {
-            if let name = isOn ? onIcon : offIcon {
-                Image(systemName: name)
-                    .font(.system(size: iconSize, weight: .semibold))
-            }
             Text(isOn ? onLabel : offLabel)
                 .font(.system(size: labelSize, weight: .semibold))
                 .lineLimit(1)
@@ -234,7 +223,7 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable, More: View>: View {
 
         let collapsed = HStack(spacing: 0) {
             menu
-            if hasMore { moreMenu(scale: 1, padding: 13, named: false) }
+            if hasMore { moreMenu(scale: 1, padding: 13, named: false, collapsed: true) }
         }
 
         if bare { collapsed } else { collapsed.glassEffect(.regular.interactive(), in: .capsule) }
@@ -242,7 +231,7 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable, More: View>: View {
 
     private var hasMore: Bool { More.self != EmptyView.self }
 
-    private func moreMenu(scale: CGFloat, padding: CGFloat, named: Bool) -> some View {
+    private func moreMenu(scale: CGFloat, padding: CGFloat, named: Bool, collapsed: Bool = false) -> some View {
         let active = moreChoice != nil
         return Menu {
             more
@@ -253,9 +242,13 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable, More: View>: View {
                     if named {
                         Text(choice.title).lineLimit(1).fixedSize()
                     }
+                } else if collapsed {
+                    Image(systemName: "ellipsis")
                 }
-                Image(systemName: "chevron.down")
-                    .font(.system(size: labelSize * scale * 0.8, weight: .semibold))
+                if !collapsed {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: labelSize * scale * 0.8, weight: .semibold))
+                }
             }
             .font(.system(size: labelSize * scale, weight: active ? .semibold : .medium))
             .foregroundStyle(active ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))

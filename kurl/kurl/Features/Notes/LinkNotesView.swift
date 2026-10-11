@@ -66,10 +66,6 @@ struct LinkNotesView: View {
             if let link = URL(string: url) { openURL(link) }
         } label: {
             HStack(alignment: .top, spacing: 10) {
-                Image(systemName: "link")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Palette.secondary)
-                    .padding(.top, 3)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(verbatim: title?.isEmpty == false ? title! : url)
                         .typeScale(.body)

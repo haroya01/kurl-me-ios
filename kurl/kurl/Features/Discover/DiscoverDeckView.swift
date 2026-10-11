@@ -88,8 +88,6 @@ struct DiscoverDeckView: View {
     @State private var aliveIds: Set<Int64> = []
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var shuffleCount = 0
-    /// 위치 칩의 비텍스트 마커(sparkles)도 footnote 라벨과 함께 커지게 — 산발 고정 크기 종식.
-    @ScaledMetric(relativeTo: .caption) private var markerUnit: CGFloat = 1
     /// 툴바 "발견" 알약 라벨 — 사다리에 딱 맞는 롤이 없어 크기를 보존하되 Dynamic Type 는 얹는다.
     @ScaledMetric(relativeTo: .headline) private var principalSize: CGFloat = 14
     /// scrollPosition 의 첫 비-nil 배정(초기 착지)은 스와이프가 아니다 — 진짜 넘김만 힌트를 끈다.
@@ -247,9 +245,6 @@ struct DiscoverDeckView: View {
         .overlay(alignment: .bottom) {
             if let item = currentItem, let idx = model.deck.firstIndex(of: item) {
                 HStack(spacing: 5) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 9 * markerUnit, weight: .semibold))
-                        .foregroundStyle(Palette.accent)
                     Text("추천 \(idx + 1) / \(model.deck.count)")
                         .contentTransition(.numericText())
                         .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: idx)

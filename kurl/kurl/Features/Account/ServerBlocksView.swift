@@ -28,7 +28,7 @@ struct ServerBlocksView: View {
                     .padding(.top, 60)
             } else if blocks.isEmpty {
                 ContentUnavailableView {
-                    Label("차단한 서버가 없어요", systemImage: "server.rack")
+                    Text("차단한 서버가 없어요").bold()
                 } description: {
                     Text("다른 서버 전체를 제한하거나 정지할 수 있어요.")
                 }
@@ -118,10 +118,6 @@ struct ServerBlocksView: View {
 
     private func row(_ block: ServerBlock) -> some View {
         HStack(spacing: 12) {
-            Image(systemName: block.severity == .suspend ? "nosign" : "speaker.slash")
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(block.severity == .suspend ? Palette.danger : Palette.secondary)
-                .frame(width: 36, height: 36)
             VStack(alignment: .leading, spacing: 2) {
                 Text(verbatim: block.domain)
                     .typeScale(.body)
