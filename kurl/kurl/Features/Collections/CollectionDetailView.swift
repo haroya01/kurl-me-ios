@@ -100,7 +100,7 @@ struct CollectionDetailView: View {
                     } label: {
                         Image(systemName: "ellipsis")
                     }
-                    .tint(.brand)
+                    .tint(.primary)
                     .accessibilityLabel(Text("컬렉션 관리"))
                     // detail 변화에 메뉴가 최신 값을 쓰도록 id 고정.
                     .id(detail.id)

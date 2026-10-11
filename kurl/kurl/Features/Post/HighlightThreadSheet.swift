@@ -230,7 +230,7 @@ struct HighlightThreadSheet: View {
                         } label: {
                             Image(systemName: "ellipsis")
                         }
-                        .tint(.brand)
+                        .tint(.primary)
                         .accessibilityLabel(Text("하이라이트 관리"))
                         .accessibilityIdentifier("highlightManageMenu")
                     }
