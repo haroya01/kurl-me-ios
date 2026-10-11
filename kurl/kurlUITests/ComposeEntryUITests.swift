@@ -218,11 +218,21 @@ final class ComposeEntryUITests: XCTestCase {
         XCTAssertFalse(app.buttons["글쓰기"].isSelected, "끌어다 놓은 가운데가 선택된 탭이 됨")
     }
 
-    func testTheAccountToolbarOpensTheStudio() throws {
+    /// 피드 등에서 연 내 블로그는 계정 탭이 아니라 버튼 줄이 없다 — 스튜디오로 탭을 건너뛰지 않게.
+    func testOwnBlogOutsideTheAccountTabKeepsTheCardWithoutTheOwnerRow() throws {
+        let app = launch(["--mocks", "--screen", "none", "--author", "honggildong"])
+        XCTAssertTrue(app.buttons["author.card"].waitForExistence(timeout: 15), "내 블로그에 명함이 없음")
+        XCTAssertFalse(app.buttons["account.studio"].exists, "계정 탭 밖의 내 블로그에 스튜디오 버튼이 뜸")
+        XCTAssertFalse(app.buttons["account.library"].exists, "계정 탭 밖의 내 블로그에 서재 버튼이 뜸")
+    }
+
+    func testTheAccountOwnerRowOpensTheStudio() throws {
         let app = launch(["--mocks", "--screen", "none", "--tab", "account"])
         let studio = app.buttons["account.studio"]
-        XCTAssertTrue(studio.waitForExistence(timeout: 15), "계정 툴바에 스튜디오가 없음")
-        attach("account-toolbar")
+        XCTAssertTrue(studio.waitForExistence(timeout: 15), "계정 탭 프로필의 버튼 줄에 스튜디오가 없음")
+        XCTAssertTrue(app.buttons["account.library"].exists, "계정 탭 프로필의 버튼 줄에 서재가 없음")
+        XCTAssertTrue(app.buttons["author.card"].exists, "계정 탭 프로필의 버튼 줄에 명함이 없음")
+        attach("account-owner-row")
         studio.tap()
 
         XCTAssertTrue(app.navigationBars["스튜디오"].waitForExistence(timeout: 8), "스튜디오가 열리지 않음")
