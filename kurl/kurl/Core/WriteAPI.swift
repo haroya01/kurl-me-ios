@@ -435,10 +435,13 @@ struct MyPost: Decodable, Identifiable, Hashable {
     let seriesId: Int64?
     /// 작성자가 고치는 내용(본문·메타)의 서버 버전 — 다음 저장의 baseVersion. 옛 서버는 안 준다(nil).
     var contentVersion: Int64? = nil
+    /// 관리자가 운영 정책으로 내린 글 — 상태는 UNPUBLISHED(발행 전이면 DRAFT) 그대로 오고 이 표시만 붙는다. 옛 서버는 안 준다.
+    var takenDown: Bool? = nil
 
     var isDraft: Bool { status == "DRAFT" }
     var isScheduled: Bool { status == "SCHEDULED" }
     var isPublished: Bool { status == "PUBLISHED" }
     /// 웹에서 비공개로 내린 글 — 앱은 이 상태를 몰라 '라이브'로 잘못 표시하던 갭을 메운다.
     var isUnpublished: Bool { status == "UNPUBLISHED" }
+    var isTakenDown: Bool { takenDown == true }
 }
