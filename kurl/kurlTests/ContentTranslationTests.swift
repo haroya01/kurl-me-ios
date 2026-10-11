@@ -3,7 +3,7 @@
 //  kurlTests
 //
 //  번역 보기의 세 계약 — 기기가 읽는 언어면 권하지 않는다, 노트의 멘션·해시태그·링크는 그대로 둔다,
-//  글은 글 블록만 번역하고 코드·목록 표식·표 구분선은 그대로 둔다.
+//  글은 글 블록만 번역하고 코드·목록 표식·표 구분선은 그대로 둔다. 실패하면 원문에 머물고 알린다.
 //
 
 import XCTest
@@ -130,5 +130,24 @@ final class ContentTranslationTests: XCTestCase {
     func testTranslatedTextCannotTurnIntoMarkup() {
         XCTAssertEqual(PostTranslationPlan.escaped("a*b_c[d]"), #"a\*b\_c\[d\]"#)
         XCTAssertEqual(PostTranslationPlan.tableCell("x|y [z]"), "x｜y [z]", "표 셀은 마크다운이 아니라 이스케이프하지 않는다")
+    }
+
+    // MARK: 실패
+
+    func testAFailedOrShortTranslationKeepsTheOriginalAndSaysSo() {
+        let store = ContentTranslations.shared
+        store.begin("fail-nil")
+        store.finish("fail-nil", nil, expected: 1)
+        XCTAssertNil(store.phases["fail-nil"], "실패한 번역이 번역 중으로 남음")
+        XCTAssertEqual(ToastCenter.shared.message, String(localized: "번역하지 못했어요"), "번역이 실패해도 알리지 않음")
+
+        store.begin("fail-short")
+        store.finish("fail-short", ["only one"], expected: 2)
+        XCTAssertNil(store.phases["fail-short"], "개수가 어긋난 결과를 번역됨으로 보임")
+        XCTAssertFalse(store.showCached("fail-short"), "개수가 어긋난 결과를 기억해 다음에 반쪽 번역이 뜸")
+
+        store.begin("ok")
+        store.finish("ok", ["T"], expected: 1)
+        XCTAssertEqual(store.shown("ok"), ["T"])
     }
 }

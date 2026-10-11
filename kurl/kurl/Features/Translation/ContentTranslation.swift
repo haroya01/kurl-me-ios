@@ -311,8 +311,11 @@ protocol ContentTranslator {
 }
 
 struct EchoTranslator: ContentTranslator {
+    var fails = false
+
     func translate(_ texts: [String], from source: Locale.Language, to target: Locale.Language) async throws -> [String] {
         try await Task.sleep(for: .milliseconds(250))
+        if fails { throw CancellationError() }
         let tag = target.languageCode?.identifier ?? "?"
         return texts.map { "[\(tag)] \($0)" }
     }
@@ -380,9 +383,10 @@ final class ContentTranslations {
         phases[key] = .translating
     }
 
-    func finish(_ key: String, _ translations: [String]?) {
-        guard let translations else {
+    func finish(_ key: String, _ translations: [String]?, expected: Int) {
+        guard let translations, translations.count == expected else {
             phases[key] = nil
+            ToastCenter.shared.show(String(localized: "번역하지 못했어요"))
             return
         }
         results[key] = translations
@@ -408,8 +412,9 @@ private struct TranslationRunner: ViewModifier {
         if Config.useMocks {
             content.task(id: request) {
                 guard let request else { return }
-                let translations = try? await EchoTranslator().translate(request.texts, from: request.source, to: request.target)
-                ContentTranslations.shared.finish(request.key, translations)
+                let translations = try? await EchoTranslator(fails: Config.translationFails)
+                    .translate(request.texts, from: request.source, to: request.target)
+                ContentTranslations.shared.finish(request.key, translations, expected: request.texts.count)
                 self.request = nil
             }
         } else {
@@ -427,7 +432,7 @@ private struct TranslationRunner: ViewModifier {
                     guard let request else { return }
                     let translations = try? await SessionTranslator(session: session)
                         .translate(request.texts, from: request.source, to: request.target)
-                    ContentTranslations.shared.finish(request.key, translations)
+                    ContentTranslations.shared.finish(request.key, translations, expected: request.texts.count)
                     self.request = nil
                 }
         }
