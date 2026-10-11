@@ -6460,6 +6460,34 @@
         }
       }
     },
+    "번역하지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't translate this"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इसका अनुवाद नहीं हो सका"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻訳できませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không dịch được nội dung này"
+          }
+        }
+      }
+    },
     "북마크한 노트를 보려면 로그인하세요": {
       "localizations": {
         "en": {

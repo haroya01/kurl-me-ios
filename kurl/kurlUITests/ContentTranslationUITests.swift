@@ -49,6 +49,21 @@ final class ContentTranslationUITests: XCTestCase {
         XCTAssertTrue(original.waitForExistence(timeout: 1), "한 번 번역한 노트를 다시 번역하는 데 시간이 걸린다(기억 안 됨)")
     }
 
+    func testAFailedTranslationSaysSoAndKeepsTheOriginal() throws {
+        let app = launch(["--mocks", "--tab", "notes", "--translation-fails"])
+        let body = app.buttons["note.body.9510"]
+        for _ in 0..<6 where !(body.exists && body.isHittable) { app.swipeUp(velocity: .slow) }
+        XCTAssertTrue(body.waitForExistence(timeout: 12), "영어 노트(9510)가 피드에 없음")
+        let translate = app.buttons["note.translate.9510"]
+        XCTAssertTrue(translate.waitForExistence(timeout: 6), "외국어 노트에 번역 보기가 없음")
+        translate.tap()
+        XCTAssertTrue(app.staticTexts["번역하지 못했어요"].waitForExistence(timeout: 6), "번역이 실패해도 알리지 않음")
+        shot("note-translation-failed")
+        XCTAssertTrue(translate.waitForExistence(timeout: 4), "실패한 뒤 번역 보기로 돌아오지 않음")
+        XCTAssertFalse(app.buttons["note.original.9510"].exists, "실패했는데 원문 보기가 남음")
+        XCTAssertFalse(body.label.contains("[ko]"), "실패했는데 본문이 바뀜")
+    }
+
     func testANoteInTheDeviceLanguageHasNoTranslateButton() throws {
         let app = launch(["--mocks", "--tab", "notes"])
         XCTAssertTrue(app.buttons["note.body.9501"].waitForExistence(timeout: 12), "한국어 노트(9501)가 피드에 없음")
