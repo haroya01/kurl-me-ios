@@ -6796,6 +6796,34 @@
         }
       }
     },
+    "올바른 주소가 아니에요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That isn't a valid address"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह सही पता नहीं है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正しいアドレスではありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Địa chỉ không hợp lệ"
+          }
+        }
+      }
+    },
     "원래 글을 볼 수 없어요": {
       "localizations": {
         "en": {
@@ -6960,34 +6988,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Thẻ"
-          }
-        }
-      }
-    },
-    "클립보드에서 가져왔어요": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "From your clipboard"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "क्लिपबोर्ड से लिया"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "クリップボードから取得しました"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lấy từ bộ nhớ tạm"
           }
         }
       }

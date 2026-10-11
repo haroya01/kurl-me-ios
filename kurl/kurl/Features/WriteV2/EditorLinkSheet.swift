@@ -26,13 +26,15 @@ struct EditorLinkSheet: View {
     let onSubmit: (EditorLinkResult) -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var kind = EditorLinkKind.link
     @State private var text: String
     @State private var address: String
-    @State private var pasted: String?
     @State private var shortens = false
     @State private var busy = false
-    @State private var failed = false
+    @State private var invalidAddress = false
+    @State private var shortenFailed = false
+    @State private var contentHeight: CGFloat = 320
     @FocusState private var focus: Field?
 
     private enum Field { case text, address }
@@ -53,6 +55,7 @@ struct EditorLinkSheet: View {
     private var canPickCard: Bool { request.target?.canPickCard ?? true }
     private var url: String? { Self.normalized(address) }
     private var video: Bool { url.map { WriteV2VideoDetect.isVideoURL($0) } ?? false }
+    private var motion: Animation? { reduceMotion ? nil : .snappy(duration: 0.25) }
 
     var body: some View {
         NavigationStack {
@@ -71,62 +74,50 @@ struct EditorLinkSheet: View {
                     .listRowInsets(EdgeInsets())
                 }
                 Section {
-                    if kind == .link {
-                        row("표시 텍스트") {
-                            TextField("표시 텍스트", text: $text, prompt: Text("비우면 주소가 보여요"))
-                                .focused($focus, equals: .text)
-                                .submitLabel(.next)
-                                .onSubmit { focus = .address }
-                                .accessibilityIdentifier("editor-link-text")
-                        }
-                    }
-                    row("주소") {
-                        HStack(spacing: 8) {
-                            TextField("주소", text: $address, prompt: Text(verbatim: "https://…"))
-                                .keyboardType(.URL)
-                                .textContentType(.URL)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                                .focused($focus, equals: .address)
-                                .submitLabel(.done)
-                                .onSubmit(submit)
-                                .accessibilityIdentifier("editor-link-address")
-                            if address.isEmpty {
-                                PasteButton(payloadType: String.self) { strings in
-                                    guard let first = strings.first else { return }
-                                    let value = first.trimmingCharacters(in: .whitespacesAndNewlines)
-                                    Task { @MainActor in
-                                        address = value
-                                        pasted = value
-                                    }
-                                }
-                                .labelStyle(.iconOnly)
-                                .buttonBorderShape(.circle)
-                                .controlSize(.small)
-                            } else {
-                                Button {
-                                    address = ""
-                                    pasted = nil
-                                    focus = .address
-                                } label: {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundStyle(.tertiary)
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityLabel(Text("지우기"))
-                                .accessibilityIdentifier("editor-link-clear")
+                    HStack(spacing: 8) {
+                        TextField("주소", text: $address, prompt: Text(verbatim: "https://…"))
+                            .keyboardType(.URL)
+                            .textContentType(.URL)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .focused($focus, equals: .address)
+                            .submitLabel(.done)
+                            .onSubmit(submit)
+                            .accessibilityIdentifier("editor-link-address")
+                        if address.isEmpty {
+                            PasteButton(payloadType: String.self) { strings in
+                                guard let first = strings.first else { return }
+                                let value = first.trimmingCharacters(in: .whitespacesAndNewlines)
+                                Task { @MainActor in address = value }
                             }
+                            .labelStyle(.titleOnly)
+                        } else {
+                            Button {
+                                address = ""
+                                focus = .address
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(Text("지우기"))
+                            .accessibilityIdentifier("editor-link-clear")
                         }
                     }
+                } header: {
+                    Text("주소")
                 } footer: {
-                    if let pasted, pasted == address {
-                        Text("클립보드에서 가져왔어요")
-                            .accessibilityIdentifier("editor-link-pasted")
+                    if invalidAddress {
+                        Text("올바른 주소가 아니에요")
+                            .foregroundStyle(Palette.danger)
+                            .accessibilityIdentifier("editor-link-invalid")
                     }
                 }
                 if kind == .card, let url, let block = DraftPreviewBlocks.embed(url) {
                     Section {
                         BlockView(block: block)
+                            .frame(maxWidth: video ? 256 : .infinity)
+                            .frame(maxWidth: .infinity)
                             .allowsHitTesting(false)
                             .accessibilityIdentifier("editor-link-preview")
                     }
@@ -135,17 +126,33 @@ struct EditorLinkSheet: View {
                 }
                 if kind == .link {
                     Section {
+                        TextField("표시 텍스트", text: $text, prompt: Text("비우면 주소가 보여요"))
+                            .focused($focus, equals: .text)
+                            .submitLabel(.done)
+                            .onSubmit(submit)
+                            .accessibilityIdentifier("editor-link-text")
+                    } header: {
+                        Text("표시 텍스트")
+                    }
+                    Section {
                         Toggle("kurl 단축 주소로", isOn: $shortens)
                             .tint(Palette.accentFill)
                             .accessibilityIdentifier("editor-link-shorten")
                     } footer: {
-                        if failed {
+                        if shortenFailed {
                             Text("단축 주소를 만들지 못했어요")
                                 .foregroundStyle(Palette.danger)
                                 .accessibilityIdentifier("editor-link-shorten-failed")
                         }
                     }
                 }
+            }
+            .animation(motion, value: kind)
+            .contentMargins(.top, 8, for: .scrollContent)
+            .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                geometry.contentSize.height + geometry.contentInsets.top
+            } action: { _, height in
+                withAnimation(motion) { contentHeight = height }
             }
             .navigationTitle(editing ? "링크 고치기" : "링크 넣기")
             .navigationBarTitleDisplayMode(.inline)
@@ -159,30 +166,31 @@ struct EditorLinkSheet: View {
                     } else {
                         Button(editing ? "저장" : "넣기", action: submit)
                             .font(.body.weight(.semibold))
-                            .disabled(url == nil)
+                            .disabled(address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                             .accessibilityIdentifier("editor-link-submit")
                     }
                 }
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.height(contentHeight)])
         .presentationDragIndicator(.visible)
-        .onChange(of: address) { failed = false }
-        .onChange(of: shortens) { failed = false }
-        .onAppear { focus = .address }
-    }
-
-    private func row(_ label: LocalizedStringKey, @ViewBuilder field: () -> some View) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            field()
+        .onChange(of: address) {
+            invalidAddress = false
+            shortenFailed = false
+        }
+        .onChange(of: shortens) { shortenFailed = false }
+        .onAppear {
+            if request.target.map({ $0.editing || !$0.shownText.isEmpty }) ?? false { focus = .address }
         }
     }
 
     private func submit() {
-        guard let url, !busy else { return }
+        guard !busy else { return }
+        guard let url else {
+            invalidAddress = true
+            focus = .address
+            return
+        }
         let label = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard kind == .link, shortens else {
             finish(EditorLinkResult(kind: kind, text: kind == .link ? label : "", url: url))
@@ -192,7 +200,7 @@ struct EditorLinkSheet: View {
         Task {
             let short = await shorten(url)
             busy = false
-            guard let short else { failed = true; return }
+            guard let short else { shortenFailed = true; return }
             finish(EditorLinkResult(kind: .link, text: label, url: short))
         }
     }

@@ -750,6 +750,33 @@ final class WriteV2LinkInsertTests: XCTestCase {
         XCTAssertTrue(after.markdown.hasPrefix("앞\n\n\(video)"))
     }
 
+    func testLinkAndCardLinesSurviveSavingAndReopening() {
+        let doc = document([
+            .paragraph("<\(article)>"),
+            .paragraph("[읽어 볼 글](\(article))"),
+            .linkCard(article),
+            .paragraph("<\(video)>"),
+            .linkCard(video),
+            .paragraph("문장 속 <\(article)> 링크"),
+        ])
+        let saved = doc.markdown
+        XCTAssertEqual(saved, "<\(article)>\n\n[읽어 볼 글](\(article))\n\n\(article)\n\n<\(video)>\n\n\(video)\n\n문장 속 <\(article)> 링크")
+        let reopened = document(MarkdownBlockParser.parse(saved))
+        XCTAssertEqual(reopened.blocks.map(\.kind), doc.blocks.map(\.kind))
+        XCTAssertEqual(reopened.blocks.map(\.text), doc.blocks.map(\.text))
+        XCTAssertEqual(reopened.markdown, saved)
+    }
+
+    func testLinkInsertedWithoutACaretLeavesTheCaretRightAfterIt() {
+        let doc = document([.paragraph("앞")])
+        let focus = doc.insertLink(url: article, label: "글")
+        XCTAssertEqual(doc.blocks[1].text, "[글](\(article))")
+        XCTAssertEqual(focus?.blockID, doc.blocks[1].id)
+        XCTAssertEqual(focus?.caret, doc.blocks[1].text.count)
+        doc.undo()
+        XCTAssertEqual(doc.blocks.map(\.text), ["앞"])
+    }
+
     func testLinkModeKeepsAVideoAddressALink() {
         let doc = document([.paragraph("본문")])
         doc.focusTail()

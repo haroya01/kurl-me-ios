@@ -68,6 +68,7 @@ struct ComposeView: View {
     @State private var v2ImageItem: PhotosPickerItem?
     @State private var linkRequest: EditorLinkRequest?
     @State private var openedLink: LegalLink?
+    @State private var linkInsertTick = 0
     @State private var postId: Int64?
     @State private var status = "DRAFT"
     @State private var busy = false
@@ -370,6 +371,7 @@ struct ComposeView: View {
             }
         }
         .sheet(item: $openedLink) { SafariView(url: $0.url).ignoresSafeArea() }
+        .sensoryFeedback(.success, trigger: linkInsertTick)
         // 이미 넣은 이미지의 캡션 고치기 — 이미지 편집 바의 ‘캡션’ 버튼이 연다(막는 알럿 대신 종이 시트).
         .sheet(isPresented: $showEditImageCaption) {
             ImageCaptionSheet(initial: editImageCaptionText) { text in
@@ -2364,6 +2366,7 @@ struct ComposeView: View {
             editorDocument.insertLink(url: result.url, label: result.text)
         }
         syncFromDocument()
+        linkInsertTick &+= 1
     }
 
     /// WriteV2 캔버스의 사진 삽입 — 실제 업로드 후 IMAGE 블록으로 넣는다(현행 경로와 같은 업로드 계약).

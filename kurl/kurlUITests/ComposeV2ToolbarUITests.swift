@@ -174,6 +174,7 @@ final class ComposeV2ToolbarUITests: XCTestCase {
         app.typeText("Read this first")
         app.buttons["composeLink"].tap()
         XCTAssertTrue(app.navigationBars["링크 넣기"].waitForExistence(timeout: 5), "링크 시트가 떠야 함")
+        app.textFields["editor-link-address"].tap()
         app.textFields["editor-link-address"].typeText("https://docs.spring.io/spring-framework/reference/web/webflux.html")
         app.segmentedControls["editor-link-kind"].buttons["카드"].tap()
         app.buttons["editor-link-submit"].tap()

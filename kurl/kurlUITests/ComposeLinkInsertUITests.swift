@@ -141,6 +141,7 @@ final class ComposeLinkInsertUITests: XCTestCase {
         type(app, "Read this first")
         app.buttons["composeLink"].tap()
         XCTAssertTrue(app.navigationBars["링크 넣기"].waitForExistence(timeout: 5))
+        app.textFields["editor-link-address"].tap()
         app.textFields["editor-link-address"].typeText("https://docs.spring.io/spring-framework/reference/web/webflux.html")
         app.segmentedControls["editor-link-kind"].buttons["카드"].tap()
         XCTAssertTrue(app.descendants(matching: .any)["editor-link-preview"].waitForExistence(timeout: 5), "카드 미리보기가 떠야 함")
@@ -184,6 +185,39 @@ final class ComposeLinkInsertUITests: XCTestCase {
         XCTAssertFalse(body(app, containing: "](").exists, "링크만 빠지고 글자는 남아야 함")
     }
 
+    func testTappingALinkThenTypingEditsInsideTheLink() throws {
+        let app = launchCompose()
+        type(app, "[guide](https://example.com/old)")
+        app.buttons["키보드 내리기"].tap()
+        tapLabel(of: body(app, containing: "[guide]("))
+        XCTAssertTrue(app.menuItems["고치기"].waitForExistence(timeout: 5), "메뉴가 함께 뜬다")
+        app.typeText("X")
+        let edited = app.textViews.containing(
+            NSPredicate(format: "value MATCHES %@", "^\\[[^\\]]*X[^\\]]*\\]\\(https://example\\.com/old\\)$")).firstMatch
+        XCTAssertTrue(edited.waitForExistence(timeout: 5), "탭한 자리의 커서로 링크 글자 안에 들어가야 함")
+        XCTAssertFalse(app.menuItems["고치기"].exists, "입력을 시작하면 메뉴가 사라진다")
+    }
+
+    func testInvalidAddressShowsWhyAndKeepsTheSheet() throws {
+        let app = launchCompose()
+        type(app, "Read")
+        app.buttons["composeLink"].tap()
+        XCTAssertTrue(app.navigationBars["링크 넣기"].waitForExistence(timeout: 5))
+        let submit = app.buttons["editor-link-submit"]
+        XCTAssertFalse(submit.isEnabled, "주소가 비면 넣기를 막는다")
+        let address = app.textFields["editor-link-address"]
+        address.tap()
+        address.typeText("not a url")
+        XCTAssertTrue(submit.isEnabled, "내용이 있으면 누를 수 있다")
+        submit.tap()
+        XCTAssertTrue(app.staticTexts["editor-link-invalid"].waitForExistence(timeout: 3), "칸 아래에 이유를 보인다")
+        XCTAssertTrue(app.navigationBars["링크 넣기"].exists, "시트는 열려 있다")
+        shot(app, "link-sheet-invalid")
+        address.typeText("x")
+        XCTAssertFalse(app.staticTexts["editor-link-invalid"].waitForExistence(timeout: 1), "고치기 시작하면 오류가 사라진다")
+        app.buttons["취소"].tap()
+    }
+
     func testPasteButtonFillsTheAddressFromTheClipboard() throws {
         UIPasteboard.general.string = guide
         let app = launchCompose()
@@ -193,9 +227,9 @@ final class ComposeLinkInsertUITests: XCTestCase {
         let pasteButton = app.buttons["Paste"].exists ? app.buttons["Paste"] : app.buttons["붙여넣기"]
         XCTAssertTrue(pasteButton.waitForExistence(timeout: 3), "주소 칸의 붙여넣기 버튼")
         pasteButton.tap()
-        XCTAssertTrue(app.staticTexts["editor-link-pasted"].waitForExistence(timeout: 5), "붙여넣음 표시")
+        XCTAssertTrue(app.buttons["editor-link-clear"].waitForExistence(timeout: 5), "채운 뒤엔 지우기 버튼")
         XCTAssertEqual(app.textFields["editor-link-address"].value as? String, guide)
-        XCTAssertTrue(app.buttons["editor-link-clear"].exists, "지우기 버튼")
+        XCTAssertFalse(pasteButton.exists, "붙여넣기 버튼은 칸이 비었을 때만")
         shot(app, "link-sheet-pasted")
         app.buttons["취소"].tap()
         XCTAssertFalse(app.navigationBars["링크 넣기"].waitForExistence(timeout: 2))

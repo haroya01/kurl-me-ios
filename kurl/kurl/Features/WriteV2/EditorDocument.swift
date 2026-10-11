@@ -526,7 +526,11 @@ final class EditorDocument {
         beginEdit(); defer { endEdit() }
         let trimmedURL = url.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedURL.isEmpty else { return focus }
-        return insertNonText(.paragraph(EditorLinkMarkup.markup(label: label, url: trimmedURL)))
+        let link = EditorBlock.paragraph(EditorLinkMarkup.markup(label: label, url: trimmedURL))
+        insertNonText(link)
+        let f = EditorFocus(blockID: link.id, caret: link.text.count)
+        focus = f
+        return f
     }
 
     // MARK: 표 셀 편집
