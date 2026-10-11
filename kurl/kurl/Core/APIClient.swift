@@ -294,6 +294,7 @@ struct APIClient {
                query: URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems,
                body: request.httpBody
            ) {
+            if let delay = MockBackend.delay(for: url.path) { try? await Task.sleep(for: delay) }
             return mocked
         }
         let data: Data
