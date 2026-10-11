@@ -200,12 +200,12 @@ extension MockBackend {
                 - [x] 하천 따라 다리 두 개
                 - [ ] 시장 골목 빵집
 
-                > [!TIP]
-                > 은행잎은 오전 열 시 전에 가야 아직 쓸려 나가지 않았다.
+                > 천천히 걸어야 보이는 것들이 있다.
 
                 ![나무 사이로 난 길](\(MockStoreDemo.pic(255, 1200, 800)) "돌아오는 길")
 
-                > 천천히 걸어야 보이는 것들이 있다.
+                > [!TIP]
+                > 은행잎은 오전 열 시 전에 가야 아직 쓸려 나가지 않았다.
                 """,
                 publishedAt: nil, updatedAt: Date().addingTimeInterval(-600),
                 tags: ["산책"], excerpt: "오늘은 평소보다 한 시간 일찍 나섰다."),
@@ -359,7 +359,7 @@ extension MockBackend {
         case ["public", "posts"], ["feed", "following"]:
             return ["items": S.posts.map(S.feedItem), "page": 0, "size": 20, "hasNext": false,
                     "seriesNotes": [] as [Any]]
-        case ["public", "series"]:
+        case ["public", "series"], ["users", "me", "blocks"]:
             return [] as [Any]
         case ["public", "feed", "connections"]:
             let event: [String: Any] = [

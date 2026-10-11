@@ -48,7 +48,6 @@ final class StoreShotsUITests: XCTestCase {
         conversation()
         notes()
         editor()
-        profile()
     }
 
     private func reader() {
@@ -118,14 +117,6 @@ final class StoreShotsUITests: XCTestCase {
         XCTAssertTrue(app.buttons["highlightReply.like.7201"].waitForExistence(timeout: 8), "\(lang): 대화가 안 열림")
         settle(2)
         shot("6-conversation")
-        app.terminate()
-    }
-
-    private func profile() {
-        let app = launch(["--tab", "account"])
-        XCTAssertTrue(element(app, containing: "honggildong").waitForExistence(timeout: 15), "\(lang): 프로필이 안 뜸")
-        settle(2)
-        shot("7-profile")
         app.terminate()
     }
 }
