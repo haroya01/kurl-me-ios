@@ -478,8 +478,9 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(cover.waitForNonExistence(timeout: 4), "눌러도 사진이 안 보임")
         let reveal = app.buttons["note.reveal.9506"]
         for _ in 0..<4 where !reveal.isHittable { app.swipeDown() }
+        XCTAssertEqual(reveal.label, "가려진 내용", "가린 본문이 한 버튼으로 읽히지 않음")
         reveal.tap()
-        XCTAssertTrue(spoiler.waitForExistence(timeout: 4), "내용 보기를 눌러도 본문이 안 펼쳐짐")
+        XCTAssertTrue(spoiler.waitForExistence(timeout: 4), "가린 본문을 눌러도 펼쳐지지 않음")
     }
 
     func testTheComposerSendsAContentWarning() throws {

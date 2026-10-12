@@ -6600,34 +6600,6 @@
         }
       }
     },
-    "민감한 사진 %lld장": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld sensitive photos"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld संवेदनशील फ़ोटो"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "センシティブな写真%lld枚"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld ảnh nhạy cảm"
-          }
-        }
-      }
-    },
     "두 글자 이상 입력하면 사람을 찾아요": {
       "localizations": {
         "en": {
@@ -9342,34 +9314,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Giảm thụt lề"
-          }
-        }
-      }
-    },
-    "내용 보기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "दिखाएँ"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "内容を見る"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Xem"
           }
         }
       }
@@ -12314,34 +12258,6 @@
         }
       }
     },
-    "민감한 사진 · 눌러서 보기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sensitive photos · tap to show"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "संवेदनशील फ़ोटो · देखने के लिए टैप करें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "センシティブな写真 · タップで表示"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ảnh nhạy cảm · chạm để xem"
-          }
-        }
-      }
-    },
     "민감한 사진 표시 끄기": {
       "localizations": {
         "en": {
@@ -14182,62 +14098,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cảnh báo nội dung"
-          }
-        }
-      }
-    },
-    "열람 주의 끄기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Remove content warning"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "सामग्री चेतावनी हटाएँ"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "閲覧注意をオフ"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bỏ cảnh báo nội dung"
-          }
-        }
-      }
-    },
-    "열람 주의 문구 (예: 스포일러)": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Content warning (e.g. spoilers)"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "सामग्री चेतावनी (जैसे स्पॉइलर)"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "閲覧注意の文言（例: ネタバレ）"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cảnh báo nội dung (vd: tiết lộ nội dung)"
           }
         }
       }
@@ -39791,6 +39651,130 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chỉ những người được tác giả nhắc đến mới có thể trả lời"
+          }
+        }
+      }
+    },
+    "가려진 내용": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hidden content"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "छिपी सामग्री"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隠された内容"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nội dung bị ẩn"
+          }
+        }
+      }
+    },
+    "가려진 사진": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hidden photo"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "छिपी फ़ोटो"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隠された写真"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ảnh bị ẩn"
+          }
+        }
+      }
+    },
+    "가려진 사진 %lld장": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld hidden photo"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld hidden photos"
+                }
+              }
+            }
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld छिपी फ़ोटो"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隠された写真%lld枚"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld ảnh bị ẩn"
+          }
+        }
+      }
+    },
+    "열람 주의 문구": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Content warning"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सामग्री चेतावनी"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "閲覧注意の文言"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cảnh báo nội dung"
           }
         }
       }

@@ -163,17 +163,8 @@ struct ProfileMediaCell: View {
                     Palette.hairline.overlay {
                         if case .success(let image) = phase {
                             image.resizable().scaledToFill()
+                                .blur(radius: item.sensitive ? 24 : 0, opaque: true)
                         }
-                    }
-                }
-            }
-            .overlay {
-                if item.sensitive {
-                    ZStack {
-                        Rectangle().fill(.ultraThickMaterial)
-                        Image(systemName: "eye.slash")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(Palette.ink)
                     }
                 }
             }
@@ -197,7 +188,7 @@ struct ProfileMediaCell: View {
 
     private var accessibilityText: Text {
         if item.sensitive {
-            return Text("민감한 사진 \(item.mediaCount)장")
+            return Text("가려진 사진 \(item.mediaCount)장")
         }
         if let alt = item.media.altText, !alt.isEmpty {
             return Text("\(alt), 사진 \(item.mediaCount)장")

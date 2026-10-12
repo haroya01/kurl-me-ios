@@ -106,7 +106,7 @@ final class ProfileRepliesMediaUITests: XCTestCase {
 
         let cell = app.buttons["profile.media.9507"]
         XCTAssertTrue(cell.waitForExistence(timeout: 5), "사진 붙인 노트의 칸이 없음")
-        XCTAssertTrue(cell.label.contains("민감한 사진"), cell.label)
+        XCTAssertTrue(cell.label.contains("가려진 사진"), cell.label)
         shot("3-media-sensitive")
 
         cell.tap()
@@ -125,7 +125,7 @@ final class ProfileRepliesMediaUITests: XCTestCase {
         XCTAssertTrue(cell.waitForExistence(timeout: 5), "사진 세 장 노트의 칸이 없음")
         XCTAssertTrue(cell.label.contains("비 오는 창밖"), cell.label)
         XCTAssertTrue(cell.label.contains("3"), cell.label)
-        XCTAssertFalse(cell.label.contains("민감한 사진"), cell.label)
+        XCTAssertFalse(cell.label.contains("가려진 사진"), cell.label)
         shot("4-media-count")
 
         cell.tap()
