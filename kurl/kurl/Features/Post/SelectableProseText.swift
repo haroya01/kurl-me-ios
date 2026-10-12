@@ -435,4 +435,21 @@ final class ProseTextView: UITextView {
     var resolvedMarks: [SelectableProseText.ResolvedMark] = []
     /// 롱프레스(문장 스냅)가 띄우는 편집 메뉴 인터랙션.
     var highlightMenuInteraction: UIEditMenuInteraction?
+
+    private var paintStorage: NSTextStorage?
+
+    convenience init(usingTextLayoutManager: Bool) {
+        guard !usingTextLayoutManager else {
+            self.init(frame: .zero, textContainer: nil)
+            return
+        }
+        let storage = NSTextStorage()
+        let manager = HighlightPaintLayoutManager()
+        storage.addLayoutManager(manager)
+        let container = NSTextContainer(size: CGSize(width: 0, height: CGFloat.greatestFiniteMagnitude))
+        container.widthTracksTextView = true
+        manager.addTextContainer(container)
+        self.init(frame: .zero, textContainer: container)
+        paintStorage = storage
+    }
 }
