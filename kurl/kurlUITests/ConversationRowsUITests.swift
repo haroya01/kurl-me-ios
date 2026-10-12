@@ -72,9 +72,9 @@ final class ConversationRowsUITests: XCTestCase {
     }
 
     private func openNoteReplies(_ app: XCUIApplication) {
-        let replies = app.buttons["note.replies.9501"]
-        XCTAssertTrue(replies.waitForExistence(timeout: 12), "노트 답글 버튼이 없음")
-        replies.tap()
+        let body = app.buttons["note.body.9501"]
+        XCTAssertTrue(body.waitForExistence(timeout: 12), "노트 본문이 없음")
+        body.tap()
         XCTAssertTrue(app.navigationBars["노트"].waitForExistence(timeout: 8), "노트 상세가 열리지 않음")
         app.swipeUp(velocity: .slow)
     }
@@ -319,7 +319,7 @@ final class ConversationRowsUITests: XCTestCase {
         let note = element(app, "note.row.9501")
         XCTAssertTrue(note.waitForExistence(timeout: 12), "노트 행이 한 요소로 안 묶임")
         XCTAssertTrue(note.label.contains("헥사고날 포트 이름"), "노트 본문을 안 읽음: \(note.label)")
-        XCTAssertTrue(app.buttons["note.replies.9501"].exists, "노트 상세로 가는 답글 버튼이 묶임에 갇힘")
+        XCTAssertTrue(app.buttons["note.replies.9501"].exists, "답글 쓰기 버튼이 묶임에 갇힘")
         XCTAssertTrue(app.buttons["note.menu.9501"].exists, "노트 메뉴가 묶임에 갇힘")
     }
 

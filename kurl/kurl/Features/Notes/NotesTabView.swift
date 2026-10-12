@@ -73,6 +73,7 @@ struct NotesTabView: View {
                 if let feed { choice.show(feed) }
             }
         }
+        .environment(\.openNoteRoute) { choice.path.append($0) }
         .onChange(of: router.reselections) {
             if router.reselectedTab == 1 { choice.path = NavigationPath() }
         }
