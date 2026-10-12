@@ -332,8 +332,8 @@ struct ConversationComposer: View {
                     .typeScale(.footnote)
                     .foregroundStyle(Palette.danger)
             }
-            if focused {
-                MentionSuggestionList(query: MentionDraft.trailingQuery(in: text)) {
+            if focused, let query = MentionDraft.trailingQuery(in: text) {
+                MentionSuggestionList(query: query) {
                     text = MentionDraft.complete(text, with: $0.username)
                 }
             }
