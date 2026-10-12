@@ -1298,11 +1298,8 @@ struct QuotedNoteCard: View {
                 AvatarView(author: note.author, size: 20)
                     .alignmentGuide(.noteNameLine) { $0[VerticalAlignment.center] }
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(note.author.username)
+                    ConversationName(author: note.author)
                         .typeScale(.meta)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(Palette.ink)
-                        .lineLimit(1)
                     if let date = note.createdAt {
                         Text(date.relativeCompact)
                             .typeScale(.meta)
