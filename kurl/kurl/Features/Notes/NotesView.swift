@@ -292,6 +292,8 @@ struct NoteRowView: View {
     @Environment(\.noteFilterContext) private var filterContext
     @Environment(\.openNoteRoute) private var openNoteRoute
     @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
+    @ScaledMetric(relativeTo: .callout) private var nameCapCenter: CGFloat = 9
+    @ScaledMetric(relativeTo: .callout) private var nameCapHalf: CGFloat = 5.3
 
     private var unit: CGFloat { min(scale, 1.8) }
 
@@ -596,8 +598,9 @@ struct NoteRowView: View {
     private static let federationHost = Config.apiBase.host() ?? "kurl.me"
 
     private var row: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .noteNameLine, spacing: 12) {
             avatarLink
+                .alignmentGuide(.noteNameLine) { $0[.top] + nameCapCenter }
 
             VStack(alignment: .leading, spacing: 2) {
                 VStack(alignment: .leading, spacing: 2) {
@@ -626,12 +629,16 @@ struct NoteRowView: View {
                         Button("답글 쓰기") { startReply() }
                     }
                 }
-                .overlay(alignment: .topTrailing) { moreMenu }
+                .overlay(alignment: Alignment(horizontal: .trailing, vertical: .firstTextBaseline)) {
+                    moreMenu
+                        .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + nameCapHalf }
+                }
                 if !folded, !note.body.isEmpty { translationLine }
                 if !folded { attachments }
                 actions(spread: false)
                     .padding(.top, 10)
             }
+            .alignmentGuide(.noteNameLine) { $0[.firstTextBaseline] - nameCapHalf }
         }
     }
 
@@ -680,7 +687,7 @@ struct NoteRowView: View {
                     .accessibilityIdentifier("note.position.\(note.id)")
             }
             Color.clear
-                .frame(width: 32 * unit, height: 22 * unit)
+                .frame(width: 32 * unit, height: 0)
                 .accessibilityHidden(true)
         }
     }
@@ -1233,6 +1240,14 @@ extension EnvironmentValues {
     @Entry var openNoteRoute: ((Route) -> Void)? = nil
 }
 
+extension VerticalAlignment {
+    private enum NoteNameLine: AlignmentID {
+        static func defaultValue(in context: ViewDimensions) -> CGFloat { context[.top] }
+    }
+
+    static let noteNameLine = VerticalAlignment(NoteNameLine.self)
+}
+
 extension Author {
     var addressedName: String {
         if hasDisplayName, let displayName { return displayName }
@@ -1275,22 +1290,27 @@ struct QuotedNoteCard: View {
     let note: QuotedNote
     /// 글에 실린 노트 — 본문을 자르지 않는다.
     var full = false
+    @ScaledMetric(relativeTo: .caption) private var nameCapHalf: CGFloat = 4.4
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
+            HStack(alignment: .noteNameLine, spacing: 6) {
                 AvatarView(author: note.author, size: 20)
-                Text(note.author.username)
-                    .typeScale(.meta)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Palette.ink)
-                    .lineLimit(1)
-                if let date = note.createdAt {
-                    Text(date.relativeCompact)
+                    .alignmentGuide(.noteNameLine) { $0[VerticalAlignment.center] }
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(note.author.username)
                         .typeScale(.meta)
-                        .foregroundStyle(Palette.secondary)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Palette.ink)
                         .lineLimit(1)
+                    if let date = note.createdAt {
+                        Text(date.relativeCompact)
+                            .typeScale(.meta)
+                            .foregroundStyle(Palette.secondary)
+                            .lineLimit(1)
+                    }
                 }
+                .alignmentGuide(.noteNameLine) { $0[.firstTextBaseline] - nameCapHalf }
             }
             if let warning = note.contentWarning {
                 Label(warning, systemImage: "exclamationmark.triangle")
