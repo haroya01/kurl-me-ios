@@ -304,7 +304,15 @@ struct ConversationComposer: View {
     @State private var showLoginPrompt = false
     @State private var sentPulse = 0
     @State private var calledHandle: String?
+    @State private var contentHeight: CGFloat = 0
     @FocusState private var focused: Bool
+
+    private let inset: CGFloat = 7
+    private var sendSize: CGFloat { 30 * unit }
+    private var oneLine: Bool { contentHeight <= sendSize + 1 }
+    private var barShape: AnyShape {
+        oneLine ? AnyShape(Capsule()) : AnyShape(.rect(cornerRadius: Metrics.radius))
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -328,7 +336,7 @@ struct ConversationComposer: View {
                 .accessibilityIdentifier("conversation.replyChip")
             }
             if sendFailed {
-                Text("전송하지 못했습니다 — 다시 시도해 주세요.")
+                Text("보내지 못했어요. 다시 시도해 주세요.")
                     .typeScale(.footnote)
                     .foregroundStyle(Palette.danger)
             }
@@ -339,7 +347,7 @@ struct ConversationComposer: View {
             }
             HStack(alignment: .center, spacing: 10) {
                 TextField(replyTarget == nil ? placeholder : replyPlaceholder, text: $text, axis: .vertical)
-                    .typeScale(.body)
+                    .typeScale(.note)
                     .lineLimit(1...4)
                     .focused($focused)
                     .accessibilityIdentifier(inputIdentifier)
@@ -353,14 +361,15 @@ struct ConversationComposer: View {
                             ProgressView().tint(.white)
                         } else {
                             Image(systemName: "arrow.up")
-                                .font(.system(size: 15 * unit, weight: .bold))
+                                .font(.system(size: 13 * unit, weight: .bold))
                                 .foregroundStyle(.white)
                         }
                     }
-                    .frame(width: 34 * unit, height: 34 * unit)
+                    .frame(width: sendSize, height: sendSize)
                     .background(
                         canSend || sending ? GlassTokens.prominentTint : Color.secondary.opacity(0.45),
                         in: Circle())
+                    .expandTapTarget(inset)
                 }
                 .buttonStyle(.plain)
                 .disabled(!canSend || sending)
@@ -368,9 +377,12 @@ struct ConversationComposer: View {
                 .accessibilityIdentifier(sendIdentifier)
             }
         }
-        .padding(.horizontal, 15)
-        .padding(.vertical, 11)
-        .glassEffect(.regular, in: .rect(cornerRadius: Metrics.radius))
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
+        .padding(.leading, 16)
+        .padding(.trailing, inset)
+        .padding(.top, replyTarget != nil || sendFailed ? inset + 4 : inset)
+        .padding(.bottom, inset)
+        .glassEffect(.regular, in: barShape)
         .padding(.horizontal, 10)
         .padding(.bottom, 6)
         .onAppear { if focusOnAppear { focused = true } }

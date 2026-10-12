@@ -248,7 +248,7 @@ final class TabBarMinimizeUITests: XCTestCase {
         let card = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "엣지 비전")).firstMatch
         XCTAssertTrue(card.waitForExistence(timeout: 10), "피드 카드가 없음")
         card.tap()
-        let prompt = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "댓글을 남겨보세요")).firstMatch
+        let prompt = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "댓글 쓰기")).firstMatch
         for _ in 0..<12 where !prompt.isHittable {
             app.swipeUp()
             Thread.sleep(forTimeInterval: 0.3)

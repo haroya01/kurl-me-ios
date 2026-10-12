@@ -246,8 +246,8 @@ struct HighlightThreadSheet: View {
         ConversationComposer(
             text: $text,
             replyTarget: $noReplyTarget,
-            placeholder: "답글을 남겨보세요",
-            replyPlaceholder: "답글을 남겨보세요",
+            placeholder: "답글 쓰기",
+            replyPlaceholder: "답글 쓰기",
             sendLabel: "답글 보내기",
             loginMessage: "답글을 달려면 로그인하세요",
             inputIdentifier: "highlightReply.field",

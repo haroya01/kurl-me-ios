@@ -31,13 +31,13 @@ final class DiscoverDeckUITests: XCTestCase {
         }
         XCTAssertTrue(collapsed.exists, "덱 페이지에 접힌 댓글 행이 없음 — 상세 임베드 실패")
 
-        let composer = app.textFields["댓글을 남겨보세요"].firstMatch
+        let composer = app.textFields["댓글 쓰기"].firstMatch
         XCTAssertFalse(composer.exists, "접힌 상태인데 컴포저가 이미 보임")
 
         // 펼치면 프롬프트 행이 서고, 탭해야 키보드 위 유리 바(진짜 입력)가 떠오른다.
         collapsed.tap()
         app.swipeUp(velocity: .slow)
-        let prompt = app.buttons["댓글을 남겨보세요"].firstMatch
+        let prompt = app.buttons["댓글 쓰기"].firstMatch
         XCTAssertTrue(prompt.waitForExistence(timeout: 5), "댓글 펼침 후 프롬프트가 없음")
         prompt.tap()
         XCTAssertTrue(composer.waitForExistence(timeout: 5), "프롬프트 탭 후 유리 바 입력이 없음")
