@@ -23,6 +23,9 @@ final class PostHighlightStore {
     /// 대화 시트를 연 하이라이트 — 카드의 "대화 보기"와 알림·피드의 딥링크가 연다.
     var threadHighlightId: Int64?
     var card: Card?
+    private(set) var sweepHighlightId: Int64?
+    var revealHighlightId: Int64?
+    private(set) var createdCount = 0
     /// 메모와 함께 하이라이트할 선택 구간 — 뷰가 메모 입력 시트를 띄운다.
     var noteDraft: NoteDraft?
     /// 컬렉션에 연결할 하이라이트 — 스레드 시트가 닫힌 뒤 뷰(PostDetailView)가 ConnectSheet 를 띄운다
@@ -93,6 +96,20 @@ final class PostHighlightStore {
     func highlight(id: Int64) -> HighlightView? { highlights.first { $0.id == id } }
 
     func isMine(_ highlight: HighlightView) -> Bool { HighlightPaint.isMine(highlight, me: viewerId()) }
+
+    func sweep(_ id: Int64) {
+        sweepHighlightId = id
+        Task {
+            try? await Task.sleep(for: .seconds(1))
+            if sweepHighlightId == id { sweepHighlightId = nil }
+        }
+    }
+
+    func reveal(ids: [Int64], anchor: CGRect) {
+        guard revealHighlightId != nil else { return }
+        revealHighlightId = nil
+        openCard(ids: ids, anchor: anchor)
+    }
 
     func openCard(ids: [Int64], anchor: CGRect) {
         let known = ids.filter { highlight(id: $0) != nil }
@@ -191,9 +208,8 @@ final class PostHighlightStore {
         nextOptimisticId -= 1
         mutationVersion += 1
         highlights.append(optimistic)
-        // 그은 순간 가벼운 촉감 하나 — 좋아요·다음글과 같은 결의 확인(§1.6 조용하지만 살아 있게).
-        // 마크가 즉시 칠해지는 그 순간에 맞춰, 형제 인게이지 동작과 동일한 light 무게로.
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        sweep(optimistic.id)
+        createdCount += 1
         do {
             let echo = try await createRequest(postId, payload)
             mutationVersion += 1

@@ -1,11 +1,57 @@
 import UIKit
 
 final class HighlightPaintLayoutManager: NSLayoutManager {
+    struct Motion {
+        let range: NSRange
+        let wash: UIColor
+        let underline: UIColor
+        let thick: Bool
+        let fading: Bool
+        var progress: CGFloat
+    }
+
+    var motions: [Motion] = []
     private var origin: CGPoint = .zero
 
     override func drawBackground(forGlyphRange glyphsToShow: NSRange, at origin: CGPoint) {
         self.origin = origin
         super.drawBackground(forGlyphRange: glyphsToShow, at: origin)
+        for motion in motions { draw(motion, at: origin) }
+    }
+
+    private func draw(_ motion: Motion, at origin: CGPoint) {
+        guard let storage = textStorage, let container = textContainers.first,
+              NSMaxRange(motion.range) <= storage.length else { return }
+        let glyphs = glyphRange(forCharacterRange: motion.range, actualCharacterRange: nil)
+        var bands: [CGRect] = []
+        enumerateLineFragments(forGlyphRange: glyphs) { line, _, _, lineGlyphs, _ in
+            let part = NSIntersectionRange(lineGlyphs, glyphs)
+            guard part.length > 0 else { return }
+            let span = self.boundingRect(forGlyphRange: part, in: container)
+            let height = min(line.height, self.glyphBoxHeight(ofLine: lineGlyphs, storage: storage))
+            bands.append(CGRect(x: span.minX, y: line.minY, width: span.width, height: height))
+        }
+        guard let left = bands.map(\.minX).min(), let right = bands.map(\.maxX).max() else { return }
+        let edge = motion.fading ? right : left + (right - left) * motion.progress
+        let alpha = motion.fading ? 1 - motion.progress : 1
+        let wash = Self.faded(motion.wash, by: alpha)
+        let underline = Self.faded(motion.underline, by: alpha)
+        let thickness: CGFloat = motion.thick ? 2 : 1
+        for band in bands {
+            let width = min(band.maxX, edge) - band.minX
+            guard width > 0 else { continue }
+            let shown = CGRect(x: band.minX + origin.x, y: band.minY + origin.y, width: width, height: band.height)
+            wash.setFill()
+            UIRectFillUsingBlendMode(shown, .normal)
+            underline.setFill()
+            UIRectFillUsingBlendMode(
+                CGRect(x: shown.minX, y: shown.maxY - thickness, width: shown.width, height: thickness), .normal)
+        }
+    }
+
+    private static func faded(_ color: UIColor, by alpha: CGFloat) -> UIColor {
+        let resolved = color.resolvedColor(with: .current)
+        return resolved.withAlphaComponent(resolved.cgColor.alpha * alpha)
     }
 
     override func fillBackgroundRectArray(
