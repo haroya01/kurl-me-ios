@@ -189,7 +189,7 @@ struct BlockView: View {
     private static let bareURLAutolink = try? NSRegularExpression(
         pattern: "(?<!\\]\\()(?<!<)(https?://[^\\s<>\\)\\]]+)")
 
-    private func autolinkBareURLs(_ raw: String) -> String {
+    private static func autolinkBareURLs(_ raw: String) -> String {
         guard raw.contains("http://") || raw.contains("https://"), !raw.contains("`"),
               let regex = Self.bareURLAutolink else { return raw }
         let ns = raw as NSString
@@ -199,7 +199,7 @@ struct BlockView: View {
 
     /// 인라인 파싱 결과 캐시 — 같은 문단이 스크롤·하이라이트 토글·부모 무효화마다 다시 파싱되던 것을 막는다
     /// (`AttributedString(markdown:)` + 오토링크 정규식이 body 마다 O(보이는 블록)만큼 돌던 비용).
-    /// 키 = 원문 + 인라인 코드 크기(bodySize) — 색은 동적 `Color`(Palette)를 그대로 담아 Text 가 스킴별로
+    /// 키 = 원문 + 글자 크기(본문 bodySize·표 cellSize) — 색은 동적 `Color`(Palette)를 그대로 담아 Text 가 스킴별로
     /// 다시 해석하므로(라이트/다크 자동 대응) 키에 넣지 않는다. countLimit 으로 긴 글 연속 열람에도 유계.
     private static let inlineCache: NSCache<NSString, InlineBox> = {
         let cache = NSCache<NSString, InlineBox>()
@@ -265,9 +265,13 @@ struct BlockView: View {
     }
 
     private func inline(_ raw: String) -> Text {
-        let key = "\(bodySize)|\(raw)" as NSString
-        if let box = Self.inlineCache.object(forKey: key) {
-            return Text(box.attributed)
+        Text(Self.inlineAttributed(raw, size: bodySize))
+    }
+
+    static func inlineAttributed(_ raw: String, size: CGFloat) -> AttributedString {
+        let key = "\(size)|\(raw)" as NSString
+        if let box = inlineCache.object(forKey: key) {
+            return box.attributed
         }
         let source = autolinkBareURLs(raw)
         let options = AttributedString.MarkdownParsingOptions(
@@ -281,15 +285,15 @@ struct BlockView: View {
                 // 인라인 코드 — 모노스페이스 + 옅은 칩 배경으로 본문과 또렷이 구분(프론트 `code` 등가).
                 // Text 는 AttributedString 의 backgroundColor 를 렌더하므로 별도 뷰 없이 면이 깔린다.
                 if run.inlinePresentationIntent?.contains(.code) == true {
-                    attributed[run.range].font = .system(size: bodySize * 0.92, design: .monospaced)
+                    attributed[run.range].font = .system(size: size * 0.92, design: .monospaced)
                     attributed[run.range].foregroundColor = Palette.ink
                     attributed[run.range].backgroundColor = Palette.chipBg
                 }
             }
-            Self.inlineCache.setObject(InlineBox(attributed), forKey: key)
-            return Text(attributed)
+            inlineCache.setObject(InlineBox(attributed), forKey: key)
+            return attributed
         }
-        return Text(raw)
+        return AttributedString(raw)
     }
 
     /// 단독 `#### `/`##### `/`###### ` 줄이면 (레벨 4~6, 뒤 내용). 여러 줄이거나 h1~3(블록으로
@@ -854,14 +858,7 @@ enum TableMarkdown {
     static func rows(_ markdown: String) -> [[String]] {
         let parsed = markdown
             .split(separator: "\n", omittingEmptySubsequences: true)
-            .map { line -> [String] in
-                var parts = line.split(separator: "|", omittingEmptySubsequences: false)
-                    .map { $0.trimmingCharacters(in: .whitespaces) }
-                // 표준 GFM 행은 `|…|` 라 양 끝이 빈 조각으로 나온다 — 그 둘만 벗긴다.
-                if parts.first == "" { parts.removeFirst() }
-                if parts.last == "" { parts.removeLast() }
-                return parts
-            }
+            .map(cells)
             .filter { cells in
                 // 구분선 행(--- / :--: 등)은 렌더하지 않는다 — 빈 셀 보존과 무관하게 그대로.
                 !(cells.isEmpty || cells.allSatisfy { $0.allSatisfy { "-: ".contains($0) } })
@@ -883,10 +880,7 @@ enum TableMarkdown {
     /// 구분선이 없으면 빈 배열(호출측이 전부 왼쪽 기본으로 처리). 빈 셀 보존과는 독립.
     static func columnAlignments(_ markdown: String) -> [ColumnAlignment] {
         for line in markdown.split(separator: "\n", omittingEmptySubsequences: true) {
-            var parts = line.split(separator: "|", omittingEmptySubsequences: false)
-                .map { $0.trimmingCharacters(in: .whitespaces) }
-            if parts.first == "" { parts.removeFirst() }
-            if parts.last == "" { parts.removeLast() }
+            let parts = cells(line)
             let isSeparator = !parts.isEmpty && parts.allSatisfy { token in
                 token.contains("-") && token.allSatisfy { "-: ".contains($0) }
             }
@@ -900,6 +894,35 @@ enum TableMarkdown {
             }
         }
         return []
+    }
+
+    static func cellText(_ cell: String, size: CGFloat) -> AttributedString {
+        BlockView.inlineAttributed(cell, size: size)
+    }
+
+    private static func cells(_ line: Substring) -> [String] {
+        var parts: [String] = []
+        var current = ""
+        var i = line.startIndex
+        while i < line.endIndex {
+            let next = line.index(after: i)
+            if line[i] == "\\", next < line.endIndex, line[next] == "|" {
+                current.append("|")
+                i = line.index(after: next)
+                continue
+            }
+            if line[i] == "|" {
+                parts.append(current.trimmingCharacters(in: .whitespaces))
+                current = ""
+            } else {
+                current.append(line[i])
+            }
+            i = next
+        }
+        parts.append(current.trimmingCharacters(in: .whitespaces))
+        if parts.first == "" { parts.removeFirst() }
+        if parts.last == "" { parts.removeLast() }
+        return parts
     }
 }
 
@@ -939,7 +962,7 @@ private struct TableBlockView: View {
                 ForEach(Array(rows.enumerated()), id: \.offset) { index, cells in
                     GridRow {
                         ForEach(Array(cells.enumerated()), id: \.offset) { col, cell in
-                            Text(cell)
+                            Text(TableMarkdown.cellText(cell, size: cellSize))
                                 .font(.system(size: cellSize, weight: index == 0 ? .semibold : .regular))
                                 .foregroundStyle(index == 0 ? Palette.ink : Palette.body)
                                 .multilineTextAlignment(textAlign(col, aligns))

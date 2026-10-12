@@ -633,9 +633,10 @@ enum MockBackend {
                 ])],
                 ["type": "TABLE", "content": """
                 | 항목 | 전 | 후 |
-                | 동시 갱신 | 각자 회전 시도 | 하나만 회전, 나머지 대기 |
-                | 경합에서 진 요청 | 세션 wipe | grace로 새 토큰 |
-                | 로그아웃 제보 | 주 3~4건 | 0건 |
+                | **동시 갱신** | 각자 회전 시도 | 하나만 회전, 나머지 *대기* |
+                | 경합에서 진 요청 | 세션 wipe | `grace`로 새 토큰 |
+                | 로그아웃 제보 | 주 3~4건 | **0건** |
+                | 근거 | — | [RFC 9700](https://www.rfc-editor.org/rfc/rfc9700) |
                 """],
                 ["type": "H3", "content": "남은 교훈"],
                 ["type": "PARAGRAPH", "content":

@@ -6,6 +6,7 @@
 //  밀리던 회귀(웹은 빈 칸 보존)를 막는다.
 //
 
+import SwiftUI
 import XCTest
 
 @testable import kurl
@@ -153,5 +154,66 @@ final class ReaderSubHeadingTaskTests: XCTestCase {
         XCTAssertEqual(text, "보통 항목")
         // `[대괄호]` 인라인은 작업 마커 아님(공백 포함 4자 꼴만).
         XCTAssertNil(BlockView.taskMarker("[링크](url) 참고").checked)
+    }
+}
+
+@MainActor
+final class TableCellInlineTests: XCTestCase {
+
+    private func runs(
+        _ cell: String
+    ) -> [(text: String, intent: InlinePresentationIntent?, link: URL?, color: Color?, background: Color?)] {
+        let attributed = TableMarkdown.cellText(cell, size: 15)
+        return attributed.runs.map { run in
+            (
+                String(attributed[run.range].characters), run.inlinePresentationIntent, run.link,
+                run.foregroundColor, run.backgroundColor
+            )
+        }
+    }
+
+    private func run(_ text: String, in cell: String) -> (
+        text: String, intent: InlinePresentationIntent?, link: URL?, color: Color?, background: Color?
+    )? {
+        runs(cell).first { $0.text == text }
+    }
+
+    func testBoldCellDropsMarkersAndIsStrong() {
+        let cell = "**굵게** 보통"
+        XCTAssertEqual(String(TableMarkdown.cellText(cell, size: 15).characters), "굵게 보통")
+        XCTAssertEqual(run("굵게", in: cell)?.intent?.contains(.stronglyEmphasized), true)
+    }
+
+    func testItalicAndStrikethroughCells() {
+        XCTAssertEqual(run("기울임", in: "*기울임*")?.intent?.contains(.emphasized), true)
+        XCTAssertEqual(run("취소", in: "~~취소~~")?.intent?.contains(.strikethrough), true)
+    }
+
+    func testCodeCellMatchesBodyCodeChip() {
+        let code = run("grace", in: "`grace`로 새 토큰")
+        XCTAssertEqual(code?.intent?.contains(.code), true)
+        XCTAssertEqual(code?.color, Palette.ink)
+        XCTAssertEqual(code?.background, Palette.chipBg)
+    }
+
+    func testLinkCellUsesLinkColor() {
+        let link = run("RFC 6749", in: "[RFC 6749](https://www.rfc-editor.org/rfc/rfc6749)")
+        XCTAssertEqual(link?.link, URL(string: "https://www.rfc-editor.org/rfc/rfc6749"))
+        XCTAssertEqual(link?.color, Palette.link)
+    }
+
+    func testCellRendersLikeBodyText() {
+        let cell = "**굵게** `code` [링크](https://kurl.me) *기울임*"
+        XCTAssertEqual(TableMarkdown.cellText(cell, size: 18), BlockView.inlineAttributed(cell, size: 18))
+    }
+
+    func testEscapedPipeStaysInsideCell() {
+        let md = """
+        | 이름 | 값 |
+        | --- | ---: |
+        | 파이프 \\| 이스케이프 | `a \\| b` |
+        """
+        XCTAssertEqual(TableMarkdown.rows(md), [["이름", "값"], ["파이프 | 이스케이프", "`a | b`"]])
+        XCTAssertEqual(TableMarkdown.columnAlignments(md), [.leading, .trailing])
     }
 }
