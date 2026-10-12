@@ -59,23 +59,17 @@ struct HighlightThreadSheet: View {
     private func isMe(_ author: Author) -> Bool { author.id == AuthStore.shared.me?.id }
 
     private var source: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 4) {
-            Text(verbatim: postTitle)
-                .foregroundStyle(Palette.body)
-                .lineLimit(2)
-            if let postAuthor {
-                Text(verbatim: "·")
-                    .foregroundStyle(Palette.faint)
-                    .accessibilityHidden(true)
-                Text(verbatim: postAuthor.shownName)
-                    .foregroundStyle(Palette.secondary)
-                    .lineLimit(1)
-                    .layoutPriority(-1)
-            }
+        var line = Text(verbatim: postTitle).foregroundStyle(Palette.body)
+        if let postAuthor {
+            line = line
+                + Text(verbatim: " · ").foregroundStyle(Palette.faint)
+                + Text(verbatim: postAuthor.shownName).foregroundStyle(Palette.secondary)
         }
-        .typeScale(.meta)
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("highlight.source")
+        return line
+            .typeScale(.meta)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityLabel(Text(verbatim: [postTitle, postAuthor?.shownName].compactMap { $0 }.joined(separator: ", ")))
+            .accessibilityIdentifier("highlight.source")
     }
 
     private var highlighters: some View {
