@@ -5,29 +5,51 @@ struct HighlightQuote: View {
     let quote: String
     let mine: Bool
     let hasThread: Bool
+    let sweeps: Bool
+    let lineSpacing: CGFloat
+    let maxLines: Int
+    let identifier: String
 
-    @ScaledMetric(relativeTo: .body) private var size: CGFloat = 18
+    @ScaledMetric private var size: CGFloat
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var swept = false
 
     static let sweepDelay: Duration = .milliseconds(250)
     static let sweep = Animation.timingCurve(0.16, 1, 0.3, 1, duration: 0.44)
 
-    private var progress: CGFloat { reduceMotion || swept ? 1 : 0 }
+    init(
+        quote: String, mine: Bool, hasThread: Bool, sweeps: Bool = true,
+        size: CGFloat = 18, relativeTo textStyle: Font.TextStyle = .body, lineSpacing: CGFloat = 0.68,
+        maxLines: Int = 0, identifier: String = "highlight.quote"
+    ) {
+        self.quote = quote
+        self.mine = mine
+        self.hasThread = hasThread
+        self.sweeps = sweeps
+        self.lineSpacing = lineSpacing
+        self.maxLines = maxLines
+        self.identifier = identifier
+        _size = ScaledMetric(wrappedValue: size, relativeTo: textStyle)
+    }
+
+    private var progress: CGFloat { !sweeps || reduceMotion || swept ? 1 : 0 }
 
     var body: some View {
-        HighlightQuoteText(quote: quote, size: size, paint: nil)
+        HighlightQuoteText(quote: quote, size: size, lineSpacing: lineSpacing, maxLines: maxLines, paint: nil)
             .background {
-                HighlightQuoteText(quote: quote, size: size, paint: .init(mine: mine, hasThread: hasThread))
+                HighlightQuoteText(
+                    quote: quote, size: size, lineSpacing: lineSpacing, maxLines: maxLines,
+                    paint: .init(mine: mine, hasThread: hasThread))
                     .mask(alignment: .leading) {
                         Rectangle().scaleEffect(x: progress, y: 1, anchor: .leading)
                     }
             }
             .accessibilityElement()
             .accessibilityLabel(Text(verbatim: quote))
-            .accessibilityIdentifier("highlight.quote")
+            .accessibilityAddTraits(.isStaticText)
+            .accessibilityIdentifier(identifier)
             .task {
-                guard !reduceMotion, !swept else { return }
+                guard sweeps, !reduceMotion, !swept else { return }
                 try? await Task.sleep(for: Self.sweepDelay)
                 guard !Task.isCancelled else { return }
                 withAnimation(Self.sweep) { swept = true }
@@ -43,6 +65,8 @@ private struct HighlightQuoteText: UIViewRepresentable {
 
     let quote: String
     let size: CGFloat
+    let lineSpacing: CGFloat
+    let maxLines: Int
     let paint: Paint?
 
     func makeUIView(context: Context) -> ProseTextView {
@@ -63,7 +87,7 @@ private struct HighlightQuoteText: UIViewRepresentable {
 
     func updateUIView(_ tv: ProseTextView, context: Context) {
         let paragraph = NSMutableParagraphStyle()
-        paragraph.lineSpacing = size * 0.68
+        paragraph.lineSpacing = size * lineSpacing
         let text = NSMutableAttributedString(string: quote, attributes: [
             .font: UIFont.systemFont(ofSize: size),
             .foregroundColor: paint == nil ? UIColor(Palette.ink) : UIColor.clear,
@@ -74,6 +98,8 @@ private struct HighlightQuoteText: UIViewRepresentable {
                 text, range: NSRange(location: 0, length: text.length),
                 mine: paint.mine, hasThread: paint.hasThread)
         }
+        tv.textContainer.maximumNumberOfLines = maxLines
+        tv.textContainer.lineBreakMode = .byTruncatingTail
         if tv.attributedText != text { tv.attributedText = text }
     }
 

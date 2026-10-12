@@ -829,7 +829,7 @@ private struct PostDetailReader: View {
     private var highlightHowToItem: some View {
         if highlights != nil {
             Button {
-                ToastCenter.shared.show(String(localized: "문장을 길게 눌러 하이라이트하거나 공개 메모를 남겨요"))
+                ToastCenter.shared.show(String(localized: "문장을 길게 눌러 하이라이트하거나 메모를 남겨요"))
             } label: {
                 Label("하이라이트하는 법", systemImage: "highlighter")
             }

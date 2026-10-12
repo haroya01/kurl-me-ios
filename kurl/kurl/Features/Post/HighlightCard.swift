@@ -37,14 +37,14 @@ struct HighlightCardLayer: View {
             }
         }
         .ignoresSafeArea(.keyboard)
-        .alert("이 하이라이트를 지울까요?", isPresented: Binding(
+        .alert("이 하이라이트를 삭제할까요?", isPresented: Binding(
             get: { confirmDelete != nil }, set: { if !$0 { confirmDelete = nil } })) {
-            Button("지우기", role: .destructive) {
+            Button("삭제", role: .destructive) {
                 if let target = confirmDelete { remove(target) }
             }
             Button("취소", role: .cancel) {}
         } message: {
-            Text("남긴 공개 메모와 답글도 함께 사라져요. 되돌릴 수 없어요.")
+            Text("남긴 메모와 답글도 함께 사라져요. 되돌릴 수 없어요.")
         }
     }
 
@@ -64,9 +64,9 @@ struct HighlightCardLayer: View {
         close()
         Task {
             if await store.delete(id: highlight.id) {
-                ToastCenter.shared.show(String(localized: "하이라이트를 지웠어요"))
+                ToastCenter.shared.show(String(localized: "하이라이트를 삭제했어요"))
             } else {
-                ToastCenter.shared.show(String(localized: "지우지 못했어요. 다시 시도해 주세요"))
+                ToastCenter.shared.show(String(localized: "하이라이트를 삭제하지 못했습니다"))
             }
         }
     }
@@ -84,14 +84,6 @@ struct HighlightCard: View {
     private var mine: HighlightView? { highlights.first(where: store.isMine) }
     private var conversations: [HighlightView] { highlights.filter(HighlightPaint.hasThread) }
     private var lead: HighlightView? { mine ?? highlights.first }
-
-    private var readers: [Author] {
-        var seen = Set<Int64>()
-        return highlights.compactMap { h in
-            guard !store.isMine(h), let author = h.author, seen.insert(author.id).inserted else { return nil }
-            return author
-        }
-    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -127,31 +119,13 @@ struct HighlightCard: View {
     }
 
     private var header: some View {
-        HStack(spacing: 8) {
-            HStack(spacing: -6) {
-                ForEach(readers.prefix(3)) { author in
-                    AvatarView(author: author, size: 20 * unit)
-                        .overlay(Circle().strokeBorder(Palette.readingBg, lineWidth: 1.5))
-                }
-            }
-            .accessibilityHidden(true)
-            summary
+        HStack(spacing: 0) {
+            HighlightersLine(authors: HighlightersLine.authors(of: highlights, isMine: store.isMine))
                 .typeScale(.footnote)
                 .foregroundStyle(Palette.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("highlightCard.highlighters")
             Spacer(minLength: 0)
         }
-    }
-
-    private var summary: Text {
-        let others = readers.count
-        if mine != nil {
-            return others == 0 ? Text("내가 하이라이트했어요") : Text("나 외 \(others)명이 하이라이트했어요")
-        }
-        if others == 1, let only = readers.first {
-            return Text("\(only.username)님이 하이라이트했어요")
-        }
-        return Text("\(others)명이 하이라이트했어요")
     }
 
     private func conversationRow(_ highlight: HighlightView) -> some View {
@@ -192,7 +166,7 @@ struct HighlightCard: View {
         HStack(spacing: 18) {
             if let lead, let url = shareURL(lead) {
                 ShareLink(item: url, message: Text("“\(lead.quote)”")) {
-                    Label("공유", systemImage: "square.and.arrow.up")
+                    Text("공유")
                 }
             }
             if let lead, lead.id > 0, AuthStore.shared.isSignedIn {
@@ -200,9 +174,8 @@ struct HighlightCard: View {
                     onClose()
                     store.connectTarget = lead
                 } label: {
-                    Label("컬렉션", systemImage: "rectangle.stack.badge.plus")
+                    Text("컬렉션에 연결")
                 }
-                .accessibilityLabel(Text("컬렉션에 연결"))
                 .accessibilityIdentifier("highlightCard.connect")
             }
             Spacer(minLength: 0)
@@ -210,14 +183,13 @@ struct HighlightCard: View {
                 Button(role: .destructive) {
                     onDelete(mine)
                 } label: {
-                    Text("지우기")
+                    Text("삭제")
                 }
                 .foregroundStyle(Palette.danger)
-                .accessibilityLabel(Text("하이라이트 지우기"))
+                .accessibilityLabel(Text("하이라이트 삭제"))
                 .accessibilityIdentifier("highlightCard.delete")
             }
         }
-        .labelStyle(.titleAndIcon)
         .typeScale(.footnote)
         .foregroundStyle(Palette.ink)
         .buttonStyle(.plain)

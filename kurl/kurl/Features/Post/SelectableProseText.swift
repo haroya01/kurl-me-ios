@@ -290,7 +290,7 @@ struct SelectableProseText: UIViewRepresentable {
             let after = NSRange(location: range.location + range.length, length: 0)
             var actions: [UIMenuElement] = []
             if let onHighlight = tv.onHighlight {
-                actions.append(UIAction(title: String(localized: "하이라이트"), image: UIImage(systemName: "highlighter")) { _ in
+                actions.append(UIAction(title: String(localized: "action.highlight", defaultValue: "하이라이트"), image: UIImage(systemName: "highlighter")) { _ in
                     onHighlight(range.location, range.location + range.length, quote)
                     tv.selectedRange = after
                     tv.resignFirstResponder()
