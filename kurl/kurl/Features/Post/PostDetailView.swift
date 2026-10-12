@@ -532,16 +532,20 @@ private struct PostDetailReader: View {
         // 덱: 장 상단부터. 단독: 제목이 내비바로 스민 뒤(showNavTitle). 충분히 긴 글에만.
         .overlay(alignment: .top) {
             // 상단 바가 접혀도 상태바 뒤는 불투명하게 남긴다 — 진행 막대가 본문 위에 떠 보이지 않게
-            // 늘 불투명한 면의 아래 테두리에 붙는다.
+            // 늘 불투명한 면의 아래 테두리에 붙는다. 그 아래 짧은 페이드로 본문 줄이 잘리지 않고 스민다.
             if !embedded, showNavTitle {
                 Color.clear
                     .frame(height: 0)
                     .background(alignment: .bottom) {
-                        VStack(spacing: 0) {
-                            Palette.readingBg
-                            Hairline()
-                        }
-                        .ignoresSafeArea(edges: .top)
+                        Palette.readingBg
+                            .ignoresSafeArea(edges: .top)
+                    }
+                    .overlay(alignment: .top) {
+                        LinearGradient(
+                            colors: [Palette.readingBg, Palette.readingBg.opacity(0)],
+                            startPoint: .top, endPoint: .bottom)
+                            .frame(height: 14)
+                            .allowsHitTesting(false)
                     }
                     .transition(.opacity)
             }
