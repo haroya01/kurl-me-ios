@@ -45,8 +45,8 @@ private struct HighlightQuoteText: UIViewRepresentable {
     let size: CGFloat
     let paint: Paint?
 
-    func makeUIView(context: Context) -> UITextView {
-        let tv = UITextView(usingTextLayoutManager: false)
+    func makeUIView(context: Context) -> ProseTextView {
+        let tv = ProseTextView(usingTextLayoutManager: false)
         tv.isEditable = false
         tv.isSelectable = false
         tv.isScrollEnabled = false
@@ -61,7 +61,7 @@ private struct HighlightQuoteText: UIViewRepresentable {
         return tv
     }
 
-    func updateUIView(_ tv: UITextView, context: Context) {
+    func updateUIView(_ tv: ProseTextView, context: Context) {
         let paragraph = NSMutableParagraphStyle()
         paragraph.lineSpacing = size * 0.68
         let text = NSMutableAttributedString(string: quote, attributes: [
@@ -77,7 +77,7 @@ private struct HighlightQuoteText: UIViewRepresentable {
         if tv.attributedText != text { tv.attributedText = text }
     }
 
-    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: ProseTextView, context: Context) -> CGSize? {
         let width = proposal.width.flatMap { $0.isFinite && $0 > 0 ? $0 : nil }
             ?? (uiView.bounds.width > 0 ? uiView.bounds.width : 320)
         let fit = uiView.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
