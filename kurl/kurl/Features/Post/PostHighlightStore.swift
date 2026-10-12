@@ -45,6 +45,7 @@ final class PostHighlightStore {
     @ObservationIgnored private var nextOptimisticId: Int64 = -1
     @ObservationIgnored private var mutationVersion = 0
     @ObservationIgnored private var pendingDeletes: Set<Int64> = []
+    @ObservationIgnored private var sweepToken = 0
 
     /// anchor 는 창 좌표계의 탭한 줄 사각형.
     struct Card: Identifiable, Equatable {
@@ -98,10 +99,12 @@ final class PostHighlightStore {
     func isMine(_ highlight: HighlightView) -> Bool { HighlightPaint.isMine(highlight, me: viewerId()) }
 
     func sweep(_ id: Int64) {
+        sweepToken += 1
+        let token = sweepToken
         sweepHighlightId = id
         Task {
             try? await Task.sleep(for: .seconds(1))
-            if sweepHighlightId == id { sweepHighlightId = nil }
+            if sweepToken == token { sweepHighlightId = nil }
         }
     }
 
@@ -214,6 +217,7 @@ final class PostHighlightStore {
             let echo = try await createRequest(postId, payload)
             mutationVersion += 1
             // 낙관 항목을 echo 로 교체 — 뒤의 재조회가 실패해도 진짜 id 라 스레드가 동작한다.
+            if sweepHighlightId == optimistic.id { sweepHighlightId = echo.id }
             if let idx = highlights.firstIndex(where: { $0.id == optimistic.id }) {
                 highlights[idx] = HighlightView(
                     id: echo.id, author: nil, blockOrder: echo.blockOrder,

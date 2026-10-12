@@ -274,9 +274,9 @@ struct SelectableProseText: UIViewRepresentable {
 
         weak var textView: ProseTextView?
         var motionAllowed = true
-        private var sweeping: [NSRange: (mark: ResolvedMark, start: CFTimeInterval)] = [:]
+        private var sweeping: [(marks: [ResolvedMark], start: CFTimeInterval)] = []
         private var fading: [(mark: ResolvedMark, start: CFTimeInterval)] = []
-        private var swept: Set<Int64> = []
+        private var sweptRanges: Set<NSRange> = []
         private var displayLink: CADisplayLink?
         private static let curve = UnitCurve.bezier(
             startControlPoint: UnitPoint(x: 0.16, y: 1), endControlPoint: UnitPoint(x: 0.3, y: 1))
@@ -286,7 +286,8 @@ struct SelectableProseText: UIViewRepresentable {
         func repaint() {
             guard let tv = textView, let base = baseCache else { return }
             let painted = NSMutableAttributedString(attributedString: base)
-            for mark in tv.resolvedMarks.sorted(by: { !$0.mine && $1.mine }) where sweeping[mark.range] == nil {
+            let held = Set(sweeping.flatMap { $0.marks.map(\.range) })
+            for mark in tv.resolvedMarks.sorted(by: { !$0.mine && $1.mine }) where !held.contains(mark.range) {
                 SelectableProseText.paint(painted, range: mark.range, mine: mark.mine, hasThread: mark.hasThread)
             }
             tv.attributedText = painted
@@ -294,8 +295,9 @@ struct SelectableProseText: UIViewRepresentable {
 
         func sweepIn(_ mark: ResolvedMark) -> Bool {
             guard motionAllowed, textView?.layoutManager is HighlightPaintLayoutManager,
-                  swept.insert(mark.id).inserted else { return false }
-            sweeping[mark.range] = (mark, CACurrentMediaTime())
+                  sweptRanges.insert(mark.range).inserted else { return false }
+            let cluster = textView?.resolvedMarks.filter { NSIntersectionRange($0.range, mark.range).length > 0 } ?? []
+            sweeping.append((cluster.isEmpty ? [mark] : cluster, CACurrentMediaTime()))
             startTicking()
             return true
         }
@@ -322,20 +324,15 @@ struct SelectableProseText: UIViewRepresentable {
                 return
             }
             let now = CACurrentMediaTime()
-            var finishedSweep = false
-            var motions: [HighlightPaintLayoutManager.Motion] = []
-            for (range, entry) in sweeping {
-                let t = (now - entry.start) / Self.sweepDuration
-                if t >= 1 {
-                    sweeping[range] = nil
-                    finishedSweep = true
-                } else {
-                    motions.append(Self.motion(entry.mark, fading: false, progress: Self.curve.value(at: max(0, t))))
-                }
+            let running = sweeping.filter { now - $0.start < Self.sweepDuration }
+            let finishedSweep = running.count != sweeping.count
+            sweeping = running
+            var motions = running.map { entry in
+                Self.motion(entry.marks, fading: false, progress: Self.curve.value(at: max(0, (now - entry.start) / Self.sweepDuration)))
             }
             fading = fading.filter { now - $0.start < Self.fadeDuration }
             motions += fading.map {
-                Self.motion($0.mark, fading: true, progress: Self.curve.value(at: (now - $0.start) / Self.fadeDuration))
+                Self.motion([$0.mark], fading: true, progress: Self.curve.value(at: (now - $0.start) / Self.fadeDuration))
             }
             manager.motions = motions
             if finishedSweep { repaint() }
@@ -348,11 +345,18 @@ struct SelectableProseText: UIViewRepresentable {
             displayLink = nil
         }
 
-        private static func motion(_ mark: ResolvedMark, fading: Bool, progress: Double) -> HighlightPaintLayoutManager.Motion {
-            HighlightPaintLayoutManager.Motion(
-                range: mark.range, wash: mark.mine ? SelectableProseText.mineWash : SelectableProseText.wash,
-                underline: mark.hasThread ? SelectableProseText.threadUnderline : SelectableProseText.underline,
-                thick: mark.hasThread, fading: fading, progress: CGFloat(progress))
+        private static func motion(
+            _ marks: [ResolvedMark], fading: Bool, progress: Double
+        ) -> HighlightPaintLayoutManager.Motion {
+            let start = marks.map(\.range.location).min() ?? 0
+            let end = marks.map { NSMaxRange($0.range) }.max() ?? start
+            let mine = marks.contains(where: \.mine)
+            let thread = marks.contains(where: \.hasThread)
+            return HighlightPaintLayoutManager.Motion(
+                range: NSRange(location: start, length: end - start),
+                wash: mine ? SelectableProseText.mineWash : SelectableProseText.wash,
+                underline: thread ? SelectableProseText.threadUnderline : SelectableProseText.underline,
+                thick: thread, fading: fading, progress: CGFloat(progress))
         }
 
         /// 베이스 본문을 결정하는 입력. 이 넷이 같으면 파싱 결과도 같다(색은 동적이라 제외).
