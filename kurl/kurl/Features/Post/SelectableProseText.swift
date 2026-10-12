@@ -181,21 +181,20 @@ struct SelectableProseText: UIViewRepresentable {
         context.coordinator.lastPaintMarks = highlights
     }
 
+    private static let wash = UIColor(Palette.highlightWash)
+    private static let mineWash = UIColor(Palette.highlightWashMine)
+    private static let underline = UIColor(Palette.highlightUnderline)
+    private static let threadUnderline = UIColor(Palette.highlightUnderlineThread)
+
     static func paint(_ text: NSMutableAttributedString, range: NSRange, mine: Bool, hasThread: Bool) {
-        text.addAttribute(
-            .backgroundColor,
-            value: UIColor(mine ? Palette.highlightWashMine : Palette.highlightWash),
-            range: range)
+        text.addAttribute(.backgroundColor, value: mine ? mineWash : wash, range: range)
         // 낮춘 채움을 얇은 그린 밑줄로 보완 — 모든 하이라이트에 헤어라인 하나(놓칠 곳에서도 표식 유지).
         // 메모/답글이 달린 건 굵고 진한 밑줄로 올려 "탭하면 대화" 신호를 구분한다.
         text.addAttribute(
             .underlineStyle,
             value: (hasThread ? NSUnderlineStyle.thick : NSUnderlineStyle.single).rawValue,
             range: range)
-        text.addAttribute(
-            .underlineColor,
-            value: UIColor(hasThread ? Palette.highlightUnderlineThread : Palette.highlightUnderline),
-            range: range)
+        text.addAttribute(.underlineColor, value: hasThread ? threadUnderline : underline, range: range)
     }
 
     private static func refreshAccessibilityActions(_ tv: ProseTextView) {
