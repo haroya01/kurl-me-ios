@@ -29746,30 +29746,30 @@
         }
       }
     },
-    "여기서 발행하면 그 순간 웹에도 살아요 — 같은 글, 같은 주소. 앱이 없어도 누구나 브라우저로 읽어요.": {
+    "여기서 발행하면 같은 글이 같은 주소로 웹에도 바로 올라가요. 앱이 없어도 누구나 브라우저로 읽어요.": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Publish here and it's live on the web that same moment — same post, same address. Anyone can read it in a browser, no app needed."
+            "value": "Publish here and the same post goes live on the web at the same address. Anyone can read it in a browser, no app needed."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "यहाँ प्रकाशित करते ही लेख उसी पल वेब पर भी आ जाता है — वही लेख, वही पता। बिना ऐप के भी कोई भी ब्राउज़र में पढ़ सकता है।"
+            "value": "यहाँ प्रकाशित करते ही वही लेख उसी पते पर वेब पर भी आ जाता है। बिना ऐप के भी कोई भी ब्राउज़र में पढ़ सकता है।"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "ここで公開すると、その瞬間ウェブにも載ります — 同じ記事、同じアドレス。アプリがなくてもブラウザで誰でも読めます。"
+            "value": "ここで公開すると、同じ記事が同じアドレスでウェブにもすぐ載ります。アプリがなくても、誰でもブラウザで読めます。"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Xuất bản ở đây là bài lên web ngay khoảnh khắc đó — cùng bài viết, cùng địa chỉ. Ai cũng đọc được bằng trình duyệt, không cần ứng dụng."
+            "value": "Xuất bản ở đây là cùng bài viết lên web ngay, ở cùng địa chỉ. Ai cũng đọc được bằng trình duyệt, không cần ứng dụng."
           }
         }
       }

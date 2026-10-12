@@ -8,6 +8,18 @@
 import SwiftUI
 import UIKit
 
+private struct ReaderInSheetKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// 시트에는 상단 안전영역이 없어 리더 상단 바가 시트 모서리에 잘린다. 글을 띄우는 시트 스택이 켠다.
+    var readerInSheet: Bool {
+        get { self[ReaderInSheetKey.self] }
+        set { self[ReaderInSheetKey.self] = newValue }
+    }
+}
+
 /// 시리즈 리더 셸 — 회차 전환을 뷰 스택에 쌓지 않고 `.id(currentSlug)` 로 본문을 제자리 교체한다
 /// (Apple Books·Kindle 식: 뒤로가기는 시리즈 진입 전으로, 회차마다 push 하지 않는다). 교체라
 /// 새 회차는 스크롤 최상단·읽기 진행 0·크롬/탭바 상태가 초기화되고, 조회·읽음 이벤트도 회차별로
@@ -63,6 +75,7 @@ private struct PostDetailReader: View {
     /// 커스텀 하단 탭바 숨김 상태 — 독이 탭바에 가리지 않게 예약 높이만큼 띄우되, 탭바가 스크롤로
     /// 사라지면 그 여백을 걷어 독이 허공에 뜨지 않게 한다(단독 상세에서만 있고, 덱 임베드엔 nil).
     @Environment(\.tabBarVisibility) private var tabBarVisibility
+    @Environment(\.readerInSheet) private var inSheet
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
     /// 발견 덱이 페이지로 품을 때 true — 같은 화면을 그대로 쓰되, 내비바(제목 스밈·공유)와
@@ -209,6 +222,9 @@ private struct PostDetailReader: View {
     /// 자리가 이 값을 공유하고, 상수라 크롬이 접혀도 스크롤 메트릭이 흔들리지 않는다.
     private static let topBarHeight: CGFloat = 44
 
+    private var topBarInset: CGFloat { inSheet ? 16 : 0 }
+    private var topBarSide: CGFloat { inSheet ? 16 : 10 }
+
     // 본문·끝맺음·댓글을 담은 스크롤 내용은 타입 경계(AnyView) 뒤에 둔다 — 수정자 사슬과 한 타입으로
     // 중첩되면 실기기(작은 메인 스레드 스택)에서 타입 정보를 풀다 스택이 넘쳐 글을 열자마자 꺼졌다.
     private var scrollContent: some View {
@@ -217,7 +233,7 @@ private struct PostDetailReader: View {
             // 앉힌다(바는 오버레이라 크롬이 접혀도 이 여백은 변하지 않아 본문이 출렁이지
             // 않는다). contentMargins 는 하위 중첩 스크롤에도 전파돼 쓰지 않는다.
             if !embedded {
-                Color.clear.frame(height: Self.topBarHeight)
+                Color.clear.frame(height: Self.topBarHeight + topBarInset)
             }
             switch model.phase {
             case .idle, .loading:
@@ -536,8 +552,8 @@ private struct PostDetailReader: View {
             if scrollable, embedded || showNavTitle {
                 ReadProgressBar(progress: scrollProgress)
                     // 단독: 크롬이 떠 있으면 상단 바 아래 테두리 안쪽, 접히면 상태바 바탕 아래 테두리 안쪽.
-                    .padding(.top, embedded || chromeHidden ? 0 : Self.topBarHeight)
-                    .offset(y: embedded ? 0 : -ReadProgressBar.height)
+                    .padding(.top, embedded || chromeHidden ? 0 : Self.topBarHeight + topBarInset)
+                    .offset(y: embedded || (inSheet && chromeHidden) ? 0 : -ReadProgressBar.height)
                     .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: chromeHidden)
             }
         }
@@ -677,9 +693,10 @@ private struct PostDetailReader: View {
                 Spacer()
                 moreMenu
             }
-            .padding(.horizontal, 10)
+            .padding(.horizontal, topBarSide)
         }
         .frame(height: Self.topBarHeight)
+        .padding(.top, topBarInset)
         // 제목이 스민 뒤에만 바탕을 깐다 — 그 전엔 유리 원판 둘만 본문 위에 뜬다. 바탕은 읽기 면과 같은
         // 불투명 색으로 상태바 뒤까지 올려 채운다(반투명 바 재질은 본문이 비쳐 진행 막대가 떠 보였다).
         .background {

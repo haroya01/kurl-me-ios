@@ -108,6 +108,17 @@ struct ReportReasonSheet: View {
     }
 
     var body: some View {
+        ScrollView {
+            content
+                .fixedSize(horizontal: false, vertical: true)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .presentationDetents([.height(contentHeight)])
+        .presentationDragIndicator(.visible)
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("신고 사유를 선택하세요")
                 .font(.system(size: titleSize, weight: .bold))
@@ -153,9 +164,6 @@ struct ReportReasonSheet: View {
         .padding(.top, 28)
         .padding(.bottom, 16)
         .animation(.snappy(duration: 0.25), value: expandedOther)
-        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
-        .presentationDetents([.height(contentHeight)])
-        .presentationDragIndicator(.visible)
     }
 
     // 사유 목록 — 코드 사유는 즉시 접수, "기타"는 자유서술 입력으로 펼친다.

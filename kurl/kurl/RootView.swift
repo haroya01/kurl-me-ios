@@ -130,6 +130,7 @@ private struct NotificationsSheet: View {
             NotificationsView()
                 .navigationDestination(for: Route.self) { RouteView(route: $0) }
         }
+        .environment(\.readerInSheet, true)
         .onChange(of: TabRouter.shared.pendingPushRoute) { _, route in
             if let route { path = [route] }
         }
@@ -298,6 +299,7 @@ struct RootView: View {
                     PostDetailView(username: ref.username, slug: ref.slug)
                         .navigationDestination(for: Route.self) { RouteView(route: $0) }
                 }
+                .environment(\.readerInSheet, true)
             }
             // 푸시 탭 — 알림함 시트. 인박스 안의 딥링크(글·컬렉션)가 같은 스택에서 이어 밀린다.
             .sheet(

@@ -162,6 +162,38 @@ struct CreateCollectionSheet: View {
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
 
     var body: some View {
+        ScrollView {
+            fields
+                .padding(.horizontal, Metrics.gutter)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            Button {
+                Task { await create() }
+            } label: {
+                Group {
+                    if saving { ProgressView().tint(.white) } else { Text("만들기") }
+                }
+                .typeScale(.titleSmall)
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .contentShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .glassCapsule(prominent: true)
+            .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || saving)
+            .opacity(title.trimmingCharacters(in: .whitespaces).isEmpty ? 0.5 : 1)
+            .padding(.horizontal, Metrics.gutter)
+            .padding(.bottom, 16)
+            .background(Palette.readingBg)
+        }
+        .presentationDetents([.height(360)])
+        .presentationDragIndicator(.visible)
+        .background(Palette.readingBg)
+    }
+
+    private var fields: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("새 컬렉션")
                 .typeScale(.titleSmall)
@@ -187,31 +219,7 @@ struct CreateCollectionSheet: View {
 
             OrderedToggle(isOn: $ordered)
                 .padding(.top, 16)
-
-            Spacer(minLength: 0)
-
-            Button {
-                Task { await create() }
-            } label: {
-                Group {
-                    if saving { ProgressView().tint(.white) } else { Text("만들기") }
-                }
-                .typeScale(.titleSmall)
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .contentShape(Capsule())
-            }
-            .buttonStyle(.plain)
-            .glassCapsule(prominent: true)
-            .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || saving)
-            .opacity(title.trimmingCharacters(in: .whitespaces).isEmpty ? 0.5 : 1)
-            .padding(.bottom, 16)
         }
-        .padding(.horizontal, Metrics.gutter)
-        .presentationDetents([.height(360)])
-        .presentationDragIndicator(.visible)
-        .background(Palette.readingBg)
     }
 
     private func create() async {
@@ -268,6 +276,38 @@ struct EditCollectionSheet: View {
     }
 
     var body: some View {
+        ScrollView {
+            fields
+                .padding(.horizontal, Metrics.gutter)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            Button {
+                Task { await save() }
+            } label: {
+                Group {
+                    if saving { ProgressView().tint(.white) } else { Text("저장") }
+                }
+                .typeScale(.titleSmall)
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .contentShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .glassCapsule(prominent: true)
+            .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || saving)
+            .opacity(title.trimmingCharacters(in: .whitespaces).isEmpty ? 0.5 : 1)
+            .padding(.horizontal, Metrics.gutter)
+            .padding(.bottom, 16)
+            .background(Palette.readingBg)
+        }
+        .presentationDetents([.height(360)])
+        .presentationDragIndicator(.visible)
+        .background(Palette.readingBg)
+    }
+
+    private var fields: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("컬렉션 수정")
                 .typeScale(.titleSmall)
@@ -293,31 +333,7 @@ struct EditCollectionSheet: View {
 
             OrderedToggle(isOn: $ordered)
                 .padding(.top, 16)
-
-            Spacer(minLength: 0)
-
-            Button {
-                Task { await save() }
-            } label: {
-                Group {
-                    if saving { ProgressView().tint(.white) } else { Text("저장") }
-                }
-                .typeScale(.titleSmall)
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .contentShape(Capsule())
-            }
-            .buttonStyle(.plain)
-            .glassCapsule(prominent: true)
-            .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || saving)
-            .opacity(title.trimmingCharacters(in: .whitespaces).isEmpty ? 0.5 : 1)
-            .padding(.bottom, 16)
         }
-        .padding(.horizontal, Metrics.gutter)
-        .presentationDetents([.height(360)])
-        .presentationDragIndicator(.visible)
-        .background(Palette.readingBg)
     }
 
     private func save() async {
