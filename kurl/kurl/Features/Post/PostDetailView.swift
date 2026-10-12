@@ -614,7 +614,8 @@ private struct PostDetailReader: View {
             }
         ) {
             if let store = highlights, let id = store.threadHighlightId, let hl = store.highlight(id: id) {
-                HighlightThreadSheet(highlight: hl, store: store)
+                HighlightThreadSheet(
+                    highlight: hl, store: store, postTitle: loadedTitle, postAuthor: loadedAuthor)
             }
         }
         // 스레드에서 "컬렉션에 연결" → 닫힌 뒤 여기서 ConnectSheet(왜 한 줄)로 그래프에 잇는다.

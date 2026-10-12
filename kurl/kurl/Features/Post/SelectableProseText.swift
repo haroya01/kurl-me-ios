@@ -171,27 +171,31 @@ struct SelectableProseText: UIViewRepresentable {
         }
         let painted = NSMutableAttributedString(attributedString: base)
         let hay = painted.string as NSString
-        let wash = UIColor(Palette.highlightWash)
-        let mineWash = UIColor(Palette.highlightWashMine)
         tv.resolvedMarks = highlights.compactMap { Self.resolve($0, in: hay) }
         for mark in tv.resolvedMarks.sorted(by: { !$0.mine && $1.mine }) {
-            let range = mark.range
-            painted.addAttribute(.backgroundColor, value: mark.mine ? mineWash : wash, range: range)
-            // 낮춘 채움을 얇은 그린 밑줄로 보완 — 모든 하이라이트에 헤어라인 하나(놓칠 곳에서도 표식 유지).
-            // 메모/답글이 달린 건 굵고 진한 밑줄로 올려 "탭하면 대화" 신호를 구분한다.
-            painted.addAttribute(
-                .underlineStyle,
-                value: (mark.hasThread ? NSUnderlineStyle.thick : NSUnderlineStyle.single).rawValue,
-                range: range)
-            painted.addAttribute(
-                .underlineColor,
-                value: UIColor(mark.hasThread ? Palette.highlightUnderlineThread : Palette.highlightUnderline),
-                range: range)
+            Self.paint(painted, range: mark.range, mine: mark.mine, hasThread: mark.hasThread)
         }
         tv.attributedText = painted
         Self.refreshAccessibilityActions(tv)
         context.coordinator.lastPaintSignature = signature
         context.coordinator.lastPaintMarks = highlights
+    }
+
+    static func paint(_ text: NSMutableAttributedString, range: NSRange, mine: Bool, hasThread: Bool) {
+        text.addAttribute(
+            .backgroundColor,
+            value: UIColor(mine ? Palette.highlightWashMine : Palette.highlightWash),
+            range: range)
+        // 낮춘 채움을 얇은 그린 밑줄로 보완 — 모든 하이라이트에 헤어라인 하나(놓칠 곳에서도 표식 유지).
+        // 메모/답글이 달린 건 굵고 진한 밑줄로 올려 "탭하면 대화" 신호를 구분한다.
+        text.addAttribute(
+            .underlineStyle,
+            value: (hasThread ? NSUnderlineStyle.thick : NSUnderlineStyle.single).rawValue,
+            range: range)
+        text.addAttribute(
+            .underlineColor,
+            value: UIColor(hasThread ? Palette.highlightUnderlineThread : Palette.highlightUnderline),
+            range: range)
     }
 
     private static func refreshAccessibilityActions(_ tv: ProseTextView) {

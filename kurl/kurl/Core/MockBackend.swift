@@ -309,7 +309,18 @@ enum MockBackend {
          "quote": "이름이 곧 경계였다. 포트 이름을 짓다 보면 '이건 도메인이 알 바 아니다' 싶은 것이 드러난다. 그걸 바깥으로 밀어내는 게 작업의 절반이었다. 나머지 절반은 그 결정을 팀이 납득하게 만드는 일이었고.",
          "note": "포트 이름 짓기가 설계의 절반이라는 대목, 두고두고 곱씹는다.",
          "createdAt": iso(Date().addingTimeInterval(-4_000))],
-    ]
+    ] + ([
+        (6005, 2, "haruka", nil), (6006, 3, "reader_kim", "김독자"), (6007, 4, "minji", nil),
+        (6008, 5, "sori", nil), (6009, 6, "jun", nil),
+    ] as [(Int, Int, String, String?)]).map { id, authorId, username, displayName -> [String: Any] in
+        ["id": id,
+         "author": ["id": authorId, "username": username, "bio": NSNull(), "avatarUrl": NSNull(),
+                    "displayName": displayName.map { $0 as Any } ?? NSNull()] as [String: Any],
+         "blockOrder": 12, "startOffset": 38, "endOffset": 86,
+         "quote": "가장 자주 바뀌고 가장 테스트하기 싫은 모듈 하나를 골라, 거기서만 경계를 그어 보라.",
+         "note": NSNull(),
+         "createdAt": iso(Date().addingTimeInterval(-Double(id - 6000) * 1_000))]
+    }
     private static var highlightReplies: [Int: [[String: Any]]] = [
         6001: [
             ["id": 7001, "author": ["id": 1, "username": "honggildong", "bio": NSNull(), "avatarUrl": NSNull()],

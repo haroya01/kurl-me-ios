@@ -140,11 +140,6 @@ struct HighlightCard: View {
                 .foregroundStyle(Palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
-            Label("공개", systemImage: "globe")
-                .labelStyle(.iconOnly)
-                .font(.system(size: 12 * unit))
-                .foregroundStyle(Palette.secondary)
-                .accessibilityLabel(Text("모두에게 공개된 하이라이트"))
         }
     }
 

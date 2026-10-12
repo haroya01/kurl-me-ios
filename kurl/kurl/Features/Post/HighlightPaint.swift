@@ -44,6 +44,13 @@ enum HighlightPaint {
         return clusters
     }
 
+    static func overlapping(_ h: HighlightView, in highlights: [HighlightView]) -> [HighlightView] {
+        let (from, to) = (start(h), end(h))
+        return [h] + highlights.filter { other in
+            other.id != h.id && start(other) < to && from < end(other)
+        }
+    }
+
     static func hasThread(_ h: HighlightView) -> Bool {
         !(h.note?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true) || h.replyCount > 0
     }
