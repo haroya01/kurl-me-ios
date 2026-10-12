@@ -31,15 +31,16 @@ final class HighlightPaintLayoutManager: NSLayoutManager {
             let height = min(line.height, self.glyphBoxHeight(ofLine: lineGlyphs, storage: storage))
             bands.append(CGRect(x: span.minX, y: line.minY, width: span.width, height: height))
         }
-        guard let left = bands.map(\.minX).min(), let right = bands.map(\.maxX).max() else { return }
-        let edge = motion.fading ? right : left + (right - left) * motion.progress
+        let total = bands.reduce(0) { $0 + $1.width }
+        var reach = motion.fading ? total : total * motion.progress
         let alpha = motion.fading ? 1 - motion.progress : 1
         let wash = Self.faded(motion.wash, by: alpha)
         let underline = Self.faded(motion.underline, by: alpha)
         let thickness: CGFloat = motion.thick ? 2 : 1
         for band in bands {
-            let width = min(band.maxX, edge) - band.minX
-            guard width > 0 else { continue }
+            let width = min(band.width, reach)
+            reach -= width
+            guard width > 0 else { break }
             let shown = CGRect(x: band.minX + origin.x, y: band.minY + origin.y, width: width, height: band.height)
             wash.setFill()
             UIRectFillUsingBlendMode(shown, .normal)
