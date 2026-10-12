@@ -173,6 +173,7 @@ private struct PostDetailReader: View {
     @State private var endSentinelWasHidden = false
     @State private var keyboardUp = false
     @State private var readingDirection = TabBarVisibility()
+    @State private var readingReporter = UUID()
 
     /// 글 끝의 작가 카드·다른 글 — 작가 글 목록은 한 번만 가져와 양쪽(카드·다음 글 큐)이 쓴다.
     @State private var authorPosts: [PostListItem] = []
@@ -298,7 +299,7 @@ private struct PostDetailReader: View {
         } action: { _, offset in
             guard !embedded, !voiceOverOn else { return }
             withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) {
-                readingDirection.report(offset: offset)
+                readingDirection.report(offset: offset, from: readingReporter)
             }
         }
         // 오른쪽 읽기 스크러버 — 시스템 인디케이터(전체 콘텐츠 기준·제어 불가) 대신 앱 소유.

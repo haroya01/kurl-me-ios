@@ -36,6 +36,8 @@ final class TabBarVisibility {
     private var anchorOffset: CGFloat = 0
     /// 직전 프레임 오프셋 — 방향(부호)만 뽑는 데 쓴다.
     private var lastOffset: CGFloat = 0
+    /// 직전에 보고한 표면 — 오프셋은 표면마다 따로라, 표면이 바뀐 첫 보고는 비교 대상이 아니다.
+    private var lastReporter: UUID?
 
     /// 방향을 확정하는 최소 이동량(pt) — 플릭 관성의 미세 떨림으로 바가 깜빡이지 않게.
     private let threshold: CGFloat = 44
@@ -44,13 +46,22 @@ final class TabBarVisibility {
 
     /// 스크롤 표면이 매 프레임 넘기는 세로 오프셋(safe-area 보정 포함). 방향이 임계를 넘으면
     /// 숨김 상태를 바꾼다. 애니메이션은 호출부(모디파이어)가 reduce-motion 을 봐서 감싼다.
-    func report(offset: CGFloat) {
-        defer { lastOffset = offset }
+    /// 다른 표면이 보고한 직후나 reset 직후의 첫 보고는 기준점만 다시 잡는다.
+    func report(offset: CGFloat, from reporter: UUID) {
+        defer {
+            lastOffset = offset
+            lastReporter = reporter
+        }
 
         // 상단 근처 = 항상 보임(맨 위에서 숨은 채 시작하지 않게).
         if offset <= alwaysVisibleTop {
             anchorOffset = offset
             setHidden(false)
+            return
+        }
+
+        guard reporter == lastReporter else {
+            anchorOffset = offset
             return
         }
 
@@ -75,6 +86,7 @@ final class TabBarVisibility {
     func reset() {
         anchorOffset = 0
         lastOffset = 0
+        lastReporter = nil
         setHidden(false)
     }
 
@@ -110,6 +122,7 @@ private struct TracksTabBarVisibility: ViewModifier {
     @Environment(\.tabBarVisibility) private var visibility
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverOn
+    @State private var token = UUID()
 
     func body(content: Content) -> some View {
         content.onScrollGeometryChange(for: CGFloat.self) { geometry in
@@ -118,7 +131,7 @@ private struct TracksTabBarVisibility: ViewModifier {
             guard enabled, let visibility, !voiceOverOn else { return }
             // 숨김↔복귀 전환만 부드럽게 — reduce-motion 이면 즉시 토글(움직임 없이 존재만).
             withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) {
-                visibility.report(offset: offset)
+                visibility.report(offset: offset, from: token)
             }
         }
         .onChange(of: voiceOverOn) { _, on in
