@@ -47,6 +47,7 @@ struct MuteSheet: View {
             Form {
                 Section {
                     Toggle("알림도 숨기기", isOn: $hidesNotifications)
+                        .tint(Palette.accent)
                         .accessibilityIdentifier("mute.notifications")
                     Picker("기간", selection: $duration) {
                         ForEach(MuteDuration.allCases) { Text($0.title).tag($0) }
@@ -70,6 +71,7 @@ struct MuteSheet: View {
                     }
                     .disabled(saving)
                     .accessibilityIdentifier("mute.confirm")
+                    .tint(Palette.link)
                 }
             }
         }
@@ -172,7 +174,7 @@ struct MutedUsersView: View {
                 }
             }
             .typeScale(.meta)
-            .foregroundStyle(Palette.link)
+            .foregroundStyle(Palette.ink)
             .accessibilityIdentifier("muted.unmute.\(user.username)")
         }
         .padding(.vertical, 12)

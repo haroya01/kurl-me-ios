@@ -131,7 +131,7 @@ struct WebIntroSheet: View {
                         .shadow(color: .black.opacity(0.07), radius: 12, y: 4))
                 .overlay(
                     RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
-                        .strokeBorder(Palette.accent.opacity(0.3), lineWidth: 1))
+                        .strokeBorder(Palette.cardBorder, lineWidth: 1))
                 .contentShape(RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
             }
             .buttonStyle(.plain)

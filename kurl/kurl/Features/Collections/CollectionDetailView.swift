@@ -258,7 +258,7 @@ struct CollectionDetailView: View {
                 if detail.isOrdered, let reached = readReached, reached > 0 {
                     Text("·").foregroundStyle(Palette.faint)
                     Text("\(reached) / \(connections.count) 읽음")
-                        .foregroundStyle(Palette.link)
+                        .foregroundStyle(Palette.ink)
                         .fontWeight(.semibold)
                 }
             }
@@ -421,7 +421,7 @@ struct CollectionDetailView: View {
         }
     }
 
-    // MARK: 이어읽기 연속성 바 — "지금 여기 · N/M" + "이어서 N편 읽기" + 계속 → (초록 틴트, 종이 문법)
+    // MARK: 이어읽기 연속성 바 — "지금 여기 · N/M" + "이어서 N편 읽기" + 계속 → (종이 문법)
 
     @ViewBuilder
     private func continuityBar(index: Int, total: Int) -> some View {
@@ -435,7 +435,7 @@ struct CollectionDetailView: View {
                 Text("지금 여기 · \(index + 1) / \(total)")
                     .typeScale(.footnote)
                     .fontWeight(.semibold)
-                    .foregroundStyle(Palette.link)
+                    .foregroundStyle(Palette.secondary)
                 Text(remaining > 1 ? "이어서 \(remaining)편 읽기" : "마지막 편 읽기")
                     .typeScale(.body)
                     .fontWeight(.semibold)
@@ -455,12 +455,11 @@ struct CollectionDetailView: View {
         .padding(.horizontal, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            // 초록 틴트 종이 캡슐 — 유리 없이(§1) accent 를 옅게 실어 "지금 여기"를 데운다.
             RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
-                .fill(Palette.accent.opacity(0.07))
+                .fill(Palette.cardBg)
                 .overlay(
                     RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
-                        .strokeBorder(Palette.accent.opacity(0.22), lineWidth: 1))
+                        .strokeBorder(Palette.cardBorder, lineWidth: 1))
         )
         .contentShape(Rectangle())
 
@@ -479,7 +478,7 @@ struct CollectionDetailView: View {
                 Text("지금 여기 · \(index + 1) / \(total)")
                     .typeScale(.footnote)
                     .fontWeight(.semibold)
-                    .foregroundStyle(Palette.link)
+                    .foregroundStyle(Palette.secondary)
                 Spacer(minLength: 0)
             }
         }

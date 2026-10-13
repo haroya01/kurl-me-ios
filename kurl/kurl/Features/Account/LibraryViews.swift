@@ -67,7 +67,7 @@ struct BookmarksView: View {
                                         if offline.contains(username: item.username, slug: item.slug) {
                                             Text("·").foregroundStyle(Palette.faint)
                                             Text("오프라인")
-                                                .foregroundStyle(Palette.accentMarker)
+                                                .foregroundStyle(Palette.secondary)
                                                 .accessibilityLabel("오프라인 저장됨")
                                         }
                                     }
@@ -223,7 +223,7 @@ struct SubscribedSeriesView: View {
                             username: card.author?.username ?? "", slug: card.slug))
                     } label: {
                         HStack(spacing: 10) {
-                            KurlMark(drawn: [true, true, true])
+                            KurlMark(drawn: [true, true, true], tint: Palette.ink)
                                 .frame(width: 18, height: 11)
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(card.title)
@@ -268,7 +268,7 @@ struct SubscribedSeriesView: View {
 }
 
 /// 구독한 태그 — 구독한 시리즈가 서재에 보이듯, 구독(팔로우)한 주제도 한자리에 모아 본다.
-/// 주제는 목록 행이 아니라 흐르는 그린 테두리 칩 그리드로 — 태그는 본디 칩이라(§10 "칩처럼 보이면
+/// 주제는 목록 행이 아니라 흐르는 칩 그리드로 — 태그는 본디 칩이라(§10 "칩처럼 보이면
 /// 칩처럼 눌린다") 한 줄 한 개보다 한눈에 훑긴다. 칩 탭 = 그 태그 피드, 길게 눌러 = 구독 해제.
 struct SubscribedTagsView: View {
     @State private var tags: [String] = []
@@ -319,7 +319,7 @@ struct SubscribedTagsView: View {
         .refreshable { await load() }
     }
 
-    /// 구독 태그 한 칩 — 그린 테두리·잉크 라벨(§10 색 규율, 채움 없이). 탭 = 그 태그 피드로 항해(클로저형
+    /// 구독 태그 한 칩 — 중립 칩 바탕·잉크 라벨. 탭 = 그 태그 피드로 항해(클로저형
     /// 링크 — 계정 스택 혼용 함정 회피). 길게 누르면 구독 해제 컨텍스트 메뉴(파괴적 롤).
     private func subscribedChip(_ tag: String) -> some View {
         NavigationLink {
@@ -331,8 +331,7 @@ struct SubscribedTagsView: View {
                 .lineLimit(1)
                 .padding(.horizontal, 15)
                 .padding(.vertical, 9)
-                .background(Palette.accent.opacity(0.06), in: Capsule())
-                .overlay(Capsule().strokeBorder(Palette.accent.opacity(0.35), lineWidth: 1))
+                .background(Palette.chipBg, in: Capsule())
                 .contentShape(Capsule())
         }
         .buttonStyle(.plain)

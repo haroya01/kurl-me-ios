@@ -109,10 +109,11 @@ struct FilteredNotificationsView: View {
             HStack(spacing: 8) {
                 Button("버리기") { Task { await store.answer(sender, accept: false) } }
                     .buttonStyle(.glass)
+                    .foregroundStyle(.secondary)
                     .accessibilityIdentifier("filtered.dismiss")
                 Button("받기") { Task { await store.answer(sender, accept: true) } }
-                    .buttonStyle(.glassProminent)
-                    .tint(Palette.accentFill)
+                    .buttonStyle(.glass)
+                    .fontWeight(.semibold)
                     .accessibilityIdentifier("filtered.accept")
             }
             .controlSize(.small)

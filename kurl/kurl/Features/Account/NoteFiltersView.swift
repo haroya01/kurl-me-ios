@@ -153,6 +153,7 @@ struct NoteFilterEditor: View {
                     TextField("키워드나 문구", text: $phrase)
                         .accessibilityIdentifier("noteFilter.phrase")
                     Toggle("단어 전체가 맞을 때만", isOn: $wholeWord)
+                        .tint(Palette.accent)
                 } footer: {
                     Text("끄면 \"고양이\"가 \"고양이가\"에도 걸려요. 한국어는 조사가 붙어서 꺼 두는 편이 맞아요.")
                 }
@@ -163,6 +164,7 @@ struct NoteFilterEditor: View {
                             set: { on in
                                 if on { contexts.insert(context) } else { contexts.remove(context) }
                             }))
+                        .tint(Palette.accent)
                         .accessibilityIdentifier("noteFilter.context.\(context.rawValue)")
                     }
                 }
@@ -196,6 +198,7 @@ struct NoteFilterEditor: View {
                     }
                     .disabled(!canSave)
                     .accessibilityIdentifier("noteFilter.save")
+                    .tint(Palette.link)
                 }
             }
             .alert("이 필터를 지울까요?", isPresented: $confirmDelete) {

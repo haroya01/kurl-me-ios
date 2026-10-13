@@ -56,13 +56,13 @@ struct BusinessCardView: View {
             ToolbarItem(placement: .primaryAction) {
                 NavigationLink(value: Route.author(username: username)) {
                     HStack(spacing: 5) {
-                        KurlMark(drawn: [true, true, true])
+                        KurlMark(drawn: [true, true, true], tint: .primary)
                             .frame(width: 15, height: 9)
                         Text("블로그")
                             .typeScale(.footnote)
                     }
                 }
-                .tint(.brand)
+                .tint(.primary)
                 .accessibilityLabel("블로그 보기")
             }
         }

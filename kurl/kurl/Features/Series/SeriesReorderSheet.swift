@@ -46,7 +46,7 @@ struct SeriesReorderSheet: View {
                                 pickingNote = true
                             } label: {
                                 Text("내 노트 더하기")
-                                    .foregroundStyle(Palette.link)
+                                    .foregroundStyle(Palette.ink)
                             }
                             .accessibilityIdentifier("series.addNote")
                         }
@@ -65,6 +65,7 @@ struct SeriesReorderSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("저장") { Task { await save() } }
                         .disabled(saving || loading || !changed)
+                        .tint(Palette.link)
                 }
             }
             .sheet(isPresented: $pickingNote) {
@@ -80,7 +81,7 @@ struct SeriesReorderSheet: View {
         HStack(alignment: .top, spacing: 12) {
             Text("\(index + 1)")
                 .font(.system(size: indexSize, weight: .bold).monospacedDigit())
-                .foregroundStyle(Palette.accent)
+                .foregroundStyle(Palette.secondary)
                 .padding(.top, 1)
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.title)
@@ -182,7 +183,7 @@ struct SeriesNotePicker: View {
                 }
                 if hasNext && !loading {
                     Button("더 불러오기") { Task { await loadMore() } }
-                        .foregroundStyle(Palette.link)
+                        .foregroundStyle(Palette.ink)
                 }
                 if loading {
                     KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 12)

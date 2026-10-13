@@ -170,8 +170,7 @@ struct MarkdownTextView: UIViewRepresentable {
         textView.adjustsFontForContentSizeCategory = true
         textView.backgroundColor = .clear
         textView.textColor = UIColor(Palette.body)
-        // 캐럿·선택 강조를 브랜드 그린으로 — 종이 위에서 캐럿이 또렷하고, 선택도 브랜드 색을 입는다.
-        textView.tintColor = UIColor(Palette.accent)
+        textView.tintColor = UIColor(Palette.ink)
         textView.alwaysBounceVertical = true
         textView.keyboardDismissMode = .interactive
         textView.autocapitalizationType = .none
@@ -1510,7 +1509,7 @@ final class MarkdownImageLayoutManager: NSLayoutManager {
         let pad = container.lineFragmentPadding
         let availWidth = max(0, container.size.width - pad * 2)
 
-        // 인용 — 왼단에 강조 바를 그린다(리더 BlockRenderer .quote 의 accentSoft 바와 같은 문법).
+        // 인용 — 왼단에 강조 바를 그린다(리더 BlockRenderer .quote 의 잉크 바와 같은 문법).
         // 줄 전체 범위에 표식이 붙어 있어 boundingRect 이 줄바꿈 포함 여러 시각 줄의 높이를 덮는다.
         storage.enumerateAttribute(.kurlQuoteBar, in: charRange, options: []) { value, range, _ in
             guard value != nil, let ctx = UIGraphicsGetCurrentContext() else { return }
@@ -1521,7 +1520,7 @@ final class MarkdownImageLayoutManager: NSLayoutManager {
                 width: 3, height: max(0, used.height - 2))
             guard bar.height > 1 else { return }
             ctx.saveGState()
-            UIColor(Palette.accentSoft).setFill()
+            UIColor(Palette.ink).setFill()
             UIBezierPath(roundedRect: bar, cornerRadius: 1.5).fill()
             ctx.restoreGState()
         }
@@ -1534,7 +1533,7 @@ final class MarkdownImageLayoutManager: NSLayoutManager {
             let indent = (storage.attribute(.paragraphStyle, at: range.location, effectiveRange: nil)
                 as? NSParagraphStyle)?.headIndent ?? 20
             let font = UIFontMetrics(forTextStyle: .body).scaledFont(for: .monospacedSystemFont(ofSize: 16, weight: .regular))
-            let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: UIColor(Palette.accentMarker)]
+            let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: UIColor(Palette.secondary)]
             let size = (bullet as NSString).size(withAttributes: attrs)
             let x = origin.x + pad + max(0, indent - size.width - 6)
             let y = origin.y + line.minY + (line.height - size.height) / 2

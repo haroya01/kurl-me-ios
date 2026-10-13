@@ -246,7 +246,7 @@ struct RemoteAccountView: View {
                     } label: {
                         Text("\(value.domain)에서 보기")
                             .typeScale(.meta)
-                            .foregroundStyle(Palette.link)
+                            .foregroundStyle(Palette.ink)
                     }
                     .buttonStyle(.plain)
                 }
@@ -363,7 +363,7 @@ struct DomainBlocksView: View {
                 }
             }
             .typeScale(.meta)
-            .foregroundStyle(Palette.link)
+            .foregroundStyle(Palette.ink)
             .accessibilityIdentifier("domainBlocks.unblock.\(block.domain)")
         }
         .padding(.vertical, 12)

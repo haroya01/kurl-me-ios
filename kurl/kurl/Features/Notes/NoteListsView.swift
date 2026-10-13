@@ -14,6 +14,7 @@ struct NoteListsSheet: View {
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
                         Button("완료") { dismiss() }
+                            .tint(Palette.link)
                     }
                 }
         }
@@ -206,6 +207,7 @@ struct NoteListMembershipSheet: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("완료") { dismiss() }
+                        .tint(Palette.link)
                 }
             }
             .task {

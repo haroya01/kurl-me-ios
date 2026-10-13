@@ -201,7 +201,7 @@ struct ConnectSheet: View {
             HStack(spacing: 5) {
                 if c.isOrdered {
                     Text("순서대로 읽기")
-                        .foregroundStyle(Palette.accent)
+                        .foregroundStyle(Palette.secondary)
                     Text("·")
                 }
                 Image(systemName: c.visibility.icon)
@@ -238,7 +238,7 @@ struct ConnectSheet: View {
                     } else {
                         Text("해제")
                             .font(.system(size: 13 * unit, weight: .semibold))
-                            .foregroundStyle(Palette.link)
+                            .foregroundStyle(Palette.ink)
                     }
                 }
                 .frame(minWidth: 44, minHeight: 44)
@@ -323,10 +323,10 @@ struct ConnectSheet: View {
                     }
                 }
             Hairline()
-            // 남은 여백처럼 조용한 카운터 — 우측 정렬 meta. 다 차면 초록으로 한계를 알린다(§10 조용히).
+            // 남은 여백처럼 조용한 카운터 — 우측 정렬 meta. 다 차면 잉크로 한계를 알린다(§10 조용히).
             Text("\(why.count)/\(Self.whyLimit)")
                 .typeScale(.meta)
-                .foregroundStyle(why.count >= Self.whyLimit ? Palette.link : Palette.faint)
+                .foregroundStyle(why.count >= Self.whyLimit ? Palette.ink : Palette.faint)
                 .monospacedDigit()
                 .frame(maxWidth: .infinity, alignment: .trailing)
                 .accessibilityLabel(Text("\(why.count)자 입력, 최대 \(Self.whyLimit)자"))

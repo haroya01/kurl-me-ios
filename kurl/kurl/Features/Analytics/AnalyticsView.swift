@@ -294,7 +294,7 @@ struct AnalyticsView: View {
                     } else {
                         Text("더 보기")
                             .typeScale(.meta)
-                            .foregroundStyle(Palette.link)
+                            .foregroundStyle(Palette.ink)
                     }
                 }
                 .buttonStyle(.plain)
@@ -361,7 +361,7 @@ struct AnalyticsView: View {
                         .frame(width: 120 * unit, alignment: .leading)
                     GeometryReader { geo in
                         RoundedRectangle(cornerRadius: 2)
-                            .fill(Palette.accent.opacity(0.25))
+                            .fill(Palette.secondary.opacity(0.35))
                             .frame(
                                 width: max(2, geo.size.width * CGFloat(ref.views) / CGFloat(maxViews)),
                                 height: 8

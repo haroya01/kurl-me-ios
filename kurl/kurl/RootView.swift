@@ -356,10 +356,6 @@ struct RootView: View {
             ForEach(0..<tabs.count, id: \.self) { index in
                 if index != Self.composeSlot, index == selection.wrappedValue || visitedTabs.contains(index) {
                     tabRoot(index)
-                        .environment(
-                            \.isFrontmostTab,
-                            Self.isFrontmostTab(
-                                index, selection: selection.wrappedValue, coverShown: postCover != nil || needsUsername))
                         .opacity(index == selection.wrappedValue ? 1 : 0)
                         .allowsHitTesting(index == selection.wrappedValue)
                         .accessibilityHidden(index != selection.wrappedValue)
@@ -397,7 +393,7 @@ struct RootView: View {
             // 탭을 갈아타면 항상 보이는 상태로 — 새 탭이 숨은 바로 시작하지 않게.
             tabBarVisibility.reset()
         }
-        .tint(.brand)
+        .tint(Palette.ink)
         // Dynamic Type 은 따르되 상한을 둔다 — 그 위 극단 크기는 카드/덱 레이아웃이 깨진다.
         .dynamicTypeSize(...DynamicTypeSize.accessibility2)
         .modifier(ToastHost())
@@ -485,10 +481,6 @@ struct RootView: View {
         if blogFeed.path.isEmpty { tabs.insert(0) }
         if noteFeed.path.isEmpty { tabs.insert(1) }
         return tabs
-    }
-
-    static func isFrontmostTab(_ index: Int, selection: Int, coverShown: Bool) -> Bool {
-        index == selection && !coverShown
     }
 
     /// 인덱스별 탭 루트 화면. 각자 제 NavigationStack 을 든다(시스템 TabView 와 동일 계약).
@@ -619,7 +611,7 @@ private struct FloatingTabBar<TabMenu: View>: View {
     private func icon(_ name: String, active: Bool) -> some View {
         Image(systemName: name)
             .font(.system(size: min(iconSize, 28), weight: active ? .semibold : .regular))
-            .foregroundStyle(active ? AnyShapeStyle(Palette.link) : AnyShapeStyle(.secondary))
+            .foregroundStyle(active ? AnyShapeStyle(Palette.ink) : AnyShapeStyle(.secondary))
             .frame(maxWidth: .infinity)
             .frame(height: 44)
             .contentShape(Rectangle())

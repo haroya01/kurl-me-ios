@@ -75,7 +75,7 @@ struct ComposeChooserSheet: View {
             }
             .navigationDestination(for: Page.self) { _ in allDrafts }
         }
-        .tint(.brand)
+        .tint(Palette.ink)
         .presentationDetents(path.isEmpty ? [.height(contentHeight), .large] : [.large])
         .presentationDragIndicator(.visible)
         .task { await refresh() }
@@ -84,7 +84,7 @@ struct ComposeChooserSheet: View {
     @ViewBuilder private var showAllDrafts: some View {
         if drafts.count > 3 {
             Button("모두 보기") { path.append(.allDrafts) }
-                .foregroundStyle(Palette.link)
+                .foregroundStyle(Palette.ink)
                 .accessibilityIdentifier("compose.chooser.allDrafts")
         }
     }

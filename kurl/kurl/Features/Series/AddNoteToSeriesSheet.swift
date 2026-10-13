@@ -26,7 +26,7 @@ struct AddNoteToSeriesSheet: View {
                         naming = true
                     } label: {
                         Text("새 시리즈 만들기")
-                            .foregroundStyle(Palette.link)
+                            .foregroundStyle(Palette.ink)
                     }
                     .disabled(working)
                 }

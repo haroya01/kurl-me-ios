@@ -163,10 +163,11 @@ struct AnswerButtons: View {
         HStack(spacing: 8) {
             Button("거절") { answer(approve: false) }
                 .buttonStyle(.glass)
+                .foregroundStyle(.secondary)
                 .accessibilityIdentifier("followRequests.reject")
             Button("승인") { answer(approve: true) }
-                .buttonStyle(.glassProminent)
-                .tint(Palette.accentFill)
+                .buttonStyle(.glass)
+                .fontWeight(.semibold)
                 .accessibilityIdentifier("followRequests.authorize")
         }
         .controlSize(.small)

@@ -76,7 +76,7 @@ struct BlockedUsersView: View {
                 }
             }
             .typeScale(.meta)
-            .foregroundStyle(Palette.link)
+            .foregroundStyle(Palette.ink)
         }
         .padding(.vertical, 12)
     }

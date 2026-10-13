@@ -115,10 +115,10 @@ struct PostAnalyticsView: View {
                 HStack(spacing: 6) {
                     Text("글 보기")
                         .typeScale(.meta)
-                        .foregroundStyle(Palette.link)
+                        .foregroundStyle(Palette.ink)
                     Image(systemName: "chevron.right")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Palette.link)
+                        .foregroundStyle(Palette.ink)
                 }
                 .padding(.vertical, 14)
                 .contentShape(Rectangle())
@@ -206,7 +206,7 @@ struct PostAnalyticsView: View {
                         .frame(width: 110, alignment: .leading)
                     GeometryReader { geo in
                         RoundedRectangle(cornerRadius: 2)
-                            .fill(Palette.accent.opacity(0.25))
+                            .fill(Palette.secondary.opacity(0.35))
                             .frame(
                                 width: max(2, geo.size.width * CGFloat(item.count) / CGFloat(maxCount)),
                                 height: 8)

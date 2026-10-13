@@ -108,7 +108,7 @@ struct BlockView: View {
                 calloutBox(kind: callout.kind, body: callout.body)
             } else {
                 // 이탤릭 없음 — 한글엔 진짜 기울임꼴이 없어 합성 오블리크가 지저분하다(웹 결정 미러).
-                // 위계는 그린 좌측 룰 + secondary 색 + 넉넉한 행간으로 세운다.
+                // 위계는 잉크 좌측 룰 + secondary 색 + 넉넉한 행간으로 세운다.
                 inline(block.content ?? "")
                     .font(.system(size: bodySize))
                     .lineSpacing(bodySize * 0.6)
@@ -117,7 +117,7 @@ struct BlockView: View {
                     .padding(.vertical, 2)
                     .overlay(alignment: .leading) {
                         RoundedRectangle(cornerRadius: 1.5)
-                            .fill(Palette.accentSoft)
+                            .fill(Palette.ink)
                             .frame(width: 3)
                     }
                     .padding(.bottom, 14)
@@ -441,7 +441,7 @@ private struct CodeBlockView: View {
                         Text(copied ? "복사됨" : "복사")
                             .typeScale(.meta)
                     }
-                    .foregroundStyle(copied ? Palette.accentSoft : Palette.codeText.opacity(0.7))
+                    .foregroundStyle(copied ? Palette.codeText : Palette.codeText.opacity(0.7))
                     .expandTapTarget(8)
                 }
                 .buttonStyle(.plain)
@@ -803,6 +803,7 @@ private struct ListBlockView: View {
                         .font(.system(size: bodySize))
                         .lineSpacing(bodySize * 0.5)
                         .foregroundStyle(Palette.body)
+                        .tint(Palette.link)
                 }
                 .padding(.leading, CGFloat(item.depth) * 18) // 중첩 들여쓰기
                 // 작업 항목은 완료 여부를 음성으로 알린다(글리프는 숨겨 중복 낭독 방지).

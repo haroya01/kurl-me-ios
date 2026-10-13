@@ -621,7 +621,7 @@ struct ComposeView: View {
                         Task { await reloadBody(postId: id) }
                     }
                     .buttonStyle(.bordered)
-                    .tint(GlassTokens.prominentTint)
+                    .tint(Palette.ink)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Palette.readingBg)
@@ -671,7 +671,7 @@ struct ComposeView: View {
                                 showLoginSheet = true
                             }
                             .font(.system(size: 13 * metaUnit, weight: .semibold))
-                            .foregroundStyle(Palette.link)
+                            .foregroundStyle(Palette.ink)
                         } else if autosavePersistentFailure {
                             // 서버·네트워크 실패는 백오프를 기다리지 않고 지금 한 번 밀어볼 손잡이를 준다.
                             Button("지금 다시 저장") {
@@ -680,7 +680,7 @@ struct ComposeView: View {
                                 else { Task { await save(publish: false) } }
                             }
                             .font(.system(size: 13 * metaUnit, weight: .semibold))
-                            .foregroundStyle(Palette.link)
+                            .foregroundStyle(Palette.ink)
                         }
                     }
                     .padding(.horizontal, 16)
@@ -847,7 +847,7 @@ struct ComposeView: View {
                             }
                             .foregroundStyle(
                                 seriesId == nil
-                                    ? AnyShapeStyle(.secondary) : AnyShapeStyle(Palette.link))
+                                    ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
                             .padding(.horizontal, 14)
                             .padding(.vertical, 9)
                             .contentShape(Capsule())
@@ -897,7 +897,7 @@ struct ComposeView: View {
                             Text("전체 미리보기")
                                 .typeScale(.footnote)
                         }
-                        .foregroundStyle(Palette.link)
+                        .foregroundStyle(Palette.ink)
                         .disabled(postId == nil)
 
                         if isPrePublish && !takenDown {
@@ -909,7 +909,7 @@ struct ComposeView: View {
                                 showSchedule = true
                             }
                                 .typeScale(.footnote)
-                                .foregroundStyle(Palette.link)
+                                .foregroundStyle(Palette.ink)
                                 .disabled(postId == nil)
                         }
                     }
@@ -1021,14 +1021,11 @@ struct ComposeView: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 if let tag = tags.first {
-                    HStack(spacing: 5) {
-                        Circle().fill(Palette.accentMarker).frame(width: 5, height: 5)
-                        Text(tag)
-                            .font(.system(size: 12.5 * metaUnit, weight: .semibold))
-                            .tracking(0.4)
-                            .lineLimit(1)
-                    }
-                    .foregroundStyle(Palette.link)
+                    Text(tag)
+                        .font(.system(size: 12.5 * metaUnit, weight: .semibold))
+                        .tracking(0.4)
+                        .lineLimit(1)
+                        .foregroundStyle(Palette.secondary)
                 }
                 Text(title.trimmingCharacters(in: .whitespaces).isEmpty
                     ? String(localized: "제목을 적어 주세요") : title)
@@ -1264,11 +1261,11 @@ struct ComposeView: View {
                                 } label: {
                                     Text(preset.label)
                                         .typeScale(.meta)
-                                        .foregroundStyle(active ? .white : Palette.chipText)
+                                        .foregroundStyle(active ? Palette.readingBg : Palette.chipText)
                                         .padding(.horizontal, 14)
                                         .padding(.vertical, 8)
                                         .background(
-                                            active ? AnyShapeStyle(Palette.accentFill) : AnyShapeStyle(Palette.chipBg),
+                                            active ? AnyShapeStyle(Palette.ink) : AnyShapeStyle(Palette.chipBg),
                                             in: Capsule())
                                 }
                                 .buttonStyle(.plain)
@@ -1280,6 +1277,7 @@ struct ComposeView: View {
 
                 DatePicker("발행 시각", selection: $scheduleDate, in: Date().addingTimeInterval(300)...)
                     .datePickerStyle(.graphical)
+                    .tint(Palette.accentFill)
 
                 // 무엇이 정해졌는지 한 줄로 — 그래프 픽커만으론 결정이 흐릿했다.
                 HStack(spacing: 8) {
@@ -1287,7 +1285,7 @@ struct ComposeView: View {
                         .typeScale(.meta)
                         .contentTransition(.numericText())
                 }
-                .foregroundStyle(Palette.link)
+                .foregroundStyle(Palette.ink)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 11)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -1316,6 +1314,7 @@ struct ComposeView: View {
                         ProgressView().controlSize(.small)
                     } else {
                         Button("예약") { Task { await scheduleNow() } }
+                            .tint(Palette.link)
                     }
                 }
             }
@@ -2713,8 +2712,7 @@ private struct ImageActionBar: View {
                                 Text(item.label)
                                     .font(.system(size: 13 * unit, weight: active ? .semibold : .medium))
                             }
-                            // active = 그린 위계 유리 번역(§1.2 규칙3 = Palette.link), 그 외는 시맨틱.
-                            .foregroundStyle(active ? AnyShapeStyle(Palette.link) : AnyShapeStyle(.secondary))
+                            .foregroundStyle(active ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
                             .padding(.horizontal, 13)
                             .frame(height: 44)
                             .contentShape(Rectangle())
@@ -2899,6 +2897,7 @@ private struct ImageCaptionSheet: View {
                         dismiss()
                     }
                     .font(.body.weight(.semibold))
+                    .tint(Palette.link)
                 }
             }
         }
@@ -2949,7 +2948,7 @@ private struct RevisionsSheet: View {
                                 restore(revision)
                             }
                             .typeScale(.meta)
-                            .foregroundStyle(Palette.link)
+                            .foregroundStyle(Palette.ink)
                             .disabled(busy)
                         }
                         .listRowSeparatorTint(Palette.hairline)
@@ -3048,7 +3047,7 @@ private struct TagsField: View {
                 Button { commit() } label: {
                     Image(systemName: "plus.circle.fill")
                         .font(.system(size: 20 * unit))
-                        .foregroundStyle(isDraftEmpty ? Palette.faint : Palette.accent)
+                        .foregroundStyle(isDraftEmpty ? Palette.faint : Palette.ink)
                 }
                 .buttonStyle(.plain)
                 .disabled(isDraftEmpty || atMax)
@@ -3111,12 +3110,12 @@ private struct TagsField: View {
             .buttonStyle(.plain)
             .accessibilityLabel(Text("\(tag) 삭제"))
         }
-        .foregroundStyle(isPrimary ? AnyShapeStyle(.white) : AnyShapeStyle(Palette.chipText))
+        .foregroundStyle(isPrimary ? AnyShapeStyle(Palette.readingBg) : AnyShapeStyle(Palette.chipText))
         .padding(.leading, isPrimary ? 9 : 11)
         .padding(.trailing, 8)
         .padding(.vertical, 6)
         .background(
-            isPrimary ? AnyShapeStyle(Palette.accentFill) : AnyShapeStyle(Palette.chipBg),
+            isPrimary ? AnyShapeStyle(Palette.ink) : AnyShapeStyle(Palette.chipBg),
             in: Capsule())
     }
 
@@ -3374,7 +3373,7 @@ private struct WysiwygComposeCanvas: View {
 
 /// WriteV2 서식 툴바 — 선택 서식(볼드·이탤릭·코드·링크)·블록 서식(제목·인용·코드·리스트)·삽입
 /// (구분선·사진·표)을 한 유리 바로. 캔버스는 종이, 이 크롬만 유리(DESIGN.md §1). 아이콘은 SF Symbols
-/// 표준. 블록 서식은 현재 블록 종류면 켜진(초록) 상태로 보여 토글임을 알린다. 좁은 화면을 위해
+/// 표준. 블록 서식은 현재 블록 종류면 켜진(굵은) 상태로 보여 토글임을 알린다. 좁은 화면을 위해
 /// 가로 스크롤(그룹 구분선으로 세 묶음을 시각 분리). "링크" 하나로 동영상/링크 통합(신고 11 유지).
 private struct V2FormatToolbar: View {
     let canUndo: Bool
@@ -3500,13 +3499,13 @@ private struct V2FormatToolbar: View {
 
     private func toolLabel(_ icon: String, _ title: LocalizedStringKey, active: Bool = false) -> some View {
         VStack(spacing: 3) {
-            Image(systemName: icon).font(.system(size: 17 * unit, weight: .medium))
+            Image(systemName: icon).font(.system(size: 17 * unit, weight: active ? .bold : .medium))
             Text(title)
-                .font(.system(size: 10 * unit, weight: .medium))
+                .font(.system(size: 10 * unit, weight: active ? .bold : .medium))
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
         }
-        .foregroundStyle(active ? AnyShapeStyle(Palette.link) : AnyShapeStyle(.primary))
+        .foregroundStyle(.primary)
         .frame(minWidth: 44, maxWidth: .infinity, minHeight: 44)
         .contentShape(Rectangle())
     }

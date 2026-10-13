@@ -14,9 +14,7 @@ struct SafariView: UIViewControllerRepresentable {
     let url: URL
 
     func makeUIViewController(context: Context) -> SFSafariViewController {
-        let controller = SFSafariViewController(url: url)
-        controller.preferredControlTintColor = UIColor(Palette.accent)
-        return controller
+        SFSafariViewController(url: url)
     }
 
     func updateUIViewController(_ controller: SFSafariViewController, context: Context) {}
@@ -496,7 +494,7 @@ struct ToastHost: ViewModifier {
                     if let label = center.actionLabel {
                         Button(label) { center.runAction() }
                             .font(.system(size: textSize, weight: .semibold))
-                            .foregroundStyle(Palette.link)
+                            .foregroundStyle(.primary)
                             .buttonStyle(.plain)
                     }
                 }

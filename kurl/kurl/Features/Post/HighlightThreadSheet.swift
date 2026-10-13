@@ -160,7 +160,7 @@ struct HighlightThreadSheet: View {
                             Spacer(minLength: 0)
                             Button("다시 시도") { Task { await loadReplies() } }
                                 .typeScale(.meta)
-                                .tint(Palette.link)
+                                .tint(Palette.ink)
                                 .accessibilityIdentifier("highlightReply.retry")
                         }
                         .padding(.horizontal, Metrics.gutter)
@@ -380,7 +380,7 @@ struct HighlightThreadSheet: View {
         HStack(spacing: 8) {
             Image(systemName: "folder")
                 .font(.system(size: 12 * metaUnit, weight: .bold))
-                .foregroundStyle(Palette.accent)
+                .foregroundStyle(Palette.secondary)
             Text(c.title)
                 .typeScale(.body)
                 .foregroundStyle(Palette.ink)
@@ -668,6 +668,7 @@ struct HighlightNoteComposerSheet: View {
                     }
                     .disabled(!submission.canSave)
                     .accessibilityIdentifier("saveHighlightNote")
+                    .tint(Palette.link)
                 }
             }
             .alert("작성한 메모를 버릴까요?", isPresented: $showDiscardConfirm) {

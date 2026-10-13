@@ -217,7 +217,7 @@ struct TwoFactorSheet: View {
                     errorText = nil
                 }
                 .font(.system(size: 13 * unit))
-                .foregroundStyle(Palette.link)
+                .foregroundStyle(Palette.ink)
                 .padding(.top, 14)
             }
             .padding(.horizontal, Metrics.gutter)

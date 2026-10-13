@@ -148,7 +148,7 @@ struct ConversationRow<Content: View, Actions: View, Trailing: View, SpokenActio
             if let badge {
                 Text(badge)
                     .font(.system(size: 10 * metaUnit, weight: .semibold))
-                    .foregroundStyle(Palette.link)
+                    .foregroundStyle(Palette.secondary)
                     .fixedSize()
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
@@ -320,7 +320,7 @@ struct ConversationComposer: View {
                 HStack(spacing: 6) {
                     Text("@\(replyTarget.handle)에게 답글")
                         .typeScale(.footnote)
-                        .foregroundStyle(Palette.link)
+                        .foregroundStyle(Palette.secondary)
                     Button {
                         self.replyTarget = nil
                     } label: {

@@ -174,7 +174,7 @@ struct PostRow: View {
                     if item.pinned {
                         Image(systemName: "pin.fill")
                             .font(.system(size: 10))
-                            .foregroundStyle(Palette.accent)
+                            .foregroundStyle(Palette.secondary)
                     }
                     if let tag {
                         Text("#\(tag)")
@@ -241,7 +241,7 @@ private struct BelongingLine: View {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
                     Image(systemName: "arrow.turn.down.right")
                         .font(.system(size: glyph, weight: .semibold))
-                        .foregroundStyle(Palette.accent)
+                        .foregroundStyle(Palette.secondary)
                     caption(title: lead.title)
                         .foregroundStyle(Palette.secondary)
                         .lineLimit(1)

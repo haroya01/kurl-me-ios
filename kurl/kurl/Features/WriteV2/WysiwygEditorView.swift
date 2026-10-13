@@ -163,7 +163,7 @@ struct WysiwygEditorView: View {
         .overlay(alignment: .leading) {
             if block.kind == .quote {
                 RoundedRectangle(cornerRadius: 1.5)
-                    .fill(Palette.accentSoft)
+                    .fill(Palette.ink)
                     .frame(width: 3)
             }
         }

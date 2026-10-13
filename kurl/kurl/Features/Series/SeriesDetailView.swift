@@ -192,7 +192,7 @@ struct SeriesDetailView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 7) {
-                KurlMark(drawn: [true, true, true])
+                KurlMark(drawn: [true, true, true], tint: Palette.ink)
                     .frame(width: 18, height: 11)
                     .accessibilityHidden(true)
                 Text("시리즈")

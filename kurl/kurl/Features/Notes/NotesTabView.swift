@@ -40,7 +40,6 @@ struct NotesTabView: View {
                     NoteFeedMenu()
                 }
             }
-            .background(alignment: .top) { FeedHeaderMist() }
             .background(Palette.readingBg)
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: Route.self) {
