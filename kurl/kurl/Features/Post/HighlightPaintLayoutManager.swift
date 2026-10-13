@@ -59,12 +59,8 @@ final class HighlightPaintLayoutManager: NSLayoutManager {
         _ rectArray: UnsafePointer<CGRect>, count rectCount: Int,
         forCharacterRange charRange: NSRange, color: UIColor
     ) {
-        let bands = (0..<rectCount).map { index -> CGRect in
-            let rect = rectArray[index]
-            guard let band = band(at: CGPoint(x: rect.midX - origin.x, y: rect.midY - origin.y), in: charRange)
-            else { return rect }
-            return CGRect(x: rect.minX, y: band.minY + origin.y, width: rect.width, height: band.height)
-        }
+        // NSLayoutManager 는 연달아 꽉 찬 줄들을 사각형 하나로 합쳐 넘긴다.
+        let bands = (0..<rectCount).flatMap { bands(in: rectArray[$0], for: charRange) }
         bands.withUnsafeBufferPointer { buffer in
             guard let base = buffer.baseAddress else { return }
             super.fillBackgroundRectArray(base, count: buffer.count, forCharacterRange: charRange, color: color)
@@ -93,15 +89,18 @@ final class HighlightPaintLayoutManager: NSLayoutManager {
             .normal)
     }
 
-    private func band(at point: CGPoint, in charRange: NSRange) -> CGRect? {
-        guard let storage = textStorage, let container = textContainers.first, numberOfGlyphs > 0 else { return nil }
-        let glyph = glyphIndex(for: point, in: container)
-        var lineGlyphs = NSRange()
-        let line = lineFragmentRect(forGlyphAt: glyph, effectiveRange: &lineGlyphs)
-        let lineChars = characterRange(forGlyphRange: lineGlyphs, actualGlyphRange: nil)
-        guard NSIntersectionRange(lineChars, charRange).length > 0 else { return nil }
-        let height = min(line.height, glyphBoxHeight(ofLine: lineGlyphs, storage: storage))
-        return CGRect(x: line.minX, y: line.minY, width: line.width, height: height)
+    private func bands(in rect: CGRect, for charRange: NSRange) -> [CGRect] {
+        guard let storage = textStorage, numberOfGlyphs > 0 else { return [rect] }
+        let top = rect.minY - origin.y
+        let bottom = rect.maxY - origin.y
+        var bands: [CGRect] = []
+        let glyphs = glyphRange(forCharacterRange: charRange, actualCharacterRange: nil)
+        enumerateLineFragments(forGlyphRange: glyphs) { line, _, _, lineGlyphs, _ in
+            guard min(line.maxY, bottom) - max(line.minY, top) > 1 else { return }
+            let height = min(line.height, self.glyphBoxHeight(ofLine: lineGlyphs, storage: storage))
+            bands.append(CGRect(x: rect.minX, y: line.minY + self.origin.y, width: rect.width, height: height))
+        }
+        return bands.isEmpty ? [rect] : bands
     }
 
     private func glyphBoxHeight(ofLine lineGlyphs: NSRange, storage: NSTextStorage) -> CGFloat {
