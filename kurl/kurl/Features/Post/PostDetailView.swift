@@ -168,7 +168,8 @@ private struct PostDetailReader: View {
     /// 임베드(덱)는 만들지 않아 종전 렌더 그대로다.
     @State private var highlights: PostHighlightStore?
     @State private var translations = ContentTranslations.shared
-    @State private var translationSource: Locale.Language?
+    @State private var translationOffer: PostTranslationOffer?
+    @State private var translationTarget: Locale.Language?
     @State private var translationRequest: TranslationRequest?
     @State private var translatedDetail: (key: String, detail: PublicPostDetail)?
 
@@ -1223,40 +1224,40 @@ private struct PostDetailReader: View {
     // 태그와 좋아요는 다 읽은 뒤 자연스럽게 만나도록 본문 끝으로 — 헤더에 끼어 있던
     // 인터랙션 바가 진입을 막지 않는다.
     private func translationKey(_ detail: PublicPostDetail) -> String {
-        "post-\(detail.post.id)-\(TranslationGate.target().minimalIdentifier)"
+        "post-\(detail.post.id)-\((translationTarget ?? TranslationGate.target()).minimalIdentifier)"
     }
 
     private func probeTranslation(_ detail: PublicPostDetail) async {
         let sample = ([detail.post.title] + detail.blocks.lazy.filter { $0.kind == .paragraph }.prefix(4)
             .map { PostTranslationPlan.plain($0.content ?? "") }).joined(separator: "\n")
         let declared = detail.post.languageTag
-        let source = await Task.detached(priority: .utility) {
-            TranslationGate.source(declared: declared, text: sample)
+        let language = await Task.detached(priority: .utility) {
+            TranslationGate.language(declared: declared, text: sample)
         }.value
         guard !Task.isCancelled else { return }
-        let available = if let source { await translations.isAvailable(from: source, to: TranslationGate.target()) } else { false }
-        translationSource = available ? source : nil
+        let offer: PostTranslationOffer? = if let language {
+            await PostTranslationOffer.make(language: language) { await translations.isAvailable(from: language, to: $0) }
+        } else {
+            nil
+        }
+        guard !Task.isCancelled else { return }
+        translationOffer = offer
     }
 
-    private func translate(_ detail: PublicPostDetail) {
-        guard let source = translationSource else { return }
+    private func translate(_ detail: PublicPostDetail, to target: Locale.Language) {
+        guard let source = translationOffer?.source else { return }
+        translationTarget = target
         let key = translationKey(detail)
         if translations.showCached(key) { return }
         translations.begin(key)
         translationRequest = TranslationRequest(
-            key: key, source: source, target: TranslationGate.target(),
+            key: key, source: source, target: target,
             texts: PostTranslationPlan(title: detail.post.title, blocks: detail.blocks).texts)
     }
 
     @ViewBuilder
     private func content(_ detail: PublicPostDetail) -> some View {
         header(detail)
-        if let source = translationSource {
-            PostTranslationBanner(
-                source: source, phase: translations.phases[translationKey(detail)],
-                translate: { translate(detail) },
-                showOriginal: { translations.showOriginal(translationKey(detail)) })
-        }
         if model.isOfflineCopy {
             // 기기 사본 렌더 중 — 조용한 한 줄. 댓글·좋아요가 비어 있는 이유까지 여기서 설명된다.
             HStack(spacing: 6) {
@@ -1558,18 +1559,90 @@ private struct PostDetailReader: View {
             .padding(.top, 14)
 
             // 읽는 시간 — 글 입구에서 "얼마나 걸릴지" 한 호흡(에디토리얼 마스트헤드 메타).
-            if let minutes = readingMinutes {
-                HStack(spacing: 5) {
-                    Text("\(minutes)분 읽기")
-                        .typeScale(.footnote)
-                }
-                .foregroundStyle(Palette.secondary)
-                .padding(.top, 7)
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel(Text("읽는 시간 약 \(minutes)분"))
+            if readingMinutes != nil || translationOffer != nil {
+                metaLine(detail)
+                    .padding(.top, 7)
             }
 
             Hairline().padding(.top, 18)
+        }
+    }
+
+    private func metaLine(_ detail: PublicPostDetail) -> some View {
+        let phase = translations.phases[translationKey(detail)]
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6))
+            : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 12))
+        return layout {
+            HStack(spacing: 5) {
+                if let minutes = readingMinutes {
+                    Text("\(minutes)분 읽기")
+                        .accessibilityLabel(Text("읽는 시간 약 \(minutes)분"))
+                }
+                if phase == .shown, let source = translationOffer?.source {
+                    if readingMinutes != nil {
+                        Text(verbatim: "·")
+                            .foregroundStyle(Palette.faint)
+                            .accessibilityHidden(true)
+                    }
+                    Text("\(TranslationGate.displayName(source))에서 번역됨")
+                }
+            }
+            .foregroundStyle(Palette.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+
+            if let offer = translationOffer {
+                translationControl(detail, offer: offer, phase: phase)
+                    .fixedSize()
+            }
+        }
+        .typeScale(.footnote)
+    }
+
+    @ViewBuilder
+    private func translationControl(
+        _ detail: PublicPostDetail, offer: PostTranslationOffer, phase: ContentTranslations.Phase?
+    ) -> some View {
+        switch phase {
+        case .translating:
+            Text("번역하는 중…")
+                .foregroundStyle(Palette.secondary)
+        case .shown:
+            Button {
+                translations.showOriginal(translationKey(detail))
+            } label: {
+                Text("원문 보기").expandTapTarget(15)
+            }
+            .buttonStyle(.borderless)
+            .tint(Palette.link)
+            .accessibilityIdentifier("post.original")
+        case nil:
+            if let target = offer.direct {
+                Button {
+                    translate(detail, to: target)
+                } label: {
+                    Text("번역하기").expandTapTarget(15)
+                }
+                .buttonStyle(.borderless)
+                .tint(Palette.link)
+                .accessibilityIdentifier("post.translate")
+            } else {
+                Menu {
+                    ForEach(offer.choices, id: \.target) { choice in
+                        Button(TranslationGate.nativeName(choice.target)) {
+                            translate(detail, to: choice.target)
+                        }
+                        .disabled(!choice.available)
+                    }
+                } label: {
+                    Text("번역하기").expandTapTarget(15)
+                }
+                .menuStyle(.button)
+                .buttonStyle(.borderless)
+                .tint(Palette.link)
+                .accessibilityIdentifier("post.translate")
+            }
         }
     }
 

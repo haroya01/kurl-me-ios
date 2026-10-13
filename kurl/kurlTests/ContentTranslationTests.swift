@@ -2,7 +2,7 @@
 //  ContentTranslationTests.swift
 //  kurlTests
 //
-//  번역 보기의 세 계약 — 기기가 읽는 언어면 권하지 않는다, 노트의 멘션·해시태그·링크는 그대로 둔다,
+//  번역 보기의 세 계약 — 기기의 첫 언어로 쓴 노트는 권하지 않는다, 노트의 멘션·해시태그·링크는 그대로 둔다,
 //  글은 글 블록만 번역하고 코드·목록 표식·표 구분선은 그대로 둔다.
 //
 
@@ -21,11 +21,66 @@ final class ContentTranslationTests: XCTestCase {
         XCTAssertEqual(TranslationGate.source(declared: "ja", text: "", preferred: ["ko-KR"])?.languageCode?.identifier, "ja")
     }
 
-    func testALanguageTheDeviceReadsIsNotOffered() {
+    func testTheDevicesFirstLanguageIsNotOffered() {
         XCTAssertNil(TranslationGate.source(declared: "ko", text: "", preferred: ["ko-KR", "en-KR"]))
-        XCTAssertNil(TranslationGate.source(declared: "en-US", text: "", preferred: ["ko-KR", "en-KR"]))
         XCTAssertNil(TranslationGate.source(
             declared: nil, text: "Hexagonal ports, named after a long afternoon.", preferred: ["en-US"]))
+    }
+
+    func testALaterPreferredLanguageIsStillOffered() {
+        XCTAssertEqual(
+            TranslationGate.source(declared: "en-US", text: "", preferred: ["ko-KR", "en-KR"])?.languageCode?.identifier, "en")
+        XCTAssertEqual(
+            TranslationGate.source(declared: "ja", text: "", preferred: ["en-US", "ja-JP"])?.languageCode?.identifier, "ja")
+    }
+
+    func testThePostLanguageIsKnownEvenWhenTheDeviceReadsIt() {
+        XCTAssertEqual(TranslationGate.language(declared: "ko-KR", text: "")?.languageCode?.identifier, "ko")
+        XCTAssertNil(TranslationGate.language(declared: nil, text: "ok lol"))
+    }
+
+    // MARK: 글 — 바로 번역 또는 언어 고르기
+
+    private func codes(_ languages: [Locale.Language]) -> [String] {
+        languages.compactMap { $0.languageCode?.identifier }
+    }
+
+    func testAPostInAnotherLanguageTranslatesStraightIntoTheDeviceLanguage() async {
+        let offer = await PostTranslationOffer.make(language: Locale.Language(identifier: "ja"), preferred: ["ko-KR", "ja-JP"]) { _ in true }
+        XCTAssertEqual(offer?.direct?.languageCode?.identifier, "ko")
+        XCTAssertEqual(offer?.source.languageCode?.identifier, "ja")
+        XCTAssertEqual(offer?.choices, [])
+    }
+
+    func testAPostInTheDeviceLanguageOffersTheOtherAppLanguages() async {
+        let offer = await PostTranslationOffer.make(language: Locale.Language(identifier: "ko"), preferred: ["ko-KR"]) { _ in true }
+        XCTAssertNil(offer?.direct)
+        XCTAssertEqual(codes(offer?.choices.map(\.target) ?? []), ["en", "ja", "vi", "hi"])
+    }
+
+    func testUnsupportedPairsAreListedButNotChoosable() async {
+        let offer = await PostTranslationOffer.make(language: Locale.Language(identifier: "ko"), preferred: ["ko-KR"]) {
+            $0.languageCode?.identifier != "hi"
+        }
+        XCTAssertEqual(offer?.choices.filter { !$0.available }.map { $0.target.languageCode?.identifier }, ["hi"])
+    }
+
+    func testAnUnsupportedDirectPairFallsBackToChoosing() async {
+        let offer = await PostTranslationOffer.make(language: Locale.Language(identifier: "ja"), preferred: ["ko-KR"]) {
+            $0.languageCode?.identifier == "en"
+        }
+        XCTAssertNil(offer?.direct)
+        XCTAssertEqual(codes(offer?.choices.filter(\.available).map(\.target) ?? []), ["en"])
+    }
+
+    func testNothingIsOfferedWhenNoPairIsSupported() async {
+        let offer = await PostTranslationOffer.make(language: Locale.Language(identifier: "sw"), preferred: ["ko-KR"]) { _ in false }
+        XCTAssertNil(offer)
+    }
+
+    func testChoicesAreNamedInTheirOwnLanguage() {
+        let names = TranslationGate.appLanguages.map { TranslationGate.nativeName(Locale.Language(identifier: $0)) }
+        XCTAssertEqual(names, ["한국어", "English", "日本語", "Tiếng Việt", "हिन्दी"])
     }
 
     func testAnUndeclaredLanguageIsDetectedFromTheText() {
