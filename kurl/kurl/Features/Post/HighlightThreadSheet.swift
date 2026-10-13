@@ -46,20 +46,6 @@ struct HighlightThreadSheet: View {
 
     private var hasOpener: Bool { (highlight.note?.isEmpty == false) }
 
-    private var highlighterAuthors: [Author] {
-        var seen = Set<Int64>()
-        return HighlightPaint.overlapping(highlight, in: store.highlights).compactMap { h in
-            guard let author = h.author ?? (store.isMine(h) ? Self.me : nil),
-                  seen.insert(author.id).inserted else { return nil }
-            return author
-        }
-    }
-
-    private static var me: Author? {
-        guard let me = AuthStore.shared.me, let id = me.id else { return nil }
-        return Author(id: id, username: me.username ?? "", bio: nil, avatarUrl: me.avatarUrl)
-    }
-
     private func isMe(_ author: Author) -> Bool { author.id == AuthStore.shared.me?.id }
 
     private var source: some View {
@@ -77,29 +63,11 @@ struct HighlightThreadSheet: View {
     }
 
     private var highlighters: some View {
-        let authors = highlighterAuthors
-        return HStack(spacing: 8) {
-            HStack(spacing: -6) {
-                ForEach(authors.prefix(3)) { author in
-                    AvatarView(author: author, size: 20 * metaUnit)
-                        .overlay(Circle().strokeBorder(Palette.readingBg, lineWidth: 1.5))
-                }
-            }
-            .accessibilityHidden(true)
-            highlightersLine(authors)
-                .typeScale(.meta)
-                .foregroundStyle(Palette.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("highlight.highlighters")
-    }
-
-    private func highlightersLine(_ authors: [Author]) -> Text {
-        guard authors.count == 1, let only = authors.first else {
-            return Text("\(max(authors.count, 1))명이 그은 문장")
-        }
-        return isMe(only) ? Text("내가 그은 문장") : Text("\(only.shownName)님이 그은 문장")
+        HighlightersLine(authors: HighlightersLine.authors(
+            of: HighlightPaint.overlapping(highlight, in: store.highlights), isMine: store.isMine))
+            .typeScale(.meta)
+            .foregroundStyle(Palette.secondary)
+            .accessibilityIdentifier("highlight.highlighters")
     }
 
     private func opener(_ note: String) -> some View {
@@ -613,20 +581,11 @@ struct HighlightNoteComposerSheet: View {
                         // The source and the thought share one paper surface. Keep the writing
                         // area flexible so the space above the keyboard belongs to the memo.
                         VStack(alignment: .leading, spacing: 12) {
-                            Text(draft.quote)
-                                .typeScale(.lede)
-                                .foregroundStyle(Palette.secondary)
-                                .lineLimit(3)
-                                .fixedSize(horizontal: false, vertical: true)
+                            HighlightQuote(
+                                quote: draft.quote, mine: true, hasThread: false, sweeps: false,
+                                size: 15.5, relativeTo: .callout, lineSpacing: 0.3, maxLines: 3,
+                                identifier: "highlightNoteQuote")
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.leading, 14)
-                                .overlay(alignment: .leading) {
-                                    RoundedRectangle(cornerRadius: 1.5, style: .continuous)
-                                        .fill(Palette.accent)
-                                        .frame(width: 3)
-                                }
-                                .accessibilityLabel(Text(verbatim: draft.quote))
-                                .accessibilityIdentifier("highlightNoteQuote")
 
                             Rectangle()
                                 .fill(Palette.hairline)
@@ -639,11 +598,11 @@ struct HighlightNoteComposerSheet: View {
                                     .scrollContentBackground(.hidden)
                                     .focused($focused)
                                     .disabled(submission.busy)
-                                    .accessibilityLabel(Text("이 부분에 대한 메모를 남겨보세요"))
+                                    .accessibilityLabel(Text("메모 쓰기"))
                                     .accessibilityIdentifier("highlightNoteInput")
 
                                 if submission.text.isEmpty {
-                                    Text("이 부분에 대한 메모를 남겨보세요")
+                                    Text("메모 쓰기")
                                         .typeScale(.body)
                                         .foregroundStyle(Palette.faint)
                                         .padding(.top, 8)
@@ -710,7 +669,7 @@ struct HighlightNoteComposerSheet: View {
                     .accessibilityIdentifier("saveHighlightNote")
                 }
             }
-            .confirmationDialog("작성한 메모를 버릴까요?", isPresented: $showDiscardConfirm, titleVisibility: .visible) {
+            .alert("작성한 메모를 버릴까요?", isPresented: $showDiscardConfirm) {
                 Button("메모 버리기", role: .destructive) { dismiss() }
                 Button("계속 쓰기", role: .cancel) {}
             }

@@ -162,9 +162,11 @@ final class HighlightReaderUITests: XCTestCase {
         XCTAssertTrue(
             app.tapHighlight(in: paragraph, at: [CGVector(dx: 0.4, dy: 0.5), CGVector(dx: 0.45, dy: 0.45)]),
             "두 사람이 겹쳐 그은 문장을 탭해도 카드가 안 뜸")
-        XCTAssertTrue(app.staticTexts["2명이 하이라이트했어요"].exists, "겹친 하이라이트를 한 카드에 모으지 않음")
+        XCTAssertTrue(
+            app.descendants(matching: .any)["highlightCard.highlighters"].firstMatch.label.contains("2명이 그은 문장"),
+            "겹친 하이라이트를 한 카드에 모으지 않음")
         XCTAssertTrue(app.buttons["highlightCard.talk"].exists, "대화가 없는 문장인데 대화를 시작할 수 없음")
-        XCTAssertFalse(app.buttons["highlightCard.delete"].exists, "남의 하이라이트 카드에 지우기가 있음")
+        XCTAssertFalse(app.buttons["highlightCard.delete"].exists, "남의 하이라이트 카드에 삭제가 있음")
         shot("shared-passage-card")
 
         app.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.85)).tap()

@@ -170,14 +170,15 @@ final class HighlightNoteReplyUITests: XCTestCase {
             app.tapHighlight(in: paragraph, at: [CGVector(dx: 0.5, dy: 0.5), CGVector(dx: 0.5, dy: 0.3)]),
             "내 하이라이트 탭으로 카드가 안 뜸")
         XCTAssertTrue(
-            app.staticTexts["내가 하이라이트했어요"].exists, "내 하이라이트 카드가 내 것이라고 말하지 않음")
+            app.descendants(matching: .any)["highlightCard.highlighters"].firstMatch.label.contains("내가 그은 문장"),
+            "내 하이라이트 카드가 내 것이라고 말하지 않음")
         let delete = app.buttons["highlightCard.delete"]
-        XCTAssertTrue(delete.exists, "내 하이라이트 카드에 지우기가 없음")
+        XCTAssertTrue(delete.exists, "내 하이라이트 카드에 삭제가 없음")
         shot("1-card")
         delete.tap()
 
-        let confirm = app.alerts.buttons["지우기"]
-        XCTAssertTrue(confirm.waitForExistence(timeout: 4), "메모가 달린 하이라이트인데 지우기 확인이 안 뜸")
+        let confirm = app.alerts.buttons["삭제"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 4), "메모가 달린 하이라이트인데 삭제 확인이 안 뜸")
         shot("2-confirm-alert")
         confirm.tap()
         Thread.sleep(forTimeInterval: 0.8)

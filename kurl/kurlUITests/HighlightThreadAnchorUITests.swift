@@ -75,4 +75,24 @@ final class HighlightThreadAnchorUITests: XCTestCase {
         XCTAssertFalse(element(app, "highlight.opener").exists, "메모 없는 하이라이트에 메모 머리가 있음")
         closeSheet(app)
     }
+
+    private func launchNotice(highlightId: Int) -> XCUIApplication {
+        let app = XCUIApplication()
+        let push = "{\"ownerUsername\":\"honggildong\",\"postSlug\":\"hexagonal-after-3-months\",\"highlightId\":\(highlightId)}"
+        app.launchArguments = ["--mocks", "--push", push]
+        app.launch()
+        return app
+    }
+
+    func testANoticeAboutASilentMarkLandsOnTheSentenceWithItsCard() throws {
+        let app = launchNotice(highlightId: 6004)
+        XCTAssertTrue(app.otherElements["highlightCard"].waitForExistence(timeout: 15), "알림으로 닿은 하이라이트에 카드가 안 뜸")
+        XCTAssertFalse(app.navigationBars["대화"].exists, "말 없는 하이라이트 알림이 대화 시트를 열었음")
+    }
+
+    func testANoticeAboutAMarkWithAMemoOpensTheConversation() throws {
+        let app = launchNotice(highlightId: 6001)
+        XCTAssertTrue(app.navigationBars["대화"].waitForExistence(timeout: 15), "메모가 있는 하이라이트 알림이 대화를 열지 않음")
+        closeSheet(app)
+    }
 }

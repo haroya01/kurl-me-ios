@@ -643,8 +643,15 @@ private struct PostDetailReader: View {
             if showHighlightCoach { highlightCoach }
         }
         .overlay {
-            if let store = highlights, let card = store.card {
-                HighlightCardLayer(store: store, card: card, shareURL: highlightShareURL)
+            if let store = highlights {
+                ZStack {
+                    Color.clear
+                        .allowsHitTesting(false)
+                        .sensoryFeedback(.impact(weight: .light), trigger: store.createdCount)
+                    if let card = store.card {
+                        HighlightCardLayer(store: store, card: card, shareURL: highlightShareURL)
+                    }
+                }
             }
         }
         }
@@ -830,7 +837,7 @@ private struct PostDetailReader: View {
     private var highlightHowToItem: some View {
         if highlights != nil {
             Button {
-                ToastCenter.shared.show(String(localized: "문장을 길게 눌러 하이라이트하거나 공개 메모를 남겨요"))
+                ToastCenter.shared.show(String(localized: "문장을 길게 눌러 하이라이트하거나 메모를 남겨요"))
             } label: {
                 Label("하이라이트하는 법", systemImage: "highlighter")
             }
@@ -1015,12 +1022,20 @@ private struct PostDetailReader: View {
                 withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.55)) {
                     proxy.scrollTo(order, anchor: UnitPoint(x: 0, y: 0.18))
                 }
-                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.35)) { flashBlockId = order }
-                try? await Task.sleep(for: .milliseconds(700))
+                try? await Task.sleep(for: .milliseconds(reduceMotion ? 80 : 620))
+                store.sweep(id)
+                if !reduceMotion { try? await Task.sleep(for: .milliseconds(520)) }
             }
-            store.threadHighlightId = id
-            try? await Task.sleep(for: .milliseconds(600))
-            withAnimation(reduceMotion ? nil : .easeIn(duration: 0.7)) { flashBlockId = nil }
+            if HighlightPaint.hasThread(highlight) {
+                store.threadHighlightId = id
+                return
+            }
+            store.revealHighlightId = id
+            try? await Task.sleep(for: .milliseconds(800))
+            if store.revealHighlightId == id {
+                store.revealHighlightId = nil
+                store.threadHighlightId = id
+            }
         }
     }
 

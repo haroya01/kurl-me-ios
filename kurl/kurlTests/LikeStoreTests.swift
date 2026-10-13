@@ -283,6 +283,19 @@ final class HighlightSubmissionTests: XCTestCase {
         XCTAssertEqual(store.highlights.first?.note, "내 메모")
     }
 
+    func testANewHighlightKeepsItsSweepThroughTheServerEcho() async throws {
+        let store = PostHighlightStore(
+            postId: 5, isSignedIn: { true },
+            createRequest: { _, payload in
+                HighlightRef(id: 78, blockOrder: payload.blockOrder, endBlockOrder: payload.endBlockOrder,
+                    startOffset: payload.startOffset, endOffset: payload.endOffset, quote: payload.quote,
+                    note: nil, createdAt: nil)
+            }, listRequest: { _ in [] })
+        try await store.createAndWait(blockOrder: 0, startOffset: 0, endOffset: 2, quote: "구절")
+        XCTAssertEqual(store.sweepHighlightId, 78, "서버 id 로 바뀌면 칠하기가 끊긴다")
+        XCTAssertEqual(store.createdCount, 1)
+    }
+
     func testFailedDeleteRestoresOnlyThatItemAndKeepsConcurrentCreation() async throws {
         let original = HighlightView(id: 1, author: nil, blockOrder: 0, endBlockOrder: 0,
             startOffset: 0, endOffset: 2, quote: "이전", note: nil, replyCount: 0, createdAt: nil)

@@ -387,7 +387,10 @@ private struct HighlightableParagraph: View {
                 store.noteDraft = PostHighlightStore.NoteDraft(
                     blockOrder: blockOrder, startOffset: start, endOffset: end, quote: quote)
             },
-            onTapMarks: { ids, anchor in store.openCard(ids: ids, anchor: anchor) }
+            onTapMarks: { ids, anchor in store.openCard(ids: ids, anchor: anchor) },
+            sweepId: store.sweepHighlightId,
+            revealId: store.revealHighlightId,
+            onReveal: { ids, anchor in store.reveal(ids: ids, anchor: anchor) }
         )
     }
 }
