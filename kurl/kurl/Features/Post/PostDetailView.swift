@@ -556,9 +556,10 @@ private struct PostDetailReader: View {
         .overlay(alignment: .top) {
             if scrollable, embedded || showNavTitle {
                 ReadProgressBar(progress: scrollProgress)
-                    // 단독: 크롬이 떠 있으면 상단 바 아래 테두리 안쪽, 접히면 상태바 바탕 아래 테두리 안쪽.
+                    // 단독: 크롬이 떠 있으면 상단 바 아래 테두리 바로 밑(바 높이를 채우는 유리 원판을 덮지 않게),
+                    // 접히면 상태바 바탕 아래 테두리 안쪽.
                     .padding(.top, embedded || chromeHidden ? 0 : Self.topBarHeight + topBarInset)
-                    .offset(y: embedded || (inSheet && chromeHidden) ? 0 : -ReadProgressBar.height)
+                    .offset(y: embedded || !chromeHidden || inSheet ? 0 : -ReadProgressBar.height)
                     .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: chromeHidden)
             }
         }
