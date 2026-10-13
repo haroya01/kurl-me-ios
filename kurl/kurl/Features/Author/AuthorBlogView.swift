@@ -39,6 +39,7 @@ struct AuthorBlogView: View {
     @State private var showBlockConfirm = false
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// "명함" 버튼 라벨 — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
     @ScaledMetric(relativeTo: .headline) private var cardLabelSize: CGFloat = 14
 
@@ -130,6 +131,16 @@ struct AuthorBlogView: View {
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
         .background(Palette.readingBg)
+        .overlay(alignment: .top) {
+            if showNavTitle {
+                Color.clear
+                    .frame(height: 1)
+                    .background(alignment: .bottom) {
+                        Palette.readingBg.ignoresSafeArea(edges: .top)
+                    }
+                    .transition(.opacity)
+            }
+        }
         // 계정 탭 루트로 임베드됐을 때만 탭바 숨김을 몬다 — 환경에 손잡이가 있을 때만
         // 동작하고(스레드식), 작가 프로필로 푸시될 땐 env 가 nil 이라 조용하다(탭 루트 전용).
         .tracksTabBarVisibility()
@@ -138,7 +149,7 @@ struct AuthorBlogView: View {
         .onScrollGeometryChange(for: Bool.self) { geometry in
             geometry.contentOffset.y + geometry.contentInsets.top > 64
         } action: { _, passed in
-            withAnimation(.easeInOut(duration: 0.18)) { showNavTitle = passed }
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) { showNavTitle = passed }
         }
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -219,7 +230,7 @@ struct AuthorBlogView: View {
         .blockDialog(
             isPresented: $showBlockConfirm,
             username: author?.username ?? "", userId: author?.id ?? 0)
-        .toolbarBackground(showNavTitle ? .automatic : .hidden, for: .navigationBar)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
         .task {

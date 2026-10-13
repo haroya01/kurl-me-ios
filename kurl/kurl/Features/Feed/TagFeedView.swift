@@ -70,11 +70,21 @@ struct TagFeedView: View {
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
         .background(Palette.readingBg)
+        .overlay(alignment: .top) {
+            if showNavTitle {
+                Color.clear
+                    .frame(height: 1)
+                    .background(alignment: .bottom) {
+                        Palette.readingBg.ignoresSafeArea(edges: .top)
+                    }
+                    .transition(.opacity)
+            }
+        }
         // 마스트헤드를 지나면 태그 이름이 내비바로 스민다(읽기 앱 문법) — 상단 중복 제거.
         .onScrollGeometryChange(for: Bool.self) { geometry in
             geometry.contentOffset.y + geometry.contentInsets.top > 56
         } action: { _, passed in
-            withAnimation(.easeInOut(duration: 0.18)) { showNavTitle = passed }
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) { showNavTitle = passed }
         }
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -83,7 +93,7 @@ struct TagFeedView: View {
                     .opacity(showNavTitle ? 1 : 0)
             }
         }
-        .toolbarBackground(showNavTitle ? .automatic : .hidden, for: .navigationBar)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
         .noteTextLinks()
