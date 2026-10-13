@@ -88,12 +88,12 @@ final class ContentTranslationUITests: XCTestCase {
         shot("post-translate")
 
         translate.tap()
-        let translatedTitle = app.staticTexts["[ko] 境界を先に引く"]
-        XCTAssertTrue(translatedTitle.waitForExistence(timeout: 6), "제목이 번역문으로 바뀌지 않음")
-        XCTAssertTrue(app.buttons["post.original"].exists, "번역 뒤 원문 보기가 없음")
         XCTAssertTrue(
-            app.staticTexts.matching(NSPredicate(format: "label CONTAINS '일본어에서 번역됨'")).firstMatch.exists,
+            app.staticTexts.matching(NSPredicate(format: "label CONTAINS '일본어에서 번역됨'")).firstMatch
+                .waitForExistence(timeout: 12),
             "어느 언어에서 번역됐는지 안 보임")
+        XCTAssertTrue(app.staticTexts["[ko] 境界を先に引く"].exists, "제목이 번역문으로 바뀌지 않음")
+        XCTAssertTrue(app.buttons["post.original"].exists, "번역 뒤 원문 보기가 없음")
         XCTAssertTrue(
             app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'protocol PostStore'")).firstMatch.exists,
             "코드 블록이 사라졌다")
@@ -122,16 +122,50 @@ final class ContentTranslationUITests: XCTestCase {
         shot("post-languages")
 
         english.tap()
-        XCTAssertTrue(app.buttons["post.original"].waitForExistence(timeout: 6), "번역 뒤 원문 보기가 없음")
+        XCTAssertTrue(
+            app.staticTexts.matching(NSPredicate(format: "label CONTAINS '한국어에서 번역됨'")).firstMatch
+                .waitForExistence(timeout: 30),
+            "어느 언어에서 번역됐는지 안 보임")
+        XCTAssertTrue(app.buttons["post.original"].exists, "번역 뒤 원문 보기가 없음")
         XCTAssertTrue(
             app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH '[en] '")).firstMatch.exists,
             "고른 언어로 번역되지 않음")
-        XCTAssertTrue(
-            app.staticTexts.matching(NSPredicate(format: "label CONTAINS '한국어에서 번역됨'")).firstMatch.exists,
-            "어느 언어에서 번역됐는지 안 보임")
         shot("post-translated-en")
 
         app.buttons["post.original"].tap()
         XCTAssertTrue(translate.waitForExistence(timeout: 4), "원문 보기 뒤 번역하기로 돌아오지 않음")
+    }
+
+    func testAPostTranslationShowsProgressAndStopsOnShowOriginal() throws {
+        let app = launch(["--mocks", "--post", "honggildong/kyoukai-wo-hiku", "--translation-delay", "800"])
+        let translate = app.buttons["post.translate"]
+        XCTAssertTrue(translate.waitForExistence(timeout: 12), "일본어 글에 번역하기가 없음")
+        translate.tap()
+
+        XCTAssertTrue(app.staticTexts["[ko] 境界を先に引く"].waitForExistence(timeout: 6), "앞 블록이 먼저 바뀌지 않음")
+        XCTAssertTrue(
+            app.staticTexts.matching(NSPredicate(format: "label CONTAINS '번역하는 중'")).firstMatch.exists,
+            "번역하는 동안 진행이 안 보임")
+        XCTAssertFalse(app.staticTexts["[ko] 層"].exists, "뒤 블록이 앞 블록과 함께 바뀜")
+        XCTAssertTrue(app.buttons["post.original"].exists, "번역하는 동안 원문 보기가 없음")
+        shot("post-translating")
+
+        app.buttons["post.original"].tap()
+        XCTAssertTrue(translate.waitForExistence(timeout: 4), "원문 보기 뒤 번역하기로 돌아오지 않음")
+        XCTAssertFalse(app.staticTexts["[ko] 境界を先に引く"].exists, "원문 보기로 제목이 돌아오지 않음")
+        sleep(3)
+        XCTAssertFalse(app.staticTexts["[ko] 境界を先に引く"].exists, "원문 보기 뒤에도 번역이 이어짐")
+        XCTAssertFalse(app.staticTexts["[ko] 層"].exists, "원문 보기 뒤에도 번역이 이어짐")
+    }
+
+    func testAPostTranslationThatFailsMidwayGoesBackToTheOriginal() throws {
+        let app = launch(["--mocks", "--post", "honggildong/kyoukai-wo-hiku", "--translation-fails", "--translation-delay", "500"])
+        let translate = app.buttons["post.translate"]
+        XCTAssertTrue(translate.waitForExistence(timeout: 12), "일본어 글에 번역하기가 없음")
+        translate.tap()
+        XCTAssertTrue(app.staticTexts["[ko] 境界を先に引く"].waitForExistence(timeout: 6), "실패 전에 받은 블록이 안 바뀜")
+        XCTAssertTrue(translate.waitForExistence(timeout: 12), "중간에 실패한 뒤 번역하기로 돌아오지 않음")
+        XCTAssertFalse(app.staticTexts["[ko] 境界を先に引く"].exists, "중간에 실패했는데 번역문이 남음")
+        XCTAssertFalse(app.buttons["post.original"].exists, "실패했는데 원문 보기가 남음")
     }
 }

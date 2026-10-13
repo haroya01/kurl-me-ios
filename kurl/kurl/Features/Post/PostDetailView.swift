@@ -185,7 +185,8 @@ private struct PostDetailReader: View {
     @State private var translationOffer: PostTranslationOffer?
     @State private var translationTarget: Locale.Language?
     @State private var translationRequest: TranslationRequest?
-    @State private var translatedDetail: (key: String, detail: PublicPostDetail)?
+    @State private var translatedDetail: TranslatedDetail?
+    @State private var translationPlan: (key: String, plan: PostTranslationPlan)?
 
     /// 하이라이트 표시/숨기기 — 남들 형광펜이 많으면 어지럽다는 독자를 위해. 기기 전역 취향이라
     /// 글마다 다시 정하지 않게 @AppStorage 로 영속하고, 로드 시 스토어에 밀어 넣는다(기본 = 표시).
@@ -247,11 +248,11 @@ private struct PostDetailReader: View {
                     .padding(.top, 24)
             case .loaded(let detail):
                 let key = translationKey(detail)
-                let showingTranslation = translations.phases[key] == .shown
+                let translated = translations.phases[key] == nil ? nil : translatedDetail.flatMap { $0.key == key ? $0 : nil }
                 // 커버 헤더 없음 — 제목이 항상 맨 위(커버·무커버 글 제목 위치 일관).
                 // 커버 이미지가 의미 있으면 작가가 본문에 넣고, 발견 카드엔 그대로 남는다.
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    content(showingTranslation ? translatedDetail.flatMap { $0.key == key ? $0.detail : nil } ?? detail : detail)
+                    content(translated?.detail ?? detail, translated: translated?.applied)
                 }
                 .frame(maxWidth: Metrics.readingColumn)
                 .frame(maxWidth: .infinity)
@@ -260,17 +261,13 @@ private struct PostDetailReader: View {
                 // 글자를 정통으로 가린다 — 독 폭만큼 본문을 비켜 감는다. 평상 크기에선
                 // 문단 오른끝 여백이 자연 완충이라 그대로 둔다.
                 .padding(.trailing, dynamicTypeSize.isAccessibilitySize ? 56 : 0)
-                // 본문 문단이 선택→하이라이트 + 공개 하이라이트 페인트를 띄울 수 있게. 하이라이트는 원문
-                // 오프셋에 묶여 있어 번역문을 보이는 동안엔 끈다.
-                .environment(\.postHighlightStore, showingTranslation ? nil : highlights)
+                // 본문 문단이 선택→하이라이트 + 공개 하이라이트 페인트를 띄울 수 있게. 번역문으로 바뀐
+                // 문단은 블록마다 하이라이트를 끈다(BlockView.translated).
+                .environment(\.postHighlightStore, highlights)
                 .task(id: detail.post.id) { await probeTranslation(detail) }
                 .translationRunner($translationRequest)
-                .onChange(of: showingTranslation, initial: true) { _, shown in
-                    guard shown, translatedDetail?.key != key, let texts = translations.shown(key),
-                          let applied = PostTranslationPlan(title: detail.post.title, blocks: detail.blocks).apply(texts)
-                    else { return }
-                    translatedDetail = (key, detail.replacing(title: applied.title, blocks: applied.blocks))
-                }
+                .onChange(of: translations.partial(key)) { refreshTranslation(detail, key: key) }
+                .onChange(of: translations.phases[key] == .shown, initial: true) { refreshTranslation(detail, key: key) }
             }
         }
     }
@@ -1284,22 +1281,53 @@ private struct PostDetailReader: View {
         }
         guard !Task.isCancelled else { return }
         translationOffer = offer
+        if Config.autoTranslate, let offer, translations.phases[translationKey(detail)] == nil,
+           let target = offer.direct ?? offer.choices.first(where: \.available)?.target {
+            translate(detail, to: target)
+        }
     }
 
     private func translate(_ detail: PublicPostDetail, to target: Locale.Language) {
         guard let source = translationOffer?.source else { return }
         translationTarget = target
         let key = translationKey(detail)
-        if translations.showCached(key) { return }
-        translations.begin(key)
-        translationRequest = TranslationRequest(
-            key: key, source: source, target: target,
-            texts: PostTranslationPlan(title: detail.post.title, blocks: detail.blocks).texts)
+        if withAnimation(reduceMotion ? nil : .snappy(duration: 0.25), { translations.showCached(key) }) { return }
+        let plan = translationPlan(for: detail, key: key)
+        let request = TranslationRequest(key: key, source: source, target: target, texts: plan.texts)
+        translatedDetail = nil
+        translations.begin(request)
+        translationRequest = request
+    }
+
+    private func showOriginal(_ detail: PublicPostDetail) {
+        translationRequest = nil
+        withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) {
+            translations.showOriginal(translationKey(detail))
+        }
+    }
+
+    private func translationPlan(for detail: PublicPostDetail, key: String) -> PostTranslationPlan {
+        if let cached = translationPlan, cached.key == key { return cached.plan }
+        let plan = PostTranslationPlan(title: detail.post.title, blocks: detail.blocks)
+        translationPlan = (key, plan)
+        return plan
+    }
+
+    private func refreshTranslation(_ detail: PublicPostDetail, key: String) {
+        guard let texts = translations.shown(key)?.map(Optional.some) ?? translations.partial(key),
+              translatedDetail?.key != key || translatedDetail?.texts != texts,
+              let applied = translationPlan(for: detail, key: key).apply(partial: texts)
+        else { return }
+        withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) {
+            translatedDetail = TranslatedDetail(
+                key: key, texts: texts, applied: applied,
+                detail: detail.replacing(title: applied.title, blocks: applied.blocks))
+        }
     }
 
     @ViewBuilder
-    private func content(_ detail: PublicPostDetail) -> some View {
-        header(detail)
+    private func content(_ detail: PublicPostDetail, translated: PostTranslationPlan.Applied?) -> some View {
+        header(detail, titleTranslated: translated?.titleTranslated ?? false)
         if model.isOfflineCopy {
             // 기기 사본 렌더 중 — 조용한 한 줄. 댓글·좋아요가 비어 있는 이유까지 여기서 설명된다.
             HStack(spacing: 6) {
@@ -1331,13 +1359,20 @@ private struct PostDetailReader: View {
             ForEach(Array(blocks.enumerated()), id: \.offset) { index, block in
                 let next = index + 1 < blocks.count ? blocks[index + 1] : nil
                 let folded = index > 0 && BlockView.isCalloutLabel(blocks[index - 1], next: block)
-                Group {
+                let callout = BlockView.isCalloutLabel(block, next: next)
+                let swapped = translated.map {
+                    $0.translatedBlocks.contains(index) || (callout && $0.translatedBlocks.contains(index + 1))
+                } ?? false
+                ZStack(alignment: .topLeading) {
                     if folded {
                         Color.clear.frame(height: 0)
                     } else {
                         BlockView(
                             block: block, isLead: index == leadIndex,
-                            calloutBody: BlockView.isCalloutLabel(block, next: next) ? next : nil)
+                            calloutBody: callout ? next : nil,
+                            translated: swapped)
+                            .id(swapped)
+                            .transition(.opacity)
                     }
                 }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -1533,7 +1568,7 @@ private struct PostDetailReader: View {
         .padding(.vertical, 10)
     }
 
-    private func header(_ detail: PublicPostDetail) -> some View {
+    private func header(_ detail: PublicPostDetail, titleTranslated: Bool) -> some View {
         // 제목 위 카테고리 eyebrow(대표 태그)가 내비바 아래 띠를 매거진 머릿글처럼 채운다.
         let kicker = ContentValidity.renderableTags(detail.post.tags).first
         return VStack(alignment: .leading, spacing: 0) {
@@ -1561,6 +1596,8 @@ private struct PostDetailReader: View {
                 .foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
+                .id(titleTranslated)
+                .transition(.opacity)
 
             NavigationLink(value: Route.author(username: detail.author.username)) {
                 Group {
@@ -1611,7 +1648,9 @@ private struct PostDetailReader: View {
     }
 
     private func metaLine(_ detail: PublicPostDetail) -> some View {
-        let phase = translations.phases[translationKey(detail)]
+        let key = translationKey(detail)
+        let phase = translations.phases[key]
+        let progress = translations.progress(key)
         let layout = dynamicTypeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6))
             : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 12))
@@ -1621,18 +1660,19 @@ private struct PostDetailReader: View {
                     Text("\(minutes)분 읽기")
                         .accessibilityLabel(Text("읽는 시간 약 \(minutes)분"))
                 }
-                if phase == .shown, let source = translationOffer?.source {
+                if let status = translationStatus(phase: phase, progress: progress) {
                     if readingMinutes != nil {
                         Text(verbatim: "·")
                             .foregroundStyle(Palette.faint)
                             .accessibilityHidden(true)
                     }
-                    Text("\(TranslationGate.displayName(source))에서 번역됨")
+                    status
                 }
             }
             .foregroundStyle(Palette.secondary)
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(progress == nil ? [] : .updatesFrequently)
 
             if let offer = translationOffer {
                 translationControl(detail, offer: offer, phase: phase)
@@ -1642,17 +1682,28 @@ private struct PostDetailReader: View {
         .typeScale(.footnote)
     }
 
+    private func translationStatus(phase: ContentTranslations.Phase?, progress: TranslationProgress?) -> Text? {
+        switch phase {
+        case .translating:
+            guard let progress else { return nil }
+            return Text("번역하는 중 \(progress.done)/\(progress.total)")
+                .monospacedDigit()
+                .accessibilityLabel(Text("번역하는 중, \(progress.total)개 중 \(progress.done)개"))
+        case .shown:
+            return translationOffer.map { Text("\(TranslationGate.displayName($0.source))에서 번역됨") }
+        case nil:
+            return nil
+        }
+    }
+
     @ViewBuilder
     private func translationControl(
         _ detail: PublicPostDetail, offer: PostTranslationOffer, phase: ContentTranslations.Phase?
     ) -> some View {
         switch phase {
-        case .translating:
-            Text("번역하는 중…")
-                .foregroundStyle(Palette.secondary)
-        case .shown:
+        case .translating, .shown:
             Button {
-                translations.showOriginal(translationKey(detail))
+                showOriginal(detail)
             } label: {
                 Text("원문 보기").expandTapTarget(15)
             }
@@ -1903,6 +1954,13 @@ private final class ScrollProgress {
         guard bodyHeight > 1, containerH > 1, bodyMinY.isFinite else { return min(1, max(0, read)) }
         return min(1, max(0, (containerH - bodyMinY) / bodyHeight))
     }
+}
+
+private struct TranslatedDetail {
+    let key: String
+    let texts: [String?]
+    let applied: PostTranslationPlan.Applied
+    let detail: PublicPostDetail
 }
 
 /// 오른쪽 가장자리 읽기 스크러버 — 본문 실측 위치(초록 바와 동일)를 보여주고, 끌면 그

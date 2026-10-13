@@ -17,6 +17,8 @@ struct BlockView: View {
     /// 첫 문단이면 lead — 한 호흡 큰 도입으로 독자를 들인다(에디토리얼 마스트헤드의 일부).
     var isLead = false
     var calloutBody: PostBlock? = nil
+    /// 번역문 — 하이라이트는 원문 오프셋에 묶여 있어 칠하지도 만들지도 않는다.
+    var translated = false
 
     /// 본 글(단독 상세)에서만 주입 — 있으면 문단이 선택→하이라이트 + 공개 하이라이트 페인트를
     /// 띄운다. 없으면(발견 덱 임베드·프리뷰) 종전 SwiftUI Text 그대로.
@@ -56,6 +58,19 @@ struct BlockView: View {
             // 하이라이트 없이 그린다(분해가 오프셋을 흔든다 — 순수 텍스트 문단은 종전 그대로).
             else if InlineImageMarkdown.containsImage(block.content ?? "") {
                 inlineImageParagraph(block.content ?? "", size: size, lineSpacing: lineSpacing, color: color)
+            }
+            else if translated, highlightStore != nil {
+                SelectableProseText(
+                    raw: block.content ?? "",
+                    fontSize: size,
+                    textColor: color,
+                    lineSpacing: lineSpacing,
+                    highlights: [],
+                    onHighlight: nil,
+                    onHighlightNote: nil,
+                    onTapMarks: nil
+                )
+                .padding(.bottom, isLead ? 20 : 18)
             }
             // 본 글이면 선택 가능한 문단(UITextView) — 길게 눌러 하이라이트, 공개 하이라이트 페인트.
             // 임베드·프리뷰(store 없음)는 종전 Text 경로 그대로(블래스트 레이디어스 최소화).

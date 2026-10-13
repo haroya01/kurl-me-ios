@@ -49,6 +49,25 @@ enum Config {
         #endif
     }()
 
+    /// `--translation-delay <ms>` — 목 번역기가 조각 하나를 돌려주기까지의 지연(DEBUG 전용, 기본 150ms).
+    static let translationDelay: Duration = {
+        #if DEBUG
+        if let value = launchValue(after: "--translation-delay"), let ms = Int(value) {
+            return .milliseconds(ms)
+        }
+        #endif
+        return .milliseconds(150)
+    }()
+
+    /// `--auto-translate` — 글이 열리면 번역하기를 한 번 누른다(DEBUG 전용, simctl 은 터치를 못 넣는다).
+    static let autoTranslate: Bool = {
+        #if DEBUG
+        return ProcessInfo.processInfo.arguments.contains("--auto-translate")
+        #else
+        return false
+        #endif
+    }()
+
     /// `--reset-recovery` — 시작 시 기기 복구 금고(ComposeRecoveryStore)를 비운다(DEBUG 전용).
     /// 컴포즈 계열 UITest 가 앞선 테스트의 잔여 스태시(→ 복구 다이얼로그)에 오염되지 않게 setUp 에서 쓴다.
     static let resetRecovery: Bool = {
