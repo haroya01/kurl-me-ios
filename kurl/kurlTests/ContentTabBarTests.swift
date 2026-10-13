@@ -39,3 +39,51 @@ final class PullTriggerTests: XCTestCase {
         XCTAssertTrue(trigger.fires(overpull: 90, refreshing: false))
     }
 }
+
+@MainActor
+final class TabBarVisibilityTests: XCTestCase {
+    private static var alive: [TabBarVisibility] = []
+
+    private func make() -> TabBarVisibility {
+        let visibility = TabBarVisibility()
+        Self.alive.append(visibility)
+        return visibility
+    }
+
+    func testReadingDownHidesAndScrollingUpBringsTheBarBack() {
+        let visibility = make()
+        let reader = UUID()
+        visibility.report(offset: 0, from: reader)
+        visibility.report(offset: 300, from: reader)
+        XCTAssertTrue(visibility.scrollHidden)
+        visibility.report(offset: 240, from: reader)
+        XCTAssertFalse(visibility.scrollHidden)
+    }
+
+    func testAfterATabSwitchTheScrolledReaderReportingAgainKeepsTheBar() {
+        let visibility = make()
+        let reader = UUID()
+        visibility.report(offset: 0, from: reader)
+        visibility.report(offset: 1500, from: reader)
+        XCTAssertTrue(visibility.scrollHidden)
+        visibility.reset()
+        visibility.report(offset: 1500, from: reader)
+        XCTAssertFalse(visibility.scrollHidden)
+        visibility.report(offset: 1560, from: reader)
+        XCTAssertTrue(visibility.scrollHidden)
+    }
+
+    func testComingBackFromAnotherScreenKeepsTheBarWhereItWas() {
+        let visibility = make()
+        let reader = UUID()
+        let author = UUID()
+        visibility.report(offset: 0, from: reader)
+        visibility.report(offset: 1500, from: reader)
+        visibility.report(offset: 1400, from: reader)
+        XCTAssertFalse(visibility.scrollHidden)
+        visibility.report(offset: 0, from: author)
+        visibility.report(offset: 20, from: author)
+        visibility.report(offset: 1400, from: reader)
+        XCTAssertFalse(visibility.scrollHidden)
+    }
+}

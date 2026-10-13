@@ -93,5 +93,6 @@ struct PostComposerCover: View {
                 initialMarkdownIsDraft: isDraft, onSaved: {})
                 .navigationDestination(for: Route.self) { RouteView(route: $0) }
         }
+        .environment(\.readerInSheet, false)
     }
 }

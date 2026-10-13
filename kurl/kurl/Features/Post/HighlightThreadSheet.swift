@@ -286,6 +286,7 @@ struct HighlightThreadSheet: View {
                 Button("계속 쓰기", role: .cancel) {}
             }
         }
+        .environment(\.readerInSheet, true)
         .modifier(ToastHost())
         .loginPrompt(isPresented: $showLikeLogin, message: "좋아요를 누르려면 로그인하세요")
         .presentationDetents([.large])

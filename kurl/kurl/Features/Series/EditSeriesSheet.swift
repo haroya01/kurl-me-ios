@@ -46,6 +46,38 @@ struct EditSeriesSheet: View {
     private var canSave: Bool { !trimmedTitle.isEmpty && slugValid && !saving }
 
     var body: some View {
+        ScrollView {
+            fields
+                .padding(.horizontal, Metrics.gutter)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            Button {
+                Task { await save() }
+            } label: {
+                Group {
+                    if saving { ProgressView().tint(.white) } else { Text("저장") }
+                }
+                .typeScale(.titleSmall)
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .contentShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .glassCapsule(prominent: true)
+            .disabled(!canSave)
+            .opacity(canSave ? 1 : 0.5)
+            .padding(.horizontal, Metrics.gutter)
+            .padding(.bottom, 16)
+            .background(Palette.readingBg)
+        }
+        .presentationDetents([.height(340)])
+        .presentationDragIndicator(.visible)
+        .background(Palette.readingBg)
+    }
+
+    private var fields: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("시리즈 수정")
                 .typeScale(.titleSmall)
@@ -78,31 +110,7 @@ struct EditSeriesSheet: View {
                 Hairline()
             }
             .padding(.top, 22)
-
-            Spacer(minLength: 0)
-
-            Button {
-                Task { await save() }
-            } label: {
-                Group {
-                    if saving { ProgressView().tint(.white) } else { Text("저장") }
-                }
-                .typeScale(.titleSmall)
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .contentShape(Capsule())
-            }
-            .buttonStyle(.plain)
-            .glassCapsule(prominent: true)
-            .disabled(!canSave)
-            .opacity(canSave ? 1 : 0.5)
-            .padding(.bottom, 16)
         }
-        .padding(.horizontal, Metrics.gutter)
-        .presentationDetents([.height(340)])
-        .presentationDragIndicator(.visible)
-        .background(Palette.readingBg)
     }
 
     private func save() async {
