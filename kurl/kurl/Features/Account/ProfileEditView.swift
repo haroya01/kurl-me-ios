@@ -160,7 +160,7 @@ struct ProfileEditView: View {
                 } else {
                     Button("저장") { save() }
                         .disabled(!loaded || bio.count > bioLimit || usernameError != nil)
-                        .tint(Palette.accentFill)
+                        .tint(Palette.link)
                 }
             }
         }

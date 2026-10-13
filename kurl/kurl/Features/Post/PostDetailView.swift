@@ -1170,7 +1170,7 @@ private struct PostDetailReader: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("저장") { Task { await adminApplyEdit() } }
                         .disabled(adminEditTitle.trimmingCharacters(in: .whitespaces).isEmpty)
-                        .tint(Palette.accentFill)
+                        .tint(Palette.link)
                 }
             }
         }

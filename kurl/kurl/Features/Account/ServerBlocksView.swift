@@ -217,7 +217,7 @@ struct ServerBlockSheet: View {
                     }
                     .disabled(domain.trimmingCharacters(in: .whitespaces).isEmpty || saving)
                     .accessibilityIdentifier("serverBlocks.save")
-                    .tint(Palette.accentFill)
+                    .tint(Palette.link)
                 }
             }
             .alert("정지할까요?", isPresented: $confirmSuspend) {

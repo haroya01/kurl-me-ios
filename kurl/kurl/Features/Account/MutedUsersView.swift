@@ -71,7 +71,7 @@ struct MuteSheet: View {
                     }
                     .disabled(saving)
                     .accessibilityIdentifier("mute.confirm")
-                    .tint(Palette.accentFill)
+                    .tint(Palette.link)
                 }
             }
         }

@@ -668,7 +668,7 @@ struct HighlightNoteComposerSheet: View {
                     }
                     .disabled(!submission.canSave)
                     .accessibilityIdentifier("saveHighlightNote")
-                    .tint(Palette.accentFill)
+                    .tint(Palette.link)
                 }
             }
             .alert("작성한 메모를 버릴까요?", isPresented: $showDiscardConfirm) {

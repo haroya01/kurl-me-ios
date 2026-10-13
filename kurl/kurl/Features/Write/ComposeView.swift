@@ -1314,7 +1314,7 @@ struct ComposeView: View {
                         ProgressView().controlSize(.small)
                     } else {
                         Button("예약") { Task { await scheduleNow() } }
-                            .tint(Palette.accentFill)
+                            .tint(Palette.link)
                     }
                 }
             }
@@ -2897,7 +2897,7 @@ private struct ImageCaptionSheet: View {
                         dismiss()
                     }
                     .font(.body.weight(.semibold))
-                    .tint(Palette.accentFill)
+                    .tint(Palette.link)
                 }
             }
         }

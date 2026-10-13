@@ -127,7 +127,7 @@ struct NoteScheduleSheet: View {
                         dismiss()
                     }
                     .accessibilityIdentifier("noteSchedule.done")
-                    .tint(Palette.accentFill)
+                    .tint(Palette.link)
                 }
             }
         }

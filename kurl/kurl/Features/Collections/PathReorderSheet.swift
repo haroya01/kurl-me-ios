@@ -46,7 +46,7 @@ struct PathReorderSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("저장") { Task { await save() } }.disabled(saving || !reordered)
-                        .tint(Palette.accentFill)
+                        .tint(Palette.link)
                 }
             }
         }

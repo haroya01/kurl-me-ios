@@ -2673,7 +2673,7 @@ struct NoteComposeSheet: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("완료") { altTarget = nil }
-                        .tint(Palette.accentFill)
+                        .tint(Palette.link)
                 }
             }
         }

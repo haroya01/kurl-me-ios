@@ -65,7 +65,7 @@ struct SeriesReorderSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("저장") { Task { await save() } }
                         .disabled(saving || loading || !changed)
-                        .tint(Palette.accentFill)
+                        .tint(Palette.link)
                 }
             }
             .sheet(isPresented: $pickingNote) {

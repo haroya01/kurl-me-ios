@@ -198,7 +198,7 @@ struct NoteFilterEditor: View {
                     }
                     .disabled(!canSave)
                     .accessibilityIdentifier("noteFilter.save")
-                    .tint(Palette.accentFill)
+                    .tint(Palette.link)
                 }
             }
             .alert("이 필터를 지울까요?", isPresented: $confirmDelete) {
