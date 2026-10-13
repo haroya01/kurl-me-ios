@@ -109,7 +109,7 @@ final class EngagementDockUITests: XCTestCase {
             Thread.sleep(forTimeInterval: 0.3)
         }
         Thread.sleep(forTimeInterval: 0.5)
-        let prompt = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "댓글을 남겨보세요")).firstMatch
+        let prompt = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "댓글 쓰기")).firstMatch
         XCTAssertTrue(prompt.isHittable, "댓글 입구가 가려짐")
         nudgeContentDown(app)
         XCTAssertFalse(like.isHittable, "댓글에서 살짝 올렸는데 독이 댓글 위에 떠 있음")

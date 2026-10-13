@@ -350,8 +350,8 @@ private struct PostDetailReader: View {
                 ConversationComposer(
                     text: $commentDraft,
                     replyTarget: commentReplyTarget,
-                    placeholder: "댓글을 남겨보세요",
-                    replyPlaceholder: "답글을 남겨보세요",
+                    placeholder: "댓글 쓰기",
+                    replyPlaceholder: "답글 쓰기",
                     sendLabel: "댓글 보내기",
                     loginMessage: "댓글을 달려면 로그인하세요",
                     inputIdentifier: "comment.input",
@@ -1812,10 +1812,10 @@ private struct PostDetailReader: View {
             Button {
                 composerActive = true
             } label: {
-                ReplyPrompt(text: Text("댓글을 남겨보세요"))
+                ReplyPrompt(text: Text("댓글 쓰기"))
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("댓글을 남겨보세요")
+            .accessibilityLabel("댓글 쓰기")
             .padding(.top, 4)
         }
     }
