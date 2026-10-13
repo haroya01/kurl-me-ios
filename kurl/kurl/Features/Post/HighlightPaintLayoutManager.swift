@@ -60,8 +60,8 @@ final class HighlightPaintLayoutManager: NSLayoutManager {
         forCharacterRange charRange: NSRange, color: UIColor
     ) {
         // NSLayoutManager 는 연달아 꽉 찬 줄들을 사각형 하나로 합쳐 넘긴다.
-        let bands = (0..<rectCount).flatMap { bands(in: rectArray[$0], for: charRange) }
-        bands.withUnsafeBufferPointer { buffer in
+        let lineBands = (0..<rectCount).flatMap { bands(in: rectArray[$0], for: charRange) }
+        lineBands.withUnsafeBufferPointer { buffer in
             guard let base = buffer.baseAddress else { return }
             super.fillBackgroundRectArray(base, count: buffer.count, forCharacterRange: charRange, color: color)
         }
