@@ -54,7 +54,7 @@ struct AddNoteToSeriesSheet: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .background(Palette.readingBg)
+            .background(Palette.sheetBg)
             .overlay {
                 if loading { KurlLoadingMark() }
             }

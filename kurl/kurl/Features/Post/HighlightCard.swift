@@ -109,18 +109,18 @@ struct HighlightCard: View {
             actions
         }
         .padding(16)
-        .background(Palette.readingBg, in: RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
+        .background(Palette.floatingBg, in: RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
                 .strokeBorder(Palette.hairline))
-        .shadow(color: .black.opacity(0.12), radius: 18, y: 6)
+        .shadow(color: Palette.shadow.opacity(0.12), radius: 18, y: 6)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("highlightCard")
     }
 
     private var header: some View {
         HStack(spacing: 0) {
-            HighlightersLine(authors: HighlightersLine.authors(of: highlights, isMine: store.isMine))
+            HighlightersLine(authors: HighlightersLine.authors(of: highlights, isMine: store.isMine), ring: Palette.floatingBg)
                 .typeScale(.footnote)
                 .foregroundStyle(Palette.secondary)
                 .accessibilityIdentifier("highlightCard.highlighters")

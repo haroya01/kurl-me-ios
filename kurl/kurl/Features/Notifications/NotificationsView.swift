@@ -393,7 +393,7 @@ struct NotificationsView: View {
                         Circle()
                             .fill(Palette.accent)
                             .frame(width: 10, height: 10)
-                            .overlay(Circle().strokeBorder(Palette.readingBg, lineWidth: 2))
+                            .overlay(Circle().strokeBorder(Palette.pageBg, lineWidth: 2))
                             .offset(x: 1, y: 1)
                     }
                 }
@@ -414,7 +414,7 @@ struct NotificationsView: View {
                     .foregroundStyle(Palette.secondary)
                     .frame(width: 15, height: 15)
                     .background(Palette.chipBg, in: Circle())
-                    .overlay(Circle().strokeBorder(Palette.readingBg, lineWidth: 1.5))
+                    .overlay(Circle().strokeBorder(Palette.pageBg, lineWidth: 1.5))
                     .offset(x: -2, y: 2)
             }
             .overlay(alignment: .bottomTrailing) {
@@ -422,7 +422,7 @@ struct NotificationsView: View {
                     Circle()
                         .fill(Palette.accent)
                         .frame(width: 10, height: 10)
-                        .overlay(Circle().strokeBorder(Palette.readingBg, lineWidth: 2))
+                        .overlay(Circle().strokeBorder(Palette.pageBg, lineWidth: 2))
                         .offset(x: 1, y: 1)
                 }
             }

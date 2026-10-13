@@ -449,7 +449,7 @@ struct StudioView: View {
         return HStack(spacing: 5) {
             Circle().fill(dotColor).frame(width: 5, height: 5)
             if let label {
-                Text(label).foregroundStyle(dotColor)
+                Text(label).foregroundStyle(post.isDraft ? Palette.secondary : dotColor)
                 Text("·").foregroundStyle(Palette.faint)
             }
             if let date = post.publishedAt ?? post.scheduledAt ?? post.updatedAt {

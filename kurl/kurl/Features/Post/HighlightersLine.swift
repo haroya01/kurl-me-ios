@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HighlightersLine: View {
     let authors: [Author]
+    let ring: Color
 
     @ScaledMetric(relativeTo: .footnote) private var unit: CGFloat = 1
 
@@ -24,7 +25,7 @@ struct HighlightersLine: View {
             HStack(spacing: -6) {
                 ForEach(authors.prefix(3)) { author in
                     AvatarView(author: author, size: 20 * unit)
-                        .overlay(Circle().strokeBorder(Palette.readingBg, lineWidth: 1.5))
+                        .overlay(Circle().strokeBorder(ring, lineWidth: 1.5))
                 }
             }
             .accessibilityHidden(true)

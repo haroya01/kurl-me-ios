@@ -118,7 +118,7 @@ struct ChooseUsernameView: View {
                     .padding(.horizontal, Metrics.gutter + 4)
                     .padding(.top, 8)
                     .padding(.bottom, 12)
-                    .background(Color(uiColor: .systemBackground))
+                    .background(Palette.readingBg)
                 }
             }
         }

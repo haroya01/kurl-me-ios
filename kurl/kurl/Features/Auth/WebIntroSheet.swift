@@ -50,11 +50,11 @@ struct WebIntroSheet: View {
             .buttonStyle(.plain)
             .padding(.horizontal, Metrics.gutter + 4)
             .padding(.bottom, 16)
-            .background(Palette.readingBg)
+            .background(Palette.sheetBg)
             .opacity(actionsOn ? 1 : 0)
             .offset(y: actionsOn ? 0 : 10)
         }
-        .background(Palette.readingBg.ignoresSafeArea())
+        .background(Palette.sheetBg.ignoresSafeArea())
         .sheet(item: $webLink) { SafariView(url: $0.url).ignoresSafeArea() }
         .presentationDetents([.medium])
         .presentationDragIndicator(.visible)
@@ -128,7 +128,7 @@ struct WebIntroSheet: View {
                 .background(
                     RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
                         .fill(Palette.cardBg)
-                        .shadow(color: .black.opacity(0.07), radius: 12, y: 4))
+                        .shadow(color: Palette.shadow.opacity(0.07), radius: 12, y: 4))
                 .overlay(
                     RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
                         .strokeBorder(Palette.cardBorder, lineWidth: 1))
@@ -143,7 +143,7 @@ struct WebIntroSheet: View {
             // 갓 만든 계정의 웹은 아직 비어 있다 — 열어 보기 전에 기대를 맞춰 준다.
             Text("첫 글을 발행하면 이 주소가 채워져요.")
                 .font(.system(size: 13 * unit))
-                .foregroundStyle(Palette.faint)
+                .foregroundStyle(Palette.secondary)
                 .padding(.top, 10)
                 .padding(.leading, 16)
                 .opacity(footOn ? 1 : 0)

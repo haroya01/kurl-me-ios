@@ -923,7 +923,7 @@ private struct PostDetailReader: View {
         .padding(.vertical, 11)
         .background(.regularMaterial, in: Capsule())
         .overlay(Capsule().strokeBorder(Palette.hairline, lineWidth: 1))
-        .shadow(color: .black.opacity(0.12), radius: 14, y: 6)
+        .shadow(color: Palette.shadow.opacity(0.12), radius: 14, y: 6)
         .padding(.bottom, 40)
         .padding(.horizontal, Metrics.gutter)
         .transition(.move(edge: .bottom).combined(with: .opacity))

@@ -870,8 +870,8 @@ private struct TabStripLayout: Layout {
 private struct CardShadow: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .shadow(color: .black.opacity(0.05), radius: 1.5, y: 1)
-            .shadow(color: .black.opacity(0.08), radius: 18, y: 10)
+            .shadow(color: Palette.shadow.opacity(0.05), radius: 1.5, y: 1)
+            .shadow(color: Palette.shadow.opacity(0.08), radius: 18, y: 10)
     }
 }
 

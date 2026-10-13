@@ -114,7 +114,7 @@ struct DraftPreviewView: View {
                 .foregroundStyle(Palette.secondary)
             Text("글을 쓰면 여기에서 발행 후 모습을 미리 볼 수 있어요.")
                 .typeScale(.footnote)
-                .foregroundStyle(Palette.faint)
+                .foregroundStyle(Palette.secondary)
         }
         .padding(.top, 40)
     }

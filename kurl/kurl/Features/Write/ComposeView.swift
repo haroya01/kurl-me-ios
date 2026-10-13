@@ -590,7 +590,7 @@ struct ComposeView: View {
                     ProgressView().controlSize(.small)
                     Text("본문을 불러오는 중이에요…")
                         .typeScale(.body)
-                        .foregroundStyle(Palette.faint)
+                        .foregroundStyle(Palette.secondary)
                 }
                 .padding(.horizontal, Metrics.gutter)
                 .padding(.top, 12)
@@ -865,6 +865,7 @@ struct ComposeView: View {
                 .padding(20)
             }
             .scrollIndicators(.hidden)
+            .background(Palette.readingBg)
             // 주행동은 detent 높이와 무관하게 항상 보이게 — 시트 하단 고정.
             .safeAreaInset(edge: .bottom) {
                 VStack(spacing: 10) {
@@ -1305,6 +1306,7 @@ struct ComposeView: View {
             }
         }
         .presentationDetents([.large])
+        .presentationBackground(Palette.sheetBg)
     }
 
     /// 자주 쓰는 발행 시각 — 지난 시각은 빼고. 그래프 픽커 전에 한 번에 고르게.

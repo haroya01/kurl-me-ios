@@ -298,7 +298,7 @@ struct SubscribedTagsView: View {
                     // 조용한 안내 한 줄 — 해제가 길게 누르기 뒤에 숨어 있음을 알린다(발견성).
                     Text("칩을 탭하면 그 주제의 글로, 길게 누르면 구독을 해제해요.")
                         .typeScale(.meta)
-                        .foregroundStyle(Palette.faint)
+                        .foregroundStyle(Palette.secondary)
                         .padding(.top, 2)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

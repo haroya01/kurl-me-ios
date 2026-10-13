@@ -67,7 +67,7 @@ struct ComposeChooserSheet: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .background(Palette.readingBg)
+            .background(Palette.sheetBg)
             .contentMargins(.top, 12, for: .scrollContent)
             .toolbar(.hidden, for: .navigationBar)
             .onScrollGeometryChange(for: CGFloat.self) { $0.contentSize.height } action: { _, height in
@@ -96,7 +96,7 @@ struct ComposeChooserSheet: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .background(Palette.readingBg)
+        .background(Palette.sheetBg)
         .navigationTitle(Text(LocalizedStringResource("heading.drafts", defaultValue: "임시저장")))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)

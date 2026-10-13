@@ -48,7 +48,7 @@ struct ConnectSheet: View {
         }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
-        .background(Palette.readingBg)
+        .background(Palette.sheetBg)
         .sheet(isPresented: $creating) {
             CreateCollectionSheet { created in
                 collections.insert(created, at: 0)
@@ -211,7 +211,7 @@ struct ConnectSheet: View {
                 Text("\(c.count)개")
             }
             .typeScale(.meta)
-            .foregroundStyle(Palette.faint)
+            .foregroundStyle(Palette.secondary)
         }
     }
 
@@ -277,7 +277,7 @@ struct ConnectSheet: View {
             Text("왜 이었나요")
                 .typeScale(.eyebrow)
                 .tracking(0.4)
-                .foregroundStyle(Palette.faint)
+                .foregroundStyle(Palette.secondary)
                 .padding(.top, 24)
                 .padding(.bottom, 10)
             whyField
@@ -327,7 +327,7 @@ struct ConnectSheet: View {
             // 남은 여백처럼 조용한 카운터 — 우측 정렬 meta. 다 차면 잉크로 한계를 알린다(§10 조용히).
             Text("\(why.count)/\(Self.whyLimit)")
                 .typeScale(.meta)
-                .foregroundStyle(why.count >= Self.whyLimit ? Palette.ink : Palette.faint)
+                .foregroundStyle(why.count >= Self.whyLimit ? Palette.ink : Palette.secondary)
                 .monospacedDigit()
                 .frame(maxWidth: .infinity, alignment: .trailing)
                 .accessibilityLabel(Text("\(why.count)자 입력, 최대 \(Self.whyLimit)자"))

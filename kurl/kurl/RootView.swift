@@ -198,7 +198,7 @@ struct RootView: View {
             }
         } else if Config.launchValue(after: "--screen") == "loginsheet" {
             // 로그인 시트는 인게이지 탭으로만 떠 simctl 로 못 띄운다 — 검증 진입로.
-            Color(uiColor: .systemBackground).ignoresSafeArea()
+            Palette.readingBg.ignoresSafeArea()
                 .sheet(isPresented: .constant(true)) {
                     LoginSheet(message: "좋아요를 누르려면 로그인하세요")
                 }
@@ -589,7 +589,7 @@ private struct FloatingTabBar<TabMenu: View>: View {
         let center = dragX.map { min(max($0, slot / 2), rowWidth - slot / 2) }
             ?? (CGFloat(selection.wrappedValue) + 0.5) * slot
         return Capsule()
-            .fill(Palette.hairlineStrong)
+            .fill(Palette.tabSelection)
             .frame(width: width, height: 48)
             .offset(x: center - width / 2)
             .opacity(rowWidth > 0 ? 1 : 0)
@@ -625,7 +625,7 @@ private struct WebIntroHarness: View {
     @State private var open = true
 
     var body: some View {
-        Color(uiColor: .systemBackground).ignoresSafeArea()
+        Palette.readingBg.ignoresSafeArea()
             .sheet(isPresented: $open) { WebIntroSheet() }
     }
 }
@@ -634,7 +634,7 @@ private struct ConnectHarness: View {
     @State private var open = true
 
     var body: some View {
-        Color(uiColor: .systemBackground).ignoresSafeArea()
+        Palette.readingBg.ignoresSafeArea()
             .sheet(isPresented: $open) {
                 ConnectSheet(
                     targetKind: "글", targetTitle: "헥사고날로 갈아탄 지 석 달, 무엇이 남았나",

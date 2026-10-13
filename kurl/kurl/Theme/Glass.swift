@@ -209,8 +209,8 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable, More: View>: View {
             row
                 .glassEffect(.regular.interactive(), in: .capsule)
                 // 콘텐츠 위로 떠 있는 크롬 — 닿는 면 한 겹 + 옅은 앰비언트로 종이에서 들어 올린다.
-                .shadow(color: .black.opacity(0.05), radius: 1.5, y: 1)
-                .shadow(color: .black.opacity(0.08), radius: 12, y: 5)
+                .shadow(color: Palette.shadow.opacity(0.05), radius: 1.5, y: 1)
+                .shadow(color: Palette.shadow.opacity(0.08), radius: 12, y: 5)
         }
     }
 

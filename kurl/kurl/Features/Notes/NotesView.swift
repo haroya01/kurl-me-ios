@@ -2276,7 +2276,7 @@ struct NoteComposeSheet: View {
                 }
             }
             .scrollDismissesKeyboard(.interactively)
-            .background(Palette.readingBg)
+            .background(Palette.sheetBg)
             .safeAreaInset(edge: .bottom) { footer }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
@@ -2451,7 +2451,7 @@ struct NoteComposeSheet: View {
         .padding(.horizontal, Metrics.gutter)
         .padding(.vertical, 10)
         .frame(minHeight: 44)
-        .background(Palette.readingBg)
+        .background(Palette.sheetBg)
         .overlay(alignment: .top) { Hairline() }
     }
 

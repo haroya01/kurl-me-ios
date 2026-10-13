@@ -85,7 +85,7 @@ struct PostCollectionsRail: View {
                     .multilineTextAlignment(.leading)
                 pathMeta(collection)
                     .typeScale(.meta)
-                    .foregroundStyle(Palette.faint)
+                    .foregroundStyle(Palette.secondary)
             }
             Spacer(minLength: 8)
             Image(systemName: "chevron.right")

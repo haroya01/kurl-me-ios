@@ -279,7 +279,7 @@ struct SeriesNoteMark: View {
     var body: some View {
         Text("노트")
             .font(.system(size: size, weight: .semibold))
-            .foregroundStyle(current ? Palette.link : Palette.faint)
+            .foregroundStyle(current ? Palette.link : Palette.secondary)
             .accessibilityHidden(true)
     }
 }

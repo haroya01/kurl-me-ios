@@ -64,7 +64,7 @@ struct HighlightThreadSheet: View {
 
     private var highlighters: some View {
         HighlightersLine(authors: HighlightersLine.authors(
-            of: HighlightPaint.overlapping(highlight, in: store.highlights), isMine: store.isMine))
+            of: HighlightPaint.overlapping(highlight, in: store.highlights), isMine: store.isMine), ring: Palette.sheetBg)
             .typeScale(.meta)
             .foregroundStyle(Palette.secondary)
             .accessibilityIdentifier("highlight.highlighters")
@@ -177,7 +177,7 @@ struct HighlightThreadSheet: View {
                         } label: {
                             Text("아직 답글이 없어요")
                                 .typeScale(.meta)
-                                .foregroundStyle(Palette.faint)
+                                .foregroundStyle(Palette.secondary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.horizontal, Metrics.gutter)
                                 .padding(.vertical, 14)
@@ -196,7 +196,7 @@ struct HighlightThreadSheet: View {
                             Text("이 문장이 담긴 컬렉션")
                                 .typeScale(.eyebrow)
                                 .tracking(0.4)
-                                .foregroundStyle(Palette.faint)
+                                .foregroundStyle(Palette.secondary)
                             ForEach(inCollections) { c in
                                 NavigationLink(value: CollectionRef(id: c.id)) {
                                     containingRow(c)
@@ -290,6 +290,7 @@ struct HighlightThreadSheet: View {
         .modifier(ToastHost())
         .loginPrompt(isPresented: $showLikeLogin, message: "좋아요를 누르려면 로그인하세요")
         .presentationDetents([.large])
+        .presentationBackground(Palette.sheetBg)
         .presentationDragIndicator(.visible)
         // 답글을 쓰던 중의 드래그 닫힘은 입력을 통째로 버린다 — 글자가 있는 동안만 잠근다
         // (보내거나 지우면 다시 닫힘, 인증 시트와 같은 관용구).
@@ -388,7 +389,7 @@ struct HighlightThreadSheet: View {
             Spacer(minLength: 6)
             Text("\(c.count)개")
                 .typeScale(.meta)
-                .foregroundStyle(Palette.faint)
+                .foregroundStyle(Palette.secondary)
             Image(systemName: "chevron.right")
                 .font(.system(size: 11 * metaUnit, weight: .semibold))
                 .foregroundStyle(Palette.faint)
@@ -681,6 +682,7 @@ struct HighlightNoteComposerSheet: View {
             }
         }
         .presentationDetents([.large])
+        .presentationBackground(Palette.sheetBg)
         .presentationDragIndicator(.visible)
         // 메모를 쓰다 드래그로 내리면 유실 — 글자가 있는 동안만 잠근다(취소 버튼은 그대로 출구).
         .interactiveDismissDisabled(submission.busy || !submission.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)

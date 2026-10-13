@@ -70,11 +70,11 @@ struct EditSeriesSheet: View {
             .opacity(canSave ? 1 : 0.5)
             .padding(.horizontal, Metrics.gutter)
             .padding(.bottom, 16)
-            .background(Palette.readingBg)
+            .background(Palette.sheetBg)
         }
         .presentationDetents([.height(340)])
         .presentationDragIndicator(.visible)
-        .background(Palette.readingBg)
+        .background(Palette.sheetBg)
     }
 
     private var fields: some View {
@@ -96,11 +96,11 @@ struct EditSeriesSheet: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("주소")
                     .typeScale(.meta)
-                    .foregroundStyle(Palette.faint)
+                    .foregroundStyle(Palette.secondary)
                 HStack(spacing: 8) {
                     Text(verbatim: "blog.kurl.me/…/")
                         .typeScale(.meta)
-                        .foregroundStyle(Palette.faint)
+                        .foregroundStyle(Palette.secondary)
                     TextField("series-slug", text: $slug)
                         .font(.system(size: 15 * unit).monospaced())
                         .foregroundStyle(Palette.ink)

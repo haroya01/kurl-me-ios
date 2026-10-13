@@ -174,11 +174,11 @@ struct CreateCollectionSheet: View {
             .opacity(title.trimmingCharacters(in: .whitespaces).isEmpty ? 0.5 : 1)
             .padding(.horizontal, Metrics.gutter)
             .padding(.bottom, 16)
-            .background(Palette.readingBg)
+            .background(Palette.sheetBg)
         }
         .presentationDetents([.height(360)])
         .presentationDragIndicator(.visible)
-        .background(Palette.readingBg)
+        .background(Palette.sheetBg)
     }
 
     private var fields: some View {
@@ -288,11 +288,11 @@ struct EditCollectionSheet: View {
             .opacity(title.trimmingCharacters(in: .whitespaces).isEmpty ? 0.5 : 1)
             .padding(.horizontal, Metrics.gutter)
             .padding(.bottom, 16)
-            .background(Palette.readingBg)
+            .background(Palette.sheetBg)
         }
         .presentationDetents([.height(360)])
         .presentationDragIndicator(.visible)
-        .background(Palette.readingBg)
+        .background(Palette.sheetBg)
     }
 
     private var fields: some View {

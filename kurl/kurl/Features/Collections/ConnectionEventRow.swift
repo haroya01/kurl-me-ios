@@ -105,7 +105,7 @@ struct ConnectionEventRow: View {
         if let at = event.connectedAt {
             line = line
                 + Text(verbatim: "  ·  ").foregroundStyle(Palette.faint)
-                + Text(at.relativeShort).foregroundStyle(Palette.faint)
+                + Text(at.relativeShort).foregroundStyle(Palette.secondary)
         }
         return line
     }
@@ -151,7 +151,7 @@ struct BlockPreview: View {
                         size: 15.5, relativeTo: .callout, lineSpacing: 0.3, identifier: "collectionHighlight.quote")
                     Text(postTitle)
                         .typeScale(.meta)
-                        .foregroundStyle(Palette.faint)
+                        .foregroundStyle(Palette.secondary)
                         .lineLimit(1)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
