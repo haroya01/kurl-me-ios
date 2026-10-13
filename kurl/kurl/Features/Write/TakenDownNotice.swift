@@ -23,7 +23,7 @@ struct TakenDownNotice: View {
             if let termsURL {
                 Link("이용약관 보기", destination: termsURL)
                     .typeScale(.footnote)
-                    .tint(Palette.link)
+                    .tint(Palette.ink)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

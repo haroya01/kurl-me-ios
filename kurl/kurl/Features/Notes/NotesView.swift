@@ -351,7 +351,7 @@ struct NoteRowView: View {
                     .lineLimit(1)
                 Text("보기")
                     .fontWeight(.medium)
-                    .foregroundStyle(Palette.link)
+                    .foregroundStyle(Palette.ink)
                     .fixedSize()
                 Spacer(minLength: 0)
             }
@@ -1775,7 +1775,7 @@ struct NoteFeedItem: View {
                         Text("이어지는 글 \(thread.total - 2)개 더")
                             .typeScale(.meta)
                             .fontWeight(.medium)
-                            .foregroundStyle(Palette.link)
+                            .foregroundStyle(Palette.ink)
                             .padding(.leading, 48)
                             .padding(.bottom, 14)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -2673,6 +2673,7 @@ struct NoteComposeSheet: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("완료") { altTarget = nil }
+                        .tint(Palette.accentFill)
                 }
             }
         }
@@ -2844,7 +2845,7 @@ private struct NoteLengthRing: View {
             Circle().stroke(Palette.hairlineStrong, lineWidth: 2.5)
             Circle()
                 .trim(from: 0, to: min(1, CGFloat(length) / CGFloat(max(limit, 1))))
-                .stroke(left < 0 ? Palette.danger : Palette.accent, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                .stroke(left < 0 ? Palette.danger : Palette.secondary, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
                 .rotationEffect(.degrees(-90))
             if near {
                 Text(verbatim: "\(left)")
@@ -2942,7 +2943,7 @@ struct NoteHistorySheet: View {
             .navigationTitle("수정 기록")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
+                ToolbarItem(placement: .cancellationAction) {
                     Button("닫기") { dismiss() }
                 }
             }

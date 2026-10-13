@@ -189,7 +189,7 @@ enum MarkdownSyntaxHighlighter {
             if let markerLen = listMarkerLength(line) {
                 let markerRange = NSRange(location: lineRange.location, length: min(markerLen, lineRange.length))
                 if reveal {
-                    storage.addAttribute(.foregroundColor, value: UIColor(Palette.accentMarker), range: markerRange)
+                    storage.addAttribute(.foregroundColor, value: UIColor(Palette.secondary), range: markerRange)
                 } else {
                     // 번호 항목이면 순번(1,2,3…), 아니면 불릿(•).
                     let bullet = orderedOrdinal.map { "\($0)." } ?? "•"

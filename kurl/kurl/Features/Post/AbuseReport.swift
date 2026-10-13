@@ -199,7 +199,7 @@ struct ReportReasonSheet: View {
             } label: {
                 Label("사유 다시 고르기", systemImage: "chevron.left")
                     .typeScale(.footnote)
-                    .foregroundStyle(Palette.link)
+                    .foregroundStyle(Palette.ink)
             }
             .buttonStyle(.plain)
 

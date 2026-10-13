@@ -115,7 +115,7 @@ struct SeriesAnalyticsDetailView: View {
                 HStack(spacing: 8) {
                     Text("EP \(member.episode)")
                         .font(.system(size: 11 * metaUnit, weight: .semibold))
-                        .foregroundStyle(Palette.accentMarker)
+                        .foregroundStyle(Palette.secondary)
                     Text(member.title)
                         .typeScale(.titleSmall)
                         .foregroundStyle(Palette.ink)
@@ -127,7 +127,7 @@ struct SeriesAnalyticsDetailView: View {
                             .fill(Palette.hairline)
                             .frame(height: 8)
                         RoundedRectangle(cornerRadius: Metrics.radiusBar)
-                            .fill(Palette.accent.opacity(0.85))
+                            .fill(Palette.secondary)
                             .frame(
                                 width: max(4, geo.size.width * CGFloat(member.uniqueReaders) / CGFloat(maxReaders)),
                                 height: 8)

@@ -189,6 +189,7 @@ struct EditorLinkSheet: View {
                             .font(.body.weight(.semibold))
                             .disabled(address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                             .accessibilityIdentifier("editor-link-submit")
+                            .tint(Palette.accentFill)
                     }
                 }
             }

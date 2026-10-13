@@ -46,6 +46,7 @@ struct PathReorderSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("저장") { Task { await save() } }.disabled(saving || !reordered)
+                        .tint(Palette.accentFill)
                 }
             }
         }
@@ -55,7 +56,7 @@ struct PathReorderSheet: View {
         HStack(alignment: .top, spacing: 12) {
             Text("\(index + 1)")
                 .font(.system(size: indexSize, weight: .bold))
-                .foregroundStyle(Palette.accent)
+                .foregroundStyle(Palette.secondary)
             VStack(alignment: .leading, spacing: 3) {
                 if let why = item.why, !why.isEmpty {
                     Text(why)

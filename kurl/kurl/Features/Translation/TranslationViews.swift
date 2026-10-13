@@ -22,12 +22,12 @@ struct NoteTranslationLine: View {
                 Text(verbatim: "·")
                 Button("원문 보기", action: showOriginal)
                     .buttonStyle(.borderless)
-                    .tint(Palette.link)
+                    .tint(Palette.ink)
                     .accessibilityIdentifier("note.original.\(noteId)")
             case nil:
                 Button("번역 보기", action: translate)
                     .buttonStyle(.borderless)
-                    .tint(Palette.link)
+                    .tint(Palette.ink)
                     .accessibilityIdentifier("note.translate.\(noteId)")
             }
         }

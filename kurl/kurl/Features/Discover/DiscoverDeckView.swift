@@ -139,7 +139,7 @@ struct DiscoverDeckView: View {
                         ) {
                             Image(systemName: "square.and.arrow.up")
                         }
-                        .tint(.brand)
+                        .tint(.primary)
                         .accessibilityLabel(Text("공유"))
                     }
                 }
@@ -157,7 +157,7 @@ struct DiscoverDeckView: View {
                         Image(systemName: "shuffle")
                             .symbolEffect(.rotate, value: reduceMotion ? 0 : shuffleCount)
                     }
-                    .tint(.brand)
+                    .tint(.primary)
                     .sensoryFeedback(.impact(weight: .light), trigger: shuffleCount)
                     .accessibilityLabel("덱 섞기")
                 }

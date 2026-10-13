@@ -6,8 +6,8 @@
 //  "다음 글"이 아니라 사람이 손으로 엮은 연결로. 공개 read(미로그인도 본다)라 게이트 없이 뜬다.
 //  담긴 공개 컬렉션이 없으면 그려지지 않는다.
 //
-//  §1: 여긴 종이 세계(콘텐츠)라 유리 없이 slate + hairline + 그린 한 가닥. 그린은 비텍스트
-//  마커(폴더 글리프·순번 배지)에만(§10.3 accent 600) — 카피는 조용한 슬레이트로. 노드-엣지 그림은 그리지 않는다.
+//  §1: 여긴 종이 세계(콘텐츠)라 유리 없이 slate + hairline. 폴더 글리프·순번 배지도
+//  보조색 — 카피도 조용한 슬레이트로. 노드-엣지 그림은 그리지 않는다.
 //
 
 import SwiftUI
@@ -39,7 +39,7 @@ struct PostCollectionsRail: View {
         }
     }
 
-    // MARK: 이 글이 담긴 컬렉션 — 담긴 공개 컬렉션(소속 한 올과 같은 그린 글리프 문법)
+    // MARK: 이 글이 담긴 컬렉션 — 담긴 공개 컬렉션(소속 한 올과 같은 글리프 문법)
 
     private var pathsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -65,14 +65,14 @@ struct PostCollectionsRail: View {
                     Text("\(step)")
                         .typeScale(.meta)
                         .fontWeight(.bold)
-                        .foregroundStyle(Palette.accent)
+                        .foregroundStyle(Palette.secondary)
                         .frame(width: lead, height: lead)
-                        .background(Circle().strokeBorder(Palette.accent, lineWidth: 1))
+                        .background(Circle().strokeBorder(Palette.secondary, lineWidth: 1))
                         .accessibilityHidden(true)
                 } else {
                     Image(systemName: "folder")
                         .font(.system(size: glyph, weight: .semibold))
-                        .foregroundStyle(Palette.accent)
+                        .foregroundStyle(Palette.secondary)
                         .padding(.top, 2)
                 }
             }

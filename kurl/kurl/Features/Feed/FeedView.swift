@@ -371,7 +371,7 @@ struct FeedPage: View {
                             Text("더 불러오지 못했습니다 — 다시 시도")
                                 .typeScale(.meta)
                         }
-                        .foregroundStyle(Palette.link)
+                        .foregroundStyle(Palette.ink)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 18)
                         .contentShape(Rectangle())

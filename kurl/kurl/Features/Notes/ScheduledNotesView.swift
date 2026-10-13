@@ -104,6 +104,7 @@ struct NoteScheduleSheet: View {
                     displayedComponents: [.date, .hourAndMinute]
                 )
                 .datePickerStyle(.graphical)
+                .tint(Palette.accentFill)
                 .accessibilityIdentifier("noteSchedule.picker")
                 if initial != nil {
                     Section {
@@ -126,6 +127,7 @@ struct NoteScheduleSheet: View {
                         dismiss()
                     }
                     .accessibilityIdentifier("noteSchedule.done")
+                    .tint(Palette.accentFill)
                 }
             }
         }

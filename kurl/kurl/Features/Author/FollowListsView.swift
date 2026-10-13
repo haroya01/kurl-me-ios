@@ -207,7 +207,7 @@ struct FollowCountsLink: View {
                 Button { Task { await load() } } label: {
                     Image(systemName: "arrow.clockwise")
                         .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(Palette.link)
+                        .foregroundStyle(Palette.ink)
                         .expandTapTarget(8)
                 }
                 .buttonStyle(.plain)

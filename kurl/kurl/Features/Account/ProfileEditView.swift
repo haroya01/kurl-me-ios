@@ -43,7 +43,7 @@ struct ProfileEditView: View {
                             avatarPreview
                             Text("사진 변경")
                                 .typeScale(.meta)
-                                .foregroundStyle(Palette.link)
+                                .foregroundStyle(Palette.ink)
                         }
                     }
                     .buttonStyle(.plain)
@@ -110,7 +110,7 @@ struct ProfileEditView: View {
                         Text("기존 소개글을 불러오지 못했어요.")
                         Button("다시 불러오기") { Task { await loadBio() } }
                             .buttonStyle(.plain)
-                            .foregroundStyle(Palette.link)
+                            .foregroundStyle(Palette.ink)
                     }
                     Spacer(minLength: 0)
                     Text(String(localized: "\(bio.count) / \(bioLimit)자"))
@@ -160,6 +160,7 @@ struct ProfileEditView: View {
                 } else {
                     Button("저장") { save() }
                         .disabled(!loaded || bio.count > bioLimit || usernameError != nil)
+                        .tint(Palette.accentFill)
                 }
             }
         }

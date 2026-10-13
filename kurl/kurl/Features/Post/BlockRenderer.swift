@@ -441,7 +441,7 @@ private struct CodeBlockView: View {
                         Text(copied ? "복사됨" : "복사")
                             .typeScale(.meta)
                     }
-                    .foregroundStyle(copied ? Palette.accentSoft : Palette.codeText.opacity(0.7))
+                    .foregroundStyle(copied ? Palette.codeText : Palette.codeText.opacity(0.7))
                     .expandTapTarget(8)
                 }
                 .buttonStyle(.plain)
@@ -803,6 +803,7 @@ private struct ListBlockView: View {
                         .font(.system(size: bodySize))
                         .lineSpacing(bodySize * 0.5)
                         .foregroundStyle(Palette.body)
+                        .tint(Palette.link)
                 }
                 .padding(.leading, CGFloat(item.depth) * 18) // 중첩 들여쓰기
                 // 작업 항목은 완료 여부를 음성으로 알린다(글리프는 숨겨 중복 낭독 방지).

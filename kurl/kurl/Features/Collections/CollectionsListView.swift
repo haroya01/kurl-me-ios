@@ -53,7 +53,7 @@ struct CollectionsListView: View {
                 Button { showCreate = true } label: {
                     Image(systemName: "plus")
                 }
-                .tint(.brand)
+                .tint(.primary)
                 .accessibilityLabel(Text("새 컬렉션"))
             }
         }
@@ -245,7 +245,7 @@ struct OrderedToggle: View {
             Text("순서대로 읽기")
             Text("번호를 붙여 차례로 읽게 하고, 어디까지 읽었는지 이어 줘요.")
         }
-        .tint(.brand)
+        .tint(Palette.accent)
         .accessibilityIdentifier("collection.ordered")
     }
 }

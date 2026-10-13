@@ -165,8 +165,8 @@ struct AnswerButtons: View {
                 .buttonStyle(.glass)
                 .accessibilityIdentifier("followRequests.reject")
             Button("승인") { answer(approve: true) }
-                .buttonStyle(.glassProminent)
-                .tint(Palette.accentFill)
+                .buttonStyle(.glass)
+                .fontWeight(.semibold)
                 .accessibilityIdentifier("followRequests.authorize")
         }
         .controlSize(.small)

@@ -393,7 +393,7 @@ struct RootView: View {
             // 탭을 갈아타면 항상 보이는 상태로 — 새 탭이 숨은 바로 시작하지 않게.
             tabBarVisibility.reset()
         }
-        .tint(.brand)
+        .tint(Palette.ink)
         // Dynamic Type 은 따르되 상한을 둔다 — 그 위 극단 크기는 카드/덱 레이아웃이 깨진다.
         .dynamicTypeSize(...DynamicTypeSize.accessibility2)
         .modifier(ToastHost())
@@ -611,7 +611,7 @@ private struct FloatingTabBar<TabMenu: View>: View {
     private func icon(_ name: String, active: Bool) -> some View {
         Image(systemName: name)
             .font(.system(size: min(iconSize, 28), weight: active ? .semibold : .regular))
-            .foregroundStyle(active ? AnyShapeStyle(Palette.link) : AnyShapeStyle(.secondary))
+            .foregroundStyle(active ? AnyShapeStyle(Palette.ink) : AnyShapeStyle(.secondary))
             .frame(maxWidth: .infinity)
             .frame(height: 44)
             .contentShape(Rectangle())

@@ -8,7 +8,7 @@ import Charts
 import SwiftUI
 
 /// 일별 조회 추이 — 작가 분석·글 분석이 공유한다. 30/90일을 막대 수십 개 + 빽빽한 날짜
-/// 라벨로 그리던 것을, 부드러운 영역+선(브랜드 그린 그라데이션)으로. 날짜 축은 자동 sparse
+/// 라벨로 그리던 것을, 부드러운 영역+선(잉크 그라데이션)으로. 날짜 축은 자동 sparse
 /// (≈4틱)라 7·30·90일 어디서도 라벨이 겹치지 않는다. 본문을 스크럽하면 그날의 값이 뜬다(살아 있는 절제).
 struct DailyTrendChart: View {
     let points: [AuthorAnalyticsOverview.DailyPoint]
@@ -52,12 +52,12 @@ struct DailyTrendChart: View {
                     .interpolationMethod(.monotone)
                     .foregroundStyle(
                         LinearGradient(
-                            colors: [Palette.accent.opacity(0.26), Palette.accent.opacity(0.02)],
+                            colors: [Palette.ink.opacity(0.12), Palette.ink.opacity(0)],
                             startPoint: .top, endPoint: .bottom))
 
                 LineMark(x: .value("날짜", pt.date), y: .value("조회", pt.views))
                     .interpolationMethod(.monotone)
-                    .foregroundStyle(Palette.accent)
+                    .foregroundStyle(Palette.ink)
                     .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
             }
 
@@ -83,7 +83,7 @@ struct DailyTrendChart: View {
                     }
 
                 PointMark(x: .value("날짜", selected.date), y: .value("조회", selected.views))
-                    .foregroundStyle(Palette.accent)
+                    .foregroundStyle(Palette.ink)
                     .symbolSize(64)
             }
         }

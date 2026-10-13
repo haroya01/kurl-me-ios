@@ -111,8 +111,8 @@ struct FilteredNotificationsView: View {
                     .buttonStyle(.glass)
                     .accessibilityIdentifier("filtered.dismiss")
                 Button("받기") { Task { await store.answer(sender, accept: true) } }
-                    .buttonStyle(.glassProminent)
-                    .tint(Palette.accentFill)
+                    .buttonStyle(.glass)
+                    .fontWeight(.semibold)
                     .accessibilityIdentifier("filtered.accept")
             }
             .controlSize(.small)

@@ -429,18 +429,17 @@ struct StudioView: View {
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }
-        .tint(.brand)
         .accessibilityLabel(Text("\(post.title) 관리"))
     }
 
-    /// 상태 점 + (발행 외엔) 라벨 + 날짜. 점 색이 상태를 인코딩한다(초록=라이브, 흐림=초안).
+    /// 상태 점 + (발행 외엔) 라벨 + 날짜. 점 색이 상태를 인코딩한다(잉크=라이브, 흐림=초안).
     private func statusEyebrow(_ post: MyPost) -> some View {
         let dotColor: Color =
             post.isTakenDown ? Palette.danger
             : post.isDraft ? Palette.faint
-            : post.isScheduled ? Palette.link
+            : post.isScheduled ? Palette.ink
             : post.isUnpublished ? Palette.secondary
-            : Palette.accentMarker
+            : Palette.ink
         let label: String? =
             post.isTakenDown ? String(localized: "내려짐")
             : post.isDraft ? String(localized: "임시저장")
@@ -589,11 +588,11 @@ struct StudioView: View {
                     username: auth.me?.username ?? "", slug: series.slug)
                 ) {
                     HStack(spacing: 12) {
-                        KurlMark(drawn: [true, true, true])
+                        KurlMark(drawn: [true, true, true], tint: Palette.ink)
                             .frame(width: 20 * unit, height: 12 * unit)
                             .frame(width: 40, height: 40)
                             .background(
-                                Palette.accent.opacity(0.10),
+                                Palette.chipBg,
                                 in: RoundedRectangle(cornerRadius: Metrics.radiusInner, style: .continuous))
                         VStack(alignment: .leading, spacing: 2) {
                             Text(series.title)

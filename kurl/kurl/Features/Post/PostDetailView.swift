@@ -1170,6 +1170,7 @@ private struct PostDetailReader: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("저장") { Task { await adminApplyEdit() } }
                         .disabled(adminEditTitle.trimmingCharacters(in: .whitespaces).isEmpty)
+                        .tint(Palette.accentFill)
                 }
             }
         }
@@ -1501,7 +1502,7 @@ private struct PostDetailReader: View {
                                 Image(systemName: "chevron.right")
                                     .font(.system(size: 10 * metaUnit, weight: .semibold))
                             }
-                            .foregroundStyle(Palette.link)
+                            .foregroundStyle(Palette.ink)
                             .expandTapTarget(8)
                         }
                         .buttonStyle(.plain)
@@ -1654,7 +1655,7 @@ private struct PostDetailReader: View {
                 Text("원문 보기").expandTapTarget(15)
             }
             .buttonStyle(.borderless)
-            .tint(Palette.link)
+            .tint(Palette.ink)
             .accessibilityIdentifier("post.original")
         case nil:
             if let target = offer.direct {
@@ -1664,7 +1665,7 @@ private struct PostDetailReader: View {
                     Text("번역하기").expandTapTarget(15)
                 }
                 .buttonStyle(.borderless)
-                .tint(Palette.link)
+                .tint(Palette.ink)
                 .accessibilityIdentifier("post.translate")
             } else {
                 Menu {
@@ -1679,7 +1680,7 @@ private struct PostDetailReader: View {
                 }
                 .menuStyle(.button)
                 .buttonStyle(.borderless)
-                .tint(Palette.link)
+                .tint(Palette.ink)
                 .accessibilityIdentifier("post.translate")
             }
         }
@@ -2027,7 +2028,7 @@ private struct NextPostCue: View {
             VStack(spacing: 5) {
                 Image(systemName: "chevron.compact.down")
                     .font(.system(size: 16 * unit, weight: .semibold))
-                    .foregroundStyle(progress.pull > 0.97 ? Palette.link : Palette.faint)
+                    .foregroundStyle(progress.pull > 0.97 ? Palette.ink : Palette.faint)
                     .rotationEffect(.degrees(reduceMotion ? 0 : 180 * progress.pull))
                 Text(episode ? "계속 당기면 다음 편" : "계속 당기면 다음 글")
                     .typeScale(.footnote)

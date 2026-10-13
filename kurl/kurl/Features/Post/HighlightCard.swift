@@ -94,7 +94,7 @@ struct HighlightCard: View {
                 } label: {
                     Text("이 문장에 대해 이야기하기")
                         .typeScale(.footnote)
-                        .foregroundStyle(Palette.link)
+                        .foregroundStyle(Palette.ink)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("highlightCard.talk")
@@ -148,10 +148,10 @@ struct HighlightCard: View {
                     }
                     Spacer(minLength: 0)
                     Text("대화 보기")
-                        .foregroundStyle(Palette.link)
+                        .foregroundStyle(Palette.ink)
                     Image(systemName: "chevron.right")
                         .font(.system(size: 11 * unit, weight: .semibold))
-                        .foregroundStyle(Palette.link)
+                        .foregroundStyle(Palette.ink)
                 }
                 .typeScale(.meta)
                 .foregroundStyle(Palette.secondary)

@@ -51,7 +51,7 @@ struct DraftPreviewView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("닫기") { dismiss() }
-                        .foregroundStyle(Palette.link)
+                        .foregroundStyle(Palette.ink)
                 }
             }
         }
