@@ -342,21 +342,25 @@ struct NoteRowView: View {
     }
 
     private func filteredBar(_ phrases: [String]) -> some View {
-        HStack(spacing: 10) {
-            Text("필터됨: \(phrases.joined(separator: ", "))")
-                .typeScale(.meta)
-                .lineLimit(1)
-            Spacer(minLength: 8)
-            Button("보기") {
-                withAnimation(reduceMotion ? nil : .snappy(duration: 0.22)) { filterRevealed = true }
+        Button {
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.22)) { filterRevealed = true }
+        } label: {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("필터됨: \(phrases.joined(separator: ", "))")
+                    .foregroundStyle(Palette.secondary)
+                    .lineLimit(1)
+                Text("보기")
+                    .fontWeight(.medium)
+                    .foregroundStyle(Palette.link)
+                    .fixedSize()
+                Spacer(minLength: 0)
             }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .tint(Palette.ink)
-            .accessibilityIdentifier("note.filtered.reveal.\(note.id)")
+            .typeScale(.meta)
+            .padding(.vertical, 14)
+            .contentShape(Rectangle())
         }
-        .foregroundStyle(Palette.secondary)
-        .padding(.vertical, 14)
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("note.filtered.reveal.\(note.id)")
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("note.filtered.\(note.id)")
     }
@@ -536,19 +540,24 @@ struct NoteRowView: View {
                 }
                 moreMenu
             }
-            warningBar
-            if !folded {
-                if !note.body.isEmpty {
-                    Text(NoteText.attributed(shownBody, mentions: note.mentions ?? []))
-                        .typeScale(.noteFocus)
-                        .foregroundStyle(Palette.ink)
-                        .tint(Palette.link)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .textSelection(.enabled)
-                    translationLine
+            warningLine
+            if !note.body.isEmpty {
+                ZStack(alignment: .topLeading) {
+                    if folded {
+                        shield(.noteFocus)
+                    } else {
+                        Text(NoteText.attributed(shownBody, mentions: note.mentions ?? []))
+                            .typeScale(.noteFocus)
+                            .foregroundStyle(Palette.ink)
+                            .tint(Palette.link)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .textSelection(.enabled)
+                            .transition(.opacity)
+                    }
                 }
-                attachments
+                if !folded { translationLine }
             }
+            attachments
             if let date = note.createdAt {
                 HStack(spacing: 4) {
                     Text(date, format: .dateTime.hour().minute())
@@ -605,25 +614,34 @@ struct NoteRowView: View {
             VStack(alignment: .leading, spacing: 2) {
                 VStack(alignment: .leading, spacing: 2) {
                     header
-                    warningBar
-                    if !folded, !note.body.isEmpty {
-                        NavigationLink(value: Route.note(id: note.id)) {
-                            Text(NoteText.attributed(shownBody, mentions: note.mentions ?? []))
-                                .typeScale(.note)
-                                .foregroundStyle(Palette.ink)
-                                .tint(Palette.link)
-                                .multilineTextAlignment(.leading)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .contentShape(Rectangle())
+                    warningLine
+                    if !note.body.isEmpty {
+                        ZStack(alignment: .topLeading) {
+                            if folded {
+                                shield(.note)
+                            } else {
+                                NavigationLink(value: Route.note(id: note.id)) {
+                                    Text(NoteText.attributed(shownBody, mentions: note.mentions ?? []))
+                                        .typeScale(.note)
+                                        .foregroundStyle(Palette.ink)
+                                        .tint(Palette.link)
+                                        .multilineTextAlignment(.leading)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                                .transition(.opacity)
+                                .accessibilityIdentifier("note.body.\(note.id)")
+                            }
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("note.body.\(note.id)")
                     }
                 }
                 .conversationGrouping(label: spokenLine, identifier: "note.row.\(note.id)") {
                     if note.contentWarning != nil {
-                        Button(revealed ? LocalizedStringKey("숨기기") : LocalizedStringKey("내용 보기")) { revealed.toggle() }
+                        Button(revealed ? LocalizedStringKey("숨기기") : LocalizedStringKey("보기")) {
+                            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.22)) { revealed.toggle() }
+                        }
                     }
                     if !replyAccess.isClosed {
                         Button("답글 쓰기") { startReply() }
@@ -634,7 +652,7 @@ struct NoteRowView: View {
                         .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + nameCapHalf }
                 }
                 if !folded, !note.body.isEmpty { translationLine }
-                if !folded { attachments }
+                attachments
                 actions(spread: false)
                     .padding(.top, 10)
             }
@@ -752,49 +770,54 @@ struct NoteRowView: View {
         if translationSource != next { translationSource = next }
     }
 
-    /// 열람 주의 — 문구만 보이고 본문·사진·카드는 접힌다. 펼치면 사진도 함께 보인다(한 번만 누르게).
-    @ViewBuilder private var warningBar: some View {
+    @ViewBuilder private var warningLine: some View {
         if let warning = note.contentWarning {
-            HStack(alignment: .center, spacing: 8) {
-                Image(systemName: "exclamationmark.triangle")
-                    .font(.system(size: 13 * unit, weight: .semibold))
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
-                Text(translated?.warning ?? warning)
-                    .typeScale(focused ? .noteFocus : .note)
-                    .fontWeight(.medium)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .allowsHitTesting(false)
-                Button(revealed ? "숨기기" : "내용 보기") {
-                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.22)) { revealed.toggle() }
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .tint(Palette.ink)
-                .accessibilityIdentifier("note.reveal.\(note.id)")
-            }
-            .foregroundStyle(Palette.ink)
-            .padding(.vertical, 6)
-            .padding(.leading, 10)
-            .padding(.trailing, 6)
-            .background {
-                RoundedRectangle(cornerRadius: Metrics.radius)
-                    .fill(Palette.chipBg)
-                    .allowsHitTesting(false)
-            }
-            .padding(.top, 4)
-            .accessibilityElement(children: .contain)
-            .accessibilityIdentifier("note.warning.\(note.id)")
+            Text(translated?.warning ?? warning)
+                .typeScale(focused ? .noteFocus : .note)
+                .foregroundStyle(Palette.ink)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .allowsHitTesting(false)
+                .accessibilityIdentifier("note.warning.\(note.id)")
         }
     }
 
-    private var hidesMedia: Bool {
-        note.sensitive == true && note.contentWarning == nil && !mediaRevealed && !note.media.isEmpty
+    private func shield(_ scale: TypeRole) -> some View {
+        Button(action: reveal) {
+            Text(verbatim: note.body)
+                .typeScale(scale)
+                .foregroundStyle(Palette.ink)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .blur(radius: 9)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .transition(.opacity)
+        .accessibilityLabel(Text("가려진 내용"))
+        .accessibilityAction(named: Text("보기"), reveal)
+        .accessibilityIdentifier("note.reveal.\(note.id)")
+    }
+
+    private func reveal() {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.22)) { revealed = true }
+    }
+
+    private var mediaConcealed: Bool {
+        guard !note.media.isEmpty else { return false }
+        if note.contentWarning != nil { return !revealed }
+        return note.sensitive == true && !mediaRevealed
+    }
+
+    private func revealMedia() {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.22)) {
+            if note.contentWarning != nil { revealed = true } else { mediaRevealed = true }
+        }
     }
 
     @ViewBuilder private var attachments: some View {
-        if let poll = note.poll {
+        if !folded, let poll = note.poll {
             NotePollView(noteId: note.id, poll: poll) { updated in
                 var next = note
                 next.poll = updated
@@ -802,31 +825,15 @@ struct NoteRowView: View {
             }
             .padding(.top, 8)
         }
-        NoteImagesView(media: note.media)
-            .allowsHitTesting(!hidesMedia)
-            .accessibilityHidden(hidesMedia)
-            .overlay {
-                if hidesMedia {
-                    ZStack {
-                        Rectangle().fill(.ultraThickMaterial)
-                        Button {
-                            withAnimation(reduceMotion ? nil : .snappy(duration: 0.22)) { mediaRevealed = true }
-                        } label: {
-                            Text("민감한 사진 · 눌러서 보기")
-                                .typeScale(.meta)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(Palette.ink)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 9)
-                                .background(.regularMaterial, in: Capsule())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("note.sensitive.\(note.id)")
-                    }
-                    .clipShape(RoundedRectangle(cornerRadius: Metrics.radius))
-                    .transition(.opacity)
-                }
-            }
+        NoteImagesView(
+            media: note.media, concealed: mediaConcealed, revealIdentifier: "note.sensitive.\(note.id)",
+            reveal: revealMedia)
+        if !folded {
+            quotedAttachments
+        }
+    }
+
+    @ViewBuilder private var quotedAttachments: some View {
         if let post = note.quotedPost {
             NavigationLink(value: Route.post(username: post.authorUsername, slug: post.slug)) {
                 QuotedPostCard(post: post)
@@ -1310,11 +1317,19 @@ struct QuotedNoteCard: View {
                 .alignmentGuide(.noteNameLine) { $0[.firstTextBaseline] - nameCapHalf }
             }
             if let warning = note.contentWarning {
-                Label(warning, systemImage: "exclamationmark.triangle")
+                Text(verbatim: warning)
                     .typeScale(.note)
-                    .fontWeight(.medium)
                     .foregroundStyle(Palette.ink)
                     .lineLimit(2)
+                if !note.body.isEmpty {
+                    Text(verbatim: note.body)
+                        .typeScale(.note)
+                        .foregroundStyle(Palette.ink)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                        .blur(radius: 9)
+                        .accessibilityHidden(true)
+                }
             } else if !note.body.isEmpty {
                 Text(note.body)
                     .typeScale(.note)
@@ -1322,7 +1337,8 @@ struct QuotedNoteCard: View {
                     .lineLimit(full ? nil : 4)
                     .multilineTextAlignment(.leading)
             }
-            if note.contentWarning == nil, note.sensitive != true, !note.media.isEmpty {
+            if !note.media.isEmpty {
+                let concealed = note.contentWarning != nil || note.sensitive == true
                 HStack(spacing: 6) {
                     ForEach(note.media) { image in
                         RemoteImage(url: URL(string: image.url), maxPixel: 200) { phase in
@@ -1330,12 +1346,14 @@ struct QuotedNoteCard: View {
                                 .overlay {
                                     if case .success(let loaded) = phase {
                                         loaded.resizable().scaledToFill()
+                                            .blur(radius: concealed ? 14 : 0, opaque: true)
                                     }
                                 }
                         }
                         .frame(width: 64, height: 64)
                         .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusInner))
-                        .accessibilityLabel(Text(image.altText ?? String(localized: "사진")))
+                        .accessibilityLabel(
+                            concealed ? Text("가려진 사진") : Text(image.altText ?? String(localized: "사진")))
                     }
                 }
                 .padding(.top, 4)
@@ -1363,6 +1381,9 @@ extension QuotedNote {
 /// 칼럼 밖 화면 끝까지 그려진다. 대체 텍스트가 곧 접근성 라벨이고, 있으면 ALT 배지로도 드러낸다.
 private struct NoteImagesView: View {
     let media: [NoteMedia]
+    var concealed = false
+    var revealIdentifier: String? = nil
+    var reveal: () -> Void = {}
     @State private var opened: NoteMedia?
 
     private var visual: [NoteMedia] { media.filter { !$0.isAudio } }
@@ -1382,10 +1403,22 @@ private struct NoteImagesView: View {
                         }
                     }
                     .scrollClipDisabled()
+                    .scrollDisabled(concealed)
                     .holdsSwipePager()
                 }
                 ForEach(audio, id: \.url) { item in
                     NoteAudioRow(media: item)
+                }
+            }
+            .overlay {
+                if concealed {
+                    Button(action: reveal) {
+                        Color.clear.contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text("가려진 사진"))
+                    .accessibilityAction(named: Text("보기"), reveal)
+                    .accessibilityIdentifier(revealIdentifier ?? "")
                 }
             }
             .padding(.top, 6)
@@ -1402,10 +1435,16 @@ private struct NoteImagesView: View {
     }
 
     @ViewBuilder private func tile(_ item: NoteMedia, height: CGFloat?) -> some View {
-        if item.isVideo {
+        if item.isVideo, concealed {
+            Rectangle()
+                .fill(Color.black.opacity(0.88))
+                .modifier(TileFrame(ratio: item.ratio ?? 16.0 / 9.0, height: height))
+                .clipShape(RoundedRectangle(cornerRadius: Metrics.radius))
+                .accessibilityHidden(true)
+        } else if item.isVideo {
             NoteVideoTile(media: item, height: height) { opened = item }
         } else {
-            NoteImageTile(image: item, height: height) { opened = item }
+            NoteImageTile(image: item, height: height, concealed: concealed) { opened = item }
         }
     }
 }
@@ -1414,6 +1453,7 @@ private struct NoteImageTile: View {
     let image: NoteMedia
     /// nil = 한 장 — 칼럼 폭에 원래 비율로 맞추고 430pt 를 넘지 않는다.
     let height: CGFloat?
+    var concealed = false
     let onOpen: () -> Void
     @State private var showAlt = false
     /// 비율은 타일을 만들 때 한 번 정하고 바꾸지 않는다. 지연 스택에서 보이는 행의 높이가 이미지 로드로
@@ -1424,9 +1464,10 @@ private struct NoteImageTile: View {
     private static let unknownRatio: CGFloat = 4.0 / 3.0
     private var url: URL? { URL(string: image.url) }
 
-    init(image: NoteMedia, height: CGFloat?, onOpen: @escaping () -> Void) {
+    init(image: NoteMedia, height: CGFloat?, concealed: Bool = false, onOpen: @escaping () -> Void) {
         self.image = image
         self.height = height
+        self.concealed = concealed
         self.onOpen = onOpen
         _ratio = State(initialValue: image.ratio ?? Self.cachedRatio(image.url) ?? Self.unknownRatio)
     }
@@ -1446,17 +1487,25 @@ private struct NoteImageTile: View {
                 .overlay {
                     if case .success(let loaded) = phase {
                         loaded.resizable().scaledToFill()
+                            .overlay {
+                                if concealed {
+                                    loaded.resizable().scaledToFill()
+                                        .blur(radius: 36, opaque: true)
+                                        .transition(.opacity)
+                                }
+                            }
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: Metrics.radius))
             .overlay(RoundedRectangle(cornerRadius: Metrics.radius).stroke(Palette.hairline, lineWidth: 0.5))
-            .overlay(alignment: .bottomLeading) { altLayer }
+            .overlay(alignment: .bottomLeading) { if !concealed { altLayer } }
             .contentShape(RoundedRectangle(cornerRadius: Metrics.radius))
             .onTapGesture(perform: onOpen)
             .accessibilityElement()
             .accessibilityAddTraits([.isImage, .isButton])
             .accessibilityLabel(Text(image.altText ?? String(localized: "사진")))
             .accessibilityHint(Text("두 번 탭하면 크게 봅니다"))
+            .accessibilityHidden(concealed)
         }
     }
 
@@ -2090,7 +2139,7 @@ struct NoteComposeSheet: View {
                                         .foregroundStyle(Palette.ink)
                                 }
                                 if warns {
-                                    TextField("열람 주의 문구 (예: 스포일러)", text: $warning, axis: .vertical)
+                                    TextField("열람 주의 문구", text: $warning, axis: .vertical)
                                         .typeScale(.note)
                                         .fontWeight(.medium)
                                         .lineLimit(1...3)
@@ -2165,20 +2214,23 @@ struct NoteComposeSheet: View {
                                 Button {
                                     withAnimation(.snappy(duration: 0.2)) { warns.toggle() }
                                 } label: {
-                                    Image(systemName: warns ? "exclamationmark.triangle.fill" : "exclamationmark.triangle")
-                                        .font(.system(size: 17))
+                                    Text("열람 주의")
+                                        .typeScale(.meta)
+                                        .fontWeight(warns ? .semibold : .regular)
                                         .foregroundStyle(warns ? Palette.ink : Palette.secondary)
-                                        .frame(width: 32, height: 28, alignment: .leading)
+                                        .lineLimit(1)
+                                        .fixedSize()
+                                        .frame(minHeight: 28)
                                         .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
-                                .accessibilityLabel(warns ? "열람 주의 끄기" : "열람 주의")
+                                .accessibilityAddTraits(warns ? .isSelected : [])
                                 .accessibilityIdentifier("noteCompose.warningToggle")
                                 if hasImages, !warns {
                                     Button {
                                         sensitive.toggle()
                                     } label: {
-                                        Image(systemName: sensitive ? "eye.slash.fill" : "eye.slash")
+                                        Image(systemName: sensitive ? "eye.half.closed.fill" : "eye.half.closed")
                                             .font(.system(size: 17))
                                             .foregroundStyle(sensitive ? Palette.ink : Palette.secondary)
                                             .frame(width: 32, height: 28, alignment: .leading)
@@ -2869,10 +2921,9 @@ struct NoteHistorySheet: View {
                                 }
                                 .typeScale(.meta)
                                 if let warning = version.contentWarning {
-                                    Label(warning, systemImage: "exclamationmark.triangle")
-                                        .typeScale(.meta)
-                                        .fontWeight(.medium)
-                                        .foregroundStyle(Palette.ink)
+                                    Text(verbatim: warning)
+                                        .typeScale(.note)
+                                        .foregroundStyle(Palette.secondary)
                                 }
                                 Text(version.body)
                                     .typeScale(.note)

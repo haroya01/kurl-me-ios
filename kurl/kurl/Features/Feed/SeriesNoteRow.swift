@@ -15,7 +15,7 @@ struct SeriesNoteRow: View {
     private var excerpt: Text {
         // 경고가 걸린 노트는 경고 문구만 — 가린 본문은 노트 상세에서 펼친다.
         warned
-            ? Text("\(Image(systemName: "exclamationmark.triangle")) \(note.excerpt)")
+            ? Text(verbatim: note.excerpt)
             : Text(note.body.cleanedPreview)
     }
 
