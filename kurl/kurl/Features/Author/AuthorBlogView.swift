@@ -371,16 +371,15 @@ struct AuthorBlogView: View {
             case .blockedByViewer:
                 FeedPlaceholder(
                     title: "차단한 사용자예요",
-                    message: "글·댓글·노트가 보이지 않아요.",
                     actionTitle: "차단 해제",
                     action: { Task { await unblock(view.author) } }
                 )
-                .padding(.top, 48)
+                .padding(.top, 24)
                 .padding(.bottom, 8)
                 .accessibilityIdentifier("author.blockedByViewer")
             case .blocksViewer:
                 FeedPlaceholder(title: "이 사용자의 글을 볼 수 없어요")
-                    .padding(.top, 48)
+                    .padding(.top, 24)
                     .padding(.bottom, 8)
                     .accessibilityIdentifier("author.blocksViewer")
             case .open:
@@ -409,21 +408,18 @@ struct AuthorBlogView: View {
             if isOwnAuthor {
                 FeedPlaceholder(
                     title: "아직 발행한 글이 없어요",
-                    message: "첫 글을 발행하면 여기 카탈로그로 쌓입니다.",
                     actionTitle: "글쓰기",
-                    prominent: true,
                     action: { TabRouter.shared.openStudio(compose: true) }
                 )
-                .padding(.top, 48)
+                .padding(.top, 24)
                 .padding(.bottom, 8)
             } else {
                 FeedPlaceholder(
                     title: "아직 발행한 글이 없어요",
-                    message: "이 작가의 첫 글이 올라오면 여기에서 만나요.",
                     actionTitle: "피드에서 읽을 글 찾기",
                     action: { TabRouter.shared.selection = 0 }
                 )
-                .padding(.top, 48)
+                .padding(.top, 24)
                 .padding(.bottom, 8)
             }
         } else {
@@ -454,20 +450,17 @@ struct AuthorBlogView: View {
                 if isOwnAuthor {
                     FeedPlaceholder(
                         title: "아직 노트가 없어요",
-                        message: "제목도 형식도 없이, 지금 떠오른 한 줄을 남기는 자리예요.",
                         actionTitle: "첫 노트 쓰기",
-                        prominent: true,
                         action: { composingNote = true }
                     )
-                    .padding(.top, 48)
+                    .padding(.top, 24)
                 } else {
                     FeedPlaceholder(
                         title: "아직 노트가 없어요",
-                        message: "이 작가의 첫 노트가 올라오면 여기에서 만나요.",
                         actionTitle: "노트 둘러보기",
                         action: { TabRouter.shared.selection = 1 }
                     )
-                    .padding(.top, 48)
+                    .padding(.top, 24)
                 }
             } else {
                 LazyVStack(alignment: .leading, spacing: 0) {
@@ -510,7 +503,7 @@ struct AuthorBlogView: View {
             }
             if shown.isEmpty {
                 FeedPlaceholder(title: "아직 단 답글이 없어요")
-                    .padding(.top, 48)
+                    .padding(.top, 24)
             } else {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(shown.enumerated()), id: \.element.id) { index, item in
@@ -545,7 +538,7 @@ struct AuthorBlogView: View {
         case .loaded:
             if media.items.isEmpty {
                 FeedPlaceholder(title: "아직 올린 사진이 없어요")
-                    .padding(.top, 48)
+                    .padding(.top, 24)
             } else {
                 LazyVGrid(
                     columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 3),
@@ -577,13 +570,10 @@ struct AuthorBlogView: View {
             if reposts.items.isEmpty {
                 FeedPlaceholder(
                     title: "아직 리포스트가 없어요",
-                    message: isOwnAuthor
-                        ? "마음에 든 노트를 리포스트하면 여기에 모여요."
-                        : "이 작가가 리포스트한 노트가 여기에 모여요.",
                     actionTitle: "노트 둘러보기",
                     action: { TabRouter.shared.selection = 1 }
                 )
-                .padding(.top, 48)
+                .padding(.top, 24)
             } else {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(reposts.items.enumerated()), id: \.element.id) { index, note in

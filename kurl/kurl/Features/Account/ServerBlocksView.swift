@@ -27,12 +27,8 @@ struct ServerBlocksView: View {
                     retry: { Task { await load() } })
                     .padding(.top, 60)
             } else if blocks.isEmpty {
-                ContentUnavailableView {
-                    Text("차단한 서버가 없어요").bold()
-                } description: {
-                    Text("다른 서버 전체를 제한하거나 정지할 수 있어요.")
-                }
-                .padding(.top, 60)
+                FeedPlaceholder(title: "차단한 서버가 없어요")
+                    .padding(.top, 24)
             } else {
                 Text("제한하면 그 서버 노트가 인기·태그에서 빠지고, 팔로우하지 않은 회원에게는 알림이 가지 않아요. 정지하면 주고받기를 모두 끊고 그 서버 노트를 어디서도 보이지 않게 해요.")
                     .typeScale(.footnote)

@@ -35,13 +35,24 @@ struct NotePollView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            ForEach(Array(poll.options.enumerated()), id: \.offset) { index, option in
-                if showsResults {
-                    result(index, option)
-                } else {
-                    choice(index, option)
+            VStack(spacing: 0) {
+                ForEach(Array(poll.options.enumerated()), id: \.offset) { index, option in
+                    if index > 0 {
+                        Rectangle()
+                            .fill(Palette.hairlineStrong)
+                            .frame(height: 1)
+                    }
+                    if showsResults {
+                        result(index, option)
+                    } else {
+                        choice(index, option)
+                    }
                 }
             }
+            .clipShape(RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
+                    .strokeBorder(Palette.hairlineStrong, lineWidth: 1))
             if !showsResults, poll.multiple {
                 Button {
                     Task { await vote(picked.sorted()) }
@@ -99,15 +110,12 @@ struct NotePollView: View {
                     .multilineTextAlignment(.leading)
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .frame(minHeight: 40)
-            .overlay(
-                RoundedRectangle(cornerRadius: Metrics.radius)
-                    .strokeBorder(on ? Palette.link : Palette.hairlineStrong, lineWidth: on ? 1.5 : 1))
-            .contentShape(RoundedRectangle(cornerRadius: Metrics.radius))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PollRowStyle())
         .disabled(voting)
         .accessibilityAddTraits(poll.multiple && on ? .isSelected : [])
         // 단일 선택은 탭이 곧 투표이고 되돌릴 수 없다 — 눈으로는 즉시 결과로 바뀌어 알지만 VoiceOver 는 미리 알아야 한다.
@@ -138,16 +146,13 @@ struct NotePollView: View {
                 .monospacedDigit()
                 .foregroundStyle(top ? Palette.ink : Palette.secondary)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .frame(minHeight: 40)
-        .overlay(
-            RoundedRectangle(cornerRadius: Metrics.radius)
-                .strokeBorder(Palette.hairlineStrong.opacity(0.6)))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .frame(minHeight: 44)
         .background(alignment: .leading) {
             GeometryReader { geo in
-                RoundedRectangle(cornerRadius: Metrics.radius)
-                    .fill(top ? Palette.accentSoft.opacity(0.32) : Palette.chipBg)
+                Rectangle()
+                    .fill(top ? Palette.hairlineStrong : Palette.chipBg)
                     .frame(width: filled ? max(geo.size.width * share, share > 0 ? 6 : 0) : 0)
             }
         }
@@ -199,6 +204,13 @@ struct NotePollView: View {
         } catch {
             ToastCenter.shared.show(String(localized: "투표하지 못했어요"))
         }
+    }
+}
+
+private struct PollRowStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(configuration.isPressed ? Palette.rowHighlight : .clear)
     }
 }
 

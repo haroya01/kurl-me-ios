@@ -14,12 +14,9 @@ struct NoteFiltersView: View {
     var body: some View {
         List {
             if store.filters.isEmpty, !loading {
-                ContentUnavailableView {
-                    Text("키워드 필터가 없어요").bold()
-                } description: {
-                    Text("보고 싶지 않은 말이 든 노트를 접거나 숨겨요. 내 노트에는 걸리지 않아요.")
-                }
-                .listRowBackground(Color.clear)
+                FeedPlaceholder(title: "키워드 필터가 없어요", actionTitle: "필터 추가", action: { adding = true })
+                    .padding(.vertical, 6)
+                    .listRowBackground(Color.clear)
             }
             ForEach(store.filters) { filter in
                 Button { editing = filter } label: { row(filter) }

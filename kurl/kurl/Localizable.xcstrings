@@ -6365,6 +6365,34 @@
         }
       }
     },
+    "구독한 시리즈가 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No subscribed series"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कोई सब्सक्राइब की गई सीरीज़ नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "購読中のシリーズはありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có series nào đã đăng ký"
+          }
+        }
+      }
+    },
     "구독한 태그": {
       "localizations": {
         "en": {
@@ -6421,6 +6449,34 @@
         }
       }
     },
+    "구독한 태그가 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No subscribed tags"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कोई सब्सक्राइब किया गया टैग नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "購読中のタグはありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có thẻ nào được đăng ký"
+          }
+        }
+      }
+    },
     "내 글이 엮인 컬렉션에 새 글이 이어질 때": {
       "localizations": {
         "en": {
@@ -6445,6 +6501,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Khi một bài mới được nối vào bộ sưu tập có bài của bạn"
+          }
+        }
+      }
+    },
+    "내가 팔로우하는 %lld명이 팔로우": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Followed by %lld person you follow"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Followed by %lld people you follow"
+                }
+              }
+            }
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपके फ़ॉलो किए गए %lld लोग फ़ॉलो करते हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォロー中の%lld人がフォロー"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld người bạn theo dõi đang theo dõi"
           }
         }
       }
@@ -6501,6 +6597,146 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đăng nhập để xem ghi chú từ máy chủ khác"
+          }
+        }
+      }
+    },
+    "로그인하면 내 글과 노트, 라이브러리가 여기 모여요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in and your posts, notes, and library collect here."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साइन इन करने पर आपकी पोस्ट, नोट्स और लाइब्रेरी यहाँ जमा होंगी।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログインすると、自分の記事やノート、ライブラリがここに集まります。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để bài viết, ghi chú và thư viện của bạn gom về đây."
+          }
+        }
+      }
+    },
+    "로그인하면 쓴 글과 시리즈, 분석이 여기 모여요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in and your posts, series, and analytics collect here."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साइन इन करने पर आपकी पोस्ट, श्रृंखला और विश्लेषण यहाँ जमा होंगे।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログインすると、書いた記事やシリーズ、分析がここに集まります。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để bài viết, loạt bài và phân tích của bạn gom về đây."
+          }
+        }
+      }
+    },
+    "로그인하면 읽은 글을 따라 추천이 쌓여요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in and your recommendations build from what you read."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साइन इन करें और आपकी पढ़ी पोस्ट के अनुसार सुझाव बनते जाएँगे."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログインすると、読んだ記事から推薦が育ちます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập và gợi ý sẽ hình thành từ những gì bạn đọc."
+          }
+        }
+      }
+    },
+    "로그인하면 팔로우한 작가의 새 글이 도착해요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in and new posts from writers you follow land here."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साइन इन करें और जिन लेखकों को फ़ॉलो करते हैं, उनकी नई पोस्ट यहाँ आएँगी."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログインすると、フォロー中の書き手の新着が届きます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập và bài mới từ tác giả bạn theo dõi sẽ đến đây."
+          }
+        }
+      }
+    },
+    "리비전이 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No revisions"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कोई संशोधन नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リビジョンがありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không có phiên bản nào"
           }
         }
       }
@@ -6701,6 +6937,34 @@
         }
       }
     },
+    "북마크한 글이 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No bookmarked posts"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कोई बुकमार्क की गई पोस्ट नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブックマークした記事はありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không có bài đã đánh dấu"
+          }
+        }
+      }
+    },
     "북마크한 노트를 보려면 로그인하세요": {
       "localizations": {
         "en": {
@@ -6813,6 +7077,34 @@
         }
       }
     },
+    "아직 글이 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No posts yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी तक कोई पोस्ट नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだ記事がありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có bài viết nào"
+          }
+        }
+      }
+    },
     "아직 단 답글이 없어요": {
       "localizations": {
         "en": {
@@ -6837,6 +7129,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chưa có trả lời nào"
+          }
+        }
+      }
+    },
+    "아직 시리즈가 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No series yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी तक कोई सीरीज़ नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだシリーズがありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có series nào"
+          }
+        }
+      }
+    },
+    "아직 쓴 글이 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You haven't written any posts yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपने अभी तक कोई पोस्ट नहीं लिखी"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだ書いた記事がありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn chưa viết bài nào"
           }
         }
       }
@@ -7121,6 +7469,34 @@
         }
       }
     },
+    "좋아요한 글이 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No liked posts"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कोई पसंद की गई पोस्ट नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "いいねした記事はありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không có bài đã thích"
+          }
+        }
+      }
+    },
     "카드": {
       "localizations": {
         "en": {
@@ -7145,6 +7521,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Thẻ"
+          }
+        }
+      }
+    },
+    "팔로우한 사람의 노트가 아직 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No notes from people you follow yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जिन्हें आप फ़ॉलो करते हैं, उनके अभी कोई नोट नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォロー中の人のノートはまだありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có ghi chú nào từ người bạn theo dõi"
           }
         }
       }
@@ -33467,7 +33871,6 @@
       }
     },
     "커버 추가": {
-      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {

@@ -53,13 +53,10 @@ struct FollowListsView: View {
                 let mine = AuthStore.shared.me?.username == username
                 FeedPlaceholder(
                     title: tab == .followers ? "아직 팔로워가 없어요" : "아직 팔로우하는 사람이 없어요",
-                    message: tab == .followers
-                        ? "팔로우하는 사람이 생기면 여기 모여요."
-                        : "팔로우한 작가가 생기면 여기 모여요.",
                     actionTitle: tab == .following && mine ? "검색에서 작가 찾기" : nil,
                     action: tab == .following && mine ? { TabRouter.shared.switchTo(3) } : nil
                 )
-                .padding(.top, 48)
+                .padding(.top, 24)
             } else {
                 LazyVStack(spacing: 0) {
                     ForEach(Array(items.enumerated()), id: \.element.id) { index, user in
@@ -293,14 +290,13 @@ private struct RowFollowToggle: View {
             } label: {
                 Text(following ? "팔로잉" : "팔로우")
                     .font(.system(size: labelSize, weight: .semibold))
-                    .foregroundStyle(following ? AnyShapeStyle(.primary) : AnyShapeStyle(.white))
+                    .foregroundStyle(Palette.ink)
                     .padding(.horizontal, 13)
                     .padding(.vertical, 6)
                     .contentShape(Capsule())
                     .expandTapTarget(8)  // 캡슐 높이 ~25pt → 탭 영역만 44pt 로(시각 크기 유지)
             }
-            .buttonStyle(.plain)
-            .glassCapsule(prominent: !following)
+            .buttonStyle(PaperCapsuleStyle(prominent: false))
             .disabled(busy)
             .sensoryFeedback(.impact(weight: .light), trigger: userToggleCount)
             .onChange(of: initialFollowing) { _, seed in

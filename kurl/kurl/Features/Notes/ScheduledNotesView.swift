@@ -147,6 +147,9 @@ struct ScheduledNotesView: View {
                 ErrorState(
                     message: String(localized: "연결을 확인하고 다시 시도해 주세요."),
                     retry: { Task { await store.reload() } })
+                    .padding(.horizontal, Metrics.gutter)
+                    .padding(.top, 24)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             } else {
                 List {
                     ForEach(store.items) { note in
@@ -165,13 +168,11 @@ struct ScheduledNotesView: View {
                     }
                 }
                 .listStyle(.plain)
-                .overlay {
+                .overlay(alignment: .top) {
                     if store.items.isEmpty {
-                        ContentUnavailableView {
-                            Text("예약한 노트가 없어요").bold()
-                        } description: {
-                            Text("노트를 쓸 때 아래의 \"예약\"으로 올릴 시각을 정할 수 있어요.")
-                        }
+                        FeedPlaceholder(title: "예약한 노트가 없어요")
+                            .padding(.horizontal, Metrics.gutter)
+                            .padding(.top, 24)
                     }
                 }
             }

@@ -31,14 +31,13 @@ struct LinkNotesView: View {
                 if notes.items.isEmpty {
                     FeedPlaceholder(
                         title: "아직 이 링크를 실은 노트가 없어요",
-                        message: "링크를 담은 노트는 카드가 붙은 뒤에 여기 모여요.",
                         actionTitle: "인기 노트 보기",
                         action: {
                             NoteFeedChoice.shared.show(.trending)
                             TabRouter.shared.switchTo(1, reduceMotion: reduceMotion)
                         }
                     )
-                    .padding(.top, 56)
+                    .padding(.top, 24)
                 } else {
                     ForEach(Array(notes.items.enumerated()), id: \.element.id) { index, note in
                         NoteFeedItem(

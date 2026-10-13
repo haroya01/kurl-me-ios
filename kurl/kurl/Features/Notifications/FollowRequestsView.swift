@@ -74,12 +74,8 @@ struct FollowRequestsView: View {
                     retry: { Task { await store.load() } })
                     .padding(.top, 60)
             } else if store.requests.isEmpty {
-                ContentUnavailableView {
-                    Text("기다리는 팔로우 요청이 없어요").bold()
-                } description: {
-                    Text("팔로우를 직접 승인하면 새 팔로워가 여기서 기다려요. 프로필 편집에서 켤 수 있어요.")
-                }
-                .padding(.top, 60)
+                FeedPlaceholder(title: "기다리는 팔로우 요청이 없어요")
+                    .padding(.top, 24)
             } else {
                 LazyVStack(spacing: 0) {
                     ForEach(store.requests) { request in

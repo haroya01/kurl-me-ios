@@ -29,6 +29,9 @@ struct AccountView: View {
                     } else if meLoadFailed {
                         // me 로드 실패(오프라인 등) — StateView 실패 상태와 같은 결의 재시도 길.
                         ErrorState(retry: { Task { await reloadMe() } })
+                            .padding(.horizontal, Metrics.gutter)
+                            .padding(.top, 24)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     } else {
                         // me 로딩 중 — 잠깐의 빈자리를 막다른 길로 두지 않는다.
                         KurlLoadingMark()
@@ -36,7 +39,7 @@ struct AccountView: View {
                     }
                 } else {
                     SignedOutState(
-                        description: "내 글과 노트, 라이브러리가 여기 모여요.",
+                        description: "로그인하면 내 글과 노트, 라이브러리가 여기 모여요.",
                         message: "kurl에 로그인하세요")
                         .navigationTitle("내 계정")
                         .navigationBarTitleDisplayMode(.inline)

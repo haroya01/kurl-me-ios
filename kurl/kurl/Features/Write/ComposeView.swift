@@ -780,10 +780,16 @@ struct ComposeView: View {
                     if takenDown {
                         TakenDownNotice()
                     }
-                    // 살아있는 미리보기 — 발행하면 이 카드로 보인다. 커버는 카드 위를 탭해 넣고,
+                    // 살아있는 미리보기 — 발행하면 이 카드로 보인다. 커버는 머리의 "커버 추가"로 넣고,
                     // 아래 필드(태그·소개글)를 다듬으면 카드가 그 자리에서 따라 바뀐다.
                     VStack(alignment: .leading, spacing: 10) {
-                        sectionLabel("이렇게 보여요")
+                        HStack(alignment: .firstTextBaseline) {
+                            Text("이렇게 보여요")
+                                .typeScale(.eyebrow)
+                                .foregroundStyle(Palette.heading)
+                            Spacer(minLength: 8)
+                            coverAddControl
+                        }
                         publishPreview
                         // 분량 감각 — 독자가 보는 읽는 시간·글자 수(작성 도구의 기본 피드백).
                         Text(readStats)
@@ -1002,18 +1008,6 @@ struct ComposeView: View {
         }
     }
 
-    /// 섹션 라벨 — RailHeading 의 작은 인라인 형(그린 마커 + bold).
-    private func sectionLabel(_ text: LocalizedStringKey) -> some View {
-        HStack(spacing: 7) {
-            RoundedRectangle(cornerRadius: 1)
-                .fill(Palette.accentMarker)
-                .frame(width: 3, height: 12 * metaUnit)
-            Text(text)
-                .typeScale(.eyebrow)
-                .foregroundStyle(Palette.heading)
-        }
-    }
-
     /// 살아있는 카드 미리보기 — 발행 결과를 그대로. 커버 영역 탭 = 사진 선택.
     private var publishPreview: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -1136,7 +1130,7 @@ struct ComposeView: View {
         }
     }
 
-    /// 미리보기 카드의 커버 — 채워졌으면 16:9 이미지(+변경 메뉴), 없으면 추가 타일(+본문 첫 이미지 제안).
+    /// 미리보기 카드의 커버 — 채워졌으면 16:9 이미지(+변경 메뉴), 없으면 자리를 두지 않는다.
     /// 업로드 중엔 스피너(그동안 재선택을 막는다 — 두 번째 선택이 조용히 버려지지 않게).
     @ViewBuilder
     private var coverArea: some View {
@@ -1171,40 +1165,32 @@ struct ComposeView: View {
             }
             // 커버가 들어오면 카드가 펼쳐지며 이미지가 살짝 부풀어 자리잡는다.
             .transition(.scale(scale: 1.04).combined(with: .opacity))
-        } else {
-            // 커버가 비었는데 본문에 이미지가 있으면 한 탭 제안 — 웹 발행 다이얼로그의 커버 제안 미러.
-            let suggestion = suggestedCoverURL
-            VStack(spacing: 0) {
+        }
+    }
+
+    @ViewBuilder
+    private var coverAddControl: some View {
+        if coverUrl == nil, !uploadingCover {
+            let label = Text("커버 추가")
+                .typeScale(.meta)
+                .fontWeight(.semibold)
+                .foregroundStyle(Palette.ink)
+                .expandTapTarget(12)
+            if let suggestion = suggestedCoverURL {
+                Menu {
+                    Button("사진 추가") { showCoverPicker = true }
+                    Button("본문 첫 이미지를 커버로") { applySuggestedCover(suggestion) }
+                } label: {
+                    label
+                }
+            } else {
                 Button {
                     showCoverPicker = true
                 } label: {
-                    VStack(spacing: 6) {
-                        Image(systemName: "photo.badge.plus")
-                            .font(.system(size: 22 * unit, weight: .regular))
-                            .accessibilityHidden(true)
-                        Text("커버 이미지 추가")
-                            .typeScale(.meta)
-                    }
-                    .foregroundStyle(Palette.secondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .contentShape(Rectangle())
+                    label
                 }
                 .buttonStyle(.plain)
-                if let suggestion {
-                    Button {
-                        applySuggestedCover(suggestion)
-                    } label: {
-                        coverChip("본문 첫 이미지를 커버로")
-                    }
-                    .buttonStyle(.plain)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding([.horizontal, .bottom], 10)
-                }
             }
-            // 빈 상태는 컴팩트(제안 칩이 있으면 그 줄만큼), 커버가 들어오면 176 으로 펼쳐진다(높이 변화가 곧 언폴드).
-            .frame(height: suggestion == nil ? 96 : 132)
-            .frame(maxWidth: .infinity)
-            .background(Palette.chipBg)
         }
     }
 
@@ -2929,7 +2915,10 @@ private struct RevisionsSheet: View {
                     KurlLoadingMark()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if revisions.isEmpty {
-                    ContentUnavailableView { Text("리비전이 없습니다").bold() }
+                    FeedPlaceholder(title: "리비전이 없어요")
+                        .padding(.horizontal, Metrics.gutter)
+                        .padding(.top, 24)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 } else {
                     List(revisions) { revision in
                         HStack {

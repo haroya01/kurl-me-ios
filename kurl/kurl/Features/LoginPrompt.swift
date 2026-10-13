@@ -27,17 +27,11 @@ struct SignedOutState: View {
     @State private var showLogin = false
 
     var body: some View {
-        ContentUnavailableView {
-            Text("로그인하지 않았어요").bold()
-        } description: {
-            Text(description)
-        } actions: {
-            Button("로그인") { showLogin = true }
-                .buttonStyle(.glassProminent)
-                .tint(GlassTokens.prominentTint)
-                .controlSize(.large)
-        }
-        .background(Palette.pageBg)
+        FeedPlaceholder(title: description, actionTitle: "로그인", action: { showLogin = true })
+            .padding(.horizontal, Metrics.gutter)
+            .padding(.top, 24)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .background(Palette.pageBg)
         .loginPrompt(isPresented: $showLogin, message: message)
     }
 }

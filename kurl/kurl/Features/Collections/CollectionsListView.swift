@@ -133,15 +133,8 @@ struct CollectionsListView: View {
     }
 
     private var emptyState: some View {
-        ContentUnavailableView {
-            Text("아직 컬렉션이 없어요").bold()
-        } description: {
-            Text("글을 읽다 마음에 닿는 것을 주제로 이어 보세요.")
-        } actions: {
-            Button("새 컬렉션 만들기") { showCreate = true }
-                .foregroundStyle(Palette.link)
-        }
-        .padding(.top, 60)
+        FeedPlaceholder(title: "아직 컬렉션이 없어요", actionTitle: "새 컬렉션 만들기", action: { showCreate = true })
+            .padding(.top, 6)
     }
 
     private var failedState: some View {

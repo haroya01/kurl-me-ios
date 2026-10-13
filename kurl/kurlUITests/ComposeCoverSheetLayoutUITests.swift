@@ -2,7 +2,7 @@
 //  ComposeCoverSheetLayoutUITests.swift
 //  kurlUITests
 //
-//  '글 정보' 시트의 커버 카드·태그 칩 — 빈 타일에서 "본문 첫 이미지를 커버로" 칩이 추가 라벨과 겹치지 않고,
+//  '글 정보' 시트의 커버 카드·태그 칩 — 커버가 비면 "커버 추가" 메뉴에 "본문 첫 이미지를 커버로"가 있고,
 //  커버가 있으면 "변경"이 실제로 눌리는 자리에 있어 사진 바꾸기·커버 제거로 이어지며, 대표 태그 칩 글자가
 //  라이트·다크 모두 WCAG AA(4.5:1)를 넘는다. 대비는 화면 픽셀에서 잰다(버튼 비활성 흐림까지 잡히게).
 //
@@ -53,16 +53,17 @@ final class ComposeCoverSheetLayoutUITests: XCTestCase {
         add(s)
     }
 
-    func testSuggestionChipSitsBelowTheAddLabelInsteadOfOverIt() throws {
+    func testAddCoverMenuOffersTheBodyImage() throws {
         let app = launch(bodyImage: true)
         openInfoSheet(app)
 
-        let add = app.buttons["커버 이미지 추가"]
+        let add = app.buttons["커버 추가"]
+        XCTAssertTrue(add.waitForExistence(timeout: 5), "커버가 빈 카드에 커버 추가가 없음")
+        XCTAssertTrue(add.isHittable)
+        add.tap()
         let chip = app.buttons.matching(NSPredicate(format: "label CONTAINS '본문 첫 이미지를 커버로'")).firstMatch
-        XCTAssertTrue(add.waitForExistence(timeout: 5), "빈 커버 타일이 없음")
-        XCTAssertTrue(chip.waitForExistence(timeout: 5), "본문 사진이 있는데 커버 제안이 없음")
-        XCTAssertFalse(add.frame.intersects(chip.frame), "제안 칩 \(chip.frame) 이 추가 타일 \(add.frame) 과 겹침")
-        XCTAssertGreaterThanOrEqual(chip.frame.minY, add.frame.maxY, "제안 칩이 추가 라벨 아래 줄에 있지 않음")
+        XCTAssertTrue(chip.waitForExistence(timeout: 5), "본문 사진이 있는데 커버 추가 메뉴에 제안이 없음")
+        XCTAssertTrue(app.buttons["사진 추가"].exists, "커버 추가 메뉴에 사진 추가가 없음")
         XCTAssertTrue(chip.isHittable)
         shot("cover-empty-with-suggestion")
     }
@@ -70,6 +71,7 @@ final class ComposeCoverSheetLayoutUITests: XCTestCase {
     func testChangeChipIsTappableAndRemovingTheCoverSticksAfterSave() throws {
         let app = launch(bodyImage: true)
         openInfoSheet(app)
+        app.buttons["커버 추가"].tap()
         app.buttons.matching(NSPredicate(format: "label CONTAINS '본문 첫 이미지를 커버로'")).firstMatch.tap()
         app.buttons["닫기"].tap()
         app.buttons["저장"].tap()
@@ -94,7 +96,7 @@ final class ComposeCoverSheetLayoutUITests: XCTestCase {
         let remove = labeled(app, "커버 제거")
         XCTAssertTrue(remove.exists, "변경 메뉴에 커버 제거가 없음")
         remove.tap()
-        XCTAssertTrue(labeled(app, "커버 이미지 추가").waitForExistence(timeout: 5), "제거해도 카드에 커버가 남음")
+        XCTAssertTrue(labeled(app, "커버 추가").waitForExistence(timeout: 5), "제거해도 카드에 커버가 남음")
 
         app.buttons["닫기"].tap()
         XCTAssertTrue(app.staticTexts["저장 필요"].waitForExistence(timeout: 5), "라이브 글 커버 제거가 저장할 변경으로 안 보임")
@@ -107,7 +109,7 @@ final class ComposeCoverSheetLayoutUITests: XCTestCase {
         manage.tap()
         app.buttons["편집"].tap()
         openInfoSheet(app)
-        XCTAssertTrue(labeled(app, "커버 이미지 추가").waitForExistence(timeout: 5), "저장한 커버 제거가 다시 열면 풀림")
+        XCTAssertTrue(labeled(app, "커버 추가").waitForExistence(timeout: 5), "저장한 커버 제거가 다시 열면 풀림")
     }
 
     func testPrimaryTagChipTextMeetsAAInLightMode() throws {

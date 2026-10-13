@@ -5,11 +5,11 @@
 
 import SwiftUI
 
-/// 시리즈 구독 버튼 — FollowButton 과 같은 유리 캡슐 문법(구독 전=그린 유리, 구독 중=맑은 유리).
+/// 시리즈 구독 버튼 — FollowButton 과 같은 캡슐 문법(구독 전=채움, 구독 중=외곽선).
 /// 새 글이 올라오면 알림으로 이어지는 구독이라 라벨은 "구독"으로.
 struct SubscribeButton: View {
-    /// 화면에서의 무게 — primary 는 구독 전 그린 유리(기본), secondary 는 다른 그린 주행동
-    /// (예: 시리즈 상세의 '이어 읽기') 옆에서 색을 다투지 않게 늘 맑은 유리로 가라앉는다.
+    /// 화면에서의 무게 — primary 는 구독 전 채움(기본), secondary 는 다른 그린 주행동
+    /// (예: 시리즈 상세의 '이어 읽기') 옆에서 색을 다투지 않게 늘 외곽선으로 둔다.
     enum Emphasis { case primary, secondary }
 
     @State private var model: SubscribeModel
@@ -21,10 +21,10 @@ struct SubscribeButton: View {
         self.emphasis = emphasis
     }
 
-    /// 그린 채움 유리는 primary + 구독 전에만. secondary 는 맑은 유리로 가라앉는다.
+    /// 채움은 primary + 구독 전에만. secondary 는 외곽선.
     private var prominent: Bool { emphasis == .primary && !model.subscribed }
 
-    /// 유리 위 라벨색 — 그린 채움엔 흰 글자, 맑은 유리엔 시맨틱/그린 텍스트(§1.2·§1.3).
+    /// 라벨색 — 채움엔 흰 글자, 외곽선엔 시맨틱 텍스트.
     private var labelStyle: AnyShapeStyle {
         switch (emphasis, model.subscribed) {
         case (.primary, false): return AnyShapeStyle(.white)

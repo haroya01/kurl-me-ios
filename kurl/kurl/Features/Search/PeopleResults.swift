@@ -65,14 +65,13 @@ struct PeopleResultsList: View {
                 switch model.phase {
                 case .failed(let message):
                     ErrorState(message: message, retry: retry)
+                        .padding(.top, 16)
                 case .loaded where model.tooShort:
-                    ContentUnavailableView(
-                        "두 글자 이상 입력하면 사람을 찾아요",
-                        systemImage: "person.2")
-                        .padding(.top, 40)
+                    FeedPlaceholder(title: "두 글자 이상 입력하면 사람을 찾아요")
+                        .padding(.top, 16)
                 case .loaded(let people) where people.isEmpty:
-                    ContentUnavailableView.search(text: query)
-                        .padding(.top, 40)
+                    FeedPlaceholder(title: "‘\(query)’ 결과가 없어요")
+                        .padding(.top, 16)
                 case .loaded(let people):
                     ForEach(Array(people.enumerated()), id: \.element.id) { index, person in
                         PersonResultRow(person: person)
@@ -132,7 +131,7 @@ private struct PersonResultRow: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(RowButtonStyle())
-            FollowButton(username: person.username, initialStatus: person.followSeed)
+            FollowButton(username: person.username, initialStatus: person.followSeed, outlined: true)
         }
         .padding(.vertical, 12)
         .accessibilityElement(children: .contain)
