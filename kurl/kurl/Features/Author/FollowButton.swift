@@ -5,8 +5,8 @@
 
 import SwiftUI
 
-/// 작가 페이지의 팔로우 버튼 + 팔로워 수 — 유리 캡슐 문법: 팔로우 전 = 그린(700) 유리,
-/// 팔로잉 상태는 맑은 유리로 가라앉는다. 토글은 낙관, 실패 시 누르기 전 상태로 복귀.
+/// 작가 페이지의 팔로우 버튼 + 팔로워 수 — 팔로우 전 = 채운 캡슐, 팔로잉 = 외곽선 캡슐.
+/// 목록 행에서는 늘 외곽선(outlined). 토글은 낙관, 실패 시 누르기 전 상태로 복귀.
 struct FollowButton: View {
     @State private var model: FollowModel
     @State private var showLoginPrompt = false
@@ -19,6 +19,7 @@ struct FollowButton: View {
     private let username: String
     /// 팔로잉일 때 옆에 종을 띄워 새 노트마다 알림을 켠다(작가 페이지 머리만).
     private let showsBell: Bool
+    private let outlined: Bool
     private let onFollowingChange: ((Bool) -> Void)?
     @ScaledMetric(relativeTo: .headline) private var bellSide: CGFloat = 34
     @ScaledMetric(relativeTo: .headline) private var bellIcon: CGFloat = 14
@@ -26,12 +27,13 @@ struct FollowButton: View {
     /// 호출측이 작가 로드 때 이미 받아 둔 follow status — 같은 GET 을 또 치지 않도록 시드.
     init(
         username: String, showCount: Bool = false, initialStatus: InteractionsAPI.FollowStatus? = nil,
-        showsBell: Bool = false, onFollowingChange: ((Bool) -> Void)? = nil
+        showsBell: Bool = false, outlined: Bool = false, onFollowingChange: ((Bool) -> Void)? = nil
     ) {
         _model = State(initialValue: FollowModel(username: username, seed: initialStatus))
         self.showCount = showCount
         self.username = username
         self.showsBell = showsBell
+        self.outlined = outlined
         self.onFollowingChange = onFollowingChange
     }
 
@@ -49,6 +51,7 @@ struct FollowButton: View {
             ToggleCapsuleButton(
                 isOn: model.following || model.requested,
                 on: model.requested ? "요청함" : "팔로잉", off: "팔로우",
+                prominent: outlined ? false : nil,
                 expandTap: 6
             ) {
                 if model.requested {
@@ -95,8 +98,7 @@ struct FollowButton: View {
                 .frame(width: bellSide, height: bellSide)
                 .expandTapTarget(5)
         }
-        .buttonStyle(.plain)
-        .glassCapsule(prominent: false)
+        .buttonStyle(PaperCapsuleStyle(prominent: false))
         .accessibilityLabel("새 노트 알림")
         .accessibilityValue(model.notifyNotes ? Text("켜짐") : Text("꺼짐"))
         .accessibilityIdentifier("follow.bell")

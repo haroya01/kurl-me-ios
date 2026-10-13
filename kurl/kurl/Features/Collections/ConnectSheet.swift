@@ -129,7 +129,8 @@ struct ConnectSheet: View {
 
     private var failedState: some View {
         ErrorState(retry: { Task { loading = true; await loadCollections() } })
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.top, 24)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
     private var nextButton: some View {

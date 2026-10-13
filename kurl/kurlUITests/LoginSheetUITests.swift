@@ -57,7 +57,7 @@ final class LoginSheetUITests: XCTestCase {
 
         XCTAssertTrue(app.buttons["tab.menu"].isSelected, "시트를 닫았는데 보던 탭(피드)이 아님")
         XCTAssertFalse(app.buttons["글쓰기"].isSelected, "비로그인인데 글쓰기 탭으로 넘어감")
-        XCTAssertFalse(app.staticTexts["로그인하지 않았어요"].exists, "글쓰기 탭 화면이 열림")
+        XCTAssertFalse(app.staticTexts["로그인하면 쓴 글과 시리즈, 분석이 여기 모여요."].exists, "글쓰기 탭 화면이 열림")
         attach("guest-write-after-dismiss")
     }
 
@@ -81,8 +81,9 @@ final class LoginSheetUITests: XCTestCase {
 
     func testGuestAccountTabShowsTheEmptyStateAndOpensTheSameSheet() throws {
         let app = launch(["--mocks", "--logged-out", "--screen", "none", "--tab", "account"])
-        XCTAssertTrue(app.staticTexts["로그인하지 않았어요"].waitForExistence(timeout: 15), "계정 탭 빈 상태 제목이 없음")
-        XCTAssertTrue(app.staticTexts["내 글과 노트, 라이브러리가 여기 모여요."].exists, "계정 탭 빈 상태 설명이 없음")
+        XCTAssertTrue(
+            app.staticTexts["로그인하면 내 글과 노트, 라이브러리가 여기 모여요."].waitForExistence(timeout: 15),
+            "계정 탭 빈 상태 문장이 없음")
         XCTAssertTrue(app.buttons["설정"].exists, "설정 톱니가 없음")
         XCTAssertFalse(app.buttons["Google로 계속하기"].exists, "계정 탭 화면에 로그인 버튼 묶음이 그대로 있음")
         attach("guest-account-empty")

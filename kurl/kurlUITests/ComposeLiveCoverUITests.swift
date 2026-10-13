@@ -35,6 +35,9 @@ final class ComposeLiveCoverUITests: XCTestCase {
 
     private func applySuggestedCoverInInfoSheet(_ app: XCUIApplication) {
         openInfoSheet(app)
+        let add = app.buttons["커버 추가"]
+        XCTAssertTrue(add.waitForExistence(timeout: 5), "커버가 빈 카드에 커버 추가가 없음")
+        add.tap()
         let suggest = app.buttons.matching(NSPredicate(format: "label CONTAINS '본문 첫 이미지를 커버로'")).firstMatch
         XCTAssertTrue(suggest.waitForExistence(timeout: 5), "본문 사진이 있는데 커버 제안이 없음")
         suggest.tap()
@@ -118,7 +121,7 @@ final class ComposeLiveCoverUITests: XCTestCase {
 
         openInfoSheet(app)
         XCTAssertTrue(
-            labeled(app, "커버 이미지 추가").waitForExistence(timeout: 5), "저장하지 않았는데 라이브 글 커버가 바뀜")
+            labeled(app, "커버 추가").waitForExistence(timeout: 5), "저장하지 않았는데 라이브 글 커버가 바뀜")
         shot("live-cover-unchanged-before-save")
     }
 
@@ -133,7 +136,7 @@ final class ComposeLiveCoverUITests: XCTestCase {
         if recovery.waitForExistence(timeout: 4) { recovery.buttons["버리기"].tap() }
         openInfoSheet(app)
         XCTAssertTrue(
-            labeled(app, "커버 이미지 추가").waitForExistence(timeout: 5), "저장하지 않았는데 라이브 글 커버가 바뀜")
+            labeled(app, "커버 추가").waitForExistence(timeout: 5), "저장하지 않았는데 라이브 글 커버가 바뀜")
         shot("suggested-cover-unchanged-before-save")
     }
 

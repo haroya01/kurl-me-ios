@@ -46,7 +46,7 @@ extension View {
                     do {
                         try await BlockStore.shared.block(id: userId, username: username)
                         ToastCenter.shared.show(
-                            String(localized: "차단했어요 — 이 사용자의 글·댓글이 숨겨집니다"))
+                            String(localized: "차단했어요. 이 사용자의 글과 댓글이 숨겨져요"))
                     } catch {
                         ToastCenter.shared.show(String(localized: "차단하지 못했어요"))
                     }
@@ -130,7 +130,7 @@ struct ReportReasonSheet: View {
                 .padding(.bottom, 12)
 
             if sendFailed {
-                Text("신고를 보내지 못했어요 — 다시 시도해 주세요")
+                Text("신고를 보내지 못했어요. 다시 시도해 주세요")
                     .typeScale(.footnote)
                     .foregroundStyle(Palette.secondary)
                     .padding(.bottom, 10)

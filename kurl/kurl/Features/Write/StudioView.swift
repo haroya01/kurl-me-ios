@@ -44,7 +44,7 @@ struct StudioView: View {
                 studio
             } else {
                 SignedOutState(
-                    description: "쓴 글과 시리즈, 분석이 여기 모여요.",
+                    description: "로그인하면 쓴 글과 시리즈, 분석이 여기 모여요.",
                     message: "글을 쓰려면 로그인하세요")
             }
         }
@@ -459,33 +459,9 @@ struct StudioView: View {
         .typeScale(.meta)
     }
 
-    /// 빈 상태 — 막다른 길 금지(DESIGN.md 폴리시). 인사 + 또렷한 시작 버튼.
     private var emptyState: some View {
-        VStack(spacing: 16) {
-            VStack(spacing: 6) {
-                Text(auth.me?.username.map { "\($0) 님의 첫 글" } ?? "첫 글을 시작하세요")
-                    .typeScale(.title)
-                    .foregroundStyle(Palette.ink)
-                Text("도구 막대로 제목·이미지·표를 넣어 웹과 똑같이 발행돼요.")
-                    .typeScale(.lede)
-                    .foregroundStyle(Palette.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            Button {
-                composing = true
-            } label: {
-                Text("새 글 쓰기")
-                    .font(.system(size: 15 * unit, weight: .semibold))
-                    .padding(.horizontal, 24)
-                    .frame(height: 46)
-            }
-            // 툴바의 ‘새 글’·컴포즈의 발행과 같은 prominent 유리 문법(종이 위 그린 유리 캡슐).
-            .buttonStyle(.glassProminent)
-            .tint(GlassTokens.prominentTint)
-            .padding(.top, 2)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 64)
+        FeedPlaceholder(title: "아직 쓴 글이 없어요", actionTitle: "새 글 쓰기", action: { composing = true })
+            .padding(.top, 24)
     }
 
     private func load() async {
@@ -528,7 +504,7 @@ struct StudioView: View {
                 ? String(localized: "프로필 맨 위에 고정했어요")
                 : String(localized: "고정을 해제했어요"))
         } catch {
-            ToastCenter.shared.show(String(localized: "고정을 바꾸지 못했어요 — \(error.localizedDescription)"))
+            ToastCenter.shared.show(String(localized: "고정을 바꾸지 못했어요. \(error.localizedDescription)"))
         }
     }
 
@@ -578,8 +554,8 @@ struct StudioView: View {
                 .padding(.bottom, 8)
             Hairline()
             if seriesLoaded, seriesList.isEmpty {
-                Text("아직 시리즈가 없어요. 발행 시트에서 글을 시리즈로 묶어 보세요.")
-                    .typeScale(.lede)
+                Text("아직 시리즈가 없어요")
+                    .typeScale(.body)
                     .foregroundStyle(Palette.secondary)
                     .padding(.top, 24)
             }

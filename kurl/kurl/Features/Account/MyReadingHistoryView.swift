@@ -26,15 +26,12 @@ struct MyReadingHistoryView: View {
                 ErrorState(retry: { Task { await reload() } })
                     .padding(.top, 60)
             } else if loadedOnce && items.isEmpty {
-                ContentUnavailableView {
-                    Text("아직 읽기 기록이 없어요").bold()
-                } description: {
-                    Text("글을 읽으면 여기에 기록돼요. 기록은 나만 봅니다.")
-                } actions: {
-                    Button("피드에서 읽을 글 찾기") { TabRouter.shared.selection = 0 }
-                        .foregroundStyle(Palette.link)
-                }
-                .padding(.top, 56)
+                FeedPlaceholder(
+                    title: "아직 읽기 기록이 없어요",
+                    actionTitle: "피드에서 읽을 글 찾기",
+                    action: { TabRouter.shared.selection = 0 }
+                )
+                .padding(.top, 24)
             } else {
                 LazyVStack(spacing: 0) {
                     ForEach(Array(items.enumerated()), id: \.element.id) { index, item in

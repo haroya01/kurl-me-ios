@@ -105,6 +105,9 @@ struct DiscoverDeckView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 case .failed(let message):
                     ErrorState(message: message, retry: { Task { await model.reshuffle() } })
+                        .padding(.horizontal, Metrics.gutter)
+                        .padding(.top, 24)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 case .loaded:
                     // 인증 피드가 빈 덱을 줄 수 있다 — 빈 페이지형 면 대신 막다른 길 금지(작가 찾기로).
                     if model.deck.isEmpty {
@@ -174,11 +177,12 @@ struct DiscoverDeckView: View {
         // 인증 피드가 빈 덱을 줄 수 있다 — 다른 빈 면과 같은 언어(FeedPlaceholder)로 다시 섞기를 건넨다.
         FeedPlaceholder(
             title: "읽을 글이 없어요",
-            message: "작가를 팔로우하면, 그들의 글이 이 덱에 흘러요.",
             actionTitle: "다시 섞기",
             action: { Task { await model.reshuffle() } }
         )
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, Metrics.gutter)
+        .padding(.top, 24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
     private var currentItem: FeedItem? {

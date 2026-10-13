@@ -123,12 +123,11 @@ struct TagFeedView: View {
         case .loaded(let items):
             if items.isEmpty {
                 FeedPlaceholder(
-                    title: "글이 없어요",
-                    message: "이 태그의 글이 아직 없어요.",
+                    title: "이 태그의 글이 아직 없어요.",
                     actionTitle: "피드에서 읽을 글 찾기",
                     action: { TabRouter.shared.switchTo(0, reduceMotion: reduceMotion) }
                 )
-                .padding(.top, 48)
+                .padding(.top, 24)
             }
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
@@ -167,15 +166,14 @@ struct TagFeedView: View {
         case .loaded:
             if notes.items.isEmpty {
                 FeedPlaceholder(
-                    title: "노트가 없어요",
-                    message: "이 태그의 노트가 아직 없어요.",
+                    title: "이 태그의 노트가 아직 없어요.",
                     actionTitle: "인기 노트 보기",
                     action: {
                         NoteFeedChoice.shared.show(.trending)
                         TabRouter.shared.switchTo(1, reduceMotion: reduceMotion)
                     }
                 )
-                .padding(.top, 48)
+                .padding(.top, 24)
             } else {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(notes.items.enumerated()), id: \.element.id) { index, note in

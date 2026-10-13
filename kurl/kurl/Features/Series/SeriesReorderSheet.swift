@@ -192,13 +192,11 @@ struct SeriesNotePicker: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .background(Palette.readingBg)
-            .overlay {
+            .overlay(alignment: .top) {
                 if !loading && candidates.isEmpty {
-                    Text(failed ? "노트를 불러오지 못했습니다" : "더할 수 있는 노트가 없어요. 팔로워만·멘션한 사람만 보는 노트는 시리즈에 넣을 수 없어요.")
-                        .typeScale(.lede)
-                        .foregroundStyle(Palette.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
+                    FeedPlaceholder(title: failed ? "노트를 불러오지 못했습니다" : "더할 수 있는 노트가 없어요. 팔로워만·멘션한 사람만 보는 노트는 시리즈에 넣을 수 없어요.")
+                        .padding(.horizontal, Metrics.gutter)
+                        .padding(.top, 24)
                 }
             }
             .navigationTitle("노트 고르기")

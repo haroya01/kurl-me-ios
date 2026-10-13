@@ -24,12 +24,8 @@ struct BlockedUsersView: View {
                     retry: { Task { await load() } })
                     .padding(.top, 60)
             } else if BlockStore.shared.blocked.isEmpty {
-                ContentUnavailableView {
-                    Text("차단한 사용자가 없어요").bold()
-                } description: {
-                    Text("작가 페이지의 ⋯ 메뉴에서 차단할 수 있어요.")
-                }
-                .padding(.top, 60)
+                FeedPlaceholder(title: "차단한 사용자가 없어요")
+                    .padding(.top, 24)
             } else {
                 let items = BlockStore.shared.blocked
                 LazyVStack(spacing: 0) {

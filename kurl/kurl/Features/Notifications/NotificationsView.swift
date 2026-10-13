@@ -52,8 +52,7 @@ struct NotificationsView: View {
                     actionTitle: "피드 둘러보기",
                     action: { TabRouter.shared.selection = 0 }
                 )
-                .frame(maxWidth: .infinity)
-                .padding(.top, 72)
+                .padding(.top, 24)
             } else if items.isEmpty {
                 followRequestsEntry
                 filteredEntry
@@ -61,12 +60,10 @@ struct NotificationsView: View {
                 // (다른 빈 면과 같은 언어 = FeedPlaceholder).
                 FeedPlaceholder(
                     title: "아직 알림이 없어요",
-                    message: "팔로우한 작가의 새 글·좋아요·댓글 소식이 여기 모여요.",
                     actionTitle: "검색에서 작가 찾기",
                     action: { TabRouter.shared.selection = 3 }
                 )
-                .frame(maxWidth: .infinity)
-                .padding(.top, 72)
+                .padding(.top, 24)
             } else {
                 list
             }
@@ -183,14 +180,11 @@ struct NotificationsView: View {
     // 비로그인 게이트 — 알림은 인증 피드라, 로그인하면 흐른다고 안내(발견·피드 로그아웃 결과와 동일 문법).
     private var loggedOutGate: some View {
         FeedPlaceholder(
-            title: "내 알림을 받으려면",
-            message: "로그인하면 좋아요·댓글·팔로우·새 글 알림이 여기에 모여요.",
+            title: "로그인하면 좋아요·댓글·팔로우·새 글 알림이 여기에 모여요.",
             actionTitle: "로그인",
-            prominent: true,
             action: { showLoginSheet = true }
         )
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.top, 80)
+        .padding(.top, 24)
         .loginPrompt(isPresented: $showLoginSheet, message: "알림을 보려면 로그인하세요")
     }
 

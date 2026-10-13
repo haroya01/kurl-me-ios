@@ -24,19 +24,16 @@ struct BookmarksView: View {
             } else if failed {
                 LibraryFailedState { Task { loading = true; await load() } }
             } else if items.isEmpty {
-                ContentUnavailableView {
-                    Text("북마크한 글이 없습니다").bold()
-                } description: {
-                    Text("북마크한 글은 오프라인에서도 읽을 수 있어요.")
-                } actions: {
-                    Button("피드에서 읽을 글 찾기") { TabRouter.shared.selection = 0 }
-                        .foregroundStyle(Palette.link)
-                }
-                .padding(.top, 60)
+                FeedPlaceholder(
+                    title: "북마크한 글이 없어요",
+                    actionTitle: "피드에서 읽을 글 찾기",
+                    action: { TabRouter.shared.selection = 0 }
+                )
+                .padding(.top, 24)
             } else {
                 if offlineFallback {
                     // 기기 사본 목록 렌더 중 — 상세의 오프라인 배너와 같은 조용한 한 줄.
-                    Text("오프라인 — 기기에 저장된 사본만 보여요")
+                    Text("오프라인이에요. 기기에 저장된 사본만 보여요")
                         .typeScale(.footnote)
                         .foregroundStyle(Palette.secondary)
                         .padding(.horizontal, 10)
@@ -152,13 +149,12 @@ struct LikedPostsView: View {
             } else if failed {
                 LibraryFailedState { Task { loading = true; await load() } }
             } else if items.isEmpty {
-                ContentUnavailableView {
-                    Text("좋아요한 글이 없습니다").bold()
-                } actions: {
-                    Button("피드에서 읽을 글 찾기") { TabRouter.shared.selection = 0 }
-                        .foregroundStyle(Palette.link)
-                }
-                    .padding(.top, 60)
+                FeedPlaceholder(
+                    title: "좋아요한 글이 없어요",
+                    actionTitle: "피드에서 읽을 글 찾기",
+                    action: { TabRouter.shared.selection = 0 }
+                )
+                .padding(.top, 24)
             } else {
                 // 좋아요한 글 = 내 컬렉션(카탈로그) — 카드가 아니라 피드와 같은 글 행(3원칙 표준).
                 LazyVStack(spacing: 0) {
@@ -208,13 +204,12 @@ struct SubscribedSeriesView: View {
             } else if failed {
                 LibraryFailedState { Task { loading = true; await load() } }
             } else if items.isEmpty {
-                ContentUnavailableView {
-                    Text("구독한 시리즈가 없습니다").bold()
-                } actions: {
-                    Button("검색에서 시리즈 찾기") { TabRouter.shared.selection = 3 }
-                        .foregroundStyle(Palette.link)
-                }
-                .padding(.top, 60)
+                FeedPlaceholder(
+                    title: "구독한 시리즈가 없어요",
+                    actionTitle: "검색에서 시리즈 찾기",
+                    action: { TabRouter.shared.selection = 3 }
+                )
+                .padding(.top, 24)
             } else {
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, card in
                     // 클로저형 링크 — 계정 스택 혼용 함정 회피(값 기반은 이 깊이서 항해 안 함).
@@ -286,15 +281,12 @@ struct SubscribedTagsView: View {
             } else if failed {
                 LibraryFailedState { Task { loading = true; await load() } }
             } else if tags.isEmpty {
-                ContentUnavailableView {
-                    Text("구독한 태그가 없습니다").bold()
-                } description: {
-                    Text("글에서 태그를 구독하면 그 주제의 새 글이 팔로잉에 모여요.")
-                } actions: {
-                    Button("피드에서 읽을 글 찾기") { TabRouter.shared.selection = 0 }
-                        .foregroundStyle(Palette.link)
-                }
-                .padding(.top, 60)
+                FeedPlaceholder(
+                    title: "구독한 태그가 없어요",
+                    actionTitle: "피드에서 읽을 글 찾기",
+                    action: { TabRouter.shared.selection = 0 }
+                )
+                .padding(.top, 24)
             } else {
                 VStack(alignment: .leading, spacing: 12) {
                     // 흐르는 칩 그리드 — 좁은 폭에서 자동 줄바꿈(발행 시트 태그 필드와 같은 FlowLayout).

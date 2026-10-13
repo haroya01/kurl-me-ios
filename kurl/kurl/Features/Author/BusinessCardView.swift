@@ -32,7 +32,7 @@ struct BusinessCardView: View {
                             KurlLoadingMark()
                         }
                     }
-                    .overlay {
+                    .overlay(alignment: .top) {
                         if failed {
                             ErrorState(
                                 title: "명함을 불러오지 못했습니다",
@@ -42,6 +42,8 @@ struct BusinessCardView: View {
                                     isLoading = true
                                     attempt += 1
                                 })
+                                .padding(.horizontal, Metrics.gutter)
+                                .padding(.top, 24)
                         }
                     }
             }

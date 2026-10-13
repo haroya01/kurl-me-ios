@@ -8,6 +8,7 @@ import SwiftUI
 /// 다른 서버 계정의 팔로우 캡슐 — 마스토돈처럼 요청을 보낸 뒤 그 서버가 수락해야 팔로잉이 된다.
 struct RemoteFollowButton: View {
     @Binding var account: RemoteAccount
+    var outlined = false
     @State private var busy = false
     @State private var confirmUnfollow = false
     @State private var toggles = 0
@@ -17,6 +18,7 @@ struct RemoteFollowButton: View {
             isOn: account.following || account.requested,
             on: account.following ? "팔로잉" : "요청됨",
             off: "팔로우",
+            prominent: outlined ? false : nil,
             expandTap: 6
         ) {
             if account.following || account.requested {
@@ -72,7 +74,7 @@ struct RemoteAccountRow: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("remote.row.\(account.acct)")
-            RemoteFollowButton(account: $account)
+            RemoteFollowButton(account: $account, outlined: true)
         }
         .padding(.vertical, 10)
     }
@@ -119,15 +121,13 @@ struct RemoteAccountView: View {
                 Hairline()
                     .padding(.top, 18)
                 if account.isDomainBlocked {
-                    ContentUnavailableView {
-                        Text("차단한 서버예요").bold()
-                    } description: {
-                        Text("\(account.domain)의 노트와 알림은 보이지 않아요.")
-                    } actions: {
-                        Button("\(account.domain) 차단 해제") { Task { await setDomainBlocked(false) } }
-                            .accessibilityIdentifier("remote.domain.unblock")
-                    }
-                    .padding(.top, 40)
+                    FeedPlaceholder(
+                        title: "\(account.domain)의 노트와 알림은 보이지 않아요.",
+                        actionTitle: "\(account.domain) 차단 해제",
+                        actionIdentifier: "remote.domain.unblock",
+                        action: { Task { await setDomainBlocked(false) } }
+                    )
+                    .padding(.top, 24)
                 } else {
                     notesList
                 }
@@ -194,12 +194,8 @@ struct RemoteAccountView: View {
                 .padding(.top, 40)
         case .loaded:
             if notes.items.isEmpty {
-                ContentUnavailableView {
-                    Text("받은 노트가 없어요").bold()
-                } description: {
-                    Text("팔로우하면 이 계정이 쓰는 새 노트가 여기와 팔로잉 피드에 와요.")
-                }
-                .padding(.top, 40)
+                FeedPlaceholder(title: "받은 노트가 없어요")
+                    .padding(.top, 24)
             } else {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(notes.items.enumerated()), id: \.element.id) { index, note in
@@ -311,12 +307,8 @@ struct DomainBlocksView: View {
                     retry: { Task { await load() } })
                     .padding(.top, 60)
             } else if blocks.isEmpty {
-                ContentUnavailableView {
-                    Text("차단한 서버가 없어요").bold()
-                } description: {
-                    Text("다른 서버 계정 화면의 ⋯ 메뉴에서 그 서버 전체를 차단할 수 있어요.")
-                }
-                .padding(.top, 60)
+                FeedPlaceholder(title: "차단한 서버가 없어요")
+                    .padding(.top, 24)
             } else {
                 LazyVStack(spacing: 0) {
                     ForEach(blocks) { block in
@@ -388,12 +380,8 @@ struct RemoteFollowingView: View {
                     retry: { Task { await load() } })
                     .padding(.top, 60)
             } else if accounts.isEmpty {
-                ContentUnavailableView {
-                    Text("다른 서버에서 팔로우하는 계정이 없어요").bold()
-                } description: {
-                    Text("검색에 @아이디@서버를 적으면 마스토돈 같은 다른 서버의 계정을 찾을 수 있어요.")
-                }
-                .padding(.top, 60)
+                FeedPlaceholder(title: "다른 서버에서 팔로우하는 계정이 없어요")
+                    .padding(.top, 24)
             } else {
                 LazyVStack(spacing: 0) {
                     ForEach($accounts) { $account in

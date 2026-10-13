@@ -110,12 +110,8 @@ struct MutedUsersView: View {
                     retry: { Task { await load() } })
                     .padding(.top, 60)
             } else if muted.isEmpty {
-                ContentUnavailableView {
-                    Text("뮤트한 사용자가 없어요").bold()
-                } description: {
-                    Text("작가 페이지의 ⋯ 메뉴에서 뮤트할 수 있어요.")
-                }
-                .padding(.top, 60)
+                FeedPlaceholder(title: "뮤트한 사용자가 없어요")
+                    .padding(.top, 24)
             } else {
                 LazyVStack(spacing: 0) {
                     ForEach(muted) { user in

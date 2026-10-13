@@ -294,15 +294,15 @@ struct FeedPage: View {
 
     private var followingGate: some View {
         FeedPlaceholder(
-            title: source == .forYou ? "읽을수록 좋아집니다" : "팔로우한 글이 여기 모입니다",
-            message: source == .forYou
-                ? "로그인하면 읽은 글을 따라 추천이 쌓입니다."
-                : "로그인하면 팔로우한 작가의 새 글이 도착합니다.",
+            title: source == .forYou
+                ? "로그인하면 읽은 글을 따라 추천이 쌓여요."
+                : "로그인하면 팔로우한 작가의 새 글이 도착해요.",
             actionTitle: "로그인",
-            prominent: true,
             action: { showLoginSheet = true }
         )
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, Metrics.gutter)
+        .padding(.top, 24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .loginPrompt(
             isPresented: $showLoginSheet,
             message: source == .forYou
@@ -368,7 +368,7 @@ struct FeedPage: View {
                         Task { await model.retryLoadMore() }
                     } label: {
                         HStack(spacing: 4) {
-                            Text("더 불러오지 못했습니다 — 다시 시도")
+                            Text("더 불러오지 못했어요. 다시 시도")
                                 .typeScale(.meta)
                         }
                         .foregroundStyle(Palette.ink)
@@ -382,21 +382,17 @@ struct FeedPage: View {
                     if source == .following {
                         FeedPlaceholder(
                             title: "팔로잉 피드가 비어 있어요",
-                            message: "작가를 팔로우하면 새 글이 여기 도착해요.",
                             actionTitle: "검색에서 작가 찾기",
                             action: { TabRouter.shared.switchTo(3, reduceMotion: reduceMotion) }
                         )
-                        .padding(.top, 64)
+                        .padding(.top, 24)
                     } else {
                         FeedPlaceholder(
-                            title: source == .forYou ? "아직은 고를 거리가 적어요" : "아직 글이 없습니다",
-                            message: source == .forYou
-                                ? "몇 편 읽고 나면 취향이 잡힙니다."
-                                : "첫 글이 올라오면 여기에서 만나요.",
+                            title: source == .forYou ? "아직은 고를 거리가 적어요" : "아직 글이 없어요",
                             actionTitle: "읽을 글 찾기",
                             action: { TabRouter.shared.switchTo(3, reduceMotion: reduceMotion) }
                         )
-                        .padding(.top, 64)
+                        .padding(.top, 24)
                     }
                 }
             }
@@ -440,87 +436,43 @@ struct FeedPage: View {
 
     private func failed(_ message: String) -> some View {
         ErrorState(message: message, retry: { Task { await model.reload() } })
+            .padding(.horizontal, Metrics.gutter)
+            .padding(.top, 24)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 }
 
-/// 비어있음·로그아웃 안내 — 스톡 ContentUnavailableView(큰 SF 심볼 + 가운데 설명문)의
-/// 기성품 인상을 걷고, 종이 본문 결의 조용한 면으로 다시 짠다. 브랜드 마크 한 점 +
-/// 제목 + 한 줄 + 단일 주액션. 로그인 게이트만 그린 유리 캡슐(§1.4 종이 위
-/// 로그인 CTA), 빈 피드 안내는 조용한 그린 텍스트로 — 초록 과용을 피한다(§10 색 규율).
 struct FeedPlaceholder: View {
     let title: LocalizedStringKey
-    var message: LocalizedStringKey?
     var actionTitle: LocalizedStringKey?
-    var prominent: Bool = false
+    var actionIdentifier: String?
     var action: (() -> Void)?
-    /// 주액션 라벨도 시스템 글자 크기를 따른다(제목·설명은 이미 typeScale 로 스케일).
-    @ScaledMetric(relativeTo: .headline) private var actionSize: CGFloat = 15
 
     var body: some View {
-        VStack(spacing: 0) {
-            // 빈 면에도 남는 브랜드 사인 — 형광 아닌 옅은 잉크(RailHeading 마커와 같은 중립).
-            KurlMark(drawn: [true, true, true], tint: Palette.hairlineStrong)
-                .frame(width: 46, height: 28)
-                .accessibilityHidden(true)
-                .padding(.bottom, 24)
-
+        VStack(alignment: .leading, spacing: 10) {
             Text(title)
-                .typeScale(.featured)
-                .foregroundStyle(Palette.ink)
-                .multilineTextAlignment(.center)
+                .typeScale(.body)
+                .foregroundStyle(Palette.secondary)
+                .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.bottom, 9)
-
-            if let message {
-                Text(message)
-                    .typeScale(.lede)
-                    .foregroundStyle(Palette.secondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: 272)
-                    .padding(.bottom, 22)
-            }
-
-            actionButton
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, Metrics.gutter)
-    }
-
-    @ViewBuilder private var actionButton: some View {
-        if let actionTitle, let action {
-            actionButton(actionTitle, action: action)
-        }
-    }
-
-    @ViewBuilder private func actionButton(_ actionTitle: LocalizedStringKey, action: @escaping () -> Void) -> some View {
-        if prominent {
-            Button(action: action) {
-                Text(actionTitle)
-                    .font(.system(size: actionSize, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 22)
-                    .padding(.vertical, 12)
-                    .contentShape(Capsule())
-            }
-            .buttonStyle(.plain)
-            .glassCapsule(prominent: true)
-        } else {
-            Button(action: action) {
-                HStack(spacing: 3) {
+            if let actionTitle, let action {
+                Button(action: action) {
                     Text(actionTitle)
-                        .typeScale(.meta)
+                        .typeScale(.body)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Palette.ink)
+                        .expandTapTarget(12)
                 }
-                // 텍스트/인라인 CTA = link(700), accent(600)는 비텍스트 마커 몫(§10.3).
-                .foregroundStyle(Palette.link)
-                .expandTapTarget(8)
+                .buttonStyle(.plain)
+                .accessibilityIdentifier(actionIdentifier ?? "", isEnabled: actionIdentifier != nil)
             }
-            .buttonStyle(.plain)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
-private struct FeedSeriesRow: View {
+private struct FeedSeriesRow
+: View {
     let series: PublicSeriesCard
     let author: Author
 

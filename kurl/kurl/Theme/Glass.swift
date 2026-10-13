@@ -16,17 +16,17 @@ extension View {
     }
 }
 
-/// 팔로우·구독·태그구독이 공유하는 토글 캡슐 한 벌 — 유리 문법·라벨 타이포(14 semibold,
-/// Dynamic Type)·토글 애니메이션을 여기서만 정의한다(3벌 복붙 산발의 종식, #124).
+/// 팔로우·구독·태그구독이 공유하는 토글 캡슐 한 벌 — 종이 위 컨트롤이라 유리 대신 채움·외곽선,
+/// 라벨 타이포(14 semibold, Dynamic Type)·토글 애니메이션을 여기서만 정의한다(#124).
 /// 도메인(낙관 토글·햅틱·로그인 프롬프트)은 호출측 몫 — 이 뷰는 "보이는 캡슐"만 책임진다.
 struct ToggleCapsuleButton: View {
     var isOn: Bool
     var onLabel: LocalizedStringKey
     var offLabel: LocalizedStringKey
-    /// nil = 기본 문법(꺼짐이 주행동 → 그린 유리). 켜짐/꺼짐과 무관하게 가라앉는
-    /// 자리(구독 secondary)는 false 를 넘긴다.
+    /// nil = 기본 문법(꺼짐이 주행동 → 채움). 켜짐/꺼짐과 무관하게 외곽선으로 두는
+    /// 자리(목록 행·구독 secondary)는 false 를 넘긴다.
     var prominent: Bool?
-    /// nil = 기본(그린 유리엔 흰 글자, 맑은 유리엔 시맨틱). 구독 secondary 처럼
+    /// nil = 기본(채움엔 흰 글자, 외곽선엔 잉크). 구독 secondary 처럼
     /// 자리마다 다른 잉크가 필요하면 호출측이 계산해 넘긴다.
     var labelStyle: AnyShapeStyle?
     /// 캡슐 시각 높이(~33pt)를 유지한 채 탭 영역만 넓힐 때(44pt 규칙).
@@ -60,8 +60,7 @@ struct ToggleCapsuleButton: View {
                 capsuleLabel
             }
         }
-        .buttonStyle(.plain)
-        .glassCapsule(prominent: isProminent)
+        .buttonStyle(PaperCapsuleStyle(prominent: isProminent))
         .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: isOn)
     }
 
@@ -73,11 +72,28 @@ struct ToggleCapsuleButton: View {
                 .fixedSize()
         }
         .foregroundStyle(
-            labelStyle ?? (isProminent ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+            labelStyle ?? (isProminent ? AnyShapeStyle(.white) : AnyShapeStyle(Palette.ink))
         )
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
         .contentShape(Capsule())
+    }
+}
+
+struct PaperCapsuleStyle: ButtonStyle {
+    let prominent: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background {
+                if prominent {
+                    Capsule().fill(Palette.accentFill)
+                } else {
+                    Capsule().strokeBorder(Palette.hairlineStrong, lineWidth: 1)
+                }
+            }
+            .opacity(configuration.isPressed ? 0.6 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
 

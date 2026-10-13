@@ -1821,6 +1821,9 @@ struct NoteDetailView: View {
                 }
             } else if let failed {
                 ErrorState(message: failed, retry: { Task { await load() } })
+                    .padding(.horizontal, Metrics.gutter)
+                    .padding(.top, 24)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             } else {
                 KurlLoadingMark().frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -2907,6 +2910,9 @@ struct NoteHistorySheet: View {
                     KurlLoadingMark().frame(maxWidth: .infinity, maxHeight: .infinity)
                 case .failed(let message):
                     ErrorState(message: message, retry: { Task { await load() } })
+                        .padding(.horizontal, Metrics.gutter)
+                        .padding(.top, 24)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 case .loaded(let history):
                     List {
                         ForEach(Array(history.versions.enumerated()), id: \.offset) { index, version in

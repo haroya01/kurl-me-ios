@@ -843,6 +843,34 @@
         }
       }
     },
+    "%@, 대표로 지정": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, set as primary"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, मुख्य के रूप में सेट करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@、メインに設定"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@, đặt làm chính"
+          }
+        }
+      }
+    },
     "%@, 사진 %lld장": {
       "localizations": {
         "en": {
@@ -5203,6 +5231,34 @@
         }
       }
     },
+    "계속 저장하지 못하고 있어요. 지금 다시 시도해 주세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Still can't save. Try again now"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी भी सेव नहीं हो पा रहा। अभी फिर से कोशिश करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存できない状態が続いています。今すぐ再試行してください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vẫn chưa lưu được. Hãy thử lại ngay"
+          }
+        }
+      }
+    },
     "계속하면 [이용약관](%@)과 [개인정보 처리방침](%@)에 동의하는 것으로 간주됩니다.": {
       "localizations": {
         "en": {
@@ -5508,6 +5564,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Không thể thay đổi ghim — %@"
+          }
+        }
+      }
+    },
+    "고정을 바꾸지 못했어요. %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't update the pin. %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पिन नहीं बदला जा सका। %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ピン留めを変更できませんでした。%@"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể thay đổi ghim. %@"
           }
         }
       }
@@ -6365,6 +6449,34 @@
         }
       }
     },
+    "구독한 시리즈가 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No subscribed series"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कोई सब्सक्राइब की गई सीरीज़ नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "購読中のシリーズはありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có series nào đã đăng ký"
+          }
+        }
+      }
+    },
     "구독한 태그": {
       "localizations": {
         "en": {
@@ -6421,6 +6533,34 @@
         }
       }
     },
+    "구독한 태그가 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No subscribed tags"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कोई सब्सक्राइब किया गया टैग नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "購読中のタグはありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có thẻ nào được đăng ký"
+          }
+        }
+      }
+    },
     "내 글이 엮인 컬렉션에 새 글이 이어질 때": {
       "localizations": {
         "en": {
@@ -6445,6 +6585,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "Khi một bài mới được nối vào bộ sưu tập có bài của bạn"
+          }
+        }
+      }
+    },
+    "내가 팔로우하는 %lld명이 팔로우": {
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Followed by %lld person you follow"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Followed by %lld people you follow"
+                }
+              }
+            }
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपके फ़ॉलो किए गए %lld लोग फ़ॉलो करते हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォロー中の%lld人がフォロー"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld người bạn theo dõi đang theo dõi"
           }
         }
       }
@@ -6501,6 +6681,370 @@
           "stringUnit": {
             "state": "translated",
             "value": "Đăng nhập để xem ghi chú từ máy chủ khác"
+          }
+        }
+      }
+    },
+    "담은 사람이 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No one here yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी कोई नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだ誰もいません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có ai"
+          }
+        }
+      }
+    },
+    "댓글을 불러오지 못했어요. 다시 시도": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't load comments. Try again"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "टिप्पणियाँ लोड नहीं हुईं। फिर कोशिश करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コメントを読み込めませんでした。再試行"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không tải được bình luận. Thử lại"
+          }
+        }
+      }
+    },
+    "더 불러오지 못했어요. 다시 시도": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't load more. Try again"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "और लोड नहीं हो सका। फिर कोशिश करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "続きを読み込めませんでした。再試行"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không tải thêm được. Thử lại"
+          }
+        }
+      }
+    },
+    "로그인이 풀려 저장하지 못했어요. 다시 로그인한 뒤 시도해 주세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You were signed out, so it couldn't be saved. Sign in again and retry"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साइन-आउट होने से सेव नहीं हुआ। फिर साइन इन करके कोशिश करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログインが切れて保存できませんでした。再ログインしてからお試しください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn đã bị đăng xuất nên không lưu được. Hãy đăng nhập lại rồi thử"
+          }
+        }
+      }
+    },
+    "로그인이 풀려 저장하지 못했어요. 다시 로그인해 주세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You were signed out, so it couldn't be saved. Please sign in again"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साइन-आउट होने से सेव नहीं हुआ। कृपया फिर साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログインが切れて保存できませんでした。再ログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn đã bị đăng xuất nên không lưu được. Vui lòng đăng nhập lại"
+          }
+        }
+      }
+    },
+    "로그인이 풀렸어요. 다시 로그인해야 저장돼요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You've been signed out. Sign in again to keep saving"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आप साइन-आउट हो गए। सेव जारी रखने के लिए फिर साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログインが切れました。保存を続けるには再ログインが必要です"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn đã bị đăng xuất. Đăng nhập lại để tiếp tục lưu"
+          }
+        }
+      }
+    },
+    "로그인하면 내 글과 노트, 라이브러리가 여기 모여요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in and your posts, notes, and library collect here."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साइन इन करने पर आपकी पोस्ट, नोट्स और लाइब्रेरी यहाँ जमा होंगी।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログインすると、自分の記事やノート、ライブラリがここに集まります。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để bài viết, ghi chú và thư viện của bạn gom về đây."
+          }
+        }
+      }
+    },
+    "로그인하면 쓴 글과 시리즈, 분석이 여기 모여요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in and your posts, series, and analytics collect here."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साइन इन करने पर आपकी पोस्ट, श्रृंखला और विश्लेषण यहाँ जमा होंगे।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログインすると、書いた記事やシリーズ、分析がここに集まります。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để bài viết, loạt bài và phân tích của bạn gom về đây."
+          }
+        }
+      }
+    },
+    "로그인하면 읽은 글을 따라 추천이 쌓여요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in and your recommendations build from what you read."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साइन इन करें और आपकी पढ़ी पोस्ट के अनुसार सुझाव बनते जाएँगे."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログインすると、読んだ記事から推薦が育ちます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập và gợi ý sẽ hình thành từ những gì bạn đọc."
+          }
+        }
+      }
+    },
+    "로그인하면 팔로우한 작가의 새 글이 도착해요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in and new posts from writers you follow land here."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साइन इन करें और जिन लेखकों को फ़ॉलो करते हैं, उनकी नई पोस्ट यहाँ आएँगी."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログインすると、フォロー中の書き手の新着が届きます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập và bài mới từ tác giả bạn theo dõi sẽ đến đây."
+          }
+        }
+      }
+    },
+    "리비전이 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No revisions"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कोई संशोधन नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リビジョンがありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không có phiên bản nào"
+          }
+        }
+      }
+    },
+    "모더레이션 편집은 제목과 태그만 바꿔요. 본문과 주소는 작가의 것으로 남아요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moderation edits change only the title and tags. The body and URL stay the author's."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मॉडरेशन संपादन केवल शीर्षक और टैग बदलता है। सामग्री और URL लेखक के रहते हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "モデレーション編集はタイトルとタグのみ変更します。本文と URL は作者のままです。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chỉnh sửa kiểm duyệt chỉ đổi tiêu đề và thẻ. Nội dung và URL vẫn của tác giả."
+          }
+        }
+      }
+    },
+    "미저장, 곧 저장돼요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unsaved, saving soon"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सहेजा नहीं गया, जल्द सेव होगा"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未保存、まもなく保存されます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa lưu, sắp lưu"
           }
         }
       }
@@ -6701,6 +7245,62 @@
         }
       }
     },
+    "본문 쓰기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start writing"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लिखना शुरू करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本文を書く"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viết nội dung"
+          }
+        }
+      }
+    },
+    "북마크한 글이 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No bookmarked posts"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कोई बुकमार्क की गई पोस्ट नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブックマークした記事はありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không có bài đã đánh dấu"
+          }
+        }
+      }
+    },
     "북마크한 노트를 보려면 로그인하세요": {
       "localizations": {
         "en": {
@@ -6753,6 +7353,90 @@
           "stringUnit": {
             "state": "translated",
             "value": "Phương tiện"
+          }
+        }
+      }
+    },
+    "사진이 너무 커서 올리지 못했어요. 한 장에 %lldMB까지 올릴 수 있어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That photo is too large to upload. Each photo can be up to %lldMB"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ोटो बहुत बड़ी है, अपलोड नहीं हो सकी। हर फ़ोटो %lldMB तक हो सकती है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真が大きすぎてアップロードできませんでした。1枚%lldMBまでです"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ảnh quá lớn nên không tải lên được. Mỗi ảnh tối đa %lldMB"
+          }
+        }
+      }
+    },
+    "소개글 쓰기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write an excerpt"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सारांश लिखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "紹介文を書く"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viết tóm tắt"
+          }
+        }
+      }
+    },
+    "수정하지 못했어요. %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't edit. %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "संपादित नहीं हो सका। %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "編集できませんでした。%@"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không thể chỉnh sửa. %@"
           }
         }
       }
@@ -6813,6 +7497,62 @@
         }
       }
     },
+    "신고를 보내지 못했어요. 다시 시도해 주세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't send the report. Please try again"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रिपोर्ट नहीं भेज सके। कृपया फिर से कोशिश करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "報告を送信できませんでした。もう一度お試しください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không gửi được báo cáo. Vui lòng thử lại"
+          }
+        }
+      }
+    },
+    "아직 글이 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No posts yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी तक कोई पोस्ट नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだ記事がありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có bài viết nào"
+          }
+        }
+      }
+    },
     "아직 단 답글이 없어요": {
       "localizations": {
         "en": {
@@ -6837,6 +7577,90 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chưa có trả lời nào"
+          }
+        }
+      }
+    },
+    "아직 리스트가 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No lists yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी कोई सूची नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだリストがありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có danh sách"
+          }
+        }
+      }
+    },
+    "아직 시리즈가 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No series yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी तक कोई सीरीज़ नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだシリーズがありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có series nào"
+          }
+        }
+      }
+    },
+    "아직 쓴 글이 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You haven't written any posts yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपने अभी तक कोई पोस्ट नहीं लिखी"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだ書いた記事がありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn chưa viết bài nào"
           }
         }
       }
@@ -6921,6 +7745,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mở"
+          }
+        }
+      }
+    },
+    "오프라인 사본이에요. 연결되면 최신으로 바뀌어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offline copy. Updates when you're back online"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ऑफ़लाइन प्रति। ऑनलाइन होने पर अपडेट होती है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフラインのコピーです。接続時に最新へ更新されます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bản ngoại tuyến. Cập nhật khi bạn kết nối lại"
+          }
+        }
+      }
+    },
+    "오프라인이에요. 기기에 저장된 사본만 보여요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Offline. Showing only the copy saved on this device"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ऑफ़लाइन। केवल डिवाइस पर सहेजी प्रति दिख रही है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフラインです。端末に保存されたコピーのみ表示中"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đang ngoại tuyến. Chỉ hiển thị bản lưu trên máy"
           }
         }
       }
@@ -7121,6 +8001,258 @@
         }
       }
     },
+    "이미지 아래에 보일 설명이에요. 비우면 캡션이 사라져요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Caption shown under the image. Leave empty to remove it."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "छवि के नीचे दिखने वाला विवरण। खाली छोड़ने पर हट जाएगा।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画像の下に表示される説明です。空にするとキャプションが消えます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chú thích hiển thị dưới ảnh. Để trống để xóa."
+          }
+        }
+      }
+    },
+    "이미지를 올리는 중이에요. 잠시 후 다시 시도해 주세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An image is still uploading. Try again in a moment"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "छवि अपलोड हो रही है। थोड़ी देर बाद कोशिश करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画像をアップロード中です。少し後でもう一度お試しください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ảnh đang được tải lên. Thử lại sau giây lát"
+          }
+        }
+      }
+    },
+    "자동저장에 실패했어요. %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Autosave failed. %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "स्वतः सेव विफल। %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動保存に失敗しました。%@"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tự động lưu thất bại. %@"
+          }
+        }
+      }
+    },
+    "저장하지 못했어요. 네트워크를 확인하고 다시 시도해 주세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't save. Check your network and try again"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सेव नहीं हो सका। नेटवर्क जाँचें और फिर कोशिश करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存できませんでした。ネットワークを確認してもう一度お試しください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không lưu được. Kiểm tra mạng rồi thử lại"
+          }
+        }
+      }
+    },
+    "저장하지 못했어요. 자동으로 다시 시도해요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't save. Retrying automatically"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सेव नहीं हो सका। अपने आप फिर कोशिश होगी"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存できませんでした。自動で再試行します"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không lưu được. Sẽ tự thử lại"
+          }
+        }
+      }
+    },
+    "좋아요한 글이 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No liked posts"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कोई पसंद की गई पोस्ट नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "いいねした記事はありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không có bài đã thích"
+          }
+        }
+      }
+    },
+    "차단했어요. 이 사용자의 글과 댓글이 숨겨져요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blocked. This user's posts and comments are now hidden"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ब्लॉक किया। इस उपयोगकर्ता की पोस्ट और टिप्पणियाँ छिप जाएँगी"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブロックしました。このユーザーの記事とコメントが非表示になります"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã chặn. Bài viết và bình luận của người này sẽ bị ẩn"
+          }
+        }
+      }
+    },
+    "첫 번째 태그가 대표 태그로 카드와 글 위에 보여요. 발행하려면 하나 이상 필요해요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The first tag is the primary tag and shows above cards and posts. You need at least one to publish."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पहला टैग मुख्य टैग बनकर कार्ड और पोस्ट के ऊपर दिखता है। प्रकाशित करने के लिए कम से कम एक चाहिए।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最初のタグがメインのタグとしてカードや記事の上に表示されます。公開するには1つ以上必要です。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thẻ đầu tiên là thẻ chính, hiển thị trên thẻ và bài viết. Cần ít nhất một thẻ để đăng."
+          }
+        }
+      }
+    },
+    "첫 이미지를 커버로 설정했어요. 발행 시트에서 바꿀 수 있어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "First image set as cover. You can change it in the publish sheet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पहली छवि कवर बनी। प्रकाशन शीट में बदल सकते हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最初の画像をカバーに設定しました。公開シートで変更できます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ảnh đầu tiên đã làm bìa. Có thể đổi trong bảng xuất bản"
+          }
+        }
+      }
+    },
     "카드": {
       "localizations": {
         "en": {
@@ -7145,6 +8277,90 @@
           "stringUnit": {
             "state": "translated",
             "value": "Thẻ"
+          }
+        }
+      }
+    },
+    "커버를 저장하지 못했어요. 발행 시트에서 다시 지정해 주세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't save the cover. Set it again in the publish sheet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कवर सेव नहीं हुआ। प्रकाशन शीट में फिर सेट करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カバーを保存できませんでした。公開シートで再設定してください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không lưu được ảnh bìa. Đặt lại trong bảng xuất bản"
+          }
+        }
+      }
+    },
+    "태그를 누르면 대표가 돼요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap a tag to make it primary"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "टैग पर टैप करने से वह मुख्य बन जाता है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タグをタップするとメインになります"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chạm vào thẻ để đặt làm chính"
+          }
+        }
+      }
+    },
+    "팔로우한 사람의 노트가 아직 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No notes from people you follow yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जिन्हें आप फ़ॉलो करते हैं, उनके अभी कोई नोट नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォロー中の人のノートはまだありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có ghi chú nào từ người bạn theo dõi"
           }
         }
       }
@@ -33467,7 +34683,6 @@
       }
     },
     "커버 추가": {
-      "extractionState": "stale",
       "localizations": {
         "en": {
           "stringUnit": {

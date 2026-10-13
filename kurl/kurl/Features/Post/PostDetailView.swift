@@ -243,7 +243,8 @@ private struct PostDetailReader: View {
                     .frame(maxWidth: .infinity, minHeight: 320)
             case .failed(let message):
                 ErrorState(message: message, retry: { Task { await model.load() } })
-                    .padding(.top, 80)
+                    .padding(.horizontal, Metrics.gutter)
+                    .padding(.top, 24)
             case .loaded(let detail):
                 let key = translationKey(detail)
                 let showingTranslation = translations.phases[key] == .shown
@@ -1159,7 +1160,7 @@ private struct PostDetailReader: View {
                 } header: {
                     Text("태그")
                 } footer: {
-                    Text("모더레이션 편집은 제목과 태그만 바꿔요 — 본문과 주소는 작가의 것으로 남아요.")
+                    Text("모더레이션 편집은 제목과 태그만 바꿔요. 본문과 주소는 작가의 것으로 남아요.")
                 }
             }
             .navigationTitle("관리자 편집")
@@ -1190,7 +1191,7 @@ private struct PostDetailReader: View {
             ToastCenter.shared.show(String(localized: "관리자 권한으로 수정했어요"))
             await model.load()  // 제자리 갱신 — 바뀐 제목·태그가 바로 보인다.
         } catch {
-            ToastCenter.shared.show(String(localized: "수정하지 못했어요 — \(error.localizedDescription)"))
+            ToastCenter.shared.show(String(localized: "수정하지 못했어요. \(error.localizedDescription)"))
         }
     }
 
@@ -1302,7 +1303,7 @@ private struct PostDetailReader: View {
         if model.isOfflineCopy {
             // 기기 사본 렌더 중 — 조용한 한 줄. 댓글·좋아요가 비어 있는 이유까지 여기서 설명된다.
             HStack(spacing: 6) {
-                Text("오프라인 사본 — 연결되면 최신으로 갱신됩니다")
+                Text("오프라인 사본이에요. 연결되면 최신으로 바뀌어요")
                     .typeScale(.footnote)
             }
             .foregroundStyle(Palette.secondary)
@@ -1699,46 +1700,53 @@ private struct PostDetailReader: View {
         return max(1, Int((Double(chars) / 500.0).rounded()))
     }
 
-    /// 다른 글 한 장 — 커버(없으면 종이 플레이스홀더) + 제목 + 메타. 카드 문법(20곡률·
-    /// 다층 그림자·다크 보더)은 발견 카드와 같은 토큰을 쓴다.
+    /// 다른 글 한 장 — 커버가 있으면 커버 + 제목 + 메타, 없으면 태그·제목·발췌의 글 카드.
+    /// 카드 문법(20곡률·다층 그림자·다크 보더)은 발견 카드와 같은 토큰을 쓴다.
     private func otherPostCard(_ post: PostListItem) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Group {
-                if let cover = post.ogImageUrl, let url = URL(string: cover) {
-                    // 220×118 썸네일 — 그 폭에 맞춰 받아 목록에서 원본을 겹겹이 쥐지 않게.
-                    RemoteImage(url: url, maxPixel: 240) { phase in
-                        if case .success(let image) = phase {
-                            // 채움 이미지는 프레임 밖으로 넘친다 — 클립은 그림만 자르고 히트는 못 잘라, 이웃 카드 탭을 먹는다.
-                            image.resizable().scaledToFill().allowsHitTesting(false)
-                        } else {
-                            otherPostCover(post)
-                        }
+        let cover = post.ogImageUrl.flatMap { $0.isEmpty ? nil : URL(string: $0) }
+        return VStack(alignment: .leading, spacing: 0) {
+            if let cover {
+                // 220×118 썸네일 — 그 폭에 맞춰 받아 목록에서 원본을 겹겹이 쥐지 않게.
+                RemoteImage(url: cover, maxPixel: 240) { phase in
+                    if case .success(let image) = phase {
+                        // 채움 이미지는 프레임 밖으로 넘친다 — 클립은 그림만 자르고 히트는 못 잘라, 이웃 카드 탭을 먹는다.
+                        image.resizable().scaledToFill().allowsHitTesting(false)
+                    } else {
+                        Palette.hairline
                     }
-                } else {
-                    otherPostCover(post)
                 }
+                .frame(width: 220, height: 118)
+                .clipped()
             }
-            .frame(width: 220, height: 118)
-            .clipped()
 
             VStack(alignment: .leading, spacing: 7) {
+                if cover == nil, let tag = ContentValidity.renderableTags(post.tags).first {
+                    Text("#\(tag)")
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.secondary)
+                        .lineLimit(1)
+                }
                 Text(post.title)
-                    .typeScale(.titleSmall)
+                    .typeScale(cover == nil ? .title : .titleSmall)
                     .foregroundStyle(Palette.ink)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.7)
+                    .lineLimit(cover == nil ? 3 : 2)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 0)
-                HStack(spacing: 6) {
-                    if let date = post.publishedAt {
-                        Text(date.relativeShort)
-                    }
+                if cover == nil, let excerpt = post.excerpt?.cleanedPreview, !excerpt.isEmpty {
+                    Text(excerpt)
+                        .typeScale(.lede)
+                        .foregroundStyle(Palette.secondary)
+                        .lineLimit(3)
+                        .multilineTextAlignment(.leading)
                 }
-                .typeScale(.meta)
-                .foregroundStyle(Palette.secondary)
+                Spacer(minLength: 0)
+                if let date = post.publishedAt {
+                    Text(date.relativeShort)
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.secondary)
+                }
             }
-            .padding(13)
+            .padding(cover == nil ? 16 : 13)
             .frame(width: 220, alignment: .leading)
         }
         .frame(width: 220, height: 214, alignment: .top)
@@ -1752,29 +1760,6 @@ private struct PostDetailReader: View {
             }
         }
         .cardShadow()
-    }
-
-    /// 커버 없는 글의 플레이스홀더 — 색 없이 흰 타일 + 옅은 회색 kurl 마크 워터마크.
-    /// 태그가 있으면 좌상단에 작은 칩으로(맥락).
-    private func otherPostCover(_ post: PostListItem) -> some View {
-        ZStack {
-            Color(uiColor: .systemBackground)
-            KurlMark(drawn: [true, true, true], tint: Palette.hairlineStrong)
-                .frame(width: 60, height: 36)
-        }
-        .overlay(alignment: .bottom) { Hairline() }
-        .overlay(alignment: .topLeading) {
-            if let tag = post.tags.first {
-                Text("#\(tag)")
-                    .typeScale(.footnote)
-                    .foregroundStyle(Palette.secondary)
-                    .lineLimit(1)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(.ultraThinMaterial, in: Capsule())
-                    .padding(10)
-            }
-        }
     }
 
     private func comments(authorId: Int64) -> some View {
@@ -1854,7 +1839,7 @@ private struct PostDetailReader: View {
                 Task { await model.reloadComments() }
             } label: {
                 HStack(spacing: 6) {
-                    Text("댓글을 불러오지 못했습니다 — 다시 시도")
+                    Text("댓글을 불러오지 못했어요. 다시 시도")
                         .typeScale(.footnote)
                 }
                 .foregroundStyle(Palette.secondary)

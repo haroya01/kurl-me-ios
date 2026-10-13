@@ -54,16 +54,15 @@ struct MyHighlightsView: View {
                 ErrorState(retry: { Task { loading = true; await load() } })
                     .padding(.top, 60)
             } else if items.isEmpty {
-                ContentUnavailableView {
-                    Text("하이라이트한 문장이 없어요").bold()
-                } actions: {
-                    Button("피드에서 읽을 글 찾기") { TabRouter.shared.selection = 0 }
-                        .foregroundStyle(Palette.link)
-                }
-                .padding(.top, 60)
+                FeedPlaceholder(
+                    title: "하이라이트한 문장이 없어요",
+                    actionTitle: "피드에서 읽을 글 찾기",
+                    action: { TabRouter.shared.selection = 0 }
+                )
+                .padding(.top, 24)
             } else if visibleGroups.isEmpty {
-                ContentUnavailableView.search(text: query)
-                    .padding(.top, 60)
+                FeedPlaceholder(title: "‘\(query)’ 결과가 없어요")
+                    .padding(.top, 24)
             } else {
                 LazyVStack(spacing: 0) {
                     ForEach(Array(visibleGroups.enumerated()), id: \.element.id) { index, group in
