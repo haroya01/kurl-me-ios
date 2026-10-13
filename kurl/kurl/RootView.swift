@@ -320,6 +320,7 @@ struct RootView: View {
             }
             // 위젯 몫의 분석 신선도 — 분석 화면을 열지 않아도 앱이 열릴 때 조용히 당겨 둔다.
             .task { await AnalyticsSnapshot.refreshIfStale() }
+            .task(id: AuthStore.shared.isSignedIn) { await MyPostsCache.prefetch() }
             // `--widget kurlwidget://…` — 위젯 탭은 simctl·UITest 로 못 넣으니 검증 진입로.
             .task {
                 if let link = Config.launchValue(after: "--widget").flatMap(URL.init(string:)) {
