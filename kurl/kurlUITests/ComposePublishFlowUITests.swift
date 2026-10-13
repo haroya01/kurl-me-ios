@@ -43,7 +43,7 @@ final class ComposePublishFlowUITests: XCTestCase {
     }
 
     private func addTag(_ app: XCUIApplication, _ tag: String) {
-        let field = app.textFields["태그 입력 후 추가 (쉼표로 여러 개)"]
+        let field = app.textFields["태그 추가"]
         XCTAssertTrue(field.waitForExistence(timeout: 3), "태그 입력 필드 없음")
         field.tap()
         field.typeText(tag)
@@ -98,11 +98,11 @@ final class ComposePublishFlowUITests: XCTestCase {
         addTag(app, "회고")
         XCTAssertTrue(app.buttons["대표 태그 개발"].waitForExistence(timeout: 3), "첫 태그가 대표가 아님")
 
-        let promoteHoego = app.buttons["회고 — 대표로 지정"]
+        let promoteHoego = app.buttons["회고, 대표로 지정"]
         XCTAssertTrue(promoteHoego.waitForExistence(timeout: 3), "둘째 태그의 대표 지정 칩이 없음")
         promoteHoego.tap()
 
         XCTAssertTrue(app.buttons["대표 태그 회고"].waitForExistence(timeout: 3), "탭해도 대표로 안 바뀜")
-        XCTAssertTrue(app.buttons["개발 — 대표로 지정"].waitForExistence(timeout: 3), "옛 대표(개발)가 일반으로 안 내려감")
+        XCTAssertTrue(app.buttons["개발, 대표로 지정"].waitForExistence(timeout: 3), "옛 대표(개발)가 일반으로 안 내려감")
     }
 }

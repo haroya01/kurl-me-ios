@@ -1159,7 +1159,7 @@ private struct PostDetailReader: View {
                 } header: {
                     Text("태그")
                 } footer: {
-                    Text("모더레이션 편집은 제목과 태그만 바꿔요 — 본문과 주소는 작가의 것으로 남아요.")
+                    Text("모더레이션 편집은 제목과 태그만 바꿔요. 본문과 주소는 작가의 것으로 남아요.")
                 }
             }
             .navigationTitle("관리자 편집")
@@ -1189,7 +1189,7 @@ private struct PostDetailReader: View {
             ToastCenter.shared.show(String(localized: "관리자 권한으로 수정했어요"))
             await model.load()  // 제자리 갱신 — 바뀐 제목·태그가 바로 보인다.
         } catch {
-            ToastCenter.shared.show(String(localized: "수정하지 못했어요 — \(error.localizedDescription)"))
+            ToastCenter.shared.show(String(localized: "수정하지 못했어요. \(error.localizedDescription)"))
         }
     }
 
@@ -1301,7 +1301,7 @@ private struct PostDetailReader: View {
         if model.isOfflineCopy {
             // 기기 사본 렌더 중 — 조용한 한 줄. 댓글·좋아요가 비어 있는 이유까지 여기서 설명된다.
             HStack(spacing: 6) {
-                Text("오프라인 사본 — 연결되면 최신으로 갱신됩니다")
+                Text("오프라인 사본이에요. 연결되면 최신으로 바뀌어요")
                     .typeScale(.footnote)
             }
             .foregroundStyle(Palette.secondary)
@@ -1837,7 +1837,7 @@ private struct PostDetailReader: View {
                 Task { await model.reloadComments() }
             } label: {
                 HStack(spacing: 6) {
-                    Text("댓글을 불러오지 못했습니다 — 다시 시도")
+                    Text("댓글을 불러오지 못했어요. 다시 시도")
                         .typeScale(.footnote)
                 }
                 .foregroundStyle(Palette.secondary)

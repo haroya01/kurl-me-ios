@@ -654,14 +654,7 @@ struct SearchView: View {
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 26) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("‘\(query)’ 결과가 없어요")
-                            .typeScale(.titleSmall)
-                            .foregroundStyle(Palette.ink)
-                        Text("이런 글은 어때요")
-                            .typeScale(.footnote)
-                            .foregroundStyle(Palette.secondary)
-                    }
+                    FeedPlaceholder(title: "‘\(query)’ 결과가 없어요")
                     trendingRail
                     popularTagsRail
                     suggestedAuthorsRail

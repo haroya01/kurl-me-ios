@@ -379,7 +379,7 @@ struct FeedPage: View {
                         Task { await model.retryLoadMore() }
                     } label: {
                         HStack(spacing: 4) {
-                            Text("더 불러오지 못했습니다 — 다시 시도")
+                            Text("더 불러오지 못했어요. 다시 시도")
                                 .typeScale(.meta)
                         }
                         .foregroundStyle(Palette.link)

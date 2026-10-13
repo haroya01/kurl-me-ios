@@ -505,7 +505,7 @@ struct StudioView: View {
                 ? String(localized: "프로필 맨 위에 고정했어요")
                 : String(localized: "고정을 해제했어요"))
         } catch {
-            ToastCenter.shared.show(String(localized: "고정을 바꾸지 못했어요 — \(error.localizedDescription)"))
+            ToastCenter.shared.show(String(localized: "고정을 바꾸지 못했어요. \(error.localizedDescription)"))
         }
     }
 

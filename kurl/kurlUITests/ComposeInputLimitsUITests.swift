@@ -61,12 +61,12 @@ final class ComposeInputLimitsUITests: XCTestCase {
         app.buttons["발행"].tap()
         XCTAssertTrue(app.navigationBars["발행 준비"].waitForExistence(timeout: 5), "발행 시트가 안 뜸")
 
-        let tagField = app.textFields["태그 입력 후 추가 (쉼표로 여러 개)"]
+        let tagField = app.textFields["태그 추가"]
         XCTAssertTrue(tagField.waitForExistence(timeout: 3), "태그 입력 필드 없음")
         for n in 1...10 {
             tagField.tap()
             tagField.typeText("t\(n)\n")
-            let chip = n == 1 ? app.buttons["대표 태그 t1"] : app.buttons["t\(n) — 대표로 지정"]
+            let chip = n == 1 ? app.buttons["대표 태그 t1"] : app.buttons["t\(n), 대표로 지정"]
             XCTAssertTrue(chip.waitForExistence(timeout: 3), "태그 t\(n) 칩이 안 생김")
         }
         XCTAssertTrue(app.staticTexts["태그는 10개까지 달 수 있어요"].waitForExistence(timeout: 3), "태그 한도 사유가 안 보임")
@@ -74,7 +74,7 @@ final class ComposeInputLimitsUITests: XCTestCase {
         XCTAssertFalse(tagField.isEnabled, "10개를 채워도 태그 입력이 열려 있음")
         shot("tag-limit")
 
-        let excerpt = app.textFields["소개글 — 카드와 검색에 보이는 한 단락"]
+        let excerpt = app.textFields["소개글 쓰기"]
         XCTAssertTrue(excerpt.waitForExistence(timeout: 3), "소개글 필드 없음")
         excerpt.tap()
         excerpt.typeText(String(repeating: "c", count: 505))

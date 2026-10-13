@@ -33,7 +33,7 @@ struct BookmarksView: View {
             } else {
                 if offlineFallback {
                     // 기기 사본 목록 렌더 중 — 상세의 오프라인 배너와 같은 조용한 한 줄.
-                    Text("오프라인 — 기기에 저장된 사본만 보여요")
+                    Text("오프라인이에요. 기기에 저장된 사본만 보여요")
                         .typeScale(.footnote)
                         .foregroundStyle(Palette.secondary)
                         .padding(.horizontal, 10)

@@ -20,12 +20,7 @@ struct CollectionsListView: View {
 
     var body: some View {
         ReadingColumn(spacing: 0) {
-            Text("읽고 생각한 것을 주제로 잇는 곳.")
-                .typeScale(.lede)
-                .foregroundStyle(Palette.secondary)
-                .padding(.top, 4)
-                .padding(.bottom, 18)
-
+            Color.clear.frame(height: 8)
             if loading {
                 KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 240)
@@ -134,7 +129,7 @@ struct CollectionsListView: View {
 
     private var emptyState: some View {
         FeedPlaceholder(title: "아직 컬렉션이 없어요", actionTitle: "새 컬렉션 만들기", action: { showCreate = true })
-            .padding(.top, 6)
+            .padding(.top, 16)
     }
 
     private var failedState: some View {

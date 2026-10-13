@@ -597,8 +597,7 @@ struct ComposeView: View {
                 .allowsHitTesting(false)
             } else if markdown.isEmpty, !loadFailed, editorDocument == nil {
                 // 현행 에디터에서만 — WriteV2 캔버스는 빈 블록·삽입 툴바가 스스로 시작을 안내한다(이 힌트 억제).
-                // 마크다운 지식을 요구하지 않는다 — 탭하면 도구 막대가 떠서 제목·목록·이미지·표를 넣는다.
-                Text("여기를 탭해 시작하세요 — 아래 도구 막대로 제목·사진·목록·표를 넣어요.")
+                Text("본문 쓰기")
                     .typeScale(.body)
                     .foregroundStyle(Palette.faint)
                     .padding(.horizontal, Metrics.gutter)
@@ -806,7 +805,7 @@ struct ComposeView: View {
                     sheetField("소개글") {
                         VStack(alignment: .trailing, spacing: 4) {
                             TextField(
-                                "소개글 — 카드와 검색에 보이는 한 단락", text: $excerpt, axis: .vertical
+                                "소개글 쓰기", text: $excerpt, axis: .vertical
                             )
                             .typeScale(.lede)
                             .lineLimit(2...4)
@@ -1467,9 +1466,9 @@ struct ComposeView: View {
     }
 
     private func saveStatusText(dirty: Bool) -> String {
-        if autosaveNeedsLogin { return String(localized: "로그인이 풀렸어요 — 다시 로그인해야 저장돼요") }
-        if autosavePersistentFailure { return String(localized: "계속 저장하지 못하고 있어요 — 지금 다시 시도해 보세요") }
-        if autosaveFailed { return String(localized: "저장하지 못했어요 — 자동으로 다시 시도해요") }
+        if autosaveNeedsLogin { return String(localized: "로그인이 풀렸어요. 다시 로그인해야 저장돼요") }
+        if autosavePersistentFailure { return String(localized: "계속 저장하지 못하고 있어요. 지금 다시 시도해 주세요") }
+        if autosaveFailed { return String(localized: "저장하지 못했어요. 자동으로 다시 시도해요") }
         if dirty, !allowsAutosave {
             return signature == lastSavedSignature
                 ? String(localized: "바꾼 커버는 저장을 누르면 글에 반영돼요.")
@@ -1478,7 +1477,7 @@ struct ComposeView: View {
         if dirty, !canSave {
             return String(localized: "제목과 본문을 채우면 다른 기기에서도 이어 쓸 수 있어요. 지금 쓰는 내용은 이 기기에 보관해요.")
         }
-        if dirty { return String(localized: "미저장 — 곧 저장돼요") }
+        if dirty { return String(localized: "미저장, 곧 저장돼요") }
         if let at = lastSavedAt {
             return String(localized: "저장됨 \(at.formatted(date: .omitted, time: .shortened))")
         }
@@ -1771,7 +1770,7 @@ struct ComposeView: View {
                 if pendingCover == cover { pendingCover = nil }
                 if cover.fromBodyImage {
                     ToastCenter.shared.show(
-                        String(localized: "첫 이미지를 커버로 설정했어요 — 발행 시트에서 바꿀 수 있어요"))
+                        String(localized: "첫 이미지를 커버로 설정했어요. 발행 시트에서 바꿀 수 있어요"))
                 }
             }
             if publish {
@@ -1824,8 +1823,8 @@ struct ComposeView: View {
                 let needsLogin = Self.isAuthFailure(error)
                 if !autosaveFailed {
                     ToastCenter.shared.show(needsLogin
-                        ? String(localized: "로그인이 풀려 저장하지 못했어요 — 다시 로그인해 주세요")
-                        : String(localized: "자동저장에 실패했어요 — \(Self.composeReason(error))"))
+                        ? String(localized: "로그인이 풀려 저장하지 못했어요. 다시 로그인해 주세요")
+                        : String(localized: "자동저장에 실패했어요. \(Self.composeReason(error))"))
                 }
                 autosaveNeedsLogin = needsLogin
                 autosaveFailed = true
@@ -2160,12 +2159,12 @@ struct ComposeView: View {
                 try await PostSave.cover(postId: postId, url: url, key: key, chosen: false, gate: versionGate)
                 onSaved()
                 ToastCenter.shared.show(
-                    String(localized: "첫 이미지를 커버로 설정했어요 — 발행 시트에서 바꿀 수 있어요"))
+                    String(localized: "첫 이미지를 커버로 설정했어요. 발행 시트에서 바꿀 수 있어요"))
             } catch is PostEditConflict {
                 holdCoverForConflict(PendingCover(url: url, key: key, fromBodyImage: true))
             } catch {
                 ToastCenter.shared.show(
-                    String(localized: "커버를 저장하지 못했어요 — 발행 시트에서 다시 지정해 주세요"))
+                    String(localized: "커버를 저장하지 못했어요. 발행 시트에서 다시 지정해 주세요"))
             }
         }
     }
@@ -2201,7 +2200,7 @@ struct ComposeView: View {
         guard !images.isEmpty else { return }
         guard !uploadingBodyImage else {
             // 앞 이미지가 올라가는 중엔 조용히 버리지 않고 알린다 — 스피너가 사라진 뒤 다시.
-            ToastCenter.shared.show(String(localized: "이미지를 올리는 중이에요 — 잠시 후 다시 시도해 주세요"))
+            ToastCenter.shared.show(String(localized: "이미지를 올리는 중이에요. 잠시 후 다시 시도해 주세요"))
             return
         }
         uploadingBodyImage = true
@@ -2238,7 +2237,7 @@ struct ComposeView: View {
         guard !uploadingBodyImage else {
             // 앞 이미지가 올라가는 중 — 조용히 버리지 않고 알린 뒤, 같은 사진을 다시 고를 수 있게 선택을 비운다.
             bodyImageItem = nil
-            ToastCenter.shared.show(String(localized: "이미지를 올리는 중이에요 — 잠시 후 다시 시도해 주세요"))
+            ToastCenter.shared.show(String(localized: "이미지를 올리는 중이에요. 잠시 후 다시 시도해 주세요"))
             return
         }
         uploadingBodyImage = true
@@ -2301,7 +2300,7 @@ struct ComposeView: View {
     private func uploadV2PastedImages(_ images: [UIImage]) {
         guard !images.isEmpty else { return }
         guard !uploadingBodyImage else {
-            ToastCenter.shared.show(String(localized: "이미지를 올리는 중이에요 — 잠시 후 다시 시도해 주세요"))
+            ToastCenter.shared.show(String(localized: "이미지를 올리는 중이에요. 잠시 후 다시 시도해 주세요"))
             return
         }
         uploadingBodyImage = true
@@ -2371,7 +2370,7 @@ struct ComposeView: View {
         guard let item = v2ImageItem else { return }
         guard !uploadingBodyImage else {
             v2ImageItem = nil
-            ToastCenter.shared.show(String(localized: "이미지를 올리는 중이에요 — 잠시 후 다시 시도해 주세요"))
+            ToastCenter.shared.show(String(localized: "이미지를 올리는 중이에요. 잠시 후 다시 시도해 주세요"))
             return
         }
         uploadingBodyImage = true
@@ -2858,7 +2857,7 @@ private struct ImageCaptionSheet: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 12) {
-                Text("이미지 아래에 보일 설명 — 비우면 캡션이 사라져요.")
+                Text("이미지 아래에 보일 설명이에요. 비우면 캡션이 사라져요.")
                     .typeScale(.meta)
                     .foregroundStyle(Palette.secondary)
                 TextField("이미지 설명", text: $draft, axis: .vertical)
@@ -3022,7 +3021,7 @@ private struct TagsField: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                TextField("태그 입력 후 추가 (쉼표로 여러 개)", text: $draft)
+                TextField("태그 추가", text: $draft)
                     .typeScale(.lede)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
@@ -3048,7 +3047,7 @@ private struct TagsField: View {
             .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
 
             if tags.isEmpty {
-                Text("첫 번째 태그가 대표 — 카드·글 위에 카테고리로 보입니다. (발행 시 1개 필수)")
+                Text("첫 번째 태그가 대표 태그로 카드와 글 위에 보여요. 발행하려면 하나 이상 필요해요.")
                     .typeScale(.footnote)
                     .foregroundStyle(Palette.secondary)
             } else {
@@ -3061,7 +3060,7 @@ private struct TagsField: View {
                     if atMax {
                         Text("태그는 \(PostLimits.tags)개까지 달 수 있어요")
                     } else {
-                        Text("탭하면 대표로 · ✕ 로 삭제")
+                        Text("태그를 누르면 대표가 돼요")
                     }
                     Spacer(minLength: 8)
                     if tags.count >= PostLimits.tags - 2 {
@@ -3088,7 +3087,7 @@ private struct TagsField: View {
                 Text(tag).typeScale(.meta)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(Text(isPrimary ? "대표 태그 \(tag)" : "\(tag) — 대표로 지정"))
+            .accessibilityLabel(Text(isPrimary ? "대표 태그 \(tag)" : "\(tag), 대표로 지정"))
             .accessibilityAddTraits(isPrimary ? .isSelected : [])
 
             Button {
