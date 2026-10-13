@@ -11,6 +11,8 @@ import SwiftUI
 struct HighlightThreadSheet: View {
     let highlight: HighlightView
     let store: PostHighlightStore
+    let postTitle: String
+    let postAuthor: Author?
 
     @Environment(\.dismiss) private var dismiss
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
@@ -28,8 +30,6 @@ struct HighlightThreadSheet: View {
     @State private var replyToDelete: Int64?
     /// 이 문장이 담긴 공개 컬렉션 — A 척추 발견 고리(한 문장 → 그것이 엮인 컬렉션들로).
     @State private var inCollections: [CollectionSummary] = []
-    /// 이 문장과 같은 공개 컬렉션에 함께 놓인 다른 블록 — "이것과 이어진 것"(공동 등장 발견 고리).
-    @State private var related: [RelatedBlock] = []
     @State private var path = NavigationPath()
 
     /// 연결은 서버에 자리잡은(양수 id) 하이라이트만 — 낙관적 생성 직후(음수 id)는 refId 가 없다.
@@ -46,45 +46,123 @@ struct HighlightThreadSheet: View {
 
     private var hasOpener: Bool { (highlight.note?.isEmpty == false) }
 
+    private var highlighterAuthors: [Author] {
+        var seen = Set<Int64>()
+        return HighlightPaint.overlapping(highlight, in: store.highlights).compactMap { h in
+            guard let author = h.author ?? (store.isMine(h) ? Self.me : nil),
+                  seen.insert(author.id).inserted else { return nil }
+            return author
+        }
+    }
+
+    private static var me: Author? {
+        guard let me = AuthStore.shared.me, let id = me.id else { return nil }
+        return Author(id: id, username: me.username ?? "", bio: nil, avatarUrl: me.avatarUrl)
+    }
+
+    private func isMe(_ author: Author) -> Bool { author.id == AuthStore.shared.me?.id }
+
+    private var source: some View {
+        var line = Text(verbatim: postTitle).foregroundStyle(Palette.body)
+        if let postAuthor {
+            line = line
+                + Text(verbatim: " · ").foregroundStyle(Palette.faint)
+                + Text(verbatim: postAuthor.shownName).foregroundStyle(Palette.secondary)
+        }
+        return line
+            .typeScale(.meta)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityLabel(Text(verbatim: [postTitle, postAuthor?.shownName].compactMap { $0 }.joined(separator: ", ")))
+            .accessibilityIdentifier("highlight.source")
+    }
+
+    private var highlighters: some View {
+        let authors = highlighterAuthors
+        return HStack(spacing: 8) {
+            HStack(spacing: -6) {
+                ForEach(authors.prefix(3)) { author in
+                    AvatarView(author: author, size: 20 * metaUnit)
+                        .overlay(Circle().strokeBorder(Palette.readingBg, lineWidth: 1.5))
+                }
+            }
+            .accessibilityHidden(true)
+            highlightersLine(authors)
+                .typeScale(.meta)
+                .foregroundStyle(Palette.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("highlight.highlighters")
+    }
+
+    private func highlightersLine(_ authors: [Author]) -> Text {
+        guard authors.count == 1, let only = authors.first else {
+            return Text("\(max(authors.count, 1))명이 그은 문장")
+        }
+        return isMe(only) ? Text("내가 그은 문장") : Text("\(only.shownName)님이 그은 문장")
+    }
+
+    private func opener(_ note: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            openerHeader
+            ConversationBody(text: note)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("highlight.opener")
+    }
+
+    @ViewBuilder private var openerHeader: some View {
+        let header = HStack(alignment: .firstTextBaseline, spacing: 4) {
+            openerTitle
+                .fontWeight(.semibold)
+                .foregroundStyle(Palette.ink)
+                .lineLimit(1)
+            if let date = highlight.createdAt {
+                Text(verbatim: "·")
+                    .foregroundStyle(Palette.faint)
+                    .accessibilityHidden(true)
+                Text(date.relativeCompact)
+                    .foregroundStyle(Palette.secondary)
+                    .fixedSize()
+            }
+        }
+        .typeScale(.note)
+        if let author = highlight.author, !isMe(author) {
+            NavigationLink(value: Route.author(username: author.username)) {
+                header.contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint(Text("\(author.shownName)님 프로필"))
+        } else {
+            header
+        }
+    }
+
+    private var openerTitle: Text {
+        guard let author = highlight.author, !isMe(author) else { return Text("내 메모") }
+        return Text("\(author.shownName)의 메모")
+    }
+
     var body: some View {
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     // ── 앵커: 무엇에 대한 대화인가 (인용 + 큐레이터 메모) — 바짝 뭉친 한 덩어리.
-                    VStack(alignment: .leading, spacing: hasOpener ? 14 : 0) {
-                        HStack(alignment: .top, spacing: 11) {
-                            RoundedRectangle(cornerRadius: 1.5, style: .continuous)
-                                .fill(Palette.accent)
-                                .frame(width: 3)
-                            Text(highlight.quote)
-                                .typeScale(.lede)
-                                .foregroundStyle(Palette.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
+                    VStack(alignment: .leading, spacing: 0) {
+                        HighlightQuote(
+                            quote: highlight.quote, mine: store.isMine(highlight),
+                            hasThread: HighlightPaint.hasThread(highlight))
+                        source
+                            .padding(.top, 16)
+                        highlighters
+                            .padding(.top, 10)
                         if let note = highlight.note, !note.isEmpty {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("공개 메모")
-                                    .typeScale(.meta)
-                                    .foregroundStyle(Palette.secondary)
-                                ConversationRow(
-                                    author: highlight.author, date: highlight.createdAt,
-                                    spoken: ConversationName.spokenLine(
-                                        highlight.author, date: highlight.createdAt, body: note),
-                                    identifier: "highlight.opener"
-                                ) {
-                                    ConversationBody(text: note)
-                                } actions: {
-                                    EmptyView()
-                                } trailing: {
-                                    EmptyView()
-                                } spokenActions: {
-                                    EmptyView()
-                                }
-                            }
+                            opener(note)
+                                .padding(.top, 24)
                         }
                     }
                     .padding(.horizontal, Metrics.gutter)
-                    .padding(.top, 18)
+                    .padding(.top, 22)
                     .padding(.bottom, 22)
 
                     // ── 대화: 앵커와 한 칸 떨어진 별도 그룹. 구분은 폭 좁힌 hairline 한 가닥.
@@ -156,27 +234,6 @@ struct HighlightThreadSheet: View {
                                     containingRow(c)
                                 }
                                 .buttonStyle(.plain)
-                            }
-                        }
-                        .padding(.horizontal, Metrics.gutter)
-                        .padding(.top, 22)
-                        .padding(.bottom, 8)
-                    }
-
-                    // ── 이것과 이어진 것 — 같은 공개 컬렉션에 함께 놓인 다른 블록(공동 등장). 한 문장에서
-                    // 큐레이터가 곁에 엮은 글·문장·노트로 — connect not broadcast 발견 고리.
-                    if !related.isEmpty {
-                        Rectangle()
-                            .fill(Palette.hairline)
-                            .frame(height: 1)
-                            .padding(.horizontal, Metrics.gutter)
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("이것과 이어진 것")
-                                .typeScale(.eyebrow)
-                                .tracking(0.4)
-                                .foregroundStyle(Palette.faint)
-                            ForEach(related) { item in
-                                BlockPreview(block: item.block)
                             }
                         }
                         .padding(.horizontal, Metrics.gutter)
@@ -270,7 +327,6 @@ struct HighlightThreadSheet: View {
         .interactiveDismissDisabled(hasDraft)
         .task { await loadReplies() }
         .task { await loadContainingCollections() }
-        .task { await loadRelated() }
     }
 
     /// 차단한 사람의 답글은 숨긴다(App Store 1.2 — 글 댓글과 같은 규칙).
@@ -348,13 +404,6 @@ struct HighlightThreadSheet: View {
         guard highlight.id > 0 else { return }  // 낙관 생성 직후(음수 id)는 서버에 없다.
         inCollections =
             (try? await CollectionsAPI.collectionsContaining(highlightId: highlight.id)) ?? []
-    }
-
-    private func loadRelated() async {
-        guard highlight.id > 0 else { return }
-        related =
-            (try? await CollectionsAPI.relatedBlocks(blockType: "HIGHLIGHT", refId: highlight.id))
-            ?? []
     }
 
     /// "이 문장이 담긴 컬렉션" 한 줄 — 폴더 글리프 + 제목 + 담긴 수.
