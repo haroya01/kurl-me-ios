@@ -168,7 +168,6 @@ struct FeedView: View {
             ) { [feed = choice.pendingLogin] in
                 if let feed { choice.show(feed) }
             }
-            .background(alignment: .top) { FeedHeaderMist() }
             .background(Palette.readingBg)
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: Route.self) { route in
@@ -223,16 +222,6 @@ struct BlogFeedMoreMenu: View {
             EmptyView()
         }
         .pickerStyle(.inline)
-    }
-}
-
-struct FeedHeaderMist: View {
-    var body: some View {
-        BrandMist()
-            .frame(height: 240)
-            .mask(LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom))
-            .ignoresSafeArea(edges: .top)
-            .allowsHitTesting(false)
     }
 }
 
