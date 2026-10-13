@@ -278,9 +278,9 @@ final class NotesFeedUITests: XCTestCase {
         app.launch()
         openNotes(app)
 
-        let replies = app.buttons["note.replies.9501"]
-        XCTAssertTrue(replies.waitForExistence(timeout: 10), "답글 버튼 없음")
-        replies.tap()
+        let body = app.buttons["note.body.9501"]
+        XCTAssertTrue(body.waitForExistence(timeout: 10), "노트 본문 없음")
+        body.tap()
 
         let bookmark = app.buttons["note.bookmark.9501"]
         XCTAssertTrue(bookmark.waitForExistence(timeout: 8), "상세 수치 줄에 북마크가 없음")
@@ -310,9 +310,9 @@ final class NotesFeedUITests: XCTestCase {
         app.launch()
         openNotes(app)
 
-        let replies = app.buttons["note.replies.9501"]
-        XCTAssertTrue(replies.waitForExistence(timeout: 10), "답글 버튼 없음")
-        replies.tap()
+        let body = app.buttons["note.body.9501"]
+        XCTAssertTrue(body.waitForExistence(timeout: 10), "노트 본문 없음")
+        body.tap()
         let quotes = app.buttons["note.quotes.9501"]
         XCTAssertTrue(quotes.waitForExistence(timeout: 6), "인용 줄이 없음")
         quotes.tap()
@@ -445,9 +445,9 @@ final class NotesFeedUITests: XCTestCase {
         app.launch()
         openNotes(app)
 
-        let replies = app.buttons["note.replies.9501"]
-        XCTAssertTrue(replies.waitForExistence(timeout: 10), "답글 버튼 없음")
-        replies.tap()
+        let body = app.buttons["note.body.9501"]
+        XCTAssertTrue(body.waitForExistence(timeout: 10), "노트 본문 없음")
+        body.tap()
 
         let mention = app.links["@yuki_dev"].firstMatch
         XCTAssertTrue(mention.waitForExistence(timeout: 8), "답글의 @멘션이 링크가 아님")
@@ -972,7 +972,7 @@ final class NotesFeedUITests: XCTestCase {
         attach(app, "display-name-row")
     }
 
-    func testANotesRepliesOpenFromItsRow() throws {
+    func testTheReplyIconOpensTheComposerAndTheRowOpensTheNote() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]
         app.launch()
@@ -981,27 +981,39 @@ final class NotesFeedUITests: XCTestCase {
         let replies = app.buttons["note.replies.9501"]
         XCTAssertTrue(replies.waitForExistence(timeout: 10), "답글 버튼 없음")
         replies.tap()
-
-        let reply = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "label CONTAINS '이름이 경계라는 말'")).firstMatch
-        XCTAssertTrue(reply.waitForExistence(timeout: 8), "노트 상세에 답글이 안 보임")
-        XCTAssertTrue(app.buttons["note.reply"].waitForExistence(timeout: 3), "답글 달기 버튼 없음")
-
-        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
-        shot.name = "note-thread"
-        shot.lifetime = .keepAlways
-        add(shot)
-
-        app.buttons["note.reply"].tap()
         let field = app.textFields["noteCompose.text"]
-        XCTAssertTrue(field.waitForExistence(timeout: 5), "아래 답글 줄을 눌러도 답글 시트가 안 열림")
+        XCTAssertTrue(field.waitForExistence(timeout: 5), "답글 아이콘이 답글 시트를 열지 않음")
         XCTAssertTrue(app.navigationBars["답글"].exists, "답글 시트 제목이 답글이 아님")
+        XCTAssertTrue(
+            app.descendants(matching: .any)["noteCompose.replyTarget"].exists, "답글 시트에 답할 노트가 없음")
+        XCTAssertFalse(app.buttons["noteCompose.schedule"].exists, "답글 시트에 예약이 남음")
+        XCTAssertFalse(app.buttons["noteCompose.addPart"].exists, "답글 시트에 스레드에 추가가 남음")
+        attach(app, "note-reply-sheet-from-row")
         app.navigationBars.buttons["취소"].tap()
         XCTAssertFalse(field.waitForExistence(timeout: 2), "빈 답글 시트가 취소로 닫히지 않음")
 
-        let replyThread = app.buttons["note.replies.9551"]
-        XCTAssertTrue(replyThread.waitForExistence(timeout: 5), "답글 행에 답글 버튼이 없음")
-        replyThread.tap()
+        app.buttons["note.body.9501"].tap()
+        let reply = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS '이름이 경계라는 말'")).firstMatch
+        XCTAssertTrue(reply.waitForExistence(timeout: 8), "노트 상세에 답글이 안 보임")
+        XCTAssertTrue(app.buttons["note.reply"].waitForExistence(timeout: 3), "아래 답글 줄 없음")
+        attach(app, "note-thread")
+
+        app.buttons["note.reply"].tap()
+        XCTAssertTrue(field.waitForExistence(timeout: 5), "아래 답글 줄을 눌러도 답글 시트가 안 열림")
+        field.typeText("맨 위에 서는 답글")
+        app.buttons["noteCompose.post"].tap()
+        let notice = app.alerts.firstMatch
+        if notice.waitForExistence(timeout: 4) { notice.buttons["알겠어요, 올릴게요"].tap() }
+        let posted = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS '맨 위에 서는 답글'")).firstMatch
+        XCTAssertTrue(posted.waitForExistence(timeout: 8), "올린 답글이 상세에 안 보임")
+        XCTAssertLessThan(posted.frame.minY, reply.frame.minY, "본 노트에 단 답글이 답글 맨 위에 서지 않음")
+        attach(app, "note-reply-landed")
+
+        let replyRow = app.buttons["note.body.9551"]
+        XCTAssertTrue(replyRow.waitForExistence(timeout: 5), "답글 행 본문이 없음")
+        replyRow.tap()
         let parent = app.descendants(matching: .any)
             .matching(NSPredicate(format: "label CONTAINS '헥사고날 포트'")).firstMatch
         XCTAssertTrue(parent.waitForExistence(timeout: 8), "답글 상세 위에 원글이 안 보임")

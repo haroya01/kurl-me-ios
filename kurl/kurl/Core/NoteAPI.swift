@@ -392,7 +392,7 @@ struct Note: Decodable, Identifiable, Hashable {
     let media: [NoteMedia]
     let quotedPost: QuotedPost?
     let inReplyToId: Int64?
-    let replyCount: Int64
+    var replyCount: Int64
     /// 좋아요 수처럼 작성자 본인에게만 숫자.
     let repostCount: Int64?
     let repostedByMe: Bool?
@@ -421,8 +421,49 @@ struct Note: Decodable, Identifiable, Hashable {
     var language: String? = nil
     /// 피드에서 작성자가 이어 쓴 노트 — 전체 편 수와 바로 아래에 보일 다음 편.
     var thread: NoteSelfThread? = nil
+    var replyPolicy: String? = nil
+    var canReply: Bool? = nil
 
     var noteVisibility: NoteVisibility { NoteVisibility(rawValue: visibility ?? "public") ?? .public }
+
+    func addingReply() -> Note {
+        var next = self
+        next.replyCount += 1
+        return next
+    }
+}
+
+enum NoteReplyPolicy: String {
+    case everyone, following, mentioned
+}
+
+enum NoteReplyAccess: Equatable {
+    case open
+    case needsSignIn
+    case closed(NoteReplyPolicy?)
+
+    init(_ note: Note, signedIn: Bool) {
+        if !signedIn {
+            self = .needsSignIn
+        } else if note.canReply == false {
+            self = .closed(note.replyPolicy.flatMap(NoteReplyPolicy.init(rawValue:)))
+        } else {
+            self = .open
+        }
+    }
+
+    var isClosed: Bool {
+        if case .closed = self { true } else { false }
+    }
+
+    var notice: LocalizedStringKey? {
+        guard case let .closed(policy) = self else { return nil }
+        switch policy {
+        case .following: return "작성자가 팔로우하거나 멘션한 사람만 답글을 달 수 있어요"
+        case .mentioned: return "작성자가 멘션한 사람만 답글을 달 수 있어요"
+        case .everyone, nil: return "이 노트에는 답글을 달 수 없어요"
+        }
+    }
 }
 
 /// 마스토돈의 네 가지. 리포스트·인용은 공개와 조용한 공개만 된다.
@@ -585,13 +626,44 @@ struct NoteSelfThread: Decodable, Hashable {
 }
 
 struct NoteThread: Decodable {
-    let note: Note
-    let parent: Note?
-    let replies: [Note]
+    var note: Note
+    var parent: Note?
+    var replies: [Note]
     /// 작성자가 이 노트 아래로 이어 쓴 노트들(순서대로). replies 에는 남의 답글만 남는다.
     var continuation: [Note]? = nil
     /// 이 노트가 든 시리즈와 그 안의 앞뒤 편(글·노트). 시리즈 밖이거나 옛 서버면 nil.
     var series: SeriesTrail? = nil
+}
+
+enum NoteReplyLanding: Equatable {
+    case replies, continuation, elsewhere
+}
+
+extension NoteThread {
+    func adding(_ reply: Note) -> (thread: NoteThread, landing: NoteReplyLanding) {
+        var next = self
+        let parts = continuation ?? []
+        let byAuthor = reply.author.id == note.author.id
+        if reply.inReplyToId == note.id {
+            next.note = note.addingReply()
+            if byAuthor, parts.isEmpty {
+                next.continuation = [reply]
+                return (next, .continuation)
+            }
+            next.replies.insert(reply, at: 0)
+            return (next, .replies)
+        }
+        if byAuthor, let last = parts.last, reply.inReplyToId == last.id,
+           parts.count < NoteAPI.maxThreadNotes - 1 {
+            next.continuation = Array(parts.dropLast()) + [last.addingReply(), reply]
+            return (next, .continuation)
+        }
+        let answered = { (candidate: Note) in candidate.id == reply.inReplyToId ? candidate.addingReply() : candidate }
+        next.parent = parent.map(answered)
+        next.continuation = continuation?.map(answered)
+        next.replies = replies.map(answered)
+        return (next, .elsewhere)
+    }
 }
 
 struct NoteDraft: Encodable {

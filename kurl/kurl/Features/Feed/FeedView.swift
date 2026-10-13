@@ -185,6 +185,7 @@ struct FeedView: View {
                 CollectionDetailView(collectionId: $0.id)
             }
         }
+        .environment(\.openNoteRoute) { choice.path.append($0) }
     }
 }
 
