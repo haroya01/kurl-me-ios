@@ -1509,7 +1509,7 @@ final class MarkdownImageLayoutManager: NSLayoutManager {
         let pad = container.lineFragmentPadding
         let availWidth = max(0, container.size.width - pad * 2)
 
-        // 인용 — 왼단에 강조 바를 그린다(리더 BlockRenderer .quote 의 accentSoft 바와 같은 문법).
+        // 인용 — 왼단에 강조 바를 그린다(리더 BlockRenderer .quote 의 잉크 바와 같은 문법).
         // 줄 전체 범위에 표식이 붙어 있어 boundingRect 이 줄바꿈 포함 여러 시각 줄의 높이를 덮는다.
         storage.enumerateAttribute(.kurlQuoteBar, in: charRange, options: []) { value, range, _ in
             guard value != nil, let ctx = UIGraphicsGetCurrentContext() else { return }
@@ -1520,7 +1520,7 @@ final class MarkdownImageLayoutManager: NSLayoutManager {
                 width: 3, height: max(0, used.height - 2))
             guard bar.height > 1 else { return }
             ctx.saveGState()
-            UIColor(Palette.accentSoft).setFill()
+            UIColor(Palette.ink).setFill()
             UIBezierPath(roundedRect: bar, cornerRadius: 1.5).fill()
             ctx.restoreGState()
         }
