@@ -264,7 +264,8 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable, More: View>: View {
             .contentShape(Capsule())
         }
         .menuOrder(.fixed)
-        .buttonStyle(SegmentPressStyle())
+        // ViewThatFits 후보 안의 Menu 에 buttonStyle 을 달면 iOS 27 에서 처음 그리는 탭의 레이아웃이 끝나지 않는다.
+        .tint(active ? Color.primary : Color.secondary)
         .accessibilityLabel(moreChoice.map { Text(verbatim: $0.title) } ?? Text(moreLabel))
         .accessibilityHint(active ? Text(moreLabel) : Text(""))
         .accessibilityAddTraits(active ? [.isSelected] : [])
