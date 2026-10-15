@@ -87,6 +87,7 @@ struct PeopleResultsList: View {
                             .padding(.top, 16)
                         if model.remote != nil {
                             RemotePeopleSection(accounts: remoteAccounts, divided: true)
+                                .padding(.top, 12)
                         }
                     }
                 case .loaded(let people):
