@@ -501,6 +501,62 @@
         }
       }
     },
+    "%@ 서버가 응답하지 않아요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ isn't responding"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ जवाब नहीं दे रहा"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ が応答していません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ không phản hồi"
+          }
+        }
+      }
+    },
+    "%@ 서버에서 찾지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't find it on %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ पर नहीं मिला"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ で見つかりませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không tìm thấy trên %@"
+          }
+        }
+      }
+    },
     "%@ 신고합니다. 검토 후 조치됩니다.": {
       "localizations": {
         "en": {
@@ -6561,6 +6617,34 @@
         }
       }
     },
+    "그 서버에 묻는 중…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Asking that server…"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "उस सर्वर से पूछ रहे हैं…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "そのサーバーに問い合わせ中…"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đang hỏi máy chủ đó…"
+          }
+        }
+      }
+    },
     "내 글이 엮인 컬렉션에 새 글이 이어질 때": {
       "localizations": {
         "en": {
@@ -6653,6 +6737,90 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chèn"
+          }
+        }
+      }
+    },
+    "다른 서버 계정을 보려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to see accounts on other servers"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दूसरे सर्वर के खाते देखने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほかのサーバーのアカウントを見るにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để xem tài khoản ở máy chủ khác"
+          }
+        }
+      }
+    },
+    "다른 서버 사람 찾기는 로그인하면 돼요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to find people on other servers"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दूसरे सर्वर के लोगों को ढूँढने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほかのサーバーの人はログインすると探せます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để tìm người ở máy chủ khác"
+          }
+        }
+      }
+    },
+    "다른 서버 사람은 @아이디@서버로 찾아요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find people on other servers with @name@server"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दूसरे सर्वर के लोगों को @नाम@सर्वर से ढूँढें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほかのサーバーの人は @ID@サーバー で探せます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tìm người ở máy chủ khác bằng @tên@máy-chủ"
           }
         }
       }

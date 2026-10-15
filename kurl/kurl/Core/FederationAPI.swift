@@ -51,14 +51,116 @@ struct ServerBlock: Decodable, Identifiable, Hashable {
     var id: String { domain }
 }
 
+struct RemoteAccountSearchPage: Decodable {
+    let items: [RemoteAccount]
+}
+
+struct RemoteResolveBody: Decodable {
+    let account: RemoteAccount?
+    let note: Note?
+}
+
+enum RemoteResolution: Equatable {
+    case account(RemoteAccount)
+    case note(Note)
+    case missing(domain: String)
+    case unreachable(domain: String)
+    case signIn
+    case hidden
+}
+
 enum FederationAPI {
-    private static let client = APIClient.shared
+    static var client = APIClient.shared
+
+    static let remoteSearchLimit = 5
+    static let remoteSearchMinQuery = 2
+    static let resolveTimeout: TimeInterval = 20
 
     private struct Empty: Encodable {}
 
     static func looksLikeHandle(_ text: String) -> Bool {
         let handle = #/@?[A-Za-z0-9_][A-Za-z0-9_.\-]{0,63}@[A-Za-z0-9\-]+(\.[A-Za-z0-9\-]+)+(:[0-9]{1,5})?/#
         return text.trimmingCharacters(in: .whitespacesAndNewlines).wholeMatch(of: handle) != nil
+    }
+
+    static func queryDomain(_ text: String) -> String? {
+        let query = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if looksLikeHandle(query), let at = query.lastIndex(of: "@") {
+            return query[query.index(after: at)...].lowercased()
+        }
+        guard query.lowercased().hasPrefix("https://"), !query.contains(where: \.isWhitespace),
+              let host = URL(string: query)?.host(), host.contains(".")
+        else { return nil }
+        return host.lowercased()
+    }
+
+    static func remoteSearchQuery(_ raw: String) -> String {
+        let query = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard query.hasPrefix("@") else { return query }
+        return String(query.dropFirst()).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    static func searchAccounts(_ raw: String) async -> [RemoteAccount]? {
+        let query = remoteSearchQuery(raw)
+        guard query.count >= remoteSearchMinQuery else { return [] }
+        do {
+            let page: RemoteAccountSearchPage = try await client.get(
+                "/federation/accounts/search",
+                query: ["q": query, "limit": String(remoteSearchLimit)],
+                authenticated: AuthStore.shared.isSignedIn)
+            return page.items.filter { !$0.isDomainBlocked }
+        } catch {
+            return nil
+        }
+    }
+
+    static func resolve(_ raw: String) async -> RemoteResolution {
+        let query = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let domain = queryDomain(query) else { return .hidden }
+        do {
+            let body: RemoteResolveBody = try await client.get(
+                "/federation/resolve", query: ["q": query], authenticated: true, timeout: resolveTimeout)
+            if let note = body.note { return .note(note) }
+            if let account = body.account { return .account(account) }
+            return .missing(domain: domain)
+        } catch {
+            guard isRouteMissing(error) else { return resolution(for: error, domain: domain) }
+            guard looksLikeHandle(query) else { return .hidden }
+            do {
+                return .account(try await lookup(query))
+            } catch {
+                return resolution(for: error, domain: domain)
+            }
+        }
+    }
+
+    static func isRouteMissing(_ error: Error) -> Bool {
+        switch error {
+        case APIError.http(404): return true
+        case APIError.server(404, let code, _): return code == nil || code == "NOT_FOUND"
+        default: return false
+        }
+    }
+
+    static func needsSignIn(_ error: Error) -> Bool {
+        switch error {
+        case AuthError.notSignedIn, APIError.http(401), APIError.server(401, _, _): return true
+        default: return false
+        }
+    }
+
+    static func resolution(for error: Error, domain: String) -> RemoteResolution {
+        if needsSignIn(error) { return .signIn }
+        switch error {
+        case APIError.server(_, "REMOTE_ACCOUNT_NOT_FOUND", _), APIError.server(_, "REMOTE_ACCOUNT_INVALID", _):
+            return .missing(domain: domain)
+        case APIError.server(_, "REMOTE_SERVER_UNREACHABLE", _):
+            return .unreachable(domain: domain)
+        case APIError.transport(let underlying) where (underlying as? URLError)?.code == .timedOut:
+            return .unreachable(domain: domain)
+        default:
+            return .hidden
+        }
     }
 
     static func lookup(_ handle: String) async throws -> RemoteAccount {

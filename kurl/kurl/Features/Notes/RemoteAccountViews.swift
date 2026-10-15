@@ -11,6 +11,7 @@ struct RemoteFollowButton: View {
     var outlined = false
     @State private var busy = false
     @State private var confirmUnfollow = false
+    @State private var showLogin = false
     @State private var toggles = 0
 
     var body: some View {
@@ -21,7 +22,9 @@ struct RemoteFollowButton: View {
             prominent: outlined ? false : nil,
             expandTap: 6
         ) {
-            if account.following || account.requested {
+            if !AuthStore.shared.isSignedIn {
+                showLogin = true
+            } else if account.following || account.requested {
                 confirmUnfollow = true
             } else {
                 Task { await set(true) }
@@ -30,6 +33,9 @@ struct RemoteFollowButton: View {
         .disabled(busy)
         .accessibilityIdentifier("remote.follow.\(account.acct)")
         .sensoryFeedback(.impact(weight: .light), trigger: toggles)
+        .loginPrompt(isPresented: $showLogin, message: "팔로우하려면 로그인하세요") {
+            if let fresh = try? await FederationAPI.account(id: account.id) { account = fresh }
+        }
         .alert(
             account.following ? "\(account.acct) 팔로우를 끊을까요?" : "팔로우 요청을 취소할까요?",
             isPresented: $confirmUnfollow
@@ -62,6 +68,7 @@ struct RemoteFollowButton: View {
 struct RemoteAccountRow: View {
     @Binding var account: RemoteAccount
     var linksByValue = true
+    var roomy = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -76,12 +83,12 @@ struct RemoteAccountRow: View {
             .accessibilityIdentifier("remote.row.\(account.acct)")
             RemoteFollowButton(account: $account, outlined: true)
         }
-        .padding(.vertical, 10)
+        .padding(.vertical, roomy ? 12 : 10)
     }
 
     private var label: some View {
         HStack(spacing: 12) {
-            AvatarView(author: account.asAuthor, size: 40)
+            AvatarView(author: account.asAuthor, size: roomy ? 44 : 40)
             VStack(alignment: .leading, spacing: 2) {
                 Text(account.shownName)
                     .typeScale(.body)
@@ -105,6 +112,8 @@ struct RemoteAccountView: View {
     let accountId: Int64
     @State private var account: RemoteAccount?
     @State private var failed = false
+    @State private var needsSignIn = false
+    @State private var showLogin = false
     @State private var notes: NotesViewModel
     @State private var confirmDomainBlock = false
     @Environment(\.openURL) private var openURL
@@ -131,6 +140,14 @@ struct RemoteAccountView: View {
                 } else {
                     notesList
                 }
+            } else if needsSignIn {
+                FeedPlaceholder(
+                    title: "다른 서버 계정을 보려면 로그인하세요",
+                    actionTitle: "로그인",
+                    actionIdentifier: "remote.signIn",
+                    action: { showLogin = true }
+                )
+                .padding(.top, 24)
             } else if failed {
                 ErrorState(
                     message: String(localized: "연결을 확인하고 다시 시도해 주세요."),
@@ -140,6 +157,10 @@ struct RemoteAccountView: View {
                 KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 240)
             }
+        }
+        .loginPrompt(isPresented: $showLogin, message: "다른 서버 계정을 보려면 로그인하세요") {
+            await load()
+            await notes.reload()
         }
         .navigationTitle(account.map { "@\($0.acct)" } ?? "")
         .navigationBarTitleDisplayMode(.inline)
@@ -266,10 +287,13 @@ struct RemoteAccountView: View {
 
     private func load() async {
         failed = false
+        needsSignIn = !AuthStore.shared.isSignedIn
+        guard !needsSignIn else { return }
         do {
             account = try await FederationAPI.account(id: accountId)
         } catch {
-            failed = account == nil
+            needsSignIn = account == nil && FederationAPI.needsSignIn(error)
+            failed = account == nil && !needsSignIn
         }
     }
 

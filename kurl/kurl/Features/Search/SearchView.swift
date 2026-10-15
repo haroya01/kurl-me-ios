@@ -19,7 +19,8 @@ struct SearchView: View {
     @State private var query = ""
     @State private var phase: LoadState<[FeedItem]> = .idle
     @State private var searchTask: Task<Void, Never>?
-    @State private var remoteAccount: RemoteAccount?
+    @State private var remoteLookup: RemoteLookup = .off
+    @State private var remoteFallback = false
     @State private var remoteTask: Task<Void, Never>?
     @Namespace private var zoomNS
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -54,6 +55,8 @@ struct SearchView: View {
                     PeopleResultsList(model: peopleResults, query: query, retry: { runSearch(query) })
                 } else if scope == .notes, !activeQuery.isEmpty || !query.trimmingCharacters(in: .whitespaces).isEmpty {
                     notesResults
+                } else if resolvesRemotely(query) {
+                    Color.clear
                 } else {
                 switch phase {
                 case .idle:
@@ -75,10 +78,9 @@ struct SearchView: View {
             // RootView 의 탭바 예약 safeAreaPadding 은 NavigationStack 안으로 넘어오지 않는다.
             .safeAreaPadding(.bottom, Metrics.tabBarReservedHeight)
             .safeAreaInset(edge: .top, spacing: 0) {
-                if let account = Binding($remoteAccount) {
+                if remoteLookup.isVisible {
                     VStack(spacing: 0) {
-                        RemoteAccountRow(account: account)
-                            .padding(.horizontal, Metrics.gutter)
+                        RemoteResolveSlot(lookup: $remoteLookup, onSignedIn: { scheduleRemoteLookup(query) })
                         Hairline()
                     }
                     .background(Palette.pageBg)
@@ -124,6 +126,7 @@ struct SearchView: View {
             }
         }
         .onChange(of: query) { _, newValue in
+            remoteFallback = false
             scheduleSearch(newValue)
             scheduleRemoteLookup(newValue)
         }
@@ -666,6 +669,7 @@ struct SearchView: View {
         searchTask?.cancel()
         let trimmed = text.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { phase = .idle; return }
+        guard !resolvesRemotely(trimmed) else { return }
         searchTask = Task {
             try? await Task.sleep(for: .milliseconds(350))
             guard !Task.isCancelled else { return }
@@ -673,25 +677,43 @@ struct SearchView: View {
         }
     }
 
-    /// @아이디@서버 — 마스토돈 검색처럼 다른 서버 계정을 찾아 결과 위에 한 줄로 얹는다.
+    private func resolvesRemotely(_ text: String) -> Bool {
+        scope == .posts && !remoteFallback && FederationAPI.queryDomain(text) != nil
+    }
+
     private func scheduleRemoteLookup(_ text: String) {
         remoteTask?.cancel()
-        guard AuthStore.shared.isSignedIn, FederationAPI.looksLikeHandle(text) else {
-            remoteAccount = nil
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard FederationAPI.queryDomain(trimmed) != nil else {
+            withAnimation(.smooth(duration: 0.2)) { remoteLookup = .off }
+            return
+        }
+        guard AuthStore.shared.isSignedIn else {
+            withAnimation(.smooth(duration: 0.2)) { remoteLookup = .done(.signIn) }
             return
         }
         remoteTask = Task {
             try? await Task.sleep(for: .milliseconds(450))
             guard !Task.isCancelled else { return }
-            let found = try? await FederationAPI.lookup(text)
+            withAnimation(.smooth(duration: 0.2)) { remoteLookup = .looking }
+            let result = await FederationAPI.resolve(trimmed)
             guard !Task.isCancelled else { return }
-            withAnimation(.smooth(duration: 0.2)) { remoteAccount = found }
+            withAnimation(.smooth(duration: 0.2)) { remoteLookup = .done(result) }
+            switch result {
+            case .account, .note:
+                recordRecent(trimmed)
+            case .hidden:
+                remoteFallback = true
+                if scope == .posts { runSearch(trimmed) }
+            default:
+                break
+            }
         }
     }
 
     private func runSearch(_ text: String) {
         let trimmed = text.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { return }
+        guard !trimmed.isEmpty, !resolvesRemotely(trimmed) else { return }
         searchTask?.cancel()
         searchTask = Task { await search(trimmed) }
     }

@@ -83,9 +83,11 @@ struct APIClient {
         _ path: String,
         query: [String: String?] = [:],
         as type: T.Type = T.self,
-        authenticated: Bool = false
+        authenticated: Bool = false,
+        timeout: TimeInterval? = nil
     ) async throws -> T {
-        let request = try makeRequest(path: path, query: query, method: "GET")
+        var request = try makeRequest(path: path, query: query, method: "GET")
+        if let timeout { request.timeoutInterval = timeout }
         let data = try await perform(request, authenticated: authenticated)
         return try decode(data)
     }
