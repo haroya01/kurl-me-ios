@@ -7189,6 +7189,34 @@
         }
       }
     },
+    "마감 없음": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No end date"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कोई समय-सीमा नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "締め切りなし"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không có hạn chót"
+          }
+        }
+      }
+    },
     "모더레이션 편집은 제목과 태그만 바꿔요. 본문과 주소는 작가의 것으로 남아요.": {
       "localizations": {
         "en": {
@@ -8137,6 +8165,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hiển thị thông báo"
+          }
+        }
+      }
+    },
+    "원문에서 투표": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vote on the original"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मूल पोस्ट पर वोट करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元の投稿で投票"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bình chọn ở bài gốc"
           }
         }
       }
@@ -38075,25 +38131,25 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "View in original post"
+            "value": "View the original"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "元の記事で見る"
+            "value": "元の投稿を見る"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Xem trong bài gốc"
+            "value": "Xem bài gốc"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "मूल लेख में देखें"
+            "value": "मूल पोस्ट देखें"
           }
         }
       }
