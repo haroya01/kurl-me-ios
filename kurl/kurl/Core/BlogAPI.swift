@@ -86,7 +86,7 @@ enum BlogAPI {
 
     /// 읽기 측정 비콘. 실패는 조용히 무시한다.
     static func recordView(username: String, slug: String, source: String? = "ios") async {
-        try? await client.post(
+        try? await client.postAsViewer(
             "/public/profiles/\(username)/posts/\(slug)/view",
             query: ["src": source]
         )

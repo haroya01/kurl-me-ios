@@ -455,6 +455,7 @@ struct NotificationsView: View {
         case "NOTE_EDIT": return "pencil"
         case "REMOTE_FOLLOW": return "person.fill.badge.plus"
         case "FOLLOW_REQUEST": return "person.badge.clock"
+        case "POST_FIRST_READER", "POST_READ_MILESTONE": return "person.fill"
         default: return "bell.fill"
         }
     }
@@ -555,6 +556,10 @@ struct NotificationsView: View {
         case "NOTE_EDIT": return Text("\(actor)님이 내가 리포스트하거나 인용한 노트를 수정했어요")
         case "REMOTE_FOLLOW": return Text("\(actor)님이 다른 서버에서 나를 팔로우했어요")
         case "FOLLOW_REQUEST": return Text("\(actor)님이 팔로우를 요청했어요")
+        case "POST_FIRST_READER": return Text("첫 독자가 생겼어요")
+        case "POST_READ_MILESTONE":
+            guard let milestone = n.milestone else { return Text("읽은 사람이 늘었어요") }
+            return Text("\(milestone.formatted())명이 읽었어요")
         default: return actor
         }
     }

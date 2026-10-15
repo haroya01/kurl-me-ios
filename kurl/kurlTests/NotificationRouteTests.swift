@@ -123,6 +123,74 @@ final class NotificationRouteTests: XCTestCase {
             .postSpot(username: "honggildong", slug: "p", spot: .highlight(6001)))
     }
 
+    @MainActor
+    private func page(_ items: String) throws -> NotificationsPage {
+        try JSONDecoder.blog.decode(
+            NotificationsPage.self, from: Data(#"{"items":[\#(items)],"nextCursor":null,"hasMore":false}"#.utf8))
+    }
+
+    @MainActor
+    func testReaderNoticesDecodeWithoutAnActor() throws {
+        let items = try page(
+            #"{"id":31,"type":"POST_READ_MILESTONE","postId":9101,"postSlug":"hexagonal","postTitle":"석 달","milestone":1000,"read":false,"createdAt":"2026-10-16T01:00:00Z"},"#
+                + #"{"id":32,"type":"POST_FIRST_READER","postId":9002,"postSlug":"p-mock-2","postTitle":"발행된 목 글","read":true,"createdAt":"2026-10-16T00:00:00Z"},"#
+                + #"{"id":33,"type":"POST_READ_MILESTONE","postId":9002,"postSlug":"p-mock-2","postTitle":"발행된 목 글","read":false,"createdAt":"2026-10-15T00:00:00Z"},"#
+                + #"{"id":34,"type":"SOMETHING_NEWER","read":false,"createdAt":"2026-10-14T00:00:00Z"}"#
+        ).items
+
+        XCTAssertEqual(items.map(\.type), ["POST_READ_MILESTONE", "POST_FIRST_READER", "POST_READ_MILESTONE", "SOMETHING_NEWER"])
+        XCTAssertEqual(items.map(\.milestone), [1000, nil, nil, nil])
+        XCTAssertEqual(items.map(\.postSlug), ["hexagonal", "p-mock-2", "p-mock-2", nil])
+        XCTAssertEqual(items[0].postTitle, "석 달")
+        for item in items {
+            XCTAssertNil(item.actorUsername)
+            XCTAssertNil(item.actorAvatarUrl)
+            XCTAssertNil(item.actorRemoteId)
+            XCTAssertNil(item.postAuthorUsername)
+        }
+    }
+
+    @MainActor
+    func testReaderNoticesOpenMyOwnPost() throws {
+        let items = try page(
+            #"{"id":31,"type":"POST_READ_MILESTONE","postId":9101,"postSlug":"hexagonal","postTitle":"석 달","milestone":10,"read":false},"#
+                + #"{"id":32,"type":"POST_FIRST_READER","postId":9002,"postSlug":"p-mock-2","postTitle":"발행된 목 글","read":false}"#
+        ).items
+
+        XCTAssertEqual(
+            NotificationRoute.route(for: items[0], mine: "honggildong"), .post(username: "honggildong", slug: "hexagonal"))
+        XCTAssertEqual(
+            NotificationRoute.route(for: items[1], mine: "honggildong"), .post(username: "honggildong", slug: "p-mock-2"))
+    }
+
+    func testReaderPushOpensThePostOfItsOwner() {
+        XCTAssertEqual(
+            NotificationRoute.route(push: [
+                "type": "POST_READ_MILESTONE", "ownerUsername": "honggildong", "postSlug": "hexagonal",
+            ]),
+            .post(username: "honggildong", slug: "hexagonal"))
+        XCTAssertEqual(
+            NotificationRoute.route(push: [
+                "type": "POST_FIRST_READER", "ownerUsername": "honggildong", "postSlug": "p-mock-2",
+            ]),
+            .post(username: "honggildong", slug: "p-mock-2"))
+    }
+
+    @MainActor
+    func testReaderSettingsAppearOnlyWhenTheServerListsThem() {
+        let older = NotificationPreferencesAPI.preferences(from: ["LIKE": false])
+        XCTAssertNil(older[.postFirstReader])
+        XCTAssertNil(older[.postReadMilestone])
+        XCTAssertEqual(older[.like], false)
+        XCTAssertEqual(older[.comment], true)
+
+        let newer = NotificationPreferencesAPI.preferences(
+            from: ["POST_FIRST_READER": true, "POST_READ_MILESTONE": false])
+        XCTAssertEqual(newer[.postFirstReader], true)
+        XCTAssertEqual(newer[.postReadMilestone], false)
+        XCTAssertEqual(newer.count, NotificationKind.allCases.count)
+    }
+
     func testEveryKindSitsInExactlyOneSettingsSection() {
         let placed = NotificationKindSection.allCases.flatMap(\.kinds)
         XCTAssertEqual(placed.count, Set(placed).count)

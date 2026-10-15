@@ -37,6 +37,10 @@ enum NotificationRoute {
 
     @MainActor
     static func route(for n: AppNotification) -> Route? {
+        route(for: n, mine: AuthStore.shared.me?.username)
+    }
+
+    static func route(for n: AppNotification, mine: String?) -> Route? {
         switch n.type {
         case "NOTE_LIKE", "NOTE_REPOST", "NOTE_MENTION", "NOTE_POLL", "NOTE_POST", "NOTE_EDIT", "POST_QUOTE":
             return n.noteId.map { .note(id: $0) }
@@ -45,7 +49,6 @@ enum NotificationRoute {
         case "FOLLOW_REQUEST": return .followRequests
         default: break
         }
-        let mine = AuthStore.shared.me?.username
         let owner =
             n.postSlug == nil
             ? mine
