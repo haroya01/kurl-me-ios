@@ -123,6 +123,33 @@ final class DiscoveryViewerTokenTests: XCTestCase {
         }
     }
 
+    func testViewBeaconCarriesTheSignedInViewerToken() async throws {
+        BlogAPI.client = client(token: "viewer-token")
+        await BlogAPI.recordView(username: "writer", slug: "a-post")
+        await BlogAPI.recordView(username: "writer", slug: "a-post", source: "ios-deck")
+
+        let requests = CapturingProtocol.requests
+        XCTAssertEqual(requests.count, 2)
+        for request in requests {
+            XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertEqual(request.url?.path.hasSuffix("/public/profiles/writer/posts/a-post/view"), true)
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer viewer-token")
+        }
+        XCTAssertEqual(requests.map { query($0)["src"] }, ["ios", "ios-deck"])
+    }
+
+    func testViewBeaconStaysAnonymousWhenSignedOut() async throws {
+        BlogAPI.client = client(token: nil)
+        await BlogAPI.recordView(username: "writer", slug: "a-post")
+
+        let request = try XCTUnwrap(CapturingProtocol.requests.first)
+        XCTAssertEqual(CapturingProtocol.requests.count, 1)
+        XCTAssertEqual(request.httpMethod, "POST")
+        XCTAssertEqual(request.url?.path.hasSuffix("/public/profiles/writer/posts/a-post/view"), true)
+        XCTAssertNil(request.value(forHTTPHeaderField: "Authorization"))
+        XCTAssertEqual(query(request), ["src": "ios"])
+    }
+
     func testAuthorPostListReadsTheBlockFlagsAndLeavesThemNilWhenAbsent() throws {
         let author = #"{"id":2,"username":"writer","bio":null,"avatarUrl":null}"#
         let flagged = try JSONDecoder.blog.decode(

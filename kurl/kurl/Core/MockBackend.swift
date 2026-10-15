@@ -484,6 +484,7 @@ enum MockBackend {
         "LIKE": true, "COMMENT": true, "REPLY": true, "MENTION": true,
         "FOLLOW": true, "SERIES_SUBSCRIBE": true, "NEW_POST": false,
         "CONNECTED": true, "PATH_GREW": true,
+        "POST_FIRST_READER": true, "POST_READ_MILESTONE": true,
     ]
     private static var myBio = "경계를 긋는 사람. 헥사고날·도메인 모델링."
     private static var displayNames: [String: String] = ["reader_kim": "김독자"]
@@ -2789,6 +2790,12 @@ enum MockBackend {
                  "postAuthorUsername": "yuki_dev",
                  "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
                  "count": 1, "read": true, "createdAt": iso(Date().addingTimeInterval(-430_000))],
+                ["id": 22, "type": "POST_READ_MILESTONE",
+                 "postId": 9101, "postSlug": "hexagonal-after-3-months", "postTitle": "헥사고날로 갈아탄 지 석 달, 무엇이 남았나",
+                 "milestone": 1000, "read": false, "createdAt": iso(Date().addingTimeInterval(-405_000))],
+                ["id": 23, "type": "POST_FIRST_READER",
+                 "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글",
+                 "read": true, "createdAt": iso(Date().addingTimeInterval(-406_000))],
             ]
             let mentionTypes: Set<String> = ["MENTION", "NOTE_MENTION", "REPLY", "NOTE_REPLY", "COMMENT"]
             let mentionsOnly = query?.first(where: { $0.name == "filter" })?.value == "mentions"

@@ -83,4 +83,5 @@ struct AppNotification: Decodable, Identifiable {
     var sourceExcerpt: String? = nil
     /// 같은 노트의 좋아요·리포스트는 날마다 묶여 온다 — 행은 가장 최근 것, count 는 묶음 크기.
     var count: Int? = nil
+    var milestone: Int? = nil
 }

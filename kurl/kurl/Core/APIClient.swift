@@ -112,8 +112,11 @@ struct APIClient {
     }
 
     /// 응답 본문이 없는 POST (예: 조회 비콘). 실패해도 호출측에서 무시할 수 있다.
-    func post(_ path: String, query: [String: String?] = [:]) async throws {
-        let request = try makeRequest(path: path, query: query, method: "POST")
+    func postAsViewer(_ path: String, query: [String: String?] = [:]) async throws {
+        var request = try makeRequest(path: path, query: query, method: "POST")
+        if let token = await viewerToken() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
         _ = try await rawData(request)
     }
 

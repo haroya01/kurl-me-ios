@@ -41341,6 +41341,202 @@
           }
         }
       }
+    },
+    "첫 독자가 생겼어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your post has its first reader"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपकी पोस्ट को पहला पाठक मिला"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記事に最初の読者がつきました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bài viết của bạn đã có người đọc đầu tiên"
+          }
+        }
+      }
+    },
+    "%@명이 읽었어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ people have read your post"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपकी पोस्ट %@ लोगों ने पढ़ ली है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@人が記事を読みました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ người đã đọc bài viết của bạn"
+          }
+        }
+      }
+    },
+    "읽은 사람이 늘었어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More people have read your post"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपकी पोस्ट पढ़ने वाले बढ़ गए हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記事を読んだ人が増えました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Có thêm người đọc bài viết của bạn"
+          }
+        }
+      }
+    },
+    "첫 독자": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "First reader"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पहला पाठक"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最初の読者"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Người đọc đầu tiên"
+          }
+        }
+      }
+    },
+    "읽은 사람 수": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reader milestones"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पाठक संख्या के पड़ाव"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "読者数の節目"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mốc người đọc"
+          }
+        }
+      }
+    },
+    "내 글을 처음 읽은 사람이 생길 때": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When your post gets its first reader"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जब आपकी पोस्ट को पहला पाठक मिले"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記事に最初の読者がついたとき"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khi bài viết của bạn có người đọc đầu tiên"
+          }
+        }
+      }
+    },
+    "내 글을 읽은 사람이 10명, 100명, 1,000명이 될 때. 내 조회와 봇은 세지 않아요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When 10, 100 or 1,000 people have read your post. Your own views and bots don't count"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जब आपकी पोस्ट 10, 100 या 1,000 लोग पढ़ लें। आपके अपने व्यू और बॉट नहीं गिने जाते"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記事を読んだ人が10人、100人、1,000人になったとき。自分の閲覧とボットは数えません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khi bài viết của bạn có 10, 100 hoặc 1.000 người đọc. Không tính lượt xem của bạn và bot"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
