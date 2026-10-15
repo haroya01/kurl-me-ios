@@ -116,6 +116,8 @@ struct RemoteAccountView: View {
     @State private var showLogin = false
     @State private var notes: NotesViewModel
     @State private var confirmDomainBlock = false
+    @State private var confirmBlock = false
+    @State private var muting = false
     @Environment(\.openURL) private var openURL
 
     init(accountId: Int64) {
@@ -135,6 +137,14 @@ struct RemoteAccountView: View {
                         actionTitle: "\(account.domain) 차단 해제",
                         actionIdentifier: "remote.domain.unblock",
                         action: { Task { await setDomainBlocked(false) } }
+                    )
+                    .padding(.top, 24)
+                } else if account.isBlocking {
+                    FeedPlaceholder(
+                        title: "차단한 사용자예요",
+                        actionTitle: "차단 해제",
+                        actionIdentifier: "remote.unblock",
+                        action: { Task { await setBlocking(false) } }
                     )
                     .padding(.top, 24)
                 } else {
@@ -168,6 +178,35 @@ struct RemoteAccountView: View {
             if let account {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
+                        if account.offersBlockAndMute {
+                            if account.isMuting {
+                                Button {
+                                    Task { await unmute() }
+                                } label: {
+                                    Label("뮤트 해제", systemImage: "speaker.wave.2")
+                                }
+                                .accessibilityIdentifier("remote.unmute")
+                            } else {
+                                Button { muting = true } label: {
+                                    Label("뮤트…", systemImage: "speaker.slash")
+                                }
+                                .accessibilityIdentifier("remote.mute")
+                            }
+                            if account.isBlocking {
+                                Button {
+                                    Task { await setBlocking(false) }
+                                } label: {
+                                    Label("차단 해제", systemImage: "hand.raised.slash")
+                                }
+                                .accessibilityIdentifier("remote.menu.unblock")
+                            } else {
+                                Button(role: .destructive) { confirmBlock = true } label: {
+                                    Label("차단", systemImage: "hand.raised")
+                                }
+                                .accessibilityIdentifier("remote.block")
+                            }
+                            Divider()
+                        }
                         if account.isDomainBlocked {
                             Button("\(account.domain) 차단 해제", systemImage: "hand.raised.slash") {
                                 Task { await setDomainBlocked(false) }
@@ -194,6 +233,21 @@ struct RemoteAccountView: View {
             Button("취소", role: .cancel) {}
         } message: {
             Text("그 서버의 노트와 알림이 보이지 않고, 그 서버 계정 팔로우가 끊기며 그 서버의 팔로워도 빠져요. 한 사람만 문제라면 차단이나 뮤트로 충분해요.")
+        }
+        .alert("\(account?.acct ?? "") 님을 차단할까요?", isPresented: $confirmBlock) {
+            Button("차단", role: .destructive) { Task { await setBlocking(true) } }
+                .accessibilityIdentifier("remote.block.confirm")
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("이 계정의 노트와 알림이 보이지 않고, 서로의 팔로우도 끊겨요.")
+        }
+        .sheet(isPresented: $muting) {
+            if let account {
+                MuteSheet(remote: account) { muted in
+                    self.account = muted
+                    NoteFeedPreferences.shared.mutesChanged()
+                }
+            }
         }
         .task { await load() }
         .task { await notes.reload() }
@@ -253,7 +307,7 @@ struct RemoteAccountView: View {
                 }
             }
             HStack(spacing: 10) {
-                if !value.isDomainBlocked {
+                if !value.isDomainBlocked && !value.isBlocking {
                     RemoteFollowButton(
                         account: Binding(get: { account ?? value }, set: { account = $0 }))
                 }
@@ -268,7 +322,7 @@ struct RemoteAccountView: View {
                     .buttonStyle(.plain)
                 }
             }
-            if !value.isDomainBlocked {
+            if !value.isDomainBlocked && !value.isBlocking {
                 Text(caption(value))
                     .typeScale(.footnote)
                     .foregroundStyle(Palette.secondary)
@@ -294,6 +348,33 @@ struct RemoteAccountView: View {
         } catch {
             needsSignIn = account == nil && FederationAPI.needsSignIn(error)
             failed = account == nil && !needsSignIn
+        }
+    }
+
+    private func setBlocking(_ on: Bool) async {
+        guard let id = account?.id else { return }
+        do {
+            account = try await FederationAPI.setBlocking(on, id: id)
+            NoteFeedPreferences.shared.mutesChanged()
+            if !on { await notes.reload() }
+            ToastCenter.shared.show(
+                on
+                    ? String(localized: "차단했어요. 이 계정의 노트가 숨겨져요")
+                    : String(localized: "차단을 해제했어요"))
+        } catch {
+            ToastCenter.shared.show(
+                on ? String(localized: "차단하지 못했어요") : String(localized: "해제하지 못했어요"))
+        }
+    }
+
+    private func unmute() async {
+        guard let id = account?.id else { return }
+        do {
+            account = try await FederationAPI.unmute(id: id)
+            NoteFeedPreferences.shared.mutesChanged()
+            ToastCenter.shared.show(String(localized: "뮤트를 해제했어요"))
+        } catch {
+            ToastCenter.shared.show(String(localized: "해제하지 못했어요"))
         }
     }
 
@@ -430,5 +511,63 @@ struct RemoteFollowingView: View {
             failed = true
         }
         loading = false
+    }
+}
+
+struct OtherServerSection<Content: View>: View {
+    let divided: Bool
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if divided {
+                Hairline()
+            }
+            RailHeading("다른 서버")
+                .padding(.top, divided ? 24 : 8)
+                .padding(.bottom, 2)
+            content
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("settings.remote")
+    }
+}
+
+struct RemoteSafetyRow: View {
+    let account: RemoteAccount
+    var mute: RemoteMute?
+    let actionTitle: LocalizedStringKey
+    let action: () async -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            AvatarView(author: account.asAuthor, size: 36)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(verbatim: account.acct)
+                    .typeScale(.body)
+                    .foregroundStyle(Palette.ink)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                if let mute {
+                    Group {
+                        if let end = mute.expiresAt {
+                            Text("\(end, format: .dateTime.month().day().hour().minute())까지")
+                        } else {
+                            Text("무기한")
+                        }
+                    }
+                    .typeScale(.meta)
+                    .foregroundStyle(Palette.secondary)
+                }
+            }
+            Spacer(minLength: 8)
+            Button(actionTitle) {
+                Task { await action() }
+            }
+            .typeScale(.meta)
+            .foregroundStyle(Palette.ink)
+            .accessibilityIdentifier("remote.safety.\(account.acct)")
+        }
+        .padding(.vertical, 12)
     }
 }

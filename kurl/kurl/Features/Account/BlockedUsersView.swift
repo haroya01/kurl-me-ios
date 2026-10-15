@@ -11,11 +11,12 @@ struct BlockedUsersView: View {
     @State private var loading = true
     /// 로드 실패 — 빈 목록과 구분해야 '차단자 없음'으로 위장하지 않는다(해제하러 온 사용자의 막다른 길 방지).
     @State private var failed = false
+    @State private var remote: [RemoteAccount] = []
 
     var body: some View {
         ReadingColumn(spacing: 0) {
             Color.clear.frame(height: 8)
-            if loading && BlockStore.shared.blocked.isEmpty {
+            if loading && BlockStore.shared.blocked.isEmpty && remote.isEmpty {
                 KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 240)
             } else if failed && BlockStore.shared.blocked.isEmpty {
@@ -23,15 +24,29 @@ struct BlockedUsersView: View {
                     message: String(localized: "연결을 확인하고 다시 시도해 주세요."),
                     retry: { Task { await load() } })
                     .padding(.top, 60)
-            } else if BlockStore.shared.blocked.isEmpty {
+            } else if BlockStore.shared.blocked.isEmpty && remote.isEmpty {
                 FeedPlaceholder(title: "차단한 사용자가 없어요")
                     .padding(.top, 24)
             } else {
                 let items = BlockStore.shared.blocked
-                LazyVStack(spacing: 0) {
-                    ForEach(items) { u in
-                        row(u)
-                        if u.id != items.last?.id { Hairline() }
+                if !items.isEmpty {
+                    LazyVStack(spacing: 0) {
+                        ForEach(items) { u in
+                            row(u)
+                            if u.id != items.last?.id { Hairline() }
+                        }
+                    }
+                }
+                if !remote.isEmpty {
+                    OtherServerSection(divided: !items.isEmpty) {
+                        LazyVStack(spacing: 0) {
+                            ForEach(remote) { account in
+                                RemoteSafetyRow(account: account, actionTitle: "차단 해제") {
+                                    await unblock(account)
+                                }
+                                .rowDivider(account.id != remote.first?.id)
+                            }
+                        }
                     }
                 }
             }
@@ -49,9 +64,22 @@ struct BlockedUsersView: View {
         loading = true
         failed = false
         // 이미 받아둔 목록이 있으면 실패해도 stale 목록을 유지한다 — failed 는 목록이 빌 때만 화면에 뜬다.
+        async let remoteBlocks = FederationAPI.blockedAccounts()
         let ok = await BlockStore.shared.reload()
+        if let found = await remoteBlocks { remote = found }
         failed = !ok
         loading = false
+    }
+
+    private func unblock(_ account: RemoteAccount) async {
+        do {
+            _ = try await FederationAPI.setBlocking(false, id: account.id)
+            withAnimation(.snappy(duration: 0.2)) { remote.removeAll { $0.id == account.id } }
+            NoteFeedPreferences.shared.mutesChanged()
+            ToastCenter.shared.show(String(localized: "차단을 해제했어요"))
+        } catch {
+            ToastCenter.shared.show(String(localized: "해제하지 못했어요"))
+        }
     }
 
     private func row(_ u: InteractionsAPI.BlockedUser) -> some View {

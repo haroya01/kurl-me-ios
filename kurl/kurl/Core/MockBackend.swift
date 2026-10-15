@@ -213,6 +213,7 @@ enum MockBackend {
     private static var pinnedNotes: [Int64] = []
     private static var noteLists: [(id: Int64, title: String, members: [String])] = []
     private static var mutedUsers: [String: (notifications: Bool, expiresAt: Date?)] = [:]
+    private static var blockedUsers: [String] = []
     private static var noteFilters: [[String: Any]] = []
     private static var nextFilterId: Int64 = 800
     private static var nextListId: Int64 = 700
@@ -332,6 +333,13 @@ enum MockBackend {
         return [withMedia, remoteNoteView()]
     }
     private static var nextRemoteId: Int64 = 9900
+    private static var remoteBlocked: Set<Int64> = [9830]
+    private static var remoteMuted: [Int64: (notifications: Bool, expiresAt: Date?)] = [
+        9810: (true, Date().addingTimeInterval(3 * 86_400)),
+    ]
+    private static func remoteHeard(_ id: Int64) -> Bool {
+        !remoteBlocked.contains(id) && remoteMuted[id] == nil
+    }
     private static var federationNoticeSeen = false
     private static var shortSeq = 0
 
@@ -1220,6 +1228,16 @@ enum MockBackend {
             }
         }
 
+        if method == "GET", parts == ["users", "me", "blocks"] {
+            return json(blockedUsers.map { name in
+                ["id": mockUserIds[name] ?? 0, "username": name, "avatarUrl": NSNull()] as [String: Any]
+            })
+        }
+        if parts.count == 3, parts[0] == "users", parts[2] == "block", method == "PUT" || method == "DELETE" {
+            blockedUsers.removeAll { $0 == parts[1] }
+            if method == "PUT" { blockedUsers.insert(parts[1], at: 0) }
+            return json([:])
+        }
         if method == "GET", parts == ["users", "me", "mutes"] {
             return json(mutedUsers.sorted { $0.key < $1.key }.map { name, mute in
                 [
@@ -1484,15 +1502,17 @@ enum MockBackend {
                 view["repostedBy"] = ["id": 2, "username": "yuki_dev", "avatarUrl": NSNull()] as [String: Any]
                 items.insert(view, at: min(1, items.count))
             }
-            items.append(remoteNoteView())
+            if remoteHeard(9800) { items.append(remoteNoteView()) }
             return json(["items": items, "page": 0, "hasNext": false])
         }
         if method == "GET", parts == ["notes", "federated"] {
-            return json(["items": [remoteNoteView()], "page": 0, "hasNext": false])
+            return json(["items": remoteHeard(9800) ? [remoteNoteView()] : [], "page": 0, "hasNext": false])
         }
         if method == "GET", parts.count == 4, parts[0] == "federation", parts[1] == "accounts",
            parts[3] == "notes" {
-            return json(["items": remoteNoteViews(of: Int64(parts[2]) ?? 0), "page": 0, "hasNext": false])
+            let id = Int64(parts[2]) ?? 0
+            let items = remoteBlocked.contains(id) ? [] : remoteNoteViews(of: id)
+            return json(["items": items, "page": 0, "hasNext": false])
         }
         if method == "GET", parts == ["public", "notes"] {
             return json(["items": topLevelNotes().filter { $0.visibility == "public" }.map(noteView),
@@ -1719,6 +1739,7 @@ enum MockBackend {
             guard q.count >= 2 else { return json(["items": [] as [Any]]) }
             let matches = remoteAccounts.values
                 .filter { domainBlocks[($0["domain"] as? String) ?? ""] == nil }
+                .filter { !remoteBlocked.contains(($0["id"] as? Int64) ?? 0) }
                 .filter { account in
                     let username = ((account["username"] as? String) ?? "").lowercased()
                     let display = ((account["displayName"] as? String) ?? "").lowercased()
@@ -1780,6 +1801,44 @@ enum MockBackend {
             account["following"] = false
             remoteAccounts[id] = account
             return json(withDomainBlock(account))
+        }
+        if parts.count == 4, parts[0] == "federation", parts[1] == "accounts", parts[3] == "block",
+           let id = Int64(parts[2]), var account = remoteAccounts[id] {
+            if method == "PUT" {
+                remoteBlocked.insert(id)
+                account["following"] = false
+                account["requested"] = false
+                remoteAccounts[id] = account
+            } else {
+                remoteBlocked.remove(id)
+            }
+            return json(withDomainBlock(account))
+        }
+        if parts.count == 4, parts[0] == "federation", parts[1] == "accounts", parts[3] == "mute",
+           let id = Int64(parts[2]), let account = remoteAccounts[id] {
+            if method == "PUT" {
+                let req = decode(body)
+                remoteMuted[id] = (
+                    (req["notifications"] as? Bool) ?? true,
+                    (req["duration"] as? Int).map { Date().addingTimeInterval(TimeInterval($0)) })
+            } else {
+                remoteMuted[id] = nil
+            }
+            return json(withDomainBlock(account))
+        }
+        if method == "GET", parts == ["federation", "blocks"] {
+            let items = remoteBlocked.sorted().compactMap { remoteAccounts[$0] }.map(withDomainBlock)
+            return json(["items": items])
+        }
+        if method == "GET", parts == ["federation", "mutes"] {
+            let items = remoteMuted.sorted { $0.key < $1.key }.compactMap { id, mute -> [String: Any]? in
+                guard let account = remoteAccounts[id] else { return nil }
+                return [
+                    "account": withDomainBlock(account), "notifications": mute.notifications,
+                    "expiresAt": mute.expiresAt.map(iso) ?? NSNull(),
+                ]
+            }
+            return json(["items": items])
         }
         if method == "GET", parts == ["federation", "following"] {
             let followed = remoteAccounts.values
@@ -3216,7 +3275,10 @@ enum MockBackend {
 
     private static func withDomainBlock(_ account: [String: Any]) -> [String: Any] {
         var shown = account
+        let id = (account["id"] as? Int64) ?? 0
         shown["domainBlocked"] = domainBlocks[(account["domain"] as? String) ?? ""] != nil
+        shown["blocking"] = remoteBlocked.contains(id)
+        shown["muting"] = remoteMuted[id] != nil
         return shown
     }
 
