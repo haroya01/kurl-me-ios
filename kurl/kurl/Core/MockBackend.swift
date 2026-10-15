@@ -279,6 +279,21 @@ enum MockBackend {
             "domain": "misskey.io", "displayName": "Haruto", "avatarUrl": NSNull(),
             "url": "https://misskey.io/@haruto", "following": false, "requested": false,
         ],
+        9850: [
+            "id": Int64(9850), "acct": "jiwoo@blog.example", "username": "jiwoo",
+            "domain": "blog.example", "displayName": "Jiwoo", "avatarUrl": NSNull(),
+            "url": "https://blog.example/author/jiwoo", "following": true, "requested": false,
+        ],
+        9860: [
+            "id": Int64(9860), "acct": "yeonhee@lemmy.example", "username": "yeonhee",
+            "domain": "lemmy.example", "displayName": "yeonhee", "avatarUrl": NSNull(),
+            "url": "https://lemmy.example/u/yeonhee", "following": true, "requested": false,
+        ],
+        9870: [
+            "id": Int64(9870), "acct": "trailcam@tube.example", "username": "trailcam",
+            "domain": "tube.example", "displayName": "Trail Cam", "avatarUrl": NSNull(),
+            "url": "https://tube.example/a/trailcam", "following": true, "requested": false,
+        ],
     ]
     /// 팔로우한 다른 서버 계정(mina)의 노트 — 팔로잉 피드 끝과 그 계정 화면에 보인다.
     private static func remoteNoteView() -> [String: Any] {
@@ -296,7 +311,81 @@ enum MockBackend {
             "linkPreview": NSNull(), "mentions": [] as [String], "contentWarning": NSNull(),
             "sensitive": false, "pinned": false, "visibility": "public", "poll": NSNull(),
             "quotedNote": NSNull(),
+            "remote": [
+                "kind": "NOTE", "title": NSNull(), "url": "https://mastodon.social/@mina/113100",
+                "community": NSNull(),
+            ] as [String: Any],
         ]
+    }
+
+    private static func remoteShapeViews() -> [[String: Any]] {
+        func author(_ remoteId: Int64, _ acct: String, _ name: String, _ url: String) -> [String: Any] {
+            ["id": -remoteId, "username": acct, "avatarUrl": NSNull(), "displayName": name,
+             "remoteId": remoteId, "url": url]
+        }
+        func shaped(
+            _ id: Int64, _ author: [String: Any], _ body: String, ago: Double, remote: [String: Any],
+            media: [Any] = [], poll: Any = NSNull()
+        ) -> [String: Any] {
+            var view = remoteNoteView()
+            view["id"] = id
+            view["body"] = body
+            view["createdAt"] = iso(Date().addingTimeInterval(-ago))
+            view["likeCount"] = NSNull()
+            view["likedByMe"] = likedNotes.contains(id)
+            view["bookmarkedByMe"] = bookmarkedNotes.contains(id)
+            view["author"] = author
+            view["media"] = media
+            view["poll"] = poll
+            view["remote"] = remote
+            return view
+        }
+        func picture(_ seed: String, _ width: Int, _ height: Int) -> [Any] {
+            [["url": "https://picsum.photos/seed/\(seed)/\(width)/\(height)", "altText": NSNull(),
+              "contentType": "image/jpeg", "width": width, "height": height] as [String: Any]]
+        }
+        return [
+            shaped(
+                9610, author(9850, "jiwoo@blog.example", "Jiwoo", "https://blog.example/author/jiwoo"),
+                "봄에 심은 토마토 여섯 그루 중 네 그루를 잃었다. 물을 너무 자주 준 게 문제였다. 올해 배운 것을 심은 순서대로 정리했다.",
+                ago: 3_000,
+                remote: ["kind": "ARTICLE", "title": "작은 정원의 첫해, 실패한 것부터 적는다",
+                         "url": "https://www.blog.example/2026/10/first-year-garden", "community": NSNull()],
+                media: picture("kurl-remote-article", 1200, 630)),
+            shaped(
+                9611, author(9860, "yeonhee@lemmy.example", "yeonhee", "https://lemmy.example/u/yeonhee"),
+                "작년에 삼나무로 높은 화단 두 개를 짰는데, 흙값까지 합치니 생각보다 많이 들었어요. 몇 해 써 보신 분들 의견이 궁금해요.",
+                ago: 5_400,
+                remote: ["kind": "PAGE", "title": "높은 화단, 나무값을 할까요?",
+                         "url": "https://lemmy.example/post/12345", "community": "gardening@lemmy.example"],
+                media: picture("kurl-remote-page", 1200, 800)),
+            shaped(
+                9612, author(9870, "trailcam@tube.example", "Trail Cam", "https://tube.example/a/trailcam"),
+                "말 없이 걷기만 한 40분. 낙엽 밟는 소리와 멀리서 들리는 개울 소리만 담았다.",
+                ago: 9_000,
+                remote: ["kind": "VIDEO", "title": "가을 숲길 한 바퀴",
+                         "url": "https://tube.example/w/9fQe2kLm", "community": NSNull()],
+                media: picture("kurl-remote-video", 1280, 720)),
+            shaped(
+                9613, author(9800, "mina@mastodon.social", "Mina", "https://mastodon.social/@mina"),
+                "다음 모임 장소, 어디가 좋을까요?",
+                ago: 14_000,
+                remote: ["kind": "QUESTION", "title": NSNull(),
+                         "url": "https://mastodon.social/@mina/113200", "community": NSNull()],
+                poll: [
+                    "expiresAt": NSNull(), "expired": false, "multiple": false,
+                    "votesCount": 22, "votersCount": 22,
+                    "options": [
+                        ["title": "합정 책방", "votesCount": 12], ["title": "성수 카페", "votesCount": 7],
+                        ["title": "온라인", "votesCount": 3],
+                    ],
+                    "voted": true, "ownVotes": [] as [Int],
+                ] as [String: Any]),
+        ]
+    }
+
+    private static func remoteAuthorId(_ view: [String: Any]) -> Int64? {
+        ((view["author"] as? [String: Any])?["remoteId"] as? NSNumber)?.int64Value
     }
     private static func lookedUpRemote(_ raw: String) -> [String: Any]? {
         var handle = raw.trimmingCharacters(in: .whitespaces)
@@ -320,7 +409,8 @@ enum MockBackend {
     }
 
     private static func remoteNoteViews(of accountId: Int64) -> [[String: Any]] {
-        guard accountId == 9800 else { return [] }
+        let shapes = remoteShapeViews().filter { remoteAuthorId($0) == accountId }
+        guard accountId == 9800 else { return shapes }
         var withMedia = remoteNoteView()
         withMedia["id"] = Int64(9601)
         withMedia["body"] = "오늘 찍은 파도 소리와 영상"
@@ -330,7 +420,7 @@ enum MockBackend {
             ["url": "https://files.mastodon.social/waves.mp3", "altText": "파도 소리",
              "contentType": "audio/mpeg"],
         ] as [Any]
-        return [withMedia, remoteNoteView()]
+        return [withMedia, remoteNoteView()] + shapes
     }
     private static var nextRemoteId: Int64 = 9900
     private static var remoteBlocked: Set<Int64> = [9830]
@@ -1507,10 +1597,13 @@ enum MockBackend {
                 items.insert(view, at: min(1, items.count))
             }
             if remoteHeard(9800) { items.append(remoteNoteView()) }
+            items += remoteShapeViews().filter { remoteHeard(remoteAuthorId($0) ?? 0) }
             return json(["items": items, "page": 0, "hasNext": false])
         }
         if method == "GET", parts == ["notes", "federated"] {
-            return json(["items": remoteHeard(9800) ? [remoteNoteView()] : [], "page": 0, "hasNext": false])
+            let items = (remoteHeard(9800) ? [remoteNoteView()] : [])
+                + remoteShapeViews().filter { remoteHeard(remoteAuthorId($0) ?? 0) }
+            return json(["items": items, "page": 0, "hasNext": false])
         }
         if method == "GET", parts.count == 4, parts[0] == "federation", parts[1] == "accounts",
            parts[3] == "notes" {
@@ -1587,7 +1680,8 @@ enum MockBackend {
         if method == "GET", parts.count == 3, parts[0] == "public", parts[1] == "notes",
            let nid = Int64(parts[2]) {
             guard let note = allNotes().first(where: { $0.id == nid }) else {
-                if let remote = remoteNoteViews(of: 9800).first(where: { ($0["id"] as? Int64) == nid }) {
+                if let remote = (remoteNoteViews(of: 9800) + remoteShapeViews())
+                    .first(where: { ($0["id"] as? Int64) == nid }) {
                     return json([
                         "note": remote, "parent": NSNull(), "replies": [] as [Any],
                         "continuation": [] as [Any], "series": NSNull(),
@@ -1630,6 +1724,11 @@ enum MockBackend {
                 previous = note
             }
             return json(created)
+        }
+        if method == "POST", parts.count == 4, parts[0] == "notes", parts[2] == "poll", parts[3] == "votes",
+           let nid = Int64(parts[1]), remoteShapeViews().contains(where: { ($0["id"] as? Int64) == nid }) {
+            throw APIError.server(
+                status: 400, code: "NOTE_POLL_ELSEWHERE", detail: "a poll from another server is voted on there")
         }
         if method == "POST", parts.count == 4, parts[0] == "notes", parts[2] == "poll", parts[3] == "votes",
            let nid = Int64(parts[1]), let idx = notes.firstIndex(where: { $0.id == nid }),
