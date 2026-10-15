@@ -273,6 +273,11 @@ enum MockBackend {
             "domain": "fosstodon.org", "displayName": "Bob", "avatarUrl": NSNull(),
             "url": "https://fosstodon.org/@bob", "following": false, "requested": false,
         ],
+        9840: [
+            "id": Int64(9840), "acct": "haruto@misskey.io", "username": "haruto",
+            "domain": "misskey.io", "displayName": "Haruto", "avatarUrl": NSNull(),
+            "url": "https://misskey.io/@haruto", "following": false, "requested": false,
+        ],
     ]
     /// 팔로우한 다른 서버 계정(mina)의 노트 — 팔로잉 피드 끝과 그 계정 화면에 보인다.
     private static func remoteNoteView() -> [String: Any] {
@@ -291,6 +296,40 @@ enum MockBackend {
             "sensitive": false, "pinned": false, "visibility": "public", "poll": NSNull(),
             "quotedNote": NSNull(),
         ]
+    }
+    private static func lookedUpRemote(_ raw: String) -> [String: Any]? {
+        var handle = raw.trimmingCharacters(in: .whitespaces)
+        if handle.hasPrefix("@") { handle.removeFirst() }
+        let pieces = handle.split(separator: "@").map(String.init)
+        guard pieces.count == 2 else { return nil }
+        let acct = "\(pieces[0])@\(pieces[1].lowercased())"
+        if let known = remoteAccounts.values.first(where: { ($0["acct"] as? String) == acct }) {
+            return withDomainBlock(known)
+        }
+        let id = nextRemoteId
+        nextRemoteId += 1
+        let account: [String: Any] = [
+            "id": id, "acct": acct, "username": pieces[0], "domain": pieces[1].lowercased(),
+            "displayName": pieces[0].capitalized, "avatarUrl": NSNull(),
+            "url": "https://\(pieces[1].lowercased())/@\(pieces[0])",
+            "following": false, "requested": false,
+        ]
+        remoteAccounts[id] = account
+        return withDomainBlock(account)
+    }
+
+    private static func remoteNoteViews(of accountId: Int64) -> [[String: Any]] {
+        guard accountId == 9800 else { return [] }
+        var withMedia = remoteNoteView()
+        withMedia["id"] = Int64(9601)
+        withMedia["body"] = "오늘 찍은 파도 소리와 영상"
+        withMedia["media"] = [
+            ["url": "https://files.mastodon.social/waves.mp4", "altText": "밀려오는 파도",
+             "contentType": "video/mp4"],
+            ["url": "https://files.mastodon.social/waves.mp3", "altText": "파도 소리",
+             "contentType": "audio/mpeg"],
+        ] as [Any]
+        return [withMedia, remoteNoteView()]
     }
     private static var nextRemoteId: Int64 = 9900
     private static var federationNoticeSeen = false
@@ -1453,17 +1492,7 @@ enum MockBackend {
         }
         if method == "GET", parts.count == 4, parts[0] == "federation", parts[1] == "accounts",
            parts[3] == "notes" {
-            var withMedia = remoteNoteView()
-            withMedia["id"] = Int64(9601)
-            withMedia["body"] = "오늘 찍은 파도 소리와 영상"
-            withMedia["media"] = [
-                ["url": "https://files.mastodon.social/waves.mp4", "altText": "밀려오는 파도",
-                 "contentType": "video/mp4"],
-                ["url": "https://files.mastodon.social/waves.mp3", "altText": "파도 소리",
-                 "contentType": "audio/mpeg"],
-            ] as [Any]
-            let items = parts[2] == "9800" ? [withMedia, remoteNoteView()] : []
-            return json(["items": items, "page": 0, "hasNext": false])
+            return json(["items": remoteNoteViews(of: Int64(parts[2]) ?? 0), "page": 0, "hasNext": false])
         }
         if method == "GET", parts == ["public", "notes"] {
             return json(["items": topLevelNotes().filter { $0.visibility == "public" }.map(noteView),
@@ -1534,6 +1563,12 @@ enum MockBackend {
         if method == "GET", parts.count == 3, parts[0] == "public", parts[1] == "notes",
            let nid = Int64(parts[2]) {
             guard let note = allNotes().first(where: { $0.id == nid }) else {
+                if let remote = remoteNoteViews(of: 9800).first(where: { ($0["id"] as? Int64) == nid }) {
+                    return json([
+                        "note": remote, "parent": NSNull(), "replies": [] as [Any],
+                        "continuation": [] as [Any], "series": NSNull(),
+                    ])
+                }
                 return json(["status": 404])
             }
             let parts = selfChain(note)
@@ -1676,26 +1711,59 @@ enum MockBackend {
             if method == "PUT" { mutedConversations.insert(nid) } else { mutedConversations.remove(nid) }
             return json(["muted": method == "PUT"])
         }
-        if method == "GET", parts == ["federation", "accounts", "lookup"] {
-            var handle = (query?.first(where: { $0.name == "acct" })?.value ?? "")
-                .trimmingCharacters(in: .whitespaces)
-            if handle.hasPrefix("@") { handle.removeFirst() }
-            let pieces = handle.split(separator: "@").map(String.init)
-            guard pieces.count == 2 else { return json([:] as [String: Any]) }
-            let acct = "\(pieces[0])@\(pieces[1].lowercased())"
-            if let known = remoteAccounts.values.first(where: { ($0["acct"] as? String) == acct }) {
-                return json(withDomainBlock(known))
+        if method == "GET", parts == ["federation", "accounts", "search"] {
+            var q = (query?.first(where: { $0.name == "q" })?.value ?? "").trimmingCharacters(in: .whitespaces)
+            if q.hasPrefix("@") { q.removeFirst() }
+            q = q.lowercased()
+            let limit = Int(query?.first(where: { $0.name == "limit" })?.value ?? "") ?? 10
+            guard q.count >= 2 else { return json(["items": [] as [Any]]) }
+            let matches = remoteAccounts.values
+                .filter { domainBlocks[($0["domain"] as? String) ?? ""] == nil }
+                .filter { account in
+                    let username = ((account["username"] as? String) ?? "").lowercased()
+                    let display = ((account["displayName"] as? String) ?? "").lowercased()
+                    let acct = ((account["acct"] as? String) ?? "").lowercased()
+                    return q.contains("@") ? acct.hasPrefix(q) : username.hasPrefix(q) || display.hasPrefix(q)
+                }
+                .sorted { lhs, rhs in
+                    let lf = (lhs["following"] as? Bool) == true, rf = (rhs["following"] as? Bool) == true
+                    if lf != rf { return lf }
+                    return ((lhs["username"] as? String) ?? "") < ((rhs["username"] as? String) ?? "")
+                }
+            return json(["items": Array(matches.prefix(limit)).map(withDomainBlock)])
+        }
+        if method == "GET", parts == ["federation", "resolve"] {
+            let q = (query?.first(where: { $0.name == "q" })?.value ?? "").trimmingCharacters(in: .whitespaces)
+            let address = q.lowercased().hasPrefix("https://") ? URL(string: q) : nil
+            let domain = (address?.host() ?? String(q.split(separator: "@").last ?? "")).lowercased()
+            if domain.hasPrefix("down.") {
+                throw APIError.server(
+                    status: 502, code: "REMOTE_SERVER_UNREACHABLE", detail: "\(domain) did not answer")
             }
-            let id = nextRemoteId
-            nextRemoteId += 1
-            let account: [String: Any] = [
-                "id": id, "acct": acct, "username": pieces[0], "domain": pieces[1].lowercased(),
-                "displayName": pieces[0].capitalized, "avatarUrl": NSNull(),
-                "url": "https://\(pieces[1].lowercased())/@\(pieces[0])",
-                "following": false, "requested": false,
-            ]
-            remoteAccounts[id] = account
-            return json(withDomainBlock(account))
+            let missing = APIError.server(
+                status: 404, code: "REMOTE_ACCOUNT_NOT_FOUND", detail: "no account on another server: \(q)")
+            guard let address else {
+                guard !q.drop(while: { $0 == "@" }).hasPrefix("nobody@"), let found = lookedUpRemote(q)
+                else { throw missing }
+                return json(["account": found, "note": NSNull()])
+            }
+            let segments = address.pathComponents.filter { $0 != "/" }
+            guard let user = segments.first,
+                  let account = remoteAccounts.values.first(where: {
+                      ($0["domain"] as? String) == domain && "@\(($0["username"] as? String) ?? "")" == user
+                  })
+            else { throw missing }
+            guard segments.count > 1 else {
+                return json(["account": withDomainBlock(account), "note": NSNull()])
+            }
+            let accountId = (account["id"] as? Int64) ?? 0
+            guard let note = remoteNoteViews(of: accountId)
+                .first(where: { "\(($0["id"] as? Int64) ?? 0)" == segments[1] })
+            else { throw missing }
+            return json(["account": NSNull(), "note": note])
+        }
+        if method == "GET", parts == ["federation", "accounts", "lookup"] {
+            return json(lookedUpRemote(query?.first(where: { $0.name == "acct" })?.value ?? "") ?? [:])
         }
         if method == "GET", parts.count == 3, parts[0] == "federation", parts[1] == "accounts",
            let id = Int64(parts[2]), var account = remoteAccounts[id] {
