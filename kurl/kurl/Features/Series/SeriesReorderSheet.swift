@@ -46,7 +46,7 @@ struct SeriesReorderSheet: View {
                                 pickingNote = true
                             } label: {
                                 Text("내 노트 더하기")
-                                    .foregroundStyle(Palette.link)
+                                    .foregroundStyle(Palette.ink)
                             }
                             .accessibilityIdentifier("series.addNote")
                         }
@@ -55,7 +55,7 @@ struct SeriesReorderSheet: View {
                     .listStyle(.plain)
                     // 시스템 회색 대신 브랜드 종이(§1) — 수정 시트(EditSeriesSheet)와 같은 면.
                     .scrollContentBackground(.hidden)
-                    .background(Palette.readingBg)
+                    .background(Palette.sheetBg)
                 }
             }
             .navigationTitle(mixed ? "회차 편집" : "순서 편집")
@@ -65,6 +65,7 @@ struct SeriesReorderSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("저장") { Task { await save() } }
                         .disabled(saving || loading || !changed)
+                        .tint(Palette.link)
                 }
             }
             .sheet(isPresented: $pickingNote) {
@@ -80,7 +81,7 @@ struct SeriesReorderSheet: View {
         HStack(alignment: .top, spacing: 12) {
             Text("\(index + 1)")
                 .font(.system(size: indexSize, weight: .bold).monospacedDigit())
-                .foregroundStyle(Palette.accent)
+                .foregroundStyle(Palette.secondary)
                 .padding(.top, 1)
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.title)
@@ -93,7 +94,7 @@ struct SeriesReorderSheet: View {
                     // 발행 전 회차는 한 줄로 표식 — 목차엔 안 뜨지만 시리즈엔 속한다는 걸 여기선 보여준다.
                     Text(item.status == "SCHEDULED" ? "예약" : "임시저장")
                         .typeScale(.meta)
-                        .foregroundStyle(Palette.faint)
+                        .foregroundStyle(Palette.secondary)
                 }
             }
         }
@@ -182,7 +183,7 @@ struct SeriesNotePicker: View {
                 }
                 if hasNext && !loading {
                     Button("더 불러오기") { Task { await loadMore() } }
-                        .foregroundStyle(Palette.link)
+                        .foregroundStyle(Palette.ink)
                 }
                 if loading {
                     KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 12)
@@ -190,14 +191,12 @@ struct SeriesNotePicker: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .background(Palette.readingBg)
-            .overlay {
+            .background(Palette.sheetBg)
+            .overlay(alignment: .top) {
                 if !loading && candidates.isEmpty {
-                    Text(failed ? "노트를 불러오지 못했습니다" : "더할 수 있는 노트가 없어요. 팔로워만·멘션한 사람만 보는 노트는 시리즈에 넣을 수 없어요.")
-                        .typeScale(.lede)
-                        .foregroundStyle(Palette.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
+                    FeedPlaceholder(title: failed ? "노트를 불러오지 못했습니다" : "더할 수 있는 노트가 없어요. 팔로워만·멘션한 사람만 보는 노트는 시리즈에 넣을 수 없어요.")
+                        .padding(.horizontal, Metrics.gutter)
+                        .padding(.top, 24)
                 }
             }
             .navigationTitle("노트 고르기")

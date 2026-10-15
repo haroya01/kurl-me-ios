@@ -11,10 +11,14 @@ import SwiftUI
 struct HighlightThreadSheet: View {
     let highlight: HighlightView
     let store: PostHighlightStore
+    let postTitle: String
+    let postAuthor: Author?
 
     @Environment(\.dismiss) private var dismiss
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
     @State private var replies: [HighlightReplyView] = []
+    @State private var repliesLoaded = false
+    @State private var repliesFailed = false
     @State private var text = ""
     @State private var noReplyTarget: ConversationReplyTarget?
     @State private var focusRequest = 0
@@ -22,10 +26,10 @@ struct HighlightThreadSheet: View {
     @State private var likeGen: [Int64: Int] = [:]
     @State private var showLikeLogin = false
     @State private var showDeleteConfirm = false
-    /// 이 문장이 속한 공개 길/컬렉션 — A 척추 발견 고리(한 문장 → 그것이 엮인 길들로).
+    @State private var showDiscardConfirm = false
+    @State private var replyToDelete: Int64?
+    /// 이 문장이 담긴 공개 컬렉션 — A 척추 발견 고리(한 문장 → 그것이 엮인 컬렉션들로).
     @State private var inCollections: [CollectionSummary] = []
-    /// 이 문장과 같은 공개 컬렉션에 함께 놓인 다른 블록 — "이것과 이어진 것"(공동 등장 발견 고리).
-    @State private var related: [RelatedBlock] = []
     @State private var path = NavigationPath()
 
     /// 연결은 서버에 자리잡은(양수 id) 하이라이트만 — 낙관적 생성 직후(음수 id)는 refId 가 없다.
@@ -42,45 +46,91 @@ struct HighlightThreadSheet: View {
 
     private var hasOpener: Bool { (highlight.note?.isEmpty == false) }
 
+    private func isMe(_ author: Author) -> Bool { author.id == AuthStore.shared.me?.id }
+
+    private var source: some View {
+        var line = Text(verbatim: postTitle).foregroundStyle(Palette.body)
+        if let postAuthor {
+            line = line
+                + Text(verbatim: " · ").foregroundStyle(Palette.faint)
+                + Text(verbatim: postAuthor.shownName).foregroundStyle(Palette.secondary)
+        }
+        return line
+            .typeScale(.meta)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityLabel(Text(verbatim: [postTitle, postAuthor?.shownName].compactMap { $0 }.joined(separator: ", ")))
+            .accessibilityIdentifier("highlight.source")
+    }
+
+    private var highlighters: some View {
+        HighlightersLine(authors: HighlightersLine.authors(
+            of: HighlightPaint.overlapping(highlight, in: store.highlights), isMine: store.isMine), ring: Palette.sheetBg)
+            .typeScale(.meta)
+            .foregroundStyle(Palette.secondary)
+            .accessibilityIdentifier("highlight.highlighters")
+    }
+
+    private func opener(_ note: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            openerHeader
+            ConversationBody(text: note)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("highlight.opener")
+    }
+
+    @ViewBuilder private var openerHeader: some View {
+        let header = HStack(alignment: .firstTextBaseline, spacing: 4) {
+            openerTitle
+                .fontWeight(.semibold)
+                .foregroundStyle(Palette.ink)
+                .lineLimit(1)
+            if let date = highlight.createdAt {
+                Text(verbatim: "·")
+                    .foregroundStyle(Palette.faint)
+                    .accessibilityHidden(true)
+                Text(date.relativeCompact)
+                    .foregroundStyle(Palette.secondary)
+                    .fixedSize()
+            }
+        }
+        .typeScale(.note)
+        if let author = highlight.author, !isMe(author) {
+            NavigationLink(value: Route.author(username: author.username)) {
+                header.contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint(Text("\(author.shownName)님 프로필"))
+        } else {
+            header
+        }
+    }
+
+    private var openerTitle: Text {
+        guard let author = highlight.author, !isMe(author) else { return Text("내 메모") }
+        return Text("\(author.shownName)의 메모")
+    }
+
     var body: some View {
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     // ── 앵커: 무엇에 대한 대화인가 (인용 + 큐레이터 메모) — 바짝 뭉친 한 덩어리.
-                    VStack(alignment: .leading, spacing: hasOpener ? 14 : 0) {
-                        HStack(alignment: .top, spacing: 11) {
-                            RoundedRectangle(cornerRadius: 1.5, style: .continuous)
-                                .fill(Palette.accent)
-                                .frame(width: 3)
-                            Text(highlight.quote)
-                                .typeScale(.lede)
-                                .foregroundStyle(Palette.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
+                    VStack(alignment: .leading, spacing: 0) {
+                        HighlightQuote(
+                            quote: highlight.quote, mine: store.isMine(highlight),
+                            hasThread: HighlightPaint.hasThread(highlight))
+                        source
+                            .padding(.top, 16)
+                        highlighters
+                            .padding(.top, 10)
                         if let note = highlight.note, !note.isEmpty {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("공개 메모")
-                                    .typeScale(.meta)
-                                    .foregroundStyle(Palette.secondary)
-                                ConversationRow(
-                                    author: highlight.author, date: highlight.createdAt,
-                                    spoken: ConversationName.spokenLine(
-                                        highlight.author, date: highlight.createdAt, body: note),
-                                    identifier: "highlight.opener"
-                                ) {
-                                    ConversationBody(text: note)
-                                } actions: {
-                                    EmptyView()
-                                } trailing: {
-                                    EmptyView()
-                                } spokenActions: {
-                                    EmptyView()
-                                }
-                            }
+                            opener(note)
+                                .padding(.top, 24)
                         }
                     }
                     .padding(.horizontal, Metrics.gutter)
-                    .padding(.top, 18)
+                    .padding(.top, 22)
                     .padding(.bottom, 22)
 
                     // ── 대화: 앵커와 한 칸 떨어진 별도 그룹. 구분은 폭 좁힌 hairline 한 가닥.
@@ -95,14 +145,29 @@ struct HighlightThreadSheet: View {
                                     reply: reply, busy: busy,
                                     onLike: { toggleLike(reply.id) },
                                     onReply: { self.reply(to: $0) },
-                                    onDelete: { remove(reply.id) })
+                                    onDelete: { replyToDelete = reply.id })
                                 .modifier(QuietAppear(index: min(index, 6)))
                             }
                         }
                         .padding(.horizontal, Metrics.gutter)
                         .padding(.top, 22)
                         .padding(.bottom, 8)
-                    } else if !hasOpener {
+                    } else if repliesFailed {
+                        HStack(spacing: 12) {
+                            Text("답글을 불러오지 못했어요")
+                                .typeScale(.meta)
+                                .foregroundStyle(Palette.secondary)
+                            Spacer(minLength: 0)
+                            Button("다시 시도") { Task { await loadReplies() } }
+                                .typeScale(.meta)
+                                .tint(Palette.ink)
+                                .accessibilityIdentifier("highlightReply.retry")
+                        }
+                        .padding(.horizontal, Metrics.gutter)
+                        .padding(.vertical, 14)
+                        .accessibilityElement(children: .contain)
+                        .accessibilityIdentifier("highlightReply.loadError")
+                    } else if repliesLoaded && !hasOpener {
                         // 답글 0개 — 하이라이트(따옴표+작성자)는 이미 위에 있으므로 이 자리는 "답글이
                         // 없다"만 조용히 말한다. 예전 "첫 답글 쓰기"는 큰 중앙 블록이라 "여기 비어 있다/
                         // 하이라이트 없다"로 오독됐다(웹 #893 미러) — 왼쪽 정렬 muted 한 줄로 낮춘다.
@@ -112,7 +177,7 @@ struct HighlightThreadSheet: View {
                         } label: {
                             Text("아직 답글이 없어요")
                                 .typeScale(.meta)
-                                .foregroundStyle(Palette.faint)
+                                .foregroundStyle(Palette.secondary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.horizontal, Metrics.gutter)
                                 .padding(.vertical, 14)
@@ -121,43 +186,22 @@ struct HighlightThreadSheet: View {
                         .buttonStyle(.plain)
                     }
 
-                    // ── 이 문장이 속한 길 — 한 문장에서 그것이 엮인 길/컬렉션으로(A 척추 발견 고리).
+                    // ── 이 문장이 담긴 컬렉션 — 한 문장에서 그것이 엮인 컬렉션으로(A 척추 발견 고리).
                     if !inCollections.isEmpty {
                         Rectangle()
                             .fill(Palette.hairline)
                             .frame(height: 1)
                             .padding(.horizontal, Metrics.gutter)
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("이 문장이 속한 길")
+                            Text("이 문장이 담긴 컬렉션")
                                 .typeScale(.eyebrow)
                                 .tracking(0.4)
-                                .foregroundStyle(Palette.faint)
+                                .foregroundStyle(Palette.secondary)
                             ForEach(inCollections) { c in
                                 NavigationLink(value: CollectionRef(id: c.id)) {
                                     containingRow(c)
                                 }
                                 .buttonStyle(.plain)
-                            }
-                        }
-                        .padding(.horizontal, Metrics.gutter)
-                        .padding(.top, 22)
-                        .padding(.bottom, 8)
-                    }
-
-                    // ── 이것과 이어진 것 — 같은 공개 컬렉션에 함께 놓인 다른 블록(공동 등장). 한 문장에서
-                    // 큐레이터가 곁에 엮은 글·문장·노트로 — connect not broadcast 발견 고리.
-                    if !related.isEmpty {
-                        Rectangle()
-                            .fill(Palette.hairline)
-                            .frame(height: 1)
-                            .padding(.horizontal, Metrics.gutter)
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("이것과 이어진 것")
-                                .typeScale(.eyebrow)
-                                .tracking(0.4)
-                                .foregroundStyle(Palette.faint)
-                            ForEach(related) { item in
-                                BlockPreview(block: item.block)
                             }
                         }
                         .padding(.horizontal, Metrics.gutter)
@@ -176,11 +220,24 @@ struct HighlightThreadSheet: View {
                 return .handled
             })
             .scrollIndicators(.hidden)
+            .alert(
+                "이 답글을 삭제할까요?",
+                isPresented: Binding(get: { replyToDelete != nil }, set: { if !$0 { replyToDelete = nil } })
+            ) {
+                Button("삭제", role: .destructive) {
+                    if let id = replyToDelete { remove(id) }
+                }
+                Button("취소", role: .cancel) {}
+            }
             .safeAreaInset(edge: .bottom) { composer }
             .navigationTitle("대화")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("닫기") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("닫기") {
+                        if hasDraft { showDiscardConfirm = true } else { dismiss() }
+                    }
+                }
                 if isMine {
                     // 내 하이라이트 — 연결과 삭제를 한 메뉴로(컬렉션 상세와 같은 ellipsis 관리 문법).
                     ToolbarItem(placement: .primaryAction) {
@@ -198,7 +255,7 @@ struct HighlightThreadSheet: View {
                         } label: {
                             Image(systemName: "ellipsis")
                         }
-                        .tint(.brand)
+                        .tint(.primary)
                         .accessibilityLabel(Text("하이라이트 관리"))
                         .accessibilityIdentifier("highlightManageMenu")
                     }
@@ -224,17 +281,22 @@ struct HighlightThreadSheet: View {
                     ? "남긴 메모와 답글도 함께 사라져요. 되돌릴 수 없어요."
                     : "삭제하면 되돌릴 수 없어요.")
             }
+            .confirmationDialog("작성한 답글을 버릴까요?", isPresented: $showDiscardConfirm, titleVisibility: .visible) {
+                Button("답글 버리기", role: .destructive) { dismiss() }
+                Button("계속 쓰기", role: .cancel) {}
+            }
         }
+        .environment(\.readerInSheet, true)
         .modifier(ToastHost())
         .loginPrompt(isPresented: $showLikeLogin, message: "좋아요를 누르려면 로그인하세요")
         .presentationDetents([.large])
+        .presentationBackground(Palette.sheetBg)
         .presentationDragIndicator(.visible)
         // 답글을 쓰던 중의 드래그 닫힘은 입력을 통째로 버린다 — 글자가 있는 동안만 잠근다
         // (보내거나 지우면 다시 닫힘, 인증 시트와 같은 관용구).
-        .interactiveDismissDisabled(!text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        .interactiveDismissDisabled(hasDraft)
         .task { await loadReplies() }
         .task { await loadContainingCollections() }
-        .task { await loadRelated() }
     }
 
     /// 차단한 사람의 답글은 숨긴다(App Store 1.2 — 글 댓글과 같은 규칙).
@@ -246,8 +308,8 @@ struct HighlightThreadSheet: View {
         ConversationComposer(
             text: $text,
             replyTarget: $noReplyTarget,
-            placeholder: "답글을 남겨보세요",
-            replyPlaceholder: "답글을 남겨보세요",
+            placeholder: "답글 쓰기",
+            replyPlaceholder: "답글 쓰기",
             sendLabel: "답글 보내기",
             loginMessage: "답글을 달려면 로그인하세요",
             inputIdentifier: "highlightReply.field",
@@ -295,10 +357,16 @@ struct HighlightThreadSheet: View {
         focusRequest += 1
     }
 
+    private var hasDraft: Bool { !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+
     private func loadReplies() async {
         // 재조회 실패가 이미 떠 있는 스레드를 지우지 않도록 — 성공했을 때만 교체.
-        if let fetched = try? await HighlightsAPI.replies(highlightId: highlight.id) {
-            replies = fetched
+        do {
+            replies = try await HighlightsAPI.replies(highlightId: highlight.id)
+            repliesFailed = false
+            repliesLoaded = true
+        } catch {
+            repliesFailed = replies.isEmpty
         }
     }
 
@@ -308,27 +376,20 @@ struct HighlightThreadSheet: View {
             (try? await CollectionsAPI.collectionsContaining(highlightId: highlight.id)) ?? []
     }
 
-    private func loadRelated() async {
-        guard highlight.id > 0 else { return }
-        related =
-            (try? await CollectionsAPI.relatedBlocks(blockType: "HIGHLIGHT", refId: highlight.id))
-            ?? []
-    }
-
-    /// "이 문장이 속한 길" 한 줄 — 길 글리프(또는 컬렉션) + 제목 + 담긴 수.
+    /// "이 문장이 담긴 컬렉션" 한 줄 — 폴더 글리프 + 제목 + 담긴 수.
     private func containingRow(_ c: CollectionSummary) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: c.kind == .path ? "arrow.turn.down.right" : "square.grid.2x2")
+            Image(systemName: "folder")
                 .font(.system(size: 12 * metaUnit, weight: .bold))
-                .foregroundStyle(Palette.accent)
+                .foregroundStyle(Palette.secondary)
             Text(c.title)
                 .typeScale(.body)
                 .foregroundStyle(Palette.ink)
                 .lineLimit(1)
             Spacer(minLength: 6)
-            Text("\(c.count)")
+            Text("\(c.count)개")
                 .typeScale(.meta)
-                .foregroundStyle(Palette.faint)
+                .foregroundStyle(Palette.secondary)
             Image(systemName: "chevron.right")
                 .font(.system(size: 11 * metaUnit, weight: .semibold))
                 .foregroundStyle(Palette.faint)
@@ -522,20 +583,11 @@ struct HighlightNoteComposerSheet: View {
                         // The source and the thought share one paper surface. Keep the writing
                         // area flexible so the space above the keyboard belongs to the memo.
                         VStack(alignment: .leading, spacing: 12) {
-                            Text(draft.quote)
-                                .typeScale(.lede)
-                                .foregroundStyle(Palette.secondary)
-                                .lineLimit(3)
-                                .fixedSize(horizontal: false, vertical: true)
+                            HighlightQuote(
+                                quote: draft.quote, mine: true, hasThread: false, sweeps: false,
+                                size: 15.5, relativeTo: .callout, lineSpacing: 0.3, maxLines: 3,
+                                identifier: "highlightNoteQuote")
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.leading, 14)
-                                .overlay(alignment: .leading) {
-                                    RoundedRectangle(cornerRadius: 1.5, style: .continuous)
-                                        .fill(Palette.accent)
-                                        .frame(width: 3)
-                                }
-                                .accessibilityLabel(Text(verbatim: draft.quote))
-                                .accessibilityIdentifier("highlightNoteQuote")
 
                             Rectangle()
                                 .fill(Palette.hairline)
@@ -548,11 +600,11 @@ struct HighlightNoteComposerSheet: View {
                                     .scrollContentBackground(.hidden)
                                     .focused($focused)
                                     .disabled(submission.busy)
-                                    .accessibilityLabel(Text("이 부분에 대한 메모를 남겨보세요"))
+                                    .accessibilityLabel(Text("메모 쓰기"))
                                     .accessibilityIdentifier("highlightNoteInput")
 
                                 if submission.text.isEmpty {
-                                    Text("이 부분에 대한 메모를 남겨보세요")
+                                    Text("메모 쓰기")
                                         .typeScale(.body)
                                         .foregroundStyle(Palette.faint)
                                         .padding(.top, 8)
@@ -617,9 +669,10 @@ struct HighlightNoteComposerSheet: View {
                     }
                     .disabled(!submission.canSave)
                     .accessibilityIdentifier("saveHighlightNote")
+                    .tint(Palette.link)
                 }
             }
-            .confirmationDialog("작성한 메모를 버릴까요?", isPresented: $showDiscardConfirm, titleVisibility: .visible) {
+            .alert("작성한 메모를 버릴까요?", isPresented: $showDiscardConfirm) {
                 Button("메모 버리기", role: .destructive) { dismiss() }
                 Button("계속 쓰기", role: .cancel) {}
             }
@@ -629,6 +682,7 @@ struct HighlightNoteComposerSheet: View {
             }
         }
         .presentationDetents([.large])
+        .presentationBackground(Palette.sheetBg)
         .presentationDragIndicator(.visible)
         // 메모를 쓰다 드래그로 내리면 유실 — 글자가 있는 동안만 잠근다(취소 버튼은 그대로 출구).
         .interactiveDismissDisabled(submission.busy || !submission.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)

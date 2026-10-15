@@ -161,7 +161,7 @@ struct SeriesDetailView: View {
         // 공개글이 0편이면 죽은 본문 대신 — 작가의 다른 글로 가는 문을 둔다(빈 면도 길을 낸다).
         if posts.isEmpty {
             EmptySeries(author: detail.author)
-                .padding(.top, 56)
+                .padding(.top, 24)
                 .padding(.bottom, 40)
         } else {
             LazyVStack(spacing: 0) {
@@ -192,7 +192,7 @@ struct SeriesDetailView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 7) {
-                KurlMark(drawn: [true, true, true])
+                KurlMark(drawn: [true, true, true], tint: Palette.ink)
                     .frame(width: 18, height: 11)
                     .accessibilityHidden(true)
                 Text("시리즈")
@@ -463,53 +463,24 @@ private struct EpisodeRow: View {
     }
 }
 
-/// 공개 회차가 0편인 시리즈 — 빈 본문 대신 작가 면으로 가는 문(FeedPlaceholder 와 같은 언어).
-/// 닫힌 막다른 길이 아니라 작가의 다른 글로 이어주는 게 핵심이라 CTA = NavigationLink.
 private struct EmptySeries: View {
     let author: Author
-    /// CTA 라벨 — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
-    @ScaledMetric(relativeTo: .callout) private var ctaSize: CGFloat = 15
 
     var body: some View {
-        VStack(spacing: 0) {
-            // 빈 면의 브랜드 사인 — 형광 아닌 옅은 잉크(FeedPlaceholder 와 동일).
-            KurlMark(drawn: [true, true, true], tint: Palette.hairlineStrong)
-                .frame(width: 46, height: 28)
-                .accessibilityHidden(true)
-                .padding(.bottom, 24)
-
-            Text("이 시리즈")
-                .typeScale(.eyebrow)
-                .foregroundStyle(Palette.secondary)
-                .padding(.bottom, 10)
-
+        VStack(alignment: .leading, spacing: 10) {
             Text("첫 글을 기다리는 중이에요")
-                .typeScale(.featured)
-                .foregroundStyle(Palette.ink)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.bottom, 9)
-
-            Text("새 글이 올라오면 여기에서 순서대로 읽을 수 있어요. 작가를 팔로우하면 첫 글 소식을 받아볼 수 있어요.")
-                .typeScale(.lede)
+                .typeScale(.body)
                 .foregroundStyle(Palette.secondary)
-                .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: 272)
-                .padding(.bottom, 22)
-
             NavigationLink(value: Route.author(username: author.username)) {
                 Text("\(author.username)의 다른 글")
-                    .font(.system(size: ctaSize, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 22)
-                    .padding(.vertical, 12)
-                    .contentShape(Capsule())
+                    .typeScale(.body)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Palette.ink)
+                    .expandTapTarget(12)
             }
             .buttonStyle(.plain)
-            .glassCapsule(prominent: true)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, Metrics.gutter)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

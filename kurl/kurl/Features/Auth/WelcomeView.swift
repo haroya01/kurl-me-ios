@@ -142,10 +142,10 @@ struct WelcomeView: View {
             .background(
                 RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
                     .fill(Palette.cardBg)
-                    .shadow(color: .black.opacity(0.07), radius: 12, y: 4))
+                    .shadow(color: Palette.shadow.opacity(0.07), radius: 12, y: 4))
             .overlay(
                 RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
-                    .strokeBorder(Palette.accent.opacity(0.3), lineWidth: 1))
+                    .strokeBorder(Palette.cardBorder, lineWidth: 1))
             .padding(.leading, 44)
             .opacity(threadOn ? 1 : 0)
             .offset(y: threadOn ? 0 : -8)

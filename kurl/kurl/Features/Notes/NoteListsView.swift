@@ -14,6 +14,7 @@ struct NoteListsSheet: View {
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
                         Button("완료") { dismiss() }
+                            .tint(Palette.link)
                     }
                 }
         }
@@ -30,7 +31,7 @@ struct NoteListsView: View {
         List {
             Section {
                 if store.lists.isEmpty {
-                    Text("아직 리스트가 없어요. 아래에서 만들어 보세요.")
+                    Text("아직 리스트가 없어요")
                         .typeScale(.meta)
                         .foregroundStyle(Palette.secondary)
                 }
@@ -114,7 +115,7 @@ struct NoteListMembersView: View {
         List {
             if let members {
                 if members.isEmpty {
-                    Text("담은 사람이 없어요. 프로필의 … 메뉴에서 \"리스트에 추가\"를 눌러 보세요.")
+                    Text("담은 사람이 없어요")
                         .typeScale(.meta)
                         .foregroundStyle(Palette.secondary)
                 }
@@ -206,6 +207,7 @@ struct NoteListMembershipSheet: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("완료") { dismiss() }
+                        .tint(Palette.link)
                 }
             }
             .task {

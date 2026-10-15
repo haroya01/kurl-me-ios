@@ -155,7 +155,7 @@ struct BlockImageView: View {
                     Label(opt.label, systemImage: opt.icon).labelStyle(.titleAndIcon)
                         .fontWeight(active ? .semibold : .medium)
                 }
-                .foregroundStyle(active ? Palette.link : Palette.secondary)
+                .foregroundStyle(active ? Palette.ink : Palette.secondary)
                 .accessibilityAddTraits(active ? .isSelected : [])
             }
             Spacer(minLength: 0)

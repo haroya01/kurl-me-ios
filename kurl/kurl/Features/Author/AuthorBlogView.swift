@@ -22,7 +22,7 @@ struct AuthorBlogView: View {
 
     @State private var phase: LoadState<PublicPostListView> = .idle
     @State private var series: [SeriesListItem] = []
-    /// 이 작가가 공개로 엮은 컬렉션(길) — 큐레이션을 프로필 표면으로. 미로그인도 목록은 본다.
+    /// 이 작가가 공개로 엮은 컬렉션 — 큐레이션을 프로필 표면으로. 미로그인도 목록은 본다.
     @State private var collections: [CollectionSummary] = []
     /// 미로그인이 컬렉션을 누르면 — 상세는 인증 면이라 로그인으로 잇는다(막다른 길 금지).
     @State private var showCollectionLogin = false
@@ -39,6 +39,7 @@ struct AuthorBlogView: View {
     @State private var showBlockConfirm = false
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// "명함" 버튼 라벨 — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
     @ScaledMetric(relativeTo: .headline) private var cardLabelSize: CGFloat = 14
 
@@ -130,6 +131,16 @@ struct AuthorBlogView: View {
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
         .background(Palette.readingBg)
+        .overlay(alignment: .top) {
+            if showNavTitle {
+                Color.clear
+                    .frame(height: 1)
+                    .background(alignment: .bottom) {
+                        Palette.readingBg.ignoresSafeArea(edges: .top)
+                    }
+                    .transition(.opacity)
+            }
+        }
         // 계정 탭 루트로 임베드됐을 때만 탭바 숨김을 몬다 — 환경에 손잡이가 있을 때만
         // 동작하고(스레드식), 작가 프로필로 푸시될 땐 env 가 nil 이라 조용하다(탭 루트 전용).
         .tracksTabBarVisibility()
@@ -138,7 +149,7 @@ struct AuthorBlogView: View {
         .onScrollGeometryChange(for: Bool.self) { geometry in
             geometry.contentOffset.y + geometry.contentInsets.top > 64
         } action: { _, passed in
-            withAnimation(.easeInOut(duration: 0.18)) { showNavTitle = passed }
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) { showNavTitle = passed }
         }
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -199,7 +210,7 @@ struct AuthorBlogView: View {
                     } label: {
                         Image(systemName: "ellipsis")
                     }
-                    .tint(.brand)
+                    .tint(.primary)
                     .accessibilityLabel("더 보기")
                     .id(author.id)
                 }
@@ -219,7 +230,7 @@ struct AuthorBlogView: View {
         .blockDialog(
             isPresented: $showBlockConfirm,
             username: author?.username ?? "", userId: author?.id ?? 0)
-        .toolbarBackground(showNavTitle ? .automatic : .hidden, for: .navigationBar)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -360,16 +371,15 @@ struct AuthorBlogView: View {
             case .blockedByViewer:
                 FeedPlaceholder(
                     title: "차단한 사용자예요",
-                    message: "글·댓글·노트가 보이지 않아요.",
                     actionTitle: "차단 해제",
                     action: { Task { await unblock(view.author) } }
                 )
-                .padding(.top, 48)
+                .padding(.top, 24)
                 .padding(.bottom, 8)
                 .accessibilityIdentifier("author.blockedByViewer")
             case .blocksViewer:
                 FeedPlaceholder(title: "이 사용자의 글을 볼 수 없어요")
-                    .padding(.top, 48)
+                    .padding(.top, 24)
                     .padding(.bottom, 8)
                     .accessibilityIdentifier("author.blocksViewer")
             case .open:
@@ -398,21 +408,18 @@ struct AuthorBlogView: View {
             if isOwnAuthor {
                 FeedPlaceholder(
                     title: "아직 발행한 글이 없어요",
-                    message: "첫 글을 발행하면 여기 카탈로그로 쌓입니다.",
                     actionTitle: "글쓰기",
-                    prominent: true,
                     action: { TabRouter.shared.openStudio(compose: true) }
                 )
-                .padding(.top, 48)
+                .padding(.top, 24)
                 .padding(.bottom, 8)
             } else {
                 FeedPlaceholder(
                     title: "아직 발행한 글이 없어요",
-                    message: "이 작가의 첫 글이 올라오면 여기에서 만나요.",
                     actionTitle: "피드에서 읽을 글 찾기",
                     action: { TabRouter.shared.selection = 0 }
                 )
-                .padding(.top, 48)
+                .padding(.top, 24)
                 .padding(.bottom, 8)
             }
         } else {
@@ -443,20 +450,17 @@ struct AuthorBlogView: View {
                 if isOwnAuthor {
                     FeedPlaceholder(
                         title: "아직 노트가 없어요",
-                        message: "제목도 형식도 없이, 지금 떠오른 한 줄을 남기는 자리예요.",
                         actionTitle: "첫 노트 쓰기",
-                        prominent: true,
                         action: { composingNote = true }
                     )
-                    .padding(.top, 48)
+                    .padding(.top, 24)
                 } else {
                     FeedPlaceholder(
                         title: "아직 노트가 없어요",
-                        message: "이 작가의 첫 노트가 올라오면 여기에서 만나요.",
                         actionTitle: "노트 둘러보기",
                         action: { TabRouter.shared.selection = 1 }
                     )
-                    .padding(.top, 48)
+                    .padding(.top, 24)
                 }
             } else {
                 LazyVStack(alignment: .leading, spacing: 0) {
@@ -499,7 +503,7 @@ struct AuthorBlogView: View {
             }
             if shown.isEmpty {
                 FeedPlaceholder(title: "아직 단 답글이 없어요")
-                    .padding(.top, 48)
+                    .padding(.top, 24)
             } else {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(shown.enumerated()), id: \.element.id) { index, item in
@@ -534,7 +538,7 @@ struct AuthorBlogView: View {
         case .loaded:
             if media.items.isEmpty {
                 FeedPlaceholder(title: "아직 올린 사진이 없어요")
-                    .padding(.top, 48)
+                    .padding(.top, 24)
             } else {
                 LazyVGrid(
                     columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 3),
@@ -566,13 +570,10 @@ struct AuthorBlogView: View {
             if reposts.items.isEmpty {
                 FeedPlaceholder(
                     title: "아직 리포스트가 없어요",
-                    message: isOwnAuthor
-                        ? "마음에 든 노트를 리포스트하면 여기에 모여요."
-                        : "이 작가가 리포스트한 노트가 여기에 모여요.",
                     actionTitle: "노트 둘러보기",
                     action: { TabRouter.shared.selection = 1 }
                 )
-                .padding(.top, 48)
+                .padding(.top, 24)
             } else {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(Array(reposts.items.enumerated()), id: \.element.id) { index, note in
@@ -613,9 +614,11 @@ struct AuthorBlogView: View {
         LazyVStack(spacing: 0) {
             ForEach(Array(collections.enumerated()), id: \.element.id) { index, item in
                 let row = catalogRow(
-                    title: item.title, detail: Text("\(item.count)개"),
-                    systemImage: item.kind == .path
-                        ? "point.topleft.down.to.point.bottomright.curvepath" : "square.stack")
+                    title: item.title,
+                    detail: item.isOrdered
+                        ? Text("순서대로 읽기") + Text(verbatim: " · ") + Text("\(item.count)개")
+                        : Text("\(item.count)개"),
+                    systemImage: "folder")
                 Group {
                     if AuthStore.shared.isSignedIn {
                         NavigationLink(value: Route.collection(id: item.id)) { row }

@@ -46,7 +46,7 @@ extension View {
                     do {
                         try await BlockStore.shared.block(id: userId, username: username)
                         ToastCenter.shared.show(
-                            String(localized: "차단했어요 — 이 사용자의 글·댓글이 숨겨집니다"))
+                            String(localized: "차단했어요. 이 사용자의 글과 댓글이 숨겨져요"))
                     } catch {
                         ToastCenter.shared.show(String(localized: "차단하지 못했어요"))
                     }
@@ -108,6 +108,17 @@ struct ReportReasonSheet: View {
     }
 
     var body: some View {
+        ScrollView {
+            content
+                .fixedSize(horizontal: false, vertical: true)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .presentationDetents([.height(contentHeight)])
+        .presentationDragIndicator(.visible)
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("신고 사유를 선택하세요")
                 .font(.system(size: titleSize, weight: .bold))
@@ -119,7 +130,7 @@ struct ReportReasonSheet: View {
                 .padding(.bottom, 12)
 
             if sendFailed {
-                Text("신고를 보내지 못했어요 — 다시 시도해 주세요")
+                Text("신고를 보내지 못했어요. 다시 시도해 주세요")
                     .typeScale(.footnote)
                     .foregroundStyle(Palette.secondary)
                     .padding(.bottom, 10)
@@ -153,9 +164,6 @@ struct ReportReasonSheet: View {
         .padding(.top, 28)
         .padding(.bottom, 16)
         .animation(.snappy(duration: 0.25), value: expandedOther)
-        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
-        .presentationDetents([.height(contentHeight)])
-        .presentationDragIndicator(.visible)
     }
 
     // 사유 목록 — 코드 사유는 즉시 접수, "기타"는 자유서술 입력으로 펼친다.
@@ -191,7 +199,7 @@ struct ReportReasonSheet: View {
             } label: {
                 Label("사유 다시 고르기", systemImage: "chevron.left")
                     .typeScale(.footnote)
-                    .foregroundStyle(Palette.link)
+                    .foregroundStyle(Palette.ink)
             }
             .buttonStyle(.plain)
 

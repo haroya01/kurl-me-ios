@@ -52,8 +52,7 @@ struct NotificationsView: View {
                     actionTitle: "피드 둘러보기",
                     action: { TabRouter.shared.selection = 0 }
                 )
-                .frame(maxWidth: .infinity)
-                .padding(.top, 72)
+                .padding(.top, 24)
             } else if items.isEmpty {
                 followRequestsEntry
                 filteredEntry
@@ -61,12 +60,10 @@ struct NotificationsView: View {
                 // (다른 빈 면과 같은 언어 = FeedPlaceholder).
                 FeedPlaceholder(
                     title: "아직 알림이 없어요",
-                    message: "팔로우한 작가의 새 글·좋아요·댓글 소식이 여기 모여요.",
                     actionTitle: "검색에서 작가 찾기",
                     action: { TabRouter.shared.selection = 3 }
                 )
-                .frame(maxWidth: .infinity)
-                .padding(.top, 72)
+                .padding(.top, 24)
             } else {
                 list
             }
@@ -183,14 +180,11 @@ struct NotificationsView: View {
     // 비로그인 게이트 — 알림은 인증 피드라, 로그인하면 흐른다고 안내(발견·피드 로그아웃 결과와 동일 문법).
     private var loggedOutGate: some View {
         FeedPlaceholder(
-            title: "내 알림을 받으려면",
-            message: "로그인하면 좋아요·댓글·팔로우·새 글 알림이 여기에 모여요.",
+            title: "로그인하면 좋아요·댓글·팔로우·새 글 알림이 여기에 모여요.",
             actionTitle: "로그인",
-            prominent: true,
             action: { showLoginSheet = true }
         )
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding(.top, 80)
+        .padding(.top, 24)
         .loginPrompt(isPresented: $showLoginSheet, message: "알림을 보려면 로그인하세요")
     }
 
@@ -399,7 +393,7 @@ struct NotificationsView: View {
                         Circle()
                             .fill(Palette.accent)
                             .frame(width: 10, height: 10)
-                            .overlay(Circle().strokeBorder(Palette.readingBg, lineWidth: 2))
+                            .overlay(Circle().strokeBorder(Palette.pageBg, lineWidth: 2))
                             .offset(x: 1, y: 1)
                     }
                 }
@@ -420,7 +414,7 @@ struct NotificationsView: View {
                     .foregroundStyle(Palette.secondary)
                     .frame(width: 15, height: 15)
                     .background(Palette.chipBg, in: Circle())
-                    .overlay(Circle().strokeBorder(Palette.readingBg, lineWidth: 1.5))
+                    .overlay(Circle().strokeBorder(Palette.pageBg, lineWidth: 1.5))
                     .offset(x: -2, y: 2)
             }
             .overlay(alignment: .bottomTrailing) {
@@ -428,7 +422,7 @@ struct NotificationsView: View {
                     Circle()
                         .fill(Palette.accent)
                         .frame(width: 10, height: 10)
-                        .overlay(Circle().strokeBorder(Palette.readingBg, lineWidth: 2))
+                        .overlay(Circle().strokeBorder(Palette.pageBg, lineWidth: 2))
                         .offset(x: 1, y: 1)
                 }
             }
@@ -511,6 +505,12 @@ struct NotificationsView: View {
                 : Text("\(actor)님이 글을 좋아해요")
         case "COMMENT_LIKE":
             let others = max((n.count ?? 1) - 1, 0)
+            // 서버는 하이라이트 답글 좋아요도 COMMENT_LIKE 로 보낸다 — commentId 없이 highlightId 만 온다.
+            if n.commentId == nil, n.highlightId != nil {
+                return others > 0
+                    ? Text("\(actor)님 외 \(others)명이 하이라이트에 단 내 답글을 좋아해요")
+                    : Text("\(actor)님이 하이라이트에 단 내 답글을 좋아해요")
+            }
             return others > 0
                 ? Text("\(actor)님 외 \(others)명이 내 댓글을 좋아해요")
                 : Text("\(actor)님이 내 댓글을 좋아해요")

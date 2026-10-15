@@ -29,6 +29,39 @@ struct WebIntroSheet: View {
     }
 
     var body: some View {
+        ScrollView {
+            content
+                .padding(.horizontal, Metrics.gutter + 4)
+                .padding(.bottom, 20)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            Button {
+                dismiss()
+            } label: {
+                Text("확인")
+                    .font(.system(size: 16 * unit, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 52)
+                    .background(Palette.accent, in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, Metrics.gutter + 4)
+            .padding(.bottom, 16)
+            .background(Palette.sheetBg)
+            .opacity(actionsOn ? 1 : 0)
+            .offset(y: actionsOn ? 0 : 10)
+        }
+        .background(Palette.sheetBg.ignoresSafeArea())
+        .sheet(item: $webLink) { SafariView(url: $0.url).ignoresSafeArea() }
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
+        .onAppear { play() }
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: 0) {
             KurlMark(drawn: markDrawn)
                 .frame(width: 36, height: 22)
@@ -44,7 +77,7 @@ struct WebIntroSheet: View {
                 .blur(radius: headOn ? 0 : 2)
                 .accessibilityAddTraits(.isHeader)
 
-            Text("여기서 발행하면 그 순간 웹에도 살아요 — 같은 글, 같은 주소. 앱이 없어도 누구나 브라우저로 읽어요.")
+            Text("여기서 발행하면 같은 글이 같은 주소로 웹에도 바로 올라가요. 앱이 없어도 누구나 브라우저로 읽어요.")
                 .font(.system(size: 15 * unit))
                 .foregroundStyle(Palette.secondary)
                 .lineSpacing(4)
@@ -95,10 +128,10 @@ struct WebIntroSheet: View {
                 .background(
                     RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
                         .fill(Palette.cardBg)
-                        .shadow(color: .black.opacity(0.07), radius: 12, y: 4))
+                        .shadow(color: Palette.shadow.opacity(0.07), radius: 12, y: 4))
                 .overlay(
                     RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
-                        .strokeBorder(Palette.accent.opacity(0.3), lineWidth: 1))
+                        .strokeBorder(Palette.cardBorder, lineWidth: 1))
                 .contentShape(RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
             }
             .buttonStyle(.plain)
@@ -110,35 +143,11 @@ struct WebIntroSheet: View {
             // 갓 만든 계정의 웹은 아직 비어 있다 — 열어 보기 전에 기대를 맞춰 준다.
             Text("첫 글을 발행하면 이 주소가 채워져요.")
                 .font(.system(size: 13 * unit))
-                .foregroundStyle(Palette.faint)
+                .foregroundStyle(Palette.secondary)
                 .padding(.top, 10)
                 .padding(.leading, 16)
                 .opacity(footOn ? 1 : 0)
-
-            Spacer(minLength: 20)
-
-            Button {
-                dismiss()
-            } label: {
-                Text("확인")
-                    .font(.system(size: 16 * unit, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 52)
-                    .background(Palette.accent, in: Capsule())
-            }
-            .buttonStyle(.plain)
-            .padding(.bottom, 16)
-            .opacity(actionsOn ? 1 : 0)
-            .offset(y: actionsOn ? 0 : 10)
         }
-        .padding(.horizontal, Metrics.gutter + 4)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Palette.readingBg.ignoresSafeArea())
-        .sheet(item: $webLink) { SafariView(url: $0.url).ignoresSafeArea() }
-        .presentationDetents([.medium])
-        .presentationDragIndicator(.visible)
-        .onAppear { play() }
     }
 
     /// 실크 엔트런스 — 마크가 그려지고, 문장이 서고, 실이 자라고, 주소에 형광이 긋는다.

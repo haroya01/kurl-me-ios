@@ -24,19 +24,16 @@ struct BookmarksView: View {
             } else if failed {
                 LibraryFailedState { Task { loading = true; await load() } }
             } else if items.isEmpty {
-                ContentUnavailableView {
-                    Text("북마크한 글이 없습니다").bold()
-                } description: {
-                    Text("북마크한 글은 오프라인에서도 읽을 수 있어요.")
-                } actions: {
-                    Button("피드에서 읽을 글 찾기") { TabRouter.shared.selection = 0 }
-                        .foregroundStyle(Palette.link)
-                }
-                .padding(.top, 60)
+                FeedPlaceholder(
+                    title: "북마크한 글이 없어요",
+                    actionTitle: "피드에서 읽을 글 찾기",
+                    action: { TabRouter.shared.selection = 0 }
+                )
+                .padding(.top, 24)
             } else {
                 if offlineFallback {
                     // 기기 사본 목록 렌더 중 — 상세의 오프라인 배너와 같은 조용한 한 줄.
-                    Text("오프라인 — 기기에 저장된 사본만 보여요")
+                    Text("오프라인이에요. 기기에 저장된 사본만 보여요")
                         .typeScale(.footnote)
                         .foregroundStyle(Palette.secondary)
                         .padding(.horizontal, 10)
@@ -67,7 +64,7 @@ struct BookmarksView: View {
                                         if offline.contains(username: item.username, slug: item.slug) {
                                             Text("·").foregroundStyle(Palette.faint)
                                             Text("오프라인")
-                                                .foregroundStyle(Palette.accentMarker)
+                                                .foregroundStyle(Palette.secondary)
                                                 .accessibilityLabel("오프라인 저장됨")
                                         }
                                     }
@@ -152,13 +149,12 @@ struct LikedPostsView: View {
             } else if failed {
                 LibraryFailedState { Task { loading = true; await load() } }
             } else if items.isEmpty {
-                ContentUnavailableView {
-                    Text("좋아요한 글이 없습니다").bold()
-                } actions: {
-                    Button("피드에서 읽을 글 찾기") { TabRouter.shared.selection = 0 }
-                        .foregroundStyle(Palette.link)
-                }
-                    .padding(.top, 60)
+                FeedPlaceholder(
+                    title: "좋아요한 글이 없어요",
+                    actionTitle: "피드에서 읽을 글 찾기",
+                    action: { TabRouter.shared.selection = 0 }
+                )
+                .padding(.top, 24)
             } else {
                 // 좋아요한 글 = 내 컬렉션(카탈로그) — 카드가 아니라 피드와 같은 글 행(3원칙 표준).
                 LazyVStack(spacing: 0) {
@@ -208,13 +204,12 @@ struct SubscribedSeriesView: View {
             } else if failed {
                 LibraryFailedState { Task { loading = true; await load() } }
             } else if items.isEmpty {
-                ContentUnavailableView {
-                    Text("구독한 시리즈가 없습니다").bold()
-                } actions: {
-                    Button("검색에서 시리즈 찾기") { TabRouter.shared.selection = 3 }
-                        .foregroundStyle(Palette.link)
-                }
-                .padding(.top, 60)
+                FeedPlaceholder(
+                    title: "구독한 시리즈가 없어요",
+                    actionTitle: "검색에서 시리즈 찾기",
+                    action: { TabRouter.shared.selection = 3 }
+                )
+                .padding(.top, 24)
             } else {
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, card in
                     // 클로저형 링크 — 계정 스택 혼용 함정 회피(값 기반은 이 깊이서 항해 안 함).
@@ -223,7 +218,7 @@ struct SubscribedSeriesView: View {
                             username: card.author?.username ?? "", slug: card.slug))
                     } label: {
                         HStack(spacing: 10) {
-                            KurlMark(drawn: [true, true, true])
+                            KurlMark(drawn: [true, true, true], tint: Palette.ink)
                                 .frame(width: 18, height: 11)
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(card.title)
@@ -268,7 +263,7 @@ struct SubscribedSeriesView: View {
 }
 
 /// 구독한 태그 — 구독한 시리즈가 서재에 보이듯, 구독(팔로우)한 주제도 한자리에 모아 본다.
-/// 주제는 목록 행이 아니라 흐르는 그린 테두리 칩 그리드로 — 태그는 본디 칩이라(§10 "칩처럼 보이면
+/// 주제는 목록 행이 아니라 흐르는 칩 그리드로 — 태그는 본디 칩이라(§10 "칩처럼 보이면
 /// 칩처럼 눌린다") 한 줄 한 개보다 한눈에 훑긴다. 칩 탭 = 그 태그 피드, 길게 눌러 = 구독 해제.
 struct SubscribedTagsView: View {
     @State private var tags: [String] = []
@@ -286,15 +281,12 @@ struct SubscribedTagsView: View {
             } else if failed {
                 LibraryFailedState { Task { loading = true; await load() } }
             } else if tags.isEmpty {
-                ContentUnavailableView {
-                    Text("구독한 태그가 없습니다").bold()
-                } description: {
-                    Text("글에서 태그를 구독하면 그 주제의 새 글이 팔로잉에 모여요.")
-                } actions: {
-                    Button("피드에서 읽을 글 찾기") { TabRouter.shared.selection = 0 }
-                        .foregroundStyle(Palette.link)
-                }
-                .padding(.top, 60)
+                FeedPlaceholder(
+                    title: "구독한 태그가 없어요",
+                    actionTitle: "피드에서 읽을 글 찾기",
+                    action: { TabRouter.shared.selection = 0 }
+                )
+                .padding(.top, 24)
             } else {
                 VStack(alignment: .leading, spacing: 12) {
                     // 흐르는 칩 그리드 — 좁은 폭에서 자동 줄바꿈(발행 시트 태그 필드와 같은 FlowLayout).
@@ -306,7 +298,7 @@ struct SubscribedTagsView: View {
                     // 조용한 안내 한 줄 — 해제가 길게 누르기 뒤에 숨어 있음을 알린다(발견성).
                     Text("칩을 탭하면 그 주제의 글로, 길게 누르면 구독을 해제해요.")
                         .typeScale(.meta)
-                        .foregroundStyle(Palette.faint)
+                        .foregroundStyle(Palette.secondary)
                         .padding(.top, 2)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -319,7 +311,7 @@ struct SubscribedTagsView: View {
         .refreshable { await load() }
     }
 
-    /// 구독 태그 한 칩 — 그린 테두리·잉크 라벨(§10 색 규율, 채움 없이). 탭 = 그 태그 피드로 항해(클로저형
+    /// 구독 태그 한 칩 — 중립 칩 바탕·잉크 라벨. 탭 = 그 태그 피드로 항해(클로저형
     /// 링크 — 계정 스택 혼용 함정 회피). 길게 누르면 구독 해제 컨텍스트 메뉴(파괴적 롤).
     private func subscribedChip(_ tag: String) -> some View {
         NavigationLink {
@@ -331,8 +323,7 @@ struct SubscribedTagsView: View {
                 .lineLimit(1)
                 .padding(.horizontal, 15)
                 .padding(.vertical, 9)
-                .background(Palette.accent.opacity(0.06), in: Capsule())
-                .overlay(Capsule().strokeBorder(Palette.accent.opacity(0.35), lineWidth: 1))
+                .background(Palette.chipBg, in: Capsule())
                 .contentShape(Capsule())
         }
         .buttonStyle(.plain)

@@ -46,6 +46,6 @@ nonisolated struct NoteImageTooLarge: LocalizedError {
     let maxBytes: Int64
 
     var errorDescription: String? {
-        String(localized: "사진이 너무 커서 올리지 못했어요 — 한 장에 \(maxBytes / 1_048_576)MB까지 올릴 수 있어요")
+        String(localized: "사진이 너무 커서 올리지 못했어요. 한 장에 \(maxBytes / 1_048_576)MB까지 올릴 수 있어요")
     }
 }

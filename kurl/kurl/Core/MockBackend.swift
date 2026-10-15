@@ -29,8 +29,10 @@ enum MockBackend {
         var excerpt: String?
         var seriesId: Int64?
         var ogImageUrl: String?
+        var coverChosen = false
         var scheduledAt: Date?
         var contentVersion: Int64 = 0
+        var takenDown = false
     }
 
     /// `--mock-remote-edit <글 id>` — 그 글 본문을 처음 읽어 간 직후 다른 기기가 고친 것처럼 본문·버전을 바꾼다
@@ -40,6 +42,14 @@ enum MockBackend {
         guard let at = args.firstIndex(of: "--mock-remote-edit"), at + 1 < args.count else { return nil }
         return Int64(args[at + 1])
     }()
+
+    /// `--mock-fail-highlight-replies <n>` — 하이라이트 답글 목록 n번째 조회만 500 으로 실패시킨다.
+    private static var failingReplyFetch: Int? = {
+        let args = ProcessInfo.processInfo.arguments
+        guard let at = args.firstIndex(of: "--mock-fail-highlight-replies"), at + 1 < args.count else { return nil }
+        return Int(args[at + 1])
+    }()
+    private static var replyFetches = 0
 
     /// 서버 편집 버전 계약 — baseVersion 이 다르면 409(아무것도 안 씀), overwrite 면 검사를 건너뛴다.
     private static func requireEditVersion(_ idx: Int, _ req: [String: Any]) throws {
@@ -92,8 +102,15 @@ enum MockBackend {
     ])
 
     /// `--no-drafts`·`--many-drafts` — 글쓰기 고르기의 '이어 쓰기' 없음·'모두 보기' 검증용.
+    /// `--taken-down-post` — 운영 정책으로 내려진 글 하나(스튜디오·작성 화면의 내려짐 표시 검증용).
     private static func draftFixtures(_ base: [MockPost]) -> [MockPost] {
         let args = ProcessInfo.processInfo.arguments
+        let base = args.contains("--taken-down-post")
+            ? base + [MockPost(
+                id: 9004, slug: "p-mock-4", title: "신고로 내려진 글", status: "UNPUBLISHED",
+                markdown: "# 내려진 글\n\n고쳐서 저장할 수는 있다.", publishedAt: Date().addingTimeInterval(-5 * 86_400),
+                updatedAt: Date(), tags: ["회고"], excerpt: "운영 정책 위반으로 관리자가 내린 예시 글.", takenDown: true)]
+            : base
         if args.contains("--no-drafts") { return base.filter { $0.status != "DRAFT" } }
         guard args.contains("--many-drafts") else { return base }
         let extra = (1...3).map { n in
@@ -309,7 +326,18 @@ enum MockBackend {
          "quote": "이름이 곧 경계였다. 포트 이름을 짓다 보면 '이건 도메인이 알 바 아니다' 싶은 것이 드러난다. 그걸 바깥으로 밀어내는 게 작업의 절반이었다. 나머지 절반은 그 결정을 팀이 납득하게 만드는 일이었고.",
          "note": "포트 이름 짓기가 설계의 절반이라는 대목, 두고두고 곱씹는다.",
          "createdAt": iso(Date().addingTimeInterval(-4_000))],
-    ]
+    ] + ([
+        (6005, 2, "haruka", nil), (6006, 3, "reader_kim", "김독자"), (6007, 4, "minji", nil),
+        (6008, 5, "sori", nil), (6009, 6, "jun", nil),
+    ] as [(Int, Int, String, String?)]).map { id, authorId, username, displayName -> [String: Any] in
+        ["id": id,
+         "author": ["id": authorId, "username": username, "bio": NSNull(), "avatarUrl": NSNull(),
+                    "displayName": displayName.map { $0 as Any } ?? NSNull()] as [String: Any],
+         "blockOrder": 12, "startOffset": 38, "endOffset": 86,
+         "quote": "가장 자주 바뀌고 가장 테스트하기 싫은 모듈 하나를 골라, 거기서만 경계를 그어 보라.",
+         "note": NSNull(),
+         "createdAt": iso(Date().addingTimeInterval(-Double(id - 6000) * 1_000))]
+    }
     private static var highlightReplies: [Int: [[String: Any]]] = [
         6001: [
             ["id": 7001, "author": ["id": 1, "username": "honggildong", "bio": NSNull(), "avatarUrl": NSNull()],
@@ -633,9 +661,10 @@ enum MockBackend {
                 ])],
                 ["type": "TABLE", "content": """
                 | 항목 | 전 | 후 |
-                | 동시 갱신 | 각자 회전 시도 | 하나만 회전, 나머지 대기 |
-                | 경합에서 진 요청 | 세션 wipe | grace로 새 토큰 |
-                | 로그아웃 제보 | 주 3~4건 | 0건 |
+                | **동시 갱신** | 각자 회전 시도 | 하나만 회전, 나머지 *대기* |
+                | 경합에서 진 요청 | 세션 wipe | `grace`로 새 토큰 |
+                | 로그아웃 제보 | 주 3~4건 | **0건** |
+                | 근거 | — | [RFC 9700](https://www.rfc-editor.org/rfc/rfc9700) |
                 """],
                 ["type": "H3", "content": "남은 교훈"],
                 ["type": "PARAGRAPH", "content":
@@ -668,12 +697,15 @@ enum MockBackend {
         var description: String?
         var visibility: String
         var kind: String = "COLLECTION"
+        /// nil 이면 응답에 ordered 를 싣지 않는다 — ordered 를 모르는 서버 모양(옛 kind 로 읽기)을 보인다.
+        var ordered: Bool? = nil
         var connections: [MockConnection]
     }
 
     static var collections: [MockCollection] = [
         MockCollection(
             id: 101, title: "느린 사고", description: "빨리 답하지 않고 오래 머문 글들.", visibility: "PUBLIC",
+            ordered: false,
             connections: [
                 // 씨앗 연결 — 목 글 9101(헥사고날)이 이 컬렉션에 이미 담겨 있다(refId 9101). 연결 시트를
                 // 이 글로 열면 "연결됨"으로 뜨고, "해제"를 누르면 이 연결이 지워진다.
@@ -713,7 +745,7 @@ enum MockBackend {
         // 인용은 실제 목 글 블록에 있는 문장이라 탭하면 그 지점으로 딥링크된다.
         MockCollection(
             id: 104, title: "경계를 긋는다는 것", description: "왜 경계가 먼저인가 — 세 문장으로.",
-            visibility: "PUBLIC", kind: "PATH",
+            visibility: "PUBLIC", kind: "PATH", ordered: true,
             connections: [
                 MockConnection(
                     id: 531, blockType: "HIGHLIGHT", why: "출발은 늘 여기다 — 경계가 없으면 변경이 전역이 된다.",
@@ -759,7 +791,7 @@ enum MockBackend {
             [
                 "id": 12, "curator": curator(3, "sori"),
                 "collectionId": 104, "collectionTitle": "경계를 긋는다는 것",
-                "collectionKind": "PATH",
+                "collectionKind": "PATH", "collectionOrdered": true,
                 "why": "이 문장 하나로 설계 얘기를 시작하곤 한다. 출발점으로 엮어 둔다.",
                 "connectedAt": iso(Date().addingTimeInterval(-9_000)),
                 "blockType": "HIGHLIGHT", "title": "헥사고날로 갈아탄 지 석 달",
@@ -828,6 +860,7 @@ enum MockBackend {
             "visibility": c.visibility, "kind": c.kind, "count": c.connections.count,
             "updatedAt": iso(Date()), "preview": Array(preview),
         ]
+        if let ordered = c.ordered { out["ordered"] = ordered }
         if let refId = connectedRefId,
            let conn = c.connections.first(where: { $0.refId == refId }) {
             out["connectionId"] = conn.id
@@ -906,27 +939,29 @@ enum MockBackend {
     /// 카드 소속 배치 목 — 잘 알려진 목 피드 글 id 에 소속 공개 컬렉션을 매핑한다. 한 컬렉션(단수 카피)과
     /// 여러 컬렉션(복수 "외 N개") 두 경우를 다 그려 보이게 섞는다. 소속 없는 글은 여기 없다(호출측은 빈 배열).
     private static func postCollectionsMock() -> [[String: Any]] {
-        // 리치 소속(#607) — 큐레이터·순서(position/total)까지. path 는 "N번째 / 전체 M"으로,
+        // 리치 소속(#607) — 큐레이터·순서(position/total)까지. 순서 있는 것은 "N편 중 M번째"로,
         // collection 은 큐레이터만(순서 없음). curator 없는 것도 하나 섞어 count 폴백을 확인.
         func c(_ id: Int64, _ title: String, _ kind: String, _ count: Int, _ preview: [String],
-               curator: String? = nil, position: Int? = nil, total: Int? = nil) -> [String: Any] {
+               curator: String? = nil, position: Int? = nil, total: Int? = nil,
+               ordered: Bool? = nil) -> [String: Any] {
             var d: [String: Any] = [
                 "id": id, "title": title, "description": NSNull(),
                 "visibility": "PUBLIC", "kind": kind, "count": count,
                 "updatedAt": iso(Date()), "preview": preview,
             ]
+            if let ordered { d["ordered"] = ordered }
             d["curatorUsername"] = curator.map { $0 as Any } ?? NSNull()
             d["position"] = position.map { $0 as Any } ?? NSNull()
             d["total"] = total.map { $0 as Any } ?? NSNull()
             return d
         }
         return [
-            // 여러 컬렉션에 걸린 글 — 길(순서 있음)·묶음(큐레이터만)·큐레이터 없는 것 섞음.
+            // 여러 컬렉션에 걸린 글 — 순서 있음(자리 앎)·순서 없음(큐레이터만)·큐레이터 없는 것 섞음.
             ["postId": 8201, "collections": [
                 c(104, "다시 읽는 아키텍처", "PATH", 5, ["레이어드의 값", "의존 방향 뒤집기"],
-                  curator: "minji", position: 2, total: 4),
+                  curator: "minji", position: 2, total: 4, ordered: true),
                 c(101, "경계를 긋는 법", "COLLECTION", 12, ["헥사고날로 갈아탄 지 석 달", "포트 이름 짓기"],
-                  curator: "sori"),
+                  curator: "sori", ordered: false),
                 c(107, "회고 모음", "COLLECTION", 8, []),
             ]],
             // 한 컬렉션에만 걸린 글 — 단수 카피.
@@ -943,8 +978,8 @@ enum MockBackend {
         ]
     }
 
-    /// "이어진 것" 목 — 이 글과 같은 공개 컬렉션에 나란히 엮인 다른 블록(공동 등장 큰 순). 세 실루엣
-    /// (글·하이라이트·노트)이 다 나오게 섞어 본문 끝 PostEdges 가 실제로 어떻게 서는지 보이게 한다.
+    /// "이것과 이어진 것" 목 — 이 블록과 같은 공개 컬렉션에 나란히 엮인 다른 블록(공동 등장 큰 순). 세 실루엣
+    /// (글·하이라이트·노트)이 다 나오게 섞는다.
     private static func relatedBlocksMock() -> [[String: Any]] {
         [
             [
@@ -985,7 +1020,7 @@ enum MockBackend {
     }
 
     private static func collectionDetail(_ c: MockCollection) -> [String: Any] {
-        [
+        var out: [String: Any] = [
             "id": c.id, "title": c.title,
             "description": orNull(c.description),
             "visibility": c.visibility, "kind": c.kind, "curatorUsername": myUsername,
@@ -1000,6 +1035,8 @@ enum MockBackend {
                 ]
             },
         ]
+        if let ordered = c.ordered { out["ordered"] = ordered }
+        return out
     }
 
     // MARK: 라우팅
@@ -1046,13 +1083,13 @@ enum MockBackend {
             return json(postCollectionsMock())
         }
 
-        // "이어진 것" — 이 블록과 같은 공개 컬렉션에 함께 놓인 다른 블록(본문 끝 PostEdges). 공개 표면.
+        // "이것과 이어진 것" — 이 블록과 같은 공개 컬렉션에 함께 놓인 다른 블록(하이라이트 대화 시트). 공개 표면.
         if method == "GET", parts.count == 6, parts[0] == "public", parts[1] == "graph",
             parts[2] == "blocks", parts[5] == "related" {
             return json(relatedBlocksMock())
         }
 
-        // "이 글을 엮은 사람" — 같은 것을 자기 공개 컬렉션에도 엮은 취향 겹치는 큐레이터. 공개 표면.
+        // "취향이 겹치는 큐레이터" — 같은 것을 자기 공개 컬렉션에도 엮은 큐레이터(컬렉션 상세). 공개 표면.
         if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "profiles",
             parts[3] == "kindred" {
             return json(kindredCuratorsMock())
@@ -1068,12 +1105,14 @@ enum MockBackend {
         if parts.first == "collections" {
             if method == "POST", parts.count == 1 {
                 let req = decode(body)
+                let ordered = req["ordered"] as? Bool ?? (req["kind"] as? String == "PATH")
                 let c = MockCollection(
                     id: nextCollectionId,
                     title: req["title"] as? String ?? "새 컬렉션",
                     description: req["description"] as? String,
                     visibility: req["visibility"] as? String ?? "PRIVATE",
-                    kind: req["kind"] as? String ?? "COLLECTION",
+                    kind: ordered ? "PATH" : "COLLECTION",
+                    ordered: ordered,
                     connections: [])
                 nextCollectionId += 1
                 collections.insert(c, at: 0)
@@ -1090,6 +1129,10 @@ enum MockBackend {
                     collections[idx].description = req["description"] as? String
                     collections[idx].visibility =
                         req["visibility"] as? String ?? collections[idx].visibility
+                    if let ordered = req["ordered"] as? Bool {
+                        collections[idx].ordered = ordered
+                        collections[idx].kind = ordered ? "PATH" : "COLLECTION"
+                    }
                     return json(collectionSummary(collections[idx]))
                 }
                 if method == "DELETE", parts.count == 2 {
@@ -1122,7 +1165,7 @@ enum MockBackend {
                     collections[idx].connections.removeAll { $0.id == connId }
                     return json([:] as [String: Any])
                 }
-                // 길(PATH) 순서 재배치 — 연결 id 전체를 주어진 순서대로.
+                // 순서 있는 컬렉션의 순서 재배치 — 연결 id 전체를 주어진 순서대로.
                 if method == "PUT", parts.count == 4, parts[2] == "connections", parts[3] == "order" {
                     let req = decode(body)
                     let ids = (req["connectionIds"] as? [Any] ?? [])
@@ -1783,7 +1826,11 @@ enum MockBackend {
             if let title = req["title"] as? String { posts[idx].title = title }
             if let excerpt = req["excerpt"] as? String { posts[idx].excerpt = excerpt.isEmpty ? nil : excerpt }
             if let tags = req["tags"] as? [String] { posts[idx].tags = tags }
-            if let cover = req["ogImageUrl"] as? String { posts[idx].ogImageUrl = cover.isEmpty ? nil : cover }
+            if let cover = req["ogImageUrl"] as? String {
+                let same = posts[idx].ogImageUrl == cover
+                posts[idx].ogImageUrl = cover.isEmpty ? nil : cover
+                posts[idx].coverChosen = !cover.isEmpty && ((req["coverChosen"] as? Bool) ?? (same && posts[idx].coverChosen))
+            }
             posts[idx].contentVersion += 1
             posts[idx].updatedAt = Date()
             return json(postView(posts[idx]))
@@ -1825,6 +1872,10 @@ enum MockBackend {
 
         if method == "POST", parts.count == 3, parts[0] == "posts", parts[2] == "publish" {
             guard let idx = posts.firstIndex(where: { String($0.id) == parts[1] }) else { return nil }
+            if posts[idx].takenDown {
+                throw APIError.server(
+                    status: 409, code: "POST_TAKEN_DOWN", detail: "post was taken down by an admin and cannot be made public")
+            }
             posts[idx].status = "PUBLISHED"
             posts[idx].publishedAt = Date()
             return json(postView(posts[idx]))
@@ -2223,6 +2274,10 @@ enum MockBackend {
         // 답글 — 목록 / 작성 / 삭제.
         if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "highlights",
            parts[3] == "replies", let hid = Int(parts[2]) {
+            replyFetches += 1
+            if replyFetches == failingReplyFetch {
+                throw APIError.server(status: 500, code: nil, detail: "mock reply fetch failure")
+            }
             return json((highlightReplies[hid] ?? []).map { row -> [String: Any] in
                 var row = row
                 row["likeCount"] = row["likeCount"] ?? 0
@@ -2230,7 +2285,7 @@ enum MockBackend {
                 return row
             })
         }
-        // "이 문장이 속한 길" — 이 하이라이트를 담은 공개 길/컬렉션(목: PATH 104 + 컬렉션 101).
+        // "이 문장이 담긴 컬렉션" — 이 하이라이트를 담은 공개 컬렉션(목: 순서 있는 104 + 101).
         if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "highlights",
            parts[3] == "collections" {
             let containing = collections.filter {
@@ -2556,7 +2611,7 @@ enum MockBackend {
                  "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
                  "collectionId": 101, "collectionName": "느린 사고",
                  "read": false, "createdAt": iso(Date().addingTimeInterval(-1200))],
-                // 연결 그래프 — 내가 엮인 길(PATH 104)에 새 글이 이어짐. actor 없이 시스템 발행.
+                // 연결 그래프 — 내 글이 엮인 컬렉션(104)에 새 글이 이어짐. actor 없이 시스템 발행.
                 ["id": 9, "type": "PATH_GREW", "actorUsername": NSNull(), "actorAvatarUrl": NSNull(),
                  "postId": NSNull(), "postSlug": NSNull(), "postTitle": NSNull(), "postAuthorUsername": NSNull(),
                  "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
@@ -2567,6 +2622,17 @@ enum MockBackend {
                  "commentId": 506,
                  "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
                  "count": 3, "read": false, "createdAt": iso(Date().addingTimeInterval(-400_000))],
+                // 하이라이트 답글 좋아요 — 서버는 같은 COMMENT_LIKE 로, commentId 없이 highlightId 만 싣는다.
+                ["id": 20, "type": "COMMENT_LIKE", "actorUsername": "haruka", "actorAvatarUrl": NSNull(),
+                 "postId": 9101, "postSlug": "hexagonal-after-3-months", "postTitle": "헥사고날로 갈아탄 지 석 달, 무엇이 남았나",
+                 "postAuthorUsername": "honggildong", "commentId": NSNull(), "highlightId": 6001,
+                 "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                 "count": 1, "read": false, "createdAt": iso(Date().addingTimeInterval(-402_000))],
+                ["id": 21, "type": "COMMENT_LIKE", "actorUsername": "reader_kim", "actorAvatarUrl": NSNull(),
+                 "postId": 9101, "postSlug": "hexagonal-after-3-months", "postTitle": "헥사고날로 갈아탄 지 석 달, 무엇이 남았나",
+                 "postAuthorUsername": "honggildong", "commentId": NSNull(), "highlightId": 6001,
+                 "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
+                 "count": 2, "read": true, "createdAt": iso(Date().addingTimeInterval(-404_000))],
                 ["id": 17, "type": "HIGHLIGHT", "actorUsername": "reader_kim", "actorAvatarUrl": NSNull(),
                  "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글", "postAuthorUsername": NSNull(),
                  "highlightId": 6001,
@@ -2942,8 +3008,10 @@ enum MockBackend {
             "scheduledAt": p.scheduledAt.map(iso) ?? NSNull(),
             "excerpt": p.excerpt ?? NSNull(),
             "ogImageUrl": p.ogImageUrl ?? NSNull(),
+            "coverChosen": p.coverChosen,
             "seriesId": p.seriesId ?? NSNull(),
             "contentVersion": p.contentVersion,
+            "takenDown": p.takenDown,
             "viewCount": 42, "likeCount": 3, "tags": p.tags,
             "createdAt": iso(p.updatedAt), "updatedAt": iso(p.updatedAt),
         ]

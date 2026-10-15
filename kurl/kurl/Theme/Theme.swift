@@ -44,19 +44,20 @@ extension Color {
 /// "조용한 웹로그" 표면 토큰. 프론트 §10 디자인 언어를 그대로 옮긴다.
 /// 차별화는 타이포 위계로만 — Material elevation / 떠 있는 카드 금지.
 enum Palette {
-    // 잉크 (slate)
-    static let ink = Color(light: 0x0F172A, dark: 0xF1F5F9)            // 제목/헤딩 slate-900/100
-    static let inkOnLight = Color(hex: 0x0F172A)                       // 항상 흰 면(커버 위 흰 필) 위 글자 — 스킴 무관 slate-900
-    static let heading = Color(light: 0x1E293B, dark: 0xE2E8F0)        // RailHeading slate-800/200
+    // 잉크 — 웹 globals.css 의 종이(라이트)·밤의 종이(다크) 사다리. 단계 번호는 웹 --slate-N 과 같다.
+    static let ink = Color(light: 0x131A16, dark: 0xE6EAE7)            // 제목/헤딩 paper-900 / night-100
+    static let inkOnLight = Color(hex: 0x131A16)                       // 항상 흰 면(커버 위 흰 필) 위 글자 — 스킴 무관 paper-900
+    static let heading = Color(light: 0x242B27, dark: 0xD8DDDA)        // RailHeading paper-800 / night-200
     // 본문·메타·구분선은 "대비 증가"를 켜면 한 단계 진하게(읽기 가독 우선).
-    static let body = Color(light: 0x334155, dark: 0xCBD5E1, lightHC: 0x1E293B, darkHC: 0xE2E8F0)        // slate-700/300 → 800/200
-    static let secondary = Color(light: 0x64748B, dark: 0x94A3B8, lightHC: 0x475569, darkHC: 0xCBD5E1)  // slate-500/400 → 600/300
-    static let faint = Color(light: 0x94A3B8, dark: 0x64748B, lightHC: 0x64748B, darkHC: 0x94A3B8)      // slate-400/500 → 600/400
-    static let hairline = Color(light: 0xF1F5F9, dark: 0x1E293B, lightHC: 0xCBD5E1, darkHC: 0x475569)   // slate-100/800 → 300/600
-    static let hairlineStrong = Color(light: 0xE2E8F0, dark: 0x334155) // 테이블 헤더 slate-200/700
-    static let rowHighlight = Color(light: 0xF8FAFC, dark: 0x1E293B)   // 행 press slate-50/800
-    static let chipBg = Color(light: 0xF1F5F9, dark: 0x1E293B)         // slate-100/800
-    static let chipText = Color(light: 0x475569, dark: 0xCBD5E1)       // slate-600/300
+    static let body = Color(light: 0x3B423E, dark: 0xC2C9C5, lightHC: 0x242B27, darkHC: 0xD8DDDA)        // paper-700 / night-300 → 800/200
+    static let secondary = Color(light: 0x6D7570, dark: 0x9AA39E, lightHC: 0x4F5652, darkHC: 0xC2C9C5)  // paper-500 / night-400 → 600/300
+    static let faint = Color(light: 0x9CA49F, dark: 0x737B76, lightHC: 0x6D7570, darkHC: 0x9AA39E)      // paper-400 / night-500 → 500/400
+    static let hairline = Color(light: 0xF3F5F4, dark: 0x262D29, lightHC: 0xD0D5D2, darkHC: 0x4F5652)   // paper-100 / night-800 → 300/600
+    static let hairlineStrong = Color(light: 0xE5E8E6, dark: 0x363E39) // 테이블 헤더 paper-200 / night-700
+    static let rowHighlight = Color(light: 0xF9FAF9, dark: 0x262D29)   // 행 press paper-50 / night-800
+    static let chipBg = Color(light: 0xF3F5F4, dark: 0x262D29)         // paper-100 / night-800
+    static let chipText = Color(light: 0x4F5652, dark: 0xC2C9C5)       // paper-600 / night-300
+    static let tabSelection = Color(light: 0xE5E8E6, dark: 0x4F5652)   // 하단 탭바 선택 알약 paper-200 / night-600
 
     // 그린 한 가닥 (마커 / active 밑줄 / 링크) — 절제해서만
     static let accent = Color(hex: 0x059669)        // 브랜드
@@ -67,7 +68,7 @@ enum Palette {
 
     // 리더 하이라이트 워시/밑줄/플래시 — 웹(globals.css)과 같은 색 언어. 형광펜처럼 확 튀던 채움을
     // 문서적으로 은은하게 낮추고(§10 조용한 웹로그), 낮아진 채움을 얇은 그린 밑줄로 보완해 독자가
-    // 여전히 "그어졌다"고 인지하게 한다. 다크에선 accent-600(#059669)이 검은 읽기면에 묻히므로 중간톤
+    // 여전히 "그어졌다"고 인지하게 한다. 다크에선 accent-600(#059669)이 밤의 종이 읽기면에 묻히므로 중간톤
     // accent-500(#10B981)을 실어 칠한다. alpha 를 담아야 해서 동적 UIColor 로 직접 짠다.
     static let highlightWash = Color(uiColor: UIColor { trait in
         trait.userInterfaceStyle == .dark
@@ -102,29 +103,38 @@ enum Palette {
     // 오류·파괴·한도초과 텍스트 — 흩어진 raw `.red` 종식. 양 모드 본문 위 WCAG AA(≥4.5:1).
     static let danger = Color(light: 0xDC2626, dark: 0xF87171) // red-600/400
 
-    // 페이지 배경. 다크 = slate-950(웹과 동일 휴). 라이트는 순백이 아니라 slate-50 —
+    // 페이지 배경. 다크 = 밤의 종이 950(웹과 동일). 라이트는 순백이 아니라 paper-50 —
     // 무보더 흰 카드가 "종이 위 종이"로 떠야 화이트가 비어 보이지 않는다(다크의
-    // 950/900 톤 레이어링과 대칭). 순백은 글 상세 본문·에디터 캔버스만 쓴다.
-    static let pageBg = Color(light: 0xF8FAFC, dark: 0x020617)
+    // 950/900/850 밝기 층과 대칭). 순백은 글 상세 본문·에디터 캔버스만 쓴다.
+    static let pageBg = Color(light: 0xF9FAF9, dark: 0x0F1412)
 
     // 읽기 면(글 상세 본문·에디터 캔버스·발견 덱) = 순백. 종이 세계의 본문은 흰 종이,
-    // 카드(browse)는 slate-50 pageBg 위에서 뜬다(§1). 다크는 OLED 순흑.
-    static let readingBg = Color(light: 0xFFFFFF, dark: 0x000000)
+    // 카드(browse)는 paper-50 pageBg 위에서 뜬다(§1). 다크는 pageBg 와 같은 밤의 종이 950 —
+    // 바탕은 하나, 층은 밝기로 쌓는다(바탕 950 < 카드·시트 900 < 떠 있는 층 850).
+    static let readingBg = Color(light: 0xFFFFFF, dark: 0x0F1412)
+
+    // 앱이 채우는 시트 면 = night-900(바탕 위 한 층). 라이트는 흰 종이.
+    static let sheetBg = Color(light: 0xFFFFFF, dark: 0x171D1A)
+    // 떠 있는 종이(본문 위 하이라이트 카드) = night-850. 라이트는 흰 종이 + 그림자.
+    static let floatingBg = Color(light: 0xFFFFFF, dark: 0x1E2521)
 
     // 카드 (browse 면 전용 — 읽기 면은 여전히 flat 행)
-    static let cardBg = Color(light: 0xFFFFFF, dark: 0x0F172A)     // white / slate-900
-    static let cardBorder = Color(light: 0xE2E8F0, dark: 0x1E293B) // slate-200 / slate-800
+    static let cardBg = Color(light: 0xFFFFFF, dark: 0x171D1A)     // white / night-900
+    static let cardBorder = Color(light: 0xE5E8E6, dark: 0x262D29) // paper-200 / night-800
+
+    // 그림자 = 종이 잉크 paper-900(웹 rgba(19,26,22,…)).
+    static let shadow = Color(hex: 0x131A16)
 
     // 코드
-    static let codeBg = Color(hex: 0x0F172A)        // slate-900 (항상 어둡게)
-    static let codeText = Color(hex: 0xF1F5F9)      // slate-100
-    static let inlineCodeBg = Color(light: 0xF1F5F9, dark: 0x1E293B)
+    static let codeBg = Color(light: 0x131A16, dark: 0x171D1A)     // paper-900 / night-900 (항상 어둡게)
+    static let codeText = Color(light: 0xF3F5F4, dark: 0xE6EAE7)   // paper-100 / night-100
+    static let inlineCodeBg = Color(light: 0xF3F5F4, dark: 0x262D29)
     static let inlineCodeText = Color(light: 0x065F46, dark: 0x6EE7B7) // accent-800/300
 
     // 구문 하이라이트 — §색 규율의 *유일한* 허용 다색 예외(어두운 codeBg 한정).
     // 문자열은 브랜드 그린 계열로 묶고 나머지는 IDE 관습색. 인라인 매직 헥스가 아니라
     // 여기서 한 곳으로 다스린다(흩어진 색 산포 금지).
-    static let codeComment = Color(hex: 0x7C8BA3)   // muted slate
+    static let codeComment = Color(hex: 0x9CA49F)   // paper-400 (웹 hljs-comment)
     static let codeKeyword = Color(hex: 0xF472B6)
     static let codeString = Color(hex: 0x6EE7B7)    // accent-300 계열
     static let codeNumber = Color(hex: 0xFCD34D)
@@ -298,21 +308,21 @@ extension Palette {
 
     static func calloutBar(_ kind: CalloutKind) -> Color {
         switch kind {
-        case .note: Color(light: 0x7DD3FC, dark: 0x085680)
-        case .tip: Color(light: 0x67E8F9, dark: 0x045E76)
-        case .important: Color(light: 0xC4B5FD, dark: 0x463186)
-        case .warning: Color(light: 0xFCD34D, dark: 0x7C5211)
-        case .caution: Color(light: 0xFDA4AF, dark: 0x7B223A)
+        case .note: Color(light: 0x7DD3FC, dark: 0x0E5C7E)
+        case .tip: Color(light: 0x67E8F9, dark: 0x0A6573)
+        case .important: Color(light: 0xC4B5FD, dark: 0x4D3884)
+        case .warning: Color(light: 0xFCD34D, dark: 0x82590E)
+        case .caution: Color(light: 0xFDA4AF, dark: 0x822A38)
         }
     }
 
     static func calloutWash(_ kind: CalloutKind) -> Color {
         switch kind {
-        case .note: Color(light: 0xF0F9FF, dark: 0x03162C)
-        case .tip: Color(light: 0xECFEFF, dark: 0x02182A)
-        case .important: Color(light: 0xF5F3FF, dark: 0x100F2D)
-        case .warning: Color(light: 0xFFFBEB, dark: 0x1A1516)
-        case .caution: Color(light: 0xFFF1F2, dark: 0x1A0C1E)
+        case .note: Color(light: 0xF0F9FF, dark: 0x0F2228)
+        case .tip: Color(light: 0xECFEFF, dark: 0x0E2425)
+        case .important: Color(light: 0xF5F3FF, dark: 0x1B1B29)
+        case .warning: Color(light: 0xFFFBEB, dark: 0x262211)
+        case .caution: Color(light: 0xFFF1F2, dark: 0x26181A)
         }
     }
 }

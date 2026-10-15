@@ -10,11 +10,26 @@ import Translation
 nonisolated enum TranslationGate {
     static let minimumLetters = 8
     static let minimumConfidence = 0.85
+    static let appLanguages = ["ko", "en", "ja", "vi", "hi"]
 
     static func source(declared: String?, text: String, preferred: [String] = Locale.preferredLanguages) -> Locale.Language? {
-        let code = declared.flatMap { languageCode($0) } ?? detect(text)
-        guard let code, !preferred.contains(where: { languageCode($0) == code }) else { return nil }
-        return Locale.Language(identifier: code)
+        guard let language = language(declared: declared, text: text),
+              language.languageCode?.identifier != preferred.first.flatMap(languageCode)
+        else { return nil }
+        return language
+    }
+
+    static func language(declared: String?, text: String) -> Locale.Language? {
+        (declared.flatMap { languageCode($0) } ?? detect(text)).map { Locale.Language(identifier: $0) }
+    }
+
+    static func choices(for source: Locale.Language) -> [Locale.Language] {
+        appLanguages.filter { $0 != source.languageCode?.identifier }.map { Locale.Language(identifier: $0) }
+    }
+
+    static func nativeName(_ language: Locale.Language) -> String {
+        let code = language.languageCode?.identifier ?? ""
+        return Locale(identifier: code).localizedString(forLanguageCode: code) ?? code
     }
 
     static func detect(_ text: String) -> String? {
@@ -40,6 +55,34 @@ nonisolated enum TranslationGate {
     static func displayName(_ language: Locale.Language) -> String {
         let code = language.languageCode?.identifier ?? ""
         return Locale.current.localizedString(forLanguageCode: code) ?? code
+    }
+}
+
+struct PostTranslationOffer: Equatable {
+    struct Choice: Equatable {
+        let target: Locale.Language
+        let available: Bool
+    }
+
+    let source: Locale.Language
+    let direct: Locale.Language?
+    let choices: [Choice]
+
+    static func make(
+        language: Locale.Language,
+        preferred: [String] = Locale.preferredLanguages,
+        available: (Locale.Language) async -> Bool
+    ) async -> PostTranslationOffer? {
+        let device = TranslationGate.target(preferred: preferred)
+        if language.languageCode != device.languageCode, await available(device) {
+            return PostTranslationOffer(source: language, direct: device, choices: [])
+        }
+        var choices: [Choice] = []
+        for target in TranslationGate.choices(for: language) {
+            choices.append(Choice(target: target, available: await available(target)))
+        }
+        guard choices.contains(where: \.available) else { return nil }
+        return PostTranslationOffer(source: language, direct: nil, choices: choices)
     }
 }
 
@@ -311,8 +354,11 @@ protocol ContentTranslator {
 }
 
 struct EchoTranslator: ContentTranslator {
+    var fails = false
+
     func translate(_ texts: [String], from source: Locale.Language, to target: Locale.Language) async throws -> [String] {
         try await Task.sleep(for: .milliseconds(250))
+        if fails { throw CancellationError() }
         let tag = target.languageCode?.identifier ?? "?"
         return texts.map { "[\(tag)] \($0)" }
     }
@@ -380,9 +426,10 @@ final class ContentTranslations {
         phases[key] = .translating
     }
 
-    func finish(_ key: String, _ translations: [String]?) {
-        guard let translations else {
+    func finish(_ key: String, _ translations: [String]?, expected: Int) {
+        guard let translations, translations.count == expected else {
             phases[key] = nil
+            ToastCenter.shared.show(String(localized: "번역하지 못했어요"))
             return
         }
         results[key] = translations
@@ -408,8 +455,9 @@ private struct TranslationRunner: ViewModifier {
         if Config.useMocks {
             content.task(id: request) {
                 guard let request else { return }
-                let translations = try? await EchoTranslator().translate(request.texts, from: request.source, to: request.target)
-                ContentTranslations.shared.finish(request.key, translations)
+                let translations = try? await EchoTranslator(fails: Config.translationFails)
+                    .translate(request.texts, from: request.source, to: request.target)
+                ContentTranslations.shared.finish(request.key, translations, expected: request.texts.count)
                 self.request = nil
             }
         } else {
@@ -427,7 +475,7 @@ private struct TranslationRunner: ViewModifier {
                     guard let request else { return }
                     let translations = try? await SessionTranslator(session: session)
                         .translate(request.texts, from: request.source, to: request.target)
-                    ContentTranslations.shared.finish(request.key, translations)
+                    ContentTranslations.shared.finish(request.key, translations, expected: request.texts.count)
                     self.request = nil
                 }
         }

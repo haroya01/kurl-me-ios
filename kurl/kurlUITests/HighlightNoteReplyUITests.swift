@@ -46,7 +46,7 @@ final class HighlightNoteReplyUITests: XCTestCase {
         let app = launchPost()
         XCTAssertTrue(openThread6001(app), "하이라이트 탭으로 답글 스레드가 안 열림")
 
-        let byPlaceholder = NSPredicate(format: "placeholderValue CONTAINS '답글을 남겨보세요'")
+        let byPlaceholder = NSPredicate(format: "placeholderValue CONTAINS '답글 쓰기'")
         var field = app.textViews.matching(byPlaceholder).firstMatch
         if !field.exists { field = app.textFields.matching(byPlaceholder).firstMatch }
         XCTAssertTrue(field.waitForExistence(timeout: 4), "답글 입력란 없음")
@@ -78,6 +78,9 @@ final class HighlightNoteReplyUITests: XCTestCase {
         XCTAssertTrue(delete.waitForExistence(timeout: 4), "내 답글에 삭제 버튼이 없음")
         if !delete.isHittable { app.swipeUp(velocity: .slow) }
         delete.tap()
+        let confirm = app.alerts.buttons["삭제"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 4), "답글 삭제 확인이 뜨지 않음")
+        confirm.tap()
 
         XCTAssertTrue(mine.waitForNonExistence(timeout: 8), "삭제해도 내 답글이 스레드에 남음")
         shot("own-reply-deleted")
@@ -167,14 +170,15 @@ final class HighlightNoteReplyUITests: XCTestCase {
             app.tapHighlight(in: paragraph, at: [CGVector(dx: 0.5, dy: 0.5), CGVector(dx: 0.5, dy: 0.3)]),
             "내 하이라이트 탭으로 카드가 안 뜸")
         XCTAssertTrue(
-            app.staticTexts["내가 하이라이트했어요"].exists, "내 하이라이트 카드가 내 것이라고 말하지 않음")
+            app.descendants(matching: .any)["highlightCard.highlighters"].firstMatch.label.contains("내가 그은 문장"),
+            "내 하이라이트 카드가 내 것이라고 말하지 않음")
         let delete = app.buttons["highlightCard.delete"]
-        XCTAssertTrue(delete.exists, "내 하이라이트 카드에 지우기가 없음")
+        XCTAssertTrue(delete.exists, "내 하이라이트 카드에 삭제가 없음")
         shot("1-card")
         delete.tap()
 
-        let confirm = app.alerts.buttons["지우기"]
-        XCTAssertTrue(confirm.waitForExistence(timeout: 4), "메모가 달린 하이라이트인데 지우기 확인이 안 뜸")
+        let confirm = app.alerts.buttons["삭제"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 4), "메모가 달린 하이라이트인데 삭제 확인이 안 뜸")
         shot("2-confirm-alert")
         confirm.tap()
         Thread.sleep(forTimeInterval: 0.8)

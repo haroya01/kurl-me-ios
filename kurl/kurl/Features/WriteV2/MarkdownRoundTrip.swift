@@ -249,7 +249,7 @@ nonisolated enum MarkdownBlockParser {
                 continue
             }
 
-            if let url = standaloneLinkCard(trimmed) {
+            if let url = standaloneLinkCard(trimmed), !(paragraphBuffer.last.map(endsInHardBreak) ?? false) {
                 flushParagraph()
                 blocks.append(.linkCard(url))
                 i += 1
@@ -276,17 +276,19 @@ nonisolated enum MarkdownBlockParser {
     // MARK: 줄머리 판정 (방언 그대로)
 
     /// `# `/`## `/`### ` → (레벨, 뒤 내용). 해시 뒤 공백 필수(MarkdownSyntaxHighlighter L160).
+
+    /// Mirrors the server's MarkdownBlockParser: only a bare URL alone on its line is a card.
+    /// `<url>` and `[text](url)` stay links in their paragraph, and so does a line after a hard break.
     static func standaloneLinkCard(_ trimmed: String) -> String? {
-        let url: String
-        if trimmed.hasPrefix("<"), trimmed.hasSuffix(">") {
-            url = String(trimmed.dropFirst().dropLast())
-        } else {
-            url = trimmed
-        }
-        guard url.range(of: #"^https?://\S+$"#, options: .regularExpression) != nil,
-              !url.contains(">"), !MarkdownInputTextView.isImageURL(url)
+        guard trimmed.range(of: #"^https?://\S+$"#, options: .regularExpression) != nil,
+              !trimmed.hasSuffix("\\"), !MarkdownInputTextView.isImageURL(trimmed)
         else { return nil }
-        return url
+        return trimmed
+    }
+
+    static func endsInHardBreak(_ line: String) -> Bool {
+        let trailing = line.reversed().prefix { $0 == "\\" }.count
+        return trailing % 2 == 1
     }
 
     static func convertCalloutContainers(_ markdown: String) -> String {

@@ -54,18 +54,15 @@ struct MyHighlightsView: View {
                 ErrorState(retry: { Task { loading = true; await load() } })
                     .padding(.top, 60)
             } else if items.isEmpty {
-                ContentUnavailableView {
-                    Text("하이라이트한 문장이 없어요").bold()
-                } description: {
-                    Text("글을 읽다 마음에 닿는 문장을 길게 눌러 하이라이트해 보세요.")
-                } actions: {
-                    Button("피드에서 읽을 글 찾기") { TabRouter.shared.selection = 0 }
-                        .foregroundStyle(Palette.link)
-                }
-                .padding(.top, 60)
+                FeedPlaceholder(
+                    title: "하이라이트한 문장이 없어요",
+                    actionTitle: "피드에서 읽을 글 찾기",
+                    action: { TabRouter.shared.selection = 0 }
+                )
+                .padding(.top, 24)
             } else if visibleGroups.isEmpty {
-                ContentUnavailableView.search(text: query)
-                    .padding(.top, 60)
+                FeedPlaceholder(title: "‘\(query)’ 결과가 없어요")
+                    .padding(.top, 24)
             } else {
                 LazyVStack(spacing: 0) {
                     ForEach(Array(visibleGroups.enumerated()), id: \.element.id) { index, group in
@@ -80,7 +77,7 @@ struct MyHighlightsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .searchable(
             text: $query, placement: .navigationBarDrawer(displayMode: .always),
-            prompt: "문장·공개 메모·글 검색")
+            prompt: "문장·메모·글 검색")
         .sheet(item: $connectTarget) { h in
             ConnectSheet(
                 targetKind: "하이라이트", targetTitle: h.quote,
@@ -127,7 +124,7 @@ struct MyHighlightsView: View {
                         .foregroundStyle(Palette.secondary)
                         .lineLimit(1)
                     Spacer(minLength: 8)
-                    Text("\(group.items.count)")
+                    Text("\(group.items.count)개")
                         .foregroundStyle(Palette.secondary)
                 }
                 .typeScale(.meta)
@@ -140,7 +137,7 @@ struct MyHighlightsView: View {
             ForEach(Array(group.items.enumerated()), id: \.element.id) { idx, item in
                 quoteRow(item)
                 if idx < group.items.count - 1 {
-                    Hairline().padding(.leading, 8)
+                    Hairline()
                 }
             }
         }
@@ -152,20 +149,13 @@ struct MyHighlightsView: View {
             RouteView(route: .postFocusQuote(username: item.postUsername, slug: item.postSlug, quote: item.quote))
         } label: {
             VStack(alignment: .leading, spacing: 8) {
-            Text(item.quote)
-                .typeScale(.body)
-                .foregroundStyle(Palette.body)
-                .lineLimit(3)
-                .multilineTextAlignment(.leading)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 5)
-                .background(
-                    Palette.highlightWash,
-                    in: RoundedRectangle(cornerRadius: Metrics.radius))
-                if let note = item.note, !note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                HighlightQuote(
+                    quote: item.quote, mine: true, hasThread: hasNote(item), sweeps: false,
+                    size: 15.5, relativeTo: .callout, lineSpacing: 0.3, maxLines: 3,
+                    identifier: "libraryHighlight.quote.\(item.id)")
+                if let note = item.note, hasNote(item) {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("내 공개 메모")
+                        Text("내 메모")
                             .typeScale(.meta)
                             .foregroundStyle(Palette.secondary)
                         Text(note)
@@ -173,7 +163,6 @@ struct MyHighlightsView: View {
                             .foregroundStyle(Palette.body)
                             .lineLimit(3)
                     }
-                    .padding(.horizontal, 8)
                 }
             }
             .padding(.vertical, 9)
@@ -194,6 +183,10 @@ struct MyHighlightsView: View {
                 Label("하이라이트 삭제", systemImage: "trash")
             }
         }
+    }
+
+    private func hasNote(_ item: MyHighlightView) -> Bool {
+        !(item.note?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
     }
 
     /// 그은 구절 삭제 — 낙관적으로 목록에서 즉시 빼고, 실패하면 자리째 되돌리고 토스트로 알린다.

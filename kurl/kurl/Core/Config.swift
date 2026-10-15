@@ -27,10 +27,23 @@ enum Config {
         #endif
     }()
 
+    /// 단위 테스트의 호스트로 떠 있다 — 테스트가 API client 를 바꿔 끼운 사이 앱 화면이 보내는 요청이
+    /// 그 client 로 새지 않게, 이때는 화면을 띄우지 않는다.
+    static let isUnitTestHost = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+
     /// `--offline` — 모든 네트워크를 즉시 실패시켜 오프라인 폴백을 검증한다(DEBUG 전용).
     static let simulateOffline: Bool = {
         #if DEBUG
         return ProcessInfo.processInfo.arguments.contains("--offline")
+        #else
+        return false
+        #endif
+    }()
+
+    /// `--translation-fails` — 목 번역기가 실패한다. 번역 실패 안내를 검증한다(DEBUG 전용).
+    static let translationFails: Bool = {
+        #if DEBUG
+        return ProcessInfo.processInfo.arguments.contains("--translation-fails")
         #else
         return false
         #endif

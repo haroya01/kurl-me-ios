@@ -11,11 +11,20 @@ enum ComposeChoice: Equatable {
     case draft(MyPost)
 }
 
-/// 내 글 목록의 마지막 응답 — 스튜디오가 이미 받은 초안으로 글쓰기 고르기가 곧바로 그려지게 한다.
+/// 내 글 목록의 마지막 응답 — 앱이 뜬 뒤 미리 받아 둔(또는 스튜디오가 받은) 초안으로 글쓰기 고르기가 곧바로 그려지게 한다.
 /// 로그아웃하면 AuthStore 가 비운다(다른 계정의 초안이 보이지 않게).
 @MainActor
 enum MyPostsCache {
     static var posts: [MyPost]?
+
+    static func prefetch() async {
+        guard posts == nil, AuthStore.shared.isSignedIn else { return }
+        let account = AuthStore.shared.me?.id
+        guard let fresh = try? await WriteAPI.myPosts(), posts == nil, AuthStore.shared.isSignedIn,
+              account == nil || AuthStore.shared.me?.id == account
+        else { return }
+        posts = fresh
+    }
 }
 
 /// 탭바 가운데 '글쓰기' — 노트와 긴 글은 다른 물건이라 무엇을 쓸지 먼저 고르고, 다듬던 초안을 이어 쓴다.
@@ -26,9 +35,11 @@ struct ComposeChooserSheet: View {
         case allDrafts
     }
 
+    private static var lastContentHeight: CGFloat = 220
+
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var posts = MyPostsCache.posts ?? []
-    @State private var contentHeight: CGFloat = 220
+    @State private var contentHeight = ComposeChooserSheet.lastContentHeight
     @State private var path: [Page] = []
 
     private var drafts: [MyPost] {
@@ -67,15 +78,17 @@ struct ComposeChooserSheet: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .background(Palette.readingBg)
+            .background(Palette.sheetBg)
             .contentMargins(.top, 12, for: .scrollContent)
             .toolbar(.hidden, for: .navigationBar)
             .onScrollGeometryChange(for: CGFloat.self) { $0.contentSize.height } action: { _, height in
+                guard height > 0 else { return }
+                Self.lastContentHeight = height
                 contentHeight = height
             }
             .navigationDestination(for: Page.self) { _ in allDrafts }
         }
-        .tint(.brand)
+        .tint(Palette.ink)
         .presentationDetents(path.isEmpty ? [.height(contentHeight), .large] : [.large])
         .presentationDragIndicator(.visible)
         .task { await refresh() }
@@ -84,7 +97,7 @@ struct ComposeChooserSheet: View {
     @ViewBuilder private var showAllDrafts: some View {
         if drafts.count > 3 {
             Button("모두 보기") { path.append(.allDrafts) }
-                .foregroundStyle(Palette.link)
+                .foregroundStyle(Palette.ink)
                 .accessibilityIdentifier("compose.chooser.allDrafts")
         }
     }
@@ -96,7 +109,7 @@ struct ComposeChooserSheet: View {
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .background(Palette.readingBg)
+        .background(Palette.sheetBg)
         .navigationTitle(Text(LocalizedStringResource("heading.drafts", defaultValue: "임시저장")))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)
@@ -133,6 +146,7 @@ struct ComposeChooserSheet: View {
     private func refresh() async {
         guard let fresh = try? await WriteAPI.myPosts() else { return }
         MyPostsCache.posts = fresh
+        guard fresh != posts else { return }
         withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) { posts = fresh }
     }
 }

@@ -12,7 +12,6 @@ enum SearchScope: Hashable {
 }
 
 struct SearchView: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var scope: SearchScope = .posts
     @State private var noteResults = NotesViewModel(search: "")
     @State private var peopleResults = PeopleSearchModel()
@@ -24,7 +23,6 @@ struct SearchView: View {
     @State private var remoteTask: Task<Void, Never>?
     @Namespace private var zoomNS
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.scenePhase) private var scenePhase
     /// 최근 검색 칩의 지우기(×) 아이콘 — 칩 라벨(.meta)과 함께 커지도록 고정 pt 를 우회한다.
     @ScaledMetric(relativeTo: .caption) private var recentClearSize: CGFloat = 9
@@ -67,10 +65,15 @@ struct SearchView: View {
                     results(items)
                 case .failed(let message):
                     ErrorState(message: message, retry: { runSearch(query) })
+                        .padding(.horizontal, Metrics.gutter)
+                        .padding(.top, 24)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // RootView 의 탭바 예약 safeAreaPadding 은 NavigationStack 안으로 넘어오지 않는다.
+            .safeAreaPadding(.bottom, Metrics.tabBarReservedHeight)
             .safeAreaInset(edge: .top, spacing: 0) {
                 if let account = Binding($remoteAccount) {
                     VStack(spacing: 0) {
@@ -214,81 +217,36 @@ struct SearchView: View {
         .scrollEdgeEffectStyle(.soft, for: .top)
         // 빈 레일을 당겨서 다시 받는다 — 첫 로드 실패의 두 번째 탈출구(scenePhase 와 짝).
         .brandRefreshable { await loadDiscovery() }
-        // 검색 idle = 안개가 서는 세 곳 중 하나(§1 폴리시). 유리 검색바·탭바가 굴절할
-        // 배경을 깐다(피드·계정과 같은 레시피).
-        .background(alignment: .top) {
-            BrandMist()
-                .frame(height: 240)
-                .mask(LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom))
-                .ignoresSafeArea(edges: .top)
-                .allowsHitTesting(false)
-        }
     }
 
     /// 지금 뜨는 글 레일 — idle 과 무결과(막다른 길 금지) 양쪽에서 같은 출발점으로 쓴다.
     @ViewBuilder private var trendingRail: some View {
         if !trending.isEmpty {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 0) {
                 RailHeading("지금 뜨는 글")
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
-                        ForEach(trending) { item in
-                            NavigationLink(
-                                value: Route.post(
-                                    username: item.author.username, slug: item.slug)
-                            ) {
-                                VStack(alignment: .leading, spacing: 7) {
-                                    if let tag = item.tags.first {
-                                        Text("#\(ContentValidity.tagDisplay(tag))")
-                                            .typeScale(.footnote)
-                                            .foregroundStyle(Palette.secondary)
-                                    }
-                                    Text(item.title)
-                                        .typeScale(.titleSmall)
-                                        .foregroundStyle(Palette.ink)
-                                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? 6 : 3)
-                                        .multilineTextAlignment(.leading)
-                                    Spacer(minLength: 0)
-                                    Text(item.author.username)
-                                        .lineLimit(1)
+                ForEach(Array(trending.prefix(5).enumerated()), id: \.element.id) { index, item in
+                    NavigationLink(value: Route.post(username: item.author.username, slug: item.slug)) {
+                        RowLayout(title: item.title.cleanedPreview, read: PostReadStore.shared.isRead(item.id)) {
+                            if let tag = item.renderableTags.first {
+                                Text("#\(ContentValidity.tagDisplay(tag))")
                                     .typeScale(.meta)
                                     .foregroundStyle(Palette.secondary)
-                                }
-                                .padding(14)
-                                .containerRelativeFrame(.horizontal, alignment: .topLeading) { width, _ in
-                                    dynamicTypeSize.isAccessibilitySize ? width * 0.8 : 200
-                                }
-                                .frame(minHeight: 112, alignment: .topLeading)
-                                .background(
-                                    Palette.cardBg,
-                                    in: RoundedRectangle(
-                                        cornerRadius: Metrics.radius, style: .continuous))
-                                // 흰 카드가 slate-50 위에서 안 보였다 — 다른 카드처럼
-                                // 그림자(라이트)·보더(다크)로 면을 들어 올린다.
-                                .overlay {
-                                    if colorScheme == .dark {
-                                        RoundedRectangle(
-                                            cornerRadius: Metrics.radius, style: .continuous)
-                                            .strokeBorder(Palette.cardBorder, lineWidth: 1)
-                                    }
-                                }
-                                .cardShadow()
-                                .contentShape(Rectangle())
                             }
-                            .buttonStyle(CardButtonStyle())
-                            .cardQuickActions(item)
-                            // 결과 카드와 같은 글 푸시 — zoom 문법도 같아야 한다
-                            // (idle/loaded 상호배타라 id 중복 안전).
-                            .modifier(ZoomSource(
-                                active: true,
-                                id: "search-\(item.author.username)-\(item.slug)",
-                                ns: zoomNS))
-                            .modifier(CardScrollFade(axis: .horizontal))
+                        } byline: {
+                            AuthorByline(author: item.author, date: item.publishedAt, linked: true)
                         }
                     }
-                    .padding(.vertical, 6) // 카드 그림자가 레일에서 안 잘리게.
+                    .buttonStyle(RowButtonStyle())
+                    .cardQuickActions(item)
+                    // 결과 행과 같은 글 푸시 — zoom 문법도 같아야 한다
+                    // (idle/loaded 상호배타라 id 중복 안전).
+                    .modifier(ZoomSource(
+                        active: true,
+                        id: "search-\(item.author.username)-\(item.slug)",
+                        ns: zoomNS))
+                    .rowDivider(index > 0)
+                    .accessibilityIdentifier("search.trending.\(item.id)")
                 }
-                .scrollClipDisabled()
             }
         }
     }
@@ -406,84 +364,66 @@ struct SearchView: View {
         }
     }
 
-    /// 팔로우 추천 — 가로로 넘기는 카드. 카드를 누르면 그 사람 블로그, 버튼으로 바로 팔로우, ×로 다시 안 보기.
     private var followSuggestionsRail: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 0) {
             RailHeading("팔로우 추천")
-            ScrollView(.horizontal) {
-                HStack(spacing: 10) {
-                    ForEach(followSuggestions) { suggestion in
-                        suggestionCard(suggestion)
-                            .transition(.opacity.combined(with: .scale(scale: 0.92)))
-                    }
-                }
-                .scrollTargetLayout()
-                .padding(.vertical, 6)
+                .padding(.bottom, 4)
+            ForEach(Array(followSuggestions.prefix(3).enumerated()), id: \.element.id) { index, suggestion in
+                suggestionRow(suggestion)
+                    .rowDivider(index > 0)
+                    .transition(.opacity)
             }
-            .scrollIndicators(.hidden)
-            .scrollTargetBehavior(.viewAligned)
-            .scrollClipDisabled()
-            .accessibilityIdentifier("search.followSuggestions")
         }
+        .accessibilityIdentifier("search.followSuggestions")
     }
 
-    private func suggestionCard(_ suggestion: FollowSuggestion) -> some View {
-        VStack(spacing: 10) {
+    private func suggestionRow(_ suggestion: FollowSuggestion) -> some View {
+        HStack(spacing: 11) {
             NavigationLink(value: Route.author(username: suggestion.username)) {
-                VStack(spacing: 6) {
-                    AvatarView(author: suggestion.asAuthor, size: 56)
-                    Text(verbatim: suggestion.shownName)
-                        .typeScale(.body)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(Palette.ink)
-                        .lineLimit(1)
-                    Group {
-                        if suggestion.reason == .friends {
-                            Text("내가 팔로우하는\n\(suggestion.mutuals)명이 팔로우")
-                        } else {
-                            Text("요즘 많이 팔로우해요")
+                HStack(spacing: 11) {
+                    AvatarView(author: suggestion.asAuthor, size: 44)
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 5) {
+                            Text(verbatim: suggestion.shownName)
+                                .typeScale(.titleSmall)
+                                .foregroundStyle(Palette.ink)
+                            if suggestion.shownName != suggestion.username {
+                                Text(verbatim: "@\(suggestion.username)")
+                                    .typeScale(.meta)
+                                    .foregroundStyle(Palette.secondary)
+                            }
                         }
+                        .lineLimit(1)
+                        Group {
+                            if suggestion.reason == .friends {
+                                Text("내가 팔로우하는 \(suggestion.mutuals)명이 팔로우")
+                            } else {
+                                Text("요즘 많이 팔로우해요")
+                            }
+                        }
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.secondary)
+                        .lineLimit(1)
                     }
-                    .typeScale(.meta)
-                    .foregroundStyle(Palette.secondary)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.center)
-                    .frame(minHeight: 30, alignment: .top)
+                    Spacer(minLength: 0)
                 }
-                .frame(maxWidth: .infinity)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            FollowButton(username: suggestion.username, initialStatus: suggestion.followSeed)
-        }
-        .padding(.top, 18)
-        .padding(.bottom, 14)
-        .padding(.horizontal, 12)
-        .frame(width: 156)
-        .background(
-            Palette.cardBg, in: RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
-        .overlay {
-            if colorScheme == .dark {
-                RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
-                    .strokeBorder(Palette.cardBorder, lineWidth: 1)
-            }
-        }
-        .cardShadow()
-        .overlay(alignment: .topTrailing) {
-            Button {
-                dismissSuggestion(suggestion)
+            FollowButton(username: suggestion.username, initialStatus: suggestion.followSeed, outlined: true)
+            Menu {
+                Button("\(suggestion.shownName) 추천 안 보기") { dismissSuggestion(suggestion) }
             } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 11, weight: .semibold))
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Palette.secondary)
-                    .frame(width: 28, height: 28)
-                    .contentShape(Rectangle())
+                    .frame(width: 30, height: 44)
+                    .expandTapTarget(7)
             }
-            .buttonStyle(.plain)
-            .padding(4)
-            .accessibilityLabel(Text("\(suggestion.shownName) 추천 안 보기"))
-            .accessibilityIdentifier("suggestion.dismiss.\(suggestion.username)")
+            .accessibilityLabel("더 보기")
+            .accessibilityIdentifier("suggestion.more.\(suggestion.username)")
         }
+        .padding(.vertical, 10)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("suggestion.\(suggestion.username)")
     }
@@ -698,23 +638,16 @@ struct SearchView: View {
             // 피드 탭으로 이어준다(막다른 길 금지).
             FeedPlaceholder(
                 title: "‘\(query)’ 결과가 없어요",
-                message: "다른 낱말로 찾아보거나, 피드에서 읽을 글을 둘러보세요.",
                 actionTitle: "피드에서 읽을 글 찾기",
                 action: { TabRouter.shared.switchTo(0, reduceMotion: reduceMotion) }
             )
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.top, 80)
+            .padding(.horizontal, Metrics.gutter)
+            .padding(.top, 24)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 26) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("‘\(query)’ 결과가 없어요")
-                            .typeScale(.titleSmall)
-                            .foregroundStyle(Palette.ink)
-                        Text("이런 글은 어때요")
-                            .typeScale(.footnote)
-                            .foregroundStyle(Palette.secondary)
-                    }
+                    FeedPlaceholder(title: "‘\(query)’ 결과가 없어요")
                     trendingRail
                     popularTagsRail
                     suggestedAuthorsRail
@@ -769,9 +702,10 @@ struct SearchView: View {
                 switch noteResults.phase {
                 case .failed(let message):
                     ErrorState(message: message, retry: { runSearch(query) })
+                        .padding(.top, 16)
                 case .loaded where noteResults.items.isEmpty:
-                    ContentUnavailableView.search(text: query)
-                        .padding(.top, 40)
+                    FeedPlaceholder(title: "‘\(query)’ 결과가 없어요")
+                        .padding(.top, 16)
                 case .loaded:
                     ForEach(Array(noteResults.items.enumerated()), id: \.element.id) { index, note in
                         NoteFeedItem(
@@ -881,7 +815,7 @@ private struct TrendSparkBars: View {
         HStack(alignment: .bottom, spacing: 3) {
             ForEach(Array(history.enumerated()), id: \.offset) { _, count in
                 Capsule()
-                    .fill(count == 0 ? Palette.hairlineStrong : Palette.accent)
+                    .fill(count == 0 ? Palette.hairlineStrong : Palette.secondary)
                     .frame(width: 4, height: max(3, 22 * CGFloat(count) / CGFloat(peak)))
             }
         }

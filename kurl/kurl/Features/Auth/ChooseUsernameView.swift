@@ -27,12 +27,7 @@ struct ChooseUsernameView: View {
 
     var body: some View {
         ZStack {
-            Color(uiColor: .systemBackground).ignoresSafeArea()
-            BrandMist()
-                .frame(height: 360)
-                .frame(maxHeight: .infinity, alignment: .top)
-                .mask(LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom))
-                .ignoresSafeArea()
+            Palette.readingBg.ignoresSafeArea()
 
             ScrollViewReader { proxy in
                 ScrollView {
@@ -123,7 +118,7 @@ struct ChooseUsernameView: View {
                     .padding(.horizontal, Metrics.gutter + 4)
                     .padding(.top, 8)
                     .padding(.bottom, 12)
-                    .background(Color(uiColor: .systemBackground))
+                    .background(Palette.readingBg)
                 }
             }
         }

@@ -134,7 +134,7 @@ struct BlockTableView: View {
             .accessibilityHint(Text("이 표를 통째로 지웁니다"))
         }
         .font(.system(size: 13, weight: .medium))
-        .foregroundStyle(Palette.link)
+        .foregroundStyle(Palette.ink)
     }
 
     private func alignLabel(_ table: EditorTable, _ c: Int) -> String {

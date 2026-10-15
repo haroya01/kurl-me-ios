@@ -79,8 +79,8 @@ final class DraftFlusher {
                 let retry = payload
                 ToastCenter.shared.show(
                     Self.isAuthFailure(error)
-                        ? String(localized: "로그인이 풀려 저장하지 못했어요 — 다시 로그인한 뒤 시도해 주세요")
-                        : String(localized: "저장하지 못했어요 — 네트워크를 확인하고 다시 시도해 주세요"),
+                        ? String(localized: "로그인이 풀려 저장하지 못했어요. 다시 로그인한 뒤 시도해 주세요")
+                        : String(localized: "저장하지 못했어요. 네트워크를 확인하고 다시 시도해 주세요"),
                     actionLabel: String(localized: "다시 시도")
                 ) { [weak self] in
                     self?.flush(retry)

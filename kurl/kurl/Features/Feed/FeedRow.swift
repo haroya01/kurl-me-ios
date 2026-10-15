@@ -102,7 +102,7 @@ struct FeedRow: View {
         RowLayout(
             title: item.title.cleanedPreview,
             excerpt: item.excerpt.flatMap { $0.isEmpty ? nil : Text($0.cleanedPreview) },
-            cover: item.ogImageUrl.flatMap { URL(string: $0) },
+            cover: item.thumbnailUrl.flatMap { URL(string: $0) },
             read: PostReadStore.shared.isRead(item.id)
         ) {
             if let tag {
@@ -166,7 +166,7 @@ struct PostRow: View {
         RowLayout(
             title: item.title.cleanedPreview,
             excerpt: item.excerpt.flatMap { $0.isEmpty ? nil : Text($0.cleanedPreview) },
-            cover: item.ogImageUrl.flatMap { URL(string: $0) },
+            cover: item.thumbnailUrl.flatMap { URL(string: $0) },
             read: PostReadStore.shared.isRead(item.id)
         ) {
             if item.pinned || tag != nil {
@@ -174,7 +174,7 @@ struct PostRow: View {
                     if item.pinned {
                         Image(systemName: "pin.fill")
                             .font(.system(size: 10))
-                            .foregroundStyle(Palette.accent)
+                            .foregroundStyle(Palette.secondary)
                     }
                     if let tag {
                         Text("#\(tag)")
@@ -241,7 +241,7 @@ private struct BelongingLine: View {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
                     Image(systemName: "arrow.turn.down.right")
                         .font(.system(size: glyph, weight: .semibold))
-                        .foregroundStyle(Palette.accent)
+                        .foregroundStyle(Palette.secondary)
                     caption(title: lead.title)
                         .foregroundStyle(Palette.secondary)
                         .lineLimit(1)

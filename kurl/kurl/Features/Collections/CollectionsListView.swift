@@ -20,12 +20,7 @@ struct CollectionsListView: View {
 
     var body: some View {
         ReadingColumn(spacing: 0) {
-            Text("읽고 생각한 것을 주제로 잇는 곳.")
-                .typeScale(.lede)
-                .foregroundStyle(Palette.secondary)
-                .padding(.top, 4)
-                .padding(.bottom, 18)
-
+            Color.clear.frame(height: 8)
             if loading {
                 KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 240)
@@ -53,7 +48,7 @@ struct CollectionsListView: View {
                 Button { showCreate = true } label: {
                     Image(systemName: "plus")
                 }
-                .tint(.brand)
+                .tint(.primary)
                 .accessibilityLabel(Text("새 컬렉션"))
             }
         }
@@ -115,8 +110,8 @@ struct CollectionsListView: View {
             }
 
             HStack(spacing: 6) {
-                if c.kind == .path {
-                    Text("길")
+                if c.isOrdered {
+                    Text("순서대로 읽기")
                     Text("·").foregroundStyle(Palette.faint)
                 }
                 Text(c.visibility.label)
@@ -133,15 +128,8 @@ struct CollectionsListView: View {
     }
 
     private var emptyState: some View {
-        ContentUnavailableView {
-            Text("아직 컬렉션이 없어요").bold()
-        } description: {
-            Text("글을 읽다 마음에 닿는 것을 주제로 이어 보세요.")
-        } actions: {
-            Button("새 컬렉션 만들기") { showCreate = true }
-                .foregroundStyle(Palette.link)
-        }
-        .padding(.top, 60)
+        FeedPlaceholder(title: "아직 컬렉션이 없어요", actionTitle: "새 컬렉션 만들기", action: { showCreate = true })
+            .padding(.top, 16)
     }
 
     private var failedState: some View {
@@ -150,53 +138,24 @@ struct CollectionsListView: View {
     }
 }
 
-/// 새 컬렉션 만들기 — 제목 + 공개 범위. 만들면 목록에 즉시 끼운다.
+/// 새 컬렉션 만들기 — 제목 + 공개 범위 + 순서대로 읽기. 만들면 목록에 즉시 끼운다.
 struct CreateCollectionSheet: View {
-    let kind: CollectionKind
     let onCreated: (CollectionSummary) -> Void
 
-    @State private var title: String
+    @State private var title = ""
     @State private var visibility: CollectionVisibility = .private
+    @State private var ordered = false
     @State private var saving = false
     @Environment(\.dismiss) private var dismiss
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
 
-    /// 길(PATH)은 타깃 글 제목을 시작 이름으로 *제안*만 한다 — 자동 확정 대신 사용자가 고쳐 쓴다.
-    init(
-        kind: CollectionKind = .collection, initialTitle: String = "",
-        onCreated: @escaping (CollectionSummary) -> Void
-    ) {
-        self.kind = kind
-        self.onCreated = onCreated
-        _title = State(initialValue: initialTitle)
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text(kind == .path ? "새 길" : "새 컬렉션")
-                .typeScale(.titleSmall)
-                .foregroundStyle(Palette.ink)
-                .padding(.top, 26)
-
-            // 회색 채움 박스 대신 밑줄 — 수정 시트(EditCollectionSheet)와 같은 입력 문법(§10).
-            VStack(alignment: .leading, spacing: 9) {
-                TextField(kind == .path ? "길 이름" : "컬렉션 이름", text: $title)
-                    .font(.system(size: 17 * unit))
-                    .foregroundStyle(Palette.ink)
-                Hairline()
-            }
-            .padding(.top, 18)
-
-            Picker("공개 범위", selection: $visibility) {
-                ForEach([CollectionVisibility.private, .unlisted, .public], id: \.self) { v in
-                    Text(v.label).tag(v)
-                }
-            }
-            .pickerStyle(.segmented)
-            .padding(.top, 12)
-
-            Spacer(minLength: 0)
-
+        ScrollView {
+            fields
+                .padding(.horizontal, Metrics.gutter)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
             Button {
                 Task { await create() }
             } label: {
@@ -213,68 +172,25 @@ struct CreateCollectionSheet: View {
             .glassCapsule(prominent: true)
             .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || saving)
             .opacity(title.trimmingCharacters(in: .whitespaces).isEmpty ? 0.5 : 1)
+            .padding(.horizontal, Metrics.gutter)
             .padding(.bottom, 16)
+            .background(Palette.sheetBg)
         }
-        .padding(.horizontal, Metrics.gutter)
-        .presentationDetents([.height(280)])
+        .presentationDetents([.height(360)])
         .presentationDragIndicator(.visible)
-        .background(Palette.readingBg)
+        .background(Palette.sheetBg)
     }
 
-    private func create() async {
-        saving = true
-        defer { saving = false }
-        do {
-            let created = try await CollectionsAPI.create(
-                title: title.trimmingCharacters(in: .whitespaces),
-                description: nil, visibility: visibility, kind: kind)
-            onCreated(created)
-            dismiss()
-        } catch {
-            ToastCenter.shared.show(
-                kind == .path
-                    ? String(localized: "길을 만들지 못했습니다")
-                    : String(localized: "컬렉션을 만들지 못했습니다"))
-        }
-    }
-}
-
-/// 컬렉션 수정 — 이름 + 공개 범위. 소개(blurb)는 보존해 함께 보낸다.
-/// 길(PATH)이면 제목·플레이스홀더를 "길"로 — 삭제 라벨과 어휘를 맞춘다.
-struct EditCollectionSheet: View {
-    let id: Int64
-    let kind: CollectionKind
-    let initialBlurb: String?
-    let onSaved: () -> Void
-
-    @State private var title: String
-    @State private var visibility: CollectionVisibility
-    @State private var saving = false
-    @Environment(\.dismiss) private var dismiss
-    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
-
-    init(
-        id: Int64, kind: CollectionKind, initialTitle: String, initialBlurb: String?,
-        initialVisibility: CollectionVisibility, onSaved: @escaping () -> Void
-    ) {
-        self.id = id
-        self.kind = kind
-        self.initialBlurb = initialBlurb
-        self.onSaved = onSaved
-        _title = State(initialValue: initialTitle)
-        _visibility = State(initialValue: initialVisibility)
-    }
-
-    var body: some View {
+    private var fields: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(kind == .path ? "길 수정" : "컬렉션 수정")
+            Text("새 컬렉션")
                 .typeScale(.titleSmall)
                 .foregroundStyle(Palette.ink)
                 .padding(.top, 26)
 
-            // 회색 채움 박스 대신 밑줄 — 입력이되 박스 없이(§10).
+            // 회색 채움 박스 대신 밑줄 — 수정 시트(EditCollectionSheet)와 같은 입력 문법(§10).
             VStack(alignment: .leading, spacing: 9) {
-                TextField(kind == .path ? "길 이름" : "컬렉션 이름", text: $title)
+                TextField("컬렉션 이름", text: $title)
                     .font(.system(size: 17 * unit))
                     .foregroundStyle(Palette.ink)
                 Hairline()
@@ -287,10 +203,73 @@ struct EditCollectionSheet: View {
                 }
             }
             .pickerStyle(.segmented)
-            .padding(.top, 16)
+            .padding(.top, 12)
 
-            Spacer(minLength: 0)
+            OrderedToggle(isOn: $ordered)
+                .padding(.top, 16)
+        }
+    }
 
+    private func create() async {
+        saving = true
+        defer { saving = false }
+        do {
+            let created = try await CollectionsAPI.create(
+                title: title.trimmingCharacters(in: .whitespaces),
+                description: nil, visibility: visibility, ordered: ordered)
+            onCreated(created)
+            dismiss()
+        } catch {
+            ToastCenter.shared.show(String(localized: "컬렉션을 만들지 못했습니다"))
+        }
+    }
+}
+
+struct OrderedToggle: View {
+    @Binding var isOn: Bool
+
+    var body: some View {
+        Toggle(isOn: $isOn) {
+            Text("순서대로 읽기")
+            Text("번호를 붙여 차례로 읽게 하고, 어디까지 읽었는지 이어 줘요.")
+        }
+        .tint(Palette.accent)
+        .accessibilityIdentifier("collection.ordered")
+    }
+}
+
+/// 컬렉션 수정 — 이름 + 공개 범위 + 순서대로 읽기. 소개(blurb)는 보존해 함께 보낸다.
+struct EditCollectionSheet: View {
+    let id: Int64
+    let initialBlurb: String?
+    let onSaved: () -> Void
+
+    @State private var title: String
+    @State private var visibility: CollectionVisibility
+    @State private var ordered: Bool
+    @State private var saving = false
+    @Environment(\.dismiss) private var dismiss
+    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
+
+    init(
+        id: Int64, initialTitle: String, initialBlurb: String?,
+        initialVisibility: CollectionVisibility, initialOrdered: Bool, onSaved: @escaping () -> Void
+    ) {
+        self.id = id
+        self.initialBlurb = initialBlurb
+        self.onSaved = onSaved
+        _title = State(initialValue: initialTitle)
+        _visibility = State(initialValue: initialVisibility)
+        _ordered = State(initialValue: initialOrdered)
+    }
+
+    var body: some View {
+        ScrollView {
+            fields
+                .padding(.horizontal, Metrics.gutter)
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
             Button {
                 Task { await save() }
             } label: {
@@ -307,12 +286,42 @@ struct EditCollectionSheet: View {
             .glassCapsule(prominent: true)
             .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || saving)
             .opacity(title.trimmingCharacters(in: .whitespaces).isEmpty ? 0.5 : 1)
+            .padding(.horizontal, Metrics.gutter)
             .padding(.bottom, 16)
+            .background(Palette.sheetBg)
         }
-        .padding(.horizontal, Metrics.gutter)
-        .presentationDetents([.height(280)])
+        .presentationDetents([.height(360)])
         .presentationDragIndicator(.visible)
-        .background(Palette.readingBg)
+        .background(Palette.sheetBg)
+    }
+
+    private var fields: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("컬렉션 수정")
+                .typeScale(.titleSmall)
+                .foregroundStyle(Palette.ink)
+                .padding(.top, 26)
+
+            // 회색 채움 박스 대신 밑줄 — 입력이되 박스 없이(§10).
+            VStack(alignment: .leading, spacing: 9) {
+                TextField("컬렉션 이름", text: $title)
+                    .font(.system(size: 17 * unit))
+                    .foregroundStyle(Palette.ink)
+                Hairline()
+            }
+            .padding(.top, 18)
+
+            Picker("공개 범위", selection: $visibility) {
+                ForEach([CollectionVisibility.private, .unlisted, .public], id: \.self) { v in
+                    Text(v.label).tag(v)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.top, 16)
+
+            OrderedToggle(isOn: $ordered)
+                .padding(.top, 16)
+        }
     }
 
     private func save() async {
@@ -321,7 +330,7 @@ struct EditCollectionSheet: View {
         do {
             try await CollectionsAPI.edit(
                 id: id, title: title.trimmingCharacters(in: .whitespaces),
-                description: initialBlurb, visibility: visibility)
+                description: initialBlurb, visibility: visibility, ordered: ordered)
             onSaved()
             dismiss()
         } catch {

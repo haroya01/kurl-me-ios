@@ -130,6 +130,7 @@ private struct NotificationsSheet: View {
             NotificationsView()
                 .navigationDestination(for: Route.self) { RouteView(route: $0) }
         }
+        .environment(\.readerInSheet, true)
         .onChange(of: TabRouter.shared.pendingPushRoute) { _, route in
             if let route { path = [route] }
         }
@@ -197,7 +198,7 @@ struct RootView: View {
             }
         } else if Config.launchValue(after: "--screen") == "loginsheet" {
             // 로그인 시트는 인게이지 탭으로만 떠 simctl 로 못 띄운다 — 검증 진입로.
-            Color(uiColor: .systemBackground).ignoresSafeArea()
+            Palette.readingBg.ignoresSafeArea()
                 .sheet(isPresented: .constant(true)) {
                     LoginSheet(message: "좋아요를 누르려면 로그인하세요")
                 }
@@ -298,6 +299,7 @@ struct RootView: View {
                     PostDetailView(username: ref.username, slug: ref.slug)
                         .navigationDestination(for: Route.self) { RouteView(route: $0) }
                 }
+                .environment(\.readerInSheet, true)
             }
             // 푸시 탭 — 알림함 시트. 인박스 안의 딥링크(글·컬렉션)가 같은 스택에서 이어 밀린다.
             .sheet(
@@ -320,6 +322,7 @@ struct RootView: View {
             }
             // 위젯 몫의 분석 신선도 — 분석 화면을 열지 않아도 앱이 열릴 때 조용히 당겨 둔다.
             .task { await AnalyticsSnapshot.refreshIfStale() }
+            .task(id: AuthStore.shared.isSignedIn) { await MyPostsCache.prefetch() }
             // `--widget kurlwidget://…` — 위젯 탭은 simctl·UITest 로 못 넣으니 검증 진입로.
             .task {
                 if let link = Config.launchValue(after: "--widget").flatMap(URL.init(string:)) {
@@ -391,7 +394,7 @@ struct RootView: View {
             // 탭을 갈아타면 항상 보이는 상태로 — 새 탭이 숨은 바로 시작하지 않게.
             tabBarVisibility.reset()
         }
-        .tint(.brand)
+        .tint(Palette.ink)
         // Dynamic Type 은 따르되 상한을 둔다 — 그 위 극단 크기는 카드/덱 레이아웃이 깨진다.
         .dynamicTypeSize(...DynamicTypeSize.accessibility2)
         .modifier(ToastHost())
@@ -587,7 +590,7 @@ private struct FloatingTabBar<TabMenu: View>: View {
         let center = dragX.map { min(max($0, slot / 2), rowWidth - slot / 2) }
             ?? (CGFloat(selection.wrappedValue) + 0.5) * slot
         return Capsule()
-            .fill(Palette.hairlineStrong)
+            .fill(Palette.tabSelection)
             .frame(width: width, height: 48)
             .offset(x: center - width / 2)
             .opacity(rowWidth > 0 ? 1 : 0)
@@ -609,7 +612,7 @@ private struct FloatingTabBar<TabMenu: View>: View {
     private func icon(_ name: String, active: Bool) -> some View {
         Image(systemName: name)
             .font(.system(size: min(iconSize, 28), weight: active ? .semibold : .regular))
-            .foregroundStyle(active ? AnyShapeStyle(Palette.link) : AnyShapeStyle(.secondary))
+            .foregroundStyle(active ? AnyShapeStyle(Palette.ink) : AnyShapeStyle(.secondary))
             .frame(maxWidth: .infinity)
             .frame(height: 44)
             .contentShape(Rectangle())
@@ -623,7 +626,7 @@ private struct WebIntroHarness: View {
     @State private var open = true
 
     var body: some View {
-        Color(uiColor: .systemBackground).ignoresSafeArea()
+        Palette.readingBg.ignoresSafeArea()
             .sheet(isPresented: $open) { WebIntroSheet() }
     }
 }
@@ -632,7 +635,7 @@ private struct ConnectHarness: View {
     @State private var open = true
 
     var body: some View {
-        Color(uiColor: .systemBackground).ignoresSafeArea()
+        Palette.readingBg.ignoresSafeArea()
             .sheet(isPresented: $open) {
                 ConnectSheet(
                     targetKind: "글", targetTitle: "헥사고날로 갈아탄 지 석 달, 무엇이 남았나",

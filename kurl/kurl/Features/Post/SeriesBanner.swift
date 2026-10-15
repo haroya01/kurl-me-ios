@@ -67,7 +67,7 @@ struct SeriesBanner: View {
                             .font(.system(size: 10 * metaUnit, weight: .semibold))
                             .rotationEffect(.degrees(expanded ? 180 : 0))
                     }
-                    .foregroundStyle(expanded ? Palette.link : Palette.secondary)
+                    .foregroundStyle(expanded ? Palette.ink : Palette.secondary)
                     .expandTapTarget()
                 }
                 .buttonStyle(.plain)
@@ -117,7 +117,7 @@ struct SeriesBanner: View {
                 .padding(.vertical, 6)
         } else {
             ProgressView()
-                .tint(Palette.accent)
+                .tint(Palette.secondary)
                 .padding(.vertical, 6)
         }
     }
@@ -153,7 +153,7 @@ struct SeriesBanner: View {
     private func episodeArrow(systemName: String, link: SeriesItemLink?, label: String) -> some View {
         let icon = Image(systemName: systemName)
             .font(.system(size: 13 * metaUnit, weight: .semibold))
-            .foregroundStyle(link != nil ? Palette.link : Palette.faint)
+            .foregroundStyle(link != nil ? Palette.ink : Palette.faint)
             .frame(width: 44, height: 44)
             .contentShape(Rectangle())
         if let link, !link.isNote, let slug = link.slug, let go = goToEpisode {
@@ -238,7 +238,7 @@ struct SeriesNextCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("다음 편")
                 .typeScale(.eyebrow)
-                .foregroundStyle(Palette.link)
+                .foregroundStyle(Palette.heading)
             HStack(alignment: .center, spacing: 12) {
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
@@ -279,7 +279,7 @@ struct SeriesNoteMark: View {
     var body: some View {
         Text("노트")
             .font(.system(size: size, weight: .semibold))
-            .foregroundStyle(current ? Palette.link : Palette.faint)
+            .foregroundStyle(current ? Palette.link : Palette.secondary)
             .accessibilityHidden(true)
     }
 }

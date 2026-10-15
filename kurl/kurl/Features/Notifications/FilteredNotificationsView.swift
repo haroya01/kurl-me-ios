@@ -70,12 +70,8 @@ struct FilteredNotificationsView: View {
                     retry: { Task { await store.load() } })
                     .padding(.top, 60)
             } else if store.senders.isEmpty {
-                ContentUnavailableView {
-                    Text("걸러진 알림이 없어요").bold()
-                } description: {
-                    Text("설정의 알림 거르기에서 어떤 알림을 따로 둘지 고를 수 있어요.")
-                }
-                .padding(.top, 60)
+                FeedPlaceholder(title: "걸러진 알림이 없어요")
+                    .padding(.top, 24)
             } else {
                 Text("알림 거르기가 따로 둔 알림이에요. 받으면 그 사람의 알림이 목록에 들어오고 앞으로도 와요.")
                     .typeScale(.footnote)
@@ -109,10 +105,11 @@ struct FilteredNotificationsView: View {
             HStack(spacing: 8) {
                 Button("버리기") { Task { await store.answer(sender, accept: false) } }
                     .buttonStyle(.glass)
+                    .foregroundStyle(.secondary)
                     .accessibilityIdentifier("filtered.dismiss")
                 Button("받기") { Task { await store.answer(sender, accept: true) } }
-                    .buttonStyle(.glassProminent)
-                    .tint(Palette.accentFill)
+                    .buttonStyle(.glass)
+                    .fontWeight(.semibold)
                     .accessibilityIdentifier("filtered.accept")
             }
             .controlSize(.small)

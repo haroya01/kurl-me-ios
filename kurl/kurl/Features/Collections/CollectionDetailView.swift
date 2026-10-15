@@ -21,7 +21,7 @@ struct CollectionDetailView: View {
     @State private var showEdit = false
     @State private var showDeleteConfirm = false
     @State private var showReorder = false
-    // 길 이어읽기 기억(기기 로컬) — 스텝을 열면 여기 도달 index 가 오르고, @Observable 이라
+    // 순서대로 읽기의 이어읽기 기억(기기 로컬) — 스텝을 열면 여기 도달 index 가 오르고, @Observable 이라
     // 돌아오면 현재 스텝 강조·진행률·연속성 바가 곧바로 갱신된다. 서버 0.
     @State private var resume = PathResumeStore.shared
     @Environment(\.dismiss) private var dismiss
@@ -30,9 +30,6 @@ struct CollectionDetailView: View {
     private var isOwner: Bool {
         detail?.curatorUsername != nil && detail?.curatorUsername == AuthStore.shared.me?.username
     }
-
-    /// 길(순서 있는 읽기 여정)인지 — 삭제 확인 문구를 "컬렉션"과 "길"로 가른다(툴바와 같은 분기).
-    private var isPath: Bool { detail?.kind == .path }
 
     /// "취향이 겹치는 큐레이터"를 보일지 — 비공개거나 아직 아무것도 안 담긴 컬렉션엔 겹칠 취향이 없다.
     /// 빈·비공개 상세에 남 추천이 뜨면 "왜 여기 있지" 하는 잡음이라, 그런 표면엔 아예 렌더하지 않는다.
@@ -48,8 +45,8 @@ struct CollectionDetailView: View {
             } else if let detail {
                 header(detail)
                 Hairline().padding(.bottom, 4)
-                if detail.kind == .path {
-                    // PATH = reading path. 리스트가 아니라 순번으로 잇는 가이드 워크(문장→왜→문장).
+                if detail.isOrdered {
+                    // 순서대로 읽기 — 리스트가 아니라 순번으로 잇는 가이드 워크(문장→왜→문장).
                     pathWalk()
                 } else {
                     LazyVStack(spacing: 0) {
@@ -85,7 +82,7 @@ struct CollectionDetailView: View {
                         } label: {
                             Label("수정", systemImage: "pencil")
                         }
-                        if detail.kind == .path, connections.count > 1 {
+                        if detail.isOrdered, connections.count > 1 {
                             Button {
                                 showReorder = true
                             } label: {
@@ -95,12 +92,12 @@ struct CollectionDetailView: View {
                         Button(role: .destructive) {
                             showDeleteConfirm = true
                         } label: {
-                            Label(detail.kind == .path ? "길 삭제" : "컬렉션 삭제", systemImage: "trash")
+                            Label("컬렉션 삭제", systemImage: "trash")
                         }
                     } label: {
                         Image(systemName: "ellipsis")
                     }
-                    .tint(.brand)
+                    .tint(.primary)
                     .accessibilityLabel(Text("컬렉션 관리"))
                     // detail 변화에 메뉴가 최신 값을 쓰도록 id 고정.
                     .id(detail.id)
@@ -110,8 +107,9 @@ struct CollectionDetailView: View {
         .sheet(isPresented: $showEdit) {
             if let detail {
                 EditCollectionSheet(
-                    id: detail.id, kind: detail.kind, initialTitle: detail.title,
-                    initialBlurb: detail.blurb, initialVisibility: detail.visibility
+                    id: detail.id, initialTitle: detail.title,
+                    initialBlurb: detail.blurb, initialVisibility: detail.visibility,
+                    initialOrdered: detail.isOrdered
                 ) { Task { await load() } }
             }
         }
@@ -120,11 +118,11 @@ struct CollectionDetailView: View {
                 PathReorderSheet(detail: detail) { Task { await load() } }
             }
         }
-        .alert(isPath ? "이 길을 삭제할까요?" : "이 컬렉션을 삭제할까요?", isPresented: $showDeleteConfirm) {
+        .alert("이 컬렉션을 삭제할까요?", isPresented: $showDeleteConfirm) {
             Button("삭제", role: .destructive) { Task { await deleteCollection() } }
             Button("취소", role: .cancel) {}
         } message: {
-            Text(isPath
+            Text(detail?.isOrdered == true
                 ? "엮은 순서와 연결이 함께 사라져요. 연결된 글·노트 자체는 지워지지 않아요."
                 : "담긴 연결도 함께 사라져요. 연결된 글·노트 자체는 지워지지 않아요.")
         }
@@ -211,7 +209,7 @@ struct CollectionDetailView: View {
             Spacer(minLength: 8)
             Text("\(item.sharedItems)개 함께 엮음")
                 .typeScale(.meta)
-                .foregroundStyle(Palette.faint)
+                .foregroundStyle(Palette.secondary)
             // 형제 작가 행(검색 추천작가·발견 큐레이터 입구)과 같은 이동 신호 — 이 행도 작가로 항해한다.
             Image(systemName: "chevron.right")
                 .font(.system(size: 11, weight: .semibold))
@@ -256,11 +254,11 @@ struct CollectionDetailView: View {
                 Text(detail.visibility.label)
                 Text("·").foregroundStyle(Palette.faint)
                 Text("\(connections.count)개")
-                // 길이면 진행률 한 조각 — "목록"이 아니라 "읽어 내려가는 것"이라는 신호.
-                if detail.kind == .path, let reached = readReached, reached > 0 {
+                // 순서대로 읽는 컬렉션이면 진행률 한 조각 — "목록"이 아니라 "읽어 내려가는 것"이라는 신호.
+                if detail.isOrdered, let reached = readReached, reached > 0 {
                     Text("·").foregroundStyle(Palette.faint)
                     Text("\(reached) / \(connections.count) 읽음")
-                        .foregroundStyle(Palette.link)
+                        .foregroundStyle(Palette.ink)
                         .fontWeight(.semibold)
                 }
             }
@@ -304,7 +302,7 @@ struct CollectionDetailView: View {
         }
     }
 
-    // MARK: 길(PATH) — 순번으로 잇는 가이드 워크. 큐레이터의 "왜"가 문장과 문장을 잇는 흐름.
+    // MARK: 순서대로 읽기 — 순번으로 잇는 가이드 워크. 큐레이터의 "왜"가 문장과 문장을 잇는 흐름.
     //        P2: "목록"이 아니라 "읽는 목적지" — 현재 스텝 강조 + 이어읽기 연속성 + 진행률.
 
     /// 이 스텝이 열어 읽을 수 있는 목적지인가(글·하이라이트만; 노트는 그 자리 텍스트). 있으면 그 경로.
@@ -423,7 +421,7 @@ struct CollectionDetailView: View {
         }
     }
 
-    // MARK: 이어읽기 연속성 바 — "지금 여기 · N/M" + "이어서 N편 읽기" + 계속 → (초록 틴트, 종이 문법)
+    // MARK: 이어읽기 연속성 바 — "지금 여기 · N/M" + "이어서 N편 읽기" + 계속 → (종이 문법)
 
     @ViewBuilder
     private func continuityBar(index: Int, total: Int) -> some View {
@@ -437,7 +435,7 @@ struct CollectionDetailView: View {
                 Text("지금 여기 · \(index + 1) / \(total)")
                     .typeScale(.footnote)
                     .fontWeight(.semibold)
-                    .foregroundStyle(Palette.link)
+                    .foregroundStyle(Palette.secondary)
                 Text(remaining > 1 ? "이어서 \(remaining)편 읽기" : "마지막 편 읽기")
                     .typeScale(.body)
                     .fontWeight(.semibold)
@@ -457,12 +455,11 @@ struct CollectionDetailView: View {
         .padding(.horizontal, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            // 초록 틴트 종이 캡슐 — 유리 없이(§1) accent 를 옅게 실어 "지금 여기"를 데운다.
             RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
-                .fill(Palette.accent.opacity(0.07))
+                .fill(Palette.cardBg)
                 .overlay(
                     RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
-                        .strokeBorder(Palette.accent.opacity(0.22), lineWidth: 1))
+                        .strokeBorder(Palette.cardBorder, lineWidth: 1))
         )
         .contentShape(Rectangle())
 
@@ -481,7 +478,7 @@ struct CollectionDetailView: View {
                 Text("지금 여기 · \(index + 1) / \(total)")
                     .typeScale(.footnote)
                     .fontWeight(.semibold)
-                    .foregroundStyle(Palette.link)
+                    .foregroundStyle(Palette.secondary)
                 Spacer(minLength: 0)
             }
         }
@@ -489,17 +486,12 @@ struct CollectionDetailView: View {
 
     private var emptyState: some View {
         // 막다른 길 금지 — 빈 컬렉션은 이을 글을 찾으러 피드로 이어준다(다른 빈 면과 같은 언어).
-        // 큐레이터 본인에겐 "어떻게 채우는지" 동사("잇기")를 가르친다 — 남에겐 그냥 비었다고만.
         FeedPlaceholder(
             title: "아직 연결된 글이 없어요",
-            message: isOwner
-                ? "글이나 하이라이트에서 \"컬렉션에 잇기\"로 이 컬렉션에 이어 채워요."
-                : "아직 담긴 글이 없어요.",
             actionTitle: "읽을 글 찾기",
             action: { TabRouter.shared.selection = 0 }
         )
-        .frame(maxWidth: .infinity)
-        .padding(.top, 40)
+        .padding(.top, 24)
     }
 
     private var failedState: some View {

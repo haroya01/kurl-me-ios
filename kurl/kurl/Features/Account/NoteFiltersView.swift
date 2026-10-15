@@ -14,12 +14,9 @@ struct NoteFiltersView: View {
     var body: some View {
         List {
             if store.filters.isEmpty, !loading {
-                ContentUnavailableView {
-                    Text("키워드 필터가 없어요").bold()
-                } description: {
-                    Text("보고 싶지 않은 말이 든 노트를 접거나 숨겨요. 내 노트에는 걸리지 않아요.")
-                }
-                .listRowBackground(Color.clear)
+                FeedPlaceholder(title: "키워드 필터가 없어요", actionTitle: "필터 추가", action: { adding = true })
+                    .padding(.vertical, 6)
+                    .listRowBackground(Color.clear)
             }
             ForEach(store.filters) { filter in
                 Button { editing = filter } label: { row(filter) }
@@ -153,6 +150,7 @@ struct NoteFilterEditor: View {
                     TextField("키워드나 문구", text: $phrase)
                         .accessibilityIdentifier("noteFilter.phrase")
                     Toggle("단어 전체가 맞을 때만", isOn: $wholeWord)
+                        .tint(Palette.accent)
                 } footer: {
                     Text("끄면 \"고양이\"가 \"고양이가\"에도 걸려요. 한국어는 조사가 붙어서 꺼 두는 편이 맞아요.")
                 }
@@ -163,6 +161,7 @@ struct NoteFilterEditor: View {
                             set: { on in
                                 if on { contexts.insert(context) } else { contexts.remove(context) }
                             }))
+                        .tint(Palette.accent)
                         .accessibilityIdentifier("noteFilter.context.\(context.rawValue)")
                     }
                 }
@@ -196,6 +195,7 @@ struct NoteFilterEditor: View {
                     }
                     .disabled(!canSave)
                     .accessibilityIdentifier("noteFilter.save")
+                    .tint(Palette.link)
                 }
             }
             .alert("이 필터를 지울까요?", isPresented: $confirmDelete) {

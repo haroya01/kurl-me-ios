@@ -100,15 +100,12 @@ struct ConnectionEventRow: View {
 
     private var contextText: Text {
         let curator = Text(event.curator.username).foregroundStyle(Palette.secondary)
-        let collection = Text(event.collectionTitle).foregroundStyle(Palette.link)
-        let phrase: Text = event.collectionKind == .path
-            ? Text("\(curator)가 \(collection) 길에 엮음")
-            : Text("\(curator)가 \(collection)에 연결")
-        var line = phrase.foregroundStyle(Palette.secondary)
+        let collection = Text(event.collectionTitle).foregroundStyle(Palette.ink)
+        var line = Text("\(curator)가 \(collection)에 연결").foregroundStyle(Palette.secondary)
         if let at = event.connectedAt {
             line = line
                 + Text(verbatim: "  ·  ").foregroundStyle(Palette.faint)
-                + Text(at.relativeShort).foregroundStyle(Palette.faint)
+                + Text(at.relativeShort).foregroundStyle(Palette.secondary)
         }
         return line
     }
@@ -117,7 +114,7 @@ struct ConnectionEventRow: View {
 /// 연결된 블록 — 일반 글 카드 문법으로 수렴한 미니멀 렌더(웹 #894 미러). 글·상세 "이어진 것"·
 /// 컬렉션 상세·하이라이트 스레드가 이 하나를 공유하므로, 장식 꼬리표(타입 태그·문서/인용/노트
 /// 아이콘)와 중첩 박스를 걷어 연결된 것 자체가 종이 위 주인공이 되게 한다. 종류 구분은 실루엣만:
-/// 글=제목이 카드 제목 급 · 하이라이트=그린 좌측 스파인 + 구절(칠한 구절이 콘텐츠) · 노트=본문 그대로.
+/// 글=제목이 카드 제목 급 · 하이라이트=읽기 화면과 같은 칠을 깐 구절 · 노트=본문 그대로.
 struct BlockPreview: View {
     let block: ConnectionBlock
 
@@ -146,24 +143,16 @@ struct BlockPreview: View {
             .buttonStyle(.plain)
 
         case let .highlight(quote, postTitle, username, slug):
-            // 하이라이트 = 칠한 구절이 주인공. 그린 좌측 스파인만 남기고(구절이 콘텐츠) 인용 아이콘·
-            // "하이라이트" 태그 제거. 탭 = 글의 *그 문장*으로 딥링크. 출처 제목은 조용한 한 줄.
+            // 탭 = 글의 *그 문장*으로 딥링크. 출처 제목은 조용한 한 줄.
             NavigationLink(value: Route.postFocusQuote(username: username, slug: slug, quote: quote)) {
-                HStack(alignment: .top, spacing: 12) {
-                    RoundedRectangle(cornerRadius: 1.5)
-                        .fill(Palette.accent)
-                        .frame(width: 3)
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(quote)
-                            .typeScale(.body)
-                            .foregroundStyle(Palette.body)
-                            .multilineTextAlignment(.leading)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text(postTitle)
-                            .typeScale(.meta)
-                            .foregroundStyle(Palette.faint)
-                            .lineLimit(1)
-                    }
+                VStack(alignment: .leading, spacing: 6) {
+                    HighlightQuote(
+                        quote: quote, mine: false, hasThread: false, sweeps: false,
+                        size: 15.5, relativeTo: .callout, lineSpacing: 0.3, identifier: "collectionHighlight.quote")
+                    Text(postTitle)
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.secondary)
+                        .lineLimit(1)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())

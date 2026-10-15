@@ -278,9 +278,9 @@ final class NotesFeedUITests: XCTestCase {
         app.launch()
         openNotes(app)
 
-        let replies = app.buttons["note.replies.9501"]
-        XCTAssertTrue(replies.waitForExistence(timeout: 10), "답글 버튼 없음")
-        replies.tap()
+        let body = app.buttons["note.body.9501"]
+        XCTAssertTrue(body.waitForExistence(timeout: 10), "노트 본문 없음")
+        body.tap()
 
         let bookmark = app.buttons["note.bookmark.9501"]
         XCTAssertTrue(bookmark.waitForExistence(timeout: 8), "상세 수치 줄에 북마크가 없음")
@@ -310,9 +310,9 @@ final class NotesFeedUITests: XCTestCase {
         app.launch()
         openNotes(app)
 
-        let replies = app.buttons["note.replies.9501"]
-        XCTAssertTrue(replies.waitForExistence(timeout: 10), "답글 버튼 없음")
-        replies.tap()
+        let body = app.buttons["note.body.9501"]
+        XCTAssertTrue(body.waitForExistence(timeout: 10), "노트 본문 없음")
+        body.tap()
         let quotes = app.buttons["note.quotes.9501"]
         XCTAssertTrue(quotes.waitForExistence(timeout: 6), "인용 줄이 없음")
         quotes.tap()
@@ -445,9 +445,9 @@ final class NotesFeedUITests: XCTestCase {
         app.launch()
         openNotes(app)
 
-        let replies = app.buttons["note.replies.9501"]
-        XCTAssertTrue(replies.waitForExistence(timeout: 10), "답글 버튼 없음")
-        replies.tap()
+        let body = app.buttons["note.body.9501"]
+        XCTAssertTrue(body.waitForExistence(timeout: 10), "노트 본문 없음")
+        body.tap()
 
         let mention = app.links["@yuki_dev"].firstMatch
         XCTAssertTrue(mention.waitForExistence(timeout: 8), "답글의 @멘션이 링크가 아님")
@@ -478,8 +478,9 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(cover.waitForNonExistence(timeout: 4), "눌러도 사진이 안 보임")
         let reveal = app.buttons["note.reveal.9506"]
         for _ in 0..<4 where !reveal.isHittable { app.swipeDown() }
+        XCTAssertEqual(reveal.label, "가려진 내용", "가린 본문이 한 버튼으로 읽히지 않음")
         reveal.tap()
-        XCTAssertTrue(spoiler.waitForExistence(timeout: 4), "내용 보기를 눌러도 본문이 안 펼쳐짐")
+        XCTAssertTrue(spoiler.waitForExistence(timeout: 4), "가린 본문을 눌러도 펼쳐지지 않음")
     }
 
     func testTheComposerSendsAContentWarning() throws {
@@ -608,9 +609,12 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 6), "새 리스트가 안 생김")
         XCTAssertTrue(row.isSelected, "만든 리스트에 담기지 않음")
         attach(app, "note-list-membership")
-        app.buttons["완료"].firstMatch.tap()
+        app.navigationBars["리스트에 추가"].buttons["완료"].tap()
+        XCTAssertTrue(title.waitForNonExistence(timeout: 6), "리스트에 추가 시트가 안 닫힘")
 
-        app.navigationBars.buttons.element(boundBy: 0).tap()
+        let back = app.navigationBars.buttons["BackButton"].firstMatch
+        wait(for: [expectation(for: NSPredicate(format: "hittable == true"), evaluatedWith: back)], timeout: 6)
+        back.tap()
         openMore(app, "동료")
         assertMoreFeed(app, "동료")
         XCTAssertTrue(app.buttons["note.menu.9501"].waitForExistence(timeout: 8), "담은 사람의 노트가 리스트에 없음")
@@ -969,7 +973,7 @@ final class NotesFeedUITests: XCTestCase {
         attach(app, "display-name-row")
     }
 
-    func testANotesRepliesOpenFromItsRow() throws {
+    func testTheReplyIconOpensTheComposerAndTheRowOpensTheNote() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]
         app.launch()
@@ -978,27 +982,39 @@ final class NotesFeedUITests: XCTestCase {
         let replies = app.buttons["note.replies.9501"]
         XCTAssertTrue(replies.waitForExistence(timeout: 10), "답글 버튼 없음")
         replies.tap()
-
-        let reply = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "label CONTAINS '이름이 경계라는 말'")).firstMatch
-        XCTAssertTrue(reply.waitForExistence(timeout: 8), "노트 상세에 답글이 안 보임")
-        XCTAssertTrue(app.buttons["note.reply"].waitForExistence(timeout: 3), "답글 달기 버튼 없음")
-
-        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
-        shot.name = "note-thread"
-        shot.lifetime = .keepAlways
-        add(shot)
-
-        app.buttons["note.reply"].tap()
         let field = app.textFields["noteCompose.text"]
-        XCTAssertTrue(field.waitForExistence(timeout: 5), "아래 답글 줄을 눌러도 답글 시트가 안 열림")
+        XCTAssertTrue(field.waitForExistence(timeout: 5), "답글 아이콘이 답글 시트를 열지 않음")
         XCTAssertTrue(app.navigationBars["답글"].exists, "답글 시트 제목이 답글이 아님")
+        XCTAssertTrue(
+            app.descendants(matching: .any)["noteCompose.replyTarget"].exists, "답글 시트에 답할 노트가 없음")
+        XCTAssertFalse(app.buttons["noteCompose.schedule"].exists, "답글 시트에 예약이 남음")
+        XCTAssertFalse(app.buttons["noteCompose.addPart"].exists, "답글 시트에 스레드에 추가가 남음")
+        attach(app, "note-reply-sheet-from-row")
         app.navigationBars.buttons["취소"].tap()
         XCTAssertFalse(field.waitForExistence(timeout: 2), "빈 답글 시트가 취소로 닫히지 않음")
 
-        let replyThread = app.buttons["note.replies.9551"]
-        XCTAssertTrue(replyThread.waitForExistence(timeout: 5), "답글 행에 답글 버튼이 없음")
-        replyThread.tap()
+        app.buttons["note.body.9501"].tap()
+        let reply = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS '이름이 경계라는 말'")).firstMatch
+        XCTAssertTrue(reply.waitForExistence(timeout: 8), "노트 상세에 답글이 안 보임")
+        XCTAssertTrue(app.buttons["note.reply"].waitForExistence(timeout: 3), "아래 답글 줄 없음")
+        attach(app, "note-thread")
+
+        app.buttons["note.reply"].tap()
+        XCTAssertTrue(field.waitForExistence(timeout: 5), "아래 답글 줄을 눌러도 답글 시트가 안 열림")
+        field.typeText("맨 위에 서는 답글")
+        app.buttons["noteCompose.post"].tap()
+        let notice = app.alerts.firstMatch
+        if notice.waitForExistence(timeout: 4) { notice.buttons["알겠어요, 올릴게요"].tap() }
+        let posted = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS '맨 위에 서는 답글'")).firstMatch
+        XCTAssertTrue(posted.waitForExistence(timeout: 8), "올린 답글이 상세에 안 보임")
+        XCTAssertLessThan(posted.frame.minY, reply.frame.minY, "본 노트에 단 답글이 답글 맨 위에 서지 않음")
+        attach(app, "note-reply-landed")
+
+        let replyRow = app.buttons["note.body.9551"]
+        XCTAssertTrue(replyRow.waitForExistence(timeout: 5), "답글 행 본문이 없음")
+        replyRow.tap()
         let parent = app.descendants(matching: .any)
             .matching(NSPredicate(format: "label CONTAINS '헥사고날 포트'")).firstMatch
         XCTAssertTrue(parent.waitForExistence(timeout: 8), "답글 상세 위에 원글이 안 보임")
@@ -1025,7 +1041,7 @@ final class NotesFeedUITests: XCTestCase {
 
         app.navigationBars.buttons["취소"].tap()
         app.alerts.firstMatch.buttons["버리기"].tap()
-        XCTAssertFalse(field.waitForExistence(timeout: 2), "버리기 뒤에도 시트가 남음")
+        XCTAssertTrue(field.waitForNonExistence(timeout: 6), "버리기 뒤에도 시트가 남음")
 
         let photo = app.descendants(matching: .any)
             .matching(NSPredicate(format: "label == '비 오는 창밖'")).firstMatch
@@ -1198,9 +1214,12 @@ final class NotesFeedUITests: XCTestCase {
         while !linked.isHittable, tries < 4 { app.swipeUp(); tries += 1 }
         let link = linked.links.firstMatch
         XCTAssertTrue(link.waitForExistence(timeout: 4), "본문 안 주소가 링크로 남아 있지 않음")
+        // 떠 있는 탭바가 화면 아래를 덮는다 — 링크가 그 밑에 걸려 있으면 탭이 탭바로 간다.
+        let bottom = app.windows.firstMatch.frame.maxY
+        while link.frame.maxY > bottom - 140, tries < 8 { app.swipeUp(velocity: .slow); tries += 1 }
         link.tap()
         let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
-        XCTAssertTrue(safari.wait(for: .runningForeground, timeout: 10), "본문 안 링크를 눌러도 주소가 열리지 않음")
+        XCTAssertTrue(safari.wait(for: .runningForeground, timeout: 20), "본문 안 링크를 눌러도 주소가 열리지 않음")
         app.activate()
     }
 

@@ -517,3 +517,309 @@ final class WriteV2HistoryTests: XCTestCase {
     }
 
 }
+
+@MainActor
+final class WriteV2LinkInsertTests: XCTestCase {
+    private static var retained: [EditorDocument] = []
+    private static var bridges: [BlockTextView.Coordinator] = []
+    private let article = "https://example.com/article"
+    private let video = "https://youtu.be/dQw4w9WgXcQ"
+
+    private func document(_ blocks: [EditorBlock]) -> EditorDocument {
+        let doc = EditorDocument(blocks: blocks)
+        Self.retained.append(doc)
+        return doc
+    }
+
+    private func plan(_ pasted: String, kind: EditorBlockKind = .paragraph, text: String, selection: NSRange, image: Bool = true) -> EditorPastePlan {
+        EditorLinkMarkup.plan(pasted: pasted, kind: kind, text: text, selection: selection, canImportImage: image)
+    }
+
+    private func pasteBridge(_ doc: EditorDocument) -> BlockUITextView {
+        let block = doc.blocks[0]
+        let view = BlockTextView(
+            block: block, isFocused: true, caretOnFocus: 0,
+            onTextChange: { doc.updateText(block.id, $0) },
+            onSplit: { _, _ in nil }, onMergeBackward: {}, onLineHeadShortcut: { _, _, _ in },
+            onFocused: {}, onSelectionChange: { _, _ in })
+        let coordinator = view.makeCoordinator()
+        let textView = BlockUITextView()
+        Self.bridges.append(coordinator)
+        textView.delegate = coordinator
+        textView.text = block.text
+        textView.currentBlockText = block.text
+        textView.pasteBlockKind = block.kind
+        textView.onSeparateEdit = { doc.breakUndoCoalescing() }
+        return textView
+    }
+
+    // MARK: 붙여넣기 규칙
+
+    func testSelectedTextBecomesALinkWithoutAnySheet() {
+        let text = "먼저 읽어 볼 글이 있어요"
+        let selection = (text as NSString).range(of: "읽어 볼 글")
+        XCTAssertEqual(plan(article, text: text, selection: selection), .linkSelection(url: article))
+        XCTAssertEqual(plan(article + "\n", text: text, selection: selection), .linkSelection(url: article))
+    }
+
+    func testURLAloneInAnEmptyParagraphOffersTheChoice() {
+        let empty = NSRange(location: 0, length: 0)
+        XCTAssertEqual(plan(article, text: "", selection: empty), .linkWithChoice(url: article, video: false))
+        XCTAssertEqual(plan(video, text: "", selection: empty), .linkWithChoice(url: video, video: true))
+    }
+
+    func testURLMidSentenceIsJustALink() {
+        let text = "자세한 건 참고"
+        XCTAssertEqual(plan(article, text: text, selection: NSRange(location: 6, length: 0)), .linkInline(url: article))
+        XCTAssertEqual(plan(article, kind: .heading(level: 2), text: "", selection: NSRange(location: 0, length: 0)), .linkInline(url: article))
+        XCTAssertEqual(plan(article, kind: .listItem(ordered: false, indent: 0), text: "", selection: NSRange(location: 0, length: 0)), .linkInline(url: article))
+    }
+
+    func testURLInsideMarkupOrCodeStaysLiteral() {
+        let code = "`curl ` 를 실행"
+        XCTAssertEqual(plan(article, text: code, selection: NSRange(location: 6, length: 0)), .plain)
+        let link = "[문서](https://old.example.com) 참고"
+        let urlPart = (link as NSString).range(of: "https://old.example.com")
+        XCTAssertEqual(plan(article, text: link, selection: urlPart), .plain)
+        XCTAssertEqual(plan(article, text: link, selection: NSRange(location: urlPart.location + 3, length: 0)), .plain)
+        XCTAssertEqual(plan("그냥 글자", text: "", selection: NSRange(location: 0, length: 0)), .plain)
+    }
+
+    func testSelectionInsideALinkLabelPointsThatLinkElsewhere() {
+        let link = "앞 [문서](https://old.example.com) 뒤"
+        let label = (link as NSString).range(of: "문서")
+        guard case .relink(let span, let url) = plan(article, text: link, selection: label) else {
+            return XCTFail("expected relink")
+        }
+        XCTAssertEqual(url, article)
+        XCTAssertEqual(span.url, "https://old.example.com")
+        XCTAssertEqual(span.label, "문서")
+    }
+
+    func testImageURLImportsUnlessTextIsSelected() {
+        let image = "https://cdn.example.com/a.png"
+        XCTAssertEqual(plan(image, text: "", selection: NSRange(location: 0, length: 0)), .image(url: image))
+        XCTAssertEqual(plan(image, text: "", selection: NSRange(location: 0, length: 0), image: false), .linkWithChoice(url: image, video: false))
+        XCTAssertEqual(plan(image, text: "사진", selection: NSRange(location: 0, length: 2)), .linkSelection(url: image))
+    }
+
+    func testPasteOverSelectionWritesTheLinkAndUndoesInOneStep() {
+        let doc = document([.paragraph("먼저 읽어 볼 글이 있어요")])
+        let textView = pasteBridge(doc)
+        textView.selectedRange = (textView.text as NSString).range(of: "읽어 볼 글")
+        UIPasteboard.general.string = article
+        textView.paste(nil)
+        XCTAssertEqual(doc.blocks[0].text, "먼저 [읽어 볼 글](\(article))이 있어요")
+        RunLoop.main.run(until: Date().addingTimeInterval(0.3))
+        XCTAssertEqual(doc.blocks[0].text, "먼저 [읽어 볼 글](\(article))이 있어요", "nothing rewrites the pasted address later")
+        doc.undo()
+        XCTAssertEqual(doc.blocks[0].text, "먼저 읽어 볼 글이 있어요")
+    }
+
+    func testPasteKeepsSpacesOutsideTheLink() {
+        let doc = document([.paragraph("see this link")])
+        let textView = pasteBridge(doc)
+        textView.selectedRange = NSRange(location: 4, length: 5)
+        UIPasteboard.general.string = article
+        textView.paste(nil)
+        XCTAssertEqual(doc.blocks[0].text, "see [this](\(article)) link")
+    }
+
+    func testPasteInAnEmptyParagraphLinksTheAddressAndAsksForTheShape() {
+        let doc = document([.paragraph("")])
+        let textView = pasteBridge(doc)
+        var offered: (String, Bool, NSRange)?
+        textView.onPastedLinkChoice = { offered = ($0, $1, $2) }
+        UIPasteboard.general.string = video
+        textView.paste(nil)
+        XCTAssertEqual(doc.blocks[0].text, "<\(video)>")
+        XCTAssertEqual(doc.markdown, "<\(video)>")
+        let marker = textView.attributedText.attribute(.font, at: 0, effectiveRange: nil) as? UIFont
+        XCTAssertEqual(marker?.pointSize ?? 0, 0.01, accuracy: 0.001, "the pasted link shows without its brackets")
+        RunLoop.main.run(until: Date().addingTimeInterval(0.3))
+        XCTAssertEqual(offered?.0, video)
+        XCTAssertEqual(offered?.1, true)
+        XCTAssertEqual(offered.map { (textView.text as NSString).substring(with: $0.2) }, video)
+        XCTAssertEqual(doc.blocks[0].text, "<\(video)>", "the address is not shortened")
+    }
+
+    func testPasteMidSentenceLinksWithoutAskingAndNeverShortens() {
+        let doc = document([.paragraph("자세한 건 참고")])
+        let textView = pasteBridge(doc)
+        var offered = false
+        textView.onPastedLinkChoice = { _, _, _ in offered = true }
+        textView.selectedRange = NSRange(location: 6, length: 0)
+        UIPasteboard.general.string = article
+        textView.paste(nil)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.3))
+        XCTAssertFalse(offered)
+        XCTAssertEqual(doc.blocks[0].text, "자세한 건 <\(article)>참고")
+        XCTAssertFalse(doc.markdown.contains("kurl.me"))
+    }
+
+    // MARK: 칩 — 카드로 바꾸기
+
+    func testChoosingCardTurnsTheParagraphIntoACardAsItsOwnUndoStep() {
+        let doc = document([.paragraph("앞"), .paragraph(""), .paragraph("뒤")])
+        let id = doc.blocks[1].id
+        doc.updateText(id, "<\(article)>")
+        doc.breakUndoCoalescing()
+        XCTAssertTrue(doc.convertToLinkCard(id, url: article))
+        XCTAssertEqual(doc.blocks.map(\.kind), [.paragraph, .linkCard(url: article), .paragraph])
+        XCTAssertEqual(doc.markdown, "앞\n\n\(article)\n\n뒤")
+        XCTAssertEqual(doc.focus?.blockID, doc.blocks[2].id)
+        doc.undo()
+        XCTAssertEqual(doc.blocks[1].text, "<\(article)>")
+        XCTAssertEqual(doc.blocks[1].kind, .paragraph)
+    }
+
+    func testChoosingCardAfterMoreTypingDoesNothing() {
+        let doc = document([.paragraph("<\(article)> 그리고")])
+        XCTAssertFalse(doc.convertToLinkCard(doc.blocks[0].id, url: article))
+        XCTAssertEqual(doc.blocks[0].kind, .paragraph)
+    }
+
+    // MARK: 시트 — 넣기·고치기
+
+    func testSheetTargetCarriesTheSelectionAndCardOnlyWithoutOne() {
+        let doc = document([.paragraph("먼저 **읽어 볼** 글")])
+        let id = doc.blocks[0].id
+        let selected = doc.linkTarget(at: EditorFocus(blockID: id, caret: 3, selectionLength: 8))
+        XCTAssertEqual(selected?.original, "**읽어 볼**")
+        XCTAssertEqual(selected?.shownText, "읽어 볼")
+        XCTAssertEqual(selected?.canPickCard, false)
+        XCTAssertEqual(selected?.editing, false)
+        let caret = doc.linkTarget(at: EditorFocus(blockID: id, caret: 2))
+        XCTAssertEqual(caret?.canPickCard, true)
+        XCTAssertEqual(caret?.shownText, "")
+        XCTAssertNil(doc.linkTarget(at: nil))
+    }
+
+    func testInsertingFromTheSheetKeepsTheSelectionUnlessTheTextChanged() {
+        let source = "먼저 **읽어 볼** 글"
+        for (typed, expected) in [
+            ("읽어 볼", "먼저 [**읽어 볼**](\(article)) 글"),
+            ("", "먼저 [**읽어 볼**](\(article)) 글"),
+            ("다른 글", "먼저 [다른 글](\(article)) 글"),
+        ] {
+            let doc = document([.paragraph(source)])
+            let target = doc.linkTarget(at: EditorFocus(blockID: doc.blocks[0].id, caret: 3, selectionLength: 8))!
+            XCTAssertTrue(doc.applyLink(target, text: typed, url: article))
+            XCTAssertEqual(doc.blocks[0].text, expected, "typed: \(typed)")
+        }
+    }
+
+    func testInsertingAtTheCaretUsesTheAddressWhenTextIsEmpty() {
+        let doc = document([.paragraph("앞 뒤")])
+        let target = doc.linkTarget(at: EditorFocus(blockID: doc.blocks[0].id, caret: 2))!
+        XCTAssertTrue(doc.applyLink(target, text: "", url: article))
+        XCTAssertEqual(doc.blocks[0].text, "앞 <\(article)>뒤")
+        let named = document([.paragraph("앞 뒤")])
+        XCTAssertTrue(named.applyLink(named.linkTarget(at: EditorFocus(blockID: named.blocks[0].id, caret: 2))!, text: "글", url: article))
+        XCTAssertEqual(named.blocks[0].text, "앞 [글](\(article))뒤")
+    }
+
+    func testEditingAnExistingLinkReplacesItsAddress() {
+        let doc = document([.paragraph("앞 [문서](https://old.example.com) 뒤")])
+        let id = doc.blocks[0].id
+        let target = doc.linkTarget(at: EditorFocus(blockID: id, caret: 4))!
+        XCTAssertTrue(target.editing)
+        XCTAssertFalse(target.canPickCard)
+        XCTAssertEqual(target.shownText, "문서")
+        XCTAssertEqual(target.url, "https://old.example.com")
+        XCTAssertTrue(doc.applyLink(target, text: "문서", url: article))
+        XCTAssertEqual(doc.blocks[0].text, "앞 [문서](\(article)) 뒤")
+    }
+
+    func testEditingAPastedAddressLeavesTheTextEmpty() {
+        let doc = document([.paragraph("<https://old.example.com>")])
+        let target = doc.linkTarget(at: EditorFocus(blockID: doc.blocks[0].id, caret: 5))!
+        XCTAssertEqual(target.shownText, "")
+        XCTAssertEqual(target.url, "https://old.example.com")
+        XCTAssertTrue(doc.applyLink(target, text: "", url: article))
+        XCTAssertEqual(doc.blocks[0].text, "<\(article)>")
+    }
+
+    func testCardFromTheSheetFillsAnEmptyParagraphOrFollowsTheBlock() {
+        let doc = document([.paragraph("앞"), .paragraph("")])
+        doc.placeLinkCard(article, after: doc.blocks[1].id)
+        XCTAssertEqual(doc.blocks.map(\.kind), [.paragraph, .linkCard(url: article), .paragraph])
+        let after = document([.paragraph("앞")])
+        after.placeLinkCard(video, after: after.blocks[0].id)
+        XCTAssertEqual(after.blocks.map(\.kind), [.paragraph, .linkCard(url: video), .paragraph])
+        XCTAssertTrue(after.markdown.hasPrefix("앞\n\n\(video)"))
+    }
+
+    func testLinkAndCardLinesSurviveSavingAndReopening() {
+        let doc = document([
+            .paragraph("<\(article)>"),
+            .paragraph("[읽어 볼 글](\(article))"),
+            .linkCard(article),
+            .paragraph("<\(video)>"),
+            .linkCard(video),
+            .paragraph("문장 속 <\(article)> 링크"),
+        ])
+        let saved = doc.markdown
+        XCTAssertEqual(saved, "<\(article)>\n\n[읽어 볼 글](\(article))\n\n\(article)\n\n<\(video)>\n\n\(video)\n\n문장 속 <\(article)> 링크")
+        let reopened = document(MarkdownBlockParser.parse(saved))
+        XCTAssertEqual(reopened.blocks.map(\.kind), doc.blocks.map(\.kind))
+        XCTAssertEqual(reopened.blocks.map(\.text), doc.blocks.map(\.text))
+        XCTAssertEqual(reopened.markdown, saved)
+    }
+
+    func testLinkInsertedWithoutACaretLeavesTheCaretRightAfterIt() {
+        let doc = document([.paragraph("앞")])
+        let focus = doc.insertLink(url: article, label: "글")
+        XCTAssertEqual(doc.blocks[1].text, "[글](\(article))")
+        XCTAssertEqual(focus?.blockID, doc.blocks[1].id)
+        XCTAssertEqual(focus?.caret, doc.blocks[1].text.count)
+        doc.undo()
+        XCTAssertEqual(doc.blocks.map(\.text), ["앞"])
+    }
+
+    func testLinkModeKeepsAVideoAddressALink() {
+        let doc = document([.paragraph("본문")])
+        doc.focusTail()
+        doc.insertLink(url: video, label: "")
+        XCTAssertEqual(doc.blocks[1].text, "<\(video)>")
+        XCTAssertEqual(MarkdownBlockParser.parse(doc.markdown).filter { !$0.isEmptyParagraph }.map(\.kind), [.paragraph, .paragraph])
+    }
+
+    // MARK: 링크 메뉴 — 링크 빼기
+
+    func testUnlinkKeepsTheLabel() {
+        let doc = document([.paragraph("앞 [**문서**](https://old.example.com) 뒤")])
+        let id = doc.blocks[0].id
+        let span = EditorLinkMarkup.spans(in: doc.blocks[0].text)[0]
+        XCTAssertTrue(doc.unlink(id, span: span))
+        XCTAssertEqual(doc.blocks[0].text, "앞 **문서** 뒤")
+        XCTAssertFalse(doc.unlink(id, span: span), "a stale span changes nothing")
+        doc.undo()
+        XCTAssertEqual(doc.blocks[0].text, "앞 [**문서**](https://old.example.com) 뒤")
+    }
+
+    func testTappedLabelFindsItsLinkButNotTheHiddenMarkers() {
+        let text = "앞 [문서](https://a.example.com) 중간 <https://b.example.com> `<https://c.example.com>`"
+        let ns = text as NSString
+        XCTAssertEqual(EditorLinkMarkup.span(atLabel: ns.range(of: "문서").location, in: text)?.url, "https://a.example.com")
+        XCTAssertEqual(EditorLinkMarkup.span(atLabel: ns.range(of: "https://b").location + 2, in: text)?.url, "https://b.example.com")
+        XCTAssertNil(EditorLinkMarkup.span(atLabel: ns.range(of: "[").location, in: text))
+        XCTAssertNil(EditorLinkMarkup.span(atLabel: ns.range(of: "https://c").location, in: text), "code stays code")
+    }
+
+    // MARK: 렌더 — `<url>` 은 꺾쇠 없이 링크로
+
+    func testAutolinkRendersWithoutAngleBrackets() {
+        let block = EditorBlock.paragraph("앞 <\(article)> 뒤")
+        let light = UITraitCollection(userInterfaceStyle: .light)
+        let hidden = BlockInlineRenderer.render(block)
+        let ns = hidden.string as NSString
+        let open = ns.range(of: "<").location
+        XCTAssertEqual((hidden.attribute(.font, at: open, effectiveRange: nil) as? UIFont)?.pointSize ?? 0, 0.01, accuracy: 0.001)
+        let urlColor = (hidden.attribute(.foregroundColor, at: open + 1, effectiveRange: nil) as? UIColor)?.resolvedColor(with: light)
+        XCTAssertEqual(urlColor, UIColor(Palette.link).resolvedColor(with: light))
+        let revealed = BlockInlineRenderer.render(block, activeRange: NSRange(location: open + 3, length: 0))
+        XCTAssertGreaterThan((revealed.attribute(.font, at: open, effectiveRange: nil) as? UIFont)?.pointSize ?? 0, 1)
+        XCTAssertEqual(EditorLinkMarkup.visibleText("앞 <\(article)> 뒤"), "앞 \(article) 뒤")
+    }
+}

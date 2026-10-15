@@ -8,6 +8,18 @@
 import SwiftUI
 import UIKit
 
+private struct ReaderInSheetKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// 시트에는 상단 안전영역이 없어 리더 상단 바가 시트 모서리에 잘린다. 글을 띄우는 시트 스택이 켠다.
+    var readerInSheet: Bool {
+        get { self[ReaderInSheetKey.self] }
+        set { self[ReaderInSheetKey.self] = newValue }
+    }
+}
+
 /// 시리즈 리더 셸 — 회차 전환을 뷰 스택에 쌓지 않고 `.id(currentSlug)` 로 본문을 제자리 교체한다
 /// (Apple Books·Kindle 식: 뒤로가기는 시리즈 진입 전으로, 회차마다 push 하지 않는다). 교체라
 /// 새 회차는 스크롤 최상단·읽기 진행 0·크롬/탭바 상태가 초기화되고, 조회·읽음 이벤트도 회차별로
@@ -63,6 +75,7 @@ private struct PostDetailReader: View {
     /// 커스텀 하단 탭바 숨김 상태 — 독이 탭바에 가리지 않게 예약 높이만큼 띄우되, 탭바가 스크롤로
     /// 사라지면 그 여백을 걷어 독이 허공에 뜨지 않게 한다(단독 상세에서만 있고, 덱 임베드엔 nil).
     @Environment(\.tabBarVisibility) private var tabBarVisibility
+    @Environment(\.readerInSheet) private var inSheet
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
     /// 발견 덱이 페이지로 품을 때 true — 같은 화면을 그대로 쓰되, 내비바(제목 스밈·공유)와
@@ -160,6 +173,7 @@ private struct PostDetailReader: View {
     @State private var endSentinelWasHidden = false
     @State private var keyboardUp = false
     @State private var readingDirection = TabBarVisibility()
+    @State private var readingReporter = UUID()
 
     /// 글 끝의 작가 카드·다른 글 — 작가 글 목록은 한 번만 가져와 양쪽(카드·다음 글 큐)이 쓴다.
     @State private var authorPosts: [PostListItem] = []
@@ -168,7 +182,8 @@ private struct PostDetailReader: View {
     /// 임베드(덱)는 만들지 않아 종전 렌더 그대로다.
     @State private var highlights: PostHighlightStore?
     @State private var translations = ContentTranslations.shared
-    @State private var translationSource: Locale.Language?
+    @State private var translationOffer: PostTranslationOffer?
+    @State private var translationTarget: Locale.Language?
     @State private var translationRequest: TranslationRequest?
     @State private var translatedDetail: (key: String, detail: PublicPostDetail)?
 
@@ -209,6 +224,9 @@ private struct PostDetailReader: View {
     /// 자리가 이 값을 공유하고, 상수라 크롬이 접혀도 스크롤 메트릭이 흔들리지 않는다.
     private static let topBarHeight: CGFloat = 44
 
+    private var topBarInset: CGFloat { inSheet ? 16 : 0 }
+    private var topBarSide: CGFloat { inSheet ? 16 : 10 }
+
     // 본문·끝맺음·댓글을 담은 스크롤 내용은 타입 경계(AnyView) 뒤에 둔다 — 수정자 사슬과 한 타입으로
     // 중첩되면 실기기(작은 메인 스레드 스택)에서 타입 정보를 풀다 스택이 넘쳐 글을 열자마자 꺼졌다.
     private var scrollContent: some View {
@@ -217,7 +235,7 @@ private struct PostDetailReader: View {
             // 앉힌다(바는 오버레이라 크롬이 접혀도 이 여백은 변하지 않아 본문이 출렁이지
             // 않는다). contentMargins 는 하위 중첩 스크롤에도 전파돼 쓰지 않는다.
             if !embedded {
-                Color.clear.frame(height: Self.topBarHeight)
+                Color.clear.frame(height: Self.topBarHeight + topBarInset)
             }
             switch model.phase {
             case .idle, .loading:
@@ -225,7 +243,8 @@ private struct PostDetailReader: View {
                     .frame(maxWidth: .infinity, minHeight: 320)
             case .failed(let message):
                 ErrorState(message: message, retry: { Task { await model.load() } })
-                    .padding(.top, 80)
+                    .padding(.horizontal, Metrics.gutter)
+                    .padding(.top, 24)
             case .loaded(let detail):
                 let key = translationKey(detail)
                 let showingTranslation = translations.phases[key] == .shown
@@ -282,7 +301,7 @@ private struct PostDetailReader: View {
         } action: { _, offset in
             guard !embedded, !voiceOverOn else { return }
             withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) {
-                readingDirection.report(offset: offset)
+                readingDirection.report(offset: offset, from: readingReporter)
             }
         }
         // 오른쪽 읽기 스크러버 — 시스템 인디케이터(전체 콘텐츠 기준·제어 불가) 대신 앱 소유.
@@ -333,8 +352,8 @@ private struct PostDetailReader: View {
                 ConversationComposer(
                     text: $commentDraft,
                     replyTarget: commentReplyTarget,
-                    placeholder: "댓글을 남겨보세요",
-                    replyPlaceholder: "답글을 남겨보세요",
+                    placeholder: "댓글 쓰기",
+                    replyPlaceholder: "답글 쓰기",
                     sendLabel: "댓글 보내기",
                     loginMessage: "댓글을 달려면 로그인하세요",
                     inputIdentifier: "comment.input",
@@ -515,16 +534,20 @@ private struct PostDetailReader: View {
         // 덱: 장 상단부터. 단독: 제목이 내비바로 스민 뒤(showNavTitle). 충분히 긴 글에만.
         .overlay(alignment: .top) {
             // 상단 바가 접혀도 상태바 뒤는 불투명하게 남긴다 — 진행 막대가 본문 위에 떠 보이지 않게
-            // 늘 불투명한 면의 아래 테두리에 붙는다.
+            // 늘 불투명한 면의 아래 테두리에 붙는다. 그 아래 짧은 페이드로 본문 줄이 잘리지 않고 스민다.
             if !embedded, showNavTitle {
                 Color.clear
                     .frame(height: 0)
                     .background(alignment: .bottom) {
-                        VStack(spacing: 0) {
-                            Palette.readingBg
-                            Hairline()
-                        }
-                        .ignoresSafeArea(edges: .top)
+                        Palette.readingBg
+                            .ignoresSafeArea(edges: .top)
+                    }
+                    .overlay(alignment: .top) {
+                        LinearGradient(
+                            colors: [Palette.readingBg, Palette.readingBg.opacity(0)],
+                            startPoint: .top, endPoint: .bottom)
+                            .frame(height: 14)
+                            .allowsHitTesting(false)
                     }
                     .transition(.opacity)
             }
@@ -535,9 +558,10 @@ private struct PostDetailReader: View {
         .overlay(alignment: .top) {
             if scrollable, embedded || showNavTitle {
                 ReadProgressBar(progress: scrollProgress)
-                    // 단독: 크롬이 떠 있으면 상단 바 아래 테두리 안쪽, 접히면 상태바 바탕 아래 테두리 안쪽.
-                    .padding(.top, embedded || chromeHidden ? 0 : Self.topBarHeight)
-                    .offset(y: embedded ? 0 : -ReadProgressBar.height)
+                    // 단독: 크롬이 떠 있으면 상단 바 아래 테두리 바로 밑(바 높이를 채우는 유리 원판을 덮지 않게),
+                    // 접히면 상태바 바탕 아래 테두리 안쪽.
+                    .padding(.top, embedded || chromeHidden ? 0 : Self.topBarHeight + topBarInset)
+                    .offset(y: embedded || !chromeHidden || inSheet ? 0 : -ReadProgressBar.height)
                     .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: chromeHidden)
             }
         }
@@ -614,7 +638,8 @@ private struct PostDetailReader: View {
             }
         ) {
             if let store = highlights, let id = store.threadHighlightId, let hl = store.highlight(id: id) {
-                HighlightThreadSheet(highlight: hl, store: store)
+                HighlightThreadSheet(
+                    highlight: hl, store: store, postTitle: loadedTitle, postAuthor: loadedAuthor)
             }
         }
         // 스레드에서 "컬렉션에 연결" → 닫힌 뒤 여기서 ConnectSheet(왜 한 줄)로 그래프에 잇는다.
@@ -642,8 +667,15 @@ private struct PostDetailReader: View {
             if showHighlightCoach { highlightCoach }
         }
         .overlay {
-            if let store = highlights, let card = store.card {
-                HighlightCardLayer(store: store, card: card, shareURL: highlightShareURL)
+            if let store = highlights {
+                ZStack {
+                    Color.clear
+                        .allowsHitTesting(false)
+                        .sensoryFeedback(.impact(weight: .light), trigger: store.createdCount)
+                    if let card = store.card {
+                        HighlightCardLayer(store: store, card: card, shareURL: highlightShareURL)
+                    }
+                }
             }
         }
         }
@@ -677,9 +709,10 @@ private struct PostDetailReader: View {
                 Spacer()
                 moreMenu
             }
-            .padding(.horizontal, 10)
+            .padding(.horizontal, topBarSide)
         }
         .frame(height: Self.topBarHeight)
+        .padding(.top, topBarInset)
         // 제목이 스민 뒤에만 바탕을 깐다 — 그 전엔 유리 원판 둘만 본문 위에 뜬다. 바탕은 읽기 면과 같은
         // 불투명 색으로 상태바 뒤까지 올려 채운다(반투명 바 재질은 본문이 비쳐 진행 막대가 떠 보였다).
         .background {
@@ -707,10 +740,11 @@ private struct PostDetailReader: View {
         } label: {
             Image(systemName: "ellipsis")
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Color.brand)
+                .foregroundStyle(.primary)
                 .frame(width: 44, height: 44)
                 .contentShape(Circle())
         }
+        .tint(.primary)
         .glassEffect(.regular.interactive(), in: .circle)
         // 관리(발행취소·삭제)를 품을 땐 접근성 라벨을 관리 진입로로 유지한다.
         .accessibilityLabel(isOwnPost ? "이 글 관리" : "더 보기")
@@ -828,7 +862,7 @@ private struct PostDetailReader: View {
     private var highlightHowToItem: some View {
         if highlights != nil {
             Button {
-                ToastCenter.shared.show(String(localized: "문장을 길게 눌러 하이라이트하거나 공개 메모를 남겨요"))
+                ToastCenter.shared.show(String(localized: "문장을 길게 눌러 하이라이트하거나 메모를 남겨요"))
             } label: {
                 Label("하이라이트하는 법", systemImage: "highlighter")
             }
@@ -889,7 +923,7 @@ private struct PostDetailReader: View {
         .padding(.vertical, 11)
         .background(.regularMaterial, in: Capsule())
         .overlay(Capsule().strokeBorder(Palette.hairline, lineWidth: 1))
-        .shadow(color: .black.opacity(0.12), radius: 14, y: 6)
+        .shadow(color: Palette.shadow.opacity(0.12), radius: 14, y: 6)
         .padding(.bottom, 40)
         .padding(.horizontal, Metrics.gutter)
         .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -1013,12 +1047,20 @@ private struct PostDetailReader: View {
                 withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.55)) {
                     proxy.scrollTo(order, anchor: UnitPoint(x: 0, y: 0.18))
                 }
-                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.35)) { flashBlockId = order }
-                try? await Task.sleep(for: .milliseconds(700))
+                try? await Task.sleep(for: .milliseconds(reduceMotion ? 80 : 620))
+                store.sweep(id)
+                if !reduceMotion { try? await Task.sleep(for: .milliseconds(520)) }
             }
-            store.threadHighlightId = id
-            try? await Task.sleep(for: .milliseconds(600))
-            withAnimation(reduceMotion ? nil : .easeIn(duration: 0.7)) { flashBlockId = nil }
+            if HighlightPaint.hasThread(highlight) {
+                store.threadHighlightId = id
+                return
+            }
+            store.revealHighlightId = id
+            try? await Task.sleep(for: .milliseconds(800))
+            if store.revealHighlightId == id {
+                store.revealHighlightId = nil
+                store.threadHighlightId = id
+            }
         }
     }
 
@@ -1118,7 +1160,7 @@ private struct PostDetailReader: View {
                 } header: {
                     Text("태그")
                 } footer: {
-                    Text("모더레이션 편집은 제목과 태그만 바꿔요 — 본문과 주소는 작가의 것으로 남아요.")
+                    Text("모더레이션 편집은 제목과 태그만 바꿔요. 본문과 주소는 작가의 것으로 남아요.")
                 }
             }
             .navigationTitle("관리자 편집")
@@ -1130,6 +1172,7 @@ private struct PostDetailReader: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("저장") { Task { await adminApplyEdit() } }
                         .disabled(adminEditTitle.trimmingCharacters(in: .whitespaces).isEmpty)
+                        .tint(Palette.link)
                 }
             }
         }
@@ -1148,7 +1191,7 @@ private struct PostDetailReader: View {
             ToastCenter.shared.show(String(localized: "관리자 권한으로 수정했어요"))
             await model.load()  // 제자리 갱신 — 바뀐 제목·태그가 바로 보인다.
         } catch {
-            ToastCenter.shared.show(String(localized: "수정하지 못했어요 — \(error.localizedDescription)"))
+            ToastCenter.shared.show(String(localized: "수정하지 못했어요. \(error.localizedDescription)"))
         }
     }
 
@@ -1223,44 +1266,44 @@ private struct PostDetailReader: View {
     // 태그와 좋아요는 다 읽은 뒤 자연스럽게 만나도록 본문 끝으로 — 헤더에 끼어 있던
     // 인터랙션 바가 진입을 막지 않는다.
     private func translationKey(_ detail: PublicPostDetail) -> String {
-        "post-\(detail.post.id)-\(TranslationGate.target().minimalIdentifier)"
+        "post-\(detail.post.id)-\((translationTarget ?? TranslationGate.target()).minimalIdentifier)"
     }
 
     private func probeTranslation(_ detail: PublicPostDetail) async {
         let sample = ([detail.post.title] + detail.blocks.lazy.filter { $0.kind == .paragraph }.prefix(4)
             .map { PostTranslationPlan.plain($0.content ?? "") }).joined(separator: "\n")
         let declared = detail.post.languageTag
-        let source = await Task.detached(priority: .utility) {
-            TranslationGate.source(declared: declared, text: sample)
+        let language = await Task.detached(priority: .utility) {
+            TranslationGate.language(declared: declared, text: sample)
         }.value
         guard !Task.isCancelled else { return }
-        let available = if let source { await translations.isAvailable(from: source, to: TranslationGate.target()) } else { false }
-        translationSource = available ? source : nil
+        let offer: PostTranslationOffer? = if let language {
+            await PostTranslationOffer.make(language: language) { await translations.isAvailable(from: language, to: $0) }
+        } else {
+            nil
+        }
+        guard !Task.isCancelled else { return }
+        translationOffer = offer
     }
 
-    private func translate(_ detail: PublicPostDetail) {
-        guard let source = translationSource else { return }
+    private func translate(_ detail: PublicPostDetail, to target: Locale.Language) {
+        guard let source = translationOffer?.source else { return }
+        translationTarget = target
         let key = translationKey(detail)
         if translations.showCached(key) { return }
         translations.begin(key)
         translationRequest = TranslationRequest(
-            key: key, source: source, target: TranslationGate.target(),
+            key: key, source: source, target: target,
             texts: PostTranslationPlan(title: detail.post.title, blocks: detail.blocks).texts)
     }
 
     @ViewBuilder
     private func content(_ detail: PublicPostDetail) -> some View {
         header(detail)
-        if let source = translationSource {
-            PostTranslationBanner(
-                source: source, phase: translations.phases[translationKey(detail)],
-                translate: { translate(detail) },
-                showOriginal: { translations.showOriginal(translationKey(detail)) })
-        }
         if model.isOfflineCopy {
             // 기기 사본 렌더 중 — 조용한 한 줄. 댓글·좋아요가 비어 있는 이유까지 여기서 설명된다.
             HStack(spacing: 6) {
-                Text("오프라인 사본 — 연결되면 최신으로 갱신됩니다")
+                Text("오프라인 사본이에요. 연결되면 최신으로 바뀌어요")
                     .typeScale(.footnote)
             }
             .foregroundStyle(Palette.secondary)
@@ -1339,11 +1382,11 @@ private struct PostDetailReader: View {
                     && ((endSentinelWasHidden && minY < viewport * 0.9) || minY < viewport * 0.5)
                 if reached != endVisible { endVisible = reached }
             }
-        // 글 = 엣지가 보이는 노드 — 다 읽은 뒤, 이 글이 놓인 길 · 이어진 것 · 이은 사람으로 나간다.
-        // 엣지가 하나도 없으면 그려지지 않고(막다른 길 방지는 아래 태그 기반 작가 레일이 맡는다),
+        // 글 = 엣지가 보이는 노드 — 다 읽은 뒤, 이 글이 담긴 컬렉션으로 나간다.
+        // 담긴 공개 컬렉션이 없으면 그려지지 않고(막다른 길 방지는 아래 태그 기반 작가 레일이 맡는다),
         // 덱 임베드는 여러 장이 lazy 로 살아 있어 켜지 않는다(본 글에서만).
         if !embedded {
-            PostEdges(postId: detail.post.id, authorUsername: detail.author.username)
+            PostCollectionsRail(postId: detail.post.id)
                 .padding(.top, 10)
         }
         authorCard(detail.author)
@@ -1368,7 +1411,7 @@ private struct PostDetailReader: View {
         // 끝에서 독이 후퇴하므로 이 여백이 남아돌 뿐 해가 없다(scrollable 에 의존하지 않아
         // 여백↔scrollable 되먹임 진동도 없다). 덱 임베드는 페이지마다 독이 함께 밀려 나가 제외.
         //
-        // 탭 스택에 푸시된 단독 글은 커스텀 탭바가 떠 그 뒤로 끝맺음("이어진 것" 연결 블록·작가
+        // 탭 스택에 푸시된 단독 글은 커스텀 탭바가 떠 그 뒤로 끝맺음(작가
         // 카드)이 눌려 잘렸다 — 커스텀 바는 시스템 인셋을 안 주므로(Root, 독과 같은 사연) 예약
         // 높이만큼 더 비운다. 스크롤 중 높이가 흔들려 튀지 않게 hidden 무관 상수로 둔다.
         Color.clear.frame(height: (embedded ? 56 : 78) + pushedTabBarBottomInset)
@@ -1461,7 +1504,7 @@ private struct PostDetailReader: View {
                                 Image(systemName: "chevron.right")
                                     .font(.system(size: 10 * metaUnit, weight: .semibold))
                             }
-                            .foregroundStyle(Palette.link)
+                            .foregroundStyle(Palette.ink)
                             .expandTapTarget(8)
                         }
                         .buttonStyle(.plain)
@@ -1558,18 +1601,90 @@ private struct PostDetailReader: View {
             .padding(.top, 14)
 
             // 읽는 시간 — 글 입구에서 "얼마나 걸릴지" 한 호흡(에디토리얼 마스트헤드 메타).
-            if let minutes = readingMinutes {
-                HStack(spacing: 5) {
-                    Text("\(minutes)분 읽기")
-                        .typeScale(.footnote)
-                }
-                .foregroundStyle(Palette.secondary)
-                .padding(.top, 7)
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel(Text("읽는 시간 약 \(minutes)분"))
+            if readingMinutes != nil || translationOffer != nil {
+                metaLine(detail)
+                    .padding(.top, 7)
             }
 
             Hairline().padding(.top, 18)
+        }
+    }
+
+    private func metaLine(_ detail: PublicPostDetail) -> some View {
+        let phase = translations.phases[translationKey(detail)]
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6))
+            : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 12))
+        return layout {
+            HStack(spacing: 5) {
+                if let minutes = readingMinutes {
+                    Text("\(minutes)분 읽기")
+                        .accessibilityLabel(Text("읽는 시간 약 \(minutes)분"))
+                }
+                if phase == .shown, let source = translationOffer?.source {
+                    if readingMinutes != nil {
+                        Text(verbatim: "·")
+                            .foregroundStyle(Palette.faint)
+                            .accessibilityHidden(true)
+                    }
+                    Text("\(TranslationGate.displayName(source))에서 번역됨")
+                }
+            }
+            .foregroundStyle(Palette.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .combine)
+
+            if let offer = translationOffer {
+                translationControl(detail, offer: offer, phase: phase)
+                    .fixedSize()
+            }
+        }
+        .typeScale(.footnote)
+    }
+
+    @ViewBuilder
+    private func translationControl(
+        _ detail: PublicPostDetail, offer: PostTranslationOffer, phase: ContentTranslations.Phase?
+    ) -> some View {
+        switch phase {
+        case .translating:
+            Text("번역하는 중…")
+                .foregroundStyle(Palette.secondary)
+        case .shown:
+            Button {
+                translations.showOriginal(translationKey(detail))
+            } label: {
+                Text("원문 보기").expandTapTarget(15)
+            }
+            .buttonStyle(.borderless)
+            .tint(Palette.ink)
+            .accessibilityIdentifier("post.original")
+        case nil:
+            if let target = offer.direct {
+                Button {
+                    translate(detail, to: target)
+                } label: {
+                    Text("번역하기").expandTapTarget(15)
+                }
+                .buttonStyle(.borderless)
+                .tint(Palette.ink)
+                .accessibilityIdentifier("post.translate")
+            } else {
+                Menu {
+                    ForEach(offer.choices, id: \.target) { choice in
+                        Button(TranslationGate.nativeName(choice.target)) {
+                            translate(detail, to: choice.target)
+                        }
+                        .disabled(!choice.available)
+                    }
+                } label: {
+                    Text("번역하기").expandTapTarget(15)
+                }
+                .menuStyle(.button)
+                .buttonStyle(.borderless)
+                .tint(Palette.ink)
+                .accessibilityIdentifier("post.translate")
+            }
         }
     }
 
@@ -1585,46 +1700,53 @@ private struct PostDetailReader: View {
         return max(1, Int((Double(chars) / 500.0).rounded()))
     }
 
-    /// 다른 글 한 장 — 커버(없으면 종이 플레이스홀더) + 제목 + 메타. 카드 문법(20곡률·
-    /// 다층 그림자·다크 보더)은 발견 카드와 같은 토큰을 쓴다.
+    /// 다른 글 한 장 — 커버가 있으면 커버 + 제목 + 메타, 없으면 태그·제목·발췌의 글 카드.
+    /// 카드 문법(20곡률·다층 그림자·다크 보더)은 발견 카드와 같은 토큰을 쓴다.
     private func otherPostCard(_ post: PostListItem) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Group {
-                if let cover = post.ogImageUrl, let url = URL(string: cover) {
-                    // 220×118 썸네일 — 그 폭에 맞춰 받아 목록에서 원본을 겹겹이 쥐지 않게.
-                    RemoteImage(url: url, maxPixel: 240) { phase in
-                        if case .success(let image) = phase {
-                            // 채움 이미지는 프레임 밖으로 넘친다 — 클립은 그림만 자르고 히트는 못 잘라, 이웃 카드 탭을 먹는다.
-                            image.resizable().scaledToFill().allowsHitTesting(false)
-                        } else {
-                            otherPostCover(post)
-                        }
+        let cover = post.ogImageUrl.flatMap { $0.isEmpty ? nil : URL(string: $0) }
+        return VStack(alignment: .leading, spacing: 0) {
+            if let cover {
+                // 220×118 썸네일 — 그 폭에 맞춰 받아 목록에서 원본을 겹겹이 쥐지 않게.
+                RemoteImage(url: cover, maxPixel: 240) { phase in
+                    if case .success(let image) = phase {
+                        // 채움 이미지는 프레임 밖으로 넘친다 — 클립은 그림만 자르고 히트는 못 잘라, 이웃 카드 탭을 먹는다.
+                        image.resizable().scaledToFill().allowsHitTesting(false)
+                    } else {
+                        Palette.hairline
                     }
-                } else {
-                    otherPostCover(post)
                 }
+                .frame(width: 220, height: 118)
+                .clipped()
             }
-            .frame(width: 220, height: 118)
-            .clipped()
 
             VStack(alignment: .leading, spacing: 7) {
+                if cover == nil, let tag = ContentValidity.renderableTags(post.tags).first {
+                    Text("#\(tag)")
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.secondary)
+                        .lineLimit(1)
+                }
                 Text(post.title)
-                    .typeScale(.titleSmall)
+                    .typeScale(cover == nil ? .title : .titleSmall)
                     .foregroundStyle(Palette.ink)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.7)
+                    .lineLimit(cover == nil ? 3 : 2)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 0)
-                HStack(spacing: 6) {
-                    if let date = post.publishedAt {
-                        Text(date.relativeShort)
-                    }
+                if cover == nil, let excerpt = post.excerpt?.cleanedPreview, !excerpt.isEmpty {
+                    Text(excerpt)
+                        .typeScale(.lede)
+                        .foregroundStyle(Palette.secondary)
+                        .lineLimit(3)
+                        .multilineTextAlignment(.leading)
                 }
-                .typeScale(.meta)
-                .foregroundStyle(Palette.secondary)
+                Spacer(minLength: 0)
+                if let date = post.publishedAt {
+                    Text(date.relativeShort)
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.secondary)
+                }
             }
-            .padding(13)
+            .padding(cover == nil ? 16 : 13)
             .frame(width: 220, alignment: .leading)
         }
         .frame(width: 220, height: 214, alignment: .top)
@@ -1638,29 +1760,6 @@ private struct PostDetailReader: View {
             }
         }
         .cardShadow()
-    }
-
-    /// 커버 없는 글의 플레이스홀더 — 색 없이 흰 타일 + 옅은 회색 kurl 마크 워터마크.
-    /// 태그가 있으면 좌상단에 작은 칩으로(맥락).
-    private func otherPostCover(_ post: PostListItem) -> some View {
-        ZStack {
-            Color(uiColor: .systemBackground)
-            KurlMark(drawn: [true, true, true], tint: Palette.hairlineStrong)
-                .frame(width: 60, height: 36)
-        }
-        .overlay(alignment: .bottom) { Hairline() }
-        .overlay(alignment: .topLeading) {
-            if let tag = post.tags.first {
-                Text("#\(tag)")
-                    .typeScale(.footnote)
-                    .foregroundStyle(Palette.secondary)
-                    .lineLimit(1)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(.ultraThinMaterial, in: Capsule())
-                    .padding(10)
-            }
-        }
     }
 
     private func comments(authorId: Int64) -> some View {
@@ -1740,7 +1839,7 @@ private struct PostDetailReader: View {
                 Task { await model.reloadComments() }
             } label: {
                 HStack(spacing: 6) {
-                    Text("댓글을 불러오지 못했습니다 — 다시 시도")
+                    Text("댓글을 불러오지 못했어요. 다시 시도")
                         .typeScale(.footnote)
                 }
                 .foregroundStyle(Palette.secondary)
@@ -1773,10 +1872,10 @@ private struct PostDetailReader: View {
             Button {
                 composerActive = true
             } label: {
-                ReplyPrompt(text: Text("댓글을 남겨보세요"))
+                ReplyPrompt(text: Text("댓글 쓰기"))
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("댓글을 남겨보세요")
+            .accessibilityLabel("댓글 쓰기")
             .padding(.top, 4)
         }
     }
@@ -1915,7 +2014,7 @@ private struct NextPostCue: View {
             VStack(spacing: 5) {
                 Image(systemName: "chevron.compact.down")
                     .font(.system(size: 16 * unit, weight: .semibold))
-                    .foregroundStyle(progress.pull > 0.97 ? Palette.link : Palette.faint)
+                    .foregroundStyle(progress.pull > 0.97 ? Palette.ink : Palette.faint)
                     .rotationEffect(.degrees(reduceMotion ? 0 : 180 * progress.pull))
                 Text(episode ? "계속 당기면 다음 편" : "계속 당기면 다음 글")
                     .typeScale(.footnote)

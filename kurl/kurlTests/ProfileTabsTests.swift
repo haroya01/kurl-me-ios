@@ -114,3 +114,107 @@ final class ProfileTabsTests: XCTestCase {
         XCTAssertEqual(pager.items.map(\.id), [2])
     }
 }
+
+@MainActor
+final class NoteReplyFlowTests: XCTestCase {
+
+    private func note(
+        _ id: Int64, author: Int64, replyingTo parent: Int64? = nil, replies: Int64 = 0,
+        canReply: String = "null", policy: String = "null"
+    ) -> String {
+        #"""
+        {"id":\#(id),"body":"노트 \#(id)","createdAt":"2026-10-13T00:00:00Z","editedAt":null,"likeCount":null,
+         "likedByMe":null,"author":{"id":\#(author),"username":"user\#(author)","bio":null,"avatarUrl":null},
+         "media":[],"quotedPost":null,"inReplyToId":\#(parent.map(String.init) ?? "null"),
+         "replyCount":\#(replies),"repostCount":null,"repostedByMe":null,"quotedNote":null,
+         "canReply":\#(canReply),"replyPolicy":\#(policy)}
+        """#
+    }
+
+    private func decode<T: Decodable>(_ json: String) throws -> T {
+        try JSONDecoder.blog.decode(T.self, from: Data(json.utf8))
+    }
+
+    private func thread(continuation: [String] = []) throws -> NoteThread {
+        try decode(#"""
+            {"note":\#(note(1, author: 2, replies: 2)),
+             "parent":\#(note(9, author: 4, replies: 1)),
+             "replies":[\#(note(10, author: 3, replyingTo: 1)),\#(note(11, author: 5, replyingTo: 1))],
+             "continuation":[\#(continuation.joined(separator: ","))]}
+            """#)
+    }
+
+    func testAReplyToTheFocalNoteLandsAtTheTopOfTheReplies() throws {
+        let reply: Note = try decode(note(20, author: 3, replyingTo: 1))
+        let placed = try thread().adding(reply)
+
+        XCTAssertEqual(placed.landing, .replies)
+        XCTAssertEqual(placed.thread.replies.map(\.id), [20, 10, 11])
+        XCTAssertEqual(placed.thread.note.replyCount, 3)
+        XCTAssertEqual(placed.thread.continuation?.map(\.id), [])
+    }
+
+    func testTheWritersFirstReplyToTheirOwnNoteContinuesTheirThread() throws {
+        let reply: Note = try decode(note(20, author: 2, replyingTo: 1))
+        let placed = try thread().adding(reply)
+
+        XCTAssertEqual(placed.landing, .continuation)
+        XCTAssertEqual(placed.thread.continuation?.map(\.id), [20])
+        XCTAssertEqual(placed.thread.replies.map(\.id), [10, 11])
+        XCTAssertEqual(placed.thread.note.replyCount, 3)
+    }
+
+    func testTheWritersReplyToTheirLastPartExtendsTheirThread() throws {
+        let parts = [note(5, author: 2, replyingTo: 1, replies: 1), note(6, author: 2, replyingTo: 5)]
+        let reply: Note = try decode(note(20, author: 2, replyingTo: 6))
+        let placed = try thread(continuation: parts).adding(reply)
+
+        XCTAssertEqual(placed.landing, .continuation)
+        XCTAssertEqual(placed.thread.continuation?.map(\.id), [5, 6, 20])
+        XCTAssertEqual(placed.thread.continuation?.map(\.replyCount), [1, 1, 0])
+        XCTAssertEqual(placed.thread.note.replyCount, 2)
+    }
+
+    func testTheWritersSecondReplyToTheirOwnNoteIsAnOrdinaryReply() throws {
+        let reply: Note = try decode(note(20, author: 2, replyingTo: 1))
+        let placed = try thread(continuation: [note(5, author: 2, replyingTo: 1)]).adding(reply)
+
+        XCTAssertEqual(placed.landing, .replies)
+        XCTAssertEqual(placed.thread.continuation?.map(\.id), [5])
+        XCTAssertEqual(placed.thread.replies.first?.id, 20)
+    }
+
+    func testAReplyToAnotherNoteInTheThreadOnlyCountsWhereItWent() throws {
+        let toReply: Note = try decode(note(20, author: 3, replyingTo: 11))
+        let underReply = try thread().adding(toReply)
+        XCTAssertEqual(underReply.landing, .elsewhere)
+        XCTAssertEqual(underReply.thread.replies.map(\.id), [10, 11])
+        XCTAssertEqual(underReply.thread.replies.map(\.replyCount), [0, 1])
+        XCTAssertEqual(underReply.thread.note.replyCount, 2)
+
+        let toParent: Note = try decode(note(21, author: 3, replyingTo: 9))
+        let underParent = try thread().adding(toParent)
+        XCTAssertEqual(underParent.landing, .elsewhere)
+        XCTAssertEqual(underParent.thread.parent?.replyCount, 2)
+        XCTAssertEqual(underParent.thread.replies.map(\.id), [10, 11])
+    }
+
+    func testReplyEntriesFollowTheThreadsReplyPolicy() throws {
+        let open: Note = try decode(note(1, author: 2, canReply: "true", policy: #""following""#))
+        let unknown: Note = try decode(note(1, author: 2))
+        let following: Note = try decode(note(1, author: 2, canReply: "false", policy: #""following""#))
+        let mentioned: Note = try decode(note(1, author: 2, canReply: "false", policy: #""mentioned""#))
+        let unnamed: Note = try decode(note(1, author: 2, canReply: "false", policy: #""someday""#))
+
+        XCTAssertEqual(NoteReplyAccess(open, signedIn: true), .open)
+        XCTAssertEqual(NoteReplyAccess(unknown, signedIn: true), .open)
+        XCTAssertEqual(NoteReplyAccess(following, signedIn: true), .closed(.following))
+        XCTAssertEqual(NoteReplyAccess(mentioned, signedIn: true), .closed(.mentioned))
+        XCTAssertEqual(NoteReplyAccess(unnamed, signedIn: true), .closed(nil))
+        XCTAssertEqual(NoteReplyAccess(following, signedIn: false), .needsSignIn)
+        XCTAssertTrue(NoteReplyAccess(mentioned, signedIn: true).isClosed)
+        XCTAssertNotNil(NoteReplyAccess(unnamed, signedIn: true).notice)
+        XCTAssertNil(NoteReplyAccess(open, signedIn: true).notice)
+        XCTAssertNil(NoteReplyAccess(following, signedIn: false).notice)
+    }
+}

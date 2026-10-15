@@ -31,7 +31,10 @@ final class FollowSuggestionsUITests: XCTestCase {
         add(shot)
 
         let minji = app.descendants(matching: .any)["suggestion.minji"]
-        app.buttons["suggestion.dismiss.minji"].tap()
+        app.buttons["suggestion.more.minji"].tap()
+        let dismiss = app.buttons["minji 추천 안 보기"]
+        XCTAssertTrue(dismiss.waitForExistence(timeout: 4), "추천 메뉴에 추천 안 보기가 없음")
+        dismiss.tap()
         XCTAssertTrue(minji.waitForNonExistence(timeout: 8), "지운 추천이 남아 있음")
 
         let follow = haneul.buttons["follow.button"]

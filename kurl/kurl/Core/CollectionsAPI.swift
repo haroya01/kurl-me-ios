@@ -23,7 +23,7 @@ enum CollectionsAPI {
         return try await client.get("/users/me/collections", query: query, authenticated: true)
     }
 
-    /// 한 큐레이터의 공개 컬렉션 목록(최근 손댄 순) — 남의 프로필에서 엮은 길들을 본다. 미로그인도 본다.
+    /// 한 큐레이터의 공개 컬렉션 목록(최근 손댄 순) — 남의 프로필에서 엮은 컬렉션들을 본다. 미로그인도 본다.
     static func publicByUsername(_ username: String) async throws -> [CollectionSummary] {
         try await client.get("/public/profiles/\(username)/collections")
     }
@@ -51,7 +51,7 @@ enum CollectionsAPI {
         try await client.get("/collections/\(id)", authenticated: true)
     }
 
-    /// "이 문장이 속한 길" — 이 하이라이트를 담은 공개 컬렉션/길(최근순). 미로그인도 본다(A 척추 발견 고리).
+    /// "이 문장이 담긴 컬렉션" — 이 하이라이트를 담은 공개 컬렉션(최근순). 미로그인도 본다(A 척추 발견 고리).
     static func collectionsContaining(highlightId: Int64) async throws -> [CollectionSummary] {
         try await client.get("/public/highlights/\(highlightId)/collections")
     }
@@ -67,21 +67,21 @@ enum CollectionsAPI {
         try await client.get("/public/profiles/\(username)/kindred")
     }
 
-    /// 새 컬렉션/길 — 생성된 요약을 그대로 돌려받는다(count 0). kind=path 면 reading path.
+    /// 새 컬렉션 — 생성된 요약을 그대로 돌려받는다(count 0). `ordered` 를 모르는 서버도 맞게 만들도록
+    /// 그에 맞는 옛 kind 를 함께 보낸다(둘 다 오면 서버는 ordered 를 따른다).
     @discardableResult
     static func create(
-        title: String, description: String?, visibility: CollectionVisibility,
-        kind: CollectionKind = .collection
+        title: String, description: String?, visibility: CollectionVisibility, ordered: Bool = false
     ) async throws -> CollectionSummary {
         try await client.post(
             "/collections",
             body: NewCollectionBody(
                 title: title, description: description, visibility: visibility.rawValue,
-                kind: kind.rawValue),
+                ordered: ordered, kind: CollectionKind(ordered: ordered).rawValue),
             authenticated: true)
     }
 
-    /// 길(PATH)의 연결 순서 재배치 — 연결 id 전체를 원하는 순서대로. 논증의 흐름을 짠다(204).
+    /// 순서 있는 컬렉션의 연결 순서 재배치 — 연결 id 전체를 원하는 순서대로(204).
     static func reorder(collectionId: Int64, connectionIds: [Int64]) async throws {
         try await client.putVoid(
             "/collections/\(collectionId)/connections/order",
@@ -89,15 +89,17 @@ enum CollectionsAPI {
             authenticated: true)
     }
 
-    /// 컬렉션 수정 — 이름·소개·공개 범위. 갱신된 요약을 돌려받는다.
+    /// 컬렉션 수정 — 이름·소개·공개 범위·순서대로 읽기. 갱신된 요약을 돌려받는다.
     @discardableResult
     static func edit(
-        id: Int64, title: String, description: String?, visibility: CollectionVisibility
+        id: Int64, title: String, description: String?, visibility: CollectionVisibility,
+        ordered: Bool? = nil
     ) async throws -> CollectionSummary {
         try await client.put(
             "/collections/\(id)",
-            body: CreateCollectionBody(
-                title: title, description: description, visibility: visibility.rawValue),
+            body: EditCollectionBody(
+                title: title, description: description, visibility: visibility.rawValue,
+                ordered: ordered),
             authenticated: true)
     }
 
@@ -122,18 +124,18 @@ enum CollectionsAPI {
         try await client.deleteVoid("/collections/\(id)", authenticated: true)
     }
 
-    /// 수정 바디 — kind 는 보내지 않는다(생성 시 고정, edit 엔드포인트는 kind 모름).
-    private struct CreateCollectionBody: Encodable {
+    struct EditCollectionBody: Encodable {
         let title: String
         let description: String?
         let visibility: String
+        let ordered: Bool?
     }
 
-    /// 생성 바디 — kind 포함(COLLECTION | PATH).
-    private struct NewCollectionBody: Encodable {
+    struct NewCollectionBody: Encodable {
         let title: String
         let description: String?
         let visibility: String
+        let ordered: Bool
         let kind: String
     }
 

@@ -154,7 +154,7 @@ struct DataExportView: View {
             }
             if !item.finished {
                 ProgressView(value: Double(item.processed), total: Double(max(item.total, 1)))
-                    .tint(Palette.accent)
+                    .tint(Palette.ink)
             }
             Text("\(item.total)줄 중 \(item.imported)줄 가져옴 · 실패 \(item.failed)줄")
                 .typeScale(.meta)

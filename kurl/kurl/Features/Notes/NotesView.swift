@@ -259,7 +259,10 @@ struct NoteRowView: View {
     var focused = false
     /// 이어 쓴 노트의 몇 번째 편인지("1/3") — 스레드처럼 머리 줄 끝에.
     var position: String? = nil
+    var onReplied: ((Note) -> Void)? = nil
 
+    @State private var replying = false
+    @State private var replyPosts = 0
     @State private var liked: Bool
     @State private var likeCount: Int64?
     @State private var likeTaps = 0
@@ -287,7 +290,10 @@ struct NoteRowView: View {
     @State private var translationRequest: TranslationRequest?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.noteFilterContext) private var filterContext
+    @Environment(\.openNoteRoute) private var openNoteRoute
     @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
+    @ScaledMetric(relativeTo: .callout) private var nameCapCenter: CGFloat = 9
+    @ScaledMetric(relativeTo: .callout) private var nameCapHalf: CGFloat = 5.3
 
     private var unit: CGFloat { min(scale, 1.8) }
 
@@ -295,7 +301,8 @@ struct NoteRowView: View {
          onDelete: @escaping (Int64) -> Void,
          onQuoted: ((Note) -> Void)? = nil, repostedBy: String? = nil,
          showsPin: Bool = false, replyHeader: ReplyHeader? = nil,
-         threadLineBelow: Bool = false, focused: Bool = false, position: String? = nil) {
+         threadLineBelow: Bool = false, focused: Bool = false, position: String? = nil,
+         onReplied: ((Note) -> Void)? = nil) {
         self.note = note
         self.onChange = onChange
         self.onDelete = onDelete
@@ -306,6 +313,7 @@ struct NoteRowView: View {
         self.threadLineBelow = threadLineBelow
         self.focused = focused
         self.position = position
+        self.onReplied = onReplied
         _liked = State(initialValue: note.likedByMe == true)
         _likeCount = State(initialValue: note.likeCount)
         _reposted = State(initialValue: note.repostedByMe == true)
@@ -334,21 +342,25 @@ struct NoteRowView: View {
     }
 
     private func filteredBar(_ phrases: [String]) -> some View {
-        HStack(spacing: 10) {
-            Text("필터됨: \(phrases.joined(separator: ", "))")
-                .typeScale(.meta)
-                .lineLimit(1)
-            Spacer(minLength: 8)
-            Button("보기") {
-                withAnimation(reduceMotion ? nil : .snappy(duration: 0.22)) { filterRevealed = true }
+        Button {
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.22)) { filterRevealed = true }
+        } label: {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("필터됨: \(phrases.joined(separator: ", "))")
+                    .foregroundStyle(Palette.secondary)
+                    .lineLimit(1)
+                Text("보기")
+                    .fontWeight(.medium)
+                    .foregroundStyle(Palette.ink)
+                    .fixedSize()
+                Spacer(minLength: 0)
             }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-            .tint(Palette.ink)
-            .accessibilityIdentifier("note.filtered.reveal.\(note.id)")
+            .typeScale(.meta)
+            .padding(.vertical, 14)
+            .contentShape(Rectangle())
         }
-        .foregroundStyle(Palette.secondary)
-        .padding(.vertical, 14)
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("note.filtered.reveal.\(note.id)")
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("note.filtered.\(note.id)")
     }
@@ -365,6 +377,7 @@ struct NoteRowView: View {
                         .lineLimit(1)
                 }
                 .foregroundStyle(Palette.secondary)
+                .allowsHitTesting(false)
                 .accessibilityElement(children: .combine)
             } else if let replyHeader {
                 ReplyHeaderLine(header: replyHeader)
@@ -378,6 +391,7 @@ struct NoteRowView: View {
                         .fontWeight(.medium)
                 }
                 .foregroundStyle(Palette.secondary)
+                .allowsHitTesting(false)
                 .accessibilityElement(children: .combine)
                 .accessibilityIdentifier("note.pinned.\(note.id)")
             }
@@ -393,6 +407,15 @@ struct NoteRowView: View {
                     .padding(.bottom, -8)
                     .padding(.leading, 18 * unit - 1)
                     .accessibilityHidden(true)
+            }
+        }
+        .background {
+            if !focused {
+                NavigationLink(value: Route.note(id: note.id)) {
+                    Color.clear.contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityHidden(true)
             }
         }
         .contentShape(Rectangle())
@@ -433,6 +456,10 @@ struct NoteRowView: View {
         .sheet(isPresented: $editing) {
             NoteComposeSheet(mode: .edit(note)) { onChange($0) }
         }
+        .sheet(isPresented: $replying) {
+            NoteComposeSheet(mode: .reply(note)) { replied($0) }
+        }
+        .sensoryFeedback(.success, trigger: replyPosts)
         .sheet(isPresented: $quoting) {
             NoteComposeSheet(mode: .quote(QuotedNote(note))) { created in
                 ToastCenter.shared.show(String(localized: "인용 노트를 올렸어요"))
@@ -513,19 +540,24 @@ struct NoteRowView: View {
                 }
                 moreMenu
             }
-            warningBar
-            if !folded {
-                if !note.body.isEmpty {
-                    Text(NoteText.attributed(shownBody, mentions: note.mentions ?? []))
-                        .typeScale(.noteFocus)
-                        .foregroundStyle(Palette.ink)
-                        .tint(Palette.link)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .textSelection(.enabled)
-                    translationLine
+            warningLine
+            if !note.body.isEmpty {
+                ZStack(alignment: .topLeading) {
+                    if folded {
+                        shield(.noteFocus)
+                    } else {
+                        Text(NoteText.attributed(shownBody, mentions: note.mentions ?? []))
+                            .typeScale(.noteFocus)
+                            .foregroundStyle(Palette.ink)
+                            .tint(Palette.link)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .textSelection(.enabled)
+                            .transition(.opacity)
+                    }
                 }
-                attachments
+                if !folded { translationLine }
             }
+            attachments
             if let date = note.createdAt {
                 HStack(spacing: 4) {
                     Text(date, format: .dateTime.hour().minute())
@@ -575,39 +607,56 @@ struct NoteRowView: View {
     private static let federationHost = Config.apiBase.host() ?? "kurl.me"
 
     private var row: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .noteNameLine, spacing: 12) {
             avatarLink
+                .alignmentGuide(.noteNameLine) { $0[.top] + nameCapCenter }
 
             VStack(alignment: .leading, spacing: 2) {
                 VStack(alignment: .leading, spacing: 2) {
                     header
-                    warningBar
-                    if !folded, !note.body.isEmpty {
-                        NavigationLink(value: Route.note(id: note.id)) {
-                            Text(NoteText.attributed(shownBody, mentions: note.mentions ?? []))
-                                .typeScale(.note)
-                                .foregroundStyle(Palette.ink)
-                                .tint(Palette.link)
-                                .multilineTextAlignment(.leading)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .contentShape(Rectangle())
+                    warningLine
+                    if !note.body.isEmpty {
+                        ZStack(alignment: .topLeading) {
+                            if folded {
+                                shield(.note)
+                            } else {
+                                NavigationLink(value: Route.note(id: note.id)) {
+                                    Text(NoteText.attributed(shownBody, mentions: note.mentions ?? []))
+                                        .typeScale(.note)
+                                        .foregroundStyle(Palette.ink)
+                                        .tint(Palette.link)
+                                        .multilineTextAlignment(.leading)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                                .transition(.opacity)
+                                .accessibilityIdentifier("note.body.\(note.id)")
+                            }
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("note.body.\(note.id)")
                     }
                 }
                 .conversationGrouping(label: spokenLine, identifier: "note.row.\(note.id)") {
                     if note.contentWarning != nil {
-                        Button(revealed ? LocalizedStringKey("숨기기") : LocalizedStringKey("내용 보기")) { revealed.toggle() }
+                        Button(revealed ? LocalizedStringKey("숨기기") : LocalizedStringKey("보기")) {
+                            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.22)) { revealed.toggle() }
+                        }
+                    }
+                    if !replyAccess.isClosed {
+                        Button("답글 쓰기") { startReply() }
                     }
                 }
-                .overlay(alignment: .topTrailing) { moreMenu }
+                .overlay(alignment: Alignment(horizontal: .trailing, vertical: .firstTextBaseline)) {
+                    moreMenu
+                        .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + nameCapHalf }
+                }
                 if !folded, !note.body.isEmpty { translationLine }
-                if !folded { attachments }
+                attachments
                 actions(spread: false)
                     .padding(.top, 10)
             }
+            .alignmentGuide(.noteNameLine) { $0[.firstTextBaseline] - nameCapHalf }
         }
     }
 
@@ -623,16 +672,19 @@ struct NoteRowView: View {
                 Text(verbatim: "·")
                     .typeScale(.note)
                     .foregroundStyle(Palette.faint)
+                    .allowsHitTesting(false)
                     .accessibilityHidden(true)
                 Text(date.relativeCompact)
                     .typeScale(.note)
                     .foregroundStyle(Palette.secondary)
                     .fixedSize()
+                    .allowsHitTesting(false)
             }
             if note.noteVisibility != .public {
                 Image(systemName: note.noteVisibility.symbol)
                     .font(.system(size: 11 * unit, weight: .semibold))
                     .foregroundStyle(Palette.secondary)
+                    .allowsHitTesting(false)
                     .accessibilityLabel(Text(note.noteVisibility.title))
                     .accessibilityIdentifier("note.visibility.\(note.id)")
             }
@@ -640,6 +692,7 @@ struct NoteRowView: View {
                 Text("고침")
                     .typeScale(.meta)
                     .foregroundStyle(Palette.secondary)
+                    .allowsHitTesting(false)
             }
             Spacer(minLength: 0)
             if let position {
@@ -647,11 +700,12 @@ struct NoteRowView: View {
                     .typeScale(.meta)
                     .monospacedDigit()
                     .foregroundStyle(Palette.secondary)
+                    .allowsHitTesting(false)
                     .accessibilityLabel(Text("이어 쓴 노트 \(position)"))
                     .accessibilityIdentifier("note.position.\(note.id)")
             }
             Color.clear
-                .frame(width: 32 * unit, height: 22 * unit)
+                .frame(width: 32 * unit, height: 0)
                 .accessibilityHidden(true)
         }
     }
@@ -716,43 +770,54 @@ struct NoteRowView: View {
         if translationSource != next { translationSource = next }
     }
 
-    /// 열람 주의 — 문구만 보이고 본문·사진·카드는 접힌다. 펼치면 사진도 함께 보인다(한 번만 누르게).
-    @ViewBuilder private var warningBar: some View {
+    @ViewBuilder private var warningLine: some View {
         if let warning = note.contentWarning {
-            HStack(alignment: .center, spacing: 8) {
-                Image(systemName: "exclamationmark.triangle")
-                    .font(.system(size: 13 * unit, weight: .semibold))
-                    .accessibilityHidden(true)
-                Text(translated?.warning ?? warning)
-                    .typeScale(focused ? .noteFocus : .note)
-                    .fontWeight(.medium)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .fixedSize(horizontal: false, vertical: true)
-                Button(revealed ? "숨기기" : "내용 보기") {
-                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.22)) { revealed.toggle() }
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
-                .tint(Palette.ink)
-                .accessibilityIdentifier("note.reveal.\(note.id)")
-            }
-            .foregroundStyle(Palette.ink)
-            .padding(.vertical, 6)
-            .padding(.leading, 10)
-            .padding(.trailing, 6)
-            .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radius))
-            .padding(.top, 4)
-            .accessibilityElement(children: .contain)
-            .accessibilityIdentifier("note.warning.\(note.id)")
+            Text(translated?.warning ?? warning)
+                .typeScale(focused ? .noteFocus : .note)
+                .foregroundStyle(Palette.ink)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .allowsHitTesting(false)
+                .accessibilityIdentifier("note.warning.\(note.id)")
         }
     }
 
-    private var hidesMedia: Bool {
-        note.sensitive == true && note.contentWarning == nil && !mediaRevealed && !note.media.isEmpty
+    private func shield(_ scale: TypeRole) -> some View {
+        Button(action: reveal) {
+            Text(verbatim: note.body)
+                .typeScale(scale)
+                .foregroundStyle(Palette.ink)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .blur(radius: 9)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .transition(.opacity)
+        .accessibilityLabel(Text("가려진 내용"))
+        .accessibilityAction(named: Text("보기"), reveal)
+        .accessibilityIdentifier("note.reveal.\(note.id)")
+    }
+
+    private func reveal() {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.22)) { revealed = true }
+    }
+
+    private var mediaConcealed: Bool {
+        guard !note.media.isEmpty else { return false }
+        if note.contentWarning != nil { return !revealed }
+        return note.sensitive == true && !mediaRevealed
+    }
+
+    private func revealMedia() {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.22)) {
+            if note.contentWarning != nil { revealed = true } else { mediaRevealed = true }
+        }
     }
 
     @ViewBuilder private var attachments: some View {
-        if let poll = note.poll {
+        if !folded, let poll = note.poll {
             NotePollView(noteId: note.id, poll: poll) { updated in
                 var next = note
                 next.poll = updated
@@ -760,31 +825,15 @@ struct NoteRowView: View {
             }
             .padding(.top, 8)
         }
-        NoteImagesView(media: note.media)
-            .allowsHitTesting(!hidesMedia)
-            .accessibilityHidden(hidesMedia)
-            .overlay {
-                if hidesMedia {
-                    ZStack {
-                        Rectangle().fill(.ultraThickMaterial)
-                        Button {
-                            withAnimation(reduceMotion ? nil : .snappy(duration: 0.22)) { mediaRevealed = true }
-                        } label: {
-                            Text("민감한 사진 · 눌러서 보기")
-                                .typeScale(.meta)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(Palette.ink)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 9)
-                                .background(.regularMaterial, in: Capsule())
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("note.sensitive.\(note.id)")
-                    }
-                    .clipShape(RoundedRectangle(cornerRadius: Metrics.radius))
-                    .transition(.opacity)
-                }
-            }
+        NoteImagesView(
+            media: note.media, concealed: mediaConcealed, revealIdentifier: "note.sensitive.\(note.id)",
+            reveal: revealMedia)
+        if !folded {
+            quotedAttachments
+        }
+    }
+
+    @ViewBuilder private var quotedAttachments: some View {
         if let post = note.quotedPost {
             NavigationLink(value: Route.post(username: post.authorUsername, slug: post.slug)) {
                 QuotedPostCard(post: post)
@@ -911,18 +960,7 @@ struct NoteRowView: View {
             .accessibilityAddTraits(liked ? [.isSelected] : [])
 
             if spread { Spacer(minLength: 0) }
-            NavigationLink(value: Route.note(id: note.id)) {
-                HStack(spacing: 4) {
-                    NoteGlyphView(glyph: .reply, size: Self.actionBox * unit)
-                    if note.replyCount > 0 { Text("\(note.replyCount)").monospacedDigit() }
-                }
-                .typeScale(.lede)
-                .foregroundStyle(Palette.ink)
-                .expandTapTarget()
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(Text("답글 \(note.replyCount)"))
-            .accessibilityIdentifier("note.replies.\(note.id)")
+            replyButton
 
             if spread { Spacer(minLength: 0) }
             repostMenu
@@ -1106,6 +1144,47 @@ struct NoteRowView: View {
         showLoginSheet = true
     }
 
+    private var replyAccess: NoteReplyAccess {
+        NoteReplyAccess(note, signedIn: AuthStore.shared.isSignedIn)
+    }
+
+    private var replyButton: some View {
+        let access = replyAccess
+        return Button(action: startReply) {
+            HStack(spacing: 4) {
+                NoteGlyphView(glyph: .reply, size: Self.actionBox * unit)
+                if note.replyCount > 0 { Text("\(note.replyCount)").monospacedDigit() }
+            }
+            .typeScale(.lede)
+            .foregroundStyle(access.isClosed ? Palette.faint : Palette.ink)
+            .expandTapTarget()
+        }
+        .buttonStyle(.plain)
+        .disabled(access.isClosed)
+        .accessibilityLabel(Text("답글 쓰기"))
+        .accessibilityValue(Text("답글 \(note.replyCount)"))
+        .accessibilityHint(access.notice.map { Text($0) } ?? Text(verbatim: ""))
+        .accessibilityIdentifier("note.replies.\(note.id)")
+    }
+
+    private func startReply() {
+        switch replyAccess {
+        case .open: replying = true
+        case .needsSignIn: askLogin("답글을 달려면 로그인하세요")
+        case .closed: break
+        }
+    }
+
+    private func replied(_ reply: Note) {
+        if let onReplied {
+            onReplied(reply)
+            return
+        }
+        replyPosts += 1
+        onChange(note.addingReply())
+        NoteReplyToast.show(reply, open: openNoteRoute)
+    }
+
     private func toggleLike() async {
         guard AuthStore.shared.isSignedIn else {
             askLogin("좋아요를 누르려면 로그인하세요")
@@ -1151,6 +1230,38 @@ private struct GlyphPop: ViewModifier {
 }
 
 /// 인용된 블로그 글 — 인용된 노트 카드와 같은 틀(작성자 · 블로그 글 + 제목).
+enum NoteReplyToast {
+    static func show(_ reply: Note, open: ((Route) -> Void)?) {
+        let message = String(localized: "답글을 올렸어요")
+        guard let open else {
+            ToastCenter.shared.show(message)
+            return
+        }
+        ToastCenter.shared.show(message, actionLabel: String(localized: "보기")) {
+            open(.note(id: reply.id))
+        }
+    }
+}
+
+extension EnvironmentValues {
+    @Entry var openNoteRoute: ((Route) -> Void)? = nil
+}
+
+extension VerticalAlignment {
+    private enum NoteNameLine: AlignmentID {
+        static func defaultValue(in context: ViewDimensions) -> CGFloat { context[.top] }
+    }
+
+    static let noteNameLine = VerticalAlignment(NoteNameLine.self)
+}
+
+extension Author {
+    var addressedName: String {
+        if hasDisplayName, let displayName { return displayName }
+        return "@\(username.split(separator: "@").first.map(String.init) ?? username)"
+    }
+}
+
 struct QuotedPostCard: View {
     let post: QuotedPost
 
@@ -1186,29 +1297,39 @@ struct QuotedNoteCard: View {
     let note: QuotedNote
     /// 글에 실린 노트 — 본문을 자르지 않는다.
     var full = false
+    @ScaledMetric(relativeTo: .caption) private var nameCapHalf: CGFloat = 4.4
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 6) {
+            HStack(alignment: .noteNameLine, spacing: 6) {
                 AvatarView(author: note.author, size: 20)
-                Text(note.author.username)
-                    .typeScale(.meta)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Palette.ink)
-                    .lineLimit(1)
-                if let date = note.createdAt {
-                    Text(date.relativeCompact)
+                    .alignmentGuide(.noteNameLine) { $0[VerticalAlignment.center] }
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    ConversationName(author: note.author)
                         .typeScale(.meta)
-                        .foregroundStyle(Palette.secondary)
-                        .lineLimit(1)
+                    if let date = note.createdAt {
+                        Text(date.relativeCompact)
+                            .typeScale(.meta)
+                            .foregroundStyle(Palette.secondary)
+                            .lineLimit(1)
+                    }
                 }
+                .alignmentGuide(.noteNameLine) { $0[.firstTextBaseline] - nameCapHalf }
             }
             if let warning = note.contentWarning {
-                Label(warning, systemImage: "exclamationmark.triangle")
+                Text(verbatim: warning)
                     .typeScale(.note)
-                    .fontWeight(.medium)
                     .foregroundStyle(Palette.ink)
                     .lineLimit(2)
+                if !note.body.isEmpty {
+                    Text(verbatim: note.body)
+                        .typeScale(.note)
+                        .foregroundStyle(Palette.ink)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                        .blur(radius: 9)
+                        .accessibilityHidden(true)
+                }
             } else if !note.body.isEmpty {
                 Text(note.body)
                     .typeScale(.note)
@@ -1216,7 +1337,8 @@ struct QuotedNoteCard: View {
                     .lineLimit(full ? nil : 4)
                     .multilineTextAlignment(.leading)
             }
-            if note.contentWarning == nil, note.sensitive != true, !note.media.isEmpty {
+            if !note.media.isEmpty {
+                let concealed = note.contentWarning != nil || note.sensitive == true
                 HStack(spacing: 6) {
                     ForEach(note.media) { image in
                         RemoteImage(url: URL(string: image.url), maxPixel: 200) { phase in
@@ -1224,12 +1346,14 @@ struct QuotedNoteCard: View {
                                 .overlay {
                                     if case .success(let loaded) = phase {
                                         loaded.resizable().scaledToFill()
+                                            .blur(radius: concealed ? 14 : 0, opaque: true)
                                     }
                                 }
                         }
                         .frame(width: 64, height: 64)
                         .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusInner))
-                        .accessibilityLabel(Text(image.altText ?? String(localized: "사진")))
+                        .accessibilityLabel(
+                            concealed ? Text("가려진 사진") : Text(image.altText ?? String(localized: "사진")))
                     }
                 }
                 .padding(.top, 4)
@@ -1257,6 +1381,9 @@ extension QuotedNote {
 /// 칼럼 밖 화면 끝까지 그려진다. 대체 텍스트가 곧 접근성 라벨이고, 있으면 ALT 배지로도 드러낸다.
 private struct NoteImagesView: View {
     let media: [NoteMedia]
+    var concealed = false
+    var revealIdentifier: String? = nil
+    var reveal: () -> Void = {}
     @State private var opened: NoteMedia?
 
     private var visual: [NoteMedia] { media.filter { !$0.isAudio } }
@@ -1276,10 +1403,22 @@ private struct NoteImagesView: View {
                         }
                     }
                     .scrollClipDisabled()
+                    .scrollDisabled(concealed)
                     .holdsSwipePager()
                 }
                 ForEach(audio, id: \.url) { item in
                     NoteAudioRow(media: item)
+                }
+            }
+            .overlay {
+                if concealed {
+                    Button(action: reveal) {
+                        Color.clear.contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text("가려진 사진"))
+                    .accessibilityAction(named: Text("보기"), reveal)
+                    .accessibilityIdentifier(revealIdentifier ?? "")
                 }
             }
             .padding(.top, 6)
@@ -1296,10 +1435,16 @@ private struct NoteImagesView: View {
     }
 
     @ViewBuilder private func tile(_ item: NoteMedia, height: CGFloat?) -> some View {
-        if item.isVideo {
+        if item.isVideo, concealed {
+            Rectangle()
+                .fill(Color.black.opacity(0.88))
+                .modifier(TileFrame(ratio: item.ratio ?? 16.0 / 9.0, height: height))
+                .clipShape(RoundedRectangle(cornerRadius: Metrics.radius))
+                .accessibilityHidden(true)
+        } else if item.isVideo {
             NoteVideoTile(media: item, height: height) { opened = item }
         } else {
-            NoteImageTile(image: item, height: height) { opened = item }
+            NoteImageTile(image: item, height: height, concealed: concealed) { opened = item }
         }
     }
 }
@@ -1308,6 +1453,7 @@ private struct NoteImageTile: View {
     let image: NoteMedia
     /// nil = 한 장 — 칼럼 폭에 원래 비율로 맞추고 430pt 를 넘지 않는다.
     let height: CGFloat?
+    var concealed = false
     let onOpen: () -> Void
     @State private var showAlt = false
     /// 비율은 타일을 만들 때 한 번 정하고 바꾸지 않는다. 지연 스택에서 보이는 행의 높이가 이미지 로드로
@@ -1318,9 +1464,10 @@ private struct NoteImageTile: View {
     private static let unknownRatio: CGFloat = 4.0 / 3.0
     private var url: URL? { URL(string: image.url) }
 
-    init(image: NoteMedia, height: CGFloat?, onOpen: @escaping () -> Void) {
+    init(image: NoteMedia, height: CGFloat?, concealed: Bool = false, onOpen: @escaping () -> Void) {
         self.image = image
         self.height = height
+        self.concealed = concealed
         self.onOpen = onOpen
         _ratio = State(initialValue: image.ratio ?? Self.cachedRatio(image.url) ?? Self.unknownRatio)
     }
@@ -1340,17 +1487,25 @@ private struct NoteImageTile: View {
                 .overlay {
                     if case .success(let loaded) = phase {
                         loaded.resizable().scaledToFill()
+                            .overlay {
+                                if concealed {
+                                    loaded.resizable().scaledToFill()
+                                        .blur(radius: 36, opaque: true)
+                                        .transition(.opacity)
+                                }
+                            }
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: Metrics.radius))
             .overlay(RoundedRectangle(cornerRadius: Metrics.radius).stroke(Palette.hairline, lineWidth: 0.5))
-            .overlay(alignment: .bottomLeading) { altLayer }
+            .overlay(alignment: .bottomLeading) { if !concealed { altLayer } }
             .contentShape(RoundedRectangle(cornerRadius: Metrics.radius))
             .onTapGesture(perform: onOpen)
             .accessibilityElement()
             .accessibilityAddTraits([.isImage, .isButton])
             .accessibilityLabel(Text(image.altText ?? String(localized: "사진")))
             .accessibilityHint(Text("두 번 탭하면 크게 봅니다"))
+            .accessibilityHidden(concealed)
         }
     }
 
@@ -1620,7 +1775,7 @@ struct NoteFeedItem: View {
                         Text("이어지는 글 \(thread.total - 2)개 더")
                             .typeScale(.meta)
                             .fontWeight(.medium)
-                            .foregroundStyle(Palette.link)
+                            .foregroundStyle(Palette.ink)
                             .padding(.leading, 48)
                             .padding(.bottom, 14)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -1643,93 +1798,32 @@ struct NoteDetailView: View {
     @State private var deleted = false
     @State private var showLoginSheet = false
     @State private var replied = 0
+    @State private var landed: Int64?
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.openNoteRoute) private var openNoteRoute
 
     var body: some View {
         Group {
             if let thread {
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 0) {
-                        if let trail = thread.series {
-                            // 시리즈 속 노트 — 글 상세와 같은 자리에서 "여정의 몇 번째"부터 세운다.
-                            AnyView(
-                                SeriesBanner(
-                                    nav: trail, username: thread.note.author.username,
-                                    currentId: "note-\(thread.note.id)")
-                                    .padding(.top, 12)
-                                    .padding(.bottom, 8))
-                        }
-                        if let parent = thread.parent {
-                            NoteRowView(
-                                note: parent,
-                                onChange: { next in update { $0.parent = next } },
-                                onDelete: { _ in update { $0.parent = nil } },
-                                threadLineBelow: true)
-                        }
-                        let parts = thread.continuation ?? []
-                        let numbered = !parts.isEmpty && thread.parent?.author.id != thread.note.author.id
-                        NoteRowView(
-                            note: thread.note,
-                            onChange: { note in update { $0.note = note } },
-                            onDelete: { _ in dismiss() },
-                            focused: true,
-                            position: numbered ? "1/\(parts.count + 1)" : nil)
-                        ForEach(Array(parts.enumerated()), id: \.element.id) { index, part in
-                            NoteRowView(
-                                note: part,
-                                onChange: { next in update { $0.continuation = $0.continuation?.map { $0.id == next.id ? next : $0 } } },
-                                onDelete: { id in update { $0.continuation?.removeAll { $0.id == id } } },
-                                threadLineBelow: index < parts.count - 1,
-                                position: numbered ? "\(index + 2)/\(parts.count + 1)" : nil)
-                        }
-                        if let trail = thread.series {
-                            AnyView(
-                                SeriesNextCard(nav: trail, username: thread.note.author.username)
-                                    .padding(.bottom, 14))
-                        }
-                        Hairline().padding(.horizontal, -Metrics.noteGutter)
-                        HStack(spacing: 6) {
-                            Text("답글")
-                                .fontWeight(.semibold)
-                                .foregroundStyle(Palette.ink)
-                            if !thread.replies.isEmpty {
-                                Text(verbatim: "\(thread.replies.count)")
-                                    .foregroundStyle(Palette.secondary)
-                                    .monospacedDigit()
-                            }
-                        }
-                        .typeScale(.note)
-                        .padding(.top, 14)
-                        .padding(.bottom, 2)
-                        .accessibilityAddTraits(.isHeader)
-                        if thread.replies.isEmpty {
-                            Text("아직 답글이 없어요")
-                                .typeScale(.note)
-                                .foregroundStyle(Palette.secondary)
-                                .padding(.vertical, 14)
-                        }
-                        let replies = thread.replies.filter {
-                            NoteFilterStore.shared.verdict(for: $0, in: .thread) != .hide
-                        }
-                        ForEach(Array(replies.enumerated()), id: \.element.id) { index, reply in
-                            NoteRowView(
-                                note: reply,
-                                onChange: { next in update { $0.replies = $0.replies.map { $0.id == next.id ? next : $0 } } },
-                                onDelete: { id in update { $0.replies.removeAll { $0.id == id } } })
-                                .environment(\.noteFilterContext, .thread)
-                            if index < replies.count - 1 {
-                                Hairline().padding(.horizontal, -Metrics.noteGutter)
-                            }
-                        }
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        content(thread)
                     }
-                    .padding(.vertical, 6)
-                    .frame(maxWidth: Metrics.readingColumn)
-                    .frame(maxWidth: .infinity)
-                    .padding(.horizontal, Metrics.noteGutter)
+                    .brandRefreshable { await load() }
+                    .onChange(of: landed) { _, id in
+                        guard let id else { return }
+                        withAnimation(reduceMotion ? nil : .snappy(duration: 0.3)) {
+                            proxy.scrollTo(id)
+                        }
+                        landed = nil
+                    }
                 }
-                .brandRefreshable { await load() }
             } else if let failed {
                 ErrorState(message: failed, retry: { Task { await load() } })
+                    .padding(.horizontal, Metrics.gutter)
+                    .padding(.top, 24)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             } else {
                 KurlLoadingMark().frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -1743,14 +1837,11 @@ struct NoteDetailView: View {
         .noteTextLinks()
         .hidesTabBar()
         .safeAreaInset(edge: .bottom) {
-            if let thread { replyBar(to: thread.note.author.username) }
+            if let thread { replyBar(to: thread.note) }
         }
         .sheet(isPresented: $replying) {
-            NoteComposeSheet(mode: .new(quote: nil, inReplyToId: noteId)) { reply in
-                update {
-                    $0.replies.append(reply)
-                }
-                replied += 1
+            if let note = thread?.note {
+                NoteComposeSheet(mode: .reply(note)) { land($0) }
             }
         }
         .sensoryFeedback(.success, trigger: replied)
@@ -1758,16 +1849,107 @@ struct NoteDetailView: View {
         .task { if thread == nil { await load() } }
     }
 
-    /// 스레드처럼 아래에 늘 있는 답글 입구 — 누르면 답글 시트.
-    private func replyBar(to username: String) -> some View {
-        Button {
-            if AuthStore.shared.isSignedIn { replying = true } else { showLoginSheet = true }
-        } label: {
-            ReplyPrompt(text: Text("\(username)님에게 답글 남기기"))
+    private func content(_ thread: NoteThread) -> some View {
+        LazyVStack(alignment: .leading, spacing: 0) {
+            if let trail = thread.series {
+                // 시리즈 속 노트 — 글 상세와 같은 자리에서 "여정의 몇 번째"부터 세운다.
+                AnyView(
+                    SeriesBanner(
+                        nav: trail, username: thread.note.author.username,
+                        currentId: "note-\(thread.note.id)")
+                        .padding(.top, 12)
+                        .padding(.bottom, 8))
+            }
+            if let parent = thread.parent {
+                NoteRowView(
+                    note: parent,
+                    onChange: { next in update { $0.parent = next } },
+                    onDelete: { _ in update { $0.parent = nil } },
+                    threadLineBelow: true,
+                    onReplied: land)
+            }
+            let parts = thread.continuation ?? []
+            let numbered = !parts.isEmpty && thread.parent?.author.id != thread.note.author.id
+            NoteRowView(
+                note: thread.note,
+                onChange: { note in update { $0.note = note } },
+                onDelete: { _ in dismiss() },
+                focused: true,
+                position: numbered ? "1/\(parts.count + 1)" : nil,
+                onReplied: land)
+            ForEach(Array(parts.enumerated()), id: \.element.id) { index, part in
+                NoteRowView(
+                    note: part,
+                    onChange: { next in update { $0.continuation = $0.continuation?.map { $0.id == next.id ? next : $0 } } },
+                    onDelete: { id in update { $0.continuation?.removeAll { $0.id == id } } },
+                    threadLineBelow: index < parts.count - 1,
+                    position: numbered ? "\(index + 2)/\(parts.count + 1)" : nil,
+                    onReplied: land)
+                    .id(part.id)
+            }
+            if let trail = thread.series {
+                AnyView(
+                    SeriesNextCard(nav: trail, username: thread.note.author.username)
+                        .padding(.bottom, 14))
+            }
+            Hairline().padding(.horizontal, -Metrics.noteGutter)
+            let replies = thread.replies.filter {
+                NoteFilterStore.shared.verdict(for: $0, in: .thread) != .hide
+            }
+            if !thread.replies.isEmpty {
+                HStack(spacing: 6) {
+                    Text("답글")
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Palette.ink)
+                    Text(verbatim: "\(thread.replies.count)")
+                        .foregroundStyle(Palette.secondary)
+                        .monospacedDigit()
+                }
+                .typeScale(.note)
+                .padding(.top, 14)
+                .padding(.bottom, 2)
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.isHeader)
+            }
+            ForEach(Array(replies.enumerated()), id: \.element.id) { index, reply in
+                NoteRowView(
+                    note: reply,
+                    onChange: { next in update { $0.replies = $0.replies.map { $0.id == next.id ? next : $0 } } },
+                    onDelete: { id in update { $0.replies.removeAll { $0.id == id } } },
+                    onReplied: land)
+                    .environment(\.noteFilterContext, .thread)
+                    .id(reply.id)
+                if index < replies.count - 1 {
+                    Hairline().padding(.horizontal, -Metrics.noteGutter)
+                }
+            }
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel(Text("답글 달기"))
-        .accessibilityIdentifier("note.reply")
+        .padding(.vertical, 6)
+        .frame(maxWidth: Metrics.readingColumn)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, Metrics.noteGutter)
+    }
+
+    @ViewBuilder private func replyBar(to note: Note) -> some View {
+        let access = NoteReplyAccess(note, signedIn: AuthStore.shared.isSignedIn)
+        Group {
+            if let notice = access.notice {
+                Text(notice)
+                    .typeScale(.meta)
+                    .foregroundStyle(Palette.secondary)
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    .accessibilityIdentifier("note.replyClosed")
+            } else {
+                Button {
+                    if access == .open { replying = true } else { showLoginSheet = true }
+                } label: {
+                    ReplyPrompt(text: Text("\(note.author.addressedName)님에게 답글 남기기"))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("답글 쓰기"))
+                .accessibilityIdentifier("note.reply")
+            }
+        }
         .padding(.horizontal, Metrics.noteGutter)
         .padding(.top, 8)
         .padding(.bottom, 6)
@@ -1777,21 +1959,22 @@ struct NoteDetailView: View {
         .overlay(alignment: .top) { Hairline() }
     }
 
-    private struct MutableThread {
-        var note: Note
-        var parent: Note?
-        var replies: [Note]
-        var continuation: [Note]?
+    private func land(_ reply: Note) {
+        guard let thread else { return }
+        let placed = thread.adding(reply)
+        self.thread = placed.thread
+        replied += 1
+        if placed.landing == .elsewhere {
+            NoteReplyToast.show(reply, open: openNoteRoute)
+        } else {
+            landed = reply.id
+        }
     }
 
-    private func update(_ change: (inout MutableThread) -> Void) {
-        guard let thread else { return }
-        var mutable = MutableThread(
-            note: thread.note, parent: thread.parent, replies: thread.replies, continuation: thread.continuation)
-        change(&mutable)
-        self.thread = NoteThread(
-            note: mutable.note, parent: mutable.parent, replies: mutable.replies,
-            continuation: mutable.continuation, series: thread.series)
+    private func update(_ change: (inout NoteThread) -> Void) {
+        guard var next = thread else { return }
+        change(&next)
+        thread = next
     }
 
     private func load() async {
@@ -1816,6 +1999,7 @@ struct NoteDetailView: View {
 struct NoteComposeSheet: View {
     enum Mode {
         case new(quote: QuotedPost?, inReplyToId: Int64?)
+        case reply(Note)
         case quote(QuotedNote)
         case edit(Note)
     }
@@ -1863,6 +2047,8 @@ struct NoteComposeSheet: View {
     @State private var confirmLongForm = false
     @FocusState private var focused: Bool
     @FocusState private var focusedPart: UUID?
+    @AccessibilityFocusState private var targetFocused: Bool
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
     @Environment(\.dismiss) private var dismiss
 
     init(mode: Mode, onLongForm: ((String) -> Void)? = nil, onDone: @escaping (Note) -> Void) {
@@ -1873,7 +2059,7 @@ struct NoteComposeSheet: View {
         case let .new(quote, _):
             _text = State(initialValue: "")
             _quote = State(initialValue: quote)
-        case .quote:
+        case .reply, .quote:
             _text = State(initialValue: "")
             _quote = State(initialValue: nil)
         case let .edit(note):
@@ -1888,7 +2074,14 @@ struct NoteComposeSheet: View {
     }
 
     private var isEdit: Bool { if case .edit = mode { true } else { false } }
-    private var inReplyToId: Int64? { if case let .new(_, id) = mode { id } else { nil } }
+    private var inReplyToId: Int64? {
+        switch mode {
+        case let .new(_, id): id
+        case let .reply(target): target.id
+        case .quote, .edit: nil
+        }
+    }
+    private var replyTarget: Note? { if case let .reply(target) = mode { target } else { nil } }
     private var quotedNote: QuotedNote? { if case let .quote(note) = mode { note } else { nil } }
     private var length: Int { NoteText.length(text) }
     private var cardUrl: String? {
@@ -1898,8 +2091,8 @@ struct NoteComposeSheet: View {
                 text, hasMedia: !picked.isEmpty || poll != nil, hasQuote: quote != nil || quotedNote != nil)
     }
     private var placeholder: LocalizedStringKey {
-        if quotedNote != nil { return "생각을 덧붙여 보세요" }
-        return inReplyToId == nil ? "지금 떠오른 생각을 짧게 남겨 보세요" : "답글을 남겨 보세요"
+        if quotedNote != nil { return "생각 덧붙이기" }
+        return inReplyToId == nil ? "노트 쓰기" : "답글 쓰기"
     }
     private var title: LocalizedStringKey {
         if isEdit { return "노트 고치기" }
@@ -1919,7 +2112,7 @@ struct NoteComposeSheet: View {
     }
     /// 스레드 이어 쓰기 — 고치기·예약에선 쓸 수 없다(서버가 예약 스레드를 받지 않는다).
     private var canAddPart: Bool {
-        !isEdit && scheduledAt == nil && parts.count < NoteAPI.maxThreadNotes - 1
+        !isEdit && inReplyToId == nil && scheduledAt == nil && parts.count < NoteAPI.maxThreadNotes - 1
     }
     private var discardTitle: LocalizedStringKey {
         isEdit ? "고친 내용을 버릴까요?" : "작성 중인 노트를 버릴까요?"
@@ -1937,6 +2130,7 @@ struct NoteComposeSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
+                    if let replyTarget { targetRow(replyTarget) }
                     HStack(alignment: .top, spacing: 12) {
                         threadColumn(size: 36, line: !parts.isEmpty || canAddPart)
                         VStack(alignment: .leading, spacing: 10) {
@@ -1948,7 +2142,7 @@ struct NoteComposeSheet: View {
                                         .foregroundStyle(Palette.ink)
                                 }
                                 if warns {
-                                    TextField("열람 주의 문구 (예: 스포일러)", text: $warning, axis: .vertical)
+                                    TextField("열람 주의 문구", text: $warning, axis: .vertical)
                                         .typeScale(.note)
                                         .fontWeight(.medium)
                                         .lineLimit(1...3)
@@ -2023,20 +2217,23 @@ struct NoteComposeSheet: View {
                                 Button {
                                     withAnimation(.snappy(duration: 0.2)) { warns.toggle() }
                                 } label: {
-                                    Image(systemName: warns ? "exclamationmark.triangle.fill" : "exclamationmark.triangle")
-                                        .font(.system(size: 17))
+                                    Text("열람 주의")
+                                        .typeScale(.meta)
+                                        .fontWeight(warns ? .semibold : .regular)
                                         .foregroundStyle(warns ? Palette.ink : Palette.secondary)
-                                        .frame(width: 32, height: 28, alignment: .leading)
+                                        .lineLimit(1)
+                                        .fixedSize()
+                                        .frame(minHeight: 28)
                                         .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
-                                .accessibilityLabel(warns ? "열람 주의 끄기" : "열람 주의")
+                                .accessibilityAddTraits(warns ? .isSelected : [])
                                 .accessibilityIdentifier("noteCompose.warningToggle")
                                 if hasImages, !warns {
                                     Button {
                                         sensitive.toggle()
                                     } label: {
-                                        Image(systemName: sensitive ? "eye.slash.fill" : "eye.slash")
+                                        Image(systemName: sensitive ? "eye.half.closed.fill" : "eye.half.closed")
                                             .font(.system(size: 17))
                                             .foregroundStyle(sensitive ? Palette.ink : Palette.secondary)
                                             .frame(width: 32, height: 28, alignment: .leading)
@@ -2079,7 +2276,7 @@ struct NoteComposeSheet: View {
                 }
             }
             .scrollDismissesKeyboard(.interactively)
-            .background(Palette.readingBg)
+            .background(Palette.sheetBg)
             .safeAreaInset(edge: .bottom) { footer }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
@@ -2132,7 +2329,13 @@ struct NoteComposeSheet: View {
                 guard !items.isEmpty else { return }
                 Task { await loadPicked(items) }
             }
-            .onAppear { focused = true }
+            .onAppear {
+                if replyTarget != nil, voiceOver {
+                    Task { @MainActor in targetFocused = true }
+                } else {
+                    focused = true
+                }
+            }
             .task(id: cardUrl) { await loadLinkCard() }
         }
         .interactiveDismissDisabled(posting || hasDraft)
@@ -2216,7 +2419,7 @@ struct NoteComposeSheet: View {
                 .accessibilityLabel(Text("언어"))
                 .accessibilityValue(Text(verbatim: NoteLanguages.name(language)))
                 .accessibilityIdentifier("noteCompose.language")
-                if parts.isEmpty {
+                if parts.isEmpty, inReplyToId == nil {
                     Button {
                         pickingSchedule = true
                     } label: {
@@ -2248,7 +2451,7 @@ struct NoteComposeSheet: View {
         .padding(.horizontal, Metrics.gutter)
         .padding(.vertical, 10)
         .frame(minHeight: 44)
-        .background(Palette.readingBg)
+        .background(Palette.sheetBg)
         .overlay(alignment: .top) { Hairline() }
     }
 
@@ -2258,6 +2461,40 @@ struct NoteComposeSheet: View {
                 author: Author(id: me.id ?? 0, username: me.username ?? "", bio: nil, avatarUrl: me.avatarUrl),
                 size: size)
         }
+    }
+
+    private func targetRow(_ target: Note) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(spacing: 4) {
+                AvatarView(author: target.author, size: 36)
+                Capsule()
+                    .fill(Palette.hairlineStrong)
+                    .frame(width: 2)
+                    .frame(maxHeight: .infinity)
+            }
+            .frame(width: 36)
+            .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                ConversationName(author: target.author)
+                    .typeScale(.note)
+                targetExcerpt(target)
+                    .typeScale(.note)
+                    .foregroundStyle(target.contentWarning == nil ? Palette.ink : Palette.secondary)
+                    .lineLimit(4)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.bottom, 14)
+            .accessibilityElement(children: .combine)
+            .accessibilityFocused($targetFocused)
+            .accessibilityIdentifier("noteCompose.replyTarget")
+        }
+    }
+
+    private func targetExcerpt(_ target: Note) -> Text {
+        if let warning = target.contentWarning { return Text(verbatim: warning) }
+        if !target.body.isEmpty { return Text(verbatim: target.body) }
+        if !target.media.isEmpty { return Text("사진 \(target.media.count)장") }
+        return Text(verbatim: "")
     }
 
     /// 아바타 아래로 다음 노트까지 잇는 스레드 선 — 스레드 작성 화면과 같은 문법.
@@ -2303,7 +2540,7 @@ struct NoteComposeSheet: View {
                     .buttonStyle(.plain)
                     .accessibilityLabel("이 노트 빼기")
                 }
-                TextField("이어서 써 보세요", text: part.text, axis: .vertical)
+                TextField("스레드 이어 쓰기", text: part.text, axis: .vertical)
                     .typeScale(.note)
                     .lineLimit(1...20)
                     .focused($focusedPart, equals: id)
@@ -2439,6 +2676,7 @@ struct NoteComposeSheet: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("완료") { altTarget = nil }
+                        .tint(Palette.link)
                 }
             }
         }
@@ -2540,6 +2778,8 @@ struct NoteComposeSheet: View {
             dismiss()
         } catch let tooLarge as NoteImageTooLarge {
             errorMessage = tooLarge.errorDescription
+        } catch let APIError.server(_, code, _) where code == "NOTE_REPLY_RESTRICTED" {
+            errorMessage = String(localized: "이 노트에는 답글을 달 수 없어요")
         } catch {
             errorMessage = scheduledAt == nil
                 ? String(localized: "노트를 올리지 못했어요")
@@ -2608,7 +2848,7 @@ private struct NoteLengthRing: View {
             Circle().stroke(Palette.hairlineStrong, lineWidth: 2.5)
             Circle()
                 .trim(from: 0, to: min(1, CGFloat(length) / CGFloat(max(limit, 1))))
-                .stroke(left < 0 ? Palette.danger : Palette.accent, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                .stroke(left < 0 ? Palette.danger : Palette.secondary, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
                 .rotationEffect(.degrees(-90))
             if near {
                 Text(verbatim: "\(left)")
@@ -2670,6 +2910,9 @@ struct NoteHistorySheet: View {
                     KurlLoadingMark().frame(maxWidth: .infinity, maxHeight: .infinity)
                 case .failed(let message):
                     ErrorState(message: message, retry: { Task { await load() } })
+                        .padding(.horizontal, Metrics.gutter)
+                        .padding(.top, 24)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 case .loaded(let history):
                     List {
                         ForEach(Array(history.versions.enumerated()), id: \.offset) { index, version in
@@ -2685,10 +2928,9 @@ struct NoteHistorySheet: View {
                                 }
                                 .typeScale(.meta)
                                 if let warning = version.contentWarning {
-                                    Label(warning, systemImage: "exclamationmark.triangle")
-                                        .typeScale(.meta)
-                                        .fontWeight(.medium)
-                                        .foregroundStyle(Palette.ink)
+                                    Text(verbatim: warning)
+                                        .typeScale(.note)
+                                        .foregroundStyle(Palette.secondary)
                                 }
                                 Text(version.body)
                                     .typeScale(.note)
@@ -2707,7 +2949,7 @@ struct NoteHistorySheet: View {
             .navigationTitle("수정 기록")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
+                ToolbarItem(placement: .cancellationAction) {
                     Button("닫기") { dismiss() }
                 }
             }

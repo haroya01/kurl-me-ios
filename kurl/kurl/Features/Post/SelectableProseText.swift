@@ -25,6 +25,9 @@ struct SelectableProseText: UIViewRepresentable {
     let onHighlightNote: ((_ startOffset: Int, _ endOffset: Int, _ quote: String) -> Void)?
     /// 칠해진 하이라이트 탭 → 그 자리의 하이라이트들(겹치면 여럿)과 탭한 줄의 창 좌표.
     let onTapMarks: ((_ highlightIds: [Int64], _ anchor: CGRect) -> Void)?
+    var sweepId: Int64?
+    var revealId: Int64?
+    var onReveal: ((_ highlightIds: [Int64], _ anchor: CGRect) -> Void)?
 
     /// 칠할 한 span — 렌더된 본문 텍스트 기준 문자 오프셋 [start, end) + 폴백용 인용. id 로 탭→스레드,
     /// hasThread 면 메모/답글이 있어 강조 밑줄을 더한다.
@@ -151,47 +154,62 @@ struct SelectableProseText: UIViewRepresentable {
         // 부모 무효화(다른 문단의 마크 변화 등)마다 마크다운을 재파싱하던 것을 막는다. 페인트 패스는
         // 아래에서 늘 새로 얹으므로(하이라이트만 바뀌어도) 재파싱 없이 span 만 다시 칠해진다.
         // 색은 동적 UIColor(스킴별 재해석)라 스킴이 바뀌어도 베이스는 그대로 유효 — 키에 넣지 않는다.
+        let coordinator = context.coordinator
+        coordinator.textView = tv
+        coordinator.motionAllowed = !context.environment.accessibilityReduceMotion
         let signature = Coordinator.BaseSignature(
             raw: raw, fontSize: fontSize, lineSpacing: lineSpacing, textColor: textColor)
         // 본문도 하이라이트도 그대로면 여기서 끝 — attributedText 를 다시 꽂지 않는다.
         // (재설정 자체가 TextKit 재조판이라, 무변경 update 스톰에서 이 한 줄이 프레임을 살린다.)
-        if context.coordinator.lastPaintSignature == signature,
-           context.coordinator.lastPaintMarks == highlights {
-            Self.refreshAccessibilityActions(tv)
-            return
+        var needsPaint = false
+        if coordinator.lastPaintSignature != signature || coordinator.lastPaintMarks != highlights {
+            let base: NSAttributedString
+            if let cached = coordinator.baseCache, coordinator.baseSignature == signature {
+                base = cached
+            } else {
+                base = Self.attributed(
+                    raw, fontSize: fontSize, color: UIColor(textColor), lineSpacing: lineSpacing)
+                coordinator.baseCache = base
+                coordinator.baseSignature = signature
+            }
+            let previous = tv.resolvedMarks
+            tv.resolvedMarks = highlights.compactMap { Self.resolve($0, in: base.string as NSString) }
+            if coordinator.lastPaintSignature == signature {
+                coordinator.fadeOut(previous.filter { old in !tv.resolvedMarks.contains { $0.range == old.range } })
+            }
+            coordinator.lastPaintSignature = signature
+            coordinator.lastPaintMarks = highlights
+            needsPaint = true
         }
-        let base: NSAttributedString
-        if let cached = context.coordinator.baseCache, context.coordinator.baseSignature == signature {
-            base = cached
-        } else {
-            base = Self.attributed(
-                raw, fontSize: fontSize, color: UIColor(textColor), lineSpacing: lineSpacing)
-            context.coordinator.baseCache = base
-            context.coordinator.baseSignature = signature
+        if let sweepId, let mark = tv.resolvedMarks.first(where: { $0.id == sweepId }), coordinator.sweepIn(mark) {
+            needsPaint = true
         }
-        let painted = NSMutableAttributedString(attributedString: base)
-        let hay = painted.string as NSString
-        let wash = UIColor(Palette.highlightWash)
-        let mineWash = UIColor(Palette.highlightWashMine)
-        tv.resolvedMarks = highlights.compactMap { Self.resolve($0, in: hay) }
-        for mark in tv.resolvedMarks.sorted(by: { !$0.mine && $1.mine }) {
-            let range = mark.range
-            painted.addAttribute(.backgroundColor, value: mark.mine ? mineWash : wash, range: range)
-            // 낮춘 채움을 얇은 그린 밑줄로 보완 — 모든 하이라이트에 헤어라인 하나(놓칠 곳에서도 표식 유지).
-            // 메모/답글이 달린 건 굵고 진한 밑줄로 올려 "탭하면 대화" 신호를 구분한다.
-            painted.addAttribute(
-                .underlineStyle,
-                value: (mark.hasThread ? NSUnderlineStyle.thick : NSUnderlineStyle.single).rawValue,
-                range: range)
-            painted.addAttribute(
-                .underlineColor,
-                value: UIColor(mark.hasThread ? Palette.highlightUnderlineThread : Palette.highlightUnderline),
-                range: range)
+        if needsPaint { coordinator.repaint() }
+        if let revealId, let onReveal, let mark = tv.resolvedMarks.first(where: { $0.id == revealId }) {
+            DispatchQueue.main.async { [weak tv] in
+                guard let tv, tv.window != nil else { return }
+                tv.layoutIfNeeded()
+                let ids = tv.resolvedMarks.filter { NSIntersectionRange($0.range, mark.range).length > 0 }.map(\.id)
+                onReveal(ids, Self.windowRect(of: mark.range, in: tv))
+            }
         }
-        tv.attributedText = painted
         Self.refreshAccessibilityActions(tv)
-        context.coordinator.lastPaintSignature = signature
-        context.coordinator.lastPaintMarks = highlights
+    }
+
+    fileprivate static let wash = UIColor(Palette.highlightWash)
+    fileprivate static let mineWash = UIColor(Palette.highlightWashMine)
+    fileprivate static let underline = UIColor(Palette.highlightUnderline)
+    fileprivate static let threadUnderline = UIColor(Palette.highlightUnderlineThread)
+
+    static func paint(_ text: NSMutableAttributedString, range: NSRange, mine: Bool, hasThread: Bool) {
+        text.addAttribute(.backgroundColor, value: mine ? mineWash : wash, range: range)
+        // 낮춘 채움을 얇은 그린 밑줄로 보완 — 모든 하이라이트에 헤어라인 하나(놓칠 곳에서도 표식 유지).
+        // 메모/답글이 달린 건 굵고 진한 밑줄로 올려 "탭하면 대화" 신호를 구분한다.
+        text.addAttribute(
+            .underlineStyle,
+            value: (hasThread ? NSUnderlineStyle.thick : NSUnderlineStyle.single).rawValue,
+            range: range)
+        text.addAttribute(.underlineColor, value: hasThread ? threadUnderline : underline, range: range)
     }
 
     private static func refreshAccessibilityActions(_ tv: ProseTextView) {
@@ -254,6 +272,93 @@ struct SelectableProseText: UIViewRepresentable {
         var lastPaintSignature: BaseSignature?
         var lastPaintMarks: [Mark]?
 
+        weak var textView: ProseTextView?
+        var motionAllowed = true
+        private var sweeping: [(marks: [ResolvedMark], start: CFTimeInterval)] = []
+        private var fading: [(mark: ResolvedMark, start: CFTimeInterval)] = []
+        private var sweptRanges: Set<NSRange> = []
+        private var displayLink: CADisplayLink?
+        private static let curve = UnitCurve.bezier(
+            startControlPoint: UnitPoint(x: 0.16, y: 1), endControlPoint: UnitPoint(x: 0.3, y: 1))
+        static let sweepDuration: CFTimeInterval = 0.44
+        static let fadeDuration: CFTimeInterval = 0.2
+
+        func repaint() {
+            guard let tv = textView, let base = baseCache else { return }
+            let painted = NSMutableAttributedString(attributedString: base)
+            let held = Set(sweeping.flatMap { $0.marks.map(\.range) })
+            for mark in tv.resolvedMarks.sorted(by: { !$0.mine && $1.mine }) where !held.contains(mark.range) {
+                SelectableProseText.paint(painted, range: mark.range, mine: mark.mine, hasThread: mark.hasThread)
+            }
+            tv.attributedText = painted
+        }
+
+        func sweepIn(_ mark: ResolvedMark) -> Bool {
+            guard motionAllowed, textView?.layoutManager is HighlightPaintLayoutManager,
+                  sweptRanges.insert(mark.range).inserted else { return false }
+            let cluster = textView?.resolvedMarks.filter { NSIntersectionRange($0.range, mark.range).length > 0 } ?? []
+            sweeping.append((cluster.isEmpty ? [mark] : cluster, CACurrentMediaTime()))
+            startTicking()
+            return true
+        }
+
+        func fadeOut(_ marks: [ResolvedMark]) {
+            guard motionAllowed, !marks.isEmpty, textView?.window != nil,
+                  textView?.layoutManager is HighlightPaintLayoutManager else { return }
+            let now = CACurrentMediaTime()
+            fading += marks.map { ($0, now) }
+            startTicking()
+        }
+
+        private func startTicking() {
+            guard displayLink == nil else { return }
+            let link = CADisplayLink(target: self, selector: #selector(tick(_:)))
+            link.add(to: .main, forMode: .common)
+            displayLink = link
+            tick(link)
+        }
+
+        @objc private func tick(_ link: CADisplayLink) {
+            guard let tv = textView, let manager = tv.layoutManager as? HighlightPaintLayoutManager else {
+                stopTicking()
+                return
+            }
+            let now = CACurrentMediaTime()
+            let running = sweeping.filter { now - $0.start < Self.sweepDuration }
+            let finishedSweep = running.count != sweeping.count
+            sweeping = running
+            var motions = running.map { entry in
+                Self.motion(entry.marks, fading: false, progress: Self.curve.value(at: max(0, (now - entry.start) / Self.sweepDuration)))
+            }
+            fading = fading.filter { now - $0.start < Self.fadeDuration }
+            motions += fading.map {
+                Self.motion([$0.mark], fading: true, progress: Self.curve.value(at: (now - $0.start) / Self.fadeDuration))
+            }
+            manager.motions = motions
+            if finishedSweep { repaint() }
+            manager.invalidateDisplay(forCharacterRange: NSRange(location: 0, length: manager.textStorage?.length ?? 0))
+            if motions.isEmpty { stopTicking() }
+        }
+
+        private func stopTicking() {
+            displayLink?.invalidate()
+            displayLink = nil
+        }
+
+        private static func motion(
+            _ marks: [ResolvedMark], fading: Bool, progress: Double
+        ) -> HighlightPaintLayoutManager.Motion {
+            let start = marks.map(\.range.location).min() ?? 0
+            let end = marks.map { NSMaxRange($0.range) }.max() ?? start
+            let mine = marks.contains(where: \.mine)
+            let thread = marks.contains(where: \.hasThread)
+            return HighlightPaintLayoutManager.Motion(
+                range: NSRange(location: start, length: end - start),
+                wash: mine ? SelectableProseText.mineWash : SelectableProseText.wash,
+                underline: thread ? SelectableProseText.threadUnderline : SelectableProseText.underline,
+                thick: thread, fading: fading, progress: CGFloat(progress))
+        }
+
         /// 베이스 본문을 결정하는 입력. 이 넷이 같으면 파싱 결과도 같다(색은 동적이라 제외).
         struct BaseSignature: Equatable {
             let raw: String
@@ -287,7 +392,7 @@ struct SelectableProseText: UIViewRepresentable {
             let after = NSRange(location: range.location + range.length, length: 0)
             var actions: [UIMenuElement] = []
             if let onHighlight = tv.onHighlight {
-                actions.append(UIAction(title: String(localized: "하이라이트"), image: UIImage(systemName: "highlighter")) { _ in
+                actions.append(UIAction(title: String(localized: "action.highlight", defaultValue: "하이라이트"), image: UIImage(systemName: "highlighter")) { _ in
                     onHighlight(range.location, range.location + range.length, quote)
                     tv.selectedRange = after
                     tv.resignFirstResponder()
@@ -432,4 +537,21 @@ final class ProseTextView: UITextView {
     var resolvedMarks: [SelectableProseText.ResolvedMark] = []
     /// 롱프레스(문장 스냅)가 띄우는 편집 메뉴 인터랙션.
     var highlightMenuInteraction: UIEditMenuInteraction?
+
+    private var paintStorage: NSTextStorage?
+
+    convenience init(usingTextLayoutManager: Bool) {
+        guard !usingTextLayoutManager else {
+            self.init(frame: .zero, textContainer: nil)
+            return
+        }
+        let storage = NSTextStorage()
+        let manager = HighlightPaintLayoutManager()
+        storage.addLayoutManager(manager)
+        let container = NSTextContainer(size: CGSize(width: 0, height: CGFloat.greatestFiniteMagnitude))
+        container.widthTracksTextView = true
+        manager.addTextContainer(container)
+        self.init(frame: .zero, textContainer: container)
+        paintStorage = storage
+    }
 }

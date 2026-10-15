@@ -32,7 +32,7 @@ struct BusinessCardView: View {
                             KurlLoadingMark()
                         }
                     }
-                    .overlay {
+                    .overlay(alignment: .top) {
                         if failed {
                             ErrorState(
                                 title: "명함을 불러오지 못했습니다",
@@ -42,6 +42,8 @@ struct BusinessCardView: View {
                                     isLoading = true
                                     attempt += 1
                                 })
+                                .padding(.horizontal, Metrics.gutter)
+                                .padding(.top, 24)
                         }
                     }
             }
@@ -56,13 +58,13 @@ struct BusinessCardView: View {
             ToolbarItem(placement: .primaryAction) {
                 NavigationLink(value: Route.author(username: username)) {
                     HStack(spacing: 5) {
-                        KurlMark(drawn: [true, true, true])
+                        KurlMark(drawn: [true, true, true], tint: .primary)
                             .frame(width: 15, height: 9)
                         Text("블로그")
                             .typeScale(.footnote)
                     }
                 }
-                .tint(.brand)
+                .tint(.primary)
                 .accessibilityLabel("블로그 보기")
             }
         }

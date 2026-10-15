@@ -66,15 +66,12 @@ struct ComposeView: View {
     /// WriteV2 캔버스에 이미지를 넣는 사진 선택 — 실제 업로드 후 `insertNonText(.image)` 로 삽입한다.
     @State private var showV2ImagePicker = false
     @State private var v2ImageItem: PhotosPickerItem?
-    /// WriteV2 통합 링크 삽입 — 주소(+선택 라벨)를 받아 동영상이면 임베드, 아니면 링크로 문서에 넣는다.
-    @State private var showV2LinkDialog = false
-    @State private var v2LinkURL = ""
-    @State private var v2LinkLabel = ""
-    /// 링크 알럿을 열기 직전에 잡아둔 캔버스 포커스(블록·선택) — 알럿이 first responder 를 뺏어 선택이
-    /// 접히므로, 확인 시 이 포커스로 원래 선택을 감싼다. nil 이면 포커스 없이 눌린 것(문단 삽입 폴백).
-    @State private var v2LinkTargetFocus: EditorFocus?
+    @State private var linkRequest: EditorLinkRequest?
+    @State private var openedLink: LegalLink?
+    @State private var linkInsertTick = 0
     @State private var postId: Int64?
     @State private var status = "DRAFT"
+    @State private var takenDown = false
     @State private var busy = false
     /// 발행 성공 모먼트(전체화면 블룸) 표시.
     @State private var celebrating = false
@@ -172,10 +169,7 @@ struct ComposeView: View {
     @State private var scheduleError: String?
     @State private var showRevisions = false
 
-    // 링크 추가 다이얼로그 — 본문에 `(url)` 리터럴을 떨구지 않고 주소를 받아서 넣는다.
-    @State private var showLinkDialog = false
-    @State private var linkURL = ""
-    @State private var linkLabel = ""
+    @State private var legacyLinkLabel = ""
     @State private var showVideoDialog = false
     @State private var videoURL = ""
 
@@ -345,19 +339,6 @@ struct ComposeView: View {
 
     private func insertDialogs(_ content: some View) -> some View {
         content
-        // 링크 추가 — 주소만 받아 본문에 `[라벨](주소)` 로. 본문에 `(url)` 가 보이지 않는다.
-        .alert("링크 추가", isPresented: $showLinkDialog) {
-            TextField("https://…", text: $linkURL)
-                .textInputAutocapitalization(.never)
-                .keyboardType(.URL)
-                .autocorrectionDisabled()
-            Button("추가") { confirmLink() }
-            Button("취소", role: .cancel) {}
-        } message: {
-            Text(linkLabel.isEmpty
-                ? "주소를 붙여넣거나 입력하세요."
-                : "‘\(linkLabel)’에 연결할 주소를 입력하세요.")
-        }
         // 동영상 추가 — YouTube/Vimeo 주소를 한 줄로 넣으면 발행 시 플레이어로(EMBED).
         .alert("동영상 추가", isPresented: $showVideoDialog) {
             TextField("https://youtu.be/…", text: $videoURL)
@@ -369,20 +350,13 @@ struct ComposeView: View {
         } message: {
             Text("YouTube·Vimeo 주소를 붙여넣거나 입력하세요.")
         }
-        // WriteV2 통합 링크 — 하나의 입력으로 링크·동영상을 다 받는다. 주소가 동영상이면 발행 시
-        // 플레이어(임베드), 아니면 링크. 라벨은 링크일 때만 쓰이고, 동영상이면 주소 자체가 문단이 된다.
-        .alert("링크", isPresented: $showV2LinkDialog) {
-            TextField("표시할 텍스트 (선택)", text: $v2LinkLabel)
-            TextField("https://…", text: $v2LinkURL)
-                .textInputAutocapitalization(.never)
-                .keyboardType(.URL)
-                .autocorrectionDisabled()
-            Button("링크로 추가") { confirmV2Link(asCard: false) }
-            Button("카드로 추가") { confirmV2Link(asCard: true) }
-            Button("취소", role: .cancel) {}
-        } message: {
-            Text("카드로 추가하면 제목·사진이 담긴 미리보기로 보여요. YouTube·Vimeo 주소는 재생돼요.")
+        .sheet(item: $linkRequest) { request in
+            EditorLinkSheet(request: request, shorten: { try? await WriteAPI.shorten($0) }) { result in
+                submitLink(result, for: request)
+            }
         }
+        .sheet(item: $openedLink) { SafariView(url: $0.url).ignoresSafeArea() }
+        .sensoryFeedback(.success, trigger: linkInsertTick)
         // 이미 넣은 이미지의 캡션 고치기 — 이미지 편집 바의 ‘캡션’ 버튼이 연다(막는 알럿 대신 종이 시트).
         .sheet(isPresented: $showEditImageCaption) {
             ImageCaptionSheet(initial: editImageCaptionText) { text in
@@ -537,6 +511,9 @@ struct ComposeView: View {
 
     private var meta: some View {
         VStack(alignment: .trailing, spacing: 4) {
+            if takenDown {
+                TakenDownNotice().padding(.bottom, 12)
+            }
             TextField("제목", text: $title, axis: .vertical)
                 .accessibilityIdentifier("제목")
                 .lineLimit(1...4)
@@ -571,7 +548,7 @@ struct ComposeView: View {
     @ViewBuilder
     private var editorCanvas: some View {
         if let editorDocument {
-            WysiwygComposeCanvas(document: editorDocument, pasteHandlers: v2PasteHandlers)
+            WysiwygComposeCanvas(document: editorDocument, pasteHandlers: v2PasteHandlers, linkHandlers: v2LinkHandlers)
                 // 블록 편집을 저장 계약(마크다운 문자열)으로 흘려보낸다 — 기존 자동저장·서명·발행 파이프
                 // 는 이 `markdown` 하나만 본다. 여기가 WriteV2 배선의 유일한 접합점이다.
                 .onChange(of: editorDocument.blocks) {
@@ -613,15 +590,14 @@ struct ComposeView: View {
                     ProgressView().controlSize(.small)
                     Text("본문을 불러오는 중이에요…")
                         .typeScale(.body)
-                        .foregroundStyle(Palette.faint)
+                        .foregroundStyle(Palette.secondary)
                 }
                 .padding(.horizontal, Metrics.gutter)
                 .padding(.top, 12)
                 .allowsHitTesting(false)
             } else if markdown.isEmpty, !loadFailed, editorDocument == nil {
                 // 현행 에디터에서만 — WriteV2 캔버스는 빈 블록·삽입 툴바가 스스로 시작을 안내한다(이 힌트 억제).
-                // 마크다운 지식을 요구하지 않는다 — 탭하면 도구 막대가 떠서 제목·목록·이미지·표를 넣는다.
-                Text("여기를 탭해 시작하세요 — 아래 도구 막대로 제목·사진·목록·표를 넣어요.")
+                Text("본문 쓰기")
                     .typeScale(.body)
                     .foregroundStyle(Palette.faint)
                     .padding(.horizontal, Metrics.gutter)
@@ -644,7 +620,7 @@ struct ComposeView: View {
                         Task { await reloadBody(postId: id) }
                     }
                     .buttonStyle(.bordered)
-                    .tint(GlassTokens.prominentTint)
+                    .tint(Palette.ink)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Palette.readingBg)
@@ -694,7 +670,7 @@ struct ComposeView: View {
                                 showLoginSheet = true
                             }
                             .font(.system(size: 13 * metaUnit, weight: .semibold))
-                            .foregroundStyle(Palette.link)
+                            .foregroundStyle(Palette.ink)
                         } else if autosavePersistentFailure {
                             // 서버·네트워크 실패는 백오프를 기다리지 않고 지금 한 번 밀어볼 손잡이를 준다.
                             Button("지금 다시 저장") {
@@ -703,7 +679,7 @@ struct ComposeView: View {
                                 else { Task { await save(publish: false) } }
                             }
                             .font(.system(size: 13 * metaUnit, weight: .semibold))
-                            .foregroundStyle(Palette.link)
+                            .foregroundStyle(Palette.ink)
                         }
                     }
                     .padding(.horizontal, 16)
@@ -771,7 +747,7 @@ struct ComposeView: View {
                     Button {
                         showPublish = true
                     } label: {
-                        Label(status == "UNPUBLISHED" ? "다시 게시…" : status == "SCHEDULED" ? "발행 설정…" : "글 정보…", systemImage: "info.circle")
+                        Label(status == "UNPUBLISHED" && !takenDown ? "다시 게시…" : status == "SCHEDULED" ? "발행 설정…" : "글 정보…", systemImage: "info.circle")
                     }
                 }
                 Button {
@@ -800,10 +776,19 @@ struct ComposeView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
-                    // 살아있는 미리보기 — 발행하면 이 카드로 보인다. 커버는 카드 위를 탭해 넣고,
+                    if takenDown {
+                        TakenDownNotice()
+                    }
+                    // 살아있는 미리보기 — 발행하면 이 카드로 보인다. 커버는 머리의 "커버 추가"로 넣고,
                     // 아래 필드(태그·소개글)를 다듬으면 카드가 그 자리에서 따라 바뀐다.
                     VStack(alignment: .leading, spacing: 10) {
-                        sectionLabel("이렇게 보여요")
+                        HStack(alignment: .firstTextBaseline) {
+                            Text("이렇게 보여요")
+                                .typeScale(.eyebrow)
+                                .foregroundStyle(Palette.heading)
+                            Spacer(minLength: 8)
+                            coverAddControl
+                        }
                         publishPreview
                         // 분량 감각 — 독자가 보는 읽는 시간·글자 수(작성 도구의 기본 피드백).
                         Text(readStats)
@@ -820,7 +805,7 @@ struct ComposeView: View {
                     sheetField("소개글") {
                         VStack(alignment: .trailing, spacing: 4) {
                             TextField(
-                                "소개글 — 카드와 검색에 보이는 한 단락", text: $excerpt, axis: .vertical
+                                "소개글 쓰기", text: $excerpt, axis: .vertical
                             )
                             .typeScale(.lede)
                             .lineLimit(2...4)
@@ -867,7 +852,7 @@ struct ComposeView: View {
                             }
                             .foregroundStyle(
                                 seriesId == nil
-                                    ? AnyShapeStyle(.secondary) : AnyShapeStyle(Palette.link))
+                                    ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
                             .padding(.horizontal, 14)
                             .padding(.vertical, 9)
                             .contentShape(Capsule())
@@ -880,15 +865,16 @@ struct ComposeView: View {
                 .padding(20)
             }
             .scrollIndicators(.hidden)
+            .background(Palette.readingBg)
             // 주행동은 detent 높이와 무관하게 항상 보이게 — 시트 하단 고정.
             .safeAreaInset(edge: .bottom) {
                 VStack(spacing: 10) {
                     Button {
-                        let willPublish = status != "PUBLISHED"
+                        let publishing = willPublish
                         // 발행이면 폼을 유지한다 — 그 위로 성공 모먼트가 뜨고, 끝나면 onDone 이 닫는다.
                         // 글 정보 저장(발행됨)은 모먼트 없이 폼만 닫는다.
-                        if !willPublish { showPublish = false }
-                        Task { await save(publish: willPublish) }
+                        if !publishing { showPublish = false }
+                        Task { await save(publish: publishing) }
                     } label: {
                         Text(primaryPublishLabel)
                             .typeScale(.titleSmall)
@@ -902,7 +888,7 @@ struct ComposeView: View {
                             .contentShape(Capsule())
                     }
                     .buttonStyle(.plain)
-                    .disabled((status != "PUBLISHED" ? !canPublish : !canSave) || busy)
+                    .disabled((willPublish ? !canPublish : !canSave) || busy)
 
                     // 비활성엔 이유를 — 흐린 버튼만 보여주고 침묵하지 않는다.
                     if let reason = publishBlockReason {
@@ -917,10 +903,10 @@ struct ComposeView: View {
                             Text("전체 미리보기")
                                 .typeScale(.footnote)
                         }
-                        .foregroundStyle(Palette.link)
+                        .foregroundStyle(Palette.ink)
                         .disabled(postId == nil)
 
-                        if isPrePublish {
+                        if isPrePublish && !takenDown {
                             Button("예약 발행…") {
                                 // 컴포즈를 오래 열어둬 기본 예약 시각이 지났으면 다시 한 시간 뒤로 클램프.
                                 if scheduleDate <= Date() {
@@ -929,7 +915,7 @@ struct ComposeView: View {
                                 showSchedule = true
                             }
                                 .typeScale(.footnote)
-                                .foregroundStyle(Palette.link)
+                                .foregroundStyle(Palette.ink)
                                 .disabled(postId == nil)
                         }
                     }
@@ -1022,18 +1008,6 @@ struct ComposeView: View {
         }
     }
 
-    /// 섹션 라벨 — RailHeading 의 작은 인라인 형(그린 마커 + bold).
-    private func sectionLabel(_ text: LocalizedStringKey) -> some View {
-        HStack(spacing: 7) {
-            RoundedRectangle(cornerRadius: 1)
-                .fill(Palette.accentMarker)
-                .frame(width: 3, height: 12 * metaUnit)
-            Text(text)
-                .typeScale(.eyebrow)
-                .foregroundStyle(Palette.heading)
-        }
-    }
-
     /// 살아있는 카드 미리보기 — 발행 결과를 그대로. 커버 영역 탭 = 사진 선택.
     private var publishPreview: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -1041,14 +1015,11 @@ struct ComposeView: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 if let tag = tags.first {
-                    HStack(spacing: 5) {
-                        Circle().fill(Palette.accentMarker).frame(width: 5, height: 5)
-                        Text(tag)
-                            .font(.system(size: 12.5 * metaUnit, weight: .semibold))
-                            .tracking(0.4)
-                            .lineLimit(1)
-                    }
-                    .foregroundStyle(Palette.link)
+                    Text(tag)
+                        .font(.system(size: 12.5 * metaUnit, weight: .semibold))
+                        .tracking(0.4)
+                        .lineLimit(1)
+                        .foregroundStyle(Palette.secondary)
                 }
                 Text(title.trimmingCharacters(in: .whitespaces).isEmpty
                     ? String(localized: "제목을 적어 주세요") : title)
@@ -1125,7 +1096,7 @@ struct ComposeView: View {
         Task {
             guard let id = try? await ensurePost() else { return }
             do {
-                try await PostSave.cover(postId: id, url: url, key: nil, gate: versionGate)
+                try await PostSave.cover(postId: id, url: url, key: nil, chosen: true, gate: versionGate)
                 onSaved()
             } catch is PostEditConflict {
                 holdCoverForConflict(PendingCover(url: url, key: nil, fromBodyImage: false))
@@ -1145,7 +1116,7 @@ struct ComposeView: View {
         guard let postId else { return }
         Task {
             do {
-                try await PostSave.cover(postId: postId, url: "", key: nil, gate: versionGate)
+                try await PostSave.cover(postId: postId, url: "", key: nil, chosen: false, gate: versionGate)
                 onSaved()
             } catch is PostEditConflict {
                 holdCoverForConflict(PendingCover(url: "", key: nil, fromBodyImage: false))
@@ -1156,7 +1127,7 @@ struct ComposeView: View {
         }
     }
 
-    /// 미리보기 카드의 커버 — 채워졌으면 16:9 이미지(+변경 메뉴), 없으면 추가 타일(+본문 첫 이미지 제안).
+    /// 미리보기 카드의 커버 — 채워졌으면 16:9 이미지(+변경 메뉴), 없으면 자리를 두지 않는다.
     /// 업로드 중엔 스피너(그동안 재선택을 막는다 — 두 번째 선택이 조용히 버려지지 않게).
     @ViewBuilder
     private var coverArea: some View {
@@ -1191,40 +1162,32 @@ struct ComposeView: View {
             }
             // 커버가 들어오면 카드가 펼쳐지며 이미지가 살짝 부풀어 자리잡는다.
             .transition(.scale(scale: 1.04).combined(with: .opacity))
-        } else {
-            // 커버가 비었는데 본문에 이미지가 있으면 한 탭 제안 — 웹 발행 다이얼로그의 커버 제안 미러.
-            let suggestion = suggestedCoverURL
-            VStack(spacing: 0) {
+        }
+    }
+
+    @ViewBuilder
+    private var coverAddControl: some View {
+        if coverUrl == nil, !uploadingCover {
+            let label = Text("커버 추가")
+                .typeScale(.meta)
+                .fontWeight(.semibold)
+                .foregroundStyle(Palette.ink)
+                .expandTapTarget(12)
+            if let suggestion = suggestedCoverURL {
+                Menu {
+                    Button("사진 추가") { showCoverPicker = true }
+                    Button("본문 첫 이미지를 커버로") { applySuggestedCover(suggestion) }
+                } label: {
+                    label
+                }
+            } else {
                 Button {
                     showCoverPicker = true
                 } label: {
-                    VStack(spacing: 6) {
-                        Image(systemName: "photo.badge.plus")
-                            .font(.system(size: 22 * unit, weight: .regular))
-                            .accessibilityHidden(true)
-                        Text("커버 이미지 추가")
-                            .typeScale(.meta)
-                    }
-                    .foregroundStyle(Palette.secondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .contentShape(Rectangle())
+                    label
                 }
                 .buttonStyle(.plain)
-                if let suggestion {
-                    Button {
-                        applySuggestedCover(suggestion)
-                    } label: {
-                        coverChip("본문 첫 이미지를 커버로")
-                    }
-                    .buttonStyle(.plain)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding([.horizontal, .bottom], 10)
-                }
             }
-            // 빈 상태는 컴팩트(제안 칩이 있으면 그 줄만큼), 커버가 들어오면 176 으로 펼쳐진다(높이 변화가 곧 언폴드).
-            .frame(height: suggestion == nil ? 96 : 132)
-            .frame(maxWidth: .infinity)
-            .background(Palette.chipBg)
         }
     }
 
@@ -1284,11 +1247,11 @@ struct ComposeView: View {
                                 } label: {
                                     Text(preset.label)
                                         .typeScale(.meta)
-                                        .foregroundStyle(active ? .white : Palette.chipText)
+                                        .foregroundStyle(active ? Palette.readingBg : Palette.chipText)
                                         .padding(.horizontal, 14)
                                         .padding(.vertical, 8)
                                         .background(
-                                            active ? AnyShapeStyle(Palette.accentFill) : AnyShapeStyle(Palette.chipBg),
+                                            active ? AnyShapeStyle(Palette.ink) : AnyShapeStyle(Palette.chipBg),
                                             in: Capsule())
                                 }
                                 .buttonStyle(.plain)
@@ -1300,6 +1263,7 @@ struct ComposeView: View {
 
                 DatePicker("발행 시각", selection: $scheduleDate, in: Date().addingTimeInterval(300)...)
                     .datePickerStyle(.graphical)
+                    .tint(Palette.accentFill)
 
                 // 무엇이 정해졌는지 한 줄로 — 그래프 픽커만으론 결정이 흐릿했다.
                 HStack(spacing: 8) {
@@ -1307,7 +1271,7 @@ struct ComposeView: View {
                         .typeScale(.meta)
                         .contentTransition(.numericText())
                 }
-                .foregroundStyle(Palette.link)
+                .foregroundStyle(Palette.ink)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 11)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -1336,11 +1300,13 @@ struct ComposeView: View {
                         ProgressView().controlSize(.small)
                     } else {
                         Button("예약") { Task { await scheduleNow() } }
+                            .tint(Palette.link)
                     }
                 }
             }
         }
         .presentationDetents([.large])
+        .presentationBackground(Palette.sheetBg)
     }
 
     /// 자주 쓰는 발행 시각 — 지난 시각은 빼고. 그래프 픽커 전에 한 번에 고르게.
@@ -1391,14 +1357,19 @@ struct ComposeView: View {
     /// Scheduled content may become public at any moment, so it needs the same explicit save as a live post.
     private var allowsAutosave: Bool { status == "DRAFT" }
 
+    /// 내려진 글은 고쳐 저장만 한다 — 발행·다시 게시는 서버가 막는다(POST_TAKEN_DOWN).
+    private var willPublish: Bool { status != "PUBLISHED" && !takenDown }
+
     private var primaryPublishLabel: String {
-        isPrePublish
+        takenDown ? String(localized: "저장")
+        : isPrePublish
             ? String(localized: "지금 발행")
             : status == "UNPUBLISHED" ? String(localized: "다시 게시") : String(localized: "저장")
     }
 
     private var publishSheetTitle: String {
-        isPrePublish
+        takenDown ? String(localized: "글 정보")
+        : isPrePublish
             ? String(localized: "발행 준비")
             : status == "UNPUBLISHED" ? String(localized: "다시 게시") : String(localized: "글 정보")
     }
@@ -1406,7 +1377,7 @@ struct ComposeView: View {
     /// 발행 버튼이 흐릴 때의 이유 한 줄 — 침묵하지 않는다.
     private var publishBlockReason: String? {
         if !canSave { return String(localized: "제목과 본문을 채우면 발행할 수 있어요.") }
-        if status != "PUBLISHED", tags.isEmpty {
+        if willPublish, tags.isEmpty {
             return String(localized: "대표 태그를 1개 이상 정하면 발행할 수 있어요.")
         }
         return nil
@@ -1461,6 +1432,26 @@ struct ComposeView: View {
         return nil
     }
 
+    /// 편집기에서 받는 정지·제한 오류는 공개 쓰기에서만 난다 — 초안은 계속 쓸 수 있다고 알려 준다.
+    static func composeReason(_ error: Error) -> String {
+        if case APIError.server(_, let code?, _) = error {
+            switch code {
+            case "ACCOUNT_SUSPENDED":
+                return String(localized: "계정이 일시 정지된 동안에는 글을 공개하거나 공개된 글을 고칠 수 없어요. 초안은 계속 쓸 수 있어요.")
+            case "ACCOUNT_BANNED":
+                return String(localized: "이용이 제한된 계정이라 글을 공개하거나 공개된 글을 고칠 수 없어요.")
+            default:
+                break
+            }
+        }
+        return error.localizedDescription
+    }
+
+    static func isTakenDownRefusal(_ error: Error) -> Bool {
+        if case APIError.server(_, "POST_TAKEN_DOWN"?, _) = error { return true }
+        return false
+    }
+
     /// 저장 실패가 인증(401·세션 만료) 때문인가 — 배지·토스트가 "다시 로그인"을 말할 근거(플러셔와 공용 판정).
     private static func isAuthFailure(_ error: Error) -> Bool {
         DraftFlusher.isAuthFailure(error)
@@ -1476,9 +1467,9 @@ struct ComposeView: View {
     }
 
     private func saveStatusText(dirty: Bool) -> String {
-        if autosaveNeedsLogin { return String(localized: "로그인이 풀렸어요 — 다시 로그인해야 저장돼요") }
-        if autosavePersistentFailure { return String(localized: "계속 저장하지 못하고 있어요 — 지금 다시 시도해 보세요") }
-        if autosaveFailed { return String(localized: "저장하지 못했어요 — 자동으로 다시 시도해요") }
+        if autosaveNeedsLogin { return String(localized: "로그인이 풀렸어요. 다시 로그인해야 저장돼요") }
+        if autosavePersistentFailure { return String(localized: "계속 저장하지 못하고 있어요. 지금 다시 시도해 주세요") }
+        if autosaveFailed { return String(localized: "저장하지 못했어요. 자동으로 다시 시도해요") }
         if dirty, !allowsAutosave {
             return signature == lastSavedSignature
                 ? String(localized: "바꾼 커버는 저장을 누르면 글에 반영돼요.")
@@ -1487,7 +1478,7 @@ struct ComposeView: View {
         if dirty, !canSave {
             return String(localized: "제목과 본문을 채우면 다른 기기에서도 이어 쓸 수 있어요. 지금 쓰는 내용은 이 기기에 보관해요.")
         }
-        if dirty { return String(localized: "미저장 — 곧 저장돼요") }
+        if dirty { return String(localized: "미저장, 곧 저장돼요") }
         if let at = lastSavedAt {
             return String(localized: "저장됨 \(at.formatted(date: .omitted, time: .shortened))")
         }
@@ -1511,6 +1502,7 @@ struct ComposeView: View {
             savedSeriesId = post.seriesId
             postId = post.id
             status = post.status
+            takenDown = post.isTakenDown
             await reloadBody(postId: post.id)
         } else {
             // 새 글은 읽을 본문이 없다 — 곧장 편집·저장 가능.
@@ -1630,6 +1622,7 @@ struct ComposeView: View {
             seriesId = post.seriesId
             savedSeriesId = post.seriesId
             status = post.status
+            takenDown = post.isTakenDown
         }
         pendingCover = nil
         markdown = body.markdown
@@ -1664,6 +1657,7 @@ struct ComposeView: View {
             seriesId = post.seriesId
             savedSeriesId = post.seriesId
             status = post.status
+            takenDown = post.isTakenDown
         }
         if markdown == bodyAtRestore {
             // 복원 후 본문에 손대지 않았으면 깨끗한 상태로.
@@ -1772,16 +1766,18 @@ struct ComposeView: View {
                 savedSeriesId = seriesId
             }
             if let cover = pendingCover {
-                try await PostSave.cover(postId: id, url: cover.url, key: cover.key, gate: versionGate)
+                try await PostSave.cover(
+                    postId: id, url: cover.url, key: cover.key, chosen: cover.chosen, gate: versionGate)
                 if pendingCover == cover { pendingCover = nil }
                 if cover.fromBodyImage {
                     ToastCenter.shared.show(
-                        String(localized: "첫 이미지를 커버로 설정했어요 — 발행 시트에서 바꿀 수 있어요"))
+                        String(localized: "첫 이미지를 커버로 설정했어요. 발행 시트에서 바꿀 수 있어요"))
                 }
             }
             if publish {
                 let published = try await WriteAPI.publish(postId: id)
                 status = published.status
+                takenDown = published.isTakenDown
                 publishedSlug = published.slug
             }
             lastSavedSignature = snapshot
@@ -1819,6 +1815,7 @@ struct ComposeView: View {
             // 떨어진다. 더 새 저장이 이미 디바운스에 무장돼 있으므로 조용히 물러난다
             // (타이핑이 빠를수록 "실패했다고 뜨는데 실제론 저장됨"이 잦던 허위 실패의 뿌리).
             if silent, Self.isCancellation(error) { return }
+            if Self.isTakenDownRefusal(error) { takenDown = true }
             if silent {
                 // 자동저장 실패는 조용히 — 토스트(+VoiceOver 낭독)는 첫 실패에만 한 번.
                 // 지속 상태는 saveStatusIcon 배지가 보여주므로 재시도마다 다시 알리지 않는다.
@@ -1827,8 +1824,8 @@ struct ComposeView: View {
                 let needsLogin = Self.isAuthFailure(error)
                 if !autosaveFailed {
                     ToastCenter.shared.show(needsLogin
-                        ? String(localized: "로그인이 풀려 저장하지 못했어요 — 다시 로그인해 주세요")
-                        : String(localized: "자동저장에 실패했어요 — \(error.localizedDescription)"))
+                        ? String(localized: "로그인이 풀려 저장하지 못했어요. 다시 로그인해 주세요")
+                        : String(localized: "자동저장에 실패했어요. \(Self.composeReason(error))"))
                 }
                 autosaveNeedsLogin = needsLogin
                 autosaveFailed = true
@@ -1839,9 +1836,9 @@ struct ComposeView: View {
                 scheduleAutosave(after: .seconds(backoff))
             } else if showPublish, !showSchedule {
                 // 발행 폼은 fullScreenCover 라 루트의 에러 알럿이 가려진다 — 폼 자체에 띄운다.
-                publishSheetError = error.localizedDescription
+                publishSheetError = Self.composeReason(error)
             } else {
-                errorMessage = error.localizedDescription
+                errorMessage = Self.composeReason(error)
             }
         }
     }
@@ -1909,7 +1906,8 @@ struct ComposeView: View {
             celebrating = true
         } catch {
             // 시트가 떠 있는 동안 본체 알럿은 가려진다 — 시트 안에서 보여준다.
-            scheduleError = error.localizedDescription
+            if Self.isTakenDownRefusal(error) { takenDown = true }
+            scheduleError = Self.composeReason(error)
         }
     }
 
@@ -1932,7 +1930,8 @@ struct ComposeView: View {
                 }
                 coverUrl = uploaded.url
                 do {
-                    try await PostSave.cover(postId: id, url: uploaded.url, key: uploaded.key, gate: versionGate)
+                    try await PostSave.cover(
+                        postId: id, url: uploaded.url, key: uploaded.key, chosen: true, gate: versionGate)
                 } catch is PostEditConflict {
                     holdCoverForConflict(PendingCover(url: uploaded.url, key: uploaded.key, fromBodyImage: false))
                     return
@@ -2117,38 +2116,32 @@ struct ComposeView: View {
         editorController.focus()
     }
 
-    /// 링크 버튼 — 선택을 라벨 후보로 들고, 클립보드에 URL 이 있으면 미리 채워 다이얼로그를 연다.
-    /// 어르신도 "주소 붙여넣고 추가"만 하면 되게 — 본문에 `(url)` 가 보이지 않는다.
     private func presentLinkDialog() {
-        linkLabel = editorController.beginLinkInsertion()
-        if let clip = UIPasteboard.general.string, Self.looksLikeURL(clip) {
-            linkURL = clip.trimmingCharacters(in: .whitespacesAndNewlines)
-        } else {
-            linkURL = ""
-        }
-        showLinkDialog = true
+        legacyLinkLabel = editorController.beginLinkInsertion()
+        linkRequest = EditorLinkRequest(selectedText: legacyLinkLabel)
     }
 
-    private func confirmLink() {
-        editorController.commitLink(label: linkLabel, url: Self.normalizedURL(linkURL))
+    private func submitLegacyLink(_ result: EditorLinkResult) {
+        switch result.kind {
+        case .card:
+            editorController.insertEmbedLine(url: result.url)
+        case .link:
+            editorController.commitLink(label: result.text.isEmpty ? legacyLinkLabel : result.text, url: result.url)
+        }
         syncMarkdownFromEditor()
         editorController.focus() // 키보드·스니펫 바를 다시 불러 흐름이 끊기지 않게.
+        linkInsertTick &+= 1
     }
 
-    /// 동영상 버튼 — 클립보드에 URL 이 있으면 미리 채워 다이얼로그를 연다.
     private func presentVideoDialog() {
-        if let clip = UIPasteboard.general.string, Self.looksLikeURL(clip) {
-            videoURL = clip.trimmingCharacters(in: .whitespacesAndNewlines)
-        } else {
-            videoURL = ""
-        }
+        videoURL = ""
         showVideoDialog = true
     }
 
     private func confirmVideo() {
         let url = Self.normalizedURL(videoURL)
         guard !url.isEmpty else { return }
-        editorController.insertVideoEmbed(url: url)
+        editorController.insertEmbedLine(url: url)
         syncMarkdownFromEditor()
         editorController.focus()
     }
@@ -2164,24 +2157,17 @@ struct ComposeView: View {
         }
         Task {
             do {
-                try await PostSave.cover(postId: postId, url: url, key: key, gate: versionGate)
+                try await PostSave.cover(postId: postId, url: url, key: key, chosen: false, gate: versionGate)
                 onSaved()
                 ToastCenter.shared.show(
-                    String(localized: "첫 이미지를 커버로 설정했어요 — 발행 시트에서 바꿀 수 있어요"))
+                    String(localized: "첫 이미지를 커버로 설정했어요. 발행 시트에서 바꿀 수 있어요"))
             } catch is PostEditConflict {
                 holdCoverForConflict(PendingCover(url: url, key: key, fromBodyImage: true))
             } catch {
                 ToastCenter.shared.show(
-                    String(localized: "커버를 저장하지 못했어요 — 발행 시트에서 다시 지정해 주세요"))
+                    String(localized: "커버를 저장하지 못했어요. 발행 시트에서 다시 지정해 주세요"))
             }
         }
-    }
-
-    private static func looksLikeURL(_ s: String) -> Bool {
-        let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !t.isEmpty, !t.contains(" "), !t.contains("\n"), t.count <= 2000 else { return false }
-        if t.hasPrefix("http://") || t.hasPrefix("https://") { return true }
-        return t.contains(".")
     }
 
     /// 스킴이 없으면 https 를 붙인다 — "example.com" 만 적어도 살아있는 링크가 되게.
@@ -2215,7 +2201,7 @@ struct ComposeView: View {
         guard !images.isEmpty else { return }
         guard !uploadingBodyImage else {
             // 앞 이미지가 올라가는 중엔 조용히 버리지 않고 알린다 — 스피너가 사라진 뒤 다시.
-            ToastCenter.shared.show(String(localized: "이미지를 올리는 중이에요 — 잠시 후 다시 시도해 주세요"))
+            ToastCenter.shared.show(String(localized: "이미지를 올리는 중이에요. 잠시 후 다시 시도해 주세요"))
             return
         }
         uploadingBodyImage = true
@@ -2252,7 +2238,7 @@ struct ComposeView: View {
         guard !uploadingBodyImage else {
             // 앞 이미지가 올라가는 중 — 조용히 버리지 않고 알린 뒤, 같은 사진을 다시 고를 수 있게 선택을 비운다.
             bodyImageItem = nil
-            ToastCenter.shared.show(String(localized: "이미지를 올리는 중이에요 — 잠시 후 다시 시도해 주세요"))
+            ToastCenter.shared.show(String(localized: "이미지를 올리는 중이에요. 잠시 후 다시 시도해 주세요"))
             return
         }
         uploadingBodyImage = true
@@ -2280,13 +2266,18 @@ struct ComposeView: View {
 
     // MARK: WriteV2 붙여넣기 훅 — 현행(V1) 캔버스와 같은 계약을 블록 문서에 잇는다
 
-    /// 이미지 바이트 → 업로드 후 IMAGE 블록 / 이미지 URL → 재호스팅 후 IMAGE 블록 /
-    /// 일반 URL → 캔버스가 원문을 넣고, 이 훅의 단축 결과로 그 자리를 치환한다.
+    /// 이미지 바이트 → 업로드 후 IMAGE 블록 / 이미지 URL → 재호스팅 후 IMAGE 블록.
     private var v2PasteHandlers: EditorPasteHandlers {
         EditorPasteHandlers(
             images: { images in uploadV2PastedImages(images) },
-            imageURL: { url in importV2PastedImage(url) },
-            shorten: { url in try? await WriteAPI.shorten(url) }
+            imageURL: { url in importV2PastedImage(url) }
+        )
+    }
+
+    private var v2LinkHandlers: EditorLinkHandlers {
+        EditorLinkHandlers(
+            open: { url in openedLink = LegalLink(url: url) },
+            edit: { target in linkRequest = EditorLinkRequest(target: target) }
         )
     }
 
@@ -2310,7 +2301,7 @@ struct ComposeView: View {
     private func uploadV2PastedImages(_ images: [UIImage]) {
         guard !images.isEmpty else { return }
         guard !uploadingBodyImage else {
-            ToastCenter.shared.show(String(localized: "이미지를 올리는 중이에요 — 잠시 후 다시 시도해 주세요"))
+            ToastCenter.shared.show(String(localized: "이미지를 올리는 중이에요. 잠시 후 다시 시도해 주세요"))
             return
         }
         uploadingBodyImage = true
@@ -2356,37 +2347,23 @@ struct ComposeView: View {
         markdown = editorDocument.markdown
     }
 
-    /// WriteV2 통합 링크 삽입 — 클립보드에 URL 이 있으면 미리 채워 다이얼로그를 연다.
-    /// 다이얼로그(알럿)가 뜨면 캔버스 선택이 접히므로, 지금의 포커스(블록·선택)를 잡아둔다.
     private func presentV2LinkSheet() {
-        v2LinkTargetFocus = editorDocument?.focus
-        v2LinkLabel = ""
-        if let clip = UIPasteboard.general.string, Self.looksLikeURL(clip) {
-            v2LinkURL = clip.trimmingCharacters(in: .whitespacesAndNewlines)
-        } else {
-            v2LinkURL = ""
-        }
-        showV2LinkDialog = true
+        linkRequest = EditorLinkRequest(target: editorDocument?.linkTarget(at: editorDocument?.focus))
     }
 
-    /// 다이얼로그 확인 — 링크/임베드를 넣고 저장 계약을 즉시 맞춘다. 동영상 URL 은 단독 문단(임베드),
-    /// 아니면 알럿 열기 전 잡아둔 포커스의 선택을 `[선택](url)` 로 감싼다. 포커스가 없거나(캔버스 미포커스)
-    /// 비텍스트 블록이면 문단으로 삽입(폴백) — 링크가 조용히 사라지지 않게.
-    private func confirmV2Link(asCard: Bool) {
-        let url = Self.normalizedURL(v2LinkURL)
-        guard !url.isEmpty, let editorDocument else { return }
-        if asCard || WriteV2VideoDetect.isVideoURL(url) {
-            editorDocument.insertNonText(.linkCard(url))
-        } else if let target = v2LinkTargetFocus,
-                  editorDocument.linkSelection(at: target, url: url, label: v2LinkLabel) {
-            // 잡아둔 선택을 감쌌다.
-        } else {
-            editorDocument.insertLink(url: url, label: v2LinkLabel)  // 포커스 없음·비텍스트 → 문단 폴백
+    private func submitLink(_ result: EditorLinkResult, for request: EditorLinkRequest) {
+        guard let editorDocument else { submitLegacyLink(result); return }
+        switch result.kind {
+        case .card:
+            editorDocument.placeLinkCard(result.url, after: request.target?.blockID)
+        case .link:
+            if let target = request.target, editorDocument.applyLink(target, text: result.text, url: result.url) {
+                break
+            }
+            editorDocument.insertLink(url: result.url, label: result.text)
         }
         syncFromDocument()
-        v2LinkURL = ""
-        v2LinkLabel = ""
-        v2LinkTargetFocus = nil
+        linkInsertTick &+= 1
     }
 
     /// WriteV2 캔버스의 사진 삽입 — 실제 업로드 후 IMAGE 블록으로 넣는다(현행 경로와 같은 업로드 계약).
@@ -2394,7 +2371,7 @@ struct ComposeView: View {
         guard let item = v2ImageItem else { return }
         guard !uploadingBodyImage else {
             v2ImageItem = nil
-            ToastCenter.shared.show(String(localized: "이미지를 올리는 중이에요 — 잠시 후 다시 시도해 주세요"))
+            ToastCenter.shared.show(String(localized: "이미지를 올리는 중이에요. 잠시 후 다시 시도해 주세요"))
             return
         }
         uploadingBodyImage = true
@@ -2722,8 +2699,7 @@ private struct ImageActionBar: View {
                                 Text(item.label)
                                     .font(.system(size: 13 * unit, weight: active ? .semibold : .medium))
                             }
-                            // active = 그린 위계 유리 번역(§1.2 규칙3 = Palette.link), 그 외는 시맨틱.
-                            .foregroundStyle(active ? AnyShapeStyle(Palette.link) : AnyShapeStyle(.secondary))
+                            .foregroundStyle(active ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
                             .padding(.horizontal, 13)
                             .frame(height: 44)
                             .contentShape(Rectangle())
@@ -2881,7 +2857,7 @@ private struct ImageCaptionSheet: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 12) {
-                Text("이미지 아래에 보일 설명 — 비우면 캡션이 사라져요.")
+                Text("이미지 아래에 보일 설명이에요. 비우면 캡션이 사라져요.")
                     .typeScale(.meta)
                     .foregroundStyle(Palette.secondary)
                 TextField("이미지 설명", text: $draft, axis: .vertical)
@@ -2908,6 +2884,7 @@ private struct ImageCaptionSheet: View {
                         dismiss()
                     }
                     .font(.body.weight(.semibold))
+                    .tint(Palette.link)
                 }
             }
         }
@@ -2938,7 +2915,10 @@ private struct RevisionsSheet: View {
                     KurlLoadingMark()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if revisions.isEmpty {
-                    ContentUnavailableView { Text("리비전이 없습니다").bold() }
+                    FeedPlaceholder(title: "리비전이 없어요")
+                        .padding(.horizontal, Metrics.gutter)
+                        .padding(.top, 24)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 } else {
                     List(revisions) { revision in
                         HStack {
@@ -2958,7 +2938,7 @@ private struct RevisionsSheet: View {
                                 restore(revision)
                             }
                             .typeScale(.meta)
-                            .foregroundStyle(Palette.link)
+                            .foregroundStyle(Palette.ink)
                             .disabled(busy)
                         }
                         .listRowSeparatorTint(Palette.hairline)
@@ -3010,6 +2990,8 @@ private struct PendingCover: Equatable {
     let url: String
     let key: String?
     let fromBodyImage: Bool
+
+    var chosen: Bool { !url.isEmpty && !fromBodyImage }
 }
 
 /// 한도의 90%부터만 보이는 글자 수(서버와 같은 UTF-16 기준).
@@ -3040,7 +3022,7 @@ private struct TagsField: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                TextField("태그 입력 후 추가 (쉼표로 여러 개)", text: $draft)
+                TextField("태그 추가", text: $draft)
                     .typeScale(.lede)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
@@ -3055,7 +3037,7 @@ private struct TagsField: View {
                 Button { commit() } label: {
                     Image(systemName: "plus.circle.fill")
                         .font(.system(size: 20 * unit))
-                        .foregroundStyle(isDraftEmpty ? Palette.faint : Palette.accent)
+                        .foregroundStyle(isDraftEmpty ? Palette.faint : Palette.ink)
                 }
                 .buttonStyle(.plain)
                 .disabled(isDraftEmpty || atMax)
@@ -3066,7 +3048,7 @@ private struct TagsField: View {
             .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
 
             if tags.isEmpty {
-                Text("첫 번째 태그가 대표 — 카드·글 위에 카테고리로 보입니다. (발행 시 1개 필수)")
+                Text("첫 번째 태그가 대표 태그로 카드와 글 위에 보여요. 발행하려면 하나 이상 필요해요.")
                     .typeScale(.footnote)
                     .foregroundStyle(Palette.secondary)
             } else {
@@ -3079,7 +3061,7 @@ private struct TagsField: View {
                     if atMax {
                         Text("태그는 \(PostLimits.tags)개까지 달 수 있어요")
                     } else {
-                        Text("탭하면 대표로 · ✕ 로 삭제")
+                        Text("태그를 누르면 대표가 돼요")
                     }
                     Spacer(minLength: 8)
                     if tags.count >= PostLimits.tags - 2 {
@@ -3106,7 +3088,7 @@ private struct TagsField: View {
                 Text(tag).typeScale(.meta)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(Text(isPrimary ? "대표 태그 \(tag)" : "\(tag) — 대표로 지정"))
+            .accessibilityLabel(Text(isPrimary ? "대표 태그 \(tag)" : "\(tag), 대표로 지정"))
             .accessibilityAddTraits(isPrimary ? .isSelected : [])
 
             Button {
@@ -3118,12 +3100,12 @@ private struct TagsField: View {
             .buttonStyle(.plain)
             .accessibilityLabel(Text("\(tag) 삭제"))
         }
-        .foregroundStyle(isPrimary ? AnyShapeStyle(.white) : AnyShapeStyle(Palette.chipText))
+        .foregroundStyle(isPrimary ? AnyShapeStyle(Palette.readingBg) : AnyShapeStyle(Palette.chipText))
         .padding(.leading, isPrimary ? 9 : 11)
         .padding(.trailing, 8)
         .padding(.vertical, 6)
         .background(
-            isPrimary ? AnyShapeStyle(Palette.accentFill) : AnyShapeStyle(Palette.chipBg),
+            isPrimary ? AnyShapeStyle(Palette.ink) : AnyShapeStyle(Palette.chipBg),
             in: Capsule())
     }
 
@@ -3371,16 +3353,17 @@ private struct ConfettiBurst: View {
 private struct WysiwygComposeCanvas: View {
     let document: EditorDocument
     let pasteHandlers: EditorPasteHandlers
+    let linkHandlers: EditorLinkHandlers
 
     var body: some View {
-        WysiwygEditorView(document: document, pasteHandlers: pasteHandlers)
+        WysiwygEditorView(document: document, pasteHandlers: pasteHandlers, linkHandlers: linkHandlers)
             .id(ObjectIdentifier(document))
     }
 }
 
 /// WriteV2 서식 툴바 — 선택 서식(볼드·이탤릭·코드·링크)·블록 서식(제목·인용·코드·리스트)·삽입
 /// (구분선·사진·표)을 한 유리 바로. 캔버스는 종이, 이 크롬만 유리(DESIGN.md §1). 아이콘은 SF Symbols
-/// 표준. 블록 서식은 현재 블록 종류면 켜진(초록) 상태로 보여 토글임을 알린다. 좁은 화면을 위해
+/// 표준. 블록 서식은 현재 블록 종류면 켜진(굵은) 상태로 보여 토글임을 알린다. 좁은 화면을 위해
 /// 가로 스크롤(그룹 구분선으로 세 묶음을 시각 분리). "링크" 하나로 동영상/링크 통합(신고 11 유지).
 private struct V2FormatToolbar: View {
     let canUndo: Bool
@@ -3506,13 +3489,13 @@ private struct V2FormatToolbar: View {
 
     private func toolLabel(_ icon: String, _ title: LocalizedStringKey, active: Bool = false) -> some View {
         VStack(spacing: 3) {
-            Image(systemName: icon).font(.system(size: 17 * unit, weight: .medium))
+            Image(systemName: icon).font(.system(size: 17 * unit, weight: active ? .bold : .medium))
             Text(title)
-                .font(.system(size: 10 * unit, weight: .medium))
+                .font(.system(size: 10 * unit, weight: active ? .bold : .medium))
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
         }
-        .foregroundStyle(active ? AnyShapeStyle(Palette.link) : AnyShapeStyle(.primary))
+        .foregroundStyle(.primary)
         .frame(minWidth: 44, maxWidth: .infinity, minHeight: 44)
         .contentShape(Rectangle())
     }

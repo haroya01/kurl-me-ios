@@ -89,7 +89,7 @@ struct NotificationPolicyView: View {
             }
             .pickerStyle(.menu)
             .labelsHidden()
-            .tint(Palette.accent)
+            .tint(Palette.ink)
             .accessibilityIdentifier("policy.\(Self.identifier(category.id))")
         }
         .padding(.vertical, 11)

@@ -4,7 +4,6 @@
 //
 
 import SwiftUI
-import Combine
 
 // MARK: 유리 캡슐 토글 — 팔로우·구독·정렬 칩이 공유하는 문법
 
@@ -17,17 +16,17 @@ extension View {
     }
 }
 
-/// 팔로우·구독·태그구독이 공유하는 토글 캡슐 한 벌 — 유리 문법·라벨 타이포(14 semibold,
-/// Dynamic Type)·토글 애니메이션을 여기서만 정의한다(3벌 복붙 산발의 종식, #124).
+/// 팔로우·구독·태그구독이 공유하는 토글 캡슐 한 벌 — 종이 위 컨트롤이라 유리 대신 채움·외곽선,
+/// 라벨 타이포(14 semibold, Dynamic Type)·토글 애니메이션을 여기서만 정의한다(#124).
 /// 도메인(낙관 토글·햅틱·로그인 프롬프트)은 호출측 몫 — 이 뷰는 "보이는 캡슐"만 책임진다.
 struct ToggleCapsuleButton: View {
     var isOn: Bool
     var onLabel: LocalizedStringKey
     var offLabel: LocalizedStringKey
-    /// nil = 기본 문법(꺼짐이 주행동 → 그린 유리). 켜짐/꺼짐과 무관하게 가라앉는
-    /// 자리(구독 secondary)는 false 를 넘긴다.
+    /// nil = 기본 문법(꺼짐이 주행동 → 채움). 켜짐/꺼짐과 무관하게 외곽선으로 두는
+    /// 자리(목록 행·구독 secondary)는 false 를 넘긴다.
     var prominent: Bool?
-    /// nil = 기본(그린 유리엔 흰 글자, 맑은 유리엔 시맨틱). 구독 secondary 처럼
+    /// nil = 기본(채움엔 흰 글자, 외곽선엔 잉크). 구독 secondary 처럼
     /// 자리마다 다른 잉크가 필요하면 호출측이 계산해 넘긴다.
     var labelStyle: AnyShapeStyle?
     /// 캡슐 시각 높이(~33pt)를 유지한 채 탭 영역만 넓힐 때(44pt 규칙).
@@ -61,8 +60,7 @@ struct ToggleCapsuleButton: View {
                 capsuleLabel
             }
         }
-        .buttonStyle(.plain)
-        .glassCapsule(prominent: isProminent)
+        .buttonStyle(PaperCapsuleStyle(prominent: isProminent))
         .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: isOn)
     }
 
@@ -74,11 +72,28 @@ struct ToggleCapsuleButton: View {
                 .fixedSize()
         }
         .foregroundStyle(
-            labelStyle ?? (isProminent ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+            labelStyle ?? (isProminent ? AnyShapeStyle(.white) : AnyShapeStyle(Palette.ink))
         )
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
         .contentShape(Capsule())
+    }
+}
+
+struct PaperCapsuleStyle: ButtonStyle {
+    let prominent: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background {
+                if prominent {
+                    Capsule().fill(Palette.accentFill)
+                } else {
+                    Capsule().strokeBorder(Palette.hairlineStrong, lineWidth: 1)
+                }
+            }
+            .opacity(configuration.isPressed ? 0.6 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
 
@@ -194,8 +209,8 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable, More: View>: View {
             row
                 .glassEffect(.regular.interactive(), in: .capsule)
                 // 콘텐츠 위로 떠 있는 크롬 — 닿는 면 한 겹 + 옅은 앰비언트로 종이에서 들어 올린다.
-                .shadow(color: .black.opacity(0.05), radius: 1.5, y: 1)
-                .shadow(color: .black.opacity(0.08), radius: 12, y: 5)
+                .shadow(color: Palette.shadow.opacity(0.05), radius: 1.5, y: 1)
+                .shadow(color: Palette.shadow.opacity(0.08), radius: 12, y: 5)
         }
     }
 
@@ -264,7 +279,8 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable, More: View>: View {
             .contentShape(Capsule())
         }
         .menuOrder(.fixed)
-        .buttonStyle(SegmentPressStyle())
+        // ViewThatFits 후보 안의 Menu 에 buttonStyle 을 달면 iOS 27 에서 처음 그리는 탭의 레이아웃이 끝나지 않는다.
+        .tint(active ? Color.primary : Color.secondary)
         .accessibilityLabel(moreChoice.map { Text(verbatim: $0.title) } ?? Text(moreLabel))
         .accessibilityHint(active ? Text(moreLabel) : Text(""))
         .accessibilityAddTraits(active ? [.isSelected] : [])
@@ -304,58 +320,6 @@ private struct SegmentPressStyle: ButtonStyle {
                         ? .easeOut(duration: 0.12)
                         : .spring(response: 0.32, dampingFraction: 0.72),
                     value: configuration.isPressed)
-        }
-    }
-}
-
-// MARK: 조용한 그린 안개 — 유리가 설 수 있는 배경
-
-/// 유리는 뒤에 흐르는 것이 있을 때만 유리다 — 빈 종이 위 유리 패널(계정 정체 카드)이
-/// 설 자리를 만드는, 아주 옅은 브랜드 그린 메시. reduce-motion 이면 정지,
-/// 저전력 모드·씬 비활성이면 마지막 프레임에서 멈춘다(장식이 배터리를 태우지 않게).
-struct BrandMist: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    @Environment(\.scenePhase) private var scenePhase
-    @State private var lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
-
-    var body: some View {
-        if reduceTransparency { Color.clear } else { mist }
-    }
-
-    /// 화면이 실제로 앞에 있고 여유 전력이 있을 때만 흐른다 — 앱 스위처·컨트롤 센터
-    /// 뒤에서까지 20fps 재렌더를 돌릴 이유가 없다.
-    private var paused: Bool {
-        reduceMotion || lowPower || scenePhase != .active
-    }
-
-    private var mist: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 20.0, paused: paused)) { context in
-            let t = reduceMotion ? 0 : context.date.timeIntervalSinceReferenceDate * 0.18
-            MeshGradient(
-                width: 3, height: 3,
-                points: [
-                    [0, 0], [0.5, 0], [1, 0],
-                    [0, 0.5],
-                    [0.5 + Float(sin(t)) * 0.18, 0.5 + Float(cos(t * 0.8)) * 0.14],
-                    [1, 0.5],
-                    [0, 1], [0.5, 1], [1, 1],
-                ],
-                colors: [
-                    .clear, Palette.accent.opacity(0.05), .clear,
-                    Palette.accent.opacity(0.08), Palette.accentSoft.opacity(0.16), Palette.accent.opacity(0.06),
-                    .clear, Palette.accent.opacity(0.04), .clear,
-                ]
-            )
-        }
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-        // 저전력 전환 알림은 임의 스레드에서 오므로 메인으로 옮겨 다시 읽는다.
-        .onReceive(
-            NotificationCenter.default.publisher(for: .NSProcessInfoPowerStateDidChange)
-                .receive(on: DispatchQueue.main)
-        ) { _ in
-            lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
         }
     }
 }

@@ -166,7 +166,7 @@ enum MarkdownSyntaxHighlighter {
             }
 
             // > 인용 → 들여쓰기 + 왼쪽 강조 바 + 인용색, 마커 흐리게. 발행본(BlockRenderer .quote 의
-            // 좌측 그린 바 인용구)의 에디터 대응 — 줄 전체를 칠하던 옛 그린 배경은 "인용"이 아니라
+            // 좌측 잉크 바 인용구)의 에디터 대응 — 줄 전체를 칠하던 옛 그린 배경은 "인용"이 아니라
             // "형광펜 칠한 줄"로 읽혀 어긋났다. 리더와 같은 문법(왼쪽 바 + 들여쓰기 + 흐린 글자)으로 맞춘다.
             if line == ">" || line.hasPrefix("> ") {
                 let quoteStyle = NSMutableParagraphStyle()
@@ -174,7 +174,7 @@ enum MarkdownSyntaxHighlighter {
                 quoteStyle.headIndent = 20
                 storage.addAttribute(.paragraphStyle, value: quoteStyle, range: lineRange)
                 storage.addAttribute(.foregroundColor, value: UIColor(Palette.secondary), range: lineRange)
-                // 왼쪽 강조 바 — 레이아웃 매니저가 이 줄(들) 왼단에 그린다(리더의 accentSoft 바와 동일).
+                // 왼쪽 강조 바 — 레이아웃 매니저가 이 줄(들) 왼단에 그린다(리더의 잉크 바와 동일).
                 storage.addAttribute(.kurlQuoteBar, value: true, range: lineRange)
                 // 인용 마커("> ")는 활성 줄에서도 숨긴다(reveal 무시) — 리더처럼 인용을 "직접 쓰는" 모습이 되게.
                 // 바+들여쓰기가 인용임을 보여주므로 마커는 군더더기. 편집은 그대로: 인용 본문 첫 글자에서
@@ -189,7 +189,7 @@ enum MarkdownSyntaxHighlighter {
             if let markerLen = listMarkerLength(line) {
                 let markerRange = NSRange(location: lineRange.location, length: min(markerLen, lineRange.length))
                 if reveal {
-                    storage.addAttribute(.foregroundColor, value: UIColor(Palette.accentMarker), range: markerRange)
+                    storage.addAttribute(.foregroundColor, value: UIColor(Palette.secondary), range: markerRange)
                 } else {
                     // 번호 항목이면 순번(1,2,3…), 아니면 불릿(•).
                     let bullet = orderedOrdinal.map { "\($0)." } ?? "•"

@@ -142,14 +142,8 @@ struct AnalyticsView: View {
     private func content(_ overview: AuthorAnalyticsOverview) -> some View {
         // 0편이면 지표가 전부 0인 벽 — 막다른 길 대신 첫 글로 잇는다(DESIGN.md 빈 상태 폴리시).
         if overview.publishedPosts == 0 {
-            FeedPlaceholder(
-                title: "발행하면 여기 쌓입니다",
-                message: "첫 글이 나가면 조회·팔로우·유입 추이가 매일 채워집니다.",
-                actionTitle: "새 글 쓰기",
-                prominent: true,
-                action: onCompose
-            )
-            .padding(.top, 72)
+            FeedPlaceholder(title: "아직 발행한 글이 없어요", actionTitle: "새 글 쓰기", action: onCompose)
+                .padding(.top, 24)
         } else {
             hero(overview)
             lifetime(overview)
@@ -294,7 +288,7 @@ struct AnalyticsView: View {
                     } else {
                         Text("더 보기")
                             .typeScale(.meta)
-                            .foregroundStyle(Palette.link)
+                            .foregroundStyle(Palette.ink)
                     }
                 }
                 .buttonStyle(.plain)
@@ -361,7 +355,7 @@ struct AnalyticsView: View {
                         .frame(width: 120 * unit, alignment: .leading)
                     GeometryReader { geo in
                         RoundedRectangle(cornerRadius: 2)
-                            .fill(Palette.accent.opacity(0.25))
+                            .fill(Palette.secondary.opacity(0.35))
                             .frame(
                                 width: max(2, geo.size.width * CGFloat(ref.views) / CGFloat(maxViews)),
                                 height: 8
