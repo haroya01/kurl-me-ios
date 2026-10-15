@@ -369,6 +369,53 @@ struct NoteLinkPreview: Decodable, Hashable {
     let image: String?
 }
 
+struct RemoteNoteShape: Decodable, Hashable {
+    enum Kind: String {
+        case note = "NOTE"
+        case question = "QUESTION"
+        case article = "ARTICLE"
+        case page = "PAGE"
+        case video = "VIDEO"
+    }
+
+    let kind: Kind?
+    let title: String?
+    let url: String?
+    let community: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case kind, title, url, community
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        func text(_ key: CodingKeys) -> String? {
+            guard let value = (try? container.decodeIfPresent(String.self, forKey: key)) ?? nil else { return nil }
+            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? nil : trimmed
+        }
+        kind = text(.kind).flatMap { Kind(rawValue: $0.uppercased()) }
+        title = text(.title)
+        url = text(.url)
+        community = text(.community)
+    }
+
+    var isCard: Bool { kind == .article || kind == .page || kind == .video }
+
+    var original: URL? {
+        guard let url, let parsed = URL(string: url),
+              let scheme = parsed.scheme?.lowercased(), scheme == "https" || scheme == "http",
+              parsed.host()?.isEmpty == false
+        else { return nil }
+        return parsed
+    }
+
+    var host: String? {
+        guard let host = original?.host()?.lowercased() else { return nil }
+        return host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
+    }
+}
+
 struct QuotedNote: Decodable, Hashable, Identifiable {
     let id: Int64
     let body: String
@@ -423,8 +470,11 @@ struct Note: Decodable, Identifiable, Hashable {
     var thread: NoteSelfThread? = nil
     var replyPolicy: String? = nil
     var canReply: Bool? = nil
+    var remote: RemoteNoteShape? = nil
 
     var noteVisibility: NoteVisibility { NoteVisibility(rawValue: visibility ?? "public") ?? .public }
+
+    var remoteCard: RemoteNoteShape? { remote?.isCard == true ? remote : nil }
 
     func addingReply() -> Note {
         var next = self
@@ -518,9 +568,28 @@ struct NotePoll: Decodable, Hashable {
     let voted: Bool?
     let ownVotes: [Int]?
 
+    enum TimeLeft: Equatable {
+        case closed, open
+        case minutes(Int), hours(Int), days(Int)
+    }
+
     func share(of option: Option) -> Double {
         let base = multiple ? votersCount : votesCount
         return base > 0 ? Double(option.votesCount) / Double(base) : 0
+    }
+
+    func isClosed(now: Date = .now) -> Bool {
+        expired || (expiresAt.map { $0 <= now } ?? false)
+    }
+
+    func timeLeft(now: Date = .now) -> TimeLeft {
+        if expired { return .closed }
+        guard let expiresAt else { return .open }
+        let seconds = expiresAt.timeIntervalSince(now)
+        if seconds <= 0 { return .closed }
+        if seconds < 3600 { return .minutes(max(1, Int(seconds / 60))) }
+        if seconds < 86_400 { return .hours(Int(seconds / 3600)) }
+        return .days(Int(seconds / 86_400))
     }
 }
 

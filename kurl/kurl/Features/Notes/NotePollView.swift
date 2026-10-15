@@ -8,6 +8,7 @@ import SwiftUI
 struct NotePollView: View {
     let noteId: Int64
     let poll: NotePoll
+    let remote: RemoteNoteShape?
     let onVoted: (NotePoll) -> Void
 
     @State private var picked: Set<Int> = []
@@ -16,21 +17,22 @@ struct NotePollView: View {
     @State private var filled: Bool
     @State private var showLogin = false
     @State private var votedTick = 0
+    @State private var opened: LegalLink?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(noteId: Int64, poll: NotePoll, onVoted: @escaping (NotePoll) -> Void) {
+    init(noteId: Int64, poll: NotePoll, remote: RemoteNoteShape? = nil, onVoted: @escaping (NotePoll) -> Void) {
         self.noteId = noteId
         self.poll = poll
+        self.remote = remote
         self.onVoted = onVoted
-        _filled = State(initialValue: poll.voted == true || Self.isClosed(poll))
+        _filled = State(initialValue: poll.voted == true || poll.isClosed() || Self.votedElsewhere(remote))
     }
 
-    private static func isClosed(_ poll: NotePoll) -> Bool {
-        poll.expired || (poll.expiresAt.map { $0 <= .now } ?? false)
-    }
+    static func votedElsewhere(_ remote: RemoteNoteShape?) -> Bool { remote?.kind == .question }
 
-    private var closed: Bool { Self.isClosed(poll) }
-    private var showsResults: Bool { poll.voted == true || closed || peeking }
+    private var closed: Bool { poll.isClosed() }
+    private var elsewhere: Bool { Self.votedElsewhere(remote) }
+    private var showsResults: Bool { poll.voted == true || closed || peeking || elsewhere }
     private var leading: Int64 { poll.options.map(\.votesCount).max() ?? 0 }
 
     var body: some View {
@@ -161,32 +163,65 @@ struct NotePollView: View {
     }
 
     private var footer: some View {
-        HStack(spacing: 4) {
-            Text("\(poll.votersCount)명 참여")
-            Text(verbatim: "·")
-            Text(remaining)
-            if poll.voted != true, !closed {
-                Text(verbatim: "·")
-                Button(peeking ? LocalizedStringKey("투표로 돌아가기") : LocalizedStringKey("결과 보기")) {
-                    peeking.toggle()
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 4) {
+                stats
+                if let original {
+                    Text(verbatim: "·")
+                    originalButton(original)
                 }
-                .buttonStyle(.plain)
-                .underline()
-                .accessibilityIdentifier("note.poll.peek.\(noteId)")
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 4) { stats }
+                if let original { originalButton(original) }
             }
         }
         .typeScale(.meta)
         .foregroundStyle(Palette.secondary)
         .padding(.top, 2)
+        .sheet(item: $opened) { SafariView(url: $0.url).ignoresSafeArea() }
+    }
+
+    @ViewBuilder private var stats: some View {
+        Text("\(poll.votersCount)명 참여")
+        Text(verbatim: "·")
+        Text(remaining)
+        if poll.voted != true, !closed, !elsewhere {
+            Text(verbatim: "·")
+            Button(peeking ? LocalizedStringKey("투표로 돌아가기") : LocalizedStringKey("결과 보기")) {
+                peeking.toggle()
+            }
+            .buttonStyle(.plain)
+            .underline()
+            .accessibilityIdentifier("note.poll.peek.\(noteId)")
+        }
+    }
+
+    private var original: URL? { elsewhere ? remote?.original : nil }
+
+    private func originalButton(_ url: URL) -> some View {
+        Button {
+            opened = LegalLink(url: url)
+        } label: {
+            if closed {
+                RemoteOriginalLabel(title: "원문에서 보기", host: remote?.host)
+            } else {
+                RemoteOriginalLabel(title: "원문에서 투표")
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(.isLink)
+        .accessibilityIdentifier("note.poll.original.\(noteId)")
     }
 
     private var remaining: LocalizedStringKey {
-        guard !poll.expired, let end = poll.expiresAt else { return "마감됨" }
-        let seconds = end.timeIntervalSinceNow
-        if seconds <= 0 { return "마감됨" }
-        if seconds < 3600 { return "\(max(1, Int(seconds / 60)))분 남음" }
-        if seconds < 86_400 { return "\(Int(seconds / 3600))시간 남음" }
-        return "\(Int(seconds / 86_400))일 남음"
+        switch poll.timeLeft() {
+        case .closed: "마감됨"
+        case .open: "마감 없음"
+        case .minutes(let count): "\(count)분 남음"
+        case .hours(let count): "\(count)시간 남음"
+        case .days(let count): "\(count)일 남음"
+        }
     }
 
     private func vote(_ choices: [Int]) async {

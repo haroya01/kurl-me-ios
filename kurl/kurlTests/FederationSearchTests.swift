@@ -514,3 +514,137 @@ private final class ScriptedFederation: URLProtocol, @unchecked Sendable {
         return data
     }
 }
+
+@MainActor
+final class RemoteNoteShapeTests: XCTestCase {
+
+    private func note(remote: String?, media: String = "[]", poll: String = "null", sensitive: Bool = false,
+                      warning: String = "null") throws -> Note {
+        let remoteField = remote.map { #","remote":\#($0)"# } ?? ""
+        let json = #"""
+        {"id":9610,"body":"요약","createdAt":"2026-10-15T09:00:00Z","editedAt":null,"likeCount":null,"likedByMe":false,
+         "author":{"id":-9850,"username":"jiwoo@blog.example","bio":null,"avatarUrl":null,"displayName":"Jiwoo","remoteId":9850,"url":"https://blog.example/author/jiwoo"},
+         "media":\#(media),"quotedPost":null,"inReplyToId":null,"replyCount":0,"repostCount":null,"repostedByMe":false,
+         "quotedNote":null,"linkPreview":null,"mentions":[],"contentWarning":\#(warning),"sensitive":\#(sensitive),
+         "visibility":"public","poll":\#(poll)\#(remoteField)}
+        """#
+        return try JSONDecoder.blog.decode(Note.self, from: Data(json.utf8))
+    }
+
+    private static func shape(_ kind: String, url: String = "https://blog.example/a") -> String {
+        #"{"kind":"\#(kind)","title":"제목","url":"\#(url)","community":null}"#
+    }
+
+    private static let picture =
+        #"[{"url":"https://blog.example/cover.jpg","altText":null,"contentType":"image/jpeg","width":1200,"height":630}]"#
+
+    private static let remotePoll = #"""
+    {"expiresAt":null,"expired":false,"multiple":false,"votesCount":22,"votersCount":22,
+     "options":[{"title":"합정","votesCount":12},{"title":"성수","votesCount":10}],"voted":true,"ownVotes":[]}
+    """#
+
+    func testCardKindsDrawTheCardAndOtherKindsDrawTheNote() throws {
+        for kind in ["ARTICLE", "PAGE", "VIDEO"] {
+            let decoded = try note(remote: Self.shape(kind))
+            XCTAssertEqual(decoded.remoteCard?.title, "제목", kind)
+        }
+        for kind in ["NOTE", "QUESTION"] {
+            let decoded = try note(remote: Self.shape(kind))
+            XCTAssertNotNil(decoded.remote, kind)
+            XCTAssertNil(decoded.remoteCard, kind)
+        }
+        let page = try note(remote: #"{"kind":"PAGE","title":"화단","url":"https://lemmy.example/post/1","community":"gardening@lemmy.example"}"#)
+        XCTAssertEqual(page.remote?.kind, .page)
+        XCTAssertEqual(page.remote?.community, "gardening@lemmy.example")
+    }
+
+    func testResponsesWithoutRemoteDecodeAsBefore() throws {
+        let missing = try note(remote: nil)
+        let null = try note(remote: "null")
+        for decoded in [missing, null] {
+            XCTAssertNil(decoded.remote)
+            XCTAssertNil(decoded.remoteCard)
+            XCTAssertFalse(NotePollView.votedElsewhere(decoded.remote))
+        }
+    }
+
+    func testUnknownOrBrokenKindFallsBackToTheNote() throws {
+        let unknown = try note(remote: Self.shape("EVENT"))
+        XCTAssertNotNil(unknown.remote)
+        XCTAssertNil(unknown.remote?.kind)
+        XCTAssertNil(unknown.remoteCard)
+
+        let broken = try note(remote: #"{"kind":5,"title":null,"url":null,"community":null}"#)
+        XCTAssertNil(broken.remote?.kind)
+        XCTAssertNil(broken.remoteCard)
+    }
+
+    func testOriginalTakesOnlyWebAddressesAndDropsWww() throws {
+        let article = try XCTUnwrap(note(remote: Self.shape("ARTICLE", url: "https://www.Blog.example/2026/10/a")).remote)
+        XCTAssertEqual(article.original?.absoluteString, "https://www.Blog.example/2026/10/a")
+        XCTAssertEqual(article.host, "blog.example")
+        XCTAssertEqual(
+            RemoteNoteCard.spokenLabel(article),
+            "제목, \(String(localized: "원문에서 보기")), blog.example")
+
+        let script = try XCTUnwrap(note(remote: Self.shape("ARTICLE", url: "javascript:alert(1)")).remote)
+        XCTAssertNil(script.original)
+        XCTAssertNil(script.host)
+        XCTAssertEqual(RemoteNoteCard.spokenLabel(script), "제목, \(String(localized: "원문에서 보기"))")
+
+        let none = try XCTUnwrap(note(remote: #"{"kind":"VIDEO","title":"영상","url":null,"community":null}"#).remote)
+        XCTAssertNil(none.original)
+        XCTAssertNotNil(try note(remote: #"{"kind":"VIDEO","title":"영상","url":null,"community":null}"#).remoteCard)
+    }
+
+    func testPictureLeavesTheCardWhenSensitiveOrWarned() throws {
+        let plain = try note(remote: Self.shape("ARTICLE"), media: Self.picture)
+        XCTAssertEqual(RemoteNoteCard.picture(in: plain)?.url, "https://blog.example/cover.jpg")
+
+        let sensitive = try note(remote: Self.shape("ARTICLE"), media: Self.picture, sensitive: true)
+        XCTAssertNil(RemoteNoteCard.picture(in: sensitive))
+
+        let warned = try note(remote: Self.shape("ARTICLE"), media: Self.picture, sensitive: true, warning: #""스포일러""#)
+        XCTAssertNil(RemoteNoteCard.picture(in: warned))
+
+        let clip = try note(
+            remote: Self.shape("VIDEO"),
+            media: #"[{"url":"https://tube.example/v.mp4","altText":null,"contentType":"video/mp4"}]"#)
+        XCTAssertNil(RemoteNoteCard.picture(in: clip))
+
+        XCTAssertEqual(RemoteNoteCard.ratio(.video), 16.0 / 9.0)
+        XCTAssertEqual(RemoteNoteCard.ratio(.article), 1.91)
+        XCTAssertEqual(RemoteNoteCard.ratio(.page), 1.91)
+    }
+
+    func testOnlyRemoteQuestionsShowResultsWithoutVoting() throws {
+        let question = try note(remote: Self.shape("QUESTION"), poll: Self.remotePoll)
+        XCTAssertTrue(NotePollView.votedElsewhere(question.remote))
+        XCTAssertNil(question.remoteCard)
+        XCTAssertNil(question.poll?.expiresAt)
+
+        let remoteNoteWithPoll = try note(remote: Self.shape("NOTE"), poll: Self.remotePoll)
+        XCTAssertFalse(NotePollView.votedElsewhere(remoteNoteWithPoll.remote))
+        let oldResponse = try note(remote: nil, poll: Self.remotePoll)
+        XCTAssertFalse(NotePollView.votedElsewhere(oldResponse.remote))
+    }
+
+    func testPollWithoutDeadlineStaysOpen() throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        func poll(expiresAt: Date?, expired: Bool) -> NotePoll {
+            NotePoll(
+                expiresAt: expiresAt, expired: expired, multiple: false, votesCount: 0, votersCount: 0,
+                options: [], voted: true, ownVotes: [])
+        }
+
+        XCTAssertFalse(poll(expiresAt: nil, expired: false).isClosed(now: now))
+        XCTAssertEqual(poll(expiresAt: nil, expired: false).timeLeft(now: now), .open)
+        XCTAssertTrue(poll(expiresAt: nil, expired: true).isClosed(now: now))
+        XCTAssertEqual(poll(expiresAt: nil, expired: true).timeLeft(now: now), .closed)
+        XCTAssertTrue(poll(expiresAt: now.addingTimeInterval(-1), expired: false).isClosed(now: now))
+        XCTAssertEqual(poll(expiresAt: now.addingTimeInterval(-1), expired: false).timeLeft(now: now), .closed)
+        XCTAssertEqual(poll(expiresAt: now.addingTimeInterval(30), expired: false).timeLeft(now: now), .minutes(1))
+        XCTAssertEqual(poll(expiresAt: now.addingTimeInterval(7_200), expired: false).timeLeft(now: now), .hours(2))
+        XCTAssertEqual(poll(expiresAt: now.addingTimeInterval(3 * 86_400 + 60), expired: false).timeLeft(now: now), .days(3))
+    }
+}

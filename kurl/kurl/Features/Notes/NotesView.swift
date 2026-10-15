@@ -541,7 +541,7 @@ struct NoteRowView: View {
                 moreMenu
             }
             warningLine
-            if !note.body.isEmpty {
+            if !note.body.isEmpty, folded || note.remoteCard == nil {
                 ZStack(alignment: .topLeading) {
                     if folded {
                         shield(.noteFocus)
@@ -615,7 +615,7 @@ struct NoteRowView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     header
                     warningLine
-                    if !note.body.isEmpty {
+                    if !note.body.isEmpty, folded || note.remoteCard == nil {
                         ZStack(alignment: .topLeading) {
                             if folded {
                                 shield(.note)
@@ -651,7 +651,7 @@ struct NoteRowView: View {
                     moreMenu
                         .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + nameCapHalf }
                 }
-                if !folded, !note.body.isEmpty { translationLine }
+                if !folded, !note.body.isEmpty, note.remoteCard == nil { translationLine }
                 attachments
                 actions(spread: false)
                     .padding(.top, 10)
@@ -817,20 +817,36 @@ struct NoteRowView: View {
     }
 
     @ViewBuilder private var attachments: some View {
-        if !folded, let poll = note.poll {
-            NotePollView(noteId: note.id, poll: poll) { updated in
-                var next = note
-                next.poll = updated
-                onChange(next)
+        if let shape = note.remoteCard {
+            remoteCardAttachments(shape)
+        } else {
+            if !folded, let poll = note.poll {
+                NotePollView(noteId: note.id, poll: poll, remote: note.remote) { updated in
+                    var next = note
+                    next.poll = updated
+                    onChange(next)
+                }
+                .padding(.top, 8)
             }
-            .padding(.top, 8)
+            NoteImagesView(
+                media: note.media, concealed: mediaConcealed, revealIdentifier: "note.sensitive.\(note.id)",
+                reveal: revealMedia)
+            if !folded {
+                quotedAttachments
+            }
+        }
+    }
+
+    @ViewBuilder private func remoteCardAttachments(_ shape: RemoteNoteShape) -> some View {
+        let picture = RemoteNoteCard.picture(in: note)
+        if !folded {
+            RemoteNoteCard(noteId: note.id, shape: shape, summary: shownBody, picture: picture, full: focused)
+                .padding(.top, focused ? 0 : 6)
+            if !note.body.isEmpty { translationLine }
         }
         NoteImagesView(
-            media: note.media, concealed: mediaConcealed, revealIdentifier: "note.sensitive.\(note.id)",
-            reveal: revealMedia)
-        if !folded {
-            quotedAttachments
-        }
+            media: note.media.filter { $0 != picture }, concealed: mediaConcealed,
+            revealIdentifier: "note.sensitive.\(note.id)", reveal: revealMedia)
     }
 
     @ViewBuilder private var quotedAttachments: some View {
