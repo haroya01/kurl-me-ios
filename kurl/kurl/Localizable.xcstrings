@@ -1264,6 +1264,34 @@
         }
       }
     },
+    "%@님의 노트가 팔로잉·다른 서버·리스트·답글에서 숨겨져요. 이 계정 화면에서는 그대로 보이고, 그 서버에는 알리지 않아요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@'s notes are hidden from Following, Other servers, lists and replies. This account's page still shows them, and their server isn't told."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ के नोट फ़ॉलोइंग, दूसरे सर्वर, सूचियों और जवाबों से छिप जाएँगे। इस खाते के पेज पर वे दिखते रहेंगे और उनके सर्वर को बताया नहीं जाएगा।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@さんのノートが、フォロー中・ほかのサーバー・リスト・返信から隠れます。このアカウントの画面ではそのまま見え、そのサーバーには知らせません。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ghi chú của %@ sẽ bị ẩn khỏi Đang theo dõi, Máy chủ khác, danh sách và trả lời. Trang tài khoản này vẫn hiển thị và máy chủ của họ không được thông báo."
+          }
+        }
+      }
+    },
     "%@님의 리포스트를 다시 보여 줘요": {
       "localizations": {
         "en": {
@@ -8113,6 +8141,34 @@
         }
       }
     },
+    "이 계정의 노트와 알림이 보이지 않고, 서로의 팔로우도 끊겨요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You won't see this account's notes or notifications, and any follows between you will end."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस खाते के नोट और सूचनाएँ नहीं दिखेंगी, और आपस का फ़ॉलो भी हट जाएगा।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このアカウントのノートと通知が表示されなくなり、お互いのフォローも外れます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn sẽ không thấy ghi chú hay thông báo của tài khoản này, và việc theo dõi giữa hai bên sẽ bị hủy."
+          }
+        }
+      }
+    },
     "이 글이 담긴 컬렉션": {
       "localizations": {
         "en": {
@@ -8333,6 +8389,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Không có bài đã thích"
+          }
+        }
+      }
+    },
+    "차단했어요. 이 계정의 노트가 숨겨져요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blocked. This account's notes are now hidden"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ब्लॉक किया। इस खाते के नोट छिप जाएँगे"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブロックしました。このアカウントのノートが非表示になります"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã chặn. Ghi chú của tài khoản này sẽ bị ẩn"
           }
         }
       }

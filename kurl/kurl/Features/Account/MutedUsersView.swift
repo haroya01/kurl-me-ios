@@ -34,8 +34,29 @@ enum MuteDuration: Int, CaseIterable, Identifiable {
 }
 
 struct MuteSheet: View {
-    let username: String
-    let onMuted: (InteractionsAPI.MuteStatus) -> Void
+    let name: String
+    let shortName: String
+    let remote: Bool
+    let send: (_ notifications: Bool, _ duration: Int?) async throws -> Void
+
+    init(username: String, onMuted: @escaping (InteractionsAPI.MuteStatus) -> Void) {
+        name = username
+        shortName = username
+        remote = false
+        send = { notifications, duration in
+            onMuted(try await InteractionsAPI.mute(
+                username: username, notifications: notifications, duration: duration))
+        }
+    }
+
+    init(remote account: RemoteAccount, onMuted: @escaping (RemoteAccount) -> Void) {
+        name = account.acct
+        shortName = account.shownName
+        remote = true
+        send = { notifications, duration in
+            onMuted(try await FederationAPI.mute(id: account.id, notifications: notifications, duration: duration))
+        }
+    }
 
     @State private var hidesNotifications = true
     @State private var duration: MuteDuration = .forever
@@ -54,10 +75,14 @@ struct MuteSheet: View {
                     }
                     .accessibilityIdentifier("mute.duration")
                 } footer: {
-                    Text("\(username)님의 노트가 최신·팔로잉·리스트·답글에서 숨겨져요. 프로필에서는 그대로 보이고, 상대에게 알리지 않아요.")
+                    if remote {
+                        Text("\(name)님의 노트가 팔로잉·다른 서버·리스트·답글에서 숨겨져요. 이 계정 화면에서는 그대로 보이고, 그 서버에는 알리지 않아요.")
+                    } else {
+                        Text("\(name)님의 노트가 최신·팔로잉·리스트·답글에서 숨겨져요. 프로필에서는 그대로 보이고, 상대에게 알리지 않아요.")
+                    }
                 }
             }
-            .navigationTitle("\(username)님 뮤트")
+            .navigationTitle("\(shortName)님 뮤트")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -82,9 +107,7 @@ struct MuteSheet: View {
         saving = true
         defer { saving = false }
         do {
-            let status = try await InteractionsAPI.mute(
-                username: username, notifications: hidesNotifications, duration: duration.seconds)
-            onMuted(status)
+            try await send(hidesNotifications, duration.seconds)
             ToastCenter.shared.show(String(localized: "뮤트했어요. 노트 피드에서 보이지 않아요"))
             dismiss()
         } catch {
@@ -95,13 +118,14 @@ struct MuteSheet: View {
 
 struct MutedUsersView: View {
     @State private var muted: [InteractionsAPI.MutedUser] = []
+    @State private var remote: [RemoteMute] = []
     @State private var loading = true
     @State private var failed = false
 
     var body: some View {
         ReadingColumn(spacing: 0) {
             Color.clear.frame(height: 8)
-            if loading && muted.isEmpty {
+            if loading && muted.isEmpty && remote.isEmpty {
                 KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 240)
             } else if failed && muted.isEmpty {
@@ -109,14 +133,28 @@ struct MutedUsersView: View {
                     message: String(localized: "연결을 확인하고 다시 시도해 주세요."),
                     retry: { Task { await load() } })
                     .padding(.top, 60)
-            } else if muted.isEmpty {
+            } else if muted.isEmpty && remote.isEmpty {
                 FeedPlaceholder(title: "뮤트한 사용자가 없어요")
                     .padding(.top, 24)
             } else {
-                LazyVStack(spacing: 0) {
-                    ForEach(muted) { user in
-                        row(user)
-                        if user.id != muted.last?.id { Hairline() }
+                if !muted.isEmpty {
+                    LazyVStack(spacing: 0) {
+                        ForEach(muted) { user in
+                            row(user)
+                            if user.id != muted.last?.id { Hairline() }
+                        }
+                    }
+                }
+                if !remote.isEmpty {
+                    OtherServerSection(divided: !muted.isEmpty) {
+                        LazyVStack(spacing: 0) {
+                            ForEach(remote) { mute in
+                                RemoteSafetyRow(account: mute.account, mute: mute, actionTitle: "뮤트 해제") {
+                                    await unmute(mute.account)
+                                }
+                                .rowDivider(mute.id != remote.first?.id)
+                            }
+                        }
                     }
                 }
             }
@@ -130,12 +168,25 @@ struct MutedUsersView: View {
     private func load() async {
         loading = true
         failed = false
+        async let remoteMutes = FederationAPI.mutedAccounts()
         do {
             muted = try await InteractionsAPI.listMuted()
         } catch {
             failed = true
         }
+        if let found = await remoteMutes { remote = found }
         loading = false
+    }
+
+    private func unmute(_ account: RemoteAccount) async {
+        do {
+            _ = try await FederationAPI.unmute(id: account.id)
+            withAnimation(.snappy(duration: 0.2)) { remote.removeAll { $0.id == account.id } }
+            NoteFeedPreferences.shared.mutesChanged()
+            ToastCenter.shared.show(String(localized: "뮤트를 해제했어요"))
+        } catch {
+            ToastCenter.shared.show(String(localized: "해제하지 못했어요"))
+        }
     }
 
     private func row(_ user: InteractionsAPI.MutedUser) -> some View {

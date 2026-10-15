@@ -16,8 +16,13 @@ struct RemoteAccount: Codable, Identifiable, Hashable {
     var following: Bool
     var requested: Bool
     var domainBlocked: Bool?
+    var blocking: Bool? = nil
+    var muting: Bool? = nil
 
     var isDomainBlocked: Bool { domainBlocked ?? false }
+    var isBlocking: Bool { blocking ?? false }
+    var isMuting: Bool { muting ?? false }
+    var offersBlockAndMute: Bool { blocking != nil && muting != nil }
 
     var shownName: String {
         if let displayName, !displayName.isEmpty { return displayName }
@@ -51,8 +56,20 @@ struct ServerBlock: Decodable, Identifiable, Hashable {
     var id: String { domain }
 }
 
-struct RemoteAccountSearchPage: Decodable {
+struct RemoteAccountPage: Decodable {
     let items: [RemoteAccount]
+}
+
+struct RemoteMute: Decodable, Identifiable, Hashable {
+    let account: RemoteAccount
+    let expiresAt: Date?
+    let notifications: Bool
+
+    var id: Int64 { account.id }
+}
+
+struct RemoteMutePage: Decodable {
+    let items: [RemoteMute]
 }
 
 struct RemoteResolveBody: Decodable {
@@ -104,11 +121,11 @@ enum FederationAPI {
         let query = remoteSearchQuery(raw)
         guard query.count >= remoteSearchMinQuery else { return [] }
         do {
-            let page: RemoteAccountSearchPage = try await client.get(
+            let page: RemoteAccountPage = try await client.get(
                 "/federation/accounts/search",
                 query: ["q": query, "limit": String(remoteSearchLimit)],
                 authenticated: AuthStore.shared.isSignedIn)
-            return page.items.filter { !$0.isDomainBlocked }
+            return page.items.filter { !$0.isDomainBlocked && !$0.isBlocking }
         } catch {
             return nil
         }
@@ -178,6 +195,61 @@ enum FederationAPI {
         on
             ? try await client.post("/federation/accounts/\(id)/follow", body: Empty(), authenticated: true)
             : try await client.delete("/federation/accounts/\(id)/follow", authenticated: true)
+    }
+
+    static func setBlocking(_ on: Bool, id: Int64) async throws -> RemoteAccount {
+        on
+            ? try await client.put("/federation/accounts/\(id)/block", authenticated: true)
+            : try await client.delete("/federation/accounts/\(id)/block", authenticated: true)
+    }
+
+    static func mute(id: Int64, notifications: Bool, duration: Int?) async throws -> RemoteAccount {
+        struct Body: Encodable {
+            let notifications: Bool
+            let duration: Int?
+        }
+        return try await client.put(
+            "/federation/accounts/\(id)/mute", body: Body(notifications: notifications, duration: duration),
+            authenticated: true)
+    }
+
+    static func unmute(id: Int64) async throws -> RemoteAccount {
+        try await client.delete("/federation/accounts/\(id)/mute", authenticated: true)
+    }
+
+    static let safetyPageSize = 40
+    static let safetyPageLimit = 10
+
+    static func blockedAccounts() async -> [RemoteAccount]? {
+        await everyPage { page in
+            let body: RemoteAccountPage = try await client.get(
+                "/federation/blocks", query: ["page": String(page), "size": String(safetyPageSize)],
+                authenticated: true)
+            return body.items
+        }
+    }
+
+    static func mutedAccounts() async -> [RemoteMute]? {
+        await everyPage { page in
+            let body: RemoteMutePage = try await client.get(
+                "/federation/mutes", query: ["page": String(page), "size": String(safetyPageSize)],
+                authenticated: true)
+            return body.items
+        }
+    }
+
+    private static func everyPage<T>(_ fetch: (Int) async throws -> [T]) async -> [T]? {
+        var all: [T] = []
+        for page in 0..<safetyPageLimit {
+            do {
+                let items = try await fetch(page)
+                all += items
+                if items.count < safetyPageSize { break }
+            } catch {
+                return page == 0 ? nil : all
+            }
+        }
+        return all
     }
 
     static func following(page: Int = 0) async throws -> [RemoteAccount] {
