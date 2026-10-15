@@ -1381,7 +1381,10 @@ enum MockBackend {
                 ? []
                 : allNotes().filter { $0.visibility == "public" && $0.body.lowercased().contains(q) }
                     .sorted { $0.createdAt > $1.createdAt }
-            return json(["items": hits.map(noteView), "page": 0, "hasNext": false])
+            let remote = q.isEmpty || !remoteHeard(9800)
+                ? []
+                : remoteNoteViews(of: 9800).filter { (($0["body"] as? String) ?? "").lowercased().contains(q) }
+            return json(["items": hits.map(noteView) + remote, "page": 0, "hasNext": false])
         }
         if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "notes", parts[2] == "tags" {
             let needle = "#" + parts[3].lowercased()
@@ -1752,6 +1755,17 @@ enum MockBackend {
                     return ((lhs["username"] as? String) ?? "") < ((rhs["username"] as? String) ?? "")
                 }
             return json(["items": Array(matches.prefix(limit)).map(withDomainBlock)])
+        }
+        if method == "GET", parts == ["federation", "accounts", "suggestions"] {
+            let limit = Int(query?.first(where: { $0.name == "limit" })?.value ?? "") ?? 3
+            let picks = remoteAccounts.values
+                .filter { account in
+                    let id = (account["id"] as? Int64) ?? 0
+                    return remoteHeard(id) && domainBlocks[(account["domain"] as? String) ?? ""] == nil
+                        && (account["following"] as? Bool) != true && (account["requested"] as? Bool) != true
+                }
+                .sorted { (($0["id"] as? Int64) ?? 0) < (($1["id"] as? Int64) ?? 0) }
+            return json(["items": Array(picks.prefix(limit)).map(withDomainBlock)])
         }
         if method == "GET", parts == ["federation", "resolve"] {
             let q = (query?.first(where: { $0.name == "q" })?.value ?? "").trimmingCharacters(in: .whitespaces)

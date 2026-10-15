@@ -90,6 +90,7 @@ enum FederationAPI {
     static var client = APIClient.shared
 
     static let remoteSearchLimit = 5
+    static let suggestionLimit = 3
     static let remoteSearchMinQuery = 2
     static let resolveTimeout: TimeInterval = 20
 
@@ -117,15 +118,29 @@ enum FederationAPI {
         return String(query.dropFirst()).trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    static func searchAccounts(_ raw: String) async -> [RemoteAccount]? {
+    static func searchAccounts(_ raw: String, limit: Int? = nil) async -> [RemoteAccount]? {
         let query = remoteSearchQuery(raw)
         guard query.count >= remoteSearchMinQuery else { return [] }
         do {
             let page: RemoteAccountPage = try await client.get(
                 "/federation/accounts/search",
-                query: ["q": query, "limit": String(remoteSearchLimit)],
+                query: ["q": query, "limit": String(limit ?? remoteSearchLimit)],
                 authenticated: AuthStore.shared.isSignedIn)
             return page.items.filter { !$0.isDomainBlocked && !$0.isBlocking }
+        } catch {
+            return nil
+        }
+    }
+
+    static func suggestions() async -> [RemoteAccount]? {
+        do {
+            let page: RemoteAccountPage = try await client.get(
+                "/federation/accounts/suggestions", query: ["limit": String(suggestionLimit)],
+                authenticated: true)
+            let fresh = page.items.filter {
+                !$0.isDomainBlocked && !$0.isBlocking && !$0.following && !$0.requested
+            }
+            return Array(fresh.prefix(suggestionLimit))
         } catch {
             return nil
         }

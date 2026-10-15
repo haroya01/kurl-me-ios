@@ -2159,9 +2159,15 @@ struct NoteComposeSheet: View {
                                     .focused($focused)
                                     .accessibilityIdentifier("noteCompose.text")
                                 if focused {
-                                    MentionSuggestionList(query: MentionDraft.trailingQuery(in: text)) {
-                                        text = MentionDraft.complete(text, with: $0.username)
-                                    }
+                                    MentionSuggestionList(
+                                        query: MentionDraft.trailingQuery(in: text, allowingServer: true),
+                                        onPick: {
+                                            text = MentionDraft.complete(
+                                                text, with: $0.username, allowingServer: true)
+                                        },
+                                        onPickRemote: {
+                                            text = MentionDraft.complete(text, with: $0.acct, allowingServer: true)
+                                        })
                                 }
                             }
                             if let draft = Binding($poll) {
@@ -2546,9 +2552,16 @@ struct NoteComposeSheet: View {
                     .focused($focusedPart, equals: id)
                     .accessibilityIdentifier("noteCompose.part")
                 if focusedPart == id {
-                    MentionSuggestionList(query: MentionDraft.trailingQuery(in: part.wrappedValue.text)) {
-                        part.wrappedValue.text = MentionDraft.complete(part.wrappedValue.text, with: $0.username)
-                    }
+                    MentionSuggestionList(
+                        query: MentionDraft.trailingQuery(in: part.wrappedValue.text, allowingServer: true),
+                        onPick: {
+                            part.wrappedValue.text = MentionDraft.complete(
+                                part.wrappedValue.text, with: $0.username, allowingServer: true)
+                        },
+                        onPickRemote: {
+                            part.wrappedValue.text = MentionDraft.complete(
+                                part.wrappedValue.text, with: $0.acct, allowingServer: true)
+                        })
                 }
             }
             .padding(.bottom, 14)
