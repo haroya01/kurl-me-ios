@@ -313,6 +313,121 @@ final class FederationSafetyTests: XCTestCase {
     }
 }
 
+@MainActor
+final class FederationSuggestTests: XCTestCase {
+
+    override func tearDown() async throws {
+        FederationAPI.client = .shared
+        NoteAPI.client = .shared
+        ScriptedFederation.reset()
+    }
+
+    private func serve(_ replies: [String: ScriptedFederation.Reply]) {
+        ScriptedFederation.reset()
+        ScriptedFederation.replies = replies
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [ScriptedFederation.self]
+        let client = APIClient(session: URLSession(configuration: config), viewerToken: { nil })
+        FederationAPI.client = client
+        NoteAPI.client = client
+    }
+
+    private static func account(_ id: Int64, _ acct: String, _ state: String = "") -> String {
+        let parts = acct.split(separator: "@").map(String.init)
+        let following = state.contains("following")
+        let requested = state.contains("requested")
+        let blocking = state.contains("blocking")
+        let domainBlocked = state.contains("server")
+        return #"{"id":\#(id),"acct":"\#(acct)","username":"\#(parts[0])","domain":"\#(parts[1])","displayName":null,"avatarUrl":null,"url":"https://\#(parts[1])/@\#(parts[0])","following":\#(following),"requested":\#(requested),"domainBlocked":\#(domainBlocked),"blocking":\#(blocking),"muting":false}"#
+    }
+
+    func testSuggestionsAskForThreeAndKeepOnlyAccountsToFollow() async throws {
+        let items = [
+            Self.account(1, "followed@a.example", "following"),
+            Self.account(2, "asked@a.example", "requested"),
+            Self.account(3, "blocked@a.example", "blocking"),
+            Self.account(4, "walled@spam.example", "server"),
+            Self.account(5, "alice@mastodon.social"),
+            Self.account(6, "haruto@misskey.io"),
+        ]
+        serve(["/federation/accounts/suggestions": .json(200, #"{"items":[\#(items.joined(separator: ","))]}"#)])
+
+        let found = await FederationAPI.suggestions()
+
+        XCTAssertEqual(found?.map(\.acct), ["alice@mastodon.social", "haruto@misskey.io"])
+        let request = try XCTUnwrap(ScriptedFederation.requests.first)
+        XCTAssertEqual(request.url?.path, "/api/v1/federation/accounts/suggestions")
+        XCTAssertEqual(request.url?.query(percentEncoded: false), "limit=3")
+    }
+
+    func testSuggestionsHideOnAnOldBackend() async {
+        serve(["/federation/accounts/suggestions": .json(
+            400, #"{"status":400,"code":"INVALID_ARGUMENT","detail":"id"}"#)])
+        let rejected = await FederationAPI.suggestions()
+        XCTAssertNil(rejected)
+
+        serve(["/federation/accounts/suggestions": .json(200, "[]")])
+        let reshaped = await FederationAPI.suggestions()
+        XCTAssertNil(reshaped)
+    }
+
+    func testTypingSuggestionsAskForThreeRemoteAccounts() async throws {
+        serve(["/federation/accounts/search": .json(200, #"{"items":[\#(Self.account(5, "mina@mastodon.social"))]}"#)])
+
+        let found = await FederationAPI.searchAccounts("mina@mast", limit: FederationAPI.suggestionLimit)
+
+        XCTAssertEqual(found?.map(\.acct), ["mina@mastodon.social"])
+        let query = try XCTUnwrap(ScriptedFederation.requests.first?.url).query(percentEncoded: false) ?? ""
+        XCTAssertTrue(query.contains("q=mina@mast"), query)
+        XCTAssertTrue(query.contains("limit=3"), query)
+    }
+
+    func testNoteComposerMentionKeepsTheServerPart() {
+        XCTAssertEqual(MentionDraft.trailingQuery(in: "hi @mina@mast", allowingServer: true), "mina@mast")
+        XCTAssertEqual(MentionDraft.trailingQuery(in: "hi @mi", allowingServer: true), "mi")
+        XCTAssertEqual(MentionDraft.trailingQuery(in: "hi @", allowingServer: true), "")
+        XCTAssertNil(MentionDraft.trailingQuery(in: "mail a@b.example", allowingServer: true))
+        XCTAssertNil(MentionDraft.trailingQuery(in: "hi @mina@mast"))
+
+        XCTAssertEqual(
+            MentionDraft.complete("hi @mina@mast", with: "mina@mastodon.social", allowingServer: true),
+            "hi @mina@mastodon.social ")
+        XCTAssertEqual(
+            MentionDraft.complete("hi @mi", with: "mina@mastodon.social", allowingServer: true),
+            "hi @mina@mastodon.social ")
+        XCTAssertEqual(MentionDraft.complete("(@mi", with: "minji", allowingServer: true), "(@minji ")
+    }
+
+    func testCommentMentionStaysLocal() {
+        XCTAssertEqual(MentionDraft.trailingQuery(in: "hi @mi"), "mi")
+        XCTAssertEqual(MentionDraft.complete("hi @mi", with: "minji"), "hi @minji ")
+        XCTAssertEqual(MentionDraft.complete("hi @mina@mast", with: "minji"), "hi @mina@mast")
+    }
+
+    func testRemoteNoteInNoteSearchOpensTheRemoteAccount() async throws {
+        let remote = #"""
+        {"id":9601,"body":"오늘 찍은 파도","createdAt":"2026-10-15T09:00:00Z","editedAt":null,"likeCount":null,"likedByMe":false,
+         "author":{"id":-9800,"username":"mina@mastodon.social","bio":null,"avatarUrl":null,"displayName":"Mina","remoteId":9800,"url":"https://mastodon.social/@mina"},
+         "media":[],"quotedPost":null,"inReplyToId":null,"replyCount":0,"repostCount":null,"repostedByMe":false,"quotedNote":null,
+         "linkPreview":null,"mentions":[],"contentWarning":null,"sensitive":false,"visibility":"public"}
+        """#
+        let local = #"""
+        {"id":9501,"body":"파도 소리","createdAt":"2026-10-15T08:00:00Z","editedAt":null,"likeCount":null,"likedByMe":false,
+         "author":{"id":2,"username":"yuki_dev","bio":null,"avatarUrl":null},
+         "media":[],"quotedPost":null,"inReplyToId":null,"replyCount":0,"repostCount":null,"repostedByMe":false,"quotedNote":null,
+         "linkPreview":null,"mentions":[],"contentWarning":null,"sensitive":false,"visibility":"public"}
+        """#
+        serve(["/public/notes/search": .json(200, #"{"items":[\#(local),\#(remote)],"page":0,"hasNext":false}"#)])
+
+        let feed = try await NoteAPI.search("파도")
+
+        XCTAssertEqual(feed.items.map(\.id), [9501, 9601])
+        XCTAssertEqual(feed.items[1].author.notesRoute, .remoteAccount(id: 9800))
+        XCTAssertEqual(feed.items[1].author.shownName, "Mina")
+        XCTAssertEqual(feed.items[0].author.notesRoute, .authorNotes(username: "yuki_dev"))
+    }
+}
+
 private final class ScriptedFederation: URLProtocol, @unchecked Sendable {
     enum Reply {
         case json(Int, String)

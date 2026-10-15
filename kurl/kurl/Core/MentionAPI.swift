@@ -24,17 +24,20 @@ enum MentionAPI {
 enum MentionDraft {
     private static let pattern = try? NSRegularExpression(
         pattern: "(?:^|[\\s(\\[{\"'“‘])@([\\p{L}\\p{N}_]{0,30})$")
+    private static let serverPattern = try? NSRegularExpression(
+        pattern: "(?:^|[\\s(\\[{\"'“‘])@([\\p{L}\\p{N}_]{0,30}(?:@[A-Za-z0-9.\\-]{0,253})?)$")
 
-    static func trailingQuery(in text: String) -> String? {
+    static func trailingQuery(in text: String, allowingServer: Bool = false) -> String? {
         let ns = text as NSString
-        guard let match = pattern?.firstMatch(in: text, range: NSRange(location: 0, length: ns.length)) else {
+        let regex = allowingServer ? serverPattern : pattern
+        guard let match = regex?.firstMatch(in: text, range: NSRange(location: 0, length: ns.length)) else {
             return nil
         }
         return ns.substring(with: match.range(at: 1))
     }
 
-    static func complete(_ text: String, with username: String) -> String {
-        guard let query = trailingQuery(in: text) else { return text }
-        return String(text.dropLast(query.count + 1)) + "@\(username) "
+    static func complete(_ text: String, with handle: String, allowingServer: Bool = false) -> String {
+        guard let query = trailingQuery(in: text, allowingServer: allowingServer) else { return text }
+        return String(text.dropLast(query.count + 1)) + "@\(handle) "
     }
 }
