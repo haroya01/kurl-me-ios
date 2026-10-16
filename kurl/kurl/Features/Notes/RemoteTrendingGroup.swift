@@ -1,0 +1,322 @@
+//
+//  RemoteTrendingGroup.swift
+//  kurl
+//
+
+import SwiftUI
+
+@Observable
+@MainActor
+final class RemoteTrendingModel {
+    static let collapsedCount = 5
+
+    private(set) var phase: LoadState<[TrendingNote]> = .idle
+    var expanded = false
+
+    func load() async {
+        if case .loaded = phase {} else { phase = .loading }
+        do {
+            phase = .loaded(try await FederationAPI.trending())
+        } catch {
+            guard !Task.isCancelled else { return }
+            if case .loaded = phase { return }
+            phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
+        }
+    }
+
+    var isShown: Bool {
+        switch phase {
+        case .loaded(let items): !items.isEmpty
+        case .failed: true
+        case .idle, .loading: false
+        }
+    }
+
+    var visible: [TrendingNote] {
+        guard case .loaded(let items) = phase else { return [] }
+        return expanded ? items : Array(items.prefix(Self.collapsedCount))
+    }
+
+    var hiddenCount: Int {
+        guard case .loaded(let items) = phase, !expanded else { return 0 }
+        return max(items.count - Self.collapsedCount, 0)
+    }
+}
+
+@Observable
+@MainActor
+final class TrendingNoteActions {
+    enum Outcome: Equatable {
+        case done(Note)
+        case signIn
+        case failed(String)
+    }
+
+    let item: TrendingNote
+    private let signedIn: @MainActor () -> Bool
+    private(set) var local: Note?
+    private(set) var liked = false
+    private(set) var working = false
+    private(set) var followed: RemoteAccount?
+
+    init(item: TrendingNote, signedIn: @escaping @MainActor () -> Bool = { AuthStore.shared.isSignedIn }) {
+        self.item = item
+        self.signedIn = signedIn
+    }
+
+    func localNote() async -> Outcome {
+        if let local { return .done(local) }
+        guard signedIn() else { return .signIn }
+        working = true
+        defer { working = false }
+        switch await FederationAPI.resolve(item.uri) {
+        case .note(let note):
+            local = note
+            liked = note.likedByMe == true
+            return .done(note)
+        case .signIn:
+            return .signIn
+        case .missing(let domain):
+            return .failed(String(localized: "\(domain) 서버에서 찾지 못했어요"))
+        case .unreachable(let domain):
+            return .failed(String(localized: "\(domain) 서버가 응답하지 않아요"))
+        case .account, .hidden:
+            return .failed(String(localized: "다른 서버 노트를 가져오지 못했어요"))
+        }
+    }
+
+    func toggleLike() async -> Outcome {
+        let firstTouch = local == nil
+        let outcome = await localNote()
+        guard case .done(let note) = outcome else { return outcome }
+        if firstTouch, liked { return outcome }
+        let target = !liked
+        liked = target
+        do {
+            liked = try await NoteAPI.setLike(id: note.id, on: target).liked
+            return outcome
+        } catch {
+            liked = !target
+            return .failed(String(localized: "좋아요를 반영하지 못했어요"))
+        }
+    }
+
+    func followAuthor() async -> Outcome {
+        let outcome = await localNote()
+        guard case .done(let note) = outcome else { return outcome }
+        guard let remoteId = note.author.remoteId else {
+            return .failed(String(localized: "다른 서버 노트를 가져오지 못했어요"))
+        }
+        do {
+            followed = try await FederationAPI.setFollowing(true, id: remoteId)
+            return outcome
+        } catch {
+            return .failed(FederationAPI.message(for: error))
+        }
+    }
+}
+
+struct RemoteTrendingGroup: View {
+    let model: RemoteTrendingModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        switch model.phase {
+        case .loaded(let items) where !items.isEmpty:
+            VStack(alignment: .leading, spacing: 0) {
+                RailHeading("인기")
+                    .padding(.top, 6)
+                ForEach(Array(model.visible.enumerated()), id: \.element.id) { index, item in
+                    if index > 0 { Hairline().padding(.horizontal, -Metrics.noteGutter) }
+                    TrendingNoteRow(item: item)
+                }
+                if model.hiddenCount > 0 {
+                    Hairline().padding(.horizontal, -Metrics.noteGutter)
+                    Button {
+                        withAnimation(reduceMotion ? nil : .smooth(duration: 0.25)) { model.expanded = true }
+                    } label: {
+                        Text("더 보기")
+                            .typeScale(.meta)
+                            .fontWeight(.medium)
+                            .foregroundStyle(Palette.ink)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 14)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("trending.more")
+                }
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("trending.group")
+        case .failed:
+            VStack(alignment: .leading, spacing: 0) {
+                RailHeading("인기")
+                    .padding(.top, 6)
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Text("인기 글을 불러오지 못했어요")
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 8)
+                    Button("다시 시도") { Task { await model.load() } }
+                        .typeScale(.meta)
+                        .fontWeight(.medium)
+                        .foregroundStyle(Palette.ink)
+                        .buttonStyle(.plain)
+                        .expandTapTarget(12)
+                        .accessibilityIdentifier("trending.retry")
+                }
+                .padding(.vertical, 14)
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("trending.failed")
+        default:
+            EmptyView()
+        }
+    }
+}
+
+private struct TrendingNoteRow: View {
+    let item: TrendingNote
+    @State private var actions: TrendingNoteActions
+    @State private var replyTarget: Note?
+    @State private var replies = 0
+    @State private var likeTaps = 0
+    @State private var showLogin = false
+    @State private var loginMessage: LocalizedStringKey = "다른 서버의 노트를 보려면 로그인하세요"
+    @State private var original: LegalLink?
+    @Environment(\.openNoteRoute) private var openNoteRoute
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
+
+    init(item: TrendingNote) {
+        self.item = item
+        _actions = State(initialValue: TrendingNoteActions(item: item))
+    }
+
+    private var unit: CGFloat { min(scale, 1.8) }
+    private static let actionBox: CGFloat = 22
+
+    var body: some View {
+        NoteRowView(
+            note: item.displayNote, onChange: { _ in }, onDelete: { _ in },
+            detached: NoteRowDetached(
+                context: context, open: open, reply: reply, actions: AnyView(actionBar)))
+            .sheet(item: $replyTarget) { note in
+                NoteComposeSheet(mode: .reply(note)) { posted in
+                    replies += 1
+                    NoteReplyToast.show(posted, open: openNoteRoute)
+                }
+            }
+            .sheet(item: $original) { SafariView(url: $0.url).ignoresSafeArea() }
+            .loginPrompt(isPresented: $showLogin, message: loginMessage)
+            .sensoryFeedback(.success, trigger: replies)
+            .accessibilityIdentifier("trending.note")
+    }
+
+    private var context: Text {
+        guard let first = item.servers.first else { return Text(verbatim: "") }
+        let others = item.servers.count - 1
+        return others > 0 ? Text("\(first) 외 \(others)곳에서 인기") : Text("\(first)에서 인기")
+    }
+
+    private var actionBar: some View {
+        HStack(spacing: 20) {
+            Button(action: reply) {
+                HStack(spacing: 4) {
+                    NoteGlyphView(glyph: .reply, size: Self.actionBox * unit)
+                    if item.replyCount > 0 { Text("\(item.replyCount)").monospacedDigit() }
+                }
+                .typeScale(.lede)
+                .foregroundStyle(Palette.ink)
+                .expandTapTarget()
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("답글 쓰기"))
+
+            Button {
+                likeTaps += 1
+                Task { await like() }
+            } label: {
+                NoteGlyphView(glyph: .heart, active: actions.liked, size: Self.actionBox * unit)
+                    .modifier(GlyphPop(trigger: reduceMotion ? false : actions.liked))
+                    .foregroundStyle(actions.liked ? Palette.accent : Palette.ink)
+                    .expandTapTarget()
+            }
+            .buttonStyle(.plain)
+            .sensoryFeedback(.impact(weight: .light), trigger: likeTaps)
+            .accessibilityLabel(Text("좋아요"))
+            .accessibilityAddTraits(actions.liked ? [.isSelected] : [])
+
+            Spacer(minLength: 0)
+            if actions.working {
+                ProgressView()
+                    .controlSize(.small)
+            }
+            Menu {
+                if let url = item.originalURL {
+                    Button {
+                        original = LegalLink(url: url)
+                    } label: {
+                        Label("원문에서 보기", systemImage: "arrow.up.right")
+                    }
+                }
+                Button {
+                    Task { await follow() }
+                } label: {
+                    Label("팔로우", systemImage: "person.badge.plus")
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 15 * unit, weight: .semibold))
+                    .foregroundStyle(Palette.secondary)
+                    .frame(width: 32 * unit, height: 22 * unit)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("더 보기"))
+        }
+    }
+
+    private func open() {
+        Task {
+            guard case .done(let note) = settle(await actions.localNote(), "다른 서버의 노트를 보려면 로그인하세요")
+            else { return }
+            openNoteRoute?(.note(id: note.id))
+        }
+    }
+
+    private func reply() {
+        Task {
+            guard case .done(let note) = settle(await actions.localNote(), "답글을 달려면 로그인하세요")
+            else { return }
+            replyTarget = note
+        }
+    }
+
+    private func like() async {
+        _ = settle(await actions.toggleLike(), "좋아요를 누르려면 로그인하세요")
+    }
+
+    private func follow() async {
+        guard case .done = settle(await actions.followAuthor(), "팔로우하려면 로그인하세요"),
+              let account = actions.followed
+        else { return }
+        ToastCenter.shared.show(String(localized: account.following ? "팔로우했어요" : "팔로우를 요청했어요"))
+    }
+
+    private func settle(
+        _ outcome: TrendingNoteActions.Outcome, _ message: LocalizedStringKey
+    ) -> TrendingNoteActions.Outcome {
+        switch outcome {
+        case .done: break
+        case .signIn:
+            loginMessage = message
+            showLogin = true
+        case .failed(let text):
+            ToastCenter.shared.show(text)
+        }
+        return outcome
+    }
+}

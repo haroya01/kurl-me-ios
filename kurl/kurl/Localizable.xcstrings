@@ -641,6 +641,34 @@
         }
       }
     },
+    "%@ 외 %lld곳에서 인기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trending on %1$@ and %2$lld more"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ और %2$lld अन्य जगहों पर ट्रेंडिंग"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ ほか%2$lld件で人気"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thịnh hành trên %1$@ và %2$lld nơi khác"
+          }
+        }
+      }
+    },
     "%@ 전체를 차단할까요?": {
       "localizations": {
         "en": {
@@ -2100,6 +2128,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Xem trên %@"
+          }
+        }
+      }
+    },
+    "%@에서 인기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trending on %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ पर ट्रेंडिंग"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@で人気"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thịnh hành trên %@"
           }
         }
       }
@@ -7000,6 +7056,34 @@
         }
       }
     },
+    "다른 서버 노트를 가져오지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't bring the note over from its server"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दूसरे सर्वर से नोट नहीं मिल सका"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほかのサーバーのノートを取得できませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không lấy được ghi chú từ máy chủ khác"
+          }
+        }
+      }
+    },
     "다른 서버 사람 찾기는 로그인하면 돼요": {
       "localizations": {
         "en": {
@@ -7640,6 +7724,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chưa lưu, sắp lưu"
+          }
+        }
+      }
+    },
+    "받은 노트": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Received notes"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मिले हुए नोट"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "受け取ったノート"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ghi chú đã nhận"
           }
         }
       }
@@ -9044,6 +9156,34 @@
         }
       }
     },
+    "인기 글을 불러오지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't load trending posts"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ट्रेंडिंग पोस्ट लोड नहीं हो सकीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人気の投稿を読み込めませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không tải được bài thịnh hành"
+          }
+        }
+      }
+    },
     "일부 나라 제한": {
       "localizations": {
         "en": {
@@ -9436,6 +9576,34 @@
         }
       }
     },
+    "팔로우를 요청했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow requested"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ॉलो का अनुरोध भेजा"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォローをリクエストしました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã gửi yêu cầu theo dõi"
+          }
+        }
+      }
+    },
     "팔로우하면 읽을 수 있어요": {
       "localizations": {
         "en": {
@@ -9488,6 +9656,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chưa có ghi chú nào từ người bạn theo dõi"
+          }
+        }
+      }
+    },
+    "팔로우했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Followed"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ॉलो किया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォローしました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã theo dõi"
           }
         }
       }

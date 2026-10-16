@@ -77,6 +77,13 @@ struct RemoteResolveBody: Decodable {
     let note: Note?
 }
 
+struct HandleDraft: Equatable {
+    let user: String
+    let domain: String
+
+    func handle(on domain: String) -> String { "@\(user)@\(domain)" }
+}
+
 enum RemoteResolution: Equatable {
     case account(RemoteAccount)
     case note(Note)
@@ -100,6 +107,12 @@ enum FederationAPI {
         let query = raw.replacingOccurrences(of: "＠", with: "@").trimmingCharacters(in: .whitespacesAndNewlines)
         guard query.lowercased().hasPrefix("acct:") else { return query }
         return String(query.dropFirst(5)).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    static func handleDraft(_ text: String) -> HandleDraft? {
+        let draft = #/@?([A-Za-z0-9_][A-Za-z0-9_.\-]{0,63})@([A-Za-z0-9.\-]*)/#
+        guard let match = normalizedQuery(text).wholeMatch(of: draft) else { return nil }
+        return HandleDraft(user: String(match.1), domain: String(match.2).lowercased())
     }
 
     static func looksLikeHandle(_ text: String) -> Bool {

@@ -35,6 +35,79 @@ enum RemoteSearchHint {
     }
 }
 
+enum DomainCompletion: Equatable {
+    case loading(prefix: String)
+    case loaded(prefix: String, domains: [String])
+    case unavailable(prefix: String)
+
+    var prefix: String {
+        switch self {
+        case .loading(let prefix), .loaded(let prefix, _), .unavailable(let prefix): prefix
+        }
+    }
+
+    static func holdsResolve(_ draft: HandleDraft?, _ state: DomainCompletion?) -> Bool {
+        guard let draft else { return false }
+        guard let state, state.prefix == draft.domain else { return true }
+        switch state {
+        case .loading: return true
+        case .unavailable: return false
+        case .loaded(_, let domains): return !domains.isEmpty && !domains.contains(draft.domain)
+        }
+    }
+
+    static func rows(_ draft: HandleDraft?, _ state: DomainCompletion?, interim: [String] = []) -> [String] {
+        guard let draft, let state, state.prefix == draft.domain else { return [] }
+        let domains: [String]
+        switch state {
+        case .loaded(_, let found): domains = found
+        case .loading: domains = interim.filter { $0.hasPrefix(draft.domain) }
+        case .unavailable: return []
+        }
+        guard !domains.contains(draft.domain) else { return [] }
+        return domains.prefix(FederationAPI.domainLimit).map(draft.handle(on:))
+    }
+}
+
+struct DomainCompletionSlot: View {
+    let draft: HandleDraft
+    let handles: [String]
+    let pick: (String) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            RailHeading("다른 서버")
+                .padding(.top, 14)
+            ForEach(Array(handles.enumerated()), id: \.element) { index, handle in
+                let typed = draft.handle(on: draft.domain)
+                Button {
+                    pick(handle)
+                } label: {
+                    HStack(spacing: 0) {
+                        Text(verbatim: typed)
+                            .foregroundStyle(Palette.ink)
+                        Text(verbatim: String(handle.dropFirst(typed.count)))
+                            .foregroundStyle(Palette.secondary)
+                    }
+                    .typeScale(.body)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(RowButtonStyle())
+                .rowDivider(index > 0)
+                .accessibilityLabel(Text(verbatim: handle))
+                .accessibilityIdentifier("search.domain.\(index)")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, Metrics.gutter)
+        .padding(.bottom, 4)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("search.domains")
+    }
+}
+
 struct RemoteSearchHintLine: View {
     var body: some View {
         Text("다른 서버 사람은 @아이디@서버 주소로 찾을 수 있어요")
