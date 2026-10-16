@@ -59,7 +59,7 @@ enum Config {
         return .milliseconds(150)
     }()
 
-    /// `--auto-translate` — 글이 열리면 번역하기를 한 번 누른다(DEBUG 전용, simctl 은 터치를 못 넣는다).
+    /// `--auto-translate` — 글이 열리면 번역하기를, 노트가 보이면 번역 보기를 한 번 누른다(DEBUG 전용, simctl 은 터치를 못 넣는다).
     static let autoTranslate: Bool = {
         #if DEBUG
         return ProcessInfo.processInfo.arguments.contains("--auto-translate")

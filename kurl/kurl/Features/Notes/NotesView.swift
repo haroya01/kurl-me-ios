@@ -744,7 +744,7 @@ struct NoteRowView: View {
         if let source = translationSource {
             NoteTranslationLine(
                 noteId: note.id, source: source, phase: translations.phases[translationKey],
-                translate: translate, showOriginal: { translations.showOriginal(translationKey) })
+                translate: translate, showOriginal: showOriginal)
         }
     }
 
@@ -759,6 +759,11 @@ struct NoteRowView: View {
         translationRequest = request
     }
 
+    private func showOriginal() {
+        translationRequest = nil
+        translations.showOriginal(translationKey)
+    }
+
     private func probeTranslation() async {
         let text = NoteTranslation.requests(NoteTranslation.parts(note.body)).joined(separator: " ")
         let declared = note.language
@@ -769,6 +774,7 @@ struct NoteRowView: View {
         let available = if let source { await translations.isAvailable(from: source, to: TranslationGate.target()) } else { false }
         let next = available ? source : nil
         if translationSource != next { translationSource = next }
+        if Config.autoTranslate, next != nil, translations.phases[translationKey] == nil { translate() }
     }
 
     @ViewBuilder private var warningLine: some View {

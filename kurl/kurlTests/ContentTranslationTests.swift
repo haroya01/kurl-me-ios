@@ -331,6 +331,25 @@ final class ContentTranslationTests: XCTestCase {
         XCTAssertFalse(store.showCached(key))
     }
 
+    func testAStoppedTranslationCanStartAgain() async {
+        let store = ContentTranslations.shared
+        let key = "restart-\(UUID())"
+        let first = request(key, ["a", "b"])
+        store.begin(first)
+        await store.run(first, with: ScriptedTranslator(order: [0, 1]), isCurrent: {
+            store.showOriginal(key)
+            return true
+        })
+        XCTAssertNil(store.phases[key])
+        XCTAssertFalse(store.showCached(key))
+
+        let second = request(key, ["a", "b"])
+        store.begin(second)
+        XCTAssertEqual(store.progress(key), TranslationProgress(done: 0, total: 2), "멈춘 번역의 조각이 다시 시작한 번역에 남음")
+        await store.run(second, with: ScriptedTranslator(order: [1, 0]), isCurrent: { true })
+        XCTAssertEqual(store.shown(key), ["T(a)", "T(b)"], "원문 보기로 멈춘 뒤 다시 번역하면 끝나지 않음")
+    }
+
     func testTheMockTranslatorStreamsOnePieceAtATime() async throws {
         var seen: [Int] = []
         try await EchoTranslator(delay: .zero).translate(

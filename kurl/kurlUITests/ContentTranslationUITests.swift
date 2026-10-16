@@ -33,12 +33,11 @@ final class ContentTranslationUITests: XCTestCase {
         let translate = app.buttons["note.translate.9510"]
         XCTAssertTrue(translate.waitForExistence(timeout: 6), "외국어 노트에 번역 보기가 없음")
         translate.tap()
+        let translated = app.staticTexts.matching(NSPredicate(format: "label CONTAINS '영어에서 번역됨'")).firstMatch
+        XCTAssertTrue(translated.waitForExistence(timeout: 6), "어느 언어에서 번역됐는지 안 보임")
         let original = app.buttons["note.original.9510"]
-        XCTAssertTrue(original.waitForExistence(timeout: 6), "번역 뒤 원문 보기가 없음")
+        XCTAssertTrue(original.exists, "번역 뒤 원문 보기가 없음")
         XCTAssertTrue(body.label.contains("[ko] Hexagonal ports"), "본문이 번역문으로 바뀌지 않음: \(body.label)")
-        XCTAssertTrue(
-            app.staticTexts.matching(NSPredicate(format: "label CONTAINS '영어에서 번역됨'")).firstMatch.exists,
-            "어느 언어에서 번역됐는지 안 보임")
         shot("note-translated")
 
         original.tap()
@@ -46,7 +45,30 @@ final class ContentTranslationUITests: XCTestCase {
         XCTAssertFalse(body.label.contains("[ko]"), "원문 보기를 눌렀는데 번역문이 남음")
 
         translate.tap()
-        XCTAssertTrue(original.waitForExistence(timeout: 1), "한 번 번역한 노트를 다시 번역하는 데 시간이 걸린다(기억 안 됨)")
+        XCTAssertTrue(translated.waitForExistence(timeout: 1), "한 번 번역한 노트를 다시 번역하는 데 시간이 걸린다(기억 안 됨)")
+    }
+
+    func testANoteTranslationStopsOnShowOriginal() throws {
+        let app = launch(["--mocks", "--tab", "notes", "--translation-delay", "3000"])
+        let body = app.buttons["note.body.9510"]
+        for _ in 0..<6 where !(body.exists && body.isHittable) { app.swipeUp(velocity: .slow) }
+        XCTAssertTrue(body.waitForExistence(timeout: 12), "영어 노트(9510)가 피드에 없음")
+        let translate = app.buttons["note.translate.9510"]
+        XCTAssertTrue(translate.waitForExistence(timeout: 6), "외국어 노트에 번역 보기가 없음")
+        translate.tap()
+
+        XCTAssertTrue(
+            app.staticTexts.matching(NSPredicate(format: "label CONTAINS '번역하는 중'")).firstMatch.waitForExistence(timeout: 2),
+            "번역하는 동안 진행이 안 보임")
+        let original = app.buttons["note.original.9510"]
+        XCTAssertTrue(original.exists, "번역하는 동안 원문 보기가 없음")
+        shot("note-translating")
+
+        original.tap()
+        XCTAssertTrue(translate.waitForExistence(timeout: 4), "원문 보기 뒤 번역 보기로 돌아오지 않음")
+        sleep(4)
+        XCTAssertFalse(body.label.contains("[ko]"), "원문 보기 뒤에도 번역이 이어짐")
+        XCTAssertTrue(translate.exists, "멈춘 번역이 끝난 것처럼 보임")
     }
 
     func testAFailedTranslationSaysSoAndKeepsTheOriginal() throws {
