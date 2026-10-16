@@ -665,3 +665,37 @@ final class RemoteNoteShapeTests: XCTestCase {
         XCTAssertEqual(poll(expiresAt: now.addingTimeInterval(3 * 86_400 + 60), expired: false).timeLeft(now: now), .days(3))
     }
 }
+
+@MainActor
+final class RemoteSearchHintTests: XCTestCase {
+
+    private func found() throws -> [RemoteAccount] {
+        let json = #"{"id":42,"acct":"haruto@misskey.io","username":"haruto","domain":"misskey.io","displayName":null,"avatarUrl":null,"url":"https://misskey.io/@haruto","following":false,"requested":false,"domainBlocked":false}"#
+        return [try JSONDecoder.blog.decode(RemoteAccount.self, from: Data(json.utf8))]
+    }
+
+    private func shows(_ place: RemoteSearchHint.Place, _ query: String, _ remote: [RemoteAccount]?, people: Int) -> Bool {
+        RemoteSearchHint.shows(in: place, query: query, remote: remote, localPeople: people)
+    }
+
+    func testPeopleTabShowsTheHintWhenTheOtherServersAnsweredEmptyForAName() throws {
+        XCTAssertTrue(shows(.peopleTab, "haru", [], people: 0))
+        XCTAssertTrue(shows(.peopleTab, "haru", [], people: 3))
+        XCTAssertFalse(shows(.peopleTab, "haru", try found(), people: 0))
+        XCTAssertFalse(shows(.peopleTab, "haru", nil, people: 3))
+        XCTAssertFalse(shows(.peopleTab, "@haru@misskey.io", [], people: 0))
+        XCTAssertFalse(shows(.peopleTab, "＠haru＠misskey.io", [], people: 0))
+        XCTAssertFalse(shows(.peopleTab, "https://misskey.io/@haru", [], people: 0))
+        XCTAssertFalse(shows(.peopleTab, "h", [], people: 0))
+    }
+
+    func testPostsTabShowsTheHintUnderThePeopleFoundHereOnly() throws {
+        XCTAssertTrue(shows(.postsPeopleRail, "haru", [], people: 2))
+        XCTAssertTrue(shows(.postsPeopleRail, "@haru", [], people: 1))
+        XCTAssertFalse(shows(.postsPeopleRail, "haru", [], people: 0))
+        XCTAssertFalse(shows(.postsPeopleRail, "haru", try found(), people: 2))
+        XCTAssertFalse(shows(.postsPeopleRail, "haru", nil, people: 2))
+        XCTAssertFalse(shows(.postsPeopleRail, "@haru@misskey.io", [], people: 2))
+        XCTAssertFalse(shows(.postsPeopleRail, "h", [], people: 2))
+    }
+}

@@ -85,7 +85,7 @@ struct PeopleResultsList: View {
                     } else {
                         FeedPlaceholder(title: "‘\(query)’ 결과가 없어요")
                             .padding(.top, 16)
-                        if model.remote != nil {
+                        if showsHint(localPeople: 0) {
                             RemotePeopleSection(accounts: remoteAccounts, divided: true)
                                 .padding(.top, 12)
                         }
@@ -100,7 +100,7 @@ struct PeopleResultsList: View {
                         KurlLoadingMark()
                             .frame(maxWidth: .infinity).padding(.vertical, 18)
                     }
-                    if model.remote != nil {
+                    if !(model.remote ?? []).isEmpty || showsHint(localPeople: people.count) {
                         RemotePeopleSection(accounts: remoteAccounts, divided: true)
                     }
                 default:
@@ -120,6 +120,10 @@ struct PeopleResultsList: View {
 
     private var remoteAccounts: Binding<[RemoteAccount]> {
         Binding(get: { model.remote ?? [] }, set: { model.remote = $0 })
+    }
+
+    private func showsHint(localPeople: Int) -> Bool {
+        RemoteSearchHint.shows(in: .peopleTab, query: query, remote: model.remote, localPeople: localPeople)
     }
 }
 
