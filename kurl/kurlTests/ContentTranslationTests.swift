@@ -361,4 +361,65 @@ final class ContentTranslationTests: XCTestCase {
         store.finish("ok", ["T"], expected: 1)
         XCTAssertEqual(store.shown("ok"), ["T"])
     }
+
+    // MARK: 잠긴 글
+
+    private func detail(locked: Bool) throws -> PublicPostDetail {
+        let lock = locked ? #","audience":"PASSWORD","locked":{"reason":"PASSWORD"}"# : #","audience":"PASSWORD""#
+        let body = locked ? "비밀번호가 걸린 글이에요" : "境界を先に引き、実装はその外側へ押し出す。"
+        let json = """
+            {"author":{"id":3,"username":"writer","bio":null,"avatarUrl":null},\
+            "post":{"id":42,"slug":"memo","title":"境界を先に引く","excerpt":null,"ogImageUrl":null,"languageTag":"ja",\
+            "tags":[],"likeCount":0,"publishedAt":"2026-10-16T01:00:00Z","lastEditedAt":null,"pinned":false\(lock)},\
+            "blocks":[{"type":"PARAGRAPH","content":"\(body)","blockOrder":0}],"series":null}
+            """
+        return try JSONDecoder.blog.decode(PublicPostDetail.self, from: Data(json.utf8))
+    }
+
+    func testALockedPostIsNotOfferedForTranslation() throws {
+        XCTAssertNil(PostTranslationOffer.sample(try detail(locked: true)), "잠긴 글의 서버 안내문으로 번역하기를 권함")
+        let open = try XCTUnwrap(PostTranslationOffer.sample(try detail(locked: false)))
+        XCTAssertTrue(open.hasPrefix("境界を先に引く\n"))
+    }
+
+    func testATranslationNeverShowsOverALockedPost() throws {
+        let open = try detail(locked: false)
+        let plan = PostTranslationPlan(title: open.post.title, blocks: open.blocks)
+        let texts: [String?] = fake(plan.texts)
+        let applied = try XCTUnwrap(plan.apply(partial: texts))
+        let translated = TranslatedDetail(
+            key: "post-42-ko", texts: texts, applied: applied,
+            detail: open.replacing(title: applied.title, blocks: applied.blocks))
+
+        XCTAssertNotNil(translated.shown(over: open, key: "post-42-ko", phase: .shown))
+        XCTAssertNotNil(translated.shown(over: open, key: "post-42-ko", phase: .translating))
+        XCTAssertNil(translated.shown(over: try detail(locked: true), key: "post-42-ko", phase: .shown), "잠긴 글 위에 잠기기 전 번역문을 보임")
+        XCTAssertNil(translated.shown(over: open, key: "post-42-ko", phase: nil))
+        XCTAssertNil(translated.shown(over: open, key: "post-42-en", phase: .shown))
+    }
+
+    func testLockingForgetsTheTranslationQuietly() async {
+        let store = ContentTranslations.shared
+        let running = "lock-running-\(UUID())"
+        let req = request(running, ["a", "b", "c", "d"])
+        ToastCenter.shared.show("sentinel")
+        store.begin(req)
+        var delivered = 0
+        await store.run(req, with: ScriptedTranslator(order: [0, 1, 2, 3]), isCurrent: {
+            delivered += 1
+            if delivered == 2 { store.forget(running) }
+            return true
+        })
+        XCTAssertNil(store.phases[running], "잠긴 뒤에도 번역이 이어짐")
+        XCTAssertNil(store.partial(running))
+        XCTAssertFalse(store.showCached(running), "잠기는 사이 끝난 번역을 기억함")
+        XCTAssertEqual(ToastCenter.shared.message, "sentinel", "잠겨서 멈춘 번역을 실패라고 알림")
+
+        let done = "lock-done-\(UUID())"
+        store.begin(request(done, ["a"]))
+        store.finish(done, ["T"], expected: 1)
+        store.forget(done)
+        XCTAssertNil(store.phases[done])
+        XCTAssertFalse(store.showCached(done), "잠긴 글의 번역을 다시 열면 그대로 보임")
+    }
 }

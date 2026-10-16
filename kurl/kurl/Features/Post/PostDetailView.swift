@@ -249,7 +249,7 @@ private struct PostDetailReader: View {
                     .padding(.top, 24)
             case .loaded(let detail):
                 let key = translationKey(detail)
-                let translated = translations.phases[key] == nil ? nil : translatedDetail.flatMap { $0.key == key ? $0 : nil }
+                let translated = translatedDetail?.shown(over: detail, key: key, phase: translations.phases[key])
                 // 커버 헤더 없음 — 제목이 항상 맨 위(커버·무커버 글 제목 위치 일관).
                 // 커버 이미지가 의미 있으면 작가가 본문에 넣고, 발견 카드엔 그대로 남는다.
                 LazyVStack(alignment: .leading, spacing: 0) {
@@ -265,7 +265,7 @@ private struct PostDetailReader: View {
                 // 본문 문단이 선택→하이라이트 + 공개 하이라이트 페인트를 띄울 수 있게. 번역문으로 바뀐
                 // 문단은 블록마다 하이라이트를 끈다(BlockView.translated).
                 .environment(\.postHighlightStore, highlights)
-                .task(id: detail.post.id) { await probeTranslation(detail) }
+                .task(id: "\(detail.post.id)-\(detail.post.locked == nil)") { await probeTranslation(detail) }
                 .translationRunner($translationRequest)
                 .onChange(of: translations.partial(key)) { refreshTranslation(detail, key: key) }
                 .onChange(of: translations.phases[key] == .shown, initial: true) { refreshTranslation(detail, key: key) }
@@ -1286,12 +1286,14 @@ private struct PostDetailReader: View {
     }
 
     private func probeTranslation(_ detail: PublicPostDetail) async {
-        guard detail.post.locked == nil else {
+        guard let sample = PostTranslationOffer.sample(detail) else {
             translationOffer = nil
+            translationRequest = nil
+            translationPlan = nil
+            translatedDetail = nil
+            translations.forget(translationKey(detail))
             return
         }
-        let sample = ([detail.post.title] + detail.blocks.lazy.filter { $0.kind == .paragraph }.prefix(4)
-            .map { PostTranslationPlan.plain($0.content ?? "") }).joined(separator: "\n")
         let declared = detail.post.languageTag
         let language = await Task.detached(priority: .utility) {
             TranslationGate.language(declared: declared, text: sample)
@@ -1311,7 +1313,7 @@ private struct PostDetailReader: View {
     }
 
     private func translate(_ detail: PublicPostDetail, to target: Locale.Language) {
-        guard let source = translationOffer?.source else { return }
+        guard detail.post.locked == nil, let source = translationOffer?.source else { return }
         translationTarget = target
         let key = translationKey(detail)
         if withAnimation(reduceMotion ? nil : .snappy(duration: 0.25), { translations.showCached(key) }) { return }
@@ -1672,7 +1674,7 @@ private struct PostDetailReader: View {
             .padding(.top, 14)
 
             // 읽는 시간 — 글 입구에서 "얼마나 걸릴지" 한 호흡(에디토리얼 마스트헤드 메타).
-            if readingMinutes != nil || translationOffer != nil {
+            if detail.post.locked == nil, readingMinutes != nil || translationOffer != nil {
                 metaLine(detail)
                     .padding(.top, 7)
             }
@@ -1988,13 +1990,6 @@ private final class ScrollProgress {
         guard bodyHeight > 1, containerH > 1, bodyMinY.isFinite else { return min(1, max(0, read)) }
         return min(1, max(0, (containerH - bodyMinY) / bodyHeight))
     }
-}
-
-private struct TranslatedDetail {
-    let key: String
-    let texts: [String?]
-    let applied: PostTranslationPlan.Applied
-    let detail: PublicPostDetail
 }
 
 /// 오른쪽 가장자리 읽기 스크러버 — 본문 실측 위치(초록 바와 동일)를 보여주고, 끌면 그

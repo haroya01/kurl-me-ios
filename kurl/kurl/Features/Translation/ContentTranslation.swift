@@ -68,6 +68,12 @@ struct PostTranslationOffer: Equatable {
     let direct: Locale.Language?
     let choices: [Choice]
 
+    static func sample(_ detail: PublicPostDetail) -> String? {
+        guard detail.post.locked == nil else { return nil }
+        return ([detail.post.title] + detail.blocks.lazy.filter { $0.kind == .paragraph }.prefix(4)
+            .map { PostTranslationPlan.plain($0.content ?? "") }).joined(separator: "\n")
+    }
+
     static func make(
         language: Locale.Language,
         preferred: [String] = Locale.preferredLanguages,
@@ -361,6 +367,17 @@ struct PostTranslationPlan {
     }
 }
 
+struct TranslatedDetail {
+    let key: String
+    let texts: [String?]
+    let applied: PostTranslationPlan.Applied
+    let detail: PublicPostDetail
+
+    func shown(over current: PublicPostDetail, key: String, phase: ContentTranslations.Phase?) -> TranslatedDetail? {
+        current.post.locked == nil && phase != nil && self.key == key ? self : nil
+    }
+}
+
 // MARK: 번역기 — 목 모드는 가짜(시뮬레이터·테스트엔 실제 번역 모델이 없다)
 
 protocol ContentTranslator {
@@ -495,6 +512,12 @@ final class ContentTranslations {
         partials[key] = nil
         phases[key] = nil
         announce(String(localized: "원문을 보여 줘요"))
+    }
+
+    func forget(_ key: String) {
+        partials[key] = nil
+        phases[key] = nil
+        results[key] = nil
     }
 
     func run(_ request: TranslationRequest, with translator: some ContentTranslator, isCurrent: () -> Bool) async {
