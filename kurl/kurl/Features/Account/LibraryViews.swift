@@ -8,6 +8,7 @@ import SwiftUI
 /// 북마크한 글 — 행 탭 = 글로. 북마크 = 오프라인 보장이라 목록을 볼 때마다 서버
 /// 목록과 기기 사본을 맞춘다(웹에서 북마크한 글도 여기서 기기로 따라온다).
 struct BookmarksView: View {
+    @Environment(\.tabBarVisibility) private var tabBarVisibility
     @State private var items: [BookmarkItem] = []
     @State private var loading = true
     @State private var failed = false
@@ -82,6 +83,7 @@ struct BookmarksView: View {
                 }
             }
         }
+        .safeAreaPadding(.bottom, tabBarVisibility == nil ? 0 : Metrics.tabBarReservedHeight)
         .navigationTitle("북마크")
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
@@ -137,6 +139,7 @@ private struct OfflineCopyProbe: Decodable {
 
 /// 좋아요한 글 — 피드와 같은 행 문법.
 struct LikedPostsView: View {
+    @Environment(\.tabBarVisibility) private var tabBarVisibility
     @State private var items: [FeedItem] = []
     @State private var loading = true
     @State private var failed = false
@@ -172,6 +175,7 @@ struct LikedPostsView: View {
                 }
             }
         }
+        .safeAreaPadding(.bottom, tabBarVisibility == nil ? 0 : Metrics.tabBarReservedHeight)
         .navigationTitle("좋아요한 글")
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
@@ -192,6 +196,7 @@ struct LikedPostsView: View {
 
 /// 구독한 시리즈 — 시리즈 행 문법(제목 · n편 · 마지막 발행).
 struct SubscribedSeriesView: View {
+    @Environment(\.tabBarVisibility) private var tabBarVisibility
     @State private var items: [PublicSeriesCard] = []
     @State private var loading = true
     @State private var failed = false
@@ -244,6 +249,7 @@ struct SubscribedSeriesView: View {
                 }
             }
         }
+        .safeAreaPadding(.bottom, tabBarVisibility == nil ? 0 : Metrics.tabBarReservedHeight)
         .navigationTitle("구독한 시리즈")
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
@@ -266,6 +272,7 @@ struct SubscribedSeriesView: View {
 /// 주제는 목록 행이 아니라 흐르는 칩 그리드로 — 태그는 본디 칩이라(§10 "칩처럼 보이면
 /// 칩처럼 눌린다") 한 줄 한 개보다 한눈에 훑긴다. 칩 탭 = 그 태그 피드, 길게 눌러 = 구독 해제.
 struct SubscribedTagsView: View {
+    @Environment(\.tabBarVisibility) private var tabBarVisibility
     @State private var tags: [String] = []
     @State private var loading = true
     @State private var failed = false
@@ -305,6 +312,7 @@ struct SubscribedTagsView: View {
                 .padding(.top, 12)
             }
         }
+        .safeAreaPadding(.bottom, tabBarVisibility == nil ? 0 : Metrics.tabBarReservedHeight)
         .navigationTitle("구독한 태그")
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }

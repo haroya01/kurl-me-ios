@@ -40,6 +40,7 @@ struct AuthorBlogView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.tabBarVisibility) private var tabBarVisibility
     /// "명함" 버튼 라벨 — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
     @ScaledMetric(relativeTo: .headline) private var cardLabelSize: CGFloat = 14
 
@@ -131,6 +132,7 @@ struct AuthorBlogView: View {
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
         .background(Palette.readingBg)
+        .safeAreaPadding(.bottom, tabBarVisibility == nil ? 0 : Metrics.tabBarReservedHeight)
         .overlay(alignment: .top) {
             if showNavTitle {
                 Color.clear
