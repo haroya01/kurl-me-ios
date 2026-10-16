@@ -9,6 +9,7 @@ import SwiftUI
 /// 헤더(글 제목)나 구절 행을 탭하면 원문으로. 검색으로 구절·글 제목을 좁힌다.
 /// 서재의 다른 면(북마크·좋아요·구독)과 같은 글 행 문법.
 struct MyHighlightsView: View {
+    @Environment(\.tabBarVisibility) private var tabBarVisibility
     @State private var items: [MyHighlightView] = []
     @State private var connectTarget: MyHighlightView?
     @State private var pendingDelete: MyHighlightView?
@@ -73,6 +74,7 @@ struct MyHighlightsView: View {
                 }
             }
         }
+        .safeAreaPadding(.bottom, tabBarVisibility == nil ? 0 : Metrics.tabBarReservedHeight)
         .navigationTitle("내 하이라이트")
         .navigationBarTitleDisplayMode(.inline)
         .searchable(

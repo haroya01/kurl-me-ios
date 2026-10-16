@@ -12,6 +12,7 @@ import WebKit
 struct BusinessCardView: View {
     let username: String
 
+    @Environment(\.tabBarVisibility) private var tabBarVisibility
     @State private var isLoading = true
     @State private var failed = false
     /// 재시도 세대 — 다시 시도할 때마다 +1 해 웹뷰가 같은 URL 을 처음부터 다시 받게 한다.
@@ -25,7 +26,10 @@ struct BusinessCardView: View {
     var body: some View {
         Group {
             if let url {
-                InlineWebView(url: url, attempt: attempt, isLoading: $isLoading, failed: $failed)
+                InlineWebView(
+                    url: url, attempt: attempt,
+                    bottomInset: tabBarVisibility == nil ? 0 : Metrics.tabBarReservedHeight,
+                    isLoading: $isLoading, failed: $failed)
                     .opacity(failed ? 0 : 1)
                     .overlay {
                         if isLoading, !failed {
@@ -77,6 +81,7 @@ private struct InlineWebView: UIViewRepresentable {
     let url: URL
     /// 재시도 세대 — 값이 바뀌면 웹뷰를 처음부터 다시 로드한다(부모의 "다시 시도" 버튼이 올린다).
     let attempt: Int
+    let bottomInset: CGFloat
     @Binding var isLoading: Bool
     @Binding var failed: Bool
 
@@ -94,11 +99,19 @@ private struct InlineWebView: UIViewRepresentable {
         webView.isOpaque = false
         webView.backgroundColor = UIColor(Palette.pageBg)
         webView.scrollView.backgroundColor = UIColor(Palette.pageBg)
+        applyBottomInset(webView.scrollView)
         context.coordinator.beginLoad(webView, url: url, timeout: Self.loadTimeout)
         return webView
     }
 
+    private func applyBottomInset(_ scrollView: UIScrollView) {
+        guard scrollView.contentInset.bottom != bottomInset else { return }
+        scrollView.contentInset.bottom = bottomInset
+        scrollView.verticalScrollIndicatorInsets.bottom = bottomInset
+    }
+
     func updateUIView(_ webView: WKWebView, context: Context) {
+        applyBottomInset(webView.scrollView)
         // 재시도 — attempt 가 오르면(실패 후 "다시 시도") 같은 URL 을 처음부터 다시 받는다.
         if attempt != context.coordinator.loadedAttempt, isLoading, !failed {
             context.coordinator.loadedAttempt = attempt

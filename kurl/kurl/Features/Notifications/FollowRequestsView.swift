@@ -61,6 +61,7 @@ final class FollowRequestStore {
 
 struct FollowRequestsView: View {
     @State private var store = FollowRequestStore.shared
+    @Environment(\.tabBarVisibility) private var tabBarVisibility
 
     var body: some View {
         ReadingColumn(spacing: 0) {
@@ -85,6 +86,7 @@ struct FollowRequestsView: View {
                 }
             }
         }
+        .safeAreaPadding(.bottom, tabBarVisibility == nil ? 0 : Metrics.tabBarReservedHeight)
         .navigationTitle("팔로우 요청")
         .navigationBarTitleDisplayMode(.inline)
         .sensoryFeedback(.success, trigger: store.approvedCount)

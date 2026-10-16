@@ -78,6 +78,7 @@ struct NoteListsView: View {
         }
         .navigationTitle("리스트")
         .navigationBarTitleDisplayMode(.inline)
+        .hidesTabBar()
         .navigationDestination(for: NoteListSummary.self) { list in
             NoteListMembersView(list: list)
         }
@@ -139,6 +140,7 @@ struct NoteListMembersView: View {
         }
         .navigationTitle(list.title)
         .navigationBarTitleDisplayMode(.inline)
+        .hidesTabBar()
         .task { members = (try? await NoteAPI.listMembers(id: list.id)) ?? [] }
     }
 

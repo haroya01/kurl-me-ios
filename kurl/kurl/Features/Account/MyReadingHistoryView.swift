@@ -8,6 +8,7 @@ import SwiftUI
 /// 읽기 기록 — 내가 읽은 글을 최신순으로. 행 탭 = 그 글로(아바타는 작가로).
 /// 사적 기록이라 본인만 본다(서재의 다른 면과 같은 글 행 문법, 무한 스크롤). 삭제는 없다 — 기록은 지우지 않는다.
 struct MyReadingHistoryView: View {
+    @Environment(\.tabBarVisibility) private var tabBarVisibility
     @State private var items: [ReadingHistoryEntry] = []
     @State private var page = 0
     @State private var hasNext = false
@@ -50,6 +51,7 @@ struct MyReadingHistoryView: View {
                 }
             }
         }
+        .safeAreaPadding(.bottom, tabBarVisibility == nil ? 0 : Metrics.tabBarReservedHeight)
         .navigationTitle("읽기 기록")
         .navigationBarTitleDisplayMode(.inline)
         .task { await reload() }

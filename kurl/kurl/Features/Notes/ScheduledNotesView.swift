@@ -181,6 +181,7 @@ struct ScheduledNotesView: View {
         }
         .navigationTitle("예약한 노트")
         .navigationBarTitleDisplayMode(.inline)
+        .hidesTabBar()
         .sheet(item: $moving) { note in
             NoteScheduleSheet(initial: note.scheduledAt) { picked in
                 if let picked {
