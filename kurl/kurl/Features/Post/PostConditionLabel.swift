@@ -9,7 +9,14 @@ enum PostConditionLabel {
     static func text(
         for post: PostListItem, isOwner: Bool, countryName: (String) -> String = Countries.name(for:)
     ) -> String? {
-        guard post.locked == nil else { return nil }
+        let parts = parts(for: post, isOwner: isOwner, countryName: countryName)
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
+    static func parts(
+        for post: PostListItem, isOwner: Bool, countryName: (String) -> String = Countries.name(for:)
+    ) -> [String] {
+        guard post.locked == nil else { return [] }
         var parts: [String] = []
         switch post.audience ?? .everyone {
         case .everyone: break
@@ -26,6 +33,6 @@ enum PostConditionLabel {
         } else if post.regionRestricted == true {
             parts.append(String(localized: "일부 나라 제한"))
         }
-        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+        return parts
     }
 }

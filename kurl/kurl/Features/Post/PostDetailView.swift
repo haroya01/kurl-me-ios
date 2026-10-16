@@ -1323,7 +1323,7 @@ private struct PostDetailReader: View {
     @ViewBuilder
     private func content(_ detail: PublicPostDetail) -> some View {
         if let lock = detail.post.locked {
-            header(detail)
+            AnyView(header(detail))
             LockedPostGate(reason: lock.reason, author: detail.author, model: model)
             Color.clear.frame(height: 78 + pushedTabBarBottomInset)
         } else {
@@ -1333,7 +1333,7 @@ private struct PostDetailReader: View {
 
     @ViewBuilder
     private func readableContent(_ detail: PublicPostDetail) -> some View {
-        header(detail)
+        AnyView(header(detail))
         if model.isOfflineCopy {
             // 기기 사본 렌더 중 — 조용한 한 줄. 댓글·좋아요가 비어 있는 이유까지 여기서 설명된다.
             HStack(spacing: 6) {
@@ -1596,7 +1596,8 @@ private struct PostDetailReader: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
 
-            let condition = PostConditionLabel.text(for: detail.post, isOwner: isOwnPost)
+            let conditions = PostConditionLabel.parts(for: detail.post, isOwner: isOwnPost)
+            let condition = conditions.isEmpty ? nil : conditions.joined(separator: " · ")
             NavigationLink(value: Route.author(username: detail.author.username)) {
                 Group {
                     if dynamicTypeSize.isAccessibilitySize {
@@ -1609,8 +1610,8 @@ private struct PostDetailReader: View {
                                     .typeScale(.meta)
                                     .foregroundStyle(Palette.secondary)
                             }
-                            if let condition {
-                                conditionText(condition)
+                            ForEach(conditions, id: \.self) { part in
+                                conditionText(part)
                             }
                         }
                     } else {
@@ -1619,8 +1620,16 @@ private struct PostDetailReader: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 bylineRow(detail, condition: nil)
                                 if let condition {
-                                    conditionText(condition)
-                                        .padding(.leading, 37)
+                                    ViewThatFits(in: .horizontal) {
+                                        conditionText(condition)
+                                            .lineLimit(1)
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            ForEach(conditions, id: \.self) { part in
+                                                conditionText(part)
+                                            }
+                                        }
+                                    }
+                                    .padding(.leading, 37)
                                 }
                             }
                         }
