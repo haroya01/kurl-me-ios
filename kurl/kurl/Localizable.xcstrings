@@ -680,7 +680,7 @@
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ में प्रतिबंधित"
+            "value": "%@ में सीमित"
           }
         },
         "ja": {
@@ -8019,7 +8019,7 @@
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "पासवर्ड से सुरक्षित"
+            "value": "पासवर्ड वाली पोस्ट"
           }
         },
         "ja": {
@@ -9055,7 +9055,7 @@
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "कुछ देशों में प्रतिबंधित"
+            "value": "कुछ देशों में सीमित"
           }
         },
         "ja": {
@@ -9503,7 +9503,7 @@
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "केवल फ़ॉलोअर के लिए"
+            "value": "केवल फ़ॉलोअर"
           }
         },
         "ja": {

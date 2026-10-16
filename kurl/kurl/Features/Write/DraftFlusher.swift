@@ -37,6 +37,7 @@ final class DraftFlusher {
         var tags: [String]
         var savedSeriesId: Int64?
         var seriesId: Int64?
+        var access: PostAccessDraft.Patch?
         /// 편집 화면의 버전 게이트 — 화면에서 가던 쓰기 뒤에 줄 서고, 그 쓰기가 받은 버전을 base 로 쓴다.
         var gate = PostVersionGate()
     }
@@ -119,6 +120,10 @@ final class DraftFlusher {
             gate: p.gate)
         if p.seriesId != p.savedSeriesId {
             try await WriteAPI.assign(postId: id, from: p.savedSeriesId, to: p.seriesId)
+        }
+        if let access = p.access {
+            try await WriteAPI.updateAccess(
+                postId: id, audience: access.audience, password: access.password, blockedCountries: access.countries)
         }
     }
 }
