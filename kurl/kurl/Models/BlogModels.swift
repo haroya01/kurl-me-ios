@@ -207,6 +207,8 @@ struct PostAccessMarks: Hashable {
     }
 
     var showsRegionMark: Bool { regionRestricted || locked?.reason == .region }
+
+    var isMarked: Bool { audienceMark != nil || showsRegionMark }
 }
 
 struct PublicPostListView: Decodable {

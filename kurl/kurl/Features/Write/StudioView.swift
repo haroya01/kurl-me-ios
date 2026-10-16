@@ -455,6 +455,7 @@ struct StudioView: View {
             if let date = post.publishedAt ?? post.scheduledAt ?? post.updatedAt {
                 Text(date.relativeShort).foregroundStyle(Palette.secondary)
             }
+            AccessMarks(marks: post.access)
         }
         .typeScale(.meta)
     }
