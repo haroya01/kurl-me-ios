@@ -180,6 +180,23 @@ final class FederationSearchTests: XCTestCase {
         XCTAssertNil(FederationAPI.queryDomain("@alice"))
         XCTAssertNil(FederationAPI.queryDomain("https://mastodon.social/@mina and more"))
     }
+
+    func testFullWidthAtAndAcctPrefixReadAsAHandle() async throws {
+        XCTAssertTrue(FederationAPI.looksLikeHandle("＠alice＠mastodon.social"))
+        XCTAssertTrue(FederationAPI.looksLikeHandle("acct:alice@mastodon.social"))
+        XCTAssertEqual(FederationAPI.queryDomain("alice＠Mastodon.Social"), "mastodon.social")
+        XCTAssertEqual(FederationAPI.queryDomain(" ACCT:alice@misskey.io "), "misskey.io")
+        XCTAssertEqual(FederationAPI.remoteSearchQuery("＠ali"), "ali")
+        XCTAssertNil(FederationAPI.queryDomain("＠alice"))
+
+        serve(["/federation/resolve": .json(200, #"{"account":\#(Self.alice),"note":null}"#)])
+        let result = await FederationAPI.resolve("＠alice＠mastodon.social")
+
+        guard case .account(let account) = result else { return XCTFail("\(result)") }
+        XCTAssertEqual(account.id, 42)
+        let request = try XCTUnwrap(ScriptedFederation.requests.first)
+        XCTAssertEqual(request.url?.query(percentEncoded: false), "q=@alice@mastodon.social")
+    }
 }
 
 @MainActor
