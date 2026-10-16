@@ -12,7 +12,7 @@ import WebKit
 struct BusinessCardView: View {
     let username: String
 
-    @Environment(\.tabBarVisibility) private var tabBarVisibility
+    @Environment(\.tabBarReservedInset) private var tabBarInset
     @State private var isLoading = true
     @State private var failed = false
     /// 재시도 세대 — 다시 시도할 때마다 +1 해 웹뷰가 같은 URL 을 처음부터 다시 받게 한다.
@@ -28,7 +28,7 @@ struct BusinessCardView: View {
             if let url {
                 InlineWebView(
                     url: url, attempt: attempt,
-                    bottomInset: tabBarVisibility == nil ? 0 : Metrics.tabBarReservedHeight,
+                    bottomInset: tabBarInset,
                     isLoading: $isLoading, failed: $failed)
                     .opacity(failed ? 0 : 1)
                     .overlay {

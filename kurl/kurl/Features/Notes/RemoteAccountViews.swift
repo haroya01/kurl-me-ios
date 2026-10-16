@@ -110,7 +110,6 @@ struct RemoteAccountRow: View {
 /// 다른 서버 계정 — 검색에서 @아이디@서버로 찾아 들어온다.
 struct RemoteAccountView: View {
     let accountId: Int64
-    @Environment(\.tabBarVisibility) private var tabBarVisibility
     @State private var account: RemoteAccount?
     @State private var failed = false
     @State private var needsSignIn = false
@@ -173,7 +172,7 @@ struct RemoteAccountView: View {
             await load()
             await notes.reload()
         }
-        .safeAreaPadding(.bottom, tabBarVisibility == nil ? 0 : Metrics.tabBarReservedHeight)
+        .reservesTabBarSpace()
         .navigationTitle(account.map { "@\($0.acct)" } ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

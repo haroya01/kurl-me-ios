@@ -112,6 +112,18 @@ extension EnvironmentValues {
         get { self[TabBarVisibilityKey.self] }
         set { self[TabBarVisibilityKey.self] = newValue }
     }
+
+    var tabBarReservedInset: CGFloat {
+        tabBarVisibility == nil ? 0 : Metrics.tabBarReservedHeight
+    }
+}
+
+private struct ReservesTabBarSpace: ViewModifier {
+    @Environment(\.tabBarReservedInset) private var inset
+
+    func body(content: Content) -> some View {
+        content.safeAreaPadding(.bottom, inset)
+    }
 }
 
 /// 스크롤 표면에 붙여 세로 오프셋을 공유 상태로 흘려보낸다 — 바 축소의 눈.
@@ -152,6 +164,10 @@ extension View {
     /// 등장/퇴장으로 제 토큰을 집합에 넣고 빼, 하위 푸시가 겹쳐도 스택을 완전히 벗어날 때만 바가 돌아온다.
     func hidesTabBar(_ active: Bool = true) -> some View {
         modifier(HidesTabBar(active: active))
+    }
+
+    func reservesTabBarSpace() -> some View {
+        modifier(ReservesTabBarSpace())
     }
 }
 
