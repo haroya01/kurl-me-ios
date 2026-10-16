@@ -2341,6 +2341,34 @@
         }
       }
     },
+    "%lld개국": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld countries"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld देश"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lldか国・地域"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld quốc gia"
+          }
+        }
+      }
+    },
     "%lld명": {
       "localizations": {
         "en": {
@@ -3934,6 +3962,41 @@
         }
       }
     },
+    "audience.everyone": {
+      "extractionState": "manual",
+      "localizations": {
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "전체"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Everyone"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全体公開"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mọi người"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सभी के लिए"
+          }
+        }
+      }
+    },
     "blog.kurl.me/@ 주소에 쓰여요. 나중에 바꿀 수 있어요.": {
       "localizations": {
         "en": {
@@ -5484,6 +5547,34 @@
         }
       }
     },
+    "고른 국가": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selected"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "चुने गए देश"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選んだ国・地域"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã chọn"
+          }
+        }
+      }
+    },
     "고유 방문": {
       "localizations": {
         "en": {
@@ -6645,6 +6736,62 @@
         }
       }
     },
+    "국가 검색": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search countries"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "देश खोजें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "国・地域を検索"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tìm quốc gia"
+          }
+        }
+      }
+    },
+    "국가 제한": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Country restriction"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "देश प्रतिबंध"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "国・地域の制限"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Giới hạn quốc gia"
+          }
+        }
+      }
+    },
     "그 서버에 묻는 중…": {
       "localizations": {
         "en": {
@@ -6737,6 +6884,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld người bạn theo dõi đang theo dõi"
+          }
+        }
+      }
+    },
+    "너무 많이 시도했어요. 잠시 뒤에 다시 해 주세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Too many tries. Try again in a little while"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बहुत बार कोशिश हो गई। थोड़ी देर बाद फिर कोशिश करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "試した回数が多すぎます。しばらくしてからもう一度お試しください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn đã thử quá nhiều lần. Hãy thử lại sau ít phút"
           }
         }
       }
@@ -7189,6 +7364,118 @@
         }
       }
     },
+    "링크 바꾸기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Change link"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लिंक बदलें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンクを変更"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đổi liên kết"
+          }
+        }
+      }
+    },
+    "링크를 바꾸지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't change the link"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लिंक नहीं बदल सका"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンクを変更できませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không đổi được liên kết"
+          }
+        }
+      }
+    },
+    "링크를 바꿀까요?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Change the link?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लिंक बदलें?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンクを変更しますか?"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đổi liên kết?"
+          }
+        }
+      }
+    },
+    "링크만": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Link only"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "केवल लिंक वाले"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンクのみ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chỉ người có liên kết"
+          }
+        }
+      }
+    },
     "마감 없음": {
       "localizations": {
         "en": {
@@ -7241,6 +7528,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chỉnh sửa kiểm duyệt chỉ đổi tiêu đề và thẻ. Nội dung và URL vẫn của tác giả."
+          }
+        }
+      }
+    },
+    "목록과 검색에 안 떠요. 링크를 받은 사람은 다시 퍼뜨릴 수 있어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It won't show up in lists or search. Anyone who gets the link can pass it on"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह सूचियों और खोज में नहीं दिखेगी। लिंक पाने वाले इसे आगे भेज सकते हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一覧や検索には出ません。リンクを受け取った人はさらに広められます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không xuất hiện trong danh sách hay tìm kiếm. Ai nhận được liên kết đều có thể chia sẻ tiếp"
           }
         }
       }
@@ -7469,6 +7784,34 @@
         }
       }
     },
+    "복사함": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copied"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कॉपी हो गया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コピーしました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã sao chép"
+          }
+        }
+      }
+    },
     "본문 쓰기": {
       "localizations": {
         "en": {
@@ -7581,6 +7924,174 @@
         }
       }
     },
+    "비밀번호": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Password"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पासवर्ड"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パスワード"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mật khẩu"
+          }
+        }
+      }
+    },
+    "비밀번호가 걸린 글이에요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This post is password-protected"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह पोस्ट पासवर्ड से सुरक्षित है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パスワードで保護された記事です"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bài viết này được bảo vệ bằng mật khẩu"
+          }
+        }
+      }
+    },
+    "비밀번호가 맞지 않아요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That password isn't right"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पासवर्ड सही नहीं है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パスワードが違います"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mật khẩu không đúng"
+          }
+        }
+      }
+    },
+    "비밀번호는 4자 이상으로 정해 주세요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use at least 4 characters for the password."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पासवर्ड कम से कम 4 अक्षर का रखें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パスワードは4文字以上にしてください。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mật khẩu cần ít nhất 4 ký tự."
+          }
+        }
+      }
+    },
+    "비밀번호를 정하면 발행할 수 있어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set a password to publish."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "प्रकाशित करने के लिए पासवर्ड सेट करें।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パスワードを決めると公開できます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đặt mật khẩu để đăng bài."
+          }
+        }
+      }
+    },
+    "비워 두면 지금 비밀번호를 그대로 써요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leave it empty to keep the current password"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "खाली छोड़ें तो मौजूदा पासवर्ड ही रहेगा"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "空のままなら今のパスワードをそのまま使います"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Để trống để giữ mật khẩu hiện tại"
+          }
+        }
+      }
+    },
     "사진이 너무 커서 올리지 못했어요. 한 장에 %lldMB까지 올릴 수 있어요": {
       "localizations": {
         "en": {
@@ -7605,6 +8116,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ảnh quá lớn nên không tải lên được. Mỗi ảnh tối đa %lldMB"
+          }
+        }
+      }
+    },
+    "새 비밀번호": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New password"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नया पासवर्ड"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しいパスワード"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mật khẩu mới"
           }
         }
       }
@@ -7913,6 +8452,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chưa có ảnh nào"
+          }
+        }
+      }
+    },
+    "없음": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "None"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कोई नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "なし"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không có"
           }
         }
       }
@@ -8253,6 +8820,62 @@
         }
       }
     },
+    "이 나라에서는 볼 수 없는 글이에요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This post isn't available in your country"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह पोस्ट आपके देश में उपलब्ध नहीं है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この国・地域では読めない記事です"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bài viết này không xem được ở quốc gia của bạn"
+          }
+        }
+      }
+    },
+    "이 나라에서는 제목만 보여요. VPN을 쓰면 막지 못해요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Readers in these countries see only the title. A VPN gets around this."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इन देशों में सिर्फ़ शीर्षक दिखेगा। VPN से इसे रोका नहीं जा सकता।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "これらの国・地域ではタイトルだけが表示されます。VPNを使われると防げません。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ở các quốc gia này, người đọc chỉ thấy tiêu đề. Dùng VPN thì không chặn được."
+          }
+        }
+      }
+    },
     "이 문장이 담긴 컬렉션": {
       "localizations": {
         "en": {
@@ -8421,6 +9044,34 @@
         }
       }
     },
+    "제목은 모두에게 보여요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The title is visible to everyone"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "शीर्षक सबको दिखता है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "タイトルは誰でも見られます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tiêu đề hiển thị với mọi người"
+          }
+        }
+      }
+    },
     "좋아요한 글이 없어요": {
       "localizations": {
         "en": {
@@ -8445,6 +9096,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Không có bài đã thích"
+          }
+        }
+      }
+    },
+    "지금 링크로는 더 열 수 없어요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The current link will stop working."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मौजूदा लिंक से यह अब नहीं खुलेगी।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今のリンクでは開けなくなります。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Liên kết hiện tại sẽ không mở được nữa."
           }
         }
       }
@@ -8641,6 +9320,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chạm vào thẻ để đặt làm chính"
+          }
+        }
+      }
+    },
+    "팔로우하면 읽을 수 있어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Follow to read this post"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "यह पोस्ट पढ़ने के लिए फ़ॉलो करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォローすると読めます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Theo dõi để đọc bài viết này"
           }
         }
       }

@@ -1291,6 +1291,7 @@ struct QuotedPostCard: View {
                     .lineLimit(1)
                 Text("· 블로그 글")
                     .foregroundStyle(Palette.secondary)
+                AccessMarks(marks: post.access)
             }
             .typeScale(.meta)
             Text(post.title)

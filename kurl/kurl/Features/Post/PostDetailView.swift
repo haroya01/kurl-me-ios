@@ -182,6 +182,7 @@ private struct PostDetailReader: View {
     /// 임베드(덱)는 만들지 않아 종전 렌더 그대로다.
     @State private var highlights: PostHighlightStore?
     @State private var translations = ContentTranslations.shared
+    @State private var access = PostAccess.shared
     @State private var translationOffer: PostTranslationOffer?
     @State private var translationTarget: Locale.Language?
     @State private var translationRequest: TranslationRequest?
@@ -304,7 +305,8 @@ private struct PostDetailReader: View {
         // 오른쪽 읽기 스크러버 — 시스템 인디케이터(전체 콘텐츠 기준·제어 불가) 대신 앱 소유.
         // 초록 바와 같은 본문 실측 위치를 보여주고, 끌면 본문의 그 지점(블록)으로 점프한다.
         .overlay(alignment: .trailing) {
-            if !embedded, scrollable, case .loaded(let detail) = model.phase, detail.blocks.count > 3 {
+            if !embedded, scrollable, case .loaded(let detail) = model.phase, detail.post.locked == nil,
+               detail.blocks.count > 3 {
                 ReadingScrubber(progress: scrollProgress) { fraction in
                     let blocks = detail.blocks
                     let idx = min(blocks.count - 1, max(0, Int(fraction * CGFloat(blocks.count - 1))))
@@ -341,7 +343,7 @@ private struct PostDetailReader: View {
         }
         // 목차·읽는 시간 재계산 — 오프라인 사본 → 온라인 갱신은 글 id 가 그대로라
         // (isOfflineCopy 만 바뀐다) 두 트리거를 함께 둔다.
-        .onChange(of: loadedPostId) { refreshDerivedContent() }
+        .onChange(of: readablePostId) { refreshDerivedContent() }
         .onChange(of: model.isOfflineCopy) { refreshDerivedContent() }
         // 키보드 위에 붙는 유리 댓글 바 — safeAreaInset 이 키보드를 따라 위치를 보장한다.
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -501,7 +503,7 @@ private struct PostDetailReader: View {
             // 컴포저가 깨어나는 즉시 물러난다 — keyboardUp(키보드 알림)은 한 박자 늦어 잠깐 겹쳤다.
             // 숨김은 opacity 로만 — hierarchy 에서 빼면 독의 @State 모델이 새로 만들어져
             // 숨김↔표시 사이클마다 hydrate GET 2건이 재발사되고 좋아요가 잠깐 꺼져 깜빡였다.
-            if case .loaded(let detail) = model.phase {
+            if case .loaded(let detail) = model.phase, detail.post.locked == nil {
                 let readingDown = !embedded && !voiceOverOn && readingDirection.scrollHidden
                 let dockHidden = keyboardUp || composerActive || readingDown || (endVisible && scrollable && !voiceOverOn)
                 // 목차를 상단 크롬에서 내려 독 바로 위에 얹는다 — 항해 보조와 인게이지를 한 손
@@ -553,7 +555,7 @@ private struct PostDetailReader: View {
             if !embedded { readerTopBar }
         }
         .overlay(alignment: .top) {
-            if scrollable, embedded || showNavTitle {
+            if scrollable, !isLocked, embedded || showNavTitle {
                 ReadProgressBar(progress: scrollProgress)
                     // 단독: 크롬이 떠 있으면 상단 바 아래 테두리 바로 밑(바 높이를 채우는 유리 원판을 덮지 않게),
                     // 접히면 상태바 바탕 아래 테두리 안쪽.
@@ -564,6 +566,10 @@ private struct PostDetailReader: View {
         }
         // 완독 = 결과 햅틱 한 번(.success). trigger 닫힘(되돌아감)엔 울리지 않게 완료에만.
         .sensoryFeedback(trigger: readComplete) { _, done in done ? .success : nil }
+        .sensoryFeedback(.success, trigger: model.unlockedCount)
+        .onChange(of: access.lockouts[PostAccess.address(username: model.username, slug: model.slug)]) {
+            Task { await model.reloadAfterLockout() }
+        }
         .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: endVisible)
         .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: keyboardUp)
         .task {
@@ -573,20 +579,20 @@ private struct PostDetailReader: View {
         }
         // 완독 = 읽음. 긴 글은 끝까지 내려간 순간(readComplete) 찍는다 — '열기'가 아니라 '다 읽기'.
         .onChange(of: readComplete) { _, done in
-            guard done, !embedded, let id = loadedPostId else { return }
+            guard done, !embedded, let id = readablePostId else { return }
             PostReadStore.shared.markRead(id)
         }
         // 짧은 글(스크롤 없음)은 완독 판정이 안 잡힌다 — 전체가 한 화면이라 잠깐 체류하면 읽음.
         // 긴 글은 여기서 안 찍고(레이아웃 후 scrollable=true) readComplete 경로에 맡긴다.
-        .task(id: loadedPostId) {
-            guard !embedded, let id = loadedPostId else { return }
+        .task(id: readablePostId) {
+            guard !embedded, let id = readablePostId else { return }
             try? await Task.sleep(for: .seconds(2.5))
             guard !Task.isCancelled, !scrollable else { return }
             PostReadStore.shared.markRead(id)
         }
         // 리더 하이라이트 — 본 글일 때만 store 를 세우고 공개 하이라이트를 싣는다.
-        .task(id: loadedPostId) {
-            guard !embedded, let id = loadedPostId else {
+        .task(id: readablePostId) {
+            guard !embedded, let id = readablePostId else {
                 highlights = nil
                 return
             }
@@ -605,14 +611,14 @@ private struct PostDetailReader: View {
         }
         // 읽기 기록 비콘 — 로그인 독자가 글을 열면 계정에 기록(기기를 넘어 이어진다). 익명은 기록 없음.
         // 가드 = pop-back task 재시작마다 재전송하지 않게(didFocus 와 같은 1회 패턴).
-        .task(id: loadedPostId) {
-            guard !embedded, let id = loadedPostId, AuthStore.shared.isSignedIn,
+        .task(id: readablePostId) {
+            guard !embedded, let id = readablePostId, AuthStore.shared.isSignedIn,
                   recordedHistoryId != id else { return }
             recordedHistoryId = id
             await ReadingHistoryAPI.record(postId: id)
         }
         // 발견 피드의 하이라이트 카드로 들어오면 — 그 구절이 든 블록으로 스크롤 + 잠깐 강조(1회).
-        .task(id: loadedPostId) { await focusOnQuoteIfNeeded(proxy) }
+        .task(id: readablePostId) { await focusOnQuoteIfNeeded(proxy) }
         .task(id: spotReadiness) { focusOnSpotIfNeeded(proxy) }
         // 미로그인 사용자가 하이라이트를 시도하면 — 댓글·팔로우와 같은 공용 로그인 시트.
         .loginPrompt(
@@ -841,7 +847,8 @@ private struct PostDetailReader: View {
 
     @ViewBuilder
     private var quoteInNoteItem: some View {
-        if AuthStore.shared.isSignedIn, case .loaded(let detail) = model.phase {
+        if AuthStore.shared.isSignedIn, case .loaded(let detail) = model.phase, detail.post.locked == nil,
+           detail.post.audience != .unlisted {
             Button {
                 quotingInNote = QuotedPost(
                     id: detail.post.id, title: detail.post.title, slug: detail.post.slug,
@@ -944,6 +951,13 @@ private struct PostDetailReader: View {
         return nil
     }
 
+    private var readablePostId: Int64? {
+        if case .loaded(let detail) = model.phase, detail.post.locked == nil { return detail.post.id }
+        return nil
+    }
+
+    private var isLocked: Bool { model.lock != nil }
+
     /// 로드된 글의 작가 — 남의 글일 때 차단 대상.
     private var loadedAuthor: Author? {
         if case .loaded(let detail) = model.phase { return detail.author }
@@ -980,7 +994,7 @@ private struct PostDetailReader: View {
     /// 그 자리에 그린으로 칠해져 있어, 도착하면 그 문장에 바로 안착한다. 한 글에 한 번만.
     private func focusOnQuoteIfNeeded(_ proxy: ScrollViewProxy) async {
         guard !didFocus, let quote = focusQuote, !quote.isEmpty,
-              case .loaded(let detail) = model.phase else { return }
+              case .loaded(let detail) = model.phase, detail.post.locked == nil else { return }
         guard let blockId = SelectableProseText.sourceBlockID(
             for: quote, blocks: detail.blocks.map { (id: $0.id, raw: $0.content ?? "") }) else { return }
         didFocus = true
@@ -995,7 +1009,7 @@ private struct PostDetailReader: View {
     }
 
     private var spotReadiness: String {
-        "\(loadedPostId ?? -1)|\(model.commentsLoaded)|\(highlights?.loaded ?? false)"
+        "\(readablePostId ?? -1)|\(model.commentsLoaded)|\(highlights?.loaded ?? false)"
     }
 
     static func commentAnchor(_ id: Int64) -> String { "comment-\(id)" }
@@ -1078,7 +1092,7 @@ private struct PostDetailReader: View {
 
     /// 본문 파생값(목차·읽는 시간) 1회 계산 — 로드/오프라인 갱신 시점에만 전 블록을 순회한다.
     private func refreshDerivedContent() {
-        guard case .loaded(let detail) = model.phase else {
+        guard case .loaded(let detail) = model.phase, detail.post.locked == nil else {
             headings = []
             readingMinutes = nil
             return
@@ -1220,7 +1234,9 @@ private struct PostDetailReader: View {
             id: detail.post.id, slug: detail.post.slug, title: detail.post.title,
             status: "PUBLISHED", publishedAt: detail.post.publishedAt, scheduledAt: nil,
             updatedAt: detail.post.lastEditedAt, tags: detail.post.tags,
-            excerpt: detail.post.excerpt, ogImageUrl: detail.post.ogImageUrl, seriesId: nil)
+            excerpt: detail.post.excerpt, ogImageUrl: detail.post.ogImageUrl, seriesId: nil,
+            audience: detail.post.audience, hasPassword: detail.post.hasPassword,
+            unlistedUrl: detail.post.unlistedUrl, blockedCountries: detail.post.blockedCountries)
     }
 
     /// 공개 상세 → 분석용 TopPostView. 수치는 분석 화면이 id 로 다시 받는다.
@@ -1233,13 +1249,16 @@ private struct PostDetailReader: View {
     /// 네이티브 공유 시트용 공개 URL — 웹 postHref 와 같은 정규 블로그 주소.
     private var shareURL: URL? {
         guard case .loaded(let detail) = model.phase else { return nil }
+        if detail.post.audience == .unlisted {
+            return isOwnPost ? detail.post.unlistedUrl.flatMap(URL.init(string:)) : nil
+        }
         return URL(string: "\(Config.blogBase)/@\(detail.author.username)/\(detail.post.slug)")
     }
 
     private func highlightShareURL(_ highlight: HighlightView) -> URL? {
         guard let base = shareURL, highlight.id > 0,
               var components = URLComponents(url: base, resolvingAgainstBaseURL: false) else { return nil }
-        components.queryItems = [URLQueryItem(name: "highlightId", value: String(highlight.id))]
+        components.queryItems = (components.queryItems ?? []) + [URLQueryItem(name: "highlightId", value: String(highlight.id))]
         return components.url
     }
 
@@ -1267,6 +1286,10 @@ private struct PostDetailReader: View {
     }
 
     private func probeTranslation(_ detail: PublicPostDetail) async {
+        guard detail.post.locked == nil else {
+            translationOffer = nil
+            return
+        }
         let sample = ([detail.post.title] + detail.blocks.lazy.filter { $0.kind == .paragraph }.prefix(4)
             .map { PostTranslationPlan.plain($0.content ?? "") }).joined(separator: "\n")
         let declared = detail.post.languageTag
@@ -1327,6 +1350,17 @@ private struct PostDetailReader: View {
 
     @ViewBuilder
     private func content(_ detail: PublicPostDetail, translated: PostTranslationPlan.Applied?) -> some View {
+        if let lock = detail.post.locked {
+            header(detail, titleTranslated: false)
+            LockedPostGate(reason: lock.reason, author: detail.author, model: model)
+            Color.clear.frame(height: 78 + pushedTabBarBottomInset)
+        } else {
+            readableContent(detail, translated: translated)
+        }
+    }
+
+    @ViewBuilder
+    private func readableContent(_ detail: PublicPostDetail, translated: PostTranslationPlan.Applied?) -> some View {
         header(detail, titleTranslated: translated?.titleTranslated ?? false)
         if model.isOfflineCopy {
             // 기기 사본 렌더 중 — 조용한 한 줄. 댓글·좋아요가 비어 있는 이유까지 여기서 설명된다.

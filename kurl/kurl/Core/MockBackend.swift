@@ -33,6 +33,10 @@ enum MockBackend {
         var scheduledAt: Date?
         var contentVersion: Int64 = 0
         var takenDown = false
+        var audience = "PUBLIC"
+        var hasPassword = false
+        var unlistedKey: String?
+        var blockedCountries: [String] = []
     }
 
     /// `--mock-remote-edit <글 id>` — 그 글 본문을 처음 읽어 간 직후 다른 기기가 고친 것처럼 본문·버전을 바꾼다
@@ -105,12 +109,29 @@ enum MockBackend {
     /// `--taken-down-post` — 운영 정책으로 내려진 글 하나(스튜디오·작성 화면의 내려짐 표시 검증용).
     private static func draftFixtures(_ base: [MockPost]) -> [MockPost] {
         let args = ProcessInfo.processInfo.arguments
-        let base = args.contains("--taken-down-post")
+        var base = args.contains("--taken-down-post")
             ? base + [MockPost(
                 id: 9004, slug: "p-mock-4", title: "신고로 내려진 글", status: "UNPUBLISHED",
                 markdown: "# 내려진 글\n\n고쳐서 저장할 수는 있다.", publishedAt: Date().addingTimeInterval(-5 * 86_400),
                 updatedAt: Date(), tags: ["회고"], excerpt: "운영 정책 위반으로 관리자가 내린 예시 글.", takenDown: true)]
             : base
+        if args.contains("--audience-fixtures") {
+            let published = Date().addingTimeInterval(-2 * 86_400)
+            base += [
+                MockPost(id: 9005, slug: "aud-unlisted", title: "링크로만 나누는 초안 노트", status: "PUBLISHED",
+                         markdown: "# 링크만\n\n받은 사람만 읽는다.", publishedAt: published, updatedAt: Date(),
+                         tags: ["회고"], audience: "UNLISTED", unlistedKey: mockUnlistedKey),
+                MockPost(id: 9006, slug: "aud-followers", title: "팔로워에게만 쓰는 작업 일지", status: "PUBLISHED",
+                         markdown: "# 팔로워만\n\n작업 일지.", publishedAt: published, updatedAt: Date(),
+                         tags: ["작업일지"], audience: "FOLLOWERS"),
+                MockPost(id: 9007, slug: "aud-password", title: "스터디 모임 회고", status: "PUBLISHED",
+                         markdown: "# 비밀번호\n\n모임 회고.", publishedAt: published, updatedAt: Date(),
+                         tags: ["스터디"], audience: "PASSWORD", hasPassword: true),
+                MockPost(id: 9008, slug: "aud-region-open", title: "지역 한정 행사 후기", status: "PUBLISHED",
+                         markdown: "# 국가 제한\n\n행사 후기.", publishedAt: published, updatedAt: Date(),
+                         tags: ["행사"], blockedCountries: ["JP", "US"]),
+            ]
+        }
         if args.contains("--no-drafts") { return base.filter { $0.status != "DRAFT" } }
         guard args.contains("--many-drafts") else { return base }
         let extra = (1...3).map { n in
@@ -1183,9 +1204,30 @@ enum MockBackend {
     /// query = 실 클라이언트가 붙인 쿼리 항목(연결 시트의 blockType/refId 같은 것) — 경로만으로 못 가르는
     /// 응답 형태를 여기서 가른다.
     static func respond(
-        path: String, method: String, query: [URLQueryItem]? = nil, body: Data?
+        path: String, method: String, query: [URLQueryItem]? = nil, body: Data?,
+        headers: [String: String] = [:]
     ) throws -> Data? {
         let parts = path.split(separator: "/").map(String.init)
+
+        if parts.count >= 5, parts[0] == "public", parts[1] == "profiles", parts[3] == "posts",
+           let fixture = audienceFixtures.first(where: { $0.slug == parts[4] }) {
+            if method == "GET", parts.count == 5 {
+                return try audienceDetail(fixture, username: parts[2], headers: headers)
+            }
+            if method == "POST", parts.count == 6, parts[5] == "unlock" {
+                return try audienceUnlock(fixture, body: body)
+            }
+        }
+        if parts.count >= 4, parts[0] == "public", parts[1] == "posts", let pid = Int64(parts[2]),
+           ["comments", "highlights", "quotes"].contains(parts[3]), try audienceHidden(postId: pid, headers: headers) {
+            return parts[3] == "quotes"
+                ? json(["items": [Any](), "page": 0, "hasNext": false, "total": 0]) : json([Any]())
+        }
+        if parts.count >= 3, parts[0] == "posts", let pid = Int64(parts[1]),
+           ["like", "bookmark", "comments", "highlights"].contains(parts[2]),
+           try audienceHidden(postId: pid, headers: headers) {
+            throw APIError.server(status: 404, code: "POST_NOT_FOUND", detail: "post not found")
+        }
 
         if method == "GET", parts == ["public", "link-preview"],
            let url = query?.first(where: { $0.name == "url" })?.value {
@@ -2060,6 +2102,13 @@ enum MockBackend {
             return json(postAnalyticsFixture(id: Int64(parts[1]) ?? 9002))
         }
 
+        if method == "POST", parts.count == 4, parts[0] == "posts", parts[2] == "unlisted-key", parts[3] == "rotate",
+           let idx = posts.firstIndex(where: { String($0.id) == parts[1] }) {
+            rotatedKeys += 1
+            posts[idx].unlistedKey = "mockkey\(rotatedKeys)"
+            return json(["unlistedUrl": unlistedURL(slug: posts[idx].slug, key: posts[idx].unlistedKey ?? "")])
+        }
+
         if method == "PATCH", parts.count == 2, parts[0] == "posts" {
             guard let idx = posts.firstIndex(where: { String($0.id) == parts[1] }) else { return nil }
             let req = decode(body)
@@ -2071,6 +2120,10 @@ enum MockBackend {
                 let same = posts[idx].ogImageUrl == cover
                 posts[idx].ogImageUrl = cover.isEmpty ? nil : cover
                 posts[idx].coverChosen = !cover.isEmpty && ((req["coverChosen"] as? Bool) ?? (same && posts[idx].coverChosen))
+            }
+            try applyAccess(req, to: idx)
+            guard ["title", "excerpt", "tags", "ogImageUrl"].contains(where: { req[$0] != nil }) else {
+                return json(postView(posts[idx]))
             }
             posts[idx].contentVersion += 1
             posts[idx].updatedAt = Date()
@@ -2225,7 +2278,7 @@ enum MockBackend {
            parts[3] == "posts" {
             let username = parts[2]
             // 긴 글 픽스처를 그대로 목록으로 — 카드를 누르면 같은 슬러그의 상세가 열린다.
-            let posts = articles.enumerated().map { i, a -> [String: Any] in
+            var posts = articles.enumerated().map { i, a -> [String: Any] in
                 [
                     "id": 8100 + i, "slug": a.slug, "title": a.title, "excerpt": a.excerpt,
                     "ogImageUrl": NSNull(), "languageTag": "ko", "tags": a.tags,
@@ -2233,6 +2286,7 @@ enum MockBackend {
                     "publishedAt": iso(Date().addingTimeInterval(-a.daysAgo * 86_400)),
                 ]
             }
+            posts.insert(contentsOf: audienceListItems(username: username), at: min(1, posts.count))
             return json([
                 "author": [
                     // honggildong = 목 로그인 유저(내 프로필), 그 외는 남(신고 노출 검증용).
@@ -3261,6 +3315,10 @@ enum MockBackend {
             "takenDown": p.takenDown,
             "viewCount": 42, "likeCount": 3, "tags": p.tags,
             "createdAt": iso(p.updatedAt), "updatedAt": iso(p.updatedAt),
+            "audience": p.audience,
+            "hasPassword": p.hasPassword ? true : NSNull(),
+            "unlistedUrl": p.audience == "UNLISTED" ? unlistedURL(slug: p.slug, key: p.unlistedKey ?? "") : NSNull(),
+            "blockedCountries": p.blockedCountries.isEmpty ? NSNull() : p.blockedCountries,
         ]
     }
 
@@ -3378,6 +3436,186 @@ enum MockBackend {
                 ["host": "kurl.me", "views": 44],
             ],
         ]
+    }
+
+    // MARK: 글 공개 범위
+
+    static let mockUnlistedKey = "mockkey"
+    static let mockPostPassword = "kurl1234"
+    static let mockPostGrant = "mock-grant"
+    private static var rotatedKeys = 0
+    private static var unlockAttempts = 0
+    private static var audienceAuthors: [Int64: String] = [:]
+
+    private struct AudienceFixture {
+        let slug: String
+        let id: Int64
+        let audience: String
+        let title: String
+        var blockedCountries: [String] = []
+        var blocksViewer = false
+        var regionCheck = false
+    }
+
+    private static let audienceFixtures: [AudienceFixture] = [
+        AudienceFixture(slug: "aud-followers", id: 8301, audience: "FOLLOWERS", title: "팔로워에게만 쓰는 작업 일지"),
+        AudienceFixture(slug: "aud-password", id: 8302, audience: "PASSWORD", title: "스터디 모임 회고"),
+        AudienceFixture(slug: "aud-unlisted", id: 8303, audience: "UNLISTED", title: "링크로만 나누는 초안 노트"),
+        AudienceFixture(
+            slug: "aud-region", id: 8304, audience: "PUBLIC", title: "지역 한정 행사 후기",
+            blockedCountries: ["KR"], blocksViewer: true),
+        AudienceFixture(
+            slug: "aud-followers-region", id: 8305, audience: "FOLLOWERS", title: "팔로워와 나눈 출장 메모",
+            blockedCountries: ["KR"], blocksViewer: true),
+        AudienceFixture(
+            slug: "aud-region-check", id: 8306, audience: "PUBLIC", title: "나라를 확인하는 글",
+            blockedCountries: ["KR"], regionCheck: true),
+        AudienceFixture(
+            slug: "aud-region-open", id: 8307, audience: "PUBLIC", title: "다른 나라에서만 막힌 글",
+            blockedCountries: ["JP", "US"]),
+    ]
+
+    private enum MockAccess: Equatable {
+        case full
+        case hidden
+        case locked(String)
+    }
+
+    private static func unlistedURL(slug: String, key: String) -> String {
+        "\(Config.blogBase)/@\(myUsername)/\(slug)?k=\(key)"
+    }
+
+    private static func access(_ f: AudienceFixture, username: String, headers: [String: String]) -> MockAccess {
+        if username == myUsername { return .full }
+        if f.audience == "UNLISTED", headers["X-Post-Key"] != mockUnlistedKey { return .hidden }
+        if f.regionCheck { return .locked("REGION_CHECK") }
+        if f.blocksViewer { return .locked("REGION") }
+        if f.audience == "FOLLOWERS", !(follows[username]?.following ?? (username == "yuki_dev")) {
+            return .locked("FOLLOWERS")
+        }
+        if f.audience == "PASSWORD", headers["X-Post-Grant"] != mockPostGrant { return .locked("PASSWORD") }
+        return .full
+    }
+
+    private static func audiencePost(_ f: AudienceFixture, username: String, state: MockAccess) -> [String: Any] {
+        var post: [String: Any] = [
+            "id": f.id, "slug": f.slug, "title": f.title,
+            "excerpt": "작은 모임에서만 나누고 싶었던 기록.", "ogImageUrl": NSNull(), "languageTag": "ko",
+            "tags": ["회고"], "likeCount": 4, "pinned": false, "lastEditedAt": NSNull(),
+            "publishedAt": iso(Date().addingTimeInterval(-3 * 86_400)), "audience": f.audience,
+        ]
+        if !f.blockedCountries.isEmpty { post["regionRestricted"] = true }
+        if username == myUsername {
+            if f.audience == "PASSWORD" { post["hasPassword"] = true }
+            if f.audience == "UNLISTED" { post["unlistedUrl"] = unlistedURL(slug: f.slug, key: mockUnlistedKey) }
+            if !f.blockedCountries.isEmpty { post["blockedCountries"] = f.blockedCountries }
+        }
+        if case .locked(let reason) = state {
+            post["locked"] = ["reason": reason]
+            post["excerpt"] = NSNull()
+            post["tags"] = [String]()
+            post["likeCount"] = 0
+        }
+        return post
+    }
+
+    private static func audienceDetail(
+        _ f: AudienceFixture, username: String, headers: [String: String]
+    ) throws -> Data {
+        let state = access(f, username: username, headers: headers)
+        if state == .hidden {
+            throw APIError.server(status: 404, code: "POST_NOT_FOUND", detail: "post not found")
+        }
+        audienceAuthors[f.id] = username
+        let blocks: [[String: Any]]
+        if case .locked(let reason) = state {
+            let notice = switch reason {
+            case "FOLLOWERS": "팔로워만 볼 수 있는 글이에요"
+            case "PASSWORD": "비밀번호가 걸린 글이에요"
+            default: "이 나라에서는 볼 수 없는 글이에요"
+            }
+            blocks = ordered([["type": "PARAGRAPH", "content": notice]])
+        } else {
+            blocks = ordered([
+                ["type": "PARAGRAPH", "content": "모임이 끝나고 남은 메모를 정리했다. 다음 모임 전에 다시 읽으려고 남긴다."],
+                ["type": "H2", "content": "좋았던 것"],
+                ["type": "PARAGRAPH", "content": "각자 한 주 동안 읽은 것을 한 문장으로 말한 시간이 가장 오래 남았다."],
+                ["type": "H2", "content": "바꿀 것"],
+                ["type": "PARAGRAPH", "content": "발표 순서를 미리 정하면 끝이 덜 늘어진다."],
+            ])
+        }
+        return json([
+            "author": ["id": username == myUsername ? 1 : 3, "username": username, "bio": NSNull(), "avatarUrl": NSNull()],
+            "post": audiencePost(f, username: username, state: state),
+            "blocks": blocks,
+            "series": NSNull(),
+        ])
+    }
+
+    private static func audienceUnlock(_ f: AudienceFixture, body: Data?) throws -> Data {
+        guard f.audience == "PASSWORD" else {
+            throw APIError.server(status: 404, code: "POST_NOT_FOUND", detail: "post not found")
+        }
+        if f.blocksViewer {
+            throw APIError.server(status: 403, code: "POST_LOCKED", detail: "post is locked: REGION")
+        }
+        let password = decode(body)["password"] as? String ?? ""
+        if password == mockPostPassword {
+            unlockAttempts = 0
+            return json(["grant": mockPostGrant, "expiresAt": iso(Date().addingTimeInterval(86_400))])
+        }
+        unlockAttempts += 1
+        if password == "limit" || unlockAttempts > 10 {
+            throw APIError.server(
+                status: 429, code: "POST_PASSWORD_ATTEMPTS_EXCEEDED", detail: "too many password attempts")
+        }
+        throw APIError.http(status: 401)
+    }
+
+    private static func audienceHidden(postId: Int64, headers: [String: String]) throws -> Bool {
+        guard let f = audienceFixtures.first(where: { $0.id == postId }) else { return false }
+        switch access(f, username: audienceAuthors[postId] ?? "reader_kim", headers: headers) {
+        case .full: return false
+        case .hidden: return true
+        case .locked(let reason):
+            throw APIError.server(status: 403, code: "POST_LOCKED", detail: "post is locked: \(reason)")
+        }
+    }
+
+    private static func audienceListItems(username: String) -> [[String: Any]] {
+        guard ProcessInfo.processInfo.arguments.contains("--audience-fixtures") else { return [] }
+        let listed = ["aud-unlisted", "aud-followers", "aud-password", "aud-region", "aud-region-open"]
+        return listed.compactMap { slug -> [String: Any]? in
+            guard let f = audienceFixtures.first(where: { $0.slug == slug }) else { return nil }
+            let state = access(f, username: username, headers: [:])
+            guard state != .hidden else { return nil }
+            return audiencePost(f, username: username, state: state)
+        }
+    }
+
+    private static func applyAccess(_ req: [String: Any], to idx: Int) throws {
+        if let audience = req["audience"] as? String {
+            guard ["PUBLIC", "UNLISTED", "FOLLOWERS", "PASSWORD"].contains(audience) else {
+                throw APIError.server(status: 400, code: "POST_AUDIENCE_INVALID", detail: "unknown audience")
+            }
+            if audience == "PASSWORD", !posts[idx].hasPassword, req["password"] == nil {
+                throw APIError.server(status: 400, code: "POST_PASSWORD_REQUIRED", detail: "password required")
+            }
+            if audience == "UNLISTED", posts[idx].unlistedKey == nil { posts[idx].unlistedKey = mockUnlistedKey }
+            posts[idx].audience = audience
+        }
+        if let password = req["password"] as? String {
+            guard (4...200).contains(password.unicodeScalars.count) else {
+                throw APIError.server(status: 400, code: "POST_PASSWORD_LENGTH", detail: "password must be 4-200 code points")
+            }
+            posts[idx].hasPassword = true
+        }
+        if let codes = req["blockedCountries"] as? [String] {
+            guard codes.allSatisfy({ $0.count == 2 && $0.allSatisfy { $0.isASCII && $0.isUppercase } }) else {
+                throw APIError.server(status: 400, code: "POST_BLOCKED_COUNTRIES_INVALID", detail: "invalid country code")
+            }
+            posts[idx].blockedCountries = codes
+        }
     }
 
     // MARK: 유틸

@@ -32,6 +32,8 @@ enum APIError: LocalizedError {
         case "POST_TAKEN_DOWN": return String(localized: "운영 정책으로 내려진 글이라 다시 공개할 수 없어요.")
         case "ACCOUNT_SUSPENDED": return String(localized: "계정이 일시 정지된 동안에는 글을 쓰거나 반응할 수 없어요.")
         case "ACCOUNT_BANNED": return String(localized: "이용이 제한된 계정이라 글을 쓰거나 반응할 수 없어요.")
+        case "POST_PASSWORD_REQUIRED": return String(localized: "비밀번호를 정하면 발행할 수 있어요.")
+        case "POST_PASSWORD_LENGTH": return String(localized: "비밀번호는 4자 이상으로 정해 주세요.")
         default: return nil
         }
     }
@@ -285,6 +287,9 @@ struct APIClient {
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue(Config.preferredLanguageTag, forHTTPHeaderField: "Accept-Language")
+        for (field, value) in PostAccess.shared.headers(forPath: path) {
+            request.setValue(value, forHTTPHeaderField: field)
+        }
         if let body {
             request.httpBody = body
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -300,16 +305,23 @@ struct APIClient {
             throw APIError.transport(URLError(.notConnectedToInternet))
         }
         #endif
+        let apiPath = request.url.map { String($0.path.dropFirst(Config.apiPrefix.count + 1)) } ?? ""
         // 목 모드: 목 백엔드가 아는 경로면 네트워크를 건너뛴다(공개 읽기는 fall-through).
-        if Config.useMocks,
-           let url = request.url,
-           let mocked = try await MockBackend.respond(
-               path: String(url.path.dropFirst(Config.apiPrefix.count + 1)),
-               method: request.httpMethod ?? "GET",
-               query: URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems,
-               body: request.httpBody
-           ) {
-            return mocked
+        if Config.useMocks, let url = request.url {
+            do {
+                if let mocked = try await MockBackend.respond(
+                    path: apiPath,
+                    method: request.httpMethod ?? "GET",
+                    query: URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems,
+                    body: request.httpBody,
+                    headers: request.allHTTPHeaderFields ?? [:]
+                ) {
+                    return mocked
+                }
+            } catch APIError.server(let status, "POST_LOCKED"?, let detail) {
+                PostAccess.shared.lockedOut(path: apiPath)
+                throw APIError.server(status: status, code: "POST_LOCKED", detail: detail)
+            }
         }
         let data: Data
         let response: URLResponse
@@ -327,7 +339,11 @@ struct APIClient {
                 throw APIError.http(status: 401)
             }
             // 서버가 ProblemDetail 로 사유를 줬으면 그 사람이 읽을 메시지를 그대로 올린다.
-            if let problem = try? JSONDecoder().decode(ProblemDetailBody.self, from: data),
+            let problem = try? JSONDecoder().decode(ProblemDetailBody.self, from: data)
+            if problem?.code == "POST_LOCKED" {
+                PostAccess.shared.lockedOut(path: apiPath)
+            }
+            if let problem,
                 let detail = (problem.detail ?? problem.title)?
                     .trimmingCharacters(in: .whitespacesAndNewlines), !detail.isEmpty {
                 throw APIError.server(status: http.statusCode, code: problem.code, detail: detail)

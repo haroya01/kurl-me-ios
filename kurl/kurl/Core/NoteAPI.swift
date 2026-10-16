@@ -360,6 +360,13 @@ struct QuotedPost: Codable, Hashable, Identifiable {
     let title: String
     let slug: String
     let authorUsername: String
+    var audience: PostAudience? = nil
+    var locked: PostLock? = nil
+    var regionRestricted: Bool? = nil
+
+    var access: PostAccessMarks {
+        PostAccessMarks(audience: audience, locked: locked, regionRestricted: regionRestricted == true)
+    }
 }
 
 struct NoteLinkPreview: Decodable, Hashable {
