@@ -269,6 +269,7 @@ struct ComposeView: View {
                         tags: tags,
                         savedSeriesId: savedSeriesId,
                         seriesId: seriesId,
+                        access: accessDraft.patch(silent: true),
                         gate: versionGate))
             }
         }

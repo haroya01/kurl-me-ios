@@ -21,6 +21,7 @@ final class PostAudienceTests: XCTestCase {
         BlogAPI.client = .shared
         HighlightsAPI.client = .shared
         NoteAPI.client = .shared
+        WriteAPI.client = .shared
         PostAccess.shared.reset()
         AudienceStub.reset()
     }
@@ -436,6 +437,43 @@ final class PostAudienceTests: XCTestCase {
         XCTAssertEqual(access.headers(forPath: "/highlight-replies/80/like"), [:])
     }
 
+    // MARK: 편집기를 떠날 때의 저장
+
+    private func flushPayload(access: PostAccessDraft.Patch?) -> DraftFlusher.Payload {
+        let gate = PostVersionGate(version: 1)
+        Self.retained.append(gate)
+        return DraftFlusher.Payload(
+            postId: 7, draftKey: UUID(), title: "제목", markdown: "본문", savedTitle: "제목", savedExcerpt: "",
+            savedTags: [], excerpt: "", tags: [], savedSeriesId: nil, seriesId: nil, access: access, gate: gate)
+    }
+
+    func testLeavingTheEditorRightAfterChangingTheAudienceStillSendsIt() async throws {
+        WriteAPI.client = stubbedClient()
+        AudienceStub.route("PUT", "/posts/7/markdown", body: #"{"markdown":"본문","contentVersion":2}"#)
+        AudienceStub.route(
+            "PATCH", "/posts/7", body: #"{"id":7,"slug":"s","title":"제목","status":"DRAFT","audience":"FOLLOWERS"}"#)
+
+        var payload = flushPayload(access: .init(audience: .followers, password: nil, countries: ["JP"]))
+        try await DraftFlusher.saveToServer(&payload)
+
+        let patch = try XCTUnwrap(AudienceStub.requests.first { $0.httpMethod == "PATCH" })
+        let body = try XCTUnwrap(AudienceStub.body(of: patch))
+        let sent = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(sent["audience"] as? String, "FOLLOWERS")
+        XCTAssertEqual(sent["blockedCountries"] as? [String], ["JP"])
+        XCTAssertNil(sent["password"])
+    }
+
+    func testLeavingWithoutAnAccessChangeSendsNoAccessPatch() async throws {
+        WriteAPI.client = stubbedClient()
+        AudienceStub.route("PUT", "/posts/7/markdown", body: #"{"markdown":"본문","contentVersion":2}"#)
+
+        var payload = flushPayload(access: nil)
+        try await DraftFlusher.saveToServer(&payload)
+
+        XCTAssertNil(AudienceStub.requests.first { $0.httpMethod == "PATCH" })
+    }
+
     // MARK: 발행 시트가 보내는 것
 
     func testAutosaveNeverSendsThePasswordOrAPasswordAudienceWithoutOne() {
@@ -501,6 +539,7 @@ private final class AudienceStub: URLProtocol, @unchecked Sendable {
 
     nonisolated(unsafe) private static var routes: [String: Response] = [:]
     nonisolated(unsafe) private static var captured: [URLRequest] = []
+    nonisolated(unsafe) private static var bodies: [String: Data] = [:]
     private static let lock = NSLock()
 
     static var requests: [URLRequest] {
@@ -515,6 +554,12 @@ private final class AudienceStub: URLProtocol, @unchecked Sendable {
         lock.unlock()
     }
 
+    static func body(of request: URLRequest) -> Data? {
+        lock.lock()
+        defer { lock.unlock() }
+        return bodies["\(request.httpMethod ?? "") \(request.url?.absoluteString ?? "")"]
+    }
+
     static func clearRequests() {
         lock.lock()
         captured = []
@@ -525,6 +570,7 @@ private final class AudienceStub: URLProtocol, @unchecked Sendable {
         lock.lock()
         routes = [:]
         captured = []
+        bodies = [:]
         lock.unlock()
     }
 
@@ -532,8 +578,22 @@ private final class AudienceStub: URLProtocol, @unchecked Sendable {
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 
     override func startLoading() {
+        var body = request.httpBody
+        if body == nil, let stream = request.httpBodyStream {
+            stream.open()
+            var data = Data()
+            var buffer = [UInt8](repeating: 0, count: 4096)
+            while stream.hasBytesAvailable {
+                let read = stream.read(&buffer, maxLength: buffer.count)
+                if read <= 0 { break }
+                data.append(buffer, count: read)
+            }
+            stream.close()
+            body = data
+        }
         Self.lock.lock()
         Self.captured.append(request)
+        if let body { Self.bodies["\(request.httpMethod ?? "") \(request.url?.absoluteString ?? "")"] = body }
         let key = "\(request.httpMethod ?? "GET") \(request.url?.path ?? "")"
         let response = Self.routes[key] ?? Response(status: 200, body: "[]")
         Self.lock.unlock()
