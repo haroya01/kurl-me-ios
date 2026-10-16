@@ -21,6 +21,7 @@ struct SeriesDetailView: View {
     // slug 수정 시 재로드는 이 slug 로 부른다(공개 상세는 username/slug 키라 옛 slug 로는 404).
     @State private var currentSlug: String?
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.tabBarVisibility) private var tabBarVisibility
     /// 진행률 메타(mono digit) — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
     @ScaledMetric(relativeTo: .caption) private var progressSize: CGFloat = 12
 
@@ -50,6 +51,7 @@ struct SeriesDetailView: View {
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
         .background(Palette.pageBg)
+        .safeAreaPadding(.bottom, tabBarVisibility == nil ? 0 : Metrics.tabBarReservedHeight)
         // 로드되면 마스트헤드 H1 이 제목의 유일한 주인 — 상단 바 제목을 비워 같은 제목이
         // 두 번 겹치지 않게 한다(웹 시리즈 뷰처럼 마스트헤드가 스크롤로 조용히 물러난다).
         // 로딩·실패엔 마스트헤드가 없으니 일반 라벨로 맥락을 세운다.

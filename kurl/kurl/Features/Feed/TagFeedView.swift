@@ -31,6 +31,7 @@ struct TagFeedView: View {
     @State private var tab: TagFeedTab
     @State private var notes: NotesViewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.tabBarVisibility) private var tabBarVisibility
 
     @State private var phase: LoadState<[FeedItem]> = .idle
     @State private var page = 0
@@ -70,6 +71,7 @@ struct TagFeedView: View {
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
         .background(Palette.readingBg)
+        .safeAreaPadding(.bottom, tabBarVisibility == nil ? 0 : Metrics.tabBarReservedHeight)
         .overlay(alignment: .top) {
             if showNavTitle {
                 Color.clear

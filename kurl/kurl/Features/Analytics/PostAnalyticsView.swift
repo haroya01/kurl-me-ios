@@ -9,6 +9,7 @@ import SwiftUI
 /// 개요와 같은 문법: 기간 칩 + 윈도우 히어로 + 일별 추이 + 수명 합계. 글 보기로 탈출구.
 struct PostAnalyticsView: View {
     let post: TopPostView
+    @Environment(\.tabBarVisibility) private var tabBarVisibility
 
     @State private var phase: LoadState<PostAnalyticsDetail> = .idle
     @State private var days = 30
@@ -48,6 +49,7 @@ struct PostAnalyticsView: View {
                 content(detail)
             }
         }
+        .safeAreaPadding(.bottom, tabBarVisibility == nil ? 0 : Metrics.tabBarReservedHeight)
         .navigationTitle("글 분석")
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)

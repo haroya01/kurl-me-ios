@@ -10,6 +10,7 @@ import SwiftUI
 /// N+1 회피). 행 탭은 그 작가로. 무한 스크롤(hasNext).
 struct FollowListsView: View {
     let username: String
+    @Environment(\.tabBarVisibility) private var tabBarVisibility
 
     enum FollowTab: String, Identifiable, CaseIterable {
         case followers, following
@@ -79,6 +80,7 @@ struct FollowListsView: View {
             }
         }
         .swipeSelects(FollowTab.allCases, selection: $tab)
+        .safeAreaPadding(.bottom, tabBarVisibility == nil ? 0 : Metrics.tabBarReservedHeight)
         .navigationTitle(username)
         .navigationBarTitleDisplayMode(.inline)
         .task(id: tab) { await reload() }

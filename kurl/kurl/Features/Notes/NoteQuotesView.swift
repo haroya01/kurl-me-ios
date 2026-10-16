@@ -7,6 +7,7 @@ import SwiftUI
 
 struct NoteQuotesView: View {
     let noteId: Int64
+    @Environment(\.tabBarVisibility) private var tabBarVisibility
     @State private var notes: NotesViewModel
     @State private var posts: [FeedItem] = []
     @State private var postsLoaded = false
@@ -50,6 +51,7 @@ struct NoteQuotesView: View {
             }
         }
         .environment(\.noteFilterContext, notes.filterContext)
+        .safeAreaPadding(.bottom, tabBarVisibility == nil ? 0 : Metrics.tabBarReservedHeight)
         .navigationTitle("인용")
         .noteTextLinks()
         .navigationBarTitleDisplayMode(.inline)
