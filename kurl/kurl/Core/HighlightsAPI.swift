@@ -26,14 +26,18 @@ enum HighlightsAPI {
 
     /// 공개 — 이 글의 모든 하이라이트(attributed). 미로그인도 읽는다.
     static func list(postId: Int64) async throws -> [HighlightView] {
-        try await client.getAsViewer("/public/posts/\(postId)/highlights")
+        let highlights: [HighlightView] = try await client.getAsViewer("/public/posts/\(postId)/highlights")
+        PostAccess.shared.link(highlights: highlights.map(\.id), to: postId)
+        return highlights
     }
 
     /// 인증 — 발행된 글에 하이라이트 생성(선택적 공개 메모 포함). 생성된 것을 그대로 돌려받는다.
     @discardableResult
     static func create(postId: Int64, _ payload: NewHighlight) async throws -> HighlightRef {
         try validate(payload)
-        return try await client.post("/posts/\(postId)/highlights", body: payload, authenticated: true)
+        let created: HighlightRef = try await client.post("/posts/\(postId)/highlights", body: payload, authenticated: true)
+        PostAccess.shared.link(highlights: [created.id], to: postId)
+        return created
     }
 
     /// 인증 — 내가 그은 하이라이트 삭제(본인만).

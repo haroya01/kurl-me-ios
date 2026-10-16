@@ -315,6 +315,7 @@ final class AuthStore {
         PathResumeStore.shared.reset()
         BlockStore.shared.reset()
         OfflineStore.shared.removeAll()
+        PostAccess.shared.reset()
         AnalyticsSnapshot.clear()
         MyPostsCache.posts = nil
         WidgetCenter.shared.reloadAllTimelines()

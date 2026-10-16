@@ -60,6 +60,13 @@ struct FeedItem: Decodable, Hashable, Identifiable {
     let publishedAt: Date?
     let viewCount: Int64
     let likeCount: Int64
+    var audience: PostAudience? = nil
+    var locked: PostLock? = nil
+    var regionRestricted: Bool? = nil
+
+    var access: PostAccessMarks {
+        PostAccessMarks(audience: audience, locked: locked, regionRestricted: regionRestricted == true)
+    }
 }
 
 struct PublicFeedView: Decodable {
@@ -92,7 +99,7 @@ struct FeedSeriesNote: Decodable, Hashable, Identifiable {
 struct PostListItem: Decodable, Hashable, Identifiable {
     let id: Int64
     let slug: String
-    let title: String
+    private(set) var title: String
     let excerpt: String?
     let ogImageUrl: String?
     var thumbnailUrl: String? = nil
@@ -102,13 +109,104 @@ struct PostListItem: Decodable, Hashable, Identifiable {
     let publishedAt: Date?
     let lastEditedAt: Date?
     let pinned: Bool
+    var audience: PostAudience? = nil
+    var locked: PostLock? = nil
+    var regionRestricted: Bool? = nil
+    var hasPassword: Bool? = nil
+    var unlistedUrl: String? = nil
+    var blockedCountries: [String]? = nil
+
+    var access: PostAccessMarks {
+        PostAccessMarks(
+            audience: audience, locked: locked,
+            regionRestricted: regionRestricted == true || !(blockedCountries ?? []).isEmpty)
+    }
 
     func withTitle(_ title: String) -> PostListItem {
-        PostListItem(
-            id: id, slug: slug, title: title, excerpt: excerpt, ogImageUrl: ogImageUrl, thumbnailUrl: thumbnailUrl,
-            languageTag: languageTag,
-            tags: tags, likeCount: likeCount, publishedAt: publishedAt, lastEditedAt: lastEditedAt, pinned: pinned)
+        var copy = self
+        copy.title = title
+        return copy
     }
+}
+
+enum PostAudience: String, Codable, CaseIterable, Identifiable, Hashable {
+    case everyone = "PUBLIC"
+    case unlisted = "UNLISTED"
+    case followers = "FOLLOWERS"
+    case password = "PASSWORD"
+
+    var id: String { rawValue }
+
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = PostAudience(rawValue: raw) ?? .everyone
+    }
+
+    var label: LocalizedStringResource {
+        switch self {
+        case .everyone: "전체"
+        case .unlisted: "링크만"
+        case .followers: "팔로워만"
+        case .password: "비밀번호"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .everyone: "globe"
+        case .unlisted: "link"
+        case .followers: "lock"
+        case .password: "key"
+        }
+    }
+}
+
+struct PostLock: Codable, Hashable {
+    enum Reason: String, Codable, Hashable {
+        case followers = "FOLLOWERS"
+        case password = "PASSWORD"
+        case region = "REGION"
+
+        init(from decoder: Decoder) throws {
+            let raw = try decoder.singleValueContainer().decode(String.self)
+            if let known = Reason(rawValue: raw) {
+                self = known
+                return
+            }
+            #if DEBUG
+            print("[PostLock] reason \(raw) read as REGION")
+            #endif
+            self = .region
+        }
+    }
+
+    let reason: Reason
+}
+
+struct PostAccessMarks: Hashable {
+    var audience: PostAudience?
+    var locked: PostLock?
+    var regionRestricted: Bool
+
+    static let regionSymbol = "mappin.slash"
+
+    var isProtected: Bool {
+        (audience ?? .everyone) != .everyone || regionRestricted || locked != nil
+    }
+
+    var audienceMark: PostAudience? {
+        if let reason = locked?.reason {
+            switch reason {
+            case .followers: return .followers
+            case .password: return .password
+            case .region: break
+            }
+        }
+        guard let audience, audience != .everyone else { return nil }
+        return audience
+    }
+
+    var showsRegionMark: Bool { regionRestricted || locked?.reason == .region }
 }
 
 struct PublicPostListView: Decodable {

@@ -44,6 +44,22 @@ final class PostDetailViewModel {
     /// (사본을 계속 보여준다) phase 가드가 못 잡는다.
     private var offlineRefreshInFlight = false
 
+    enum UnlockState: Equatable {
+        case idle
+        case opening
+        case wrongPassword
+        case tooManyAttempts
+        case failed(String)
+    }
+
+    private(set) var unlockState: UnlockState = .idle
+    private(set) var unlockedCount = 0
+
+    var lock: PostLock.Reason? {
+        if case .loaded(let detail) = phase { return detail.post.locked?.reason }
+        return nil
+    }
+
     init(username: String, slug: String, recordsView: Bool = true) {
         self.username = username
         self.slug = slug
@@ -66,23 +82,7 @@ final class PostDetailViewModel {
         do {
             let raw = try await BlogAPI.postDetailData(username: username, slug: slug)
             let detail = try JSONDecoder.blog.decode(PublicPostDetail.self, from: raw)
-            isOfflineCopy = false
-            stopConnectivityWatch()
-            phase = .loaded(detail)
-            // 북마크로 저장된 글이면 사본을 방금 본 최신으로 갈아 둔다(read-through).
-            // 바이트가 사본 그대로면 스킵 — save 는 본문 재디코드·이미지 프리페치·위젯
-            // 스냅샷 재빌드까지 끌고 오는 무거운 경로다. LRU 시계는 data() 읽기가 감는다.
-            if OfflineStore.shared.contains(username: username, slug: slug),
-               OfflineStore.shared.data(username: username, slug: slug) != raw {
-                OfflineStore.shared.save(raw: raw, username: username, slug: slug)
-            }
-            if recordsView {
-                // 조회 비콘은 fire-and-forget — 댓글 로드를 왕복 시간만큼 세우지 않는다.
-                Task { [username, slug] in
-                    await BlogAPI.recordView(username: username, slug: slug)
-                }
-            }
-            await loadComments(postId: detail.post.id)
+            await adopt(detail, raw: raw)
         } catch let error as APIError where error.statusCode == 404 || error.statusCode == 410 {
             OfflineStore.shared.remove(username: username, slug: slug)
             isOfflineCopy = false
@@ -101,6 +101,79 @@ final class PostDetailViewModel {
             }
             phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
         }
+    }
+
+    private func adopt(_ detail: PublicPostDetail, raw: Data) async {
+        PostAccess.shared.bind(postId: detail.post.id, username: username, slug: slug)
+        if detail.post.locked?.reason == .password {
+            PostAccess.shared.dropGrant(username: username, slug: slug)
+        }
+        isOfflineCopy = false
+        stopConnectivityWatch()
+        phase = .loaded(detail)
+        // 북마크로 저장된 글이면 사본을 방금 본 최신으로 갈아 둔다(read-through).
+        // 바이트가 사본 그대로면 스킵 — save 는 본문 재디코드·이미지 프리페치·위젯
+        // 스냅샷 재빌드까지 끌고 오는 무거운 경로다. LRU 시계는 data() 읽기가 감는다.
+        if OfflineStore.shared.contains(username: username, slug: slug),
+           OfflineStore.shared.data(username: username, slug: slug) != raw {
+            OfflineStore.shared.save(raw: raw, username: username, slug: slug)
+        }
+        guard detail.post.locked == nil else {
+            comments = []
+            quotingNotes = []
+            quotingTotal = 0
+            return
+        }
+        if recordsView {
+            // 조회 비콘은 fire-and-forget — 댓글 로드를 왕복 시간만큼 세우지 않는다.
+            Task { [username, slug] in
+                await BlogAPI.recordView(username: username, slug: slug)
+            }
+        }
+        await loadComments(postId: detail.post.id)
+    }
+
+    private func reloadInPlace() async throws {
+        let raw = try await BlogAPI.postDetailData(username: username, slug: slug)
+        await adopt(try JSONDecoder.blog.decode(PublicPostDetail.self, from: raw), raw: raw)
+    }
+
+    func unlock(password: String) async {
+        guard unlockState != .opening, !password.isEmpty else { return }
+        unlockState = .opening
+        do {
+            let grant = try await BlogAPI.unlock(username: username, slug: slug, password: password)
+            PostAccess.shared.setGrant(grant.grant, username: username, slug: slug)
+            try await reloadInPlace()
+            if lock == nil { unlockedCount += 1 }
+            unlockState = .idle
+        } catch let error as APIError where error.statusCode == 401 {
+            unlockState = .wrongPassword
+        } catch let error as APIError where error.statusCode == 429 {
+            unlockState = .tooManyAttempts
+        } catch let error as APIError where error.statusCode == 403 {
+            try? await reloadInPlace()
+            unlockState = .idle
+        } catch {
+            unlockState = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
+        }
+    }
+
+    func clearUnlockError() {
+        switch unlockState {
+        case .wrongPassword, .tooManyAttempts, .failed: unlockState = .idle
+        case .idle, .opening: break
+        }
+    }
+
+    func refreshLocked() async {
+        guard lock != nil else { return }
+        try? await reloadInPlace()
+    }
+
+    func reloadAfterLockout() async {
+        unlockState = .idle
+        try? await reloadInPlace()
     }
 
     private func loadComments(postId: Int64) async {

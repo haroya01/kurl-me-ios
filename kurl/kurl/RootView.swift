@@ -109,9 +109,9 @@ enum WidgetDeepLink {
         case "library":
             TabRouter.shared.selection = 4
         case "post":
-            let parts = url.path.split(separator: "/").map(String.init)
-            guard parts.count == 2 else { return }
-            TabRouter.shared.pendingPost = WidgetPostRef(username: parts[0], slug: parts[1])
+            guard let link = PostLink(widgetURL: url) else { return }
+            link.register()
+            TabRouter.shared.pendingPost = WidgetPostRef(username: link.username, slug: link.slug)
         default:
             break
         }
@@ -168,14 +168,10 @@ struct RootView: View {
 
     var body: some View {
         // `--post user/slug`·`--author user`·`--series user/slug` — 검증 진입로(simctl 터치 불가 우회).
-        if let target = Config.launchValue(after: "--post"),
-           let slash = target.firstIndex(of: "/") {
+        if let link = Config.launchValue(after: "--post").flatMap(PostLink.init(target:)) {
             NavigationStack {
-                PostDetailView(
-                    username: String(target[..<slash]),
-                    slug: String(target[target.index(after: slash)...])
-                )
-                .navigationDestination(for: Route.self) { RouteView(route: $0) }
+                PostDetailView(username: link.username, slug: link.slug)
+                    .navigationDestination(for: Route.self) { RouteView(route: $0) }
             }
         } else if let author = Config.launchValue(after: "--author") {
             NavigationStack {
