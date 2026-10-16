@@ -131,6 +131,7 @@ struct AuthorBlogView: View {
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
         .background(Palette.readingBg)
+        .reservesTabBarSpace()
         .overlay(alignment: .top) {
             if showNavTitle {
                 Color.clear

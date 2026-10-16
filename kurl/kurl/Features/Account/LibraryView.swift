@@ -29,6 +29,7 @@ struct LibraryView: View {
             }
             .padding(.top, 8)
         }
+        .reservesTabBarSpace()
         .navigationTitle("서재")
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)

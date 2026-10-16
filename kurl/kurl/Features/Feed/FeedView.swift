@@ -140,6 +140,7 @@ struct FeedView: View {
                 }
             }
             .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: choice.more)
+            .reservesTabBarSpace()
             .onChange(of: router.reselections) {
                 if router.reselectedTab == 0 { choice.path = NavigationPath() }
             }

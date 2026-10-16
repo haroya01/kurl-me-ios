@@ -85,6 +85,7 @@ struct FilteredNotificationsView: View {
                 }
             }
         }
+        .reservesTabBarSpace()
         .navigationTitle("걸러진 알림")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await store.load() }

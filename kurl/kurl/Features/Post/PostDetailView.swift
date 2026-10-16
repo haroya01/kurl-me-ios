@@ -75,6 +75,7 @@ private struct PostDetailReader: View {
     /// 커스텀 하단 탭바 숨김 상태 — 독이 탭바에 가리지 않게 예약 높이만큼 띄우되, 탭바가 스크롤로
     /// 사라지면 그 여백을 걷어 독이 허공에 뜨지 않게 한다(단독 상세에서만 있고, 덱 임베드엔 nil).
     @Environment(\.tabBarVisibility) private var tabBarVisibility
+    @Environment(\.tabBarReservedInset) private var tabBarReservedInset
     @Environment(\.readerInSheet) private var inSheet
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
@@ -207,8 +208,7 @@ private struct PostDetailReader: View {
     /// 바닥 근처에서 스크롤이 튄다. 탭 스택에 푸시된 단독 글에서만(env 있음·임베드 아님) 상수로
     /// 예약해, 바가 떠 있을 땐 끝맺음이 가리지 않고 바가 숨은 바닥에선 그 여백이 남아돌 뿐이다.
     private var pushedTabBarBottomInset: CGFloat {
-        guard !embedded, tabBarVisibility != nil else { return 0 }
-        return Metrics.tabBarReservedHeight
+        embedded ? 0 : tabBarReservedInset
     }
 
     /// 상단 크롬(뒤로·제목·⋯)을 하단 탭바와 동조해 숨길지 — 별도 임계값 없이 탭바의 스크롤

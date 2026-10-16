@@ -41,6 +41,7 @@ struct CollectionsListView: View {
                 }
             }
         }
+        .reservesTabBarSpace()
         .navigationTitle("컬렉션")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

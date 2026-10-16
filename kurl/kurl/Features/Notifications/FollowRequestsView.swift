@@ -85,6 +85,7 @@ struct FollowRequestsView: View {
                 }
             }
         }
+        .reservesTabBarSpace()
         .navigationTitle("팔로우 요청")
         .navigationBarTitleDisplayMode(.inline)
         .sensoryFeedback(.success, trigger: store.approvedCount)

@@ -36,6 +36,7 @@ struct SeriesAnalyticsDetailView: View {
                 content(detail)
             }
         }
+        .reservesTabBarSpace()
         .navigationTitle(seriesTitle)
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)

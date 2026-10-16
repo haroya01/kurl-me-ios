@@ -96,13 +96,19 @@ enum FederationAPI {
 
     private struct Empty: Encodable {}
 
+    static func normalizedQuery(_ raw: String) -> String {
+        let query = raw.replacingOccurrences(of: "＠", with: "@").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard query.lowercased().hasPrefix("acct:") else { return query }
+        return String(query.dropFirst(5)).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     static func looksLikeHandle(_ text: String) -> Bool {
         let handle = #/@?[A-Za-z0-9_][A-Za-z0-9_.\-]{0,63}@[A-Za-z0-9\-]+(\.[A-Za-z0-9\-]+)+(:[0-9]{1,5})?/#
-        return text.trimmingCharacters(in: .whitespacesAndNewlines).wholeMatch(of: handle) != nil
+        return normalizedQuery(text).wholeMatch(of: handle) != nil
     }
 
     static func queryDomain(_ text: String) -> String? {
-        let query = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let query = normalizedQuery(text)
         if looksLikeHandle(query), let at = query.lastIndex(of: "@") {
             return query[query.index(after: at)...].lowercased()
         }
@@ -113,7 +119,7 @@ enum FederationAPI {
     }
 
     static func remoteSearchQuery(_ raw: String) -> String {
-        let query = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let query = normalizedQuery(raw)
         guard query.hasPrefix("@") else { return query }
         return String(query.dropFirst()).trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -147,7 +153,7 @@ enum FederationAPI {
     }
 
     static func resolve(_ raw: String) async -> RemoteResolution {
-        let query = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let query = normalizedQuery(raw)
         guard let domain = queryDomain(query) else { return .hidden }
         do {
             let body: RemoteResolveBody = try await client.get(
@@ -198,7 +204,7 @@ enum FederationAPI {
     static func lookup(_ handle: String) async throws -> RemoteAccount {
         try await client.get(
             "/federation/accounts/lookup",
-            query: ["acct": handle.trimmingCharacters(in: .whitespacesAndNewlines)],
+            query: ["acct": normalizedQuery(handle)],
             authenticated: true)
     }
 

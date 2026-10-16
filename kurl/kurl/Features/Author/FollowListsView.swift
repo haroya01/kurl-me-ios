@@ -79,6 +79,7 @@ struct FollowListsView: View {
             }
         }
         .swipeSelects(FollowTab.allCases, selection: $tab)
+        .reservesTabBarSpace()
         .navigationTitle(username)
         .navigationBarTitleDisplayMode(.inline)
         .task(id: tab) { await reload() }

@@ -70,6 +70,7 @@ struct CollectionDetailView: View {
                 failedState
             }
         }
+        .reservesTabBarSpace()
         .navigationTitle(detail?.title ?? String(localized: "컬렉션"))
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(for: Route.self) { RouteView(route: $0) }

@@ -48,6 +48,7 @@ struct StudioView: View {
                     message: "글을 쓰려면 로그인하세요")
             }
         }
+        .reservesTabBarSpace()
         .navigationTitle("스튜디오")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

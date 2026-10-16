@@ -48,6 +48,7 @@ struct PostAnalyticsView: View {
                 content(detail)
             }
         }
+        .reservesTabBarSpace()
         .navigationTitle("글 분석")
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)

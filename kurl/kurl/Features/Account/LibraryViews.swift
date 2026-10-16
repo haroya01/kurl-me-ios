@@ -82,6 +82,7 @@ struct BookmarksView: View {
                 }
             }
         }
+        .reservesTabBarSpace()
         .navigationTitle("북마크")
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
@@ -172,6 +173,7 @@ struct LikedPostsView: View {
                 }
             }
         }
+        .reservesTabBarSpace()
         .navigationTitle("좋아요한 글")
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
@@ -244,6 +246,7 @@ struct SubscribedSeriesView: View {
                 }
             }
         }
+        .reservesTabBarSpace()
         .navigationTitle("구독한 시리즈")
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
@@ -305,6 +308,7 @@ struct SubscribedTagsView: View {
                 .padding(.top, 12)
             }
         }
+        .reservesTabBarSpace()
         .navigationTitle("구독한 태그")
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }

@@ -172,6 +172,7 @@ struct RemoteAccountView: View {
             await load()
             await notes.reload()
         }
+        .reservesTabBarSpace()
         .navigationTitle(account.map { "@\($0.acct)" } ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

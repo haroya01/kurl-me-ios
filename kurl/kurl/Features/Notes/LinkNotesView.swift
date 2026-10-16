@@ -53,6 +53,7 @@ struct LinkNotesView: View {
             }
         }
         .environment(\.noteFilterContext, notes.filterContext)
+        .reservesTabBarSpace()
         .navigationTitle("링크")
         .noteTextLinks()
         .navigationBarTitleDisplayMode(.inline)

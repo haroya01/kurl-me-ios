@@ -73,6 +73,7 @@ struct MyHighlightsView: View {
                 }
             }
         }
+        .reservesTabBarSpace()
         .navigationTitle("내 하이라이트")
         .navigationBarTitleDisplayMode(.inline)
         .searchable(

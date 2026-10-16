@@ -68,6 +68,7 @@ struct NotificationsView: View {
                 list
             }
         }
+        .reservesTabBarSpace()
         .navigationTitle("알림")
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)

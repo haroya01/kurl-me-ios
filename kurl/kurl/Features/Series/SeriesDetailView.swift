@@ -50,6 +50,7 @@ struct SeriesDetailView: View {
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
         .background(Palette.pageBg)
+        .reservesTabBarSpace()
         // 로드되면 마스트헤드 H1 이 제목의 유일한 주인 — 상단 바 제목을 비워 같은 제목이
         // 두 번 겹치지 않게 한다(웹 시리즈 뷰처럼 마스트헤드가 스크롤로 조용히 물러난다).
         // 로딩·실패엔 마스트헤드가 없으니 일반 라벨로 맥락을 세운다.

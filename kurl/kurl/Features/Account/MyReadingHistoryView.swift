@@ -50,6 +50,7 @@ struct MyReadingHistoryView: View {
                 }
             }
         }
+        .reservesTabBarSpace()
         .navigationTitle("읽기 기록")
         .navigationBarTitleDisplayMode(.inline)
         .task { await reload() }

@@ -50,6 +50,7 @@ struct NoteQuotesView: View {
             }
         }
         .environment(\.noteFilterContext, notes.filterContext)
+        .reservesTabBarSpace()
         .navigationTitle("인용")
         .noteTextLinks()
         .navigationBarTitleDisplayMode(.inline)
