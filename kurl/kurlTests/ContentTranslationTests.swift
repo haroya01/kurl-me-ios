@@ -218,22 +218,258 @@ final class ContentTranslationTests: XCTestCase {
         XCTAssertEqual(PostTranslationPlan.tableCell("x|y [z]"), "x｜y [z]", "표 셀은 마크다운이 아니라 이스케이프하지 않는다")
     }
 
+    // MARK: 글 — 도착한 블록부터
+
+    func testBlocksSwapOnlyOnceAllTheirPiecesArrive() throws {
+        let blocks = [
+            block("PARAGRAPH", "境界を**先に**引く。", order: 0),
+            block("CODE", #"{"lang":"swift","code":"let a = 1"}"#, order: 1),
+            block("LIST_BULLET", "- ドメイン\n- アダプター", order: 2),
+            block("H2", "ポート", order: 3),
+        ]
+        let plan = PostTranslationPlan(title: "題", blocks: blocks)
+        XCTAssertEqual(plan.texts, ["題", "境界を先に引く。", "ドメイン", "アダプター", "ポート"])
+
+        let none = try XCTUnwrap(plan.apply(partial: Array(repeating: nil, count: plan.texts.count)))
+        XCTAssertEqual(none.title, "題")
+        XCTAssertFalse(none.titleTranslated)
+        XCTAssertEqual(none.translatedBlocks, [])
+        XCTAssertEqual(none.blocks.map(\.content), blocks.map(\.content), "아무것도 안 왔는데 원문이 바뀜")
+
+        let some = try XCTUnwrap(plan.apply(partial: ["T(題)", "T(境界を先に引く。)", "T(ドメイン)", nil, "T(ポート)"]))
+        XCTAssertEqual(some.title, "T(題)")
+        XCTAssertTrue(some.titleTranslated)
+        XCTAssertEqual(some.translatedBlocks, [0, 3])
+        XCTAssertEqual(some.blocks[0].content, "T(境界を先に引く。)")
+        XCTAssertEqual(some.blocks[2].content, blocks[2].content, "목록이 항목 하나만 와도 바뀜")
+        XCTAssertEqual(some.blocks[3].content, "T(ポート)")
+
+        let titleLate = try XCTUnwrap(plan.apply(partial: [nil, "T(境界を先に引く。)", nil, nil, nil]))
+        XCTAssertEqual(titleLate.title, "題")
+        XCTAssertFalse(titleLate.titleTranslated)
+        XCTAssertEqual(titleLate.translatedBlocks, [0])
+
+        let all = try XCTUnwrap(plan.apply(partial: fake(plan.texts)))
+        XCTAssertEqual(all.translatedBlocks, [0, 2, 3])
+        XCTAssertEqual(all.blocks[2].content, "- T(ドメイン)\n- T(アダプター)")
+        XCTAssertNil(plan.apply(partial: [nil]), "개수가 어긋난 조각을 적용함")
+    }
+
+    func testACalloutBodyIsTheBlockThatSwaps() throws {
+        let blocks = [
+            block("QUOTE", "💡 **팁**", order: 0),
+            block("PARAGRAPH", "Keep the boundary first.", order: 1),
+        ]
+        let plan = PostTranslationPlan(title: "Title", blocks: blocks)
+        let applied = try XCTUnwrap(plan.apply(partial: [nil, "T(Keep the boundary first.)"]))
+        XCTAssertEqual(applied.translatedBlocks, [1])
+        XCTAssertEqual(applied.blocks[0].content, "💡 **팁**")
+    }
+
+    // MARK: 진행
+
+    private func request(_ key: String, _ texts: [String]) -> TranslationRequest {
+        TranslationRequest(
+            key: key, source: Locale.Language(identifier: "ja"), target: Locale.Language(identifier: "ko"), texts: texts)
+    }
+
+    func testProgressCountsArrivedPiecesOnce() {
+        let store = ContentTranslations.shared
+        let key = "progress-\(UUID())"
+        XCTAssertNil(store.progress(key))
+        store.begin(request(key, ["a", "b", "c"]))
+        XCTAssertEqual(store.progress(key), TranslationProgress(done: 0, total: 3))
+
+        store.receive(key, index: 2, text: "C")
+        store.receive(key, index: 2, text: "C again")
+        store.receive(key, index: 7, text: "nowhere")
+        XCTAssertEqual(store.progress(key), TranslationProgress(done: 1, total: 3))
+        XCTAssertEqual(store.partial(key), [nil, nil, "C"])
+
+        store.receive(key, index: 0, text: "A")
+        XCTAssertEqual(store.progress(key), TranslationProgress(done: 2, total: 3))
+        XCTAssertNil(store.shown(key), "다 오기 전에 번역됨으로 보임")
+
+        store.showOriginal(key)
+        XCTAssertNil(store.progress(key))
+        XCTAssertNil(store.partial(key))
+        store.receive(key, index: 1, text: "B")
+        XCTAssertNil(store.partial(key), "원문 보기 뒤에 늦게 온 조각이 되살아남")
+        XCTAssertFalse(store.showCached(key), "끝나지 않은 번역을 기억함")
+    }
+
+    private struct ScriptedTranslator: ContentTranslator {
+        let order: [Int]
+        var failAfter: Int?
+
+        func translate(
+            _ texts: [String], from source: Locale.Language, to target: Locale.Language,
+            received: (_ index: Int, _ text: String) -> Bool
+        ) async throws {
+            for (step, index) in order.enumerated() {
+                if step == failAfter { throw EchoTranslator.Failure() }
+                guard received(index, "T(\(texts[index]))") else { return }
+            }
+        }
+    }
+
+    func testResultsArrivingOutOfOrderLandInTheirPlace() async {
+        let store = ContentTranslations.shared
+        let key = "order-\(UUID())"
+        let req = request(key, ["a", "b", "c"])
+        store.begin(req)
+        await store.run(req, with: ScriptedTranslator(order: [2, 0, 1]), isCurrent: { true })
+        XCTAssertEqual(store.shown(key), ["T(a)", "T(b)", "T(c)"])
+        XCTAssertNil(store.progress(key))
+    }
+
+    func testAMissingPieceFallsBackToItsOriginal() async {
+        let store = ContentTranslations.shared
+        let key = "missing-\(UUID())"
+        let req = request(key, ["a", "b"])
+        store.begin(req)
+        await store.run(req, with: ScriptedTranslator(order: [1]), isCurrent: { true })
+        XCTAssertEqual(store.shown(key), ["a", "T(b)"])
+    }
+
+    func testAFailureMidwayRevertsAndSaysSo() async {
+        let store = ContentTranslations.shared
+        let key = "midway-\(UUID())"
+        let req = request(key, ["a", "b", "c", "d"])
+        ToastCenter.shared.show("sentinel")
+        store.begin(req)
+        await store.run(req, with: ScriptedTranslator(order: [0, 1, 2, 3], failAfter: 2), isCurrent: { true })
+        XCTAssertNil(store.phases[key], "중간에 실패했는데 번역 중으로 남음")
+        XCTAssertNil(store.partial(key), "중간에 실패했는데 반쪽 번역이 남음")
+        XCTAssertEqual(ToastCenter.shared.message, String(localized: "번역하지 못했어요"))
+        XCTAssertFalse(store.showCached(key))
+    }
+
+    func testCancellingStopsQuietly() async {
+        let store = ContentTranslations.shared
+        let key = "cancel-\(UUID())"
+        let req = request(key, ["a", "b", "c", "d"])
+        ToastCenter.shared.show("sentinel")
+        store.begin(req)
+        var delivered = 0
+        await store.run(req, with: ScriptedTranslator(order: [0, 1, 2, 3]), isCurrent: {
+            delivered += 1
+            if delivered == 3 { store.showOriginal(key) }
+            return true
+        })
+        XCTAssertNil(store.phases[key])
+        XCTAssertEqual(ToastCenter.shared.message, "sentinel", "원문 보기로 멈춘 번역을 실패라고 알림")
+        XCTAssertFalse(store.showCached(key))
+    }
+
+    func testAStoppedTranslationCanStartAgain() async {
+        let store = ContentTranslations.shared
+        let key = "restart-\(UUID())"
+        let first = request(key, ["a", "b"])
+        store.begin(first)
+        await store.run(first, with: ScriptedTranslator(order: [0, 1]), isCurrent: {
+            store.showOriginal(key)
+            return true
+        })
+        XCTAssertNil(store.phases[key])
+        XCTAssertFalse(store.showCached(key))
+
+        let second = request(key, ["a", "b"])
+        store.begin(second)
+        XCTAssertEqual(store.progress(key), TranslationProgress(done: 0, total: 2), "멈춘 번역의 조각이 다시 시작한 번역에 남음")
+        await store.run(second, with: ScriptedTranslator(order: [1, 0]), isCurrent: { true })
+        XCTAssertEqual(store.shown(key), ["T(a)", "T(b)"], "원문 보기로 멈춘 뒤 다시 번역하면 끝나지 않음")
+    }
+
+    func testTheMockTranslatorStreamsOnePieceAtATime() async throws {
+        var seen: [Int] = []
+        try await EchoTranslator(delay: .zero).translate(
+            ["a", "b", "c"], from: Locale.Language(identifier: "ja"), to: Locale.Language(identifier: "ko")
+        ) { index, text in
+            seen.append(index)
+            XCTAssertEqual(text, "[ko] " + ["a", "b", "c"][index])
+            return index < 1
+        }
+        XCTAssertEqual(seen, [0, 1], "멈추라고 했는데 계속 보냄")
+    }
+
     // MARK: 실패
 
     func testAFailedOrShortTranslationKeepsTheOriginalAndSaysSo() {
         let store = ContentTranslations.shared
-        store.begin("fail-nil")
+        store.begin(request("fail-nil", ["a"]))
         store.finish("fail-nil", nil, expected: 1)
         XCTAssertNil(store.phases["fail-nil"], "실패한 번역이 번역 중으로 남음")
         XCTAssertEqual(ToastCenter.shared.message, String(localized: "번역하지 못했어요"), "번역이 실패해도 알리지 않음")
 
-        store.begin("fail-short")
+        store.begin(request("fail-short", ["a", "b"]))
         store.finish("fail-short", ["only one"], expected: 2)
         XCTAssertNil(store.phases["fail-short"], "개수가 어긋난 결과를 번역됨으로 보임")
         XCTAssertFalse(store.showCached("fail-short"), "개수가 어긋난 결과를 기억해 다음에 반쪽 번역이 뜸")
 
-        store.begin("ok")
+        store.begin(request("ok", ["a"]))
         store.finish("ok", ["T"], expected: 1)
         XCTAssertEqual(store.shown("ok"), ["T"])
+    }
+
+    // MARK: 잠긴 글
+
+    private func detail(locked: Bool) throws -> PublicPostDetail {
+        let lock = locked ? #","audience":"PASSWORD","locked":{"reason":"PASSWORD"}"# : #","audience":"PASSWORD""#
+        let body = locked ? "비밀번호가 걸린 글이에요" : "境界を先に引き、実装はその外側へ押し出す。"
+        let json = """
+            {"author":{"id":3,"username":"writer","bio":null,"avatarUrl":null},\
+            "post":{"id":42,"slug":"memo","title":"境界を先に引く","excerpt":null,"ogImageUrl":null,"languageTag":"ja",\
+            "tags":[],"likeCount":0,"publishedAt":"2026-10-16T01:00:00Z","lastEditedAt":null,"pinned":false\(lock)},\
+            "blocks":[{"type":"PARAGRAPH","content":"\(body)","blockOrder":0}],"series":null}
+            """
+        return try JSONDecoder.blog.decode(PublicPostDetail.self, from: Data(json.utf8))
+    }
+
+    func testALockedPostIsNotOfferedForTranslation() throws {
+        XCTAssertNil(PostTranslationOffer.sample(try detail(locked: true)), "잠긴 글의 서버 안내문으로 번역하기를 권함")
+        let open = try XCTUnwrap(PostTranslationOffer.sample(try detail(locked: false)))
+        XCTAssertTrue(open.hasPrefix("境界を先に引く\n"))
+    }
+
+    func testATranslationNeverShowsOverALockedPost() throws {
+        let open = try detail(locked: false)
+        let plan = PostTranslationPlan(title: open.post.title, blocks: open.blocks)
+        let texts: [String?] = fake(plan.texts)
+        let applied = try XCTUnwrap(plan.apply(partial: texts))
+        let translated = TranslatedDetail(
+            key: "post-42-ko", texts: texts, applied: applied,
+            detail: open.replacing(title: applied.title, blocks: applied.blocks))
+
+        XCTAssertNotNil(translated.shown(over: open, key: "post-42-ko", phase: .shown))
+        XCTAssertNotNil(translated.shown(over: open, key: "post-42-ko", phase: .translating))
+        XCTAssertNil(translated.shown(over: try detail(locked: true), key: "post-42-ko", phase: .shown), "잠긴 글 위에 잠기기 전 번역문을 보임")
+        XCTAssertNil(translated.shown(over: open, key: "post-42-ko", phase: nil))
+        XCTAssertNil(translated.shown(over: open, key: "post-42-en", phase: .shown))
+    }
+
+    func testLockingForgetsTheTranslationQuietly() async {
+        let store = ContentTranslations.shared
+        let running = "lock-running-\(UUID())"
+        let req = request(running, ["a", "b", "c", "d"])
+        ToastCenter.shared.show("sentinel")
+        store.begin(req)
+        var delivered = 0
+        await store.run(req, with: ScriptedTranslator(order: [0, 1, 2, 3]), isCurrent: {
+            delivered += 1
+            if delivered == 2 { store.forget(running) }
+            return true
+        })
+        XCTAssertNil(store.phases[running], "잠긴 뒤에도 번역이 이어짐")
+        XCTAssertNil(store.partial(running))
+        XCTAssertFalse(store.showCached(running), "잠기는 사이 끝난 번역을 기억함")
+        XCTAssertEqual(ToastCenter.shared.message, "sentinel", "잠겨서 멈춘 번역을 실패라고 알림")
+
+        let done = "lock-done-\(UUID())"
+        store.begin(request(done, ["a"]))
+        store.finish(done, ["T"], expected: 1)
+        store.forget(done)
+        XCTAssertNil(store.phases[done])
+        XCTAssertFalse(store.showCached(done), "잠긴 글의 번역을 다시 열면 그대로 보임")
     }
 }

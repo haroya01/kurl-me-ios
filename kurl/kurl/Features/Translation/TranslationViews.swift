@@ -17,13 +17,10 @@ struct NoteTranslationLine: View {
             switch phase {
             case .translating:
                 Text("번역하는 중…")
+                original
             case .shown:
                 Text("\(TranslationGate.displayName(source))에서 번역됨")
-                Text(verbatim: "·")
-                Button("원문 보기", action: showOriginal)
-                    .buttonStyle(.borderless)
-                    .tint(Palette.ink)
-                    .accessibilityIdentifier("note.original.\(noteId)")
+                original
             case nil:
                 Button("번역 보기", action: translate)
                     .buttonStyle(.borderless)
@@ -35,5 +32,13 @@ struct NoteTranslationLine: View {
         .foregroundStyle(Palette.secondary)
         .padding(.top, 4)
         .accessibilityElement(children: .contain)
+    }
+
+    @ViewBuilder private var original: some View {
+        Text(verbatim: "·")
+        Button("원문 보기", action: showOriginal)
+            .buttonStyle(.borderless)
+            .tint(Palette.ink)
+            .accessibilityIdentifier("note.original.\(noteId)")
     }
 }

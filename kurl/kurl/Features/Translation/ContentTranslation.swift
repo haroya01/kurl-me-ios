@@ -94,6 +94,12 @@ struct PostTranslationOffer: Equatable {
     let direct: Locale.Language?
     let choices: [Choice]
 
+    static func sample(_ detail: PublicPostDetail) -> String? {
+        guard detail.post.locked == nil else { return nil }
+        return ([detail.post.title] + detail.blocks.lazy.filter { $0.kind == .paragraph }.prefix(4)
+            .map { PostTranslationPlan.plain($0.content ?? "") }).joined(separator: "\n")
+    }
+
     static func make(
         language: Locale.Language,
         preferred: [String] = Locale.preferredLanguages,
@@ -190,10 +196,23 @@ private struct Trimmed {
 // MARK: 글
 
 struct PostTranslationPlan {
+    struct Applied {
+        let title: String
+        let blocks: [PostBlock]
+        let titleTranslated: Bool
+        let translatedBlocks: Set<Int>
+    }
+
     private enum Slot {
         case whole(blockIndex: Int, prefix: String)
         case lines(blockIndex: Int, lines: [Line])
         case jsonItems(blockIndex: Int, items: [(marker: String, translated: Bool)])
+
+        var blockIndex: Int {
+            switch self {
+            case let .whole(index, _), let .lines(index, _), let .jsonItems(index, _): index
+            }
+        }
     }
 
     private struct Line {
@@ -203,15 +222,18 @@ struct PostTranslationPlan {
     }
 
     let texts: [String]
+    private let title: String
     private let blocks: [PostBlock]
-    private let slots: [Slot]
+    private let slots: [(slot: Slot, segments: Range<Int>)]
 
     init(title: String, blocks: [PostBlock]) {
         var texts = [title]
-        var slots: [Slot] = []
+        var slots: [(slot: Slot, segments: Range<Int>)] = []
         for (index, block) in blocks.enumerated() {
             let content = block.content ?? ""
             let next = index + 1 < blocks.count ? blocks[index + 1] : nil
+            let start = texts.count
+            var slot: Slot?
             switch block.kind {
             case .paragraph:
                 if BlockView.isThematicBreak(content) || InlineImageMarkdown.containsImage(content) { continue }
@@ -219,15 +241,15 @@ struct PostTranslationPlan {
                     let text = Self.plain(sub.text)
                     guard Self.hasLetters(text) else { continue }
                     texts.append(text)
-                    slots.append(.whole(blockIndex: index, prefix: String(repeating: "#", count: sub.level) + " "))
+                    slot = .whole(blockIndex: index, prefix: String(repeating: "#", count: sub.level) + " ")
                 } else if Self.hasLetters(content) {
                     texts.append(Self.plain(content))
-                    slots.append(.whole(blockIndex: index, prefix: ""))
+                    slot = .whole(blockIndex: index, prefix: "")
                 }
             case .h1, .h2, .h3:
                 guard Self.hasLetters(content) else { continue }
                 texts.append(Self.plain(content))
-                slots.append(.whole(blockIndex: index, prefix: ""))
+                slot = .whole(blockIndex: index, prefix: "")
             case .quote:
                 if BlockView.isCalloutLabel(block, next: next) { continue }
                 let lines = content.components(separatedBy: "\n")
@@ -235,10 +257,10 @@ struct PostTranslationPlan {
                     let rest = lines.dropFirst().joined(separator: "\n")
                     guard Self.hasLetters(rest) else { continue }
                     texts.append(Self.plain(rest))
-                    slots.append(.whole(blockIndex: index, prefix: first + "\n"))
+                    slot = .whole(blockIndex: index, prefix: first + "\n")
                 } else if Self.hasLetters(content) {
                     texts.append(Self.plain(content))
-                    slots.append(.whole(blockIndex: index, prefix: ""))
+                    slot = .whole(blockIndex: index, prefix: "")
                 }
             case .listBullet, .listNumbered:
                 if let data = content.data(using: .utf8), let items = try? JSONDecoder().decode([String].self, from: data) {
@@ -249,7 +271,7 @@ struct PostTranslationPlan {
                         if translatable { texts.append(Self.plain(text)) }
                         markers.append((translatable ? marker : item, translatable))
                     }
-                    slots.append(.jsonItems(blockIndex: index, items: markers))
+                    slot = .jsonItems(blockIndex: index, items: markers)
                 } else {
                     var lines: [Line] = []
                     for raw in content.components(separatedBy: "\n") {
@@ -258,7 +280,7 @@ struct PostTranslationPlan {
                         if translatable { texts.append(Self.plain(text)) }
                         lines.append(Line(prefix: translatable ? prefix : raw, cells: nil, translatable: translatable))
                     }
-                    slots.append(.lines(blockIndex: index, lines: lines))
+                    slot = .lines(blockIndex: index, lines: lines)
                 }
             case .table:
                 var lines: [Line] = []
@@ -271,62 +293,60 @@ struct PostTranslationPlan {
                     for cell in cells where Self.hasLetters(cell) { texts.append(cell) }
                     lines.append(Line(prefix: "", cells: cells, translatable: true))
                 }
-                slots.append(.lines(blockIndex: index, lines: lines))
+                slot = .lines(blockIndex: index, lines: lines)
             case .image, .ctaRef, .divider, .embed, .code, .unknown:
                 continue
             }
+            if let slot, texts.count > start {
+                slots.append((slot, start..<texts.count))
+            }
         }
         self.texts = texts
+        self.title = title
         self.blocks = blocks
         self.slots = slots
     }
 
     func apply(_ translations: [String]) -> (title: String, blocks: [PostBlock])? {
-        guard translations.count == texts.count, let title = translations.first else { return nil }
-        var remaining = translations.dropFirst()
+        apply(partial: translations).map { ($0.title, $0.blocks) }
+    }
+
+    func apply(partial translations: [String?]) -> Applied? {
+        guard translations.count == texts.count else { return nil }
         var blocks = self.blocks
-        for slot in slots {
-            switch slot {
-            case let .whole(index, prefix):
-                guard let next = remaining.popFirst() else { return nil }
-                blocks[index] = blocks[index].withContent(prefix + Self.escaped(next))
-            case let .jsonItems(index, items):
-                var out: [String] = []
-                for item in items {
-                    if item.translated {
-                        guard let next = remaining.popFirst() else { return nil }
-                        out.append(item.marker + Self.escaped(next))
-                    } else {
-                        out.append(item.marker)
-                    }
-                }
-                let json = (try? JSONEncoder().encode(out)).flatMap { String(data: $0, encoding: .utf8) } ?? ""
-                blocks[index] = blocks[index].withContent(json)
-            case let .lines(index, lines):
-                var out: [String] = []
-                for line in lines {
-                    if let cells = line.cells {
-                        var row: [String] = []
-                        for cell in cells {
-                            if Self.hasLetters(cell) {
-                                guard let next = remaining.popFirst() else { return nil }
-                                row.append(Self.tableCell(next))
-                            } else {
-                                row.append(cell)
-                            }
-                        }
-                        out.append("| " + row.joined(separator: " | ") + " |")
-                    } else if line.translatable {
-                        guard let next = remaining.popFirst() else { return nil }
-                        out.append(line.prefix + Self.escaped(next))
-                    } else {
-                        out.append(line.prefix)
-                    }
-                }
-                blocks[index] = blocks[index].withContent(out.joined(separator: "\n"))
-            }
+        var translatedBlocks: Set<Int> = []
+        for (slot, segments) in slots {
+            let arrived = translations[segments].compactMap { $0 }
+            guard arrived.count == segments.count else { continue }
+            var remaining = arrived[...]
+            let index = slot.blockIndex
+            blocks[index] = blocks[index].withContent(Self.content(slot, &remaining))
+            translatedBlocks.insert(index)
         }
-        return (title, blocks)
+        let title = translations.first ?? nil
+        return Applied(
+            title: title ?? self.title, blocks: blocks,
+            titleTranslated: title != nil, translatedBlocks: translatedBlocks)
+    }
+
+    private static func content(_ slot: Slot, _ remaining: inout ArraySlice<String>) -> String {
+        switch slot {
+        case let .whole(_, prefix):
+            return prefix + escaped(remaining.popFirst() ?? "")
+        case let .jsonItems(_, items):
+            let out = items.map { item in
+                item.translated ? item.marker + escaped(remaining.popFirst() ?? "") : item.marker
+            }
+            return (try? JSONEncoder().encode(out)).flatMap { String(data: $0, encoding: .utf8) } ?? ""
+        case let .lines(_, lines):
+            return lines.map { line in
+                if let cells = line.cells {
+                    let row = cells.map { hasLetters($0) ? tableCell(remaining.popFirst() ?? $0) : $0 }
+                    return "| " + row.joined(separator: " | ") + " |"
+                }
+                return line.translatable ? line.prefix + escaped(remaining.popFirst() ?? "") : line.prefix
+            }.joined(separator: "\n")
+        }
     }
 
     static func plain(_ markdown: String) -> String {
@@ -373,45 +393,77 @@ struct PostTranslationPlan {
     }
 }
 
+struct TranslatedDetail {
+    let key: String
+    let texts: [String?]
+    let applied: PostTranslationPlan.Applied
+    let detail: PublicPostDetail
+
+    func shown(over current: PublicPostDetail, key: String, phase: ContentTranslations.Phase?) -> TranslatedDetail? {
+        current.post.locked == nil && phase != nil && self.key == key ? self : nil
+    }
+}
+
 // MARK: 번역기 — 목 모드는 가짜(시뮬레이터·테스트엔 실제 번역 모델이 없다)
 
 protocol ContentTranslator {
-    func translate(_ texts: [String], from source: Locale.Language, to target: Locale.Language) async throws -> [String]
+    /// `received` 가 false 를 돌려주면 남은 요청을 버리고 끝낸다.
+    func translate(
+        _ texts: [String], from source: Locale.Language, to target: Locale.Language,
+        received: (_ index: Int, _ text: String) -> Bool
+    ) async throws
 }
 
 struct EchoTranslator: ContentTranslator {
-    var fails = false
+    struct Failure: Error {}
 
-    func translate(_ texts: [String], from source: Locale.Language, to target: Locale.Language) async throws -> [String] {
-        try await Task.sleep(for: .milliseconds(250))
-        if fails { throw CancellationError() }
+    var fails = false
+    var delay: Duration = .milliseconds(150)
+
+    func translate(
+        _ texts: [String], from source: Locale.Language, to target: Locale.Language,
+        received: (_ index: Int, _ text: String) -> Bool
+    ) async throws {
         let tag = target.languageCode?.identifier ?? "?"
-        return texts.map { "[\(tag)] \($0)" }
+        for (index, text) in texts.enumerated() {
+            try await Task.sleep(for: delay)
+            if fails, index >= texts.count / 2 { throw Failure() }
+            guard received(index, "[\(tag)] \(text)") else { return }
+        }
     }
 }
 
 struct SessionTranslator: ContentTranslator {
     let session: TranslationSession
 
-    func translate(_ texts: [String], from source: Locale.Language, to target: Locale.Language) async throws -> [String] {
+    func translate(
+        _ texts: [String], from source: Locale.Language, to target: Locale.Language,
+        received: (_ index: Int, _ text: String) -> Bool
+    ) async throws {
         let requests = texts.enumerated().map { TranslationSession.Request(sourceText: $1, clientIdentifier: String($0)) }
-        var out = texts
-        for response in try await session.translations(from: requests) {
-            if let id = response.clientIdentifier.flatMap(Int.init), out.indices.contains(id) {
-                out[id] = response.targetText
+        for try await response in session.translate(batch: requests) {
+            guard let id = response.clientIdentifier.flatMap(Int.init), texts.indices.contains(id) else { continue }
+            guard received(id, response.targetText) else {
+                session.cancel()
+                return
             }
         }
-        return out
     }
 }
 
 // MARK: 세션 동안의 번역 기억
 
 struct TranslationRequest: Equatable {
+    let id = UUID()
     let key: String
     let source: Locale.Language
     let target: Locale.Language
     let texts: [String]
+}
+
+struct TranslationProgress: Equatable {
+    let done: Int
+    let total: Int
 }
 
 @MainActor
@@ -422,6 +474,7 @@ final class ContentTranslations {
     enum Phase { case translating, shown }
 
     private(set) var phases: [String: Phase] = [:]
+    private var partials: [String: [String?]] = [:]
     private var results: [String: [String]] = [:]
     private var availability: [String: Bool] = [:]
 
@@ -441,6 +494,14 @@ final class ContentTranslations {
         phases[key] == .shown ? results[key] : nil
     }
 
+    func partial(_ key: String) -> [String?]? {
+        phases[key] == .translating ? partials[key] : nil
+    }
+
+    func progress(_ key: String) -> TranslationProgress? {
+        partial(key).map { TranslationProgress(done: $0.count { $0 != nil }, total: $0.count) }
+    }
+
     func showCached(_ key: String) -> Bool {
         guard results[key] != nil else { return false }
         phases[key] = .shown
@@ -448,11 +509,21 @@ final class ContentTranslations {
         return true
     }
 
-    func begin(_ key: String) {
-        phases[key] = .translating
+    func begin(_ request: TranslationRequest) {
+        phases[request.key] = .translating
+        partials[request.key] = Array(repeating: nil, count: request.texts.count)
+    }
+
+    func receive(_ key: String, index: Int, text: String) {
+        guard phases[key] == .translating, var partial = partials[key],
+              partial.indices.contains(index), partial[index] == nil
+        else { return }
+        partial[index] = text
+        partials[key] = partial
     }
 
     func finish(_ key: String, _ translations: [String]?, expected: Int) {
+        partials[key] = nil
         guard let translations, translations.count == expected else {
             phases[key] = nil
             ToastCenter.shared.show(String(localized: "번역하지 못했어요"))
@@ -464,8 +535,32 @@ final class ContentTranslations {
     }
 
     func showOriginal(_ key: String) {
+        partials[key] = nil
         phases[key] = nil
         announce(String(localized: "원문을 보여 줘요"))
+    }
+
+    func forget(_ key: String) {
+        partials[key] = nil
+        phases[key] = nil
+        results[key] = nil
+    }
+
+    func run(_ request: TranslationRequest, with translator: some ContentTranslator, isCurrent: () -> Bool) async {
+        let key = request.key
+        func live() -> Bool { isCurrent() && phases[key] == .translating }
+        do {
+            try await translator.translate(request.texts, from: request.source, to: request.target) { index, text in
+                guard live() else { return false }
+                receive(key, index: index, text: text)
+                return true
+            }
+        } catch {
+            if live() { finish(key, nil, expected: request.texts.count) }
+            return
+        }
+        guard live(), let partial = partials[key] else { return }
+        finish(key, zip(partial, request.texts).map { $0 ?? $1 }, expected: request.texts.count)
     }
 
     private func announce(_ message: String) {
@@ -478,33 +573,29 @@ private struct TranslationRunner: ViewModifier {
     @State private var configuration: TranslationSession.Configuration?
 
     func body(content: Content) -> some View {
-        if Config.useMocks {
-            content.task(id: request) {
+        content
+            .onChange(of: request) { _, request in
                 guard let request else { return }
-                let translations = try? await EchoTranslator(fails: Config.translationFails)
-                    .translate(request.texts, from: request.source, to: request.target)
-                ContentTranslations.shared.finish(request.key, translations, expected: request.texts.count)
-                self.request = nil
+                let next = TranslationSession.Configuration(source: request.source, target: request.target)
+                if configuration == next {
+                    configuration?.invalidate()
+                } else {
+                    configuration = next
+                }
             }
-        } else {
-            content
-                .onChange(of: request) { _, request in
-                    guard let request else { return }
-                    let next = TranslationSession.Configuration(source: request.source, target: request.target)
-                    if configuration == next {
-                        configuration?.invalidate()
-                    } else {
-                        configuration = next
-                    }
+            .translationTask(configuration) { session in
+                guard let request else { return }
+                if Config.useMocks {
+                    await run(request, with: EchoTranslator(fails: Config.translationFails, delay: Config.translationDelay))
+                } else {
+                    await run(request, with: SessionTranslator(session: session))
                 }
-                .translationTask(configuration) { session in
-                    guard let request else { return }
-                    let translations = try? await SessionTranslator(session: session)
-                        .translate(request.texts, from: request.source, to: request.target)
-                    ContentTranslations.shared.finish(request.key, translations, expected: request.texts.count)
-                    self.request = nil
-                }
-        }
+            }
+    }
+
+    private func run(_ request: TranslationRequest, with translator: some ContentTranslator) async {
+        await ContentTranslations.shared.run(request, with: translator) { self.request == request }
+        if self.request == request { self.request = nil }
     }
 }
 
