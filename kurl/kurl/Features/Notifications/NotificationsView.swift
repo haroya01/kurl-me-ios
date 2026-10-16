@@ -10,6 +10,7 @@ import UserNotifications
 /// 미읽음은 왼쪽 그린 점 하나로 조용히 표시한다.
 struct NotificationsView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.tabBarVisibility) private var tabBarVisibility
     @State private var filter: NotificationFilter = .all
     @State private var items: [AppNotification] = []
     @State private var nextCursor: Int64?
@@ -68,6 +69,7 @@ struct NotificationsView: View {
                 list
             }
         }
+        .safeAreaPadding(.bottom, tabBarVisibility == nil ? 0 : Metrics.tabBarReservedHeight)
         .navigationTitle("알림")
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
