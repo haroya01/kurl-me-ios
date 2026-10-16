@@ -547,27 +547,24 @@ private struct TranslationRunner: ViewModifier {
     @State private var configuration: TranslationSession.Configuration?
 
     func body(content: Content) -> some View {
-        if Config.useMocks {
-            content.task(id: request) {
+        content
+            .onChange(of: request) { _, request in
                 guard let request else { return }
-                await run(request, with: EchoTranslator(fails: Config.translationFails, delay: Config.translationDelay))
-            }
-        } else {
-            content
-                .onChange(of: request) { _, request in
-                    guard let request else { return }
-                    let next = TranslationSession.Configuration(source: request.source, target: request.target)
-                    if configuration == next {
-                        configuration?.invalidate()
-                    } else {
-                        configuration = next
-                    }
+                let next = TranslationSession.Configuration(source: request.source, target: request.target)
+                if configuration == next {
+                    configuration?.invalidate()
+                } else {
+                    configuration = next
                 }
-                .translationTask(configuration) { session in
-                    guard let request else { return }
+            }
+            .translationTask(configuration) { session in
+                guard let request else { return }
+                if Config.useMocks {
+                    await run(request, with: EchoTranslator(fails: Config.translationFails, delay: Config.translationDelay))
+                } else {
                     await run(request, with: SessionTranslator(session: session))
                 }
-        }
+            }
     }
 
     private func run(_ request: TranslationRequest, with translator: some ContentTranslator) async {
