@@ -1225,8 +1225,22 @@ enum MockBackend {
         }
         if parts.count >= 3, parts[0] == "posts", let pid = Int64(parts[1]),
            ["like", "bookmark", "comments", "highlights"].contains(parts[2]),
-           try audienceHidden(postId: pid, headers: headers) {
-            throw APIError.server(status: 404, code: "POST_NOT_FOUND", detail: "post not found")
+           let state = audienceState(postId: pid, headers: headers), state != .full,
+           !(method == "GET" && parts[2] == "bookmark") {
+            if state == .hidden {
+                throw APIError.server(status: 404, code: "POST_NOT_FOUND", detail: "post not found")
+            }
+            if method == "DELETE", parts.count == 3, parts[2] == "like" {
+                return json(["likeCount": 0, "liked": false])
+            }
+            if method == "DELETE", parts.count == 3, parts[2] == "bookmark" {
+                bookmarks.remove(pid)
+                return json(["bookmarked": false])
+            }
+            throw APIError.server(status: 403, code: "POST_LOCKED", detail: "post is locked")
+        }
+        if method == "GET", parts == ["public", "posts"], ProcessInfo.processInfo.arguments.contains("--audience-fixtures") {
+            return json(["items": audienceFeedItems(), "page": 0, "size": 20, "hasNext": false])
         }
 
         if method == "GET", parts == ["public", "link-preview"],
@@ -3473,6 +3487,9 @@ enum MockBackend {
         AudienceFixture(
             slug: "aud-region-open", id: 8307, audience: "PUBLIC", title: "다른 나라에서만 막힌 글",
             blockedCountries: ["JP", "US"]),
+        AudienceFixture(
+            slug: "aud-followers-region-open", id: 8308, audience: "FOLLOWERS", title: "팔로워와 나누는 여행 준비 메모",
+            blockedCountries: ["JP", "US"]),
     ]
 
     private enum MockAccess: Equatable {
@@ -3570,6 +3587,29 @@ enum MockBackend {
                 status: 429, code: "POST_PASSWORD_ATTEMPTS_EXCEEDED", detail: "too many password attempts")
         }
         throw APIError.http(status: 401)
+    }
+
+    private static func audienceState(postId: Int64, headers: [String: String]) -> MockAccess? {
+        guard let f = audienceFixtures.first(where: { $0.id == postId }) else { return nil }
+        return access(f, username: audienceAuthors[postId] ?? "reader_kim", headers: headers)
+    }
+
+    private static func audienceFeedItems() -> [[String: Any]] {
+        let region = audienceFixtures.first { $0.slug == "aud-region" }
+        var redacted = feedItem(id: region?.id ?? 8304, title: region?.title ?? "", slug: "aud-region", tags: [])
+        redacted["author"] = ["id": 3, "username": "reader_kim", "bio": NSNull(), "avatarUrl": NSNull()]
+        redacted["excerpt"] = NSNull()
+        redacted["likeCount"] = 0
+        redacted["audience"] = "PUBLIC"
+        redacted["regionRestricted"] = true
+        return [
+            feedItem(id: 8100, title: "헥사고날로 갈아탄 지 석 달, 무엇이 남았나", slug: "hexagonal-after-3-months"),
+            redacted,
+            feedItem(
+                id: 8101, title: "Liquid Glass, 유리 위에 유리를 얹지 않기",
+                slug: "liquid-glass-without-glass-on-glass",
+                excerpt: "iOS 26 글래스 효과를 쓰며 정한 한 가지 규칙과 그 코드.", tags: ["iOS"]),
+        ]
     }
 
     private static func audienceHidden(postId: Int64, headers: [String: String]) throws -> Bool {

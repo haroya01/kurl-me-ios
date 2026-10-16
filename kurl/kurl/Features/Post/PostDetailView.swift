@@ -1596,6 +1596,7 @@ private struct PostDetailReader: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityAddTraits(.isHeader)
 
+            let condition = PostConditionLabel.text(for: detail.post, isOwner: isOwnPost)
             NavigationLink(value: Route.author(username: detail.author.username)) {
                 Group {
                     if dynamicTypeSize.isAccessibilitySize {
@@ -1608,23 +1609,20 @@ private struct PostDetailReader: View {
                                     .typeScale(.meta)
                                     .foregroundStyle(Palette.secondary)
                             }
+                            if let condition {
+                                conditionText(condition)
+                            }
                         }
                     } else {
-                        HStack(spacing: 9) {
-                            AvatarView(author: detail.author, size: 28)
-                            Text(detail.author.username)
-                                .typeScale(.meta)
-                                .foregroundStyle(Palette.ink)
-                            if let date = detail.post.publishedAt {
-                                Text("·").foregroundStyle(Palette.faint)
-                                Text(date.mediumDate)
-                                    .typeScale(.meta)
-                                    .foregroundStyle(Palette.secondary)
+                        ViewThatFits(in: .horizontal) {
+                            bylineRow(detail, condition: condition)
+                            VStack(alignment: .leading, spacing: 4) {
+                                bylineRow(detail, condition: nil)
+                                if let condition {
+                                    conditionText(condition)
+                                        .padding(.leading, 37)
+                                }
                             }
-                            // 탭 가능한 행이라는 신호 — 어포던스 없는 링크는 없는 링크다.
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 11 * metaUnit, weight: .semibold))
-                                .foregroundStyle(Palette.faint)
                         }
                     }
                 }
@@ -1642,6 +1640,40 @@ private struct PostDetailReader: View {
 
             Hairline().padding(.top, 18)
         }
+    }
+
+    private func bylineRow(_ detail: PublicPostDetail, condition: String?) -> some View {
+        HStack(spacing: 9) {
+            AvatarView(author: detail.author, size: 28)
+            Text(detail.author.username)
+                .typeScale(.meta)
+                .foregroundStyle(Palette.ink)
+                .lineLimit(1)
+            if let date = detail.post.publishedAt {
+                Text("·").foregroundStyle(Palette.faint)
+                Text(date.mediumDate)
+                    .typeScale(.meta)
+                    .foregroundStyle(Palette.secondary)
+                    .lineLimit(1)
+            }
+            if let condition {
+                Text("·").foregroundStyle(Palette.faint)
+                conditionText(condition)
+                    .lineLimit(1)
+            }
+            // 탭 가능한 행이라는 신호 — 어포던스 없는 링크는 없는 링크다.
+            Image(systemName: "chevron.right")
+                .font(.system(size: 11 * metaUnit, weight: .semibold))
+                .foregroundStyle(Palette.faint)
+        }
+    }
+
+    private func conditionText(_ condition: String) -> some View {
+        Text(verbatim: condition)
+            .typeScale(.meta)
+            .foregroundStyle(Palette.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityIdentifier("post.condition")
     }
 
     private func metaLine(_ detail: PublicPostDetail) -> some View {
