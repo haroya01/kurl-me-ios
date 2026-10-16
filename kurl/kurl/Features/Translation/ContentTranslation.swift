@@ -20,7 +20,33 @@ nonisolated enum TranslationGate {
     }
 
     static func language(declared: String?, text: String) -> Locale.Language? {
-        (declared.flatMap { languageCode($0) } ?? detect(text)).map { Locale.Language(identifier: $0) }
+        let letters = text.unicodeScalars.filter { CharacterSet.letters.contains($0) }
+        guard letters.contains(where: { !isJamo($0) }) else { return nil }
+        if let code = declared.flatMap({ languageCode($0) }), writes(code, letters) {
+            return Locale.Language(identifier: code)
+        }
+        return detect(text).map { Locale.Language(identifier: $0) }
+    }
+
+    private static let latin: [ClosedRange<UInt32>] = [0x41...0x5A, 0x61...0x7A, 0xC0...0x24F, 0x1E00...0x1EFF]
+    private static let han: [ClosedRange<UInt32>] = [0x3400...0x4DBF, 0x4E00...0x9FFF]
+    private static let jamo: [ClosedRange<UInt32>] = [0x1100...0x11FF, 0x3130...0x318F]
+    private static let scripts: [String: [ClosedRange<UInt32>]] = [
+        "ko": jamo + [0xA960...0xA97F, 0xAC00...0xD7A3, 0xD7B0...0xD7FF],
+        "ja": [0x3040...0x30FF, 0x31F0...0x31FF, 0xFF66...0xFF9F] + han,
+        "zh": han,
+        "hi": [0x0900...0x097F],
+        "th": [0x0E00...0x0E7F],
+        "en": latin, "es": latin, "fr": latin, "de": latin, "pt": latin, "id": latin, "vi": latin,
+    ]
+
+    private static func isJamo(_ scalar: Unicode.Scalar) -> Bool {
+        jamo.contains { $0.contains(scalar.value) }
+    }
+
+    private static func writes(_ code: String, _ letters: String.UnicodeScalarView) -> Bool {
+        guard let ranges = scripts[code] else { return true }
+        return letters.contains { scalar in ranges.contains { $0.contains(scalar.value) } }
     }
 
     static func choices(for source: Locale.Language) -> [Locale.Language] {

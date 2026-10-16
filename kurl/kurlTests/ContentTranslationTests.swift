@@ -17,26 +17,57 @@ final class ContentTranslationTests: XCTestCase {
 
     // MARK: 언어 판정
 
+    private let ja = "境界を先に引く"
+    private let ko = "경계를 먼저 긋는다"
+    private let en = "Hexagonal ports, named after a long afternoon."
+
     func testADeclaredLanguageOutsideThePreferredOnesIsOffered() {
-        XCTAssertEqual(TranslationGate.source(declared: "ja", text: "", preferred: ["ko-KR"])?.languageCode?.identifier, "ja")
+        XCTAssertEqual(TranslationGate.source(declared: "ja", text: ja, preferred: ["ko-KR"])?.languageCode?.identifier, "ja")
     }
 
     func testTheDevicesFirstLanguageIsNotOffered() {
-        XCTAssertNil(TranslationGate.source(declared: "ko", text: "", preferred: ["ko-KR", "en-KR"]))
+        XCTAssertNil(TranslationGate.source(declared: "ko", text: ko, preferred: ["ko-KR", "en-KR"]))
         XCTAssertNil(TranslationGate.source(
             declared: nil, text: "Hexagonal ports, named after a long afternoon.", preferred: ["en-US"]))
     }
 
     func testALaterPreferredLanguageIsStillOffered() {
         XCTAssertEqual(
-            TranslationGate.source(declared: "en-US", text: "", preferred: ["ko-KR", "en-KR"])?.languageCode?.identifier, "en")
+            TranslationGate.source(declared: "en-US", text: en, preferred: ["ko-KR", "en-KR"])?.languageCode?.identifier, "en")
         XCTAssertEqual(
-            TranslationGate.source(declared: "ja", text: "", preferred: ["en-US", "ja-JP"])?.languageCode?.identifier, "ja")
+            TranslationGate.source(declared: "ja", text: ja, preferred: ["en-US", "ja-JP"])?.languageCode?.identifier, "ja")
     }
 
     func testThePostLanguageIsKnownEvenWhenTheDeviceReadsIt() {
-        XCTAssertEqual(TranslationGate.language(declared: "ko-KR", text: "")?.languageCode?.identifier, "ko")
+        XCTAssertEqual(TranslationGate.language(declared: "ko-KR", text: ko)?.languageCode?.identifier, "ko")
         XCTAssertNil(TranslationGate.language(declared: nil, text: "ok lol"))
+    }
+
+    private func code(_ declared: String?, _ text: String) -> String? {
+        TranslationGate.language(declared: declared, text: text)?.languageCode?.identifier
+    }
+
+    func testATagTheTextContradictsGivesWayToTheText() {
+        XCTAssertEqual(code("ja", "hello world, this is an English note."), "en")
+        XCTAssertEqual(code("ja", "오늘 회고에서 경계를 먼저 긋자는 얘기가 나왔다."), "ko")
+        XCTAssertEqual(code("en", "오늘 헥사고날 포트 이름 짓는 데 한 시간 썼다."), "ko")
+        XCTAssertNil(code("ja", "hello world"), "태그와 글자가 어긋나고 글자로도 못 정하는데 번역을 권함")
+    }
+
+    func testATagTheTextAgreesWithIsKept() {
+        XCTAssertEqual(code("ko", "React 18 hooks 정리. useEffect cleanup 타이밍"), "ko", "영어 낱말이 섞인 한국어 노트를 영어로 봄")
+        XCTAssertEqual(code("ja", "設計会議延長決定事項共有"), "ja")
+        XCTAssertEqual(code("ja", "おはよう"), "ja")
+        XCTAssertEqual(code("ko", "ㅋㅋ 오늘 좋다"), "ko")
+    }
+
+    func testTextWithoutWordsIsNotOffered() {
+        XCTAssertNil(code("ko", "ㅁㅇㄹㅁㄹ"))
+        XCTAssertNil(code("ko", "ㅓㅓㅓㅓㅓ"))
+        XCTAssertNil(code(nil, "ㄴㅇㅇㅇㄴㄴㄴㄴ"), "자모만 있는 노트를 한국어로 보고 번역을 권함")
+        XCTAssertNil(code("ko", "123 !!! 👍"))
+        XCTAssertNil(code("ja", ""), "번역할 낱말이 없는 노트에 번역을 권함")
+        XCTAssertNil(TranslationGate.source(declared: "ja", text: "", preferred: ["ko"]))
     }
 
     // MARK: 글 — 바로 번역 또는 언어 고르기
