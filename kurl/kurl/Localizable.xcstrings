@@ -669,6 +669,34 @@
         }
       }
     },
+    "%@ 제한": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restricted in %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ में प्रतिबंधित"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@で制限"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Giới hạn ở %@"
+          }
+        }
+      }
+    },
     "%@ 차단": {
       "localizations": {
         "en": {
@@ -7392,6 +7420,34 @@
         }
       }
     },
+    "링크로만 공개": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Link only"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "केवल लिंक से"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンクのみ公開"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chỉ qua liên kết"
+          }
+        }
+      }
+    },
     "링크를 바꾸지 못했어요": {
       "localizations": {
         "en": {
@@ -7948,6 +8004,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Mật khẩu"
+          }
+        }
+      }
+    },
+    "비밀번호 글": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Password-protected"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पासवर्ड से सुरक्षित"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パスワード付き"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Có mật khẩu"
           }
         }
       }
@@ -8960,6 +9044,34 @@
         }
       }
     },
+    "일부 나라 제한": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restricted in some countries"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कुछ देशों में प्रतिबंधित"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一部の国・地域で制限"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Giới hạn ở một số quốc gia"
+          }
+        }
+      }
+    },
     "자동저장에 실패했어요. %@": {
       "localizations": {
         "en": {
@@ -9376,6 +9488,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chưa có ghi chú nào từ người bạn theo dõi"
+          }
+        }
+      }
+    },
+    "팔로워 공개": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Followers only"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "केवल फ़ॉलोअर के लिए"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォロワー限定"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chỉ người theo dõi"
           }
         }
       }

@@ -57,7 +57,6 @@ final class FilteredNotificationStore {
 
 struct FilteredNotificationsView: View {
     @State private var store = FilteredNotificationStore.shared
-    @Environment(\.tabBarVisibility) private var tabBarVisibility
 
     var body: some View {
         ReadingColumn(spacing: 0) {
@@ -86,7 +85,7 @@ struct FilteredNotificationsView: View {
                 }
             }
         }
-        .safeAreaPadding(.bottom, tabBarVisibility == nil ? 0 : Metrics.tabBarReservedHeight)
+        .reservesTabBarSpace()
         .navigationTitle("걸러진 알림")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await store.load() }

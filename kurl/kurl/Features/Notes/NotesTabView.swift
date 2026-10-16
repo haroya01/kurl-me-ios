@@ -30,7 +30,7 @@ struct NotesTabView: View {
                 }
             }
             .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: choice.more)
-            .safeAreaPadding(.bottom, Metrics.tabBarReservedHeight)
+            .reservesTabBarSpace()
             .safeAreaBar(edge: .top) {
                 FeedHeaderBar(
                     items: NoteFeedKind.tabs,

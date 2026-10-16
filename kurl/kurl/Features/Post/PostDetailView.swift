@@ -75,6 +75,7 @@ private struct PostDetailReader: View {
     /// 커스텀 하단 탭바 숨김 상태 — 독이 탭바에 가리지 않게 예약 높이만큼 띄우되, 탭바가 스크롤로
     /// 사라지면 그 여백을 걷어 독이 허공에 뜨지 않게 한다(단독 상세에서만 있고, 덱 임베드엔 nil).
     @Environment(\.tabBarVisibility) private var tabBarVisibility
+    @Environment(\.tabBarReservedInset) private var tabBarReservedInset
     @Environment(\.readerInSheet) private var inSheet
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
@@ -208,8 +209,7 @@ private struct PostDetailReader: View {
     /// 바닥 근처에서 스크롤이 튄다. 탭 스택에 푸시된 단독 글에서만(env 있음·임베드 아님) 상수로
     /// 예약해, 바가 떠 있을 땐 끝맺음이 가리지 않고 바가 숨은 바닥에선 그 여백이 남아돌 뿐이다.
     private var pushedTabBarBottomInset: CGFloat {
-        guard !embedded, tabBarVisibility != nil else { return 0 }
-        return Metrics.tabBarReservedHeight
+        embedded ? 0 : tabBarReservedInset
     }
 
     /// 상단 크롬(뒤로·제목·⋯)을 하단 탭바와 동조해 숨길지 — 별도 임계값 없이 탭바의 스크롤
@@ -1353,7 +1353,7 @@ private struct PostDetailReader: View {
     @ViewBuilder
     private func content(_ detail: PublicPostDetail, translated: PostTranslationPlan.Applied?) -> some View {
         if let lock = detail.post.locked {
-            header(detail, titleTranslated: false)
+            AnyView(header(detail, titleTranslated: false))
             LockedPostGate(reason: lock.reason, author: detail.author, model: model)
             Color.clear.frame(height: 78 + pushedTabBarBottomInset)
         } else {
@@ -1363,7 +1363,7 @@ private struct PostDetailReader: View {
 
     @ViewBuilder
     private func readableContent(_ detail: PublicPostDetail, translated: PostTranslationPlan.Applied?) -> some View {
-        header(detail, titleTranslated: translated?.titleTranslated ?? false)
+        AnyView(header(detail, titleTranslated: translated?.titleTranslated ?? false))
         if model.isOfflineCopy {
             // 기기 사본 렌더 중 — 조용한 한 줄. 댓글·좋아요가 비어 있는 이유까지 여기서 설명된다.
             HStack(spacing: 6) {
@@ -1635,6 +1635,8 @@ private struct PostDetailReader: View {
                 .id(titleTranslated)
                 .transition(.opacity)
 
+            let conditions = PostConditionLabel.parts(for: detail.post, isOwner: isOwnPost)
+            let condition = conditions.isEmpty ? nil : conditions.joined(separator: " · ")
             NavigationLink(value: Route.author(username: detail.author.username)) {
                 Group {
                     if dynamicTypeSize.isAccessibilitySize {
@@ -1647,23 +1649,28 @@ private struct PostDetailReader: View {
                                     .typeScale(.meta)
                                     .foregroundStyle(Palette.secondary)
                             }
+                            ForEach(conditions, id: \.self) { part in
+                                conditionText(part)
+                            }
                         }
                     } else {
-                        HStack(spacing: 9) {
-                            AvatarView(author: detail.author, size: 28)
-                            Text(detail.author.username)
-                                .typeScale(.meta)
-                                .foregroundStyle(Palette.ink)
-                            if let date = detail.post.publishedAt {
-                                Text("·").foregroundStyle(Palette.faint)
-                                Text(date.mediumDate)
-                                    .typeScale(.meta)
-                                    .foregroundStyle(Palette.secondary)
+                        ViewThatFits(in: .horizontal) {
+                            bylineRow(detail, condition: condition)
+                            VStack(alignment: .leading, spacing: 4) {
+                                bylineRow(detail, condition: nil)
+                                if let condition {
+                                    ViewThatFits(in: .horizontal) {
+                                        conditionText(condition)
+                                            .lineLimit(1)
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            ForEach(conditions, id: \.self) { part in
+                                                conditionText(part)
+                                            }
+                                        }
+                                    }
+                                    .padding(.leading, 37)
+                                }
                             }
-                            // 탭 가능한 행이라는 신호 — 어포던스 없는 링크는 없는 링크다.
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 11 * metaUnit, weight: .semibold))
-                                .foregroundStyle(Palette.faint)
                         }
                     }
                 }
@@ -1681,6 +1688,40 @@ private struct PostDetailReader: View {
 
             Hairline().padding(.top, 18)
         }
+    }
+
+    private func bylineRow(_ detail: PublicPostDetail, condition: String?) -> some View {
+        HStack(spacing: 9) {
+            AvatarView(author: detail.author, size: 28)
+            Text(detail.author.username)
+                .typeScale(.meta)
+                .foregroundStyle(Palette.ink)
+                .lineLimit(1)
+            if let date = detail.post.publishedAt {
+                Text("·").foregroundStyle(Palette.faint)
+                Text(date.mediumDate)
+                    .typeScale(.meta)
+                    .foregroundStyle(Palette.secondary)
+                    .lineLimit(1)
+            }
+            if let condition {
+                Text("·").foregroundStyle(Palette.faint)
+                conditionText(condition)
+                    .lineLimit(1)
+            }
+            // 탭 가능한 행이라는 신호 — 어포던스 없는 링크는 없는 링크다.
+            Image(systemName: "chevron.right")
+                .font(.system(size: 11 * metaUnit, weight: .semibold))
+                .foregroundStyle(Palette.faint)
+        }
+    }
+
+    private func conditionText(_ condition: String) -> some View {
+        Text(verbatim: condition)
+            .typeScale(.meta)
+            .foregroundStyle(Palette.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityIdentifier("post.condition")
     }
 
     private func metaLine(_ detail: PublicPostDetail) -> some View {

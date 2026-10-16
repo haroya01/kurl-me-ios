@@ -25,7 +25,6 @@ struct CollectionDetailView: View {
     // 돌아오면 현재 스텝 강조·진행률·연속성 바가 곧바로 갱신된다. 서버 0.
     @State private var resume = PathResumeStore.shared
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.tabBarVisibility) private var tabBarVisibility
 
     /// 내 컬렉션일 때만 수정·삭제·끊기 — 남의 공개 컬렉션은 보기만.
     private var isOwner: Bool {
@@ -71,7 +70,7 @@ struct CollectionDetailView: View {
                 failedState
             }
         }
-        .safeAreaPadding(.bottom, tabBarVisibility == nil ? 0 : Metrics.tabBarReservedHeight)
+        .reservesTabBarSpace()
         .navigationTitle(detail?.title ?? String(localized: "컬렉션"))
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(for: Route.self) { RouteView(route: $0) }

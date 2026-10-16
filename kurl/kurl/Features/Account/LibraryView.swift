@@ -9,7 +9,6 @@ import SwiftUI
 /// 내 계정(= 내 블로그) 화면의 오른쪽 헤더 버튼으로 들어온다.
 struct LibraryView: View {
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
-    @Environment(\.tabBarVisibility) private var tabBarVisibility
 
     var body: some View {
         ReadingColumn(spacing: 0) {
@@ -30,7 +29,7 @@ struct LibraryView: View {
             }
             .padding(.top, 8)
         }
-        .safeAreaPadding(.bottom, tabBarVisibility == nil ? 0 : Metrics.tabBarReservedHeight)
+        .reservesTabBarSpace()
         .navigationTitle("서재")
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)

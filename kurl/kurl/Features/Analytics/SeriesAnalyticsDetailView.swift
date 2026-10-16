@@ -13,7 +13,6 @@ struct SeriesAnalyticsDetailView: View {
     let seriesTitle: String
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.tabBarVisibility) private var tabBarVisibility
     @ScaledMetric(relativeTo: .title2) private var heroSize: CGFloat = 34
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
     @State private var phase: LoadState<SeriesAnalyticsDetail> = .idle
@@ -37,7 +36,7 @@ struct SeriesAnalyticsDetailView: View {
                 content(detail)
             }
         }
-        .safeAreaPadding(.bottom, tabBarVisibility == nil ? 0 : Metrics.tabBarReservedHeight)
+        .reservesTabBarSpace()
         .navigationTitle(seriesTitle)
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)

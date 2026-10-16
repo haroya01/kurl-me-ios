@@ -786,6 +786,7 @@ struct ComposeView: View {
 
     private var publishSheet: some View {
         NavigationStack {
+            ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
                     if takenDown {
@@ -817,6 +818,7 @@ struct ComposeView: View {
                     sheetField("공개 범위") {
                         audienceControl
                     }
+                    .id("publish.audience")
                     .modifier(QuietAppear(index: 2))
 
                     sheetField("국가 제한") {
@@ -885,6 +887,12 @@ struct ComposeView: View {
 
                 }
                 .padding(20)
+            }
+            .task {
+                guard Config.consumeLaunchValue(after: "--scroll") == "audience" else { return }
+                try? await Task.sleep(for: .milliseconds(600))
+                proxy.scrollTo("publish.audience", anchor: .top)
+            }
             }
             .scrollIndicators(.hidden)
             .background(Palette.readingBg)

@@ -52,15 +52,19 @@ enum HighlightsAPI {
 
     /// 공개 — 한 하이라이트의 답글 스레드(오래된 순). 작성자 메모가 오프너, 답글이 그 아래.
     static func replies(highlightId: Int64) async throws -> [HighlightReplyView] {
-        try await client.getAsViewer("/public/highlights/\(highlightId)/replies")
+        let replies: [HighlightReplyView] = try await client.getAsViewer("/public/highlights/\(highlightId)/replies")
+        PostAccess.shared.link(replies: replies.map(\.id), ofHighlight: highlightId)
+        return replies
     }
 
     /// 인증 — 하이라이트에 답글(작성자·@멘션에게 알림).
     @discardableResult
     static func reply(highlightId: Int64, body: String) async throws -> HighlightReplyView {
         struct Body: Encodable { let body: String }
-        return try await client.post(
+        let created: HighlightReplyView = try await client.post(
             "/highlights/\(highlightId)/replies", body: Body(body: body), authenticated: true)
+        PostAccess.shared.link(replies: [created.id], ofHighlight: highlightId)
+        return created
     }
 
     /// 인증 — 내 답글 삭제(또는 글주인).
