@@ -78,7 +78,7 @@ struct SearchView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             // RootView 의 탭바 예약 safeAreaPadding 은 NavigationStack 안으로 넘어오지 않는다.
-            .safeAreaPadding(.bottom, Metrics.tabBarReservedHeight)
+            .reservesTabBarSpace()
             .safeAreaInset(edge: .top, spacing: 0) {
                 if remoteLookup.isVisible {
                     VStack(spacing: 0) {

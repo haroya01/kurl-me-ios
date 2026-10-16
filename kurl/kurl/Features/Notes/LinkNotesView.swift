@@ -11,7 +11,6 @@ struct LinkNotesView: View {
     @State private var notes: NotesViewModel
     @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.tabBarVisibility) private var tabBarVisibility
 
     init(url: String, title: String?) {
         self.url = url
@@ -54,7 +53,7 @@ struct LinkNotesView: View {
             }
         }
         .environment(\.noteFilterContext, notes.filterContext)
-        .safeAreaPadding(.bottom, tabBarVisibility == nil ? 0 : Metrics.tabBarReservedHeight)
+        .reservesTabBarSpace()
         .navigationTitle("링크")
         .noteTextLinks()
         .navigationBarTitleDisplayMode(.inline)

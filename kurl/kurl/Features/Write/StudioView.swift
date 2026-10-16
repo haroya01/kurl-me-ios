@@ -14,7 +14,6 @@ struct StudioView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.tabBarVisibility) private var tabBarVisibility
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
     @State private var section: StudioSection = .posts
@@ -49,7 +48,7 @@ struct StudioView: View {
                     message: "글을 쓰려면 로그인하세요")
             }
         }
-        .safeAreaPadding(.bottom, tabBarVisibility == nil ? 0 : Metrics.tabBarReservedHeight)
+        .reservesTabBarSpace()
         .navigationTitle("스튜디오")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

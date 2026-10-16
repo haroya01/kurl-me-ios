@@ -8,7 +8,6 @@
 import SwiftUI
 
 struct CollectionsListView: View {
-    @Environment(\.tabBarVisibility) private var tabBarVisibility
     @State private var collections: [CollectionSummary] = []
     @State private var loading = true
     @State private var failed = false
@@ -42,7 +41,7 @@ struct CollectionsListView: View {
                 }
             }
         }
-        .safeAreaPadding(.bottom, tabBarVisibility == nil ? 0 : Metrics.tabBarReservedHeight)
+        .reservesTabBarSpace()
         .navigationTitle("컬렉션")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
