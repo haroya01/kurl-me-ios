@@ -11,6 +11,7 @@ final class PeopleSearchModel {
     private(set) var phase: LoadState<[PersonMatch]> = .idle
     private(set) var tooShort = false
     private(set) var loadingMore = false
+    var remote: [RemoteAccount]?
     private var query = ""
     private var page = 0
     private var hasNext = false
@@ -24,14 +25,18 @@ final class PeopleSearchModel {
         hasNext = false
         tooShort = !PeopleAPI.isSearchable(raw)
         guard !tooShort else {
+            remote = nil
             phase = .loaded([])
             return
         }
         if case .loaded = phase {} else { phase = .loading }
+        async let remoteMatches = Self.remoteMatches(raw)
         do {
             let result = try await PeopleAPI.search(raw)
+            let found = await remoteMatches
             guard myGen == generation else { return }
             hasNext = result.hasNext
+            remote = found
             phase = .loaded(result.items)
         } catch {
             guard myGen == generation, !Task.isCancelled else { return }
@@ -52,6 +57,11 @@ final class PeopleSearchModel {
         let seen = Set(items.map(\.username))
         phase = .loaded(items + result.items.filter { !seen.contains($0.username) })
     }
+
+    private static func remoteMatches(_ raw: String) async -> [RemoteAccount]? {
+        guard FederationAPI.queryDomain(raw) == nil else { return nil }
+        return await FederationAPI.searchAccounts(raw)
+    }
 }
 
 struct PeopleResultsList: View {
@@ -70,8 +80,16 @@ struct PeopleResultsList: View {
                     FeedPlaceholder(title: "두 글자 이상 입력하면 사람을 찾아요")
                         .padding(.top, 16)
                 case .loaded(let people) where people.isEmpty:
-                    FeedPlaceholder(title: "‘\(query)’ 결과가 없어요")
-                        .padding(.top, 16)
+                    if let remote = model.remote, !remote.isEmpty {
+                        RemotePeopleSection(accounts: remoteAccounts, divided: false)
+                    } else {
+                        FeedPlaceholder(title: "‘\(query)’ 결과가 없어요")
+                            .padding(.top, 16)
+                        if model.remote != nil {
+                            RemotePeopleSection(accounts: remoteAccounts, divided: true)
+                                .padding(.top, 12)
+                        }
+                    }
                 case .loaded(let people):
                     ForEach(Array(people.enumerated()), id: \.element.id) { index, person in
                         PersonResultRow(person: person)
@@ -81,6 +99,9 @@ struct PeopleResultsList: View {
                     if model.loadingMore {
                         KurlLoadingMark()
                             .frame(maxWidth: .infinity).padding(.vertical, 18)
+                    }
+                    if model.remote != nil {
+                        RemotePeopleSection(accounts: remoteAccounts, divided: true)
                     }
                 default:
                     KurlLoadingMark().frame(maxWidth: .infinity, minHeight: 240)
@@ -95,6 +116,10 @@ struct PeopleResultsList: View {
         .scrollEdgeEffectStyle(.soft, for: .top)
         .background(Palette.readingBg)
         .accessibilityIdentifier("search.people")
+    }
+
+    private var remoteAccounts: Binding<[RemoteAccount]> {
+        Binding(get: { model.remote ?? [] }, set: { model.remote = $0 })
     }
 }
 

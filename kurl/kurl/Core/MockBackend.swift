@@ -213,6 +213,7 @@ enum MockBackend {
     private static var pinnedNotes: [Int64] = []
     private static var noteLists: [(id: Int64, title: String, members: [String])] = []
     private static var mutedUsers: [String: (notifications: Bool, expiresAt: Date?)] = [:]
+    private static var blockedUsers: [String] = []
     private static var noteFilters: [[String: Any]] = []
     private static var nextFilterId: Int64 = 800
     private static var nextListId: Int64 = 700
@@ -273,6 +274,26 @@ enum MockBackend {
             "domain": "fosstodon.org", "displayName": "Bob", "avatarUrl": NSNull(),
             "url": "https://fosstodon.org/@bob", "following": false, "requested": false,
         ],
+        9840: [
+            "id": Int64(9840), "acct": "haruto@misskey.io", "username": "haruto",
+            "domain": "misskey.io", "displayName": "Haruto", "avatarUrl": NSNull(),
+            "url": "https://misskey.io/@haruto", "following": false, "requested": false,
+        ],
+        9850: [
+            "id": Int64(9850), "acct": "jiwoo@blog.example", "username": "jiwoo",
+            "domain": "blog.example", "displayName": "Jiwoo", "avatarUrl": NSNull(),
+            "url": "https://blog.example/author/jiwoo", "following": true, "requested": false,
+        ],
+        9860: [
+            "id": Int64(9860), "acct": "yeonhee@lemmy.example", "username": "yeonhee",
+            "domain": "lemmy.example", "displayName": "yeonhee", "avatarUrl": NSNull(),
+            "url": "https://lemmy.example/u/yeonhee", "following": true, "requested": false,
+        ],
+        9870: [
+            "id": Int64(9870), "acct": "trailcam@tube.example", "username": "trailcam",
+            "domain": "tube.example", "displayName": "Trail Cam", "avatarUrl": NSNull(),
+            "url": "https://tube.example/a/trailcam", "following": true, "requested": false,
+        ],
     ]
     /// 팔로우한 다른 서버 계정(mina)의 노트 — 팔로잉 피드 끝과 그 계정 화면에 보인다.
     private static func remoteNoteView() -> [String: Any] {
@@ -290,9 +311,125 @@ enum MockBackend {
             "linkPreview": NSNull(), "mentions": [] as [String], "contentWarning": NSNull(),
             "sensitive": false, "pinned": false, "visibility": "public", "poll": NSNull(),
             "quotedNote": NSNull(),
+            "remote": [
+                "kind": "NOTE", "title": NSNull(), "url": "https://mastodon.social/@mina/113100",
+                "community": NSNull(),
+            ] as [String: Any],
         ]
     }
+
+    private static func remoteShapeViews() -> [[String: Any]] {
+        func author(_ remoteId: Int64, _ acct: String, _ name: String, _ url: String) -> [String: Any] {
+            ["id": -remoteId, "username": acct, "avatarUrl": NSNull(), "displayName": name,
+             "remoteId": remoteId, "url": url]
+        }
+        func shaped(
+            _ id: Int64, _ author: [String: Any], _ body: String, ago: Double, remote: [String: Any],
+            media: [Any] = [], poll: Any = NSNull()
+        ) -> [String: Any] {
+            var view = remoteNoteView()
+            view["id"] = id
+            view["body"] = body
+            view["createdAt"] = iso(Date().addingTimeInterval(-ago))
+            view["likeCount"] = NSNull()
+            view["likedByMe"] = likedNotes.contains(id)
+            view["bookmarkedByMe"] = bookmarkedNotes.contains(id)
+            view["author"] = author
+            view["media"] = media
+            view["poll"] = poll
+            view["remote"] = remote
+            return view
+        }
+        func picture(_ seed: String, _ width: Int, _ height: Int) -> [Any] {
+            [["url": "https://picsum.photos/seed/\(seed)/\(width)/\(height)", "altText": NSNull(),
+              "contentType": "image/jpeg", "width": width, "height": height] as [String: Any]]
+        }
+        return [
+            shaped(
+                9610, author(9850, "jiwoo@blog.example", "Jiwoo", "https://blog.example/author/jiwoo"),
+                "봄에 심은 토마토 여섯 그루 중 네 그루를 잃었다. 물을 너무 자주 준 게 문제였다. 올해 배운 것을 심은 순서대로 정리했다.",
+                ago: 3_000,
+                remote: ["kind": "ARTICLE", "title": "작은 정원의 첫해, 실패한 것부터 적는다",
+                         "url": "https://www.blog.example/2026/10/first-year-garden", "community": NSNull()],
+                media: picture("kurl-remote-article", 1200, 630)),
+            shaped(
+                9611, author(9860, "yeonhee@lemmy.example", "yeonhee", "https://lemmy.example/u/yeonhee"),
+                "작년에 삼나무로 높은 화단 두 개를 짰는데, 흙값까지 합치니 생각보다 많이 들었어요. 몇 해 써 보신 분들 의견이 궁금해요.",
+                ago: 5_400,
+                remote: ["kind": "PAGE", "title": "높은 화단, 나무값을 할까요?",
+                         "url": "https://lemmy.example/post/12345", "community": "gardening@lemmy.example"],
+                media: picture("kurl-remote-page", 1200, 800)),
+            shaped(
+                9612, author(9870, "trailcam@tube.example", "Trail Cam", "https://tube.example/a/trailcam"),
+                "말 없이 걷기만 한 40분. 낙엽 밟는 소리와 멀리서 들리는 개울 소리만 담았다.",
+                ago: 9_000,
+                remote: ["kind": "VIDEO", "title": "가을 숲길 한 바퀴",
+                         "url": "https://tube.example/w/9fQe2kLm", "community": NSNull()],
+                media: picture("kurl-remote-video", 1280, 720)),
+            shaped(
+                9613, author(9800, "mina@mastodon.social", "Mina", "https://mastodon.social/@mina"),
+                "다음 모임 장소, 어디가 좋을까요?",
+                ago: 14_000,
+                remote: ["kind": "QUESTION", "title": NSNull(),
+                         "url": "https://mastodon.social/@mina/113200", "community": NSNull()],
+                poll: [
+                    "expiresAt": NSNull(), "expired": false, "multiple": false,
+                    "votesCount": 22, "votersCount": 22,
+                    "options": [
+                        ["title": "합정 책방", "votesCount": 12], ["title": "성수 카페", "votesCount": 7],
+                        ["title": "온라인", "votesCount": 3],
+                    ],
+                    "voted": true, "ownVotes": [] as [Int],
+                ] as [String: Any]),
+        ]
+    }
+
+    private static func remoteAuthorId(_ view: [String: Any]) -> Int64? {
+        ((view["author"] as? [String: Any])?["remoteId"] as? NSNumber)?.int64Value
+    }
+    private static func lookedUpRemote(_ raw: String) -> [String: Any]? {
+        var handle = raw.trimmingCharacters(in: .whitespaces)
+        if handle.hasPrefix("@") { handle.removeFirst() }
+        let pieces = handle.split(separator: "@").map(String.init)
+        guard pieces.count == 2 else { return nil }
+        let acct = "\(pieces[0])@\(pieces[1].lowercased())"
+        if let known = remoteAccounts.values.first(where: { ($0["acct"] as? String) == acct }) {
+            return withDomainBlock(known)
+        }
+        let id = nextRemoteId
+        nextRemoteId += 1
+        let account: [String: Any] = [
+            "id": id, "acct": acct, "username": pieces[0], "domain": pieces[1].lowercased(),
+            "displayName": pieces[0].capitalized, "avatarUrl": NSNull(),
+            "url": "https://\(pieces[1].lowercased())/@\(pieces[0])",
+            "following": false, "requested": false,
+        ]
+        remoteAccounts[id] = account
+        return withDomainBlock(account)
+    }
+
+    private static func remoteNoteViews(of accountId: Int64) -> [[String: Any]] {
+        let shapes = remoteShapeViews().filter { remoteAuthorId($0) == accountId }
+        guard accountId == 9800 else { return shapes }
+        var withMedia = remoteNoteView()
+        withMedia["id"] = Int64(9601)
+        withMedia["body"] = "오늘 찍은 파도 소리와 영상"
+        withMedia["media"] = [
+            ["url": "https://files.mastodon.social/waves.mp4", "altText": "밀려오는 파도",
+             "contentType": "video/mp4"],
+            ["url": "https://files.mastodon.social/waves.mp3", "altText": "파도 소리",
+             "contentType": "audio/mpeg"],
+        ] as [Any]
+        return [withMedia, remoteNoteView()] + shapes
+    }
     private static var nextRemoteId: Int64 = 9900
+    private static var remoteBlocked: Set<Int64> = [9830]
+    private static var remoteMuted: [Int64: (notifications: Bool, expiresAt: Date?)] = [
+        9810: (true, Date().addingTimeInterval(3 * 86_400)),
+    ]
+    private static func remoteHeard(_ id: Int64) -> Bool {
+        !remoteBlocked.contains(id) && remoteMuted[id] == nil
+    }
     private static var federationNoticeSeen = false
     private static var shortSeq = 0
 
@@ -437,6 +574,7 @@ enum MockBackend {
         "LIKE": true, "COMMENT": true, "REPLY": true, "MENTION": true,
         "FOLLOW": true, "SERIES_SUBSCRIBE": true, "NEW_POST": false,
         "CONNECTED": true, "PATH_GREW": true,
+        "POST_FIRST_READER": true, "POST_READ_MILESTONE": true,
     ]
     private static var myBio = "경계를 긋는 사람. 헥사고날·도메인 모델링."
     private static var displayNames: [String: String] = ["reader_kim": "김독자"]
@@ -1181,6 +1319,16 @@ enum MockBackend {
             }
         }
 
+        if method == "GET", parts == ["users", "me", "blocks"] {
+            return json(blockedUsers.map { name in
+                ["id": mockUserIds[name] ?? 0, "username": name, "avatarUrl": NSNull()] as [String: Any]
+            })
+        }
+        if parts.count == 3, parts[0] == "users", parts[2] == "block", method == "PUT" || method == "DELETE" {
+            blockedUsers.removeAll { $0 == parts[1] }
+            if method == "PUT" { blockedUsers.insert(parts[1], at: 0) }
+            return json([:])
+        }
         if method == "GET", parts == ["users", "me", "mutes"] {
             return json(mutedUsers.sorted { $0.key < $1.key }.map { name, mute in
                 [
@@ -1324,7 +1472,10 @@ enum MockBackend {
                 ? []
                 : allNotes().filter { $0.visibility == "public" && $0.body.lowercased().contains(q) }
                     .sorted { $0.createdAt > $1.createdAt }
-            return json(["items": hits.map(noteView), "page": 0, "hasNext": false])
+            let remote = q.isEmpty || !remoteHeard(9800)
+                ? []
+                : remoteNoteViews(of: 9800).filter { (($0["body"] as? String) ?? "").lowercased().contains(q) }
+            return json(["items": hits.map(noteView) + remote, "page": 0, "hasNext": false])
         }
         if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "notes", parts[2] == "tags" {
             let needle = "#" + parts[3].lowercased()
@@ -1445,24 +1596,19 @@ enum MockBackend {
                 view["repostedBy"] = ["id": 2, "username": "yuki_dev", "avatarUrl": NSNull()] as [String: Any]
                 items.insert(view, at: min(1, items.count))
             }
-            items.append(remoteNoteView())
+            if remoteHeard(9800) { items.append(remoteNoteView()) }
+            items += remoteShapeViews().filter { remoteHeard(remoteAuthorId($0) ?? 0) }
             return json(["items": items, "page": 0, "hasNext": false])
         }
         if method == "GET", parts == ["notes", "federated"] {
-            return json(["items": [remoteNoteView()], "page": 0, "hasNext": false])
+            let items = (remoteHeard(9800) ? [remoteNoteView()] : [])
+                + remoteShapeViews().filter { remoteHeard(remoteAuthorId($0) ?? 0) }
+            return json(["items": items, "page": 0, "hasNext": false])
         }
         if method == "GET", parts.count == 4, parts[0] == "federation", parts[1] == "accounts",
            parts[3] == "notes" {
-            var withMedia = remoteNoteView()
-            withMedia["id"] = Int64(9601)
-            withMedia["body"] = "오늘 찍은 파도 소리와 영상"
-            withMedia["media"] = [
-                ["url": "https://files.mastodon.social/waves.mp4", "altText": "밀려오는 파도",
-                 "contentType": "video/mp4"],
-                ["url": "https://files.mastodon.social/waves.mp3", "altText": "파도 소리",
-                 "contentType": "audio/mpeg"],
-            ] as [Any]
-            let items = parts[2] == "9800" ? [withMedia, remoteNoteView()] : []
+            let id = Int64(parts[2]) ?? 0
+            let items = remoteBlocked.contains(id) ? [] : remoteNoteViews(of: id)
             return json(["items": items, "page": 0, "hasNext": false])
         }
         if method == "GET", parts == ["public", "notes"] {
@@ -1534,6 +1680,13 @@ enum MockBackend {
         if method == "GET", parts.count == 3, parts[0] == "public", parts[1] == "notes",
            let nid = Int64(parts[2]) {
             guard let note = allNotes().first(where: { $0.id == nid }) else {
+                if let remote = (remoteNoteViews(of: 9800) + remoteShapeViews())
+                    .first(where: { ($0["id"] as? Int64) == nid }) {
+                    return json([
+                        "note": remote, "parent": NSNull(), "replies": [] as [Any],
+                        "continuation": [] as [Any], "series": NSNull(),
+                    ])
+                }
                 return json(["status": 404])
             }
             let parts = selfChain(note)
@@ -1571,6 +1724,11 @@ enum MockBackend {
                 previous = note
             }
             return json(created)
+        }
+        if method == "POST", parts.count == 4, parts[0] == "notes", parts[2] == "poll", parts[3] == "votes",
+           let nid = Int64(parts[1]), remoteShapeViews().contains(where: { ($0["id"] as? Int64) == nid }) {
+            throw APIError.server(
+                status: 400, code: "NOTE_POLL_ELSEWHERE", detail: "a poll from another server is voted on there")
         }
         if method == "POST", parts.count == 4, parts[0] == "notes", parts[2] == "poll", parts[3] == "votes",
            let nid = Int64(parts[1]), let idx = notes.firstIndex(where: { $0.id == nid }),
@@ -1676,26 +1834,71 @@ enum MockBackend {
             if method == "PUT" { mutedConversations.insert(nid) } else { mutedConversations.remove(nid) }
             return json(["muted": method == "PUT"])
         }
-        if method == "GET", parts == ["federation", "accounts", "lookup"] {
-            var handle = (query?.first(where: { $0.name == "acct" })?.value ?? "")
-                .trimmingCharacters(in: .whitespaces)
-            if handle.hasPrefix("@") { handle.removeFirst() }
-            let pieces = handle.split(separator: "@").map(String.init)
-            guard pieces.count == 2 else { return json([:] as [String: Any]) }
-            let acct = "\(pieces[0])@\(pieces[1].lowercased())"
-            if let known = remoteAccounts.values.first(where: { ($0["acct"] as? String) == acct }) {
-                return json(withDomainBlock(known))
+        if method == "GET", parts == ["federation", "accounts", "search"] {
+            var q = (query?.first(where: { $0.name == "q" })?.value ?? "").trimmingCharacters(in: .whitespaces)
+            if q.hasPrefix("@") { q.removeFirst() }
+            q = q.lowercased()
+            let limit = Int(query?.first(where: { $0.name == "limit" })?.value ?? "") ?? 10
+            guard q.count >= 2 else { return json(["items": [] as [Any]]) }
+            let matches = remoteAccounts.values
+                .filter { domainBlocks[($0["domain"] as? String) ?? ""] == nil }
+                .filter { !remoteBlocked.contains(($0["id"] as? Int64) ?? 0) }
+                .filter { account in
+                    let username = ((account["username"] as? String) ?? "").lowercased()
+                    let display = ((account["displayName"] as? String) ?? "").lowercased()
+                    let acct = ((account["acct"] as? String) ?? "").lowercased()
+                    return q.contains("@") ? acct.hasPrefix(q) : username.hasPrefix(q) || display.hasPrefix(q)
+                }
+                .sorted { lhs, rhs in
+                    let lf = (lhs["following"] as? Bool) == true, rf = (rhs["following"] as? Bool) == true
+                    if lf != rf { return lf }
+                    return ((lhs["username"] as? String) ?? "") < ((rhs["username"] as? String) ?? "")
+                }
+            return json(["items": Array(matches.prefix(limit)).map(withDomainBlock)])
+        }
+        if method == "GET", parts == ["federation", "accounts", "suggestions"] {
+            let limit = Int(query?.first(where: { $0.name == "limit" })?.value ?? "") ?? 3
+            let picks = remoteAccounts.values
+                .filter { account in
+                    let id = (account["id"] as? Int64) ?? 0
+                    return remoteHeard(id) && domainBlocks[(account["domain"] as? String) ?? ""] == nil
+                        && (account["following"] as? Bool) != true && (account["requested"] as? Bool) != true
+                }
+                .sorted { (($0["id"] as? Int64) ?? 0) < (($1["id"] as? Int64) ?? 0) }
+            return json(["items": Array(picks.prefix(limit)).map(withDomainBlock)])
+        }
+        if method == "GET", parts == ["federation", "resolve"] {
+            let q = (query?.first(where: { $0.name == "q" })?.value ?? "").trimmingCharacters(in: .whitespaces)
+            let address = q.lowercased().hasPrefix("https://") ? URL(string: q) : nil
+            let domain = (address?.host() ?? String(q.split(separator: "@").last ?? "")).lowercased()
+            if domain.hasPrefix("down.") {
+                throw APIError.server(
+                    status: 502, code: "REMOTE_SERVER_UNREACHABLE", detail: "\(domain) did not answer")
             }
-            let id = nextRemoteId
-            nextRemoteId += 1
-            let account: [String: Any] = [
-                "id": id, "acct": acct, "username": pieces[0], "domain": pieces[1].lowercased(),
-                "displayName": pieces[0].capitalized, "avatarUrl": NSNull(),
-                "url": "https://\(pieces[1].lowercased())/@\(pieces[0])",
-                "following": false, "requested": false,
-            ]
-            remoteAccounts[id] = account
-            return json(withDomainBlock(account))
+            let missing = APIError.server(
+                status: 404, code: "REMOTE_ACCOUNT_NOT_FOUND", detail: "no account on another server: \(q)")
+            guard let address else {
+                guard !q.drop(while: { $0 == "@" }).hasPrefix("nobody@"), let found = lookedUpRemote(q)
+                else { throw missing }
+                return json(["account": found, "note": NSNull()])
+            }
+            let segments = address.pathComponents.filter { $0 != "/" }
+            guard let user = segments.first,
+                  let account = remoteAccounts.values.first(where: {
+                      ($0["domain"] as? String) == domain && "@\(($0["username"] as? String) ?? "")" == user
+                  })
+            else { throw missing }
+            guard segments.count > 1 else {
+                return json(["account": withDomainBlock(account), "note": NSNull()])
+            }
+            let accountId = (account["id"] as? Int64) ?? 0
+            guard let note = remoteNoteViews(of: accountId)
+                .first(where: { "\(($0["id"] as? Int64) ?? 0)" == segments[1] })
+            else { throw missing }
+            return json(["account": NSNull(), "note": note])
+        }
+        if method == "GET", parts == ["federation", "accounts", "lookup"] {
+            return json(lookedUpRemote(query?.first(where: { $0.name == "acct" })?.value ?? "") ?? [:])
         }
         if method == "GET", parts.count == 3, parts[0] == "federation", parts[1] == "accounts",
            let id = Int64(parts[2]), var account = remoteAccounts[id] {
@@ -1712,6 +1915,44 @@ enum MockBackend {
             account["following"] = false
             remoteAccounts[id] = account
             return json(withDomainBlock(account))
+        }
+        if parts.count == 4, parts[0] == "federation", parts[1] == "accounts", parts[3] == "block",
+           let id = Int64(parts[2]), var account = remoteAccounts[id] {
+            if method == "PUT" {
+                remoteBlocked.insert(id)
+                account["following"] = false
+                account["requested"] = false
+                remoteAccounts[id] = account
+            } else {
+                remoteBlocked.remove(id)
+            }
+            return json(withDomainBlock(account))
+        }
+        if parts.count == 4, parts[0] == "federation", parts[1] == "accounts", parts[3] == "mute",
+           let id = Int64(parts[2]), let account = remoteAccounts[id] {
+            if method == "PUT" {
+                let req = decode(body)
+                remoteMuted[id] = (
+                    (req["notifications"] as? Bool) ?? true,
+                    (req["duration"] as? Int).map { Date().addingTimeInterval(TimeInterval($0)) })
+            } else {
+                remoteMuted[id] = nil
+            }
+            return json(withDomainBlock(account))
+        }
+        if method == "GET", parts == ["federation", "blocks"] {
+            let items = remoteBlocked.sorted().compactMap { remoteAccounts[$0] }.map(withDomainBlock)
+            return json(["items": items])
+        }
+        if method == "GET", parts == ["federation", "mutes"] {
+            let items = remoteMuted.sorted { $0.key < $1.key }.compactMap { id, mute -> [String: Any]? in
+                guard let account = remoteAccounts[id] else { return nil }
+                return [
+                    "account": withDomainBlock(account), "notifications": mute.notifications,
+                    "expiresAt": mute.expiresAt.map(iso) ?? NSNull(),
+                ]
+            }
+            return json(["items": items])
         }
         if method == "GET", parts == ["federation", "following"] {
             let followed = remoteAccounts.values
@@ -2648,6 +2889,12 @@ enum MockBackend {
                  "postAuthorUsername": "yuki_dev",
                  "seriesId": NSNull(), "seriesSlug": NSNull(), "seriesTitle": NSNull(),
                  "count": 1, "read": true, "createdAt": iso(Date().addingTimeInterval(-430_000))],
+                ["id": 22, "type": "POST_READ_MILESTONE",
+                 "postId": 9101, "postSlug": "hexagonal-after-3-months", "postTitle": "헥사고날로 갈아탄 지 석 달, 무엇이 남았나",
+                 "milestone": 1000, "read": false, "createdAt": iso(Date().addingTimeInterval(-405_000))],
+                ["id": 23, "type": "POST_FIRST_READER",
+                 "postId": 9002, "postSlug": "p-mock-2", "postTitle": "발행된 목 글",
+                 "read": true, "createdAt": iso(Date().addingTimeInterval(-406_000))],
             ]
             let mentionTypes: Set<String> = ["MENTION", "NOTE_MENTION", "REPLY", "NOTE_REPLY", "COMMENT"]
             let mentionsOnly = query?.first(where: { $0.name == "filter" })?.value == "mentions"
@@ -3148,7 +3395,10 @@ enum MockBackend {
 
     private static func withDomainBlock(_ account: [String: Any]) -> [String: Any] {
         var shown = account
+        let id = (account["id"] as? Int64) ?? 0
         shown["domainBlocked"] = domainBlocks[(account["domain"] as? String) ?? ""] != nil
+        shown["blocking"] = remoteBlocked.contains(id)
+        shown["muting"] = remoteMuted[id] != nil
         return shown
     }
 

@@ -33,6 +33,8 @@ extension NotificationKind {
         case .noteEdit: return "공유한 노트의 수정"
         case .remoteFollow: return "다른 서버의 팔로워"
         case .followRequest: return "팔로우 요청"
+        case .postFirstReader: return "첫 독자"
+        case .postReadMilestone: return "읽은 사람 수"
         }
     }
 
@@ -62,6 +64,8 @@ extension NotificationKind {
         case .noteEdit: return "내가 리포스트하거나 인용한 노트를 작성자가 고칠 때"
         case .remoteFollow: return "마스토돈 같은 다른 서버 계정이 나를 팔로우할 때"
         case .followRequest: return "팔로우를 직접 승인할 때 누군가 팔로우를 요청하면"
+        case .postFirstReader: return "내 글을 처음 읽은 사람이 생길 때"
+        case .postReadMilestone: return "내 글을 읽은 사람이 10명, 100명, 1,000명이 될 때. 내 조회와 봇은 세지 않아요"
         }
     }
 }
@@ -83,7 +87,7 @@ enum NotificationKindSection: CaseIterable, Identifiable {
 
     var kinds: [NotificationKind] {
         switch self {
-        case .posts: return [.like, .comment, .highlight, .postQuote, .connected]
+        case .posts: return [.like, .comment, .highlight, .postQuote, .connected, .postFirstReader, .postReadMilestone]
         case .notes: return [.noteLike, .noteRepost, .noteReply, .noteQuote, .noteEmbed]
         case .conversation: return [.reply, .commentLike, .mention, .noteMention]
         case .people: return [.follow, .followRequest, .remoteFollow, .seriesSubscribe]
@@ -113,12 +117,13 @@ struct NotificationPreferencesView: View {
                     .padding(.top, 60)
             } else {
                 ForEach(NotificationKindSection.allCases) { section in
+                    let kinds = section.kinds.filter { prefs[$0] != nil }
                     RailHeading(section.title)
                         .padding(.top, 24)
                         .padding(.bottom, 4)
-                    ForEach(Array(section.kinds.enumerated()), id: \.element) { index, kind in
+                    ForEach(Array(kinds.enumerated()), id: \.element) { index, kind in
                         row(kind)
-                        if index < section.kinds.count - 1 { Hairline() }
+                        if index < kinds.count - 1 { Hairline() }
                     }
                 }
                 Text("끈 종류는 벨과 푸시에 오지 않아요")

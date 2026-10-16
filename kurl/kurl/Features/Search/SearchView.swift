@@ -16,10 +16,12 @@ struct SearchView: View {
     @State private var noteResults = NotesViewModel(search: "")
     @State private var peopleResults = PeopleSearchModel()
     @State private var matchedPeople: [PersonMatch] = []
+    @State private var matchedRemote: [RemoteAccount] = []
     @State private var query = ""
     @State private var phase: LoadState<[FeedItem]> = .idle
     @State private var searchTask: Task<Void, Never>?
-    @State private var remoteAccount: RemoteAccount?
+    @State private var remoteLookup: RemoteLookup = .off
+    @State private var remoteFallback = false
     @State private var remoteTask: Task<Void, Never>?
     @Namespace private var zoomNS
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -45,6 +47,7 @@ struct SearchView: View {
     @State private var suggestedAuthors: [SuggestedAuthor] = []
     /// 로그인한 사람의 팔로우 추천(마스토돈) — 있으면 익명 "작가" 레일 대신 선다.
     @State private var followSuggestions: [FollowSuggestion] = []
+    @State private var remoteSuggestions: [RemoteAccount] = []
 
     var body: some View {
         // path 바인딩 금지 — tabBarMinimizeBehavior 가 죽는다(FeedView 참조).
@@ -54,6 +57,8 @@ struct SearchView: View {
                     PeopleResultsList(model: peopleResults, query: query, retry: { runSearch(query) })
                 } else if scope == .notes, !activeQuery.isEmpty || !query.trimmingCharacters(in: .whitespaces).isEmpty {
                     notesResults
+                } else if resolvesRemotely(query) {
+                    Color.clear
                 } else {
                 switch phase {
                 case .idle:
@@ -75,10 +80,9 @@ struct SearchView: View {
             // RootView 의 탭바 예약 safeAreaPadding 은 NavigationStack 안으로 넘어오지 않는다.
             .safeAreaPadding(.bottom, Metrics.tabBarReservedHeight)
             .safeAreaInset(edge: .top, spacing: 0) {
-                if let account = Binding($remoteAccount) {
+                if remoteLookup.isVisible {
                     VStack(spacing: 0) {
-                        RemoteAccountRow(account: account)
-                            .padding(.horizontal, Metrics.gutter)
+                        RemoteResolveSlot(lookup: $remoteLookup, onSignedIn: { scheduleRemoteLookup(query) })
                         Hairline()
                     }
                     .background(Palette.pageBg)
@@ -124,6 +128,7 @@ struct SearchView: View {
             }
         }
         .onChange(of: query) { _, newValue in
+            remoteFallback = false
             scheduleSearch(newValue)
             scheduleRemoteLookup(newValue)
         }
@@ -194,7 +199,7 @@ struct SearchView: View {
 
                 trendingRail
 
-                if AuthStore.shared.isSignedIn, !followSuggestions.isEmpty {
+                if AuthStore.shared.isSignedIn, !followSuggestions.isEmpty || !remoteSuggestions.isEmpty {
                     followSuggestionsRail
                 }
 
@@ -373,8 +378,58 @@ struct SearchView: View {
                     .rowDivider(index > 0)
                     .transition(.opacity)
             }
+            if !remoteSuggestions.isEmpty {
+                otherServerLabel
+                    .padding(.top, followSuggestions.isEmpty ? 2 : 14)
+                    .rowDivider(!followSuggestions.isEmpty)
+                ForEach($remoteSuggestions) { $account in
+                    remoteSuggestionRow($account)
+                        .rowDivider(account.id != remoteSuggestions.first?.id)
+                }
+            }
         }
         .accessibilityIdentifier("search.followSuggestions")
+    }
+
+    private var otherServerLabel: some View {
+        Text("다른 서버")
+            .typeScale(.meta)
+            .foregroundStyle(Palette.secondary)
+            .padding(.bottom, 2)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    private func remoteSuggestionRow(_ account: Binding<RemoteAccount>) -> some View {
+        let value = account.wrappedValue
+        return HStack(spacing: 11) {
+            NavigationLink(value: Route.remoteAccount(id: value.id)) {
+                HStack(spacing: 11) {
+                    AvatarView(author: value.asAuthor, size: 44)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(verbatim: value.shownName)
+                            .typeScale(.titleSmall)
+                            .foregroundStyle(Palette.ink)
+                            .lineLimit(1)
+                        Text(verbatim: "@\(value.acct)")
+                            .typeScale(.meta)
+                            .foregroundStyle(Palette.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            RemoteFollowButton(account: account, outlined: true)
+            Color.clear
+                .frame(width: 30, height: 1)
+                .accessibilityHidden(true)
+        }
+        .padding(.vertical, 10)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("suggestion.remote.\(value.acct)")
     }
 
     private func suggestionRow(_ suggestion: FollowSuggestion) -> some View {
@@ -506,6 +561,9 @@ struct SearchView: View {
         if AuthStore.shared.isSignedIn, followSuggestions.isEmpty {
             followSuggestions = (try? await FollowSuggestionsAPI.suggestions()) ?? []
         }
+        if AuthStore.shared.isSignedIn, remoteSuggestions.isEmpty {
+            remoteSuggestions = await FederationAPI.suggestions() ?? []
+        }
     }
 
     /// 검색어와 겹치는 인기 태그 — 결과를 "태그 / 작가 / 글" 갈래로 보여주기 위한 얕은 매칭
@@ -535,11 +593,12 @@ struct SearchView: View {
         let items = rawItems.filter(\.isRenderableCard)
         let tags = tagOptions
         let people = matchedPeople
-        if items.isEmpty, tags.isEmpty, people.isEmpty {
+        let remote = matchedRemote
+        if items.isEmpty, tags.isEmpty, people.isEmpty, remote.isEmpty {
             noResults
         } else {
             // 결과는 태그 → 사람 → 글 갈래로. 다른 갈래가 있을 때만 "글" 라벨을 붙인다.
-            let labelled = !tags.isEmpty || !people.isEmpty
+            let labelled = !tags.isEmpty || !people.isEmpty || !remote.isEmpty
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 16) {
                     if !tags.isEmpty {
@@ -557,7 +616,7 @@ struct SearchView: View {
                             }
                         }
                     }
-                    if !people.isEmpty {
+                    if !people.isEmpty || !remote.isEmpty {
                         VStack(alignment: .leading, spacing: 6) {
                             RailHeading("사람")
                             ForEach(people) { person in
@@ -586,6 +645,13 @@ struct SearchView: View {
                                 }
                                 .buttonStyle(RowButtonStyle())
                                 .accessibilityIdentifier("search.person.\(person.username)")
+                            }
+                            if !remote.isEmpty {
+                                otherServerLabel
+                                    .padding(.top, people.isEmpty ? 0 : 6)
+                                ForEach(remote) { account in
+                                    remotePersonLink(account)
+                                }
                             }
                         }
                     }
@@ -629,6 +695,33 @@ struct SearchView: View {
         }
     }
 
+    private func remotePersonLink(_ account: RemoteAccount) -> some View {
+        NavigationLink(value: Route.remoteAccount(id: account.id)) {
+            HStack(spacing: 11) {
+                AvatarView(author: account.asAuthor, size: 44)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(verbatim: account.shownName)
+                        .typeScale(.titleSmall)
+                        .foregroundStyle(Palette.ink)
+                        .lineLimit(1)
+                    Text(verbatim: "@\(account.acct)")
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(Palette.faint)
+            }
+            .padding(.vertical, 9)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(RowButtonStyle())
+        .accessibilityIdentifier("search.remotePerson.\(account.acct)")
+    }
+
     /// 무결과 = 막다른 길 금지(§1 폴리시). 스톡 search-empty 대신, 이미 받아 둔 발견 레일을
     /// 같은 출발점으로 다시 깐다 — "이건 없지만 이쪽은 어때"로. 레일까지 비었으면(미로드)
     /// 폴백으로만 스톡 빈 상태를 둔다.
@@ -666,6 +759,7 @@ struct SearchView: View {
         searchTask?.cancel()
         let trimmed = text.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { phase = .idle; return }
+        guard !resolvesRemotely(trimmed) else { return }
         searchTask = Task {
             try? await Task.sleep(for: .milliseconds(350))
             guard !Task.isCancelled else { return }
@@ -673,25 +767,43 @@ struct SearchView: View {
         }
     }
 
-    /// @아이디@서버 — 마스토돈 검색처럼 다른 서버 계정을 찾아 결과 위에 한 줄로 얹는다.
+    private func resolvesRemotely(_ text: String) -> Bool {
+        scope == .posts && !remoteFallback && FederationAPI.queryDomain(text) != nil
+    }
+
     private func scheduleRemoteLookup(_ text: String) {
         remoteTask?.cancel()
-        guard AuthStore.shared.isSignedIn, FederationAPI.looksLikeHandle(text) else {
-            remoteAccount = nil
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard FederationAPI.queryDomain(trimmed) != nil else {
+            withAnimation(.smooth(duration: 0.2)) { remoteLookup = .off }
+            return
+        }
+        guard AuthStore.shared.isSignedIn else {
+            withAnimation(.smooth(duration: 0.2)) { remoteLookup = .done(.signIn) }
             return
         }
         remoteTask = Task {
             try? await Task.sleep(for: .milliseconds(450))
             guard !Task.isCancelled else { return }
-            let found = try? await FederationAPI.lookup(text)
+            withAnimation(.smooth(duration: 0.2)) { remoteLookup = .looking }
+            let result = await FederationAPI.resolve(trimmed)
             guard !Task.isCancelled else { return }
-            withAnimation(.smooth(duration: 0.2)) { remoteAccount = found }
+            withAnimation(.smooth(duration: 0.2)) { remoteLookup = .done(result) }
+            switch result {
+            case .account, .note:
+                recordRecent(trimmed)
+            case .hidden:
+                remoteFallback = true
+                if scope == .posts { runSearch(trimmed) }
+            default:
+                break
+            }
         }
     }
 
     private func runSearch(_ text: String) {
         let trimmed = text.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { return }
+        guard !trimmed.isEmpty, !resolvesRemotely(trimmed) else { return }
         searchTask?.cancel()
         searchTask = Task { await search(trimmed) }
     }
@@ -752,13 +864,18 @@ struct SearchView: View {
         if case .loaded = phase {} else { phase = .loading }
         do {
             async let people = try? PeopleAPI.search(text, size: 3)
+            async let remote: [RemoteAccount]? = FederationAPI.queryDomain(text) == nil
+                ? await FederationAPI.searchAccounts(text, limit: FederationAPI.suggestionLimit)
+                : nil
             let result = try await BlogAPI.feed(query: text, page: 0, size: 30)
             let found = await people
+            let foundRemote = await remote
             guard !Task.isCancelled, myGen == generation else { return }
             activeQuery = text
             page = 0
             hasNext = result.hasNext
             matchedPeople = found?.items ?? []
+            matchedRemote = foundRemote ?? []
             phase = .loaded(result.items)
             // 결과가 실제로 온 뒤에 최근 검색에 남긴다 — 취소·실패한 검색어는 기록하지 않는다.
             recordRecent(text)

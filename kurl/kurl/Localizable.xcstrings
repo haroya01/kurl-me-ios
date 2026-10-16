@@ -501,6 +501,62 @@
         }
       }
     },
+    "%@ 서버가 응답하지 않아요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ isn't responding"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ जवाब नहीं दे रहा"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ が応答していません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ không phản hồi"
+          }
+        }
+      }
+    },
+    "%@ 서버에서 찾지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't find it on %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ पर नहीं मिला"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ で見つかりませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không tìm thấy trên %@"
+          }
+        }
+      }
+    },
     "%@ 신고합니다. 검토 후 조치됩니다.": {
       "localizations": {
         "en": {
@@ -1204,6 +1260,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ghi chú của %@ sẽ bị ẩn khỏi Mới nhất, Đang theo dõi, danh sách và trả lời. Hồ sơ vẫn hiển thị và họ không được thông báo."
+          }
+        }
+      }
+    },
+    "%@님의 노트가 팔로잉·다른 서버·리스트·답글에서 숨겨져요. 이 계정 화면에서는 그대로 보이고, 그 서버에는 알리지 않아요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@'s notes are hidden from Following, Other servers, lists and replies. This account's page still shows them, and their server isn't told."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ के नोट फ़ॉलोइंग, दूसरे सर्वर, सूचियों और जवाबों से छिप जाएँगे। इस खाते के पेज पर वे दिखते रहेंगे और उनके सर्वर को बताया नहीं जाएगा।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@さんのノートが、フォロー中・ほかのサーバー・リスト・返信から隠れます。このアカウントの画面ではそのまま見え、そのサーバーには知らせません。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ghi chú của %@ sẽ bị ẩn khỏi Đang theo dõi, Máy chủ khác, danh sách và trả lời. Trang tài khoản này vẫn hiển thị và máy chủ của họ không được thông báo."
           }
         }
       }
@@ -6561,6 +6645,34 @@
         }
       }
     },
+    "그 서버에 묻는 중…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Asking that server…"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "उस सर्वर से पूछ रहे हैं…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "そのサーバーに問い合わせ中…"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đang hỏi máy chủ đó…"
+          }
+        }
+      }
+    },
     "내 글이 엮인 컬렉션에 새 글이 이어질 때": {
       "localizations": {
         "en": {
@@ -6653,6 +6765,90 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chèn"
+          }
+        }
+      }
+    },
+    "다른 서버 계정을 보려면 로그인하세요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to see accounts on other servers"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दूसरे सर्वर के खाते देखने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほかのサーバーのアカウントを見るにはログインしてください"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để xem tài khoản ở máy chủ khác"
+          }
+        }
+      }
+    },
+    "다른 서버 사람 찾기는 로그인하면 돼요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to find people on other servers"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दूसरे सर्वर के लोगों को ढूँढने के लिए साइन इन करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほかのサーバーの人はログインすると探せます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để tìm người ở máy chủ khác"
+          }
+        }
+      }
+    },
+    "다른 서버 사람은 @아이디@서버로 찾아요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find people on other servers with @name@server"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दूसरे सर्वर के लोगों को @नाम@सर्वर से ढूँढें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほかのサーバーの人は @ID@サーバー で探せます"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tìm người ở máy chủ khác bằng @tên@máy-chủ"
           }
         }
       }
@@ -6989,6 +7185,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Không có phiên bản nào"
+          }
+        }
+      }
+    },
+    "마감 없음": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No end date"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "कोई समय-सीमा नहीं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "締め切りなし"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không có hạn chót"
           }
         }
       }
@@ -7945,6 +8169,62 @@
         }
       }
     },
+    "원문에서 투표": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vote on the original"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मूल पोस्ट पर वोट करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元の投稿で投票"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bình chọn ở bài gốc"
+          }
+        }
+      }
+    },
+    "이 계정의 노트와 알림이 보이지 않고, 서로의 팔로우도 끊겨요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You won't see this account's notes or notifications, and any follows between you will end."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस खाते के नोट और सूचनाएँ नहीं दिखेंगी, और आपस का फ़ॉलो भी हट जाएगा।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このアカウントのノートと通知が表示されなくなり、お互いのフォローも外れます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn sẽ không thấy ghi chú hay thông báo của tài khoản này, và việc theo dõi giữa hai bên sẽ bị hủy."
+          }
+        }
+      }
+    },
     "이 글이 담긴 컬렉션": {
       "localizations": {
         "en": {
@@ -8165,6 +8445,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Không có bài đã thích"
+          }
+        }
+      }
+    },
+    "차단했어요. 이 계정의 노트가 숨겨져요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blocked. This account's notes are now hidden"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ब्लॉक किया। इस खाते के नोट छिप जाएँगे"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブロックしました。このアカウントのノートが非表示になります"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã chặn. Ghi chú của tài khoản này sẽ bị ẩn"
           }
         }
       }
@@ -37823,25 +38131,25 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "View in original post"
+            "value": "View the original"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "元の記事で見る"
+            "value": "元の投稿を見る"
           }
         },
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Xem trong bài gốc"
+            "value": "Xem bài gốc"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "मूल लेख में देखें"
+            "value": "मूल पोस्ट देखें"
           }
         }
       }
@@ -41154,6 +41462,202 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cảnh báo nội dung"
+          }
+        }
+      }
+    },
+    "첫 독자가 생겼어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your post has its first reader"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपकी पोस्ट को पहला पाठक मिला"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記事に最初の読者がつきました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bài viết của bạn đã có người đọc đầu tiên"
+          }
+        }
+      }
+    },
+    "%@명이 읽었어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ people have read your post"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपकी पोस्ट %@ लोगों ने पढ़ ली है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@人が記事を読みました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ người đã đọc bài viết của bạn"
+          }
+        }
+      }
+    },
+    "읽은 사람이 늘었어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More people have read your post"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपकी पोस्ट पढ़ने वाले बढ़ गए हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記事を読んだ人が増えました"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Có thêm người đọc bài viết của bạn"
+          }
+        }
+      }
+    },
+    "첫 독자": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "First reader"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पहला पाठक"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最初の読者"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Người đọc đầu tiên"
+          }
+        }
+      }
+    },
+    "읽은 사람 수": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reader milestones"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पाठक संख्या के पड़ाव"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "読者数の節目"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mốc người đọc"
+          }
+        }
+      }
+    },
+    "내 글을 처음 읽은 사람이 생길 때": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When your post gets its first reader"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जब आपकी पोस्ट को पहला पाठक मिले"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記事に最初の読者がついたとき"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khi bài viết của bạn có người đọc đầu tiên"
+          }
+        }
+      }
+    },
+    "내 글을 읽은 사람이 10명, 100명, 1,000명이 될 때. 내 조회와 봇은 세지 않아요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When 10, 100 or 1,000 people have read your post. Your own views and bots don't count"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जब आपकी पोस्ट 10, 100 या 1,000 लोग पढ़ लें। आपके अपने व्यू और बॉट नहीं गिने जाते"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記事を読んだ人が10人、100人、1,000人になったとき。自分の閲覧とボットは数えません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khi bài viết của bạn có 10, 100 hoặc 1.000 người đọc. Không tính lượt xem của bạn và bot"
           }
         }
       }

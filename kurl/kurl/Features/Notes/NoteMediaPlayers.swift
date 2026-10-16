@@ -43,11 +43,7 @@ struct NoteVideoTile: View {
                     .padding(8)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
             } else {
-                Image(systemName: "play.fill")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 56, height: 56)
-                    .background(.ultraThinMaterial, in: Circle())
+                NotePlayMark()
             }
         }
         .modifier(TileFrame(ratio: media.ratio ?? 16.0 / 9.0, height: height))
@@ -79,6 +75,16 @@ struct NoteVideoTile: View {
         let shown = frame.intersection(screen.bounds)
         guard !shown.isNull else { return false }
         return shown.width * shown.height >= frame.width * frame.height * 0.5
+    }
+}
+
+struct NotePlayMark: View {
+    var body: some View {
+        Image(systemName: "play.fill")
+            .font(.system(size: 22, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(width: 56, height: 56)
+            .background(.ultraThinMaterial, in: Circle())
     }
 }
 

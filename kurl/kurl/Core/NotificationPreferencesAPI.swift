@@ -14,8 +14,13 @@ enum NotificationPreferencesAPI {
     static func load() async throws -> [NotificationKind: Bool] {
         let raw: [String: Bool] = try await client.get(
             "/notifications/blog-preferences", authenticated: true)
+        return preferences(from: raw)
+    }
+
+    static func preferences(from raw: [String: Bool]) -> [NotificationKind: Bool] {
         var result: [NotificationKind: Bool] = [:]
         for kind in NotificationKind.allCases {
+            if kind.listedOnlyWhenServed, raw[kind.rawValue] == nil { continue }
             result[kind] = raw[kind.rawValue] ?? true
         }
         return result
@@ -62,6 +67,10 @@ enum NotificationKind: String, CaseIterable, Identifiable {
     case noteEdit = "NOTE_EDIT"
     case remoteFollow = "REMOTE_FOLLOW"
     case followRequest = "FOLLOW_REQUEST"
+    case postFirstReader = "POST_FIRST_READER"
+    case postReadMilestone = "POST_READ_MILESTONE"
 
     var id: String { rawValue }
+
+    var listedOnlyWhenServed: Bool { self == .postFirstReader || self == .postReadMilestone }
 }
