@@ -18,6 +18,33 @@ enum RemoteLookup: Equatable {
     }
 }
 
+enum RemoteSearchHint {
+    enum Place {
+        case peopleTab
+        case postsPeopleRail
+    }
+
+    static func shows(in place: Place, query: String, remote: [RemoteAccount]?, localPeople: Int) -> Bool {
+        guard let remote, remote.isEmpty, FederationAPI.queryDomain(query) == nil,
+              FederationAPI.remoteSearchQuery(query).count >= FederationAPI.remoteSearchMinQuery
+        else { return false }
+        switch place {
+        case .peopleTab: return true
+        case .postsPeopleRail: return localPeople > 0
+        }
+    }
+}
+
+struct RemoteSearchHintLine: View {
+    var body: some View {
+        Text("다른 서버 사람은 @아이디@서버 주소로 찾을 수 있어요")
+            .typeScale(.meta)
+            .foregroundStyle(Palette.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityIdentifier("search.remote.hint")
+    }
+}
+
 struct RemoteResolveSlot: View {
     @Binding var lookup: RemoteLookup
     let onSignedIn: () async -> Void
@@ -106,12 +133,8 @@ struct RemotePeopleSection: View {
                     .padding(.top, 8)
             }
             if accounts.isEmpty {
-                Text("다른 서버 사람은 @아이디@서버로 찾아요")
-                    .typeScale(.meta)
-                    .foregroundStyle(Palette.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                RemoteSearchHintLine()
                     .padding(.top, 18)
-                    .accessibilityIdentifier("search.remote.hint")
             } else {
                 RailHeading("다른 서버")
                     .padding(.top, divided ? 20 : 16)

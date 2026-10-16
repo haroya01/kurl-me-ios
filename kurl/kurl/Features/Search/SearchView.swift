@@ -16,7 +16,7 @@ struct SearchView: View {
     @State private var noteResults = NotesViewModel(search: "")
     @State private var peopleResults = PeopleSearchModel()
     @State private var matchedPeople: [PersonMatch] = []
-    @State private var matchedRemote: [RemoteAccount] = []
+    @State private var matchedRemote: [RemoteAccount]?
     @State private var query = ""
     @State private var phase: LoadState<[FeedItem]> = .idle
     @State private var searchTask: Task<Void, Never>?
@@ -593,7 +593,7 @@ struct SearchView: View {
         let items = rawItems.filter(\.isRenderableCard)
         let tags = tagOptions
         let people = matchedPeople
-        let remote = matchedRemote
+        let remote = matchedRemote ?? []
         if items.isEmpty, tags.isEmpty, people.isEmpty, remote.isEmpty {
             noResults
         } else {
@@ -652,6 +652,11 @@ struct SearchView: View {
                                 ForEach(remote) { account in
                                     remotePersonLink(account)
                                 }
+                            } else if RemoteSearchHint.shows(
+                                in: .postsPeopleRail, query: query, remote: matchedRemote, localPeople: people.count
+                            ) {
+                                RemoteSearchHintLine()
+                                    .padding(.top, 6)
                             }
                         }
                     }
@@ -875,7 +880,7 @@ struct SearchView: View {
             page = 0
             hasNext = result.hasNext
             matchedPeople = found?.items ?? []
-            matchedRemote = foundRemote ?? []
+            matchedRemote = foundRemote
             phase = .loaded(result.items)
             // 결과가 실제로 온 뒤에 최근 검색에 남긴다 — 취소·실패한 검색어는 기록하지 않는다.
             recordRecent(text)
