@@ -58,6 +58,10 @@ final class OfflineStore {
 
     /// 서버 응답 원문 저장 — 상세 화면이 이미 가진 바이트를 재사용하는 경로(추가 네트워크 0).
     func save(raw: Data, username: String, slug: String) {
+        guard !Self.isProtected(raw) else {
+            if contains(username: username, slug: slug) { remove(username: username, slug: slug) }
+            return
+        }
         cachedKeys.insert("\(username)/\(slug)")
         let url = fileURL(username: username, slug: slug)
         let keys = cachedKeys
@@ -79,6 +83,23 @@ final class OfflineStore {
                 Self.rebuildWidgetSnapshot(keys: liveKeys, directory: directory)
             }
         }
+    }
+
+    static func isProtected(_ raw: Data) -> Bool {
+        struct Probe: Decodable {
+            struct Post: Decodable {
+                var audience: PostAudience?
+                var locked: PostLock?
+                var regionRestricted: Bool?
+                var blockedCountries: [String]?
+            }
+            let post: Post
+        }
+        guard let post = try? JSONDecoder().decode(Probe.self, from: raw).post else { return false }
+        return PostAccessMarks(
+            audience: post.audience, locked: post.locked,
+            regionRestricted: post.regionRestricted == true || !(post.blockedCountries ?? []).isEmpty
+        ).isProtected
     }
 
     func remove(username: String, slug: String) {

@@ -81,7 +81,16 @@ enum BlogAPI {
 
     /// `tombstones=1` — 답글이 남은 지운 댓글을 자리로 받는다(웹과 같은 옵트인, 모르는 서버는 무시한다).
     static func comments(postId: Int64) async throws -> [Comment] {
-        try await client.getAsViewer("/public/posts/\(postId)/comments", query: ["tombstones": "1"])
+        let comments: [Comment] = try await client.getAsViewer(
+            "/public/posts/\(postId)/comments", query: ["tombstones": "1"])
+        PostAccess.shared.link(comments: comments.map(\.id), to: postId)
+        return comments
+    }
+
+    static func unlock(username: String, slug: String, password: String) async throws -> PostUnlockGrant {
+        struct Body: Encodable { let password: String }
+        return try await client.post(
+            "/public/profiles/\(username)/posts/\(slug)/unlock", body: Body(password: password))
     }
 
     /// 읽기 측정 비콘. 실패는 조용히 무시한다.
@@ -91,6 +100,11 @@ enum BlogAPI {
             query: ["src": source]
         )
     }
+}
+
+struct PostUnlockGrant: Decodable {
+    let grant: String
+    let expiresAt: Date?
 }
 
 enum FeedSort: String, CaseIterable, Identifiable {

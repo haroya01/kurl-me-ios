@@ -114,6 +114,28 @@ enum WriteAPI {
         }
     }
 
+    @discardableResult
+    static func updateAccess(
+        postId: Int64, audience: PostAudience?, password: String?, blockedCountries: [String]?
+    ) async throws -> MyPost {
+        struct Body: Encodable {
+            let audience: PostAudience?
+            let password: String?
+            let blockedCountries: [String]?
+        }
+        return try await client.patch(
+            "/posts/\(postId)",
+            body: Body(audience: audience, password: password, blockedCountries: blockedCountries),
+            authenticated: true)
+    }
+
+    static func rotateUnlistedKey(postId: Int64) async throws -> String {
+        struct Response: Decodable { let unlistedUrl: String }
+        let res: Response = try await client.post(
+            "/posts/\(postId)/unlisted-key/rotate", body: EmptyBody(), authenticated: true)
+        return res.unlistedUrl
+    }
+
     // MARK: 프로필 고정 (핀)
 
     /// 프로필 고정 세트 전체 교체 — 리스트 순서 = 핀 순서(0-base). 발행 글만 서버가 받는다(웹 계약).
@@ -442,6 +464,14 @@ struct MyPost: Decodable, Identifiable, Hashable {
     var contentVersion: Int64? = nil
     /// 관리자가 운영 정책으로 내린 글 — 상태는 UNPUBLISHED(발행 전이면 DRAFT) 그대로 오고 이 표시만 붙는다. 옛 서버는 안 준다.
     var takenDown: Bool? = nil
+    var audience: PostAudience? = nil
+    var hasPassword: Bool? = nil
+    var unlistedUrl: String? = nil
+    var blockedCountries: [String]? = nil
+
+    var access: PostAccessMarks {
+        PostAccessMarks(audience: audience, locked: nil, regionRestricted: !(blockedCountries ?? []).isEmpty)
+    }
 
     var isDraft: Bool { status == "DRAFT" }
     var isScheduled: Bool { status == "SCHEDULED" }

@@ -130,6 +130,15 @@ struct ComposeView: View {
     @State private var newSeriesTitle = ""
     @State private var creatingSeries = false
 
+    @State private var accessDraft = PostAccessDraft()
+    @State private var audienceTaps = 0
+    @State private var showCountryPicker = false
+    @State private var confirmRotateLink = false
+    @State private var rotatingLink = false
+    @State private var rotateLinkFailed = false
+    @State private var linkSuccesses = 0
+    @State private var linkCopied = false
+
     // 커버
     @State private var coverUrl: String?
     /// 라이브 글에서 정한 커버(본문 첫 사진·직접 고른 사진·제안) — 명시 저장 때 서버에 반영한다.
@@ -216,6 +225,9 @@ struct ComposeView: View {
                 // representable 의 makeUIView 가 붙은 뒤에 포커스를 줘야 한다.
                 try? await Task.sleep(for: .milliseconds(200))
                 focusBodyEditor()
+            }
+            if let preset = Config.consumeLaunchValue(after: "--audience").flatMap(PostAudience.init(rawValue:)) {
+                accessDraft.audience = preset
             }
             if Config.consumeLaunchValue(after: "--sheet") == "publish" {
                 showPublish = true
@@ -802,6 +814,16 @@ struct ComposeView: View {
                     }
                     .modifier(QuietAppear(index: 1))
 
+                    sheetField("공개 범위") {
+                        audienceControl
+                    }
+                    .modifier(QuietAppear(index: 2))
+
+                    sheetField("국가 제한") {
+                        countryControl
+                    }
+                    .modifier(QuietAppear(index: 3))
+
                     sheetField("소개글") {
                         VStack(alignment: .trailing, spacing: 4) {
                             TextField(
@@ -822,7 +844,7 @@ struct ComposeView: View {
                             LengthLimitCount(text: excerpt, limit: PostLimits.excerpt)
                         }
                     }
-                    .modifier(QuietAppear(index: 2))
+                    .modifier(QuietAppear(index: 4))
 
                     sheetField("시리즈") {
                         Menu {
@@ -859,7 +881,7 @@ struct ComposeView: View {
                         }
                         .glassEffect(.regular.interactive(), in: .capsule)
                     }
-                    .modifier(QuietAppear(index: 3))
+                    .modifier(QuietAppear(index: 5))
 
                 }
                 .padding(20)
@@ -871,9 +893,10 @@ struct ComposeView: View {
                 VStack(spacing: 10) {
                     Button {
                         let publishing = willPublish
+                        let revealsLink = accessDraft.audience == .unlisted && accessDraft.savedAudience != .unlisted
                         // 발행이면 폼을 유지한다 — 그 위로 성공 모먼트가 뜨고, 끝나면 onDone 이 닫는다.
                         // 글 정보 저장(발행됨)은 모먼트 없이 폼만 닫는다.
-                        if !publishing { showPublish = false }
+                        if !publishing, !revealsLink { showPublish = false }
                         Task { await save(publish: publishing) }
                     } label: {
                         Text(primaryPublishLabel)
@@ -888,7 +911,7 @@ struct ComposeView: View {
                             .contentShape(Capsule())
                     }
                     .buttonStyle(.plain)
-                    .disabled((willPublish ? !canPublish : !canSave) || busy)
+                    .disabled((willPublish ? !canPublish : !canSave || accessDraft.blockReason != nil) || busy)
 
                     // 비활성엔 이유를 — 흐린 버튼만 보여주고 침묵하지 않는다.
                     if let reason = publishBlockReason {
@@ -939,6 +962,18 @@ struct ComposeView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("닫기") { showPublish = false }
                 }
+            }
+            .sheet(isPresented: $showCountryPicker) {
+                CountryBlockSheet(selected: accessDraft.countries) { accessDraft.countries = $0 }
+            }
+            .alert("링크를 바꿀까요?", isPresented: $confirmRotateLink) {
+                Button("링크 바꾸기", role: .destructive) { rotateUnlistedLink() }
+                Button("취소", role: .cancel) {}
+            } message: {
+                Text("지금 링크로는 더 열 수 없어요.")
+            }
+            .alert("링크를 바꾸지 못했어요", isPresented: $rotateLinkFailed) {
+                Button("확인", role: .cancel) {}
             }
             .alert("새 시리즈", isPresented: $showNewSeries) {
                 TextField("시리즈 제목", text: $newSeriesTitle)
@@ -1220,6 +1255,174 @@ struct ComposeView: View {
             .background(GlassTokens.mediaChip, in: Capsule())
     }
 
+    private var audienceSelection: Binding<PostAudience> {
+        Binding(
+            get: { accessDraft.audience },
+            set: {
+                accessDraft.audience = $0
+                audienceTaps += 1
+            })
+    }
+
+    private var audienceControl: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Menu {
+                Picker("공개 범위", selection: audienceSelection) {
+                    ForEach(PostAudience.allCases) { audience in
+                        Text(audience.label).tag(audience)
+                    }
+                }
+                .pickerStyle(.inline)
+                .labelsHidden()
+            } label: {
+                sheetCapsule(Text(accessDraft.audience.label), indicator: "chevron.up.chevron.down")
+            }
+            .tint(.primary)
+            .glassEffect(.regular.interactive(), in: .capsule)
+            .sensoryFeedback(.selection, trigger: audienceTaps)
+            .accessibilityLabel(Text("공개 범위"))
+            .accessibilityValue(Text(accessDraft.audience.label))
+            .accessibilityIdentifier("publish.audience")
+
+            switch accessDraft.audience {
+            case .everyone:
+                EmptyView()
+            case .followers:
+                sheetNote("제목은 모두에게 보여요")
+            case .password:
+                sheetNote("제목은 모두에게 보여요")
+                passwordField
+            case .unlisted:
+                sheetNote("목록과 검색에 안 떠요. 링크를 받은 사람은 다시 퍼뜨릴 수 있어요")
+                unlistedLinkRow
+            }
+        }
+    }
+
+    private var passwordField: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            SecureField(
+                accessDraft.hasPassword ? "새 비밀번호" : "비밀번호", text: $accessDraft.newPassword
+            )
+            .textContentType(.newPassword)
+            .typeScale(.lede)
+            .padding(.horizontal, 13)
+            .padding(.vertical, 11)
+            .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
+            .accessibilityIdentifier("publish.password")
+            .onChange(of: accessDraft.newPassword) { _, value in
+                let limit = PostAccessDraft.passwordRange.upperBound
+                if value.unicodeScalars.count > limit {
+                    accessDraft.newPassword = String(String.UnicodeScalarView(value.unicodeScalars.prefix(limit)))
+                }
+            }
+            if accessDraft.hasPassword {
+                sheetNote("비워 두면 지금 비밀번호를 그대로 써요")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var unlistedLinkRow: some View {
+        if status == "PUBLISHED", accessDraft.savedAudience == .unlisted, let link = accessDraft.unlistedUrl {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(verbatim: link)
+                    .typeScale(.meta)
+                    .foregroundStyle(Palette.ink)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .textSelection(.enabled)
+                    .padding(.horizontal, 13)
+                    .padding(.vertical, 11)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
+                    .accessibilityIdentifier("publish.unlistedLink")
+                HStack(spacing: 18) {
+                    Button {
+                        UIPasteboard.general.string = link
+                        linkSuccesses += 1
+                        linkCopied = true
+                    } label: {
+                        Text(linkCopied ? "복사함" : "복사").expandTapTarget(12)
+                    }
+                    .accessibilityIdentifier("publish.copyLink")
+                    Button {
+                        confirmRotateLink = true
+                    } label: {
+                        Text("링크 바꾸기").expandTapTarget(12)
+                    }
+                    .disabled(rotatingLink)
+                    .accessibilityIdentifier("publish.rotateLink")
+                }
+                .typeScale(.footnote)
+                .buttonStyle(.plain)
+                .foregroundStyle(Palette.ink)
+            }
+            .sensoryFeedback(.success, trigger: linkSuccesses)
+            .task(id: linkSuccesses) {
+                guard linkCopied else { return }
+                try? await Task.sleep(for: .seconds(1.5))
+                linkCopied = false
+            }
+        }
+    }
+
+    private var countryControl: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Button {
+                showCountryPicker = true
+            } label: {
+                sheetCapsule(
+                    Text(Countries.summary(accessDraft.countries)), indicator: "chevron.right",
+                    muted: accessDraft.countries.isEmpty)
+            }
+            .buttonStyle(.plain)
+            .glassEffect(.regular.interactive(), in: .capsule)
+            .accessibilityLabel(Text("국가 제한"))
+            .accessibilityValue(Text(Countries.summary(accessDraft.countries)))
+            .accessibilityIdentifier("publish.countries")
+            if !accessDraft.countries.isEmpty {
+                sheetNote("이 나라에서는 제목만 보여요. VPN을 쓰면 막지 못해요.")
+            }
+        }
+    }
+
+    private func sheetCapsule(_ text: Text, indicator: String, muted: Bool = false) -> some View {
+        HStack(spacing: 6) {
+            text
+                .typeScale(.lede)
+                .lineLimit(1)
+            Image(systemName: indicator)
+                .font(.system(size: 10 * metaUnit))
+        }
+        .foregroundStyle(muted ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 9)
+        .contentShape(Capsule())
+    }
+
+    private func sheetNote(_ text: LocalizedStringKey) -> some View {
+        Text(text)
+            .typeScale(.footnote)
+            .foregroundStyle(Palette.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func rotateUnlistedLink() {
+        guard let postId, !rotatingLink else { return }
+        rotatingLink = true
+        Task {
+            defer { rotatingLink = false }
+            do {
+                accessDraft.unlistedUrl = try await WriteAPI.rotateUnlistedKey(postId: postId)
+                linkSuccesses += 1
+            } catch {
+                rotateLinkFailed = true
+            }
+        }
+    }
+
     /// 시트 필드 한 단 — 작은 라벨 + 컨트롤.
     private func sheetField(
         _ label: LocalizedStringKey, @ViewBuilder content: () -> some View
@@ -1348,7 +1551,7 @@ struct ComposeView: View {
     private var bodyLoading: Bool { existing != nil && !bodyLoaded && !loadFailed }
 
     /// 발행은 대표 태그(첫 태그) 1개가 필수 — 초안 저장(canSave)과는 분리한다.
-    private var canPublish: Bool { canSave && !tags.isEmpty }
+    private var canPublish: Bool { canSave && !tags.isEmpty && accessDraft.blockReason == nil }
 
     /// 한 번도 공개된 적 없는 글(초안·예약) — '발행 준비/지금 발행/예약' 표면을 띄운다.
     /// PUBLISHED 는 '글 정보' 저장, UNPUBLISHED(웹에서 내린 글)는 '다시 게시'로 다룬다.
@@ -1377,6 +1580,7 @@ struct ComposeView: View {
     /// 발행 버튼이 흐릴 때의 이유 한 줄 — 침묵하지 않는다.
     private var publishBlockReason: String? {
         if !canSave { return String(localized: "제목과 본문을 채우면 발행할 수 있어요.") }
+        if let reason = accessDraft.blockReason { return reason }
         if willPublish, tags.isEmpty {
             return String(localized: "대표 태그를 1개 이상 정하면 발행할 수 있어요.")
         }
@@ -1384,7 +1588,7 @@ struct ComposeView: View {
     }
 
     private var signature: String {
-        [title, tags.joined(separator: ","), excerpt, markdown, seriesId.map(String.init) ?? ""]
+        [title, tags.joined(separator: ","), excerpt, markdown, seriesId.map(String.init) ?? "", accessDraft.signature]
             .joined(separator: "\u{1F}")
     }
 
@@ -1400,7 +1604,9 @@ struct ComposeView: View {
         lastSavedAt != nil || autosaveFailed || (hasLocalContent && hasUnsavedChanges)
     }
 
-    private var hasUnsavedChanges: Bool { signature != lastSavedSignature || pendingCover != nil }
+    private var hasUnsavedChanges: Bool {
+        signature != lastSavedSignature || pendingCover != nil || (!allowsAutosave && accessDraft.passwordPending)
+    }
 
     /// 인증이 아닌 저장 실패가 거듭되는가(서버 5xx·네트워크 단절) — 자동 재시도만 조용히 도는 대신
     /// 지금 다시 시도할 손잡이를 줄 근거. 첫 실패는 일시적일 수 있어 두 번째부터 격상한다.
@@ -1503,6 +1709,7 @@ struct ComposeView: View {
             postId = post.id
             status = post.status
             takenDown = post.isTakenDown
+            accessDraft = PostAccessDraft(post: post)
             await reloadBody(postId: post.id)
         } else {
             // 새 글은 읽을 본문이 없다 — 곧장 편집·저장 가능.
@@ -1623,6 +1830,7 @@ struct ComposeView: View {
             savedSeriesId = post.seriesId
             status = post.status
             takenDown = post.isTakenDown
+            accessDraft = PostAccessDraft(post: post)
         }
         pendingCover = nil
         markdown = body.markdown
@@ -1658,6 +1866,7 @@ struct ComposeView: View {
             savedSeriesId = post.seriesId
             status = post.status
             takenDown = post.isTakenDown
+            accessDraft = PostAccessDraft(post: post)
         }
         if markdown == bodyAtRestore {
             // 복원 후 본문에 손대지 않았으면 깨끗한 상태로.
@@ -1735,7 +1944,8 @@ struct ComposeView: View {
                 tagDraft = ""
             }
         }
-        guard publish || hasUnsavedChanges else { return }
+        let accessPatch = accessDraft.patch(silent: silent)
+        guard publish || hasUnsavedChanges || accessPatch != nil else { return }
         busy = true
         defer { busy = false }
         // 비행 중 타이핑이 "저장된 셈" 되지 않게 — 전송 시점 스냅샷을 기록한다.
@@ -1764,6 +1974,12 @@ struct ComposeView: View {
             if seriesId != savedSeriesId {
                 try await WriteAPI.assign(postId: id, from: savedSeriesId, to: seriesId)
                 savedSeriesId = seriesId
+            }
+            if let accessPatch {
+                let updated = try await WriteAPI.updateAccess(
+                    postId: id, audience: accessPatch.audience, password: accessPatch.password,
+                    blockedCountries: accessPatch.countries)
+                accessDraft.adopt(saved: updated, sent: accessPatch)
             }
             if let cover = pendingCover {
                 try await PostSave.cover(
@@ -1875,6 +2091,10 @@ struct ComposeView: View {
         // 예약도 발행이다 — 즉시 발행과 같은 대표 태그 규칙을 강제(둘이 어긋나지 않게).
         guard !tags.isEmpty else {
             scheduleError = String(localized: "대표 태그를 1개 이상 정하면 예약할 수 있어요.")
+            return
+        }
+        if let reason = accessDraft.blockReason {
+            scheduleError = reason
             return
         }
         // 제출 시점에 다시 검증 — 시트를 오래 열어두면 고른 시각이 이미 지났을 수 있다(picker 의

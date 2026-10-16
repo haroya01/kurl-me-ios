@@ -105,8 +105,13 @@ struct FeedRow: View {
             cover: item.thumbnailUrl.flatMap { URL(string: $0) },
             read: PostReadStore.shared.isRead(item.id)
         ) {
-            if let tag {
-                tagLine(tag)
+            if tag != nil || item.access.isMarked {
+                HStack(spacing: 6) {
+                    AccessMarks(marks: item.access)
+                    if let tag {
+                        tagLine(tag)
+                    }
+                }
             }
         } byline: {
             VStack(alignment: .leading, spacing: 6) {
@@ -169,13 +174,14 @@ struct PostRow: View {
             cover: item.thumbnailUrl.flatMap { URL(string: $0) },
             read: PostReadStore.shared.isRead(item.id)
         ) {
-            if item.pinned || tag != nil {
+            if item.pinned || tag != nil || item.access.isMarked {
                 HStack(spacing: 6) {
                     if item.pinned {
                         Image(systemName: "pin.fill")
                             .font(.system(size: 10))
                             .foregroundStyle(Palette.secondary)
                     }
+                    AccessMarks(marks: item.access)
                     if let tag {
                         Text("#\(tag)")
                             .typeScale(.meta)
@@ -189,6 +195,31 @@ struct PostRow: View {
                     .typeScale(.meta)
                     .foregroundStyle(Palette.secondary)
             }
+        }
+    }
+}
+
+struct AccessMarks: View {
+    let marks: PostAccessMarks
+
+    @ScaledMetric(relativeTo: .caption) private var glyph: CGFloat = 10
+
+    var body: some View {
+        if marks.isMarked {
+            HStack(spacing: 5) {
+                if let audience = marks.audienceMark {
+                    Image(systemName: audience.symbol)
+                        .accessibilityLabel(Text(audience.label))
+                }
+                if marks.showsRegionMark {
+                    Image(systemName: PostAccessMarks.regionSymbol)
+                        .accessibilityLabel(Text("국가 제한"))
+                }
+            }
+            .font(.system(size: glyph, weight: .semibold))
+            .foregroundStyle(Palette.secondary)
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("post.accessMarks")
         }
     }
 }
