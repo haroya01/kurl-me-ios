@@ -32,6 +32,8 @@ enum APIError: LocalizedError {
         case "POST_TAKEN_DOWN": return String(localized: "운영 정책으로 내려진 글이라 다시 공개할 수 없어요.")
         case "ACCOUNT_SUSPENDED": return String(localized: "계정이 일시 정지된 동안에는 글을 쓰거나 반응할 수 없어요.")
         case "ACCOUNT_BANNED": return String(localized: "이용이 제한된 계정이라 글을 쓰거나 반응할 수 없어요.")
+        case "POST_PASSWORD_REQUIRED": return String(localized: "비밀번호를 정하면 발행할 수 있어요.")
+        case "POST_PASSWORD_LENGTH": return String(localized: "비밀번호는 4자 이상으로 정해 주세요.")
         default: return nil
         }
     }

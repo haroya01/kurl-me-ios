@@ -964,7 +964,7 @@ struct ComposeView: View {
                 CountryBlockSheet(selected: accessDraft.countries) { accessDraft.countries = $0 }
             }
             .alert("링크를 바꿀까요?", isPresented: $confirmRotateLink) {
-                Button("바꾸기", role: .destructive) { rotateUnlistedLink() }
+                Button("링크 바꾸기", role: .destructive) { rotateUnlistedLink() }
                 Button("취소", role: .cancel) {}
             } message: {
                 Text("지금 링크로는 더 열 수 없어요.")

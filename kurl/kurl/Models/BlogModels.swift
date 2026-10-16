@@ -144,7 +144,7 @@ enum PostAudience: String, Codable, CaseIterable, Identifiable, Hashable {
 
     var label: LocalizedStringResource {
         switch self {
-        case .everyone: "전체"
+        case .everyone: LocalizedStringResource("audience.everyone", defaultValue: "전체")
         case .unlisted: "링크만"
         case .followers: "팔로워만"
         case .password: "비밀번호"
