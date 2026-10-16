@@ -12,6 +12,7 @@ struct LockedPostGate: View {
 
     @State private var password = ""
     @FocusState private var fieldFocused: Bool
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -53,8 +54,11 @@ struct LockedPostGate: View {
     }
 
     private var passwordForm: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 12) {
+        let row = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+            : AnyLayout(HStackLayout(spacing: 12))
+        return VStack(alignment: .leading, spacing: 10) {
+            row {
                 SecureField("비밀번호", text: $password)
                     .textContentType(.password)
                     .submitLabel(.go)

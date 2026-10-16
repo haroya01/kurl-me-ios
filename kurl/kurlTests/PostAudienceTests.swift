@@ -377,6 +377,65 @@ final class PostAudienceTests: XCTestCase {
         store.remove(username: "audience-test", slug: "memo")
     }
 
+    // MARK: 글 머리 조건 표시
+
+    private func condition(_ extra: String, owner: Bool) throws -> String? {
+        let names = ["JP": "일본", "CN": "중국", "US": "미국"]
+        return PostConditionLabel.text(
+            for: try decode(PostListItem.self, Self.post(extra)), isOwner: owner, countryName: { names[$0] ?? $0 })
+    }
+
+    func testEachAudienceNamesItsConditionForReadersAndTheOwner() throws {
+        for owner in [false, true] {
+            XCTAssertEqual(try condition(#","audience":"FOLLOWERS""#, owner: owner), "팔로워 공개")
+            XCTAssertEqual(try condition(#","audience":"UNLISTED""#, owner: owner), "링크로만 공개")
+            XCTAssertEqual(try condition(#","audience":"PASSWORD""#, owner: owner), "비밀번호 글")
+        }
+    }
+
+    func testAPlainPublicPostShowsNoCondition() throws {
+        for owner in [false, true] {
+            XCTAssertNil(try condition(#","audience":"PUBLIC""#, owner: owner))
+            XCTAssertNil(try condition("", owner: owner))
+            XCTAssertNil(try condition(#","audience":"PUBLIC","blockedCountries":[]"#, owner: owner))
+        }
+    }
+
+    func testReadersSeeTheCountryRuleWithoutNamesAndTheOwnerSeesTheNames() throws {
+        XCTAssertEqual(
+            try condition(#","audience":"FOLLOWERS","regionRestricted":true"#, owner: false), "팔로워 공개 · 일부 나라 제한")
+        XCTAssertEqual(try condition(#","audience":"PUBLIC","regionRestricted":true"#, owner: false), "일부 나라 제한")
+        XCTAssertEqual(
+            try condition(#","audience":"PUBLIC","regionRestricted":true,"blockedCountries":["JP"]"#, owner: false),
+            "일부 나라 제한")
+        XCTAssertEqual(
+            try condition(#","audience":"FOLLOWERS","regionRestricted":true,"blockedCountries":["CN","JP"]"#, owner: true),
+            "팔로워 공개 · 일본·중국 제한")
+        XCTAssertEqual(
+            try condition(#","audience":"PUBLIC","regionRestricted":true,"blockedCountries":["US"]"#, owner: true),
+            "미국 제한")
+    }
+
+    func testALockedPostShowsNoConditionInItsByline() throws {
+        XCTAssertNil(try condition(#","audience":"FOLLOWERS","locked":{"reason":"FOLLOWERS"}"#, owner: false))
+        XCTAssertNil(try condition(#","audience":"PASSWORD","locked":{"reason":"PASSWORD"}"#, owner: false))
+        XCTAssertNil(
+            try condition(#","audience":"PUBLIC","regionRestricted":true,"locked":{"reason":"REGION"}"#, owner: false))
+    }
+
+    func testRemovingAReplyLikeCarriesTheGrantOfItsPost() {
+        let access = PostAccess.shared
+        access.setGrant("g-1", username: "writer", slug: "memo")
+        access.bind(postId: 42, username: "writer", slug: "memo")
+        access.link(highlights: [7], to: 42)
+        access.link(replies: [70, 71], ofHighlight: 7)
+        XCTAssertEqual(access.headers(forPath: "/highlight-replies/70/like"), ["X-Post-Grant": "g-1"])
+        XCTAssertEqual(access.headers(forPath: "/highlight-replies/71"), ["X-Post-Grant": "g-1"])
+        XCTAssertEqual(access.headers(forPath: "/highlight-replies/72/like"), [:])
+        access.link(replies: [80], ofHighlight: 8)
+        XCTAssertEqual(access.headers(forPath: "/highlight-replies/80/like"), [:])
+    }
+
     // MARK: 발행 시트가 보내는 것
 
     func testAutosaveNeverSendsThePasswordOrAPasswordAudienceWithoutOne() {

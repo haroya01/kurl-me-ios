@@ -20,6 +20,7 @@ final class PostAccess {
     private var addressById: [Int64: String] = [:]
     private var postByHighlight: [Int64: Int64] = [:]
     private var postByComment: [Int64: Int64] = [:]
+    private var postByReply: [Int64: Int64] = [:]
     private(set) var lockouts: [String: Int] = [:]
 
     init() {
@@ -65,11 +66,17 @@ final class PostAccess {
         for id in ids { postByComment[id] = postId }
     }
 
+    func link(replies ids: [Int64], ofHighlight highlightId: Int64) {
+        guard let postId = postByHighlight[highlightId] else { return }
+        for id in ids { postByReply[id] = postId }
+    }
+
     func reset() {
         credentials = [:]
         addressById = [:]
         postByHighlight = [:]
         postByComment = [:]
+        postByReply = [:]
         lockouts = [:]
     }
 
@@ -104,6 +111,8 @@ final class PostAccess {
             return Int64(second).flatMap { postByHighlight[$0] }.flatMap { addressById[$0] }
         case "comments":
             return Int64(second).flatMap { postByComment[$0] }.flatMap { addressById[$0] }
+        case "highlight-replies":
+            return Int64(second).flatMap { postByReply[$0] }.flatMap { addressById[$0] }
         default:
             return nil
         }
