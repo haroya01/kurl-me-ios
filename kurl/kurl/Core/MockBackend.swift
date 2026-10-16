@@ -126,7 +126,7 @@ enum MockBackend {
                          tags: ["작업일지"], audience: "FOLLOWERS"),
                 MockPost(id: 9007, slug: "aud-password", title: "스터디 모임 회고", status: "PUBLISHED",
                          markdown: "# 비밀번호\n\n모임 회고.", publishedAt: published, updatedAt: Date(),
-                         tags: ["스터디"], audience: "PASSWORD", hasPassword: true),
+                         tags: ["스터디"], audience: "PASSWORD", hasPassword: true, blockedCountries: ["JP", "US"]),
                 MockPost(id: 9008, slug: "aud-region-open", title: "지역 한정 행사 후기", status: "PUBLISHED",
                          markdown: "# 국가 제한\n\n행사 후기.", publishedAt: published, updatedAt: Date(),
                          tags: ["행사"], blockedCountries: ["JP", "US"]),
