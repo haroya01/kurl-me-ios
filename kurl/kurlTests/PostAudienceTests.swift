@@ -366,6 +366,17 @@ final class PostAudienceTests: XCTestCase {
         XCTAssertTrue(OfflineStore.isProtected(Data(Self.detail(#","locked":{"reason":"REGION"}"#).utf8)))
     }
 
+    func testSavingAProtectedBodyKeepsNoCopyAndDropsTheOldOne() {
+        let store = OfflineStore.shared
+        store.save(raw: Data(Self.detail().utf8), username: "audience-test", slug: "memo")
+        XCTAssertTrue(store.contains(username: "audience-test", slug: "memo"))
+        store.save(raw: Data(Self.detail(#","audience":"FOLLOWERS""#).utf8), username: "audience-test", slug: "memo")
+        XCTAssertFalse(store.contains(username: "audience-test", slug: "memo"))
+        store.save(raw: Data(Self.detail(#","locked":{"reason":"PASSWORD"}"#).utf8), username: "audience-test", slug: "other")
+        XCTAssertFalse(store.contains(username: "audience-test", slug: "other"))
+        store.remove(username: "audience-test", slug: "memo")
+    }
+
     // MARK: 발행 시트가 보내는 것
 
     func testAutosaveNeverSendsThePasswordOrAPasswordAudienceWithoutOne() {

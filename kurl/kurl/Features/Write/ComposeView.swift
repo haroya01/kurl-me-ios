@@ -226,6 +226,9 @@ struct ComposeView: View {
                 try? await Task.sleep(for: .milliseconds(200))
                 focusBodyEditor()
             }
+            if let preset = Config.consumeLaunchValue(after: "--audience").flatMap(PostAudience.init(rawValue:)) {
+                accessDraft.audience = preset
+            }
             if Config.consumeLaunchValue(after: "--sheet") == "publish" {
                 showPublish = true
             }
@@ -1274,6 +1277,7 @@ struct ComposeView: View {
             } label: {
                 sheetCapsule(Text(accessDraft.audience.label), indicator: "chevron.up.chevron.down")
             }
+            .tint(.primary)
             .glassEffect(.regular.interactive(), in: .capsule)
             .sensoryFeedback(.selection, trigger: audienceTaps)
             .accessibilityLabel(Text("공개 범위"))
