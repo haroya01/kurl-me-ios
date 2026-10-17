@@ -243,6 +243,15 @@ final class NotesViewModel {
     }
 }
 
+struct NoteRowDetached {
+    let context: Text
+    let open: () -> Void
+    let openAuthor: () -> Void
+    let reply: () -> Void
+    let menu: AnyView
+    let actions: AnyView
+}
+
 /// 노트 한 행 — 스레드 행 문법(헤어라인 구분). 고치기·지우기는 더보기 메뉴나 길게 눌러서.
 struct NoteRowView: View {
     let note: Note
@@ -260,6 +269,7 @@ struct NoteRowView: View {
     /// 이어 쓴 노트의 몇 번째 편인지("1/3") — 스레드처럼 머리 줄 끝에.
     var position: String? = nil
     var onReplied: ((Note) -> Void)? = nil
+    var detached: NoteRowDetached? = nil
 
     @State private var replying = false
     @State private var replyPosts = 0
@@ -302,7 +312,7 @@ struct NoteRowView: View {
          onQuoted: ((Note) -> Void)? = nil, repostedBy: String? = nil,
          showsPin: Bool = false, replyHeader: ReplyHeader? = nil,
          threadLineBelow: Bool = false, focused: Bool = false, position: String? = nil,
-         onReplied: ((Note) -> Void)? = nil) {
+         onReplied: ((Note) -> Void)? = nil, detached: NoteRowDetached? = nil) {
         self.note = note
         self.onChange = onChange
         self.onDelete = onDelete
@@ -314,6 +324,7 @@ struct NoteRowView: View {
         self.focused = focused
         self.position = position
         self.onReplied = onReplied
+        self.detached = detached
         _liked = State(initialValue: note.likedByMe == true)
         _likeCount = State(initialValue: note.likeCount)
         _reposted = State(initialValue: note.repostedByMe == true)
@@ -367,7 +378,17 @@ struct NoteRowView: View {
 
     private var content: some View {
         VStack(alignment: .leading, spacing: 6) {
-            if let repostedBy {
+            if let detached {
+                HStack(spacing: 12) {
+                    Color.clear.frame(width: 36 * unit, height: 1)
+                    detached.context
+                        .typeScale(.meta)
+                        .fontWeight(.medium)
+                        .lineLimit(2)
+                }
+                .foregroundStyle(Palette.secondary)
+                .allowsHitTesting(false)
+            } else if let repostedBy {
                 HStack(spacing: 12) {
                     NoteGlyphView(glyph: .repost, size: 14 * unit)
                         .frame(width: 36 * unit, alignment: .trailing)
@@ -410,7 +431,13 @@ struct NoteRowView: View {
             }
         }
         .background {
-            if !focused {
+            if let detached {
+                Button(action: detached.open) {
+                    Color.clear.contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityHidden(true)
+            } else if !focused {
                 NavigationLink(value: Route.note(id: note.id)) {
                     Color.clear.contentShape(Rectangle())
                 }
@@ -447,7 +474,7 @@ struct NoteRowView: View {
                     Label("노트 삭제", systemImage: "trash")
                 }
             }
-            if AuthStore.shared.isSignedIn {
+            if AuthStore.shared.isSignedIn, detached == nil {
                 Button { connecting = true } label: {
                     Label("컬렉션에 연결", systemImage: "rectangle.stack.badge.plus")
                 }
@@ -495,12 +522,20 @@ struct NoteRowView: View {
         }
     }
 
-    private var avatarLink: some View {
-        NavigationLink(value: note.author.notesRoute) {
-            ConversationAvatar(author: note.author)
+    @ViewBuilder private var avatarLink: some View {
+        if let detached {
+            Button(action: detached.openAuthor) {
+                ConversationAvatar(author: note.author)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("\(ConversationName.spoken(note.author))님 프로필"))
+        } else {
+            NavigationLink(value: note.author.notesRoute) {
+                ConversationAvatar(author: note.author)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("\(ConversationName.spoken(note.author))님 프로필"))
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel(Text("\(ConversationName.spoken(note.author))님 프로필"))
     }
 
     private var focusedRow: some View {
@@ -619,20 +654,15 @@ struct NoteRowView: View {
                         ZStack(alignment: .topLeading) {
                             if folded {
                                 shield(.note)
+                            } else if let detached {
+                                Button(action: detached.open) { feedBody }
+                                    .buttonStyle(.plain)
+                                    .transition(.opacity)
                             } else {
-                                NavigationLink(value: Route.note(id: note.id)) {
-                                    Text(NoteText.attributed(shownBody, mentions: note.mentions ?? []))
-                                        .typeScale(.note)
-                                        .foregroundStyle(Palette.ink)
-                                        .tint(Palette.link)
-                                        .multilineTextAlignment(.leading)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .contentShape(Rectangle())
-                                }
-                                .buttonStyle(.plain)
-                                .transition(.opacity)
-                                .accessibilityIdentifier("note.body.\(note.id)")
+                                NavigationLink(value: Route.note(id: note.id)) { feedBody }
+                                    .buttonStyle(.plain)
+                                    .transition(.opacity)
+                                    .accessibilityIdentifier("note.body.\(note.id)")
                             }
                         }
                     }
@@ -643,31 +673,62 @@ struct NoteRowView: View {
                             withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.22)) { revealed.toggle() }
                         }
                     }
-                    if !replyAccess.isClosed {
+                    if let detached {
+                        Button("답글 쓰기", action: detached.reply)
+                    } else if !replyAccess.isClosed {
                         Button("답글 쓰기") { startReply() }
                     }
                 }
                 .overlay(alignment: Alignment(horizontal: .trailing, vertical: .firstTextBaseline)) {
-                    moreMenu
-                        .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + nameCapHalf }
+                    if let detached {
+                        detached.menu
+                            .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + nameCapHalf }
+                    } else {
+                        moreMenu
+                            .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + nameCapHalf }
+                    }
                 }
                 if !folded, !note.body.isEmpty, note.remoteCard == nil { translationLine }
                 attachments
-                actions(spread: false)
-                    .padding(.top, 10)
+                if let detached {
+                    detached.actions
+                        .padding(.top, 10)
+                } else {
+                    actions(spread: false)
+                        .padding(.top, 10)
+                }
             }
             .alignmentGuide(.noteNameLine) { $0[.firstTextBaseline] - nameCapHalf }
         }
     }
 
+    private var feedBody: some View {
+        Text(NoteText.attributed(shownBody, mentions: note.mentions ?? []))
+            .typeScale(.note)
+            .foregroundStyle(Palette.ink)
+            .tint(Palette.link)
+            .multilineTextAlignment(.leading)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+    }
+
     /// ⋯ 는 VoiceOver 묶음 밖에 얹어야 따로 닿는다 — 여기선 자리만 비운다.
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 4) {
-            NavigationLink(value: note.author.notesRoute) {
-                ConversationName(author: note.author)
-                    .typeScale(.note)
+            if let detached {
+                Button(action: detached.openAuthor) {
+                    ConversationName(author: note.author)
+                        .typeScale(.note)
+                }
+                .buttonStyle(.plain)
+            } else {
+                NavigationLink(value: note.author.notesRoute) {
+                    ConversationName(author: note.author)
+                        .typeScale(.note)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
             if let date = note.createdAt {
                 Text(verbatim: "·")
                     .typeScale(.note)
@@ -1240,7 +1301,7 @@ struct NoteRowView: View {
 }
 
 /// 좋아요·리포스트를 켜고 끌 때 아이콘이 한 번 부풀었다 돌아온다.
-private struct GlyphPop: ViewModifier {
+struct GlyphPop: ViewModifier {
     let trigger: Bool
 
     func body(content: Content) -> some View {

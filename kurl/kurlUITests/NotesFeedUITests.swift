@@ -361,7 +361,7 @@ final class NotesFeedUITests: XCTestCase {
 
     func testTheFeedOfOtherServersShowsNotesThisServerReceived() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launchArguments = ["--mocks", "--tab", "notes", "--mock-trending", "empty"]
         app.launch()
         openNotes(app)
 

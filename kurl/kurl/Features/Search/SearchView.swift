@@ -23,6 +23,9 @@ struct SearchView: View {
     @State private var remoteLookup: RemoteLookup = .off
     @State private var remoteFallback = false
     @State private var remoteTask: Task<Void, Never>?
+    @State private var domainCompletion: DomainCompletion?
+    @State private var shownDomains: [String] = []
+    @State private var domainTask: Task<Void, Never>?
     @Namespace private var zoomNS
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
@@ -80,7 +83,16 @@ struct SearchView: View {
             // RootView 의 탭바 예약 safeAreaPadding 은 NavigationStack 안으로 넘어오지 않는다.
             .reservesTabBarSpace()
             .safeAreaInset(edge: .top, spacing: 0) {
-                if remoteLookup.isVisible {
+                if let draft = FederationAPI.handleDraft(query),
+                   case let handles = DomainCompletion.rows(draft, domainCompletion, interim: shownDomains),
+                   !handles.isEmpty {
+                    VStack(spacing: 0) {
+                        DomainCompletionSlot(draft: draft, handles: handles, pick: pickDomain)
+                        Hairline()
+                    }
+                    .background(Palette.pageBg)
+                    .transition(.opacity)
+                } else if remoteLookup.isVisible {
                     VStack(spacing: 0) {
                         RemoteResolveSlot(lookup: $remoteLookup, onSignedIn: { scheduleRemoteLookup(query) })
                         Hairline()
@@ -129,6 +141,7 @@ struct SearchView: View {
         }
         .onChange(of: query) { _, newValue in
             remoteFallback = false
+            scheduleDomainCompletion(newValue)
             scheduleSearch(newValue)
             scheduleRemoteLookup(newValue)
         }
@@ -773,13 +786,50 @@ struct SearchView: View {
     }
 
     private func resolvesRemotely(_ text: String) -> Bool {
-        scope == .posts && !remoteFallback && FederationAPI.queryDomain(text) != nil
+        guard scope == .posts, !remoteFallback else { return false }
+        return FederationAPI.queryDomain(text) != nil || completionHolds(text)
+    }
+
+    private func completionHolds(_ text: String) -> Bool {
+        DomainCompletion.holdsResolve(FederationAPI.handleDraft(text), domainCompletion)
+    }
+
+    private func scheduleDomainCompletion(_ text: String) {
+        guard let draft = FederationAPI.handleDraft(text) else {
+            domainTask?.cancel()
+            domainCompletion = nil
+            shownDomains = []
+            return
+        }
+        if domainCompletion?.prefix == draft.domain { return }
+        domainTask?.cancel()
+        if case .loaded(_, let domains)? = domainCompletion { shownDomains = domains }
+        domainCompletion = .loading(prefix: draft.domain)
+        domainTask = Task {
+            try? await Task.sleep(for: .milliseconds(150))
+            guard !Task.isCancelled else { return }
+            let found = await FederationAPI.domains(prefix: draft.domain)
+            guard !Task.isCancelled else { return }
+            withAnimation(.smooth(duration: 0.2)) {
+                domainCompletion = found.map { .loaded(prefix: draft.domain, domains: $0) }
+                    ?? .unavailable(prefix: draft.domain)
+            }
+            scheduleSearch(query)
+            scheduleRemoteLookup(query)
+        }
+    }
+
+    private func pickDomain(_ handle: String) {
+        guard let draft = FederationAPI.handleDraft(handle) else { return }
+        domainTask?.cancel()
+        domainCompletion = .loaded(prefix: draft.domain, domains: [draft.domain])
+        query = handle
     }
 
     private func scheduleRemoteLookup(_ text: String) {
         remoteTask?.cancel()
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard FederationAPI.queryDomain(trimmed) != nil else {
+        guard FederationAPI.queryDomain(trimmed) != nil, !completionHolds(trimmed) else {
             withAnimation(.smooth(duration: 0.2)) { remoteLookup = .off }
             return
         }

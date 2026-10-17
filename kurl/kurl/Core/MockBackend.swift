@@ -429,6 +429,62 @@ enum MockBackend {
         return withDomainBlock(account)
     }
 
+    private static func trendingNotes() -> [[String: Any]] {
+        func author(_ acct: String, _ name: String) -> [String: Any] {
+            let pieces = acct.split(separator: "@").map(String.init)
+            let known: Int64? = acct == "mina@mastodon.social" ? 9800 : nil
+            return ["id": known.map { -$0 as Any } ?? NSNull(), "username": acct, "displayName": name,
+                    "avatarUrl": NSNull(), "remoteId": known.map { $0 as Any } ?? NSNull(),
+                    "url": "https://\(pieces[1])/@\(pieces[0])"]
+        }
+        func item(
+            _ uri: String, _ body: String, _ acct: String, _ name: String, ago: TimeInterval,
+            servers: [String], replies: Int = 0, language: String = "ko",
+            extra: [String: Any] = [:]
+        ) -> [String: Any] {
+            var value: [String: Any] = [
+                "uri": uri, "body": body, "createdAt": iso(Date().addingTimeInterval(-ago)),
+                "author": author(acct, name), "media": [] as [Any], "contentWarning": NSNull(),
+                "sensitive": false, "language": language, "likeCount": 120, "repostCount": 40,
+                "replyCount": replies, "poll": NSNull(), "linkPreview": NSNull(),
+                "remote": ["kind": "NOTE", "title": NSNull(), "url": uri, "community": NSNull()] as [String: Any],
+                "servers": servers,
+            ]
+            value.merge(extra) { $1 }
+            return value
+        }
+        return [
+            item("https://mastodon.social/users/mina/statuses/9600", "Hello from the fediverse 👋 #kurl",
+                 "mina@mastodon.social", "Mina", ago: 1_800, servers: ["mastodon.social", "mstdn.jp"],
+                 replies: 3, language: "en"),
+            item("https://mstdn.jp/users/hana/statuses/1131", "今日は朝から雨。駅前の紫陽花がいちばんきれいな季節になった。",
+                 "hana@mstdn.jp", "はな", ago: 5_400, servers: ["mstdn.jp"], replies: 12, language: "ja",
+                 extra: ["media": [["url": mockUploadedImageURL, "altText": "雨に濡れた紫陽花",
+                                    "contentType": "image/jpeg", "width": 1200, "height": 800]] as [Any]]),
+            item("https://qdon.space/users/dal/statuses/2201", "어제 본 영화 결말 이야기. 아직 안 본 분은 접어 두세요.",
+                 "dal@qdon.space", "달", ago: 9_000, servers: ["qdon.space", "planet.moe"], replies: 5,
+                 extra: ["contentWarning": "영화 결말 있음", "sensitive": true]),
+            item("https://planet.moe/users/jun/statuses/3301", "주말에 가장 오래 하는 일은?",
+                 "jun@planet.moe", "준", ago: 12_000, servers: ["planet.moe"], replies: 8,
+                 extra: [
+                    "poll": ["expiresAt": iso(Date().addingTimeInterval(86_400)), "expired": false,
+                             "multiple": false, "votesCount": 214, "votersCount": 214,
+                             "options": [["title": "책 읽기", "votesCount": 88], ["title": "걷기", "votesCount": 71],
+                                         ["title": "잠", "votesCount": 55]]] as [String: Any],
+                    "remote": ["kind": "QUESTION", "title": NSNull(),
+                               "url": "https://planet.moe/@jun/3301", "community": NSNull()] as [String: Any],
+                 ]),
+            item("https://fedibird.com/users/sora/statuses/4401", "長く使える道具の選び方について書きました。",
+                 "sora@fedibird.com", "そら", ago: 15_000, servers: ["fedibird.com"], replies: 2, language: "ja",
+                 extra: ["linkPreview": ["url": "https://sora.example/tools", "title": "長く使える道具",
+                                         "description": "十年使った鞄とペンの話", "image": NSNull()] as [String: Any]]),
+            item("https://social.silicon.moe/users/lee/statuses/5501", "작은 서버를 오래 운영하며 배운 것 세 가지.",
+                 "lee@social.silicon.moe", "이", ago: 20_000, servers: ["social.silicon.moe"], replies: 1),
+            item("https://mastodon.social/users/alice/statuses/6601", "Morning light over the harbour.",
+                 "alice@mastodon.social", "Alice", ago: 26_000, servers: ["mastodon.social"], language: "en"),
+        ]
+    }
+
     private static func remoteNoteViews(of accountId: Int64) -> [[String: Any]] {
         let shapes = remoteShapeViews().filter { remoteAuthorId($0) == accountId }
         guard accountId == 9800 else { return shapes }
@@ -1912,6 +1968,27 @@ enum MockBackend {
                 }
             return json(["items": Array(matches.prefix(limit)).map(withDomainBlock)])
         }
+        if method == "GET", parts == ["federation", "trending"] {
+            switch ProcessInfo.processInfo.arguments.firstIndex(of: "--mock-trending").map({ index in
+                ProcessInfo.processInfo.arguments.dropFirst(index + 1).first ?? ""
+            }) {
+            case "empty": return json(["items": [] as [Any]])
+            case "fail": throw APIError.server(status: 503, code: nil, detail: "trending unavailable")
+            default: return json(["items": trendingNotes()])
+            }
+        }
+        if method == "GET", parts == ["federation", "domains"] {
+            let raw = (query?.first(where: { $0.name == "prefix" })?.value ?? "").lowercased()
+            let prefix = String(raw.split(separator: "@", omittingEmptySubsequences: false).last ?? "")
+                .trimmingCharacters(in: .whitespaces)
+            let limit = Int(query?.first(where: { $0.name == "limit" })?.value ?? "") ?? 5
+            let known = [
+                "mastodon.social", "misskey.io", "mstdn.jp", "fedibird.com", "qdon.space", "planet.moe",
+                "social.silicon.moe", "mastodon.online", "mas.to", "fosstodon.org", "mastodon.art",
+            ]
+            let items = known.filter { $0.hasPrefix(prefix) }.prefix(limit).map { ["domain": $0] }
+            return json(["items": Array(items)])
+        }
         if method == "GET", parts == ["federation", "accounts", "suggestions"] {
             let limit = Int(query?.first(where: { $0.name == "limit" })?.value ?? "") ?? 3
             let picks = remoteAccounts.values
@@ -1938,7 +2015,10 @@ enum MockBackend {
                 else { throw missing }
                 return json(["account": found, "note": NSNull()])
             }
-            let segments = address.pathComponents.filter { $0 != "/" }
+            var segments = address.pathComponents.filter { $0 != "/" }
+            if segments.count == 4, segments[0] == "users", segments[2] == "statuses" {
+                segments = ["@\(segments[1])", segments[3]]
+            }
             guard let user = segments.first,
                   let account = remoteAccounts.values.first(where: {
                       ($0["domain"] as? String) == domain && "@\(($0["username"] as? String) ?? "")" == user

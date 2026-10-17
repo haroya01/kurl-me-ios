@@ -18,12 +18,21 @@ struct NoteFeedPage: View {
     @State private var composing = false
     @State private var showLogin = false
     @State private var posted = 0
+    @State private var trending = RemoteTrendingModel()
 
     var body: some View {
         ReadingColumn(
             spacing: 0, background: .clear, tracksTabBar: active, gutter: Metrics.noteGutter, position: $position
         ) {
             Color.clear.frame(height: 8)
+            if kind == .federated {
+                RemoteTrendingGroup(model: trending)
+                if trending.isShown {
+                    Hairline().padding(.horizontal, -Metrics.noteGutter)
+                    RailHeading("받은 노트")
+                        .padding(.top, 20)
+                }
+            }
             content
         }
         .onChange(of: router.topRequests) {
@@ -35,9 +44,14 @@ struct NoteFeedPage: View {
             let signedIn = AuthStore.shared.isSignedIn
             guard warm, loadedSignedIn != signedIn else { return }
             loadedSignedIn = signedIn
-            await model.reload()
+            await reload()
         }
-        .brandRefreshable { await model.reload() }
+        .brandRefreshable { await reload() }
+        .task(id: active) {
+            guard active, let y = Config.consumeLaunchValue(after: "--scroll-y").flatMap(Double.init) else { return }
+            try? await Task.sleep(for: .seconds(2))
+            position.scrollTo(y: y)
+        }
         .onChange(of: NoteFeedPreferences.shared.changes) {
             if kind == .following { refresh() }
         }
@@ -53,6 +67,16 @@ struct NoteFeedPage: View {
         }
         .loginPrompt(isPresented: $showLogin, message: loginMessage)
         .sensoryFeedback(.success, trigger: posted)
+    }
+
+    private func reload() async {
+        guard kind == .federated else {
+            await model.reload()
+            return
+        }
+        async let notes: Void = model.reload()
+        await trending.load()
+        await notes
     }
 
     private func refresh() {

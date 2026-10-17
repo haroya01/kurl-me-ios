@@ -699,3 +699,295 @@ final class RemoteSearchHintTests: XCTestCase {
         XCTAssertFalse(shows(.postsPeopleRail, "h", [], people: 2))
     }
 }
+
+@MainActor
+final class RemoteTrendingTests: XCTestCase {
+    private static var kept: [AnyObject] = []
+
+    override func tearDown() async throws {
+        FederationAPI.client = .shared
+        NoteAPI.client = .shared
+        ScriptedFederation.reset()
+    }
+
+    private func serve(_ replies: [String: ScriptedFederation.Reply]) {
+        ScriptedFederation.reset()
+        ScriptedFederation.replies = replies
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [ScriptedFederation.self]
+        let client = APIClient(session: URLSession(configuration: config), viewerToken: { nil })
+        FederationAPI.client = client
+        NoteAPI.client = client
+    }
+
+    private static let poll = #"{"expiresAt":"2026-10-18T09:00:00Z","expired":false,"multiple":false,"votesCount":10,"votersCount":10,"options":[{"title":"책","votesCount":6},{"title":"잠","votesCount":4}]}"#
+
+    private static let trending = #"""
+    {"items":[
+     {"uri":"https://mastodon.social/users/mina/statuses/9600","body":"Hello","createdAt":"2026-10-17T01:00:00Z",
+      "author":{"username":"mina@mastodon.social","displayName":"Mina","avatarUrl":null,"url":"https://mastodon.social/@mina"},
+      "media":[{"url":"https://files.example/a.jpg","altText":"a","contentType":"image/jpeg","width":1200,"height":800}],
+      "contentWarning":null,"sensitive":false,"language":"en","likeCount":120,"repostCount":40,"replyCount":3,
+      "poll":null,"linkPreview":null,
+      "remote":{"kind":"NOTE","title":null,"url":"https://mastodon.social/@mina/9600","community":null},
+      "servers":["mastodon.social","mstdn.jp"]},
+     {"uri":"https://planet.moe/users/jun/statuses/3301","body":"주말에?","createdAt":"2026-10-17T02:00:00Z",
+      "author":{"username":"jun@planet.moe","displayName":null,"avatarUrl":null,"url":"https://planet.moe/@jun"},
+      "media":[],"contentWarning":"투표","sensitive":true,"language":"ko","likeCount":0,"repostCount":0,"replyCount":0,
+      "poll":\#(poll),"linkPreview":{"url":"https://x.example","title":"X","description":null,"image":null},
+      "remote":{"kind":"QUESTION","title":null,"url":"https://planet.moe/@jun/3301","community":null},
+      "servers":["planet.moe"]}
+    ]}
+    """#
+
+    private static let localNote = #"""
+    {"account":null,"note":{"id":9600,"body":"Hello","createdAt":"2026-10-17T01:00:00Z","editedAt":null,
+     "likeCount":null,"likedByMe":LIKED,
+     "author":{"id":-9800,"username":"mina@mastodon.social","bio":null,"avatarUrl":null,"displayName":"Mina","remoteId":9800,"url":"https://mastodon.social/@mina"},
+     "media":[],"quotedPost":null,"inReplyToId":null,"replyCount":3,"repostCount":null,"repostedByMe":false,"quotedNote":null,"linkPreview":null}}
+    """#
+
+    private static let mina = #"{"id":9800,"acct":"mina@mastodon.social","username":"mina","domain":"mastodon.social","displayName":"Mina","avatarUrl":null,"url":"https://mastodon.social/@mina","following":true,"requested":false,"domainBlocked":false}"#
+
+    private func items() throws -> [TrendingNote] {
+        try JSONDecoder.blog.decode(TrendingNotePage.self, from: Data(Self.trending.utf8)).items
+    }
+
+    private func actions(_ item: TrendingNote, signedIn: Bool = true) -> TrendingNoteActions {
+        let actions = TrendingNoteActions(item: item, signedIn: { signedIn })
+        Self.kept.append(actions)
+        return actions
+    }
+
+    private static let contractExample = #"""
+    {"items":[
+     {"id":null,"body":"서울 불꽃축제 사진 몇 장 올려요.\n\n@friend@mstdn.jp 다음엔 같이 가요 https://example.org/fireworks",
+      "createdAt":"2026-10-16T13:48:01.441Z","editedAt":null,"likeCount":128,"likedByMe":null,
+      "author":{"id":-412,"username":"minji@qdon.space","avatarUrl":"https://qdon.space/a1.png","displayName":"민지","remoteId":412,"url":"https://qdon.space/@minji"},
+      "media":[{"url":"https://qdon.space/f1.jpg","altText":"밤하늘에 터지는 금색 불꽃","contentType":"image/jpeg","width":1600,"height":1200}],
+      "quotedPost":null,"inReplyToId":null,"replyCount":4,"repostCount":37,"repostedByMe":null,"quotedNote":null,
+      "linkPreview":{"url":"https://example.org/fireworks","title":"2026 서울세계불꽃축제","description":null,"image":"https://qdon.space/c.jpg"},
+      "repostedBy":null,"quoteCount":0,"bookmarkedByMe":null,"mentions":[],"contentWarning":null,"sensitive":false,"pinned":false,
+      "visibility":"public","poll":null,"conversationMuted":null,"language":"ko","thread":null,"replyPolicy":"everyone",
+      "canReply":null,"hidden":false,
+      "remote":{"kind":"NOTE","title":null,"url":"https://qdon.space/@minji/113000000000000001","community":null},
+      "uri":"https://qdon.space/users/minji/statuses/113000000000000001","url":"https://qdon.space/@minji/113000000000000001",
+      "sourceHost":"qdon.space","servers":["qdon.space","planet.moe"]},
+     {"id":null,"body":"どっちが好き?","createdAt":"2026-10-16T09:12:44.000Z","editedAt":"2026-10-16T09:20:03.000Z",
+      "likeCount":3,"likedByMe":null,
+      "author":{"id":null,"username":"neko_9@misskey.io","avatarUrl":"https://media.misskey.io/files/avatar.webp","displayName":"ねこ :blobcat:","remoteId":null,"url":"https://misskey.io/@neko_9"},
+      "media":[],"quotedPost":null,"inReplyToId":null,"replyCount":0,"repostCount":52,"repostedByMe":null,"quotedNote":null,
+      "linkPreview":null,"repostedBy":null,"quoteCount":0,"bookmarkedByMe":null,"mentions":[],"contentWarning":"投票",
+      "sensitive":false,"pinned":false,"visibility":"public",
+      "poll":{"expiresAt":"2026-10-18T09:12:44.000Z","expired":false,"multiple":false,"votesCount":210,"votersCount":210,
+       "options":[{"title":"きのこ","votesCount":90},{"title":"たけのこ","votesCount":120}],"voted":true,"ownVotes":[]},
+      "conversationMuted":null,"language":"ja","thread":null,"replyPolicy":"everyone","canReply":null,"hidden":false,
+      "remote":{"kind":"QUESTION","title":null,"url":"https://misskey.io/notes/a1b2c3d4e5","community":null},
+      "uri":"https://misskey.io/notes/a1b2c3d4e5","url":"https://misskey.io/notes/a1b2c3d4e5",
+      "sourceHost":"fedibird.com","servers":["fedibird.com"]}
+    ]}
+    """#
+
+    func testTheContractExampleDecodesForSignedInAndSignedOutReaders() throws {
+        let signedOut = Self.contractExample
+            .replacingOccurrences(of: #""voted":true"#, with: #""voted":null"#)
+            .replacingOccurrences(of: #""ownVotes":[]"#, with: #""ownVotes":null"#)
+
+        for (json, signedIn) in [(Self.contractExample, true), (signedOut, false)] {
+            let found = try JSONDecoder.blog.decode(TrendingNotePage.self, from: Data(json.utf8)).items
+
+            XCTAssertEqual(found.map(\.uri), [
+                "https://qdon.space/users/minji/statuses/113000000000000001", "https://misskey.io/notes/a1b2c3d4e5",
+            ])
+            let fireworks = found[0].displayNote
+            XCTAssertEqual(fireworks.media.first?.contentType, "image/jpeg")
+            XCTAssertEqual(fireworks.linkPreview?.title, "2026 서울세계불꽃축제")
+            XCTAssertNil(fireworks.linkPreview?.description)
+            XCTAssertEqual(found[0].servers, ["qdon.space", "planet.moe"])
+            XCTAssertEqual(found[0].likeCount, 128)
+            XCTAssertEqual(found[0].authorRoute, .remoteAccount(id: 412))
+            XCTAssertNil(found[1].authorRoute)
+
+            let question = found[1].displayNote
+            XCTAssertEqual(question.author.shownName, "ねこ :blobcat:")
+            XCTAssertEqual(question.contentWarning, "投票")
+            XCTAssertEqual(question.remote?.kind, .question)
+            XCTAssertEqual(question.poll?.options.map(\.title), ["きのこ", "たけのこ"])
+            XCTAssertEqual(question.poll?.voted, signedIn ? true : nil)
+            XCTAssertEqual(question.poll?.ownVotes, signedIn ? [] : nil)
+            XCTAssertEqual(found[1].originalURL?.absoluteString, "https://misskey.io/notes/a1b2c3d4e5")
+        }
+    }
+
+    func testTrendingReadsTheContractAndDrawsAsARemoteNote() async throws {
+        serve(["/federation/trending": .json(200, Self.trending)])
+
+        let found = try await FederationAPI.trending()
+
+        XCTAssertEqual(found.map(\.uri), [
+            "https://mastodon.social/users/mina/statuses/9600", "https://planet.moe/users/jun/statuses/3301",
+        ])
+        let query = try XCTUnwrap(ScriptedFederation.requests.first?.url).query(percentEncoded: false) ?? ""
+        XCTAssertTrue(query.contains("limit=20"), query)
+
+        let note = found[0].displayNote
+        XCTAssertTrue(note.author.isRemote)
+        XCTAssertEqual(note.author.shownName, "Mina")
+        XCTAssertLessThan(note.id, 0)
+        XCTAssertEqual(note.id, TrendingNote.placeholderId(found[0].uri))
+        XCTAssertNotEqual(note.id, found[1].displayNote.id)
+        XCTAssertEqual(note.replyCount, 3)
+        XCTAssertNil(note.likeCount)
+        XCTAssertEqual(note.media.first?.ratio, 1.5)
+        XCTAssertEqual(found[0].servers, ["mastodon.social", "mstdn.jp"])
+
+        let question = found[1].displayNote
+        XCTAssertEqual(question.author.shownName, "jun")
+        XCTAssertEqual(question.contentWarning, "투표")
+        XCTAssertEqual(question.sensitive, true)
+        XCTAssertEqual(question.poll?.options.count, 2)
+        XCTAssertEqual(question.remote?.kind, .question)
+        XCTAssertEqual(question.linkPreview?.title, "X")
+        XCTAssertEqual(found[1].originalURL?.absoluteString, "https://planet.moe/@jun/3301")
+    }
+
+    func testReactingSignedOutAsksToSignInWithoutAskingTheServer() async throws {
+        serve([:])
+        let item = try items()[0]
+
+        let outcome = await actions(item, signedIn: false).toggleLike()
+
+        XCTAssertEqual(outcome, .signIn)
+        XCTAssertTrue(ScriptedFederation.requests.isEmpty)
+    }
+
+    func testReactingResolvesTheActivityPubIdOnceThenActsOnTheLocalNote() async throws {
+        serve([
+            "/federation/resolve": .json(200, Self.localNote.replacingOccurrences(of: "LIKED", with: "false")),
+            "/notes/9600/like": .json(200, #"{"liked":true,"likeCount":1}"#),
+        ])
+        let act = actions(try items()[0])
+
+        let liked = await act.toggleLike()
+        let opened = await act.localNote()
+
+        guard case .done(let note) = liked else { return XCTFail("\(liked)") }
+        XCTAssertEqual(note.id, 9600)
+        XCTAssertEqual(opened, liked)
+        XCTAssertTrue(act.liked)
+        XCTAssertEqual(act.likeCount, 121)
+        XCTAssertEqual(ScriptedFederation.paths, ["/api/v1/federation/resolve", "/api/v1/notes/9600/like"])
+        XCTAssertEqual(
+            ScriptedFederation.requests.first?.url?.query(percentEncoded: false),
+            "q=https://mastodon.social/users/mina/statuses/9600")
+        XCTAssertEqual(ScriptedFederation.requests[1].httpMethod, "PUT")
+    }
+
+    func testTheFirstLikeOnANoteIAlreadyLikedKeepsItLiked() async throws {
+        serve([
+            "/federation/resolve": .json(200, Self.localNote.replacingOccurrences(of: "LIKED", with: "true")),
+            "/notes/9600/like": .json(200, #"{"liked":false,"likeCount":0}"#),
+        ])
+        let act = actions(try items()[0])
+
+        _ = await act.toggleLike()
+
+        XCTAssertTrue(act.liked)
+        XCTAssertEqual(act.likeCount, 120)
+        XCTAssertEqual(ScriptedFederation.paths, ["/api/v1/federation/resolve"])
+    }
+
+    func testFollowingTheAuthorUsesTheResolvedRemoteAccount() async throws {
+        serve([
+            "/federation/resolve": .json(200, Self.localNote.replacingOccurrences(of: "LIKED", with: "false")),
+            "/federation/accounts/9800/follow": .json(200, Self.mina),
+        ])
+        let act = actions(try items()[0])
+
+        let outcome = await act.followAuthor()
+
+        guard case .done = outcome else { return XCTFail("\(outcome)") }
+        XCTAssertEqual(act.followed?.following, true)
+        XCTAssertEqual(ScriptedFederation.paths, ["/api/v1/federation/resolve", "/api/v1/federation/accounts/9800/follow"])
+        XCTAssertEqual(ScriptedFederation.requests.last?.httpMethod, "POST")
+    }
+
+    func testAResolveFailureNamesTheServer() async throws {
+        serve(["/federation/resolve": .json(404, #"{"status":404,"code":"REMOTE_ACCOUNT_NOT_FOUND","detail":"x"}"#)])
+        let act = actions(try items()[1])
+
+        let outcome = await act.localNote()
+
+        XCTAssertEqual(outcome, .failed(String(localized: "\("planet.moe") 서버에서 찾지 못했어요")))
+        XCTAssertNil(act.local)
+    }
+}
+
+@MainActor
+final class DomainCompletionTests: XCTestCase {
+
+    override func tearDown() async throws {
+        FederationAPI.client = .shared
+        ScriptedFederation.reset()
+    }
+
+    func testAHandleDraftIsAUserAndThePartOfTheServerTypedSoFar() {
+        XCTAssertEqual(FederationAPI.handleDraft("@gargron@m"), HandleDraft(user: "gargron", domain: "m"))
+        XCTAssertEqual(FederationAPI.handleDraft("gargron@Mastodon.So"), HandleDraft(user: "gargron", domain: "mastodon.so"))
+        XCTAssertEqual(FederationAPI.handleDraft("＠gargron＠"), HandleDraft(user: "gargron", domain: ""))
+        XCTAssertEqual(FederationAPI.handleDraft(" acct:gargron@mas "), HandleDraft(user: "gargron", domain: "mas"))
+        XCTAssertNil(FederationAPI.handleDraft("gargron"))
+        XCTAssertNil(FederationAPI.handleDraft("@gargron"))
+        XCTAssertNil(FederationAPI.handleDraft("https://mastodon.social/@gargron"))
+        XCTAssertNil(FederationAPI.handleDraft("@gar gron@m"))
+        XCTAssertNil(FederationAPI.handleDraft("@gargron@mas todon"))
+    }
+
+    func testTheResolveWaitsWhileTheServersForThisPrefixAreLoadingOrShowing() {
+        let draft = HandleDraft(user: "gargron", domain: "mastodon.so")
+        XCTAssertTrue(DomainCompletion.holdsResolve(draft, nil))
+        XCTAssertTrue(DomainCompletion.holdsResolve(draft, .loading(prefix: "mastodon.so")))
+        XCTAssertTrue(DomainCompletion.holdsResolve(draft, .loaded(prefix: "mastodon.s", domains: ["mastodon.social"])))
+        XCTAssertTrue(DomainCompletion.holdsResolve(draft, .loaded(prefix: "mastodon.so", domains: ["mastodon.social"])))
+        XCTAssertFalse(DomainCompletion.holdsResolve(draft, .loaded(prefix: "mastodon.so", domains: ["mastodon.so", "mastodon.social"])))
+        XCTAssertFalse(DomainCompletion.holdsResolve(draft, .loaded(prefix: "mastodon.so", domains: [])))
+        XCTAssertFalse(DomainCompletion.holdsResolve(draft, .unavailable(prefix: "mastodon.so")))
+        XCTAssertFalse(DomainCompletion.holdsResolve(nil, .loading(prefix: "m")))
+    }
+
+    func testRowsCompleteTheHandleUpToFiveAndStepAsideForAnExactServer() {
+        let draft = HandleDraft(user: "gargron", domain: "m")
+        let six = ["mastodon.social", "misskey.io", "mstdn.jp", "mastodon.online", "mas.to", "mastodon.art"]
+        XCTAssertEqual(DomainCompletion.rows(draft, .loaded(prefix: "m", domains: six)), [
+            "@gargron@mastodon.social", "@gargron@misskey.io", "@gargron@mstdn.jp",
+            "@gargron@mastodon.online", "@gargron@mas.to",
+        ])
+        XCTAssertEqual(DomainCompletion.rows(draft, .loading(prefix: "m")), [])
+        XCTAssertEqual(
+            DomainCompletion.rows(HandleDraft(user: "gargron", domain: "mas"), .loading(prefix: "mas"), interim: six),
+            ["@gargron@mastodon.social", "@gargron@mastodon.online", "@gargron@mas.to", "@gargron@mastodon.art"])
+        XCTAssertEqual(
+            DomainCompletion.rows(HandleDraft(user: "gargron", domain: "mas.to"), .loaded(prefix: "mas.to", domains: ["mas.to"])),
+            [])
+        XCTAssertEqual(DomainCompletion.rows(draft, .unavailable(prefix: "m")), [])
+    }
+
+    func testDomainsAskWithThePrefixAndHideOnFailure() async throws {
+        ScriptedFederation.reset()
+        ScriptedFederation.replies = ["/federation/domains": .json(200, #"{"items":[{"domain":"Mastodon.Social"},{"domain":"misskey.io"}]}"#)]
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [ScriptedFederation.self]
+        FederationAPI.client = APIClient(session: URLSession(configuration: config), viewerToken: { nil })
+
+        let found = await FederationAPI.domains(prefix: "m")
+
+        XCTAssertEqual(found, ["mastodon.social", "misskey.io"])
+        let query = try XCTUnwrap(ScriptedFederation.requests.first?.url).query(percentEncoded: false) ?? ""
+        XCTAssertTrue(query.contains("prefix=m"), query)
+        XCTAssertTrue(query.contains("limit=5"), query)
+
+        ScriptedFederation.replies = ["/federation/domains": .json(500, "")]
+        let failed = await FederationAPI.domains(prefix: "m")
+        XCTAssertNil(failed)
+    }
+}
