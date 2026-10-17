@@ -432,7 +432,9 @@ enum MockBackend {
     private static func trendingNotes() -> [[String: Any]] {
         func author(_ acct: String, _ name: String) -> [String: Any] {
             let pieces = acct.split(separator: "@").map(String.init)
-            return ["username": acct, "displayName": name, "avatarUrl": NSNull(),
+            let known: Int64? = acct == "mina@mastodon.social" ? 9800 : nil
+            return ["id": known.map { -$0 as Any } ?? NSNull(), "username": acct, "displayName": name,
+                    "avatarUrl": NSNull(), "remoteId": known.map { $0 as Any } ?? NSNull(),
                     "url": "https://\(pieces[1])/@\(pieces[0])"]
         }
         func item(

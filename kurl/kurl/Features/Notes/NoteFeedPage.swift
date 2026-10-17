@@ -47,6 +47,11 @@ struct NoteFeedPage: View {
             await reload()
         }
         .brandRefreshable { await reload() }
+        .task(id: active) {
+            guard active, let y = Config.consumeLaunchValue(after: "--scroll-y").flatMap(Double.init) else { return }
+            try? await Task.sleep(for: .seconds(2))
+            position.scrollTo(y: y)
+        }
         .onChange(of: NoteFeedPreferences.shared.changes) {
             if kind == .following { refresh() }
         }

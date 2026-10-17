@@ -10,6 +10,7 @@ struct TrendingAuthor: Decodable, Hashable {
     let displayName: String?
     let avatarUrl: String?
     let url: String?
+    let remoteId: Int64?
 }
 
 struct TrendingNote: Decodable, Hashable, Identifiable {
@@ -22,12 +23,17 @@ struct TrendingNote: Decodable, Hashable, Identifiable {
     let sensitive: Bool
     let language: String?
     let replyCount: Int64
+    let likeCount: Int64
     let poll: NotePoll?
     let linkPreview: NoteLinkPreview?
     let remote: RemoteNoteShape?
     let servers: [String]
 
     var id: String { uri }
+
+    var authorRoute: Route? {
+        author.remoteId.map { .remoteAccount(id: $0) }
+    }
 
     var originalURL: URL? {
         [remote?.url, author.url].compactMap { $0 }

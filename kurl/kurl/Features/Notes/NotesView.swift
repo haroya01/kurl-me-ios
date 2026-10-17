@@ -246,7 +246,9 @@ final class NotesViewModel {
 struct NoteRowDetached {
     let context: Text
     let open: () -> Void
+    let openAuthor: () -> Void
     let reply: () -> Void
+    let menu: AnyView
     let actions: AnyView
 }
 
@@ -382,7 +384,7 @@ struct NoteRowView: View {
                     detached.context
                         .typeScale(.meta)
                         .fontWeight(.medium)
-                        .lineLimit(1)
+                        .lineLimit(2)
                 }
                 .foregroundStyle(Palette.secondary)
                 .allowsHitTesting(false)
@@ -522,11 +524,11 @@ struct NoteRowView: View {
 
     @ViewBuilder private var avatarLink: some View {
         if let detached {
-            Button(action: detached.open) {
+            Button(action: detached.openAuthor) {
                 ConversationAvatar(author: note.author)
             }
             .buttonStyle(.plain)
-            .accessibilityHidden(true)
+            .accessibilityLabel(Text("\(ConversationName.spoken(note.author))님 프로필"))
         } else {
             NavigationLink(value: note.author.notesRoute) {
                 ConversationAvatar(author: note.author)
@@ -678,7 +680,10 @@ struct NoteRowView: View {
                     }
                 }
                 .overlay(alignment: Alignment(horizontal: .trailing, vertical: .firstTextBaseline)) {
-                    if detached == nil {
+                    if let detached {
+                        detached.menu
+                            .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + nameCapHalf }
+                    } else {
                         moreMenu
                             .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + nameCapHalf }
                     }
@@ -712,7 +717,7 @@ struct NoteRowView: View {
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 4) {
             if let detached {
-                Button(action: detached.open) {
+                Button(action: detached.openAuthor) {
                     ConversationName(author: note.author)
                         .typeScale(.note)
                 }

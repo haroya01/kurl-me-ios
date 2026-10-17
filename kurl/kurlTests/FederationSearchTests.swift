@@ -804,6 +804,9 @@ final class RemoteTrendingTests: XCTestCase {
             XCTAssertEqual(fireworks.linkPreview?.title, "2026 서울세계불꽃축제")
             XCTAssertNil(fireworks.linkPreview?.description)
             XCTAssertEqual(found[0].servers, ["qdon.space", "planet.moe"])
+            XCTAssertEqual(found[0].likeCount, 128)
+            XCTAssertEqual(found[0].authorRoute, .remoteAccount(id: 412))
+            XCTAssertNil(found[1].authorRoute)
 
             let question = found[1].displayNote
             XCTAssertEqual(question.author.shownName, "ねこ :blobcat:")
@@ -872,6 +875,7 @@ final class RemoteTrendingTests: XCTestCase {
         XCTAssertEqual(note.id, 9600)
         XCTAssertEqual(opened, liked)
         XCTAssertTrue(act.liked)
+        XCTAssertEqual(act.likeCount, 121)
         XCTAssertEqual(ScriptedFederation.paths, ["/api/v1/federation/resolve", "/api/v1/notes/9600/like"])
         XCTAssertEqual(
             ScriptedFederation.requests.first?.url?.query(percentEncoded: false),
@@ -889,6 +893,7 @@ final class RemoteTrendingTests: XCTestCase {
         _ = await act.toggleLike()
 
         XCTAssertTrue(act.liked)
+        XCTAssertEqual(act.likeCount, 120)
         XCTAssertEqual(ScriptedFederation.paths, ["/api/v1/federation/resolve"])
     }
 

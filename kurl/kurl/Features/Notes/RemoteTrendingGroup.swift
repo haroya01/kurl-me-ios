@@ -11,7 +11,7 @@ final class RemoteTrendingModel {
     static let collapsedCount = 5
 
     private(set) var phase: LoadState<[TrendingNote]> = .idle
-    var expanded = false
+    var expanded = Config.launchValue(after: "--trending") == "expanded"
 
     func load() async {
         if case .idle = phase { phase = .loading }
@@ -58,6 +58,11 @@ final class TrendingNoteActions {
     private(set) var liked = false
     private(set) var working = false
     private(set) var followed: RemoteAccount?
+    private var likedAtResolve = false
+
+    var likeCount: Int64 {
+        max(item.likeCount + (liked ? 1 : 0) - (likedAtResolve ? 1 : 0), 0)
+    }
 
     init(item: TrendingNote, signedIn: @escaping @MainActor () -> Bool = { AuthStore.shared.isSignedIn }) {
         self.item = item
@@ -73,6 +78,7 @@ final class TrendingNoteActions {
         case .note(let note):
             local = note
             liked = note.likedByMe == true
+            likedAtResolve = liked
             return .done(note)
         case .signIn:
             return .signIn
@@ -202,7 +208,8 @@ private struct TrendingNoteRow: View {
         NoteRowView(
             note: item.displayNote, onChange: { _ in }, onDelete: { _ in },
             detached: NoteRowDetached(
-                context: context, open: open, reply: reply, actions: AnyView(actionBar)))
+                context: context, open: open, openAuthor: openAuthor, reply: reply,
+                menu: AnyView(menu), actions: AnyView(actionBar)))
             .sheet(item: $replyTarget) { note in
                 NoteComposeSheet(mode: .reply(note)) { posted in
                     replies += 1
@@ -223,6 +230,29 @@ private struct TrendingNoteRow: View {
 
     private var actionBar: some View {
         HStack(spacing: 20) {
+            Button {
+                likeTaps += 1
+                Task { await like() }
+            } label: {
+                HStack(spacing: 4) {
+                    NoteGlyphView(glyph: .heart, active: actions.liked, size: Self.actionBox * unit)
+                        .modifier(GlyphPop(trigger: reduceMotion ? false : actions.liked))
+                    if actions.likeCount > 0 {
+                        Text("\(actions.likeCount)")
+                            .monospacedDigit()
+                            .contentTransition(.numericText(value: Double(actions.likeCount)))
+                    }
+                }
+                .typeScale(.lede)
+                .foregroundStyle(actions.liked ? Palette.accent : Palette.ink)
+                .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: actions.likeCount)
+                .expandTapTarget()
+            }
+            .buttonStyle(.plain)
+            .sensoryFeedback(.impact(weight: .light), trigger: likeTaps)
+            .accessibilityLabel(Text("좋아요"))
+            .accessibilityAddTraits(actions.liked ? [.isSelected] : [])
+
             Button(action: reply) {
                 HStack(spacing: 4) {
                     NoteGlyphView(glyph: .reply, size: Self.actionBox * unit)
@@ -234,48 +264,51 @@ private struct TrendingNoteRow: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(Text("답글 쓰기"))
-
-            Button {
-                likeTaps += 1
-                Task { await like() }
-            } label: {
-                NoteGlyphView(glyph: .heart, active: actions.liked, size: Self.actionBox * unit)
-                    .modifier(GlyphPop(trigger: reduceMotion ? false : actions.liked))
-                    .foregroundStyle(actions.liked ? Palette.accent : Palette.ink)
-                    .expandTapTarget()
-            }
-            .buttonStyle(.plain)
-            .sensoryFeedback(.impact(weight: .light), trigger: likeTaps)
-            .accessibilityLabel(Text("좋아요"))
-            .accessibilityAddTraits(actions.liked ? [.isSelected] : [])
+            .accessibilityValue(Text("답글 \(item.replyCount)"))
 
             Spacer(minLength: 0)
             if actions.working {
                 ProgressView()
                     .controlSize(.small)
             }
-            Menu {
-                if let url = item.originalURL {
-                    Button {
-                        original = LegalLink(url: url)
-                    } label: {
-                        Label("원문에서 보기", systemImage: "arrow.up.right")
-                    }
-                }
+        }
+    }
+
+    private var menu: some View {
+        Menu {
+            if let url = item.originalURL {
                 Button {
-                    Task { await follow() }
+                    original = LegalLink(url: url)
                 } label: {
-                    Label("팔로우", systemImage: "person.badge.plus")
+                    Label("원문에서 보기", systemImage: "arrow.up.right")
                 }
-            } label: {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 15 * unit, weight: .semibold))
-                    .foregroundStyle(Palette.secondary)
-                    .frame(width: 32 * unit, height: 22 * unit)
-                    .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(Text("더 보기"))
+            Button {
+                Task { await follow() }
+            } label: {
+                Label("팔로우", systemImage: "person.badge.plus")
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 15 * unit, weight: .semibold))
+                .foregroundStyle(Palette.secondary)
+                .frame(width: 32 * unit, height: 22 * unit)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text("노트 메뉴"))
+        .accessibilityIdentifier("trending.menu")
+    }
+
+    private func openAuthor() {
+        if let route = item.authorRoute {
+            openNoteRoute?(route)
+            return
+        }
+        Task {
+            guard case .done(let note) = settle(await actions.localNote(), "다른 서버 계정을 보려면 로그인하세요")
+            else { return }
+            openNoteRoute?(note.author.notesRoute)
         }
     }
 
