@@ -727,13 +727,13 @@ private struct ImageBlockView: View {
         VStack(spacing: 12) {
             if let url = URL(string: payload.url) {
                 // 첫 로드만 마크 플레이스홀더에서 부드럽게 페이드인 — 이미 본 이미지(캐시)는 즉시 그려진다.
-                RemoteImage(url: url, animation: .easeOut(duration: 0.35)) { phase in
+                RemoteImage(url: url, animation: .easeOut(duration: 0.35), slotWidth: slotWidth) { phase in
                     switch phase {
                     case .success(let image):
                         image.resizable().scaledToFit().transition(.opacity)
                             .onAppear {
                                 // 실제 비율을 기억 — 다음 로드의 placeholder 가 정확한 높이를 잡는다.
-                                if let loaded = RemoteImageCache.shared.cached(url) {
+                                if let loaded = RemoteImageCache.shared.cached(url, slotWidth: slotWidth) {
                                     ImageRatioCache.record(loaded.size, for: url)
                                 }
                             }
@@ -760,7 +760,7 @@ private struct ImageBlockView: View {
                     payload.caption?.isEmpty == false
                         ? payload.caption! : String(localized: "본문 이미지")))
                 // 폭: half = 좁게 중앙, wide/full = 컬럼 밖으로 블리드, 기본 = 컬럼 전폭.
-                .frame(maxWidth: payload.width == "half" ? 320 : .infinity)
+                .frame(maxWidth: payload.width == "half" ? slotWidth : .infinity)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(
                     .horizontal,
@@ -782,6 +782,10 @@ private struct ImageBlockView: View {
             }
         }
         .padding(.vertical, 6)
+    }
+
+    private var slotWidth: CGFloat {
+        payload.width == "half" ? 320 : Metrics.readingColumn
     }
 
     /// 로드 전·실패 자리 — 고정 높이 대신 실제 비율(모르면 사진 일반형 4:3)로 컬럼폭 기준

@@ -7,12 +7,42 @@ import ImageIO
 import SwiftUI
 import UIKit
 
+enum ImageVariant {
+    static let host = "d82putaebkgm4.cloudfront.net"
+    private static let prefixes = ["/note-images/", "/post-images/"]
+    private static let extensions = ["jpg": "jpg", "jpeg": "jpg", "png": "png"]
+
+    static func width(forSlotPixels slotPixels: CGFloat) -> Int {
+        slotPixels <= 480 ? 480 : 1080
+    }
+
+    static func url(for url: URL, slotPixels: CGFloat) -> URL {
+        guard url.host?.lowercased() == host,
+            var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        else { return url }
+        let path = components.percentEncodedPath
+        guard prefixes.contains(where: path.hasPrefix) else { return url }
+        let ext = url.pathExtension
+        guard let variantExt = extensions[ext.lowercased()] else { return url }
+        guard !path.contains(".w480."), !path.contains(".w1080.") else { return url }
+        let width = width(forSlotPixels: slotPixels)
+        components.percentEncodedPath = String(path.dropLast(ext.count)) + "w\(width).\(variantExt)"
+        return components.url ?? url
+    }
+}
+
 /// URL → 디코드된 UIImage 메모리 캐시. AsyncImage 는 뷰가 재생성되면(덱의 화면 밖 장,
 /// 리스트 재활용) 디스크 캐시 히트여도 placeholder 부터 다시 밟아 "매번 리로드"로 보인다 —
 /// 여기 캐시에 있으면 첫 프레임부터 완성본을 그린다. 에디터의 ImageThumbCache 와 같은 원리,
 /// 리더/피드 SwiftUI 면 전용.
 final class RemoteImageCache {
     static let shared = RemoteImageCache()
+
+    private let session: URLSession
+
+    init(session: URLSession = .shared) {
+        self.session = session
+    }
 
     // 디코드된 원본을 무제한 쌓지 않게 한도를 둔다 — 이미지 많은 글에서 메모리가 폭주하지 않게.
     private let cache: NSCache<NSString, UIImage> = {
@@ -25,62 +55,66 @@ final class RemoteImageCache {
     private var inFlight: [NSString: Task<UIImage?, Never>] = [:]
     /// 404·비이미지 등 확정 실패 URL — 다시 받지 않는다(재생성마다의 요청 반복 차단).
     private var failed: Set<URL> = []
+    private var failedVariants: Set<URL> = []
 
     // 요청 크기를 몇 단계 버킷으로 반올림해, 40pt·46pt 아바타가 한 캐시 엔트리를 공유하게 한다.
     nonisolated private static let buckets: [CGFloat] = [128, 256, 512, 1024]
 
+    private static var scale: CGFloat { UIScreen.main.scale > 0 ? UIScreen.main.scale : 3 }
+
     /// 표시 프레임(pt)을 화면 스케일로 px 로 올린 뒤, 그보다 크거나 같은 최소 버킷으로 올림.
     /// nil 이면 원본 그대로(라이트박스·본문 이미지) — 이 경우 URL 만으로 키를 만든다.
-    private func key(for url: URL, maxPixel: CGFloat?) -> NSString {
-        guard let maxPixel else { return url.absoluteString as NSString }
-        let scale = UIScreen.main.scale > 0 ? UIScreen.main.scale : 3
-        let px = maxPixel * scale
-        let bucket = Self.buckets.first { px <= $0 } ?? Self.buckets.last!
-        return "\(url.absoluteString)|\(Int(bucket))" as NSString
+    private func key(for url: URL, maxPixel: CGFloat?, slotWidth: CGFloat?) -> NSString {
+        if let maxPixel {
+            let px = maxPixel * Self.scale
+            let bucket = Self.buckets.first { px <= $0 } ?? Self.buckets.last!
+            return "\(url.absoluteString)|\(Int(bucket))" as NSString
+        }
+        if let slotWidth, variant(of: url, points: slotWidth) != nil {
+            return Self.variantKey(url, width: ImageVariant.width(forSlotPixels: slotWidth * Self.scale))
+        }
+        return url.absoluteString as NSString
     }
 
-    func cached(_ url: URL, maxPixel: CGFloat? = nil) -> UIImage? {
-        cache.object(forKey: key(for: url, maxPixel: maxPixel))
+    private static func variantKey(_ url: URL, width: Int) -> NSString {
+        "\(url.absoluteString)|w\(width)" as NSString
+    }
+
+    private func variant(of url: URL, points: CGFloat?) -> URL? {
+        guard let points else { return nil }
+        let variant = ImageVariant.url(for: url, slotPixels: points * Self.scale)
+        return variant == url ? nil : variant
+    }
+
+    func cached(_ url: URL, maxPixel: CGFloat? = nil, slotWidth: CGFloat? = nil) -> UIImage? {
+        cache.object(forKey: key(for: url, maxPixel: maxPixel, slotWidth: slotWidth))
+    }
+
+    func cachedVariant(_ url: URL) -> UIImage? {
+        cache.object(forKey: Self.variantKey(url, width: 1080))
+            ?? cache.object(forKey: Self.variantKey(url, width: 480))
     }
 
     /// 캐시에 있으면 즉시, 없으면 받아서 캐시 후 반환. 같은 (URL·크기) 동시 요청은 한 다운로드를 나눠 탄다.
     /// maxPixel 을 주면 그 크기에 맞춰 ImageIO 로 축소해 저장 — 380pt 카드에 2000px 원본을 쥐고 있지 않게.
-    func load(_ url: URL, maxPixel: CGFloat? = nil) async -> UIImage? {
-        if let hit = cached(url, maxPixel: maxPixel) { return hit }
+    func load(_ url: URL, maxPixel: CGFloat? = nil, slotWidth: CGFloat? = nil) async -> UIImage? {
+        if let hit = cached(url, maxPixel: maxPixel, slotWidth: slotWidth) { return hit }
         if failed.contains(url) { return nil }
-        let cacheKey = key(for: url, maxPixel: maxPixel)
+        let cacheKey = key(for: url, maxPixel: maxPixel, slotWidth: slotWidth)
         if let running = inFlight[cacheKey] { return await running.value }
+        let variant = variant(of: url, points: maxPixel ?? slotWidth)
+            .flatMap { failedVariants.contains($0) ? nil : $0 }
         let task = Task { () -> UIImage? in
-            // 전송 오류(오프라인 등)는 일시적일 수 있어 블랙리스트에 넣지 않는다 — 다음 기회에 재시도.
-            guard let (data, response) = try? await URLSession.shared.data(from: url) else { return nil }
-            let statusOK =
-                (response as? HTTPURLResponse).map { (200..<300).contains($0.statusCode) } ?? true
-            guard statusOK else {
-                self.failed.insert(url)
-                return nil
+            var fetched: Fetched?
+            if let variant {
+                fetched = await self.fetch(variant, maxPixel: maxPixel)
+                if case .rejected = fetched { self.failedVariants.insert(variant) }
             }
-            let image: UIImage
-            let scale = UIScreen.main.scale > 0 ? UIScreen.main.scale : 3
-            // 축소·디코드는 이미지 크기만큼 걸리는 동기 작업 — 메인 액터(기본 격리)에서 돌면 스크롤 중
-            // 카드가 들어올 때마다 프레임을 먹는다. 분리된 작업에서 하고 결과만 받는다.
-            var downsampled: UIImage?
-            if let maxPixel {
-                downsampled = await Task.detached(priority: .userInitiated) {
-                    Self.downsample(data, maxPixel: maxPixel, scale: scale)
-                }.value
+            if fetched?.image == nil {
+                fetched = await self.fetch(url, maxPixel: maxPixel)
+                if case .rejected = fetched { self.failed.insert(url) }
             }
-            if let downsampled {
-                // 축소본은 이미 그릴 준비가 끝난 비트맵 — byPreparingForDisplay 를 다시 밟지 않는다.
-                image = downsampled
-            } else {
-                // maxPixel 없음(원본) 또는 이례적 포맷으로 썸네일 실패 — 기존 원본 경로로 폴백.
-                guard let full = UIImage(data: data) else {
-                    self.failed.insert(url)
-                    return nil
-                }
-                // 표시 시점의 메인 스레드 디코드 히치를 피한다 — 캐시에는 그릴 준비가 끝난 비트맵만.
-                image = await full.byPreparingForDisplay() ?? full
-            }
+            guard let image = fetched?.image else { return nil }
             // 비용은 실제로 저장하는(축소된) 크기로 다시 계산한다.
             let cost = Int(image.size.width * image.size.height * image.scale * image.scale * 4)
             self.cache.setObject(image, forKey: cacheKey, cost: cost)
@@ -90,6 +124,42 @@ final class RemoteImageCache {
         let result = await task.value
         inFlight[cacheKey] = nil
         return result
+    }
+
+    private enum Fetched {
+        case image(UIImage)
+        case rejected
+        case unreachable
+
+        var image: UIImage? {
+            if case .image(let image) = self { return image }
+            return nil
+        }
+    }
+
+    private func fetch(_ url: URL, maxPixel: CGFloat?) async -> Fetched {
+        // 전송 오류(오프라인 등)는 일시적일 수 있어 블랙리스트에 넣지 않는다 — 다음 기회에 재시도.
+        guard let (data, response) = try? await session.data(from: url) else { return .unreachable }
+        let statusOK =
+            (response as? HTTPURLResponse).map { (200..<300).contains($0.statusCode) } ?? true
+        guard statusOK else { return .rejected }
+        let scale = Self.scale
+        // 축소·디코드는 이미지 크기만큼 걸리는 동기 작업 — 메인 액터(기본 격리)에서 돌면 스크롤 중
+        // 카드가 들어올 때마다 프레임을 먹는다. 분리된 작업에서 하고 결과만 받는다.
+        var downsampled: UIImage?
+        if let maxPixel {
+            downsampled = await Task.detached(priority: .userInitiated) {
+                Self.downsample(data, maxPixel: maxPixel, scale: scale)
+            }.value
+        }
+        if let downsampled {
+            // 축소본은 이미 그릴 준비가 끝난 비트맵 — byPreparingForDisplay 를 다시 밟지 않는다.
+            return .image(downsampled)
+        }
+        // maxPixel 없음(원본) 또는 이례적 포맷으로 썸네일 실패 — 기존 원본 경로로 폴백.
+        guard let full = UIImage(data: data) else { return .rejected }
+        // 표시 시점의 메인 스레드 디코드 히치를 피한다 — 캐시에는 그릴 준비가 끝난 비트맵만.
+        return .image(await full.byPreparingForDisplay() ?? full)
     }
 
     /// ImageIO 썸네일 — 원본을 통째로 디코드하지 않고 maxPixel(px) 이하로 바로 줄인다.
@@ -126,6 +196,7 @@ struct RemoteImage<Content: View>: View {
     /// 표시 프레임(pt) 상한 — 주면 캐시가 그 크기에 맞춰 축소본을 쥔다. nil(기본)이면 원본
     /// 그대로라, 라이트박스·본문 이미지처럼 핀치 줌 원해상도가 필요한 자리는 그대로 둔다.
     private let maxPixel: CGFloat?
+    private let slotWidth: CGFloat?
     private let content: (RemoteImagePhase) -> Content
 
     @State private var phase: RemoteImagePhase
@@ -134,13 +205,15 @@ struct RemoteImage<Content: View>: View {
         url: URL?,
         animation: Animation? = nil,
         maxPixel: CGFloat? = nil,
+        slotWidth: CGFloat? = nil,
         @ViewBuilder content: @escaping (RemoteImagePhase) -> Content
     ) {
         self.url = url
         self.animation = animation
         self.maxPixel = maxPixel
+        self.slotWidth = slotWidth
         self.content = content
-        if let url, let hit = RemoteImageCache.shared.cached(url, maxPixel: maxPixel) {
+        if let url, let hit = RemoteImageCache.shared.cached(url, maxPixel: maxPixel, slotWidth: slotWidth) {
             _phase = State(initialValue: .success(Image(uiImage: hit)))
         } else {
             _phase = State(initialValue: .empty)
@@ -151,13 +224,13 @@ struct RemoteImage<Content: View>: View {
         content(phase)
             .task(id: url) {
                 guard let url else { return }
-                if let hit = RemoteImageCache.shared.cached(url, maxPixel: maxPixel) {
+                if let hit = RemoteImageCache.shared.cached(url, maxPixel: maxPixel, slotWidth: slotWidth) {
                     phase = .success(Image(uiImage: hit))
                     return
                 }
                 // 같은 identity 로 url 만 바뀐 경우 — 이전 글 이미지가 남아 보이지 않게 비운다.
                 if case .success = phase { phase = .empty }
-                let loaded = await RemoteImageCache.shared.load(url, maxPixel: maxPixel)
+                let loaded = await RemoteImageCache.shared.load(url, maxPixel: maxPixel, slotWidth: slotWidth)
                 guard !Task.isCancelled else { return }
                 withAnimation(animation) {
                     phase = loaded.map { .success(Image(uiImage: $0)) } ?? .failure
