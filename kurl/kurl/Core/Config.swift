@@ -31,6 +31,17 @@ enum Config {
     /// 그 client 로 새지 않게, 이때는 화면을 띄우지 않는다.
     static let isUnitTestHost = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
 
+    static let suppressesPushPrompt: Bool = {
+        if isUnitTestHost { return true }
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments.dropFirst()
+        if arguments.contains("--push-prompt") { return false }
+        return arguments.contains { $0.hasPrefix("--") }
+        #else
+        return false
+        #endif
+    }()
+
     /// `--offline` — 모든 네트워크를 즉시 실패시켜 오프라인 폴백을 검증한다(DEBUG 전용).
     static let simulateOffline: Bool = {
         #if DEBUG

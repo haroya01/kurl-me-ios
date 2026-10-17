@@ -21,9 +21,40 @@ enum PushRegistrar {
     static func bootstrap() {
         Task {
             let settings = await UNUserNotificationCenter.current().notificationSettings()
-            guard settings.authorizationStatus == .authorized else { return }
-            UIApplication.shared.registerForRemoteNotifications()
+            if settings.authorizationStatus == .authorized {
+                UIApplication.shared.registerForRemoteNotifications()
+            } else {
+                await promptIfNeeded()
+            }
         }
+    }
+
+    static func shouldPrompt(signedIn: Bool, status: UNAuthorizationStatus, suppressed: Bool) -> Bool {
+        signedIn && status == .notDetermined && !suppressed
+    }
+
+    private static var isPrompting = false
+
+    private static func promptIfNeeded() async {
+        guard !isPrompting else { return }
+        isPrompting = true
+        defer { isPrompting = false }
+        guard await promptIsDue() else { return }
+        try? await Task.sleep(for: .milliseconds(800))
+        while UIApplication.shared.applicationState != .active {
+            for await _ in NotificationCenter.default.notifications(
+                named: UIApplication.didBecomeActiveNotification) { break }
+        }
+        guard await promptIsDue() else { return }
+        _ = await requestAndRegister()
+    }
+
+    private static func promptIsDue() async -> Bool {
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        return shouldPrompt(
+            signedIn: AuthStore.shared.isSignedIn,
+            status: settings.authorizationStatus,
+            suppressed: Config.suppressesPushPrompt)
     }
 
     /// 설정의 알림 행 — 권한 시트를 띄우고 허용되면 원격 등록까지. 이미 거부된 기기면
@@ -49,6 +80,7 @@ enum PushRegistrar {
     /// 로그인 직후 — 기기에 남은 토큰을 이 계정으로 등록(다른 계정 것이었어도 서버가 갈아끼움).
     /// 로그아웃 쪽 짝은 AuthStore.signOut 이 토큰 스냅샷과 함께 직접 처리한다.
     static func syncAfterSignIn() {
+        Task { await promptIfNeeded() }
         guard let token = storedToken, !Config.useMocks else { return }
         Task { try? await AuthAPI.registerDevice(token: token) }
     }

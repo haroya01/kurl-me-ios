@@ -107,6 +107,7 @@ final class AuthStore {
         if Config.useMocks {
             isSignedIn = true
             me = Self.mockMe
+            PushRegistrar.syncAfterSignIn()
             return .signedIn
         }
         let callbackURL = try await startBrowserDance()
