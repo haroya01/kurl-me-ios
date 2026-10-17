@@ -375,7 +375,7 @@ struct StudioView: View {
             if let cover = post.ogImageUrl, let url = URL(string: cover) {
                 // AsyncImage 는 행이 재생성되면 캐시 히트여도 placeholder 부터 다시 밟는다
                 // — 앱 공통 RemoteImage(메모리 캐시)로 첫 프레임부터 완성본.
-                RemoteImage(url: url) { phase in
+                RemoteImage(url: url, maxPixel: 72) { phase in
                     if case .success(let image) = phase {
                         // 채움 이미지는 프레임 밖으로 넘친다 — 클립은 그림만 자르고 히트는 못 잘라, 이웃 카드 탭을 먹는다.
                         image.resizable().scaledToFill().allowsHitTesting(false)

@@ -90,8 +90,14 @@ struct ImageLightbox: View {
                 }
                 .foregroundStyle(.white.opacity(0.7))
             default:
-                KurlLoadingMark()
-                    .frame(width: 44, height: 26)
+                if let preview = RemoteImageCache.shared.cachedVariant(url) {
+                    Image(uiImage: preview)
+                        .resizable()
+                        .scaledToFit()
+                } else {
+                    KurlLoadingMark()
+                        .frame(width: 44, height: 26)
+                }
             }
         }
         // 열림 = 살짝 커지며 떠오름, 끌어 내리면 함께 작아지고 옅어진다.
