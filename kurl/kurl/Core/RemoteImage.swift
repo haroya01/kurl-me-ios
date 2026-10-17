@@ -39,9 +39,11 @@ final class RemoteImageCache {
     static let shared = RemoteImageCache()
 
     private let session: URLSession
+    private let now: () -> Date
 
-    init(session: URLSession = .shared) {
+    init(session: URLSession = .shared, now: @escaping () -> Date = Date.init) {
         self.session = session
+        self.now = now
     }
 
     // 디코드된 원본을 무제한 쌓지 않게 한도를 둔다 — 이미지 많은 글에서 메모리가 폭주하지 않게.
@@ -55,7 +57,8 @@ final class RemoteImageCache {
     private var inFlight: [NSString: Task<UIImage?, Never>] = [:]
     /// 404·비이미지 등 확정 실패 URL — 다시 받지 않는다(재생성마다의 요청 반복 차단).
     private var failed: Set<URL> = []
-    private var failedVariants: Set<URL> = []
+    private var failedVariants: [URL: Date] = [:]
+    static let variantRetryInterval: TimeInterval = 60
 
     // 요청 크기를 몇 단계 버킷으로 반올림해, 40pt·46pt 아바타가 한 캐시 엔트리를 공유하게 한다.
     nonisolated private static let buckets: [CGFloat] = [128, 256, 512, 1024]
@@ -103,12 +106,12 @@ final class RemoteImageCache {
         let cacheKey = key(for: url, maxPixel: maxPixel, slotWidth: slotWidth)
         if let running = inFlight[cacheKey] { return await running.value }
         let variant = variant(of: url, points: maxPixel ?? slotWidth)
-            .flatMap { failedVariants.contains($0) ? nil : $0 }
+            .flatMap { recentlyFailed($0) ? nil : $0 }
         let task = Task { () -> UIImage? in
             var fetched: Fetched?
             if let variant {
                 fetched = await self.fetch(variant, maxPixel: maxPixel)
-                if case .rejected = fetched { self.failedVariants.insert(variant) }
+                if case .rejected = fetched { self.failedVariants[variant] = self.now() }
             }
             if fetched?.image == nil {
                 fetched = await self.fetch(url, maxPixel: maxPixel)
@@ -124,6 +127,11 @@ final class RemoteImageCache {
         let result = await task.value
         inFlight[cacheKey] = nil
         return result
+    }
+
+    private func recentlyFailed(_ variant: URL) -> Bool {
+        guard let failedAt = failedVariants[variant] else { return false }
+        return now().timeIntervalSince(failedAt) < Self.variantRetryInterval
     }
 
     private enum Fetched {

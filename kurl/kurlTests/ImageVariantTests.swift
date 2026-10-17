@@ -58,10 +58,10 @@ final class ImageVariantTests: XCTestCase {
         XCTAssertEqual(variant("/note-images/7/a%20b.jpg?v=2"), cdn + "/note-images/7/a%20b.w1080.jpg?v=2")
     }
 
-    private func cache() -> RemoteImageCache {
+    private func cache(now: @escaping () -> Date = Date.init) -> RemoteImageCache {
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [ImageCDNStub.self]
-        return RemoteImageCache(session: URLSession(configuration: config))
+        return RemoteImageCache(session: URLSession(configuration: config), now: now)
     }
 
     override func setUp() {
@@ -82,7 +82,7 @@ final class ImageVariantTests: XCTestCase {
         return (URL(string: cdn + dir + ".jpg")!, dir)
     }
 
-    func testAMissingVariantFallsBackToTheOriginalOnceAndIsNotAskedAgainThisSession() async {
+    func testAMissingVariantFallsBackToTheOriginalOnceAndIsNotAskedAgainRightAway() async {
         let cache = cache()
         let (url, dir) = photo()
         ImageCDNStub.serve(dir + ".w1080.jpg", .status(403, Data()))
@@ -114,6 +114,27 @@ final class ImageVariantTests: XCTestCase {
         let next = await cache().load(url, maxPixel: 900)
         XCTAssertNotNil(next)
         XCTAssertEqual(ImageCDNStub.requested.suffix(1), [dir + ".w1080.jpg"])
+    }
+
+    func testAMissingVariantIsAskedAgainOnceTheMemoryExpires() async {
+        var clock = Date(timeIntervalSince1970: 0)
+        let cache = cache(now: { clock })
+        let (url, dir) = photo()
+        ImageCDNStub.serve(dir + ".w1080.jpg", .status(403, Data()))
+        ImageCDNStub.serve(dir + ".jpg", .status(200, ImageCDNStub.red))
+        _ = await cache.load(url, maxPixel: 900)
+
+        ImageCDNStub.serve(dir + ".w1080.jpg", .status(200, ImageCDNStub.red))
+        clock += RemoteImageCache.variantRetryInterval - 1
+        _ = await cache.load(url, maxPixel: sameVariantOtherBucket)
+        XCTAssertEqual(ImageCDNStub.requested, [dir + ".w1080.jpg", dir + ".jpg", dir + ".jpg"])
+
+        clock += 2
+        let made = await cache.load(url, slotWidth: Metrics.readingColumn)
+        XCTAssertNotNil(made)
+        XCTAssertEqual(
+            ImageCDNStub.requested, [dir + ".w1080.jpg", dir + ".jpg", dir + ".jpg", dir + ".w1080.jpg"],
+            "방금 올린 사진은 사본이 생기면 곧 사본으로 바뀐다")
     }
 
     func testAPresentVariantIsTheOnlyRequest() async {
