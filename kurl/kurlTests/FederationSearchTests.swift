@@ -759,6 +759,63 @@ final class RemoteTrendingTests: XCTestCase {
         return actions
     }
 
+    private static let contractExample = #"""
+    {"items":[
+     {"id":null,"body":"서울 불꽃축제 사진 몇 장 올려요.\n\n@friend@mstdn.jp 다음엔 같이 가요 https://example.org/fireworks",
+      "createdAt":"2026-10-16T13:48:01.441Z","editedAt":null,"likeCount":128,"likedByMe":null,
+      "author":{"id":-412,"username":"minji@qdon.space","avatarUrl":"https://qdon.space/a1.png","displayName":"민지","remoteId":412,"url":"https://qdon.space/@minji"},
+      "media":[{"url":"https://qdon.space/f1.jpg","altText":"밤하늘에 터지는 금색 불꽃","contentType":"image/jpeg","width":1600,"height":1200}],
+      "quotedPost":null,"inReplyToId":null,"replyCount":4,"repostCount":37,"repostedByMe":null,"quotedNote":null,
+      "linkPreview":{"url":"https://example.org/fireworks","title":"2026 서울세계불꽃축제","description":null,"image":"https://qdon.space/c.jpg"},
+      "repostedBy":null,"quoteCount":0,"bookmarkedByMe":null,"mentions":[],"contentWarning":null,"sensitive":false,"pinned":false,
+      "visibility":"public","poll":null,"conversationMuted":null,"language":"ko","thread":null,"replyPolicy":"everyone",
+      "canReply":null,"hidden":false,
+      "remote":{"kind":"NOTE","title":null,"url":"https://qdon.space/@minji/113000000000000001","community":null},
+      "uri":"https://qdon.space/users/minji/statuses/113000000000000001","url":"https://qdon.space/@minji/113000000000000001",
+      "sourceHost":"qdon.space","servers":["qdon.space","planet.moe"]},
+     {"id":null,"body":"どっちが好き?","createdAt":"2026-10-16T09:12:44.000Z","editedAt":"2026-10-16T09:20:03.000Z",
+      "likeCount":3,"likedByMe":null,
+      "author":{"id":null,"username":"neko_9@misskey.io","avatarUrl":"https://media.misskey.io/files/avatar.webp","displayName":"ねこ :blobcat:","remoteId":null,"url":"https://misskey.io/@neko_9"},
+      "media":[],"quotedPost":null,"inReplyToId":null,"replyCount":0,"repostCount":52,"repostedByMe":null,"quotedNote":null,
+      "linkPreview":null,"repostedBy":null,"quoteCount":0,"bookmarkedByMe":null,"mentions":[],"contentWarning":"投票",
+      "sensitive":false,"pinned":false,"visibility":"public",
+      "poll":{"expiresAt":"2026-10-18T09:12:44.000Z","expired":false,"multiple":false,"votesCount":210,"votersCount":210,
+       "options":[{"title":"きのこ","votesCount":90},{"title":"たけのこ","votesCount":120}],"voted":true,"ownVotes":[]},
+      "conversationMuted":null,"language":"ja","thread":null,"replyPolicy":"everyone","canReply":null,"hidden":false,
+      "remote":{"kind":"QUESTION","title":null,"url":"https://misskey.io/notes/a1b2c3d4e5","community":null},
+      "uri":"https://misskey.io/notes/a1b2c3d4e5","url":"https://misskey.io/notes/a1b2c3d4e5",
+      "sourceHost":"fedibird.com","servers":["fedibird.com"]}
+    ]}
+    """#
+
+    func testTheContractExampleDecodesForSignedInAndSignedOutReaders() throws {
+        let signedOut = Self.contractExample
+            .replacingOccurrences(of: #""voted":true"#, with: #""voted":null"#)
+            .replacingOccurrences(of: #""ownVotes":[]"#, with: #""ownVotes":null"#)
+
+        for (json, signedIn) in [(Self.contractExample, true), (signedOut, false)] {
+            let found = try JSONDecoder.blog.decode(TrendingNotePage.self, from: Data(json.utf8)).items
+
+            XCTAssertEqual(found.map(\.uri), [
+                "https://qdon.space/users/minji/statuses/113000000000000001", "https://misskey.io/notes/a1b2c3d4e5",
+            ])
+            let fireworks = found[0].displayNote
+            XCTAssertEqual(fireworks.media.first?.contentType, "image/jpeg")
+            XCTAssertEqual(fireworks.linkPreview?.title, "2026 서울세계불꽃축제")
+            XCTAssertNil(fireworks.linkPreview?.description)
+            XCTAssertEqual(found[0].servers, ["qdon.space", "planet.moe"])
+
+            let question = found[1].displayNote
+            XCTAssertEqual(question.author.shownName, "ねこ :blobcat:")
+            XCTAssertEqual(question.contentWarning, "投票")
+            XCTAssertEqual(question.remote?.kind, .question)
+            XCTAssertEqual(question.poll?.options.map(\.title), ["きのこ", "たけのこ"])
+            XCTAssertEqual(question.poll?.voted, signedIn ? true : nil)
+            XCTAssertEqual(question.poll?.ownVotes, signedIn ? [] : nil)
+            XCTAssertEqual(found[1].originalURL?.absoluteString, "https://misskey.io/notes/a1b2c3d4e5")
+        }
+    }
+
     func testTrendingReadsTheContractAndDrawsAsARemoteNote() async throws {
         serve(["/federation/trending": .json(200, Self.trending)])
 

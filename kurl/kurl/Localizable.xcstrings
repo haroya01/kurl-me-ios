@@ -658,7 +658,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "%1$@ ほか%2$lld件で人気"
+            "value": "%1$@ ほか%2$lldサーバーで人気"
           }
         },
         "vi": {

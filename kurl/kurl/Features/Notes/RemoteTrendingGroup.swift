@@ -14,7 +14,7 @@ final class RemoteTrendingModel {
     var expanded = false
 
     func load() async {
-        if case .loaded = phase {} else { phase = .loading }
+        if case .idle = phase { phase = .loading }
         do {
             phase = .loaded(try await FederationAPI.trending())
         } catch {

@@ -243,7 +243,6 @@ final class NotesViewModel {
     }
 }
 
-/// 노트 한 행 — 스레드 행 문법(헤어라인 구분). 고치기·지우기는 더보기 메뉴나 길게 눌러서.
 struct NoteRowDetached {
     let context: Text
     let open: () -> Void
@@ -251,6 +250,7 @@ struct NoteRowDetached {
     let actions: AnyView
 }
 
+/// 노트 한 행 — 스레드 행 문법(헤어라인 구분). 고치기·지우기는 더보기 메뉴나 길게 눌러서.
 struct NoteRowView: View {
     let note: Note
     let onChange: (Note) -> Void
