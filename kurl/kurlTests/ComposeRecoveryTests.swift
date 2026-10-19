@@ -159,3 +159,19 @@ private final class GatedServer {
         waiting.removeFirst().resume()
     }
 }
+
+@MainActor
+final class AutosaveCadenceTests: XCTestCase {
+    func testAPauseSavesAfterFiveSecondsButTypingNeverWaitsPastThirty() {
+        let start = Date(timeIntervalSinceReferenceDate: 0)
+        func delay(after seconds: TimeInterval) -> Duration {
+            ComposeView.autosaveDelay(idle: ComposeView.autosaveIdle, pendingSince: start, now: start.addingTimeInterval(seconds))
+        }
+        XCTAssertEqual(delay(after: 0), .seconds(5))
+        XCTAssertEqual(delay(after: 20), .seconds(5))
+        XCTAssertEqual(delay(after: 28), .seconds(2))
+        XCTAssertEqual(delay(after: 45), .zero)
+        XCTAssertEqual(
+            ComposeView.autosaveDelay(idle: .zero, pendingSince: start, now: start), .zero, "떠날 때·백그라운드는 바로")
+    }
+}

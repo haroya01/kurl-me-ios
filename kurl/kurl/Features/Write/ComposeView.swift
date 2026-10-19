@@ -100,6 +100,7 @@ struct ComposeView: View {
     @State private var publishSheetError: String?
     @State private var showSaveStatus = false
     @State private var autosaveTask: Task<Void, Never>?
+    @State private var autosavePendingSince: Date?
     @State private var createTask: Task<Int64, Error>?
     /// 기기 로컬 초안 금고 스태시 디바운스 — 서버 자동저장과 별개로, 못 실린 변경을 기기에 남긴다.
     @State private var recoveryStashTask: Task<Void, Never>?
@@ -334,6 +335,10 @@ struct ComposeView: View {
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { Task { await refreshIfChangedElsewhere() } }
+            if phase == .background, signature != lastSavedSignature {
+                ComposeRecoveryStore.stash(postId: postId, draftKey: draftKey, title: title, markdown: markdown)
+                scheduleAutosave(after: .zero)
+            }
         }
         // 세션이 풀렸을 때 — 컴포즈를 떠나지 않고 여기서 다시 로그인해 이어서 저장한다.
         .sheet(isPresented: $showLoginSheet) {
@@ -1916,7 +1921,15 @@ struct ComposeView: View {
     // MARK: 저장
 
     /// 기본 2초 = 입력 디바운스. 실패 재시도는 백오프한 간격을 넘겨 온다.
-    private func scheduleAutosave(after delay: Duration = .seconds(2)) {
+    static let autosaveIdle: Duration = .seconds(5)
+    static let autosaveMaxWait: TimeInterval = 30
+
+    static func autosaveDelay(idle: Duration, pendingSince: Date, now: Date) -> Duration {
+        let left = max(0, autosaveMaxWait - now.timeIntervalSince(pendingSince))
+        return min(idle, .milliseconds(Int(left * 1000)))
+    }
+
+    private func scheduleAutosave(after delay: Duration = Self.autosaveIdle) {
         autosaveTask?.cancel()
         // 서버 자동저장과 별개로 기기 금고에도 눕힌다(0.8초 디바운스) — 서버가 실패하든 앱이
         // 죽든, 마지막 몇 초의 변경까지 기기에 남는다. 제목만 있어도 스태시(canSave 와 무관).
@@ -1932,10 +1945,18 @@ struct ComposeView: View {
                 locallySavedBodySignature = [stash.title, stash.markdown].joined(separator: "\u{1F}")
             }
         }
-        guard editConflict == nil, allowsAutosave, canSave, signature != lastSavedSignature else { return }
+        guard editConflict == nil, allowsAutosave, canSave, signature != lastSavedSignature else {
+            autosavePendingSince = nil
+            return
+        }
+        let now = Date()
+        let pendingSince = autosavePendingSince ?? now
+        autosavePendingSince = pendingSince
+        let wait = Self.autosaveDelay(idle: delay, pendingSince: pendingSince, now: now)
         autosaveTask = Task {
-            try? await Task.sleep(for: delay)
+            try? await Task.sleep(for: wait)
             guard !Task.isCancelled else { return }
+            autosavePendingSince = nil
             await save(publish: false, silent: true)
         }
     }
