@@ -146,6 +146,14 @@ private struct MutedLoopingVideo: UIViewRepresentable {
 }
 
 enum NoteVideoSound {
+    enum Playback: Equatable {
+        case loopSilently, withSound
+    }
+
+    static func playback(sound: Bool?) -> Playback {
+        sound == false ? .loopSilently : .withSound
+    }
+
     static func hasAudio(_ asset: AVAsset) async -> Bool? {
         guard let tracks = try? await asset.loadTracks(withMediaType: .audio) else { return nil }
         return !tracks.isEmpty
@@ -176,6 +184,8 @@ enum AudioSessionMode {
 struct VideoLightbox: View {
     let url: URL
     @State private var player: AVPlayer?
+    @State private var looper: AVPlayerLooper?
+    @State private var withSound = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -197,15 +207,27 @@ struct VideoLightbox: View {
             .padding()
             .accessibilityLabel("닫기")
         }
-        .onAppear {
-            AudioSessionMode.withSound()
-            let next = AVPlayer(url: url)
-            player = next
-            next.play()
+        .task {
+            let item = AVPlayerItem(url: url)
+            switch NoteVideoSound.playback(sound: await NoteVideoSound.hasAudio(item.asset)) {
+            case .loopSilently:
+                AudioSessionMode.mixWithOthers()
+                let queue = AVQueuePlayer()
+                looper = AVPlayerLooper(player: queue, templateItem: item)
+                player = queue
+                queue.play()
+            case .withSound:
+                AudioSessionMode.withSound()
+                withSound = true
+                let next = AVPlayer(playerItem: item)
+                player = next
+                next.play()
+            }
         }
         .onDisappear {
             player?.pause()
-            AudioSessionMode.done()
+            looper = nil
+            if withSound { AudioSessionMode.done() }
         }
     }
 }

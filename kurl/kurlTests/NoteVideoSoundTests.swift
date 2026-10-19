@@ -31,4 +31,10 @@ final class NoteVideoSoundTests: XCTestCase {
         XCTAssertEqual(gifSound, false)
         XCTAssertEqual(clipSound, true)
     }
+
+    func testASilentLoopKeepsLoopingInTheLightboxAndLeavesOtherAudioAlone() {
+        XCTAssertEqual(NoteVideoSound.playback(sound: false), .loopSilently)
+        XCTAssertEqual(NoteVideoSound.playback(sound: true), .withSound)
+        XCTAssertEqual(NoteVideoSound.playback(sound: nil), .withSound)
+    }
 }
