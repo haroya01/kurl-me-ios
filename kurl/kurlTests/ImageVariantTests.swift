@@ -5,6 +5,7 @@
 //  사진 사본(w480·w1080) 주소 규칙과, 사본이 없을 때 원본으로 물러서기.
 //
 
+import ImageIO
 import SwiftUI
 import XCTest
 
@@ -269,6 +270,39 @@ final class ImageVariantTests: XCTestCase {
     }
 }
 
+extension ImageVariantTests {
+    func testAnAnimatedGifKeepsEveryFrameInTheFeedAndTheLightbox() async throws {
+        let cache = cache()
+        let dir = "/note-images/7/\(UUID().uuidString)"
+        let url = try XCTUnwrap(URL(string: cdn + dir + ".gif"))
+        ImageCDNStub.serve(dir + ".gif", .status(200, ImageCDNStub.gif(frames: 3, delay: 0.1)))
+
+        let feed = await cache.load(url, maxPixel: 900)
+        XCTAssertEqual(feed?.images?.count, 3)
+        XCTAssertEqual(feed?.duration ?? 0, 0.3, accuracy: 0.001)
+        let lightbox = await cache.load(url)
+        XCTAssertEqual(lightbox?.images?.count, 3)
+        XCTAssertEqual(ImageCDNStub.requested, [dir + ".gif", dir + ".gif"], "GIF 는 사본 없이 원본만 받는다")
+    }
+
+    func testAStillImageStaysAStill() async throws {
+        let cache = cache()
+        let dir = "/note-images/7/\(UUID().uuidString)"
+        ImageCDNStub.serve(dir + ".gif", .status(200, ImageCDNStub.gif(frames: 1, delay: 0.1)))
+        let still = await cache.load(try XCTUnwrap(URL(string: cdn + dir + ".gif")), maxPixel: 900)
+        XCTAssertNotNil(still)
+        XCTAssertNil(still?.images)
+    }
+
+    func testFramesAdvanceWithTimeAndWrap() {
+        let start = Date(timeIntervalSinceReferenceDate: 0)
+        XCTAssertEqual(RemoteImage<EmptyView>.frameIndex(at: start, count: 3, duration: 0.3), 0)
+        XCTAssertEqual(RemoteImage<EmptyView>.frameIndex(at: start.addingTimeInterval(0.15), count: 3, duration: 0.3), 1)
+        XCTAssertEqual(RemoteImage<EmptyView>.frameIndex(at: start.addingTimeInterval(0.25), count: 3, duration: 0.3), 2)
+        XCTAssertEqual(RemoteImage<EmptyView>.frameIndex(at: start.addingTimeInterval(0.45), count: 3, duration: 0.3), 1)
+    }
+}
+
 private final class ImageCDNStub: URLProtocol, @unchecked Sendable {
     enum Reply {
         case status(Int, Data)
@@ -284,6 +318,24 @@ private final class ImageCDNStub: URLProtocol, @unchecked Sendable {
             context.fill(CGRect(x: 0, y: 0, width: 60, height: 80))
         }.pngData()!
     }()
+
+    static func gif(frames: Int, delay: Double) -> Data {
+        let data = NSMutableData()
+        let destination = CGImageDestinationCreateWithData(data, "com.compuserve.gif" as CFString, frames, nil)!
+        let colors: [UIColor] = [.red, .green, .blue, .yellow]
+        for index in 0..<frames {
+            let format = UIGraphicsImageRendererFormat()
+            format.scale = 1
+            let image = UIGraphicsImageRenderer(size: CGSize(width: 40, height: 40), format: format).image { context in
+                colors[index % colors.count].setFill()
+                context.fill(CGRect(x: 0, y: 0, width: 40, height: 40))
+            }
+            let props = [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFDelayTime: delay]] as CFDictionary
+            CGImageDestinationAddImage(destination, image.cgImage!, props)
+        }
+        CGImageDestinationFinalize(destination)
+        return data as Data
+    }
 
     nonisolated(unsafe) private static var replies: [String: Reply] = [:]
     nonisolated(unsafe) private static var sent: [String] = []

@@ -177,7 +177,7 @@ extension View {
     func holdsSwipePager() -> some View { modifier(HoldsSwipePager()) }
 }
 
-private struct SwipeSelects<Tab: Hashable>: ViewModifier {
+struct SwipeSelects<Tab: Hashable>: ViewModifier {
     let tabs: [Tab]
     @Binding var selection: Tab
     @State private var gate = SwipePagerGate()
@@ -200,21 +200,30 @@ private struct SwipeSelects<Tab: Hashable>: ViewModifier {
                             blocked = false
                             swiping = false
                         }
-                        guard !blocked, let i = tabs.firstIndex(of: selection) else { return }
-                        let dx = value.translation.width
-                        let dy = value.translation.height
-                        let flick = abs(value.velocity.width) > 260 && abs(dx) > 20
-                        let deliberate = abs(dx) > 60 && abs(dx) > abs(dy) * 1.5
-                        guard abs(dx) > abs(dy) * 1.2, flick || deliberate else { return }
-                        let next = dx < 0 ? i + 1 : i - 1
-                        guard tabs.indices.contains(next) else { return }
+                        guard !blocked, let i = tabs.firstIndex(of: selection),
+                              let next = Self.step(from: i, count: tabs.count, translation: value.translation, velocity: value.velocity)
+                        else { return }
                         selection = tabs[next]
                     })
+    }
+
+    static func step(from index: Int, count: Int, translation: CGSize, velocity: CGSize) -> Int? {
+        let dx = translation.width
+        let dy = translation.height
+        let flick = abs(velocity.width) > 260 && abs(dx) > 20
+        let deliberate = abs(dx) > 60 && abs(dx) > abs(dy) * 1.5
+        guard abs(dx) > abs(dy) * 1.2, flick || deliberate else { return nil }
+        let next = dx < 0 ? index + 1 : index - 1
+        return (0..<count).contains(next) ? next : nil
     }
 }
 
 extension View {
     func swipeSelects<Tab: Hashable>(_ tabs: [Tab], selection: Binding<Tab>) -> some View {
         modifier(SwipeSelects(tabs: tabs, selection: selection))
+    }
+
+    func swipesBack(perform action: @escaping () -> Void) -> some View {
+        swipeSelects([0, 1], selection: Binding(get: { 1 }, set: { if $0 == 0 { action() } }))
     }
 }

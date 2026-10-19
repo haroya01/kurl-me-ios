@@ -27,6 +27,7 @@ struct NotesTabView: View {
                     NoteMoreFeedPage(feed: more)
                         .id(more)
                         .transition(.opacity)
+                        .swipesBack { choice.leaveMore() }
                 }
             }
             .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: choice.more)

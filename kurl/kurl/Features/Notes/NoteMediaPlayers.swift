@@ -19,9 +19,19 @@ struct NoteVideoTile: View {
     let onOpen: () -> Void
     @State private var visible = false
     @State private var autoplayAllowed = Self.autoplayAllowed
+    @State private var sound: Bool?
     @Environment(\.scenePhase) private var scenePhase
 
     private var playing: Bool { visible && autoplayAllowed && scenePhase == .active }
+
+    enum Badge: Equatable {
+        case play, muted, none
+    }
+
+    static func badge(playing: Bool, sound: Bool?) -> Badge {
+        guard playing else { return .play }
+        return sound == true ? .muted : .none
+    }
 
     static var autoplayAllowed: Bool {
         UIAccessibility.isVideoAutoplayEnabled && !ProcessInfo.processInfo.isLowPowerModeEnabled
@@ -31,10 +41,11 @@ struct NoteVideoTile: View {
         ZStack {
             Rectangle().fill(Color.black.opacity(0.88))
             if playing, let url = URL(string: media.url) {
-                MutedLoopingVideo(url: url)
+                MutedLoopingVideo(url: url) { sound = $0 }
                     .transition(.opacity)
             }
-            if playing {
+            switch Self.badge(playing: playing, sound: sound) {
+            case .muted:
                 Image(systemName: "speaker.slash.fill")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(.white)
@@ -42,8 +53,10 @@ struct NoteVideoTile: View {
                     .background(GlassTokens.mediaChip, in: Circle())
                     .padding(8)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-            } else {
+            case .play:
                 NotePlayMark()
+            case .none:
+                EmptyView()
             }
         }
         .modifier(TileFrame(ratio: media.ratio ?? 16.0 / 9.0, height: height))
@@ -64,7 +77,7 @@ struct NoteVideoTile: View {
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel(Text(media.altText ?? String(localized: "동영상")))
         .accessibilityValue(playing ? Text("소리 없이 재생 중") : Text(""))
-        .accessibilityHint(Text("두 번 탭하면 소리와 함께 재생합니다"))
+        .accessibilityHint(sound == false ? Text("두 번 탭하면 크게 봅니다") : Text("두 번 탭하면 소리와 함께 재생합니다"))
         .accessibilityIdentifier("note.video")
     }
 
@@ -91,6 +104,7 @@ struct NotePlayMark: View {
 /// 피드의 소리 없는 되풀이 재생. 소리가 없어도 오디오 세션이 다른 앱 음악을 끊지 않게 ambient 로 둔다.
 private struct MutedLoopingVideo: UIViewRepresentable {
     let url: URL
+    let onSound: (Bool) -> Void
 
     func makeUIView(context: Context) -> PlayerView {
         AudioSessionMode.mixWithOthers()
@@ -98,7 +112,11 @@ private struct MutedLoopingVideo: UIViewRepresentable {
         let player = AVQueuePlayer()
         player.isMuted = true
         player.preventsDisplaySleepDuringVideoPlayback = false
-        context.coordinator.looper = AVPlayerLooper(player: player, templateItem: AVPlayerItem(url: url))
+        let item = AVPlayerItem(url: url)
+        context.coordinator.looper = AVPlayerLooper(player: player, templateItem: item)
+        context.coordinator.probe = Task { [onSound] in
+            if let sound = await NoteVideoSound.hasAudio(item.asset) { onSound(sound) }
+        }
         view.playerLayer.player = player
         view.playerLayer.videoGravity = .resizeAspectFill
         player.play()
@@ -111,17 +129,34 @@ private struct MutedLoopingVideo: UIViewRepresentable {
         uiView.playerLayer.player?.pause()
         uiView.playerLayer.player = nil
         coordinator.looper = nil
+        coordinator.probe?.cancel()
     }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     final class Coordinator {
         var looper: AVPlayerLooper?
+        var probe: Task<Void, Never>?
     }
 
     final class PlayerView: UIView {
         override static var layerClass: AnyClass { AVPlayerLayer.self }
         var playerLayer: AVPlayerLayer { layer as! AVPlayerLayer }
+    }
+}
+
+enum NoteVideoSound {
+    enum Playback: Equatable {
+        case loopSilently, withSound
+    }
+
+    static func playback(sound: Bool?) -> Playback {
+        sound == false ? .loopSilently : .withSound
+    }
+
+    static func hasAudio(_ asset: AVAsset) async -> Bool? {
+        guard let tracks = try? await asset.loadTracks(withMediaType: .audio) else { return nil }
+        return !tracks.isEmpty
     }
 }
 
@@ -149,6 +184,8 @@ enum AudioSessionMode {
 struct VideoLightbox: View {
     let url: URL
     @State private var player: AVPlayer?
+    @State private var looper: AVPlayerLooper?
+    @State private var withSound = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -170,15 +207,27 @@ struct VideoLightbox: View {
             .padding()
             .accessibilityLabel("닫기")
         }
-        .onAppear {
-            AudioSessionMode.withSound()
-            let next = AVPlayer(url: url)
-            player = next
-            next.play()
+        .task {
+            let item = AVPlayerItem(url: url)
+            switch NoteVideoSound.playback(sound: await NoteVideoSound.hasAudio(item.asset)) {
+            case .loopSilently:
+                AudioSessionMode.mixWithOthers()
+                let queue = AVQueuePlayer()
+                looper = AVPlayerLooper(player: queue, templateItem: item)
+                player = queue
+                queue.play()
+            case .withSound:
+                AudioSessionMode.withSound()
+                withSound = true
+                let next = AVPlayer(playerItem: item)
+                player = next
+                next.play()
+            }
         }
         .onDisappear {
             player?.pause()
-            AudioSessionMode.done()
+            looper = nil
+            if withSound { AudioSessionMode.done() }
         }
     }
 }

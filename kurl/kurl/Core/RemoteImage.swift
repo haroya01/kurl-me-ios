@@ -119,7 +119,8 @@ final class RemoteImageCache {
             }
             guard let image = fetched?.image else { return nil }
             // 비용은 실제로 저장하는(축소된) 크기로 다시 계산한다.
-            let cost = Int(image.size.width * image.size.height * image.scale * image.scale * 4)
+            let frames = CGFloat(max(1, image.images?.count ?? 1))
+            let cost = Int(image.size.width * image.size.height * image.scale * image.scale * 4 * frames)
             self.cache.setObject(image, forKey: cacheKey, cost: cost)
             return image
         }
@@ -152,6 +153,11 @@ final class RemoteImageCache {
             (response as? HTTPURLResponse).map { (200..<300).contains($0.statusCode) } ?? true
         guard statusOK else { return .rejected }
         let scale = Self.scale
+        if let animated = await Task.detached(priority: .userInitiated, operation: {
+            Self.animated(data, maxPixel: maxPixel, scale: scale)
+        }).value {
+            return .image(animated)
+        }
         // 축소·디코드는 이미지 크기만큼 걸리는 동기 작업 — 메인 액터(기본 격리)에서 돌면 스크롤 중
         // 카드가 들어올 때마다 프레임을 먹는다. 분리된 작업에서 하고 결과만 받는다.
         var downsampled: UIImage?
@@ -168,6 +174,51 @@ final class RemoteImageCache {
         guard let full = UIImage(data: data) else { return .rejected }
         // 표시 시점의 메인 스레드 디코드 히치를 피한다 — 캐시에는 그릴 준비가 끝난 비트맵만.
         return .image(await full.byPreparingForDisplay() ?? full)
+    }
+
+    nonisolated static let animatedByteBudget = 48 * 1024 * 1024
+    nonisolated static let animatedFrameLimit = 300
+
+    nonisolated static func animated(_ data: Data, maxPixel: CGFloat?, scale: CGFloat) -> UIImage? {
+        guard let src = CGImageSourceCreateWithData(data as CFData, [kCGImageSourceShouldCache: false] as CFDictionary)
+        else { return nil }
+        let count = CGImageSourceGetCount(src)
+        guard count > 1, count <= animatedFrameLimit,
+            let props = CGImageSourceCopyPropertiesAtIndex(src, 0, nil) as? [CFString: Any],
+            let width = props[kCGImagePropertyPixelWidth] as? CGFloat,
+            let height = props[kCGImagePropertyPixelHeight] as? CGFloat, width > 0, height > 0
+        else { return nil }
+        var side = min(max(width, height), (maxPixel ?? 1024 / scale) * scale)
+        let budgetSide = (CGFloat(animatedByteBudget) / CGFloat(count * 4) * max(width, height) / min(width, height)).squareRoot()
+        side = min(side, budgetSide)
+        guard side >= min(64, max(width, height)) else { return nil }
+        let options: [CFString: Any] = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceThumbnailMaxPixelSize: side,
+        ]
+        var frames: [UIImage] = []
+        var duration: TimeInterval = 0
+        for index in 0..<count {
+            guard let frame = CGImageSourceCreateThumbnailAtIndex(src, index, options as CFDictionary) else { return nil }
+            frames.append(UIImage(cgImage: frame))
+            duration += frameDelay(src, index)
+        }
+        return UIImage.animatedImage(with: frames, duration: duration)
+    }
+
+    nonisolated static func frameDelay(_ src: CGImageSource, _ index: Int) -> TimeInterval {
+        let props = CGImageSourceCopyPropertiesAtIndex(src, index, nil) as? [CFString: Any]
+        let dict = (props?[kCGImagePropertyGIFDictionary] ?? props?[kCGImagePropertyPNGDictionary]
+            ?? props?[kCGImagePropertyWebPDictionary]) as? [CFString: Any]
+        let keys = [
+            kCGImagePropertyGIFUnclampedDelayTime, kCGImagePropertyGIFDelayTime,
+            kCGImagePropertyAPNGUnclampedDelayTime, kCGImagePropertyAPNGDelayTime,
+            kCGImagePropertyWebPUnclampedDelayTime, kCGImagePropertyWebPDelayTime,
+        ]
+        let delay = keys.lazy.compactMap { dict?[$0] as? Double }.first { $0 > 0 } ?? 0
+        return delay < 0.02 ? 0.1 : delay
     }
 
     /// ImageIO 썸네일 — 원본을 통째로 디코드하지 않고 maxPixel(px) 이하로 바로 줄인다.
@@ -208,6 +259,8 @@ struct RemoteImage<Content: View>: View {
     private let content: (RemoteImagePhase) -> Content
 
     @State private var phase: RemoteImagePhase
+    @State private var animated: UIImage?
+    @Environment(\.accessibilityPlayAnimatedImages) private var playsAnimatedImages
 
     init(
         url: URL?,
@@ -222,27 +275,62 @@ struct RemoteImage<Content: View>: View {
         self.slotWidth = slotWidth
         self.content = content
         if let url, let hit = RemoteImageCache.shared.cached(url, maxPixel: maxPixel, slotWidth: slotWidth) {
-            _phase = State(initialValue: .success(Image(uiImage: hit)))
+            _phase = State(initialValue: .success(Self.still(hit)))
+            _animated = State(initialValue: Self.frames(hit) == nil ? nil : hit)
         } else {
             _phase = State(initialValue: .empty)
         }
     }
 
     var body: some View {
-        content(phase)
+        frame
             .task(id: url) {
                 guard let url else { return }
                 if let hit = RemoteImageCache.shared.cached(url, maxPixel: maxPixel, slotWidth: slotWidth) {
-                    phase = .success(Image(uiImage: hit))
+                    show(hit)
                     return
                 }
                 // 같은 identity 로 url 만 바뀐 경우 — 이전 글 이미지가 남아 보이지 않게 비운다.
-                if case .success = phase { phase = .empty }
+                if case .success = phase {
+                    phase = .empty
+                    animated = nil
+                }
                 let loaded = await RemoteImageCache.shared.load(url, maxPixel: maxPixel, slotWidth: slotWidth)
                 guard !Task.isCancelled else { return }
                 withAnimation(animation) {
-                    phase = loaded.map { .success(Image(uiImage: $0)) } ?? .failure
+                    if let loaded { show(loaded) } else { phase = .failure }
                 }
             }
+    }
+
+    @ViewBuilder private var frame: some View {
+        if let animated, let frames = Self.frames(animated), playsAnimatedImages {
+            TimelineView(.animation(minimumInterval: animated.duration / Double(frames.count))) { context in
+                let index = Self.frameIndex(at: context.date, count: frames.count, duration: animated.duration)
+                content(.success(Image(uiImage: frames[index])))
+            }
+        } else {
+            content(phase)
+        }
+    }
+
+    private func show(_ image: UIImage) {
+        phase = .success(Self.still(image))
+        animated = Self.frames(image) == nil ? nil : image
+    }
+
+    private static func frames(_ image: UIImage) -> [UIImage]? {
+        guard let frames = image.images, frames.count > 1, image.duration > 0 else { return nil }
+        return frames
+    }
+
+    private static func still(_ image: UIImage) -> Image {
+        Image(uiImage: frames(image)?.first ?? image)
+    }
+
+    static func frameIndex(at date: Date, count: Int, duration: TimeInterval) -> Int {
+        guard count > 0, duration > 0 else { return 0 }
+        let elapsed = date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: duration)
+        return min(count - 1, Int(elapsed / duration * Double(count)))
     }
 }

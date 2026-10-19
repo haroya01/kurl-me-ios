@@ -365,6 +365,13 @@ final class EditorDocument {
             return f
         }
 
+        if case .heading = blocks[i].kind, blocks[i].text.isEmpty {
+            blocks[i].kind = .paragraph
+            let f = EditorFocus(blockID: blocks[i].id, caret: 0)
+            focus = f
+            return f
+        }
+
         guard i > 0 else {
             // 첫 블록에서 앞이 없으면: 제목/인용을 문단으로 내린다(마커 제거 UX).
             if case .paragraph = blocks[i].kind {

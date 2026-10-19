@@ -80,4 +80,15 @@ final class FeedTabChoiceTests: XCTestCase {
         XCTAssertFalse(NoteMoreFeed.list(8).isListed(in: lists))
         XCTAssertTrue(NoteMoreFeed.kind(.bookmarks).isListed(in: []), "리스트가 아닌 피드는 목록과 상관없다")
     }
+
+    func testARightSwipeOnAMoreFeedStepsBackToTheLastTab() {
+        let right = CGSize(width: 120, height: 6), left = CGSize(width: -120, height: 6)
+        let fast = CGSize(width: 700, height: 0), still = CGSize.zero
+        XCTAssertEqual(SwipeSelects<Int>.step(from: 1, count: 2, translation: right, velocity: fast), 0)
+        XCTAssertEqual(SwipeSelects<Int>.step(from: 1, count: 2, translation: right, velocity: still), 0)
+        XCTAssertNil(SwipeSelects<Int>.step(from: 1, count: 2, translation: left, velocity: fast))
+        XCTAssertNil(SwipeSelects<Int>.step(from: 1, count: 2, translation: CGSize(width: 40, height: 200), velocity: fast))
+        XCTAssertEqual(NoteFeedKind.tabs.last, .trending)
+        XCTAssertEqual(FeedTab.allCases.last, .trending)
+    }
 }

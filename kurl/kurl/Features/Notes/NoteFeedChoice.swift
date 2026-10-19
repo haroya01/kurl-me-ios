@@ -158,6 +158,11 @@ final class NoteFeedChoice {
         more = feed
     }
 
+    func leaveMore() {
+        guard more != nil, let last = NoteFeedKind.tabs.last else { return }
+        select(last)
+    }
+
     func listsChanged(_ lists: [NoteListSummary]) {
         if let more, !more.isListed(in: lists) { self.more = nil }
     }
