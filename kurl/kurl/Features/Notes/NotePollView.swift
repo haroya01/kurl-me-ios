@@ -19,6 +19,7 @@ struct NotePollView: View {
     @State private var votedTick = 0
     @State private var opened: LegalLink?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .body) private var markSize: CGFloat = 16
 
     init(noteId: Int64, poll: NotePoll, remote: RemoteNoteShape? = nil, onVoted: @escaping (NotePoll) -> Void) {
         self.noteId = noteId
@@ -37,24 +38,28 @@ struct NotePollView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            VStack(spacing: 0) {
-                ForEach(Array(poll.options.enumerated()), id: \.offset) { index, option in
-                    if index > 0 {
-                        Rectangle()
-                            .fill(Palette.hairlineStrong)
-                            .frame(height: 1)
-                    }
-                    if showsResults {
+            if showsResults {
+                VStack(spacing: 0) {
+                    ForEach(Array(poll.options.enumerated()), id: \.offset) { index, option in
+                        if index > 0 {
+                            Rectangle()
+                                .fill(Palette.hairlineStrong)
+                                .frame(height: 1)
+                        }
                         result(index, option)
-                    } else {
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
+                        .strokeBorder(Palette.hairlineStrong, lineWidth: 1))
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(Array(poll.options.enumerated()), id: \.offset) { index, option in
                         choice(index, option)
                     }
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
-                    .strokeBorder(Palette.hairlineStrong, lineWidth: 1))
             if !showsResults, poll.multiple {
                 Button {
                     Task { await vote(picked.sorted()) }
@@ -101,7 +106,7 @@ struct NotePollView: View {
             HStack(spacing: 10) {
                 if poll.multiple {
                     Image(systemName: on ? "checkmark.square.fill" : "square")
-                        .font(.system(size: 16, weight: .medium))
+                        .font(.system(size: markSize, weight: .medium))
                         .foregroundStyle(on ? Palette.link : Palette.secondary)
                         .accessibilityHidden(true)
                 }
@@ -115,9 +120,9 @@ struct NotePollView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
             .frame(minHeight: 44)
-            .contentShape(Rectangle())
+            .contentShape(RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
         }
-        .buttonStyle(PollRowStyle())
+        .buttonStyle(PollChoiceStyle())
         .disabled(voting)
         .accessibilityAddTraits(poll.multiple && on ? .isSelected : [])
         // 단일 선택은 탭이 곧 투표이고 되돌릴 수 없다 — 눈으로는 즉시 결과로 바뀌어 알지만 VoiceOver 는 미리 알아야 한다.
@@ -242,10 +247,12 @@ struct NotePollView: View {
     }
 }
 
-private struct PollRowStyle: ButtonStyle {
+private struct PollChoiceStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
+        let shape = RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
         configuration.label
-            .background(configuration.isPressed ? Palette.rowHighlight : .clear)
+            .background(configuration.isPressed ? Palette.rowHighlight : .clear, in: shape)
+            .overlay(shape.strokeBorder(Palette.hairlineStrong, lineWidth: 1))
     }
 }
 
