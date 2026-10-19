@@ -162,15 +162,15 @@ private final class GatedServer {
 
 @MainActor
 final class AutosaveCadenceTests: XCTestCase {
-    func testAPauseSavesAfterFiveSecondsButTypingNeverWaitsPastThirty() {
+    func testAPauseSavesAfterFourSecondsButTypingNeverWaitsPastTwenty() {
         let start = Date(timeIntervalSinceReferenceDate: 0)
         func delay(after seconds: TimeInterval) -> Duration {
             ComposeView.autosaveDelay(idle: ComposeView.autosaveIdle, pendingSince: start, now: start.addingTimeInterval(seconds))
         }
-        XCTAssertEqual(delay(after: 0), .seconds(5))
-        XCTAssertEqual(delay(after: 20), .seconds(5))
-        XCTAssertEqual(delay(after: 28), .seconds(2))
-        XCTAssertEqual(delay(after: 45), .zero)
+        XCTAssertEqual(delay(after: 0), .seconds(4))
+        XCTAssertEqual(delay(after: 10), .seconds(4))
+        XCTAssertEqual(delay(after: 18), .seconds(2))
+        XCTAssertEqual(delay(after: 30), .zero)
         XCTAssertEqual(
             ComposeView.autosaveDelay(idle: .zero, pendingSince: start, now: start), .zero, "떠날 때·백그라운드는 바로")
     }

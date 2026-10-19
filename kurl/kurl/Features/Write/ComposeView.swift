@@ -1921,8 +1921,8 @@ struct ComposeView: View {
     // MARK: 저장
 
     /// 기본 2초 = 입력 디바운스. 실패 재시도는 백오프한 간격을 넘겨 온다.
-    static let autosaveIdle: Duration = .seconds(5)
-    static let autosaveMaxWait: TimeInterval = 30
+    static let autosaveIdle: Duration = .seconds(4)
+    static let autosaveMaxWait: TimeInterval = 20
 
     static func autosaveDelay(idle: Duration, pendingSince: Date, now: Date) -> Duration {
         let left = max(0, autosaveMaxWait - now.timeIntervalSince(pendingSince))
