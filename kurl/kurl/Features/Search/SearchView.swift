@@ -107,7 +107,7 @@ struct SearchView: View {
             .background(Palette.pageBg)
             // 스크롤을 내리면 탭바가 사라지고 올리면 돌아온다(스레드식) — 활성 스크롤 표면을 관측.
             .tracksTabBarVisibility()
-            .navigationTitle("검색")
+            .navigationTitle("둘러보기")
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: Route.self) { route in
                 // 푸시된 상세는 탭바 숨김을 추적하지 않는다(탭 루트 전용).
