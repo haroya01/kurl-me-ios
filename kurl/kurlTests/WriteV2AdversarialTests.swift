@@ -161,6 +161,24 @@ final class WriteV2AdversarialTests: XCTestCase {
         XCTAssertEqual(doc.focus?.caret, 2, "캐럿은 병합 지점(앞 블록 원래 길이)")
     }
 
+    func testBackspaceOnAnEmptyHeadingTurnsItIntoAParagraphInPlace() {
+        let doc = makeDoc([.paragraph("첫 줄"), .paragraph(""), .heading(1, "")])
+        let id = doc.blocks[2].id
+        doc.mergeBackward(id)
+        XCTAssertEqual(doc.blocks.count, 3, "앞 줄과 합치지 않는다")
+        guard doc.blocks.count == 3 else { return }
+        XCTAssertEqual(doc.blocks[2].kind, .paragraph)
+        XCTAssertEqual(doc.blocks[0].text, "첫 줄")
+        XCTAssertEqual(doc.focus, EditorFocus(blockID: id, caret: 0), "캐럿은 그 줄에 남는다")
+    }
+
+    func testBackspaceAtTheStartOfAHeadingWithTextStillMerges() {
+        let doc = makeDoc([.paragraph("첫 줄"), .heading(1, "제목")])
+        doc.mergeBackward(doc.blocks[1].id)
+        XCTAssertEqual(doc.blocks.count, 1)
+        XCTAssertEqual(doc.blocks[0].text, "첫 줄제목")
+    }
+
     func testBackspaceLadderOnNestedListItem() {
         // 중첩 항목 맨 앞 백스페이스: indent 2 → 1 → 0 → 문단 (사다리).
         let doc = makeDoc([.listItem("항목", ordered: false, indent: 2)])
