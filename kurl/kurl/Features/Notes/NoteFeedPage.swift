@@ -18,6 +18,8 @@ struct NoteFeedPage: View {
     @State private var composing = false
     @State private var showLogin = false
     @State private var posted = 0
+    @State private var composed: Note?
+    @State private var feedChoice = NoteFeedChoice.shared
     @State private var trending = RemoteTrendingModel()
 
     var body: some View {
@@ -59,10 +61,23 @@ struct NoteFeedPage: View {
         .onChange(of: NoteFeedPreferences.shared.languageChanges) {
             if [.everyone, .federated, .trending].contains(kind) { refresh() }
         }
-        .sheet(isPresented: $composing) {
-            NoteComposeSheet(mode: .new(quote: nil, inReplyToId: nil)) { note in
+        .sheet(isPresented: $composing, onDismiss: {
+            if let note = composed {
+                composed = nil
                 model.inserted(note)
+                NoteFeedChoice.shared.arrived(note.id)
+            }
+        }) {
+            NoteComposeSheet(mode: .new(quote: nil, inReplyToId: nil)) { note in
+                composed = note
                 posted += 1
+            }
+        }
+        .onChange(of: feedChoice.arrivingID) { _, id in
+            guard active, id != nil else { return }
+            Task { @MainActor in
+                await Task.yield()
+                withAnimation(reduceMotion ? nil : .smooth(duration: 0.45)) { position.scrollTo(edge: .top) }
             }
         }
         .loginPrompt(isPresented: $showLogin, message: loginMessage)
@@ -183,7 +198,8 @@ struct NoteFeedPage: View {
                         onQuoted: { model.inserted($0) },
                         repostedBy: note.repostedBy?.username
                     )
-                    .modifier(QuietAppear(index: index))
+                    .modifier(QuietAppear(index: note.id == feedChoice.arrivingID ? .max : index))
+                    .modifier(NoteArrival(active: note.id == feedChoice.arrivingID))
                     .task { await model.loadMoreIfNeeded(current: note) }
                     if index < model.items.count - 1 { Hairline().padding(.horizontal, -Metrics.noteGutter) }
                 }
@@ -209,5 +225,30 @@ struct NoteMoreFeedPage: View {
 
     var body: some View {
         NoteFeedPage(kind: feed.kind, model: model)
+    }
+}
+
+struct NoteArrival: ViewModifier {
+    let active: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var settled = true
+    @State private var washed = true
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(settled ? 1 : 0)
+            .offset(y: settled ? 0 : -16)
+            .background {
+                Palette.rowHighlight
+                    .opacity(washed ? 0 : 1)
+                    .padding(.horizontal, -Metrics.noteGutter)
+            }
+            .onAppear {
+                guard active else { return }
+                washed = false
+                settled = reduceMotion
+                withAnimation(.smooth(duration: 0.45)) { settled = true }
+                withAnimation(.smooth(duration: 1.2)) { washed = true }
+            }
     }
 }

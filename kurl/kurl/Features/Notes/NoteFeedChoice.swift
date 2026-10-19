@@ -167,8 +167,21 @@ final class NoteFeedChoice {
         if let more, !more.isListed(in: lists) { self.more = nil }
     }
 
-    func didPost(_ note: Note) {
+    private(set) var arrivingID: Int64?
+
+    func revealPosted(_ note: Note) {
+        path = NavigationPath()
+        if more != nil || kind == .trending { select(.everyone) }
         posted = note
+        arrived(note.id)
+    }
+
+    func arrived(_ id: Int64) {
+        arrivingID = id
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(2))
+            if self?.arrivingID == id { self?.arrivingID = nil }
+        }
     }
 }
 

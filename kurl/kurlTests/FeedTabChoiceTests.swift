@@ -91,4 +91,32 @@ final class FeedTabChoiceTests: XCTestCase {
         XCTAssertEqual(NoteFeedKind.tabs.last, .trending)
         XCTAssertEqual(FeedTab.allCases.last, .trending)
     }
+
+    func testAPublishedNoteOpensTheFeedThatShowsItAtTheTop() {
+        let choice = NoteFeedChoice.shared
+        let saved = (choice.kind, TabRouter.shared.selection)
+        defer {
+            choice.select(saved.0)
+            TabRouter.shared.selection = saved.1
+        }
+        let note = Note(
+            id: 77, body: "방금", createdAt: nil, editedAt: nil, likeCount: nil, likedByMe: nil,
+            author: Author(id: 1, username: "author", bio: nil, avatarUrl: nil), media: [], quotedPost: nil,
+            inReplyToId: nil, replyCount: 0, repostCount: nil, repostedByMe: nil, quotedNote: nil)
+        choice.select(.trending)
+        choice.path.append(Route.note(id: 1))
+        TabRouter.shared.selection = 0
+
+        TabRouter.shared.revealPosted(note)
+
+        XCTAssertEqual(TabRouter.shared.selection, 1)
+        XCTAssertEqual(choice.kind, .everyone, "인기에는 방금 쓴 노트가 없다")
+        XCTAssertTrue(choice.path.isEmpty)
+        XCTAssertEqual(choice.posted?.id, 77)
+        XCTAssertEqual(choice.arrivingID, 77)
+
+        choice.select(.following)
+        TabRouter.shared.revealPosted(note)
+        XCTAssertEqual(choice.kind, .following, "팔로잉·최신은 그대로 둔다")
+    }
 }

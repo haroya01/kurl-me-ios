@@ -72,6 +72,11 @@ final class TabRouter {
         topRequests += 1
     }
 
+    func revealPosted(_ note: Note) {
+        selection = 1
+        NoteFeedChoice.shared.revealPosted(note)
+    }
+
     func openStudio(section: StudioSection? = nil, compose: Bool = false) {
         pendingStudioSection = section?.rawValue
         pendingStudioCompose = compose
@@ -156,6 +161,7 @@ struct RootView: View {
     @State private var chosen: ComposeChoice?
     @State private var composingNote = false
     @State private var notesPosted = 0
+    @State private var postedNote: Note?
     @State private var movedToPost: PostCover?
     @State private var postCover: PostCover?
     @State private var webIntroAfterCompose = false
@@ -284,7 +290,7 @@ struct RootView: View {
                     mode: .new(quote: nil, inReplyToId: nil),
                     onLongForm: { movedToPost = PostCover(markdown: $0, isDraft: true) }
                 ) { note in
-                    NoteFeedChoice.shared.didPost(note)
+                    postedNote = note
                     notesPosted += 1
                 }
             }
@@ -461,6 +467,10 @@ struct RootView: View {
     }
 
     private func noteComposerClosed() {
+        if let note = postedNote {
+            postedNote = nil
+            TabRouter.shared.revealPosted(note)
+        }
         if let moved = movedToPost {
             movedToPost = nil
             postCover = moved
