@@ -16534,6 +16534,34 @@
         }
       }
     },
+    "아직 다른 서버 최신 노트가 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No recent notes from other servers yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी दूसरे सर्वर से कोई नया नोट नहीं है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほかのサーバーの新着ノートはまだありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có ghi chú mới nào từ máy chủ khác"
+          }
+        }
+      }
+    },
     "아직 받은 다른 서버 노트가 없어요": {
       "localizations": {
         "en": {

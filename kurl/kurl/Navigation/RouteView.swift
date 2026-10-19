@@ -51,6 +51,8 @@ struct RouteView: View {
             FilteredNotificationsView()
         case let .noteLink(url, title):
             LinkNotesView(url: url, title: title)
+        case let .noteFeed(feed):
+            NoteFeedScreen(feed: feed)
         }
     }
 }

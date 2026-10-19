@@ -1972,10 +1972,24 @@ enum MockBackend {
             switch ProcessInfo.processInfo.arguments.firstIndex(of: "--mock-trending").map({ index in
                 ProcessInfo.processInfo.arguments.dropFirst(index + 1).first ?? ""
             }) {
-            case "empty": return json(["items": [] as [Any]])
+            case "empty": return json(["items": [] as [Any], "next": NSNull()])
             case "fail": throw APIError.server(status: 503, code: nil, detail: "trending unavailable")
-            default: return json(["items": trendingNotes()])
+            default:
+                guard query?.first(where: { $0.name == "cursor" })?.value == "r" else {
+                    return json(["items": trendingNotes(), "next": ProcessInfo.processInfo.arguments.contains("--logged-out") ? NSNull() : "r" as Any])
+                }
+                let kept = (remoteHeard(9800) ? [remoteNoteView()] : [])
+                    + remoteShapeViews().filter { remoteHeard(remoteAuthorId($0) ?? 0) }
+                return json(["items": kept, "next": NSNull()])
             }
+        }
+        if method == "GET", parts == ["federation", "latest"] {
+            let items = trendingNotes().map { item -> [String: Any] in
+                var latest = item
+                latest["servers"] = Array(((item["servers"] as? [String]) ?? []).prefix(1))
+                return latest
+            }
+            return json(["items": items, "next": NSNull()])
         }
         if method == "GET", parts == ["federation", "domains"] {
             let raw = (query?.first(where: { $0.name == "prefix" })?.value ?? "").lowercased()

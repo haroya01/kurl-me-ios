@@ -51,6 +51,9 @@ struct SearchView: View {
     /// 로그인한 사람의 팔로우 추천(마스토돈) — 있으면 익명 "작가" 레일 대신 선다.
     @State private var followSuggestions: [FollowSuggestion] = []
     @State private var remoteSuggestions: [RemoteAccount] = []
+    @State private var streamFeed: RemoteStreamFeed = .trending
+    @State private var streams = Dictionary(
+        uniqueKeysWithValues: RemoteStreamFeed.allCases.map { ($0, RemoteStreamModel(feed: $0)) })
 
     var body: some View {
         // path 바인딩 금지 — tabBarMinimizeBehavior 가 죽는다(FeedView 참조).
@@ -167,74 +170,100 @@ struct SearchView: View {
     /// 행동이 되도록 최근 검색·인기 태그·추천 작가를 깐다. 전부 탭 = 즉시 이동.
     private var idleState: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 26) {
-                if !recents.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            RailHeading("최근 검색")
-                            Spacer()
-                            Button("지우기") { confirmingClear = true }
-                                .typeScale(.meta)
-                                .foregroundStyle(Palette.secondary)
-                        }
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                ForEach(recents, id: \.self) { term in
-                                    HStack(spacing: 6) {
-                                        Button {
-                                            // 텍스트만 세팅 — 검색은 onChange→scheduleSearch 가 소유한다(중복 실행 금지).
-                                            query = term
-                                        } label: {
-                                            Text(term)
-                                                .typeScale(.meta)
-                                                .foregroundStyle(Palette.chipText)
-                                        }
-                                        .buttonStyle(.plain)
-                                        Button {
-                                            recents.removeAll { $0 == term }
-                                        } label: {
-                                            Image(systemName: "xmark")
-                                                .font(.system(size: recentClearSize, weight: .semibold))
-                                                .foregroundStyle(Palette.faint)
-                                                .expandTapTarget(8)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .accessibilityLabel("\(term) 삭제")
-                                    }
-                                    .padding(.horizontal, 11)
-                                    .padding(.vertical, 6)
-                                    .background(Palette.chipBg, in: Capsule())
-                                }
-                            }
-                        }
-                    }
-                }
-
-                trendingRail
-
-                if AuthStore.shared.isSignedIn, !followSuggestions.isEmpty || !remoteSuggestions.isEmpty {
-                    followSuggestionsRail
-                }
-
-                trendingNoteTagsRail
-
-                trendingNoteLinksRail
-
-                popularTagsRail
-
-                if !AuthStore.shared.isSignedIn || followSuggestions.isEmpty {
-                    suggestedAuthorsRail
+            LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+                rails
+                    .padding(.bottom, 26)
+                RailHeading("다른 서버")
+                    .padding(.bottom, 4)
+                Section {
+                    RemoteStreamRows(model: stream)
+                } header: {
+                    ContentTabBar(
+                        tabs: RemoteStreamFeed.allCases, selection: $streamFeed, label: \.label,
+                        identifier: { "search.remote.\($0.rawValue)" }, background: Palette.pageBg)
+                        .task(id: streamFeed) { await stream.loadIfNeeded() }
                 }
             }
             .padding(.top, 18)
+            .padding(.bottom, 16)
             .frame(maxWidth: Metrics.readingColumn)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, Metrics.gutter)
         }
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
-        // 빈 레일을 당겨서 다시 받는다 — 첫 로드 실패의 두 번째 탈출구(scenePhase 와 짝).
-        .brandRefreshable { await loadDiscovery() }
+        .noteTextLinks()
+        .brandRefreshable {
+            async let discovery: Void = loadDiscovery()
+            await stream.reload()
+            await discovery
+        }
+    }
+
+    private var stream: RemoteStreamModel {
+        streams[streamFeed] ?? RemoteStreamModel(feed: streamFeed)
+    }
+
+    private var rails: some View {
+        VStack(alignment: .leading, spacing: 26) {
+            if !recents.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        RailHeading("최근 검색")
+                        Spacer()
+                        Button("지우기") { confirmingClear = true }
+                            .typeScale(.meta)
+                            .foregroundStyle(Palette.secondary)
+                    }
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(recents, id: \.self) { term in
+                                HStack(spacing: 6) {
+                                    Button {
+                                        // 텍스트만 세팅 — 검색은 onChange→scheduleSearch 가 소유한다(중복 실행 금지).
+                                        query = term
+                                    } label: {
+                                        Text(term)
+                                            .typeScale(.meta)
+                                            .foregroundStyle(Palette.chipText)
+                                    }
+                                    .buttonStyle(.plain)
+                                    Button {
+                                        recents.removeAll { $0 == term }
+                                    } label: {
+                                        Image(systemName: "xmark")
+                                            .font(.system(size: recentClearSize, weight: .semibold))
+                                            .foregroundStyle(Palette.faint)
+                                            .expandTapTarget(8)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityLabel("\(term) 삭제")
+                                }
+                                .padding(.horizontal, 11)
+                                .padding(.vertical, 6)
+                                .background(Palette.chipBg, in: Capsule())
+                            }
+                        }
+                    }
+                }
+            }
+
+            trendingRail
+
+            trendingNoteTagsRail
+
+            trendingNoteLinksRail
+
+            popularTagsRail
+
+            if AuthStore.shared.isSignedIn, !followSuggestions.isEmpty || !remoteSuggestions.isEmpty {
+                followSuggestionsRail
+            }
+
+            if !AuthStore.shared.isSignedIn || followSuggestions.isEmpty {
+                suggestedAuthorsRail
+            }
+        }
     }
 
     /// 지금 뜨는 글 레일 — idle 과 무결과(막다른 길 금지) 양쪽에서 같은 출발점으로 쓴다.
