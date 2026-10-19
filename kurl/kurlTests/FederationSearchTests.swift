@@ -912,6 +912,67 @@ final class RemoteTrendingTests: XCTestCase {
         XCTAssertEqual(ScriptedFederation.requests.last?.httpMethod, "POST")
     }
 
+    func testTheHeartFillsBeforeTheServerAnswers() async throws {
+        serve([
+            "/federation/resolve": .json(200, Self.localNote.replacingOccurrences(of: "LIKED", with: "false")),
+            "/notes/9600/like": .json(200, #"{"liked":true,"likeCount":1}"#),
+        ])
+        let act = actions(try items()[0])
+
+        let tapped = Task { await act.toggleLike() }
+        await Task.yield()
+        XCTAssertTrue(act.liked, "하트는 서버를 기다리지 않는다")
+        XCTAssertEqual(act.likeCount, 121)
+        _ = await tapped.value
+
+        XCTAssertTrue(act.liked)
+        XCTAssertEqual(ScriptedFederation.paths, ["/api/v1/federation/resolve", "/api/v1/notes/9600/like"])
+    }
+
+    func testALikeTheServerRefusesTurnsTheHeartBack() async throws {
+        serve([
+            "/federation/resolve": .json(200, Self.localNote.replacingOccurrences(of: "LIKED", with: "false")),
+            "/notes/9600/like": .json(500, #"{"status":500,"code":"X","detail":"x"}"#),
+        ])
+        let act = actions(try items()[0])
+
+        let outcome = await act.toggleLike()
+
+        XCTAssertEqual(outcome, .failed(String(localized: "좋아요를 반영하지 못했어요")))
+        XCTAssertFalse(act.liked)
+        XCTAssertEqual(act.likeCount, 120)
+    }
+
+    func testAnUnresolvableNoteTurnsTheHeartBack() async throws {
+        serve(["/federation/resolve": .json(404, #"{"status":404,"code":"REMOTE_ACCOUNT_NOT_FOUND","detail":"x"}"#)])
+        let act = actions(try items()[0])
+
+        _ = await act.toggleLike()
+
+        XCTAssertFalse(act.liked)
+        XCTAssertEqual(act.likeCount, 120)
+    }
+
+    func testRepostingATrendingNoteResolvesItThenRepostsTheLocalCopy() async throws {
+        serve([
+            "/federation/resolve": .json(200, Self.localNote.replacingOccurrences(of: "LIKED", with: "false")),
+            "/notes/9600/repost": .json(200, #"{"reposted":true,"repostCount":1}"#),
+        ])
+        let act = actions(try items()[0])
+
+        let tapped = Task { await act.toggleRepost() }
+        await Task.yield()
+        XCTAssertTrue(act.reposted, "리포스트도 바로 칠해진다")
+        let outcome = await tapped.value
+
+        guard case .done(let note) = outcome else { return XCTFail("\(outcome)") }
+        XCTAssertEqual(note.id, 9600)
+        XCTAssertTrue(act.reposted)
+        XCTAssertEqual(act.repostCount, 41)
+        XCTAssertEqual(ScriptedFederation.paths, ["/api/v1/federation/resolve", "/api/v1/notes/9600/repost"])
+        XCTAssertEqual(ScriptedFederation.requests.last?.httpMethod, "PUT")
+    }
+
     func testAResolveFailureNamesTheServer() async throws {
         serve(["/federation/resolve": .json(404, #"{"status":404,"code":"REMOTE_ACCOUNT_NOT_FOUND","detail":"x"}"#)])
         let act = actions(try items()[1])

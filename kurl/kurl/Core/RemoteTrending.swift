@@ -24,6 +24,7 @@ struct TrendingNote: Decodable, Hashable, Identifiable {
     let language: String?
     let replyCount: Int64
     let likeCount: Int64
+    let repostCount: Int64?
     let poll: NotePoll?
     let linkPreview: NoteLinkPreview?
     let remote: RemoteNoteShape?

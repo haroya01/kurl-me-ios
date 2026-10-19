@@ -50,6 +50,7 @@ final class TrendingNoteActions {
         case done(Note)
         case signIn
         case failed(String)
+        case busy
     }
 
     let item: TrendingNote
@@ -58,10 +59,20 @@ final class TrendingNoteActions {
     private(set) var liked = false
     private(set) var working = false
     private(set) var followed: RemoteAccount?
+    private(set) var reposted = false
     private var likedAtResolve = false
+    private var repostedAtResolve = false
+    private var liking = false
+    private var reposting = false
+    private var serverLiked: Bool?
+    private var serverReposted: Bool?
 
     var likeCount: Int64 {
         max(item.likeCount + (liked ? 1 : 0) - (likedAtResolve ? 1 : 0), 0)
+    }
+
+    var repostCount: Int64 {
+        max((item.repostCount ?? 0) + (reposted ? 1 : 0) - (repostedAtResolve ? 1 : 0), 0)
     }
 
     init(item: TrendingNote, signedIn: @escaping @MainActor () -> Bool = { AuthStore.shared.isSignedIn }) {
@@ -69,16 +80,20 @@ final class TrendingNoteActions {
         self.signedIn = signedIn
     }
 
-    func localNote() async -> Outcome {
+    func localNote(quietly: Bool = false) async -> Outcome {
         if let local { return .done(local) }
         guard signedIn() else { return .signIn }
-        working = true
-        defer { working = false }
+        if !quietly { working = true }
+        defer { if !quietly { working = false } }
         switch await FederationAPI.resolve(item.uri) {
         case .note(let note):
             local = note
-            liked = note.likedByMe == true
-            likedAtResolve = liked
+            likedAtResolve = note.likedByMe == true
+            repostedAtResolve = note.repostedByMe == true
+            serverLiked = likedAtResolve
+            serverReposted = repostedAtResolve
+            if !liking { liked = likedAtResolve }
+            if !reposting { reposted = repostedAtResolve }
             return .done(note)
         case .signIn:
             return .signIn
@@ -92,18 +107,48 @@ final class TrendingNoteActions {
     }
 
     func toggleLike() async -> Outcome {
-        let firstTouch = local == nil
-        let outcome = await localNote()
-        guard case .done(let note) = outcome else { return outcome }
-        if firstTouch, liked { return outcome }
+        guard signedIn() else { return .signIn }
+        guard !liking else { return .busy }
+        liking = true
+        defer { liking = false }
         let target = !liked
         liked = target
+        let outcome = await localNote(quietly: true)
+        guard case .done(let note) = outcome else {
+            liked = !target
+            return outcome
+        }
+        if serverLiked == target { return outcome }
         do {
             liked = try await NoteAPI.setLike(id: note.id, on: target).liked
+            serverLiked = liked
             return outcome
         } catch {
             liked = !target
             return .failed(String(localized: "좋아요를 반영하지 못했어요"))
+        }
+    }
+
+    func toggleRepost() async -> Outcome {
+        guard signedIn() else { return .signIn }
+        guard !reposting else { return .busy }
+        reposting = true
+        defer { reposting = false }
+        let target = !reposted
+        reposted = target
+        let outcome = await localNote(quietly: true)
+        guard case .done(let note) = outcome else {
+            reposted = !target
+            return outcome
+        }
+        if serverReposted == target { return outcome }
+        do {
+            reposted = try await NoteAPI.setRepost(id: note.id, on: target).reposted
+            serverReposted = reposted
+            return outcome
+        } catch {
+            reposted = !target
+            return .failed(String(localized: "리포스트하지 못했어요"))
         }
     }
 
@@ -187,6 +232,8 @@ private struct TrendingNoteRow: View {
     let item: TrendingNote
     @State private var actions: TrendingNoteActions
     @State private var replyTarget: Note?
+    @State private var quoteTarget: Note?
+    @State private var repostTaps = 0
     @State private var replies = 0
     @State private var likeTaps = 0
     @State private var showLogin = false
@@ -215,6 +262,9 @@ private struct TrendingNoteRow: View {
                     replies += 1
                     NoteReplyToast.show(posted, open: openNoteRoute)
                 }
+            }
+            .sheet(item: $quoteTarget) { note in
+                NoteComposeSheet(mode: .quote(QuotedNote(note))) { _ in }
             }
             .sheet(item: $original) { SafariView(url: $0.url).ignoresSafeArea() }
             .loginPrompt(isPresented: $showLogin, message: loginMessage)
@@ -265,6 +315,39 @@ private struct TrendingNoteRow: View {
             .buttonStyle(.plain)
             .accessibilityLabel(Text("답글 쓰기"))
             .accessibilityValue(Text("답글 \(item.replyCount)"))
+
+            Menu {
+                Button(role: actions.reposted ? .destructive : nil) {
+                    repostTaps += 1
+                    Task { await repost() }
+                } label: {
+                    Label(
+                        actions.reposted ? LocalizedStringKey("리포스트 취소") : LocalizedStringKey("리포스트"),
+                        systemImage: "arrow.2.squarepath")
+                }
+                Button(action: quote) {
+                    Label("인용", systemImage: "quote.opening")
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    NoteGlyphView(glyph: .repost, active: actions.reposted, size: Self.actionBox * unit)
+                        .modifier(GlyphPop(trigger: reduceMotion ? false : actions.reposted))
+                    if actions.repostCount > 0 {
+                        Text("\(actions.repostCount)")
+                            .monospacedDigit()
+                            .contentTransition(.numericText(value: Double(actions.repostCount)))
+                    }
+                }
+                .typeScale(.lede)
+                .foregroundStyle(actions.reposted ? Palette.accent : Palette.ink)
+                .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: actions.repostCount)
+                .expandTapTarget()
+            }
+            .buttonStyle(.plain)
+            .sensoryFeedback(.impact(weight: .light), trigger: repostTaps)
+            .accessibilityLabel(Text("리포스트 메뉴"))
+            .accessibilityAddTraits(actions.reposted ? [.isSelected] : [])
+            .accessibilityIdentifier("trending.repost")
 
             Spacer(minLength: 0)
             if actions.working {
@@ -328,6 +411,17 @@ private struct TrendingNoteRow: View {
         }
     }
 
+    private func repost() async {
+        _ = settle(await actions.toggleRepost(), "리포스트하려면 로그인하세요")
+    }
+
+    private func quote() {
+        Task {
+            guard case .done(let note) = settle(await actions.localNote(), "인용하려면 로그인하세요") else { return }
+            quoteTarget = note
+        }
+    }
+
     private func like() async {
         _ = settle(await actions.toggleLike(), "좋아요를 누르려면 로그인하세요")
     }
@@ -343,7 +437,7 @@ private struct TrendingNoteRow: View {
         _ outcome: TrendingNoteActions.Outcome, _ message: LocalizedStringKey
     ) -> TrendingNoteActions.Outcome {
         switch outcome {
-        case .done: break
+        case .done, .busy: break
         case .signIn:
             loginMessage = message
             showLogin = true
