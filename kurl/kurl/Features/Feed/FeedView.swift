@@ -88,6 +88,11 @@ final class BlogFeedChoice {
         more = feed
     }
 
+    func leaveMore() {
+        guard more != nil, let last = FeedTab.allCases.last else { return }
+        select(last)
+    }
+
     func signedOut() {
         if tab.source.requiresAuth { tab = .recent }
         more = nil
@@ -137,6 +142,7 @@ struct FeedView: View {
                     FeedPage(source: more, active: true, warm: true, zoom: zoomNS)
                         .id(more)
                         .transition(.opacity)
+                        .swipesBack { choice.leaveMore() }
                 }
             }
             .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: choice.more)
