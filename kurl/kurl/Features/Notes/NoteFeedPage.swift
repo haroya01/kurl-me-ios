@@ -137,19 +137,19 @@ struct NoteFeedPage: View {
             FeedPlaceholder(
                 title: "아직 받은 다른 서버 노트가 없어요",
                 actionTitle: "최신 노트 보기",
-                action: { NoteFeedChoice.shared.show(.everyone) }
+                action: { NoteFeedChoice.shared.show(.everyone); TabRouter.shared.selection = 1 }
             )
         case .following:
             FeedPlaceholder(
                 title: "팔로우한 사람의 노트가 아직 없어요",
                 actionTitle: "인기 노트 보기",
-                action: { NoteFeedChoice.shared.show(.trending) }
+                action: { NoteFeedChoice.shared.show(.trending); TabRouter.shared.selection = 1 }
             )
         case .bookmarks:
             FeedPlaceholder(
                 title: "북마크한 노트가 없어요",
                 actionTitle: "인기 노트 보기",
-                action: { NoteFeedChoice.shared.show(.trending) }
+                action: { NoteFeedChoice.shared.show(.trending); TabRouter.shared.selection = 1 }
             )
         case .list:
             FeedPlaceholder(
