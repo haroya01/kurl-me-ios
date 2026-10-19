@@ -19,7 +19,6 @@ struct NotePollView: View {
     @State private var votedTick = 0
     @State private var opened: LegalLink?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @ScaledMetric(relativeTo: .body) private var markSize: CGFloat = 16
 
     init(noteId: Int64, poll: NotePoll, remote: RemoteNoteShape? = nil, onVoted: @escaping (NotePoll) -> Void) {
         self.noteId = noteId
@@ -106,7 +105,7 @@ struct NotePollView: View {
             HStack(spacing: 10) {
                 if poll.multiple {
                     Image(systemName: on ? "checkmark.square.fill" : "square")
-                        .font(.system(size: markSize, weight: .medium))
+                        .font(.system(size: 16, weight: .medium))
                         .foregroundStyle(on ? Palette.link : Palette.secondary)
                         .accessibilityHidden(true)
                 }
