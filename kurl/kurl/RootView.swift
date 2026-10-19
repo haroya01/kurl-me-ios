@@ -17,6 +17,11 @@ final class TabRouter {
 
     var selection: Int
 
+    static let homeTab = 0
+    static let composeTab = 1
+    static let exploreTab = 2
+    static let accountTab = 3
+
     /// 스튜디오는 계정 탭 스택에 민다 — 계정 탭이 소비해 스튜디오를 열고, 분면·새 글은 스튜디오가 소비한다.
     var pendingStudio = false
     var pendingStudioSection: String?
@@ -34,10 +39,9 @@ final class TabRouter {
         // 가운데는 탭이 아니라 쓰기 동작이라, `write` 는 계정 탭에 스튜디오를 연 상태로 들어간다.
         selection =
             switch Config.launchValue(after: "--tab") {
-            case "notes": 1
-            case "search": 3
-            case "account", "write": 4
-            default: 0
+            case "search", "explore": TabRouter.exploreTab
+            case "account", "write": TabRouter.accountTab
+            default: TabRouter.homeTab
             }
         pendingStudio = Config.launchValue(after: "--tab") == "write"
         // `--open notifications`(단독) — 푸시 탭(didReceive)과 같은 대기석을 지나는 검증 진입로.
@@ -73,15 +77,15 @@ final class TabRouter {
     }
 
     func revealPosted(_ note: Note) {
-        selection = 1
-        NoteFeedChoice.shared.revealPosted(note)
+        selection = Self.homeTab
+        HomeFeedChoice.shared.revealPosted(note)
     }
 
     func openStudio(section: StudioSection? = nil, compose: Bool = false) {
         pendingStudioSection = section?.rawValue
         pendingStudioCompose = compose
         pendingStudio = true
-        selection = 4
+        selection = Self.accountTab
     }
 
     func switchTo(_ index: Int, reduceMotion: Bool = false) {
@@ -112,7 +116,7 @@ enum WidgetDeepLink {
         case "analytics":
             TabRouter.shared.openStudio(section: .analytics)
         case "library":
-            TabRouter.shared.selection = 4
+            TabRouter.shared.selection = TabRouter.accountTab
         case "post":
             guard let link = PostLink(widgetURL: url) else { return }
             link.register()
@@ -151,8 +155,7 @@ struct RootView: View {
     /// 커스텀 FloatingTabBar 가 그 상태로 바를 작게 줄였다 되돌린다(인스타그램식).
     @State private var tabBarVisibility = TabBarVisibility()
     @State private var bottomInset: CGFloat = 0
-    @State private var blogFeed = BlogFeedChoice.shared
-    @State private var noteFeed = NoteFeedChoice.shared
+    @State private var homeFeed = HomeFeedChoice.shared
     /// 한 번이라도 연 탭 — 상주시켜 스크롤 위치·상태를 보존한다(시스템 TabView 대체).
     @State private var visitedTabs: Set<Int> = []
     @State private var showWriteLogin = false
@@ -261,7 +264,7 @@ struct RootView: View {
     }
 
     /// 탭바 가운데 칸 — 탭이 아니라 쓰기 동작이다. 선택되지 않고 누르거나 끌어다 놓으면 노트 작성기를 연다.
-    private static let composeSlot = 2
+    private static let composeSlot = TabRouter.composeTab
 
     private var tabs: some View {
         @Bindable var router = TabRouter.shared
@@ -352,8 +355,8 @@ struct RootView: View {
         // (decisions/2026-10-08-tab-bar-instagram). 검색에 role: .search 를 주지 않는 것도 한 바에
         // 5탭을 모으기 위해서다. 스크롤 방향은 TabBarVisibility 가 누적한다.
         let tabs: [(icon: String, label: LocalizedStringKey)] = [
-            ("doc.text.image", "피드"), ("text.bubble", "노트"), ("square.and.pencil", "글쓰기"),
-            ("magnifyingglass", "검색"), ("person.crop.circle", "내 계정"),
+            ("house", "홈"), ("square.and.pencil", "글쓰기"),
+            ("magnifyingglass", "둘러보기"), ("person.crop.circle", "내 계정"),
         ]
         return ZStack(alignment: .bottom) {
             // 다섯 탭 루트를 상주시키고 선택된 것만 보인다 — 탭을 갈아타도 스크롤 위치·상태가 산다
@@ -374,12 +377,8 @@ struct RootView: View {
             FloatingTabBar(
                 tabs: tabs, selection: selection, hidden: tabBarVisibility.forceHidden,
                 compact: tabBarVisibility.scrollHidden, bottomInset: bottomInset, menuTabs: feedMenuTabs
-            ) { index in
-                if index == 0 {
-                    BlogFeedMenu()
-                } else {
-                    NoteFeedTabMenu()
-                }
+            ) { _ in
+                HomeTabMenu()
             }
                 // Rebuild glass controls when returning from a screen that force-hides them.
                 // Scroll-driven hiding keeps the same identity and its existing animation.
@@ -487,20 +486,16 @@ struct RootView: View {
     }
 
     private var feedMenuTabs: Set<Int> {
-        var tabs: Set<Int> = []
-        if blogFeed.path.isEmpty { tabs.insert(0) }
-        if noteFeed.path.isEmpty { tabs.insert(1) }
-        return tabs
+        homeFeed.path.isEmpty ? [TabRouter.homeTab] : []
     }
 
     /// 인덱스별 탭 루트 화면. 각자 제 NavigationStack 을 든다(시스템 TabView 와 동일 계약).
     @ViewBuilder
     private func tabRoot(_ index: Int) -> some View {
         switch index {
-        case 1: NotesTabView()
-        case 3: SearchView()
-        case 4: AccountView()
-        default: FeedView()
+        case TabRouter.exploreTab: SearchView()
+        case TabRouter.accountTab: AccountView()
+        default: HomeView()
         }
     }
 }

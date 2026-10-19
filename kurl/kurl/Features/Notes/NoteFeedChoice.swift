@@ -17,15 +17,6 @@ enum NoteFeedKind: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    static let tabs: [NoteFeedKind] = [.following, .everyone, .trending]
-    static let more: [NoteFeedKind] = [.federated, .bookmarks, .direct]
-
-    static func initialTab(launched: String?, saved: String?, signedIn: Bool) -> NoteFeedKind {
-        [launched, signedIn ? saved : nil]
-            .compactMap { $0.flatMap(NoteFeedKind.init(rawValue:)) }
-            .first { tabs.contains($0) } ?? .everyone
-    }
-
     var title: LocalizedStringKey {
         switch self {
         case .everyone: "최신"
@@ -61,23 +52,6 @@ enum NoteFeedKind: String, CaseIterable, Identifiable {
         case .list: "list.bullet"
         }
     }
-
-    var shortLabel: String {
-        switch self {
-        case .bookmarks: String(localized: "북마크")
-        case .direct: String(localized: "멘션")
-        default: label
-        }
-    }
-
-    var loginMessage: LocalizedStringKey {
-        switch self {
-        case .federated: "다른 서버의 노트를 보려면 로그인하세요"
-        case .bookmarks: "북마크한 노트를 보려면 로그인하세요"
-        case .direct: "개인 멘션을 보려면 로그인하세요"
-        default: "노트를 보려면 로그인하세요"
-        }
-    }
 }
 
 enum NoteMoreFeed: Hashable {
@@ -88,99 +62,6 @@ enum NoteMoreFeed: Hashable {
         switch self {
         case .kind(let kind): kind
         case .list: .list
-        }
-    }
-
-    func choice(lists: [NoteListSummary]) -> SegmentMoreChoice {
-        switch self {
-        case .kind(let kind):
-            SegmentMoreChoice(title: kind.shortLabel, symbol: kind.symbol)
-        case .list(let id):
-            SegmentMoreChoice(
-                title: lists.first { $0.id == id }?.title ?? NoteFeedKind.list.label, symbol: NoteFeedKind.list.symbol)
-        }
-    }
-
-    func isListed(in lists: [NoteListSummary]) -> Bool {
-        guard case .list(let id) = self else { return true }
-        return lists.contains { $0.id == id }
-    }
-}
-
-@MainActor
-@Observable
-final class NoteFeedChoice {
-    static let shared = NoteFeedChoice()
-
-    private static let key = "notes.feed"
-
-    var kind: NoteFeedKind {
-        didSet { UserDefaults.standard.set(kind.rawValue, forKey: Self.key) }
-    }
-    private(set) var more: NoteMoreFeed?
-    var path = NavigationPath()
-    var pendingLogin: NoteMoreFeed?
-    private(set) var posted: Note?
-
-    private init() {
-        let launched = Config.launchValue(after: "--notes-feed")
-        kind = NoteFeedKind.initialTab(
-            launched: launched,
-            saved: Config.useMocks ? nil : UserDefaults.standard.string(forKey: Self.key),
-            signedIn: AuthStore.shared.isSignedIn)
-        if let more = launched.flatMap(NoteFeedKind.init(rawValue:)), NoteFeedKind.more.contains(more),
-           AuthStore.shared.isSignedIn {
-            self.more = .kind(more)
-        }
-    }
-
-    func signedOut() {
-        if kind == .following { kind = .everyone }
-        more = nil
-    }
-
-    func select(_ tab: NoteFeedKind) {
-        more = nil
-        kind = tab
-    }
-
-    func show(_ tab: NoteFeedKind) {
-        path = NavigationPath()
-        select(tab)
-    }
-
-    func show(_ feed: NoteMoreFeed) {
-        guard AuthStore.shared.isSignedIn else {
-            pendingLogin = feed
-            return
-        }
-        path = NavigationPath()
-        more = feed
-    }
-
-    func leaveMore() {
-        guard more != nil, let last = NoteFeedKind.tabs.last else { return }
-        select(last)
-    }
-
-    func listsChanged(_ lists: [NoteListSummary]) {
-        if let more, !more.isListed(in: lists) { self.more = nil }
-    }
-
-    private(set) var arrivingID: Int64?
-
-    func revealPosted(_ note: Note) {
-        path = NavigationPath()
-        if more != nil || kind == .trending { select(.everyone) }
-        posted = note
-        arrived(note.id)
-    }
-
-    func arrived(_ id: Int64) {
-        arrivingID = id
-        Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .seconds(2))
-            if self?.arrivingID == id { self?.arrivingID = nil }
         }
     }
 }
@@ -289,66 +170,6 @@ extension NoteFeedPreferences {
         } catch {
             languages = before
             ToastCenter.shared.show(String(localized: "설정을 바꾸지 못했어요"))
-        }
-    }
-}
-
-struct NoteFeedTabMenu: View {
-    @State private var choice = NoteFeedChoice.shared
-
-    var body: some View {
-        Picker("노트 피드", selection: Binding<NoteFeedKind?>(
-            get: { choice.more == nil ? choice.kind : nil },
-            set: { if let kind = $0 { choice.show(kind) } }
-        )) {
-            ForEach(NoteFeedKind.tabs) { kind in
-                Label(kind.title, systemImage: kind.symbol).tag(Optional(kind))
-            }
-        }
-        .pickerStyle(.inline)
-        NoteFeedMenu()
-    }
-}
-
-struct NoteFeedMenu: View {
-    @State private var choice = NoteFeedChoice.shared
-    @State private var preferences = NoteFeedPreferences.shared
-    @State private var lists = NoteListsStore.shared
-
-    private var selection: Binding<NoteMoreFeed?> {
-        Binding(get: { choice.more }, set: { if let feed = $0 { choice.show(feed) } })
-    }
-
-    var body: some View {
-        Picker(selection: selection) {
-            ForEach(NoteFeedKind.more) { kind in
-                Label(kind.title, systemImage: kind.symbol).tag(Optional(NoteMoreFeed.kind(kind)))
-            }
-        } label: {
-            EmptyView()
-        }
-        .pickerStyle(.inline)
-        if AuthStore.shared.isSignedIn, !lists.lists.isEmpty {
-            Section("리스트") {
-                Picker(selection: selection) {
-                    ForEach(lists.lists) { list in
-                        Label(list.title, systemImage: NoteFeedKind.list.symbol).tag(Optional(NoteMoreFeed.list(list.id)))
-                    }
-                } label: {
-                    EmptyView()
-                }
-                .pickerStyle(.inline)
-            }
-        }
-        if AuthStore.shared.isSignedIn, choice.more == nil, choice.kind == .following {
-            Section("보기") {
-                Toggle(isOn: Binding(
-                    get: { preferences.showReposts },
-                    set: { on in Task { await preferences.setShowReposts(on) } }
-                )) {
-                    Label("리포스트 보기", systemImage: "arrow.2.squarepath")
-                }
-            }
         }
     }
 }

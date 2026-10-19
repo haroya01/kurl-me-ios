@@ -29,7 +29,7 @@ struct MyReadingHistoryView: View {
                 FeedPlaceholder(
                     title: "아직 읽기 기록이 없어요",
                     actionTitle: "피드에서 읽을 글 찾기",
-                    action: { TabRouter.shared.selection = 0 }
+                    action: { TabRouter.shared.selection = TabRouter.homeTab }
                 )
                 .padding(.top, 24)
             } else {

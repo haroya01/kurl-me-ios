@@ -19,7 +19,7 @@ struct NoteFeedPage: View {
     @State private var showLogin = false
     @State private var posted = 0
     @State private var composed: Note?
-    @State private var feedChoice = NoteFeedChoice.shared
+    @State private var feedChoice = HomeFeedChoice.shared
     @State private var trending = RemoteTrendingModel()
 
     var body: some View {
@@ -38,7 +38,7 @@ struct NoteFeedPage: View {
             content
         }
         .onChange(of: router.topRequests) {
-            guard active, router.topTab == 1 else { return }
+            guard active, router.topTab == TabRouter.homeTab else { return }
             withAnimation(reduceMotion ? nil : .smooth(duration: 0.35)) { position.scrollTo(edge: .top) }
         }
         .environment(\.noteFilterContext, model.filterContext)
@@ -65,7 +65,7 @@ struct NoteFeedPage: View {
             if let note = composed {
                 composed = nil
                 model.inserted(note)
-                NoteFeedChoice.shared.arrived(note.id)
+                HomeFeedChoice.shared.arrived(note.id)
             }
         }) {
             NoteComposeSheet(mode: .new(quote: nil, inReplyToId: nil)) { note in
@@ -152,19 +152,19 @@ struct NoteFeedPage: View {
             FeedPlaceholder(
                 title: "아직 받은 다른 서버 노트가 없어요",
                 actionTitle: "최신 노트 보기",
-                action: { NoteFeedChoice.shared.show(.everyone) }
+                action: { HomeFeedChoice.shared.open(.latest) }
             )
         case .following:
             FeedPlaceholder(
                 title: "팔로우한 사람의 노트가 아직 없어요",
                 actionTitle: "인기 노트 보기",
-                action: { NoteFeedChoice.shared.show(.trending) }
+                action: { HomeFeedChoice.shared.open(.trending) }
             )
         case .bookmarks:
             FeedPlaceholder(
                 title: "북마크한 노트가 없어요",
                 actionTitle: "인기 노트 보기",
-                action: { NoteFeedChoice.shared.show(.trending) }
+                action: { HomeFeedChoice.shared.open(.trending) }
             )
         case .list:
             FeedPlaceholder(

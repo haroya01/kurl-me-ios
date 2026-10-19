@@ -2,9 +2,6 @@
 //  FeedTabChoiceTests.swift
 //  kurlTests
 //
-//  블로그·노트 피드 머리의 첫 탭 — 같은 이름·같은 순서, 로그인했으면 기억한 탭, 비로그인이면 최신,
-//  옛 저장값(구독함·추천)은 새 구조로 옮겨 읽는다. 더 보기는 피드만 담고, 고른 피드는 짧은 이름으로 끝 칸에 선다.
-//
 
 import XCTest
 
@@ -12,73 +9,62 @@ import XCTest
 
 @MainActor
 final class FeedTabChoiceTests: XCTestCase {
-
-    func testBothFeedsShowFollowingLatestTrendingInOrder() {
-        XCTAssertEqual(FeedTab.allCases, [.following, .recent, .trending])
-        XCTAssertEqual(NoteFeedKind.tabs, [.following, .everyone, .trending])
-        XCTAssertEqual(FeedTab.allCases.map(\.label), NoteFeedKind.tabs.map(\.label))
+    private func defaults(_ values: [String: String]) -> UserDefaults {
+        let name = "home-tab-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        values.forEach { defaults.set($1, forKey: $0) }
+        return defaults
     }
 
-    func testASignedInReaderKeepsTheRememberedTab() {
-        XCTAssertEqual(FeedTab.initialTab(launched: nil, saved: "following", signedIn: true), .following)
-        XCTAssertEqual(FeedTab.initialTab(launched: nil, saved: "trending", signedIn: true), .trending)
-        XCTAssertEqual(NoteFeedKind.initialTab(launched: nil, saved: "following", signedIn: true), .following)
+    func testHomeShowsFollowingLatestTrendingInOrder() {
+        XCTAssertEqual(HomeFeedTab.allCases, [.following, .latest, .trending])
+        XCTAssertEqual(HomeFeedTab.allCases.last, .trending)
+    }
+
+    func testASignedInReaderKeepsTheRememberedTabFromEitherOldFeed() {
+        XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["home.tab": "trending"]), signedIn: true), .trending)
+        XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["feed.tab": "following"]), signedIn: true), .following)
+        XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["feed.tab": "recent"]), signedIn: true), .latest)
+        XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["notes.feed": "everyone"]), signedIn: true), .latest)
+        XCTAssertEqual(
+            HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["feed.tab": "trending", "notes.feed": "following"]), signedIn: true),
+            .trending, "the blog feed's choice wins over the notes feed's")
+        XCTAssertEqual(
+            HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["home.tab": "latest", "feed.tab": "trending"]), signedIn: true),
+            .latest, "once 홈 has its own choice, the old ones are ignored")
+    }
+
+    func testOldMenuOnlyFeedsOpenOnLatest() {
+        XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["feed.tab": "forYou"]), signedIn: true), .latest)
+        XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["notes.feed": "bookmarks"]), signedIn: true), .latest)
+        XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["notes.feed": "federated"]), signedIn: true), .latest)
     }
 
     func testASignedOutReaderOpensOnLatest() {
-        XCTAssertEqual(FeedTab.initialTab(launched: nil, saved: "following", signedIn: false), .recent)
-        XCTAssertEqual(FeedTab.initialTab(launched: nil, saved: nil, signedIn: false), .recent)
-        XCTAssertEqual(NoteFeedKind.initialTab(launched: nil, saved: "following", signedIn: false), .everyone)
-        XCTAssertEqual(NoteFeedKind.initialTab(launched: nil, saved: nil, signedIn: false), .everyone)
+        XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["home.tab": "following"]), signedIn: false), .latest)
+        XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: nil, signedIn: false), .latest)
     }
 
-    func testOldStoredValuesMapToTheNewTabs() {
-        XCTAssertEqual(FeedTab(stored: "following"), .following, "구독함은 같은 저장값으로 팔로잉이 된다")
-        XCTAssertEqual(FeedTab(stored: "forYou"), .recent, "추천은 더 보기로 옮겨 최신으로 연다")
-        XCTAssertEqual(FeedTab.initialTab(launched: nil, saved: "forYou", signedIn: true), .recent)
-        XCTAssertNil(FeedTab(stored: "inbox"))
-        XCTAssertEqual(FeedTab.initialTab(launched: nil, saved: "inbox", signedIn: true), .recent)
-    }
-
-    func testALaunchArgumentWinsAndMenuOnlyNoteFeedsAreNotTabs() {
-        XCTAssertEqual(FeedTab.initialTab(launched: "trending", saved: "following", signedIn: true), .trending)
-        XCTAssertEqual(FeedTab.initialTab(launched: "following", saved: nil, signedIn: false), .following)
-        XCTAssertEqual(NoteFeedKind.initialTab(launched: "bookmarks", saved: "trending", signedIn: true), .trending)
+    func testALaunchArgumentWins() {
+        XCTAssertEqual(HomeFeedChoice.initialTab(launched: "trending", defaults: defaults(["home.tab": "following"]), signedIn: true), .trending)
+        XCTAssertEqual(HomeFeedChoice.initialTab(launched: "recent", defaults: nil, signedIn: false), .latest)
     }
 
     func testFollowingNextToLatestWaitsUntilItIsFirstChosen() {
-        let tabs = FeedTab.allCases
-        func warm(_ tab: FeedTab, selection: FeedTab, opened: Set<FeedTab> = []) -> Bool {
+        let tabs = HomeFeedTab.allCases
+        func warm(_ tab: HomeFeedTab, selection: HomeFeedTab, opened: Set<HomeFeedTab> = []) -> Bool {
             SwipePagerWarmth.warm(tab, tabs: tabs, selection: selection, loadOnSelect: [.following], opened: opened)
         }
-        XCTAssertFalse(warm(.following, selection: .recent), "최신으로 열자마자 팔로잉까지 받으면 안 된다")
-        XCTAssertTrue(warm(.trending, selection: .recent))
+        XCTAssertFalse(warm(.following, selection: .latest), "opening on 최신 must not fetch 팔로잉 too")
+        XCTAssertTrue(warm(.trending, selection: .latest))
         XCTAssertTrue(warm(.following, selection: .following))
-        XCTAssertTrue(warm(.following, selection: .recent, opened: [.following]), "한 번 연 팔로잉은 옆에 있으면 계속 산다")
-        XCTAssertFalse(warm(.following, selection: .trending, opened: [.following]), "두 칸 떨어진 페이지는 그리지 않는다")
-        XCTAssertTrue(warm(.recent, selection: .following))
+        XCTAssertTrue(warm(.following, selection: .latest, opened: [.following]))
+        XCTAssertFalse(warm(.following, selection: .trending, opened: [.following]))
     }
 
-    func testTheMoreMenusHoldFeedsOnly() {
-        XCTAssertEqual(BlogFeedMoreMenu.feeds, [.forYou])
-        XCTAssertEqual(NoteFeedKind.more, [.federated, .bookmarks, .direct])
-    }
-
-    func testTheMoreSlotShowsTheChosenFeedWithAShortName() {
+    func testTheMoreMenuHoldsForYouOnly() {
+        XCTAssertEqual(HomeMoreMenu.feeds, [.forYou])
         XCTAssertEqual(FeedSource.forYou.moreChoice, SegmentMoreChoice(title: String(localized: "추천"), symbol: "binoculars"))
-        let lists = [NoteListSummary(id: 7, title: "동료", memberCount: 2)]
-        XCTAssertEqual(NoteMoreFeed.kind(.federated).choice(lists: lists), SegmentMoreChoice(title: String(localized: "다른 서버"), symbol: "globe"))
-        XCTAssertEqual(NoteMoreFeed.kind(.bookmarks).choice(lists: lists), SegmentMoreChoice(title: String(localized: "북마크"), symbol: "bookmark"))
-        XCTAssertEqual(NoteMoreFeed.kind(.direct).choice(lists: lists), SegmentMoreChoice(title: String(localized: "멘션"), symbol: "at"))
-        XCTAssertEqual(NoteMoreFeed.list(7).choice(lists: lists), SegmentMoreChoice(title: "동료", symbol: "list.bullet"))
-        XCTAssertEqual(NoteMoreFeed.list(8).choice(lists: lists).title, String(localized: "리스트"), "목록에 없는 리스트는 이름 대신 '리스트'")
-    }
-
-    func testAListFeedLeavesWhenItsListIsGone() {
-        let lists = [NoteListSummary(id: 7, title: "동료", memberCount: 2)]
-        XCTAssertTrue(NoteMoreFeed.list(7).isListed(in: lists))
-        XCTAssertFalse(NoteMoreFeed.list(8).isListed(in: lists))
-        XCTAssertTrue(NoteMoreFeed.kind(.bookmarks).isListed(in: []), "리스트가 아닌 피드는 목록과 상관없다")
     }
 
     func testARightSwipeOnAMoreFeedStepsBackToTheLastTab() {
@@ -88,13 +74,11 @@ final class FeedTabChoiceTests: XCTestCase {
         XCTAssertEqual(SwipeSelects<Int>.step(from: 1, count: 2, translation: right, velocity: still), 0)
         XCTAssertNil(SwipeSelects<Int>.step(from: 1, count: 2, translation: left, velocity: fast))
         XCTAssertNil(SwipeSelects<Int>.step(from: 1, count: 2, translation: CGSize(width: 40, height: 200), velocity: fast))
-        XCTAssertEqual(NoteFeedKind.tabs.last, .trending)
-        XCTAssertEqual(FeedTab.allCases.last, .trending)
     }
 
-    func testAPublishedNoteOpensTheFeedThatShowsItAtTheTop() {
-        let choice = NoteFeedChoice.shared
-        let saved = (choice.kind, TabRouter.shared.selection)
+    func testAPublishedNoteOpensHomeAtTheTop() {
+        let choice = HomeFeedChoice.shared
+        let saved = (choice.tab, TabRouter.shared.selection)
         defer {
             choice.select(saved.0)
             TabRouter.shared.selection = saved.1
@@ -105,18 +89,106 @@ final class FeedTabChoiceTests: XCTestCase {
             inReplyToId: nil, replyCount: 0, repostCount: nil, repostedByMe: nil, quotedNote: nil)
         choice.select(.trending)
         choice.path.append(Route.note(id: 1))
-        TabRouter.shared.selection = 0
+        TabRouter.shared.selection = TabRouter.accountTab
 
         TabRouter.shared.revealPosted(note)
 
-        XCTAssertEqual(TabRouter.shared.selection, 1)
-        XCTAssertEqual(choice.kind, .everyone, "인기에는 방금 쓴 노트가 없다")
+        XCTAssertEqual(TabRouter.shared.selection, TabRouter.homeTab)
+        XCTAssertEqual(choice.tab, .latest, "인기 doesn't have the note you just wrote")
         XCTAssertTrue(choice.path.isEmpty)
         XCTAssertEqual(choice.posted?.id, 77)
         XCTAssertEqual(choice.arrivingID, 77)
 
         choice.select(.following)
         TabRouter.shared.revealPosted(note)
-        XCTAssertEqual(choice.kind, .following, "팔로잉·최신은 그대로 둔다")
+        XCTAssertEqual(choice.tab, .following, "팔로잉 and 최신 stay")
+    }
+}
+
+@MainActor
+final class HomeFeedTests: XCTestCase {
+    private static var kept: [AnyObject] = []
+
+    private static func note(_ id: Int64, at time: String) -> String {
+        #"{"kind":"note","note":{"id":\#(id),"body":"n\#(id)","createdAt":"\#(time)","editedAt":null,"likeCount":null,"likedByMe":null,"author":{"id":1,"username":"author","bio":null,"avatarUrl":null},"media":[],"quotedPost":null,"inReplyToId":null,"replyCount":0,"repostCount":null,"repostedByMe":null,"quotedNote":null}}"#
+    }
+
+    private static func post(_ id: Int64, at time: String, extra: String = "") -> String {
+        #"{"kind":"post","post":{"id":\#(id),"author":{"id":2,"username":"writer","bio":null,"avatarUrl":null},"slug":"p\#(id)","title":"글 \#(id)","excerpt":"요약","ogImageUrl":null,"languageTag":"ko","tags":[],"publishedAt":"\#(time)","viewCount":3,"likeCount":5\#(extra)}}"#
+    }
+
+    private static func batch(_ items: [String], next: String?) throws -> HomeFeedBatch {
+        let json = #"{"items":[\#(items.joined(separator: ","))],"next":\#(next.map { "\"\($0)\"" } ?? "null")}"#
+        return try JSONDecoder.blog.decode(HomeFeedBatch.self, from: Data(json.utf8))
+    }
+
+    private final class Pager {
+        let pages: [String: HomeFeedBatch]
+        var asked: [String] = []
+
+        init(_ pages: [String: HomeFeedBatch]) { self.pages = pages }
+
+        func page(_ cursor: String?) throws -> HomeFeedBatch {
+            let key = cursor ?? "first"
+            asked.append(key)
+            guard let page = pages[key] else { throw APIError.server(status: 500, code: nil, detail: "") }
+            return page
+        }
+    }
+
+    func testTheHomeShapeDecodesNotesAndPostCardsWithTheirReactionFields() throws {
+        let page = try Self.batch([
+            Self.note(9, at: "2026-10-20T01:00:00Z"),
+            Self.post(4, at: "2026-10-20T00:30:00Z", extra: #","readMinutes":3,"commentCount":2,"likedByMe":true"#),
+        ], next: "12.4")
+        XCTAssertEqual(page.items.map(\.id), ["note-9", "post-4"])
+        XCTAssertEqual(page.next, "12.4")
+        guard case .post(let post) = page.items[1].kind else { return XCTFail("post card") }
+        XCTAssertEqual(post.readMinutes, 3)
+        XCTAssertEqual(post.commentCount, 2)
+        XCTAssertEqual(post.likedByMe, true)
+    }
+
+    func testAPostWithoutTheNewFieldsStillDecodes() throws {
+        let page = try Self.batch([Self.post(4, at: "2026-10-20T00:30:00Z")], next: nil)
+        guard case .post(let post) = page.items[0].kind else { return XCTFail("post card") }
+        XCTAssertNil(post.readMinutes)
+        XCTAssertNil(post.commentCount)
+        XCTAssertNil(post.likedByMe)
+    }
+
+    func testTheFallbackMergeKeepsOneTimeOrderOrTwoNotesPerPost() throws {
+        let items = try Self.batch([
+            Self.note(1, at: "2026-10-20T03:00:00Z"), Self.note(2, at: "2026-10-20T01:00:00Z"),
+            Self.note(3, at: "2026-10-19T23:00:00Z"),
+            Self.post(7, at: "2026-10-20T02:00:00Z"), Self.post(8, at: "2026-10-19T22:00:00Z"),
+        ], next: nil).items
+        let notes = Array(items.prefix(3)), posts = Array(items.suffix(2))
+        XCTAssertEqual(
+            HomeFeedAPI.merge(notes: notes, posts: posts, byTime: true).map(\.id),
+            ["note-1", "post-7", "note-2", "note-3", "post-8"])
+        XCTAssertEqual(
+            HomeFeedAPI.merge(notes: notes, posts: posts, byTime: false).map(\.id),
+            ["note-1", "note-2", "post-7", "note-3", "post-8"])
+    }
+
+    func testScrollingSendsNextBackAsTheCursorUntilItIsNull() async throws {
+        let pager = Pager([
+            "first": try Self.batch([Self.note(1, at: "2026-10-20T03:00:00Z"), Self.post(7, at: "2026-10-20T02:00:00Z")], next: "1.1"),
+            "1.1": try Self.batch([Self.post(7, at: "2026-10-20T02:00:00Z"), Self.note(2, at: "2026-10-20T01:00:00Z")], next: nil),
+        ])
+        Self.kept.append(pager)
+        let model = HomeFeedViewModel(tab: .latest) { _, cursor in try pager.page(cursor) }
+        Self.kept.append(model)
+
+        await model.reload()
+        await model.loadMoreIfNeeded(current: model.items[0])
+        XCTAssertEqual(pager.asked, ["first"], "only the last row asks for more")
+        await model.loadMoreIfNeeded(current: model.items[1])
+        XCTAssertEqual(pager.asked, ["first", "1.1"])
+        XCTAssertEqual(model.items.map(\.id), ["note-1", "post-7", "note-2"], "a repeat across pages shows once")
+        XCTAssertNil(model.next)
+        await model.loadMoreIfNeeded(current: model.items[2])
+        XCTAssertEqual(pager.asked.count, 2)
     }
 }

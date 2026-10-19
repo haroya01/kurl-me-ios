@@ -50,7 +50,7 @@ struct NotificationsView: View {
                 FeedPlaceholder(
                     title: "아직 멘션이나 답글이 없어요",
                     actionTitle: "피드 둘러보기",
-                    action: { TabRouter.shared.selection = 0 }
+                    action: { TabRouter.shared.selection = TabRouter.homeTab }
                 )
                 .padding(.top, 24)
             } else if items.isEmpty {
@@ -61,7 +61,7 @@ struct NotificationsView: View {
                 FeedPlaceholder(
                     title: "아직 알림이 없어요",
                     actionTitle: "검색에서 작가 찾기",
-                    action: { TabRouter.shared.selection = 3 }
+                    action: { TabRouter.shared.selection = TabRouter.exploreTab }
                 )
                 .padding(.top, 24)
             } else {

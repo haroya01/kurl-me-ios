@@ -490,7 +490,7 @@ struct CollectionDetailView: View {
         FeedPlaceholder(
             title: "아직 연결된 글이 없어요",
             actionTitle: "읽을 글 찾기",
-            action: { TabRouter.shared.selection = 0 }
+            action: { TabRouter.shared.selection = TabRouter.homeTab }
         )
         .padding(.top, 24)
     }

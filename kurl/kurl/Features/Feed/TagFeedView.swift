@@ -170,8 +170,8 @@ struct TagFeedView: View {
                     title: "이 태그의 노트가 아직 없어요.",
                     actionTitle: "인기 노트 보기",
                     action: {
-                        NoteFeedChoice.shared.show(.trending)
-                        TabRouter.shared.switchTo(1, reduceMotion: reduceMotion)
+                        HomeFeedChoice.shared.show(HomeFeedTab.trending)
+                        TabRouter.shared.switchTo(TabRouter.homeTab, reduceMotion: reduceMotion)
                     }
                 )
                 .padding(.top, 24)
