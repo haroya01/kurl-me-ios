@@ -73,6 +73,46 @@ struct TrendingNotePage: Decodable {
     let items: [TrendingNote]
 }
 
+enum RemoteStreamItem: Decodable, Hashable, Identifiable {
+    case trending(TrendingNote)
+    case kept(Note)
+
+    private enum CodingKeys: String, CodingKey { case id }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if try container.decodeIfPresent(Int64.self, forKey: .id) != nil {
+            self = .kept(try Note(from: decoder))
+        } else {
+            self = .trending(try TrendingNote(from: decoder))
+        }
+    }
+
+    var id: String {
+        switch self {
+        case .trending(let item): "t-\(item.uri)"
+        case .kept(let note): "n-\(note.id)"
+        }
+    }
+}
+
+struct RemoteStreamPage: Decodable {
+    let items: [RemoteStreamItem]
+    let next: String?
+}
+
+enum RemoteStreamFeed: String, CaseIterable, Hashable {
+    case trending
+    case latest
+
+    var path: String {
+        switch self {
+        case .trending: "/federation/trending"
+        case .latest: "/federation/latest"
+        }
+    }
+}
+
 struct KnownDomain: Decodable, Hashable {
     let domain: String
 }
@@ -89,6 +129,11 @@ extension FederationAPI {
         let page: TrendingNotePage = try await client.getAsViewer(
             "/federation/trending", query: ["limit": String(trendingLimit)])
         return page.items
+    }
+
+    static func stream(_ feed: RemoteStreamFeed, cursor: String?) async throws -> RemoteStreamPage {
+        let query: [String: String?] = ["limit": String(trendingLimit), "cursor": cursor]
+        return try await client.getAsViewer(feed.path, query: query)
     }
 
     static func domains(prefix: String) async -> [String]? {

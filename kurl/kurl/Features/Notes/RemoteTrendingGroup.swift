@@ -228,8 +228,9 @@ struct RemoteTrendingGroup: View {
     }
 }
 
-private struct TrendingNoteRow: View {
+struct TrendingNoteRow: View {
     let item: TrendingNote
+    var showsContext = true
     @State private var actions: TrendingNoteActions
     @State private var replyTarget: Note?
     @State private var quoteTarget: Note?
@@ -243,8 +244,9 @@ private struct TrendingNoteRow: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
 
-    init(item: TrendingNote) {
+    init(item: TrendingNote, showsContext: Bool = true) {
         self.item = item
+        self.showsContext = showsContext
         _actions = State(initialValue: TrendingNoteActions(item: item))
     }
 
@@ -272,8 +274,8 @@ private struct TrendingNoteRow: View {
             .accessibilityIdentifier("trending.note")
     }
 
-    private var context: Text {
-        guard let first = item.servers.first else { return Text(verbatim: "") }
+    private var context: Text? {
+        guard showsContext, let first = item.servers.first else { return nil }
         let others = item.servers.count - 1
         return others > 0 ? Text("\(first) 외 \(others)곳에서 인기") : Text("\(first)에서 인기")
     }

@@ -197,10 +197,12 @@ struct NoteFeedPage: View {
 
 struct NoteMoreFeedPage: View {
     let feed: NoteMoreFeed
+    var active = true
     @State private var model: NotesViewModel
 
-    init(feed: NoteMoreFeed) {
+    init(feed: NoteMoreFeed, active: Bool = true) {
         self.feed = feed
+        self.active = active
         switch feed {
         case .kind(let kind): _model = State(initialValue: NotesViewModel(feed: kind))
         case .list(let id): _model = State(initialValue: NotesViewModel(list: id))
@@ -208,6 +210,29 @@ struct NoteMoreFeedPage: View {
     }
 
     var body: some View {
-        NoteFeedPage(kind: feed.kind, model: model)
+        NoteFeedPage(kind: feed.kind, model: model, active: active)
+    }
+}
+
+struct NoteFeedScreen: View {
+    let feed: NoteMoreFeed
+    @State private var lists = NoteListsStore.shared
+
+    var body: some View {
+        NoteMoreFeedPage(feed: feed, active: false)
+            .background(Palette.readingBg)
+            .reservesTabBarSpace()
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarRole(.editor)
+            .noteTextLinks()
+            .task { if case .list = feed { await lists.reload() } }
+    }
+
+    private var title: String {
+        switch feed {
+        case .kind(let kind): kind.label
+        case .list(let id): lists.lists.first { $0.id == id }?.title ?? NoteFeedKind.list.label
+        }
     }
 }

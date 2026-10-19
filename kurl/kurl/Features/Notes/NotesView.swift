@@ -244,7 +244,7 @@ final class NotesViewModel {
 }
 
 struct NoteRowDetached {
-    let context: Text
+    let context: Text?
     let open: () -> Void
     let openAuthor: () -> Void
     let reply: () -> Void
@@ -378,10 +378,10 @@ struct NoteRowView: View {
 
     private var content: some View {
         VStack(alignment: .leading, spacing: 6) {
-            if let detached {
+            if let context = detached?.context {
                 HStack(spacing: 12) {
                     Color.clear.frame(width: 36 * unit, height: 1)
-                    detached.context
+                    context
                         .typeScale(.meta)
                         .fontWeight(.medium)
                         .lineLimit(2)
