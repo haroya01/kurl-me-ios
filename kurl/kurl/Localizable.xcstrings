@@ -8288,6 +8288,34 @@
         }
       }
     },
+    "사진 찍기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Take photo"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ोटो लें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真を撮る"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chụp ảnh"
+          }
+        }
+      }
+    },
     "사진이 너무 커서 올리지 못했어요. 한 장에 %lldMB까지 올릴 수 있어요": {
       "localizations": {
         "en": {
