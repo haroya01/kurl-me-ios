@@ -3259,8 +3259,6 @@ private struct TagsField: View {
                     .disabled(atMax)
                     .onSubmit { commit() }
                     .onChange(of: draft) { _, value in
-                        // '#'는 태그에서 못 쓰게 — 입력 즉시 제거(태그는 해시태그가 아니라 주제어).
-                        if value.contains("#") { draft = value.replacingOccurrences(of: "#", with: "") }
                         if value.contains(",") { commit() } // 쉼표 입력 즉시 칩으로.
                     }
                 Button { commit() } label: {
@@ -3339,7 +3337,7 @@ private struct TagsField: View {
     }
 
     private var isDraftEmpty: Bool {
-        draft.trimmingCharacters(in: .whitespaces).isEmpty
+        PostLimits.normalizedTag(draft).isEmpty
     }
 
     private var atMax: Bool { tags.count >= PostLimits.tags }
