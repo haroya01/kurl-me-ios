@@ -18,11 +18,17 @@ struct TagFollowButton: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            ToggleCapsuleButton(isOn: model.following, on: "구독 중", off: "구독") {
-                toggle()
+            if model.resolved {
+                ToggleCapsuleButton(isOn: model.following, on: "구독 중", off: "구독") {
+                    toggle()
+                }
+                .accessibilityLabel(Text("태그 구독"))
+                .accessibilityAddTraits(model.following ? [.isSelected] : [])
+            } else {
+                ToggleCapsuleButton(isOn: false, on: "구독 중", off: "구독") {}
+                    .hidden()
+                    .accessibilityHidden(true)
             }
-            .accessibilityLabel(Text("태그 구독"))
-            .accessibilityAddTraits(model.following ? [.isSelected] : [])
 
             // 숨기기(mute) = 구독의 반대 — 더 보기 메뉴에. 숨기면 이 태그 글이 피드에서 빠진다.
             Menu {
@@ -91,22 +97,29 @@ final class TagFollowModel {
     private(set) var hidden = false
     /// 햅틱 트리거 — hydrate 가 아닌 사용자 토글에만 증가.
     private(set) var userToggleCount = 0
+    private(set) var resolved = false
 
     private let tag: String
+    private let fetchPrefs: () async throws -> InteractionsAPI.TagPrefs
 
-    init(tag: String) {
+    init(tag: String, fetchPrefs: @escaping () async throws -> InteractionsAPI.TagPrefs = { try await InteractionsAPI.tagPrefs() }) {
         self.tag = tag
+        self.fetchPrefs = fetchPrefs
     }
 
     private func isThis(_ t: String) -> Bool { t.caseInsensitiveCompare(tag) == .orderedSame }
 
     /// 구독 표면은 인증 — 비로그인은 hydrate 생략(버튼은 "구독" 기본값).
     func hydrate() async {
-        guard AuthStore.shared.isSignedIn else { return }
+        guard AuthStore.shared.isSignedIn else {
+            resolved = true
+            return
+        }
         let gen = userToggleCount
-        if let prefs = try? await InteractionsAPI.tagPrefs(), gen == userToggleCount {
+        if let prefs = try? await fetchPrefs(), gen == userToggleCount {
             following = prefs.followed.contains(where: isThis)
             hidden = prefs.hidden.contains(where: isThis)
+            resolved = true
         }
     }
 
@@ -138,6 +151,7 @@ final class TagFollowModel {
             hidden = prefs.hidden.contains(where: isThis)
             // 숨기면 서버가 구독을 정리할 수 있으니 같이 반영.
             following = prefs.followed.contains(where: isThis)
+            resolved = true
         } catch {
             guard gen == userToggleCount else { return }
             hidden = !target

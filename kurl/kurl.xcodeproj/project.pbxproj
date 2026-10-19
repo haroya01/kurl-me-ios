@@ -42,6 +42,7 @@
 		F1A000000000000000000111 /* RelativeDateFormatTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000112 /* RelativeDateFormatTests.swift */; };
 		F1A000000000000000000121 /* HeaderActionsLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000122 /* HeaderActionsLayoutTests.swift */; };
 		F1A000000000000000000131 /* EnglishPluralTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000132 /* EnglishPluralTests.swift */; };
+		F1A000000000000000000141 /* FollowStatusUnknownTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000142 /* FollowStatusUnknownTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -120,6 +121,7 @@
 		F1A000000000000000000112 /* RelativeDateFormatTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RelativeDateFormatTests.swift; sourceTree = "<group>"; };
 		F1A000000000000000000122 /* HeaderActionsLayoutTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HeaderActionsLayoutTests.swift; sourceTree = "<group>"; };
 		F1A000000000000000000132 /* EnglishPluralTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EnglishPluralTests.swift; sourceTree = "<group>"; };
+		F1A000000000000000000142 /* FollowStatusUnknownTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FollowStatusUnknownTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -261,6 +263,7 @@
 				F1A000000000000000000112 /* RelativeDateFormatTests.swift */,
 				F1A000000000000000000122 /* HeaderActionsLayoutTests.swift */,
 				F1A000000000000000000132 /* EnglishPluralTests.swift */,
+				F1A000000000000000000142 /* FollowStatusUnknownTests.swift */,
 			);
 			path = kurlTests;
 			sourceTree = "<group>";
@@ -471,6 +474,7 @@
 				F1A000000000000000000111 /* RelativeDateFormatTests.swift in Sources */,
 				F1A000000000000000000121 /* HeaderActionsLayoutTests.swift in Sources */,
 				F1A000000000000000000131 /* EnglishPluralTests.swift in Sources */,
+				F1A000000000000000000141 /* FollowStatusUnknownTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -46,6 +46,27 @@ struct FollowButton: View {
     }
 
     private var content: some View {
+        Group {
+            if model.resolved {
+                resolvedContent
+            } else {
+                ToggleCapsuleButton(isOn: false, on: "팔로잉", off: "팔로우", expandTap: 6) {}
+                    .hidden()
+                    .accessibilityHidden(true)
+            }
+        }
+        .task { await model.hydrateIfNeeded() }
+        .onChange(of: model.following) { _, following in onFollowingChange?(following) }
+        .loginPrompt(isPresented: $showLoginPrompt, message: "팔로우하려면 로그인하세요") {
+            await model.hydrate()
+        }
+        .alert("팔로우 요청을 취소할까요?", isPresented: $confirmWithdraw) {
+            Button("요청 취소", role: .destructive) { toggle() }
+            Button("닫기", role: .cancel) {}
+        }
+    }
+
+    private var resolvedContent: some View {
         HStack(spacing: 12) {
             // 캡슐 높이 ~33pt → expandTap 으로 탭 영역만 44pt(시각 크기 유지).
             ToggleCapsuleButton(
@@ -78,15 +99,6 @@ struct FollowButton: View {
         .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: model.following)
         .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
         .sensoryFeedback(.selection, trigger: model.bellToggleCount)
-        .task { await model.hydrateIfNeeded() }
-        .onChange(of: model.following) { _, following in onFollowingChange?(following) }
-        .loginPrompt(isPresented: $showLoginPrompt, message: "팔로우하려면 로그인하세요") {
-            await model.hydrate()
-        }
-        .alert("팔로우 요청을 취소할까요?", isPresented: $confirmWithdraw) {
-            Button("요청 취소", role: .destructive) { toggle() }
-            Button("닫기", role: .cancel) {}
-        }
     }
 
     private var bellButton: some View {
@@ -153,20 +165,26 @@ final class FollowModel {
     private(set) var bellToggleCount = 0
     /// 팔로우 요청이 가는 중 — 끝날 때까지 다음 탭은 무시한다.
     private(set) var busy = false
+    private(set) var resolved = false
     /// 호출측이 시드를 줬는지 — 줬다면 등장 시 같은 GET 을 또 치지 않는다.
     private var seeded: Bool
 
     private let username: String
     private let setFollow: (String, Bool) async throws -> InteractionsAPI.FollowStatus
+    private let fetchStatus: (String) async throws -> InteractionsAPI.FollowStatus
 
     init(
         username: String, seed: InteractionsAPI.FollowStatus? = nil,
         setFollow: @escaping (String, Bool) async throws -> InteractionsAPI.FollowStatus = {
             try await InteractionsAPI.setFollow(username: $0, on: $1)
+        },
+        fetchStatus: @escaping (String) async throws -> InteractionsAPI.FollowStatus = {
+            try await InteractionsAPI.followStatus(username: $0)
         }
     ) {
         self.username = username
         self.setFollow = setFollow
+        self.fetchStatus = fetchStatus
         self.seeded = seed != nil
         if let seed { apply(seed) }
     }
@@ -180,12 +198,13 @@ final class FollowModel {
     /// 비로그인도 팔로워 수는 공개 — following 만 로그인 상태에서 의미.
     func hydrate() async {
         let gen = userToggleCount
-        if let status = try? await InteractionsAPI.followStatus(username: username), gen == userToggleCount {
+        if let status = try? await fetchStatus(username), gen == userToggleCount {
             apply(status)
         }
     }
 
     private func apply(_ status: InteractionsAPI.FollowStatus) {
+        resolved = true
         following = status.following
         followerCount = status.followerCount
         hideFollowerCount = status.hideFollowerCount
