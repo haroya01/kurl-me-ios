@@ -7,44 +7,6 @@ import SwiftUI
 
 @Observable
 @MainActor
-final class RemoteTrendingModel {
-    static let collapsedCount = 5
-
-    private(set) var phase: LoadState<[TrendingNote]> = .idle
-    var expanded = Config.launchValue(after: "--trending") == "expanded"
-
-    func load() async {
-        if case .idle = phase { phase = .loading }
-        do {
-            phase = .loaded(try await FederationAPI.trending())
-        } catch {
-            guard !Task.isCancelled else { return }
-            if case .loaded = phase { return }
-            phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
-        }
-    }
-
-    var isShown: Bool {
-        switch phase {
-        case .loaded(let items): !items.isEmpty
-        case .failed: true
-        case .idle, .loading: false
-        }
-    }
-
-    var visible: [TrendingNote] {
-        guard case .loaded(let items) = phase else { return [] }
-        return expanded ? items : Array(items.prefix(Self.collapsedCount))
-    }
-
-    var hiddenCount: Int {
-        guard case .loaded(let items) = phase, !expanded else { return 0 }
-        return max(items.count - Self.collapsedCount, 0)
-    }
-}
-
-@Observable
-@MainActor
 final class TrendingNoteActions {
     enum Outcome: Equatable {
         case done(Note)
@@ -163,67 +125,6 @@ final class TrendingNoteActions {
             return outcome
         } catch {
             return .failed(FederationAPI.message(for: error))
-        }
-    }
-}
-
-struct RemoteTrendingGroup: View {
-    let model: RemoteTrendingModel
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        switch model.phase {
-        case .loaded(let items) where !items.isEmpty:
-            VStack(alignment: .leading, spacing: 0) {
-                RailHeading("인기")
-                    .padding(.top, 6)
-                ForEach(Array(model.visible.enumerated()), id: \.element.id) { index, item in
-                    if index > 0 { Hairline().padding(.horizontal, -Metrics.noteGutter) }
-                    TrendingNoteRow(item: item)
-                }
-                if model.hiddenCount > 0 {
-                    Hairline().padding(.horizontal, -Metrics.noteGutter)
-                    Button {
-                        withAnimation(reduceMotion ? nil : .smooth(duration: 0.25)) { model.expanded = true }
-                    } label: {
-                        Text("더 보기")
-                            .typeScale(.meta)
-                            .fontWeight(.medium)
-                            .foregroundStyle(Palette.ink)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.vertical, 14)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("trending.more")
-                }
-            }
-            .accessibilityElement(children: .contain)
-            .accessibilityIdentifier("trending.group")
-        case .failed:
-            VStack(alignment: .leading, spacing: 0) {
-                RailHeading("인기")
-                    .padding(.top, 6)
-                HStack(alignment: .firstTextBaseline, spacing: 12) {
-                    Text("인기 글을 불러오지 못했어요")
-                        .typeScale(.meta)
-                        .foregroundStyle(Palette.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 8)
-                    Button("다시 시도") { Task { await model.load() } }
-                        .typeScale(.meta)
-                        .fontWeight(.medium)
-                        .foregroundStyle(Palette.ink)
-                        .buttonStyle(.plain)
-                        .expandTapTarget(12)
-                        .accessibilityIdentifier("trending.retry")
-                }
-                .padding(.vertical, 14)
-            }
-            .accessibilityElement(children: .contain)
-            .accessibilityIdentifier("trending.failed")
-        default:
-            EmptyView()
         }
     }
 }

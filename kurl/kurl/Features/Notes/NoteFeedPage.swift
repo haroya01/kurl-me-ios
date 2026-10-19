@@ -20,21 +20,12 @@ struct NoteFeedPage: View {
     @State private var posted = 0
     @State private var composed: Note?
     @State private var feedChoice = HomeFeedChoice.shared
-    @State private var trending = RemoteTrendingModel()
 
     var body: some View {
         ReadingColumn(
             spacing: 0, background: .clear, tracksTabBar: active, gutter: Metrics.noteGutter, position: $position
         ) {
             Color.clear.frame(height: 8)
-            if kind == .federated {
-                RemoteTrendingGroup(model: trending)
-                if trending.isShown {
-                    Hairline().padding(.horizontal, -Metrics.noteGutter)
-                    RailHeading("받은 노트")
-                        .padding(.top, 20)
-                }
-            }
             content
         }
         .onChange(of: router.topRequests) {
@@ -85,13 +76,7 @@ struct NoteFeedPage: View {
     }
 
     private func reload() async {
-        guard kind == .federated else {
-            await model.reload()
-            return
-        }
-        async let notes: Void = model.reload()
-        await trending.load()
-        await notes
+        await model.reload()
     }
 
     private func refresh() {
@@ -243,6 +228,7 @@ struct NoteFeedScreen: View {
             .toolbarRole(.editor)
             .noteTextLinks()
             .task { if case .list = feed { await lists.reload() } }
+            .sheet(isPresented: $lists.managing) { NoteListsSheet() }
     }
 
     private var title: String {
