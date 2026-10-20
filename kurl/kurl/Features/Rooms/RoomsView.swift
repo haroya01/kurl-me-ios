@@ -51,6 +51,7 @@ struct RoomsView: View {
         NavigationStack(path: $router.path) {
             content
                 .navigationTitle("방")
+                .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     if AuthStore.shared.isSignedIn, case .loaded(let rooms) = phase, !rooms.isEmpty {
                         ToolbarItem(placement: .primaryAction) {
