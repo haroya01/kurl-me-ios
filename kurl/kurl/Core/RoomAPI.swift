@@ -30,6 +30,7 @@ struct RoomListItem: Decodable, Hashable, Identifiable {
     let unreadCount: Int64
     let lastActivityAt: Date?
     let lastNote: LastNote?
+    var faces: [RoomPerson]?
 
     struct LastNote: Decodable, Hashable {
         let id: Int64
@@ -152,6 +153,10 @@ enum RoomAPI {
     static func notes(room id: Int64, page: Int) async throws -> NoteFeed {
         try await client.get(
             "/rooms/\(id)/notes", query: ["page": String(page), "size": "20"], authenticated: true)
+    }
+
+    static func feed(page: Int) async throws -> NoteFeed {
+        try await client.get("/rooms/feed", query: ["page": String(page), "size": "20"], authenticated: true)
     }
 
     static func read(_ id: Int64, upTo noteId: Int64) async throws {

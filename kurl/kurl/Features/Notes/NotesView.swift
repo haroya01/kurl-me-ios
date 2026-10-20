@@ -66,6 +66,7 @@ final class NotesViewModel {
         case direct
         case list(Int64)
         case room(Int64)
+        case rooms
         case author(String)
         case reposts(String)
         case quotes(Int64)
@@ -79,7 +80,7 @@ final class NotesViewModel {
             case .everyone, .federated, .trending, .tag, .link, .quotes, .search: .public
             case .following, .list: .home
             case .author, .reposts, .remoteAccount: .account
-            case .bookmarks, .direct, .room: nil
+            case .bookmarks, .direct, .room, .rooms: nil
             }
         }
 
@@ -110,6 +111,10 @@ final class NotesViewModel {
 
     init(room id: Int64) {
         source = .room(id)
+    }
+
+    init(source: Source) {
+        self.source = source
     }
 
     init(repostsBy username: String) {
@@ -171,6 +176,7 @@ final class NotesViewModel {
                 NoteFeed(items: [], page: 0, hasNext: false)
             }
         case let .room(id): try await RoomAPI.notes(room: id, page: page)
+        case .rooms: try await RoomAPI.feed(page: page)
         case let .quotes(id): try await NoteAPI.quotes(of: id, page: page)
         case let .tag(name): try await NoteAPI.tagged(name, page: page)
         case let .link(url): try await NoteAPI.linked(url, page: page)
@@ -2192,12 +2198,15 @@ struct NoteComposeSheet: View {
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
     @Environment(\.dismiss) private var dismiss
 
-    init(mode: Mode, room: NoteRoom? = nil, onLongForm: ((String) -> Void)? = nil, onDone: @escaping (Note) -> Void) {
+    init(
+        mode: Mode, room: NoteRoom? = nil, suggestedRoom: NoteRoom? = nil,
+        onLongForm: ((String) -> Void)? = nil, onDone: @escaping (Note) -> Void
+    ) {
         self.mode = mode
         self.onLongForm = onLongForm
         self.onDone = onDone
         self.fixedRoom = room
-        _destination = State(initialValue: room)
+        _destination = State(initialValue: room ?? suggestedRoom)
         switch mode {
         case let .new(quote, _):
             _text = State(initialValue: "")

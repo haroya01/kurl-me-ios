@@ -59,6 +59,8 @@ enum MockRooms {
         Post(id: 9902, roomId: 1, author: junho, body: "7시 어때. 역 앞 카페에서 모이자", minutesAgo: 9),
         Post(id: 9903, roomId: 1, author: yuki, body: "지난주 사진 정리해서 올릴게요", minutesAgo: 52),
         Post(id: 9904, roomId: 2, author: kim, body: "졸업 앨범 사진 받았어? 단체 사진 하나 더 있대", minutesAgo: 60 * 20),
+        Post(id: 9906, roomId: 2, author: minji, body: "다음 달에 동기 모임 한번 하자. 날짜 몇 개 올려볼게", minutesAgo: 60 * 3),
+        Post(id: 9907, roomId: 1, author: me, body: "다들 7시 괜찮으면 거기서 봐요", minutesAgo: 60 * 6),
         Post(id: 9905, roomId: 3, author: yuki, body: "다음 주는 포트·어댑터 이름 짓기 정리해 올게요", minutesAgo: 60 * 24 * 5),
     ]
 
@@ -107,6 +109,11 @@ enum MockRooms {
                 },
                 "page": 0, "size": 20, "hasNext": false,
             ])
+        }
+        if parts == ["rooms", "feed"], method == "GET" {
+            let mine = Set(rooms.map(\.id))
+            let items = posts.filter { mine.contains($0.roomId) }.sorted { $0.minutesAgo < $1.minutesAgo }.map(noteView)
+            return json(["items": items, "page": 0, "hasNext": false])
         }
         if parts == ["rooms", "invitations"], method == "GET" {
             return json(received.map { item -> [String: Any] in
@@ -222,6 +229,7 @@ enum MockRooms {
             "id": room.id, "name": room.name, "memberCount": room.members.count,
             "role": room.owner ? "OWNER" : "MEMBER", "hiddenFromFeed": room.hiddenFromFeed,
             "unreadCount": room.unread,
+            "faces": room.members.filter { $0.id != me.id }.prefix(3).map(person),
             "lastActivityAt": last.map { iso(minutesAgo: $0.minutesAgo) } ?? NSNull(),
             "lastNote": last.map { post -> [String: Any] in
                 ["id": post.id, "excerpt": post.body, "author": person(post.author),
