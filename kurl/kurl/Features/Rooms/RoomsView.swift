@@ -514,6 +514,7 @@ struct RoomBlock: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(Text("\(room.name) 더 보기"))
+                .accessibilityIdentifier("rooms.more.\(room.id)")
             }
             Hairline().padding(.horizontal, -Metrics.noteGutter).padding(.top, 2)
         }
