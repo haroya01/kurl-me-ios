@@ -50,20 +50,7 @@ struct RoomsView: View {
         NavigationStack(path: $router.path) {
             content
                 .navigationTitle("방")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    if AuthStore.shared.isSignedIn {
-                        ToolbarItem(placement: .primaryAction) {
-                            Button {
-                                creating = []
-                            } label: {
-                                Image(systemName: "plus")
-                            }
-                            .accessibilityLabel(Text("방 만들기"))
-                            .accessibilityIdentifier("rooms.create")
-                        }
-                    }
-                }
+                .toolbar(.hidden, for: .navigationBar)
                 .navigationDestination(for: RoomRoute.self) { RoomTimelineView(roomId: $0.id) }
                 .navigationDestination(for: Route.self) { RouteView(route: $0) }
                 .task(id: [AuthStore.shared.isSignedIn ? 1 : 0, router.changes]) { await load() }
@@ -120,6 +107,7 @@ struct RoomsView: View {
             .sorted { ($0.pinned == true ? 0 : 1) < ($1.pinned == true ? 0 : 1) }
         let quiet = rooms.filter { !lively.contains($0) }
         return ReadingColumn(spacing: 0, background: Palette.readingBg, gutter: Metrics.noteGutter) {
+            Color.clear.frame(height: 4)
             if !invitations.isEmpty {
                 section("초대받은 방") {
                     ForEach(invitations) { invitation in
@@ -160,12 +148,22 @@ struct RoomsView: View {
                 suggestion.padding(.top, 28)
             }
             if !rooms.isEmpty {
-                Button("초대 링크로 들어가기") { joining = true }
-                    .typeScale(.meta)
-                    .foregroundStyle(Palette.secondary)
-                    .buttonStyle(.plain)
-                    .padding(.top, suggested.isEmpty ? 28 : 18)
-                    .accessibilityIdentifier("rooms.join")
+                HStack(spacing: 18) {
+                    Button {
+                        creating = []
+                    } label: {
+                        Label("새 방 만들기", systemImage: "plus")
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Palette.ink)
+                    }
+                    .accessibilityIdentifier("rooms.create")
+                    Button("초대 링크로 들어가기") { joining = true }
+                        .foregroundStyle(Palette.secondary)
+                        .accessibilityIdentifier("rooms.join")
+                }
+                .typeScale(.meta)
+                .buttonStyle(.plain)
+                .padding(.top, suggested.isEmpty ? 28 : 18)
             }
         }
         .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: invitations)
