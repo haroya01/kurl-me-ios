@@ -39,6 +39,7 @@ struct RoomsView: View {
     @State private var suggested: [RoomPerson] = []
     @State private var invitations: [RoomInvitation] = []
     @State private var answered = 0
+    @State private var pinTaps = 0
     @State private var creating: [RoomPerson]?
     @State private var joining = false
     @State private var showLogin = false
@@ -88,6 +89,7 @@ struct RoomsView: View {
                 .sheet(isPresented: $joining) { JoinByLinkSheet() }
                 .loginPrompt(isPresented: $showLogin, message: "방을 보려면 로그인하세요")
                 .sensoryFeedback(.success, trigger: answered)
+                .sensoryFeedback(.selection, trigger: pinTaps)
         }
         .environment(\.openNoteRoute) { router.path.append($0) }
     }
@@ -140,6 +142,13 @@ struct RoomsView: View {
                             }
                         }
                         .buttonStyle(RowButtonStyle())
+                        .contextMenu {
+                            if room.pinned == true {
+                                Button("고정 풀기", systemImage: "pin.slash") { Task { await pin(room, false) } }
+                            } else {
+                                Button("맨 위에 고정", systemImage: "pin") { Task { await pin(room, true) } }
+                            }
+                        }
                         .modifier(QuietAppear(index: index))
                         .accessibilityIdentifier("rooms.row.\(room.id)")
                     }
@@ -244,6 +253,23 @@ struct RoomsView: View {
         }
     }
 
+    private func pin(_ room: RoomListItem, _ pinned: Bool) async {
+        guard case .loaded(var rooms) = phase, let at = rooms.firstIndex(where: { $0.id == room.id }) else { return }
+        if pinned, rooms.filter({ $0.pinned == true }).count >= RoomBand.maxPinned {
+            ToastCenter.shared.show(String(localized: "고정은 \(RoomBand.maxPinned)개까지예요"))
+            return
+        }
+        rooms[at].pinned = pinned
+        withAnimation(reduceMotion ? nil : .smooth(duration: 0.3)) { phase = .loaded(rooms) }
+        pinTaps += 1
+        do {
+            try await RoomAPI.pin(room.id, pinned)
+        } catch {
+            ToastCenter.shared.show(String(localized: "고정을 바꾸지 못했어요"))
+            await load()
+        }
+    }
+
     private func answer(_ invitation: RoomInvitation, accept: Bool) async {
         invitations.removeAll { $0.id == invitation.id }
         do {
@@ -272,7 +298,9 @@ private struct CreateRoomRequest: Identifiable {
 }
 
 struct RoomBand: Identifiable {
-    enum Kind { case today, week, quiet }
+    enum Kind { case pinned, today, week, quiet }
+
+    static let maxPinned = 5
 
     let kind: Kind
     let rooms: [RoomListItem]
@@ -281,6 +309,7 @@ struct RoomBand: Identifiable {
 
     var title: LocalizedStringKey {
         switch kind {
+        case .pinned: "고정한 방"
         case .today: "오늘"
         case .week: "이번 주"
         case .quiet: "조용한 방"
@@ -289,8 +318,12 @@ struct RoomBand: Identifiable {
 
     static func split(_ rooms: [RoomListItem], now: Date = .now) -> [RoomBand] {
         let calendar = Calendar.current
-        var today: [RoomListItem] = [], week: [RoomListItem] = [], quiet: [RoomListItem] = []
+        var pinned: [RoomListItem] = [], today: [RoomListItem] = [], week: [RoomListItem] = [], quiet: [RoomListItem] = []
         for room in rooms {
+            if room.pinned == true {
+                pinned.append(room)
+                continue
+            }
             guard room.lastNote != nil, let at = room.lastActivityAt else {
                 quiet.append(room)
                 continue
@@ -303,7 +336,7 @@ struct RoomBand: Identifiable {
                 quiet.append(room)
             }
         }
-        return [RoomBand(kind: .today, rooms: today), RoomBand(kind: .week, rooms: week), RoomBand(kind: .quiet, rooms: quiet)]
+        return [RoomBand(kind: .pinned, rooms: pinned), RoomBand(kind: .today, rooms: today), RoomBand(kind: .week, rooms: week), RoomBand(kind: .quiet, rooms: quiet)]
             .filter { !$0.rooms.isEmpty }
     }
 }

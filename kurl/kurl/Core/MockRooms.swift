@@ -14,6 +14,7 @@ enum MockRooms {
         var approval: Bool
         var unread: Int64
         var members: [Person]
+        var pinned = false
     }
 
     private struct Person {
@@ -41,6 +42,8 @@ enum MockRooms {
     private static let sora = Person(id: 36, username: "sora", displayName: "소라")
     private static let dohyun = Person(id: 38, username: "dohyun", displayName: "도현")
     private static let hanbit = Person(id: 37, username: "hanbit", displayName: nil)
+    private static let mom = Person(id: 40, username: "mom_kim", displayName: "엄마")
+    private static let sister = Person(id: 41, username: "seoyeon", displayName: "서연")
 
     private static let following: [Person] = [minji, junho, yuki, kim, haneul, sora, dohyun]
     private static let followers: [Person] = [minji, junho, eunseong, narae, kim]
@@ -52,6 +55,10 @@ enum MockRooms {
              members: [kim, me, minji]),
         Room(id: 3, name: "헥사고날 스터디", owner: false, hiddenFromFeed: true, approval: true, unread: 0,
              members: [yuki, me, kim, junho]),
+        Room(id: 5, name: "우리 가족", owner: true, hiddenFromFeed: true, approval: false, unread: 0,
+             members: [me, mom, sister], pinned: true),
+        Room(id: 6, name: "제주 여행 2024", owner: false, hiddenFromFeed: false, approval: false, unread: 0,
+             members: [minji, me, haneul, sora]),
     ]
 
     private static var posts: [Post] = [
@@ -62,6 +69,8 @@ enum MockRooms {
         Post(id: 9906, roomId: 2, author: minji, body: "다음 달에 동기 모임 한번 하자. 날짜 몇 개 올려볼게", minutesAgo: 60 * 3),
         Post(id: 9907, roomId: 1, author: me, body: "다들 7시 괜찮으면 거기서 봐요", minutesAgo: 60 * 6),
         Post(id: 9908, roomId: 1, author: junho, body: "어제 찍은 사진 다들 받았지? 단체 사진은 내가 보정해서 다시 올릴게", minutesAgo: 60 * 27),
+        Post(id: 9909, roomId: 5, author: mom, body: "주말에 김치 보낼게. 받으면 꼭 연락하고 밥 잘 챙겨 먹어", minutesAgo: 60 * 24 * 12),
+        Post(id: 9910, roomId: 6, author: haneul, body: "사진 앨범 링크 다시 올려요. 다들 받아 가세요", minutesAgo: 60 * 24 * 40),
         Post(id: 9905, roomId: 3, author: yuki, body: "다음 주는 포트·어댑터 이름 짓기 정리해 올게요", minutesAgo: 60 * 24 * 5),
     ]
 
@@ -161,6 +170,9 @@ enum MockRooms {
         case ("PUT", ["feed-hidden"]), ("DELETE", ["feed-hidden"]):
             rooms[index].hiddenFromFeed = method == "PUT"
             return json(["hiddenFromFeed": rooms[index].hiddenFromFeed])
+        case ("PUT", ["pin"]), ("DELETE", ["pin"]):
+            rooms[index].pinned = method == "PUT"
+            return Data()
         case ("POST", ["leave"]):
             rooms.remove(at: index)
             return json([:])
@@ -230,6 +242,7 @@ enum MockRooms {
             "id": room.id, "name": room.name, "memberCount": room.members.count,
             "role": room.owner ? "OWNER" : "MEMBER", "hiddenFromFeed": room.hiddenFromFeed,
             "unreadCount": room.unread,
+            "pinned": room.pinned,
             "faces": room.members.filter { $0.id != me.id }.prefix(3).map(person),
             "lastActivityAt": last.map { iso(minutesAgo: $0.minutesAgo) } ?? NSNull(),
             "lastNote": last.map { post -> [String: Any] in

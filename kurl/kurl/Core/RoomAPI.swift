@@ -31,6 +31,7 @@ struct RoomListItem: Decodable, Hashable, Identifiable {
     let lastActivityAt: Date?
     let lastNote: LastNote?
     var faces: [RoomPerson]?
+    var pinned: Bool?
 
     struct LastNote: Decodable, Hashable {
         let id: Int64
@@ -211,6 +212,14 @@ enum RoomAPI {
 
     static func dismissSuggestions(_ userIds: [Int64]) async throws {
         try await client.post("/rooms/suggestions/dismiss", body: RoomDismiss(userIds: userIds), authenticated: true)
+    }
+
+    static func pin(_ id: Int64, _ pinned: Bool) async throws {
+        if pinned {
+            try await client.putVoid("/rooms/\(id)/pin", authenticated: true)
+        } else {
+            try await client.deleteVoid("/rooms/\(id)/pin", authenticated: true)
+        }
     }
 
     static func invitations() async throws -> [RoomInvitation] {
