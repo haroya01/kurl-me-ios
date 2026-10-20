@@ -418,7 +418,7 @@ struct AuthorBlogView: View {
                 FeedPlaceholder(
                     title: "아직 발행한 글이 없어요",
                     actionTitle: "피드에서 읽을 글 찾기",
-                    action: { TabRouter.shared.selection = 0 }
+                    action: { TabRouter.shared.selection = TabRouter.homeTab }
                 )
                 .padding(.top, 24)
                 .padding(.bottom, 8)
@@ -459,7 +459,7 @@ struct AuthorBlogView: View {
                     FeedPlaceholder(
                         title: "아직 노트가 없어요",
                         actionTitle: "노트 둘러보기",
-                        action: { TabRouter.shared.selection = 1 }
+                        action: { TabRouter.shared.selection = TabRouter.homeTab }
                     )
                     .padding(.top, 24)
                 }
@@ -572,7 +572,7 @@ struct AuthorBlogView: View {
                 FeedPlaceholder(
                     title: "아직 리포스트가 없어요",
                     actionTitle: "노트 둘러보기",
-                    action: { TabRouter.shared.selection = 1 }
+                    action: { TabRouter.shared.selection = TabRouter.homeTab }
                 )
                 .padding(.top, 24)
             } else {

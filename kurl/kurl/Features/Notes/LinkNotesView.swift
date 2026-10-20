@@ -33,8 +33,8 @@ struct LinkNotesView: View {
                         title: "아직 이 링크를 실은 노트가 없어요",
                         actionTitle: "인기 노트 보기",
                         action: {
-                            NoteFeedChoice.shared.show(.trending)
-                            TabRouter.shared.switchTo(1, reduceMotion: reduceMotion)
+                            HomeFeedChoice.shared.show(HomeFeedTab.trending)
+                            TabRouter.shared.switchTo(TabRouter.homeTab, reduceMotion: reduceMotion)
                         }
                     )
                     .padding(.top, 24)

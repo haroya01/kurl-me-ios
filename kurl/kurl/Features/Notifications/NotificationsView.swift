@@ -47,10 +47,11 @@ struct NotificationsView: View {
                 ErrorState(message: loadError, retry: { Task { await load() } })
                     .padding(.top, 60)
             } else if items.isEmpty, filter == .mentions {
+                directEntry
                 FeedPlaceholder(
                     title: "아직 멘션이나 답글이 없어요",
                     actionTitle: "피드 둘러보기",
-                    action: { TabRouter.shared.selection = 0 }
+                    action: { TabRouter.shared.selection = TabRouter.homeTab }
                 )
                 .padding(.top, 24)
             } else if items.isEmpty {
@@ -61,7 +62,7 @@ struct NotificationsView: View {
                 FeedPlaceholder(
                     title: "아직 알림이 없어요",
                     actionTitle: "검색에서 작가 찾기",
-                    action: { TabRouter.shared.selection = 3 }
+                    action: { TabRouter.shared.selection = TabRouter.exploreTab }
                 )
                 .padding(.top, 24)
             } else {
@@ -242,6 +243,35 @@ struct NotificationsView: View {
         }
     }
 
+    private var directEntry: some View {
+        VStack(spacing: 0) {
+            NavigationLink(value: Route.noteFeed(.kind(.direct))) {
+                HStack(spacing: 12) {
+                    Image(systemName: NoteFeedKind.direct.symbol)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Palette.ink)
+                        .frame(width: 38, height: 38)
+                        .background(Palette.chipBg, in: Circle())
+                        .accessibilityHidden(true)
+                    Text("개인 멘션")
+                        .typeScale(.body)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Palette.ink)
+                    Spacer(minLength: 8)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Palette.faint)
+                        .accessibilityHidden(true)
+                }
+                .padding(.vertical, 11)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(RowButtonStyle())
+            .accessibilityIdentifier("notifications.direct")
+            Hairline()
+        }
+    }
+
     @ViewBuilder
     private var filteredEntry: some View {
         let senders = filtered.senders
@@ -283,6 +313,8 @@ struct NotificationsView: View {
         if filter == .all {
             followRequestsEntry
             filteredEntry
+        } else {
+            directEntry
         }
         let shown = shownItems
         ForEach(Array(shown.enumerated()), id: \.element.id) { index, notification in

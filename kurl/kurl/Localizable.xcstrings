@@ -7420,6 +7420,34 @@
         }
       }
     },
+    "로그인하면 팔로우한 사람의 노트와 글이 여기 모여요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to see notes and posts from people you follow here."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लॉग इन करें, आप जिन्हें फ़ॉलो करते हैं उनके नोट और पोस्ट यहाँ दिखेंगे।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログインすると、フォローした人のノートと記事がここに集まります。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng nhập để xem ghi chú và bài viết của những người bạn theo dõi tại đây."
+          }
+        }
+      }
+    },
     "로그인하면 팔로우한 작가의 새 글이 도착해요.": {
       "localizations": {
         "en": {
@@ -8092,6 +8120,34 @@
         }
       }
     },
+    "블로그 글": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blog post"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ब्लॉग पोस्ट"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ブログ記事"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bài blog"
+          }
+        }
+      }
+    },
     "비밀번호": {
       "localizations": {
         "en": {
@@ -8536,6 +8592,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chưa có bài viết nào"
+          }
+        }
+      }
+    },
+    "아직 노트와 글이 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No notes or posts yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी कोई नोट या पोस्ट नहीं है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートや記事はまだありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có ghi chú hay bài viết nào"
           }
         }
       }
@@ -9684,6 +9768,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chưa có ghi chú nào từ người bạn theo dõi"
+          }
+        }
+      }
+    },
+    "팔로우한 사람의 노트와 글이 아직 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No notes or posts from people you follow yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आप जिन्हें फ़ॉलो करते हैं उनके अभी कोई नोट या पोस्ट नहीं हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォローした人のノートや記事はまだありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có ghi chú hay bài viết nào từ người bạn theo dõi"
           }
         }
       }
@@ -16558,6 +16670,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chưa có lượt đăng lại"
+          }
+        }
+      }
+    },
+    "아직 다른 서버 최신 노트가 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No recent notes from other servers yet"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी दूसरे सर्वर से कोई नया नोट नहीं है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほかのサーバーの新着ノートはまだありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chưa có ghi chú mới nào từ máy chủ khác"
           }
         }
       }
@@ -38437,6 +38577,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Thù ghét hoặc quấy rối"
+          }
+        }
+      }
+    },
+    "홈": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Home"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "होम"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ホーム"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trang chủ"
+          }
+        }
+      }
+    },
+    "홈 더 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More home feeds"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "और होम फ़ीड"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほかのホームフィード"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thêm bảng tin trang chủ"
           }
         }
       }

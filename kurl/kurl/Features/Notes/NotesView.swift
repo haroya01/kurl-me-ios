@@ -244,7 +244,7 @@ final class NotesViewModel {
 }
 
 struct NoteRowDetached {
-    let context: Text
+    let context: Text?
     let open: () -> Void
     let openAuthor: () -> Void
     let reply: () -> Void
@@ -378,10 +378,10 @@ struct NoteRowView: View {
 
     private var content: some View {
         VStack(alignment: .leading, spacing: 6) {
-            if let detached {
+            if let context = detached?.context {
                 HStack(spacing: 12) {
                     Color.clear.frame(width: 36 * unit, height: 1)
-                    detached.context
+                    context
                         .typeScale(.meta)
                         .fontWeight(.medium)
                         .lineLimit(2)
@@ -1348,26 +1348,55 @@ extension Author {
 
 struct QuotedPostCard: View {
     let post: QuotedPost
+    var excerpt: String? = nil
+    var cover: URL? = nil
+    var showsAuthor = true
+    var readMinutes: Int? = nil
+    @ScaledMetric(relativeTo: .headline) private var thumbSize: CGFloat = 56
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 4) {
-                Text(post.authorUsername)
-                    .fontWeight(.semibold)
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 4) {
+                    if showsAuthor {
+                        Text(post.authorUsername)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Palette.ink)
+                            .lineLimit(1)
+                        Text("· 블로그 글")
+                            .foregroundStyle(Palette.secondary)
+                    } else {
+                        Text("블로그 글")
+                            .foregroundStyle(Palette.secondary)
+                    }
+                    if let readMinutes {
+                        Text(verbatim: "·")
+                            .foregroundStyle(Palette.faint)
+                            .accessibilityHidden(true)
+                        Text("\(readMinutes)분 읽기")
+                            .foregroundStyle(Palette.secondary)
+                    }
+                    AccessMarks(marks: post.access)
+                }
+                .typeScale(.meta)
+                Text(post.title)
+                    .typeScale(.note)
+                    .fontWeight(.medium)
                     .foregroundStyle(Palette.ink)
-                    .lineLimit(1)
-                Text("· 블로그 글")
-                    .foregroundStyle(Palette.secondary)
-                AccessMarks(marks: post.access)
+                    .multilineTextAlignment(.leading)
+                if let excerpt, !excerpt.isEmpty {
+                    Text(excerpt)
+                        .typeScale(.lede)
+                        .foregroundStyle(Palette.secondary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                }
             }
-            .typeScale(.meta)
-            Text(post.title)
-                .typeScale(.note)
-                .fontWeight(.medium)
-                .foregroundStyle(Palette.ink)
-                .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if let cover {
+                RowThumbnail(url: cover, size: thumbSize)
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
         .overlay(

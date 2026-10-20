@@ -912,6 +912,67 @@ final class RemoteTrendingTests: XCTestCase {
         XCTAssertEqual(ScriptedFederation.requests.last?.httpMethod, "POST")
     }
 
+    func testTheHeartFillsBeforeTheServerAnswers() async throws {
+        serve([
+            "/federation/resolve": .json(200, Self.localNote.replacingOccurrences(of: "LIKED", with: "false")),
+            "/notes/9600/like": .json(200, #"{"liked":true,"likeCount":1}"#),
+        ])
+        let act = actions(try items()[0])
+
+        let tapped = Task { await act.toggleLike() }
+        await Task.yield()
+        XCTAssertTrue(act.liked, "하트는 서버를 기다리지 않는다")
+        XCTAssertEqual(act.likeCount, 121)
+        _ = await tapped.value
+
+        XCTAssertTrue(act.liked)
+        XCTAssertEqual(ScriptedFederation.paths, ["/api/v1/federation/resolve", "/api/v1/notes/9600/like"])
+    }
+
+    func testALikeTheServerRefusesTurnsTheHeartBack() async throws {
+        serve([
+            "/federation/resolve": .json(200, Self.localNote.replacingOccurrences(of: "LIKED", with: "false")),
+            "/notes/9600/like": .json(500, #"{"status":500,"code":"X","detail":"x"}"#),
+        ])
+        let act = actions(try items()[0])
+
+        let outcome = await act.toggleLike()
+
+        XCTAssertEqual(outcome, .failed(String(localized: "좋아요를 반영하지 못했어요")))
+        XCTAssertFalse(act.liked)
+        XCTAssertEqual(act.likeCount, 120)
+    }
+
+    func testAnUnresolvableNoteTurnsTheHeartBack() async throws {
+        serve(["/federation/resolve": .json(404, #"{"status":404,"code":"REMOTE_ACCOUNT_NOT_FOUND","detail":"x"}"#)])
+        let act = actions(try items()[0])
+
+        _ = await act.toggleLike()
+
+        XCTAssertFalse(act.liked)
+        XCTAssertEqual(act.likeCount, 120)
+    }
+
+    func testRepostingATrendingNoteResolvesItThenRepostsTheLocalCopy() async throws {
+        serve([
+            "/federation/resolve": .json(200, Self.localNote.replacingOccurrences(of: "LIKED", with: "false")),
+            "/notes/9600/repost": .json(200, #"{"reposted":true,"repostCount":1}"#),
+        ])
+        let act = actions(try items()[0])
+
+        let tapped = Task { await act.toggleRepost() }
+        await Task.yield()
+        XCTAssertTrue(act.reposted, "리포스트도 바로 칠해진다")
+        let outcome = await tapped.value
+
+        guard case .done(let note) = outcome else { return XCTFail("\(outcome)") }
+        XCTAssertEqual(note.id, 9600)
+        XCTAssertTrue(act.reposted)
+        XCTAssertEqual(act.repostCount, 41)
+        XCTAssertEqual(ScriptedFederation.paths, ["/api/v1/federation/resolve", "/api/v1/notes/9600/repost"])
+        XCTAssertEqual(ScriptedFederation.requests.last?.httpMethod, "PUT")
+    }
+
     func testAResolveFailureNamesTheServer() async throws {
         serve(["/federation/resolve": .json(404, #"{"status":404,"code":"REMOTE_ACCOUNT_NOT_FOUND","detail":"x"}"#)])
         let act = actions(try items()[1])
@@ -989,5 +1050,93 @@ final class DomainCompletionTests: XCTestCase {
         ScriptedFederation.replies = ["/federation/domains": .json(500, "")]
         let failed = await FederationAPI.domains(prefix: "m")
         XCTAssertNil(failed)
+    }
+}
+
+@MainActor
+final class RemoteStreamTests: XCTestCase {
+    private static var kept: [AnyObject] = []
+
+    private static func pool(_ n: Int) -> String {
+        #"{"id":null,"uri":"https://mstdn.jp/users/a/statuses/\#(n)","body":"p\#(n)","createdAt":"2026-10-17T01:00:00Z","author":{"username":"a@mstdn.jp","displayName":null,"avatarUrl":null,"url":"https://mstdn.jp/@a"},"media":[],"contentWarning":null,"sensitive":false,"language":"ja","likeCount":1,"repostCount":0,"replyCount":0,"poll":null,"linkPreview":null,"remote":null,"servers":["mstdn.jp"]}"#
+    }
+
+    private static func note(_ id: Int64) -> String {
+        #"{"id":\#(id),"body":"kept","createdAt":"2026-10-16T01:00:00Z","editedAt":null,"likeCount":null,"likedByMe":false,"author":{"id":-9800,"username":"mina@mastodon.social","bio":null,"avatarUrl":null,"displayName":"Mina","remoteId":9800,"url":"https://mastodon.social/@mina"},"media":[],"quotedPost":null,"inReplyToId":null,"replyCount":0,"repostCount":null,"repostedByMe":false,"quotedNote":null,"linkPreview":null}"#
+    }
+
+    private static func page(_ items: [String], next: String?) throws -> RemoteStreamPage {
+        let json = #"{"items":[\#(items.joined(separator: ","))],"next":\#(next.map { "\"\($0)\"" } ?? "null")}"#
+        return try JSONDecoder.blog.decode(RemoteStreamPage.self, from: Data(json.utf8))
+    }
+
+    private final class Pager {
+        let pages: [String: RemoteStreamPage]
+        var asked: [String] = []
+
+        init(_ pages: [String: RemoteStreamPage]) { self.pages = pages }
+
+        func page(_ cursor: String?) throws -> RemoteStreamPage {
+            let key = cursor ?? "first"
+            asked.append(key)
+            guard let page = pages[key] else { throw APIError.server(status: 500, code: nil, detail: "") }
+            return page
+        }
+    }
+
+    private func stream(_ pager: Pager) -> RemoteStreamModel {
+        let model = RemoteStreamModel(feed: .trending) { _, cursor in try pager.page(cursor) }
+        Self.kept.append(model)
+        Self.kept.append(pager)
+        return model
+    }
+
+    func testAPageMixesPoolItemsAndKeptNotes() throws {
+        let page = try Self.page([Self.pool(1), Self.note(9600)], next: "r9600")
+        XCTAssertEqual(page.items.map(\.id), ["t-https://mstdn.jp/users/a/statuses/1", "n-9600"])
+        guard case .trending = page.items[0], case .kept(let note) = page.items[1] else {
+            return XCTFail("pool item then kept note")
+        }
+        XCTAssertEqual(note.id, 9600)
+        XCTAssertEqual(page.next, "r9600")
+    }
+
+    func testScrollingFollowsTheCursorFromThePoolIntoKeptNotesUntilItEnds() async throws {
+        let pager = Pager([
+            "first": try Self.page([Self.pool(1), Self.pool(2)], next: "t2"),
+            "t2": try Self.page([Self.pool(3)], next: "r"),
+            "r": try Self.page([Self.note(7), Self.note(6)], next: nil),
+        ])
+        let model = stream(pager)
+
+        await model.reload()
+        XCTAssertFalse(model.reachedEnd)
+        for _ in 0..<5 {
+            guard let last = model.items.last, model.next != nil else { break }
+            await model.loadMoreIfNeeded(current: last)
+        }
+
+        XCTAssertEqual(pager.asked, ["first", "t2", "r"])
+        XCTAssertEqual(model.items.count, 5)
+        XCTAssertEqual(model.firstKeptID, "n-7", "the 받은 노트 heading goes above the first kept note only")
+        XCTAssertTrue(model.reachedEnd)
+        await model.loadMoreIfNeeded(current: model.items[4])
+        XCTAssertEqual(pager.asked.count, 3, "no request past the end")
+    }
+
+    func testOnlyTheLastRowAsksForMoreAndRepeatsShowOnce() async throws {
+        let pager = Pager([
+            "first": try Self.page([Self.pool(1), Self.pool(2)], next: "t2"),
+            "t2": try Self.page([Self.pool(2), Self.pool(3)], next: nil),
+        ])
+        let model = stream(pager)
+
+        await model.reload()
+        await model.loadMoreIfNeeded(current: model.items[0])
+        XCTAssertEqual(pager.asked, ["first"])
+
+        await model.loadMoreIfNeeded(current: model.items[1])
+        XCTAssertEqual(model.items.map(\.id).filter { $0.hasSuffix("/2") }.count, 1)
+        XCTAssertEqual(model.items.count, 3)
     }
 }
