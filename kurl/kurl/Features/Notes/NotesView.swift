@@ -65,6 +65,7 @@ final class NotesViewModel {
         case bookmarks
         case direct
         case list(Int64)
+        case room(Int64)
         case author(String)
         case reposts(String)
         case quotes(Int64)
@@ -78,7 +79,7 @@ final class NotesViewModel {
             case .everyone, .federated, .trending, .tag, .link, .quotes, .search: .public
             case .following, .list: .home
             case .author, .reposts, .remoteAccount: .account
-            case .bookmarks, .direct: nil
+            case .bookmarks, .direct, .room: nil
             }
         }
 
@@ -105,6 +106,10 @@ final class NotesViewModel {
 
     init(list id: Int64) {
         source = .list(id)
+    }
+
+    init(room id: Int64) {
+        source = .room(id)
     }
 
     init(repostsBy username: String) {
@@ -165,6 +170,7 @@ final class NotesViewModel {
             } else {
                 NoteFeed(items: [], page: 0, hasNext: false)
             }
+        case let .room(id): try await RoomAPI.notes(room: id, page: page)
         case let .quotes(id): try await NoteAPI.quotes(of: id, page: page)
         case let .tag(name): try await NoteAPI.tagged(name, page: page)
         case let .link(url): try await NoteAPI.linked(url, page: page)
@@ -301,6 +307,7 @@ struct NoteRowView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.noteFilterContext) private var filterContext
     @Environment(\.openNoteRoute) private var openNoteRoute
+    @Environment(\.insideRoom) private var insideRoom
     @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
     @ScaledMetric(relativeTo: .callout) private var nameCapCenter: CGFloat = 9
     @ScaledMetric(relativeTo: .callout) private var nameCapHalf: CGFloat = 5.3
@@ -400,6 +407,22 @@ struct NoteRowView: View {
                 .foregroundStyle(Palette.secondary)
                 .allowsHitTesting(false)
                 .accessibilityElement(children: .combine)
+            } else if let room = note.room, insideRoom != room.id {
+                HStack(spacing: 12) {
+                    Color.clear.frame(width: 36 * unit, height: 1)
+                    Button {
+                        RoomsRouter.shared.open(room.id)
+                    } label: {
+                        Text("\(room.name) 방에서")
+                            .typeScale(.meta)
+                            .fontWeight(.medium)
+                            .lineLimit(1)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("note.room.\(note.id)")
+                }
+                .foregroundStyle(Palette.secondary)
             } else if let replyHeader {
                 ReplyHeaderLine(header: replyHeader)
             } else if showsPin, note.pinned == true {
@@ -746,7 +769,7 @@ struct NoteRowView: View {
                     .font(.system(size: 11 * unit, weight: .semibold))
                     .foregroundStyle(Palette.secondary)
                     .allowsHitTesting(false)
-                    .accessibilityLabel(Text(note.noteVisibility.title))
+                    .accessibilityLabel(note.room.map { Text("\($0.name) 멤버만") } ?? Text(note.noteVisibility.title))
                     .accessibilityIdentifier("note.visibility.\(note.id)")
             }
             if note.editedAt != nil {
@@ -777,7 +800,7 @@ struct NoteRowView: View {
         switch note.noteVisibility {
         case .public: break
         case .unlisted: parts.append(String(localized: "조용한 공개"))
-        case .private: parts.append(String(localized: "팔로워만"))
+        case .private: parts.append(note.room.map { String(localized: "\($0.name) 멤버만") } ?? String(localized: "팔로워만"))
         case .direct: parts.append(String(localized: "멘션한 사람만"))
         }
         if note.editedAt != nil { parts.append(String(localized: "고침")) }
@@ -2137,8 +2160,11 @@ struct NoteComposeSheet: View {
     let mode: Mode
     let onLongForm: ((String) -> Void)?
     let onDone: (Note) -> Void
+    let fixedRoom: NoteRoom?
 
     @State private var text: String
+    @State private var destination: NoteRoom?
+    @State private var rooms: [RoomListItem] = []
     @State private var warning: String
     @State private var warns: Bool
     @State private var sensitive: Bool
@@ -2166,10 +2192,12 @@ struct NoteComposeSheet: View {
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
     @Environment(\.dismiss) private var dismiss
 
-    init(mode: Mode, onLongForm: ((String) -> Void)? = nil, onDone: @escaping (Note) -> Void) {
+    init(mode: Mode, room: NoteRoom? = nil, onLongForm: ((String) -> Void)? = nil, onDone: @escaping (Note) -> Void) {
         self.mode = mode
         self.onLongForm = onLongForm
         self.onDone = onDone
+        self.fixedRoom = room
+        _destination = State(initialValue: room)
         switch mode {
         case let .new(quote, _):
             _text = State(initialValue: "")
@@ -2189,6 +2217,41 @@ struct NoteComposeSheet: View {
     }
 
     private var isEdit: Bool { if case .edit = mode { true } else { false } }
+
+    private var picksDestination: Bool {
+        if case .new(_, nil) = mode { fixedRoom == nil && AuthStore.shared.isSignedIn } else { false }
+    }
+
+    @ViewBuilder
+    private var destinationChip: some View {
+        if let fixedRoom {
+            Text(fixedRoom.name)
+                .typeScale(.note)
+                .fontWeight(.semibold)
+                .accessibilityIdentifier("noteCompose.room")
+        } else if picksDestination {
+            Menu {
+                Button("내 노트") { destination = nil }
+                ForEach(rooms) { room in
+                    Button(room.name) {
+                        destination = NoteRoom(id: room.id, name: room.name)
+                        scheduledAt = nil
+                    }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(destination?.name ?? String(localized: "내 노트"))
+                        .lineLimit(1)
+                    Image(systemName: "chevron.down")
+                        .font(.caption.weight(.semibold))
+                }
+                .typeScale(.note)
+                .fontWeight(.semibold)
+                .foregroundStyle(Palette.ink)
+            }
+            .accessibilityIdentifier("noteCompose.destination")
+        }
+    }
     private var inReplyToId: Int64? {
         switch mode {
         case let .new(_, id): id
@@ -2422,6 +2485,9 @@ struct NoteComposeSheet: View {
                         if hasDraft { confirmDiscard = true } else { dismiss() }
                     }
                 }
+                if fixedRoom != nil || picksDestination {
+                    ToolbarItem(placement: .principal) { destinationChip }
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
                         Task { await submit() }
@@ -2429,10 +2495,15 @@ struct NoteComposeSheet: View {
                         if posting {
                             ProgressView()
                         } else {
-                            Text(
-                                isEdit
-                                    ? LocalizedStringKey("저장")
-                                    : scheduledAt == nil ? LocalizedStringKey("올리기") : LocalizedStringKey("예약"))
+                            if let destination, !isEdit, scheduledAt == nil {
+                                Text("\(destination.name)에 올리기")
+                                    .lineLimit(1)
+                            } else {
+                                Text(
+                                    isEdit
+                                        ? LocalizedStringKey("저장")
+                                        : scheduledAt == nil ? LocalizedStringKey("올리기") : LocalizedStringKey("예약"))
+                            }
                         }
                     }
                     .font(.body.weight(.semibold))
@@ -2444,6 +2515,10 @@ struct NoteComposeSheet: View {
             }
             .sheet(item: $altTarget) { target in
                 altEditor(for: target.id)
+            }
+            .task {
+                guard picksDestination else { return }
+                rooms = (try? await RoomAPI.mine()) ?? []
             }
             .sheet(isPresented: $pickingSchedule) {
                 NoteScheduleSheet(initial: scheduledAt) { picked in
@@ -2516,7 +2591,14 @@ struct NoteComposeSheet: View {
 
     private var footer: some View {
         HStack(spacing: 6) {
-            if isEdit {
+            if let destination {
+                Text("\(destination.name) 멤버만 볼 수 있어요")
+                    .typeScale(.meta)
+                    .fontWeight(.medium)
+                    .foregroundStyle(Palette.ink)
+                    .lineLimit(1)
+                    .accessibilityIdentifier("noteCompose.roomAudience")
+            } else if isEdit {
                 visibilityLabel
             } else {
                 Menu {
@@ -2562,7 +2644,7 @@ struct NoteComposeSheet: View {
                 .accessibilityLabel(Text("언어"))
                 .accessibilityValue(Text(verbatim: NoteLanguages.name(language)))
                 .accessibilityIdentifier("noteCompose.language")
-                if parts.isEmpty, inReplyToId == nil {
+                if parts.isEmpty, inReplyToId == nil, destination == nil {
                     Button {
                         pickingSchedule = true
                     } label: {
@@ -2903,8 +2985,8 @@ struct NoteComposeSheet: View {
                 body: NoteText.plain(text), images: images, quotedPostId: quote?.id, inReplyToId: inReplyToId,
                 quotedNoteId: quotedNote?.id,
                 contentWarning: warningText.isEmpty ? nil : warningText, sensitive: sensitive,
-                visibility: visibility?.rawValue ?? (inReplyToId == nil ? "public" : nil),
-                poll: poll?.request, language: language)
+                visibility: destination == nil ? (visibility?.rawValue ?? (inReplyToId == nil ? "public" : nil)) : nil,
+                poll: poll?.request, language: language, roomId: destination?.id)
             NoteLanguages.remember(language)
             if let scheduledAt {
                 let scheduled = try await NoteAPI.schedule(draft, at: scheduledAt)
@@ -2920,7 +3002,9 @@ struct NoteComposeSheet: View {
                 created = try await NoteAPI.create(draft)
             } else {
                 let thread = try await NoteAPI.createThread([draft] + rest.map {
-                    NoteDraft(body: NoteText.plain($0), images: [], quotedPostId: nil, inReplyToId: nil, language: language)
+                    NoteDraft(
+                        body: NoteText.plain($0), images: [], quotedPostId: nil, inReplyToId: nil,
+                        language: language, roomId: destination?.id)
                 })
                 guard let first = thread.first else { throw URLError(.badServerResponse) }
                 created = first

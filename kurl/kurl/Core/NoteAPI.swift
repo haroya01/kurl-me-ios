@@ -478,8 +478,11 @@ struct Note: Decodable, Identifiable, Hashable {
     var replyPolicy: String? = nil
     var canReply: Bool? = nil
     var remote: RemoteNoteShape? = nil
+    var room: NoteRoom? = nil
 
-    var noteVisibility: NoteVisibility { NoteVisibility(rawValue: visibility ?? "public") ?? .public }
+    var noteVisibility: NoteVisibility {
+        room != nil ? .private : NoteVisibility(rawValue: visibility ?? "public") ?? .public
+    }
 
     var remoteCard: RemoteNoteShape? { remote?.isCard == true ? remote : nil }
 
@@ -760,6 +763,7 @@ struct NoteDraft: Encodable {
     var visibility: String? = nil
     var poll: Poll? = nil
     var language: String? = nil
+    var roomId: Int64? = nil
 
     struct Poll: Encodable {
         let options: [String]

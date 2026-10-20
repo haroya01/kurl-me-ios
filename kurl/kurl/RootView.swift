@@ -18,9 +18,10 @@ final class TabRouter {
     var selection: Int
 
     static let homeTab = 0
-    static let composeTab = 1
-    static let exploreTab = 2
-    static let accountTab = 3
+    static let roomsTab = 1
+    static let composeTab = 2
+    static let exploreTab = 3
+    static let accountTab = 4
 
     /// 스튜디오는 계정 탭 스택에 민다 — 계정 탭이 소비해 스튜디오를 열고, 분면·새 글은 스튜디오가 소비한다.
     var pendingStudio = false
@@ -39,6 +40,7 @@ final class TabRouter {
         // 가운데는 탭이 아니라 쓰기 동작이라, `write` 는 계정 탭에 스튜디오를 연 상태로 들어간다.
         selection =
             switch Config.launchValue(after: "--tab") {
+            case "rooms": TabRouter.roomsTab
             case "search", "explore": TabRouter.exploreTab
             case "account", "write": TabRouter.accountTab
             default: TabRouter.homeTab
@@ -355,7 +357,7 @@ struct RootView: View {
         // (decisions/2026-10-08-tab-bar-instagram). 검색에 role: .search 를 주지 않는 것도 한 바에
         // 5탭을 모으기 위해서다. 스크롤 방향은 TabBarVisibility 가 누적한다.
         let tabs: [(icon: String, label: LocalizedStringKey)] = [
-            ("house", "홈"), ("square.and.pencil", "글쓰기"),
+            ("house", "홈"), ("person.3", "방"), ("square.and.pencil", "글쓰기"),
             ("magnifyingglass", "둘러보기"), ("person.crop.circle", "내 계정"),
         ]
         return ZStack(alignment: .bottom) {
@@ -493,6 +495,7 @@ struct RootView: View {
     @ViewBuilder
     private func tabRoot(_ index: Int) -> some View {
         switch index {
+        case TabRouter.roomsTab: RoomsView()
         case TabRouter.exploreTab: SearchView()
         case TabRouter.accountTab: AccountView()
         default: HomeView()

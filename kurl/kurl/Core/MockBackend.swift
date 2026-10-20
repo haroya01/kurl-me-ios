@@ -1264,6 +1264,7 @@ enum MockBackend {
         headers: [String: String] = [:]
     ) throws -> Data? {
         let parts = path.split(separator: "/").map(String.init)
+        if let rooms = MockRooms.respond(parts: parts, method: method, body: body) { return rooms }
 
         if parts.count >= 5, parts[0] == "public", parts[1] == "profiles", parts[3] == "posts",
            let fixture = audienceFixtures.first(where: { $0.slug == parts[4] }) {
@@ -1710,6 +1711,7 @@ enum MockBackend {
             }
             if remoteHeard(9800) { items.append(remoteNoteView()) }
             items += remoteShapeViews().filter { remoteHeard(remoteAuthorId($0) ?? 0) }
+            items.insert(contentsOf: MockRooms.roomNotesForFollowing(), at: min(1, items.count))
             return json(["items": items, "page": 0, "hasNext": false])
         }
         if method == "GET", parts == ["notes", "federated"] {
