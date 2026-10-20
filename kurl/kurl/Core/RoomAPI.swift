@@ -156,8 +156,8 @@ enum RoomAPI {
             "/rooms/\(id)/notes", query: ["page": String(page), "size": "20"], authenticated: true)
     }
 
-    static func feed(page: Int) async throws -> NoteFeed {
-        try await client.get("/rooms/feed", query: ["page": String(page), "size": "20"], authenticated: true)
+    static func feed(page: Int, size: Int = 20) async throws -> NoteFeed {
+        try await client.get("/rooms/feed", query: ["page": String(page), "size": String(size)], authenticated: true)
     }
 
     static func read(_ id: Int64, upTo noteId: Int64) async throws {

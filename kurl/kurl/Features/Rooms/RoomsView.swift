@@ -38,6 +38,7 @@ struct RoomsView: View {
     @State private var phase: LoadState<[RoomListItem]> = .idle
     @State private var suggested: [RoomPerson] = []
     @State private var invitations: [RoomInvitation] = []
+    @State private var recent: [Note] = []
     @State private var answered = 0
     @State private var pinTaps = 0
     @State private var creating: [RoomPerson]?
@@ -115,8 +116,10 @@ struct RoomsView: View {
     }
 
     private func contents(_ rooms: [RoomListItem]) -> some View {
-        let bands = RoomBand.split(rooms)
-        return ReadingColumn(spacing: 0, background: Palette.readingBg) {
+        let lively = rooms.filter { $0.pinned == true || RoomBand.isLively($0) }
+            .sorted { ($0.pinned == true ? 0 : 1) < ($1.pinned == true ? 0 : 1) }
+        let quiet = rooms.filter { !lively.contains($0) }
+        return ReadingColumn(spacing: 0, background: Palette.readingBg, gutter: Metrics.noteGutter) {
             if !invitations.isEmpty {
                 section("초대받은 방") {
                     ForEach(invitations) { invitation in
@@ -130,26 +133,25 @@ struct RoomsView: View {
             if rooms.isEmpty {
                 empty
             }
-            ForEach(bands) { band in
-                section(band.title) {
-                    ForEach(Array(band.rooms.enumerated()), id: \.element.id) { index, room in
+            ForEach(Array(lively.enumerated()), id: \.element.id) { index, room in
+                RoomBlock(
+                    room: room,
+                    notes: Array(recent.filter { $0.room?.id == room.id }.prefix(2)),
+                    onReplace: { replace($0) },
+                    onRemove: { id in recent.removeAll { $0.id == id } }
+                )
+                .contextMenu { pinMenu(room) }
+                .modifier(QuietAppear(index: index))
+            }
+            if !quiet.isEmpty {
+                section("조용한 방") {
+                    ForEach(Array(quiet.enumerated()), id: \.element.id) { index, room in
                         if index > 0 { Hairline() }
                         NavigationLink(value: RoomRoute(id: room.id)) {
-                            if band.kind == .quiet {
-                                QuietRoomLine(room: room)
-                            } else {
-                                RoomVoice(room: room)
-                            }
+                            QuietRoomLine(room: room)
                         }
                         .buttonStyle(RowButtonStyle())
-                        .contextMenu {
-                            if room.pinned == true {
-                                Button("고정 풀기", systemImage: "pin.slash") { Task { await pin(room, false) } }
-                            } else {
-                                Button("맨 위에 고정", systemImage: "pin") { Task { await pin(room, true) } }
-                            }
-                        }
-                        .modifier(QuietAppear(index: index))
+                        .contextMenu { pinMenu(room) }
                         .accessibilityIdentifier("rooms.row.\(room.id)")
                     }
                 }
@@ -169,6 +171,19 @@ struct RoomsView: View {
         .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: invitations)
         .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: rooms)
         .reservesTabBarSpace()
+    }
+
+    @ViewBuilder
+    private func pinMenu(_ room: RoomListItem) -> some View {
+        if room.pinned == true {
+            Button("고정 풀기", systemImage: "pin.slash") { Task { await pin(room, false) } }
+        } else {
+            Button("맨 위에 고정", systemImage: "pin") { Task { await pin(room, true) } }
+        }
+    }
+
+    private func replace(_ note: Note) {
+        if let at = recent.firstIndex(where: { $0.id == note.id }) { recent[at] = note }
     }
 
     private func section<Body: View>(_ title: LocalizedStringKey, @ViewBuilder body: () -> Body) -> some View {
@@ -245,7 +260,9 @@ struct RoomsView: View {
             async let rooms = RoomAPI.mine()
             async let suggestions = RoomAPI.suggestions()
             async let received = RoomAPI.invitations()
+            async let feed = RoomAPI.feed(page: 0, size: 50)
             phase = .loaded(try await rooms)
+            recent = (try? await feed)?.items ?? []
             suggested = (try? await suggestions)?.friends ?? []
             invitations = (try? await received) ?? []
         } catch {
@@ -314,6 +331,11 @@ struct RoomBand: Identifiable {
         case .week: "이번 주"
         case .quiet: "조용한 방"
         }
+    }
+
+    static func isLively(_ room: RoomListItem, now: Date = .now) -> Bool {
+        guard room.lastNote != nil, let at = room.lastActivityAt else { return false }
+        return now.timeIntervalSince(at) < 7 * 86_400
     }
 
     static func split(_ rooms: [RoomListItem], now: Date = .now) -> [RoomBand] {
@@ -392,6 +414,72 @@ struct RoomVoice: View {
 
     private var others: [RoomPerson] {
         (room.faces ?? []).filter { $0.id != room.lastNote?.author.id }
+    }
+}
+
+struct RoomBlock: View {
+    let room: RoomListItem
+    let notes: [Note]
+    let onReplace: (Note) -> Void
+    let onRemove: (Int64) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            NavigationLink(value: RoomRoute(id: room.id)) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    if room.pinned == true {
+                        Image(systemName: "pin.fill")
+                            .font(.caption2)
+                            .foregroundStyle(Palette.faint)
+                            .accessibilityLabel(Text("고정"))
+                    }
+                    Text(room.name)
+                        .typeScale(.title)
+                        .foregroundStyle(Palette.ink)
+                        .lineLimit(1)
+                    if room.unreadCount > 0 {
+                        Text("새 글 \(room.unreadCount)")
+                            .typeScale(.meta)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Palette.link)
+                            .monospacedDigit()
+                    }
+                    Spacer(minLength: 8)
+                    AvatarStack(people: room.faces ?? [], size: 20, limit: 4)
+                        .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 5 }
+                }
+                .padding(.top, 26)
+                .padding(.bottom, 4)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("rooms.row.\(room.id)")
+            if notes.isEmpty {
+                NavigationLink(value: RoomRoute(id: room.id)) {
+                    RoomVoice(room: room)
+                }
+                .buttonStyle(RowButtonStyle())
+            } else {
+                ForEach(Array(notes.enumerated()), id: \.element.id) { index, note in
+                    if index > 0 { Hairline().padding(.horizontal, -Metrics.noteGutter) }
+                    NoteFeedItem(note: note, onChange: onReplace, onDelete: onRemove, onQuoted: { _ in })
+                        .environment(\.insideRoom, room.id)
+                }
+                NavigationLink(value: RoomRoute(id: room.id)) {
+                    HStack(spacing: 4) {
+                        Text("\(room.name)에서 더 보기")
+                        Image(systemName: "chevron.right").font(.caption2.weight(.semibold))
+                    }
+                    .typeScale(.meta)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Palette.secondary)
+                    .padding(.vertical, 12)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+            Hairline().padding(.horizontal, -Metrics.noteGutter).padding(.top, 4)
+        }
     }
 }
 
