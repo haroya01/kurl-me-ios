@@ -49,6 +49,12 @@ struct RoomsView: View {
     var body: some View {
         NavigationStack(path: $router.path) {
             content
+                .safeAreaBar(edge: .top) {
+                    if AuthStore.shared.isSignedIn {
+                        RoomsHeaderBar(onCreate: { creating = suggested }, onJoin: { joining = true })
+                    }
+                }
+                .background(Palette.readingBg)
                 .navigationTitle("방")
                 .toolbar(.hidden, for: .navigationBar)
                 .navigationDestination(for: RoomRoute.self) { RoomTimelineView(roomId: $0.id) }
@@ -107,7 +113,6 @@ struct RoomsView: View {
             .sorted { ($0.pinned == true ? 0 : 1) < ($1.pinned == true ? 0 : 1) }
         let quiet = rooms.filter { !lively.contains($0) }
         return ReadingColumn(spacing: 0, background: Palette.readingBg, gutter: Metrics.noteGutter) {
-            Color.clear.frame(height: 4)
             if !invitations.isEmpty {
                 section("초대받은 방") {
                     ForEach(invitations) { invitation in
@@ -148,22 +153,12 @@ struct RoomsView: View {
                 suggestion.padding(.top, 28)
             }
             if !rooms.isEmpty {
-                HStack(spacing: 18) {
-                    Button {
-                        creating = []
-                    } label: {
-                        Label("새 방 만들기", systemImage: "plus")
-                            .fontWeight(.semibold)
-                            .foregroundStyle(Palette.ink)
-                    }
-                    .accessibilityIdentifier("rooms.create")
-                    Button("초대 링크로 들어가기") { joining = true }
-                        .foregroundStyle(Palette.secondary)
-                        .accessibilityIdentifier("rooms.join")
-                }
-                .typeScale(.meta)
-                .buttonStyle(.plain)
-                .padding(.top, suggested.isEmpty ? 28 : 18)
+                Button("초대 링크로 들어가기") { joining = true }
+                    .typeScale(.meta)
+                    .foregroundStyle(Palette.secondary)
+                    .buttonStyle(.plain)
+                    .padding(.top, suggested.isEmpty ? 28 : 18)
+                    .accessibilityIdentifier("rooms.join")
             }
         }
         .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: invitations)
@@ -310,6 +305,49 @@ struct RoomsView: View {
 private struct CreateRoomRequest: Identifiable {
     let id = UUID()
     let friends: [RoomPerson]
+}
+
+struct RoomsHeaderBar: View {
+    let onCreate: () -> Void
+    let onJoin: () -> Void
+
+    @State private var unread = UnreadStore.shared
+    @ScaledMetric(relativeTo: .subheadline) private var rawLabelSize: CGFloat = 14
+
+    var body: some View {
+        GlassEffectContainer(spacing: GlassTokens.clusterSpacing) {
+            HStack(spacing: 0) {
+                Color.clear.frame(width: FeedHeaderMetrics.circle, height: FeedHeaderMetrics.circle)
+                Spacer(minLength: FeedHeaderMetrics.gap)
+                Menu {
+                    Button("새 방 만들기", systemImage: "plus", action: onCreate)
+                    Button("초대 링크로 들어가기", systemImage: "link", action: onJoin)
+                } label: {
+                    HStack(spacing: 6) {
+                        Text("방")
+                            .font(.system(size: min(rawLabelSize, 16), weight: .semibold))
+                        Image(systemName: "plus")
+                            .font(.system(size: min(rawLabelSize, 16) - 2, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                    .foregroundStyle(.primary)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 14)
+                    .contentShape(Capsule())
+                }
+                .tint(.primary)
+                .glassEffect(.regular.interactive(), in: .capsule)
+                .shadow(color: Palette.shadow.opacity(0.05), radius: 1.5, y: 1)
+                .shadow(color: Palette.shadow.opacity(0.08), radius: 12, y: 5)
+                .accessibilityLabel(Text("방 만들기"))
+                .accessibilityIdentifier("rooms.create")
+                Spacer(minLength: FeedHeaderMetrics.gap)
+                InboxBell(count: unread.count)
+            }
+            .padding(.horizontal, FeedHeaderMetrics.edge)
+        }
+        .padding(.bottom, 8)
+    }
 }
 
 struct RoomBand: Identifiable {
