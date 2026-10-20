@@ -1,0 +1,41 @@
+{
+  "sourceLanguage": "ko",
+  "strings": {
+    "NSCameraUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kurl uses the camera to take a photo and attach it to your note."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नोट में तुरंत फ़ोटो लेकर जोड़ने के लिए कैमरे की ज़रूरत है।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ノートにすぐ写真を撮って添付するにはカメラが必要です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "노트에 바로 사진을 찍어 붙이려면 카메라가 필요해요."
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cần quyền dùng máy ảnh để chụp và đính kèm ảnh vào ghi chú ngay."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

@@ -2118,6 +2118,7 @@ struct NoteComposeSheet: View {
     @State private var quote: QuotedPost?
     @State private var picked: [PickedImage] = []
     @State private var pickerItems: [PhotosPickerItem] = []
+    @State private var takingPhoto = false
     @State private var posting = false
     @State private var showNotice = false
     @State private var confirmDiscard = false
@@ -2288,6 +2289,21 @@ struct NoteComposeSheet: View {
                                 }
                                 .disabled(picked.count >= NoteAPI.maxImages || poll != nil)
                                 .accessibilityLabel("사진 추가")
+                                if NoteCamera.isAvailable {
+                                    Button {
+                                        takingPhoto = true
+                                    } label: {
+                                        Image(systemName: "camera")
+                                            .font(.system(size: 18))
+                                            .foregroundStyle(
+                                                picked.count >= NoteAPI.maxImages || poll != nil ? Palette.faint : Palette.secondary)
+                                            .frame(width: 32, height: 28, alignment: .leading)
+                                            .contentShape(Rectangle())
+                                    }
+                                    .disabled(picked.count >= NoteAPI.maxImages || poll != nil)
+                                    .accessibilityLabel("사진 찍기")
+                                    .accessibilityIdentifier("noteCompose.camera")
+                                }
                                 Button {
                                     withAnimation(.snappy(duration: 0.2)) {
                                         poll = poll == nil ? NotePollDraft() : nil
@@ -2419,6 +2435,13 @@ struct NoteComposeSheet: View {
             .onChange(of: pickerItems) { _, items in
                 guard !items.isEmpty else { return }
                 Task { await loadPicked(items) }
+            }
+            .fullScreenCover(isPresented: $takingPhoto) {
+                NoteCamera { photo in
+                    guard let data = photo.jpegData(compressionQuality: 0.95) else { return }
+                    Task { await attach(data) }
+                }
+                .ignoresSafeArea()
             }
             .onAppear {
                 if replyTarget != nil, voiceOver {
@@ -2795,14 +2818,18 @@ struct NoteComposeSheet: View {
 
     private func loadPicked(_ items: [PhotosPickerItem]) async {
         for item in items {
-            guard picked.count < NoteAPI.maxImages,
-                  let data = try? await item.loadTransferable(type: Data.self),
-                  let upload = await NoteUploadImage.prepare(data),
-                  let image = UIImage(data: upload.data)
-            else { continue }
-            picked.append(PickedImage(image: image, upload: upload))
+            guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
+            await attach(data)
         }
         pickerItems = []
+    }
+
+    private func attach(_ data: Data) async {
+        guard picked.count < NoteAPI.maxImages,
+              let upload = await NoteUploadImage.prepare(data),
+              let image = UIImage(data: upload.data)
+        else { return }
+        picked.append(PickedImage(image: image, upload: upload))
     }
 
     private func submit() async {
