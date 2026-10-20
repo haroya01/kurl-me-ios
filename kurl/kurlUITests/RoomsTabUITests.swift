@@ -42,4 +42,14 @@ final class RoomsTabUITests: XCTestCase {
         accept.tap()
         XCTAssertTrue(app.navigationBars["주말 등산 모임"].waitForExistence(timeout: 6), "들어가기를 눌러도 방이 열리지 않음")
     }
+
+    func testAllShowsEveryRoomInOneStream() {
+        let app = launch()
+        let all = app.buttons["segment.all"]
+        XCTAssertTrue(all.waitForExistence(timeout: 12), "전체 보기 스위치가 없음")
+        all.tap()
+        let line = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "대학 동기 방에서")).firstMatch
+        XCTAssertTrue(line.waitForExistence(timeout: 6), "전체 보기에 다른 방 글이 이어지지 않음")
+        XCTAssertFalse(app.buttons["rooms.more.1"].exists, "전체 보기에 방별 덩어리가 남아 있음")
+    }
 }
