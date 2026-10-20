@@ -18,6 +18,7 @@ struct PostFeedRow: View {
     @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
     @ScaledMetric(relativeTo: .callout) private var nameCapCenter: CGFloat = 9
     @ScaledMetric(relativeTo: .callout) private var nameCapHalf: CGFloat = 5.3
+    @ScaledMetric(relativeTo: .headline) private var thumbSize: CGFloat = 64
 
     private static let actionBox: CGFloat = 22
     private var unit: CGFloat { min(scale, 1.8) }
@@ -48,13 +49,10 @@ struct PostFeedRow: View {
                 header
                     .alignmentGuide(.noteNameLine) { $0[.firstTextBaseline] - nameCapHalf }
                 NavigationLink(value: route) {
-                    QuotedPostCard(
-                        post: quoted, excerpt: post.excerpt?.cleanedPreview,
-                        cover: post.thumbnailUrl.flatMap(URL.init(string:)), showsAuthor: false,
-                        readMinutes: post.readMinutes)
+                    postBody
                 }
                 .buttonStyle(.plain)
-                .padding(.top, 6)
+                .padding(.top, 4)
                 .accessibilityIdentifier("home.post.\(post.id)")
                 actions
                     .padding(.top, 10)
@@ -69,6 +67,42 @@ struct PostFeedRow: View {
         .loginPrompt(isPresented: $showLogin, message: "좋아요를 누르려면 로그인하세요")
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("home.row.post.\(post.id)")
+    }
+
+    private var postBody: some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(post.title)
+                    .typeScale(.title)
+                    .foregroundStyle(Palette.ink)
+                    .multilineTextAlignment(.leading)
+                if let excerpt = post.excerpt?.cleanedPreview, !excerpt.isEmpty {
+                    Text(excerpt)
+                        .typeScale(.lede)
+                        .foregroundStyle(Palette.secondary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                }
+                HStack(spacing: 4) {
+                    Text("블로그 글")
+                    if let readMinutes = post.readMinutes {
+                        Text(verbatim: "·")
+                            .foregroundStyle(Palette.faint)
+                            .accessibilityHidden(true)
+                        Text("\(readMinutes)분 읽기")
+                    }
+                    AccessMarks(marks: quoted.access)
+                }
+                .typeScale(.meta)
+                .foregroundStyle(Palette.secondary)
+                .padding(.top, 2)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if let cover = post.thumbnailUrl.flatMap(URL.init(string:)) {
+                RowThumbnail(url: cover, size: thumbSize)
+            }
+        }
+        .contentShape(Rectangle())
     }
 
     private var header: some View {
