@@ -60,6 +60,10 @@ struct RoomDetail: Decodable, Hashable {
         var author: Author {
             Author(id: id, username: username, bio: nil, avatarUrl: avatarUrl, displayName: displayName)
         }
+
+        var person: RoomPerson {
+            RoomPerson(id: id, username: username, displayName: displayName, avatarUrl: avatarUrl)
+        }
     }
 }
 
@@ -88,6 +92,32 @@ struct RoomSuggestions: Decodable, Hashable {
     let friends: [RoomPerson]
 }
 
+struct RoomInvitee: Decodable, Hashable, Identifiable {
+    let person: RoomPerson
+    let inviterId: Int64
+    let invitedAt: Date?
+
+    var id: Int64 { person.id }
+}
+
+struct RoomInvitation: Decodable, Hashable, Identifiable {
+    let roomId: Int64
+    let roomName: String
+    let memberCount: Int64
+    let inviter: RoomPerson
+    let approvalRequired: Bool
+    let invitedAt: Date?
+
+    var id: Int64 { roomId }
+}
+
+struct RoomJoined: Decodable, Hashable {
+    let status: String
+    let roomId: Int64
+
+    var joined: Bool { status != "requested" }
+}
+
 private struct RoomName: Encodable { let name: String }
 private struct RoomInviteOptions: Encodable {
     let maxUses: Int?
@@ -97,6 +127,7 @@ private struct RoomInviteOptions: Encodable {
 private struct RoomLeave: Encodable { let deleteMyNotes: Bool }
 private struct RoomRead: Encodable { let noteId: Int64 }
 private struct RoomDismiss: Encodable { let userIds: [Int64] }
+private struct RoomInvitePeople: Encodable { let userIds: [Int64] }
 private struct RoomFeedHidden: Decodable { let hiddenFromFeed: Bool }
 
 enum RoomAPI {
@@ -175,5 +206,29 @@ enum RoomAPI {
 
     static func dismissSuggestions(_ userIds: [Int64]) async throws {
         try await client.post("/rooms/suggestions/dismiss", body: RoomDismiss(userIds: userIds), authenticated: true)
+    }
+
+    static func invitations() async throws -> [RoomInvitation] {
+        try await client.get("/rooms/invitations", authenticated: true)
+    }
+
+    static func accept(_ roomId: Int64) async throws -> RoomJoined {
+        try await client.post("/rooms/invitations/\(roomId)/accept", body: [String: String](), authenticated: true)
+    }
+
+    static func decline(_ roomId: Int64) async throws {
+        try await client.post("/rooms/invitations/\(roomId)/decline", body: [String: String](), authenticated: true)
+    }
+
+    static func invitees(_ id: Int64) async throws -> [RoomInvitee] {
+        try await client.get("/rooms/\(id)/invitations", authenticated: true)
+    }
+
+    static func invite(_ id: Int64, people userIds: [Int64]) async throws -> [RoomInvitee] {
+        try await client.post("/rooms/\(id)/invitations", body: RoomInvitePeople(userIds: userIds), authenticated: true)
+    }
+
+    static func cancelInvitation(_ id: Int64, person userId: Int64) async throws {
+        try await client.deleteVoid("/rooms/\(id)/invitations/\(userId)", authenticated: true)
     }
 }

@@ -23,6 +23,10 @@ struct RoomTimelineView: View {
 
     var body: some View {
         ReadingColumn(spacing: 0, background: .clear, gutter: Metrics.noteGutter) {
+            if let detail {
+                header(detail)
+                Hairline().padding(.horizontal, -Metrics.noteGutter)
+            }
             Color.clear.frame(height: 8)
             feed
         }
@@ -40,13 +44,6 @@ struct RoomTimelineView: View {
                 }
                 .accessibilityLabel(Text("이 방에 쓰기"))
                 .accessibilityIdentifier("room.compose")
-                Button {
-                    inviting = true
-                } label: {
-                    Image(systemName: "person.badge.plus")
-                }
-                .accessibilityLabel(Text("초대하기"))
-                .accessibilityIdentifier("room.invite")
                 if detail != nil {
                     Button {
                         showsSettings = true
@@ -61,7 +58,7 @@ struct RoomTimelineView: View {
         .task {
             #if DEBUG
             switch Config.launchValue(after: "--room-sheet") {
-            case "invite": inviting = true
+            case "invite", "invite-qr": inviting = true
             case "compose": composing = true
             case "settings": showsSettings = true
             default: break
@@ -91,7 +88,9 @@ struct RoomTimelineView: View {
             }
         }
         .sheet(isPresented: $inviting) {
-            RoomInviteSheet(roomId: roomId, roomName: detail?.name ?? "")
+            RoomInviteSheet(
+                roomId: roomId, roomName: detail?.name ?? "",
+                memberIds: Set(detail?.members.map(\.id) ?? []))
         }
         .sensoryFeedback(.success, trigger: posted)
         .navigationDestination(isPresented: $showsSettings) {
@@ -99,6 +98,48 @@ struct RoomTimelineView: View {
                 RoomSettingsView(detail: detail) { next in self.detail = next }
             }
         }
+    }
+
+    private func header(_ detail: RoomDetail) -> some View {
+        HStack(spacing: 12) {
+            Button {
+                showsSettings = true
+            } label: {
+                HStack(spacing: 10) {
+                    AvatarStack(people: detail.members.map(\.person), size: 32, limit: 5)
+                    Text(memberLine(detail))
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.secondary)
+                        .lineLimit(1)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("멤버 \(detail.memberCount)명"))
+            .accessibilityIdentifier("room.members")
+            Spacer(minLength: 8)
+            Button {
+                inviting = true
+            } label: {
+                Label("초대", systemImage: "person.badge.plus")
+                    .typeScale(.meta)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Palette.ink)
+                    .fixedSize()
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 7)
+                    .contentShape(Capsule())
+            }
+            .buttonStyle(PaperCapsuleStyle(prominent: false))
+            .accessibilityIdentifier("room.invite")
+        }
+        .padding(.vertical, 12)
+    }
+
+    private func memberLine(_ detail: RoomDetail) -> String {
+        let names = detail.members.prefix(2).map { $0.displayName ?? $0.username }.joined(separator: ", ")
+        let rest = Int(detail.memberCount) - min(2, detail.members.count)
+        return rest > 0 ? String(localized: "\(names) 외 \(rest)명") : names
     }
 
     @ViewBuilder
@@ -158,7 +199,7 @@ struct CreateRoomSheet: View {
                     Text("최대 50명까지 들어올 수 있어요. 방 글은 멤버에게만 보여요.")
                 }
                 if !friends.isEmpty {
-                    Section("만든 뒤 초대 링크를 보낼 친구") {
+                    Section("만든 뒤 초대할 친구") {
                         ForEach(friends) { friend in
                             HStack(spacing: 10) {
                                 AvatarView(author: friend.author, size: 28)
@@ -191,7 +232,9 @@ struct CreateRoomSheet: View {
             .sheet(item: $created, onDismiss: {
                 if let created { onCreated(created) }
             }) { room in
-                RoomInviteSheet(roomId: room.id, roomName: room.name)
+                RoomInviteSheet(
+                    roomId: room.id, roomName: room.name,
+                    memberIds: Set(room.members.map(\.id)), preselected: friends)
             }
         }
     }

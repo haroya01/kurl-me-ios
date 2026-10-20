@@ -2817,13 +2817,13 @@ enum MockBackend {
             let page = Int(query?.first(where: { $0.name == "page" })?.value ?? "") ?? 0
             let size = Int(query?.first(where: { $0.name == "size" })?.value ?? "") ?? 20
             let people: [[String: Any]] = [
-                ["username": "haneul", "displayName": "하늘", "avatarUrl": NSNull(), "bio": "프로덕트 디자이너",
+                ["userId": 34, "username": "haneul", "displayName": "하늘", "avatarUrl": NSNull(), "bio": "프로덕트 디자이너",
                  "followerCount": 128, "following": false, "requested": sentRequests.contains("haneul")],
-                ["username": "hanbit", "displayName": NSNull(), "avatarUrl": NSNull(), "bio": NSNull(),
+                ["userId": 37, "username": "hanbit", "displayName": NSNull(), "avatarUrl": NSNull(), "bio": NSNull(),
                  "followerCount": NSNull(), "following": false, "requested": false],
-                ["username": "yuki_dev", "displayName": "유키", "avatarUrl": NSNull(), "bio": "도쿄에서 읽고 씁니다",
+                ["userId": 2, "username": "yuki_dev", "displayName": "유키", "avatarUrl": NSNull(), "bio": "도쿄에서 읽고 씁니다",
                  "followerCount": 54, "following": follows["yuki_dev"]?.following ?? true, "requested": false],
-                ["username": "minji", "displayName": "민지", "avatarUrl": NSNull(), "bio": NSNull(),
+                ["userId": 31, "username": "minji", "displayName": "민지", "avatarUrl": NSNull(), "bio": NSNull(),
                  "followerCount": 12, "following": false, "requested": false],
             ]
             let found = q.count < 2 ? [] : people.filter { person in

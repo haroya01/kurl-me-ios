@@ -11,6 +11,7 @@ struct RoomSettingsView: View {
     @State private var detail: RoomDetail
     @State private var invites: [RoomInvite] = []
     @State private var requests: [RoomJoinRequest] = []
+    @State private var invitees: [RoomInvitee] = []
     @State private var hidden: Bool
     @State private var leaving = false
     @State private var removing: RoomDetail.Member?
@@ -55,6 +56,21 @@ struct RoomSettingsView: View {
                     .swipeActions {
                         if detail.isOwner, member.role != "OWNER" {
                             Button("내보내기", role: .destructive) { removing = member }
+                        }
+                    }
+                }
+            }
+            if !invitees.isEmpty {
+                Section("초대에 답을 기다려요") {
+                    ForEach(invitees) { invitee in
+                        HStack(spacing: 10) {
+                            AvatarView(author: invitee.person.author, size: 30)
+                            Text(invitee.person.displayName ?? invitee.person.username)
+                        }
+                        .swipeActions {
+                            if detail.isOwner || invitee.inviterId == AuthStore.shared.me?.id {
+                                Button("초대 취소", role: .destructive) { Task { await cancel(invitee) } }
+                            }
                         }
                     }
                 }
@@ -113,6 +129,7 @@ struct RoomSettingsView: View {
     }
 
     private func load() async {
+        invitees = (try? await RoomAPI.invitees(detail.id)) ?? []
         guard detail.isOwner else { return }
         async let loadedInvites = RoomAPI.invites(detail.id)
         async let loadedRequests = RoomAPI.requests(detail.id)
@@ -135,6 +152,11 @@ struct RoomSettingsView: View {
         }
         requests.removeAll { $0.id == request.id }
         await refresh()
+    }
+
+    private func cancel(_ invitee: RoomInvitee) async {
+        try? await RoomAPI.cancelInvitation(detail.id, person: invitee.id)
+        invitees.removeAll { $0.id == invitee.id }
     }
 
     private func disable(_ invite: RoomInvite) async {

@@ -36,6 +36,14 @@ enum MockRooms {
     private static let yuki = Person(id: 2, username: "yuki_dev", displayName: nil)
     private static let kim = Person(id: 3, username: "reader_kim", displayName: "김독자")
     private static let eunseong = Person(id: 33, username: "eunseong", displayName: "은성")
+    private static let haneul = Person(id: 34, username: "haneul", displayName: "하늘")
+    private static let narae = Person(id: 35, username: "narae", displayName: "나래")
+    private static let sora = Person(id: 36, username: "sora", displayName: "소라")
+    private static let dohyun = Person(id: 38, username: "dohyun", displayName: "도현")
+    private static let hanbit = Person(id: 37, username: "hanbit", displayName: nil)
+
+    private static let following: [Person] = [minji, junho, yuki, kim, haneul, sora, dohyun]
+    private static let followers: [Person] = [minji, junho, eunseong, narae, kim]
 
     private static var rooms: [Room] = ProcessInfo.processInfo.arguments.contains("--rooms-empty") ? [] : [
         Room(id: 1, name: "동아리 사람들", owner: true, hiddenFromFeed: false, approval: false, unread: 3,
@@ -57,6 +65,12 @@ enum MockRooms {
     private static var invites: [Int64: [[String: Any]]] = [:]
     private static var requests: [Int64: [Person]] = [1: [eunseong]]
     private static var suggested: [Person] = [minji, junho]
+    private static var invitees: [Int64: [(person: Person, inviter: Int64)]] = [1: [(kim, 1)]]
+    private static var received: [(room: Room, inviter: Person)] =
+        ProcessInfo.processInfo.arguments.contains("--rooms-empty") ? [] : [
+            (Room(id: 4, name: "주말 등산 모임", owner: false, hiddenFromFeed: false, approval: false, unread: 0,
+                  members: [yuki, haneul, sora]), yuki),
+        ]
     private static var nextRoomId: Int64 = 10
     private static var nextInviteId: Int64 = 100
 
@@ -82,6 +96,35 @@ enum MockRooms {
                 return json(detail(room))
             }
             if method == "GET" { return json(rooms.map(listItem)) }
+        }
+        if parts.count == 3, parts[0] == "users", parts[1] == me.username,
+           parts[2] == "followers" || parts[2] == "following" {
+            let people = parts[2] == "followers" ? followers : following
+            return json([
+                "items": people.map { p -> [String: Any] in
+                    ["id": p.id, "username": p.username, "bio": NSNull(), "avatarUrl": NSNull(),
+                     "followerCount": 10, "followedByMe": parts[2] == "following"]
+                },
+                "page": 0, "size": 20, "hasNext": false,
+            ])
+        }
+        if parts == ["rooms", "invitations"], method == "GET" {
+            return json(received.map { item -> [String: Any] in
+                ["roomId": item.room.id, "roomName": item.room.name, "memberCount": item.room.members.count,
+                 "inviter": person(item.inviter), "approvalRequired": item.room.approval,
+                 "invitedAt": iso(minutesAgo: 40)]
+            })
+        }
+        if parts.count == 4, parts[0] == "rooms", parts[1] == "invitations", let id = Int64(parts[2]),
+           method == "POST" {
+            guard let at = received.firstIndex(where: { $0.room.id == id }) else { return nil }
+            var room = received.remove(at: at).room
+            if parts[3] == "accept" {
+                room.members.append(me)
+                rooms.insert(room, at: 0)
+                return json(["status": "joined", "roomId": id])
+            }
+            return json([:])
         }
         if parts == ["rooms", "suggestions"], method == "GET" {
             return json(["friends": suggested.map(person)])
@@ -138,6 +181,21 @@ enum MockRooms {
             list[at]["disabled"] = true
             invites[id] = list
             return json(list[at])
+        case ("GET", ["invitations"]):
+            return json(inviteeViews(id))
+        case ("POST", ["invitations"]):
+            let ids = (decode(body)["userIds"] as? [Any])?.compactMap { ($0 as? NSNumber)?.int64Value } ?? []
+            let known = following + followers + [haneul, hanbit, narae, sora, dohyun, eunseong, kim]
+            for uid in ids where !rooms[index].members.contains(where: { $0.id == uid })
+                && !(invitees[id] ?? []).contains(where: { $0.person.id == uid }) {
+                if let who = known.first(where: { $0.id == uid }) {
+                    invitees[id, default: []].insert((who, me.id), at: 0)
+                }
+            }
+            return json(inviteeViews(id))
+        case ("DELETE", let path) where path.count == 2 && path[0] == "invitations":
+            invitees[id]?.removeAll { String($0.person.id) == path[1] }
+            return json([:])
         case ("GET", ["requests"]):
             return json((requests[id] ?? []).map { ["person": person($0), "requestedAt": iso(minutesAgo: 30)] })
         case ("POST", let path) where path.count == 2 && path[0] == "requests":
@@ -149,6 +207,12 @@ enum MockRooms {
             return json([:])
         default:
             return nil
+        }
+    }
+
+    private static func inviteeViews(_ id: Int64) -> [[String: Any]] {
+        (invitees[id] ?? []).map {
+            ["person": person($0.person), "inviterId": $0.inviter, "invitedAt": iso(minutesAgo: 10)]
         }
     }
 
