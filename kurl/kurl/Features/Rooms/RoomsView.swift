@@ -36,16 +36,13 @@ extension EnvironmentValues {
 struct RoomsView: View {
     @State private var router = RoomsRouter.shared
     @State private var phase: LoadState<[RoomListItem]> = .idle
-    @State private var model = NotesViewModel(source: .rooms)
     @State private var suggested: [RoomPerson] = []
     @State private var invitations: [RoomInvitation] = []
     @State private var answered = 0
-    @State private var posted = 0
-    @State private var composing = false
-    @State private var composed: Note?
     @State private var creating: [RoomPerson]?
     @State private var joining = false
     @State private var showLogin = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         NavigationStack(path: $router.path) {
@@ -53,15 +50,15 @@ struct RoomsView: View {
                 .navigationTitle("방")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
-                    if AuthStore.shared.isSignedIn, case .loaded(let rooms) = phase, !rooms.isEmpty {
+                    if AuthStore.shared.isSignedIn {
                         ToolbarItem(placement: .primaryAction) {
                             Button {
-                                composing = true
+                                creating = []
                             } label: {
-                                Image(systemName: "square.and.pencil")
+                                Image(systemName: "plus")
                             }
-                            .accessibilityLabel(Text("방에 쓰기"))
-                            .accessibilityIdentifier("rooms.compose")
+                            .accessibilityLabel(Text("방 만들기"))
+                            .accessibilityIdentifier("rooms.create")
                         }
                     }
                 }
@@ -88,29 +85,11 @@ struct RoomsView: View {
                         router.open(room.id)
                     }
                 }
-                .sheet(isPresented: $composing, onDismiss: {
-                    if let note = composed {
-                        composed = nil
-                        model.inserted(note)
-                        router.changed()
-                    }
-                }) {
-                    NoteComposeSheet(mode: .new(quote: nil, inReplyToId: nil), suggestedRoom: suggestedRoom) { note in
-                        composed = note
-                        posted += 1
-                    }
-                }
                 .sheet(isPresented: $joining) { JoinByLinkSheet() }
                 .loginPrompt(isPresented: $showLogin, message: "방을 보려면 로그인하세요")
                 .sensoryFeedback(.success, trigger: answered)
-                .sensoryFeedback(.success, trigger: posted)
         }
         .environment(\.openNoteRoute) { router.path.append($0) }
-    }
-
-    private var suggestedRoom: NoteRoom? {
-        guard case .loaded(let rooms) = phase, let first = rooms.first else { return nil }
-        return NoteRoom(id: first.id, name: first.name)
     }
 
     @ViewBuilder
@@ -128,77 +107,76 @@ struct RoomsView: View {
                 ErrorState(message: message) { Task { await load() } }
                     .padding(.horizontal, Metrics.gutter)
             case .loaded(let rooms):
-                page(rooms)
+                contents(rooms)
             }
         }
     }
 
-    private func page(_ rooms: [RoomListItem]) -> some View {
-        ReadingColumn(spacing: 0, background: Palette.readingBg, gutter: Metrics.noteGutter) {
-            RoomRail(
-                rooms: rooms,
-                suggested: suggested,
-                onOpen: { router.open($0) },
-                onCreate: { creating = suggested },
-                onDismissSuggestion: dismissSuggestions)
-                .padding(.horizontal, -Metrics.noteGutter)
-                .padding(.top, 4)
-                .padding(.bottom, 10)
-            ForEach(invitations) { invitation in
-                RoomInvitationBanner(invitation: invitation) { accept in
-                    Task { await answer(invitation, accept: accept) }
+    private func contents(_ rooms: [RoomListItem]) -> some View {
+        let bands = RoomBand.split(rooms)
+        return ReadingColumn(spacing: 0, background: Palette.readingBg) {
+            if !invitations.isEmpty {
+                section("초대받은 방") {
+                    ForEach(invitations) { invitation in
+                        RoomInvitationLine(invitation: invitation) { accept in
+                            Task { await answer(invitation, accept: accept) }
+                        }
+                        .transition(.opacity)
+                    }
                 }
-                .padding(.bottom, 10)
-                .transition(.opacity.combined(with: .move(edge: .top)))
             }
-            Hairline().padding(.horizontal, -Metrics.noteGutter)
             if rooms.isEmpty {
                 empty
-            } else {
-                timeline
+            }
+            ForEach(bands) { band in
+                section(band.title) {
+                    ForEach(Array(band.rooms.enumerated()), id: \.element.id) { index, room in
+                        if index > 0 { Hairline() }
+                        NavigationLink(value: RoomRoute(id: room.id)) {
+                            if band.kind == .quiet {
+                                QuietRoomLine(room: room)
+                            } else {
+                                RoomVoice(room: room)
+                            }
+                        }
+                        .buttonStyle(RowButtonStyle())
+                        .modifier(QuietAppear(index: index))
+                        .accessibilityIdentifier("rooms.row.\(room.id)")
+                    }
+                }
+            }
+            if !suggested.isEmpty {
+                suggestion.padding(.top, 28)
+            }
+            if !rooms.isEmpty {
+                Button("초대 링크로 들어가기") { joining = true }
+                    .typeScale(.meta)
+                    .foregroundStyle(Palette.secondary)
+                    .buttonStyle(.plain)
+                    .padding(.top, suggested.isEmpty ? 28 : 18)
+                    .accessibilityIdentifier("rooms.join")
             }
         }
-        .animation(.smooth(duration: 0.3), value: invitations)
+        .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: invitations)
+        .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: rooms)
         .reservesTabBarSpace()
     }
 
-    @ViewBuilder
-    private var timeline: some View {
-        switch model.phase {
-        case .idle, .loading:
-            NoteSkeleton()
-        case .failed(let message):
-            ErrorState(message: message) { Task { await model.reload() } }
-        case .loaded:
-            if model.items.isEmpty {
-                FeedPlaceholder(title: "아직 방에 올라온 글이 없어요.", actionTitle: "첫 글 쓰기") { composing = true }
-                    .padding(.top, 24)
-            } else {
-                ForEach(Array(model.items.enumerated()), id: \.element.id) { index, note in
-                    NoteFeedItem(
-                        note: note,
-                        onChange: { model.replaced($0) },
-                        onDelete: { model.removed($0) },
-                        onQuoted: { model.inserted($0) }
-                    )
-                    .environment(\.insideRoom, sameRoomAsAbove(index) ? note.room?.id : nil)
-                    .modifier(QuietAppear(index: index))
-                    .task { await model.loadMoreIfNeeded(current: note) }
-                    if index < model.items.count - 1 { Hairline().padding(.horizontal, -Metrics.noteGutter) }
-                }
-            }
+    private func section<Body: View>(_ title: LocalizedStringKey, @ViewBuilder body: () -> Body) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            RailHeading(title)
+                .padding(.top, 22)
+                .padding(.bottom, 2)
+            body()
         }
-    }
-
-    private func sameRoomAsAbove(_ index: Int) -> Bool {
-        index > 0 && model.items[index - 1].room?.id == model.items[index].room?.id
     }
 
     private var empty: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("방을 만들면 친구들 글이 여기 모여요.")
+            Text("친구들과 방을 만들면, 오늘 거기서 오간 말이 여기 먼저 보여요.")
                 .typeScale(.body)
                 .foregroundStyle(Palette.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 10) {
                 Button("방 만들기") { creating = suggested }
                     .buttonStyle(.glassProminent)
@@ -210,13 +188,45 @@ struct RoomsView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, 24)
+        .padding(.top, 28)
     }
 
-    private func dismissSuggestions() {
-        let ids = suggested.map(\.id)
-        withAnimation(.smooth(duration: 0.25)) { suggested = [] }
-        Task { try? await RoomAPI.dismissSuggestions(ids) }
+    private var suggestion: some View {
+        HStack(spacing: 10) {
+            Button {
+                creating = suggested
+            } label: {
+                HStack(spacing: 10) {
+                    AvatarStack(people: suggested, size: 22)
+                    Text("\(names(suggested))와 방 만들기")
+                        .typeScale(.note)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Palette.ink)
+                        .lineLimit(1)
+                    Spacer(minLength: 0)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("rooms.suggestion")
+            Button {
+                let ids = suggested.map(\.id)
+                withAnimation(.smooth(duration: 0.25)) { suggested = [] }
+                Task { try? await RoomAPI.dismissSuggestions(ids) }
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Palette.faint)
+                    .frame(width: 28, height: 28)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("제안 지우기"))
+        }
+    }
+
+    private func names(_ people: [RoomPerson]) -> String {
+        people.prefix(2).map { $0.displayName ?? $0.username }.joined(separator: ", ")
     }
 
     private func load() async {
@@ -226,11 +236,9 @@ struct RoomsView: View {
             async let rooms = RoomAPI.mine()
             async let suggestions = RoomAPI.suggestions()
             async let received = RoomAPI.invitations()
-            async let notes: Void = model.reload()
             phase = .loaded(try await rooms)
             suggested = (try? await suggestions)?.friends ?? []
             invitations = (try? await received) ?? []
-            await notes
         } catch {
             phase = .failed(error.localizedDescription)
         }
@@ -263,182 +271,153 @@ private struct CreateRoomRequest: Identifiable {
     let friends: [RoomPerson]
 }
 
-struct RoomRail: View {
-    let rooms: [RoomListItem]
-    let suggested: [RoomPerson]
-    let onOpen: (Int64) -> Void
-    let onCreate: () -> Void
-    let onDismissSuggestion: () -> Void
+struct RoomBand: Identifiable {
+    enum Kind { case today, week, quiet }
 
-    var body: some View {
-        ScrollView(.horizontal) {
-            HStack(alignment: .top, spacing: 14) {
-                ForEach(Array(rooms.enumerated()), id: \.element.id) { index, room in
-                    Button {
-                        onOpen(room.id)
-                    } label: {
-                        RoomBubble(
-                            faces: room.faces ?? room.lastNote.map { [$0.author] } ?? [],
-                            fallback: room.name,
-                            label: room.name,
-                            fresh: room.unreadCount > 0)
-                    }
-                    .buttonStyle(.plain)
-                    .modifier(QuietAppear(index: index))
-                    .accessibilityLabel(Text(room.unreadCount > 0 ? "\(room.name), 새 글" : "\(room.name)"))
-                    .accessibilityIdentifier("rooms.bubble.\(room.id)")
-                }
-                Button(action: onCreate) {
-                    if suggested.isEmpty {
-                        RoomBubble(faces: [], fallback: nil, label: String(localized: "새 방"), fresh: false)
-                    } else {
-                        RoomBubble(
-                            faces: suggested, fallback: nil,
-                            label: String(localized: "\(suggested[0].displayName ?? suggested[0].username)와 방"),
-                            fresh: false, adds: true)
-                    }
-                }
-                .buttonStyle(.plain)
-                .modifier(QuietAppear(index: rooms.count))
-                .contextMenu {
-                    if !suggested.isEmpty {
-                        Button("제안 지우기", systemImage: "xmark", action: onDismissSuggestion)
-                    }
-                }
-                .accessibilityIdentifier(suggested.isEmpty ? "rooms.create" : "rooms.suggestion")
-            }
-            .padding(.horizontal, Metrics.noteGutter)
-            .padding(.vertical, 6)
+    let kind: Kind
+    let rooms: [RoomListItem]
+
+    var id: Kind { kind }
+
+    var title: LocalizedStringKey {
+        switch kind {
+        case .today: "오늘"
+        case .week: "이번 주"
+        case .quiet: "조용한 방"
         }
-        .scrollIndicators(.hidden)
+    }
+
+    static func split(_ rooms: [RoomListItem], now: Date = .now) -> [RoomBand] {
+        let calendar = Calendar.current
+        var today: [RoomListItem] = [], week: [RoomListItem] = [], quiet: [RoomListItem] = []
+        for room in rooms {
+            guard room.lastNote != nil, let at = room.lastActivityAt else {
+                quiet.append(room)
+                continue
+            }
+            if calendar.isDate(at, inSameDayAs: now) {
+                today.append(room)
+            } else if now.timeIntervalSince(at) < 7 * 86_400 {
+                week.append(room)
+            } else {
+                quiet.append(room)
+            }
+        }
+        return [RoomBand(kind: .today, rooms: today), RoomBand(kind: .week, rooms: week), RoomBand(kind: .quiet, rooms: quiet)]
+            .filter { !$0.rooms.isEmpty }
     }
 }
 
-struct RoomBubble: View {
-    let faces: [RoomPerson]
-    let fallback: String?
-    let label: String
-    let fresh: Bool
-    var adds = false
+struct RoomVoice: View {
+    let room: RoomListItem
 
-    private let size: CGFloat = 64
+    private var fresh: Bool { room.unreadCount > 0 }
 
     var body: some View {
-        VStack(spacing: 7) {
-            ZStack {
-                Circle()
-                    .strokeBorder(
-                        fresh ? AnyShapeStyle(Palette.accent) : AnyShapeStyle(Palette.hairlineStrong),
-                        style: StrokeStyle(lineWidth: fresh ? 2.5 : 1, dash: faces.isEmpty && fallback == nil ? [4, 4] : []))
-                cluster
-                    .frame(width: size - 10, height: size - 10)
-                if adds || (faces.isEmpty && fallback == nil) {
-                    Image(systemName: "plus")
-                        .font(.system(size: adds ? 11 : 20, weight: .semibold))
-                        .foregroundStyle(adds ? .white : Palette.secondary)
-                        .frame(width: adds ? 22 : nil, height: adds ? 22 : nil)
-                        .background { if adds { Circle().fill(Palette.accentFill) } }
-                        .overlay { if adds { Circle().stroke(Palette.readingBg, lineWidth: 2) } }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: adds ? .bottomTrailing : .center)
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(room.name)
+                    .typeScale(.title)
+                    .foregroundStyle(Palette.ink)
+                    .lineLimit(1)
+                if fresh {
+                    Text("새 글 \(room.unreadCount)")
+                        .typeScale(.meta)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Palette.link)
+                        .monospacedDigit()
+                }
+                Spacer(minLength: 8)
+                if let at = room.lastActivityAt {
+                    Text(at.relativeCompact)
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.secondary)
                 }
             }
-            .frame(width: size, height: size)
-            Text(label)
-                .typeScale(.meta)
-                .fontWeight(fresh ? .semibold : .regular)
-                .foregroundStyle(fresh ? Palette.ink : Palette.secondary)
-                .lineLimit(1)
-                .frame(maxWidth: size + 10)
+            if let last = room.lastNote {
+                Text(last.excerpt ?? "")
+                    .typeScale(.noteFocus)
+                    .foregroundStyle(fresh ? Palette.ink : Palette.body)
+                    .lineLimit(3)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 8) {
+                    AvatarView(author: last.author.author, size: 20)
+                    Text(last.author.displayName ?? last.author.username)
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.secondary)
+                        .lineLimit(1)
+                    Spacer(minLength: 8)
+                    AvatarStack(people: others, size: 18, limit: 4)
+                }
+            }
         }
+        .padding(.vertical, 16)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
     }
 
-    @ViewBuilder
-    private var cluster: some View {
-        let inner = size - 10
-        switch faces.count {
-        case 0:
-            if let fallback {
-                AvatarView(author: Author(id: 0, username: fallback, bio: nil, avatarUrl: nil), size: inner)
-            }
-        case 1:
-            AvatarView(author: faces[0].author, size: inner)
-        case 2:
-            ZStack {
-                AvatarView(author: faces[0].author, size: inner * 0.66)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                AvatarView(author: faces[1].author, size: inner * 0.66)
-                    .overlay(Circle().stroke(Palette.readingBg, lineWidth: 2))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-            }
-        default:
-            ZStack {
-                AvatarView(author: faces[0].author, size: inner * 0.54)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                AvatarView(author: faces[1].author, size: inner * 0.54)
-                    .overlay(Circle().stroke(Palette.readingBg, lineWidth: 2))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-                AvatarView(author: faces[2].author, size: inner * 0.54)
-                    .overlay(Circle().stroke(Palette.readingBg, lineWidth: 2))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-            }
-        }
+    private var others: [RoomPerson] {
+        (room.faces ?? []).filter { $0.id != room.lastNote?.author.id }
     }
 }
 
-struct RoomInvitationBanner: View {
+struct QuietRoomLine: View {
+    let room: RoomListItem
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(room.name)
+                .typeScale(.titleSmall)
+                .foregroundStyle(Palette.body)
+                .lineLimit(1)
+            Text(verbatim: "\(room.memberCount)")
+                .typeScale(.meta)
+                .foregroundStyle(Palette.faint)
+                .monospacedDigit()
+            Spacer(minLength: 8)
+            Text(room.lastNote == nil ? String(localized: "아직 글 없음") : (room.lastActivityAt?.relativeCompact ?? ""))
+                .typeScale(.meta)
+                .foregroundStyle(Palette.faint)
+        }
+        .padding(.vertical, 13)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+    }
+}
+
+struct RoomInvitationLine: View {
     let invitation: RoomInvitation
     let onAnswer: (Bool) -> Void
 
     var body: some View {
-        HStack(spacing: 11) {
-            AvatarView(author: invitation.inviter.author, size: 36)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(invitation.roomName)
+        HStack(alignment: .top, spacing: 11) {
+            AvatarView(author: invitation.inviter.author, size: 32)
+            VStack(alignment: .leading, spacing: 6) {
+                (Text(invitation.inviter.displayName ?? invitation.inviter.username).fontWeight(.semibold)
+                    + Text("님이 ")
+                    + Text(invitation.roomName).fontWeight(.semibold)
+                    + Text("에 초대했어요"))
                     .typeScale(.note)
-                    .fontWeight(.semibold)
                     .foregroundStyle(Palette.ink)
-                    .lineLimit(1)
-                Text(detail)
-                    .typeScale(.meta)
-                    .foregroundStyle(Palette.secondary)
-                    .lineLimit(1)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 18) {
+                    Button(invitation.approvalRequired ? "들어가기 요청" : "들어가기") { onAnswer(true) }
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Palette.link)
+                        .accessibilityIdentifier("rooms.invitation.accept.\(invitation.roomId)")
+                    Button("거절") { onAnswer(false) }
+                        .foregroundStyle(Palette.secondary)
+                        .accessibilityIdentifier("rooms.invitation.decline.\(invitation.roomId)")
+                    Text("멤버 \(invitation.memberCount)명")
+                        .foregroundStyle(Palette.faint)
+                }
+                .typeScale(.meta)
+                .buttonStyle(.plain)
             }
-            Spacer(minLength: 6)
-            Button { onAnswer(false) } label: {
-                Image(systemName: "xmark")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Palette.secondary)
-                    .frame(width: 32, height: 32)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(Text("거절"))
-            .accessibilityIdentifier("rooms.invitation.decline.\(invitation.roomId)")
-            Button { onAnswer(true) } label: {
-                Text("들어가기")
-                    .typeScale(.meta)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.white)
-                    .fixedSize()
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 7)
-                    .contentShape(Capsule())
-            }
-            .buttonStyle(PaperCapsuleStyle(prominent: true))
-            .accessibilityIdentifier("rooms.invitation.accept.\(invitation.roomId)")
+            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radius))
-    }
-
-    private var detail: String {
-        let who = invitation.inviter.displayName ?? invitation.inviter.username
-        if invitation.approvalRequired {
-            return String(localized: "\(who)님의 초대 · 승인 필요")
-        }
-        return String(localized: "\(who)님의 초대 · \(invitation.memberCount)명")
+        .padding(.vertical, 12)
     }
 }
 

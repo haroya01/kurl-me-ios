@@ -25,25 +25,23 @@ struct RoomTimelineView: View {
         ReadingColumn(spacing: 0, background: .clear, gutter: Metrics.noteGutter) {
             if let detail {
                 header(detail)
-                Hairline().padding(.horizontal, -Metrics.noteGutter)
+                Button {
+                    composing = true
+                } label: {
+                    ReplyPrompt(text: Text("\(detail.name)에 한마디"))
+                }
+                .buttonStyle(.plain)
+                .padding(.bottom, 14)
+                .accessibilityIdentifier("room.compose")
             }
-            Color.clear.frame(height: 8)
             feed
         }
         .background(Palette.readingBg)
         .environment(\.insideRoom, roomId)
         .navigationTitle(detail?.name ?? "")
-        .navigationSubtitle(detail.map { String(localized: "멤버 \($0.memberCount)명") } ?? "")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItemGroup(placement: .primaryAction) {
-                Button {
-                    composing = true
-                } label: {
-                    Image(systemName: "square.and.pencil")
-                }
-                .accessibilityLabel(Text("이 방에 쓰기"))
-                .accessibilityIdentifier("room.compose")
                 if detail != nil {
                     Button {
                         showsSettings = true
@@ -136,6 +134,17 @@ struct RoomTimelineView: View {
         .padding(.vertical, 12)
     }
 
+    private func dayBreak(_ index: Int) -> LocalizedStringResource? {
+        let calendar = Calendar.current
+        guard let at = model.items[index].createdAt else { return nil }
+        if index > 0, let above = model.items[index - 1].createdAt, calendar.isDate(above, inSameDayAs: at) {
+            return nil
+        }
+        if calendar.isDateInToday(at) { return "오늘" }
+        if calendar.isDateInYesterday(at) { return "어제" }
+        return "\(at.formatted(.dateTime.month().day().weekday(.abbreviated)))"
+    }
+
     private func memberLine(_ detail: RoomDetail) -> String {
         let names = detail.members.prefix(2).map { $0.displayName ?? $0.username }.joined(separator: ", ")
         let rest = Int(detail.memberCount) - min(2, detail.members.count)
@@ -162,14 +171,22 @@ struct RoomTimelineView: View {
                 .padding(.top, 24)
             } else {
                 ForEach(Array(model.items.enumerated()), id: \.element.id) { index, note in
+                    if let day = dayBreak(index) {
+                        RailHeading(resource: day)
+                            .padding(.top, index == 0 ? 6 : 22)
+                            .padding(.bottom, 2)
+                    }
                     NoteFeedItem(
                         note: note,
                         onChange: { model.replaced($0) },
                         onDelete: { model.removed($0) },
                         onQuoted: { model.inserted($0) }
                     )
+                    .modifier(QuietAppear(index: index))
                     .task { await model.loadMoreIfNeeded(current: note) }
-                    if index < model.items.count - 1 { Hairline().padding(.horizontal, -Metrics.noteGutter) }
+                    if index < model.items.count - 1, dayBreak(index + 1) == nil {
+                        Hairline().padding(.horizontal, -Metrics.noteGutter)
+                    }
                 }
             }
         }

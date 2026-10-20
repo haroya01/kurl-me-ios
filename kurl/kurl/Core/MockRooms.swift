@@ -61,6 +61,7 @@ enum MockRooms {
         Post(id: 9904, roomId: 2, author: kim, body: "졸업 앨범 사진 받았어? 단체 사진 하나 더 있대", minutesAgo: 60 * 20),
         Post(id: 9906, roomId: 2, author: minji, body: "다음 달에 동기 모임 한번 하자. 날짜 몇 개 올려볼게", minutesAgo: 60 * 3),
         Post(id: 9907, roomId: 1, author: me, body: "다들 7시 괜찮으면 거기서 봐요", minutesAgo: 60 * 6),
+        Post(id: 9908, roomId: 1, author: junho, body: "어제 찍은 사진 다들 받았지? 단체 사진은 내가 보정해서 다시 올릴게", minutesAgo: 60 * 27),
         Post(id: 9905, roomId: 3, author: yuki, body: "다음 주는 포트·어댑터 이름 짓기 정리해 올게요", minutesAgo: 60 * 24 * 5),
     ]
 

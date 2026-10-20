@@ -770,7 +770,7 @@ struct NoteRowView: View {
                     .fixedSize()
                     .allowsHitTesting(false)
             }
-            if note.noteVisibility != .public {
+            if note.noteVisibility != .public, note.room == nil || insideRoom != note.room?.id {
                 Image(systemName: note.noteVisibility.symbol)
                     .font(.system(size: 11 * unit, weight: .semibold))
                     .foregroundStyle(Palette.secondary)
@@ -1075,8 +1075,10 @@ struct NoteRowView: View {
             if spread { Spacer(minLength: 0) }
             replyButton
 
-            if spread { Spacer(minLength: 0) }
-            repostMenu
+            if note.room == nil {
+                if spread { Spacer(minLength: 0) }
+                repostMenu
+            }
 
             if spread {
                 Spacer(minLength: 0)
@@ -1095,7 +1097,7 @@ struct NoteRowView: View {
                 .accessibilityIdentifier("note.bookmark.\(note.id)")
             }
 
-            if let shareURL {
+            if let shareURL, note.room == nil {
                 if spread { Spacer(minLength: 0) }
                 shareMenu(shareURL)
             }
