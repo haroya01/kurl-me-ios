@@ -6,6 +6,7 @@
 import Foundation
 
 struct PersonMatch: Decodable, Identifiable, Hashable {
+    var userId: Int64?
     let username: String
     let displayName: String?
     let avatarUrl: String?
