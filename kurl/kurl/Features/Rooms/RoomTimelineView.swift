@@ -226,7 +226,7 @@ struct CreateRoomSheet: View {
                     }
                 }
                 if let failed {
-                    Section { Text(failed).foregroundStyle(.red) }
+                    Section { Text(failed).foregroundStyle(Palette.danger) }
                 }
             }
             .navigationTitle("방 만들기")
