@@ -13,23 +13,65 @@ struct HomeView: View {
     @Namespace private var zoomNS
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var moreDragX: CGFloat = 0
+    @State private var width: CGFloat = 0
+    @State private var moreGate = SwipePagerGate()
+    @State private var moreBlocked = false
+
+    private var moreBack: some Gesture {
+        DragGesture(minimumDistance: 18)
+            .onChanged { value in
+                if moreGate.held { moreBlocked = true }
+                guard !moreBlocked, !reduceMotion,
+                      abs(value.translation.width) > abs(value.translation.height) else { return }
+                let dx = value.translation.width
+                moreDragX = dx > 0 ? dx : dx * 0.28
+            }
+            .onEnded { value in
+                defer { moreBlocked = false }
+                let dx = value.translation.width
+                let dy = value.translation.height
+                let flick = value.velocity.width > 260 && dx > 20
+                let deliberate = dx > 48 && abs(dx) > abs(dy) * 1.2
+                guard !moreBlocked, abs(dx) > abs(dy), flick || deliberate, width > 0 else {
+                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.3)) { moreDragX = 0 }
+                    return
+                }
+                if reduceMotion {
+                    choice.leaveMore()
+                    moreDragX = 0
+                    return
+                }
+                withAnimation(.snappy(duration: 0.28)) {
+                    moreDragX = width
+                } completion: {
+                    choice.leaveMore()
+                    moreDragX = 0
+                }
+            }
+    }
 
     var body: some View {
         NavigationStack(path: $choice.path) {
             ZStack {
                 SwipePager(
                     tabs: HomeFeedTab.allCases, selection: $choice.tab, loadOnSelect: [.following],
-                    suspended: choice.more != nil
+                    suspended: choice.more != nil && moreDragX == 0
                 ) { tab, active, warm in
                     HomeFeedPage(model: model(tab), active: active && choice.more == nil, warm: warm)
                 }
+                .offset(x: choice.more == nil ? 0 : moreDragX - width)
                 if let more = choice.more {
                     FeedPage(source: more, active: true, warm: true, zoom: zoomNS)
                         .id(more)
                         .transition(.opacity)
-                        .swipesBack { choice.leaveMore() }
+                        .disabled(moreDragX != 0)
+                        .offset(x: moreDragX)
+                        .environment(\.swipePagerGate, moreGate)
+                        .simultaneousGesture(moreBack)
                 }
             }
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
             .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: choice.more)
             .reservesTabBarSpace()
             .safeAreaBar(edge: .top) {

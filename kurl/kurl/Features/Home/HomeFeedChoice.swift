@@ -63,6 +63,7 @@ final class HomeFeedChoice {
         }
         path = NavigationPath()
         more = feed
+        if let last = HomeFeedTab.allCases.last { tab = last }
     }
 
     func leaveMore() {
