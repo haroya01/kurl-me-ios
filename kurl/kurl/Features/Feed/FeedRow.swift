@@ -63,7 +63,7 @@ struct RowLayout<Top: View, Byline: View>: View {
     }
 }
 
-private struct RowThumbnail: View {
+struct RowThumbnail: View {
     let url: URL
     let size: CGFloat
 

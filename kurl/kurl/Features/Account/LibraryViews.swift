@@ -27,7 +27,7 @@ struct BookmarksView: View {
                 FeedPlaceholder(
                     title: "북마크한 글이 없어요",
                     actionTitle: "피드에서 읽을 글 찾기",
-                    action: { TabRouter.shared.selection = 0 }
+                    action: { TabRouter.shared.selection = TabRouter.homeTab }
                 )
                 .padding(.top, 24)
             } else {
@@ -153,7 +153,7 @@ struct LikedPostsView: View {
                 FeedPlaceholder(
                     title: "좋아요한 글이 없어요",
                     actionTitle: "피드에서 읽을 글 찾기",
-                    action: { TabRouter.shared.selection = 0 }
+                    action: { TabRouter.shared.selection = TabRouter.homeTab }
                 )
                 .padding(.top, 24)
             } else {
@@ -209,7 +209,7 @@ struct SubscribedSeriesView: View {
                 FeedPlaceholder(
                     title: "구독한 시리즈가 없어요",
                     actionTitle: "검색에서 시리즈 찾기",
-                    action: { TabRouter.shared.selection = 3 }
+                    action: { TabRouter.shared.selection = TabRouter.exploreTab }
                 )
                 .padding(.top, 24)
             } else {
@@ -287,7 +287,7 @@ struct SubscribedTagsView: View {
                 FeedPlaceholder(
                     title: "구독한 태그가 없어요",
                     actionTitle: "피드에서 읽을 글 찾기",
-                    action: { TabRouter.shared.selection = 0 }
+                    action: { TabRouter.shared.selection = TabRouter.homeTab }
                 )
                 .padding(.top, 24)
             } else {

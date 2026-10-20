@@ -244,7 +244,7 @@ final class NotesViewModel {
 }
 
 struct NoteRowDetached {
-    let context: Text
+    let context: Text?
     let open: () -> Void
     let openAuthor: () -> Void
     let reply: () -> Void
@@ -378,10 +378,10 @@ struct NoteRowView: View {
 
     private var content: some View {
         VStack(alignment: .leading, spacing: 6) {
-            if let detached {
+            if let context = detached?.context {
                 HStack(spacing: 12) {
                     Color.clear.frame(width: 36 * unit, height: 1)
-                    detached.context
+                    context
                         .typeScale(.meta)
                         .fontWeight(.medium)
                         .lineLimit(2)
@@ -1348,26 +1348,55 @@ extension Author {
 
 struct QuotedPostCard: View {
     let post: QuotedPost
+    var excerpt: String? = nil
+    var cover: URL? = nil
+    var showsAuthor = true
+    var readMinutes: Int? = nil
+    @ScaledMetric(relativeTo: .headline) private var thumbSize: CGFloat = 56
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 4) {
-                Text(post.authorUsername)
-                    .fontWeight(.semibold)
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 4) {
+                    if showsAuthor {
+                        Text(post.authorUsername)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Palette.ink)
+                            .lineLimit(1)
+                        Text("· 블로그 글")
+                            .foregroundStyle(Palette.secondary)
+                    } else {
+                        Text("블로그 글")
+                            .foregroundStyle(Palette.secondary)
+                    }
+                    if let readMinutes {
+                        Text(verbatim: "·")
+                            .foregroundStyle(Palette.faint)
+                            .accessibilityHidden(true)
+                        Text("\(readMinutes)분 읽기")
+                            .foregroundStyle(Palette.secondary)
+                    }
+                    AccessMarks(marks: post.access)
+                }
+                .typeScale(.meta)
+                Text(post.title)
+                    .typeScale(.note)
+                    .fontWeight(.medium)
                     .foregroundStyle(Palette.ink)
-                    .lineLimit(1)
-                Text("· 블로그 글")
-                    .foregroundStyle(Palette.secondary)
-                AccessMarks(marks: post.access)
+                    .multilineTextAlignment(.leading)
+                if let excerpt, !excerpt.isEmpty {
+                    Text(excerpt)
+                        .typeScale(.lede)
+                        .foregroundStyle(Palette.secondary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                }
             }
-            .typeScale(.meta)
-            Text(post.title)
-                .typeScale(.note)
-                .fontWeight(.medium)
-                .foregroundStyle(Palette.ink)
-                .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if let cover {
+                RowThumbnail(url: cover, size: thumbSize)
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
         .overlay(
@@ -2118,6 +2147,7 @@ struct NoteComposeSheet: View {
     @State private var quote: QuotedPost?
     @State private var picked: [PickedImage] = []
     @State private var pickerItems: [PhotosPickerItem] = []
+    @State private var takingPhoto = false
     @State private var posting = false
     @State private var showNotice = false
     @State private var confirmDiscard = false
@@ -2288,6 +2318,21 @@ struct NoteComposeSheet: View {
                                 }
                                 .disabled(picked.count >= NoteAPI.maxImages || poll != nil)
                                 .accessibilityLabel("사진 추가")
+                                if NoteCamera.isAvailable {
+                                    Button {
+                                        takingPhoto = true
+                                    } label: {
+                                        Image(systemName: "camera")
+                                            .font(.system(size: 18))
+                                            .foregroundStyle(
+                                                picked.count >= NoteAPI.maxImages || poll != nil ? Palette.faint : Palette.secondary)
+                                            .frame(width: 32, height: 28, alignment: .leading)
+                                            .contentShape(Rectangle())
+                                    }
+                                    .disabled(picked.count >= NoteAPI.maxImages || poll != nil)
+                                    .accessibilityLabel("사진 찍기")
+                                    .accessibilityIdentifier("noteCompose.camera")
+                                }
                                 Button {
                                     withAnimation(.snappy(duration: 0.2)) {
                                         poll = poll == nil ? NotePollDraft() : nil
@@ -2419,6 +2464,13 @@ struct NoteComposeSheet: View {
             .onChange(of: pickerItems) { _, items in
                 guard !items.isEmpty else { return }
                 Task { await loadPicked(items) }
+            }
+            .fullScreenCover(isPresented: $takingPhoto) {
+                NoteCamera { photo in
+                    guard let data = photo.jpegData(compressionQuality: 0.95) else { return }
+                    Task { await attach(data) }
+                }
+                .ignoresSafeArea()
             }
             .onAppear {
                 if replyTarget != nil, voiceOver {
@@ -2795,14 +2847,18 @@ struct NoteComposeSheet: View {
 
     private func loadPicked(_ items: [PhotosPickerItem]) async {
         for item in items {
-            guard picked.count < NoteAPI.maxImages,
-                  let data = try? await item.loadTransferable(type: Data.self),
-                  let upload = await NoteUploadImage.prepare(data),
-                  let image = UIImage(data: upload.data)
-            else { continue }
-            picked.append(PickedImage(image: image, upload: upload))
+            guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
+            await attach(data)
         }
         pickerItems = []
+    }
+
+    private func attach(_ data: Data) async {
+        guard picked.count < NoteAPI.maxImages,
+              let upload = await NoteUploadImage.prepare(data),
+              let image = UIImage(data: upload.data)
+        else { return }
+        picked.append(PickedImage(image: image, upload: upload))
     }
 
     private func submit() async {

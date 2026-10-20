@@ -9,11 +9,20 @@ import SwiftUI
 /// 내 계정(= 내 블로그) 화면의 오른쪽 헤더 버튼으로 들어온다.
 struct LibraryView: View {
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
+    @State private var lists = NoteListsStore.shared
 
     var body: some View {
         ReadingColumn(spacing: 0) {
             VStack(alignment: .leading, spacing: 0) {
                 libraryRow("북마크") { BookmarksView() }
+                Hairline()
+                libraryRow("북마크한 노트", route: .noteFeed(.kind(.bookmarks)))
+                Hairline()
+                ForEach(lists.lists) { list in
+                    libraryRow(Text(verbatim: list.title), route: .noteFeed(.list(list.id)))
+                    Hairline()
+                }
+                libraryRow("리스트 관리") { NoteListsView() }
                 Hairline()
                 libraryRow("좋아요한 글") { LikedPostsView() }
                 Hairline()
@@ -30,6 +39,7 @@ struct LibraryView: View {
             .padding(.top, 8)
         }
         .reservesTabBarSpace()
+        .task { await lists.reload() }
         .navigationTitle("서재")
         .toolbarRole(.editor)
         .navigationBarTitleDisplayMode(.inline)
@@ -42,18 +52,33 @@ struct LibraryView: View {
         NavigationLink {
             destination()
         } label: {
-            HStack(spacing: 10) {
-                Text(title)
-                    .typeScale(.body)
-                    .foregroundStyle(Palette.ink)
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12 * metaUnit, weight: .medium))
-                    .foregroundStyle(Palette.faint)
-            }
-            .padding(.vertical, 14)
-            .contentShape(Rectangle())
+            rowLabel(Text(title))
         }
         .buttonStyle(RowButtonStyle())
+    }
+
+    private func libraryRow(_ title: LocalizedStringKey, route: Route) -> some View {
+        libraryRow(Text(title), route: route)
+    }
+
+    private func libraryRow(_ title: Text, route: Route) -> some View {
+        NavigationLink(value: route) {
+            rowLabel(title)
+        }
+        .buttonStyle(RowButtonStyle())
+    }
+
+    private func rowLabel(_ title: Text) -> some View {
+        HStack(spacing: 10) {
+            title
+                .typeScale(.body)
+                .foregroundStyle(Palette.ink)
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12 * metaUnit, weight: .medium))
+                .foregroundStyle(Palette.faint)
+        }
+        .padding(.vertical, 14)
+        .contentShape(Rectangle())
     }
 }

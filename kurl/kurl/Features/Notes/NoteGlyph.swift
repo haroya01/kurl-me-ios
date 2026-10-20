@@ -3,6 +3,7 @@
 //  kurl
 //
 
+import os
 import SwiftUI
 
 /// 노트 반응 아이콘(좋아요·답글·리포스트·공유·북마크) — 웹(short-link-frontend note-glyph.tsx)과 같은 경로.
@@ -60,13 +61,21 @@ struct NoteGlyphView: View {
 private struct SVGPathShape: Shape {
     let d: String
 
+    private static let cache = OSAllocatedUnfairLock(initialState: [String: Path]())
+
     func path(in rect: CGRect) -> Path {
-        SVGPathShape.parsed(d).applying(
+        let unit = Self.cache.withLock { cache in
+            if let hit = cache[d] { return hit }
+            let parsed = Self.parsed(d)
+            cache[d] = parsed
+            return parsed
+        }
+        return unit.applying(
             CGAffineTransform(translationX: rect.minX, y: rect.minY)
                 .scaledBy(x: rect.width / 24, y: rect.height / 24))
     }
 
-    private static func parsed(_ d: String) -> Path {
+    nonisolated private static func parsed(_ d: String) -> Path {
         var path = Path()
         var current = CGPoint.zero
         var command: Character = "M"

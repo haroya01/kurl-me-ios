@@ -18,25 +18,18 @@ struct NoteFeedPage: View {
     @State private var composing = false
     @State private var showLogin = false
     @State private var posted = 0
-    @State private var trending = RemoteTrendingModel()
+    @State private var composed: Note?
+    @State private var feedChoice = HomeFeedChoice.shared
 
     var body: some View {
         ReadingColumn(
             spacing: 0, background: .clear, tracksTabBar: active, gutter: Metrics.noteGutter, position: $position
         ) {
             Color.clear.frame(height: 8)
-            if kind == .federated {
-                RemoteTrendingGroup(model: trending)
-                if trending.isShown {
-                    Hairline().padding(.horizontal, -Metrics.noteGutter)
-                    RailHeading("받은 노트")
-                        .padding(.top, 20)
-                }
-            }
             content
         }
         .onChange(of: router.topRequests) {
-            guard active, router.topTab == 1 else { return }
+            guard active, router.topTab == TabRouter.homeTab else { return }
             withAnimation(reduceMotion ? nil : .smooth(duration: 0.35)) { position.scrollTo(edge: .top) }
         }
         .environment(\.noteFilterContext, model.filterContext)
@@ -59,10 +52,23 @@ struct NoteFeedPage: View {
         .onChange(of: NoteFeedPreferences.shared.languageChanges) {
             if [.everyone, .federated, .trending].contains(kind) { refresh() }
         }
-        .sheet(isPresented: $composing) {
-            NoteComposeSheet(mode: .new(quote: nil, inReplyToId: nil)) { note in
+        .sheet(isPresented: $composing, onDismiss: {
+            if let note = composed {
+                composed = nil
                 model.inserted(note)
+                HomeFeedChoice.shared.arrived(note.id)
+            }
+        }) {
+            NoteComposeSheet(mode: .new(quote: nil, inReplyToId: nil)) { note in
+                composed = note
                 posted += 1
+            }
+        }
+        .onChange(of: feedChoice.arrivingID) { _, id in
+            guard active, id != nil else { return }
+            Task { @MainActor in
+                await Task.yield()
+                withAnimation(reduceMotion ? nil : .smooth(duration: 0.45)) { position.scrollTo(edge: .top) }
             }
         }
         .loginPrompt(isPresented: $showLogin, message: loginMessage)
@@ -70,13 +76,7 @@ struct NoteFeedPage: View {
     }
 
     private func reload() async {
-        guard kind == .federated else {
-            await model.reload()
-            return
-        }
-        async let notes: Void = model.reload()
-        await trending.load()
-        await notes
+        await model.reload()
     }
 
     private func refresh() {
@@ -137,19 +137,19 @@ struct NoteFeedPage: View {
             FeedPlaceholder(
                 title: "아직 받은 다른 서버 노트가 없어요",
                 actionTitle: "최신 노트 보기",
-                action: { NoteFeedChoice.shared.show(.everyone) }
+                action: { HomeFeedChoice.shared.open(.latest) }
             )
         case .following:
             FeedPlaceholder(
                 title: "팔로우한 사람의 노트가 아직 없어요",
                 actionTitle: "인기 노트 보기",
-                action: { NoteFeedChoice.shared.show(.trending) }
+                action: { HomeFeedChoice.shared.open(.trending) }
             )
         case .bookmarks:
             FeedPlaceholder(
                 title: "북마크한 노트가 없어요",
                 actionTitle: "인기 노트 보기",
-                action: { NoteFeedChoice.shared.show(.trending) }
+                action: { HomeFeedChoice.shared.open(.trending) }
             )
         case .list:
             FeedPlaceholder(
@@ -183,7 +183,8 @@ struct NoteFeedPage: View {
                         onQuoted: { model.inserted($0) },
                         repostedBy: note.repostedBy?.username
                     )
-                    .modifier(QuietAppear(index: index))
+                    .modifier(QuietAppear(index: note.id == feedChoice.arrivingID ? .max : index))
+                    .modifier(NoteArrival(active: note.id == feedChoice.arrivingID))
                     .task { await model.loadMoreIfNeeded(current: note) }
                     if index < model.items.count - 1 { Hairline().padding(.horizontal, -Metrics.noteGutter) }
                 }
@@ -197,10 +198,12 @@ struct NoteFeedPage: View {
 
 struct NoteMoreFeedPage: View {
     let feed: NoteMoreFeed
+    var active = true
     @State private var model: NotesViewModel
 
-    init(feed: NoteMoreFeed) {
+    init(feed: NoteMoreFeed, active: Bool = true) {
         self.feed = feed
+        self.active = active
         switch feed {
         case .kind(let kind): _model = State(initialValue: NotesViewModel(feed: kind))
         case .list(let id): _model = State(initialValue: NotesViewModel(list: id))
@@ -208,6 +211,55 @@ struct NoteMoreFeedPage: View {
     }
 
     var body: some View {
-        NoteFeedPage(kind: feed.kind, model: model)
+        NoteFeedPage(kind: feed.kind, model: model, active: active)
+    }
+}
+
+struct NoteFeedScreen: View {
+    let feed: NoteMoreFeed
+    @State private var lists = NoteListsStore.shared
+
+    var body: some View {
+        NoteMoreFeedPage(feed: feed, active: false)
+            .background(Palette.readingBg)
+            .reservesTabBarSpace()
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarRole(.editor)
+            .noteTextLinks()
+            .task { if case .list = feed { await lists.reload() } }
+            .sheet(isPresented: $lists.managing) { NoteListsSheet() }
+    }
+
+    private var title: String {
+        switch feed {
+        case .kind(let kind): kind.label
+        case .list(let id): lists.lists.first { $0.id == id }?.title ?? NoteFeedKind.list.label
+        }
+    }
+}
+
+struct NoteArrival: ViewModifier {
+    let active: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var settled = true
+    @State private var washed = true
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(settled ? 1 : 0)
+            .offset(y: settled ? 0 : -16)
+            .background {
+                Palette.rowHighlight
+                    .opacity(washed ? 0 : 1)
+                    .padding(.horizontal, -Metrics.noteGutter)
+            }
+            .onAppear {
+                guard active else { return }
+                washed = false
+                settled = reduceMotion
+                withAnimation(.smooth(duration: 0.45)) { settled = true }
+                withAnimation(.smooth(duration: 1.2)) { washed = true }
+            }
     }
 }
