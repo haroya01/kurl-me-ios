@@ -33,11 +33,11 @@ final class TabBarVisibility {
     }
 
     /// 마지막으로 방향을 확정한 기준 오프셋. 여기서 임계 이상 벗어나면 방향을 뒤집는다.
-    private var anchorOffset: CGFloat = 0
+    @ObservationIgnored private var anchorOffset: CGFloat = 0
     /// 직전 프레임 오프셋 — 방향(부호)만 뽑는 데 쓴다.
-    private var lastOffset: CGFloat = 0
+    @ObservationIgnored private var lastOffset: CGFloat = 0
     /// 직전에 보고한 표면 — 오프셋은 표면마다 따로라, 표면이 바뀐 첫 보고는 비교 대상이 아니다.
-    private var lastReporter: UUID?
+    @ObservationIgnored private var lastReporter: UUID?
 
     /// 방향을 확정하는 최소 이동량(pt) — 플릭 관성의 미세 떨림으로 바가 깜빡이지 않게.
     private let threshold: CGFloat = 44

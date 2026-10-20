@@ -91,9 +91,9 @@ struct BrandRefresh: ViewModifier {
     func body(content: Content) -> some View {
         content
             .onScrollGeometryChange(for: CGFloat.self) { geo in
-                -(geo.contentOffset.y + geo.contentInsets.top)
+                max(0, -(geo.contentOffset.y + geo.contentInsets.top))
             } action: { _, overpull in
-                pull = max(0, overpull)
+                pull = overpull
                 guard trigger.fires(overpull: overpull, refreshing: refreshing) else { return }
                 refreshing = true
                 fireTick += 1
