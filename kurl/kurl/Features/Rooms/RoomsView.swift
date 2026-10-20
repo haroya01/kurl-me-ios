@@ -502,19 +502,20 @@ struct RoomBlock: View {
                         .environment(\.insideRoom, room.id)
                 }
                 NavigationLink(value: RoomRoute(id: room.id)) {
-                    HStack(spacing: 4) {
-                        Text("\(room.name)에서 더 보기")
+                    HStack(spacing: 3) {
+                        Text("더 보기")
                         Image(systemName: "chevron.right").font(.caption2.weight(.semibold))
                     }
                     .typeScale(.meta)
                     .fontWeight(.semibold)
                     .foregroundStyle(Palette.secondary)
-                    .padding(.vertical, 12)
+                    .padding(.vertical, 8)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(Text("\(room.name) 더 보기"))
             }
-            Hairline().padding(.horizontal, -Metrics.noteGutter).padding(.top, 4)
+            Hairline().padding(.horizontal, -Metrics.noteGutter).padding(.top, 2)
         }
     }
 }
