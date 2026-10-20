@@ -18,7 +18,6 @@ struct PostFeedRow: View {
     @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
     @ScaledMetric(relativeTo: .callout) private var nameCapCenter: CGFloat = 9
     @ScaledMetric(relativeTo: .callout) private var nameCapHalf: CGFloat = 5.3
-    @ScaledMetric(relativeTo: .headline) private var thumbSize: CGFloat = 64
 
     private static let actionBox: CGFloat = 22
     private var unit: CGFloat { min(scale, 1.8) }
@@ -70,7 +69,7 @@ struct PostFeedRow: View {
     }
 
     private var postBody: some View {
-        HStack(alignment: .top, spacing: 12) {
+        VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(post.title)
                     .typeScale(.title)
@@ -99,7 +98,8 @@ struct PostFeedRow: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             if let cover = post.thumbnailUrl.flatMap(URL.init(string:)) {
-                RowThumbnail(url: cover, size: thumbSize)
+                PostCoverTile(url: cover)
+                    .padding(.top, 8)
             }
         }
         .contentShape(Rectangle())
@@ -204,5 +204,30 @@ struct PostFeedRow: View {
             likes.set(username: username, slug: slug, on: !target)
             ToastCenter.shared.show(String(localized: "좋아요를 반영하지 못했어요"))
         }
+    }
+}
+
+private struct PostCoverTile: View {
+    let url: URL
+
+    private var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
+    }
+
+    var body: some View {
+        Color.clear
+            .aspectRatio(16.0 / 9.0, contentMode: .fit)
+            .overlay {
+                RemoteImage(url: url, slotWidth: 360) { phase in
+                    if case .success(let image) = phase {
+                        image.resizable().scaledToFill().allowsHitTesting(false)
+                    } else {
+                        Palette.hairline
+                    }
+                }
+            }
+            .clipShape(shape)
+            .overlay(shape.strokeBorder(Palette.hairlineStrong.opacity(0.5), lineWidth: 0.5))
+            .accessibilityHidden(true)
     }
 }
