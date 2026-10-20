@@ -66,7 +66,7 @@ final class WidgetDeepLinkTests: XCTestCase {
 
     func testAnalyticsLinkOpensTheStudioOnTheAccountTabAndQueuesSection() {
         WidgetDeepLink.open(URL(string: "kurlwidget://analytics")!)
-        XCTAssertEqual(TabRouter.shared.selection, 4, "스튜디오는 계정 탭 스택에 열린다 — 가운데는 탭이 아니다")
+        XCTAssertEqual(TabRouter.shared.selection, TabRouter.accountTab, "스튜디오는 계정 탭 스택에 열린다 — 가운데는 탭이 아니다")
         XCTAssertTrue(TabRouter.shared.pendingStudio, "계정 탭이 스튜디오를 열 요청이 없음")
         XCTAssertEqual(TabRouter.shared.pendingStudioSection, StudioSection.analytics.rawValue)
         XCTAssertFalse(TabRouter.shared.pendingStudioCompose, "분석 링크인데 새 글까지 열려 함")
@@ -74,7 +74,7 @@ final class WidgetDeepLinkTests: XCTestCase {
 
     func testLibraryLinkSwitchesToAccountTab() {
         WidgetDeepLink.open(URL(string: "kurlwidget://library")!)
-        XCTAssertEqual(TabRouter.shared.selection, 4, "서재는 계정 탭에 산다")
+        XCTAssertEqual(TabRouter.shared.selection, TabRouter.accountTab, "서재는 계정 탭에 산다")
     }
 
     func testPostLinkQueuesSheetRef() {
