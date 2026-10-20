@@ -39,6 +39,10 @@ struct RoomsView: View {
     @State private var suggested: [RoomPerson] = []
     @State private var invitations: [RoomInvitation] = []
     @State private var recent: [Note] = []
+    @State private var stream = NotesViewModel(source: .rooms)
+    @State private var reads = RoomReads()
+    @AppStorage("rooms.mode") private var modeRaw = RoomsMode.byRoom.rawValue
+    @State private var readTask: Task<Void, Never>?
     @State private var answered = 0
     @State private var pinTaps = 0
     @State private var creating: [RoomPerson]?
@@ -51,7 +55,15 @@ struct RoomsView: View {
             content
                 .safeAreaBar(edge: .top) {
                     if AuthStore.shared.isSignedIn {
-                        RoomsHeaderBar(onCreate: { creating = suggested }, onJoin: { joining = true })
+                        FeedHeaderBar(
+                            items: RoomsMode.allCases,
+                            selection: Binding(get: { RoomsMode(rawValue: modeRaw) ?? .byRoom }, set: { modeRaw = $0.rawValue }),
+                            label: \.label, moreChoice: nil,
+                            moreLabel: "방 만들기", moreIdentifier: "rooms.create"
+                        ) {
+                            Button("새 방 만들기", systemImage: "plus") { creating = suggested }
+                            Button("초대 링크로 들어가기", systemImage: "link") { joining = true }
+                        }
                     }
                 }
                 .background(Palette.readingBg)
@@ -84,6 +96,9 @@ struct RoomsView: View {
                 .loginPrompt(isPresented: $showLogin, message: "방을 보려면 로그인하세요")
                 .sensoryFeedback(.success, trigger: answered)
                 .sensoryFeedback(.selection, trigger: pinTaps)
+                .onChange(of: modeRaw) { old, _ in
+                    if old == RoomsMode.all.rawValue { Task { await flushReads(reload: true) } }
+                }
         }
         .environment(\.openNoteRoute) { router.path.append($0) }
     }
@@ -103,9 +118,83 @@ struct RoomsView: View {
                 ErrorState(message: message) { Task { await load() } }
                     .padding(.horizontal, Metrics.gutter)
             case .loaded(let rooms):
-                contents(rooms)
+                if modeRaw == RoomsMode.all.rawValue {
+                    everything
+                } else {
+                    contents(rooms)
+                }
             }
         }
+    }
+
+    private var everything: some View {
+        ReadingColumn(spacing: 0, background: Palette.readingBg, gutter: Metrics.noteGutter) {
+            if !invitations.isEmpty {
+                section("초대받은 방") {
+                    ForEach(invitations) { invitation in
+                        RoomInvitationLine(invitation: invitation) { accept in
+                            Task { await answer(invitation, accept: accept) }
+                        }
+                    }
+                }
+                Hairline().padding(.horizontal, -Metrics.noteGutter).padding(.top, 8)
+            }
+            switch stream.phase {
+            case .idle, .loading:
+                NoteSkeleton()
+            case .failed(let message):
+                ErrorState(message: message) { Task { await stream.reload() } }
+            case .loaded:
+                if stream.items.isEmpty {
+                    FeedPlaceholder(title: "아직 방에 올라온 글이 없어요.")
+                        .padding(.top, 24)
+                } else {
+                    ForEach(Array(stream.items.enumerated()), id: \.element.id) { index, note in
+                        if index > 0 { Hairline().padding(.horizontal, -Metrics.noteGutter) }
+                        NoteFeedItem(
+                            note: note,
+                            onChange: { stream.replaced($0) },
+                            onDelete: { stream.removed($0) },
+                            onQuoted: { stream.inserted($0) }
+                        )
+                        .environment(\.insideRoom, sameRoomAsAbove(index) ? note.room?.id : nil)
+                        .modifier(QuietAppear(index: index))
+                        .onAppear { saw(note) }
+                        .task { await stream.loadMoreIfNeeded(current: note) }
+                    }
+                }
+            }
+        }
+        .task { if case .idle = stream.phase { await stream.reload() } }
+        .refreshable { await stream.reload() }
+        .onDisappear { Task { await flushReads(reload: false) } }
+        .reservesTabBarSpace()
+    }
+
+    private func sameRoomAsAbove(_ index: Int) -> Bool {
+        index > 0 && stream.items[index - 1].room?.id == stream.items[index].room?.id
+    }
+
+    private func saw(_ note: Note) {
+        guard let room = note.room?.id else { return }
+        reads.saw(room: room, note: note.id)
+        readTask?.cancel()
+        readTask = Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            guard !Task.isCancelled else { return }
+            await flushReads(reload: false)
+        }
+    }
+
+    private func flushReads(reload: Bool) async {
+        let due = reads.takeDue()
+        guard !due.isEmpty else { return }
+        await withTaskGroup(of: Void.self) { group in
+            for (room, note) in due {
+                group.addTask { try? await RoomAPI.read(room, upTo: note) }
+            }
+        }
+        if reload { router.changed() }
     }
 
     private func contents(_ rooms: [RoomListItem]) -> some View {
@@ -307,46 +396,31 @@ private struct CreateRoomRequest: Identifiable {
     let friends: [RoomPerson]
 }
 
-struct RoomsHeaderBar: View {
-    let onCreate: () -> Void
-    let onJoin: () -> Void
+enum RoomsMode: String, CaseIterable, Identifiable {
+    case byRoom, all
 
-    @State private var unread = UnreadStore.shared
-    @ScaledMetric(relativeTo: .subheadline) private var rawLabelSize: CGFloat = 14
+    var id: String { rawValue }
 
-    var body: some View {
-        GlassEffectContainer(spacing: GlassTokens.clusterSpacing) {
-            HStack(spacing: 0) {
-                Color.clear.frame(width: FeedHeaderMetrics.circle, height: FeedHeaderMetrics.circle)
-                Spacer(minLength: FeedHeaderMetrics.gap)
-                Menu {
-                    Button("새 방 만들기", systemImage: "plus", action: onCreate)
-                    Button("초대 링크로 들어가기", systemImage: "link", action: onJoin)
-                } label: {
-                    HStack(spacing: 6) {
-                        Text("방")
-                            .font(.system(size: min(rawLabelSize, 16), weight: .semibold))
-                        Image(systemName: "plus")
-                            .font(.system(size: min(rawLabelSize, 16) - 2, weight: .semibold))
-                            .foregroundStyle(.secondary)
-                    }
-                    .foregroundStyle(.primary)
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 14)
-                    .contentShape(Capsule())
-                }
-                .tint(.primary)
-                .glassEffect(.regular.interactive(), in: .capsule)
-                .shadow(color: Palette.shadow.opacity(0.05), radius: 1.5, y: 1)
-                .shadow(color: Palette.shadow.opacity(0.08), radius: 12, y: 5)
-                .accessibilityLabel(Text("방 만들기"))
-                .accessibilityIdentifier("rooms.create")
-                Spacer(minLength: FeedHeaderMetrics.gap)
-                InboxBell(count: unread.count)
-            }
-            .padding(.horizontal, FeedHeaderMetrics.edge)
+    var label: String {
+        switch self {
+        case .byRoom: String(localized: "방별")
+        case .all: String(localized: "전체")
         }
-        .padding(.bottom, 8)
+    }
+}
+
+struct RoomReads {
+    private var seen: [Int64: Int64] = [:]
+    private var sent: [Int64: Int64] = [:]
+
+    mutating func saw(room: Int64, note: Int64) {
+        seen[room] = max(seen[room] ?? 0, note)
+    }
+
+    mutating func takeDue() -> [Int64: Int64] {
+        let due = seen.filter { room, note in note > (sent[room] ?? 0) }
+        sent.merge(due) { max($0, $1) }
+        return due
     }
 }
 
@@ -549,14 +623,21 @@ struct RoomInvitationLine: View {
     let invitation: RoomInvitation
     let onAnswer: (Bool) -> Void
 
+    private var sentence: AttributedString {
+        let who = invitation.inviter.displayName ?? invitation.inviter.username
+        let room = invitation.roomName
+        var text = AttributedString(String(localized: "\(who)님이 \(room)에 초대했어요"))
+        for part in [who, room] {
+            if let range = text.range(of: part) { text[range].inlinePresentationIntent = .stronglyEmphasized }
+        }
+        return text
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: 11) {
             AvatarView(author: invitation.inviter.author, size: 32)
             VStack(alignment: .leading, spacing: 6) {
-                (Text(invitation.inviter.displayName ?? invitation.inviter.username).fontWeight(.semibold)
-                    + Text("님이 ")
-                    + Text(invitation.roomName).fontWeight(.semibold)
-                    + Text("에 초대했어요"))
+                Text(sentence)
                     .typeScale(.note)
                     .foregroundStyle(Palette.ink)
                     .fixedSize(horizontal: false, vertical: true)

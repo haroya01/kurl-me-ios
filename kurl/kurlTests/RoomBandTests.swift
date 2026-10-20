@@ -35,4 +35,16 @@ final class RoomBandTests: XCTestCase {
         XCTAssertEqual(bands.map(\.kind), [.pinned, .today, .quiet])
         XCTAssertEqual(bands.first?.rooms.map(\.id), [2])
     }
+
+    func testReadsAreSentOncePerRoomUpToTheNewestSeen() {
+        var reads = RoomReads()
+        reads.saw(room: 1, note: 10)
+        reads.saw(room: 1, note: 12)
+        reads.saw(room: 2, note: 5)
+        XCTAssertEqual(reads.takeDue(), [1: 12, 2: 5])
+        reads.saw(room: 1, note: 11)
+        XCTAssertEqual(reads.takeDue(), [:])
+        reads.saw(room: 1, note: 13)
+        XCTAssertEqual(reads.takeDue(), [1: 13])
+    }
 }

@@ -32,6 +32,15 @@ final class EnglishPluralTests: XCTestCase {
         XCTAssertEqual(en("‘\("경계")’ 외 \(1)개 컬렉션에 담김"), "In ‘경계’ and 1 more collection")
     }
 
+    func testRoomCountsPluralize() {
+        XCTAssertEqual(en("멤버 \(1)명"), "1 member")
+        XCTAssertEqual(en("멤버 \(4)명"), "4 members")
+        XCTAssertEqual(en("\("민지") 외 \(1)명"), "민지 and 1 other")
+        XCTAssertEqual(en("\("민지") 외 \(2)명"), "민지 and 2 others")
+        XCTAssertEqual(en("\(1)명 초대"), "Invite 1 person")
+        XCTAssertEqual(en("\(3)명 초대"), "Invite 3 people")
+    }
+
     func testTwoCountsPluralizeIndependently() {
         XCTAssertEqual(en("\(1)명이 보낸 알림 \(1)개"), "1 notification from 1 person")
         XCTAssertEqual(en("\(2)명이 보낸 알림 \(5)개"), "5 notifications from 2 people")
