@@ -1,8 +1,3 @@
-//
-//  RoomItemsModel.swift
-//  kurl
-//
-
 import Foundation
 
 extension HomeFeedItem {

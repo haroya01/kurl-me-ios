@@ -1,10 +1,3 @@
-//
-//  AuthorBlogView.swift
-//  kurl
-//
-//  Created by 김동현 on 6/7/26.
-//
-
 import SwiftUI
 
 struct AuthorBlogView: View {

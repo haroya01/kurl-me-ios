@@ -1,8 +1,3 @@
-//
-//  EngagementDockUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// 인게이지 독(연결·좋아요·북마크) 버튼 독립성 회귀.

@@ -1,8 +1,3 @@
-//
-//  HighlightReplySafetyUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 final class HighlightReplySafetyUITests: XCTestCase {

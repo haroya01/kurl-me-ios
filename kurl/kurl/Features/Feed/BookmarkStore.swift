@@ -1,8 +1,3 @@
-//
-//  BookmarkStore.swift
-//  kurl
-//
-
 import Foundation
 
 /// 내가 북마크한 글 집합 — 카드에서 북마크 여부를 표시하려고 한 번 받아 둔다.

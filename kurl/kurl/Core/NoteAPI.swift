@@ -1,8 +1,3 @@
-//
-//  NoteAPI.swift
-//  kurl
-//
-
 import Foundation
 import SwiftUI
 

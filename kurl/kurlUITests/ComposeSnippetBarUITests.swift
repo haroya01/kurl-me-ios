@@ -1,8 +1,3 @@
-//
-//  ComposeSnippetBarUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// 에디터 유리 스니펫 바 — 포커스 시 등장 + 커서 기준 삽입·토글 회귀 가드.

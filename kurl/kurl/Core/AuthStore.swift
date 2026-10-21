@@ -1,8 +1,3 @@
-//
-//  AuthStore.swift
-//  kurl
-//
-
 import AuthenticationServices
 import CryptoKit
 import Foundation

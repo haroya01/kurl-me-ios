@@ -1,7 +1,3 @@
-//
-//  BlockDividerImageView.swift
-//  kurl — WriteV2 (Phase 2)
-//
 //  비텍스트 블록 두 종의 최종 모습 렌더 — 구분선(얇은 룰)·이미지(플레이스홀더+alt 캡션).
 //  둘 다 캐럿을 담지 않는다(§4 재정의): 탭하면 선택(포커스)되고, 다음 문단에서의 백스페이스가
 //  이 블록을 지운다(EditorDocument.mergeBackward 의 prev.isNonText 경로). 발행면(BlockRenderer)의

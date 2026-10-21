@@ -1,8 +1,3 @@
-//
-//  HomeFeedChoice.swift
-//  kurl
-//
-
 import SwiftUI
 
 @MainActor

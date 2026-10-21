@@ -1,8 +1,3 @@
-//
-//  PostFeedRow.swift
-//  kurl
-//
-
 import SwiftUI
 
 struct PostFeedRow: View {

@@ -1,8 +1,3 @@
-//
-//  AuthAPI.swift
-//  kurl
-//
-
 import Foundation
 
 /// 모바일 인증 엔드포인트 모음. 웹과 달리 쿠키 없이 토큰을 바디로 주고받는다

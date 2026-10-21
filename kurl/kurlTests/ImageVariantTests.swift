@@ -1,7 +1,3 @@
-//
-//  ImageVariantTests.swift
-//  kurlTests
-//
 //  사진 사본(w480·w1080) 주소 규칙과, 사본이 없을 때 원본으로 물러서기.
 //
 

@@ -1,8 +1,3 @@
-//
-//  RoomTimelineView.swift
-//  kurl
-//
-
 import SwiftUI
 
 struct RoomTimelineView: View {

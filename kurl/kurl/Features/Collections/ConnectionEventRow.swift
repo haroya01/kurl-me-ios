@@ -1,8 +1,3 @@
-//
-//  ConnectionEventRow.swift
-//  kurl
-//
-
 import SwiftUI
 
 struct ConnectionEventRow: View {

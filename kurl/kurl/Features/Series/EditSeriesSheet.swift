@@ -1,7 +1,3 @@
-//
-//  EditSeriesSheet.swift
-//  kurl
-//
 //  시리즈 수정 — 이름과 주소(slug). 수정 시트(EditCollectionSheet)와 같은 입력 문법(밑줄 · 유리 캡슐).
 //  시리즈엔 소개·공개범위 필드가 없다(웹도 동일) — 두 가지만 다룬다. PATCH 라 바뀐 것만 보낸다.
 //

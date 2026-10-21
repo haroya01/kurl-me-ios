@@ -1,8 +1,3 @@
-//
-//  NotificationPreferencesAPI.swift
-//  kurl
-//
-
 import Foundation
 
 /// 알림 종류별 켬/끔 — 웹과 같은 계약(GET 은 타입 맵, PUT 은 한 타입씩).

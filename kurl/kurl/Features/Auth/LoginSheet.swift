@@ -1,8 +1,3 @@
-//
-//  LoginSheet.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 앱의 유일한 로그인 표면 — 글쓰기 탭·계정 탭·인게이지가 모두 이 시트를 띄운다(`loginPrompt`).

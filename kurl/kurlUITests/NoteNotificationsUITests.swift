@@ -1,8 +1,3 @@
-//
-//  NoteNotificationsUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 final class NoteNotificationsUITests: XCTestCase {

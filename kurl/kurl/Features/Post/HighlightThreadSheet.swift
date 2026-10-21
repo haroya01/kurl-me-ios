@@ -1,8 +1,3 @@
-//
-//  HighlightThreadSheet.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 하이라이트 답글 스레드(Are.na식 여백 대화) — **앵커(인용 + 작성자 메모)는 한 덩어리로 뭉치고,

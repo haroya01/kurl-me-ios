@@ -1,8 +1,3 @@
-//
-//  PeopleAndMentionsUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 final class PeopleAndMentionsUITests: XCTestCase {

@@ -1,8 +1,3 @@
-//
-//  LibraryAPI.swift
-//  kurl
-//
-
 import Foundation
 
 /// 내 서재 — 행동(좋아요·북마크·구독·팔로우)의 "모아 보기" 면. 전부 인증.

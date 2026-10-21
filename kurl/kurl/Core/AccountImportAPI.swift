@@ -1,8 +1,3 @@
-//
-//  AccountImportAPI.swift
-//  kurl
-//
-
 import Foundation
 
 /// 마스토돈 가져오기(합치기) — 내보내기 파일을 올리면 서버가 뒤에서 한 줄씩 적용한다.

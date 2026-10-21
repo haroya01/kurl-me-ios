@@ -1,8 +1,3 @@
-//
-//  ConversationRowsUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// 대화 세 표면(글 댓글·하이라이트 답글·노트 답글)이 한 행 문법을 쓴다 — 이름 줄(표시 이름 · @아이디 · 시간),

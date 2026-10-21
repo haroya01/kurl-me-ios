@@ -1,8 +1,3 @@
-//
-//  NoteFeedChoice.swift
-//  kurl
-//
-
 import Observation
 import SwiftUI
 

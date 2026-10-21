@@ -1,10 +1,3 @@
-//
-//  ImageLightbox.swift
-//  kurl
-//
-//  Created by 김동현 on 7/3/26.
-//
-
 import SwiftUI
 
 /// 본문 이미지를 탭하면 뜨는 전체 화면 뷰어 — 핀치 확대·패닝·더블탭 확대·아래로 끌어 닫기.

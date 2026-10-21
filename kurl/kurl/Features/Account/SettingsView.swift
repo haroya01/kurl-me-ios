@@ -1,8 +1,3 @@
-//
-//  SettingsView.swift
-//  kurl
-//
-
 import SwiftUI
 import UIKit
 import UserNotifications

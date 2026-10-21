@@ -1,8 +1,3 @@
-//
-//  ComposeImagePasteUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// 본문 이미지 경로 — 그동안 어떤 테스트도 건드리지 않았다. 클립보드 이미지 붙여넣기(#94)는

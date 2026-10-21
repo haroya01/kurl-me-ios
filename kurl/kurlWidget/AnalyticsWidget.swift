@@ -1,8 +1,3 @@
-//
-//  AnalyticsWidget.swift
-//  kurlWidget
-//
-
 import SwiftUI
 import WidgetKit
 

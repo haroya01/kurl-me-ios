@@ -1,8 +1,3 @@
-//
-//  SeriesBannerUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// 시리즈 글 상세의 상단 배너(펼침+회차 페치)와 하단 다음 편 카드 — simctl 로는

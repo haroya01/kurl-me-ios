@@ -1,8 +1,3 @@
-//
-//  MarkdownTextView.swift
-//  kurl
-//
-
 import SwiftUI
 import UIKit
 

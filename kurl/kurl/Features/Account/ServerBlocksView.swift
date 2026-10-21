@@ -1,8 +1,3 @@
-//
-//  ServerBlocksView.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 설정 > 서버 관리(운영자) — 마스토돈 관리자 도메인 차단. 제한은 그 서버 노트를 인기·태그에서 빼고

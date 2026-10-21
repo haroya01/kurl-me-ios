@@ -1,8 +1,3 @@
-//
-//  RemoteStream.swift
-//  kurl
-//
-
 import SwiftUI
 
 extension RemoteStreamFeed {

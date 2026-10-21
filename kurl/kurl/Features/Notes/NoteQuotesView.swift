@@ -1,8 +1,3 @@
-//
-//  NoteQuotesView.swift
-//  kurl
-//
-
 import SwiftUI
 
 struct NoteQuotesView: View {

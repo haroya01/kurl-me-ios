@@ -1,8 +1,3 @@
-//
-//  PostLimits.swift
-//  kurl
-//
-
 import Foundation
 
 /// 서버 글 입력 한도 — 길이는 Java String.length(UTF-16) 기준(CreatePostRequest·UpdatePostRequest 의 @Size,

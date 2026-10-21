@@ -1,8 +1,3 @@
-//
-//  FollowListsView.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 작가의 팔로워 / 팔로잉 목록 — 한 화면에서 두 탭(프로필과 같은 밑줄 탭)으로 오간다. 행 = 작가 행

@@ -1,10 +1,3 @@
-//
-//  Components.swift
-//  kurl
-//
-//  Created by 김동현 on 6/7/26.
-//
-
 import SafariServices
 import SwiftUI
 
@@ -126,43 +119,6 @@ extension View {
     /// 브랜드 리프레시 — `.refreshable` 대신 단다. 당김 임계(84pt)에서 발동한다.
     func brandRefreshable(action: @escaping () async -> Void) -> some View {
         modifier(BrandRefresh(action: action))
-    }
-}
-
-struct StateView<Value, Content: View>: View {
-    let state: LoadState<Value>
-    var retry: (() -> Void)?
-    @ViewBuilder var content: (Value) -> Content
-
-    var body: some View {
-        // 로딩→완료(→실패)가 뚝 바뀌지 않고 부드럽게 교차 페이드된다 — 첫 화면(스플래시)의 결을
-        // StateView 를 쓰는 모든 면에 한 번에 입힌다. opacity 크로스페이드는 reduce-motion 에서도
-        // 안전한 표현(슬라이드/스케일과 달리).
-        ZStack {
-            switch state {
-            case .idle, .loading:
-                KurlLoadingMark()
-                    .frame(maxWidth: .infinity, minHeight: 280)
-                    .transition(.opacity)
-            case .loaded(let value):
-                content(value)
-                    .transition(.opacity)
-            case .failed(let message):
-                ErrorState(message: message, retry: retry)
-                    .transition(.opacity)
-            }
-        }
-        .animation(.easeOut(duration: 0.3), value: phase)
-    }
-
-    /// 페이즈 키 — 같은 값 안의 변화(예: loaded 값 갱신)엔 재페이드하지 않고, 로딩↔완료↔실패
-    /// 전환에서만 크로스페이드한다.
-    private var phase: Int {
-        switch state {
-        case .idle, .loading: return 0
-        case .loaded: return 1
-        case .failed: return 2
-        }
     }
 }
 

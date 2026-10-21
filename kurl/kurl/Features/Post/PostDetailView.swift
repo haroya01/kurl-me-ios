@@ -1,10 +1,3 @@
-//
-//  PostDetailView.swift
-//  kurl
-//
-//  Created by 김동현 on 6/7/26.
-//
-
 import SwiftUI
 import UIKit
 
@@ -982,12 +975,6 @@ private struct PostDetailReader: View {
     private var pullTargetSlug: String? {
         if !embedded, let next = seriesNext { return next.slug }
         if embedded { return nextPost?.slug }
-        return nil
-    }
-
-    private var pullTargetTitle: String? {
-        if !embedded, let next = seriesNext { return next.title }
-        if embedded { return nextPost?.title }
         return nil
     }
 

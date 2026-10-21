@@ -1,7 +1,3 @@
-//
-//  CollectionsAPI.swift
-//  kurl
-//
 //  컬렉션(연결 그래프) — 백엔드 `CollectionController` 와 1:1. 전부 인증 면(내 큐레이션).
 //
 
@@ -54,12 +50,6 @@ enum CollectionsAPI {
     /// "이 문장이 담긴 컬렉션" — 이 하이라이트를 담은 공개 컬렉션(최근순). 미로그인도 본다(A 척추 발견 고리).
     static func collectionsContaining(highlightId: Int64) async throws -> [CollectionSummary] {
         try await client.get("/public/highlights/\(highlightId)/collections")
-    }
-
-    /// "이것과 이어진 것" — 이 블록과 같은 공개 컬렉션에 함께 놓인 다른 블록들(공동 등장 큰 순). 미로그인도 본다.
-    /// blockType = "POST" | "HIGHLIGHT" | "NOTE".
-    static func relatedBlocks(blockType: String, refId: Int64) async throws -> [RelatedBlock] {
-        try await client.get("/public/graph/blocks/\(blockType)/\(refId)/related")
     }
 
     /// "취향이 겹치는 큐레이터" — 같은 블록을 자기 공개 컬렉션에도 엮은 다른 큐레이터들(겹침 큰 순). 미로그인도 본다.

@@ -1,8 +1,3 @@
-//
-//  RoomsView.swift
-//  kurl
-//
-
 import SwiftUI
 
 struct RoomRoute: Hashable {

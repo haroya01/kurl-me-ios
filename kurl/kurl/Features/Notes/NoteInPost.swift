@@ -1,8 +1,3 @@
-//
-//  NoteInPost.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 이 서버가 주는 노트 주소 — 웹 kurlNoteId, 백엔드 PostNoteQuotes와 같은 규칙(경로 끝 /notes/{id}).

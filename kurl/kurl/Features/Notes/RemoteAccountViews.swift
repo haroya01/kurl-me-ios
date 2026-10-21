@@ -1,8 +1,3 @@
-//
-//  RemoteAccountViews.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 다른 서버 계정의 팔로우 캡슐 — 마스토돈처럼 요청을 보낸 뒤 그 서버가 수락해야 팔로잉이 된다.

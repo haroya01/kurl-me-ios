@@ -1,13 +1,10 @@
-//
-//  MockBackend.swift
-//  kurl
-//
-
 import Foundation
 
+#if DEBUG
 /// `--mocks` 모드의 인증 표면 가짜 백엔드. 응답 JSON 은 백엔드 record 와 같은 필드명을 쓰므로
 /// 실모드와 동일한 디코더·뷰 바인딩이 그대로 검증된다. 상태(좋아요·팔로우·글)는 메모리에 들고
 /// 토글·작성 흐름이 왕복하도록 한다. 공개 읽기(/public/*)는 다루지 않는다 — 실서버로 흘려보냄.
+
 @MainActor
 enum MockBackend {
 
@@ -1193,27 +1190,6 @@ enum MockBackend {
         ]
     }
 
-    /// "이것과 이어진 것" 목 — 이 블록과 같은 공개 컬렉션에 나란히 엮인 다른 블록(공동 등장 큰 순). 세 실루엣
-    /// (글·하이라이트·노트)이 다 나오게 섞는다.
-    private static func relatedBlocksMock() -> [[String: Any]] {
-        [
-            [
-                "blockType": "POST", "refId": 8102, "sharedCount": 4,
-                "title": "유리 위에 유리를 얹지 않기",
-                "excerpt": "겹치는 순간 둘 다 탁해진다. 레이어는 하나씩.",
-                "slug": "liquid-glass-without-glass-on-glass", "username": "honggildong",
-                "quote": NSNull(), "body": NSNull(),
-            ],
-            [
-                "blockType": "HIGHLIGHT", "refId": 7301, "sharedCount": 2,
-                "title": "토큰이 사라진 밤",
-                "excerpt": NSNull(),
-                "slug": "the-night-tokens-vanished", "username": "honggildong",
-                "quote": "재현이 안 되는 버그는 대개 타이밍 버그다.", "body": NSNull(),
-            ],
-        ]
-    }
-
     /// "이 글을 엮은 사람" 목 — 같은 것을 자기 공개 컬렉션에도 엮은 취향 겹치는 큐레이터(겹침 큰 순).
     private static func kindredCuratorsMock() -> [[String: Any]] {
         [
@@ -1332,12 +1308,6 @@ enum MockBackend {
         // 없는 글은 응답에 없으면 그만(호출측이 빈 배열로 취급) — 여기선 있는 것만 돌려준다.
         if method == "GET", parts == ["public", "posts", "collections"] {
             return json(postCollectionsMock())
-        }
-
-        // "이것과 이어진 것" — 이 블록과 같은 공개 컬렉션에 함께 놓인 다른 블록(하이라이트 대화 시트). 공개 표면.
-        if method == "GET", parts.count == 6, parts[0] == "public", parts[1] == "graph",
-            parts[2] == "blocks", parts[5] == "related" {
-            return json(relatedBlocksMock())
         }
 
         // "취향이 겹치는 큐레이터" — 같은 것을 자기 공개 컬렉션에도 엮은 큐레이터(컬렉션 상세). 공개 표면.
@@ -3780,3 +3750,4 @@ enum MockBackend {
         (try? JSONSerialization.data(withJSONObject: value)) ?? Data("{}".utf8)
     }
 }
+#endif

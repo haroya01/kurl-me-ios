@@ -1,8 +1,3 @@
-//
-//  DataExportUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 final class DataExportUITests: XCTestCase {

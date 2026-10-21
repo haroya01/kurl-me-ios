@@ -1,8 +1,3 @@
-//
-//  FilteredNotificationsView.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 알림 거르기가 따로 둔 알림 — 보낸 사람별 묶음(마스토돈 걸러진 알림). 받으면 그 사람의 알림이 목록으로

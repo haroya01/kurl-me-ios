@@ -1,8 +1,3 @@
-//
-//  DiscoverDeckView.swift
-//  kurl
-//
-
 import SwiftUI
 import Observation
 

@@ -1,8 +1,3 @@
-//
-//  AnalyticsAPI.swift
-//  kurl
-//
-
 import Foundation
 
 /// 작가 분석 — 전체 합계 + 윈도우(기본 30일) 추이 + 유입 경로. 전부 인증 필요.

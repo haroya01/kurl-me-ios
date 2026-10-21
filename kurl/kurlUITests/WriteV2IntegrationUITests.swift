@@ -1,8 +1,3 @@
-//
-//  WriteV2IntegrationUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// WriteV2(WYSIWYG 블록 에디터)를 `--editor v2` 플래그로 켠 실제 글쓰기 경로 검증.

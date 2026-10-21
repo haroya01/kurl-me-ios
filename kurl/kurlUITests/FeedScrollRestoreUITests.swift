@@ -1,7 +1,3 @@
-//
-//  FeedScrollRestoreUITests.swift
-//  kurlUITests
-//
 //  피드→글→복귀 스크롤 복원(#122) — 보던 행이 복귀 후에도 화면에 남아 있어야 한다.
 //  (복원이 없으면 pop 시 리스트 맨 위로 튕겨 아래쪽 행은 화면 밖이다.)
 //

@@ -1,7 +1,3 @@
-//
-//  NoteImageUploadTests.swift
-//  kurlTests
-//
 //  노트 사진 업로드 준비 — 원본 해상도 JPEG 가 서버 5MB 한도를 넘기던 것을 긴 변 2400px 로 줄이고
 //  위치 등 원본 메타데이터를 떼며, GIF 는 웹처럼 원본 그대로 보낸다.
 //

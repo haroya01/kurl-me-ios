@@ -1,8 +1,3 @@
-//
-//  NoteFiltersView.swift
-//  kurl
-//
-
 import SwiftUI
 
 struct NoteFiltersView: View {

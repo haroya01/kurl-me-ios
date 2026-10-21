@@ -1,8 +1,3 @@
-//
-//  EditorLinkSheet.swift
-//  kurl — WriteV2
-//
-
 import SwiftUI
 
 struct EditorLinkRequest: Identifiable {
