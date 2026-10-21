@@ -472,4 +472,17 @@ final class ContentTranslationTests: XCTestCase {
         XCTAssertNil(store.phases[done])
         XCTAssertFalse(store.showCached(done), "잠긴 글의 번역을 다시 열면 그대로 보임")
     }
+
+    func testRoomReplyPreviewsTranslateEachReplyAndKeepTheirMentions() {
+        let bodies = ["7시 괜찮아. 저녁은 거기서 같이 먹자", "@minji 나 조금 늦을 수도", "👍"]
+        let requests = NoteTranslation.requests(replies: bodies)
+        XCTAssertEqual(requests, ["7시 괜찮아. 저녁은 거기서 같이 먹자", "나 조금 늦을 수도"])
+        let applied = NoteTranslation.apply(requests.map { "[en] \($0)" }, replies: bodies)
+        XCTAssertEqual(applied, ["[en] 7시 괜찮아. 저녁은 거기서 같이 먹자", "@minji [en] 나 조금 늦을 수도", "👍"])
+    }
+
+    func testRoomReplyPreviewsFallBackToTheOriginalWhenTheCountIsOff() {
+        let bodies = ["하나", "둘"]
+        XCTAssertEqual(NoteTranslation.apply(["one"], replies: bodies), bodies)
+    }
 }

@@ -165,8 +165,27 @@ enum NoteTranslation {
         }.joined()
     }
 
+    static func key(_ note: Note, target: Locale.Language = TranslationGate.target()) -> String {
+        "note-\(note.id)-\(note.body.hashValue)-\(note.contentWarning?.hashValue ?? 0)-\(target.minimalIdentifier)"
+    }
+
     static func requests(body: String, warning: String?) -> [String] {
         requests(parts(body)) + (warning.map { [$0] } ?? [])
+    }
+
+    static func requests(replies bodies: [String]) -> [String] {
+        bodies.flatMap { requests(parts($0)) }
+    }
+
+    static func apply(_ translations: [String], replies bodies: [String]) -> [String] {
+        let counts = bodies.map { requests(parts($0)).count }
+        guard translations.count == counts.reduce(0, +) else { return bodies }
+        var remaining = translations[...]
+        return zip(bodies, counts).map { body, count in
+            let mine = Array(remaining.prefix(count))
+            remaining = remaining.dropFirst(count)
+            return rebuild(parts(body), translations: mine)
+        }
     }
 
     static func apply(_ translations: [String], body: String, warning: String?) -> (body: String, warning: String?) {
