@@ -67,4 +67,14 @@ final class RoomsTabUITests: XCTestCase {
         app.navigationBars.buttons.firstMatch.tap()
         XCTAssertTrue(app.navigationBars["새 동아리"].waitForExistence(timeout: 6), "이름을 바꿔도 방 제목이 그대로")
     }
+
+    func testTheChooserCarriesTheRoomIntoTheNoteComposer() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--open", "chooser", "--chooser-room", "1"]
+        app.launch()
+        let note = app.buttons["compose.chooser.note"]
+        XCTAssertTrue(note.waitForExistence(timeout: 12), "글쓰기 시트가 뜨지 않음")
+        note.tap()
+        XCTAssertTrue(app.buttons["동아리 사람들에 올리기"].waitForExistence(timeout: 6), "고른 방이 노트 작성기로 이어지지 않음")
+    }
 }
