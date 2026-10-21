@@ -1,8 +1,3 @@
-//
-//  NotificationPolicyView.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 설정 > 알림 거르기 — 마스토돈 알림 정책. 범주마다 받기·거르기·버리기를 고르고, 거른 알림은 알림 맨 위

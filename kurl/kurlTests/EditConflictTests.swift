@@ -1,7 +1,3 @@
-//
-//  EditConflictTests.swift
-//  kurlTests
-//
 //  글 동시 편집 충돌(서버 #795) — 저장은 직전 응답의 contentVersion 을 baseVersion 으로 싣고(PUT 다음 PATCH 는
 //  PUT 응답 버전), 버전이 어긋난 409 는 아무것도 쓰지 않은 채 충돌로 올린다. 응답만 잃은 재시도의 409 는 서버 본문이
 //  내 것과 같으면 성공. overwrite 는 막힌 요청 하나에만. 자기 쓰기끼리는 직렬. 버전을 안 주는 옛 서버엔 base 없이.

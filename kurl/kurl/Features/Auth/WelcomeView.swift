@@ -1,8 +1,3 @@
-//
-//  WelcomeView.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 첫 실행 1회 — 로그인 vs 게스트를 명시적으로 가른다. 게스트를 고르면 다시 안 뜬다.

@@ -1,8 +1,3 @@
-//
-//  FollowSuggestionsUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 final class FollowSuggestionsUITests: XCTestCase {

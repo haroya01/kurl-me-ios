@@ -1,8 +1,3 @@
-//
-//  WidgetTheme.swift
-//  kurlWidget
-//
-
 import SwiftUI
 
 /// 위젯 타깃의 표면 토큰 — 앱 `Palette`(kurl/Theme/Theme.swift)를 위젯에서 import 할 수 없어

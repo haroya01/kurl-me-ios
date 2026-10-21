@@ -1,8 +1,3 @@
-//
-//  HighlightReaderUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// 리더 소셜 하이라이트의 UI/UX 를 실기기 경로로 확인한다(simctl 은 터치를 못 넣으니 XCUITest 가 유일).

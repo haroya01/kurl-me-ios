@@ -1,8 +1,3 @@
-//
-//  CountryBlockSheet.swift
-//  kurl
-//
-
 import SwiftUI
 
 struct Country: Identifiable, Hashable {

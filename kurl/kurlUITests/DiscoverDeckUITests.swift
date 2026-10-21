@@ -1,8 +1,3 @@
-//
-//  DiscoverDeckUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// 발견 덱 = 글 상세보기 임베드 검증 — 본문이 서고, 끝까지 내리면

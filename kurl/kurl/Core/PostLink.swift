@@ -1,8 +1,3 @@
-//
-//  PostLink.swift
-//  kurl
-//
-
 import Foundation
 
 struct PostLink: Equatable {

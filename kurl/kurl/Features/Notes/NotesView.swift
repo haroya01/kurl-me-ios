@@ -1,8 +1,3 @@
-//
-//  NotesView.swift
-//  kurl
-//
-
 import Observation
 import PhotosUI
 import SwiftUI

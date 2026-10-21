@@ -1,8 +1,3 @@
-//
-//  DialogPresentationUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// 파괴·확인 다이얼로그(회원 탈퇴·신고·차단) 도달 스모크 + 표현 눈검증.

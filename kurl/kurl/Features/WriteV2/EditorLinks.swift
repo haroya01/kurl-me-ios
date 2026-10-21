@@ -1,8 +1,3 @@
-//
-//  EditorLinks.swift
-//  kurl — WriteV2
-//
-
 import UIKit
 
 struct EditorLinkSpan: Equatable {

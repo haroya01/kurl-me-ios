@@ -1,8 +1,3 @@
-//
-//  RemoteTrending.swift
-//  kurl
-//
-
 import Foundation
 
 struct TrendingAuthor: Decodable, Hashable {

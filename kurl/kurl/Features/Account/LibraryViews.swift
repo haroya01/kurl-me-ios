@@ -1,8 +1,3 @@
-//
-//  LibraryViews.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 북마크한 글 — 행 탭 = 글로. 북마크 = 오프라인 보장이라 목록을 볼 때마다 서버

@@ -1,8 +1,3 @@
-//
-//  LibraryWidget.swift
-//  kurlWidget
-//
-
 import SwiftUI
 import WidgetKit
 

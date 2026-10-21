@@ -1,8 +1,3 @@
-//
-//  NoteImageUpload.swift
-//  kurl
-//
-
 import ImageIO
 import UIKit
 import UniformTypeIdentifiers

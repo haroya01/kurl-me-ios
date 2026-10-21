@@ -1,8 +1,3 @@
-//
-//  RemoteNoteCard.swift
-//  kurl
-//
-
 import SwiftUI
 
 struct RemoteNoteCard: View {

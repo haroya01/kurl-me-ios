@@ -1,8 +1,3 @@
-//
-//  WidgetType.swift
-//  kurlWidget
-//
-
 import SwiftUI
 
 /// 위젯 전용 타입 사다리 — 앱 `TypeRole`(kurl/Theme/Theme.swift)를 위젯에서 import 할 수 없어

@@ -1,7 +1,3 @@
-//
-//  WysiwygEditorView.swift
-//  kurl — WriteV2 (격리 WYSIWYG 에디터)
-//
 //  블록별 WYSIWYG 캔버스. 각 블록이 최종 모습(제목=큰 글씨·인용=그린 바·코드=박스)으로 렌더+편집되고
 //  원시 마크다운은 안 보인다. 종이 세계(§1) — 순백 캔버스, 유리 없음. 읽기 컬럼 672(Metrics).
 //  ComposeView 를 안 건드리고 이 뷰만으로 단독 실행(하네스: EditorHarnessView / --screen editor2).

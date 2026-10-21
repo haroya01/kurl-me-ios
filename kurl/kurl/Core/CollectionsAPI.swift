@@ -1,7 +1,3 @@
-//
-//  CollectionsAPI.swift
-//  kurl
-//
 //  컬렉션(연결 그래프) — 백엔드 `CollectionController` 와 1:1. 전부 인증 면(내 큐레이션).
 //
 

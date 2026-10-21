@@ -1,8 +1,3 @@
-//
-//  ComposeToolbarCoverageUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// 스니펫 바 회귀 가드의 빈칸을 메운다 — 기울임·인라인 코드·실행취소/다시실행·동영상 다이얼로그,

@@ -1,8 +1,3 @@
-//
-//  TabBarVisibility.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 하단 탭바 상태의 단일 손잡이 — 스크롤 방향(scrollHidden: 읽어 내려가는 중 → 바 축소, 글 상세

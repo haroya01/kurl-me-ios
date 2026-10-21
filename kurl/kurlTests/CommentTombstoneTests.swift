@@ -1,7 +1,3 @@
-//
-//  CommentTombstoneTests.swift
-//  kurlTests
-//
 //  답글이 남은 지운 댓글은 자리(`deleted: true`, 작성자·본문 null)로 온다 — 앱은 그 모양을 받겠다고(`tombstones=1`) 말하고
 //  디코드에서 넘어지지 않아야 한다.
 //

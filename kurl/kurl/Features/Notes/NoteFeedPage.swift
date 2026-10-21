@@ -1,8 +1,3 @@
-//
-//  NoteFeedPage.swift
-//  kurl
-//
-
 import SwiftUI
 
 struct NoteFeedPage: View {

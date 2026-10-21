@@ -1,7 +1,3 @@
-//
-//  FeedRowLayoutTests.swift
-//  kurlTests
-//
 //  피드 행의 썸네일은 제 열을 가진다 — 제목·발췌가 썸네일 밑으로 흘러들거나 위에 얹히지 않는다.
 //  ImageRenderer 는 .task 를 돌리지 않아 썸네일 자리엔 늘 같은 자리표시 면이 그려진다.
 //

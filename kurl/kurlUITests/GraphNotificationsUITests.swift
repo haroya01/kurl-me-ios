@@ -1,8 +1,3 @@
-//
-//  GraphNotificationsUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// 연결 그래프 알림(CONNECTED·PATH_GREW) 검증 — 인박스 렌더, 컬렉션 딥링크, 선호 토글.

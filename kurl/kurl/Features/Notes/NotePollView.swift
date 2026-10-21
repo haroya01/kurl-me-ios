@@ -1,8 +1,3 @@
-//
-//  NotePollView.swift
-//  kurl
-//
-
 import SwiftUI
 
 struct NotePollView: View {

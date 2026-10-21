@@ -1,8 +1,3 @@
-//
-//  ChooseUsernameView.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 가입 직후 핸들 정하기 — username 이 비어 있으면(특히 애플 신규 유저) RootView 가 풀스크린으로

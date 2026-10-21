@@ -1,7 +1,3 @@
-//
-//  CollectionModels.swift
-//  kurl
-//
 //  컬렉션(Are.na 채널) — 읽기의 연결 그래프(§0). 백엔드 `post.collection` 슬라이스와 1:1.
 //  글·하이라이트·노트를 주제 채널에 "연결". connect not broadcast(docs/collections-design.md).
 //

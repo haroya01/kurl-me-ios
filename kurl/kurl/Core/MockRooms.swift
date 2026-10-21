@@ -1,8 +1,3 @@
-//
-//  MockRooms.swift
-//  kurl
-//
-
 import Foundation
 
 #if DEBUG

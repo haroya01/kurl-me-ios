@@ -1,8 +1,3 @@
-//
-//  HomeFeedAPI.swift
-//  kurl
-//
-
 import Foundation
 
 enum HomeFeedTab: String, CaseIterable, Identifiable, Hashable {

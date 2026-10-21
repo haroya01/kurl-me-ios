@@ -1,7 +1,3 @@
-//
-//  InlineImageMarkdown.swift
-//  kurl
-//
 //  문단(PARAGRAPH) 본문 속 인라인 이미지(`![alt](url "caption")`) 분해 — 웹 리더는 문단 안
 //  이미지를 <img> 로 그리지만 Apple 마크다운 파서(AttributedString)는 이미지를 못 그려 alt
 //  텍스트만 남는다(노션 붙여넣기 글 "앱에서 이미지 안 나옴"의 근본). 문단을 텍스트/이미지

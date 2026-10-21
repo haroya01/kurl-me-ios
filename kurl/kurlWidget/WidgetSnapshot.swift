@@ -1,8 +1,3 @@
-//
-//  WidgetSnapshot.swift
-//  kurlWidget
-//
-
 import Foundation
 
 /// 앱의 AnalyticsSnapshot 과 같은 JSON 을 읽는 위젯 쪽 미러 — App Group defaults 의

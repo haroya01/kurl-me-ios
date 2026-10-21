@@ -1,8 +1,3 @@
-//
-//  BlockedUsersView.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 차단한 사용자 관리 — 차단 해제(App Store 1.2 UGC 요건의 관리 면). BlockStore 가 단일 진실원이라

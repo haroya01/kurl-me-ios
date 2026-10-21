@@ -1,7 +1,3 @@
-//
-//  WriteV2FocusEngineTests.swift
-//  kurlTests
-//
 //  이어 쓰기 포커스(focusTail)와 무포커스 서식 폴백 회귀 — "캔버스를 탭해도 아무 일 없음 /
 //  포커스 전에 누른 서식 버튼이 조용히 죽음" 이 V2 첫 출고의 사망 원인이었다.
 //  문서 연산은 순수 모델(EditorDocument)이라 UIKit 없이 검증한다.

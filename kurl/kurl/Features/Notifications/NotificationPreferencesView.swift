@@ -1,8 +1,3 @@
-//
-//  NotificationPreferencesView.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 화면 레이어의 라벨·설명·아이콘 — 계약(NotificationKind)과 분리(§API=Foundation only).

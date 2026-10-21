@@ -1,8 +1,3 @@
-//
-//  NoteFilterStore.swift
-//  kurl
-//
-
 import Foundation
 import Observation
 import SwiftUI

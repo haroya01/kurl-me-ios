@@ -1,8 +1,3 @@
-//
-//  MockBackend.swift
-//  kurl
-//
-
 import Foundation
 
 #if DEBUG

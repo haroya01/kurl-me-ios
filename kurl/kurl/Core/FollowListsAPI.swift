@@ -1,8 +1,3 @@
-//
-//  FollowListsAPI.swift
-//  kurl
-//
-
 import Foundation
 
 /// 작가의 팔로워 / 팔로잉 *목록* — 공개 읽기(카운트는 이미 /follow 로 공개였고, 여기선 누구를 연다).

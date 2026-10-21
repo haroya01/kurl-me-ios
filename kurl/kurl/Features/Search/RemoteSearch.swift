@@ -1,8 +1,3 @@
-//
-//  RemoteSearch.swift
-//  kurl
-//
-
 import SwiftUI
 
 enum RemoteLookup: Equatable {

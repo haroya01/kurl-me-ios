@@ -1,8 +1,3 @@
-//
-//  NoteCamera.swift
-//  kurl
-//
-
 import SwiftUI
 import UIKit
 

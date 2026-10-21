@@ -1,7 +1,3 @@
-//
-//  EditorBlock.swift
-//  kurl — WriteV2 (WYSIWYG 에디터)
-//
 //  블록 모델. 에디터의 편집 단위는 "순서 있는 타입 블록"이고, 저장 계약은 마크다운 문자열이다
 //  (백엔드가 md↔blocks 를 소유 — WriteAPI.replaceMarkdown/markdown, 서버가 정규화).
 //  그래서 이 모델의 진실은 **왕복**이다: 마크다운 → 블록(파싱) / 블록 → 마크다운(직렬화).

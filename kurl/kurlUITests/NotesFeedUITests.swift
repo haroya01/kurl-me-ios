@@ -1,8 +1,3 @@
-//
-//  NotesFeedUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// 노트 — 노트 탭, 목 피드 렌더, 작성 시트 → 첫 노트 연합 안내 → 맨 위 꽂힘, 답글 화면까지.

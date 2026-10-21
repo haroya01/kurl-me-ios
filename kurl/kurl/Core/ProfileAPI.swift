@@ -1,8 +1,3 @@
-//
-//  ProfileAPI.swift
-//  kurl
-//
-
 import Foundation
 
 /// 내 프로필 편집 — 소개글(bio)·아바타. bio 는 부분 수정(다른 필드 null=유지)이라 소개글만

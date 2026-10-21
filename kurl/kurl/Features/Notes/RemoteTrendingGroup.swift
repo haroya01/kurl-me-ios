@@ -1,8 +1,3 @@
-//
-//  RemoteTrendingGroup.swift
-//  kurl
-//
-
 import SwiftUI
 
 @Observable

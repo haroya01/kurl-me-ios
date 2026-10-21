@@ -1,8 +1,3 @@
-//
-//  FollowRequestsView.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 기다리는 팔로우 요청 — 알림 맨 위 줄, 요청 화면, 요청 알림의 버튼이 한 목록을 나눠 쓴다.

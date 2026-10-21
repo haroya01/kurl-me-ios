@@ -1,7 +1,3 @@
-//
-//  WriteV2InlineRenderUITests.swift
-//  kurlUITests
-//
 //  WriteV2 인라인 라이브 렌더 — 볼드·이탤릭·링크·인라인코드가 마크다운 원문이 아니라 최종 모습으로
 //  보이고(마커 은닉), 캐럿을 넣으면 그 마크업만 반개봉되는지 실기기(sim) 경로로 캡처한다.
 //  `--screen editor2` 하네스로 단독 실행(EditorSample 이 볼드/이탤릭/링크/코드/구분선/표를 담는다).

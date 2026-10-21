@@ -1,8 +1,3 @@
-//
-//  MockStoreDemo.swift
-//  kurl
-//
-
 import Foundation
 
 #if DEBUG

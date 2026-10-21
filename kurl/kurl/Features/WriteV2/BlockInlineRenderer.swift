@@ -1,7 +1,3 @@
-//
-//  BlockInlineRenderer.swift
-//  kurl — WriteV2
-//
 //  블록 text(인라인 마크다운) → 최종 모습 NSAttributedString. 블록 종류가 크기·색·인용 스타일을
 //  정하고, 인라인 `**볼드**`/`*이탤릭*`/`` `코드` ``/`[라벨](url)` 은 볼드/이탤릭/모노 칩/링크색으로
 //  렌더한다. 색·크기는 전부 앱 토큰(Palette / BlockRenderer 읽기 스케일)에서 — raw 헥스·raw .red

@@ -1,8 +1,3 @@
-//
-//  NotificationPolicyAPI.swift
-//  kurl
-//
-
 import Foundation
 
 /// 마스토돈 알림 거르기 — 범주마다 받기·거르기·버리기. 거른 알림은 보낸 사람별로 따로 모인다.

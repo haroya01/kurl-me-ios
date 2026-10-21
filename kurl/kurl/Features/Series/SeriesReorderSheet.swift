@@ -1,7 +1,3 @@
-//
-//  SeriesReorderSheet.swift
-//  kurl
-//
 //  시리즈 회차를 짠다 — 글과 노트를 드래그로 한 순서에 놓고(이 순서가 곧 독자의 목차), 빼고,
 //  내 노트를 더한다. 네이티브 List `.onMove`/`.onDelete`(컬렉션 PathReorderSheet 와 같은 UX),
 //  저장은 항목 전체 교체 한 번. 공개 상세는 발행글만 오므로 주인 상세를 따로 읽어 초안·예약

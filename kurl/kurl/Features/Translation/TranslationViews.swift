@@ -1,8 +1,3 @@
-//
-//  TranslationViews.swift
-//  kurl
-//
-
 import SwiftUI
 
 struct NoteTranslationLine: View {

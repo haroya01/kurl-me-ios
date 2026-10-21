@@ -1,8 +1,3 @@
-//
-//  PeopleAPI.swift
-//  kurl
-//
-
 import Foundation
 
 struct PersonMatch: Decodable, Identifiable, Hashable {

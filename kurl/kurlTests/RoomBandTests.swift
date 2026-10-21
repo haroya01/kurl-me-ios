@@ -1,8 +1,3 @@
-//
-//  RoomBandTests.swift
-//  kurlTests
-//
-
 import XCTest
 
 @testable import kurl

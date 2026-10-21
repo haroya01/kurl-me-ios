@@ -1,8 +1,3 @@
-//
-//  AuthorHeaderLocalizationUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 final class AuthorHeaderLocalizationUITests: XCTestCase {

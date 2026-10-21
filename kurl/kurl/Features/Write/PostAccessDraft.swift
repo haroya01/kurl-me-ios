@@ -1,8 +1,3 @@
-//
-//  PostAccessDraft.swift
-//  kurl
-//
-
 import Foundation
 
 struct PostAccessDraft: Equatable {

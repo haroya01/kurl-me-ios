@@ -1,8 +1,3 @@
-//
-//  Conversation.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 웹 ConversationName 과 같은 규칙 — 표시 이름이 없으면 @아이디만, 좁으면 아이디가 먼저 잘린다.

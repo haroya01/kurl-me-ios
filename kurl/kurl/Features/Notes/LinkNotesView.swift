@@ -1,8 +1,3 @@
-//
-//  LinkNotesView.swift
-//  kurl
-//
-
 import SwiftUI
 
 struct LinkNotesView: View {

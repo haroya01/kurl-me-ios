@@ -1,7 +1,3 @@
-//
-//  PathResumeStore.swift
-//  kurl
-//
 //  순서대로 읽는 컬렉션을 "목록"이 아니라 "이어서 읽어 내려가는 것"으로 만드는 기기 로컬 이어읽기 기억.
 //  연결 응답엔 postId 가 없어(username/slug 만) PostReadStore(postId 키)를 그대로 쓸 수 없다 —
 //  그래서 컬렉션 단위로 "어디까지 걸었나"(가장 멀리 도달한 스텝 index)만 기기에 남긴다. 서버 0.

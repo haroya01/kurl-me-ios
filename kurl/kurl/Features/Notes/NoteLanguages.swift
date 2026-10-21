@@ -1,8 +1,3 @@
-//
-//  NoteLanguages.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 노트에 고를 수 있는 언어 — 이름은 마스토돈처럼 그 언어 자신의 글자로 쓴다.

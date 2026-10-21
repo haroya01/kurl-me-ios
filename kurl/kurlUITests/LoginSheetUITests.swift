@@ -1,8 +1,3 @@
-//
-//  LoginSheetUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// 비로그인 로그인 표면은 시트 하나 — 글쓰기 탭은 탭을 바꾸지 않고 시트를 띄우고,

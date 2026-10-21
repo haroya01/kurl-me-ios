@@ -1,8 +1,3 @@
-//
-//  HomeView.swift
-//  kurl
-//
-
 import SwiftUI
 
 struct HomeView: View {

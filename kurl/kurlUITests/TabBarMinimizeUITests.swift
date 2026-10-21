@@ -1,8 +1,3 @@
-//
-//  TabBarMinimizeUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// 인스타그램식 커스텀 하단바의 회귀 가드 — 스크롤하면 작아지고(5탭 유지), 끌면 탭이 넘어가고,

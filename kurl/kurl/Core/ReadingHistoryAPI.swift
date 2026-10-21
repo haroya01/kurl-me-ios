@@ -1,8 +1,3 @@
-//
-//  ReadingHistoryAPI.swift
-//  kurl
-//
-
 import Foundation
 
 /// 읽기 기록 — 로그인 독자가 발행 글을 읽으면 서버에 남고 기기를 넘어 이어진다(Medium식).

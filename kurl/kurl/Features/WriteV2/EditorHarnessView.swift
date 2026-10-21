@@ -1,7 +1,3 @@
-//
-//  EditorHarnessView.swift
-//  kurl — WriteV2 (격리 하네스)
-//
 //  ComposeView 를 전혀 안 건드리고 새 WYSIWYG 에디터를 단독 실행·검증하는 화면.
 //  실행 경로 둘:
 //   1) Xcode Canvas — 이 파일 하단 #Preview("WriteV2 하네스").

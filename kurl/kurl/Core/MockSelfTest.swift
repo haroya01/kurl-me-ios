@@ -1,8 +1,3 @@
-//
-//  MockSelfTest.swift
-//  kurl
-//
-
 import Foundation
 
 #if DEBUG

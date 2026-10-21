@@ -1,8 +1,3 @@
-//
-//  ComposeMarkdownRenderUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// 작성 화면 라이브 렌더 — 마크다운을 치면 그 자리에서 제목·굵게·인용·리스트·코드블록으로 입혀지고,

@@ -1,8 +1,3 @@
-//
-//  ComposeChooserSheet.swift
-//  kurl
-//
-
 import SwiftUI
 
 enum ComposeChoice: Equatable {

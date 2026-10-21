@@ -1,7 +1,3 @@
-//
-//  CollectionsListView.swift
-//  kurl
-//
 //  내 컬렉션 목록 — 라이브러리 위의 주제별 채널. 백엔드 `GET /users/me/collections`.
 //
 
