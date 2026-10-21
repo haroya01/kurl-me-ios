@@ -16,6 +16,7 @@ struct RoomTimelineView: View {
     @State private var posted = 0
     @State private var showsSettings = false
     @State private var writingPost = false
+    @State private var arrivingID: Int64?
 
     init(roomId: Int64) {
         self.roomId = roomId
@@ -91,7 +92,12 @@ struct RoomTimelineView: View {
         .sheet(isPresented: $composing, onDismiss: {
             if let note = composed {
                 composed = nil
+                arrivingID = note.id
                 model.inserted(note)
+                Task {
+                    try? await Task.sleep(for: .seconds(2))
+                    if arrivingID == note.id { arrivingID = nil }
+                }
             }
         }) {
             NoteComposeSheet(
@@ -170,6 +176,10 @@ struct RoomTimelineView: View {
 
     private func alone(_ detail: RoomDetail) -> Bool { detail.memberCount <= 1 }
 
+    private func arriving(_ item: HomeFeedItem) -> Bool {
+        arrivingID != nil && item.note?.id == arrivingID
+    }
+
     private func memberLine(_ detail: RoomDetail) -> String {
         let names = detail.members.prefix(2).map { $0.displayName ?? $0.username }.joined(separator: ", ")
         let rest = Int(detail.memberCount) - min(2, detail.members.count)
@@ -202,7 +212,8 @@ struct RoomTimelineView: View {
                         onReplace: { model.replaced($0) },
                         onRemove: { model.removed($0) },
                         onQuoted: { model.inserted($0) })
-                    .modifier(QuietAppear(index: index))
+                    .modifier(QuietAppear(index: arriving(item) ? .max : index))
+                    .modifier(NoteArrival(active: arriving(item)))
                     .task { await model.loadMoreIfNeeded(current: item) }
                     if index < model.items.count - 1, dayBreak(index + 1) == nil {
                         Hairline().padding(.horizontal, -Metrics.noteGutter)
