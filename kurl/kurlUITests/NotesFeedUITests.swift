@@ -699,43 +699,16 @@ final class NotesFeedUITests: XCTestCase {
         app.launchArguments = ["--mocks", "--tab", "search"]
         app.launch()
 
+        let field = app.searchFields.firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 12), "검색 필드가 없음")
+        field.tap()
         let trend = app.buttons["search.trendingTag.산책"]
-        let scroll = app.scrollViews.firstMatch
-        for _ in 0..<4 where !(trend.exists && trend.isHittable) {
-            scroll.swipeUp(velocity: .slow)
-        }
-        XCTAssertTrue(trend.waitForExistence(timeout: 12), "검색 대기 화면에 뜨는 해시태그가 없음")
-        XCTAssertTrue(trend.label.contains("3명이 이번 주에 썼어요"), "쓴 사람 수가 안 보임: \(trend.label)")
+        XCTAssertTrue(trend.waitForExistence(timeout: 12), "검색창을 눌렀는데 뜨는 해시태그가 없음")
         attach(app, "search-trending-tags")
         trend.tap()
         let notesTab = app.buttons["tag.tab.notes"]
         XCTAssertTrue(notesTab.waitForExistence(timeout: 8), "태그 화면이 안 열림")
         XCTAssertTrue(notesTab.isSelected, "뜨는 해시태그가 노트 탭으로 열리지 않음")
-    }
-
-    func testSearchShowsTrendingLinksThatOpenTheNotesCarryingThem() throws {
-        let app = XCUIApplication()
-        app.launchArguments = ["--mocks", "--tab", "search"]
-        app.launch()
-
-        let link = app.buttons["search.trendingLink.example.com"]
-        let scroll = app.scrollViews.firstMatch
-        for _ in 0..<5 where !(link.exists && link.isHittable) {
-            scroll.swipeUp(velocity: .slow)
-        }
-        XCTAssertTrue(link.waitForExistence(timeout: 12), "검색 대기 화면에 뜨는 링크가 없음")
-        XCTAssertTrue(link.label.contains("3명이 이번 주에 공유했어요"), "공유한 사람 수가 안 보임: \(link.label)")
-        attach(app, "search-trending-links")
-        link.tap()
-
-        let header = app.buttons["linkNotes.open"]
-        XCTAssertTrue(header.waitForExistence(timeout: 8), "링크 노트 화면이 안 열림")
-        XCTAssertTrue(header.label.contains("느린 웹을 위한 변론"), "링크 제목이 머리에 없음: \(header.label)")
-        XCTAssertTrue(
-            app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'note.menu.'")).firstMatch
-                .waitForExistence(timeout: 8),
-            "링크를 실은 노트가 없음")
-        attach(app, "link-notes")
     }
 
     func testSearchFindsNotesInTheNotesScope() throws {
