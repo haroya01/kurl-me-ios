@@ -54,6 +54,7 @@ struct HomeView: View {
                     suspended: choice.more != nil && moreDragX == 0
                 ) { tab, active, warm in
                     HomeFeedPage(model: model(tab), active: active && choice.more == nil, warm: warm)
+                        .environment(\.postZoom, PostZoom(prefix: "post", ns: zoomNS, active: active && choice.more == nil))
                 }
                 .offset(x: choice.more == nil ? 0 : moreDragX - width)
                 if let more = choice.more {
@@ -82,12 +83,9 @@ struct HomeView: View {
             .background(Palette.readingBg)
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: Route.self) { route in
-                if case .post(let username, let slug) = route, !reduceMotion {
-                    RouteView(route: route)
-                        .navigationTransition(.zoom(sourceID: "post-\(username)-\(slug)", in: zoomNS))
-                } else {
-                    RouteView(route: route)
-                }
+                PostZoomDestination(
+                    route: route, zoom: PostZoom(prefix: "post", ns: zoomNS),
+                    fromRoot: !reduceMotion && choice.path.count == 1)
             }
             .navigationDestination(for: CollectionRef.self) {
                 CollectionDetailView(collectionId: $0.id)

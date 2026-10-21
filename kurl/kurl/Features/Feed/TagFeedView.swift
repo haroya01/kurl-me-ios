@@ -30,7 +30,6 @@ struct TagFeedView: View {
     @State private var hasNext = false
     @State private var loadingMore = false
     @State private var showNavTitle = false
-    @Namespace private var zoomNS
 
     init(tag: String, initialTab: TagFeedTab = .posts) {
         self.tag = tag
@@ -131,10 +130,6 @@ struct TagFeedView: View {
                     .buttonStyle(RowButtonStyle())
                     .cardQuickActions(item)
                     .accessibilityIdentifier("tag.row.\(item.id)")
-                    .modifier(ZoomSource(
-                        active: true,
-                        id: "tag-\(item.author.username)-\(item.slug)",
-                        ns: zoomNS))
                     .rowDivider(index > 0)
                     .modifier(QuietAppear(index: index))
                     .task {
