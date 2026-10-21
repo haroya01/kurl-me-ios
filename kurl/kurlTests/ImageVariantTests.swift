@@ -197,14 +197,39 @@ final class ImageVariantTests: XCTestCase {
         XCTAssertEqual(ImageCDNStub.requested, [dir + ".w1080.jpg", dir + ".jpg"])
     }
 
-    func testRemoteBodyImagesShareTheLightboxEntryAsBefore() async {
+    func testRemoteImagesAreDecodedAtTheSlotWidthAndTheLightboxStillGetsTheOriginal() async throws {
         let cache = cache()
         let url = URL(string: "https://\(ImageCDNStub.remoteHost)/\(UUID().uuidString).jpg")!
-        ImageCDNStub.serve(url.path, .status(200, ImageCDNStub.red))
+        ImageCDNStub.serve(url.path, .status(200, ImageCDNStub.photo(width: 4000, height: 3000)))
 
-        _ = await cache.load(url, slotWidth: Metrics.readingColumn)
-        XCTAssertNotNil(cache.cached(url))
-        XCTAssertEqual(ImageCDNStub.requested, [url.path])
+        let loaded = await cache.load(url, slotWidth: Metrics.readingColumn)
+        let body = try XCTUnwrap(loaded?.cgImage)
+        XCTAssertEqual(body.width, 1080)
+        XCTAssertEqual(body.height, 810)
+        XCTAssertNil(cache.cached(url), "본문 축소본이 라이트박스 원본 자리를 차지하지 않는다")
+        XCTAssertNotNil(cache.cachedVariant(url), "라이트박스는 원본이 오기 전까지 본문 축소본을 보여 준다")
+
+        let original = await cache.load(url)
+        let full = try XCTUnwrap(original?.cgImage)
+        XCTAssertEqual(full.width, 4000)
+        XCTAssertEqual(ImageCDNStub.requested, [url.path, url.path])
+    }
+
+    func testATallRemoteImageKeepsTheSlotWidthNotTheLongSide() async throws {
+        let url = URL(string: "https://\(ImageCDNStub.remoteHost)/\(UUID().uuidString).jpg")!
+        ImageCDNStub.serve(url.path, .status(200, ImageCDNStub.photo(width: 2000, height: 6000)))
+        let loaded = await cache().load(url, slotWidth: 360)
+        let image = try XCTUnwrap(loaded?.cgImage)
+        XCTAssertEqual(image.width, 1080)
+        XCTAssertEqual(image.height, 3240)
+    }
+
+    func testARemoteImageNarrowerThanTheSlotIsLeftAlone() async throws {
+        let url = URL(string: "https://\(ImageCDNStub.remoteHost)/\(UUID().uuidString).jpg")!
+        ImageCDNStub.serve(url.path, .status(200, ImageCDNStub.photo(width: 640, height: 400)))
+        let loaded = await cache().load(url, slotWidth: 360)
+        let image = try XCTUnwrap(loaded?.cgImage)
+        XCTAssertEqual(image.width, 640)
     }
 
     func testAFeedPhotoStillShowsWhenEveryVariantIsMissing() async throws {
@@ -314,6 +339,15 @@ private final class ImageCDNStub: URLProtocol, @unchecked Sendable {
             context.fill(CGRect(x: 0, y: 0, width: 60, height: 80))
         }.pngData()!
     }()
+
+    static func photo(width: CGFloat, height: CGFloat) -> Data {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: CGSize(width: width, height: height), format: format).image { context in
+            UIColor.red.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+        }.jpegData(compressionQuality: 0.5)!
+    }
 
     static func gif(frames: Int, delay: Double) -> Data {
         let data = NSMutableData()

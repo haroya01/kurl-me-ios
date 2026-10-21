@@ -68,14 +68,20 @@ final class RemoteImageCache {
             let bucket = Self.buckets.first { px <= $0 } ?? Self.buckets.last!
             return "\(url.absoluteString)|\(Int(bucket))" as NSString
         }
-        if let slotWidth, variant(of: url, points: slotWidth) != nil {
-            return Self.variantKey(url, width: ImageVariant.width(forSlotPixels: slotWidth * Self.scale))
+        if let slotWidth {
+            let width = ImageVariant.width(forSlotPixels: slotWidth * Self.scale)
+            if variant(of: url, points: slotWidth) != nil { return Self.variantKey(url, width: width) }
+            return Self.fitKey(url, width: width)
         }
         return url.absoluteString as NSString
     }
 
     private static func variantKey(_ url: URL, width: Int) -> NSString {
         "\(url.absoluteString)|w\(width)" as NSString
+    }
+
+    private static func fitKey(_ url: URL, width: Int) -> NSString {
+        "\(url.absoluteString)|fit\(width)" as NSString
     }
 
     private func variant(of url: URL, points: CGFloat?) -> URL? {
@@ -91,6 +97,8 @@ final class RemoteImageCache {
     func cachedVariant(_ url: URL) -> UIImage? {
         cache.object(forKey: Self.variantKey(url, width: 1080))
             ?? cache.object(forKey: Self.variantKey(url, width: 480))
+            ?? cache.object(forKey: Self.fitKey(url, width: 1080))
+            ?? cache.object(forKey: Self.fitKey(url, width: 480))
     }
 
     /// 캐시에 있으면 즉시, 없으면 받아서 캐시 후 반환. 같은 (URL·크기) 동시 요청은 한 다운로드를 나눠 탄다.
@@ -102,14 +110,15 @@ final class RemoteImageCache {
         if let running = inFlight[cacheKey] { return await running.value }
         let variant = variant(of: url, points: maxPixel ?? slotWidth)
             .flatMap { recentlyFailed($0) ? nil : $0 }
+        let fitWidth = slotWidth.map { CGFloat(ImageVariant.width(forSlotPixels: $0 * Self.scale)) }
         let task = Task { () -> UIImage? in
             var fetched: Fetched?
             if let variant {
-                fetched = await self.fetch(variant, maxPixel: maxPixel)
+                fetched = await self.fetch(variant, maxPixel: maxPixel, fitWidth: fitWidth)
                 if case .rejected = fetched { self.failedVariants[variant] = self.now() }
             }
             if fetched?.image == nil {
-                fetched = await self.fetch(url, maxPixel: maxPixel)
+                fetched = await self.fetch(url, maxPixel: maxPixel, fitWidth: fitWidth)
                 if case .rejected = fetched { self.failed.insert(url) }
             }
             guard let image = fetched?.image else { return nil }
@@ -141,7 +150,7 @@ final class RemoteImageCache {
         }
     }
 
-    private func fetch(_ url: URL, maxPixel: CGFloat?) async -> Fetched {
+    private func fetch(_ url: URL, maxPixel: CGFloat?, fitWidth: CGFloat?) async -> Fetched {
         // 전송 오류(오프라인 등)는 일시적일 수 있어 블랙리스트에 넣지 않는다 — 다음 기회에 재시도.
         guard let (data, response) = try? await session.data(from: url) else { return .unreachable }
         let statusOK =
@@ -160,12 +169,16 @@ final class RemoteImageCache {
             downsampled = await Task.detached(priority: .userInitiated) {
                 Self.downsample(data, maxPixel: maxPixel, scale: scale)
             }.value
+        } else if let fitWidth {
+            downsampled = await Task.detached(priority: .userInitiated) {
+                Self.downsample(data, fitWidth: fitWidth)
+            }.value
         }
         if let downsampled {
             // 축소본은 이미 그릴 준비가 끝난 비트맵 — byPreparingForDisplay 를 다시 밟지 않는다.
             return .image(downsampled)
         }
-        // maxPixel 없음(원본) 또는 이례적 포맷으로 썸네일 실패 — 기존 원본 경로로 폴백.
+        // 크기 없음(원본), 이미 슬롯보다 좁은 이미지, 또는 이례적 포맷으로 썸네일 실패 — 기존 원본 경로로 폴백.
         guard let full = UIImage(data: data) else { return .rejected }
         // 표시 시점의 메인 스레드 디코드 히치를 피한다 — 캐시에는 그릴 준비가 끝난 비트맵만.
         return .image(await full.byPreparingForDisplay() ?? full)
@@ -222,11 +235,29 @@ final class RemoteImageCache {
         let bucket = buckets.first { px <= $0 } ?? buckets.last!
         let srcOptions = [kCGImageSourceShouldCache: false] as CFDictionary
         guard let src = CGImageSourceCreateWithData(data as CFData, srcOptions) else { return nil }
+        return thumbnail(src, maxSide: bucket)
+    }
+
+    nonisolated private static func downsample(_ data: Data, fitWidth: CGFloat) -> UIImage? {
+        let srcOptions = [kCGImageSourceShouldCache: false] as CFDictionary
+        guard let src = CGImageSourceCreateWithData(data as CFData, srcOptions),
+            let props = CGImageSourceCopyPropertiesAtIndex(src, 0, nil) as? [CFString: Any],
+            var width = props[kCGImagePropertyPixelWidth] as? CGFloat,
+            var height = props[kCGImagePropertyPixelHeight] as? CGFloat, width > 0, height > 0
+        else { return nil }
+        if let orientation = props[kCGImagePropertyOrientation] as? UInt32, orientation >= 5 {
+            swap(&width, &height)
+        }
+        guard width > fitWidth else { return nil }
+        return thumbnail(src, maxSide: (fitWidth * max(width, height) / width).rounded(.up))
+    }
+
+    nonisolated private static func thumbnail(_ src: CGImageSource, maxSide: CGFloat) -> UIImage? {
         let options: [CFString: Any] = [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
             kCGImageSourceCreateThumbnailWithTransform: true,
             kCGImageSourceShouldCacheImmediately: true,
-            kCGImageSourceThumbnailMaxPixelSize: bucket,
+            kCGImageSourceThumbnailMaxPixelSize: maxSide,
         ]
         guard let cgImage = CGImageSourceCreateThumbnailAtIndex(src, 0, options as CFDictionary) else {
             return nil

@@ -1206,7 +1206,7 @@ struct ComposeView: View {
             Button {
                 showCoverPicker = true
             } label: {
-                RemoteImage(url: url) { phase in
+                RemoteImage(url: url, slotWidth: 360) { phase in
                     if case .success(let image) = phase {
                         image.resizable().scaledToFill()
                     } else {
