@@ -573,9 +573,10 @@ private struct PostDetailReader: View {
         .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: endVisible)
         .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: keyboardUp)
         .task {
-            await model.load()
+            async let loaded: Void = model.load()
             // 덱은 lazy 페이지가 많아 바닥 근접 때만(loadMore 경로), 단독은 곧장 작가 컨텍스트.
             if !embedded { await loadAuthorContext() }
+            await loaded
         }
         // 완독 = 읽음. 긴 글은 끝까지 내려간 순간(readComplete) 찍는다 — '열기'가 아니라 '다 읽기'.
         .onChange(of: readComplete) { _, done in

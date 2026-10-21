@@ -67,14 +67,16 @@ final class RemoteStreamModel {
     }
 
     func loadMoreIfNeeded(current item: RemoteStreamItem) async {
-        guard let cursor = next, !isLoadingMore, items.last?.id == item.id else { return }
+        guard let cursor = next, !isLoadingMore, items.suffix(5).contains(where: { $0.id == item.id }) else { return }
         isLoadingMore = true
-        defer { isLoadingMore = false }
         let myEpoch = epoch
-        guard let page = try? await load(feed, cursor), myEpoch == epoch else { return }
-        next = page.next
-        let seen = Set(items.map(\.id))
-        items.append(contentsOf: Self.unique(page.items).filter { !seen.contains($0.id) })
+        await Task {
+            defer { isLoadingMore = false }
+            guard let page = try? await load(feed, cursor), myEpoch == epoch else { return }
+            next = page.next
+            let seen = Set(items.map(\.id))
+            items.append(contentsOf: Self.unique(page.items).filter { !seen.contains($0.id) })
+        }.value
     }
 
     func replaced(_ note: Note) {

@@ -33,6 +33,7 @@ struct NoteFeedPage: View {
             withAnimation(reduceMotion ? nil : .smooth(duration: 0.35)) { position.scrollTo(edge: .top) }
         }
         .environment(\.noteFilterContext, model.filterContext)
+        .environment(\.skeletonAnimates, active)
         .task(id: [warm, AuthStore.shared.isSignedIn]) {
             let signedIn = AuthStore.shared.isSignedIn
             guard warm, loadedSignedIn != signedIn else { return }

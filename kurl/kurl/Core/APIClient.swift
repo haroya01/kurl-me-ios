@@ -61,14 +61,17 @@ struct APIClient {
     private let session: URLSession
     private let decoder: JSONDecoder
     private let viewerToken: () async -> String?
+    private let bearerToken: () async -> String?
 
     init(
         session: URLSession = .shared,
-        viewerToken: @escaping () async -> String? = { await AuthStore.shared.viewerBearerToken() }
+        viewerToken: @escaping () async -> String? = { await AuthStore.shared.freshBearerToken() },
+        bearerToken: @escaping () async -> String? = { await AuthStore.shared.freshBearerToken() }
     ) {
         self.session = session
         self.decoder = JSONDecoder.blog
         self.viewerToken = viewerToken
+        self.bearerToken = bearerToken
     }
 
     /// 공개 읽기에 로그인한 사람의 토큰을 싣는다 — 서버가 그 사람이 차단·뮤트한 작가를 걸러 준다.
@@ -235,7 +238,7 @@ struct APIClient {
     private func perform(_ request: URLRequest, authenticated: Bool) async throws -> Data {
         guard authenticated else { return try await rawData(request) }
         var authorized = request
-        if let token = await AuthStore.shared.bearerToken {
+        if let token = await bearerToken() {
             authorized.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
         do {

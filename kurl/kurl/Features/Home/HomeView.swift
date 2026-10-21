@@ -100,8 +100,9 @@ struct HomeView: View {
             .noteTextLinks()
             .task(id: AuthStore.shared.isSignedIn) {
                 async let unread: Void = UnreadStore.shared.refresh()
+                async let filters: Void = NoteFilterStore.shared.reload()
                 await NoteFeedPreferences.shared.hydrateIfNeeded()
-                await NoteFilterStore.shared.reload()
+                await filters
                 await unread
             }
             .onChange(of: scenePhase) { _, phase in
@@ -164,11 +165,12 @@ struct HomeFeedPage: View {
             }
         }
         .environment(\.noteFilterContext, .home)
+        .environment(\.skeletonAnimates, active)
         .task(id: [warm, AuthStore.shared.isSignedIn]) {
             let signedIn = AuthStore.shared.isSignedIn
             guard warm, loadedSignedIn != signedIn else { return }
             loadedSignedIn = signedIn
-            await model.reload()
+            await model.reload(settlesLaunch: active)
         }
         .brandRefreshable { await model.refresh() }
         .onChange(of: NoteFeedPreferences.shared.changes) {

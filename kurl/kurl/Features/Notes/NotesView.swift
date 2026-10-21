@@ -222,18 +222,20 @@ final class NotesViewModel {
     }
 
     func loadMoreIfNeeded(current note: Note) async {
-        guard hasNext, !isLoadingMore, items.last?.id == note.id else { return }
+        guard hasNext, !isLoadingMore, items.suffix(5).contains(where: { $0.id == note.id }) else { return }
         isLoadingMore = true
-        defer { isLoadingMore = false }
         let myEpoch = epoch
-        if let next = try? await Self.collectVisible(
-            from: page + 1, seen: Set(loaded.map(\.id)), isVisible: isVisible, fetch: { try await self.load($0) }
-        ) {
-            guard myEpoch == epoch else { return }
-            page = next.page
-            hasNext = next.hasNext
-            loaded.append(contentsOf: next.notes)
-        }
+        await Task {
+            defer { isLoadingMore = false }
+            if let next = try? await Self.collectVisible(
+                from: page + 1, seen: Set(loaded.map(\.id)), isVisible: isVisible, fetch: { try await self.load($0) }
+            ) {
+                guard myEpoch == epoch else { return }
+                page = next.page
+                hasNext = next.hasNext
+                loaded.append(contentsOf: next.notes)
+            }
+        }.value
     }
 
     func inserted(_ note: Note) {
