@@ -11,10 +11,10 @@ final class ExploreFirstRowUITests: XCTestCase {
         app.launchArguments = ["--mocks", "--tab", "search"]
         app.launch()
 
-        let row = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "identifier BEGINSWITH 'home.row.post.'")).firstMatch
-        XCTAssertTrue(row.waitForExistence(timeout: 15), "추천에 글 행이 없음")
-        row.coordinate(withNormalizedOffset: CGVector(dx: 0.08, dy: 0.12)).tap()
+        let title = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier BEGINSWITH 'home.post.'")).firstMatch
+        XCTAssertTrue(title.waitForExistence(timeout: 15), "추천에 글 행이 없음")
+        title.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: -30, dy: -10)).tap()
         XCTAssertTrue(app.buttons["author.card"].waitForExistence(timeout: 8), "첫 행 아바타를 눌렀는데 작가 화면이 안 열림")
     }
 
