@@ -264,11 +264,23 @@ enum MockRooms {
         }
     }
 
+    private static let replies: [Int64: [(Int64, Person, String)]] = [
+        9901: [(9951, junho, "7시 괜찮아. 저녁은 거기서 같이 먹자"), (9952, yuki, "나 조금 늦을 수도")],
+        9902: [(9953, minji, "역 앞 카페 좋아, 자리 맡아 둘게")],
+        8801: [(9954, minji, "단체 사진 진짜 한 장도 없는 거 실화냐"), (9955, junho, "보드게임 진 사람 누구였지"),
+               (9956, me, "나야… 다음엔 이긴다")],
+        8803: [(9957, mom, "적당히가 제일 정확한 건데")],
+    ]
+
+    private static func replyViews(_ id: Int64) -> [[String: Any]] {
+        (replies[id] ?? []).prefix(2).map { ["id": $0.0, "author": person($0.1), "body": $0.2] }
+    }
+
     private static func mixed(_ roomIds: Set<Int64>) -> [[String: Any]] {
         var entries: [(Double, [String: Any])] = posts.filter { roomIds.contains($0.roomId) }
-            .map { ($0.minutesAgo, ["kind": "note", "note": noteView($0)]) }
+            .map { ($0.minutesAgo, ["kind": "note", "note": noteView($0), "replies": replyViews($0.id)]) }
         entries += roomPosts.filter { roomIds.contains($0.roomId) }
-            .map { ($0.minutesAgo, ["kind": "post", "post": postView($0)]) }
+            .map { ($0.minutesAgo, ["kind": "post", "post": postView($0), "replies": replyViews($0.id)]) }
         return entries.sorted { $0.0 < $1.0 }.map(\.1)
     }
 
@@ -280,7 +292,7 @@ enum MockRooms {
             "slug": post.slug, "title": post.title, "excerpt": post.excerpt,
             "ogImageUrl": post.cover ?? NSNull(), "thumbnailUrl": post.cover ?? NSNull(),
             "languageTag": "ko", "tags": [String](), "publishedAt": iso(minutesAgo: post.minutesAgo),
-            "viewCount": 4, "likeCount": 2, "readMinutes": post.readMinutes, "commentCount": 1,
+            "viewCount": 4, "likeCount": 2, "readMinutes": post.readMinutes, "commentCount": replies[post.id]?.count ?? 0,
             "room": ["id": post.roomId, "name": room?.name ?? ""],
         ]
     }
@@ -327,7 +339,7 @@ enum MockRooms {
             "editedAt": NSNull(), "likeCount": 0, "likedByMe": false,
             "author": person(post.author),
             "media": [Any](), "quotedPost": NSNull(), "inReplyToId": NSNull(),
-            "replyCount": 0, "repostCount": 0, "repostedByMe": false, "bookmarkedByMe": false,
+            "replyCount": replies[post.id]?.count ?? 0, "repostCount": 0, "repostedByMe": false, "bookmarkedByMe": false,
             "quoteCount": 0, "linkPreview": NSNull(), "mentions": [Any](),
             "contentWarning": NSNull(), "sensitive": false, "pinned": false,
             "visibility": "room", "poll": NSNull(), "conversationMuted": false, "quotedNote": NSNull(),

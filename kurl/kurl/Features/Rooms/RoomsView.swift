@@ -567,7 +567,7 @@ struct RoomBlock: View {
             } else {
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                     if index > 0 { Hairline().padding(.horizontal, -Metrics.noteGutter) }
-                    RoomItemRow(item: item, onReplace: onReplace, onRemove: onRemove)
+                    RoomItemRow(item: item, onReplace: onReplace, onRemove: onRemove, maxReplies: 1)
                 }
                 NavigationLink(value: RoomRoute(id: room.id)) {
                     HStack(spacing: 3) {

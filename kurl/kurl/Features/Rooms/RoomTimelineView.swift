@@ -189,19 +189,11 @@ struct RoomTimelineView: View {
                             .padding(.top, index == 0 ? 6 : 22)
                             .padding(.bottom, 2)
                     }
-                    Group {
-                        switch item.kind {
-                        case .note(let note):
-                            NoteFeedItem(
-                                note: note,
-                                onChange: { model.replaced($0) },
-                                onDelete: { model.removed($0) },
-                                onQuoted: { model.inserted($0) }
-                            )
-                        case .post(let post):
-                            PostFeedRow(post: post)
-                        }
-                    }
+                    RoomItemRow(
+                        item: item,
+                        onReplace: { model.replaced($0) },
+                        onRemove: { model.removed($0) },
+                        onQuoted: { model.inserted($0) })
                     .modifier(QuietAppear(index: index))
                     .task { await model.loadMoreIfNeeded(current: item) }
                     if index < model.items.count - 1, dayBreak(index + 1) == nil {

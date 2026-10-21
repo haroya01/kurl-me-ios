@@ -47,6 +47,20 @@ struct HomeFeedItem: Identifiable, Hashable {
     }
 
     var kind: Kind
+    var replies: [ReplyPreview] = []
+
+    struct ReplyPreview: Decodable, Hashable, Identifiable {
+        let id: Int64
+        let author: Author
+        let body: String
+    }
+
+    var replyTotal: Int64 {
+        switch kind {
+        case .note(let note): Int64(note.replyCount)
+        case .post(let post): post.commentCount ?? 0
+        }
+    }
 
     var id: String {
         switch kind {
@@ -74,7 +88,7 @@ struct HomeFeedBatch: Decodable {
 }
 
 extension HomeFeedItem: Decodable {
-    private enum CodingKeys: String, CodingKey { case kind, note, post }
+    private enum CodingKeys: String, CodingKey { case kind, note, post, replies }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -82,6 +96,7 @@ extension HomeFeedItem: Decodable {
         case "post": kind = .post(try container.decode(FeedItem.self, forKey: .post))
         default: kind = .note(try container.decode(Note.self, forKey: .note))
         }
+        replies = (try? container.decodeIfPresent([ReplyPreview].self, forKey: .replies)) ?? []
     }
 }
 
