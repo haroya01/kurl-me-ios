@@ -217,7 +217,7 @@ struct FollowCountsLink: View {
         // 로딩 첫 프레임만 숨겨 0→실제값 깜빡임을 막고(실패 땐 플레이스홀더로 보여 줌), 링크 탭은 죽이지 않는다.
         // 숨김이면 첫 프레임부터 라벨만 보여야 하므로 감추지 않는다.
         .opacity(!hidden && followers == nil && !failed ? 0 : 1)
-        .animation(.snappy(duration: 0.2), value: followers)
+        .animation(Motion.micro, value: followers)
         .task {
             // 시드를 받았으면 그 값으로 그리고 GET 을 건너뛴다(작가 페이지가 이미 한 번 받아 둠).
             if !showsCounts {

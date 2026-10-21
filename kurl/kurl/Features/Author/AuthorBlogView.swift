@@ -150,7 +150,7 @@ struct AuthorBlogView: View {
         .onScrollGeometryChange(for: Bool.self) { geometry in
             geometry.contentOffset.y + geometry.contentInsets.top > 64
         } action: { _, passed in
-            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) { showNavTitle = passed }
+            withAnimation(reduceMotion ? nil : Motion.micro) { showNavTitle = passed }
         }
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -903,7 +903,7 @@ private struct AvatarViewer: View {
         }
         .presentationBackground(.clear)
         .onAppear {
-            withAnimation(reduceMotion ? nil : .snappy(duration: 0.28)) { appeared = true }
+            withAnimation(reduceMotion ? nil : Motion.move) { appeared = true }
         }
     }
 }

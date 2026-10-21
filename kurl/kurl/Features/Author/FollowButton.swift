@@ -93,10 +93,10 @@ struct FollowButton: View {
                     .typeScale(.meta)
                     .foregroundStyle(Palette.secondary)
                     .contentTransition(.numericText())
-                    .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: count)
+                    .animation(reduceMotion ? nil : Motion.micro, value: count)
             }
         }
-        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: model.following)
+        .animation(reduceMotion ? nil : Motion.micro, value: model.following)
         .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
         .sensoryFeedback(.selection, trigger: model.bellToggleCount)
     }

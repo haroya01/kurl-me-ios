@@ -484,10 +484,10 @@ private struct CodeBlockView: View {
 
     private func copy() {
         UIPasteboard.general.string = payload.code
-        withAnimation(.snappy(duration: 0.2)) { copied = true }
+        withMotion(Motion.micro) { copied = true }
         Task {
             try? await Task.sleep(for: .seconds(1.8))
-            withAnimation(.easeOut(duration: 0.2)) { copied = false }
+            withMotion(Motion.micro) { copied = false }
         }
     }
 }
@@ -727,7 +727,7 @@ private struct ImageBlockView: View {
         VStack(spacing: 12) {
             if let url = URL(string: payload.url) {
                 // 첫 로드만 마크 플레이스홀더에서 부드럽게 페이드인 — 이미 본 이미지(캐시)는 즉시 그려진다.
-                RemoteImage(url: url, animation: .easeOut(duration: 0.35), slotWidth: slotWidth) { phase in
+                RemoteImage(url: url, animation: Motion.move, slotWidth: slotWidth) { phase in
                     switch phase {
                     case .success(let image):
                         image.resizable().scaledToFit().transition(.opacity)

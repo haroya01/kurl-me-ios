@@ -172,7 +172,7 @@ struct SeriesBanner: View {
     }
 
     private func toggle() {
-        withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) {
+        withAnimation(reduceMotion ? nil : Motion.move) {
             expanded.toggle()
         }
         guard expanded, episodes == nil else { return }
