@@ -144,7 +144,7 @@ struct HomeFeedPage: View {
             spacing: 0, background: .clear, tracksTabBar: active, gutter: Metrics.noteGutter, position: $position
         ) {
             Color.clear.frame(height: 8)
-            content
+            content.loadTransition(model.phase)
         }
         .onChange(of: router.topRequests) {
             guard active, router.topTab == TabRouter.homeTab else { return }

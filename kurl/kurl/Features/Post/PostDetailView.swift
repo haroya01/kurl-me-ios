@@ -264,6 +264,7 @@ private struct PostDetailReader: View {
                 .onChange(of: translations.phases[key] == .shown, initial: true) { refreshTranslation(detail, key: key) }
             }
         }
+        .loadTransition(model.phase)
     }
 
     // 상세 body 는 모디파이어 사슬이 길어 하나의 식으로는 타입 검사 예산을 넘는다 —

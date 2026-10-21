@@ -26,6 +26,29 @@ enum LoadState<Value> {
     case loading
     case loaded(Value)
     case failed(String)
+
+    var stage: Int {
+        switch self {
+        case .idle, .loading: 0
+        case .loaded: 1
+        case .failed: 2
+        }
+    }
+}
+
+private struct LoadTransition: ViewModifier {
+    let stage: Int
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content.animation(reduceMotion ? nil : Motion.micro, value: stage)
+    }
+}
+
+extension View {
+    func loadTransition<Value>(_ state: LoadState<Value>) -> some View {
+        modifier(LoadTransition(stage: state.stage))
+    }
 }
 
 /// 콜드 로딩의 브랜드 박자 — 스플래시의 3-bar draw-in 을 잔잔히 되감는다.

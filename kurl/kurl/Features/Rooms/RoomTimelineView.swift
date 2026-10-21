@@ -46,7 +46,7 @@ struct RoomTimelineView: View {
                 }
                 .padding(.bottom, 14)
             }
-            feed
+            feed.loadTransition(model.phase)
         }
         .reservesTabBarSpace()
         .background(Palette.readingBg)
