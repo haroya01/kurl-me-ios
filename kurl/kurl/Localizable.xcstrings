@@ -46111,90 +46111,6 @@
         }
       }
     },
-    "퇴근길에 한강 들렀다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Stopped by the river on the way home"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "घर लौटते हुए नदी किनारे रुका"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "帰り道に川べりに寄った"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ghé bờ sông trên đường về"
-          }
-        }
-      }
-    },
-    "오늘 처음으로 5km 뛰었다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ran 5 km for the first time today"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आज पहली बार 5 किमी दौड़ा"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "今日はじめて5km走った"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hôm nay lần đầu chạy 5km"
-          }
-        }
-      }
-    },
-    "필름 첫 롤 맡겼다": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dropped off my first roll of film"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "पहला फ़िल्म रोल डेवलप करवाने दिया"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フィルムの最初の一本を出した"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gửi rửa cuộn phim đầu tiên"
-          }
-        }
-      }
-    },
     "친구가 들어오면 이렇게 쌓여요 · 예시": {
       "localizations": {
         "en": {
@@ -46219,6 +46135,174 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bạn bè vào thì sẽ như thế này · Ví dụ"
+          }
+        }
+      }
+    },
+    "퇴근길에 한강 들렀다. 바람이 벌써 가을이다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stopped by the river on the way home. Already feels like fall"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "घर लौटते हुए नदी किनारे रुका। हवा में अभी से पतझड़ है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "帰り道に川べりに寄った。風がもう秋だ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ghé bờ sông trên đường về. Gió đã thấy mùa thu"
+          }
+        }
+      }
+    },
+    "오늘 처음으로 5km 안 쉬고 뛰었다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ran 5 km without stopping for the first time today"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आज पहली बार बिना रुके 5 किमी दौड़ा"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日はじめて5kmを止まらずに走った"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hôm nay lần đầu chạy 5km không nghỉ"
+          }
+        }
+      }
+    },
+    "새로 산 필름카메라 첫 롤 맡겼다. 결과 두근두근": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dropped off the first roll from my new film camera. Can't wait"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नए फ़िल्म कैमरे का पहला रोल दिया। नतीजे का इंतज़ार"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しいフィルムカメラの最初の一本を出した。結果が楽しみ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gửi rửa cuộn đầu của máy phim mới. Hồi hộp quá"
+          }
+        }
+      }
+    },
+    "공방에서 만든 컵 드디어 나왔다. 손잡이 삐뚤": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The cup I made at the studio is finally out. Wonky handle"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "स्टूडियो में बना कप आखिर तैयार। हैंडल टेढ़ा है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "工房で作ったカップがやっとできた。持ち手がゆがんでる"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cái cốc làm ở xưởng cuối cùng cũng xong. Quai bị lệch"
+          }
+        }
+      }
+    },
+    "비 와서 오늘은 실내 자전거": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Raining, so indoor bike today"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बारिश है, आज इनडोर साइकिल"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "雨なので今日は室内バイク"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trời mưa nên hôm nay đạp xe trong nhà"
+          }
+        }
+      }
+    },
+    "필름 찾았다. 반은 흔들렸고 반은 마음에 든다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Picked up the film. Half blurry, half I love"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़िल्म ले आया। आधी धुंधली, आधी पसंद आई"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フィルムを受け取った。半分ブレて、半分は気に入った"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lấy phim rồi. Nửa bị rung, nửa ưng ý"
           }
         }
       }

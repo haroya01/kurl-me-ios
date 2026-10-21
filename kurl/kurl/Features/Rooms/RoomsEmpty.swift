@@ -133,14 +133,40 @@ struct EmptyRooms: View {
     let create: () -> Void
     let join: () -> Void
 
-    @State private var arrived = 0
+    @State private var feed: [PreviewPost] = []
+    @State private var joined: Set<Int> = []
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private static let friends: [(username: String, name: String, note: LocalizedStringKey)] = [
-        ("seoyeon", "서연", "퇴근길에 한강 들렀다"),
-        ("junho", "준호", "오늘 처음으로 5km 뛰었다"),
-        ("minji", "민지", "필름 첫 롤 맡겼다"),
+    private struct Friend {
+        let username: String
+        let name: String
+    }
+
+    private struct PreviewPost: Identifiable, Equatable {
+        let id: Int
+        let friend: Int
+        let body: LocalizedStringKey
+        let likes: Int
+
+        static func == (lhs: Self, rhs: Self) -> Bool { lhs.id == rhs.id }
+    }
+
+    private static let friends = [
+        Friend(username: "seoyeon", name: "서연"),
+        Friend(username: "junho", name: "준호"),
+        Friend(username: "minji", name: "민지"),
     ]
+
+    private static let script: [(friend: Int, body: LocalizedStringKey, likes: Int)] = [
+        (0, "퇴근길에 한강 들렀다. 바람이 벌써 가을이다", 2),
+        (1, "오늘 처음으로 5km 안 쉬고 뛰었다", 3),
+        (2, "새로 산 필름카메라 첫 롤 맡겼다. 결과 두근두근", 1),
+        (0, "공방에서 만든 컵 드디어 나왔다. 손잡이 삐뚤", 2),
+        (1, "비 와서 오늘은 실내 자전거", 1),
+        (2, "필름 찾았다. 반은 흔들렸고 반은 마음에 든다", 3),
+    ]
+
+    private static let visible = 3
 
     var body: some View {
         VStack(spacing: 0) {
@@ -163,15 +189,15 @@ struct EmptyRooms: View {
                             author: Author(id: me.id ?? 0, username: me.username ?? "", bio: nil, avatarUrl: me.avatarUrl),
                             size: 44)
                     }
-                    ForEach(Array(Self.friends.enumerated()), id: \.offset) { index, friend in
+                    ForEach(Self.friends.indices, id: \.self) { index in
                         Circle()
                             .strokeBorder(Palette.hairlineStrong, style: StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
                             .background(Circle().fill(Palette.readingBg))
                             .frame(width: 44, height: 44)
                             .overlay {
-                                AvatarView(author: Self.author(friend, index), size: 44)
-                                    .opacity(index < arrived ? 1 : 0)
-                                    .scaleEffect(index < arrived ? 1 : 0.6)
+                                AvatarView(author: Self.author(index), size: 44)
+                                    .opacity(joined.contains(index) ? 1 : 0)
+                                    .scaleEffect(joined.contains(index) ? 1 : 0.6)
                             }
                     }
                 }
@@ -181,7 +207,7 @@ struct EmptyRooms: View {
                     .foregroundStyle(Palette.faint)
                     .padding(.top, 18)
                 Group {
-                    if arrived == 0 {
+                    if joined.isEmpty {
                         Text("나 혼자 있어요. 링크를 받은 친구만 들어와요.")
                     } else {
                         Text("친구가 들어오면 이렇게 쌓여요 · 예시")
@@ -191,25 +217,9 @@ struct EmptyRooms: View {
                 .foregroundStyle(Palette.secondary)
                 .contentTransition(.opacity)
                 .padding(.top, 4)
-                VStack(alignment: .leading, spacing: 10) {
-                    ForEach(Array(Self.friends.enumerated()), id: \.offset) { index, friend in
-                        HStack(spacing: 8) {
-                            AvatarView(author: Self.author(friend, index), size: 22)
-                            Text(verbatim: friend.name)
-                                .fontWeight(.semibold)
-                                .foregroundStyle(Palette.ink)
-                            Text(friend.note)
-                                .foregroundStyle(Palette.body)
-                                .lineLimit(1)
-                        }
-                        .typeScale(.note)
-                        .opacity(index < arrived ? 1 : 0)
-                        .offset(y: index < arrived ? 0 : 10)
-                    }
-                }
-                .padding(.top, 16)
-                .accessibilityHidden(true)
-                Hairline().padding(.vertical, 16)
+                preview
+                    .padding(.top, 14)
+                Hairline().padding(.bottom, 16)
                 HStack(spacing: 10) {
                     Text(verbatim: "kurl.me/r/······")
                         .typeScale(.body)
@@ -246,23 +256,92 @@ struct EmptyRooms: View {
         .task { await play() }
     }
 
-    private static func author(_ friend: (username: String, name: String, note: LocalizedStringKey), _ index: Int) -> Author {
-        Author(id: Int64(-1 - index), username: friend.username, bio: nil, avatarUrl: nil, displayName: friend.name)
+    private var preview: some View {
+        VStack(spacing: 0) {
+            ForEach(feed) { post in
+                row(post)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .top).combined(with: .opacity),
+                        removal: .opacity))
+            }
+            Spacer(minLength: 0)
+        }
+        .frame(height: 216, alignment: .top)
+        .clipped()
+        .mask {
+            LinearGradient(
+                stops: [.init(color: .black, location: 0.72), .init(color: .clear, location: 1)],
+                startPoint: .top, endPoint: .bottom)
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
+    private func row(_ post: PreviewPost) -> some View {
+        let friend = Self.friends[post.friend]
+        return VStack(spacing: 0) {
+            HStack(alignment: .top, spacing: 10) {
+                AvatarView(author: Self.author(post.friend), size: 32)
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 4) {
+                        Text(verbatim: friend.name)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Palette.ink)
+                        Text(verbatim: "@\(friend.username) · ")
+                            .foregroundStyle(Palette.secondary)
+                            + Text("방금")
+                            .foregroundStyle(Palette.secondary)
+                    }
+                    .lineLimit(1)
+                    Text(post.body)
+                        .foregroundStyle(Palette.ink)
+                        .lineLimit(1)
+                    HStack(spacing: 18) {
+                        HStack(spacing: 4) {
+                            NoteGlyphView(glyph: .heart, size: 15)
+                            Text(verbatim: "\(post.likes)").monospacedDigit()
+                        }
+                        NoteGlyphView(glyph: .reply, size: 15)
+                    }
+                    .typeScale(.meta)
+                    .foregroundStyle(Palette.secondary)
+                    .padding(.top, 3)
+                }
+                Spacer(minLength: 0)
+            }
+            .typeScale(.note)
+            .padding(.vertical, 9)
+            Hairline()
+        }
+    }
+
+    private static func author(_ index: Int) -> Author {
+        let friend = friends[index]
+        return Author(id: Int64(-1 - index), username: friend.username, bio: nil, avatarUrl: nil, displayName: friend.name)
+    }
+
+    private func post(at step: Int) -> PreviewPost {
+        let line = Self.script[step % Self.script.count]
+        return PreviewPost(id: step, friend: line.friend, body: line.body, likes: line.likes)
     }
 
     private func play() async {
         if reduceMotion {
-            arrived = Self.friends.count
+            feed = (0..<Self.visible).map { post(at: Self.visible - 1 - $0) }
+            joined = Set(Self.friends.indices)
             return
         }
+        var step = 0
         while !Task.isCancelled {
-            try? await Task.sleep(for: .milliseconds(900))
-            for index in Self.friends.indices {
-                withAnimation(.smooth(duration: 0.45)) { arrived = index + 1 }
-                try? await Task.sleep(for: .milliseconds(1_400))
+            try? await Task.sleep(for: .milliseconds(step == 0 ? 900 : 2_200))
+            let next = post(at: step)
+            withAnimation(.smooth(duration: 0.5)) {
+                feed.insert(next, at: 0)
+                if feed.count > Self.visible { feed.removeLast() }
+                joined.insert(next.friend)
             }
-            try? await Task.sleep(for: .milliseconds(2_400))
-            withAnimation(.smooth(duration: 0.45)) { arrived = 0 }
+            step += 1
         }
     }
 }
+
