@@ -45596,6 +45596,118 @@
           }
         }
       }
+    },
+    "방 멤버만": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Room members only"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सिर्फ़ रूम के सदस्य"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ルームのメンバーだけ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chỉ thành viên phòng"
+          }
+        }
+      }
+    },
+    "이 방 멤버만 읽어요. 검색·인기·다른 서버에는 안 떠요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only this room's members can read it. It never shows up in search, trending, or on other servers."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सिर्फ़ इस रूम के सदस्य पढ़ सकते हैं। खोज, ट्रेंडिंग या दूसरे सर्वर पर नहीं दिखेगा"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このルームのメンバーだけが読めます。検索・人気・ほかのサーバーには出ません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chỉ thành viên phòng này đọc được. Không hiện trong tìm kiếm, thịnh hành hay máy chủ khác"
+          }
+        }
+      }
+    },
+    "이 방에 블로그 글 쓰기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Write a blog post in this room"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस रूम में ब्लॉग पोस्ट लिखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このルームにブログ記事を書く"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viết bài blog trong phòng này"
+          }
+        }
+      }
+    },
+    "%@ 멤버만 읽는 글": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only %@ members can read this"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सिर्फ़ %@ के सदस्य पढ़ सकते हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@のメンバーだけが読む記事"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chỉ thành viên %@ đọc được"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

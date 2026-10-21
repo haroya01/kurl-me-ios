@@ -15,6 +15,7 @@ struct PostAccessDraft: Equatable {
     var countries: [String] = []
     var savedCountries: [String] = []
     var unlistedUrl: String?
+    var room: NoteRoom?
 
     struct Patch: Equatable {
         var audience: PostAudience?

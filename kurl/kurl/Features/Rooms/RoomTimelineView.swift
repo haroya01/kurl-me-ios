@@ -15,6 +15,7 @@ struct RoomTimelineView: View {
     @State private var composed: Note?
     @State private var posted = 0
     @State private var showsSettings = false
+    @State private var writingPost = false
 
     init(roomId: Int64) {
         self.roomId = roomId
@@ -33,7 +34,7 @@ struct RoomTimelineView: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("room.compose")
-                    Button {} label: {
+                    Button { writingPost = true } label: {
                         Label("글", systemImage: "doc.text")
                             .typeScale(.meta)
                             .fontWeight(.semibold)
@@ -74,6 +75,7 @@ struct RoomTimelineView: View {
             case "invite", "invite-qr": inviting = true
             case "compose": composing = true
             case "settings": showsSettings = true
+            case "post": writingPost = true
             default: break
             }
             #endif
@@ -106,6 +108,12 @@ struct RoomTimelineView: View {
                 memberIds: Set(detail?.members.map(\.id) ?? []))
         }
         .sensoryFeedback(.success, trigger: posted)
+        .navigationDestination(isPresented: $writingPost) {
+            ComposeView(
+                post: nil,
+                room: detail.map { NoteRoom(id: $0.id, name: $0.name) } ?? NoteRoom(id: roomId, name: ""),
+                onSaved: { Task { await model.reload() } })
+        }
         .navigationDestination(isPresented: $showsSettings) {
             if let detail {
                 RoomSettingsView(detail: detail) { next in self.detail = next }
