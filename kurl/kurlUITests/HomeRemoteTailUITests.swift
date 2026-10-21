@@ -1,8 +1,3 @@
-//
-//  HomeRemoteTailUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 final class HomeRemoteTailUITests: XCTestCase {

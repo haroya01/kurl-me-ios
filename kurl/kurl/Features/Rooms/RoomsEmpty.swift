@@ -323,7 +323,7 @@ struct EmptyRooms: View {
         while !Task.isCancelled {
             try? await Task.sleep(for: .milliseconds(step == 0 ? 900 : 2_200))
             let next = post(at: step)
-            withAnimation(.smooth(duration: 0.5)) {
+            withAnimation(Motion.stage) {
                 feed.insert(next, at: 0)
                 if feed.count > Self.visible { feed.removeLast() }
                 joined.insert(next.friend)

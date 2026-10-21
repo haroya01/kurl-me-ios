@@ -1,8 +1,3 @@
-//
-//  HomeRemoteTail.swift
-//  kurl
-//
-
 import SwiftUI
 
 struct HomeRemoteTail<Fallback: View>: View {
