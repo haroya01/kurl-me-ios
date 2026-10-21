@@ -198,37 +198,66 @@ struct CreateRoomSheet: View {
     let onCreated: (RoomDetail) -> Void
 
     @State private var name = ""
+    @State private var query = ""
+    @State private var picked: [RoomCandidate] = []
     @State private var creating = false
     @State private var failed: String?
-    @State private var created: RoomDetail?
     @FocusState private var focused: Bool
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var trimmed: String { name.trimmingCharacters(in: .whitespaces) }
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    TextField("방 이름", text: $name)
-                        .focused($focused)
-                        .submitLabel(.done)
-                        .accessibilityIdentifier("createRoom.name")
-                } footer: {
-                    Text("최대 50명까지 들어올 수 있어요. 방 글은 멤버에게만 보여요.")
+            ReadingColumn(spacing: 0, background: Palette.readingBg) {
+                TextField("방 이름", text: $name)
+                    .typeScale(.title)
+                    .foregroundStyle(Palette.ink)
+                    .focused($focused)
+                    .submitLabel(.done)
+                    .padding(.top, 14)
+                    .accessibilityIdentifier("createRoom.name")
+                Hairline().padding(.top, 10)
+                Text("최대 50명까지 들어올 수 있어요. 방 글은 멤버에게만 보여요.")
+                    .typeScale(.meta)
+                    .foregroundStyle(Palette.secondary)
+                    .padding(.top, 8)
+                if let failed {
+                    Text(failed)
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.danger)
+                        .padding(.top, 6)
                 }
-                if !friends.isEmpty {
-                    Section("만든 뒤 초대할 친구") {
-                        ForEach(friends) { friend in
-                            HStack(spacing: 10) {
-                                AvatarView(author: friend.author, size: 28)
-                                Text(friend.displayName ?? friend.username)
-                            }
+                RailHeading("함께할 사람")
+                    .padding(.top, 24)
+                    .padding(.bottom, 8)
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(Palette.secondary)
+                    TextField("이름이나 아이디로 찾기", text: $query)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .submitLabel(.search)
+                        .accessibilityIdentifier("createRoom.search")
+                    if !query.isEmpty {
+                        Button {
+                            query = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill").foregroundStyle(Palette.faint)
                         }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(Text("지우기"))
                     }
                 }
-                if let failed {
-                    Section { Text(failed).foregroundStyle(Palette.danger) }
-                }
+                .typeScale(.body)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(Palette.chipBg, in: Capsule())
+                .padding(.bottom, 12)
+                RoomPeoplePicker(picked: $picked, query: query)
             }
+            .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: picked)
             .navigationTitle("방 만들기")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -239,19 +268,21 @@ struct CreateRoomSheet: View {
                     Button {
                         Task { await create() }
                     } label: {
-                        if creating { ProgressView() } else { Text("만들기") }
+                        if creating {
+                            ProgressView()
+                        } else if picked.isEmpty {
+                            Text("만들기")
+                        } else {
+                            Text("만들고 \(picked.count)명 초대")
+                        }
                     }
-                    .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || creating)
+                    .disabled(trimmed.isEmpty || trimmed.count > 50 || creating)
                     .accessibilityIdentifier("createRoom.submit")
                 }
             }
-            .onAppear { focused = true }
-            .sheet(item: $created, onDismiss: {
-                if let created { onCreated(created) }
-            }) { room in
-                RoomInviteSheet(
-                    roomId: room.id, roomName: room.name,
-                    memberIds: Set(room.members.map(\.id)), preselected: friends)
+            .onAppear {
+                focused = true
+                if picked.isEmpty { picked = friends.map(RoomCandidate.init) }
             }
         }
     }
@@ -259,11 +290,23 @@ struct CreateRoomSheet: View {
     private func create() async {
         creating = true
         defer { creating = false }
+        let room: RoomDetail
         do {
-            created = try await RoomAPI.create(name: name.trimmingCharacters(in: .whitespaces))
+            room = try await RoomAPI.create(name: trimmed)
         } catch {
             failed = error.localizedDescription
+            return
         }
+        if !picked.isEmpty {
+            let ids = picked.map(\.id)
+            if let waiting = try? await RoomAPI.invite(room.id, people: ids) {
+                let reached = ids.filter { id in waiting.contains { $0.id == id } }.count
+                if reached > 0 { ToastCenter.shared.show(String(localized: "\(reached)명에게 초대를 보냈어요")) }
+            } else {
+                ToastCenter.shared.show(String(localized: "초대를 보내지 못했어요"))
+            }
+        }
+        onCreated(room)
     }
 }
 
