@@ -53,6 +53,7 @@ struct RoomTimelineView: View {
             }
             feed
         }
+        .reservesTabBarSpace()
         .background(Palette.readingBg)
         .environment(\.insideRoom, roomId)
         .navigationTitle(detail?.name ?? "")
