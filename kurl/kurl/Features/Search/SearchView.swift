@@ -25,6 +25,13 @@ enum ExploreLane: String, CaseIterable, Identifiable {
     }
 }
 
+// 목적지 클로저가 push 순간의 path 깊이를 읽는다 — @State 값으로 두면 마지막 body 때 값이 잡혀 늦다.
+@MainActor
+@Observable
+private final class ExploreNavigation {
+    var path = NavigationPath()
+}
+
 struct SearchView: View {
     @State private var scope: SearchScope = .posts
     @State private var noteResults = NotesViewModel(search: "")
@@ -41,7 +48,7 @@ struct SearchView: View {
     @State private var shownDomains: [String] = []
     @State private var domainTask: Task<Void, Never>?
     @Namespace private var zoomNS
-    @State private var path = NavigationPath()
+    @State private var navigation = ExploreNavigation()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     /// 최근 검색 칩의 지우기(×) 아이콘 — 칩 라벨(.meta)과 함께 커지도록 고정 pt 를 우회한다.
@@ -70,7 +77,7 @@ struct SearchView: View {
         uniqueKeysWithValues: RemoteStreamFeed.allCases.map { ($0, RemoteStreamModel(feed: $0)) })
 
     var body: some View {
-        NavigationStack(path: $path) {
+        NavigationStack(path: Bindable(navigation).path) {
             Group {
                 if scope == .people, !activeQuery.isEmpty || !query.trimmingCharacters(in: .whitespaces).isEmpty {
                     PeopleResultsList(model: peopleResults, query: query, retry: { runSearch(query) })
@@ -132,7 +139,7 @@ struct SearchView: View {
             .navigationDestination(for: Route.self) { route in
                 PostZoomDestination(
                     route: route, zoom: PostZoom(prefix: "search", ns: zoomNS),
-                    fromRoot: !reduceMotion && path.count == 1)
+                    fromRoot: !reduceMotion && navigation.path.count == 1)
             }
             // 스택 안쪽에 부착 — 바깥이면 push 된 글 상세에도 검색바가 남는다.
             // 상단 고정(navigationBarDrawer) — iOS 26+ 는 .searchable 을 하단에 도킹하는데, 우리
