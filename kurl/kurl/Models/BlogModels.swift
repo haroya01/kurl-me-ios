@@ -66,6 +66,7 @@ struct FeedItem: Decodable, Hashable, Identifiable {
     var readMinutes: Int? = nil
     var commentCount: Int64? = nil
     var likedByMe: Bool? = nil
+    var room: NoteRoom? = nil
 
     var access: PostAccessMarks {
         PostAccessMarks(audience: audience, locked: locked, regionRestricted: regionRestricted == true)

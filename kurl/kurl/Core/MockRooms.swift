@@ -76,6 +76,30 @@ enum MockRooms {
         Post(id: 9905, roomId: 3, author: yuki, body: "다음 주는 포트·어댑터 이름 짓기 정리해 올게요", minutesAgo: 60 * 24 * 5),
     ]
 
+    private struct RoomPost {
+        let id: Int64
+        let roomId: Int64
+        let author: Person
+        let slug: String
+        let title: String
+        let excerpt: String
+        let minutesAgo: Double
+        let cover: String?
+        let readMinutes: Int
+    }
+
+    private static let roomPosts: [RoomPost] = [
+        RoomPost(id: 8801, roomId: 1, author: yuki, slug: "rainy-mt-night", title: "비 오던 엠티의 밤",
+                 excerpt: "펜션 지붕을 두드리던 빗소리, 새벽 세 시까지 이어진 보드게임, 그리고 아무도 제대로 못 찍은 단체 사진 이야기.",
+                 minutesAgo: 30, cover: "https://picsum.photos/seed/kurlmt/1200/675", readMinutes: 4),
+        RoomPost(id: 8802, roomId: 2, author: kim, slug: "graduation-album", title: "졸업 앨범을 받은 날",
+                 excerpt: "4년 동안 찍힌 내 얼굴은 생각보다 적었다. 대신 뒷모습이 자주 나왔다.",
+                 minutesAgo: 60 * 5, cover: "https://picsum.photos/seed/kurlgrad/1200/675", readMinutes: 3),
+        RoomPost(id: 8803, roomId: 5, author: sister, slug: "moms-kimchi", title: "엄마 김치 레시피 받아 적기",
+                 excerpt: "\"적당히\"를 숫자로 바꾸는 데 전화 세 통이 걸렸다.",
+                 minutesAgo: 60 * 24 * 2, cover: nil, readMinutes: 6),
+    ]
+
     private static var invites: [Int64: [[String: Any]]] = [:]
     private static var requests: [Int64: [Person]] = [1: [eunseong]]
     private static var suggested: [Person] = [minji, junho]
@@ -121,6 +145,13 @@ enum MockRooms {
                 },
                 "page": 0, "size": 20, "hasNext": false,
             ])
+        }
+        if parts == ["rooms", "items"], method == "GET" {
+            let mine = Set(rooms.map(\.id))
+            return json(["items": mixed(mine), "next": NSNull()])
+        }
+        if parts.count == 3, parts[0] == "rooms", parts[2] == "items", method == "GET", let id = Int64(parts[1]) {
+            return json(["items": mixed([id]), "next": NSNull()])
         }
         if parts == ["rooms", "feed"], method == "GET" {
             let mine = Set(rooms.map(\.id))
@@ -231,6 +262,27 @@ enum MockRooms {
         default:
             return nil
         }
+    }
+
+    private static func mixed(_ roomIds: Set<Int64>) -> [[String: Any]] {
+        var entries: [(Double, [String: Any])] = posts.filter { roomIds.contains($0.roomId) }
+            .map { ($0.minutesAgo, ["kind": "note", "note": noteView($0)]) }
+        entries += roomPosts.filter { roomIds.contains($0.roomId) }
+            .map { ($0.minutesAgo, ["kind": "post", "post": postView($0)]) }
+        return entries.sorted { $0.0 < $1.0 }.map(\.1)
+    }
+
+    private static func postView(_ post: RoomPost) -> [String: Any] {
+        let room = rooms.first { $0.id == post.roomId }
+        return [
+            "id": post.id, "author": ["id": post.author.id, "username": post.author.username, "bio": NSNull(),
+                                      "avatarUrl": NSNull(), "displayName": post.author.displayName ?? NSNull()],
+            "slug": post.slug, "title": post.title, "excerpt": post.excerpt,
+            "ogImageUrl": post.cover ?? NSNull(), "thumbnailUrl": post.cover ?? NSNull(),
+            "languageTag": "ko", "tags": [String](), "publishedAt": iso(minutesAgo: post.minutesAgo),
+            "viewCount": 4, "likeCount": 2, "readMinutes": post.readMinutes, "commentCount": 1,
+            "room": ["id": post.roomId, "name": room?.name ?? ""],
+        ]
     }
 
     private static func inviteeViews(_ id: Int64) -> [[String: Any]] {

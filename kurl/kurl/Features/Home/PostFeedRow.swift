@@ -177,7 +177,7 @@ struct PostFeedRow: View {
             .accessibilityLabel(Text("북마크"))
             .accessibilityAddTraits(bookmarked ? [.isSelected] : [])
 
-            if let url = CardQuickActions.shareURL(post) {
+            if post.room == nil, let url = CardQuickActions.shareURL(post) {
                 ShareLink(item: url) {
                     NoteGlyphView(glyph: .share, size: Self.actionBox * unit)
                         .foregroundStyle(Palette.ink)

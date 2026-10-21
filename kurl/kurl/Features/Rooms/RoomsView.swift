@@ -38,8 +38,8 @@ struct RoomsView: View {
     @State private var phase: LoadState<[RoomListItem]> = .idle
     @State private var suggested: [RoomPerson] = []
     @State private var invitations: [RoomInvitation] = []
-    @State private var recent: [Note] = []
-    @State private var stream = NotesViewModel(source: .rooms)
+    @State private var recent: [HomeFeedItem] = []
+    @State private var stream = RoomItemsModel(.all)
     @State private var reads = RoomReads()
     @AppStorage("rooms.mode") private var modeRaw = RoomsMode.byRoom.rawValue
     @State private var readTask: Task<Void, Never>?
@@ -146,18 +146,16 @@ struct RoomsView: View {
                     FeedPlaceholder(title: "아직 방에 올라온 글이 없어요.")
                         .padding(.top, 24)
                 } else {
-                    ForEach(Array(stream.items.enumerated()), id: \.element.id) { index, note in
+                    ForEach(Array(stream.items.enumerated()), id: \.element.id) { index, item in
                         if index > 0 { Hairline().padding(.horizontal, -Metrics.noteGutter) }
-                        NoteFeedItem(
-                            note: note,
-                            onChange: { stream.replaced($0) },
-                            onDelete: { stream.removed($0) },
-                            onQuoted: { stream.inserted($0) }
-                        )
-                        .environment(\.insideRoom, sameRoomAsAbove(index) ? note.room?.id : nil)
+                        RoomItemRow(
+                            item: item, showsRoom: !sameRoomAsAbove(index),
+                            onReplace: { stream.replaced($0) },
+                            onRemove: { stream.removed($0) },
+                            onQuoted: { stream.inserted($0) })
                         .modifier(QuietAppear(index: index))
-                        .onAppear { saw(note) }
-                        .task { await stream.loadMoreIfNeeded(current: note) }
+                        .onAppear { if let note = item.note { saw(note) } }
+                        .task { await stream.loadMoreIfNeeded(current: item) }
                     }
                 }
             }
@@ -169,7 +167,7 @@ struct RoomsView: View {
     }
 
     private func sameRoomAsAbove(_ index: Int) -> Bool {
-        index > 0 && stream.items[index - 1].room?.id == stream.items[index].room?.id
+        index > 0 && stream.items[index - 1].roomId == stream.items[index].roomId
     }
 
     private func saw(_ note: Note) {
@@ -215,9 +213,9 @@ struct RoomsView: View {
             ForEach(Array(lively.enumerated()), id: \.element.id) { index, room in
                 RoomBlock(
                     room: room,
-                    notes: Array(recent.filter { $0.room?.id == room.id }.prefix(2)),
+                    items: Array(recent.filter { $0.roomId == room.id }.prefix(2)),
                     onReplace: { replace($0) },
-                    onRemove: { id in recent.removeAll { $0.id == id } }
+                    onRemove: { id in recent.removeAll { $0.note?.id == id } }
                 )
                 .contextMenu { pinMenu(room) }
                 .modifier(QuietAppear(index: index))
@@ -262,7 +260,7 @@ struct RoomsView: View {
     }
 
     private func replace(_ note: Note) {
-        if let at = recent.firstIndex(where: { $0.id == note.id }) { recent[at] = note }
+        if let at = recent.firstIndex(where: { $0.note?.id == note.id }) { recent[at] = HomeFeedItem(kind: .note(note)) }
     }
 
     private func section<Body: View>(_ title: LocalizedStringKey, @ViewBuilder body: () -> Body) -> some View {
@@ -339,7 +337,7 @@ struct RoomsView: View {
             async let rooms = RoomAPI.mine()
             async let suggestions = RoomAPI.suggestions()
             async let received = RoomAPI.invitations()
-            async let feed = RoomAPI.feed(page: 0, size: 50)
+            async let feed = RoomAPI.allItems(cursor: nil, limit: 40)
             phase = .loaded(try await rooms)
             recent = (try? await feed)?.items ?? []
             suggested = (try? await suggestions)?.friends ?? []
@@ -526,7 +524,7 @@ struct RoomVoice: View {
 
 struct RoomBlock: View {
     let room: RoomListItem
-    let notes: [Note]
+    let items: [HomeFeedItem]
     let onReplace: (Note) -> Void
     let onRemove: (Int64) -> Void
 
@@ -561,16 +559,15 @@ struct RoomBlock: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("rooms.row.\(room.id)")
-            if notes.isEmpty {
+            if items.isEmpty {
                 NavigationLink(value: RoomRoute(id: room.id)) {
                     RoomVoice(room: room)
                 }
                 .buttonStyle(RowButtonStyle())
             } else {
-                ForEach(Array(notes.enumerated()), id: \.element.id) { index, note in
+                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                     if index > 0 { Hairline().padding(.horizontal, -Metrics.noteGutter) }
-                    NoteFeedItem(note: note, onChange: onReplace, onDelete: onRemove, onQuoted: { _ in })
-                        .environment(\.insideRoom, room.id)
+                    RoomItemRow(item: item, onReplace: onReplace, onRemove: onRemove)
                 }
                 NavigationLink(value: RoomRoute(id: room.id)) {
                     HStack(spacing: 3) {

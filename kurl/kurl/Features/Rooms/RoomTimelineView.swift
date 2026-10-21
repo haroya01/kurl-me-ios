@@ -9,7 +9,7 @@ struct RoomTimelineView: View {
     let roomId: Int64
 
     @State private var detail: RoomDetail?
-    @State private var model: NotesViewModel
+    @State private var model: RoomItemsModel
     @State private var composing = false
     @State private var inviting = false
     @State private var composed: Note?
@@ -18,21 +18,36 @@ struct RoomTimelineView: View {
 
     init(roomId: Int64) {
         self.roomId = roomId
-        _model = State(initialValue: NotesViewModel(room: roomId))
+        _model = State(initialValue: RoomItemsModel(.room(roomId)))
     }
 
     var body: some View {
         ReadingColumn(spacing: 0, background: .clear, gutter: Metrics.noteGutter) {
             if let detail {
                 header(detail)
-                Button {
-                    composing = true
-                } label: {
-                    ReplyPrompt(text: Text("\(detail.name)에 한마디"))
+                HStack(spacing: 8) {
+                    Button {
+                        composing = true
+                    } label: {
+                        ReplyPrompt(text: Text("\(detail.name)에 한마디"))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("room.compose")
+                    Button {} label: {
+                        Label("글", systemImage: "doc.text")
+                            .typeScale(.meta)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Palette.ink)
+                            .fixedSize()
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 11)
+                            .contentShape(Capsule())
+                    }
+                    .buttonStyle(PaperCapsuleStyle(prominent: false))
+                    .accessibilityLabel(Text("이 방에 블로그 글 쓰기"))
+                    .accessibilityIdentifier("room.writePost")
                 }
-                .buttonStyle(.plain)
                 .padding(.bottom, 14)
-                .accessibilityIdentifier("room.compose")
             }
             feed
         }
@@ -65,7 +80,7 @@ struct RoomTimelineView: View {
             async let loaded: Void = model.reload()
             detail = try? await RoomAPI.detail(roomId)
             await loaded
-            if let newest = model.items.first?.id {
+            if let newest = model.newestNoteId {
                 try? await RoomAPI.read(roomId, upTo: newest)
                 RoomsRouter.shared.changed()
             }
@@ -136,8 +151,8 @@ struct RoomTimelineView: View {
 
     private func dayBreak(_ index: Int) -> LocalizedStringResource? {
         let calendar = Calendar.current
-        guard let at = model.items[index].createdAt else { return nil }
-        if index > 0, let above = model.items[index - 1].createdAt, calendar.isDate(above, inSameDayAs: at) {
+        guard let at = model.items[index].date else { return nil }
+        if index > 0, let above = model.items[index - 1].date, calendar.isDate(above, inSameDayAs: at) {
             return nil
         }
         if calendar.isDateInToday(at) { return "오늘" }
@@ -168,20 +183,27 @@ struct RoomTimelineView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.top, 24)
             } else {
-                ForEach(Array(model.items.enumerated()), id: \.element.id) { index, note in
+                ForEach(Array(model.items.enumerated()), id: \.element.id) { index, item in
                     if let day = dayBreak(index) {
                         RailHeading(resource: day)
                             .padding(.top, index == 0 ? 6 : 22)
                             .padding(.bottom, 2)
                     }
-                    NoteFeedItem(
-                        note: note,
-                        onChange: { model.replaced($0) },
-                        onDelete: { model.removed($0) },
-                        onQuoted: { model.inserted($0) }
-                    )
+                    Group {
+                        switch item.kind {
+                        case .note(let note):
+                            NoteFeedItem(
+                                note: note,
+                                onChange: { model.replaced($0) },
+                                onDelete: { model.removed($0) },
+                                onQuoted: { model.inserted($0) }
+                            )
+                        case .post(let post):
+                            PostFeedRow(post: post)
+                        }
+                    }
                     .modifier(QuietAppear(index: index))
-                    .task { await model.loadMoreIfNeeded(current: note) }
+                    .task { await model.loadMoreIfNeeded(current: item) }
                     if index < model.items.count - 1, dayBreak(index + 1) == nil {
                         Hairline().padding(.horizontal, -Metrics.noteGutter)
                     }
