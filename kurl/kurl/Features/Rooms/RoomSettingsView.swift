@@ -150,6 +150,8 @@ struct RoomSettingsView: View {
             Button("내 글 남기고 나가기", role: .destructive) { Task { await leave(deleting: false) } }
             Button("내 글 지우고 나가기", role: .destructive) { Task { await leave(deleting: true) } }
             Button("취소", role: .cancel) {}
+        } message: {
+            Text("지우면 이 방에 올린 내 노트·블로그 글·댓글이 모두 지워져요.")
         }
         .alert(
             "내보낼까요?",

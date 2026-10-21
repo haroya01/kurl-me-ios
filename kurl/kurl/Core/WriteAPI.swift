@@ -12,11 +12,13 @@ enum WriteAPI {
 
     /// 새 글(임시저장 상태) 생성. 슬러그는 앱에서 시각 기반으로 자동 생성 —
     /// 백엔드 규칙 ^[a-z0-9]+(-[a-z0-9]+)*$ 을 항상 만족하고, 웹 에디터에서 언제든 바꿀 수 있다.
-    static func createDraft(title: String) async throws -> MyPost {
+    static func createDraft(title: String, room: NoteRoom? = nil) async throws -> MyPost {
         struct Body: Encodable {
             let slug: String
             let title: String
             let languageTag: String
+            let audience: PostAudience?
+            let roomId: Int64?
         }
         // 초 단위만 쓰면 같은 1초에 두 초안이 같은 slug 로 충돌(SLUG_CONFLICT)한다 — 무작위 토큰을 붙인다.
         let slug = "p-\(Int(Date().timeIntervalSince1970))-\(Int.random(in: 100...999))"
@@ -24,7 +26,9 @@ enum WriteAPI {
         // 초안 미생성으로 자동저장이 늘 실패한다).
         return try await client.post(
             "/posts",
-            body: Body(slug: slug, title: title, languageTag: Config.postContentLanguageTag),
+            body: Body(
+                slug: slug, title: title, languageTag: Config.postContentLanguageTag,
+                audience: room == nil ? nil : .room, roomId: room?.id),
             authenticated: true
         )
     }
@@ -116,16 +120,18 @@ enum WriteAPI {
 
     @discardableResult
     static func updateAccess(
-        postId: Int64, audience: PostAudience?, password: String?, blockedCountries: [String]?
+        postId: Int64, audience: PostAudience?, password: String?, blockedCountries: [String]?,
+        roomId: Int64? = nil
     ) async throws -> MyPost {
         struct Body: Encodable {
             let audience: PostAudience?
             let password: String?
             let blockedCountries: [String]?
+            let roomId: Int64?
         }
         return try await client.patch(
             "/posts/\(postId)",
-            body: Body(audience: audience, password: password, blockedCountries: blockedCountries),
+            body: Body(audience: audience, password: password, blockedCountries: blockedCountries, roomId: roomId),
             authenticated: true)
     }
 
@@ -468,6 +474,7 @@ struct MyPost: Decodable, Identifiable, Hashable {
     var hasPassword: Bool? = nil
     var unlistedUrl: String? = nil
     var blockedCountries: [String]? = nil
+    var room: NoteRoom? = nil
 
     var access: PostAccessMarks {
         PostAccessMarks(audience: audience, locked: nil, regionRestricted: !(blockedCountries ?? []).isEmpty)

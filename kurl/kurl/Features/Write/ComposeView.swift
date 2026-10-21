@@ -198,6 +198,7 @@ struct ComposeView: View {
             draft.audience = .room
             draft.savedAudience = .room
             draft.room = room
+            draft.savedRoomId = room.id
             _accessDraft = State(initialValue: draft)
         }
         self.initialMarkdown = initialMarkdown
@@ -1329,6 +1330,7 @@ struct ComposeView: View {
                                     Text(room.name)
                                 }
                             }
+                            .disabled(accessDraft.savedRoomId.map { $0 != room.id } ?? false)
                         }
                     }
                 }
@@ -2056,7 +2058,7 @@ struct ComposeView: View {
             if let accessPatch {
                 let updated = try await WriteAPI.updateAccess(
                     postId: id, audience: accessPatch.audience, password: accessPatch.password,
-                    blockedCountries: accessPatch.countries)
+                    blockedCountries: accessPatch.countries, roomId: accessPatch.roomId)
                 accessDraft.adopt(saved: updated, sent: accessPatch)
             }
             if let cover = pendingCover {
@@ -2145,7 +2147,8 @@ struct ComposeView: View {
         }
         let task = Task<Int64, Error> {
             let created = try await WriteAPI.createDraft(
-                title: title.trimmingCharacters(in: .whitespaces))
+                title: title.trimmingCharacters(in: .whitespaces),
+                room: accessDraft.audience == .room ? accessDraft.room : nil)
             versionGate.adopt(created.contentVersion)
             return created.id
         }

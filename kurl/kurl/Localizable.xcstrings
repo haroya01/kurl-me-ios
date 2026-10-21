@@ -45904,6 +45904,34 @@
           }
         }
       }
+    },
+    "지우면 이 방에 올린 내 노트·블로그 글·댓글이 모두 지워져요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deleting removes all your notes, blog posts, and comments in this room."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मिटाने पर इस रूम में आपके सभी नोट, ब्लॉग पोस्ट और टिप्पणियाँ हट जाएँगी।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "消すと、このルームに投稿したノート・ブログ記事・コメントがすべて削除されます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xoá sẽ gỡ toàn bộ ghi chú, bài blog và bình luận của bạn trong phòng này."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
