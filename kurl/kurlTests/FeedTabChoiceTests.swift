@@ -62,6 +62,19 @@ final class FeedTabChoiceTests: XCTestCase {
         XCTAssertFalse(warm(.following, selection: .trending, opened: [.following]))
     }
 
+    func testNeighborsWaitUntilTheChosenPageHasSettled() {
+        let tabs = HomeFeedTab.allCases
+        func warm(_ tab: HomeFeedTab, selection: HomeFeedTab, opened: Set<HomeFeedTab> = [], settled: Bool) -> Bool {
+            SwipePagerWarmth.warm(
+                tab, tabs: tabs, selection: selection, loadOnSelect: [.following], opened: opened, settled: settled)
+        }
+        XCTAssertTrue(warm(.latest, selection: .latest, settled: false), "the chosen page loads at once")
+        XCTAssertFalse(warm(.trending, selection: .latest, settled: false), "인기 waits while 최신 is still loading")
+        XCTAssertTrue(warm(.trending, selection: .latest, settled: true))
+        XCTAssertTrue(warm(.trending, selection: .latest, opened: [.trending], settled: false), "a page once chosen stays warm")
+        XCTAssertFalse(warm(.following, selection: .latest, settled: true), "settling does not wake 팔로잉")
+    }
+
     func testTheMoreMenuHoldsForYouOnly() {
         XCTAssertEqual(HomeMoreMenu.feeds, [.forYou])
         XCTAssertEqual(FeedSource.forYou.moreChoice, SegmentMoreChoice(title: String(localized: "추천"), symbol: "binoculars"))
