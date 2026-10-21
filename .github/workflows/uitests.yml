@@ -41,6 +41,7 @@ jobs:
         -only-testing:kurlUITests/PushTapRouteUITests
         -only-testing:kurlUITests/EngagementDockUITests
         -only-testing:kurlUITests/HomeRemoteTailUITests
+        -only-testing:kurlUITests/ExploreFirstRowUITests
 
     steps:
       - uses: actions/checkout@v4

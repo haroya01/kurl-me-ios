@@ -207,7 +207,8 @@ struct SearchView: View {
             .padding(.horizontal, lane == .people ? Metrics.gutter : Metrics.noteGutter)
         }
         .scrollIndicators(.hidden)
-        .scrollEdgeEffectStyle(.soft, for: .top)
+        // 숨은 검색 범위 막대도 위 가장자리 효과에 제 높이를 잡아, 그 띠가 첫 행의 터치를 먹는다.
+        .scrollEdgeEffectHidden(true, for: .top)
         .noteTextLinks()
         .brandRefreshable {
             async let discovery: Void = loadDiscovery()
