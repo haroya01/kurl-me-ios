@@ -46110,6 +46110,118 @@
           }
         }
       }
+    },
+    "퇴근길에 한강 들렀다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stopped by the river on the way home"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "घर लौटते हुए नदी किनारे रुका"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "帰り道に川べりに寄った"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ghé bờ sông trên đường về"
+          }
+        }
+      }
+    },
+    "오늘 처음으로 5km 뛰었다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ran 5 km for the first time today"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आज पहली बार 5 किमी दौड़ा"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今日はじめて5km走った"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hôm nay lần đầu chạy 5km"
+          }
+        }
+      }
+    },
+    "필름 첫 롤 맡겼다": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dropped off my first roll of film"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पहला फ़िल्म रोल डेवलप करवाने दिया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フィルムの最初の一本を出した"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gửi rửa cuộn phim đầu tiên"
+          }
+        }
+      }
+    },
+    "친구가 들어오면 이렇게 쌓여요 · 예시": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This is how it fills up when friends join · Example"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दोस्त जुड़ें तो ऐसे भरता है · उदाहरण"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "友だちが入るとこう積み重なります · 例"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn bè vào thì sẽ như thế này · Ví dụ"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

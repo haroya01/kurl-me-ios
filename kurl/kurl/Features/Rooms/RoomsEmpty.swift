@@ -133,6 +133,15 @@ struct EmptyRooms: View {
     let create: () -> Void
     let join: () -> Void
 
+    @State private var arrived = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private static let friends: [(username: String, name: String, note: LocalizedStringKey)] = [
+        ("seoyeon", "서연", "퇴근길에 한강 들렀다"),
+        ("junho", "준호", "오늘 처음으로 5km 뛰었다"),
+        ("minji", "민지", "필름 첫 롤 맡겼다"),
+    ]
+
     var body: some View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 4) {
@@ -154,21 +163,52 @@ struct EmptyRooms: View {
                             author: Author(id: me.id ?? 0, username: me.username ?? "", bio: nil, avatarUrl: me.avatarUrl),
                             size: 44)
                     }
-                    ForEach(0..<3, id: \.self) { _ in
+                    ForEach(Array(Self.friends.enumerated()), id: \.offset) { index, friend in
                         Circle()
                             .strokeBorder(Palette.hairlineStrong, style: StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
                             .background(Circle().fill(Palette.readingBg))
                             .frame(width: 44, height: 44)
+                            .overlay {
+                                AvatarView(author: Self.author(friend, index), size: 44)
+                                    .opacity(index < arrived ? 1 : 0)
+                                    .scaleEffect(index < arrived ? 1 : 0.6)
+                            }
                     }
                 }
+                .accessibilityHidden(true)
                 Text("이름 없는 방")
                     .typeScale(.featured)
                     .foregroundStyle(Palette.faint)
                     .padding(.top, 18)
-                Text("나 혼자 있어요. 링크를 받은 친구만 들어와요.")
-                    .typeScale(.meta)
-                    .foregroundStyle(Palette.secondary)
-                    .padding(.top, 4)
+                Group {
+                    if arrived == 0 {
+                        Text("나 혼자 있어요. 링크를 받은 친구만 들어와요.")
+                    } else {
+                        Text("친구가 들어오면 이렇게 쌓여요 · 예시")
+                    }
+                }
+                .typeScale(.meta)
+                .foregroundStyle(Palette.secondary)
+                .contentTransition(.opacity)
+                .padding(.top, 4)
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(Array(Self.friends.enumerated()), id: \.offset) { index, friend in
+                        HStack(spacing: 8) {
+                            AvatarView(author: Self.author(friend, index), size: 22)
+                            Text(verbatim: friend.name)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(Palette.ink)
+                            Text(friend.note)
+                                .foregroundStyle(Palette.body)
+                                .lineLimit(1)
+                        }
+                        .typeScale(.note)
+                        .opacity(index < arrived ? 1 : 0)
+                        .offset(y: index < arrived ? 0 : 10)
+                    }
+                }
+                .padding(.top, 16)
+                .accessibilityHidden(true)
                 Hairline().padding(.vertical, 16)
                 HStack(spacing: 10) {
                     Text(verbatim: "kurl.me/r/······")
@@ -203,5 +243,26 @@ struct EmptyRooms: View {
                 .accessibilityIdentifier("rooms.empty.join")
         }
         .padding(.top, 28)
+        .task { await play() }
+    }
+
+    private static func author(_ friend: (username: String, name: String, note: LocalizedStringKey), _ index: Int) -> Author {
+        Author(id: Int64(-1 - index), username: friend.username, bio: nil, avatarUrl: nil, displayName: friend.name)
+    }
+
+    private func play() async {
+        if reduceMotion {
+            arrived = Self.friends.count
+            return
+        }
+        while !Task.isCancelled {
+            try? await Task.sleep(for: .milliseconds(900))
+            for index in Self.friends.indices {
+                withAnimation(.smooth(duration: 0.45)) { arrived = index + 1 }
+                try? await Task.sleep(for: .milliseconds(1_400))
+            }
+            try? await Task.sleep(for: .milliseconds(2_400))
+            withAnimation(.smooth(duration: 0.45)) { arrived = 0 }
+        }
     }
 }
