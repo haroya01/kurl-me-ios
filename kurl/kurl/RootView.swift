@@ -385,9 +385,6 @@ struct RootView: View {
             ) { _ in
                 HomeTabMenu()
             }
-                // Rebuild glass controls when returning from a screen that force-hides them.
-                // Scroll-driven hiding keeps the same identity and its existing animation.
-                .id(tabBarVisibility.forceHidden)
         }
         .ignoresSafeArea(.keyboard) // 키보드가 떠도 커스텀 바가 위로 밀려 올라오지 않게.
         .environment(\.tabBarVisibility, tabBarVisibility)
@@ -583,6 +580,7 @@ private struct FloatingTabBar<TabMenu: View>: View {
         .animation(reduceMotion ? nil : .smooth(duration: 0.2), value: dragX == nil)
         .offset(y: hidden ? 132 : sink)
         .opacity(hidden ? 0 : 1)
+        .animation(reduceMotion ? nil : Motion.move, value: hidden)
         .allowsHitTesting(!hidden)
         .accessibilityHidden(hidden)
         .sensoryFeedback(.selection, trigger: slidIndex) { old, new in old != nil && new != nil }
