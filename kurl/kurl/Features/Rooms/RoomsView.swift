@@ -41,6 +41,7 @@ final class RoomsRouter {
 
 extension EnvironmentValues {
     @Entry var insideRoom: Int64? = nil
+    @Entry var amongRooms = false
 }
 
 struct RoomsView: View {

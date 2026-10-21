@@ -314,6 +314,7 @@ struct NoteRowView: View {
     @Environment(\.noteFilterContext) private var filterContext
     @Environment(\.openNoteRoute) private var openNoteRoute
     @Environment(\.insideRoom) private var insideRoom
+    @Environment(\.amongRooms) private var amongRooms
     @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
     @ScaledMetric(relativeTo: .callout) private var nameCapCenter: CGFloat = 9
     @ScaledMetric(relativeTo: .callout) private var nameCapHalf: CGFloat = 5.3
@@ -770,7 +771,7 @@ struct NoteRowView: View {
                     .fixedSize()
                     .allowsHitTesting(false)
             }
-            if note.noteVisibility != .public, note.room == nil || insideRoom != note.room?.id {
+            if note.noteVisibility != .public, note.room == nil || !(amongRooms || insideRoom == note.room?.id) {
                 Image(systemName: note.noteVisibility.symbol)
                     .font(.system(size: 11 * unit, weight: .semibold))
                     .foregroundStyle(Palette.secondary)
