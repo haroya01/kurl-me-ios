@@ -47,24 +47,8 @@ struct RoomItemRow: View {
             NoteFeedItem(note: note, onChange: onReplace, onDelete: onRemove, onQuoted: onQuoted)
                 .environment(\.insideRoom, showsRoom ? nil : note.room?.id)
         case .post(let post):
-            VStack(alignment: .leading, spacing: 0) {
-                if showsRoom, let room = post.room {
-                    Button {
-                        RoomsRouter.shared.open(room.id)
-                    } label: {
-                        Text("\(room.name) 방에서")
-                            .typeScale(.meta)
-                            .fontWeight(.medium)
-                            .foregroundStyle(Palette.secondary)
-                            .lineLimit(1)
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.leading, 48 * min(scale, 1.8))
-                    .padding(.top, 12)
-                    .padding(.bottom, -8)
-                }
-                PostFeedRow(post: post)
-            }
+            PostFeedRow(post: post)
+                .environment(\.insideRoom, showsRoom ? nil : post.room?.id)
         }
     }
 

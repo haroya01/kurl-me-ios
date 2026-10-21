@@ -35,29 +35,51 @@ struct PostFeedRow: View {
             audience: post.audience, locked: post.locked, regionRestricted: post.regionRestricted)
     }
 
-    var body: some View {
-        HStack(alignment: .noteNameLine, spacing: 12) {
-            NavigationLink(value: Route.author(username: post.author.username)) {
-                ConversationAvatar(author: post.author)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(Text("\(ConversationName.spoken(post.author))님 프로필"))
-            .alignmentGuide(.noteNameLine) { $0[.top] + nameCapCenter }
+    @Environment(\.insideRoom) private var insideRoom
 
-            VStack(alignment: .leading, spacing: 2) {
-                header
-                    .alignmentGuide(.noteNameLine) { $0[.firstTextBaseline] - nameCapHalf }
-                NavigationLink(value: route) {
-                    postBody
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if let room = post.room, insideRoom != room.id {
+                HStack(spacing: 12) {
+                    Color.clear.frame(width: 36 * unit, height: 1)
+                    Button {
+                        RoomsRouter.shared.open(room.id)
+                    } label: {
+                        Text("\(room.name) 방에서")
+                            .typeScale(.meta)
+                            .fontWeight(.medium)
+                            .foregroundStyle(Palette.secondary)
+                            .lineLimit(1)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("post.room.\(post.id)")
+                }
+                .padding(.top, 12)
+                .padding(.bottom, -6)
+            }
+            HStack(alignment: .noteNameLine, spacing: 12) {
+                NavigationLink(value: Route.author(username: post.author.username)) {
+                    ConversationAvatar(author: post.author)
                 }
                 .buttonStyle(.plain)
-                .padding(.top, 4)
-                .accessibilityIdentifier("home.post.\(post.id)")
-                actions
-                    .padding(.top, 10)
+                .accessibilityLabel(Text("\(ConversationName.spoken(post.author))님 프로필"))
+                .alignmentGuide(.noteNameLine) { $0[.top] + nameCapCenter }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    header
+                        .alignmentGuide(.noteNameLine) { $0[.firstTextBaseline] - nameCapHalf }
+                    NavigationLink(value: route) {
+                        postBody
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 4)
+                    .accessibilityIdentifier("home.post.\(post.id)")
+                    actions
+                        .padding(.top, 10)
+                }
             }
+            .padding(.vertical, 14)
         }
-        .padding(.vertical, 14)
         .onAppear {
             guard likedAtStart == nil else { return }
             if post.likedByMe == true, !liked { likes.set(username: post.author.username, slug: post.slug, on: true) }

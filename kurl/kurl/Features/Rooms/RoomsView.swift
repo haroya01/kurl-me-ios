@@ -18,10 +18,20 @@ final class RoomsRouter {
     var changes = 0
 
     func open(_ id: Int64) {
+        guard TabRouter.shared.selection != TabRouter.roomsTab else {
+            var next = NavigationPath()
+            next.append(RoomRoute(id: id))
+            path = next
+            return
+        }
+        path = NavigationPath()
         TabRouter.shared.selection = TabRouter.roomsTab
-        var next = NavigationPath()
-        next.append(RoomRoute(id: id))
-        path = next
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(180))
+            var next = NavigationPath()
+            next.append(RoomRoute(id: id))
+            path = next
+        }
     }
 
     func changed() {

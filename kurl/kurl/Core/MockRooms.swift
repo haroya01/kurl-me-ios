@@ -122,7 +122,9 @@ enum MockRooms {
     static func respond(parts: [String], method: String, body: Data?) -> Data? {
         if parts == ["public", "home"], method == "GET",
            ProcessInfo.processInfo.arguments.contains("--mock-home-rooms") {
-            return json(["items": roomNotesForFollowing().map { ["kind": "note", "note": $0] }, "next": NSNull()])
+            let notes: [[String: Any]] = roomNotesForFollowing().map { ["kind": "note", "note": $0] }
+            let post: [[String: Any]] = roomPosts.prefix(1).map { ["kind": "post", "post": postView($0)] }
+            return json(["items": Array(notes.prefix(1)) + post + Array(notes.dropFirst()), "next": NSNull()])
         }
         if parts == ["rooms"] {
             if method == "POST" {
