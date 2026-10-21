@@ -16,10 +16,10 @@ struct RatchetClean: View {
             RemoteImage(url: nil, slotWidth: 120)
             Text("Reset #1234 and used to be easeOut").font(.caption)
         }
-        .animation(.snappy(duration: 0.25), value: on)
+        .animation(Motion.animation(Motion.micro), value: on)
         .sensoryFeedback(.selection, trigger: on)
         .onTapGesture {
-            withAnimation(.smooth(duration: 0.3)) { on.toggle() }
+            withMotion(Motion.move) { on.toggle() }
         }
     }
 }
