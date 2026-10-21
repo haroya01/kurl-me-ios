@@ -194,10 +194,13 @@ struct HomeFeedPage: View {
             case .failed(let message):
                 ErrorState(message: message, retry: { Task { await model.reload() } })
             case .loaded:
-                if model.items.isEmpty {
+                if !model.items.isEmpty { rows }
+                if model.showsTail, let tail = model.tail {
+                    HomeRemoteTail(model: tail, follows: model.items.count) {
+                        empty.padding(.top, 24)
+                    }
+                } else if model.items.isEmpty {
                     empty.padding(.top, 24)
-                } else {
-                    rows
                 }
             }
         }

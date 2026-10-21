@@ -1729,6 +1729,14 @@ enum MockBackend {
             return json(["items": topLevelNotes().filter { $0.visibility == "public" }.map(noteView),
                          "page": 0, "hasNext": false])
         }
+        if method == "GET", parts == ["public", "home"], ProcessInfo.processInfo.arguments.contains("--short-latest"),
+           query?.first(where: { $0.name == "tab" })?.value == "latest" {
+            let fresh = query?.contains { $0.name == "since" } != true
+            let items = fresh
+                ? topLevelNotes().filter { $0.visibility == "public" }.prefix(2).map { ["kind": "note", "note": noteView($0)] }
+                : []
+            return json(["items": items, "next": NSNull(), "newest": "m1", "gap": false])
+        }
         if method == "GET", parts == ["notes", "direct"] {
             let items = allNotes().filter {
                 $0.visibility == "direct" && ($0.authorId == 1 || $0.body.contains("@honggildong"))

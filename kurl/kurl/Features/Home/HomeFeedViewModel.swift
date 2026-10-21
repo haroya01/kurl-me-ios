@@ -18,20 +18,46 @@ final class HomeFeedViewModel {
     private(set) var newest: String?
     private let load: (HomeFeedTab, String?) async throws -> HomeFeedBatch
     private let newer: (HomeFeedTab, String) async throws -> HomeFeedBatch
+    let tail: RemoteStreamModel?
 
     init(
         tab: HomeFeedTab,
+        remote: @escaping (RemoteStreamFeed, String?) async throws -> RemoteStreamPage = FederationAPI.stream,
         newer: @escaping (HomeFeedTab, String) async throws -> HomeFeedBatch = HomeFeedAPI.newer,
         load: @escaping (HomeFeedTab, String?) async throws -> HomeFeedBatch = HomeFeedAPI.page
     ) {
         self.tab = tab
         self.load = load
         self.newer = newer
+        self.tail = tab == .latest ? RemoteStreamModel(feed: .latest, load: remote) : nil
+    }
+
+    var showsTail: Bool {
+        guard tail != nil, case .loaded = phase else { return false }
+        return next == nil
     }
 
     func refresh() async {
+        async let remote: Void = restartTail()
+        await refreshOwn()
+        await remote
+    }
+
+    func reload() async {
+        async let remote: Void = restartTail()
+        await reloadOwn()
+        await remote
+    }
+
+    private func restartTail() async {
+        guard let tail else { return }
+        if case .idle = tail.phase { return }
+        await tail.reload()
+    }
+
+    private func refreshOwn() async {
         guard tab != .trending, let marker = newest, !items.isEmpty else {
-            await reload()
+            await reloadOwn()
             return
         }
         epoch += 1
@@ -57,7 +83,7 @@ final class HomeFeedViewModel {
         }
     }
 
-    func reload() async {
+    private func reloadOwn() async {
         epoch += 1
         let myEpoch = epoch
         if items.isEmpty { phase = .loading }
