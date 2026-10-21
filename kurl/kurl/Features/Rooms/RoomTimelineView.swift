@@ -31,7 +31,7 @@ struct RoomTimelineView: View {
                     Button {
                         composing = true
                     } label: {
-                        ReplyPrompt(text: Text("\(detail.name)에 한마디"))
+                        ReplyPrompt(text: Text("지금 뭐 하고 있어요?"))
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("room.compose")

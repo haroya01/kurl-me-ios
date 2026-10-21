@@ -42989,34 +42989,6 @@
         }
       }
     },
-    "%@에 한마디": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Say something to %@"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ में कुछ कहें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@にひとこと"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nói gì đó với %@"
-          }
-        }
-      }
-    },
     "%@와 방 만들기": {
       "localizations": {
         "en": {
@@ -45579,34 +45551,6 @@
         }
       }
     },
-    "방에 한마디": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A word to the room"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "रूम में कुछ कहें"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ルームにひとこと"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nói gì đó với phòng"
-          }
-        }
-      }
-    },
     "제목이 있는 블로그 글": {
       "localizations": {
         "en": {
@@ -45827,6 +45771,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tắt liên kết"
+          }
+        }
+      }
+    },
+    "지금 뭐 하고 있어요?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What are you up to?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी क्या कर रहे हैं?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "いま何してる？"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bạn đang làm gì?"
+          }
+        }
+      }
+    },
+    "지금 하는 걸 짧게": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A quick line on what you're up to"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी जो कर रहे हैं, छोटे में"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "いましていることを短く"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ngắn gọn điều bạn đang làm"
           }
         }
       }
