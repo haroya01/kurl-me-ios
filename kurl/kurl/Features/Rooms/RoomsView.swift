@@ -57,6 +57,7 @@ struct RoomsView: View {
     @State private var pinTaps = 0
     @State private var creating: CreateRoomRequest?
     @State private var joining = false
+    @State private var quickCreating = false
     @State private var showLogin = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -85,6 +86,7 @@ struct RoomsView: View {
                 .task {
                     #if DEBUG
                     if Config.launchValue(after: "--room-sheet") == "create" { creating = CreateRoomRequest(friends: []) }
+                    if Config.launchValue(after: "--room-sheet") == "quick" { quickCreating = true }
                     if let id = Config.launchValue(after: "--room").flatMap(Int64.init) {
                         try? await Task.sleep(for: .milliseconds(800))
                         router.open(id)
@@ -100,6 +102,12 @@ struct RoomsView: View {
                     }
                 }
                 .sheet(isPresented: $joining) { JoinByLinkSheet() }
+                .sheet(isPresented: $quickCreating) {
+                    QuickRoomSheet { room in
+                        quickCreating = false
+                        router.open(room.id)
+                    }
+                }
                 .loginPrompt(isPresented: $showLogin, message: "방을 보려면 로그인하세요")
                 .sensoryFeedback(.success, trigger: answered)
                 .sensoryFeedback(.selection, trigger: pinTaps)
@@ -219,7 +227,7 @@ struct RoomsView: View {
                 Hairline().padding(.horizontal, -Metrics.noteGutter).padding(.top, 8)
             }
             if rooms.isEmpty {
-                empty
+                EmptyRoomsLinkFirst(create: { quickCreating = true }, join: { joining = true })
             }
             ForEach(Array(lively.enumerated()), id: \.element.id) { index, room in
                 RoomBlock(
@@ -281,26 +289,6 @@ struct RoomsView: View {
                 .padding(.bottom, 2)
             body()
         }
-    }
-
-    private var empty: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("친구들과 방을 만들면, 오늘 거기서 오간 말이 여기 먼저 보여요.")
-                .typeScale(.body)
-                .foregroundStyle(Palette.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            HStack(spacing: 10) {
-                Button("방 만들기") { creating = CreateRoomRequest(friends: suggested) }
-                    .buttonStyle(.glassProminent)
-                    .tint(GlassTokens.prominentTint)
-                    .accessibilityIdentifier("rooms.empty.create")
-                Button("초대 링크로 들어가기") { joining = true }
-                    .buttonStyle(.glass)
-                    .accessibilityIdentifier("rooms.empty.join")
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.top, 28)
     }
 
     private var suggestion: some View {

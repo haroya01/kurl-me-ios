@@ -45087,34 +45087,6 @@
         }
       }
     },
-    "친구들과 방을 만들면, 오늘 거기서 오간 말이 여기 먼저 보여요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Make a room with friends, and what they said today shows up here first."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "दोस्तों के साथ रूम बनाएँ, आज वहाँ की बातें यहाँ पहले दिखेंगी।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "友だちとルームを作ると、今日そこで交わした言葉がここに先に届きます。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tạo phòng với bạn bè, những gì họ nói hôm nay sẽ hiện ở đây trước."
-          }
-        }
-      }
-    },
     "코드 %@ · %@": {
       "localizations": {
         "en": {
@@ -45827,6 +45799,342 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tắt liên kết"
+          }
+        }
+      }
+    },
+    "친구끼리만 보는 작은 블로그": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A small blog just for friends"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सिर्फ़ दोस्तों के लिए छोटा ब्लॉग"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "友だちだけが読む小さなブログ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blog nhỏ chỉ dành cho bạn bè"
+          }
+        }
+      }
+    },
+    "대화처럼 답을 기다리지 않아도 돼요. 지금 하는 걸 올려 두면 친구들이 볼 때 봐요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No waiting for replies like a chat. Post what you're up to, and friends see it when they look."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "चैट की तरह जवाब का इंतज़ार नहीं। अभी जो कर रहे हैं वह डालें, दोस्त जब देखें तब देखेंगे।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "チャットのように返信を待たなくていい。今していることを置いておけば、友だちが見たいときに見ます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không cần chờ trả lời như nhắn tin. Đăng điều bạn đang làm, bạn bè sẽ xem khi họ ghé."
+          }
+        }
+      }
+    },
+    "방 이름 정하기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name the room"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रूम का नाम रखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ルーム名を決める"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đặt tên phòng"
+          }
+        }
+      }
+    },
+    "링크로 친구 부르기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invite friends with a link"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लिंक से दोस्तों को बुलाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンクで友だちを呼ぶ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mời bạn bằng liên kết"
+          }
+        }
+      }
+    },
+    "각자 지금 하는 걸 올리기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Each post what you're up to"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "हर कोई अभी जो कर रहा है वह डाले"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "それぞれ今していることを載せる"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mỗi người đăng điều mình đang làm"
+          }
+        }
+      }
+    },
+    "방 만들고 링크로 부르기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Make a room and invite by link"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रूम बनाएँ और लिंक से बुलाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ルームを作ってリンクで呼ぶ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tạo phòng và mời bằng liên kết"
+          }
+        }
+      }
+    },
+    "받은 초대 링크로 들어가기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Join with an invite link"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मिले हुए न्योता लिंक से जुड़ें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "受け取った招待リンクで入る"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vào bằng liên kết mời đã nhận"
+          }
+        }
+      }
+    },
+    "새 방": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New room"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नया रूम"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しいルーム"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phòng mới"
+          }
+        }
+      }
+    },
+    "방으로 가기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Go to room"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रूम पर जाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ルームへ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đến phòng"
+          }
+        }
+      }
+    },
+    "만들면 바로 초대 링크를 보낼 수 있어요. 최대 50명, 방 글은 멤버만 봐요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can send an invite link right after. Up to 50 people; only members see room posts."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बनाते ही न्योता लिंक भेज सकते हैं। अधिकतम 50 लोग, रूम की पोस्ट सिर्फ़ सदस्य देखते हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "作ったらすぐ招待リンクを送れます。最大50人、ルームの投稿はメンバーだけが見ます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tạo xong là gửi được liên kết mời ngay. Tối đa 50 người, chỉ thành viên xem bài trong phòng."
+          }
+        }
+      }
+    },
+    "방이 생겼어요. 링크를 받은 친구는 바로 들어와요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your room is ready. Friends who get the link join right away."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रूम बन गया। लिंक पाने वाले दोस्त सीधे जुड़ जाएँगे।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ルームができました。リンクを受け取った友だちはすぐ入れます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phòng đã sẵn sàng. Bạn bè nhận liên kết sẽ vào ngay."
+          }
+        }
+      }
+    },
+    "링크 보내기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send link"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लिंक भेजें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンクを送る"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gửi liên kết"
           }
         }
       }
