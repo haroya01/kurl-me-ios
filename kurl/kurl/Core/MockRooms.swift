@@ -126,6 +126,16 @@ enum MockRooms {
             let post: [[String: Any]] = roomPosts.prefix(1).map { ["kind": "post", "post": postView($0)] }
             return json(["items": Array(notes.prefix(1)) + post + Array(notes.dropFirst()), "next": NSNull()])
         }
+        if method == "GET", parts.count == 3, parts[0] == "public", parts[1] == "notes",
+           let id = Int64(parts[2]), let post = posts.first(where: { $0.id == id }) {
+            let answers = (replies[id] ?? []).map { reply in
+                noteView(Post(id: reply.0, roomId: post.roomId, author: reply.1, body: reply.2, minutesAgo: post.minutesAgo / 2))
+            }
+            return json([
+                "note": noteView(post), "parent": NSNull(), "replies": answers,
+                "continuation": [] as [Any], "series": NSNull(),
+            ])
+        }
         if parts == ["rooms"] {
             if method == "POST" {
                 let name = (decode(body)["name"] as? String) ?? ""
