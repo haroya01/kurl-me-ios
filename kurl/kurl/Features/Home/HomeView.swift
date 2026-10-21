@@ -29,7 +29,7 @@ struct HomeView: View {
                 let flick = value.velocity.width > 260 && dx > 20
                 let deliberate = dx > 48 && abs(dx) > abs(dy) * 1.2
                 guard !moreBlocked, abs(dx) > abs(dy), flick || deliberate, width > 0 else {
-                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.3)) { moreDragX = 0 }
+                    withAnimation(reduceMotion ? nil : Motion.move) { moreDragX = 0 }
                     return
                 }
                 if reduceMotion {
@@ -37,7 +37,7 @@ struct HomeView: View {
                     moreDragX = 0
                     return
                 }
-                withAnimation(.snappy(duration: 0.28)) {
+                withAnimation(Motion.move) {
                     moreDragX = width
                 } completion: {
                     choice.leaveMore()
@@ -68,7 +68,7 @@ struct HomeView: View {
                 }
             }
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
-            .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: choice.more)
+            .animation(reduceMotion ? nil : Motion.move, value: choice.more)
             .reservesTabBarSpace()
             .safeAreaBar(edge: .top) {
                 FeedHeaderBar(
@@ -148,13 +148,13 @@ struct HomeFeedPage: View {
         }
         .onChange(of: router.topRequests) {
             guard active, router.topTab == TabRouter.homeTab else { return }
-            withAnimation(reduceMotion ? nil : .smooth(duration: 0.35)) { position.scrollTo(edge: .top) }
+            withAnimation(reduceMotion ? nil : Motion.move) { position.scrollTo(edge: .top) }
         }
         .onChange(of: choice.arrivingID) { _, id in
             guard active, id != nil else { return }
             Task { @MainActor in
                 await Task.yield()
-                withAnimation(reduceMotion ? nil : .smooth(duration: 0.45)) { position.scrollTo(edge: .top) }
+                withAnimation(reduceMotion ? nil : Motion.stage) { position.scrollTo(edge: .top) }
             }
         }
         .environment(\.noteFilterContext, .home)

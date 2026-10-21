@@ -448,7 +448,7 @@ struct DomainBlocksView: View {
                 Task {
                     do {
                         try await FederationAPI.setDomainBlocked(false, domain: block.domain)
-                        withAnimation(.snappy(duration: 0.2)) { blocks.removeAll { $0.id == block.id } }
+                        withMotion(Motion.micro) { blocks.removeAll { $0.id == block.id } }
                         ToastCenter.shared.show(String(localized: "\(block.domain) 차단을 해제했어요"))
                     } catch {
                         ToastCenter.shared.show(String(localized: "해제하지 못했어요"))

@@ -234,7 +234,7 @@ final class NotesViewModel {
     }
 
     func inserted(_ note: Note) {
-        withAnimation(.snappy(duration: 0.3)) {
+        withMotion(Motion.move) {
             phase = .loaded(true)
             loaded.insert(note, at: 0)
         }
@@ -248,7 +248,7 @@ final class NotesViewModel {
     }
 
     func removed(_ id: Int64) {
-        _ = withAnimation(.snappy(duration: 0.25)) { loaded.removeAll { $0.id == id } }
+        _ = withMotion(Motion.move) { loaded.removeAll { $0.id == id } }
     }
 }
 
@@ -364,7 +364,7 @@ struct NoteRowView: View {
 
     private func filteredBar(_ phrases: [String]) -> some View {
         Button {
-            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.22)) { filterRevealed = true }
+            withAnimation(reduceMotion ? nil : Motion.micro) { filterRevealed = true }
         } label: {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text("필터됨: \(phrases.joined(separator: ", "))")
@@ -696,7 +696,7 @@ struct NoteRowView: View {
                 .conversationGrouping(label: spokenLine, identifier: "note.row.\(note.id)") {
                     if note.contentWarning != nil {
                         Button(revealed ? LocalizedStringKey("숨기기") : LocalizedStringKey("보기")) {
-                            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.22)) { revealed.toggle() }
+                            withAnimation(reduceMotion ? nil : Motion.micro) { revealed.toggle() }
                         }
                     }
                     if let detached {
@@ -893,7 +893,7 @@ struct NoteRowView: View {
     }
 
     private func reveal() {
-        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.22)) { revealed = true }
+        withAnimation(reduceMotion ? nil : Motion.micro) { revealed = true }
     }
 
     private var mediaConcealed: Bool {
@@ -903,7 +903,7 @@ struct NoteRowView: View {
     }
 
     private func revealMedia() {
-        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.22)) {
+        withAnimation(reduceMotion ? nil : Motion.micro) {
             if note.contentWarning != nil { revealed = true } else { mediaRevealed = true }
         }
     }
@@ -1190,13 +1190,13 @@ struct NoteRowView: View {
         }
         let target = !reposted
         let previous = repostCount
-        withAnimation(.snappy(duration: 0.2)) {
+        withMotion(Motion.micro) {
             reposted = target
             repostCount = max((repostCount ?? 0) + (target ? 1 : -1), 0)
         }
         do {
             let status = try await NoteAPI.setRepost(id: note.id, on: target)
-            withAnimation(.snappy(duration: 0.2)) { repostCount = status.repostCount }
+            withMotion(Motion.micro) { repostCount = status.repostCount }
         } catch {
             reposted = !target
             repostCount = previous
@@ -1302,13 +1302,13 @@ struct NoteRowView: View {
         }
         let target = !liked
         let previous = likeCount
-        withAnimation(.snappy(duration: 0.2)) {
+        withMotion(Motion.micro) {
             liked = target
             likeCount = max((likeCount ?? 0) + (target ? 1 : -1), 0)
         }
         do {
             let status = try await NoteAPI.setLike(id: note.id, on: target)
-            withAnimation(.snappy(duration: 0.2)) { likeCount = status.likeCount }
+            withMotion(Motion.micro) { likeCount = status.likeCount }
         } catch {
             liked = !target
             likeCount = previous
@@ -1334,7 +1334,7 @@ struct GlyphPop: ViewModifier {
         content.phaseAnimator([1.0, 1.22, 1.0], trigger: trigger) { view, scale in
             view.scaleEffect(scale)
         } animation: { _ in
-            .snappy(duration: 0.16)
+            Motion.animation(Motion.micro)
         }
     }
 }
@@ -1953,7 +1953,7 @@ struct NoteDetailView: View {
                     .brandRefreshable { await load() }
                     .onChange(of: landed) { _, id in
                         guard let id else { return }
-                        withAnimation(reduceMotion ? nil : .snappy(duration: 0.3)) {
+                        withAnimation(reduceMotion ? nil : Motion.move) {
                             proxy.scrollTo(id)
                         }
                         landed = nil
@@ -2403,7 +2403,7 @@ struct NoteComposeSheet: View {
                                     .accessibilityIdentifier("noteCompose.camera")
                                 }
                                 Button {
-                                    withAnimation(.snappy(duration: 0.2)) {
+                                    withMotion(Motion.micro) {
                                         poll = poll == nil ? NotePollDraft() : nil
                                     }
                                 } label: {
@@ -2420,7 +2420,7 @@ struct NoteComposeSheet: View {
                                 .accessibilityIdentifier("noteCompose.pollToggle")
                             }
                                 Button {
-                                    withAnimation(.snappy(duration: 0.2)) { warns.toggle() }
+                                    withMotion(Motion.micro) { warns.toggle() }
                                 } label: {
                                     Text("열람 주의")
                                         .typeScale(.meta)
@@ -2528,7 +2528,7 @@ struct NoteComposeSheet: View {
             }
             .sheet(isPresented: $pickingSchedule) {
                 NoteScheduleSheet(initial: scheduledAt) { picked in
-                    withAnimation(.snappy(duration: 0.2)) { scheduledAt = picked }
+                    withMotion(Motion.micro) { scheduledAt = picked }
                 }
             }
             .alert("노트는 다른 서버에도 전해져요", isPresented: $showNotice) {
@@ -2760,7 +2760,7 @@ struct NoteComposeSheet: View {
                         NoteLengthRing(length: count, limit: NoteAPI.maxLength)
                     }
                     Button {
-                        withAnimation(.snappy(duration: 0.2)) { parts.removeAll { $0.id == id } }
+                        withMotion(Motion.micro) { parts.removeAll { $0.id == id } }
                     } label: {
                         Image(systemName: "xmark")
                             .font(.system(size: 12, weight: .semibold))
@@ -2797,7 +2797,7 @@ struct NoteComposeSheet: View {
     private var addPartRow: some View {
         Button {
             let next = ThreadPart()
-            withAnimation(.snappy(duration: 0.2)) { parts.append(next) }
+            withMotion(Motion.micro) { parts.append(next) }
             Task { @MainActor in focusedPart = next.id }
         } label: {
             HStack(spacing: 12) {
@@ -2829,7 +2829,7 @@ struct NoteComposeSheet: View {
                         .accessibilityLabel(Text(item.altText.isEmpty ? String(localized: "사진") : item.altText))
                         .overlay(alignment: .topTrailing) {
                             Button {
-                                withAnimation(.snappy(duration: 0.2)) { picked.removeAll { $0.id == item.id } }
+                                withMotion(Motion.micro) { picked.removeAll { $0.id == item.id } }
                             } label: {
                                 Image(systemName: "xmark")
                                     .font(.system(size: 11, weight: .bold))
@@ -3103,7 +3103,7 @@ private struct NoteLengthRing: View {
             }
         }
         .frame(width: near ? 28 : 22, height: near ? 28 : 22)
-        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: near)
+        .animation(reduceMotion ? nil : Motion.micro, value: near)
         .accessibilityElement()
         .accessibilityLabel(left < 0 ? Text("\(limit)자까지 쓸 수 있어요") : Text("\(left)자 남음"))
     }

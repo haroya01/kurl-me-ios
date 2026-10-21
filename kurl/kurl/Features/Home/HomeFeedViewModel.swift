@@ -43,7 +43,7 @@ final class HomeFeedViewModel {
             } else if !batch.items.isEmpty {
                 let fresh = Self.unique(batch.items)
                 let known = Set(fresh.map(\.id))
-                withAnimation(.snappy(duration: 0.3)) {
+                withMotion(Motion.move) {
                     items = fresh + items.filter { !known.contains($0.id) }
                 }
             }
@@ -91,7 +91,7 @@ final class HomeFeedViewModel {
     }
 
     func inserted(_ note: Note) {
-        withAnimation(.snappy(duration: 0.3)) {
+        withMotion(Motion.move) {
             phase = .loaded(true)
             items.removeAll { $0.id == HomeFeedItem(kind: .note(note)).id }
             items.insert(HomeFeedItem(kind: .note(note)), at: 0)
@@ -106,7 +106,7 @@ final class HomeFeedViewModel {
     }
 
     func removed(_ id: Int64) {
-        withAnimation(.snappy(duration: 0.25)) { items.removeAll { $0.note?.id == id } }
+        withMotion(Motion.move) { items.removeAll { $0.note?.id == id } }
     }
 
     static func unique(_ items: [HomeFeedItem]) -> [HomeFeedItem] {

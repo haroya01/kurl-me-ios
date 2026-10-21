@@ -193,7 +193,7 @@ struct TrendingNoteRow: View {
                 }
                 .typeScale(.lede)
                 .foregroundStyle(actions.liked ? Palette.accent : Palette.ink)
-                .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: actions.likeCount)
+                .animation(reduceMotion ? nil : Motion.move, value: actions.likeCount)
                 .expandTapTarget()
             }
             .buttonStyle(.plain)
@@ -238,7 +238,7 @@ struct TrendingNoteRow: View {
                 }
                 .typeScale(.lede)
                 .foregroundStyle(actions.reposted ? Palette.accent : Palette.ink)
-                .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: actions.repostCount)
+                .animation(reduceMotion ? nil : Motion.move, value: actions.repostCount)
                 .expandTapTarget()
             }
             .buttonStyle(.plain)
