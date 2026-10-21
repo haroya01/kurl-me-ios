@@ -47,6 +47,15 @@ custom_rules:
     message: "모션 곡선은 .snappy·.smooth 만(DESIGN.md §1.6). 다른 곡선이 필요하면 모션 토큰부터 정한다."
     severity: error
 
+  motion_token:
+    name: "모션 토큰 밖 곡선 금지"
+    regex: '\.(snappy|smooth)\b'
+    match_kinds:
+      - identifier
+    excluded: 'Theme/Motion\.swift$'
+    message: "모션은 Motion.micro·move·stage(.smooth 한 곡선, 길이 3단). 뷰 밖 reduce-motion 분기는 Motion.animation·withMotion."
+    severity: error
+
   remote_image_only:
     name: "AsyncImage 금지"
     regex: '\bAsyncImage\b'
