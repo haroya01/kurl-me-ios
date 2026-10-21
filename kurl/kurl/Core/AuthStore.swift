@@ -79,9 +79,9 @@ final class AuthStore {
 
     var bearerToken: String? { accessToken }
 
-    /// 공개 읽기에 실을 토큰 — 공개 경로는 만료된 토큰도 401 없이 익명으로 받아 401 리프레시가 돌지 않으므로,
-    /// 만료가 가까우면 먼저 리프레시한다. 로그아웃이거나 리프레시하지 못하면 익명(nil 또는 서버가 무시할 옛 토큰).
-    func viewerBearerToken() async -> String? {
+    /// 만료가 가까우면 먼저 리프레시한 토큰. 공개 경로는 만료된 토큰도 401 없이 익명으로 받아 401 리프레시가
+    /// 돌지 않는다. 로그아웃이거나 리프레시하지 못하면 nil 또는 서버가 무시할 옛 토큰.
+    func freshBearerToken() async -> String? {
         guard isSignedIn else { return nil }
         if let accessToken, !Self.accessTokenExpires(accessToken, within: 30) { return accessToken }
         try? await refreshTokens()

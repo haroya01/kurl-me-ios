@@ -410,8 +410,24 @@ private struct SkeletonRow: View {
     }
 }
 
-/// 절제된 shimmer — 옅은 빛 띠가 카드를 한 번씩 느리게 쓸고 지나간다. Reduce Motion 이면 정지.
+extension EnvironmentValues {
+    @Entry var skeletonAnimates = true
+}
+
 private struct SkeletonShimmer: ViewModifier {
+    @Environment(\.skeletonAnimates) private var animates
+
+    func body(content: Content) -> some View {
+        if animates {
+            content.modifier(SkeletonSweep())
+        } else {
+            content.clipShape(RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
+        }
+    }
+}
+
+/// 절제된 shimmer — 옅은 빛 띠가 카드를 한 번씩 느리게 쓸고 지나간다. Reduce Motion 이면 정지.
+private struct SkeletonSweep: ViewModifier {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var travel = false
 

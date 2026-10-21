@@ -208,28 +208,30 @@ final class FeedViewModel {
         guard hasNext, !isLoadingMore else { return }
         isLoadingMore = true
         loadMoreFailed = false
-        defer { isLoadingMore = false }
         let myEpoch = epoch
-        do {
-            // 걸러서 빈 페이지는 이어 받는다 — 빈 append 는 앵커 .task 를 소진시켜 피드가 조용히
-            // 끝난 것처럼 굳는다. page 는 성공 시에만 전진(실패 후 재시도가 같은 페이지를 다시 받게).
-            let next = try await Self.collectKept(from: page + 1, seen: Set(items.map(\.id))) {
-                try await self.fetch(page: $0)
+        await Task {
+            defer { isLoadingMore = false }
+            do {
+                // 걸러서 빈 페이지는 이어 받는다 — 빈 append 는 앵커 .task 를 소진시켜 피드가 조용히
+                // 끝난 것처럼 굳는다. page 는 성공 시에만 전진(실패 후 재시도가 같은 페이지를 다시 받게).
+                let next = try await Self.collectKept(from: page + 1, seen: Set(items.map(\.id))) {
+                    try await self.fetch(page: $0)
+                }
+                // reload 가 끼어들었으면 이 응답은 옛 세대 — 버린다(append 도 page 전진도 없음).
+                guard myEpoch == epoch else { return }
+                page = next.page
+                hasNext = next.hasNext
+                items.append(contentsOf: next.kept)
+                seriesNotes.append(contentsOf: next.notes)
+                placeSeriesNotes()
+                phase = .loaded(items)
+                // 다음 페이지 카드들의 소속도 곁에서 배치로 — 이미 물어본 id 는 method 안에서 걸러진다.
+                loadBelonging(for: next.kept, epoch: myEpoch)
+            } catch {
+                guard myEpoch == epoch else { return }
+                loadMoreFailed = true
             }
-            // reload 가 끼어들었으면 이 응답은 옛 세대 — 버린다(append 도 page 전진도 없음).
-            guard myEpoch == epoch else { return }
-            page = next.page
-            hasNext = next.hasNext
-            items.append(contentsOf: next.kept)
-            seriesNotes.append(contentsOf: next.notes)
-            placeSeriesNotes()
-            phase = .loaded(items)
-            // 다음 페이지 카드들의 소속도 곁에서 배치로 — 이미 물어본 id 는 method 안에서 걸러진다.
-            loadBelonging(for: next.kept, epoch: myEpoch)
-        } catch {
-            guard myEpoch == epoch else { return }
-            loadMoreFailed = true
-        }
+        }.value
     }
 
     /// 카드 소속 배치 — 아직 안 물어본 글 id 를 모아 한 요청(상한 50, 넘으면 나눠서)으로 소속 공개 컬렉션을

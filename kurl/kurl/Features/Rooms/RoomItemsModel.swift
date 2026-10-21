@@ -63,12 +63,14 @@ final class RoomItemsModel {
     func loadMoreIfNeeded(current item: HomeFeedItem) async {
         guard let next, !loadingMore, items.suffix(5).contains(where: { $0.id == item.id }) else { return }
         loadingMore = true
-        defer { loadingMore = false }
         let mine = epoch
-        guard let batch = try? await load(next), mine == epoch else { return }
-        let known = Set(items.map(\.id))
-        items += batch.items.filter { !known.contains($0.id) }
-        self.next = batch.next
+        await Task {
+            defer { loadingMore = false }
+            guard let batch = try? await load(next), mine == epoch else { return }
+            let known = Set(items.map(\.id))
+            items += batch.items.filter { !known.contains($0.id) }
+            self.next = batch.next
+        }.value
     }
 
     func inserted(_ note: Note) {
