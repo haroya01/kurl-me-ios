@@ -1,8 +1,3 @@
-//
-//  NotificationsView.swift
-//  kurl
-//
-
 import SwiftUI
 import UserNotifications
 

@@ -1,8 +1,3 @@
-//
-//  TakenDownNotice.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 운영 정책으로 내려진 글 안내 — 웹 에디터·발행 대화상자와 같은 문구.

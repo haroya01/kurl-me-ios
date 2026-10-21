@@ -1,8 +1,3 @@
-//
-//  PostConditionLabel.swift
-//  kurl
-//
-
 import Foundation
 
 enum PostConditionLabel {

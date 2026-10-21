@@ -1,8 +1,3 @@
-//
-//  OfflineReadingUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// 오프라인 폴백 — `--offline`(전 네트워크 즉사) + `--seed-offline`(기기 사본 픽스처)으로

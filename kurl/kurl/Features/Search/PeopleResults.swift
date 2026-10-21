@@ -1,8 +1,3 @@
-//
-//  PeopleResults.swift
-//  kurl
-//
-
 import SwiftUI
 
 @Observable

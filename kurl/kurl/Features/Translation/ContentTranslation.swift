@@ -1,8 +1,3 @@
-//
-//  ContentTranslation.swift
-//  kurl
-//
-
 import NaturalLanguage
 import SwiftUI
 import Translation

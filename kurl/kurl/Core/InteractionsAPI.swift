@@ -1,8 +1,3 @@
-//
-//  InteractionsAPI.swift
-//  kurl
-//
-
 import Foundation
 
 /// 인증 인터랙션 (좋아요·북마크·팔로우). 전부 멱등 PUT/DELETE 토글 — 낙관 UI 가

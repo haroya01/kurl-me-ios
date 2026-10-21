@@ -1,8 +1,3 @@
-//
-//  ProfileTabs.swift
-//  kurl
-//
-
 import Observation
 import SwiftUI
 

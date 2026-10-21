@@ -1,8 +1,3 @@
-//
-//  FollowButton.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 작가 페이지의 팔로우 버튼 + 팔로워 수 — 팔로우 전 = 채운 캡슐, 팔로잉 = 외곽선 캡슐.

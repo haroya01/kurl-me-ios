@@ -1,8 +1,3 @@
-//
-//  LibraryView.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 서재 — 내가 모은 것(북마크·좋아요·구독·하이라이트·컬렉션·기록)을 한 목록으로.

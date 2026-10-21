@@ -1,8 +1,3 @@
-//
-//  SeriesDetailChromeUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// 시리즈 상세의 크롬 제목 규칙 — 마스트헤드 H1 이 제목의 주인이라, 로드된 뒤 상단 바에는

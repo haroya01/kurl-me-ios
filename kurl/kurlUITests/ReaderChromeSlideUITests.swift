@@ -1,8 +1,3 @@
-//
-//  ReaderChromeSlideUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// 글 상세 커스텀 상단 크롬(뒤로·제목·⋯) — 스크롤 다운에 접히고 업에 돌아오는지,

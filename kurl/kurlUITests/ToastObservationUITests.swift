@@ -1,7 +1,3 @@
-//
-//  ToastObservationUITests.swift
-//  kurlUITests
-//
 //  ToastHost 가 ToastCenter(@Observable)를 실제로 관찰하는지 — 다른 뷰 갱신이 함께
 //  일어나지 않는 맥락(스튜디오 핀 토글: pinned set 만 바뀌고 목록은 재구성 안 됨)에서
 //  토스트가 뜨는지 가드한다. 회귀 시(center 를 computed var 로 되돌리면) 토스트가 body

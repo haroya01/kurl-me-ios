@@ -1,8 +1,3 @@
-//
-//  PostAccess.swift
-//  kurl
-//
-
 import Foundation
 import Observation
 

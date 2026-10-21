@@ -1,8 +1,3 @@
-//
-//  ProfileRepliesMediaUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// 프로필의 답글·미디어 탭 — 탭 순서, 답글의 머리 줄과 원래 글로 가기, 미디어 칸의 가림·장수와 노트로 가기(목).

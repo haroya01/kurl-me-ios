@@ -1,8 +1,3 @@
-//
-//  NoteVideoSoundTests.swift
-//  kurlTests
-//
-
 import AVFoundation
 import XCTest
 

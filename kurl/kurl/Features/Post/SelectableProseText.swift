@@ -1,8 +1,3 @@
-//
-//  SelectableProseText.swift
-//  kurl
-//
-
 import SwiftUI
 import UIKit
 

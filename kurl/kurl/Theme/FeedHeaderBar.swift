@@ -1,8 +1,3 @@
-//
-//  FeedHeaderBar.swift
-//  kurl
-//
-
 import SwiftUI
 
 struct FeedHeaderBar<Item: Hashable & Identifiable, More: View>: View {

@@ -1,8 +1,3 @@
-//
-//  HighlightReplyLikeNoticeUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 final class HighlightReplyLikeNoticeUITests: XCTestCase {

@@ -1,8 +1,3 @@
-//
-//  AbuseReport.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 신고 사유 — 백엔드는 `reasonCode`(enum) + `detail`(자유서술) 두 필드로 받는다(#611).

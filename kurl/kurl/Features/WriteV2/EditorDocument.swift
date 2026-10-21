@@ -1,7 +1,3 @@
-//
-//  EditorDocument.swift
-//  kurl — WriteV2
-//
 //  편집 모델. 블록 배열 + 포커스 + 편집 연산(엔터=분할 · 백스페이스=병합 · 삽입/삭제 ·
 //  줄머리 마크다운 지름길). 뷰(WysiwygEditorView)는 이 @Observable 하나에만 말을 건다 —
 //  per-block UITextView 는 텍스트/캐럿만 위임하고 구조 변경은 전부 여기서 일어난다.

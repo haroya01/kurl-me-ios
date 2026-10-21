@@ -1,8 +1,3 @@
-//
-//  FollowStatusUnknownTests.swift
-//  kurlTests
-//
-
 import SwiftUI
 import XCTest
 

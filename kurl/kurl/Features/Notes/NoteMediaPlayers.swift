@@ -1,8 +1,3 @@
-//
-//  NoteMediaPlayers.swift
-//  kurl
-//
-
 import AVKit
 import SwiftUI
 

@@ -1,8 +1,3 @@
-//
-//  LoginPrompt.swift
-//  kurl
-//
-
 import SwiftUI
 
 extension View {

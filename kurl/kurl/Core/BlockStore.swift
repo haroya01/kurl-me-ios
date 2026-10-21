@@ -1,8 +1,3 @@
-//
-//  BlockStore.swift
-//  kurl
-//
-
 import Foundation
 
 /// 내가 차단한 사용자 — App Store 1.2(UGC) 요건. 차단하면 그 사용자의 글·댓글·노트를 클라이언트에서

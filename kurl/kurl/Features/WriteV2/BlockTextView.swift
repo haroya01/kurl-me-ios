@@ -1,7 +1,3 @@
-//
-//  BlockTextView.swift
-//  kurl — WriteV2
-//
 //  블록 하나를 그리는 UITextView 브리지. "원시 마크다운 안 보이고 최종 모습으로 렌더 + 편집" 의
 //  실제 구현. 문단/제목/인용은 인라인 마크다운(`**볼드**`·`*이탤릭*`·`[라벨](url)` 등)을 최종 모습으로
 //  렌더하며 마커 글자는 숨긴다 — 캐럿이 그 마크업에 걸칠 때만 마커를 흐리게 반개봉해 손볼 수 있게 한다
@@ -174,13 +170,6 @@ struct BlockTextView: UIViewRepresentable {
         guard let from = tv.position(from: tv.beginningOfDocument, offset: utf16Start),
               let to = tv.position(from: tv.beginningOfDocument, offset: utf16End) else { return }
         tv.selectedTextRange = tv.textRange(from: from, to: to)
-    }
-
-    private func setCaret(_ pos: Int, in tv: UITextView) {
-        let clamped = max(0, min(pos, (tv.text as NSString).length))
-        if let position = tv.position(from: tv.beginningOfDocument, offset: clamped) {
-            tv.selectedTextRange = tv.textRange(from: position, to: position)
-        }
     }
 
     // MARK: Coordinator
@@ -522,7 +511,6 @@ final class BlockUITextView: UITextView {
     }
     /// 문서가 아는 이 블록의 현재 text — SwiftUI 왕복 시 캐럿 튐/재렌더 루프 방지용 캐시.
     var currentBlockText: String = ""
-    var onEmptyBackspaceOverride: (() -> Void)?
     /// 붙여넣기 가로채기 — 이미지 바이트 / 이미지 URL / 일반 URL(링크로). 없으면 기본 붙여넣기.
     var onPasteImages: (([UIImage]) -> Void)?
     var onPasteImageURL: ((String) -> Void)?

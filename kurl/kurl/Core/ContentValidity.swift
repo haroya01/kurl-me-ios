@@ -1,8 +1,3 @@
-//
-//  ContentValidity.swift
-//  kurl
-//
-
 import Foundation
 
 /// 렌더 직전 콘텐츠 위생 — 백엔드/사용자 입력에서 새어 든 부스러기(불완전 자모 태그·

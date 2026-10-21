@@ -1,8 +1,3 @@
-//
-//  MutedUsersView.swift
-//  kurl
-//
-
 import SwiftUI
 
 enum MuteDuration: Int, CaseIterable, Identifiable {

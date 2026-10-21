@@ -1,8 +1,3 @@
-//
-//  PostVersionGate.swift
-//  kurl
-//
-
 import Foundation
 
 /// 한 글 편집이 아는 서버 내용 버전 — 다음 저장의 baseVersion. 버전을 올리는 쓰기(본문 PUT·메타 PATCH)는

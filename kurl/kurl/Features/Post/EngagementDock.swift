@@ -1,8 +1,3 @@
-//
-//  EngagementDock.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 글 상세의 좋아요·북마크 — 우하단에 떠 있는 유리 독(DESIGN.md §1).

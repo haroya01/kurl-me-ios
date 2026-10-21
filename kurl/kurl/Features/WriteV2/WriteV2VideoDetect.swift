@@ -1,7 +1,3 @@
-//
-//  WriteV2VideoDetect.swift
-//  kurl — WriteV2
-//
 //  "이 URL 이 발행 시 동영상 플레이어로 접히는가"의 판정 — 삽입 툴바의 통합 링크(신고 11)가
 //  동영상 주소를 단독 URL 문단(임베드)으로 넣을지, 평범한 `[라벨](url)` 로 넣을지를 가른다.
 //  발행면 BlockRenderer 의 YouTubeRef/VimeoRef(둘 다 private)와 **같은 규칙**을 미러한다 —

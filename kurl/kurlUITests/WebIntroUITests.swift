@@ -1,8 +1,3 @@
-//
-//  WebIntroUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// 로그인 직후 1회 웹 안내 시트 — 개인화 주소가 뜨고, 탭하면 인앱 사파리, 확인으로 닫힌다.

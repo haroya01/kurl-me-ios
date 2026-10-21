@@ -1,8 +1,3 @@
-//
-//  DraftFlusher.swift
-//  kurl
-//
-
 import Foundation
 
 /// 편집 화면을 떠나는 순간의 마지막 저장(플러시)을 뷰 수명과 분리해 수행한다.

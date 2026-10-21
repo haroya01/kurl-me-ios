@@ -1,8 +1,3 @@
-//
-//  NoteListsView.swift
-//  kurl
-//
-
 import SwiftUI
 
 struct NoteListsSheet: View {

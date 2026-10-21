@@ -1,8 +1,3 @@
-//
-//  WebIntroSheet.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 로그인 직후 딱 한 번 — "쓴 글이 웹에도 산다"를 내 주소로 보여주는 안내 시트.

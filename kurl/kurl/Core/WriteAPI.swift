@@ -1,8 +1,3 @@
-//
-//  WriteAPI.swift
-//  kurl
-//
-
 import Foundation
 
 /// 글쓰기(작성·발행) 엔드포인트. 본문은 마크다운 하나로 다룬다 — md↔blocks 변환은

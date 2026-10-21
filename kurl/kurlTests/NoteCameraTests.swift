@@ -1,8 +1,3 @@
-//
-//  NoteCameraTests.swift
-//  kurlTests
-//
-
 import UIKit
 import XCTest
 

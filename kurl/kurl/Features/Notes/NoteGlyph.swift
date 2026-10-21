@@ -1,8 +1,3 @@
-//
-//  NoteGlyph.swift
-//  kurl
-//
-
 import os
 import SwiftUI
 

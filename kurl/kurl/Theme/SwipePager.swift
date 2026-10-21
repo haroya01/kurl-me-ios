@@ -1,8 +1,3 @@
-//
-//  SwipePager.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 피드 탭을 좌우로 넘기는 필름스트립 — 블로그·노트 탭이 같은 손맛으로 넘어가게 한 벌로 둔다.
@@ -223,7 +218,4 @@ extension View {
         modifier(SwipeSelects(tabs: tabs, selection: selection))
     }
 
-    func swipesBack(perform action: @escaping () -> Void) -> some View {
-        swipeSelects([0, 1], selection: Binding(get: { 1 }, set: { if $0 == 0 { action() } }))
-    }
 }

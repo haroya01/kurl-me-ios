@@ -1,8 +1,3 @@
-//
-//  RoomInviteSheet.swift
-//  kurl
-//
-
 import CoreImage.CIFilterBuiltins
 import SwiftUI
 

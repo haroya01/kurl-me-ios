@@ -1,8 +1,3 @@
-//
-//  Glass.swift
-//  kurl
-//
-
 import SwiftUI
 
 // MARK: 유리 캡슐 토글 — 팔로우·구독·정렬 칩이 공유하는 문법

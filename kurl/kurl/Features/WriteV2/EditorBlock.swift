@@ -1,14 +1,8 @@
-//
-//  EditorBlock.swift
-//  kurl — WriteV2 (격리 WYSIWYG 에디터, Phase 1 증명 슬라이스)
-//
 //  블록 모델. 에디터의 편집 단위는 "순서 있는 타입 블록"이고, 저장 계약은 마크다운 문자열이다
 //  (백엔드가 md↔blocks 를 소유 — WriteAPI.replaceMarkdown/markdown, 서버가 정규화).
 //  그래서 이 모델의 진실은 **왕복**이다: 마크다운 → 블록(파싱) / 블록 → 마크다운(직렬화).
 //  현행 ComposeView 가 보내는 것과 같은 마크다운 방언을 목표로 한다(MarkdownSyntaxHighlighter 방언).
 //
-//  Phase 1 스코프: 문단 · 제목 h1~3 · 인용 · 코드[lang].
-//  Phase 2 확장: 구분선 · 리스트(글머리/번호, 중첩) · 이미지 · 표. (임베드는 Phase 2+.)
 //
 
 import Foundation
@@ -112,12 +106,6 @@ nonisolated struct EditorBlock: Identifiable, Equatable {
     static func linkCard(_ url: String) -> EditorBlock { .init(kind: .linkCard(url: url), text: "") }
     static func callout(_ kind: CalloutKind, _ text: String) -> EditorBlock { .init(kind: .callout(kind: kind), text: text) }
 
-    /// 코드 블록만 여러 줄을 한 블록에 담는다 — 나머지는 개념상 한 줄(문단은 소프트랩).
-    var isMultiline: Bool {
-        if case .code = kind { return true }
-        return false
-    }
-
     var isEmptyParagraph: Bool {
         if case .paragraph = kind { return text.isEmpty }
         return false
@@ -145,14 +133,5 @@ nonisolated struct EditorBlock: Identifiable, Equatable {
     var listInfo: (ordered: Bool, indent: Int)? {
         if case .listItem(let ordered, let indent) = kind { return (ordered, indent) }
         return nil
-    }
-}
-
-/// 문서 = 순서 있는 블록 배열. 편집 연산(분할·병합·삽입·삭제)은 `EditorDocument`(별 파일)가 소유.
-nonisolated struct EditorBlockList: Equatable {
-    var blocks: [EditorBlock]
-
-    init(blocks: [EditorBlock] = [.paragraph("")]) {
-        self.blocks = blocks.isEmpty ? [.paragraph("")] : blocks
     }
 }

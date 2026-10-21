@@ -1,8 +1,3 @@
-//
-//  FeedBellDeepLinkUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// 피드 벨 경로의 인박스 딥링크 — 벨이 isPresented 목적지였을 때 인박스 안의 값 푸시(행·아바타)가

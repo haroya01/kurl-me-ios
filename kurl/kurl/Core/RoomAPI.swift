@@ -1,8 +1,3 @@
-//
-//  RoomAPI.swift
-//  kurl
-//
-
 import Foundation
 
 struct NoteRoom: Decodable, Hashable {

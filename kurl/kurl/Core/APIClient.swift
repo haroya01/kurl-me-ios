@@ -1,10 +1,3 @@
-//
-//  APIClient.swift
-//  kurl
-//
-//  Created by 김동현 on 6/7/26.
-//
-
 import Foundation
 
 enum APIError: LocalizedError {
@@ -95,11 +88,6 @@ struct APIClient {
         if let timeout { request.timeoutInterval = timeout }
         let data = try await perform(request, authenticated: authenticated)
         return try decode(data)
-    }
-
-    /// 응답 원문이 필요한 GET — 오프라인 저장소가 서버 바이트를 그대로 보관할 때.
-    func getData(_ path: String, query: [String: String?] = [:]) async throws -> Data {
-        try await rawData(try makeRequest(path: path, query: query, method: "GET"))
     }
 
     /// `getAsViewer` 의 원문판 — 오프라인 저장소가 받는 글 상세도 로그인한 사람 기준으로 받는다.
@@ -302,13 +290,12 @@ struct APIClient {
 
     @discardableResult
     private func rawData(_ request: URLRequest) async throws -> Data {
+        let apiPath = request.url.map { String($0.path.dropFirst(Config.apiPrefix.count + 1)) } ?? ""
         #if DEBUG
         // `--offline` — 비행기 모드 시뮬레이션(오프라인 폴백 검증 진입로).
         if Config.simulateOffline {
             throw APIError.transport(URLError(.notConnectedToInternet))
         }
-        #endif
-        let apiPath = request.url.map { String($0.path.dropFirst(Config.apiPrefix.count + 1)) } ?? ""
         // 목 모드: 목 백엔드가 아는 경로면 네트워크를 건너뛴다(공개 읽기는 fall-through).
         if Config.useMocks, let url = request.url {
             do {
@@ -326,6 +313,7 @@ struct APIClient {
                 throw APIError.server(status: status, code: "POST_LOCKED", detail: detail)
             }
         }
+        #endif
         let data: Data
         let response: URLResponse
         do {

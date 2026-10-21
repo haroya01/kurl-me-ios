@@ -1,8 +1,3 @@
-//
-//  RoomSettingsView.swift
-//  kurl
-//
-
 import SwiftUI
 
 struct RoomSettingsView: View {

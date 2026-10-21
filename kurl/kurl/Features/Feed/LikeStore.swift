@@ -1,8 +1,3 @@
-//
-//  LikeStore.swift
-//  kurl
-//
-
 import Foundation
 import Observation
 

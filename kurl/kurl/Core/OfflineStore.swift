@@ -1,8 +1,3 @@
-//
-//  OfflineStore.swift
-//  kurl
-//
-
 import Foundation
 import Observation
 

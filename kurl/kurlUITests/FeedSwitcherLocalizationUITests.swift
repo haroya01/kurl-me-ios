@@ -1,8 +1,3 @@
-//
-//  FeedSwitcherLocalizationUITests.swift
-//  kurlUITests
-//
-
 import UIKit
 import XCTest
 

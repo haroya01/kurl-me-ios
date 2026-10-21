@@ -1,7 +1,3 @@
-//
-//  FeedSeriesRowUITests.swift
-//  kurlUITests
-//
 //  최신 피드에 끼는 발견 시리즈는 글과 같은 한 행이다 — 넘김 버튼 없이, 행 탭이 시리즈 상세로 간다.
 //
 

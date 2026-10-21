@@ -1,8 +1,3 @@
-//
-//  FollowSuggestionsAPI.swift
-//  kurl
-//
-
 import Foundation
 
 /// 마스토돈 팔로우 추천 — 내가 팔로우하는 사람들이 팔로우하는 계정, 없으면 요즘 활발한 인기 계정.

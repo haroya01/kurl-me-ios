@@ -1,8 +1,3 @@
-//
-//  RoomsTabUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 final class RoomsTabUITests: XCTestCase {
