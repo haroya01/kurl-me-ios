@@ -30,7 +30,7 @@ struct NoteFeedPage: View {
         }
         .onChange(of: router.topRequests) {
             guard active, router.topTab == TabRouter.homeTab else { return }
-            withAnimation(reduceMotion ? nil : .smooth(duration: 0.35)) { position.scrollTo(edge: .top) }
+            withAnimation(reduceMotion ? nil : Motion.move) { position.scrollTo(edge: .top) }
         }
         .environment(\.noteFilterContext, model.filterContext)
         .task(id: [warm, AuthStore.shared.isSignedIn]) {
@@ -68,7 +68,7 @@ struct NoteFeedPage: View {
             guard active, id != nil else { return }
             Task { @MainActor in
                 await Task.yield()
-                withAnimation(reduceMotion ? nil : .smooth(duration: 0.45)) { position.scrollTo(edge: .top) }
+                withAnimation(reduceMotion ? nil : Motion.stage) { position.scrollTo(edge: .top) }
             }
         }
         .loginPrompt(isPresented: $showLogin, message: loginMessage)
@@ -258,7 +258,7 @@ struct NoteArrival: ViewModifier {
                 guard active else { return }
                 washed = false
                 settled = reduceMotion
-                withAnimation(.smooth(duration: 0.45)) { settled = true }
+                withMotion(Motion.stage) { settled = true }
                 withAnimation(.smooth(duration: 1.2)) { washed = true }
             }
     }

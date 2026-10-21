@@ -150,7 +150,7 @@ final class FeedViewModel {
             page = head.page
             hasNext = head.hasNext
             loadMoreFailed = false
-            withAnimation(.easeInOut(duration: 0.2)) {
+            withMotion(Motion.micro) {
                 items = head.kept
                 seriesNotes = head.notes
                 placeSeriesNotes()
@@ -261,7 +261,7 @@ final class FeedViewModel {
         let kept = items.filter { !BlockStore.shared.isBlocked($0.author.username) }
         let keptNotes = seriesNotes.filter { !BlockStore.shared.isBlocked($0.author.username) }
         guard kept.count != items.count || keptNotes.count != seriesNotes.count else { return }
-        withAnimation(.easeInOut(duration: 0.2)) {
+        withMotion(Motion.micro) {
             items = kept
             seriesNotes = keptNotes
             placeSeriesNotes()

@@ -256,8 +256,8 @@ struct RoomsView: View {
                     .accessibilityIdentifier("rooms.join")
             }
         }
-        .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: invitations)
-        .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: rooms)
+        .animation(reduceMotion ? nil : Motion.move, value: invitations)
+        .animation(reduceMotion ? nil : Motion.move, value: rooms)
         .reservesTabBarSpace()
     }
 
@@ -323,7 +323,7 @@ struct RoomsView: View {
             .accessibilityIdentifier("rooms.suggestion")
             Button {
                 let ids = suggested.map(\.id)
-                withAnimation(.smooth(duration: 0.25)) { suggested = [] }
+                withMotion(Motion.move) { suggested = [] }
                 Task { try? await RoomAPI.dismissSuggestions(ids) }
             } label: {
                 Image(systemName: "xmark")
@@ -365,7 +365,7 @@ struct RoomsView: View {
             return
         }
         rooms[at].pinned = pinned
-        withAnimation(reduceMotion ? nil : .smooth(duration: 0.3)) { phase = .loaded(rooms) }
+        withAnimation(reduceMotion ? nil : Motion.move) { phase = .loaded(rooms) }
         pinTaps += 1
         do {
             try await RoomAPI.pin(room.id, pinned)

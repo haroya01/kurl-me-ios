@@ -83,7 +83,7 @@ struct NotePollView: View {
                 return
             }
             filled = false
-            withAnimation(reduceMotion ? nil : .snappy(duration: 0.45)) { filled = true }
+            withAnimation(reduceMotion ? nil : Motion.stage) { filled = true }
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("note.poll.\(noteId)")
@@ -334,7 +334,7 @@ struct NotePollEditor: View {
                         .accessibilityIdentifier("noteCompose.poll.option.\(index)")
                     if draft.choices.count > 2 {
                         Button {
-                            withAnimation(.snappy(duration: 0.2)) {
+                            withMotion(Motion.micro) {
                                 draft.choices.removeAll { $0.id == choice.id }
                             }
                         } label: {
@@ -354,7 +354,7 @@ struct NotePollEditor: View {
                 if draft.choices.count < NoteAPI.maxPollOptions {
                     Button {
                         let choice = NotePollDraft.Choice()
-                        withAnimation(.snappy(duration: 0.2)) { draft.choices.append(choice) }
+                        withMotion(Motion.micro) { draft.choices.append(choice) }
                         focused = choice.id
                     } label: {
                         Text("선택지 추가")

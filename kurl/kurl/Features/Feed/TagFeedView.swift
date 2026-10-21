@@ -85,7 +85,7 @@ struct TagFeedView: View {
         .onScrollGeometryChange(for: Bool.self) { geometry in
             geometry.contentOffset.y + geometry.contentInsets.top > 56
         } action: { _, passed in
-            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) { showNavTitle = passed }
+            withAnimation(reduceMotion ? nil : Motion.micro) { showNavTitle = passed }
         }
         .toolbar {
             ToolbarItem(placement: .principal) {

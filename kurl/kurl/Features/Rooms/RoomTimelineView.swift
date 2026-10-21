@@ -288,7 +288,7 @@ struct CreateRoomSheet: View {
                 .padding(.bottom, 12)
                 RoomPeoplePicker(picked: $picked, query: query)
             }
-            .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: picked)
+            .animation(reduceMotion ? nil : Motion.move, value: picked)
             .navigationTitle("방 만들기")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
