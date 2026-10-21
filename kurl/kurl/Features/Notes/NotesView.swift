@@ -2276,7 +2276,8 @@ struct NoteComposeSheet: View {
     }
     private var placeholder: LocalizedStringKey {
         if quotedNote != nil { return "생각 덧붙이기" }
-        return inReplyToId == nil ? "노트 쓰기" : "답글 쓰기"
+        if inReplyToId != nil { return "답글 쓰기" }
+        return destination == nil ? "노트 쓰기" : "지금 뭐 하고 있어요?"
     }
     private var title: LocalizedStringKey {
         if isEdit { return "노트 고치기" }

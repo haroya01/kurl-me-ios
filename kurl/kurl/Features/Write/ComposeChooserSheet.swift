@@ -60,7 +60,7 @@ struct ComposeChooserSheet: View {
                         .padding(.bottom, 10)
                     HStack(spacing: 10) {
                         kindCard(
-                            "노트", hint: room == nil ? "짧게, 바로 올라가요" : "방에 한마디",
+                            "노트", hint: room == nil ? "짧게, 바로 올라가요" : "지금 하는 걸 짧게",
                             systemImage: "text.bubble"
                         ) { onChoose(.note(room)) }
                             .accessibilityIdentifier("compose.chooser.note")
