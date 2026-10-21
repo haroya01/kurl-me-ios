@@ -17,6 +17,10 @@ count() {
   jq 'length' "$1"
 }
 
+rule_ids() {
+  awk '/^custom_rules:/ { inside = 1; next } inside && /^  [a-z_]+:$/ { sub(/:$/, ""); print $1 }' "$1"
+}
+
 write_current() {
   swiftlint lint --quiet --write-baseline "$1" >/dev/null 2>&1 || true
 }
@@ -59,9 +63,16 @@ check() {
 
   if [ -n "${BASE_REF:-}" ] && git cat-file -e "origin/$BASE_REF:$baseline" 2>/dev/null; then
     git show "origin/$BASE_REF:$baseline" > "$tmp/base.json"
-    base=$(count "$tmp/base.json")
-    if [ "$committed" -gt "$base" ]; then
-      echo "기준 파일이 ${base}건 → ${committed}건으로 늘었다. 기준 파일은 줄기만 한다."
+    git show "origin/$BASE_REF:.swiftlint.yml" > "$tmp/base.yml"
+    grown=$(jq -r --slurpfile base "$tmp/base.json" --argjson known "$(rule_ids "$tmp/base.yml" | jq -R . | jq -s .)" '
+      (group_by(.violation.ruleIdentifier) | map({key: .[0].violation.ruleIdentifier, value: length}) | from_entries) as $now
+      | ($base[0] | group_by(.violation.ruleIdentifier) | map({key: .[0].violation.ruleIdentifier, value: length}) | from_entries) as $was
+      | $now | to_entries[] | . as $e
+      | select(($known | index($e.key)) != null and $e.value > ($was[$e.key] // 0))
+      | "\($e.key) \($was[$e.key] // 0)건 → \($e.value)건"' "$baseline")
+    if [ -n "$grown" ]; then
+      echo "기준 파일이 늘었다(규칙별, base 에 있던 규칙만 센다). 기준 파일은 줄기만 한다:"
+      echo "$grown"
       exit 1
     fi
   fi
@@ -73,7 +84,7 @@ selftest() {
   swiftlint lint --quiet --reporter json "$fixtures/Violations.swift" > "$tmp/violations.json" 2>"$tmp/stderr.txt" || true
   swiftlint lint --quiet --reporter json "$fixtures/Clean.swift" > "$tmp/clean.json" 2>/dev/null || true
   failed=0
-  for rule in $(awk '/^custom_rules:/ { inside = 1; next } inside && /^  [a-z_]+:$/ { sub(/:$/, ""); print $1 }' .swiftlint.yml); do
+  for rule in $(rule_ids .swiftlint.yml); do
     hits=$(jq --arg rule "$rule" '[.[] | select(.rule_id == $rule)] | length' "$tmp/violations.json")
     if [ "$hits" -eq 0 ]; then
       echo "$rule: Violations.swift 에서 잡히지 않는다"

@@ -18,6 +18,7 @@ struct RatchetViolations: View {
             AsyncImage(url: URL(string: "https://kurl.me/a.png"))
         }
         .animation(.easeInOut(duration: 0.3), value: on)
+        .animation(.snappy(duration: 0.25), value: on)
         .onTapGesture {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { on.toggle() }
