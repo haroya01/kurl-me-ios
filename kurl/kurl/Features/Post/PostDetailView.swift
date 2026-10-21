@@ -984,12 +984,6 @@ private struct PostDetailReader: View {
         return nil
     }
 
-    private var pullTargetTitle: String? {
-        if !embedded, let next = seriesNext { return next.title }
-        if embedded { return nextPost?.title }
-        return nil
-    }
-
     /// 발견 딥링크 — 구절이 든 블록으로 스크롤하고 잠깐 강조했다 사라진다. 공개 하이라이트는 이미
     /// 그 자리에 그린으로 칠해져 있어, 도착하면 그 문장에 바로 안착한다. 한 글에 한 번만.
     private func focusOnQuoteIfNeeded(_ proxy: ScrollViewProxy) async {

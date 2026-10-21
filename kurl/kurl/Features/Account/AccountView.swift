@@ -27,7 +27,6 @@ struct AccountView: View {
                         // 내 계정 = 내 블로그 — 들어오면 내가 발행한 글이 바로 뜬다.
                         AuthorBlogView(username: username, showsOwnerTools: true)
                     } else if meLoadFailed {
-                        // me 로드 실패(오프라인 등) — StateView 실패 상태와 같은 결의 재시도 길.
                         ErrorState(retry: { Task { await reloadMe() } })
                             .padding(.horizontal, Metrics.gutter)
                             .padding(.top, 24)

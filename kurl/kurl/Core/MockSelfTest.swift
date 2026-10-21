@@ -5,9 +5,11 @@
 
 import Foundation
 
+#if DEBUG
 /// `--mocks --selftest` 로 실행되는 배선 검증 — 버튼이 부르는 것과 같은 API 레이어 경로
 /// (WriteAPI/InteractionsAPI/AnalyticsAPI → APIClient → MockBackend)를 프로그램으로 돌리고
 /// 결과를 Documents/selftest.log 에 남긴다. simctl 이 터치를 못 넣는 한계의 우회로.
+
 @MainActor
 enum MockSelfTest {
 
@@ -102,3 +104,4 @@ enum MockSelfTest {
         }
     }
 }
+#endif

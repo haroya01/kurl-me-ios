@@ -24,7 +24,7 @@ struct kurlApp: App {
                 Color.clear
             } else if Config.launchValue(after: "--screen") == "editor2" {
                 // 격리 WYSIWYG 에디터 하네스 진입로(스크린샷 검증 전용) — 다른 UI 를 전혀 안 태운다.
-                EditorHarnessRoot()
+                editorHarness
             } else {
             ZStack {
                 // 스플래시가 걷힐 때 본 화면이 1.5% 에서 제자리로 — 막이 오르는 한 호흡(실크).
@@ -56,7 +56,9 @@ struct kurlApp: App {
                 // `--reset-recovery` — 컴포즈 UITest 격리: 앞선 테스트가 남긴 복구 스태시를 지워
                 // 새 컴포즈에서 복구 다이얼로그가 떠 캔버스를 덮는 오염을 막는다(DEBUG 전용).
                 if Config.resetRecovery { ComposeRecoveryStore.wipeAll() }
+                #if DEBUG
                 MockSelfTest.runIfRequested()
+                #endif
                 // 비로그인이면 매 실행 웰컴이 먼저다 — 둘러보기는 그 화면의 1급 출구로 늘 열려
                 // 있으니(5.1.1(v)) 읽기가 로그인 뒤에 갇히지 않는다. 로그인하면 더는 안 뜬다.
                 // (`--screen welcome` 은 simctl 터치 불가 우회 — 스크린샷 검증 진입로.)
@@ -87,6 +89,12 @@ struct kurlApp: App {
             }
             }
         }
+    }
+
+    @ViewBuilder private var editorHarness: some View {
+        #if DEBUG
+        EditorHarnessRoot()
+        #endif
     }
 
     private func dismissWelcome() {

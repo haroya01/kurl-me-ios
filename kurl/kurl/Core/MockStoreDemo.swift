@@ -5,10 +5,12 @@
 
 import Foundation
 
+#if DEBUG
 /// 스토어 캡처 전용 목 콘텐츠(`--store-demo`) — 기본 목 픽스처("발행된 목 글"·"목 초안 …")는
 /// UITest 20여 곳이 제목을 고정하고 있어 그대로 두고, 캡처를 뜰 때만 있을 법한 글(일상·문학·
 /// 홍보·개발)로 갈아끼운다. 언어는 시스템 우선 언어를 따른다 — `-AppleLanguages (ja)` 런치
 /// 인자와 함께 쓰면 크롬과 콘텐츠가 같은 언어로 찍힌다(스토어 5개 언어 캡처 파이프라인).
+
 enum MockStoreDemo {
     static var isOn: Bool { ProcessInfo.processInfo.arguments.contains("--store-demo") }
 
@@ -71,3 +73,4 @@ enum MockStoreDemo {
         }
     }
 }
+#endif

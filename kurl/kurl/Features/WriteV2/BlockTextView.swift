@@ -176,13 +176,6 @@ struct BlockTextView: UIViewRepresentable {
         tv.selectedTextRange = tv.textRange(from: from, to: to)
     }
 
-    private func setCaret(_ pos: Int, in tv: UITextView) {
-        let clamped = max(0, min(pos, (tv.text as NSString).length))
-        if let position = tv.position(from: tv.beginningOfDocument, offset: clamped) {
-            tv.selectedTextRange = tv.textRange(from: position, to: position)
-        }
-    }
-
     // MARK: Coordinator
 
     @MainActor
@@ -522,7 +515,6 @@ final class BlockUITextView: UITextView {
     }
     /// 문서가 아는 이 블록의 현재 text — SwiftUI 왕복 시 캐럿 튐/재렌더 루프 방지용 캐시.
     var currentBlockText: String = ""
-    var onEmptyBackspaceOverride: (() -> Void)?
     /// 붙여넣기 가로채기 — 이미지 바이트 / 이미지 URL / 일반 URL(링크로). 없으면 기본 붙여넣기.
     var onPasteImages: (([UIImage]) -> Void)?
     var onPasteImageURL: ((String) -> Void)?

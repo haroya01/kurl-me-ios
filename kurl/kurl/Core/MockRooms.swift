@@ -5,6 +5,7 @@
 
 import Foundation
 
+#if DEBUG
 enum MockRooms {
     private struct Room {
         var id: Int64
@@ -366,3 +367,4 @@ enum MockRooms {
         (try? JSONSerialization.data(withJSONObject: value)) ?? Data("{}".utf8)
     }
 }
+#endif

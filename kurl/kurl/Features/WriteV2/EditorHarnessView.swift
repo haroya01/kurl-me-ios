@@ -5,9 +5,7 @@
 //  ComposeView 를 전혀 안 건드리고 새 WYSIWYG 에디터를 단독 실행·검증하는 화면.
 //  실행 경로 둘:
 //   1) Xcode Canvas — 이 파일 하단 #Preview("WriteV2 하네스").
-//   2) 런치 플래그 `--screen editor2` — RootView 에 한 줄만 더하면(선택) simctl 스샷용 진입로.
-//      Config.launchValue(after:) 규칙은 기존과 동일. (Phase 1 은 RootView 를 안 고친다 —
-//      아래 EditorHarnessRoot 를 그 분기에 연결하는 한 줄이 유일한 통합 지점이다.)
+//   2) 런치 플래그 `--screen editor2` — kurlApp 이 RootView 대신 아래 EditorHarnessRoot 를 띄운다.
 //
 //  하네스는 하단에 "마크다운 보기" 토글을 둔다 — 왕복(블록→마크다운)을 눈으로 확인하는 검증 장치다
 //  (에디터 본체엔 원시 마크다운이 안 보이지만, 하네스는 직렬화 결과를 따로 띄워 대조한다).
@@ -15,7 +13,9 @@
 
 import SwiftUI
 
-/// simctl 진입용 루트 래퍼 — RootView 의 `--screen` 분기에서 이걸 반환하면 된다(선택 통합).
+#if DEBUG
+/// simctl 진입용 루트 래퍼 — kurlApp 의 `--screen editor2` 분기가 띄운다.
+
 struct EditorHarnessRoot: View {
     var body: some View {
         EditorHarnessView(document: EditorDocument(blocks: EditorSample.blocks))
@@ -213,3 +213,4 @@ enum EditorSample {
 #Preview("WriteV2 빈 문서") {
     EditorHarnessView(document: EditorDocument())
 }
+#endif

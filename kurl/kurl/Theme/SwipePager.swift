@@ -223,7 +223,4 @@ extension View {
         modifier(SwipeSelects(tabs: tabs, selection: selection))
     }
 
-    func swipesBack(perform action: @escaping () -> Void) -> some View {
-        swipeSelects([0, 1], selection: Binding(get: { 1 }, set: { if $0 == 0 { action() } }))
-    }
 }
