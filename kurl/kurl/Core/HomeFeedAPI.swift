@@ -85,6 +85,8 @@ struct HomeFeedItem: Identifiable, Hashable {
 struct HomeFeedBatch: Decodable {
     let items: [HomeFeedItem]
     let next: String?
+    var newest: String? = nil
+    var gap: Bool? = nil
 }
 
 extension HomeFeedItem: Decodable {
@@ -103,6 +105,13 @@ extension HomeFeedItem: Decodable {
 enum HomeFeedAPI {
     static var client = APIClient.shared
     static let limit = 20
+
+    static func newer(_ tab: HomeFeedTab, since: String) async throws -> HomeFeedBatch {
+        let query: [String: String?] = ["tab": tab.rawValue, "limit": String(limit), "since": since]
+        return tab.requiresAuth
+            ? try await client.get("/public/home", query: query, authenticated: true)
+            : try await client.getAsViewer("/public/home", query: query)
+    }
 
     static func page(_ tab: HomeFeedTab, cursor: String?) async throws -> HomeFeedBatch {
         do {
