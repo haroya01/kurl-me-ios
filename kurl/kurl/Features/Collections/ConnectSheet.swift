@@ -1,7 +1,3 @@
-//
-//  ConnectSheet.swift
-//  kurl
-//
 //  "연결" — §0의 동사. 글/하이라이트/노트를 컬렉션에 잇는다(broadcast 아님).
 //  2단계 뎁스: ① 어디에 남길까요(컬렉션 고르기) → ② 추가(왜 한 줄 + 확정).
 //  "왜 한 줄"이 단순 북마크와 컬렉션을 가르는 영혼이라, 고른 뒤의 집중된 한 순간으로 둔다.
@@ -88,7 +84,7 @@ struct ConnectSheet: View {
         do {
             try await CollectionsAPI.disconnect(
                 collectionId: collectionId, connectionId: connectionId)
-            _ = withAnimation(.snappy(duration: 0.2)) {
+            _ = withMotion(Motion.micro) {
                 connectedIds.removeValue(forKey: collectionId)
             }
             didDisconnect += 1

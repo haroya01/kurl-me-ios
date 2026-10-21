@@ -1,8 +1,3 @@
-//
-//  ComposeEntryUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// 쓰기 입구는 탭바 가운데 하나 — 누르면 무엇을 쓸지 고르는 시트(노트·긴 글·이어 쓰기)가 뜬다.

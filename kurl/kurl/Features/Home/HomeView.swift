@@ -1,8 +1,3 @@
-//
-//  HomeView.swift
-//  kurl
-//
-
 import SwiftUI
 
 struct HomeView: View {
@@ -34,7 +29,7 @@ struct HomeView: View {
                 let flick = value.velocity.width > 260 && dx > 20
                 let deliberate = dx > 48 && abs(dx) > abs(dy) * 1.2
                 guard !moreBlocked, abs(dx) > abs(dy), flick || deliberate, width > 0 else {
-                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.3)) { moreDragX = 0 }
+                    withAnimation(reduceMotion ? nil : Motion.move) { moreDragX = 0 }
                     return
                 }
                 if reduceMotion {
@@ -42,7 +37,7 @@ struct HomeView: View {
                     moreDragX = 0
                     return
                 }
-                withAnimation(.snappy(duration: 0.28)) {
+                withAnimation(Motion.move) {
                     moreDragX = width
                 } completion: {
                     choice.leaveMore()
@@ -59,6 +54,7 @@ struct HomeView: View {
                     suspended: choice.more != nil && moreDragX == 0
                 ) { tab, active, warm in
                     HomeFeedPage(model: model(tab), active: active && choice.more == nil, warm: warm)
+                        .environment(\.postZoom, PostZoom(prefix: "post", ns: zoomNS, active: active && choice.more == nil))
                 }
                 .offset(x: choice.more == nil ? 0 : moreDragX - width)
                 if let more = choice.more {
@@ -72,7 +68,7 @@ struct HomeView: View {
                 }
             }
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
-            .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: choice.more)
+            .animation(reduceMotion ? nil : Motion.move, value: choice.more)
             .reservesTabBarSpace()
             .safeAreaBar(edge: .top) {
                 FeedHeaderBar(
@@ -87,12 +83,9 @@ struct HomeView: View {
             .background(Palette.readingBg)
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: Route.self) { route in
-                if case .post(let username, let slug) = route, !reduceMotion {
-                    RouteView(route: route)
-                        .navigationTransition(.zoom(sourceID: "post-\(username)-\(slug)", in: zoomNS))
-                } else {
-                    RouteView(route: route)
-                }
+                PostZoomDestination(
+                    route: route, zoom: PostZoom(prefix: "post", ns: zoomNS),
+                    fromRoot: !reduceMotion && choice.path.count == 1)
             }
             .navigationDestination(for: CollectionRef.self) {
                 CollectionDetailView(collectionId: $0.id)
@@ -100,8 +93,9 @@ struct HomeView: View {
             .noteTextLinks()
             .task(id: AuthStore.shared.isSignedIn) {
                 async let unread: Void = UnreadStore.shared.refresh()
+                async let filters: Void = NoteFilterStore.shared.reload()
                 await NoteFeedPreferences.shared.hydrateIfNeeded()
-                await NoteFilterStore.shared.reload()
+                await filters
                 await unread
             }
             .onChange(of: scenePhase) { _, phase in
@@ -154,21 +148,22 @@ struct HomeFeedPage: View {
         }
         .onChange(of: router.topRequests) {
             guard active, router.topTab == TabRouter.homeTab else { return }
-            withAnimation(reduceMotion ? nil : .smooth(duration: 0.35)) { position.scrollTo(edge: .top) }
+            withAnimation(reduceMotion ? nil : Motion.move) { position.scrollTo(edge: .top) }
         }
         .onChange(of: choice.arrivingID) { _, id in
             guard active, id != nil else { return }
             Task { @MainActor in
                 await Task.yield()
-                withAnimation(reduceMotion ? nil : .smooth(duration: 0.45)) { position.scrollTo(edge: .top) }
+                withAnimation(reduceMotion ? nil : Motion.stage) { position.scrollTo(edge: .top) }
             }
         }
         .environment(\.noteFilterContext, .home)
+        .environment(\.skeletonAnimates, active)
         .task(id: [warm, AuthStore.shared.isSignedIn]) {
             let signedIn = AuthStore.shared.isSignedIn
             guard warm, loadedSignedIn != signedIn else { return }
             loadedSignedIn = signedIn
-            await model.reload()
+            await model.reload(settlesLaunch: active)
         }
         .brandRefreshable { await model.refresh() }
         .onChange(of: NoteFeedPreferences.shared.changes) {
@@ -194,10 +189,13 @@ struct HomeFeedPage: View {
             case .failed(let message):
                 ErrorState(message: message, retry: { Task { await model.reload() } })
             case .loaded:
-                if model.items.isEmpty {
+                if !model.items.isEmpty { rows }
+                if model.showsTail, let tail = model.tail {
+                    HomeRemoteTail(model: tail, follows: model.items.count) {
+                        empty.padding(.top, 24)
+                    }
+                } else if model.items.isEmpty {
                     empty.padding(.top, 24)
-                } else {
-                    rows
                 }
             }
         }

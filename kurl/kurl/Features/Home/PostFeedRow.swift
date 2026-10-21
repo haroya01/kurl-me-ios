@@ -1,8 +1,3 @@
-//
-//  PostFeedRow.swift
-//  kurl
-//
-
 import SwiftUI
 
 struct PostFeedRow: View {
@@ -72,6 +67,7 @@ struct PostFeedRow: View {
                         postBody
                     }
                     .buttonStyle(.plain)
+                    .modifier(PostZoomSource(username: post.author.username, slug: post.slug))
                     .padding(.top, 4)
                     .accessibilityIdentifier("home.post.\(post.id)")
                     actions

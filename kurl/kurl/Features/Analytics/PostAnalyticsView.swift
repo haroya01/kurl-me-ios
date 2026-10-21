@@ -1,8 +1,3 @@
-//
-//  PostAnalyticsView.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 글 하나의 분석(facet) — "이 글이 어디서 얼마나 읽혔나"에 들어가는 화면.

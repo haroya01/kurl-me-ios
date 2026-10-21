@@ -1,8 +1,3 @@
-//
-//  LibrarySnapshot.swift
-//  kurl
-//
-
 import Foundation
 import WidgetKit
 

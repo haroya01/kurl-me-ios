@@ -1,7 +1,3 @@
-//
-//  FeedThumbnailTests.swift
-//  kurlTests
-//
 //  피드 행 썸네일은 작성자가 고른 표지만(서버 #817) — 행은 ogImageUrl 이 아니라 thumbnailUrl 을 그린다.
 //  표지 저장이 coverChosen 을 싣는지는 EditConflictTests(ScriptedServer)에서 본다.
 //

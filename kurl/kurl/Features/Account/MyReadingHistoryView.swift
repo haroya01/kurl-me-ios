@@ -1,8 +1,3 @@
-//
-//  MyReadingHistoryView.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 읽기 기록 — 내가 읽은 글을 최신순으로. 행 탭 = 그 글로(아바타는 작가로).

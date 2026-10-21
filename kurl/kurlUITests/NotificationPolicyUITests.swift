@@ -1,8 +1,3 @@
-//
-//  NotificationPolicyUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 final class NotificationPolicyUITests: XCTestCase {

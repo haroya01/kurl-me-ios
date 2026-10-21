@@ -1,7 +1,3 @@
-//
-//  WriteV2HarnessUITests.swift
-//  kurlUITests
-//
 //  격리 WYSIWYG 에디터(Phase 2) 하네스 스크린샷 — 구분선·리스트·이미지·표가 최종 모습으로
 //  렌더되는지 실기기(sim) 경로로 확인하고 캡처한다. `--screen editor2` 로 하네스만 단독 실행한다
 //  (다른 UI 를 안 태운다). simctl 은 스크롤/탭을 못 넣으니 XCUITest 로 swipeUp + 마크다운 토글.

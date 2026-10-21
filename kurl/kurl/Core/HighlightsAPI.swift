@@ -1,8 +1,3 @@
-//
-//  HighlightsAPI.swift
-//  kurl
-//
-
 import Foundation
 
 /// 리더 소셜 하이라이트 — 공개 읽기(누가 어디를)는 인증 없이, 생성/삭제·답글·내 서재는 인증.

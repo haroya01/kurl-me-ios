@@ -1,7 +1,3 @@
-//
-//  QASeriesPullUITests.swift
-//  kurlUITests
-//
 //  시리즈 회차 "끝에서 이어 당기기" — 전환 단언 + 무회귀(스택 1단·읽기바 리셋).
 //
 

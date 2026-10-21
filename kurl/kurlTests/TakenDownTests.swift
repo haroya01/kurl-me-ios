@@ -1,7 +1,3 @@
-//
-//  TakenDownTests.swift
-//  kurlTests
-//
 //  관리자가 내린 글(서버 #805) — 글은 status 그대로에 takenDown 만 붙어 오고, 공개 시도는 409 POST_TAKEN_DOWN,
 //  정지·제한 계정의 공개 쓰기는 403 ACCOUNT_SUSPENDED/BANNED 다. 서버 detail(영어) 대신 사람 문구를 보인다.
 //

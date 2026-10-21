@@ -1,8 +1,3 @@
-//
-//  CollectionPathUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// A 척추 — 순서대로 읽는 컬렉션이 리스트가 아니라 가이드 워크(문장→왜→문장)로 읽히고,

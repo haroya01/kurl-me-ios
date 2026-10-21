@@ -1,8 +1,3 @@
-//
-//  FederationSearchTests.swift
-//  kurlTests
-//
-
 import XCTest
 
 @testable import kurl
@@ -1124,19 +1119,20 @@ final class RemoteStreamTests: XCTestCase {
         XCTAssertEqual(pager.asked.count, 3, "no request past the end")
     }
 
-    func testOnlyTheLastRowAsksForMoreAndRepeatsShowOnce() async throws {
+    func testOnlyTheLastFiveRowsAskForMoreAndRepeatsShowOnce() async throws {
         let pager = Pager([
-            "first": try Self.page([Self.pool(1), Self.pool(2)], next: "t2"),
-            "t2": try Self.page([Self.pool(2), Self.pool(3)], next: nil),
+            "first": try Self.page((1...7).map(Self.pool), next: "t2"),
+            "t2": try Self.page([Self.pool(7), Self.pool(8)], next: nil),
         ])
         let model = stream(pager)
 
         await model.reload()
-        await model.loadMoreIfNeeded(current: model.items[0])
+        await model.loadMoreIfNeeded(current: model.items[1])
         XCTAssertEqual(pager.asked, ["first"])
 
-        await model.loadMoreIfNeeded(current: model.items[1])
-        XCTAssertEqual(model.items.map(\.id).filter { $0.hasSuffix("/2") }.count, 1)
-        XCTAssertEqual(model.items.count, 3)
+        await model.loadMoreIfNeeded(current: model.items[2])
+        XCTAssertEqual(pager.asked, ["first", "t2"])
+        XCTAssertEqual(model.items.map(\.id).filter { $0.hasSuffix("/7") }.count, 1)
+        XCTAssertEqual(model.items.count, 8)
     }
 }

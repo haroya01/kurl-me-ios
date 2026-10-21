@@ -1,8 +1,3 @@
-//
-//  AdminDebug.swift
-//  kurl
-//
-
 import SwiftUI
 import UIKit
 

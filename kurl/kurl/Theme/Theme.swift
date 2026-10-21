@@ -1,10 +1,3 @@
-//
-//  Theme.swift
-//  kurl
-//
-//  Created by 김동현 on 6/7/26.
-//
-
 import SwiftUI
 import UIKit
 
@@ -46,7 +39,6 @@ extension Color {
 enum Palette {
     // 잉크 — 웹 globals.css 의 종이(라이트)·밤의 종이(다크) 사다리. 단계 번호는 웹 --slate-N 과 같다.
     static let ink = Color(light: 0x131A16, dark: 0xE6EAE7)            // 제목/헤딩 paper-900 / night-100
-    static let inkOnLight = Color(hex: 0x131A16)                       // 항상 흰 면(커버 위 흰 필) 위 글자 — 스킴 무관 paper-900
     static let heading = Color(light: 0x242B27, dark: 0xD8DDDA)        // RailHeading paper-800 / night-200
     // 본문·메타·구분선은 "대비 증가"를 켜면 한 단계 진하게(읽기 가독 우선).
     static let body = Color(light: 0x3B423E, dark: 0xC2C9C5, lightHC: 0x242B27, darkHC: 0xD8DDDA)        // paper-700 / night-300 → 800/200
@@ -156,10 +148,6 @@ enum Palette {
     static let codeString = Color(hex: 0x6EE7B7)    // accent-300 계열
     static let codeNumber = Color(hex: 0xFCD34D)
     static let codeType = Color(hex: 0x7DD3FC)
-}
-
-extension ShapeStyle where Self == Color {
-    static var brand: Color { Palette.accent }
 }
 
 /// 제목 타이포 사다리 — 한 곳에서 크기·굵기·자간을 정의한다(흩어진 매직넘버 종식).

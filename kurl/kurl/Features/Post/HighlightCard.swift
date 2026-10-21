@@ -49,7 +49,7 @@ struct HighlightCardLayer: View {
     }
 
     private func close() {
-        withAnimation(reduceMotion ? nil : .smooth(duration: 0.2)) { store.card = nil }
+        withAnimation(reduceMotion ? nil : Motion.micro) { store.card = nil }
     }
 
     private func delete(_ highlight: HighlightView) {

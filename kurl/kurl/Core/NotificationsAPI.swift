@@ -1,8 +1,3 @@
-//
-//  NotificationsAPI.swift
-//  kurl
-//
-
 import Foundation
 
 /// 인앱 알림 — 좋아요·댓글·답글·팔로우·시리즈 구독·새 글·멘션, 그리고 연결 그래프

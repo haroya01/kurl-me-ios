@@ -1,8 +1,3 @@
-//
-//  MyHighlightsView.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 내 하이라이트 — 내가 그은 구절을 **글별로 묶어** 본다. 같은 글의 구절은 한 묶음 아래 모이고,

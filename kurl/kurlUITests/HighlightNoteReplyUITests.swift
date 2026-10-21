@@ -1,8 +1,3 @@
-//
-//  HighlightNoteReplyUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// 하이라이트 스레드의 빈칸을 메운다 — 기존 HighlightReaderUITests 는 '메모' 액션·답글의

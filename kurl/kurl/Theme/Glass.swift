@@ -1,8 +1,3 @@
-//
-//  Glass.swift
-//  kurl
-//
-
 import SwiftUI
 
 // MARK: 유리 캡슐 토글 — 팔로우·구독·정렬 칩이 공유하는 문법
@@ -198,10 +193,9 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable, More: View>: View {
         }
         .padding(bare ? 0 : 4)
         // 알약은 selection 이 어떻게 바뀌든(탭이든 스와이프든) 항상 미끄러진다 — 호출측
-        // withAnimation 에 기대지 않고 자체 애니메이션으로 matchedGeometry 를 굴린다. 스프링
-        // 오버슈트 없이 조용히 활주하도록 bounce 0 인 smooth 커브로 민다(§10.7 조용함).
-        .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: selection)
-        .animation(reduceMotion ? nil : .smooth(duration: 0.3), value: moreChoice)
+        // withAnimation 에 기대지 않고 자체 애니메이션으로 matchedGeometry 를 굴린다.
+        .animation(reduceMotion ? nil : Motion.move, value: selection)
+        .animation(reduceMotion ? nil : Motion.move, value: moreChoice)
 
         if bare {
             row // 내비바 유리가 배경 — 자기 유리는 얹지 않는다.

@@ -1,8 +1,3 @@
-//
-//  SeriesAnalyticsDetailView.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 시리즈 하나의 분석 — 구독자 추이(일별) + 회차별 완주 funnel. 시리즈 목록 행을 누르면 들어온다.

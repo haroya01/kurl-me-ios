@@ -1,10 +1,3 @@
-//
-//  SearchView.swift
-//  kurl
-//
-//  Created by 김동현 on 6/7/26.
-//
-
 import SwiftUI
 
 enum SearchScope: Hashable {
@@ -25,6 +18,13 @@ enum ExploreLane: String, CaseIterable, Identifiable {
     }
 }
 
+// 목적지 클로저가 push 순간의 path 깊이를 읽는다 — @State 값으로 두면 마지막 body 때 값이 잡혀 늦다.
+@MainActor
+@Observable
+private final class ExploreNavigation {
+    var path = NavigationPath()
+}
+
 struct SearchView: View {
     @State private var scope: SearchScope = .posts
     @State private var noteResults = NotesViewModel(search: "")
@@ -41,6 +41,7 @@ struct SearchView: View {
     @State private var shownDomains: [String] = []
     @State private var domainTask: Task<Void, Never>?
     @Namespace private var zoomNS
+    @State private var navigation = ExploreNavigation()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     /// 최근 검색 칩의 지우기(×) 아이콘 — 칩 라벨(.meta)과 함께 커지도록 고정 pt 를 우회한다.
@@ -69,8 +70,7 @@ struct SearchView: View {
         uniqueKeysWithValues: RemoteStreamFeed.allCases.map { ($0, RemoteStreamModel(feed: $0)) })
 
     var body: some View {
-        // path 바인딩 금지 — tabBarMinimizeBehavior 가 죽는다(FeedView 참조).
-        NavigationStack {
+        NavigationStack(path: Bindable(navigation).path) {
             Group {
                 if scope == .people, !activeQuery.isEmpty || !query.trimmingCharacters(in: .whitespaces).isEmpty {
                     PeopleResultsList(model: peopleResults, query: query, retry: { runSearch(query) })
@@ -130,13 +130,9 @@ struct SearchView: View {
                 .sharedBackgroundVisibility(.hidden)
             }
             .navigationDestination(for: Route.self) { route in
-                // 푸시된 상세는 탭바 숨김을 추적하지 않는다(탭 루트 전용).
-                if case .post(let username, let slug) = route, !reduceMotion {
-                    RouteView(route: route)
-                        .navigationTransition(.zoom(sourceID: "search-\(username)-\(slug)", in: zoomNS))
-                } else {
-                    RouteView(route: route)
-                }
+                PostZoomDestination(
+                    route: route, zoom: PostZoom(prefix: "search", ns: zoomNS),
+                    fromRoot: !reduceMotion && navigation.path.count == 1)
             }
             // 스택 안쪽에 부착 — 바깥이면 push 된 글 상세에도 검색바가 남는다.
             // 상단 고정(navigationBarDrawer) — iOS 26+ 는 .searchable 을 하단에 도킹하는데, 우리
@@ -211,7 +207,8 @@ struct SearchView: View {
             .padding(.horizontal, lane == .people ? Metrics.gutter : Metrics.noteGutter)
         }
         .scrollIndicators(.hidden)
-        .scrollEdgeEffectStyle(.soft, for: .top)
+        // 숨은 검색 범위 막대도 위 가장자리 효과에 제 높이를 잡아, 그 띠가 첫 행의 터치를 먹는다.
+        .scrollEdgeEffectHidden(true, for: .top)
         .noteTextLinks()
         .brandRefreshable {
             async let discovery: Void = loadDiscovery()
@@ -224,6 +221,7 @@ struct SearchView: View {
         ForEach(Array(trending.enumerated()), id: \.element.id) { index, item in
             if index > 0 { Hairline().padding(.horizontal, -Metrics.noteGutter) }
             PostFeedRow(post: item)
+                .environment(\.postZoom, PostZoom(prefix: "search", ns: zoomNS))
                 .accessibilityIdentifier("search.trending.\(item.id)")
             if index == min(2, trending.count - 1) {
                 Hairline().padding(.horizontal, -Metrics.noteGutter)
@@ -618,27 +616,31 @@ struct SearchView: View {
     }
 
     private func loadDiscovery() async {
-        if trending.isEmpty {
-            // 피드와 같은 가드 — 자모·구두점만 있는 제목("ㅇㅇ")은 카드로 그리지 않는다.
-            trending = Array(
-                ((try? await BlogAPI.feed(sort: .trending, size: 10))?.items ?? [])
-                    .filter(\.isRenderableCard).prefix(10))
+        let signedIn = AuthStore.shared.isSignedIn
+        let needsPeople = followSuggestions.isEmpty
+        let needsRemote = remoteSuggestions.isEmpty
+        async let feed = Self.fetch(trending.isEmpty) { try await BlogAPI.feed(sort: .trending, size: 10) }
+        async let tags = Self.fetch(popularTags.isEmpty) { try await BlogAPI.popularTags(limit: 12) }
+        async let authors = Self.fetch(suggestedAuthors.isEmpty) { try await BlogAPI.suggestedAuthors(limit: 5) }
+        async let noteTags = Self.fetch(trendingNoteTags.isEmpty) { try await NoteAPI.trendingTags() }
+        async let people = Self.fetch(signedIn && needsPeople) {
+            try await FollowSuggestionsAPI.suggestions()
         }
-        if popularTags.isEmpty {
-            popularTags = Array(((try? await BlogAPI.popularTags(limit: 12)) ?? []).prefix(12))
-        }
-        if suggestedAuthors.isEmpty {
-            suggestedAuthors = (try? await BlogAPI.suggestedAuthors(limit: 5)) ?? []
-        }
-        if trendingNoteTags.isEmpty {
-            trendingNoteTags = Array(((try? await NoteAPI.trendingTags()) ?? []).prefix(5))
-        }
-        if AuthStore.shared.isSignedIn, followSuggestions.isEmpty {
-            followSuggestions = (try? await FollowSuggestionsAPI.suggestions()) ?? []
-        }
-        if AuthStore.shared.isSignedIn, remoteSuggestions.isEmpty {
-            remoteSuggestions = await FederationAPI.suggestions() ?? []
-        }
+        async let remote = Self.fetch(signedIn && needsRemote) { await FederationAPI.suggestions() }
+        let (feedPage, tagList, authorList, noteTagList, peopleList, remoteList) =
+            await (feed, tags, authors, noteTags, people, remote)
+        // 피드와 같은 가드 — 자모·구두점만 있는 제목("ㅇㅇ")은 카드로 그리지 않는다.
+        if let feedPage { trending = Array(feedPage.items.filter(\.isRenderableCard).prefix(10)) }
+        if let tagList { popularTags = Array(tagList.prefix(12)) }
+        if let authorList { suggestedAuthors = authorList }
+        if let noteTagList { trendingNoteTags = Array(noteTagList.prefix(5)) }
+        if let peopleList { followSuggestions = peopleList }
+        if let remoteList { remoteSuggestions = remoteList ?? [] }
+    }
+
+    private static func fetch<T>(_ needed: Bool, _ request: () async throws -> T) async -> T? {
+        guard needed else { return nil }
+        return try? await request()
     }
 
     /// 검색어와 겹치는 인기 태그 — 결과를 "태그 / 작가 / 글" 갈래로 보여주기 위한 얕은 매칭

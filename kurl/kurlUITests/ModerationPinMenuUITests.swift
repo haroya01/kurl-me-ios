@@ -1,7 +1,3 @@
-//
-//  ModerationPinMenuUITests.swift
-//  kurlUITests
-//
 //  새 관리 진입로 두 곳의 실동작 — ① 스튜디오 발행 글 ⋯ 메뉴의 프로필 고정 토글
 //  ② 타인 글 ⋯ 메뉴의 관리자 섹션(목 me = ADMIN). 메뉴가 열리고 항목이 실제로 놓이는지 본다.
 //

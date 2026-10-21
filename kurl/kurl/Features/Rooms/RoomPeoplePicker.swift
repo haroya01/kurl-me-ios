@@ -1,8 +1,3 @@
-//
-//  RoomPeoplePicker.swift
-//  kurl
-//
-
 import SwiftUI
 
 struct RoomCandidate: Hashable, Identifiable {

@@ -1,10 +1,3 @@
-//
-//  FeedView.swift
-//  kurl
-//
-//  Created by 김동현 on 6/7/26.
-//
-
 import SwiftUI
 
 extension FeedSource {
@@ -208,14 +201,14 @@ struct FeedPage: View {
             .scrollTargetLayout()
             // 발견 시리즈는 본 피드 반영 뒤 별도로 도착한다(피드를 막지 않는 설계) — 한 행
             // 높이가 리스트 중간에 순간 끼어들어 아래를 보던 화면이 튀던 것을 애니메이트로 밀어낸다.
-            .animation(reduceMotion ? nil : .easeInOut(duration: 0.3), value: model.series?.id)
+            .animation(reduceMotion ? nil : Motion.move, value: model.series?.id)
         }
         // 글로 들어갔다 돌아오면 보던 행으로 스크롤을 되돌린다 — 페이지가 상주해 앵커가 살아남는다.
         // .top 앵커라 그 행이 다시 화면 맨 위에 온다(복귀 지점이 튀지 않게).
         .scrollPosition(id: $scrollAnchor, anchor: .top)
         .onChange(of: router.topRequests) {
             guard active, router.topTab == TabRouter.homeTab, let first = model.items.first else { return }
-            withAnimation(reduceMotion ? nil : .smooth(duration: 0.35)) { scrollAnchor = String(first.id) }
+            withAnimation(reduceMotion ? nil : Motion.move) { scrollAnchor = String(first.id) }
         }
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
@@ -325,7 +318,7 @@ struct RowButtonStyle: ButtonStyle {
                     .padding(.horizontal, -10)
             )
             .contentShape(Rectangle())
-            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+            .animation(Motion.micro, value: configuration.isPressed)
     }
 }
 
@@ -410,8 +403,24 @@ private struct SkeletonRow: View {
     }
 }
 
-/// 절제된 shimmer — 옅은 빛 띠가 카드를 한 번씩 느리게 쓸고 지나간다. Reduce Motion 이면 정지.
+extension EnvironmentValues {
+    @Entry var skeletonAnimates = true
+}
+
 private struct SkeletonShimmer: ViewModifier {
+    @Environment(\.skeletonAnimates) private var animates
+
+    func body(content: Content) -> some View {
+        if animates {
+            content.modifier(SkeletonSweep())
+        } else {
+            content.clipShape(RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
+        }
+    }
+}
+
+/// 절제된 shimmer — 옅은 빛 띠가 카드를 한 번씩 느리게 쓸고 지나간다. Reduce Motion 이면 정지.
+private struct SkeletonSweep: ViewModifier {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var travel = false
 

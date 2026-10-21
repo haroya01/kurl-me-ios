@@ -1,8 +1,3 @@
-//
-//  LockedPostGate.swift
-//  kurl
-//
-
 import SwiftUI
 
 struct LockedPostGate: View {

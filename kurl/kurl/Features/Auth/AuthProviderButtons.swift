@@ -1,8 +1,3 @@
-//
-//  AuthProviderButtons.swift
-//  kurl
-//
-
 import AuthenticationServices
 import SwiftUI
 

@@ -1,10 +1,3 @@
-//
-//  kurlApp.swift
-//  kurl
-//
-//  Created by 김동현 on 6/7/26.
-//
-
 import SwiftUI
 
 @main
@@ -15,6 +8,7 @@ struct kurlApp: App {
     @State private var showWelcome = false
     /// 스플래시가 걷히는 순간 true — 웰컴 엔트런스가 이때 시작된다(t0 가 아니라).
     @State private var welcomeRevealed = false
+    @State private var bottomInset: CGFloat = 0
     /// 스플래시 → 웰컴 마크 핸드오프용 — 마크가 스플래시 자리에서 웰컴 자리로 이어진다.
     @Namespace private var launchNS
 
@@ -24,11 +18,12 @@ struct kurlApp: App {
                 Color.clear
             } else if Config.launchValue(after: "--screen") == "editor2" {
                 // 격리 WYSIWYG 에디터 하네스 진입로(스크린샷 검증 전용) — 다른 UI 를 전혀 안 태운다.
-                EditorHarnessRoot()
+                editorHarness
             } else {
             ZStack {
                 // 스플래시가 걷힐 때 본 화면이 1.5% 에서 제자리로 — 막이 오르는 한 호흡(실크).
                 RootView()
+                    .environment(\.windowBottomInset, bottomInset)
                     .scaleEffect(showSplash && !reduceMotion ? 1.015 : 1)
                     .animation(.timingCurve(0.16, 1, 0.3, 1, duration: 0.6), value: showSplash)
                     // 위젯 탭(kurlwidget://…) — 분석·서재·저장 글로 바로. 웰컴이 덮여 있어도
@@ -52,11 +47,23 @@ struct kurlApp: App {
                         .transition(.opacity.combined(with: .offset(y: -12)))
                 }
             }
+            // RootView 의 scaleEffect 안에서 재면 막이 걷히는 동안 안전영역 값이 프레임마다 흔들린다.
+            .background {
+                Color.clear
+                    .ignoresSafeArea(.keyboard)
+                    .background {
+                        Color.clear
+                            .ignoresSafeArea()
+                            .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.bottom } action: { bottomInset = $0 }
+                    }
+            }
             .task {
                 // `--reset-recovery` — 컴포즈 UITest 격리: 앞선 테스트가 남긴 복구 스태시를 지워
                 // 새 컴포즈에서 복구 다이얼로그가 떠 캔버스를 덮는 오염을 막는다(DEBUG 전용).
                 if Config.resetRecovery { ComposeRecoveryStore.wipeAll() }
+                #if DEBUG
                 MockSelfTest.runIfRequested()
+                #endif
                 // 비로그인이면 매 실행 웰컴이 먼저다 — 둘러보기는 그 화면의 1급 출구로 늘 열려
                 // 있으니(5.1.1(v)) 읽기가 로그인 뒤에 갇히지 않는다. 로그인하면 더는 안 뜬다.
                 // (`--screen welcome` 은 simctl 터치 불가 우회 — 스크린샷 검증 진입로.)
@@ -87,6 +94,12 @@ struct kurlApp: App {
             }
             }
         }
+    }
+
+    @ViewBuilder private var editorHarness: some View {
+        #if DEBUG
+        EditorHarnessRoot()
+        #endif
     }
 
     private func dismissWelcome() {

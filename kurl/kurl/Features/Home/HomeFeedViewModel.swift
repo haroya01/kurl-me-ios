@@ -1,8 +1,3 @@
-//
-//  HomeFeedViewModel.swift
-//  kurl
-//
-
 import Observation
 import SwiftUI
 
@@ -18,20 +13,49 @@ final class HomeFeedViewModel {
     private(set) var newest: String?
     private let load: (HomeFeedTab, String?) async throws -> HomeFeedBatch
     private let newer: (HomeFeedTab, String) async throws -> HomeFeedBatch
+    private let settled: @MainActor () -> Void
+    let tail: RemoteStreamModel?
 
     init(
         tab: HomeFeedTab,
+        settled: @escaping @MainActor () -> Void = { LaunchReadiness.shared.markFirstFeedSettled() },
+        remote: @escaping (RemoteStreamFeed, String?) async throws -> RemoteStreamPage = FederationAPI.stream,
         newer: @escaping (HomeFeedTab, String) async throws -> HomeFeedBatch = HomeFeedAPI.newer,
         load: @escaping (HomeFeedTab, String?) async throws -> HomeFeedBatch = HomeFeedAPI.page
     ) {
         self.tab = tab
         self.load = load
         self.newer = newer
+        self.settled = settled
+        self.tail = tab == .latest ? RemoteStreamModel(feed: .latest, load: remote) : nil
+    }
+
+    var showsTail: Bool {
+        guard tail != nil, case .loaded = phase else { return false }
+        return next == nil
     }
 
     func refresh() async {
+        async let remote: Void = restartTail()
+        await refreshOwn()
+        await remote
+    }
+
+    func reload(settlesLaunch: Bool = false) async {
+        async let remote: Void = restartTail()
+        await reloadOwn(settlesLaunch: settlesLaunch)
+        await remote
+    }
+
+    private func restartTail() async {
+        guard let tail else { return }
+        if case .idle = tail.phase { return }
+        await tail.reload()
+    }
+
+    private func refreshOwn() async {
         guard tab != .trending, let marker = newest, !items.isEmpty else {
-            await reload()
+            await reloadOwn()
             return
         }
         epoch += 1
@@ -45,7 +69,7 @@ final class HomeFeedViewModel {
             } else if !batch.items.isEmpty {
                 let fresh = Self.unique(batch.items)
                 let known = Set(fresh.map(\.id))
-                withAnimation(.snappy(duration: 0.3)) {
+                withMotion(Motion.move) {
                     items = fresh + items.filter { !known.contains($0.id) }
                 }
             }
@@ -57,7 +81,8 @@ final class HomeFeedViewModel {
         }
     }
 
-    func reload() async {
+    private func reloadOwn(settlesLaunch: Bool = false) async {
+        defer { if settlesLaunch { settled() } }
         epoch += 1
         let myEpoch = epoch
         if items.isEmpty { phase = .loading }
@@ -79,18 +104,20 @@ final class HomeFeedViewModel {
     }
 
     func loadMoreIfNeeded(current item: HomeFeedItem) async {
-        guard let cursor = next, !isLoadingMore, items.last?.id == item.id else { return }
+        guard let cursor = next, !isLoadingMore, items.suffix(5).contains(where: { $0.id == item.id }) else { return }
         isLoadingMore = true
-        defer { isLoadingMore = false }
         let myEpoch = epoch
-        guard let page = try? await load(tab, cursor), myEpoch == epoch else { return }
-        next = page.next
-        let seen = Set(items.map(\.id))
-        items.append(contentsOf: Self.unique(page.items).filter { !seen.contains($0.id) })
+        await Task {
+            defer { isLoadingMore = false }
+            guard let page = try? await load(tab, cursor), myEpoch == epoch else { return }
+            next = page.next
+            let seen = Set(items.map(\.id))
+            items.append(contentsOf: Self.unique(page.items).filter { !seen.contains($0.id) })
+        }.value
     }
 
     func inserted(_ note: Note) {
-        withAnimation(.snappy(duration: 0.3)) {
+        withMotion(Motion.move) {
             phase = .loaded(true)
             items.removeAll { $0.id == HomeFeedItem(kind: .note(note)).id }
             items.insert(HomeFeedItem(kind: .note(note)), at: 0)
@@ -105,7 +132,7 @@ final class HomeFeedViewModel {
     }
 
     func removed(_ id: Int64) {
-        withAnimation(.snappy(duration: 0.25)) { items.removeAll { $0.note?.id == id } }
+        withMotion(Motion.move) { items.removeAll { $0.note?.id == id } }
     }
 
     static func unique(_ items: [HomeFeedItem]) -> [HomeFeedItem] {

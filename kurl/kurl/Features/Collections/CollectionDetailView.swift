@@ -1,7 +1,3 @@
-//
-//  CollectionDetailView.swift
-//  kurl
-//
 //  컬렉션 상세 = 연결된 블록(글·하이라이트·노트)이 섞여 흐르는 채널. 각 연결은 큐레이터의 한 줄
 //  이유를 단다 — 단순 북마크와 컬렉션을 가르는 영혼. 백엔드 `GET /collections/{id}`.
 //
@@ -135,14 +131,14 @@ struct CollectionDetailView: View {
     private func disconnect(_ item: ConnectionItem) async {
         guard let idx = connections.firstIndex(where: { $0.id == item.id }) else { return }
         let snapshot = connections
-        _ = withAnimation(.snappy(duration: 0.25)) {
+        _ = withMotion(Motion.move) {
             connections.remove(at: idx)
         }
         do {
             try await CollectionsAPI.disconnect(collectionId: collectionId, connectionId: item.id)
             disconnects += 1
         } catch {
-            withAnimation(.snappy(duration: 0.25)) { connections = snapshot }
+            withMotion(Motion.move) { connections = snapshot }
             ToastCenter.shared.show(String(localized: "연결을 끊지 못했습니다"))
         }
     }

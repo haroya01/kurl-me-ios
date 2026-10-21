@@ -1,8 +1,3 @@
-//
-//  SettingsLegalSheetUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// 설정의 이용약관·개인정보처리방침이 앱 밖 외부 Safari 로 내쫓지 않고 로그인 화면과 같은

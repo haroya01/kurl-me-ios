@@ -1,8 +1,3 @@
-//
-//  SeriesBanner.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 글 상단의 시리즈 배너 — 웹 SeriesNav 의 네이티브 번역(그린 좌측 룰 + 진행 스테퍼 +
@@ -172,7 +167,7 @@ struct SeriesBanner: View {
     }
 
     private func toggle() {
-        withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) {
+        withAnimation(reduceMotion ? nil : Motion.move) {
             expanded.toggle()
         }
         guard expanded, episodes == nil else { return }

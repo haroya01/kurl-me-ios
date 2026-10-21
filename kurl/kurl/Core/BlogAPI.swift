@@ -1,10 +1,3 @@
-//
-//  BlogAPI.swift
-//  kurl
-//
-//  Created by 김동현 on 6/7/26.
-//
-
 import Foundation
 
 /// 공개 블로그 엔드포인트 모음. 발견 경로(전역·태그·검색 피드, 추천 작가, 시리즈 발견, 주제별 인기)는

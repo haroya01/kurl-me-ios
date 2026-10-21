@@ -1,8 +1,3 @@
-//
-//  RoomItemRow.swift
-//  kurl
-//
-
 import SwiftUI
 
 struct RoomItemRow: View {

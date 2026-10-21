@@ -1,7 +1,3 @@
-//
-//  BlockTableView.swift
-//  kurl — WriteV2 (Phase 2)
-//
 //  표 블록 — 셀별 2차원 편집(셀 하나당 작은 UITextView 서브에디터). 격자로 렌더하고 그 안에서 바로
 //  친다(원시 GFM `| … |` 는 안 보인다). 발행면 TableBlockView(BlockRenderer)의 그리드 문법을
 //  종이 세계(§1)에서 재현: 헤더 진한 하단 룰 + 행마다 얇은 룰 + 열 정렬. 왕복은 EditorTable↔GFM.

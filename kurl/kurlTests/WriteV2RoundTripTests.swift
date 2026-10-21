@@ -1,7 +1,3 @@
-//
-//  WriteV2RoundTripTests.swift
-//  kurlTests
-//
 //  블록 ↔ 마크다운 왕복 회귀 — 스왑의 핵심. 마크다운(현행 ComposeView 방언) → 블록 → 마크다운이
 //  안정(고정점)이어야 기존 저장/서버 md→blocks 와 무손실 호환된다. Phase 1 스코프:
 //  문단 · 제목 h1~3 · 인용 · 코드[lang] + Phase 1 밖 구조의 "문단 보존" 무손실.

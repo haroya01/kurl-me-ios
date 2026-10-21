@@ -1,8 +1,3 @@
-//
-//  SplashView.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 앱 기동 스플래시 — 웹 제품 전환 warp 연출의 이식판: 3-bar 마크가 줄별로

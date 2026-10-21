@@ -1,8 +1,3 @@
-//
-//  EngagementDock.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 글 상세의 좋아요·북마크 — 우하단에 떠 있는 유리 독(DESIGN.md §1).
@@ -100,7 +95,7 @@ struct EngagementDock: View {
         .glassCapsule(prominent: model.liked)
         .glassEffectID("like", in: glassNS)
         .glassEffectTransition(.materialize)
-        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: model.liked)
+        .animation(reduceMotion ? nil : Motion.move, value: model.liked)
         .accessibilityLabel(Text("좋아요"))
         .accessibilityIdentifier("dock.like")
         .accessibilityAddTraits(model.liked ? [.isSelected] : [])
@@ -124,7 +119,7 @@ struct EngagementDock: View {
         .glassCapsule(prominent: model.bookmarked)
         .glassEffectID("bookmark", in: glassNS)
         .glassEffectTransition(.materialize)
-        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: model.bookmarked)
+        .animation(reduceMotion ? nil : Motion.move, value: model.bookmarked)
         .accessibilityLabel(Text("북마크"))
         .accessibilityIdentifier("dock.bookmark")
         .accessibilityAddTraits(model.bookmarked ? [.isSelected] : [])

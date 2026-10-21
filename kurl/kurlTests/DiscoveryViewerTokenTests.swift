@@ -1,7 +1,3 @@
-//
-//  DiscoveryViewerTokenTests.swift
-//  kurlTests
-//
 //  블로그 발견 경로 — 로그인했으면 공개 요청에도 토큰을 실어 서버가 차단·뮤트한 작가를 거르게 하고,
 //  로그아웃이면 익명 그대로. 공개 경로는 만료 토큰을 401 없이 익명으로 받으므로 만료 직전이면 먼저 리프레시한다.
 //
@@ -52,6 +48,18 @@ final class DiscoveryViewerTokenTests: XCTestCase {
         }
         let tagged = requests.first { $0.url?.query?.contains("tag=swift") == true }
         XCTAssertEqual(tagged?.url?.query?.contains("sort=trending"), true, "태그 인기순은 서버 sort=trending 으로 묻는다")
+    }
+
+    func testAuthenticatedRequestsCarryTheFreshToken() async throws {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [CapturingProtocol.self]
+        let client = APIClient(
+            session: URLSession(configuration: config), viewerToken: { nil }, bearerToken: { "fresh-token" })
+
+        let _: [String] = try await client.get("/notes/filters", authenticated: true)
+
+        let request = try XCTUnwrap(CapturingProtocol.requests.first)
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer fresh-token")
     }
 
     func testDiscoveryRequestsStayAnonymousWhenSignedOut() async throws {

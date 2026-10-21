@@ -1,8 +1,3 @@
-//
-//  DailyTrendChart.swift
-//  kurl
-//
-
 import Accessibility
 import Charts
 import SwiftUI

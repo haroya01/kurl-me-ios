@@ -1,8 +1,3 @@
-//
-//  ComposePublishFlowUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// 발행 시트 — 이 앱 최대의 순간(초안 → 발행)까지의 마지막 한 박자. 지금까지 스니펫 바만

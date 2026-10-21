@@ -1,8 +1,3 @@
-//
-//  SwipePager.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 피드 탭을 좌우로 넘기는 필름스트립 — 블로그·노트 탭이 같은 손맛으로 넘어가게 한 벌로 둔다.
@@ -60,7 +55,7 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
                   let from = tabs.firstIndex(of: old),
                   let to = tabs.firstIndex(of: new), from != to else { return }
             dragX = CGFloat(to - from) * containerWidth
-            withAnimation(.snappy(duration: 0.32)) { dragX = 0 }
+            withAnimation(Motion.move) { dragX = 0 }
         }
     }
 
@@ -100,7 +95,7 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
             .onEnded { value in
                 if blocked {
                     blocked = false
-                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.3)) { dragX = 0 }
+                    withAnimation(reduceMotion ? nil : Motion.move) { dragX = 0 }
                     return
                 }
                 let dx = value.translation.width
@@ -111,7 +106,7 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
                 let deliberate = abs(dx) > 48 && abs(dx) > abs(dy) * 1.2
                 let canGo = dx < 0 ? i < tabs.count - 1 : i > 0
                 guard abs(dx) > abs(dy), flick || deliberate, canGo else {
-                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.3)) { dragX = 0 }
+                    withAnimation(reduceMotion ? nil : Motion.move) { dragX = 0 }
                     return
                 }
                 let next = tabs[dx < 0 ? i + 1 : i - 1]
@@ -125,7 +120,7 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
                 // 인덱스 변화와 상쇄돼 시각은 연속. 그 뒤 dragX 를 0 으로 애니메이트해 안착시킨다.
                 selection = next
                 dragX += dx < 0 ? containerWidth : -containerWidth
-                withAnimation(.snappy(duration: 0.28)) { dragX = 0 }
+                withAnimation(Motion.move) { dragX = 0 }
             }
     }
 }
@@ -223,7 +218,4 @@ extension View {
         modifier(SwipeSelects(tabs: tabs, selection: selection))
     }
 
-    func swipesBack(perform action: @escaping () -> Void) -> some View {
-        swipeSelects([0, 1], selection: Binding(get: { 1 }, set: { if $0 == 0 { action() } }))
-    }
 }

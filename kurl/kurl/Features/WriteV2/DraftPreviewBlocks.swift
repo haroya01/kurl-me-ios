@@ -1,7 +1,3 @@
-//
-//  DraftPreviewBlocks.swift
-//  kurl — WriteV2
-//
 //  초안(미발행) 네이티브 미리보기의 데이터 다리 — 저장 계약인 마크다운 문자열을 읽기면 렌더러
 //  (BlockRenderer 의 BlockView)가 먹는 PostBlock 배열로 옮긴다. 발행하면 서버 md→blocks 가
 //  같은 모양을 만드므로, 이 변환은 "발행 전 미리보기가 발행 후 읽기면과 같게" 보이도록 그 규칙을

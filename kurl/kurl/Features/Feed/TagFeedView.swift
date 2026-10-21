@@ -1,10 +1,3 @@
-//
-//  TagFeedView.swift
-//  kurl
-//
-//  Created by 김동현 on 6/7/26.
-//
-
 import SwiftUI
 
 enum TagFeedTab: Hashable {
@@ -37,7 +30,6 @@ struct TagFeedView: View {
     @State private var hasNext = false
     @State private var loadingMore = false
     @State private var showNavTitle = false
-    @Namespace private var zoomNS
 
     init(tag: String, initialTab: TagFeedTab = .posts) {
         self.tag = tag
@@ -85,7 +77,7 @@ struct TagFeedView: View {
         .onScrollGeometryChange(for: Bool.self) { geometry in
             geometry.contentOffset.y + geometry.contentInsets.top > 56
         } action: { _, passed in
-            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) { showNavTitle = passed }
+            withAnimation(reduceMotion ? nil : Motion.micro) { showNavTitle = passed }
         }
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -138,10 +130,6 @@ struct TagFeedView: View {
                     .buttonStyle(RowButtonStyle())
                     .cardQuickActions(item)
                     .accessibilityIdentifier("tag.row.\(item.id)")
-                    .modifier(ZoomSource(
-                        active: true,
-                        id: "tag-\(item.author.username)-\(item.slug)",
-                        ns: zoomNS))
                     .rowDivider(index > 0)
                     .modifier(QuietAppear(index: index))
                     .task {

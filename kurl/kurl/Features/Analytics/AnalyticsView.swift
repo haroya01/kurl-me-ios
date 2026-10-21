@@ -1,8 +1,3 @@
-//
-//  AnalyticsView.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 작가 분석 — 웹 /write 분석의 모바일 판. 30일 조회 추이가 히어로, 그 아래

@@ -1,8 +1,3 @@
-//
-//  SubscribeButton.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 시리즈 구독 버튼 — FollowButton 과 같은 캡슐 문법(구독 전=채움, 구독 중=외곽선).

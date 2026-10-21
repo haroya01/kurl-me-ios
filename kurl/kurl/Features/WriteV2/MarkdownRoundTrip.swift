@@ -1,7 +1,3 @@
-//
-//  MarkdownRoundTrip.swift
-//  kurl — WriteV2
-//
 //  블록 ↔ 마크다운 왕복. 스왑의 핵심 — 이 방언이 현행 ComposeView 가 보내는 것과 같아야
 //  기존 저장/파싱(WriteAPI.replaceMarkdown → 서버 md→blocks)과 무손실로 호환된다.
 //

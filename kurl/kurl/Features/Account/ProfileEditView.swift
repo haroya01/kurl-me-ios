@@ -1,8 +1,3 @@
-//
-//  ProfileEditView.swift
-//  kurl
-//
-
 import ImageIO
 import PhotosUI
 import SwiftUI

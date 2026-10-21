@@ -1,8 +1,3 @@
-//
-//  RoomTimelineView.swift
-//  kurl
-//
-
 import SwiftUI
 
 struct RoomTimelineView: View {
@@ -31,7 +26,7 @@ struct RoomTimelineView: View {
                     Button {
                         composing = true
                     } label: {
-                        ReplyPrompt(text: Text("\(detail.name)에 한마디"))
+                        ReplyPrompt(text: Text("지금 뭐 하고 있어요?"))
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("room.compose")
@@ -53,6 +48,7 @@ struct RoomTimelineView: View {
             }
             feed
         }
+        .reservesTabBarSpace()
         .background(Palette.readingBg)
         .environment(\.insideRoom, roomId)
         .navigationTitle(detail?.name ?? "")
@@ -288,7 +284,7 @@ struct CreateRoomSheet: View {
                 .padding(.bottom, 12)
                 RoomPeoplePicker(picked: $picked, query: query)
             }
-            .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: picked)
+            .animation(reduceMotion ? nil : Motion.move, value: picked)
             .navigationTitle("방 만들기")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

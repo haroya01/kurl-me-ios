@@ -1,8 +1,3 @@
-//
-//  ProfileTabsTests.swift
-//  kurlTests
-//
-
 import XCTest
 
 @testable import kurl
@@ -77,23 +72,23 @@ final class ProfileTabsTests: XCTestCase {
         let id: Int
     }
 
-    func testThePagerAsksForTheNextPageOnlyAtTheLastRowAndUntilTheServerSaysStop() async {
+    func testThePagerAsksForTheNextPageWithinTheLastFiveRowsAndUntilTheServerSaysStop() async {
         var asked: [Int] = []
         let pager = ProfilePager<Row> { page in
             asked.append(page)
             switch page {
-            case 0: return ([Row(id: 1), Row(id: 2)], true)
-            case 1: return ([Row(id: 2), Row(id: 3)], false)
+            case 0: return ((1...7).map(Row.init), true)
+            case 1: return ([Row(id: 7), Row(id: 8)], false)
             default: return ([], false)
             }
         }
 
         await pager.reload()
-        await pager.loadMoreIfNeeded(current: Row(id: 1))
-        XCTAssertEqual(asked, [0], "끝 행이 아니면 다음 장을 부르지 않는다")
         await pager.loadMoreIfNeeded(current: Row(id: 2))
-        XCTAssertEqual(pager.items.map(\.id), [1, 2, 3], "겹친 행은 한 번만 남는다")
+        XCTAssertEqual(asked, [0], "끝에서 다섯 행 밖이면 다음 장을 부르지 않는다")
         await pager.loadMoreIfNeeded(current: Row(id: 3))
+        XCTAssertEqual(pager.items.map(\.id), Array(1...8), "겹친 행은 한 번만 남는다")
+        await pager.loadMoreIfNeeded(current: Row(id: 8))
         XCTAssertEqual(asked, [0, 1], "서버가 다음이 없다고 하면 더 부르지 않는다")
         guard case .loaded = pager.phase else { return XCTFail("받은 뒤에는 loaded") }
     }

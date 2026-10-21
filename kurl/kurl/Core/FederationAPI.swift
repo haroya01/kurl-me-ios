@@ -1,8 +1,3 @@
-//
-//  FederationAPI.swift
-//  kurl
-//
-
 import Foundation
 
 struct RemoteAccount: Codable, Identifiable, Hashable {

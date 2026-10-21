@@ -1,8 +1,3 @@
-//
-//  AbuseReport.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 신고 사유 — 백엔드는 `reasonCode`(enum) + `detail`(자유서술) 두 필드로 받는다(#611).
@@ -163,7 +158,7 @@ struct ReportReasonSheet: View {
         .padding(.horizontal, Metrics.gutter)
         .padding(.top, 28)
         .padding(.bottom, 16)
-        .animation(.snappy(duration: 0.25), value: expandedOther)
+        .animation(Motion.move, value: expandedOther)
     }
 
     // 사유 목록 — 코드 사유는 즉시 접수, "기타"는 자유서술 입력으로 펼친다.

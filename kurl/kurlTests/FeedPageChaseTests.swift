@@ -1,7 +1,3 @@
-//
-//  FeedPageChaseTests.swift
-//  kurlTests
-//
 //  피드 페이지 이어받기(collectKept) — 차단 작가가 연속 페이지를 통째로 차지해도
 //  피드가 글 한둘에서 조용히 끝나지 않는다는 계약을 못박는다.
 //

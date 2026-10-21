@@ -1,8 +1,3 @@
-//
-//  StudioView.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 작가 스튜디오 — 웹 /write 허브 철학의 네이티브 번역.

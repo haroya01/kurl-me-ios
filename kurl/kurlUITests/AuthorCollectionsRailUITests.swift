@@ -1,8 +1,3 @@
-//
-//  AuthorCollectionsRailUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// 작가 프로필의 "컬렉션" 탭 — 큐레이션(엮은 컬렉션)이 프로필 탭으로 뜨고,

@@ -1,8 +1,6 @@
-# kurl-ios SwiftLint — DESIGN.md 디자인 계약(§색 규율·§1.5 반경)을 코드로 강제하는 가드레일.
-# "규율은 있는데 lint 강제장치가 없어 새던" 드리프트를 PR/푸시에서 막는다.
-#
-# 도입 전략: 우선 커스텀 디자인 룰만 켠다(빌트인 스타일 룰 line_length 등은 기존 코드를
-# 폭격하므로 점진 확대). 새 위반만 잡히도록 — 현재 raw .red 위반 0건이라 즉시 그린.
+# kurl-ios SwiftLint — DESIGN.md 계약과 코드 품질 규칙을 PR에서 강제한다.
+# 래칫: 지금 있는 위반은 .swiftlint-baseline.json 에 두고 새 위반만 막는다. 기준 파일은 줄기만 한다
+# (.github/scripts/swiftlint-ratchet.sh).
 
 only_rules:
   - custom_rules
@@ -22,4 +20,54 @@ custom_rules:
     name: "매직넘버 반경 금지"
     regex: 'cornerRadius:\s*([3-9]\b|[1-9][0-9])'
     message: "곡률은 두 단계 — 한 줄 컨트롤은 Capsule(), 여러 줄 면은 Metrics.radius(20), 행 안 작은 썸네일만 Metrics.radiusInner. 장식용 1·2 는 허용."
+    severity: error
+
+  history_comment:
+    name: "이력 주석 금지"
+    regex: '(?<![0-9A-Za-z&])#[0-9]{2,4}(?![0-9A-Fa-f])|예전[엔에]|이전엔|[Pp]reviously|[Uu]sed to|(버그|회귀|함정|문제)가 있었|던 것(을)? (교정|고친다|없앤다)'
+    match_kinds:
+      - comment
+      - doccomment
+    message: "PR 번호·예전 동작·고친 경위는 커밋 메시지와 PR 본문에 쓴다. 주석은 코드가 드러내지 못하는 제약만."
+    severity: error
+
+  xcode_file_header:
+    name: "Xcode 파일 머리말 금지"
+    regex: '^//  [A-Za-z0-9_+]+\.swift$'
+    match_kinds:
+      - comment
+    message: "파일 이름·타깃을 되풀이하는 머리말은 지운다."
+    severity: error
+
+  motion_curve_literal:
+    name: "snappy·smooth 밖 곡선 금지"
+    regex: '\.(easeIn|easeOut|easeInOut|linear|timingCurve|spring|interactiveSpring|interpolatingSpring|bouncy)\b'
+    match_kinds:
+      - identifier
+    message: "모션 곡선은 .snappy·.smooth 만(DESIGN.md §1.6). 다른 곡선이 필요하면 모션 토큰부터 정한다."
+    severity: error
+
+  motion_token:
+    name: "모션 토큰 밖 곡선 금지"
+    regex: '\.(snappy|smooth)\b'
+    match_kinds:
+      - identifier
+    excluded: 'Theme/Motion\.swift$'
+    message: "모션은 Motion.micro·move·stage(.smooth 한 곡선, 길이 3단). 뷰 밖 reduce-motion 분기는 Motion.animation·withMotion."
+    severity: error
+
+  remote_image_only:
+    name: "AsyncImage 금지"
+    regex: '\bAsyncImage\b'
+    match_kinds:
+      - identifier
+    message: "원격 이미지는 RemoteImage — 캐시·다운샘플·중복 요청 합치기가 그 안에 있다."
+    severity: error
+
+  sensory_feedback_only:
+    name: "UIKit 햅틱 생성기 금지"
+    regex: '\bUI(Impact|Notification|Selection)FeedbackGenerator\b'
+    match_kinds:
+      - identifier
+    message: "햅틱은 .sensoryFeedback(trigger:) — 크롬은 SwiftUI 기본 API로."
     severity: error

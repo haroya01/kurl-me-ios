@@ -1,8 +1,3 @@
-//
-//  NotePollSnapshotTests.swift
-//  kurlTests
-//
-
 import SnapshotTesting
 import SwiftUI
 import XCTest

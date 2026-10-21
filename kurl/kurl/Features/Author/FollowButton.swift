@@ -1,8 +1,3 @@
-//
-//  FollowButton.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 작가 페이지의 팔로우 버튼 + 팔로워 수 — 팔로우 전 = 채운 캡슐, 팔로잉 = 외곽선 캡슐.
@@ -93,10 +88,10 @@ struct FollowButton: View {
                     .typeScale(.meta)
                     .foregroundStyle(Palette.secondary)
                     .contentTransition(.numericText())
-                    .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: count)
+                    .animation(reduceMotion ? nil : Motion.micro, value: count)
             }
         }
-        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: model.following)
+        .animation(reduceMotion ? nil : Motion.micro, value: model.following)
         .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
         .sensoryFeedback(.selection, trigger: model.bellToggleCount)
     }

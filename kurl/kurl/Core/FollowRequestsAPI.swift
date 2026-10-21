@@ -1,8 +1,3 @@
-//
-//  FollowRequestsAPI.swift
-//  kurl
-//
-
 import Foundation
 
 /// 잠긴 계정(마스토돈 locked)에 온 팔로우 요청 하나 — 이 서버 회원이거나 다른 서버 계정.

@@ -1,8 +1,3 @@
-//
-//  SignedInScreensUITests.swift
-//  kurlUITests
-//
-
 import XCTest
 
 /// 로그인(mock) 딥 화면 캡처 — `simctl` 로는 탭·스크롤이 안 되는 게이트 화면(For You·내 하이라이트·

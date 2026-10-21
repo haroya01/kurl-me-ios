@@ -1,22 +1,50 @@
 name: SwiftLint
 
-# 디자인 계약 가드레일 — .swift 변경·룰 변경 시 자동 lint. error(raw .red 등) 나면 빨간불.
 on:
   push:
     paths:
       - 'kurl/**/*.swift'
       - '.swiftlint.yml'
+      - '.swiftlint-baseline.json'
+      - '.github/scripts/swiftlint-ratchet.sh'
+      - '.github/swiftlint-fixtures/**'
       - '.github/workflows/swiftlint.yml'
   pull_request:
     paths:
       - 'kurl/**/*.swift'
       - '.swiftlint.yml'
+      - '.swiftlint-baseline.json'
+      - '.github/scripts/swiftlint-ratchet.sh'
+      - '.github/swiftlint-fixtures/**'
+      - '.github/workflows/swiftlint.yml'
 
 jobs:
   swiftlint:
     runs-on: ubuntu-latest
+    container: swift:6.1-noble
+    env:
+      SWIFTLINT_VERSION: 0.65.0
+      SWIFTLINT_SHA256: 79306a34e5c7cc55a220cd108cbb861dcad5f10138dcdf261e2624ae8b0a486b
+      SWIFTLINT_REPORTER: github-actions-logging
     steps:
       - uses: actions/checkout@v4
-      - name: SwiftLint
-        uses: norio-nomura/action-swiftlint@3.2.1
-        # 커스텀 룰은 순수 regex라 Linux 도커에서 동작. error만 잡으면 실패(warning은 어노테이션).
+        with:
+          fetch-depth: 0
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Install SwiftLint
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq jq unzip curl
+          curl -fsSL -o "$RUNNER_TEMP/swiftlint.zip" \
+            "https://github.com/realm/SwiftLint/releases/download/$SWIFTLINT_VERSION/swiftlint_linux_amd64.zip"
+          echo "$SWIFTLINT_SHA256  $RUNNER_TEMP/swiftlint.zip" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/swiftlint"
+          unzip -q "$RUNNER_TEMP/swiftlint.zip" swiftlint -d "$RUNNER_TEMP/swiftlint"
+          echo "$RUNNER_TEMP/swiftlint" >> "$GITHUB_PATH"
+      - run: swiftlint version
+      - name: Fixtures
+        run: .github/scripts/swiftlint-ratchet.sh selftest
+      - name: Ratchet
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: .github/scripts/swiftlint-ratchet.sh check

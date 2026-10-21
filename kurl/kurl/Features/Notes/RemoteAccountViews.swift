@@ -1,8 +1,3 @@
-//
-//  RemoteAccountViews.swift
-//  kurl
-//
-
 import SwiftUI
 
 /// 다른 서버 계정의 팔로우 캡슐 — 마스토돈처럼 요청을 보낸 뒤 그 서버가 수락해야 팔로잉이 된다.
@@ -453,7 +448,7 @@ struct DomainBlocksView: View {
                 Task {
                     do {
                         try await FederationAPI.setDomainBlocked(false, domain: block.domain)
-                        withAnimation(.snappy(duration: 0.2)) { blocks.removeAll { $0.id == block.id } }
+                        withMotion(Motion.micro) { blocks.removeAll { $0.id == block.id } }
                         ToastCenter.shared.show(String(localized: "\(block.domain) 차단을 해제했어요"))
                     } catch {
                         ToastCenter.shared.show(String(localized: "해제하지 못했어요"))

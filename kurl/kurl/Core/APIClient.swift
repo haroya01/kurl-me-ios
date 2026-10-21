@@ -1,10 +1,3 @@
-//
-//  APIClient.swift
-//  kurl
-//
-//  Created by 김동현 on 6/7/26.
-//
-
 import Foundation
 
 enum APIError: LocalizedError {
@@ -61,14 +54,17 @@ struct APIClient {
     private let session: URLSession
     private let decoder: JSONDecoder
     private let viewerToken: () async -> String?
+    private let bearerToken: () async -> String?
 
     init(
         session: URLSession = .shared,
-        viewerToken: @escaping () async -> String? = { await AuthStore.shared.viewerBearerToken() }
+        viewerToken: @escaping () async -> String? = { await AuthStore.shared.freshBearerToken() },
+        bearerToken: @escaping () async -> String? = { await AuthStore.shared.freshBearerToken() }
     ) {
         self.session = session
         self.decoder = JSONDecoder.blog
         self.viewerToken = viewerToken
+        self.bearerToken = bearerToken
     }
 
     /// 공개 읽기에 로그인한 사람의 토큰을 싣는다 — 서버가 그 사람이 차단·뮤트한 작가를 걸러 준다.
@@ -92,11 +88,6 @@ struct APIClient {
         if let timeout { request.timeoutInterval = timeout }
         let data = try await perform(request, authenticated: authenticated)
         return try decode(data)
-    }
-
-    /// 응답 원문이 필요한 GET — 오프라인 저장소가 서버 바이트를 그대로 보관할 때.
-    func getData(_ path: String, query: [String: String?] = [:]) async throws -> Data {
-        try await rawData(try makeRequest(path: path, query: query, method: "GET"))
     }
 
     /// `getAsViewer` 의 원문판 — 오프라인 저장소가 받는 글 상세도 로그인한 사람 기준으로 받는다.
@@ -235,7 +226,7 @@ struct APIClient {
     private func perform(_ request: URLRequest, authenticated: Bool) async throws -> Data {
         guard authenticated else { return try await rawData(request) }
         var authorized = request
-        if let token = await AuthStore.shared.bearerToken {
+        if let token = await bearerToken() {
             authorized.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
         do {
@@ -299,13 +290,12 @@ struct APIClient {
 
     @discardableResult
     private func rawData(_ request: URLRequest) async throws -> Data {
+        let apiPath = request.url.map { String($0.path.dropFirst(Config.apiPrefix.count + 1)) } ?? ""
         #if DEBUG
         // `--offline` — 비행기 모드 시뮬레이션(오프라인 폴백 검증 진입로).
         if Config.simulateOffline {
             throw APIError.transport(URLError(.notConnectedToInternet))
         }
-        #endif
-        let apiPath = request.url.map { String($0.path.dropFirst(Config.apiPrefix.count + 1)) } ?? ""
         // 목 모드: 목 백엔드가 아는 경로면 네트워크를 건너뛴다(공개 읽기는 fall-through).
         if Config.useMocks, let url = request.url {
             do {
@@ -323,6 +313,7 @@ struct APIClient {
                 throw APIError.server(status: status, code: "POST_LOCKED", detail: detail)
             }
         }
+        #endif
         let data: Data
         let response: URLResponse
         do {

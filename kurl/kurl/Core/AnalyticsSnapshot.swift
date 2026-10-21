@@ -1,8 +1,3 @@
-//
-//  AnalyticsSnapshot.swift
-//  kurl
-//
-
 import Foundation
 import WidgetKit
 

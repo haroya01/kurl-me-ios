@@ -1,7 +1,3 @@
-//
-//  PathReorderSheet.swift
-//  kurl
-//
 //  순서 있는 컬렉션의 연결 순서를 드래그로 짠다 — 이 순서가 곧 논증의 흐름이다(A 척추 Stage 3).
 //  네이티브 List `.onMove` 로 끌어 옮기고, 저장 시 백엔드 reorder(연결 id 전체 순서) 한 번.
 //

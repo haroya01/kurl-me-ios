@@ -1,8 +1,3 @@
-//
-//  ScheduledNotesView.swift
-//  kurl
-//
-
 import SwiftUI
 
 @MainActor

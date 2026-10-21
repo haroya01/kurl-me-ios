@@ -1,7 +1,3 @@
-//
-//  SeriesManagementUITests.swift
-//  kurlUITests
-//
 //  주인 시리즈 상세의 관리(수정·순서 편집·삭제) 진입로를 실기기 경로로 확인 + 스크린샷.
 //  목 상세(honggildong/hexagonal, id 7)는 로그인 사용자와 같은 작가라 관리 메뉴가 뜬다.
 //

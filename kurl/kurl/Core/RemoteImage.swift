@@ -1,8 +1,3 @@
-//
-//  RemoteImage.swift
-//  kurl
-//
-
 import ImageIO
 import SwiftUI
 import UIKit

@@ -1,8 +1,3 @@
-//
-//  HomeFeedRefreshTests.swift
-//  kurlTests
-//
-
 import XCTest
 
 @testable import kurl
@@ -65,5 +60,57 @@ final class HomeFeedRefreshTests: XCTestCase {
         await model.refresh()
         XCTAssertEqual(asked, 0)
         XCTAssertEqual(model.items.map(\.id), ["post-1"])
+    }
+
+    func testOnlyTheReloadThatSettlesLaunchLiftsTheSplash() async {
+        var settled = 0
+        let quiet = HomeFeedViewModel(
+            tab: .trending, settled: { settled += 1 }, load: { _, _ in HomeFeedBatch(items: [], next: nil) })
+        let shown = HomeFeedViewModel(
+            tab: .latest, settled: { settled += 1 }, load: { _, _ in throw URLError(.timedOut) })
+        Self.kept += [quiet, shown]
+
+        await quiet.reload()
+        XCTAssertEqual(settled, 0)
+        await shown.reload(settlesLaunch: true)
+        XCTAssertEqual(settled, 1, "실패해도 막은 걷힌다")
+    }
+
+    func testTheNextPageStartsFiveRowsBeforeTheEnd() async {
+        var asked: [String?] = []
+        let items = (1...8).map { post(Int64($0)) }
+        let model = HomeFeedViewModel(tab: .latest, load: { _, cursor in
+            asked.append(cursor)
+            return cursor == nil
+                ? HomeFeedBatch(items: items, next: "c1")
+                : HomeFeedBatch(items: [self.post(9)], next: nil)
+        })
+        Self.kept.append(model)
+        await model.reload()
+
+        await model.loadMoreIfNeeded(current: items[2])
+        XCTAssertEqual(asked, [nil])
+        await model.loadMoreIfNeeded(current: items[3])
+        XCTAssertEqual(asked, [nil, "c1"])
+        XCTAssertEqual(model.items.last?.id, "post-9")
+    }
+
+    func testARowScrollingAwayDoesNotCancelTheNextPage() async {
+        let first = HomeFeedBatch(items: [post(1)], next: "c1")
+        let model = HomeFeedViewModel(tab: .latest, load: { _, cursor in
+            guard cursor != nil else { return first }
+            try await Task.sleep(for: .milliseconds(150))
+            return HomeFeedBatch(items: [self.post(2)], next: nil)
+        })
+        Self.kept.append(model)
+        await model.reload()
+
+        let row = Task { await model.loadMoreIfNeeded(current: self.post(1)) }
+        row.cancel()
+        await row.value
+
+        XCTAssertEqual(model.items.map(\.id), ["post-1", "post-2"])
+        XCTAssertNil(model.next)
+        XCTAssertFalse(model.isLoadingMore)
     }
 }

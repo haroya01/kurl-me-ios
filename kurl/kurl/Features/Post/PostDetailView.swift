@@ -1,10 +1,3 @@
-//
-//  PostDetailView.swift
-//  kurl
-//
-//  Created by 김동현 on 6/7/26.
-//
-
 import SwiftUI
 import UIKit
 
@@ -57,7 +50,7 @@ struct PostDetailView: View {
                 // 하드 컷이면 이전 회차에서 스크롤로 숨었던 크롬이 새로 튀어 "깜빡"인다. 나가는 편이
                 // 페이드 아웃하는 사이 새 편이 뒤에서(초기화 상태로) 페이드 인하므로, 크롬 리셋이
                 // 겹침막 뒤에서 일어나 보이지 않는다("다음 카드가 가린 뒤 재생성"의 SwiftUI 판).
-                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.28)) { currentSlug = slug }
+                withAnimation(reduceMotion ? nil : Motion.move) { currentSlug = slug }
             })
         .id(currentSlug)
         .transition(.opacity)
@@ -298,7 +291,7 @@ private struct PostDetailReader: View {
             geometry.contentOffset.y + geometry.contentInsets.top
         } action: { _, offset in
             guard !embedded, !voiceOverOn else { return }
-            withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) {
+            withAnimation(reduceMotion ? nil : Motion.move) {
                 readingDirection.report(offset: offset, from: readingReporter)
             }
         }
@@ -365,13 +358,13 @@ private struct PostDetailReader: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: composerActive)
+        .animation(reduceMotion ? nil : Motion.move, value: composerActive)
         .hidesTabBar(composerActive)
         .onScrollGeometryChange(for: Bool.self) { geometry in
             geometry.contentOffset.y + geometry.contentInsets.top > 110
         } action: { _, passed in
             guard !embedded else { return }
-            withAnimation(.easeInOut(duration: 0.18)) { showNavTitle = passed }
+            withMotion(Motion.micro) { showNavTitle = passed }
         }
         // 임베드 전용: 바닥까지 남은 거리. 가까워지면 다음 글을 미리 찾고,
         // 바닥을 지나 90pt 이상 당기면 다음 글로 넘어간다.
@@ -422,7 +415,7 @@ private struct PostDetailReader: View {
         }
         .onScrollPhaseChange { _, newPhase in
             if newPhase != .idle, highlights?.card != nil {
-                withAnimation(reduceMotion ? nil : .smooth(duration: 0.2)) { highlights?.card = nil }
+                withAnimation(reduceMotion ? nil : Motion.micro) { highlights?.card = nil }
             }
             // 당길 목적지가 있을 때만 손가락 상태를 추적 — 관성 바운스로 튕겨 넘어가지 않게.
             if pullTargetSlug != nil { fingerDown = newPhase == .interacting }
@@ -525,7 +518,7 @@ private struct PostDetailReader: View {
                 .allowsHitTesting(!dockHidden)
                 .accessibilityHidden(dockHidden)
                 .animation(
-                    reduceMotion ? nil : .snappy(duration: 0.25), value: dockTabBarInset)
+                    reduceMotion ? nil : Motion.move, value: dockTabBarInset)
             }
         }
         // 읽기 진행 = 상단 가는 막대(내비바 아래 한 줄). 왼쪽부터 그린으로 찬다 — 떠 있는
@@ -561,7 +554,7 @@ private struct PostDetailReader: View {
                     // 접히면 상태바 바탕 아래 테두리 안쪽.
                     .padding(.top, embedded || chromeHidden ? 0 : Self.topBarHeight + topBarInset)
                     .offset(y: embedded || !chromeHidden || inSheet ? 0 : -ReadProgressBar.height)
-                    .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: chromeHidden)
+                    .animation(reduceMotion ? nil : Motion.move, value: chromeHidden)
             }
         }
         // 완독 = 결과 햅틱 한 번(.success). trigger 닫힘(되돌아감)엔 울리지 않게 완료에만.
@@ -570,12 +563,13 @@ private struct PostDetailReader: View {
         .onChange(of: access.lockouts[PostAccess.address(username: model.username, slug: model.slug)]) {
             Task { await model.reloadAfterLockout() }
         }
-        .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: endVisible)
-        .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: keyboardUp)
+        .animation(reduceMotion ? nil : Motion.move, value: endVisible)
+        .animation(reduceMotion ? nil : Motion.move, value: keyboardUp)
         .task {
-            await model.load()
+            async let loaded: Void = model.load()
             // 덱은 lazy 페이지가 많아 바닥 근접 때만(loadMore 경로), 단독은 곧장 작가 컨텍스트.
             if !embedded { await loadAuthorContext() }
+            await loaded
         }
         // 완독 = 읽음. 긴 글은 끝까지 내려간 순간(readComplete) 찍는다 — '열기'가 아니라 '다 읽기'.
         .onChange(of: readComplete) { _, done in
@@ -730,8 +724,8 @@ private struct PostDetailReader: View {
         .opacity(chromeHidden ? 0 : 1)
         .allowsHitTesting(!chromeHidden)
         .accessibilityHidden(chromeHidden)
-        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: chromeHidden)
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: showNavTitle)
+        .animation(reduceMotion ? nil : Motion.move, value: chromeHidden)
+        .animation(reduceMotion ? nil : Motion.micro, value: showNavTitle)
     }
 
     /// 상단 바 ⋯ — 나열하던 공유·분석·편집·관리를 단일 ⋯ 하나로 접는다(§10 조용한 크롬).
@@ -895,7 +889,7 @@ private struct PostDetailReader: View {
         Menu {
             ForEach(headings, id: \.id) { h in
                 Button {
-                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.3)) {
+                    withAnimation(reduceMotion ? nil : Motion.move) {
                         proxy.scrollTo(h.id, anchor: UnitPoint(x: 0, y: 0.08))
                     }
                 } label: {
@@ -931,10 +925,10 @@ private struct PostDetailReader: View {
         .padding(.bottom, 40)
         .padding(.horizontal, Metrics.gutter)
         .transition(.move(edge: .bottom).combined(with: .opacity))
-        .onTapGesture { withAnimation(reduceMotion ? nil : .snappy) { showHighlightCoach = false } }
+        .onTapGesture { withAnimation(reduceMotion ? nil : Motion.move) { showHighlightCoach = false } }
         .task {
             try? await Task.sleep(for: .seconds(5))
-            withAnimation(reduceMotion ? nil : .snappy) { showHighlightCoach = false }
+            withAnimation(reduceMotion ? nil : Motion.move) { showHighlightCoach = false }
         }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
@@ -984,12 +978,6 @@ private struct PostDetailReader: View {
         return nil
     }
 
-    private var pullTargetTitle: String? {
-        if !embedded, let next = seriesNext { return next.title }
-        if embedded { return nextPost?.title }
-        return nil
-    }
-
     /// 발견 딥링크 — 구절이 든 블록으로 스크롤하고 잠깐 강조했다 사라진다. 공개 하이라이트는 이미
     /// 그 자리에 그린으로 칠해져 있어, 도착하면 그 문장에 바로 안착한다. 한 글에 한 번만.
     private func focusOnQuoteIfNeeded(_ proxy: ScrollViewProxy) async {
@@ -1000,12 +988,12 @@ private struct PostDetailReader: View {
         didFocus = true
         try? await Task.sleep(for: .milliseconds(420))  // 레이아웃·하이라이트 페인트 후
         // reduce-motion = 스크롤·플래시 모두 즉시(스밈·페이드 없이) — 도착은 하되 움직임은 끈다.
-        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.55)) {
+        withAnimation(reduceMotion ? nil : Motion.stage) {
             proxy.scrollTo(blockId, anchor: UnitPoint(x: 0, y: 0.18))
         }
-        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.35)) { flashBlockId = blockId }
+        withAnimation(reduceMotion ? nil : Motion.move) { flashBlockId = blockId }
         try? await Task.sleep(for: .milliseconds(1300))
-        withAnimation(reduceMotion ? nil : .easeIn(duration: 0.7)) { flashBlockId = nil }
+        withAnimation(reduceMotion ? nil : Motion.stage) { flashBlockId = nil }
     }
 
     private var spotReadiness: String {
@@ -1039,23 +1027,23 @@ private struct PostDetailReader: View {
                 return !BlockStore.shared.isBlocked(author.username)
             }
             try? await Task.sleep(for: .milliseconds(420))
-            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.55)) {
+            withAnimation(reduceMotion ? nil : Motion.stage) {
                 proxy.scrollTo(Self.commentsAnchor, anchor: .top)
                 endVisible = true
             }
             guard visible else { return }
             try? await Task.sleep(for: .milliseconds(reduceMotion ? 50 : 600))
-            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.35)) {
+            withAnimation(reduceMotion ? nil : Motion.move) {
                 proxy.scrollTo(Self.commentAnchor(id), anchor: UnitPoint(x: 0, y: 0.3))
             }
-            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.35)) { flashCommentId = id }
+            withAnimation(reduceMotion ? nil : Motion.move) { flashCommentId = id }
             try? await Task.sleep(for: .milliseconds(1300))
-            withAnimation(reduceMotion ? nil : .easeIn(duration: 0.7)) { flashCommentId = nil }
+            withAnimation(reduceMotion ? nil : Motion.stage) { flashCommentId = nil }
         case .highlight(let id):
             guard let store = highlights, let highlight = store.highlight(id: id) else { return }
             if let order = highlight.blockOrder, detail.blocks.contains(where: { $0.id == order }) {
                 try? await Task.sleep(for: .milliseconds(420))
-                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.55)) {
+                withAnimation(reduceMotion ? nil : Motion.stage) {
                     proxy.scrollTo(order, anchor: UnitPoint(x: 0, y: 0.18))
                 }
                 try? await Task.sleep(for: .milliseconds(reduceMotion ? 80 : 620))
@@ -1087,7 +1075,7 @@ private struct PostDetailReader: View {
               forceCoach || !UserDefaults.standard.bool(forKey: Self.highlightCoachKey)
         else { return }
         if !forceCoach { UserDefaults.standard.set(true, forKey: Self.highlightCoachKey) }
-        withAnimation(reduceMotion ? nil : .snappy) { showHighlightCoach = true }
+        withAnimation(reduceMotion ? nil : Motion.move) { showHighlightCoach = true }
     }
 
     /// 본문 파생값(목차·읽는 시간) 1회 계산 — 로드/오프라인 갱신 시점에만 전 블록을 순회한다.
@@ -1316,7 +1304,7 @@ private struct PostDetailReader: View {
         guard detail.post.locked == nil, let source = translationOffer?.source else { return }
         translationTarget = target
         let key = translationKey(detail)
-        if withAnimation(reduceMotion ? nil : .snappy(duration: 0.25), { translations.showCached(key) }) { return }
+        if withAnimation(reduceMotion ? nil : Motion.move, { translations.showCached(key) }) { return }
         let plan = translationPlan(for: detail, key: key)
         let request = TranslationRequest(key: key, source: source, target: target, texts: plan.texts)
         translatedDetail = nil
@@ -1326,7 +1314,7 @@ private struct PostDetailReader: View {
 
     private func showOriginal(_ detail: PublicPostDetail) {
         translationRequest = nil
-        withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) {
+        withAnimation(reduceMotion ? nil : Motion.move) {
             translations.showOriginal(translationKey(detail))
         }
     }
@@ -1343,7 +1331,7 @@ private struct PostDetailReader: View {
               translatedDetail?.key != key || translatedDetail?.texts != texts,
               let applied = translationPlan(for: detail, key: key).apply(partial: texts)
         else { return }
-        withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) {
+        withAnimation(reduceMotion ? nil : Motion.move) {
             translatedDetail = TranslatedDetail(
                 key: key, texts: texts, applied: applied,
                 detail: detail.replacing(title: applied.title, blocks: applied.blocks))
@@ -1897,7 +1885,7 @@ private struct PostDetailReader: View {
             // 길게 끊지 않는다. 탭하면 그 자리에서 펼친다.
             if embedded, !commentsExpanded {
                 Button {
-                    withAnimation(.snappy(duration: 0.25)) { commentsExpanded = true }
+                    withMotion(Motion.move) { commentsExpanded = true }
                 } label: {
                     HStack(spacing: 8) {
                         RailHeading(model.commentsFailed ? "댓글" : "댓글 \(model.commentCount)")
@@ -2084,7 +2072,7 @@ private struct ReadingScrubber: View {
         }
         .frame(width: 26)
         .opacity(visible || dragging ? 1 : 0)
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: visible || dragging)
+        .animation(reduceMotion ? nil : Motion.micro, value: visible || dragging)
         // 스크롤이 움직이는 동안만 얼굴을 내민다 — bodyMinY 가 프레임마다 변하는 걸 신호로.
         .onChange(of: progress.bodyMinY) {
             guard !visible || hideTask != nil else { return }
@@ -2356,7 +2344,7 @@ private struct CommentThread: View {
                     .fill(flashCommentId == id ? Palette.highlightFlash : replyTo?.id == id ? Palette.chipBg : Color.clear)
                     .padding(.horizontal, -8)
                     .padding(.vertical, -6)
-                    .animation(.smooth(duration: 0.2), value: replyTo?.id)
+                    .animation(Motion.micro, value: replyTo?.id)
             }
             .id(PostDetailReader.commentAnchor(id))
     }

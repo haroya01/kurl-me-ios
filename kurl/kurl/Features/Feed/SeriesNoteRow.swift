@@ -1,8 +1,3 @@
-//
-//  SeriesNoteRow.swift
-//  kurl
-//
-
 import SwiftUI
 
 struct SeriesNoteRow: View {

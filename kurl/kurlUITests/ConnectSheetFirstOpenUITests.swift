@@ -1,7 +1,3 @@
-//
-//  ConnectSheetFirstOpenUITests.swift
-//  kurlUITests
-//
 //  "컬렉션에 연결" 시트가 첫 탭에서 반드시 뜨고 내용까지 로드되는지 — 최초 1회 로딩 실패
 //  신고의 재현·회귀 가드. 목 백엔드로 실터치 여정 그대로.
 //

@@ -1,7 +1,3 @@
-//
-//  V2LegacyParityUITests.swift
-//  kurlUITests
-//
 //  WriteV2(기본 에디터)에 레거시 파리티로 되살린 컨트롤의 실동작 — 취소선 버튼·표 행/열 삭제·
 //  키보드 내리기. 탭 → 실제 상태 변화(블록 값·컨트롤 등장·토스트)로 판정한다(하이라이트만으로 X).
 //  이미지 폭/삭제는 PHPicker(프로세스 밖) 의존이라 유닛(WriteV2RoundTripTests)이 대표 커버.

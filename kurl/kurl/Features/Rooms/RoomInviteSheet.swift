@@ -1,8 +1,3 @@
-//
-//  RoomInviteSheet.swift
-//  kurl
-//
-
 import CoreImage.CIFilterBuiltins
 import SwiftUI
 
@@ -31,7 +26,7 @@ struct RoomInviteSheet: View {
                     .padding(.bottom, 14)
                 RoomPeoplePicker(picked: $picked, query: query, memberIds: memberIds, invited: invited)
             }
-            .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: picked)
+            .animation(reduceMotion ? nil : Motion.move, value: picked)
             .searchable(
                 text: $query, placement: .navigationBarDrawer(displayMode: .always),
                 prompt: Text("이름이나 아이디로 찾기"))

@@ -1,8 +1,3 @@
-//
-//  BusinessCardView.swift
-//  kurl
-//
-
 import SwiftUI
 import WebKit
 

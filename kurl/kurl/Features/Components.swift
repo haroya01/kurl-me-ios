@@ -1,10 +1,3 @@
-//
-//  Components.swift
-//  kurl
-//
-//  Created by 김동현 on 6/7/26.
-//
-
 import SafariServices
 import SwiftUI
 
@@ -126,43 +119,6 @@ extension View {
     /// 브랜드 리프레시 — `.refreshable` 대신 단다. 당김 임계(84pt)에서 발동한다.
     func brandRefreshable(action: @escaping () async -> Void) -> some View {
         modifier(BrandRefresh(action: action))
-    }
-}
-
-struct StateView<Value, Content: View>: View {
-    let state: LoadState<Value>
-    var retry: (() -> Void)?
-    @ViewBuilder var content: (Value) -> Content
-
-    var body: some View {
-        // 로딩→완료(→실패)가 뚝 바뀌지 않고 부드럽게 교차 페이드된다 — 첫 화면(스플래시)의 결을
-        // StateView 를 쓰는 모든 면에 한 번에 입힌다. opacity 크로스페이드는 reduce-motion 에서도
-        // 안전한 표현(슬라이드/스케일과 달리).
-        ZStack {
-            switch state {
-            case .idle, .loading:
-                KurlLoadingMark()
-                    .frame(maxWidth: .infinity, minHeight: 280)
-                    .transition(.opacity)
-            case .loaded(let value):
-                content(value)
-                    .transition(.opacity)
-            case .failed(let message):
-                ErrorState(message: message, retry: retry)
-                    .transition(.opacity)
-            }
-        }
-        .animation(.easeOut(duration: 0.3), value: phase)
-    }
-
-    /// 페이즈 키 — 같은 값 안의 변화(예: loaded 값 갱신)엔 재페이드하지 않고, 로딩↔완료↔실패
-    /// 전환에서만 크로스페이드한다.
-    private var phase: Int {
-        switch state {
-        case .idle, .loading: return 0
-        case .loaded: return 1
-        case .failed: return 2
-        }
     }
 }
 
@@ -647,6 +603,55 @@ struct ZoomSource: ViewModifier {
             content.matchedTransitionSource(id: id, in: ns)
         } else {
             content
+        }
+    }
+}
+
+struct PostZoom {
+    let prefix: String
+    let ns: Namespace.ID
+    var active = true
+
+    func id(username: String, slug: String) -> String { "\(prefix)-\(username)-\(slug)" }
+}
+
+extension EnvironmentValues {
+    @Entry var postZoom: PostZoom? = nil
+}
+
+struct PostZoomSource: ViewModifier {
+    let username: String
+    let slug: String
+    @Environment(\.postZoom) private var zoom
+
+    func body(content: Content) -> some View {
+        if let zoom {
+            content.modifier(ZoomSource(active: zoom.active, id: zoom.id(username: username, slug: slug), ns: zoom.ns))
+        } else {
+            content
+        }
+    }
+}
+
+/// 글 상세 목적지 — 스택 루트에서 민 글만 zoom 으로 연다. 판단은 처음 만들 때 한 번만 해서, 그 위로
+/// 더 미느라 path 가 길어져도 이미 뜬 상세의 정체성이 바뀌지 않는다.
+struct PostZoomDestination: View {
+    let route: Route
+    let zoom: PostZoom
+    @State private var zooms: Bool
+
+    init(route: Route, zoom: PostZoom, fromRoot: Bool) {
+        self.route = route
+        self.zoom = zoom
+        _zooms = State(initialValue: fromRoot)
+    }
+
+    var body: some View {
+        if zooms, case .post(let username, let slug) = route {
+            RouteView(route: route)
+                .navigationTransition(.zoom(sourceID: zoom.id(username: username, slug: slug), in: zoom.ns))
+        } else {
+            RouteView(route: route)
         }
     }
 }

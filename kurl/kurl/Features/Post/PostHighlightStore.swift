@@ -1,8 +1,3 @@
-//
-//  PostHighlightStore.swift
-//  kurl
-//
-
 import SwiftUI
 import UIKit
 
@@ -229,7 +224,7 @@ final class PostHighlightStore {
             Task { await load() }
         } catch {
             mutationVersion += 1
-            withAnimation(.snappy(duration: 0.25)) {
+            withMotion(Motion.move) {
                 highlights.removeAll { $0.id == optimistic.id }
             }
             throw error
@@ -245,7 +240,7 @@ final class PostHighlightStore {
         pendingDeletes.insert(id)
         defer { pendingDeletes.remove(id) }
         mutationVersion += 1
-        withAnimation(.snappy(duration: 0.25)) {
+        withMotion(Motion.move) {
             highlights.remove(at: idx)
         }
         do {
@@ -256,7 +251,7 @@ final class PostHighlightStore {
             mutationVersion += 1
             // Only restore this item; a concurrent create/refresh owns the rest of the array.
             if !highlights.contains(where: { $0.id == id }) {
-                withAnimation(.snappy(duration: 0.25)) {
+                withMotion(Motion.move) {
                     highlights.insert(removed, at: min(idx, highlights.count))
                 }
             }

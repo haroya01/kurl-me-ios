@@ -1,8 +1,3 @@
-//
-//  RemoteStream.swift
-//  kurl
-//
-
 import SwiftUI
 
 extension RemoteStreamFeed {
@@ -67,14 +62,16 @@ final class RemoteStreamModel {
     }
 
     func loadMoreIfNeeded(current item: RemoteStreamItem) async {
-        guard let cursor = next, !isLoadingMore, items.last?.id == item.id else { return }
+        guard let cursor = next, !isLoadingMore, items.suffix(5).contains(where: { $0.id == item.id }) else { return }
         isLoadingMore = true
-        defer { isLoadingMore = false }
         let myEpoch = epoch
-        guard let page = try? await load(feed, cursor), myEpoch == epoch else { return }
-        next = page.next
-        let seen = Set(items.map(\.id))
-        items.append(contentsOf: Self.unique(page.items).filter { !seen.contains($0.id) })
+        await Task {
+            defer { isLoadingMore = false }
+            guard let page = try? await load(feed, cursor), myEpoch == epoch else { return }
+            next = page.next
+            let seen = Set(items.map(\.id))
+            items.append(contentsOf: Self.unique(page.items).filter { !seen.contains($0.id) })
+        }.value
     }
 
     func replaced(_ note: Note) {
@@ -116,7 +113,7 @@ struct RemoteStreamRows: View {
                 .padding(.top, 24)
             }
             ForEach(Array(model.items.enumerated()), id: \.element.id) { index, item in
-                row(item)
+                RemoteStreamRow(item: item, model: model)
                     .task { await model.loadMoreIfNeeded(current: item) }
                 if index < model.items.count - 1 { Hairline().padding(.horizontal, -gutter) }
             }
@@ -136,14 +133,20 @@ struct RemoteStreamRows: View {
         }
     }
 
-    @ViewBuilder
-    private func row(_ item: RemoteStreamItem) -> some View {
+}
+
+struct RemoteStreamRow: View {
+    let item: RemoteStreamItem
+    let model: RemoteStreamModel
+    var headsKept = true
+
+    var body: some View {
         switch item {
         case .trending(let note):
             TrendingNoteRow(item: note, showsContext: model.feed == .trending)
         case .kept(let note):
             VStack(alignment: .leading, spacing: 0) {
-                if item.id == model.firstKeptID {
+                if headsKept, item.id == model.firstKeptID {
                     RailHeading("받은 노트")
                         .padding(.top, 20)
                 }
