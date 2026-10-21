@@ -161,6 +161,14 @@ enum RoomAPI {
             "/rooms/\(id)/notes", query: ["page": String(page), "size": "20"], authenticated: true)
     }
 
+    static func items(room id: Int64, cursor: String?) async throws -> HomeFeedBatch {
+        try await client.get("/rooms/\(id)/items", query: ["limit": "20", "cursor": cursor], authenticated: true)
+    }
+
+    static func allItems(cursor: String?, limit: Int = 20) async throws -> HomeFeedBatch {
+        try await client.get("/rooms/items", query: ["limit": String(limit), "cursor": cursor], authenticated: true)
+    }
+
     static func feed(page: Int, size: Int = 20) async throws -> NoteFeed {
         try await client.get("/rooms/feed", query: ["page": String(page), "size": String(size)], authenticated: true)
     }

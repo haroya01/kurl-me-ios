@@ -23,6 +23,7 @@ enum PostConditionLabel {
         case .followers: parts.append(String(localized: "팔로워 공개"))
         case .unlisted: parts.append(String(localized: "링크로만 공개"))
         case .password: parts.append(String(localized: "비밀번호 글"))
+        case .room: parts.append(String(localized: "방 멤버만"))
         }
         let countries = isOwner ? (post.blockedCountries ?? []) : []
         if !countries.isEmpty {

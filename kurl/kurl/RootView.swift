@@ -165,6 +165,7 @@ struct RootView: View {
     @State private var choosingKind = false
     @State private var chosen: ComposeChoice?
     @State private var composingNote = false
+    @State private var noteRoom: NoteRoom?
     @State private var notesPosted = 0
     @State private var postedNote: Note?
     @State private var movedToPost: PostCover?
@@ -284,6 +285,14 @@ struct RootView: View {
             .onChange(of: showWriteLogin) { _, open in
                 if !open, !AuthStore.shared.isSignedIn { composeAfterSignIn = false }
             }
+            .task {
+                #if DEBUG
+                if Config.launchValue(after: "--open") == "chooser" {
+                    try? await Task.sleep(for: .milliseconds(600))
+                    choosingKind = true
+                }
+                #endif
+            }
             .sheet(isPresented: $choosingKind, onDismiss: kindChosen) {
                 ComposeChooserSheet { choice in
                     chosen = choice
@@ -293,6 +302,7 @@ struct RootView: View {
             .sheet(isPresented: $composingNote, onDismiss: noteComposerClosed) {
                 NoteComposeSheet(
                     mode: .new(quote: nil, inReplyToId: nil),
+                    room: noteRoom,
                     onLongForm: { movedToPost = PostCover(markdown: $0, isDraft: true) }
                 ) { note in
                     postedNote = note
@@ -300,7 +310,7 @@ struct RootView: View {
                 }
             }
             .fullScreenCover(item: $postCover, onDismiss: composeFinished) { cover in
-                PostComposerCover(post: cover.post, initialMarkdown: cover.markdown, isDraft: cover.isDraft)
+                PostComposerCover(post: cover.post, initialMarkdown: cover.markdown, isDraft: cover.isDraft, room: cover.room)
             }
             .sensoryFeedback(.success, trigger: notesPosted)
             // 위젯이 가리킨 저장 글 — 현재 탭 위 시트로. 읽기가 끝나면 원래 자리로 그대로 돌아온다.
@@ -460,17 +470,24 @@ struct RootView: View {
         let choice = chosen
         chosen = nil
         switch choice {
-        case .note: composingNote = true
-        case .newPost: postCover = PostCover()
+        case .note(let room):
+            noteRoom = room
+            composingNote = true
+        case .newPost(let room): postCover = PostCover(room: room)
         case .draft(let post): postCover = PostCover(post: post)
         case nil: composeFinished()
         }
     }
 
     private func noteComposerClosed() {
+        noteRoom = nil
         if let note = postedNote {
             postedNote = nil
-            TabRouter.shared.revealPosted(note)
+            if let room = note.room {
+                RoomsRouter.shared.open(room.id)
+            } else {
+                TabRouter.shared.revealPosted(note)
+            }
         }
         if let moved = movedToPost {
             movedToPost = nil

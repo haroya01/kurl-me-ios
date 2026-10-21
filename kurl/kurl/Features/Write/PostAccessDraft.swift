@@ -15,11 +15,13 @@ struct PostAccessDraft: Equatable {
     var countries: [String] = []
     var savedCountries: [String] = []
     var unlistedUrl: String?
+    var room: NoteRoom?
 
     struct Patch: Equatable {
         var audience: PostAudience?
         var password: String?
         var countries: [String]?
+        var roomId: Int64?
     }
 
     init() {}
@@ -31,10 +33,14 @@ struct PostAccessDraft: Equatable {
         countries = post.blockedCountries ?? []
         savedCountries = countries
         unlistedUrl = post.unlistedUrl
+        room = post.room
+        savedRoomId = post.room?.id
     }
 
+    var savedRoomId: Int64?
+
     var signature: String {
-        "\(audience.rawValue)|\(countries.sorted().joined(separator: ","))"
+        "\(audience.rawValue)|\(room?.id ?? 0)|\(countries.sorted().joined(separator: ","))"
     }
 
     var blockReason: String? {
@@ -56,6 +62,10 @@ struct PostAccessDraft: Equatable {
         if audience != savedAudience, audience != .password || hasPassword || sendsPassword {
             patch.audience = audience
         }
+        if audience == .room, let room, room.id != savedRoomId {
+            patch.audience = .room
+            patch.roomId = room.id
+        }
         if sendsPassword { patch.password = newPassword }
         if Set(countries) != Set(savedCountries) { patch.countries = countries.sorted() }
         return patch == Patch() ? nil : patch
@@ -63,6 +73,7 @@ struct PostAccessDraft: Equatable {
 
     mutating func adopt(saved post: MyPost, sent patch: Patch) {
         if let audience = post.audience ?? patch.audience { savedAudience = audience }
+        if let roomId = post.room?.id ?? patch.roomId { savedRoomId = roomId }
         if patch.password != nil { newPassword = "" }
         hasPassword = post.hasPassword ?? (hasPassword || patch.password != nil)
         if let countries = post.blockedCountries ?? patch.countries { savedCountries = countries }

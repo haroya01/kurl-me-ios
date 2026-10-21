@@ -47,6 +47,20 @@ struct HomeFeedItem: Identifiable, Hashable {
     }
 
     var kind: Kind
+    var replies: [ReplyPreview] = []
+
+    struct ReplyPreview: Decodable, Hashable, Identifiable {
+        let id: Int64
+        let author: Author
+        let body: String
+    }
+
+    var replyTotal: Int64 {
+        switch kind {
+        case .note(let note): Int64(note.replyCount)
+        case .post(let post): post.commentCount ?? 0
+        }
+    }
 
     var id: String {
         switch kind {
@@ -71,10 +85,12 @@ struct HomeFeedItem: Identifiable, Hashable {
 struct HomeFeedBatch: Decodable {
     let items: [HomeFeedItem]
     let next: String?
+    var newest: String? = nil
+    var gap: Bool? = nil
 }
 
 extension HomeFeedItem: Decodable {
-    private enum CodingKeys: String, CodingKey { case kind, note, post }
+    private enum CodingKeys: String, CodingKey { case kind, note, post, replies }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -82,12 +98,20 @@ extension HomeFeedItem: Decodable {
         case "post": kind = .post(try container.decode(FeedItem.self, forKey: .post))
         default: kind = .note(try container.decode(Note.self, forKey: .note))
         }
+        replies = (try? container.decodeIfPresent([ReplyPreview].self, forKey: .replies)) ?? []
     }
 }
 
 enum HomeFeedAPI {
     static var client = APIClient.shared
     static let limit = 20
+
+    static func newer(_ tab: HomeFeedTab, since: String) async throws -> HomeFeedBatch {
+        let query: [String: String?] = ["tab": tab.rawValue, "limit": String(limit), "since": since]
+        return tab.requiresAuth
+            ? try await client.get("/public/home", query: query, authenticated: true)
+            : try await client.getAsViewer("/public/home", query: query)
+    }
 
     static func page(_ tab: HomeFeedTab, cursor: String?) async throws -> HomeFeedBatch {
         do {

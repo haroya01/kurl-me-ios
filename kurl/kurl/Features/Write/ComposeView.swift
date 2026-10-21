@@ -185,12 +185,22 @@ struct ComposeView: View {
 
     /// 방금 발행한 글의 slug — 셀레브레이션의 "글 보기" 한 틱이 이걸 들고 라이브로 보낸다.
     @State private var publishedSlug: String?
+    @State private var myRooms: [RoomListItem] = []
 
     init(
         post: MyPost?, initialMarkdown: String? = nil, initialMarkdownIsDraft: Bool = false,
+        room: NoteRoom? = nil,
         onSaved: @escaping () -> Void, onOpenPublished: ((String) -> Void)? = nil
     ) {
         self.existing = post
+        if let room {
+            var draft = PostAccessDraft()
+            draft.audience = .room
+            draft.savedAudience = .room
+            draft.room = room
+            draft.savedRoomId = room.id
+            _accessDraft = State(initialValue: draft)
+        }
         self.initialMarkdown = initialMarkdown
         self.initialMarkdownIsDraft = initialMarkdownIsDraft
         self.onSaved = onSaved
@@ -233,6 +243,7 @@ struct ComposeView: View {
             if Config.consumeLaunchValue(after: "--sheet") == "publish" {
                 showPublish = true
             }
+            myRooms = (try? await RoomAPI.mine()) ?? []
         }
         .onChange(of: signature) { scheduleAutosave() }
         .onChange(of: focusedField) { handleTitleFocusChange() }
@@ -532,6 +543,14 @@ struct ComposeView: View {
             if takenDown {
                 TakenDownNotice().padding(.bottom, 12)
             }
+            if accessDraft.audience == .room, let room = accessDraft.room {
+                Label("\(room.name) 멤버만 읽는 글", systemImage: "person.3")
+                    .typeScale(.meta)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Palette.link)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityIdentifier("compose.room")
+            }
             TextField("제목", text: $title, axis: .vertical)
                 .accessibilityIdentifier("제목")
                 .lineLimit(1...4)
@@ -817,7 +836,7 @@ struct ComposeView: View {
                     .modifier(QuietAppear(index: 0))
 
                     sheetField("태그") {
-                        TagsField(tags: $tags, draft: $tagDraft)
+                        TagsField(tags: $tags, draft: $tagDraft, needsTag: needsTag)
                     }
                     .modifier(QuietAppear(index: 1))
 
@@ -827,10 +846,12 @@ struct ComposeView: View {
                     .id("publish.audience")
                     .modifier(QuietAppear(index: 2))
 
-                    sheetField("국가 제한") {
-                        countryControl
+                    if accessDraft.audience != .room {
+                        sheetField("국가 제한") {
+                            countryControl
+                        }
+                        .modifier(QuietAppear(index: 3))
                     }
-                    .modifier(QuietAppear(index: 3))
 
                     sheetField("소개글") {
                         VStack(alignment: .trailing, spacing: 4) {
@@ -1269,6 +1290,13 @@ struct ComposeView: View {
             .background(GlassTokens.mediaChip, in: Capsule())
     }
 
+    private var audienceTitle: String {
+        if accessDraft.audience == .room, let room = accessDraft.room {
+            return String(localized: "\(room.name) 멤버만")
+        }
+        return String(localized: accessDraft.audience.label)
+    }
+
     private var audienceSelection: Binding<PostAudience> {
         Binding(
             get: { accessDraft.audience },
@@ -1282,20 +1310,38 @@ struct ComposeView: View {
         VStack(alignment: .leading, spacing: 10) {
             Menu {
                 Picker("공개 범위", selection: audienceSelection) {
-                    ForEach(PostAudience.allCases) { audience in
+                    ForEach(PostAudience.chosenInMenu) { audience in
                         Text(audience.label).tag(audience)
                     }
                 }
                 .pickerStyle(.inline)
                 .labelsHidden()
+                if !myRooms.isEmpty {
+                    Section("방") {
+                        ForEach(myRooms) { room in
+                            Button {
+                                accessDraft.room = NoteRoom(id: room.id, name: room.name)
+                                accessDraft.audience = .room
+                                audienceTaps += 1
+                            } label: {
+                                if accessDraft.audience == .room, accessDraft.room?.id == room.id {
+                                    Label(room.name, systemImage: "checkmark")
+                                } else {
+                                    Text(room.name)
+                                }
+                            }
+                            .disabled(accessDraft.savedRoomId.map { $0 != room.id } ?? false)
+                        }
+                    }
+                }
             } label: {
-                sheetCapsule(Text(accessDraft.audience.label), indicator: "chevron.up.chevron.down")
+                sheetCapsule(Text(audienceTitle), indicator: "chevron.up.chevron.down")
             }
             .tint(.primary)
             .glassEffect(.regular.interactive(), in: .capsule)
             .sensoryFeedback(.selection, trigger: audienceTaps)
             .accessibilityLabel(Text("공개 범위"))
-            .accessibilityValue(Text(accessDraft.audience.label))
+            .accessibilityValue(Text(audienceTitle))
             .accessibilityIdentifier("publish.audience")
 
             switch accessDraft.audience {
@@ -1309,6 +1355,8 @@ struct ComposeView: View {
             case .unlisted:
                 sheetNote("목록과 검색에 안 떠요. 링크를 받은 사람은 다시 퍼뜨릴 수 있어요")
                 unlistedLinkRow
+            case .room:
+                sheetNote("이 방 멤버만 읽어요. 검색·인기·다른 서버에는 안 떠요")
             }
         }
     }
@@ -1565,7 +1613,9 @@ struct ComposeView: View {
     private var bodyLoading: Bool { existing != nil && !bodyLoaded && !loadFailed }
 
     /// 발행은 대표 태그(첫 태그) 1개가 필수 — 초안 저장(canSave)과는 분리한다.
-    private var canPublish: Bool { canSave && !tags.isEmpty && accessDraft.blockReason == nil }
+    private var needsTag: Bool { accessDraft.audience != .room }
+
+    private var canPublish: Bool { canSave && (!needsTag || !tags.isEmpty) && accessDraft.blockReason == nil }
 
     /// 한 번도 공개된 적 없는 글(초안·예약) — '발행 준비/지금 발행/예약' 표면을 띄운다.
     /// PUBLISHED 는 '글 정보' 저장, UNPUBLISHED(웹에서 내린 글)는 '다시 게시'로 다룬다.
@@ -1595,7 +1645,7 @@ struct ComposeView: View {
     private var publishBlockReason: String? {
         if !canSave { return String(localized: "제목과 본문을 채우면 발행할 수 있어요.") }
         if let reason = accessDraft.blockReason { return reason }
-        if willPublish, tags.isEmpty {
+        if willPublish, needsTag, tags.isEmpty {
             return String(localized: "대표 태그를 1개 이상 정하면 발행할 수 있어요.")
         }
         return nil
@@ -2008,7 +2058,7 @@ struct ComposeView: View {
             if let accessPatch {
                 let updated = try await WriteAPI.updateAccess(
                     postId: id, audience: accessPatch.audience, password: accessPatch.password,
-                    blockedCountries: accessPatch.countries)
+                    blockedCountries: accessPatch.countries, roomId: accessPatch.roomId)
                 accessDraft.adopt(saved: updated, sent: accessPatch)
             }
             if let cover = pendingCover {
@@ -2097,7 +2147,8 @@ struct ComposeView: View {
         }
         let task = Task<Int64, Error> {
             let created = try await WriteAPI.createDraft(
-                title: title.trimmingCharacters(in: .whitespaces))
+                title: title.trimmingCharacters(in: .whitespaces),
+                room: accessDraft.audience == .room ? accessDraft.room : nil)
             versionGate.adopt(created.contentVersion)
             return created.id
         }
@@ -2119,7 +2170,7 @@ struct ComposeView: View {
     private func scheduleNow() async {
         guard let postId, !busy else { return }
         // 예약도 발행이다 — 즉시 발행과 같은 대표 태그 규칙을 강제(둘이 어긋나지 않게).
-        guard !tags.isEmpty else {
+        guard !needsTag || !tags.isEmpty else {
             scheduleError = String(localized: "대표 태그를 1개 이상 정하면 예약할 수 있어요.")
             return
         }
@@ -3266,6 +3317,7 @@ private struct LengthLimitCount: View {
 private struct TagsField: View {
     @Binding var tags: [String]
     @Binding var draft: String
+    var needsTag = true
     @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @ScaledMetric(relativeTo: .footnote) private var metaUnit: CGFloat = 1
 
@@ -3296,9 +3348,11 @@ private struct TagsField: View {
             .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
 
             if tags.isEmpty {
-                Text("첫 번째 태그가 대표 태그로 카드와 글 위에 보여요. 발행하려면 하나 이상 필요해요.")
-                    .typeScale(.footnote)
-                    .foregroundStyle(Palette.secondary)
+                if needsTag {
+                    Text("첫 번째 태그가 대표 태그로 카드와 글 위에 보여요. 발행하려면 하나 이상 필요해요.")
+                        .typeScale(.footnote)
+                        .foregroundStyle(Palette.secondary)
+                }
             } else {
                 FlowLayout(spacing: 8) {
                     ForEach(Array(tags.enumerated()), id: \.element) { index, tag in

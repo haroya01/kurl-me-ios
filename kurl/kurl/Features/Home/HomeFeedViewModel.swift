@@ -15,11 +15,46 @@ final class HomeFeedViewModel {
     private(set) var isLoadingMore = false
     private(set) var next: String?
     private var epoch = 0
+    private(set) var newest: String?
     private let load: (HomeFeedTab, String?) async throws -> HomeFeedBatch
+    private let newer: (HomeFeedTab, String) async throws -> HomeFeedBatch
 
-    init(tab: HomeFeedTab, load: @escaping (HomeFeedTab, String?) async throws -> HomeFeedBatch = HomeFeedAPI.page) {
+    init(
+        tab: HomeFeedTab,
+        newer: @escaping (HomeFeedTab, String) async throws -> HomeFeedBatch = HomeFeedAPI.newer,
+        load: @escaping (HomeFeedTab, String?) async throws -> HomeFeedBatch = HomeFeedAPI.page
+    ) {
         self.tab = tab
         self.load = load
+        self.newer = newer
+    }
+
+    func refresh() async {
+        guard tab != .trending, let marker = newest, !items.isEmpty else {
+            await reload()
+            return
+        }
+        epoch += 1
+        let myEpoch = epoch
+        do {
+            let batch = try await newer(tab, marker)
+            guard myEpoch == epoch else { return }
+            if batch.gap == true {
+                items = Self.unique(batch.items)
+                next = batch.next
+            } else if !batch.items.isEmpty {
+                let fresh = Self.unique(batch.items)
+                let known = Set(fresh.map(\.id))
+                withAnimation(.snappy(duration: 0.3)) {
+                    items = fresh + items.filter { !known.contains($0.id) }
+                }
+            }
+            newest = batch.newest ?? newest
+            phase = .loaded(true)
+        } catch {
+            guard myEpoch == epoch else { return }
+            ToastCenter.shared.show(String(localized: "새로고침하지 못했습니다"))
+        }
     }
 
     func reload() async {
@@ -31,6 +66,7 @@ final class HomeFeedViewModel {
             guard myEpoch == epoch else { return }
             items = Self.unique(first.items)
             next = first.next
+            newest = first.newest
             phase = .loaded(true)
         } catch {
             guard myEpoch == epoch else { return }

@@ -170,7 +170,7 @@ struct HomeFeedPage: View {
             loadedSignedIn = signedIn
             await model.reload()
         }
-        .brandRefreshable { await model.reload() }
+        .brandRefreshable { await model.refresh() }
         .onChange(of: NoteFeedPreferences.shared.changes) {
             if model.tab == .following { Task { await model.reload() } }
         }

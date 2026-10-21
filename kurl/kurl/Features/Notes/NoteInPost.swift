@@ -77,6 +77,7 @@ struct PostCover: Identifiable {
     var post: MyPost?
     var markdown = ""
     var isDraft = false
+    var room: NoteRoom?
 }
 
 /// 탭 스택 밖에서 여는 글 에디터 — 공유 메뉴의 "블로그 글로 인용"(노트 주소가 첫 줄, 발행된 글에서 노트 카드가 된다),
@@ -85,12 +86,13 @@ struct PostComposerCover: View {
     var post: MyPost?
     let initialMarkdown: String
     var isDraft = false
+    var room: NoteRoom?
 
     var body: some View {
         NavigationStack {
             ComposeView(
                 post: post, initialMarkdown: initialMarkdown.isEmpty ? nil : initialMarkdown,
-                initialMarkdownIsDraft: isDraft, onSaved: {})
+                initialMarkdownIsDraft: isDraft, room: room, onSaved: {})
                 .navigationDestination(for: Route.self) { RouteView(route: $0) }
         }
         .environment(\.readerInSheet, false)

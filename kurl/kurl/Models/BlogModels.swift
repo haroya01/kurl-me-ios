@@ -66,6 +66,7 @@ struct FeedItem: Decodable, Hashable, Identifiable {
     var readMinutes: Int? = nil
     var commentCount: Int64? = nil
     var likedByMe: Bool? = nil
+    var room: NoteRoom? = nil
 
     var access: PostAccessMarks {
         PostAccessMarks(audience: audience, locked: locked, regionRestricted: regionRestricted == true)
@@ -137,8 +138,11 @@ enum PostAudience: String, Codable, CaseIterable, Identifiable, Hashable {
     case unlisted = "UNLISTED"
     case followers = "FOLLOWERS"
     case password = "PASSWORD"
+    case room = "ROOM"
 
     var id: String { rawValue }
+
+    static let chosenInMenu: [PostAudience] = [.everyone, .unlisted, .followers, .password]
 
     init(from decoder: Decoder) throws {
         let raw = try decoder.singleValueContainer().decode(String.self)
@@ -151,6 +155,7 @@ enum PostAudience: String, Codable, CaseIterable, Identifiable, Hashable {
         case .unlisted: "링크만"
         case .followers: "팔로워만"
         case .password: "비밀번호"
+        case .room: "방 멤버만"
         }
     }
 
@@ -160,6 +165,7 @@ enum PostAudience: String, Codable, CaseIterable, Identifiable, Hashable {
         case .unlisted: "link"
         case .followers: "lock"
         case .password: "key"
+        case .room: "person.3"
         }
     }
 }
