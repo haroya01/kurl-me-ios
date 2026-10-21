@@ -45384,6 +45384,90 @@
           }
         }
       }
+    },
+    "켜면 초대 링크로 와도 방장이 받아 줘야 들어와요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "When on, people who come through an invite link join only after the owner approves."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "चालू होने पर निमंत्रण लिंक से आने वाले भी मालिक की मंज़ूरी के बाद ही जुड़ेंगे।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オンにすると、招待リンクから来た人もオーナーの承認後に参加します。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Khi bật, người vào bằng liên kết mời cần chủ phòng duyệt."
+          }
+        }
+      }
+    },
+    "이름을 바꾸지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't rename the room"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नाम नहीं बदल पाए"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名前を変更できませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không đổi tên được"
+          }
+        }
+      }
+    },
+    "승인 설정을 바꾸지 못했어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't change approval"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मंज़ूरी सेटिंग नहीं बदल पाए"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "承認設定を変更できませんでした"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Không đổi cài đặt duyệt được"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

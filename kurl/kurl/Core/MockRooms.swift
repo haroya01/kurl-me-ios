@@ -160,6 +160,7 @@ enum MockRooms {
             return json(detail(rooms[index]))
         case ("PATCH", []):
             if let name = decode(body)["name"] as? String { rooms[index].name = name }
+            if let approval = decode(body)["approvalRequired"] as? Bool { rooms[index].approval = approval }
             return json(detail(rooms[index]))
         case ("GET", ["notes"]):
             let items = posts.filter { $0.roomId == id }.sorted { $0.minutesAgo < $1.minutesAgo }.map(noteView)

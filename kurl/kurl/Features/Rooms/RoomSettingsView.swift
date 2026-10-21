@@ -13,6 +13,9 @@ struct RoomSettingsView: View {
     @State private var requests: [RoomJoinRequest] = []
     @State private var invitees: [RoomInvitee] = []
     @State private var hidden: Bool
+    @State private var name: String
+    @State private var approval: Bool
+    @State private var saving = false
     @State private var leaving = false
     @State private var removing: RoomDetail.Member?
     @Environment(\.dismiss) private var dismiss
@@ -21,10 +24,41 @@ struct RoomSettingsView: View {
         self.onChange = onChange
         _detail = State(initialValue: detail)
         _hidden = State(initialValue: detail.hiddenFromFeed)
+        _name = State(initialValue: detail.name)
+        _approval = State(initialValue: detail.approvalRequired)
     }
+
+    private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
 
     var body: some View {
         Form {
+            if detail.isOwner {
+                Section("방 이름") {
+                    HStack {
+                        TextField("방 이름", text: $name)
+                            .submitLabel(.done)
+                            .onSubmit { Task { await rename() } }
+                            .accessibilityIdentifier("roomSettings.name")
+                        if trimmedName != detail.name {
+                            Button("저장") { Task { await rename() } }
+                                .buttonStyle(.borderless)
+                                .fontWeight(.semibold)
+                                .disabled(trimmedName.isEmpty || trimmedName.count > 50 || saving)
+                                .accessibilityIdentifier("roomSettings.saveName")
+                        }
+                    }
+                }
+                Section {
+                    Toggle("들어오기 전에 승인", isOn: $approval)
+                        .onChange(of: approval) { _, next in
+                            guard next != detail.approvalRequired else { return }
+                            Task { await setApproval(next) }
+                        }
+                        .accessibilityIdentifier("roomSettings.approval")
+                } footer: {
+                    Text("켜면 초대 링크로 와도 방장이 받아 줘야 들어와요.")
+                }
+            }
             if detail.isOwner, !requests.isEmpty {
                 Section("들어오고 싶어 해요") {
                     ForEach(requests) { request in
@@ -110,6 +144,7 @@ struct RoomSettingsView: View {
         }
         .navigationTitle("방 설정")
         .navigationBarTitleDisplayMode(.inline)
+        .hidesTabBar()
         .task { await load() }
         .alert("방에서 나갈까요?", isPresented: $leaving) {
             Button("내 글 남기고 나가기", role: .destructive) { Task { await leave(deleting: false) } }
@@ -135,6 +170,32 @@ struct RoomSettingsView: View {
         async let loadedRequests = RoomAPI.requests(detail.id)
         invites = (try? await loadedInvites) ?? []
         requests = (try? await loadedRequests) ?? []
+    }
+
+    private func rename() async {
+        guard !trimmedName.isEmpty, trimmedName.count <= 50, trimmedName != detail.name else { return }
+        saving = true
+        defer { saving = false }
+        do {
+            let next = try await RoomAPI.rename(detail.id, name: trimmedName)
+            detail = next
+            name = next.name
+            onChange(next)
+            RoomsRouter.shared.changed()
+        } catch {
+            ToastCenter.shared.show(String(localized: "이름을 바꾸지 못했어요"))
+        }
+    }
+
+    private func setApproval(_ on: Bool) async {
+        do {
+            let next = try await RoomAPI.setApproval(detail.id, on)
+            detail = next
+            onChange(next)
+        } catch {
+            approval = detail.approvalRequired
+            ToastCenter.shared.show(String(localized: "승인 설정을 바꾸지 못했어요"))
+        }
     }
 
     private func refresh() async {
