@@ -57,6 +57,8 @@ enum MockRooms {
              members: [yuki, me, kim, junho]),
         Room(id: 5, name: "우리 가족", owner: true, hiddenFromFeed: true, approval: false, unread: 0,
              members: [me, mom, sister], pinned: true),
+        Room(id: 7, name: "새로 만든 방", owner: true, hiddenFromFeed: false, approval: false, unread: 0,
+             members: [me]),
         Room(id: 6, name: "제주 여행 2024", owner: false, hiddenFromFeed: false, approval: false, unread: 0,
              members: [minji, me, haneul, sora]),
     ]
@@ -160,6 +162,7 @@ enum MockRooms {
             return json(detail(rooms[index]))
         case ("PATCH", []):
             if let name = decode(body)["name"] as? String { rooms[index].name = name }
+            if let approval = decode(body)["approvalRequired"] as? Bool { rooms[index].approval = approval }
             return json(detail(rooms[index]))
         case ("GET", ["notes"]):
             let items = posts.filter { $0.roomId == id }.sorted { $0.minutesAgo < $1.minutesAgo }.map(noteView)

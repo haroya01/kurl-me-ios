@@ -121,6 +121,7 @@ struct RoomJoined: Decodable, Hashable {
 }
 
 private struct RoomName: Encodable { let name: String }
+private struct RoomApproval: Encodable { let approvalRequired: Bool }
 private struct RoomInviteOptions: Encodable {
     let maxUses: Int?
     let expiresInSeconds: Int64?
@@ -149,6 +150,10 @@ enum RoomAPI {
 
     static func rename(_ id: Int64, name: String) async throws -> RoomDetail {
         try await client.patch("/rooms/\(id)", body: RoomName(name: name), authenticated: true)
+    }
+
+    static func setApproval(_ id: Int64, _ on: Bool) async throws -> RoomDetail {
+        try await client.patch("/rooms/\(id)", body: RoomApproval(approvalRequired: on), authenticated: true)
     }
 
     static func notes(room id: Int64, page: Int) async throws -> NoteFeed {

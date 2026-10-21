@@ -45,7 +45,7 @@ struct RoomsView: View {
     @State private var readTask: Task<Void, Never>?
     @State private var answered = 0
     @State private var pinTaps = 0
-    @State private var creating: [RoomPerson]?
+    @State private var creating: CreateRoomRequest?
     @State private var joining = false
     @State private var showLogin = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -61,7 +61,7 @@ struct RoomsView: View {
                             label: \.label, moreChoice: nil,
                             moreLabel: "방 만들기", moreIdentifier: "rooms.create"
                         ) {
-                            Button("새 방 만들기", systemImage: "plus") { creating = suggested }
+                            Button("새 방 만들기", systemImage: "plus") { creating = CreateRoomRequest(friends: suggested) }
                             Button("초대 링크로 들어가기", systemImage: "link") { joining = true }
                         }
                     }
@@ -74,7 +74,7 @@ struct RoomsView: View {
                 .task(id: [AuthStore.shared.isSignedIn ? 1 : 0, router.changes]) { await load() }
                 .task {
                     #if DEBUG
-                    if Config.launchValue(after: "--room-sheet") == "create" { creating = [] }
+                    if Config.launchValue(after: "--room-sheet") == "create" { creating = CreateRoomRequest(friends: []) }
                     if let id = Config.launchValue(after: "--room").flatMap(Int64.init) {
                         try? await Task.sleep(for: .milliseconds(800))
                         router.open(id)
@@ -82,10 +82,7 @@ struct RoomsView: View {
                     #endif
                 }
                 .refreshable { await load() }
-                .sheet(item: Binding(
-                    get: { creating.map { CreateRoomRequest(friends: $0) } },
-                    set: { if $0 == nil { creating = nil } })
-                ) { request in
+                .sheet(item: $creating) { request in
                     CreateRoomSheet(friends: request.friends) { room in
                         creating = nil
                         router.changed()
@@ -284,7 +281,7 @@ struct RoomsView: View {
                 .foregroundStyle(Palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 10) {
-                Button("방 만들기") { creating = suggested }
+                Button("방 만들기") { creating = CreateRoomRequest(friends: suggested) }
                     .buttonStyle(.glassProminent)
                     .tint(GlassTokens.prominentTint)
                     .accessibilityIdentifier("rooms.empty.create")
@@ -300,7 +297,7 @@ struct RoomsView: View {
     private var suggestion: some View {
         HStack(spacing: 10) {
             Button {
-                creating = suggested
+                creating = CreateRoomRequest(friends: suggested)
             } label: {
                 HStack(spacing: 10) {
                     AvatarStack(people: suggested, size: 22)

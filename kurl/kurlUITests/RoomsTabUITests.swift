@@ -52,4 +52,19 @@ final class RoomsTabUITests: XCTestCase {
         XCTAssertTrue(line.waitForExistence(timeout: 6), "전체 보기에 다른 방 글이 이어지지 않음")
         XCTAssertFalse(app.buttons["rooms.more.1"].exists, "전체 보기에 방별 덩어리가 남아 있음")
     }
+
+    func testOwnerRenamesTheRoomFromSettings() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "rooms", "--room", "1", "--room-sheet", "settings"]
+        app.launch()
+        let field = app.textFields["roomSettings.name"]
+        XCTAssertTrue(field.waitForExistence(timeout: 12), "방장 설정에 이름 칸이 없음")
+        field.tap()
+        field.press(forDuration: 1.0)
+        if app.menuItems["Select All"].waitForExistence(timeout: 2) { app.menuItems["Select All"].tap() }
+        field.typeText("새 동아리")
+        app.buttons["roomSettings.saveName"].tap()
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["새 동아리"].waitForExistence(timeout: 6), "이름을 바꿔도 방 제목이 그대로")
+    }
 }
