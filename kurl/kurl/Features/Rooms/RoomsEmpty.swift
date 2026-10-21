@@ -1,66 +1,5 @@
 import SwiftUI
 
-struct EmptyRoomsLinkFirst: View {
-    let create: () -> Void
-    let join: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("친구끼리만 보는 작은 블로그")
-                .typeScale(.featured)
-                .foregroundStyle(Palette.ink)
-            Text("대화처럼 답을 기다리지 않아도 돼요. 지금 하는 걸 올려 두면 친구들이 볼 때 봐요.")
-                .typeScale(.body)
-                .foregroundStyle(Palette.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 8)
-            VStack(alignment: .leading, spacing: 14) {
-                step(1, "방 이름 정하기")
-                step(2, "링크로 친구 부르기")
-                step(3, "각자 지금 하는 걸 올리기")
-            }
-            .padding(.top, 24)
-            Button(action: create) {
-                Label("방 만들고 링크로 부르기", systemImage: "link")
-                    .typeScale(.body)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .contentShape(Capsule())
-            }
-            .buttonStyle(PaperCapsuleStyle(prominent: true))
-            .padding(.top, 28)
-            .accessibilityIdentifier("rooms.empty.create")
-            Button("받은 초대 링크로 들어가기", action: join)
-                .buttonStyle(.plain)
-                .typeScale(.meta)
-                .fontWeight(.semibold)
-                .foregroundStyle(Palette.secondary)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .contentShape(Rectangle())
-                .accessibilityIdentifier("rooms.empty.join")
-        }
-        .padding(.top, 36)
-    }
-
-    private func step(_ number: Int, _ title: LocalizedStringKey) -> some View {
-        HStack(spacing: 12) {
-            Text(verbatim: "\(number)")
-                .typeScale(.meta)
-                .fontWeight(.bold)
-                .foregroundStyle(Palette.secondary)
-                .frame(width: 26, height: 26)
-                .background(Palette.chipBg, in: Circle())
-                .accessibilityHidden(true)
-            Text(title)
-                .typeScale(.body)
-                .foregroundStyle(Palette.ink)
-        }
-    }
-}
-
 struct QuickRoomSheet: View {
     let onDone: (RoomDetail) -> Void
 
@@ -187,5 +126,82 @@ struct QuickRoomSheet: View {
         } else {
             onDone(room)
         }
+    }
+}
+
+struct EmptyRooms: View {
+    let create: () -> Void
+    let join: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("친구 몇 명끼리만 보는 곳")
+                    .typeScale(.body)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(Palette.ink)
+                Text("채팅처럼 답을 기다리지 않아도 돼요. 각자 지금 하는 걸 올려 두면 볼 때 봐요.")
+                    .typeScale(.body)
+                    .foregroundStyle(Palette.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.bottom, 18)
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: -8) {
+                    if let me = AuthStore.shared.me {
+                        AvatarView(
+                            author: Author(id: me.id ?? 0, username: me.username ?? "", bio: nil, avatarUrl: me.avatarUrl),
+                            size: 44)
+                    }
+                    ForEach(0..<3, id: \.self) { _ in
+                        Circle()
+                            .strokeBorder(Palette.hairlineStrong, style: StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
+                            .background(Circle().fill(Palette.readingBg))
+                            .frame(width: 44, height: 44)
+                    }
+                }
+                Text("이름 없는 방")
+                    .typeScale(.featured)
+                    .foregroundStyle(Palette.faint)
+                    .padding(.top, 18)
+                Text("나 혼자 있어요. 링크를 받은 친구만 들어와요.")
+                    .typeScale(.meta)
+                    .foregroundStyle(Palette.secondary)
+                    .padding(.top, 4)
+                Hairline().padding(.vertical, 16)
+                HStack(spacing: 10) {
+                    Text(verbatim: "kurl.me/r/······")
+                        .typeScale(.body)
+                        .monospaced()
+                        .foregroundStyle(Palette.faint)
+                    Spacer(minLength: 8)
+                    Button(action: create) {
+                        Text("링크 만들기")
+                            .typeScale(.meta)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 9)
+                    }
+                    .buttonStyle(PaperCapsuleStyle(prominent: true))
+                    .accessibilityIdentifier("rooms.empty.create")
+                }
+            }
+            .padding(20)
+            .background(Palette.cardBg, in: RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
+                    .strokeBorder(Palette.hairline, lineWidth: 1)
+            }
+            Button("받은 링크로 들어가기", action: join)
+                .buttonStyle(.plain)
+                .typeScale(.meta)
+                .fontWeight(.semibold)
+                .foregroundStyle(Palette.secondary)
+                .padding(.vertical, 14)
+                .accessibilityIdentifier("rooms.empty.join")
+        }
+        .padding(.top, 28)
     }
 }

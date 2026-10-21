@@ -227,7 +227,7 @@ struct RoomsView: View {
                 Hairline().padding(.horizontal, -Metrics.noteGutter).padding(.top, 8)
             }
             if rooms.isEmpty {
-                EmptyRoomsLinkFirst(create: { quickCreating = true }, join: { joining = true })
+                EmptyRooms(create: { quickCreating = true }, join: { joining = true })
             }
             ForEach(Array(lively.enumerated()), id: \.element.id) { index, room in
                 RoomBlock(
