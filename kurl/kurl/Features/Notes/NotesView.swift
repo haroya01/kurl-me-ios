@@ -2028,6 +2028,7 @@ struct NoteDetailView: View {
                     threadLineBelow: index < parts.count - 1,
                     position: numbered ? "\(index + 2)/\(parts.count + 1)" : nil,
                     onReplied: land)
+                    .environment(\.insideRoom, thread.note.room?.id)
                     .id(part.id)
             }
             if let trail = thread.series {
@@ -2061,6 +2062,7 @@ struct NoteDetailView: View {
                     onDelete: { id in update { $0.replies.removeAll { $0.id == id } } },
                     onReplied: land)
                     .environment(\.noteFilterContext, .thread)
+                    .environment(\.insideRoom, thread.note.room?.id)
                     .id(reply.id)
                 if index < replies.count - 1 {
                     Hairline().padding(.horizontal, -Metrics.noteGutter)
