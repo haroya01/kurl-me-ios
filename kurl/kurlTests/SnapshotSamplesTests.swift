@@ -145,4 +145,27 @@ final class SnapshotSamplesTests: XCTestCase {
     func test_readerSubHeadingsAndTasks_dark() {
         assertSnapshot(of: readerSubHeadingsAndTasks, as: snapshot(CGSize(width: 360, height: 420), .dark))
     }
+
+    func test_avatarTintStaysTheSameForAName() {
+        let names = ["minji", "junho", "yuki_dev", "alice@mastodon.social", "홍길동"]
+        let first = names.map { Palette.avatarTints.firstIndex(of: Palette.avatarTint(for: $0)) }
+        let again = names.map { Palette.avatarTints.firstIndex(of: Palette.avatarTint(for: $0)) }
+        XCTAssertEqual(first, again)
+        XCTAssertEqual(
+            Palette.avatarTints.firstIndex(of: Palette.avatarTint(for: "MinJi")),
+            Palette.avatarTints.firstIndex(of: Palette.avatarTint(for: "minji")))
+        XCTAssertEqual(Palette.avatarTint(for: "haneul").fill, Palette.avatarTints[0].fill)
+    }
+
+    func test_avatarTintSpreadsAcrossThePalette() {
+        let names = (0..<60).map { "user\($0)" }
+        let used = Set(names.compactMap { Palette.avatarTints.firstIndex(of: Palette.avatarTint(for: $0)) })
+        XCTAssertEqual(used.count, Palette.avatarTints.count)
+    }
+}
+
+private extension Array where Element == (fill: Color, ink: Color) {
+    func firstIndex(of tint: (fill: Color, ink: Color)) -> Int? {
+        firstIndex { $0.fill == tint.fill && $0.ink == tint.ink }
+    }
 }

@@ -16,8 +16,11 @@ final class FollowSuggestionsUITests: XCTestCase {
         app.launchArguments = ["--mocks", "--tab", "search"]
         app.launch()
 
+        let people = app.buttons["segment.people"]
+        XCTAssertTrue(people.waitForExistence(timeout: 15), "둘러보기에 사람 칩이 없음")
+        people.tap()
         let haneul = app.descendants(matching: .any)["suggestion.haneul"]
-        XCTAssertTrue(haneul.waitForExistence(timeout: 15), "검색 탭에 팔로우 추천이 없음")
+        XCTAssertTrue(haneul.waitForExistence(timeout: 15), "사람 칩에 팔로우 추천이 없음")
         XCTAssertTrue(
             haneul.staticTexts.matching(NSPredicate(format: "label CONTAINS '3명이 팔로우'")).firstMatch.exists,
             "추천 이유가 안 보임")

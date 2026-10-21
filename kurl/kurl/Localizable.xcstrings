@@ -204,56 +204,6 @@
         }
       }
     },
-    "%@ · %lld명이 이번 주에 공유했어요": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@ · Shared by %#@people@ this week"
-          },
-          "substitutions": {
-            "people": {
-              "argNum": 2,
-              "formatSpecifier": "lld",
-              "variations": {
-                "plural": {
-                  "one": {
-                    "stringUnit": {
-                      "state": "translated",
-                      "value": "%arg person"
-                    }
-                  },
-                  "other": {
-                    "stringUnit": {
-                      "state": "translated",
-                      "value": "%arg people"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ · इस हफ़्ते %lld लोगों ने शेयर किया"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ · 今週%lld人が共有"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ · %lld người chia sẻ tuần này"
-          }
-        }
-      }
-    },
     "%@ · %lld편": {
       "extractionState": "stale",
       "localizations": {
@@ -2599,86 +2549,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%2$lld thông báo từ %1$lld người"
-          }
-        }
-      }
-    },
-    "%lld명이 이번 주에 공유했어요": {
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Shared by %lld person this week"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Shared by %lld people this week"
-                }
-              }
-            }
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "इस हफ़्ते %lld लोगों ने शेयर किया"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "今週%lld人が共有"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld người chia sẻ tuần này"
-          }
-        }
-      }
-    },
-    "%lld명이 이번 주에 썼어요": {
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld person used it this week"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld people used it this week"
-                }
-              }
-            }
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "इस हफ़्ते %lld लोगों ने इस्तेमाल किया"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "今週 %lld 人が使いました"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld người đã dùng tuần này"
           }
         }
       }
@@ -13774,62 +13644,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Nhấn đúp để phát"
-          }
-        }
-      }
-    },
-    "뜨는 링크": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Trending links"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ट्रेंडिंग लिंक"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "話題のリンク"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Liên kết thịnh hành"
-          }
-        }
-      }
-    },
-    "뜨는 해시태그": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Trending hashtags"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ट्रेंडिंग हैशटैग"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "トレンドのハッシュタグ"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Thẻ thịnh hành"
           }
         }
       }

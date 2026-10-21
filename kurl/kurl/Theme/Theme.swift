@@ -59,6 +59,23 @@ enum Palette {
     static let chipText = Color(light: 0x4F5652, dark: 0xC2C9C5)       // paper-600 / night-300
     static let tabSelection = Color(light: 0xE5E8E6, dark: 0x4F5652)   // 하단 탭바 선택 알약 paper-200 / night-600
 
+    static let avatarTints: [(fill: Color, ink: Color)] = [
+        (Color(light: 0xFCE7EC, dark: 0x3A2128), Color(light: 0xB4405E, dark: 0xF3A8BB)),
+        (Color(light: 0xFDEFD9, dark: 0x3A2C17), Color(light: 0xA2621A, dark: 0xF2C27F)),
+        (Color(light: 0xE3EEFB, dark: 0x1D2B3B), Color(light: 0x2F6AA8, dark: 0x9CC3EE)),
+        (Color(light: 0xEDE7FB, dark: 0x2A2340), Color(light: 0x6649B0, dark: 0xC3B2F0)),
+        (Color(light: 0xFBE8DF, dark: 0x3B251C), Color(light: 0xB0532F, dark: 0xF1B196)),
+        (Color(light: 0xE2F2F2, dark: 0x1C3132), Color(light: 0x2C7A7D, dark: 0x96D3D4)),
+    ]
+
+    static func avatarTint(for key: String) -> (fill: Color, ink: Color) {
+        var hash: UInt32 = 2_166_136_261
+        for byte in key.lowercased().utf8 {
+            hash = (hash ^ UInt32(byte)) &* 16_777_619
+        }
+        return avatarTints[Int(hash % UInt32(avatarTints.count))]
+    }
+
     // 그린 한 가닥 (마커 / active 밑줄 / 링크) — 절제해서만
     static let accent = Color(hex: 0x059669)        // 브랜드
     static let accentMarker = Color(hex: 0x059669)  // accent-600 (§10.3 비텍스트=600)

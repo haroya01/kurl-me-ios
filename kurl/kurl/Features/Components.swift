@@ -342,12 +342,13 @@ struct AvatarView: View {
     }
 
     private var initials: some View {
-        Circle()
-            .fill(Palette.chipBg)
+        let tint = Palette.avatarTint(for: author.username)
+        return Circle()
+            .fill(tint.fill)
             .overlay(
                 Text(author.username.prefix(1).uppercased())
                     .font(.system(size: size * 0.42, weight: .semibold))
-                    .foregroundStyle(Palette.secondary)
+                    .foregroundStyle(tint.ink)
             )
     }
 }

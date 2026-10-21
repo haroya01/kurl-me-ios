@@ -11,6 +11,20 @@ enum SearchScope: Hashable {
     case posts, notes, people
 }
 
+enum ExploreLane: String, CaseIterable, Identifiable {
+    case picks, remote, people
+
+    var id: Self { self }
+
+    var label: String {
+        switch self {
+        case .picks: String(localized: "추천")
+        case .remote: String(localized: "다른 서버")
+        case .people: String(localized: "사람")
+        }
+    }
+}
+
 struct SearchView: View {
     @State private var scope: SearchScope = .posts
     @State private var noteResults = NotesViewModel(search: "")
@@ -46,12 +60,11 @@ struct SearchView: View {
     @State private var trending: [FeedItem] = []
     @State private var popularTags: [TagCount] = []
     @State private var trendingNoteTags: [TrendingNoteTag] = []
-    @State private var trendingNoteLinks: [TrendingNoteLink] = []
     @State private var suggestedAuthors: [SuggestedAuthor] = []
     /// 로그인한 사람의 팔로우 추천(마스토돈) — 있으면 익명 "작가" 레일 대신 선다.
     @State private var followSuggestions: [FollowSuggestion] = []
     @State private var remoteSuggestions: [RemoteAccount] = []
-    @State private var streamFeed: RemoteStreamFeed = .trending
+    @State private var lane: ExploreLane = .picks
     @State private var streams = Dictionary(
         uniqueKeysWithValues: RemoteStreamFeed.allCases.map { ($0, RemoteStreamModel(feed: $0)) })
 
@@ -93,22 +106,29 @@ struct SearchView: View {
                         DomainCompletionSlot(draft: draft, handles: handles, pick: pickDomain)
                         Hairline()
                     }
-                    .background(Palette.pageBg)
+                    .background(Palette.readingBg)
                     .transition(.opacity)
                 } else if remoteLookup.isVisible {
                     VStack(spacing: 0) {
                         RemoteResolveSlot(lookup: $remoteLookup, onSignedIn: { scheduleRemoteLookup(query) })
                         Hairline()
                     }
-                    .background(Palette.pageBg)
+                    .background(Palette.readingBg)
                     .transition(.opacity)
                 }
             }
-            .background(Palette.pageBg)
+            .background(Palette.readingBg)
             // 스크롤을 내리면 탭바가 사라지고 올리면 돌아온다(스레드식) — 활성 스크롤 표면을 관측.
             .tracksTabBarVisibility()
             .navigationTitle("둘러보기")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    GlassSegmentSwitcher(items: ExploreLane.allCases, selection: $lane, label: \.label)
+                        .opacity(query.isEmpty ? 1 : 0)
+                }
+                .sharedBackgroundVisibility(.hidden)
+            }
             .navigationDestination(for: Route.self) { route in
                 // 푸시된 상세는 탭바 숨김을 추적하지 않는다(탭 루트 전용).
                 if case .post(let username, let slug) = route, !reduceMotion {
@@ -140,6 +160,11 @@ struct SearchView: View {
                 if let term = Config.launchValue(after: "--query"), query.isEmpty {
                     query = term
                 }
+                #if DEBUG
+                if let raw = Config.launchValue(after: "--explore-lane"), let picked = ExploreLane(rawValue: raw) {
+                    lane = picked
+                }
+                #endif
             }
         }
         .onChange(of: query) { _, newValue in
@@ -166,46 +191,167 @@ struct SearchView: View {
         }
     }
 
-    /// 대기 상태 — 장식이 아니라 출발점. 막연한 탐색 의도("뭐 볼 거 없나")가 그대로
-    /// 행동이 되도록 최근 검색·인기 태그·추천 작가를 깐다. 전부 탭 = 즉시 이동.
     private var idleState: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                rails
-                    .padding(.bottom, 26)
-                RailHeading("다른 서버")
-                    .padding(.bottom, 4)
-                Section {
-                    RemoteStreamRows(model: stream)
-                } header: {
-                    ContentTabBar(
-                        tabs: RemoteStreamFeed.allCases, selection: $streamFeed, label: \.label,
-                        identifier: { "search.remote.\($0.rawValue)" }, background: Palette.pageBg)
-                        .task(id: streamFeed) { await stream.loadIfNeeded() }
+            LazyVStack(alignment: .leading, spacing: 0) {
+                SearchingOnly {
+                    recentsRail.padding(.bottom, 18)
+                    tagStrip.padding(.bottom, 18)
+                }
+                switch lane {
+                case .picks: picks
+                case .remote: remoteLane
+                case .people: peopleLane
                 }
             }
-            .padding(.top, 18)
+            .padding(.top, lane == .people ? 14 : 0)
             .padding(.bottom, 16)
             .frame(maxWidth: Metrics.readingColumn)
             .frame(maxWidth: .infinity)
-            .padding(.horizontal, Metrics.gutter)
+            .padding(.horizontal, lane == .people ? Metrics.gutter : Metrics.noteGutter)
         }
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
         .noteTextLinks()
         .brandRefreshable {
             async let discovery: Void = loadDiscovery()
-            await stream.reload()
+            await streams[lane == .remote ? .latest : .trending]?.reload()
             await discovery
         }
     }
 
-    private var stream: RemoteStreamModel {
-        streams[streamFeed] ?? RemoteStreamModel(feed: streamFeed)
+    @ViewBuilder private var picks: some View {
+        ForEach(Array(trending.enumerated()), id: \.element.id) { index, item in
+            if index > 0 { Hairline().padding(.horizontal, -Metrics.noteGutter) }
+            PostFeedRow(post: item)
+                .accessibilityIdentifier("search.trending.\(item.id)")
+            if index == min(2, trending.count - 1) {
+                Hairline().padding(.horizontal, -Metrics.noteGutter)
+                peopleStrip.padding(.vertical, 18)
+            }
+        }
+        if trending.isEmpty { peopleStrip.padding(.vertical, 18) }
+        Hairline().padding(.horizontal, -Metrics.noteGutter)
+        if let model = streams[.trending] {
+            RemoteStreamRows(model: model, gutter: Metrics.noteGutter)
+                .task { await model.loadIfNeeded() }
+        }
     }
 
-    private var rails: some View {
-        VStack(alignment: .leading, spacing: 26) {
+    @ViewBuilder private var remoteLane: some View {
+        if let model = streams[.latest] {
+            RemoteStreamRows(model: model, gutter: Metrics.noteGutter)
+                .task { await model.loadIfNeeded() }
+        }
+    }
+
+    @ViewBuilder private var peopleLane: some View {
+        if AuthStore.shared.isSignedIn, !followSuggestions.isEmpty || !remoteSuggestions.isEmpty {
+            followSuggestionsRail
+                .padding(.bottom, 26)
+        }
+        suggestedAuthorsRail
+    }
+
+    @ViewBuilder private var tagStrip: some View {
+        let noteTags = trendingNoteTags.map(\.tag)
+        let postTags = popularTags.filter { ContentValidity.isRenderableTag($0.tag) }
+            .filter { tag in !noteTags.contains { $0.caseInsensitiveCompare(tag.tag) == .orderedSame } }
+        if !noteTags.isEmpty || !postTags.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(noteTags, id: \.self) { tag in
+                        NavigationLink(value: Route.noteTag(tag)) {
+                            MutedChip(text: "#\(tag)", tappable: true)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("search.trendingTag.\(tag)")
+                    }
+                    ForEach(postTags) { tag in
+                        NavigationLink(value: Route.tag(tag.tag)) {
+                            MutedChip(text: "#\(ContentValidity.tagDisplay(tag.tag))", tappable: true)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .scrollClipDisabled()
+        }
+    }
+
+    @ViewBuilder private var peopleStrip: some View {
+        let people = followSuggestions.isEmpty
+            ? suggestedAuthors.map { ($0.author, String(localized: "글 \($0.postCount)")) }
+            : followSuggestions.map {
+                ($0.asAuthor, $0.reason == .friends
+                    ? String(localized: "내가 팔로우하는 \($0.mutuals)명이 팔로우")
+                    : String(localized: "요즘 많이 팔로우해요"))
+            }
+        if !people.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    RailHeading("팔로우 추천")
+                    Spacer()
+                    Button {
+                        lane = .people
+                    } label: {
+                        HStack(spacing: 3) {
+                            Text("더 보기")
+                            Image(systemName: "chevron.right").font(.caption2.weight(.semibold))
+                        }
+                        .typeScale(.meta)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Palette.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(alignment: .top, spacing: 10) {
+                        ForEach(Array(people.prefix(8).enumerated()), id: \.offset) { _, person in
+                            personCard(person.0, reason: person.1)
+                        }
+                    }
+                }
+                .scrollClipDisabled()
+            }
+        }
+    }
+
+    private func personCard(_ author: Author, reason: String) -> some View {
+        VStack(spacing: 8) {
+            NavigationLink(value: Route.author(username: author.username)) {
+                VStack(spacing: 6) {
+                    AvatarView(author: author, size: 56)
+                    Text(verbatim: author.displayName ?? author.username)
+                        .typeScale(.body)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Palette.ink)
+                        .lineLimit(1)
+                    Text(verbatim: reason)
+                        .typeScale(.footnote)
+                        .foregroundStyle(Palette.secondary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                        .frame(height: 30, alignment: .top)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            FollowButton(username: author.username, outlined: true)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 14)
+        .frame(width: 140)
+        .background(Palette.cardBg, in: RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
+                .strokeBorder(Palette.hairline, lineWidth: 1)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("search.personCard.\(author.username)")
+    }
+
+    @ViewBuilder private var recentsRail: some View {
             if !recents.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
@@ -247,23 +393,6 @@ struct SearchView: View {
                     }
                 }
             }
-
-            trendingRail
-
-            trendingNoteTagsRail
-
-            trendingNoteLinksRail
-
-            popularTagsRail
-
-            if AuthStore.shared.isSignedIn, !followSuggestions.isEmpty || !remoteSuggestions.isEmpty {
-                followSuggestionsRail
-            }
-
-            if !AuthStore.shared.isSignedIn || followSuggestions.isEmpty {
-                suggestedAuthorsRail
-            }
-        }
     }
 
     /// 지금 뜨는 글 레일 — idle 과 무결과(막다른 길 금지) 양쪽에서 같은 출발점으로 쓴다.
@@ -298,99 +427,6 @@ struct SearchView: View {
         }
     }
 
-    /// 노트에서 뜨는 해시태그 — 마스토돈 둘러보기의 해시태그처럼 쓴 사람 수와 7일 막대.
-    @ViewBuilder private var trendingNoteTagsRail: some View {
-        if !trendingNoteTags.isEmpty {
-            VStack(alignment: .leading, spacing: 4) {
-                RailHeading("뜨는 해시태그")
-                ForEach(trendingNoteTags) { trend in
-                    NavigationLink(value: Route.noteTag(trend.tag)) {
-                        HStack(spacing: 12) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(verbatim: "#\(trend.tag)")
-                                    .typeScale(.body)
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(Palette.ink)
-                                    .lineLimit(1)
-                                Text("\(trend.accounts)명이 이번 주에 썼어요")
-                                    .typeScale(.meta)
-                                    .foregroundStyle(Palette.secondary)
-                            }
-                            Spacer(minLength: 8)
-                            TrendSparkBars(history: trend.history)
-                        }
-                        .padding(.vertical, 10)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityElement(children: .combine)
-                    .accessibilityIdentifier("search.trendingTag.\(trend.tag)")
-                }
-            }
-        }
-    }
-
-    @ViewBuilder private var trendingNoteLinksRail: some View {
-        if !trendingNoteLinks.isEmpty {
-            VStack(alignment: .leading, spacing: 4) {
-                RailHeading("뜨는 링크")
-                ForEach(trendingNoteLinks) { trend in
-                    NavigationLink(value: Route.noteLink(url: trend.url, title: trend.title)) {
-                        HStack(spacing: 12) {
-                            linkThumbnail(trend)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(verbatim: trend.title?.isEmpty == false ? trend.title! : trend.host)
-                                    .typeScale(.body)
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(Palette.ink)
-                                    .lineLimit(2)
-                                    .multilineTextAlignment(.leading)
-                                Group {
-                                    if trend.title?.isEmpty == false {
-                                        Text("\(trend.host) · \(trend.accounts)명이 이번 주에 공유했어요")
-                                    } else {
-                                        Text("\(trend.accounts)명이 이번 주에 공유했어요")
-                                    }
-                                }
-                                .typeScale(.meta)
-                                .foregroundStyle(Palette.secondary)
-                                .lineLimit(1)
-                            }
-                            Spacer(minLength: 8)
-                            TrendSparkBars(history: trend.history)
-                        }
-                        .padding(.vertical, 10)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityElement(children: .combine)
-                    .accessibilityIdentifier("search.trendingLink.\(trend.host)")
-                }
-            }
-        }
-    }
-
-    @ViewBuilder private func linkThumbnail(_ trend: TrendingNoteLink) -> some View {
-        let shape = RoundedRectangle(cornerRadius: Metrics.radiusInner, style: .continuous)
-        if let image = trend.imageUrl.flatMap(URL.init(string:)) {
-            RemoteImage(url: image, maxPixel: 200) { phase in
-                if case .success(let loaded) = phase {
-                    loaded.resizable().scaledToFill()
-                } else {
-                    Palette.chipBg
-                }
-            }
-            .frame(width: 52, height: 52)
-            .clipShape(shape)
-        } else {
-            Image(systemName: "link")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Palette.secondary)
-                .frame(width: 52, height: 52)
-                .background(Palette.chipBg, in: shape)
-        }
-    }
-
     @ViewBuilder private var popularTagsRail: some View {
         let renderable = popularTags.filter { ContentValidity.isRenderableTag($0.tag) }
         if !renderable.isEmpty {
@@ -415,7 +451,7 @@ struct SearchView: View {
         VStack(alignment: .leading, spacing: 0) {
             RailHeading("팔로우 추천")
                 .padding(.bottom, 4)
-            ForEach(Array(followSuggestions.prefix(3).enumerated()), id: \.element.id) { index, suggestion in
+            ForEach(Array(followSuggestions.enumerated()), id: \.element.id) { index, suggestion in
                 suggestionRow(suggestion)
                     .rowDivider(index > 0)
                     .transition(.opacity)
@@ -585,8 +621,8 @@ struct SearchView: View {
         if trending.isEmpty {
             // 피드와 같은 가드 — 자모·구두점만 있는 제목("ㅇㅇ")은 카드로 그리지 않는다.
             trending = Array(
-                ((try? await BlogAPI.feed(sort: .trending, size: 6))?.items ?? [])
-                    .filter(\.isRenderableCard).prefix(6))
+                ((try? await BlogAPI.feed(sort: .trending, size: 10))?.items ?? [])
+                    .filter(\.isRenderableCard).prefix(10))
         }
         if popularTags.isEmpty {
             popularTags = Array(((try? await BlogAPI.popularTags(limit: 12)) ?? []).prefix(12))
@@ -596,9 +632,6 @@ struct SearchView: View {
         }
         if trendingNoteTags.isEmpty {
             trendingNoteTags = Array(((try? await NoteAPI.trendingTags()) ?? []).prefix(5))
-        }
-        if trendingNoteLinks.isEmpty {
-            trendingNoteLinks = Array(((try? await NoteAPI.trendingLinks()) ?? []).prefix(5))
         }
         if AuthStore.shared.isSignedIn, followSuggestions.isEmpty {
             followSuggestions = (try? await FollowSuggestionsAPI.suggestions()) ?? []
@@ -1007,20 +1040,11 @@ enum SearchRecents {
     }
 }
 
-/// 7일 동안 날마다 쓰인 수 — 마스토돈 트렌드 옆의 작은 막대. 가장 많은 날이 꽉 찬다.
-private struct TrendSparkBars: View {
-    let history: [Int]
+private struct SearchingOnly<Content: View>: View {
+    @ViewBuilder var content: Content
+    @Environment(\.isSearching) private var isSearching
 
     var body: some View {
-        let peak = max(history.max() ?? 0, 1)
-        HStack(alignment: .bottom, spacing: 3) {
-            ForEach(Array(history.enumerated()), id: \.offset) { _, count in
-                Capsule()
-                    .fill(count == 0 ? Palette.hairlineStrong : Palette.secondary)
-                    .frame(width: 4, height: max(3, 22 * CGFloat(count) / CGFloat(peak)))
-            }
-        }
-        .frame(height: 22, alignment: .bottom)
-        .accessibilityHidden(true)
+        if isSearching { content }
     }
 }
