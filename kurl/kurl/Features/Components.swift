@@ -651,6 +651,55 @@ struct ZoomSource: ViewModifier {
     }
 }
 
+struct PostZoom {
+    let prefix: String
+    let ns: Namespace.ID
+    var active = true
+
+    func id(username: String, slug: String) -> String { "\(prefix)-\(username)-\(slug)" }
+}
+
+extension EnvironmentValues {
+    @Entry var postZoom: PostZoom? = nil
+}
+
+struct PostZoomSource: ViewModifier {
+    let username: String
+    let slug: String
+    @Environment(\.postZoom) private var zoom
+
+    func body(content: Content) -> some View {
+        if let zoom {
+            content.modifier(ZoomSource(active: zoom.active, id: zoom.id(username: username, slug: slug), ns: zoom.ns))
+        } else {
+            content
+        }
+    }
+}
+
+/// 글 상세 목적지 — 스택 루트에서 민 글만 zoom 으로 연다. 판단은 처음 만들 때 한 번만 해서, 그 위로
+/// 더 미느라 path 가 길어져도 이미 뜬 상세의 정체성이 바뀌지 않는다.
+struct PostZoomDestination: View {
+    let route: Route
+    let zoom: PostZoom
+    @State private var zooms: Bool
+
+    init(route: Route, zoom: PostZoom, fromRoot: Bool) {
+        self.route = route
+        self.zoom = zoom
+        _zooms = State(initialValue: fromRoot)
+    }
+
+    var body: some View {
+        if zooms, case .post(let username, let slug) = route {
+            RouteView(route: route)
+                .navigationTransition(.zoom(sourceID: zoom.id(username: username, slug: slug), in: zoom.ns))
+        } else {
+            RouteView(route: route)
+        }
+    }
+}
+
 /// 첫 화면 카드들이 한 장씩 조용히 떠오르는 입장(§10.7 — 과시 없는 생기).
 /// 스태거는 첫 8장까지만 — 그 아래는 스크롤로 만나므로 지연 없이 나타난다.
 /// reduce-motion 이면 정지 상태로 그려진다.

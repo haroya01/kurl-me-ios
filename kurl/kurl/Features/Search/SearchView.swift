@@ -41,6 +41,7 @@ struct SearchView: View {
     @State private var shownDomains: [String] = []
     @State private var domainTask: Task<Void, Never>?
     @Namespace private var zoomNS
+    @State private var path = NavigationPath()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     /// 최근 검색 칩의 지우기(×) 아이콘 — 칩 라벨(.meta)과 함께 커지도록 고정 pt 를 우회한다.
@@ -69,8 +70,7 @@ struct SearchView: View {
         uniqueKeysWithValues: RemoteStreamFeed.allCases.map { ($0, RemoteStreamModel(feed: $0)) })
 
     var body: some View {
-        // path 바인딩 금지 — tabBarMinimizeBehavior 가 죽는다(FeedView 참조).
-        NavigationStack {
+        NavigationStack(path: $path) {
             Group {
                 if scope == .people, !activeQuery.isEmpty || !query.trimmingCharacters(in: .whitespaces).isEmpty {
                     PeopleResultsList(model: peopleResults, query: query, retry: { runSearch(query) })
@@ -130,13 +130,9 @@ struct SearchView: View {
                 .sharedBackgroundVisibility(.hidden)
             }
             .navigationDestination(for: Route.self) { route in
-                // 푸시된 상세는 탭바 숨김을 추적하지 않는다(탭 루트 전용).
-                if case .post(let username, let slug) = route, !reduceMotion {
-                    RouteView(route: route)
-                        .navigationTransition(.zoom(sourceID: "search-\(username)-\(slug)", in: zoomNS))
-                } else {
-                    RouteView(route: route)
-                }
+                PostZoomDestination(
+                    route: route, zoom: PostZoom(prefix: "search", ns: zoomNS),
+                    fromRoot: !reduceMotion && path.count == 1)
             }
             // 스택 안쪽에 부착 — 바깥이면 push 된 글 상세에도 검색바가 남는다.
             // 상단 고정(navigationBarDrawer) — iOS 26+ 는 .searchable 을 하단에 도킹하는데, 우리
@@ -224,6 +220,7 @@ struct SearchView: View {
         ForEach(Array(trending.enumerated()), id: \.element.id) { index, item in
             if index > 0 { Hairline().padding(.horizontal, -Metrics.noteGutter) }
             PostFeedRow(post: item)
+                .environment(\.postZoom, PostZoom(prefix: "search", ns: zoomNS))
                 .accessibilityIdentifier("search.trending.\(item.id)")
             if index == min(2, trending.count - 1) {
                 Hairline().padding(.horizontal, -Metrics.noteGutter)
