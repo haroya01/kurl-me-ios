@@ -818,9 +818,7 @@ struct NoteRowView: View {
 
     private var folded: Bool { note.contentWarning != nil && !revealed }
 
-    private var translationKey: String {
-        "note-\(note.id)-\(note.body.hashValue)-\(note.contentWarning?.hashValue ?? 0)-\(TranslationGate.target().minimalIdentifier)"
-    }
+    private var translationKey: String { NoteTranslation.key(note) }
 
     private var translated: (body: String, warning: String?)? {
         translations.shown(translationKey).map {
