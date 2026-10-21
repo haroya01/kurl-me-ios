@@ -163,7 +163,8 @@ struct AnswerButtons: View {
                 .foregroundStyle(.secondary)
                 .accessibilityIdentifier("followRequests.reject")
             Button("승인") { answer(approve: true) }
-                .buttonStyle(.glass)
+                .buttonStyle(.glassProminent)
+                .tint(GlassTokens.prominentTint)
                 .fontWeight(.semibold)
                 .accessibilityIdentifier("followRequests.authorize")
         }

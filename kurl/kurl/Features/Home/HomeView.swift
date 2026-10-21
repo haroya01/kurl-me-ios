@@ -241,11 +241,18 @@ struct HomeFeedPage: View {
                         .modifier(QuietAppear(index: index))
                 }
             }
+            .environment(\.insideRoom, roomShownAbove(index))
             .task { await model.loadMoreIfNeeded(current: item) }
             if index < model.items.count - 1 { Hairline().padding(.horizontal, -Metrics.noteGutter) }
         }
         if model.isLoadingMore {
             KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
         }
+    }
+
+    private func roomShownAbove(_ index: Int) -> Int64? {
+        guard index > 0, let room = model.items[index].roomId,
+              model.items[index - 1].roomId == room else { return nil }
+        return room
     }
 }

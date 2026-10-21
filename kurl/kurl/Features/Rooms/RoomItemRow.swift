@@ -31,7 +31,6 @@ struct RoomItemRow: View {
                     .padding(.top, -4)
             }
         }
-        .environment(\.amongRooms, true)
     }
 
     private func openTarget() {
