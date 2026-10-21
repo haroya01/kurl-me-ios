@@ -64,16 +64,16 @@ enum MockRooms {
     ]
 
     private static var posts: [Post] = [
-        Post(id: 9901, roomId: 1, author: minji, body: "퇴근길에 한강 들렀다. 바람이 벌써 가을이다", minutesAgo: 3),
-        Post(id: 9902, roomId: 1, author: junho, body: "오늘 처음으로 5km 안 쉬고 뛰었다", minutesAgo: 9),
-        Post(id: 9903, roomId: 1, author: yuki, body: "지난주 엠티 사진 정리하는 중. 생각보다 많네요", minutesAgo: 52),
-        Post(id: 9904, roomId: 2, author: kim, body: "졸업 앨범 받아 왔다. 우리 과 페이지 아직도 웃기다", minutesAgo: 60 * 20),
-        Post(id: 9906, roomId: 2, author: minji, body: "요즘 퇴근하고 도자기 공방 다니는 중. 첫 컵 망했다", minutesAgo: 60 * 3),
-        Post(id: 9907, roomId: 1, author: me, body: "새로 산 필름카메라 첫 롤 맡겼다. 결과 두근두근", minutesAgo: 60 * 6),
-        Post(id: 9908, roomId: 1, author: junho, body: "어제 찍은 단체 사진 보정 끝. 다들 표정이 제각각이다", minutesAgo: 60 * 27),
-        Post(id: 9909, roomId: 5, author: mom, body: "올해 김장 끝냈다. 허리는 아파도 맛은 좋다", minutesAgo: 60 * 24 * 12),
-        Post(id: 9910, roomId: 6, author: haneul, body: "오랜만에 앨범 정리했어요. 그때 다들 어렸네요", minutesAgo: 60 * 24 * 40),
-        Post(id: 9905, roomId: 3, author: yuki, body: "포트·어댑터 이름 짓다가 한 시간이 갔다", minutesAgo: 60 * 24 * 5),
+        Post(id: 9901, roomId: 1, author: minji, body: "퇴근하다 한강 들름 바람 미쳤음", minutesAgo: 3),
+        Post(id: 9902, roomId: 1, author: junho, body: "5키로 첨으로 안 쉬고 뛰었다 ㅋㅋ", minutesAgo: 9),
+        Post(id: 9903, roomId: 1, author: yuki, body: "엠티 사진 정리중인데 왜케 많냐", minutesAgo: 52),
+        Post(id: 9904, roomId: 2, author: kim, body: "졸업앨범 받음 우리과 페이지 개웃김", minutesAgo: 60 * 20),
+        Post(id: 9906, roomId: 2, author: minji, body: "퇴근하고 공방 다니는데 첫 컵 망함 ㅠ", minutesAgo: 60 * 3),
+        Post(id: 9907, roomId: 1, author: me, body: "필카 첫 롤 현상 맡김", minutesAgo: 60 * 6),
+        Post(id: 9908, roomId: 1, author: junho, body: "어제 단체사진 보정 끝 표정 다 제각각 ㅋㅋ", minutesAgo: 60 * 27),
+        Post(id: 9909, roomId: 5, author: mom, body: "김장 끝 허리 나감", minutesAgo: 60 * 24 * 12),
+        Post(id: 9910, roomId: 6, author: haneul, body: "앨범 정리하다 옛날 사진 나옴 다들 애기네", minutesAgo: 60 * 24 * 40),
+        Post(id: 9905, roomId: 3, author: yuki, body: "포트 어댑터 이름 짓다가 한시간 날림", minutesAgo: 60 * 24 * 5),
     ]
 
     private struct RoomPost {
@@ -278,7 +278,7 @@ enum MockRooms {
 
     private static let replies: [Int64: [(Int64, Person, String)]] = [
         9901: [(9951, junho, "나도 어제 거기 있었는데"), (9952, yuki, "사진 있으면 올려 줘요")],
-        9902: [(9953, minji, "와 축하해! 다음엔 같이 뛰자")],
+        9902: [(9953, minji, "오 ㄷㄷ 다음엔 같이 뛰자")],
         8801: [(9954, minji, "단체 사진 진짜 한 장도 없는 거 실화냐"), (9955, junho, "보드게임 진 사람 누구였지"),
                (9956, me, "나야… 다음엔 이긴다")],
         8803: [(9957, mom, "적당히가 제일 정확한 건데")],
