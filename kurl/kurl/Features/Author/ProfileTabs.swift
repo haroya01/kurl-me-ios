@@ -44,15 +44,17 @@ final class ProfilePager<Item: Identifiable & Hashable> {
     }
 
     func loadMoreIfNeeded(current item: Item) async {
-        guard hasNext, !isLoadingMore, items.last?.id == item.id else { return }
+        guard hasNext, !isLoadingMore, items.suffix(5).contains(where: { $0.id == item.id }) else { return }
         isLoadingMore = true
-        defer { isLoadingMore = false }
         let myEpoch = epoch
-        guard let next = try? await fetch(page + 1), myEpoch == epoch else { return }
-        let seen = Set(items.map(\.id))
-        page += 1
-        hasNext = next.hasNext
-        items.append(contentsOf: next.items.filter { !seen.contains($0.id) })
+        await Task {
+            defer { isLoadingMore = false }
+            guard let next = try? await fetch(page + 1), myEpoch == epoch else { return }
+            let seen = Set(items.map(\.id))
+            page += 1
+            hasNext = next.hasNext
+            items.append(contentsOf: next.items.filter { !seen.contains($0.id) })
+        }.value
     }
 
     func replace(_ item: Item) {

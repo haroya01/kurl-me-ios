@@ -183,7 +183,7 @@ final class HomeFeedTests: XCTestCase {
 
         await model.reload()
         await model.loadMoreIfNeeded(current: model.items[0])
-        XCTAssertEqual(pager.asked, ["first"], "only the last row asks for more")
+        XCTAssertEqual(pager.asked, ["first", "1.1"], "a row within the last five asks for more")
         await model.loadMoreIfNeeded(current: model.items[1])
         XCTAssertEqual(pager.asked, ["first", "1.1"])
         XCTAssertEqual(model.items.map(\.id), ["note-1", "post-7", "note-2"], "a repeat across pages shows once")

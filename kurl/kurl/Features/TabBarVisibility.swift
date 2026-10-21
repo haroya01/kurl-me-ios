@@ -113,6 +113,8 @@ extension EnvironmentValues {
         set { self[TabBarVisibilityKey.self] = newValue }
     }
 
+    @Entry var windowBottomInset: CGFloat = 0
+
     var tabBarReservedInset: CGFloat {
         tabBarVisibility == nil ? 0 : Metrics.tabBarReservedHeight
     }

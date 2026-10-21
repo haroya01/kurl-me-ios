@@ -177,6 +177,9 @@ final class PostDetailViewModel {
     }
 
     private func loadComments(postId: Int64) async {
+        let signedIn = AuthStore.shared.isSignedIn
+        async let liked = signedIn ? try? await InteractionsAPI.likedCommentIds(postId: postId) : nil
+        async let quotes = try? await NoteAPI.postQuotes(postId)
         do {
             comments = try await BlogAPI.comments(postId: postId)
             commentsFailed = false
@@ -187,10 +190,10 @@ final class PostDetailViewModel {
         commentsLoaded = true
         commentLikeDelta = [:]
         commentToggleGen = [:]
-        if AuthStore.shared.isSignedIn {
-            likedCommentIds = Set((try? await InteractionsAPI.likedCommentIds(postId: postId)) ?? [])
+        if signedIn {
+            likedCommentIds = Set(await liked ?? [])
         }
-        if let quotes = try? await NoteAPI.postQuotes(postId) {
+        if let quotes = await quotes {
             quotingNotes = quotes.items
             quotingTotal = quotes.total
         }

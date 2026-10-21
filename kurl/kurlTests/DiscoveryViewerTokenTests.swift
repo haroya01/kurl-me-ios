@@ -54,6 +54,18 @@ final class DiscoveryViewerTokenTests: XCTestCase {
         XCTAssertEqual(tagged?.url?.query?.contains("sort=trending"), true, "태그 인기순은 서버 sort=trending 으로 묻는다")
     }
 
+    func testAuthenticatedRequestsCarryTheFreshToken() async throws {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [CapturingProtocol.self]
+        let client = APIClient(
+            session: URLSession(configuration: config), viewerToken: { nil }, bearerToken: { "fresh-token" })
+
+        let _: [String] = try await client.get("/notes/filters", authenticated: true)
+
+        let request = try XCTUnwrap(CapturingProtocol.requests.first)
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer fresh-token")
+    }
+
     func testDiscoveryRequestsStayAnonymousWhenSignedOut() async throws {
         BlogAPI.client = client(token: nil)
         try await callEveryDiscoveryPath()

@@ -618,27 +618,31 @@ struct SearchView: View {
     }
 
     private func loadDiscovery() async {
-        if trending.isEmpty {
-            // 피드와 같은 가드 — 자모·구두점만 있는 제목("ㅇㅇ")은 카드로 그리지 않는다.
-            trending = Array(
-                ((try? await BlogAPI.feed(sort: .trending, size: 10))?.items ?? [])
-                    .filter(\.isRenderableCard).prefix(10))
+        let signedIn = AuthStore.shared.isSignedIn
+        let needsPeople = followSuggestions.isEmpty
+        let needsRemote = remoteSuggestions.isEmpty
+        async let feed = Self.fetch(trending.isEmpty) { try await BlogAPI.feed(sort: .trending, size: 10) }
+        async let tags = Self.fetch(popularTags.isEmpty) { try await BlogAPI.popularTags(limit: 12) }
+        async let authors = Self.fetch(suggestedAuthors.isEmpty) { try await BlogAPI.suggestedAuthors(limit: 5) }
+        async let noteTags = Self.fetch(trendingNoteTags.isEmpty) { try await NoteAPI.trendingTags() }
+        async let people = Self.fetch(signedIn && needsPeople) {
+            try await FollowSuggestionsAPI.suggestions()
         }
-        if popularTags.isEmpty {
-            popularTags = Array(((try? await BlogAPI.popularTags(limit: 12)) ?? []).prefix(12))
-        }
-        if suggestedAuthors.isEmpty {
-            suggestedAuthors = (try? await BlogAPI.suggestedAuthors(limit: 5)) ?? []
-        }
-        if trendingNoteTags.isEmpty {
-            trendingNoteTags = Array(((try? await NoteAPI.trendingTags()) ?? []).prefix(5))
-        }
-        if AuthStore.shared.isSignedIn, followSuggestions.isEmpty {
-            followSuggestions = (try? await FollowSuggestionsAPI.suggestions()) ?? []
-        }
-        if AuthStore.shared.isSignedIn, remoteSuggestions.isEmpty {
-            remoteSuggestions = await FederationAPI.suggestions() ?? []
-        }
+        async let remote = Self.fetch(signedIn && needsRemote) { await FederationAPI.suggestions() }
+        let (feedPage, tagList, authorList, noteTagList, peopleList, remoteList) =
+            await (feed, tags, authors, noteTags, people, remote)
+        // 피드와 같은 가드 — 자모·구두점만 있는 제목("ㅇㅇ")은 카드로 그리지 않는다.
+        if let feedPage { trending = Array(feedPage.items.filter(\.isRenderableCard).prefix(10)) }
+        if let tagList { popularTags = Array(tagList.prefix(12)) }
+        if let authorList { suggestedAuthors = authorList }
+        if let noteTagList { trendingNoteTags = Array(noteTagList.prefix(5)) }
+        if let peopleList { followSuggestions = peopleList }
+        if let remoteList { remoteSuggestions = remoteList ?? [] }
+    }
+
+    private static func fetch<T>(_ needed: Bool, _ request: () async throws -> T) async -> T? {
+        guard needed else { return nil }
+        return try? await request()
     }
 
     /// 검색어와 겹치는 인기 태그 — 결과를 "태그 / 작가 / 글" 갈래로 보여주기 위한 얕은 매칭

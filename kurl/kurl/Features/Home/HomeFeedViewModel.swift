@@ -18,15 +18,18 @@ final class HomeFeedViewModel {
     private(set) var newest: String?
     private let load: (HomeFeedTab, String?) async throws -> HomeFeedBatch
     private let newer: (HomeFeedTab, String) async throws -> HomeFeedBatch
+    private let settled: @MainActor () -> Void
 
     init(
         tab: HomeFeedTab,
+        settled: @escaping @MainActor () -> Void = { LaunchReadiness.shared.markFirstFeedSettled() },
         newer: @escaping (HomeFeedTab, String) async throws -> HomeFeedBatch = HomeFeedAPI.newer,
         load: @escaping (HomeFeedTab, String?) async throws -> HomeFeedBatch = HomeFeedAPI.page
     ) {
         self.tab = tab
         self.load = load
         self.newer = newer
+        self.settled = settled
     }
 
     func refresh() async {
@@ -57,7 +60,8 @@ final class HomeFeedViewModel {
         }
     }
 
-    func reload() async {
+    func reload(settlesLaunch: Bool = false) async {
+        defer { if settlesLaunch { settled() } }
         epoch += 1
         let myEpoch = epoch
         if items.isEmpty { phase = .loading }
@@ -79,14 +83,16 @@ final class HomeFeedViewModel {
     }
 
     func loadMoreIfNeeded(current item: HomeFeedItem) async {
-        guard let cursor = next, !isLoadingMore, items.last?.id == item.id else { return }
+        guard let cursor = next, !isLoadingMore, items.suffix(5).contains(where: { $0.id == item.id }) else { return }
         isLoadingMore = true
-        defer { isLoadingMore = false }
         let myEpoch = epoch
-        guard let page = try? await load(tab, cursor), myEpoch == epoch else { return }
-        next = page.next
-        let seen = Set(items.map(\.id))
-        items.append(contentsOf: Self.unique(page.items).filter { !seen.contains($0.id) })
+        await Task {
+            defer { isLoadingMore = false }
+            guard let page = try? await load(tab, cursor), myEpoch == epoch else { return }
+            next = page.next
+            let seen = Set(items.map(\.id))
+            items.append(contentsOf: Self.unique(page.items).filter { !seen.contains($0.id) })
+        }.value
     }
 
     func inserted(_ note: Note) {
