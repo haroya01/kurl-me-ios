@@ -84,7 +84,7 @@ struct ConnectSheet: View {
         do {
             try await CollectionsAPI.disconnect(
                 collectionId: collectionId, connectionId: connectionId)
-            _ = withAnimation(.snappy(duration: 0.2)) {
+            _ = withMotion(Motion.micro) {
                 connectedIds.removeValue(forKey: collectionId)
             }
             didDisconnect += 1

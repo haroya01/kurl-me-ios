@@ -52,7 +52,7 @@ struct ImageLightbox: View {
         .statusBarHidden(true)
         .presentationBackground(.clear)
         .onAppear {
-            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.28)) { appeared = true }
+            withAnimation(reduceMotion ? nil : Motion.move) { appeared = true }
         }
     }
 
@@ -60,7 +60,7 @@ struct ImageLightbox: View {
         // 본문에서 이미 로드한 이미지는 캐시 히트 — 뷰어가 재다운로드 없이 즉시 열린다.
         RemoteImage(
             url: url,
-            animation: reduceMotion ? nil : .easeOut(duration: 0.3)
+            animation: reduceMotion ? nil : Motion.move
         ) { phase in
             switch phase {
             case .success(let image):
@@ -127,7 +127,7 @@ struct ImageLightbox: View {
                         width: offset.width + value.translation.width,
                         height: offset.height + value.translation.height
                     )
-                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.28)) {
+                    withAnimation(reduceMotion ? nil : Motion.move) {
                         offset = clampedOffset(proposed, scale: scale)
                     }
                 } else if value.translation.height > 120 || value.predictedEndTranslation.height > 320 {
@@ -145,7 +145,7 @@ struct ImageLightbox: View {
                     offset = .zero
                 } else {
                     // 축소로 가시 범위가 줄면 기존 이동이 경계를 넘으므로 다시 클램프.
-                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.28)) {
+                    withAnimation(reduceMotion ? nil : Motion.move) {
                         offset = clampedOffset(offset, scale: scale)
                     }
                 }
@@ -153,7 +153,7 @@ struct ImageLightbox: View {
     }
 
     private func toggleZoom() {
-        withAnimation(reduceMotion ? nil : .snappy(duration: 0.28)) {
+        withAnimation(reduceMotion ? nil : Motion.move) {
             if scale > 1 {
                 scale = 1
                 offset = .zero
@@ -168,7 +168,7 @@ struct ImageLightbox: View {
         if reduceMotion {
             dismiss()
         } else {
-            withAnimation(.easeIn(duration: 0.2)) { appeared = false }
+            withMotion(Motion.micro) { appeared = false }
             dismiss()
         }
     }

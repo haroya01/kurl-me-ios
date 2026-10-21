@@ -131,14 +131,14 @@ struct CollectionDetailView: View {
     private func disconnect(_ item: ConnectionItem) async {
         guard let idx = connections.firstIndex(where: { $0.id == item.id }) else { return }
         let snapshot = connections
-        _ = withAnimation(.snappy(duration: 0.25)) {
+        _ = withMotion(Motion.move) {
             connections.remove(at: idx)
         }
         do {
             try await CollectionsAPI.disconnect(collectionId: collectionId, connectionId: item.id)
             disconnects += 1
         } catch {
-            withAnimation(.snappy(duration: 0.25)) { connections = snapshot }
+            withMotion(Motion.move) { connections = snapshot }
             ToastCenter.shared.show(String(localized: "연결을 끊지 못했습니다"))
         }
     }

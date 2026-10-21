@@ -58,7 +58,7 @@ final class ProfilePager<Item: Identifiable & Hashable> {
     }
 
     func remove(where matches: (Item) -> Bool) {
-        withAnimation(.snappy(duration: 0.25)) { items.removeAll(where: matches) }
+        withMotion(Motion.move) { items.removeAll(where: matches) }
     }
 }
 
