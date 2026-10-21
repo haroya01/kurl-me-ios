@@ -70,7 +70,7 @@ check() {
 }
 
 selftest() {
-  swiftlint lint --quiet --reporter json "$fixtures/Violations.swift" > "$tmp/violations.json" 2>/dev/null || true
+  swiftlint lint --quiet --reporter json "$fixtures/Violations.swift" > "$tmp/violations.json" 2>"$tmp/stderr.txt" || true
   swiftlint lint --quiet --reporter json "$fixtures/Clean.swift" > "$tmp/clean.json" 2>/dev/null || true
   failed=0
   for rule in $(awk '/^custom_rules:/ { inside = 1; next } inside && /^  [a-z_]+:$/ { sub(/:$/, ""); print $1 }' .swiftlint.yml); do
@@ -86,7 +86,11 @@ selftest() {
     jq -r '.[] | "  \(.rule_id) \(.line)"' "$tmp/clean.json"
     failed=1
   fi
-  [ "$failed" -eq 0 ] && echo "SwiftLint 픽스처 통과"
+  if [ "$failed" -ne 0 ]; then
+    cat "$tmp/stderr.txt"
+  else
+    echo "SwiftLint 픽스처 통과"
+  fi
   return "$failed"
 }
 

@@ -21,6 +21,7 @@ on:
 jobs:
   swiftlint:
     runs-on: ubuntu-latest
+    container: swift:6.1-noble
     env:
       SWIFTLINT_VERSION: 0.65.0
       SWIFTLINT_SHA256: 79306a34e5c7cc55a220cd108cbb861dcad5f10138dcdf261e2624ae8b0a486b
@@ -29,14 +30,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - name: Install SwiftLint
         run: |
+          apt-get update -qq
+          apt-get install -y -qq jq unzip curl
           curl -fsSL -o "$RUNNER_TEMP/swiftlint.zip" \
             "https://github.com/realm/SwiftLint/releases/download/$SWIFTLINT_VERSION/swiftlint_linux_amd64.zip"
           echo "$SWIFTLINT_SHA256  $RUNNER_TEMP/swiftlint.zip" | sha256sum -c -
           mkdir -p "$RUNNER_TEMP/swiftlint"
-          unzip -q "$RUNNER_TEMP/swiftlint.zip" swiftlint-static -d "$RUNNER_TEMP/swiftlint"
-          mv "$RUNNER_TEMP/swiftlint/swiftlint-static" "$RUNNER_TEMP/swiftlint/swiftlint"
+          unzip -q "$RUNNER_TEMP/swiftlint.zip" swiftlint -d "$RUNNER_TEMP/swiftlint"
           echo "$RUNNER_TEMP/swiftlint" >> "$GITHUB_PATH"
       - run: swiftlint version
       - name: Fixtures
