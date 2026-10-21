@@ -45087,34 +45087,6 @@
         }
       }
     },
-    "친구들과 방을 만들면, 오늘 거기서 오간 말이 여기 먼저 보여요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Make a room with friends, and what they said today shows up here first."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "दोस्तों के साथ रूम बनाएँ, आज वहाँ की बातें यहाँ पहले दिखेंगी।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "友だちとルームを作ると、今日そこで交わした言葉がここに先に届きます。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tạo phòng với bạn bè, những gì họ nói hôm nay sẽ hiện ở đây trước."
-          }
-        }
-      }
-    },
     "코드 %@ · %@": {
       "localizations": {
         "en": {
@@ -45827,6 +45799,426 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tắt liên kết"
+          }
+        }
+      }
+    },
+    "새 방": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New room"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नया रूम"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しいルーム"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phòng mới"
+          }
+        }
+      }
+    },
+    "방으로 가기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Go to room"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रूम पर जाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ルームへ"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đến phòng"
+          }
+        }
+      }
+    },
+    "만들면 바로 초대 링크를 보낼 수 있어요. 최대 50명, 방 글은 멤버만 봐요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can send an invite link right after. Up to 50 people; only members see room posts."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बनाते ही न्योता लिंक भेज सकते हैं। अधिकतम 50 लोग, रूम की पोस्ट सिर्फ़ सदस्य देखते हैं।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "作ったらすぐ招待リンクを送れます。最大50人、ルームの投稿はメンバーだけが見ます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tạo xong là gửi được liên kết mời ngay. Tối đa 50 người, chỉ thành viên xem bài trong phòng."
+          }
+        }
+      }
+    },
+    "방이 생겼어요. 링크를 받은 친구는 바로 들어와요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your room is ready. Friends who get the link join right away."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "रूम बन गया। लिंक पाने वाले दोस्त सीधे जुड़ जाएँगे।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ルームができました。リンクを受け取った友だちはすぐ入れます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phòng đã sẵn sàng. Bạn bè nhận liên kết sẽ vào ngay."
+          }
+        }
+      }
+    },
+    "링크 보내기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send link"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लिंक भेजें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンクを送る"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gửi liên kết"
+          }
+        }
+      }
+    },
+    "링크 만들기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Make a link"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लिंक बनाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンクを作る"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tạo liên kết"
+          }
+        }
+      }
+    },
+    "링크 받은 친구만 들어와요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only friends with the link get in"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सिर्फ़ लिंक वाले दोस्त आ सकते हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンクをもらった友だちだけ入れる"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chỉ bạn có link mới vào được"
+          }
+        }
+      }
+    },
+    "예시": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Example"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "उदाहरण"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "例"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ví dụ"
+          }
+        }
+      }
+    },
+    "링크로 들어가기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Join with a link"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लिंक से जुड़ें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンクで入る"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vào bằng link"
+          }
+        }
+      }
+    },
+    "퇴근하다 한강 들름 바람 미쳤음": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "stopped by the river after work, the wind is unreal"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ऑफिस के बाद नदी किनारे गया, हवा कमाल"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仕事帰りに川寄った 風やばい"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "tan làm ghé bờ sông gió đỉnh thật"
+          }
+        }
+      }
+    },
+    "5키로 첨으로 안 쉬고 뛰었다 ㅋㅋ": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ran 5k without stopping for the first time lol"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पहली बार 5 किमी बिना रुके दौड़ा lol"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "5キロ初めてノンストップで走れた笑"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "lần đầu chạy 5km không nghỉ haha"
+          }
+        }
+      }
+    },
+    "필카 첫 롤 현상 맡김": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "dropped off my first roll of film"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पहला फ़िल्म रोल डेवलप को दिया"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フィルム最初の一本、現像に出した"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "gửi rửa cuộn phim đầu tiên"
+          }
+        }
+      }
+    },
+    "공방 컵 나왔는데 손잡이 삐뚤어짐 ㅠ": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "my pottery cup is done but the handle's crooked ㅠ"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मिट्टी का कप बन गया पर हैंडल टेढ़ा हो गया ㅠ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "工房のカップできたけど持ち手ゆがんだ泣"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "cốc ở xưởng xong rồi mà quai bị méo huhu"
+          }
+        }
+      }
+    },
+    "비 와서 오늘은 걍 집에서 자전거": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "raining so just the bike at home today"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बारिश है तो आज घर पर ही साइकिल"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "雨だから今日は家でバイク"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mưa nên hôm nay đạp xe trong nhà thôi"
+          }
+        }
+      }
+    },
+    "사진 찾았는데 반은 다 흔들림 ㅋㅋㅋ": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "got the photos back and half are blurry lmao"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फ़ोटो मिल गईं, आधी धुंधली हैं lol"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写真受け取ったら半分ブレてた笑"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "lấy ảnh về mà nửa bị rung hết haha"
           }
         }
       }
