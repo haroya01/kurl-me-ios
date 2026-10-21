@@ -54,6 +54,8 @@ struct RoomInviteSheet: View {
                             Text("\(picked.count)명 초대")
                         }
                     }
+                    .buttonStyle(.glassProminent)
+                    .tint(GlassTokens.prominentTint)
                     .disabled(picked.isEmpty || sending)
                     .accessibilityIdentifier("roomInvite.send")
                 }

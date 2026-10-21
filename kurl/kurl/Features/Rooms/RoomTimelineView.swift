@@ -122,13 +122,13 @@ struct RoomTimelineView: View {
                 Label("초대", systemImage: "person.badge.plus")
                     .typeScale(.meta)
                     .fontWeight(.semibold)
-                    .foregroundStyle(Palette.ink)
+                    .foregroundStyle(alone(detail) ? .white : Palette.ink)
                     .fixedSize()
                     .padding(.horizontal, 14)
                     .padding(.vertical, 7)
                     .contentShape(Capsule())
             }
-            .buttonStyle(PaperCapsuleStyle(prominent: false))
+            .buttonStyle(PaperCapsuleStyle(prominent: alone(detail)))
             .accessibilityIdentifier("room.invite")
         }
         .padding(.vertical, 12)
@@ -145,6 +145,8 @@ struct RoomTimelineView: View {
         return "\(at.formatted(.dateTime.month().day().weekday(.abbreviated)))"
     }
 
+    private func alone(_ detail: RoomDetail) -> Bool { detail.memberCount <= 1 }
+
     private func memberLine(_ detail: RoomDetail) -> String {
         let names = detail.members.prefix(2).map { $0.displayName ?? $0.username }.joined(separator: ", ")
         let rest = Int(detail.memberCount) - min(2, detail.members.count)
@@ -160,14 +162,10 @@ struct RoomTimelineView: View {
             ErrorState(message: message) { Task { await model.reload() } }
         case .loaded:
             if model.items.isEmpty {
-                VStack(alignment: .leading, spacing: 14) {
-                    Text("아직 이 방에 글이 없어요.")
-                        .typeScale(.note)
-                        .foregroundStyle(Palette.ink)
-                    Button("초대하기") { inviting = true }
-                        .buttonStyle(.glass)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                Text("아직 이 방에 글이 없어요.")
+                    .typeScale(.note)
+                    .foregroundStyle(Palette.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.top, 24)
             } else {
                 ForEach(Array(model.items.enumerated()), id: \.element.id) { index, note in
@@ -276,6 +274,8 @@ struct CreateRoomSheet: View {
                             Text("만들고 \(picked.count)명 초대")
                         }
                     }
+                    .buttonStyle(.glassProminent)
+                    .tint(GlassTokens.prominentTint)
                     .disabled(trimmed.isEmpty || trimmed.count > 50 || creating)
                     .accessibilityIdentifier("createRoom.submit")
                 }
