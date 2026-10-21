@@ -170,7 +170,7 @@ struct RoomPeoplePicker: View {
         let page = source == .following
             ? try? await FollowListsAPI.following(username: me, size: 50)
             : try? await FollowListsAPI.followers(username: me, size: 50)
-        lists[source] = (page?.items ?? []).map {
+        lists[source] = (page?.localUsers ?? []).map {
             RoomCandidate(id: $0.id, username: $0.username, displayName: nil, avatarUrl: $0.avatarUrl)
         }
         #if DEBUG

@@ -5,20 +5,30 @@ import Foundation
 enum FollowListsAPI {
     private static let client = APIClient.shared
 
-    static func followers(username: String, page: Int = 0, size: Int = 20) async throws -> FollowListPage {
+    static func followers(
+        username: String, page: Int = 0, size: Int = 20, includeRemote: Bool = false
+    ) async throws -> FollowListPage {
         let signedIn = await AuthStore.shared.isSignedIn
         return try await client.get(
             "/users/\(username)/followers",
-            query: ["page": String(page), "size": String(size)],
+            query: query(page: page, size: size, includeRemote: includeRemote),
             authenticated: signedIn)
     }
 
-    static func following(username: String, page: Int = 0, size: Int = 20) async throws -> FollowListPage {
+    static func following(
+        username: String, page: Int = 0, size: Int = 20, includeRemote: Bool = false
+    ) async throws -> FollowListPage {
         let signedIn = await AuthStore.shared.isSignedIn
         return try await client.get(
             "/users/\(username)/following",
-            query: ["page": String(page), "size": String(size)],
+            query: query(page: page, size: size, includeRemote: includeRemote),
             authenticated: signedIn)
+    }
+
+    private static func query(page: Int, size: Int, includeRemote: Bool) -> [String: String] {
+        var query = ["page": String(page), "size": String(size)]
+        if includeRemote { query["include"] = "remote" }
+        return query
     }
 }
 
@@ -37,9 +47,36 @@ struct FollowUser: Decodable, Identifiable, Hashable {
     }
 }
 
+enum FollowListItem: Decodable, Identifiable, Hashable {
+    case local(FollowUser)
+    case remote(RemoteAccount)
+
+    var id: String {
+        switch self {
+        case .local(let user): "local.\(user.id)"
+        case .remote(let account): "remote.\(account.id)"
+        }
+    }
+
+    private enum CodingKeys: String, CodingKey { case type, account }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        if try c.decodeIfPresent(String.self, forKey: .type) == "remote" {
+            self = .remote(try c.decode(RemoteAccount.self, forKey: .account))
+        } else {
+            self = .local(try FollowUser(from: decoder))
+        }
+    }
+}
+
 struct FollowListPage: Decodable {
-    let items: [FollowUser]
+    let items: [FollowListItem]
     let page: Int
     let size: Int
     let hasNext: Bool
+
+    var localUsers: [FollowUser] {
+        items.compactMap { if case .local(let user) = $0 { user } else { nil } }
+    }
 }
