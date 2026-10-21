@@ -193,49 +193,86 @@ struct RoomLinkSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    if let url = invite.shareURL {
-                        VStack(spacing: 14) {
-                            QRCodeImage(text: url.absoluteString)
-                                .frame(width: 200, height: 200)
-                                .accessibilityLabel(Text("초대 QR 코드"))
-                            Text(url.absoluteString)
-                                .typeScale(.meta)
-                                .foregroundStyle(Palette.secondary)
-                                .textSelection(.enabled)
-                                .lineLimit(1)
+            ReadingColumn(spacing: 0, background: Palette.readingBg) {
+                if let url = invite.shareURL {
+                    VStack(spacing: 14) {
+                        QRCodeImage(text: url.absoluteString)
+                            .frame(width: 196, height: 196)
+                            .padding(14)
+                            .background(.white, in: RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
+                                    .strokeBorder(Palette.hairline, lineWidth: 1)
+                            }
+                            .accessibilityLabel(Text("초대 QR 코드"))
+                        Text(url.absoluteString)
+                            .typeScale(.meta)
+                            .foregroundStyle(Palette.secondary)
+                            .textSelection(.enabled)
+                            .lineLimit(1)
+                        Text("코드 \(invite.code) · \(usage)")
+                            .typeScale(.meta)
+                            .foregroundStyle(Palette.faint)
+                        HStack(spacing: 8) {
                             Button {
                                 UIPasteboard.general.url = url
                                 copied += 1
                                 ToastCenter.shared.show(String(localized: "초대 링크를 복사했어요"))
                             } label: {
-                                Label("링크 복사", systemImage: "link")
+                                capsuleLabel("링크 복사", systemImage: "link")
                             }
-                            .buttonStyle(.glass)
+                            .buttonStyle(PaperCapsuleStyle(prominent: false))
+                            ShareLink(item: url, subject: Text(roomName)) {
+                                capsuleLabel("공유", systemImage: "square.and.arrow.up")
+                            }
+                            .buttonStyle(PaperCapsuleStyle(prominent: false))
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
                     }
-                } footer: {
-                    Text("코드 \(invite.code) · \(usage)")
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 12)
                 }
-                Section("새 링크") {
+                RailHeading("새 링크")
+                    .padding(.top, 32)
+                    .padding(.bottom, 4)
+                choiceRow("사용 횟수") {
                     Picker("사용 횟수", selection: $limit) {
                         ForEach(Self.limits, id: \.self) { value in
                             Text(value == 0 ? String(localized: "제한 없음") : String(localized: "\(value)번"))
                                 .tag(value)
                         }
                     }
+                }
+                Hairline()
+                choiceRow("만료") {
                     Picker("만료", selection: $expiry) {
                         ForEach(Self.expiries, id: \.days) { option in
                             Text(option.label).tag(option.days)
                         }
                     }
-                    Toggle("들어오기 전에 승인", isOn: $approval)
-                    Button("이 설정으로 새 링크 만들기") { Task { await make() } }
-                        .disabled(making)
                 }
+                Hairline()
+                Toggle(isOn: $approval) {
+                    Text("들어오기 전에 승인")
+                        .typeScale(.body)
+                        .foregroundStyle(Palette.ink)
+                }
+                .tint(GlassTokens.prominentTint)
+                .padding(.vertical, 9)
+                Button {
+                    Task { await make() }
+                } label: {
+                    Text("이 설정으로 새 링크 만들기")
+                        .typeScale(.meta)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Palette.ink)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(PaperCapsuleStyle(prominent: false))
+                .disabled(making)
+                .padding(.top, 16)
+                .padding(.bottom, 40)
             }
             .navigationTitle("초대 링크")
             .navigationSubtitle(roomName)
@@ -246,6 +283,30 @@ struct RoomLinkSheet: View {
             .sensoryFeedback(.success, trigger: copied)
         }
         .presentationDetents([.large])
+    }
+
+    private func capsuleLabel(_ title: LocalizedStringKey, systemImage: String) -> some View {
+        Label(title, systemImage: systemImage)
+            .typeScale(.meta)
+            .fontWeight(.semibold)
+            .foregroundStyle(Palette.ink)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .contentShape(Capsule())
+    }
+
+    private func choiceRow(_ title: LocalizedStringKey, @ViewBuilder picker: () -> some View) -> some View {
+        HStack {
+            Text(title)
+                .typeScale(.body)
+                .foregroundStyle(Palette.ink)
+            Spacer()
+            picker()
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .tint(Palette.secondary)
+        }
+        .padding(.vertical, 6)
     }
 
     private var usage: String {

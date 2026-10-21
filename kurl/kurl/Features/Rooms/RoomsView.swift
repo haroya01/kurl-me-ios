@@ -216,6 +216,7 @@ struct RoomsView: View {
                         .transition(.opacity)
                     }
                 }
+                Hairline().padding(.horizontal, -Metrics.noteGutter).padding(.top, 8)
             }
             if rooms.isEmpty {
                 empty
@@ -544,12 +545,12 @@ struct RoomBlock: View {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     if room.pinned == true {
                         Image(systemName: "pin.fill")
-                            .font(.caption2)
-                            .foregroundStyle(Palette.faint)
+                            .font(.caption)
+                            .foregroundStyle(Palette.secondary)
                             .accessibilityLabel(Text("고정"))
                     }
                     Text(room.name)
-                        .typeScale(.title)
+                        .typeScale(.featured)
                         .foregroundStyle(Palette.ink)
                         .lineLimit(1)
                     if room.unreadCount > 0 {
@@ -563,8 +564,8 @@ struct RoomBlock: View {
                     AvatarStack(people: room.faces ?? [], size: 20, limit: 4)
                         .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 5 }
                 }
-                .padding(.top, 26)
-                .padding(.bottom, 4)
+                .padding(.top, 34)
+                .padding(.bottom, 2)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)

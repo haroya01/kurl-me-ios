@@ -31,116 +31,146 @@ struct RoomSettingsView: View {
     private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
 
     var body: some View {
-        Form {
-            if detail.isOwner {
-                Section("방 이름") {
-                    HStack {
-                        TextField("방 이름", text: $name)
-                            .submitLabel(.done)
-                            .onSubmit { Task { await rename() } }
-                            .accessibilityIdentifier("roomSettings.name")
-                        if trimmedName != detail.name {
-                            Button("저장") { Task { await rename() } }
-                                .buttonStyle(.borderless)
-                                .fontWeight(.semibold)
-                                .disabled(trimmedName.isEmpty || trimmedName.count > 50 || saving)
-                                .accessibilityIdentifier("roomSettings.saveName")
-                        }
-                    }
-                }
-                Section {
-                    Toggle("들어오기 전에 승인", isOn: $approval)
-                        .onChange(of: approval) { _, next in
-                            guard next != detail.approvalRequired else { return }
-                            Task { await setApproval(next) }
-                        }
-                        .accessibilityIdentifier("roomSettings.approval")
-                } footer: {
-                    Text("켜면 초대 링크로 와도 방장이 받아 줘야 들어와요.")
-                }
-            }
+        ReadingColumn(spacing: 0) {
             if detail.isOwner, !requests.isEmpty {
-                Section("들어오고 싶어 해요") {
-                    ForEach(requests) { request in
-                        HStack(spacing: 10) {
-                            AvatarView(author: request.person.author, size: 30)
-                            Text(request.person.displayName ?? request.person.username)
-                            Spacer()
-                            Button("거절") { Task { await decide(request, approve: false) } }
-                                .buttonStyle(.borderless)
-                                .foregroundStyle(Palette.secondary)
-                            Button("승인") { Task { await decide(request, approve: true) } }
-                                .buttonStyle(.borderless)
+                heading("들어오고 싶어 해요")
+                ForEach(Array(requests.enumerated()), id: \.element.id) { index, request in
+                    if index > 0 { Hairline() }
+                    personRow(request.person.author, name: request.person.displayName ?? request.person.username) {
+                        Button("거절") { Task { await decide(request, approve: false) } }
+                            .buttonStyle(.plain)
+                            .typeScale(.meta)
+                            .foregroundStyle(Palette.secondary)
+                        Button {
+                            Task { await decide(request, approve: true) }
+                        } label: {
+                            Text("승인")
+                                .typeScale(.meta)
                                 .fontWeight(.semibold)
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 6)
                         }
+                        .buttonStyle(PaperCapsuleStyle(prominent: true))
+                        .accessibilityIdentifier("roomSettings.approve.\(request.id)")
                     }
                 }
             }
-            Section("멤버 \(detail.memberCount)명") {
-                ForEach(detail.members) { member in
-                    HStack(spacing: 10) {
-                        AvatarView(author: member.author, size: 30)
-                        Text(member.displayName ?? member.username)
-                        if member.role == "OWNER" {
-                            Text("방장")
-                                .typeScale(.meta)
-                                .foregroundStyle(Palette.secondary)
-                        }
+            if detail.isOwner {
+                heading("방 이름")
+                HStack(spacing: 10) {
+                    TextField("방 이름", text: $name)
+                        .typeScale(.body)
+                        .foregroundStyle(Palette.ink)
+                        .submitLabel(.done)
+                        .onSubmit { Task { await rename() } }
+                        .accessibilityIdentifier("roomSettings.name")
+                    if trimmedName != detail.name {
+                        Button("저장") { Task { await rename() } }
+                            .buttonStyle(.plain)
+                            .typeScale(.meta)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Palette.accent)
+                            .disabled(trimmedName.isEmpty || trimmedName.count > 50 || saving)
+                            .accessibilityIdentifier("roomSettings.saveName")
                     }
-                    .swipeActions {
-                        if detail.isOwner, member.role != "OWNER" {
-                            Button("내보내기", role: .destructive) { removing = member }
+                }
+                .padding(.vertical, 13)
+                Hairline()
+            }
+            heading("멤버 \(detail.memberCount)명")
+            ForEach(Array(detail.members.enumerated()), id: \.element.id) { index, member in
+                if index > 0 { Hairline() }
+                personRow(member.author, name: member.displayName ?? member.username) {
+                    if member.role == "OWNER" {
+                        Text("방장")
+                            .typeScale(.meta)
+                            .foregroundStyle(Palette.secondary)
+                    } else if detail.isOwner {
+                        Menu {
+                            Button("내보내기", systemImage: "person.badge.minus", role: .destructive) { removing = member }
+                        } label: {
+                            Image(systemName: "ellipsis")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(Palette.secondary)
+                                .frame(width: 32, height: 32)
+                                .contentShape(Rectangle())
                         }
+                        .accessibilityLabel(Text("\(member.displayName ?? member.username) 관리"))
                     }
                 }
             }
             if !invitees.isEmpty {
-                Section("초대에 답을 기다려요") {
-                    ForEach(invitees) { invitee in
-                        HStack(spacing: 10) {
-                            AvatarView(author: invitee.person.author, size: 30)
-                            Text(invitee.person.displayName ?? invitee.person.username)
-                        }
-                        .swipeActions {
-                            if detail.isOwner || invitee.inviterId == AuthStore.shared.me?.id {
-                                Button("초대 취소", role: .destructive) { Task { await cancel(invitee) } }
-                            }
-                        }
-                    }
-                }
-            }
-            if detail.isOwner, !invites.isEmpty {
-                Section("초대 링크") {
-                    ForEach(invites) { invite in
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(invite.code).typeScale(.note)
-                                Text(invite.maxUses.map { "\(invite.uses)/\($0)" } ?? "\(invite.uses)")
-                                    .typeScale(.meta)
-                                    .foregroundStyle(Palette.secondary)
-                            }
-                            Spacer()
-                            if invite.disabled {
-                                Text("꺼짐").typeScale(.meta).foregroundStyle(Palette.secondary)
-                            } else {
-                                Button("끄기") { Task { await disable(invite) } }
-                                    .buttonStyle(.borderless)
-                            }
+                heading("초대에 답을 기다려요")
+                ForEach(Array(invitees.enumerated()), id: \.element.id) { index, invitee in
+                    if index > 0 { Hairline() }
+                    personRow(invitee.person.author, name: invitee.person.displayName ?? invitee.person.username) {
+                        if detail.isOwner || invitee.inviterId == AuthStore.shared.me?.id {
+                            Button("초대 취소") { Task { await cancel(invitee) } }
+                                .buttonStyle(.plain)
+                                .typeScale(.meta)
+                                .foregroundStyle(Palette.secondary)
                         }
                     }
                 }
             }
-            Section {
-                Toggle("내 피드에서 이 방 글 숨기기", isOn: $hidden)
-                    .onChange(of: hidden) { _, next in
-                        Task { _ = try? await RoomAPI.setHiddenFromFeed(detail.id, hidden: next) }
+            if detail.isOwner {
+                heading("들어오는 방식")
+                toggleRow(
+                    "들어오기 전에 승인", note: "켜면 초대 링크로 와도 방장이 받아 줘야 들어와요.", isOn: $approval
+                )
+                .onChange(of: approval) { _, next in
+                    guard next != detail.approvalRequired else { return }
+                    Task { await setApproval(next) }
+                }
+                .accessibilityIdentifier("roomSettings.approval")
+                ForEach(invites) { invite in
+                    Hairline()
+                    HStack(spacing: 10) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(verbatim: invite.code)
+                                .typeScale(.body)
+                                .monospaced()
+                                .foregroundStyle(invite.disabled ? Palette.faint : Palette.ink)
+                            Text(invite.maxUses.map { String(localized: "\(invite.uses)/\($0)번 사용") }
+                                 ?? String(localized: "\(invite.uses)번 사용"))
+                                .typeScale(.meta)
+                                .foregroundStyle(Palette.secondary)
+                        }
+                        Spacer()
+                        if invite.disabled {
+                            Text("꺼짐").typeScale(.meta).foregroundStyle(Palette.faint)
+                        } else {
+                            Button("링크 끄기") { Task { await disable(invite) } }
+                                .buttonStyle(.plain)
+                                .typeScale(.meta)
+                                .foregroundStyle(Palette.secondary)
+                        }
                     }
-            } footer: {
-                Text("숨겨도 이 방 안에서는 그대로 보여요.")
+                    .padding(.vertical, 11)
+                }
             }
-            Section {
-                Button("방 나가기", role: .destructive) { leaving = true }
+            heading("내 피드")
+            toggleRow("이 방 글 숨기기", note: "홈에서만 숨겨요. 이 방 안에서는 그대로 보여요.", isOn: $hidden)
+                .onChange(of: hidden) { _, next in
+                    Task { _ = try? await RoomAPI.setHiddenFromFeed(detail.id, hidden: next) }
+                }
+            Hairline().padding(.top, 20)
+            Button {
+                leaving = true
+            } label: {
+                HStack {
+                    Text("방 나가기")
+                        .typeScale(.body)
+                        .foregroundStyle(Palette.danger)
+                    Spacer()
+                }
+                .padding(.vertical, 13)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(RowButtonStyle())
+            .accessibilityIdentifier("roomSettings.leave")
+            Spacer(minLength: 48)
         }
         .navigationTitle("방 설정")
         .navigationBarTitleDisplayMode(.inline)
@@ -163,6 +193,42 @@ struct RoomSettingsView: View {
         } message: { member in
             Text("\(member.displayName ?? member.username)님은 이 방의 초대 링크로 다시 들어올 수 없어요.")
         }
+    }
+
+    private func heading(_ title: LocalizedStringKey) -> some View {
+        RailHeading(title)
+            .padding(.top, 28)
+            .padding(.bottom, 4)
+    }
+
+    private func personRow(
+        _ author: Author, name: String, @ViewBuilder trailing: () -> some View
+    ) -> some View {
+        HStack(spacing: 12) {
+            AvatarView(author: author, size: 34)
+            Text(verbatim: name)
+                .typeScale(.body)
+                .foregroundStyle(Palette.ink)
+                .lineLimit(1)
+            Spacer(minLength: 8)
+            HStack(spacing: 14) { trailing() }
+        }
+        .padding(.vertical, 9)
+    }
+
+    private func toggleRow(_ title: LocalizedStringKey, note: LocalizedStringKey, isOn: Binding<Bool>) -> some View {
+        Toggle(isOn: isOn) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .typeScale(.body)
+                    .foregroundStyle(Palette.ink)
+                Text(note)
+                    .typeScale(.footnote)
+                    .foregroundStyle(Palette.secondary)
+            }
+        }
+        .tint(GlassTokens.prominentTint)
+        .padding(.vertical, 9)
     }
 
     private func load() async {

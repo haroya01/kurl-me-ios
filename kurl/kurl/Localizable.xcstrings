@@ -43711,34 +43711,6 @@
         }
       }
     },
-    "내 피드에서 이 방 글 숨기기": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hide this room's posts from my feed"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "इस रूम की पोस्ट मेरी फ़ीड से छिपाएँ"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "このルームの投稿をフィードに表示しない"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ẩn bài của phòng này khỏi bảng tin"
-          }
-        }
-      }
-    },
     "내보낼까요?": {
       "localizations": {
         "en": {
@@ -44513,34 +44485,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Phòng mới"
-          }
-        }
-      }
-    },
-    "숨겨도 이 방 안에서는 그대로 보여요.": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hidden posts still show inside this room."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "छिपाने पर भी इस रूम के अंदर पोस्ट दिखेंगी।"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "非表示にしてもルームの中ではそのまま見えます。"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bài vẫn hiện trong phòng dù bạn ẩn."
           }
         }
       }
@@ -45929,6 +45873,146 @@
           "stringUnit": {
             "state": "translated",
             "value": "Xoá sẽ gỡ toàn bộ ghi chú, bài blog và bình luận của bạn trong phòng này."
+          }
+        }
+      }
+    },
+    "들어오는 방식": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How people join"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "शामिल होने का तरीका"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "参加のしかた"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cách tham gia"
+          }
+        }
+      }
+    },
+    "내 피드": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "My feed"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "मेरी फ़ीड"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "マイフィード"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bảng tin của tôi"
+          }
+        }
+      }
+    },
+    "이 방 글 숨기기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hide this room's posts"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस रूम की पोस्ट छिपाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このルームの投稿を隠す"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ẩn bài của phòng này"
+          }
+        }
+      }
+    },
+    "홈에서만 숨겨요. 이 방 안에서는 그대로 보여요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hidden from Home only. They still show inside this room."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सिर्फ़ होम से छिपेंगी। इस रूम के अंदर वैसे ही दिखेंगी।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ホームでだけ隠します。ルームの中ではそのまま表示されます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chỉ ẩn ở Trang chủ. Trong phòng vẫn hiện như cũ."
+          }
+        }
+      }
+    },
+    "링크 끄기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn off link"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लिंक बंद करें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンクを無効にする"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tắt liên kết"
           }
         }
       }

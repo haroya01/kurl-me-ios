@@ -447,13 +447,13 @@ struct NoteRowView: View {
             }
             if focused { focusedRow } else { row }
         }
-        .padding(.vertical, 14)
+        .padding(.vertical, focused ? 14 : 12)
         .overlay(alignment: .topLeading) {
             if threadLineBelow {
                 Capsule()
                     .fill(Palette.hairlineStrong)
                     .frame(width: 2)
-                    .padding(.top, 14 + 36 * unit + 6)
+                    .padding(.top, (focused ? 14 : 12) + 36 * unit + 6)
                     .padding(.bottom, -8)
                     .padding(.leading, 18 * unit - 1)
                     .accessibilityHidden(true)
@@ -721,10 +721,10 @@ struct NoteRowView: View {
                 attachments
                 if let detached {
                     detached.actions
-                        .padding(.top, 10)
+                        .padding(.top, 6)
                 } else {
                     actions(spread: false)
-                        .padding(.top, 10)
+                        .padding(.top, 6)
                 }
             }
             .alignmentGuide(.noteNameLine) { $0[.firstTextBaseline] - nameCapHalf }
@@ -770,7 +770,7 @@ struct NoteRowView: View {
                     .fixedSize()
                     .allowsHitTesting(false)
             }
-            if note.noteVisibility != .public, note.room == nil || insideRoom != note.room?.id {
+            if note.noteVisibility != .public, note.room == nil {
                 Image(systemName: note.noteVisibility.symbol)
                     .font(.system(size: 11 * unit, weight: .semibold))
                     .foregroundStyle(Palette.secondary)
@@ -1104,7 +1104,7 @@ struct NoteRowView: View {
         }
     }
 
-    private static let actionBox: CGFloat = 22
+    private static let actionBox: CGFloat = 20
 
     /// X의 공유 메뉴처럼 — 시스템 공유, 링크 복사, 그리고 이 노트를 카드로 실은 새 블로그 글.
     private func shareMenu(_ url: URL) -> some View {
@@ -1698,7 +1698,7 @@ struct TileFrame: ViewModifier {
             content.frame(width: height * ratio, height: height)
         } else {
             content
-                .aspectRatio(ratio, contentMode: .fit)
+                .aspectRatio(max(ratio, 0.8), contentMode: .fit)
                 .frame(maxWidth: .infinity, maxHeight: 430, alignment: .leading)
         }
     }
