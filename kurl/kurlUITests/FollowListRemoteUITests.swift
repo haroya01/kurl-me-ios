@@ -35,4 +35,27 @@ final class FollowListRemoteUITests: XCTestCase {
             app.staticTexts["mastodon.social에 있는 계정이에요. 이 계정의 새 노트가 팔로잉 피드에 와요."].waitForExistence(timeout: 8),
             "계정 화면이 그 계정을 불러오지 못함")
     }
+
+    func testFollowersMixesOtherServerFollowersAndOpensTheirAccount() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "account"]
+        app.launch()
+
+        let followers = app.buttons["follow.followers"]
+        XCTAssertTrue(followers.waitForExistence(timeout: 12), "프로필 팔로워 링크가 없음")
+        expectation(for: NSPredicate(format: "label CONTAINS '14'"), evaluatedWith: followers)
+        waitForExpectations(timeout: 6)
+        followers.tap()
+
+        let remote = app.buttons["remote.row.carol@fosstodon.org"]
+        XCTAssertTrue(remote.waitForExistence(timeout: 8), "팔로워 목록에 다른 서버 계정이 없음")
+        XCTAssertTrue(app.buttons["remote.row.haruto@misskey.io"].exists, "두 번째 다른 서버 팔로워가 없음")
+        XCTAssertTrue(app.buttons["remote.follow.carol@fosstodon.org"].label.contains("팔로우"))
+
+        remote.tap()
+        XCTAssertTrue(app.navigationBars["@carol@fosstodon.org"].waitForExistence(timeout: 8), "다른 서버 계정 화면이 안 열림")
+        XCTAssertTrue(
+            app.staticTexts["fosstodon.org에 있는 계정이에요. 팔로우하면 fosstodon.org에 요청을 보내요."].waitForExistence(timeout: 8),
+            "계정 화면이 그 계정을 불러오지 못함")
+    }
 }

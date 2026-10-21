@@ -38,7 +38,7 @@ struct FollowUser: Decodable, Identifiable, Hashable {
     let username: String
     let bio: String?
     let avatarUrl: String?
-    let followerCount: Int64
+    let followerCount: Int64?
     let followedByMe: Bool
 
     /// AvatarView·라우팅이 쓰는 Author 로.

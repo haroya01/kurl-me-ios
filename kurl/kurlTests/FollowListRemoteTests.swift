@@ -37,6 +37,19 @@ final class FollowListRemoteTests: XCTestCase {
             id: 7, username: "haruka", bio: nil, avatarUrl: nil, followerCount: 0, followedByMe: false))])
     }
 
+    func testLocalRowWithHiddenFollowerCountStillDecodes() throws {
+        let page = try decode(FollowListPage.self, #"""
+        {"items":[
+          {"type":"local","id":8,"username":"quiet","followedByMe":false},
+          {"type":"remote","account":{"id":9810,"acct":"carol@fosstodon.org","username":"carol","domain":"fosstodon.org","displayName":"Carol","avatarUrl":null,"url":"https://fosstodon.org/@carol","following":false,"requested":false,"domainBlocked":false,"blocking":false,"muting":false}}
+        ],"page":0,"size":20,"hasNext":false}
+        """#)
+
+        XCTAssertEqual(page.items.map(\.id), ["local.8", "remote.9810"])
+        XCTAssertEqual(page.localUsers.map(\.username), ["quiet"])
+        XCTAssertNil(page.localUsers.first?.followerCount)
+    }
+
     func testRemoteItemAndLocalItemWithSameIdAreDistinctRows() throws {
         let page = try decode(FollowListPage.self, #"""
         {"items":[
