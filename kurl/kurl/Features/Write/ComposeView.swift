@@ -828,24 +828,20 @@ struct ComposeView: View {
                             .typeScale(.meta)
                             .foregroundStyle(Palette.secondary)
                     }
-                    .modifier(QuietAppear(index: 0))
 
                     sheetField("태그") {
                         TagsField(tags: $tags, draft: $tagDraft, needsTag: needsTag)
                     }
-                    .modifier(QuietAppear(index: 1))
 
                     sheetField("공개 범위") {
                         audienceControl
                     }
                     .id("publish.audience")
-                    .modifier(QuietAppear(index: 2))
 
                     if accessDraft.audience != .room {
                         sheetField("국가 제한") {
                             countryControl
                         }
-                        .modifier(QuietAppear(index: 3))
                     }
 
                     sheetField("소개글") {
@@ -868,7 +864,6 @@ struct ComposeView: View {
                             LengthLimitCount(text: excerpt, limit: PostLimits.excerpt)
                         }
                     }
-                    .modifier(QuietAppear(index: 4))
 
                     sheetField("시리즈") {
                         Menu {
@@ -905,7 +900,6 @@ struct ComposeView: View {
                         }
                         .glassEffect(.regular.interactive(), in: .capsule)
                     }
-                    .modifier(QuietAppear(index: 5))
 
                 }
                 .padding(20)

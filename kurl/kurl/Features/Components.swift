@@ -656,13 +656,20 @@ struct PostZoomDestination: View {
     }
 }
 
-/// 첫 화면 카드들이 한 장씩 조용히 떠오르는 입장(§10.7 — 과시 없는 생기).
-/// 스태거는 첫 8장까지만 — 그 아래는 스크롤로 만나므로 지연 없이 나타난다.
-/// reduce-motion 이면 정지 상태로 그려진다.
+/// 첫 화면 카드들이 한 장씩 조용히 떠오르는 입장. 목록의 첫 행(index 0)이 나타난 뒤 짧은 창 안에
+/// 함께 나타난 앞쪽 행만 스태거한다 — 스크롤로 만나는 행은 기다리지 않는다.
 struct QuietAppear: ViewModifier {
     let index: Int
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var shown = false
+
+    private static var burstStart = Date.distantPast
+    static let window: TimeInterval = 0.5
+    static let limit = 8
+
+    static func staggers(index: Int, at now: Date, burstStart: Date) -> Bool {
+        index < limit && now.timeIntervalSince(burstStart) < window
+    }
 
     func body(content: Content) -> some View {
         content
@@ -670,11 +677,13 @@ struct QuietAppear: ViewModifier {
             .offset(y: shown || reduceMotion ? 0 : 7)
             .onAppear {
                 guard !shown else { return }
-                guard index < 8 else {
+                let now = Date()
+                if index == 0 { Self.burstStart = now }
+                guard Self.staggers(index: index, at: now, burstStart: Self.burstStart) else {
                     shown = true
                     return
                 }
-                withAnimation(.easeOut(duration: 0.32).delay(Double(index) * 0.04)) {
+                withMotion(Motion.move.delay(Double(index) * 0.04)) {
                     shown = true
                 }
             }
