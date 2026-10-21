@@ -113,7 +113,7 @@ struct RemoteStreamRows: View {
                 .padding(.top, 24)
             }
             ForEach(Array(model.items.enumerated()), id: \.element.id) { index, item in
-                row(item)
+                RemoteStreamRow(item: item, model: model)
                     .task { await model.loadMoreIfNeeded(current: item) }
                 if index < model.items.count - 1 { Hairline().padding(.horizontal, -gutter) }
             }
@@ -133,14 +133,20 @@ struct RemoteStreamRows: View {
         }
     }
 
-    @ViewBuilder
-    private func row(_ item: RemoteStreamItem) -> some View {
+}
+
+struct RemoteStreamRow: View {
+    let item: RemoteStreamItem
+    let model: RemoteStreamModel
+    var headsKept = true
+
+    var body: some View {
         switch item {
         case .trending(let note):
             TrendingNoteRow(item: note, showsContext: model.feed == .trending)
         case .kept(let note):
             VStack(alignment: .leading, spacing: 0) {
-                if item.id == model.firstKeptID {
+                if headsKept, item.id == model.firstKeptID {
                     RailHeading("받은 노트")
                         .padding(.top, 20)
                 }

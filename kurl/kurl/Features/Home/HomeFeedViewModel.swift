@@ -14,10 +14,12 @@ final class HomeFeedViewModel {
     private let load: (HomeFeedTab, String?) async throws -> HomeFeedBatch
     private let newer: (HomeFeedTab, String) async throws -> HomeFeedBatch
     private let settled: @MainActor () -> Void
+    let tail: RemoteStreamModel?
 
     init(
         tab: HomeFeedTab,
         settled: @escaping @MainActor () -> Void = { LaunchReadiness.shared.markFirstFeedSettled() },
+        remote: @escaping (RemoteStreamFeed, String?) async throws -> RemoteStreamPage = FederationAPI.stream,
         newer: @escaping (HomeFeedTab, String) async throws -> HomeFeedBatch = HomeFeedAPI.newer,
         load: @escaping (HomeFeedTab, String?) async throws -> HomeFeedBatch = HomeFeedAPI.page
     ) {
@@ -25,11 +27,35 @@ final class HomeFeedViewModel {
         self.load = load
         self.newer = newer
         self.settled = settled
+        self.tail = tab == .latest ? RemoteStreamModel(feed: .latest, load: remote) : nil
+    }
+
+    var showsTail: Bool {
+        guard tail != nil, case .loaded = phase else { return false }
+        return next == nil
     }
 
     func refresh() async {
+        async let remote: Void = restartTail()
+        await refreshOwn()
+        await remote
+    }
+
+    func reload(settlesLaunch: Bool = false) async {
+        async let remote: Void = restartTail()
+        await reloadOwn(settlesLaunch: settlesLaunch)
+        await remote
+    }
+
+    private func restartTail() async {
+        guard let tail else { return }
+        if case .idle = tail.phase { return }
+        await tail.reload()
+    }
+
+    private func refreshOwn() async {
         guard tab != .trending, let marker = newest, !items.isEmpty else {
-            await reload()
+            await reloadOwn()
             return
         }
         epoch += 1
@@ -55,7 +81,7 @@ final class HomeFeedViewModel {
         }
     }
 
-    func reload(settlesLaunch: Bool = false) async {
+    private func reloadOwn(settlesLaunch: Bool = false) async {
         defer { if settlesLaunch { settled() } }
         epoch += 1
         let myEpoch = epoch

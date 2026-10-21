@@ -50,6 +50,7 @@
 		F1A000000000000000000191 /* HomeFeedRefreshTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000192 /* HomeFeedRefreshTests.swift */; };
 		F1A000000000000000000201 /* PostDetailSideLoadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000202 /* PostDetailSideLoadTests.swift */; };
 		F1A000000000000000000211 /* MotionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000212 /* MotionTests.swift */; };
+		F1A000000000000000000E71 /* HomeRemoteTailTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000E72 /* HomeRemoteTailTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -136,6 +137,7 @@
 		F1A000000000000000000192 /* HomeFeedRefreshTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HomeFeedRefreshTests.swift; sourceTree = "<group>"; };
 		F1A000000000000000000202 /* PostDetailSideLoadTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PostDetailSideLoadTests.swift; sourceTree = "<group>"; };
 		F1A000000000000000000212 /* MotionTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MotionTests.swift; sourceTree = "<group>"; };
+		F1A000000000000000000E72 /* HomeRemoteTailTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HomeRemoteTailTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -282,6 +284,7 @@
 				F1A000000000000000000192 /* HomeFeedRefreshTests.swift */,
 				F1A000000000000000000202 /* PostDetailSideLoadTests.swift */,
 				F1A000000000000000000212 /* MotionTests.swift */,
+				F1A000000000000000000E72 /* HomeRemoteTailTests.swift */,
 				F1A000000000000000000162 /* NotePollSnapshotTests.swift */,
 				F1A000000000000000000152 /* NoteVideoSoundTests.swift */,
 				F1A000000000000000000142 /* FollowStatusUnknownTests.swift */,
@@ -500,6 +503,7 @@
 				F1A000000000000000000191 /* HomeFeedRefreshTests.swift in Sources */,
 				F1A000000000000000000201 /* PostDetailSideLoadTests.swift in Sources */,
 				F1A000000000000000000211 /* MotionTests.swift in Sources */,
+				F1A000000000000000000E71 /* HomeRemoteTailTests.swift in Sources */,
 				F1A000000000000000000161 /* NotePollSnapshotTests.swift in Sources */,
 				F1A000000000000000000151 /* NoteVideoSoundTests.swift in Sources */,
 				F1A000000000000000000141 /* FollowStatusUnknownTests.swift in Sources */,

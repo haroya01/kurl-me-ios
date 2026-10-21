@@ -46222,6 +46222,34 @@
           }
         }
       }
+    },
+    "다른 서버 최신": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Latest from other servers"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "दूसरे सर्वर से नवीनतम"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほかのサーバーの最新"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mới nhất từ máy chủ khác"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
