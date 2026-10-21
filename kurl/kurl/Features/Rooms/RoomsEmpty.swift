@@ -158,30 +158,18 @@ struct EmptyRooms: View {
     ]
 
     private static let script: [(friend: Int, body: LocalizedStringKey, likes: Int)] = [
-        (0, "퇴근길에 한강 들렀다. 바람이 벌써 가을이다", 2),
-        (1, "오늘 처음으로 5km 안 쉬고 뛰었다", 3),
-        (2, "새로 산 필름카메라 첫 롤 맡겼다. 결과 두근두근", 1),
-        (0, "공방에서 만든 컵 드디어 나왔다. 손잡이 삐뚤", 2),
-        (1, "비 와서 오늘은 실내 자전거", 1),
-        (2, "필름 찾았다. 반은 흔들렸고 반은 마음에 든다", 3),
+        (0, "퇴근하다 한강 들름 바람 미쳤음", 2),
+        (1, "5키로 첨으로 안 쉬고 뛰었다 ㅋㅋ", 3),
+        (2, "필카 첫 롤 현상 맡김", 1),
+        (0, "공방 컵 나왔는데 손잡이 삐뚤어짐 ㅠ", 2),
+        (1, "비 와서 오늘은 걍 집에서 자전거", 1),
+        (2, "사진 찾았는데 반은 다 흔들림 ㅋㅋㅋ", 3),
     ]
 
     private static let visible = 3
 
     var body: some View {
         VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("친구 몇 명끼리만 보는 곳")
-                    .typeScale(.body)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Palette.ink)
-                Text("채팅처럼 답을 기다리지 않아도 돼요. 각자 지금 하는 걸 올려 두면 볼 때 봐요.")
-                    .typeScale(.body)
-                    .foregroundStyle(Palette.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.bottom, 18)
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: -8) {
                     if let me = AuthStore.shared.me {
@@ -202,21 +190,14 @@ struct EmptyRooms: View {
                     }
                 }
                 .accessibilityHidden(true)
-                Text("이름 없는 방")
+                Text("새 방")
                     .typeScale(.featured)
                     .foregroundStyle(Palette.faint)
                     .padding(.top, 18)
-                Group {
-                    if joined.isEmpty {
-                        Text("나 혼자 있어요. 링크를 받은 친구만 들어와요.")
-                    } else {
-                        Text("친구가 들어오면 이렇게 쌓여요 · 예시")
-                    }
-                }
-                .typeScale(.meta)
-                .foregroundStyle(Palette.secondary)
-                .contentTransition(.opacity)
-                .padding(.top, 4)
+                Text("링크 받은 친구만 들어와요")
+                    .typeScale(.meta)
+                    .foregroundStyle(Palette.secondary)
+                    .padding(.top, 4)
                 preview
                     .padding(.top, 14)
                 Hairline().padding(.bottom, 16)
@@ -244,7 +225,7 @@ struct EmptyRooms: View {
                 RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
                     .strokeBorder(Palette.hairline, lineWidth: 1)
             }
-            Button("받은 링크로 들어가기", action: join)
+            Button("링크로 들어가기", action: join)
                 .buttonStyle(.plain)
                 .typeScale(.meta)
                 .fontWeight(.semibold)
@@ -252,7 +233,7 @@ struct EmptyRooms: View {
                 .padding(.vertical, 14)
                 .accessibilityIdentifier("rooms.empty.join")
         }
-        .padding(.top, 28)
+        .padding(.top, 24)
         .task { await play() }
     }
 
@@ -268,6 +249,13 @@ struct EmptyRooms: View {
         }
         .frame(height: 216, alignment: .top)
         .clipped()
+        .overlay(alignment: .topTrailing) {
+            Text("예시")
+                .typeScale(.footnote)
+                .foregroundStyle(Palette.faint)
+                .padding(.top, 10)
+                .opacity(feed.isEmpty ? 0 : 1)
+        }
         .mask {
             LinearGradient(
                 stops: [.init(color: .black, location: 0.72), .init(color: .clear, location: 1)],
