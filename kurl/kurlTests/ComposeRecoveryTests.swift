@@ -10,11 +10,13 @@ import XCTest
 final class ComposeRecoveryTests: XCTestCase {
 
     override func setUp() async throws {
+        ComposeRecoveryStore.currentOwner = { 1 }
         ComposeRecoveryStore.wipeAll()
     }
 
     override func tearDown() async throws {
         ComposeRecoveryStore.wipeAll()
+        ComposeRecoveryStore.currentOwner = { AuthStore.shared.accountId }
     }
 
     func testNewDraftsKeepSeparateSlots() {
@@ -62,19 +64,22 @@ final class ComposeRecoveryTests: XCTestCase {
         XCTAssertEqual(ComposeRecoveryStore.peek(postId: nil, draftKey: other)?.markdown, "B")
     }
 
-    func testLegacySingleNewSlotIsStillOffered() throws {
+    func testLegacyOwnerlessSlotsAreDropped() throws {
         let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("ComposeRecovery", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let legacy = directory.appendingPathComponent("new.json")
         let draft = ComposeRecoveryStore.Draft(postId: nil, title: "옛 슬롯", markdown: "legacy", savedAt: Date())
-        try JSONEncoder().encode(draft).write(to: legacy)
+        let legacy = directory.appendingPathComponent("new.json")
+        let ownerless = directory.appendingPathComponent("new-\(UUID().uuidString).json")
+        let ownerlessPost = directory.appendingPathComponent("post-42.json")
+        for url in [legacy, ownerless, ownerlessPost] {
+            try JSONEncoder().encode(draft).write(to: url)
+        }
 
-        let offer = ComposeRecoveryStore.latestNewDraft(excluding: [])
-        XCTAssertEqual(offer?.draft.markdown, "legacy")
-        XCTAssertFalse(FileManager.default.fileExists(atPath: legacy.path))
-        if let key = offer?.key {
-            XCTAssertEqual(ComposeRecoveryStore.peek(postId: nil, draftKey: key)?.markdown, "legacy")
+        XCTAssertNil(ComposeRecoveryStore.latestNewDraft(excluding: []))
+        XCTAssertNil(ComposeRecoveryStore.peek(postId: 42, draftKey: UUID()))
+        for url in [legacy, ownerless, ownerlessPost] {
+            XCTAssertFalse(FileManager.default.fileExists(atPath: url.path))
         }
     }
 

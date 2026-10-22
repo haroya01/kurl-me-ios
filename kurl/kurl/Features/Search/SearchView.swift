@@ -42,6 +42,7 @@ struct SearchView: View {
     @State private var domainTask: Task<Void, Never>?
     @Namespace private var zoomNS
     @State private var navigation = ExploreNavigation()
+    @State private var router = TabRouter.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     /// 최근 검색 칩의 지우기(×) 아이콘 — 칩 라벨(.meta)과 함께 커지도록 고정 pt 를 우회한다.
@@ -123,11 +124,12 @@ struct SearchView: View {
             .navigationTitle("둘러보기")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    GlassSegmentSwitcher(items: ExploreLane.allCases, selection: $lane, label: \.label)
-                        .opacity(query.isEmpty ? 1 : 0)
+                if query.isEmpty {
+                    ToolbarItem(placement: .principal) {
+                        GlassSegmentSwitcher(items: ExploreLane.allCases, selection: $lane, label: \.label)
+                    }
+                    .sharedBackgroundVisibility(.hidden)
                 }
-                .sharedBackgroundVisibility(.hidden)
             }
             .navigationDestination(for: Route.self) { route in
                 PostZoomDestination(
@@ -142,6 +144,7 @@ struct SearchView: View {
                 text: $query,
                 placement: .navigationBarDrawer(displayMode: .always),
                 prompt: "글·노트 찾기")
+            .searchPresentationToolbarBehavior(.avoidHidingContent)
             .searchScopes($scope, activation: .onTextEntry) {
                 Text("글").tag(SearchScope.posts)
                 Text("노트").tag(SearchScope.notes)
@@ -171,6 +174,9 @@ struct SearchView: View {
         }
         .onChange(of: scope) { runSearch(query) }
         .onChange(of: recents) { SearchRecents.save(recents) }
+        .onChange(of: AuthStore.shared.isSignedIn) { _, signedIn in
+            if !signedIn { recents = [] }
+        }
         .onSubmit(of: .search) { runSearch(query) }
         // 검색 결과 도착·최근 삭제는 손끝으로도 알린다 — 토글 버튼들과 같은 가벼운 임팩트.
         .sensoryFeedback(.impact(weight: .light), trigger: activeQuery)
@@ -212,7 +218,7 @@ struct SearchView: View {
         .noteTextLinks()
         .brandRefreshable {
             async let discovery: Void = loadDiscovery()
-            await streams[lane == .remote ? .latest : .trending]?.reload()
+            await streams[lane == .remote ? .forYou : .trending]?.reload()
             await discovery
         }
     }
@@ -237,9 +243,11 @@ struct SearchView: View {
     }
 
     @ViewBuilder private var remoteLane: some View {
-        if let model = streams[.latest] {
-            RemoteStreamRows(model: model, gutter: Metrics.noteGutter)
+        if let model = streams[.forYou] {
+            let measuring = router.selection == TabRouter.exploreTab && navigation.path.isEmpty
+            RemoteStreamRows(model: model, gutter: Metrics.noteGutter, measuresSeen: measuring)
                 .task { await model.loadIfNeeded() }
+                .flushesRemoteSeen(while: measuring)
         }
     }
 
@@ -1039,6 +1047,10 @@ enum SearchRecents {
 
     static func save(_ terms: [String]) {
         UserDefaults.standard.set(terms, forKey: key)
+    }
+
+    static func clear() {
+        UserDefaults.standard.removeObject(forKey: key)
     }
 }
 

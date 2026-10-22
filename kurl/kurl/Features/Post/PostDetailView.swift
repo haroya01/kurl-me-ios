@@ -148,6 +148,7 @@ private struct PostDetailReader: View {
 
     /// 하이라이트가 "탭하면 대화"라는 걸 처음 한 번만 알려주는 코치(§10 조용히, 5초 후 사라짐).
     @State private var showHighlightCoach = false
+    @State private var dockHeight: CGFloat = 0
     private static let highlightCoachKey = "seenHighlightTapCoach"
 
     /// 발견 딥링크 도착 시 그 블록을 잠깐 강조했다 사라지는 플래시. didFocus = 1회만.
@@ -264,6 +265,7 @@ private struct PostDetailReader: View {
                 .onChange(of: translations.phases[key] == .shown, initial: true) { refreshTranslation(detail, key: key) }
             }
         }
+        .loadTransition(model.phase)
     }
 
     // 상세 body 는 모디파이어 사슬이 길어 하나의 식으로는 타입 검사 예산을 넘는다 —
@@ -510,6 +512,7 @@ private struct PostDetailReader: View {
                         connectTarget: (title: detail.post.title, postId: detail.post.id)
                     )
                 }
+                .onGeometryChange(for: CGFloat.self) { dockHidden ? 0 : $0.size.height } action: { dockHeight = $0 }
                 .padding(.trailing, 14)
                 // 진입 직후엔 커스텀 탭바가 떠 있어 독 맨 아래 버튼을 가린다 — 탭바 예약 높이만큼 띄운다.
                 // 스크롤로 탭바가 사라지면(hidden) 그 여백을 걷어 독이 허공에 뜨지 않게(§1 크롬 문법).
@@ -922,7 +925,7 @@ private struct PostDetailReader: View {
         .background(.regularMaterial, in: Capsule())
         .overlay(Capsule().strokeBorder(Palette.hairline, lineWidth: 1))
         .shadow(color: Palette.shadow.opacity(0.12), radius: 14, y: 6)
-        .padding(.bottom, 40)
+        .padding(.bottom, dockHeight > 0 ? 10 + dockTabBarInset + dockHeight + 12 : 40)
         .padding(.horizontal, Metrics.gutter)
         .transition(.move(edge: .bottom).combined(with: .opacity))
         .onTapGesture { withAnimation(reduceMotion ? nil : Motion.move) { showHighlightCoach = false } }

@@ -4,6 +4,7 @@ import Foundation
 import Observation
 import Security
 import UIKit
+import UserNotifications
 import WidgetKit
 
 enum AuthError: LocalizedError {
@@ -85,15 +86,26 @@ final class AuthStore {
 
     /// JWT 의 exp 가 지금부터 `within` 초 안인가. JWT 가 아니거나 exp 가 없으면 판단하지 않는다(false).
     nonisolated static func accessTokenExpires(_ token: String, within leeway: TimeInterval, now: Date = Date()) -> Bool {
+        guard let exp = (claims(token)?["exp"] as? NSNumber)?.doubleValue else { return false }
+        return Date(timeIntervalSince1970: exp) <= now.addingTimeInterval(leeway)
+    }
+
+    /// 지금 세션의 사용자 id — 토큰의 sub 라 /users/me 를 못 받은 오프라인 실행에서도 안다.
+    var accountId: Int64? {
+        accessToken.flatMap(Self.subject) ?? refreshToken.flatMap(Self.subject) ?? me?.id
+    }
+
+    nonisolated static func subject(_ token: String) -> Int64? {
+        (claims(token)?["sub"] as? String).flatMap { Int64($0) }
+    }
+
+    nonisolated private static func claims(_ token: String) -> [String: Any]? {
         let segments = token.split(separator: ".", omittingEmptySubsequences: false)
-        guard segments.count == 3 else { return false }
+        guard segments.count == 3 else { return nil }
         var payload = segments[1].replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
         payload += String(repeating: "=", count: (4 - payload.count % 4) % 4)
-        guard let data = Data(base64Encoded: payload),
-              let claims = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let exp = (claims["exp"] as? NSNumber)?.doubleValue
-        else { return false }
-        return Date(timeIntervalSince1970: exp) <= now.addingTimeInterval(leeway)
+        guard let data = Data(base64Encoded: payload) else { return nil }
+        return try? JSONSerialization.jsonObject(with: data) as? [String: Any]
     }
 
     // MARK: 로그인
@@ -237,6 +249,9 @@ final class AuthStore {
         let refresh = refreshToken
         let device = Config.useMocks ? nil : PushRegistrar.storedToken
         forgetSession()
+        DraftFlusher.shared.discardQueued()
+        ComposeRecoveryStore.wipeAll()
+        ToastCenter.shared.dismissActionToast()
         Task {
             // logout 으로 폐기할 refresh — 아래에서 재발급이 일어나면 회전된 쪽으로 바뀐다.
             var refreshToRevoke = refresh
@@ -281,13 +296,15 @@ final class AuthStore {
         Keychain.save(pair.accessToken, account: Self.accessAccount)
         Keychain.save(pair.refreshToken, account: Self.refreshAccount)
         if !isSignedIn {
+            HomeFeedCache.shared.wipe()
             isSignedIn = true
             Task { await loadMe() }
             PushRegistrar.syncAfterSignIn()
+            DraftFlusher.shared.resumeHeld()
         }
     }
 
-    private func forgetSession() {
+    func forgetSession() {
         // 세대를 올려 비행 중 refresh 의 adopt 를 무효화(토큰 부활 레이스 차단).
         sessionEpoch &+= 1
         accessToken = nil
@@ -303,7 +320,10 @@ final class AuthStore {
     /// 로그아웃 시 기기 로컬에 남은 *이전 계정* 자취를 전부 폐기한다 — 같은 기기에서 다른
     /// 계정으로 로그인했을 때 A 의 오프라인 사본·읽음 기록·북마크·분석 위젯이 B 에게 보이지
     /// 않게(프라이버시). refresh 토큰이 죽어 세션이 끊긴 경로(refreshTokens 401)도 여기를 탄다.
+    /// 쓰던 글의 기기 금고(ComposeRecoveryStore)는 여기서 비우지 않는다 — 세션 만료 뒤에도 남아야 하고,
+    /// 다른 계정에는 주인 id 로 가린다. 명시 로그아웃(signOut)만 비운다.
     private func tearDownSessionState() {
+        HomeFeedCache.shared.wipe()
         BookmarkStore.shared.reset()
         LikeStore.shared.reset()
         PostReadStore.shared.reset()
@@ -314,6 +334,11 @@ final class AuthStore {
         PostAccess.shared.reset()
         AnalyticsSnapshot.clear()
         MyPostsCache.posts = nil
+        ComposeChooserSheet.lastRooms = []
+        SearchRecents.clear()
+        DataExportView.removeDownloads()
+        UNUserNotificationCenter.current().removeAllDeliveredNotifications()
+        UNUserNotificationCenter.current().setBadgeCount(0)
         WidgetCenter.shared.reloadAllTimelines()
     }
 }

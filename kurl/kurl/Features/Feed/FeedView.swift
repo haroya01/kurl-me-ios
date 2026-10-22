@@ -67,6 +67,7 @@ struct FeedPage: View {
             }
             }
         }
+        .loadTransition(model.phase)
         // 인증 전환을 task id 로 관찰 — 로그아웃 상태의 401 failed 고착과
         // 계정 전환 후 이전 계정 피드 잔존을 모두 해소한다. 단 실제 전환에서만
         // 리셋한다(첫 발화는 초기값이라 헛 epoch·빈 깜빡임이 된다).

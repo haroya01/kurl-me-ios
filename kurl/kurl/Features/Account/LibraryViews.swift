@@ -71,7 +71,6 @@ struct BookmarksView: View {
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(RowButtonStyle())
-                        .modifier(QuietAppear(index: index))
                         if index < items.count - 1 { Hairline() }
                     }
                 }
@@ -162,7 +161,6 @@ struct LikedPostsView: View {
                             FeedRow(item: item)
                         }
                         .buttonStyle(RowButtonStyle())
-                        .modifier(QuietAppear(index: index))
                         if index < items.count - 1 { Hairline() }
                     }
                 }

@@ -279,6 +279,7 @@ struct NoteRowView: View {
     var position: String? = nil
     var onReplied: ((Note) -> Void)? = nil
     var detached: NoteRowDetached? = nil
+    var context: Text? = nil
 
     @State private var replying = false
     @State private var replyPosts = 0
@@ -322,7 +323,7 @@ struct NoteRowView: View {
          onQuoted: ((Note) -> Void)? = nil, repostedBy: String? = nil,
          showsPin: Bool = false, replyHeader: ReplyHeader? = nil,
          threadLineBelow: Bool = false, focused: Bool = false, position: String? = nil,
-         onReplied: ((Note) -> Void)? = nil, detached: NoteRowDetached? = nil) {
+         onReplied: ((Note) -> Void)? = nil, detached: NoteRowDetached? = nil, context: Text? = nil) {
         self.note = note
         self.onChange = onChange
         self.onDelete = onDelete
@@ -335,6 +336,7 @@ struct NoteRowView: View {
         self.position = position
         self.onReplied = onReplied
         self.detached = detached
+        self.context = context
         _liked = State(initialValue: note.likedByMe == true)
         _likeCount = State(initialValue: note.likeCount)
         _reposted = State(initialValue: note.repostedByMe == true)
@@ -388,7 +390,7 @@ struct NoteRowView: View {
 
     private var content: some View {
         VStack(alignment: .leading, spacing: 6) {
-            if let context = detached?.context {
+            if let context = detached?.context ?? context {
                 HStack(spacing: 12) {
                     Color.clear.frame(width: 36 * unit, height: 1)
                     context
@@ -602,12 +604,12 @@ struct NoteRowView: View {
                 moreMenu
             }
             warningLine
-            if !note.body.isEmpty, folded || note.remoteCard == nil {
+            if showsBody {
                 ZStack(alignment: .topLeading) {
                     if folded {
                         shield(.noteFocus)
                     } else {
-                        Text(NoteText.attributed(shownBody, mentions: note.mentions ?? []))
+                        Text(NoteText.attributed(displayBody, mentions: note.mentions ?? []))
                             .typeScale(.noteFocus)
                             .foregroundStyle(Palette.ink)
                             .tint(Palette.link)
@@ -676,7 +678,7 @@ struct NoteRowView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     header
                     warningLine
-                    if !note.body.isEmpty, folded || note.remoteCard == nil {
+                    if showsBody {
                         ZStack(alignment: .topLeading) {
                             if folded {
                                 shield(.note)
@@ -729,7 +731,7 @@ struct NoteRowView: View {
     }
 
     private var feedBody: some View {
-        Text(NoteText.attributed(shownBody, mentions: note.mentions ?? []))
+        Text(NoteText.attributed(displayBody, mentions: note.mentions ?? []))
             .typeScale(.note)
             .foregroundStyle(Palette.ink)
             .tint(Palette.link)
@@ -809,7 +811,7 @@ struct NoteRowView: View {
         if note.editedAt != nil { parts.append(String(localized: "고침")) }
         if let position { parts.append(String(localized: "이어 쓴 노트 \(position)")) }
         if let warning = note.contentWarning { parts.append(translated?.warning ?? warning) }
-        if !folded, !note.body.isEmpty { parts.append(shownBody) }
+        if !folded, !displayBody.isEmpty { parts.append(displayBody) }
         return parts.joined(separator: ", ")
     }
 
@@ -824,6 +826,21 @@ struct NoteRowView: View {
     }
 
     private var shownBody: String { translated?.body ?? note.body }
+
+    private var displayBody: String {
+        NoteText.hidingCardedLink(shownBody, card: drawnLinkCard?.preview.url)
+    }
+
+    private var drawnLinkCard: (preview: NoteLinkPreview, url: URL)? {
+        guard !folded, note.remoteCard == nil, let card = note.linkPreview, let url = URL(string: card.url)
+        else { return nil }
+        return (card, url)
+    }
+
+    private var showsBody: Bool {
+        guard !note.body.isEmpty, folded || note.remoteCard == nil else { return false }
+        return folded || !displayBody.isEmpty
+    }
 
     @ViewBuilder private var translationLine: some View {
         if let source = translationSource {
@@ -932,7 +949,10 @@ struct NoteRowView: View {
     @ViewBuilder private func remoteCardAttachments(_ shape: RemoteNoteShape) -> some View {
         let picture = RemoteNoteCard.picture(in: note)
         if !folded {
-            RemoteNoteCard(noteId: note.id, shape: shape, summary: shownBody, picture: picture, full: focused)
+            RemoteNoteCard(
+                noteId: note.id, shape: shape,
+                summary: NoteText.hidingCardedLink(shownBody, card: shape.original.flatMap { _ in shape.url }),
+                picture: picture, full: focused)
                 .padding(.top, focused ? 0 : 6)
             if !note.body.isEmpty { translationLine }
         }
@@ -957,9 +977,9 @@ struct NoteRowView: View {
             .padding(.top, 6)
             .accessibilityIdentifier("note.quoted.\(quoted.id)")
         }
-        if let card = note.linkPreview, let url = URL(string: card.url) {
-            Link(destination: url) {
-                NoteLinkCardView(preview: card)
+        if let card = drawnLinkCard {
+            Link(destination: card.url) {
+                NoteLinkCardView(preview: card.preview)
             }
             .buttonStyle(.plain)
             .padding(.top, 6)
@@ -1811,6 +1831,27 @@ enum NoteText {
         }
         return link.count <= 2048 ? link : nil
     }
+
+    static func hidingCardedLink(_ body: String, card: String?) -> String {
+        guard let card else { return body }
+        let ns = body as NSString
+        guard let match = urlPattern?.matches(in: body, range: NSRange(location: 0, length: ns.length)).last
+        else { return body }
+        var link = ns.substring(with: match.range)
+        while let scalar = link.unicodeScalars.last, trailing.contains(scalar) {
+            link.removeLast()
+        }
+        let rest = ns.substring(from: match.range.location + (link as NSString).length)
+        guard rest.allSatisfy(\.isWhitespace), sameLink(link, card) else { return body }
+        let head = ns.substring(to: match.range.location)
+        guard let end = head.lastIndex(where: { !$0.isWhitespace }) else { return "" }
+        return String(head[...end])
+    }
+
+    private static func sameLink(_ a: String, _ b: String) -> Bool {
+        func bare(_ s: String) -> String { s.hasSuffix("/") ? String(s.dropLast()) : s }
+        return bare(a) == bare(b)
+    }
 }
 
 /// 노트 링크 카드 — 사진이 있으면 1.91:1로 위에, 아래로 도메인 · 제목(2줄). 사진이 없으면 설명 2줄.
@@ -1879,6 +1920,7 @@ struct NoteFeedItem: View {
     var repostedBy: String? = nil
     var showsPin = false
     var replyHeader: ReplyHeader? = nil
+    var context: Text? = nil
 
     var body: some View {
         let thread = note.thread
@@ -1894,7 +1936,8 @@ struct NoteFeedItem: View {
                 onDelete: onDelete, onQuoted: onQuoted, repostedBy: repostedBy, showsPin: showsPin,
                 replyHeader: replyHeader,
                 threadLineBelow: next != nil,
-                position: next == nil ? nil : thread.map { "1/\($0.total)" })
+                position: next == nil ? nil : thread.map { "1/\($0.total)" },
+                context: context)
             if let thread, let next {
                 NoteRowView(
                     note: next,
@@ -1987,6 +2030,7 @@ struct NoteDetailView: View {
         .sensoryFeedback(.success, trigger: replied)
         .loginPrompt(isPresented: $showLoginSheet, message: "답글을 달려면 로그인하세요")
         .task { if thread == nil { await load() } }
+        .dwellsOnRemoteNote(noteId)
     }
 
     private func content(_ thread: NoteThread) -> some View {

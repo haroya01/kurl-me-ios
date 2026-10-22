@@ -344,6 +344,7 @@ struct RootView: View {
             }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { Task { await AnalyticsSnapshot.refreshIfStale() } }
+                if phase == .background { RemoteSeenReporter.shared.flushBeforeSuspending() }
             }
     }
 
@@ -385,9 +386,6 @@ struct RootView: View {
             ) { _ in
                 HomeTabMenu()
             }
-                // Rebuild glass controls when returning from a screen that force-hides them.
-                // Scroll-driven hiding keeps the same identity and its existing animation.
-                .id(tabBarVisibility.forceHidden)
         }
         .ignoresSafeArea(.keyboard) // 키보드가 떠도 커스텀 바가 위로 밀려 올라오지 않게.
         .environment(\.tabBarVisibility, tabBarVisibility)
@@ -517,7 +515,7 @@ private struct FloatingTabBar<TabMenu: View>: View {
     let bottomInset: CGFloat
     let menuTabs: Set<Int>
     @ViewBuilder let menu: (Int) -> TabMenu
-    @ScaledMetric(relativeTo: .title3) private var iconSize: CGFloat = 25
+    @ScaledMetric(relativeTo: .title3) private var iconSize: CGFloat = 23
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var rowWidth: CGFloat = 0
     @State private var dragX: CGFloat?
@@ -573,16 +571,17 @@ private struct FloatingTabBar<TabMenu: View>: View {
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { rowWidth = $0 }
             .simultaneousGesture(slide)
             .padding(.horizontal, 10)
-            .padding(.vertical, 7)
+            .padding(.vertical, 5)
             .glassEffect(.regular.interactive(), in: .capsule)
         }
         .padding(.horizontal, Metrics.gutter)
         .padding(.bottom, 2)
-        .scaleEffect(scale, anchor: .center)
-        .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: compact)
-        .animation(reduceMotion ? nil : .smooth(duration: 0.2), value: dragX == nil)
+        .scaleEffect(scale, anchor: .bottom)
+        .animation(reduceMotion ? nil : Motion.move, value: compact)
+        .animation(reduceMotion ? nil : Motion.micro, value: dragX == nil)
         .offset(y: hidden ? 132 : sink)
         .opacity(hidden ? 0 : 1)
+        .animation(reduceMotion ? nil : Motion.move, value: hidden)
         .allowsHitTesting(!hidden)
         .accessibilityHidden(hidden)
         .sensoryFeedback(.selection, trigger: slidIndex) { old, new in old != nil && new != nil }
@@ -602,7 +601,7 @@ private struct FloatingTabBar<TabMenu: View>: View {
             ?? (CGFloat(selection.wrappedValue) + 0.5) * slot
         return Capsule()
             .fill(Palette.tabSelection)
-            .frame(width: width, height: 48)
+            .frame(width: width, height: 44)
             .offset(x: center - width / 2)
             .opacity(rowWidth > 0 ? 1 : 0)
             .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: selection.wrappedValue)

@@ -58,7 +58,7 @@ struct RoomsView: View {
 
     var body: some View {
         NavigationStack(path: $router.path) {
-            content
+            content.loadTransition(phase)
                 .safeAreaBar(edge: .top) {
                     if AuthStore.shared.isSignedIn {
                         FeedHeaderBar(

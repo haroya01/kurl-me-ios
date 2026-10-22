@@ -20,6 +20,8 @@ enum InteractionsAPI {
         /// 작가가 팔로워 수를 숨기면 서버가 이 키를 빼고 내려준다 → 부재=nil(숫자 감춤).
         let followerCount: Int64?
         let followingCount: Int64?
+        let remoteFollowerCount: Int64?
+        let remoteFollowingCount: Int64?
         /// 숨김 의사 신호 — 카운트가 nil 인 이유가 "숨김"인지 "못 받음"인지 가른다.
         /// 아직 이 키를 안 내리는 서버(배포 전)를 위해 부재 시 false.
         let hideFollowerCount: Bool
@@ -31,8 +33,8 @@ enum InteractionsAPI {
         let locked: Bool
 
         enum CodingKeys: String, CodingKey {
-            case following, followerCount, followingCount, hideFollowerCount, notifyNotes, requested,
-                locked
+            case following, followerCount, followingCount, remoteFollowerCount, remoteFollowingCount,
+                hideFollowerCount, notifyNotes, requested, locked
         }
 
         init(from decoder: Decoder) throws {
@@ -40,6 +42,8 @@ enum InteractionsAPI {
             following = try c.decodeIfPresent(Bool.self, forKey: .following) ?? false
             followerCount = try c.decodeIfPresent(Int64.self, forKey: .followerCount)
             followingCount = try c.decodeIfPresent(Int64.self, forKey: .followingCount)
+            remoteFollowerCount = try c.decodeIfPresent(Int64.self, forKey: .remoteFollowerCount)
+            remoteFollowingCount = try c.decodeIfPresent(Int64.self, forKey: .remoteFollowingCount)
             hideFollowerCount = try c.decodeIfPresent(Bool.self, forKey: .hideFollowerCount) ?? false
             notifyNotes = try c.decodeIfPresent(Bool.self, forKey: .notifyNotes) ?? false
             requested = try c.decodeIfPresent(Bool.self, forKey: .requested) ?? false
@@ -51,11 +55,16 @@ enum InteractionsAPI {
             self.following = following
             followerCount = nil
             followingCount = nil
+            remoteFollowerCount = nil
+            remoteFollowingCount = nil
             hideFollowerCount = false
             notifyNotes = false
             self.requested = requested
             self.locked = locked
         }
+
+        var allFollowers: Int64? { followerCount.map { $0 + (remoteFollowerCount ?? 0) } }
+        var allFollowing: Int64? { followingCount.map { $0 + (remoteFollowingCount ?? 0) } }
     }
 
     struct NoteNotifications: Decodable {

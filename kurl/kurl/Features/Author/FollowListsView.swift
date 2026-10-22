@@ -13,7 +13,7 @@ struct FollowListsView: View {
     }
 
     @State private var tab: FollowTab
-    @State private var items: [FollowUser] = []
+    @State private var items: [FollowListItem] = []
     /// 지금 보이는 items 가 어느 탭 응답인지 — 실패 시 이전 탭 목록을 새 탭에 남겨두지 않기 위한 표식.
     @State private var itemsTab: FollowTab?
     @State private var page = 0
@@ -54,11 +54,18 @@ struct FollowListsView: View {
                 .padding(.top, 24)
             } else {
                 LazyVStack(spacing: 0) {
-                    ForEach(Array(items.enumerated()), id: \.element.id) { index, user in
-                        NavigationLink(value: Route.author(username: user.username)) {
-                            row(user)
+                    ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                        Group {
+                            switch item {
+                            case .local(let user):
+                                NavigationLink(value: Route.author(username: user.username)) {
+                                    row(user)
+                                }
+                                .buttonStyle(RowButtonStyle())
+                            case .remote(let account):
+                                RemoteAccountRow(account: remoteBinding(account), inFollowList: true)
+                            }
                         }
-                        .buttonStyle(RowButtonStyle())
                         .modifier(QuietAppear(index: index))
                         .task {
                             if index == items.count - 1 { await loadMore() }
@@ -110,6 +117,19 @@ struct FollowListsView: View {
         .contentShape(Rectangle())
     }
 
+    private func remoteBinding(_ account: RemoteAccount) -> Binding<RemoteAccount> {
+        Binding(
+            get: {
+                for case .remote(let current) in items where current.id == account.id { return current }
+                return account
+            },
+            set: { updated in
+                guard let index = items.firstIndex(where: { $0.id == FollowListItem.remote(updated).id })
+                else { return }
+                items[index] = .remote(updated)
+            })
+    }
+
     private func reload() async {
         loading = true
         failed = false
@@ -159,8 +179,8 @@ struct FollowListsView: View {
 
     private func fetch(page: Int) async throws -> FollowListPage {
         tab == .followers
-            ? try await FollowListsAPI.followers(username: username, page: page)
-            : try await FollowListsAPI.following(username: username, page: page)
+            ? try await FollowListsAPI.followers(username: username, page: page, includeRemote: true)
+            : try await FollowListsAPI.following(username: username, page: page, includeRemote: true)
     }
 }
 
@@ -220,8 +240,8 @@ struct FollowCountsLink: View {
                 listHidden = initialStatus?.hideFollowerCount ?? false
             } else if let seed = initialStatus {
                 hidden = seed.hideFollowerCount
-                followers = seed.followerCount
-                followingCount = seed.followingCount
+                followers = seed.allFollowers
+                followingCount = seed.allFollowing
             } else {
                 await load()
             }
@@ -233,8 +253,8 @@ struct FollowCountsLink: View {
         do {
             let status = try await InteractionsAPI.followStatus(username: username)
             hidden = status.hideFollowerCount
-            followers = status.followerCount
-            followingCount = status.followingCount
+            followers = status.allFollowers
+            followingCount = status.allFollowing
         } catch {
             // 숫자만 못 받았을 뿐 — 링크는 살려 두고, 숫자 자리엔 플레이스홀더 + 재시도.
             if followers == nil { failed = true }
@@ -267,8 +287,6 @@ private struct RowFollowToggle: View {
     @State private var busy = false
     /// 햅틱 트리거 — 되돌림이 아닌 사용자 토글에만 증가(헤더 FollowButton 과 같은 어휘).
     @State private var userToggleCount = 0
-    /// 행 팔로우 알약 라벨(헤더보다 한 급 작은 13) — 사다리 미스매치라 크기 보존 + Dynamic Type.
-    @ScaledMetric(relativeTo: .subheadline) private var labelSize: CGFloat = 13
 
     init(username: String, initialFollowing: Bool, onNeedLogin: @escaping () -> Void) {
         self.username = username
@@ -284,13 +302,7 @@ private struct RowFollowToggle: View {
             Button {
                 toggle()
             } label: {
-                Text(following ? "팔로잉" : "팔로우")
-                    .font(.system(size: labelSize, weight: .semibold))
-                    .foregroundStyle(Palette.ink)
-                    .padding(.horizontal, 13)
-                    .padding(.vertical, 6)
-                    .contentShape(Capsule())
-                    .expandTapTarget(8)  // 캡슐 높이 ~25pt → 탭 영역만 44pt 로(시각 크기 유지)
+                RowFollowCapsuleLabel(title: following ? "팔로잉" : "팔로우")
             }
             .buttonStyle(PaperCapsuleStyle(prominent: false))
             .disabled(busy)
@@ -324,5 +336,21 @@ private struct RowFollowToggle: View {
                 ToastCenter.shared.show(String(localized: "팔로우를 반영하지 못했습니다"))
             }
         }
+    }
+}
+
+struct RowFollowCapsuleLabel: View {
+    let title: LocalizedStringKey
+    /// 행 팔로우 알약 라벨(헤더보다 한 급 작은 13) — 사다리 미스매치라 크기 보존 + Dynamic Type.
+    @ScaledMetric(relativeTo: .subheadline) private var labelSize: CGFloat = 13
+
+    var body: some View {
+        Text(title)
+            .font(.system(size: labelSize, weight: .semibold))
+            .foregroundStyle(Palette.ink)
+            .padding(.horizontal, 13)
+            .padding(.vertical, 6)
+            .contentShape(Capsule())
+            .expandTapTarget(8)  // 캡슐 높이 ~25pt → 탭 영역만 44pt 로(시각 크기 유지)
     }
 }

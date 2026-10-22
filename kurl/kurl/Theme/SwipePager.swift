@@ -5,12 +5,14 @@ import SwiftUI
 /// 페이지형 TabView(UIPageViewController) 중첩은 Liquid Glass 가 활성 탭의 스크롤뷰를 못 찾게 만들어
 /// 하단 바 아래로 콘텐츠가 흐르지 않고 스크롤 축소도 안 걸렸다. 페이지를 ZStack 으로 살려두고(데이터·
 /// 스크롤 위치 유지) 좌우 스와이프는 제스처로 직접 — ScrollView 가 탭 콘텐츠의 직계가 된다.
-/// 선택 ±1 칸만 그려 곧 보일 페이지만 첫 로드한다(`warm`). `loadOnSelect` 탭은 처음 고를 때까지 미룬다.
+/// 선택 ±1 칸만 그려 곧 보일 페이지만 첫 로드한다(`warm`). 이웃은 선택 페이지가 처음 `settled` 된 뒤에 데운다.
+/// `loadOnSelect` 탭은 처음 고를 때까지 미룬다.
 /// `suspended` 면 페이지를 숨기고 손이 닿지 않게 하되 데이터·스크롤은 그대로 둔다(더 보기 피드가 위에 설 때).
 struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
     let tabs: [Tab]
     @Binding var selection: Tab
     var loadOnSelect: Set<Tab> = []
+    var settled = true
     var suspended = false
     @ViewBuilder let page: (_ tab: Tab, _ active: Bool, _ warm: Bool) -> Page
 
@@ -25,12 +27,14 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
     @State private var gate = SwipePagerGate()
     @State private var blocked = false
     @State private var opened: Set<Tab> = []
+    @State private var neighborsReady = false
 
     var body: some View {
         ZStack {
             ForEach(tabs) { tab in
                 page(tab, tab == selection, SwipePagerWarmth.warm(
-                    tab, tabs: tabs, selection: selection, loadOnSelect: loadOnSelect, opened: opened))
+                    tab, tabs: tabs, selection: selection, loadOnSelect: loadOnSelect, opened: opened,
+                    settled: neighborsReady))
                     // 슬라이드 중 중앙을 벗어난 분면은 살짝 가라앉는다 — 옆 칸이 "뒤에 있다"는 얕은 깊이.
                     .opacity(opacity(tab))
                     // 드래그 중엔 페이지 콘텐츠를 비활성화 — 카드가 손가락과 함께 움직여 탭이 안 취소되던 것.
@@ -42,6 +46,8 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
             }
         }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { containerWidth = $0 }
+        .onAppear { opened.insert(selection) }
+        .onChange(of: settled, initial: true) { if settled { neighborsReady = true } }
         .simultaneousGesture(drag)
         // 스위처를 눌러 바꿔도 스와이프처럼 미끄러진다 — 비슷한 카드 목록이 스냅으로 갈리면 전환이
         // 안 느껴졌다. 바인딩을 withAnimation 으로 감싸지 않는다 — 스위처 알약 활주와 충돌(함정).
@@ -127,11 +133,11 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
 
 enum SwipePagerWarmth {
     static func warm<Tab: Hashable>(
-        _ tab: Tab, tabs: [Tab], selection: Tab, loadOnSelect: Set<Tab>, opened: Set<Tab>
+        _ tab: Tab, tabs: [Tab], selection: Tab, loadOnSelect: Set<Tab>, opened: Set<Tab>, settled: Bool = true
     ) -> Bool {
         guard let index = tabs.firstIndex(of: tab), let selected = tabs.firstIndex(of: selection),
               abs(index - selected) <= 1 else { return false }
-        return tab == selection || !loadOnSelect.contains(tab) || opened.contains(tab)
+        return tab == selection || opened.contains(tab) || (settled && !loadOnSelect.contains(tab))
     }
 }
 

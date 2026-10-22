@@ -187,7 +187,7 @@ enum MockBackend {
                  editedAt: Date().addingTimeInterval(-3_000), quotedNoteId: 9501),
         MockNote(id: 9502, body: "긴 글로 정리하기 전의 생각 조각을 둘 곳이 필요했는데, 노트가 딱 그 자리다.",
                  createdAt: Date().addingTimeInterval(-7_200), likeCount: 11, authorId: 1, username: "honggildong"),
-        MockNote(id: 9503, body: "라이트 모드 캔버스를 순백에서 slate-50 으로 바꿨더니 카드가 비로소 떠 보인다. 배경은 색이 아니라 깊이다. https://kurl.me/about",
+        MockNote(id: 9503, body: "https://kurl.me/about 의 라이트 모드 캔버스를 순백에서 slate-50 으로 바꿨더니 카드가 비로소 떠 보인다. 배경은 색이 아니라 깊이다.",
                  createdAt: Date().addingTimeInterval(-26_000), likeCount: 7, authorId: 3, username: "reader_kim",
                  linkPreview: [
                     "url": "https://kurl.me/about", "title": "kurl — 짧은 링크와 글이 오래 사는 곳",
@@ -223,6 +223,12 @@ enum MockBackend {
         MockNote(id: 9508, body: "@honggildong 다음 주 회고, 둘이 먼저 맞춰 볼래요?",
                  createdAt: Date().addingTimeInterval(-110_000), likeCount: 0, authorId: 2, username: "yuki_dev",
                  visibility: "direct"),
+        MockNote(id: 9511, body: "https://youtu.be/0mwm1_-aQaE",
+                 createdAt: Date().addingTimeInterval(-120_000), likeCount: 0, authorId: 3, username: "reader_kim",
+                 linkPreview: [
+                    "url": "https://youtu.be/0mwm1_-aQaE", "title": "あかめとあおめの切り抜きゲーム実況【ドラゴンクエスト9】",
+                    "description": NSNull(), "image": NSNull(),
+                 ]),
     ]
     private static var nextNoteId: Int64 = 9600
     private static var likedNotes: Set<Int64> = []
@@ -271,7 +277,7 @@ enum MockBackend {
     /// 다른 서버 계정 — 찾으면 생기고, 팔로우 요청 뒤 다시 읽으면 수락된다(마스토돈 기본 계정처럼).
     /// 알림을 끈 대화 — 목은 대화 루트 대신 누른 노트 id로 둔다.
     private static var mutedConversations: Set<Int64> = []
-    private static var remoteAccounts: [Int64: [String: Any]] = [
+    static var remoteAccounts: [Int64: [String: Any]] = [
         9810: [
             "id": Int64(9810), "acct": "carol@fosstodon.org", "username": "carol",
             "domain": "fosstodon.org", "displayName": "Carol", "avatarUrl": NSNull(),
@@ -471,7 +477,7 @@ enum MockBackend {
                     "remote": ["kind": "QUESTION", "title": NSNull(),
                                "url": "https://planet.moe/@jun/3301", "community": NSNull()] as [String: Any],
                  ]),
-            item("https://fedibird.com/users/sora/statuses/4401", "長く使える道具の選び方について書きました。",
+            item("https://fedibird.com/users/sora/statuses/4401", "長く使える道具の選び方について書きました。\nhttps://sora.example/tools",
                  "sora@fedibird.com", "そら", ago: 15_000, servers: ["fedibird.com"], replies: 2, language: "ja",
                  extra: ["linkPreview": ["url": "https://sora.example/tools", "title": "長く使える道具",
                                          "description": "十年使った鞄とペンの話", "image": NSNull()] as [String: Any]]),
@@ -505,6 +511,10 @@ enum MockBackend {
         !remoteBlocked.contains(id) && remoteMuted[id] == nil
     }
     private static var federationNoticeSeen = false
+    private static var remoteSeen: Set<String> = {
+        let count = Config.launchValue(after: "--mock-seen-latest").flatMap(Int.init) ?? 0
+        return Set(trendingNotes().prefix(count).compactMap { $0["uri"] as? String })
+    }()
     private static var shortSeq = 0
 
     // 리더 소셜 하이라이트 + 답글 스레드 — 본 글 리더의 칠하기·탭→스레드·메모·답글 왕복을 검증.
@@ -1240,6 +1250,9 @@ enum MockBackend {
         headers: [String: String] = [:]
     ) throws -> Data? {
         let parts = path.split(separator: "/").map(String.init)
+        if let lists = MockFollowLists.respond(parts: parts, method: method, query: query, body: body) {
+            return lists
+        }
         if let rooms = MockRooms.respond(parts: parts, method: method, body: body) { return rooms }
 
         if parts.count >= 5, parts[0] == "public", parts[1] == "profiles", parts[3] == "posts",
@@ -1963,13 +1976,37 @@ enum MockBackend {
                 return json(["items": kept, "next": NSNull()])
             }
         }
+        if method == "GET", parts == ["federation", "for-you"] {
+            let pool = trendingNotes()
+            let ranked = [5, 3, 2, 1, 0, 4, 6].map { pool[$0] }
+            let unseen = ranked.filter { !remoteSeen.contains($0["uri"] as? String ?? "") }
+            let seen = ranked.filter { remoteSeen.contains($0["uri"] as? String ?? "") }
+            let order = unseen + seen
+            let second = query?.first(where: { $0.name == "cursor" })?.value?.hasPrefix("f") == true
+            let items = second ? [order[3]] + order[4...] : Array(order[..<4])
+            var page: [String: Any] = ["items": items, "next": second ? NSNull() : "f\(Int(Date().timeIntervalSince1970 * 1000)).4"]
+            if let first = items.firstIndex(where: { remoteSeen.contains($0["uri"] as? String ?? "") }) {
+                page["seenFrom"] = first
+            }
+            return json(page)
+        }
         if method == "GET", parts == ["federation", "latest"] {
             let items = trendingNotes().map { item -> [String: Any] in
                 var latest = item
                 latest["servers"] = Array(((item["servers"] as? [String]) ?? []).prefix(1))
                 return latest
             }
-            return json(["items": items, "next": NSNull()])
+            guard headers[RemoteSeenDevice.header] != nil else { return json(["items": items, "next": NSNull()]) }
+            let unseen = items.filter { !remoteSeen.contains($0["uri"] as? String ?? "") }
+            let seen = items.filter { remoteSeen.contains($0["uri"] as? String ?? "") }
+            var page: [String: Any] = ["items": unseen + seen, "next": NSNull()]
+            if !seen.isEmpty { page["seenFrom"] = unseen.count }
+            return json(page)
+        }
+        if method == "POST", parts == ["federation", "seen"] {
+            let req = (try? JSONSerialization.jsonObject(with: body ?? Data())) as? [String: Any]
+            remoteSeen.formUnion((req?["uris"] as? [String] ?? []).prefix(100))
+            return Data()
         }
         if method == "GET", parts == ["federation", "domains"] {
             let raw = (query?.first(where: { $0.name == "prefix" })?.value ?? "").lowercased()
@@ -2330,6 +2367,7 @@ enum MockBackend {
             if !hidden {
                 payload["followerCount"] = state.count
                 payload["followingCount"] = 5
+                payload.merge(MockFollowLists.counts(username: username, me: myUsername)) { _, new in new }
             }
             return json(payload)
         }

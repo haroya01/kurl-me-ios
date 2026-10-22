@@ -178,7 +178,7 @@ struct ProfileEditView: View {
             if let newAvatar {
                 Image(uiImage: newAvatar).resizable().scaledToFill()
             } else if let url = currentAvatarUrl, let u = URL(string: url) {
-                RemoteImage(url: u) { phase in
+                RemoteImage(url: u, maxPixel: 96) { phase in
                     if case .success(let image) = phase {
                         image.resizable().scaledToFill()
                     } else {

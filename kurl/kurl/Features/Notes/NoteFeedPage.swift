@@ -109,7 +109,7 @@ struct NoteFeedPage: View {
             )
             .padding(.top, 24)
         } else {
-            feed
+            feed.loadTransition(model.phase)
         }
     }
 
