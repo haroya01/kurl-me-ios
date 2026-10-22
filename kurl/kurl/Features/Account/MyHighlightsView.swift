@@ -62,7 +62,6 @@ struct MyHighlightsView: View {
                 LazyVStack(spacing: 0) {
                     ForEach(Array(visibleGroups.enumerated()), id: \.element.id) { index, group in
                         section(group)
-                            .modifier(QuietAppear(index: min(index, 8)))
                         if index < visibleGroups.count - 1 { Hairline() }
                     }
                 }

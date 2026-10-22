@@ -31,7 +31,6 @@ struct CollectionsListView: View {
                             row(c)
                         }
                         .buttonStyle(RowButtonStyle())
-                        .modifier(QuietAppear(index: index))
                         if index < collections.count - 1 { Hairline() }
                     }
                 }

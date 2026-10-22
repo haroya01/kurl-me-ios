@@ -170,7 +170,6 @@ struct SeriesDetailView: View {
                     .buttonStyle(RowButtonStyle())
                     // 카탈로그 행도 피드/검색과 같은 입장(QuietAppear)을 의도적으로 공유 — 목차가
                     // 한 화씩 조용히 차오르는 게 "순서대로 읽는 책장" 결과 맞닿는다(§10.7).
-                    .modifier(QuietAppear(index: index))
                     if index < posts.count - 1 { Hairline() }
                 }
             }

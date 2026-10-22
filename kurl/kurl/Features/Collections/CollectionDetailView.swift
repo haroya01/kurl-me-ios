@@ -49,7 +49,6 @@ struct CollectionDetailView: View {
                         ForEach(Array(connections.enumerated()), id: \.element.id) {
                             index, item in
                             connectionCell(item)
-                                .modifier(QuietAppear(index: index))
                             if index < connections.count - 1 {
                                 Hairline().padding(.leading, 14)
                             }
@@ -355,7 +354,6 @@ struct CollectionDetailView: View {
                     isCurrent: index == current,
                     // 현재 스텝까지는 초록 실이 흐른다(걸어온 길). 그 아래는 아직 회색.
                     threadFilled: current.map { index < $0 } ?? false)
-                    .modifier(QuietAppear(index: index))
             }
         }
         .padding(.top, 4)

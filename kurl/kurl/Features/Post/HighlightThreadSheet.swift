@@ -141,7 +141,6 @@ struct HighlightThreadSheet: View {
                                     onLike: { toggleLike(reply.id) },
                                     onReply: { self.reply(to: $0) },
                                     onDelete: { replyToDelete = reply.id })
-                                .modifier(QuietAppear(index: min(index, 6)))
                             }
                         }
                         .padding(.horizontal, Metrics.gutter)

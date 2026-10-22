@@ -31,7 +31,6 @@ struct MyReadingHistoryView: View {
                 LazyVStack(spacing: 0) {
                     ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                         row(item)
-                            .modifier(QuietAppear(index: index))
                             .task {
                                 if index == items.count - 1 { await loadMore() }
                             }
