@@ -604,12 +604,12 @@ struct NoteRowView: View {
                 moreMenu
             }
             warningLine
-            if !note.body.isEmpty, folded || note.remoteCard == nil {
+            if showsBody {
                 ZStack(alignment: .topLeading) {
                     if folded {
                         shield(.noteFocus)
                     } else {
-                        Text(NoteText.attributed(shownBody, mentions: note.mentions ?? []))
+                        Text(NoteText.attributed(displayBody, mentions: note.mentions ?? []))
                             .typeScale(.noteFocus)
                             .foregroundStyle(Palette.ink)
                             .tint(Palette.link)
@@ -678,7 +678,7 @@ struct NoteRowView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     header
                     warningLine
-                    if !note.body.isEmpty, folded || note.remoteCard == nil {
+                    if showsBody {
                         ZStack(alignment: .topLeading) {
                             if folded {
                                 shield(.note)
@@ -731,7 +731,7 @@ struct NoteRowView: View {
     }
 
     private var feedBody: some View {
-        Text(NoteText.attributed(shownBody, mentions: note.mentions ?? []))
+        Text(NoteText.attributed(displayBody, mentions: note.mentions ?? []))
             .typeScale(.note)
             .foregroundStyle(Palette.ink)
             .tint(Palette.link)
@@ -811,7 +811,7 @@ struct NoteRowView: View {
         if note.editedAt != nil { parts.append(String(localized: "고침")) }
         if let position { parts.append(String(localized: "이어 쓴 노트 \(position)")) }
         if let warning = note.contentWarning { parts.append(translated?.warning ?? warning) }
-        if !folded, !note.body.isEmpty { parts.append(shownBody) }
+        if !folded, !displayBody.isEmpty { parts.append(displayBody) }
         return parts.joined(separator: ", ")
     }
 
@@ -826,6 +826,21 @@ struct NoteRowView: View {
     }
 
     private var shownBody: String { translated?.body ?? note.body }
+
+    private var displayBody: String {
+        NoteText.hidingCardedLink(shownBody, card: drawnLinkCard?.preview.url)
+    }
+
+    private var drawnLinkCard: (preview: NoteLinkPreview, url: URL)? {
+        guard !folded, note.remoteCard == nil, let card = note.linkPreview, let url = URL(string: card.url)
+        else { return nil }
+        return (card, url)
+    }
+
+    private var showsBody: Bool {
+        guard !note.body.isEmpty, folded || note.remoteCard == nil else { return false }
+        return folded || !displayBody.isEmpty
+    }
 
     @ViewBuilder private var translationLine: some View {
         if let source = translationSource {
@@ -934,7 +949,10 @@ struct NoteRowView: View {
     @ViewBuilder private func remoteCardAttachments(_ shape: RemoteNoteShape) -> some View {
         let picture = RemoteNoteCard.picture(in: note)
         if !folded {
-            RemoteNoteCard(noteId: note.id, shape: shape, summary: shownBody, picture: picture, full: focused)
+            RemoteNoteCard(
+                noteId: note.id, shape: shape,
+                summary: NoteText.hidingCardedLink(shownBody, card: shape.original.flatMap { _ in shape.url }),
+                picture: picture, full: focused)
                 .padding(.top, focused ? 0 : 6)
             if !note.body.isEmpty { translationLine }
         }
@@ -959,9 +977,9 @@ struct NoteRowView: View {
             .padding(.top, 6)
             .accessibilityIdentifier("note.quoted.\(quoted.id)")
         }
-        if let card = note.linkPreview, let url = URL(string: card.url) {
-            Link(destination: url) {
-                NoteLinkCardView(preview: card)
+        if let card = drawnLinkCard {
+            Link(destination: card.url) {
+                NoteLinkCardView(preview: card.preview)
             }
             .buttonStyle(.plain)
             .padding(.top, 6)
@@ -1812,6 +1830,27 @@ enum NoteText {
             link.removeLast()
         }
         return link.count <= 2048 ? link : nil
+    }
+
+    static func hidingCardedLink(_ body: String, card: String?) -> String {
+        guard let card else { return body }
+        let ns = body as NSString
+        guard let match = urlPattern?.matches(in: body, range: NSRange(location: 0, length: ns.length)).last
+        else { return body }
+        var link = ns.substring(with: match.range)
+        while let scalar = link.unicodeScalars.last, trailing.contains(scalar) {
+            link.removeLast()
+        }
+        let rest = ns.substring(from: match.range.location + (link as NSString).length)
+        guard rest.allSatisfy(\.isWhitespace), sameLink(link, card) else { return body }
+        let head = ns.substring(to: match.range.location)
+        guard let end = head.lastIndex(where: { !$0.isWhitespace }) else { return "" }
+        return String(head[...end])
+    }
+
+    private static func sameLink(_ a: String, _ b: String) -> Bool {
+        func bare(_ s: String) -> String { s.hasSuffix("/") ? String(s.dropLast()) : s }
+        return bare(a) == bare(b)
     }
 }
 
