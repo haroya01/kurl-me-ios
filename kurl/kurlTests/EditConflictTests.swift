@@ -15,6 +15,7 @@ final class EditConflictTests: XCTestCase {
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [ScriptedServer.self]
         WriteAPI.client = APIClient(session: URLSession(configuration: config), viewerToken: { nil })
+        ComposeRecoveryStore.currentOwner = { 1 }
         ComposeRecoveryStore.wipeAll()
     }
 
@@ -22,6 +23,7 @@ final class EditConflictTests: XCTestCase {
         WriteAPI.client = .shared
         ScriptedServer.reset()
         ComposeRecoveryStore.wipeAll()
+        ComposeRecoveryStore.currentOwner = { AuthStore.shared.accountId }
     }
 
     private func postView(version: Int64?) -> String {

@@ -172,6 +172,9 @@ struct SearchView: View {
         }
         .onChange(of: scope) { runSearch(query) }
         .onChange(of: recents) { SearchRecents.save(recents) }
+        .onChange(of: AuthStore.shared.isSignedIn) { _, signedIn in
+            if !signedIn { recents = [] }
+        }
         .onSubmit(of: .search) { runSearch(query) }
         // 검색 결과 도착·최근 삭제는 손끝으로도 알린다 — 토글 버튼들과 같은 가벼운 임팩트.
         .sensoryFeedback(.impact(weight: .light), trigger: activeQuery)
@@ -1042,6 +1045,10 @@ enum SearchRecents {
 
     static func save(_ terms: [String]) {
         UserDefaults.standard.set(terms, forKey: key)
+    }
+
+    static func clear() {
+        UserDefaults.standard.removeObject(forKey: key)
     }
 }
 

@@ -29,6 +29,7 @@
 		DEF2000000000000000000D1 /* WriteV2AdversarialTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEF2000000000000000000D2 /* WriteV2AdversarialTests.swift */; };
 		DEF2000000000000000000E1 /* WriteV2StressTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEF2000000000000000000E2 /* WriteV2StressTests.swift */; };
 		F1A0000000000000000000A1 /* ComposeRecoveryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A0000000000000000000A2 /* ComposeRecoveryTests.swift */; };
+		F1A000000000000000000F81 /* LogoutWipeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000F82 /* LogoutWipeTests.swift */; };
 		F1A0000000000000000000B1 /* FollowBlockRollbackTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A0000000000000000000B2 /* FollowBlockRollbackTests.swift */; };
 		F0110E000000000000000001 /* FollowListRemoteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0110E000000000000000002 /* FollowListRemoteTests.swift */; };
 		F1A0000000000000000000C1 /* NoteImageUploadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A0000000000000000000C2 /* NoteImageUploadTests.swift */; };
@@ -117,6 +118,7 @@
 		DEF2000000000000000000D2 /* WriteV2AdversarialTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WriteV2AdversarialTests.swift; sourceTree = "<group>"; };
 		DEF2000000000000000000E2 /* WriteV2StressTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WriteV2StressTests.swift; sourceTree = "<group>"; };
 		F1A0000000000000000000A2 /* ComposeRecoveryTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ComposeRecoveryTests.swift; sourceTree = "<group>"; };
+		F1A000000000000000000F82 /* LogoutWipeTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LogoutWipeTests.swift; sourceTree = "<group>"; };
 		F1A0000000000000000000B2 /* FollowBlockRollbackTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FollowBlockRollbackTests.swift; sourceTree = "<group>"; };
 		F0110E000000000000000002 /* FollowListRemoteTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FollowListRemoteTests.swift; sourceTree = "<group>"; };
 		F1A0000000000000000000C2 /* NoteImageUploadTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NoteImageUploadTests.swift; sourceTree = "<group>"; };
@@ -268,6 +270,7 @@
 				DEF2000000000000000000D2 /* WriteV2AdversarialTests.swift */,
 				DEF2000000000000000000E2 /* WriteV2StressTests.swift */,
 				F1A0000000000000000000A2 /* ComposeRecoveryTests.swift */,
+				F1A000000000000000000F82 /* LogoutWipeTests.swift */,
 				F1A0000000000000000000B2 /* FollowBlockRollbackTests.swift */,
 				F0110E000000000000000002 /* FollowListRemoteTests.swift */,
 				F1A0000000000000000000C2 /* NoteImageUploadTests.swift */,
@@ -488,6 +491,7 @@
 				DEF2000000000000000000D1 /* WriteV2AdversarialTests.swift in Sources */,
 				DEF2000000000000000000E1 /* WriteV2StressTests.swift in Sources */,
 				F1A0000000000000000000A1 /* ComposeRecoveryTests.swift in Sources */,
+				F1A000000000000000000F81 /* LogoutWipeTests.swift in Sources */,
 				F1A0000000000000000000B1 /* FollowBlockRollbackTests.swift in Sources */,
 				F0110E000000000000000001 /* FollowListRemoteTests.swift in Sources */,
 				F1A0000000000000000000C1 /* NoteImageUploadTests.swift in Sources */,

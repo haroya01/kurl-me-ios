@@ -13,7 +13,10 @@ enum ComposeRecoveryStore {
         var title: String
         var markdown: String
         var savedAt: Date
+        var ownerId: Int64?
     }
+
+    static var currentOwner: () -> Int64? = { AuthStore.shared.accountId }
 
     private static var directory: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -27,8 +30,10 @@ enum ComposeRecoveryStore {
     }
 
     /// 지금 편집 중인 내용을 슬롯에 눕힌다 — 호출측이 디바운스한다(키 입력마다 쓰지 않게).
+    /// 주인을 모르면(세션이 끊긴 사이) 쓰지 않는다 — 주인 없는 슬롯은 읽을 때 버려지므로 직전 슬롯을 지킨다.
     static func stash(postId: Int64?, draftKey: UUID, title: String, markdown: String) {
-        let draft = Draft(postId: postId, title: title, markdown: markdown, savedAt: Date())
+        guard let owner = currentOwner() else { return }
+        let draft = Draft(postId: postId, title: title, markdown: markdown, savedAt: Date(), ownerId: owner)
         guard let data = try? JSONEncoder().encode(draft) else { return }
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try? data.write(to: fileURL(for: postId, draftKey: draftKey), options: .atomic)
@@ -39,9 +44,18 @@ enum ComposeRecoveryStore {
         read(fileURL(for: postId, draftKey: draftKey))
     }
 
+    /// 지금 사용자의 슬롯만 돌려준다. 다른 계정(주인 없는 옛 슬롯 포함)의 것은 지운다.
+    /// 지금 사용자를 모르면 가리기만 하고 지우지 않는다.
     private static func read(_ url: URL) -> Draft? {
-        guard let data = try? Data(contentsOf: url) else { return nil }
-        return try? JSONDecoder().decode(Draft.self, from: data)
+        guard let data = try? Data(contentsOf: url),
+              let draft = try? JSONDecoder().decode(Draft.self, from: data),
+              let owner = currentOwner()
+        else { return nil }
+        guard draft.ownerId == owner else {
+            try? FileManager.default.removeItem(at: url)
+            return nil
+        }
+        return draft
     }
 
     /// 서버 저장 성공 — 금고는 "못 실린 변경"만 들므로 슬롯을 비운다.
@@ -55,7 +69,8 @@ enum ComposeRecoveryStore {
     }
 
     static func stashConflict(postId: Int64, title: String, markdown: String) {
-        let draft = Draft(postId: postId, title: title, markdown: markdown, savedAt: Date())
+        guard let owner = currentOwner() else { return }
+        let draft = Draft(postId: postId, title: title, markdown: markdown, savedAt: Date(), ownerId: owner)
         guard let data = try? JSONEncoder().encode(draft) else { return }
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try? data.write(to: conflictURL(postId), options: .atomic)
@@ -72,10 +87,7 @@ enum ComposeRecoveryStore {
     /// 새 글을 열 때 복구를 제안할 슬롯 — 아직 서버로 가는 중인(claimed) 새 글은 빼고 가장 최근 것.
     static func latestNewDraft(excluding claimed: Set<UUID>) -> (key: UUID, draft: Draft)? {
         let fm = FileManager.default
-        let legacy = directory.appendingPathComponent("new.json")
-        if fm.fileExists(atPath: legacy.path) {
-            try? fm.moveItem(at: legacy, to: fileURL(for: nil, draftKey: UUID()))
-        }
+        try? fm.removeItem(at: directory.appendingPathComponent("new.json"))
         let names = (try? fm.contentsOfDirectory(atPath: directory.path)) ?? []
         return names
             .compactMap { name -> (key: UUID, draft: Draft)? in
@@ -89,9 +101,8 @@ enum ComposeRecoveryStore {
             .max { $0.draft.savedAt < $1.draft.savedAt }
     }
 
-    /// 금고 전체를 비운다 — 슬롯이 파일이라 앱 재실행·다른 UITest 사이에도 남는다. 컴포즈 계열
-    /// UITest 가 앞선 테스트의 잔여 슬롯(→ 복구 다이얼로그)에 오염되지 않게 setUp 에서 초기화하는 용도
-    /// (`--reset-recovery`). 운영엔 호출부가 없다.
+    /// 금고 전체를 비운다 — 슬롯이 파일이라 앱 재실행 사이에도 남는다. 명시 로그아웃과
+    /// 컴포즈 계열 UITest 의 `--reset-recovery` 가 부른다.
     static func wipeAll() {
         try? FileManager.default.removeItem(at: directory)
     }
