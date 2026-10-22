@@ -1167,7 +1167,7 @@ private struct InlineVideoEmbed: View {
     private var posterView: some View {
         ZStack {
             if let poster {
-                RemoteImage(url: poster) { phase in
+                RemoteImage(url: poster, slotWidth: Metrics.readingColumn) { phase in
                     if case .success(let image) = phase {
                         image.resizable().scaledToFill()
                     } else {

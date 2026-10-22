@@ -139,6 +139,7 @@ final class NoteFeedPreferences {
     }
 
     func mutesChanged() {
+        HomeFeedCache.shared.wipe()
         mutes += 1
     }
 

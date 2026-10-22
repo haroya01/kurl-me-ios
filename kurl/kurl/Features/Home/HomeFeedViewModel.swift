@@ -11,6 +11,7 @@ final class HomeFeedViewModel {
     private(set) var next: String?
     private var epoch = 0
     private(set) var newest: String?
+    private let cached: (HomeFeedTab) async -> HomeFeedBatch?
     private let load: (HomeFeedTab, String?) async throws -> HomeFeedBatch
     private let newer: (HomeFeedTab, String) async throws -> HomeFeedBatch
     private let settled: @MainActor () -> Void
@@ -26,11 +27,13 @@ final class HomeFeedViewModel {
         settled: @escaping @MainActor () -> Void = { LaunchReadiness.shared.markFirstFeedSettled() },
         now: @escaping @MainActor () -> Date = Date.init,
         notify: @escaping @MainActor (String) -> Void = { ToastCenter.shared.show($0) },
+        cached: @escaping (HomeFeedTab) async -> HomeFeedBatch? = { await HomeFeedCache.shared.read($0) },
         remote: @escaping (RemoteStreamFeed, String?) async throws -> RemoteStreamPage = FederationAPI.stream,
         newer: @escaping (HomeFeedTab, String) async throws -> HomeFeedBatch = HomeFeedAPI.newer,
         load: @escaping (HomeFeedTab, String?) async throws -> HomeFeedBatch = HomeFeedAPI.page
     ) {
         self.tab = tab
+        self.cached = cached
         self.load = load
         self.newer = newer
         self.settled = settled
@@ -157,6 +160,13 @@ final class HomeFeedViewModel {
         defer { if settlesLaunch { settled() } }
         epoch += 1
         let myEpoch = epoch
+        if items.isEmpty, let saved = await cached(tab), myEpoch == epoch, items.isEmpty {
+            items = Self.unique(saved.items)
+            next = saved.next
+            newest = saved.newest
+            phase = .loaded(true)
+            if settlesLaunch { settled() }
+        }
         if items.isEmpty { phase = .loading }
         do {
             let first = try await load(tab, nil)
@@ -226,6 +236,7 @@ final class HomeFeedViewModel {
     }
 
     func removed(_ id: Int64) {
+        HomeFeedCache.shared.wipe()
         withMotion(Motion.move) { items.removeAll { $0.note?.id == id } }
     }
 

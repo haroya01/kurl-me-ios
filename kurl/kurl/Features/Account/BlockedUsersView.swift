@@ -103,7 +103,7 @@ struct BlockedUsersView: View {
     @ViewBuilder
     private func avatar(_ url: String?) -> some View {
         if let url, let parsed = URL(string: url) {
-            RemoteImage(url: parsed) { phase in
+            RemoteImage(url: parsed, maxPixel: 36) { phase in
                 if case .success(let img) = phase {
                     img.resizable().scaledToFill()
                 } else {

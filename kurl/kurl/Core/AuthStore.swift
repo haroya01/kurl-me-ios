@@ -296,6 +296,7 @@ final class AuthStore {
         Keychain.save(pair.accessToken, account: Self.accessAccount)
         Keychain.save(pair.refreshToken, account: Self.refreshAccount)
         if !isSignedIn {
+            HomeFeedCache.shared.wipe()
             isSignedIn = true
             Task { await loadMe() }
             PushRegistrar.syncAfterSignIn()
@@ -322,6 +323,7 @@ final class AuthStore {
     /// 쓰던 글의 기기 금고(ComposeRecoveryStore)는 여기서 비우지 않는다 — 세션 만료 뒤에도 남아야 하고,
     /// 다른 계정에는 주인 id 로 가린다. 명시 로그아웃(signOut)만 비운다.
     private func tearDownSessionState() {
+        HomeFeedCache.shared.wipe()
         BookmarkStore.shared.reset()
         LikeStore.shared.reset()
         PostReadStore.shared.reset()
