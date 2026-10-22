@@ -11,10 +11,10 @@ final class HomeFeedViewModel {
     private(set) var next: String?
     private var epoch = 0
     private(set) var newest: String?
+    private let cached: (HomeFeedTab) async -> HomeFeedBatch?
     private let load: (HomeFeedTab, String?) async throws -> HomeFeedBatch
     private let newer: (HomeFeedTab, String) async throws -> HomeFeedBatch
     private let settled: @MainActor () -> Void
-    private let cached: (HomeFeedTab) async -> HomeFeedBatch?
     let tail: RemoteStreamModel?
 
     init(
@@ -26,10 +26,10 @@ final class HomeFeedViewModel {
         load: @escaping (HomeFeedTab, String?) async throws -> HomeFeedBatch = HomeFeedAPI.page
     ) {
         self.tab = tab
+        self.cached = cached
         self.load = load
         self.newer = newer
         self.settled = settled
-        self.cached = cached
         self.tail = tab == .latest ? RemoteStreamModel(feed: .latest, load: remote) : nil
     }
 
