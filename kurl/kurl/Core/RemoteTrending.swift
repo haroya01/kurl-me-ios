@@ -94,6 +94,7 @@ enum RemoteStreamItem: Decodable, Hashable, Identifiable {
 struct RemoteStreamPage: Decodable {
     let items: [RemoteStreamItem]
     let next: String?
+    let seenFrom: Int?
 }
 
 enum RemoteStreamFeed: String, CaseIterable, Hashable {
@@ -128,7 +129,13 @@ extension FederationAPI {
 
     static func stream(_ feed: RemoteStreamFeed, cursor: String?) async throws -> RemoteStreamPage {
         let query: [String: String?] = ["limit": String(trendingLimit), "cursor": cursor]
-        return try await client.getAsViewer(feed.path, query: query)
+        let headers = feed == .latest ? [RemoteSeenDevice.header: RemoteSeenDevice.id()] : [:]
+        return try await client.getAsViewer(feed.path, query: query, headers: headers)
+    }
+
+    static func markSeen(_ uris: [String]) async throws {
+        try await client.postAsViewer(
+            "/federation/seen", body: ["uris": uris], headers: [RemoteSeenDevice.header: RemoteSeenDevice.id()])
     }
 
     static func domains(prefix: String) async -> [String]? {

@@ -17,7 +17,9 @@ final class RemoteStreamModel {
     private(set) var phase: LoadState<Bool> = .idle
     private(set) var isLoadingMore = false
     private(set) var next: String?
+    private(set) var firstSeenID: String?
     private var epoch = 0
+    static let emptyFollowLimit = 3
     private let load: (RemoteStreamFeed, String?) async throws -> RemoteStreamPage
 
     init(
@@ -33,6 +35,10 @@ final class RemoteStreamModel {
         return false
     }
 
+    var rows: [(index: Int, item: RemoteStreamItem, key: String)] {
+        items.enumerated().map { ($0.offset, $0.element, "\(feed.rawValue)-\($0.element.id)") }
+    }
+
     var firstKeptID: String? {
         items.first { if case .kept = $0 { true } else { false } }?.id
     }
@@ -41,15 +47,26 @@ final class RemoteStreamModel {
         if case .idle = phase { await reload() }
     }
 
+    var seenDividerID: String? {
+        firstSeenID == items.first?.id ? nil : firstSeenID
+    }
+
+    func isSeen(_ item: RemoteStreamItem) -> Bool {
+        guard let firstSeenID, let start = items.firstIndex(where: { $0.id == firstSeenID }),
+              let index = items.firstIndex(where: { $0.id == item.id }) else { return false }
+        return index >= start
+    }
+
     func reload() async {
         epoch += 1
         let myEpoch = epoch
         if items.isEmpty { phase = .loading }
         do {
-            let first = try await load(feed, nil)
+            let first = try await page(after: nil, epoch: myEpoch)
             guard myEpoch == epoch else { return }
             items = Self.unique(first.items)
             next = first.next
+            firstSeenID = Self.seenStart(first, shown: Set(items.map(\.id)))
             phase = .loaded(true)
         } catch {
             guard myEpoch == epoch, !Task.isCancelled else { return }
@@ -62,16 +79,38 @@ final class RemoteStreamModel {
     }
 
     func loadMoreIfNeeded(current item: RemoteStreamItem) async {
-        guard let cursor = next, !isLoadingMore, items.suffix(5).contains(where: { $0.id == item.id }) else { return }
+        guard items.suffix(5).contains(where: { $0.id == item.id }) else { return }
+        await loadMore()
+    }
+
+    func loadMore() async {
+        guard let cursor = next, !isLoadingMore else { return }
         isLoadingMore = true
         let myEpoch = epoch
         await Task {
             defer { isLoadingMore = false }
-            guard let page = try? await load(feed, cursor), myEpoch == epoch else { return }
+            guard let page = try? await page(after: cursor, epoch: myEpoch), myEpoch == epoch else { return }
             next = page.next
             let seen = Set(items.map(\.id))
-            items.append(contentsOf: Self.unique(page.items).filter { !seen.contains($0.id) })
+            let fresh = Self.unique(page.items).filter { !seen.contains($0.id) }
+            items.append(contentsOf: fresh)
+            if firstSeenID == nil { firstSeenID = Self.seenStart(page, shown: Set(fresh.map(\.id))) }
         }.value
+    }
+
+    private func page(after cursor: String?, epoch myEpoch: Int) async throws -> RemoteStreamPage {
+        var page = try await load(feed, cursor)
+        var followed = 0
+        while page.items.isEmpty, let next = page.next, followed < Self.emptyFollowLimit, myEpoch == epoch {
+            followed += 1
+            page = try await load(feed, next)
+        }
+        return page
+    }
+
+    static func seenStart(_ page: RemoteStreamPage, shown: Set<String>) -> String? {
+        guard let from = page.seenFrom, page.items.indices.contains(from) else { return nil }
+        return page.items[from...].first { shown.contains($0.id) }?.id
     }
 
     func replaced(_ note: Note) {
@@ -94,6 +133,7 @@ final class RemoteStreamModel {
 struct RemoteStreamRows: View {
     let model: RemoteStreamModel
     var gutter: CGFloat = Metrics.gutter
+    var measuresSeen = false
     @State private var showLogin = false
 
     var body: some View {
@@ -108,12 +148,12 @@ struct RemoteStreamRows: View {
                 FeedPlaceholder(
                     title: model.feed == .trending ? "아직 받은 다른 서버 노트가 없어요" : "아직 다른 서버 최신 노트가 없어요",
                     actionTitle: "다시 시도",
-                    action: { Task { await model.reload() } }
+                    action: { Task { model.next == nil ? await model.reload() : await model.loadMore() } }
                 )
                 .padding(.top, 24)
             }
-            ForEach(Array(model.items.enumerated()), id: \.element.id) { index, item in
-                RemoteStreamRow(item: item, model: model)
+            ForEach(model.rows, id: \.key) { index, item, _ in
+                RemoteStreamRow(item: item, model: model, measuresSeen: measuresSeen)
                     .task { await model.loadMoreIfNeeded(current: item) }
                 if index < model.items.count - 1 { Hairline().padding(.horizontal, -gutter) }
             }
@@ -139,13 +179,19 @@ struct RemoteStreamRow: View {
     let item: RemoteStreamItem
     let model: RemoteStreamModel
     var headsKept = true
+    var measuresSeen = false
 
     var body: some View {
-        switch item {
-        case .trending(let note):
-            TrendingNoteRow(item: note, showsContext: model.feed == .trending)
-        case .kept(let note):
-            VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 0) {
+            if item.id == model.seenDividerID {
+                RailHeading("이미 본 글")
+                    .padding(.top, 20)
+                    .accessibilityIdentifier("remote.seen")
+            }
+            switch item {
+            case .trending(let note):
+                TrendingNoteRow(item: note, showsContext: model.feed == .trending)
+            case .kept(let note):
                 if headsKept, item.id == model.firstKeptID {
                     RailHeading("받은 노트")
                         .padding(.top, 20)
@@ -156,5 +202,10 @@ struct RemoteStreamRow: View {
                     onDelete: { model.removed($0) })
             }
         }
+        .marksRemoteSeen(measuring ? item.seenURI : nil)
+    }
+
+    private var measuring: Bool {
+        measuresSeen && model.feed == .latest && !model.isSeen(item)
     }
 }

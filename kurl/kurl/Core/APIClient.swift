@@ -69,8 +69,11 @@ struct APIClient {
 
     /// 공개 읽기에 로그인한 사람의 토큰을 싣는다 — 서버가 그 사람이 차단·뮤트한 작가를 걸러 준다.
     /// 로그아웃이면 익명 그대로. 공개 경로는 무효 토큰도 401 없이 익명으로 받으므로 401 재시도는 없다.
-    func getAsViewer<T: Decodable>(_ path: String, query: [String: String?] = [:]) async throws -> T {
+    func getAsViewer<T: Decodable>(
+        _ path: String, query: [String: String?] = [:], headers: [String: String] = [:]
+    ) async throws -> T {
         var request = try makeRequest(path: path, query: query, method: "GET")
+        for (field, value) in headers { request.setValue(value, forHTTPHeaderField: field) }
         if let token = await viewerToken() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
@@ -107,6 +110,15 @@ struct APIClient {
     /// 응답 본문이 없는 POST (예: 조회 비콘). 실패해도 호출측에서 무시할 수 있다.
     func postAsViewer(_ path: String, query: [String: String?] = [:]) async throws {
         var request = try makeRequest(path: path, query: query, method: "POST")
+        if let token = await viewerToken() {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        _ = try await rawData(request)
+    }
+
+    func postAsViewer<B: Encodable>(_ path: String, body: B, headers: [String: String] = [:]) async throws {
+        var request = try makeRequest(path: path, query: [:], method: "POST", body: try encode(body))
+        for (field, value) in headers { request.setValue(value, forHTTPHeaderField: field) }
         if let token = await viewerToken() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }

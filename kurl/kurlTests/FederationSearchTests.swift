@@ -814,6 +814,30 @@ final class RemoteTrendingTests: XCTestCase {
         }
     }
 
+    func testOnlyLatestCarriesTheDeviceAndSeenPostsTheUris() async throws {
+        serve([
+            "/federation/latest": .json(200, #"{"items":[],"next":null}"#),
+            "/federation/trending": .json(200, #"{"items":[],"next":null}"#),
+            "/federation/seen": .json(202, ""),
+        ])
+
+        _ = try await FederationAPI.stream(.latest, cursor: nil)
+        _ = try await FederationAPI.stream(.trending, cursor: nil)
+        try await FederationAPI.markSeen(["https://mstdn.jp/users/a/statuses/1"])
+
+        let requests = ScriptedFederation.requests
+        XCTAssertEqual(requests.count, 3)
+        let device = try XCTUnwrap(requests[0].value(forHTTPHeaderField: "X-Kurl-Device"))
+        XCTAssertNotNil(UUID(uuidString: device))
+        XCTAssertEqual(device, device.lowercased())
+        XCTAssertNil(requests[1].value(forHTTPHeaderField: "X-Kurl-Device"))
+        XCTAssertEqual(requests[2].httpMethod, "POST")
+        XCTAssertEqual(requests[2].value(forHTTPHeaderField: "X-Kurl-Device"), device)
+        let body = try XCTUnwrap(JSONSerialization.jsonObject(with: ScriptedFederation.bodies[2]) as? [String: [String]])
+        XCTAssertEqual(body, ["uris": ["https://mstdn.jp/users/a/statuses/1"]])
+        XCTAssertEqual(RemoteSeenDevice.id(), device, "the device id is made once and kept")
+    }
+
     func testTrendingReadsTheContractAndDrawsAsARemoteNote() async throws {
         serve(["/federation/trending": .json(200, Self.trending)])
 
