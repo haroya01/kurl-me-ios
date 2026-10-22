@@ -61,6 +61,19 @@ final class RemoteStreamModel {
         }
     }
 
+    func fresh(since: Date) async throws -> [RemoteStreamItem] {
+        let first = try await page(after: nil, epoch: epoch)
+        let shown = Set(items.map(\.key))
+        return Self.unique(first.items).filter { item in
+            !shown.contains(item.key) && item.createdAt.map { $0 > since } == true
+        }
+    }
+
+    func prepend(_ fresh: [RemoteStreamItem]) {
+        let shown = Set(items.map(\.key))
+        items.insert(contentsOf: fresh.filter { !shown.contains($0.key) }, at: 0)
+    }
+
     func loadMoreIfNeeded(current item: RemoteStreamItem) async {
         guard items.suffix(5).contains(where: { $0.id == item.id }) else { return }
         await loadMore()

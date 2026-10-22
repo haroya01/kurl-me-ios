@@ -23,6 +23,13 @@ extension RemoteStreamItem {
 
     var key: String { seenURI ?? id }
 
+    var createdAt: Date? {
+        switch self {
+        case .trending(let note): note.createdAt
+        case .kept(let note): note.createdAt
+        }
+    }
+
     var keptID: Int64? {
         if case .kept(let note) = self { note.id } else { nil }
     }

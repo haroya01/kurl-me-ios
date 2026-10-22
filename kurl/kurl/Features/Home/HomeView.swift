@@ -138,6 +138,7 @@ struct HomeFeedPage: View {
     @State private var choice = HomeFeedChoice.shared
     @State private var showLogin = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         ReadingColumn(
@@ -160,6 +161,13 @@ struct HomeFeedPage: View {
         .environment(\.noteFilterContext, .home)
         .environment(\.skeletonAnimates, active)
         .flushesRemoteSeen(while: measuresSeen)
+        .onChange(of: showing) { _, now in
+            if now {
+                Task { await model.returned() }
+            } else {
+                model.left()
+            }
+        }
         .task(id: [warm, AuthStore.shared.isSignedIn]) {
             let signedIn = AuthStore.shared.isSignedIn
             guard warm, loadedSignedIn != signedIn else { return }
@@ -232,6 +240,10 @@ struct HomeFeedPage: View {
                 KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
             }
         }
+    }
+
+    private var showing: Bool {
+        active && router.selection == TabRouter.homeTab && scenePhase == .active
     }
 
     private var measuresSeen: Bool {
