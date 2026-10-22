@@ -514,7 +514,7 @@ private struct FloatingTabBar<TabMenu: View>: View {
     let bottomInset: CGFloat
     let menuTabs: Set<Int>
     @ViewBuilder let menu: (Int) -> TabMenu
-    @ScaledMetric(relativeTo: .title3) private var iconSize: CGFloat = 25
+    @ScaledMetric(relativeTo: .title3) private var iconSize: CGFloat = 23
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var rowWidth: CGFloat = 0
     @State private var dragX: CGFloat?
@@ -570,7 +570,7 @@ private struct FloatingTabBar<TabMenu: View>: View {
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { rowWidth = $0 }
             .simultaneousGesture(slide)
             .padding(.horizontal, 10)
-            .padding(.vertical, 7)
+            .padding(.vertical, 5)
             .glassEffect(.regular.interactive(), in: .capsule)
         }
         .padding(.horizontal, Metrics.gutter)
@@ -600,7 +600,7 @@ private struct FloatingTabBar<TabMenu: View>: View {
             ?? (CGFloat(selection.wrappedValue) + 0.5) * slot
         return Capsule()
             .fill(Palette.tabSelection)
-            .frame(width: width, height: 48)
+            .frame(width: width, height: 44)
             .offset(x: center - width / 2)
             .opacity(rowWidth > 0 ? 1 : 0)
             .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: selection.wrappedValue)
