@@ -123,11 +123,12 @@ struct SearchView: View {
             .navigationTitle("둘러보기")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    GlassSegmentSwitcher(items: ExploreLane.allCases, selection: $lane, label: \.label)
-                        .opacity(query.isEmpty ? 1 : 0)
+                if query.isEmpty {
+                    ToolbarItem(placement: .principal) {
+                        GlassSegmentSwitcher(items: ExploreLane.allCases, selection: $lane, label: \.label)
+                    }
+                    .sharedBackgroundVisibility(.hidden)
                 }
-                .sharedBackgroundVisibility(.hidden)
             }
             .navigationDestination(for: Route.self) { route in
                 PostZoomDestination(
@@ -142,6 +143,7 @@ struct SearchView: View {
                 text: $query,
                 placement: .navigationBarDrawer(displayMode: .always),
                 prompt: "글·노트 찾기")
+            .searchPresentationToolbarBehavior(.avoidHidingContent)
             .searchScopes($scope, activation: .onTextEntry) {
                 Text("글").tag(SearchScope.posts)
                 Text("노트").tag(SearchScope.notes)
