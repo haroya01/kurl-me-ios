@@ -21,7 +21,6 @@ final class HomeFeedViewModel {
     private(set) var top: [HomeMix.Slot] = []
     private var pulledAt: Date?
     private var leftAt: Date?
-    private(set) var pulledNew = 0
 
     struct PullOutcome: Equatable {
         var added = 0
@@ -70,13 +69,8 @@ final class HomeFeedViewModel {
         }
         guard let outcome, tab != .trending else { return }
         if case .failed = phase { return }
-        if outcome.added > 0 {
-            pulledNew += 1
-        } else if outcome.failed {
-            notify(String(localized: "새로고침하지 못했습니다"))
-        } else {
-            notify(String(localized: "새 글이 없어요"))
-        }
+        guard outcome.added == 0 else { return }
+        notify(outcome.failed ? String(localized: "새로고침하지 못했습니다") : String(localized: "새 글이 없어요"))
     }
 
     func reload(settlesLaunch: Bool = false) async {

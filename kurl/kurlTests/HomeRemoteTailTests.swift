@@ -384,7 +384,6 @@ final class HomeRemoteTailTests: XCTestCase {
 
         XCTAssertEqual(shape(model.rows), before)
         XCTAssertEqual(clock.said, [Self.nothingNew])
-        XCTAssertEqual(model.pulledNew, 0)
     }
 
     func testAGapThatBringsNothingNewKeepsTheListAndSaysSo() async throws {
@@ -399,7 +398,7 @@ final class HomeRemoteTailTests: XCTestCase {
         XCTAssertEqual(clock.said, [Self.nothingNew])
     }
 
-    func testAGapWithNewPostsReplacesTheListAndScrollsUpWithoutAToast() async throws {
+    func testAGapWithNewPostsReplacesTheListWithoutAToast() async throws {
         let (model, _, newer, clock) = try await pulled()
         newer.batch = HomeFeedBatch(items: [post(9)] + (1...5).map(post), next: "p2", newest: "0.9", gap: true)
 
@@ -408,10 +407,9 @@ final class HomeRemoteTailTests: XCTestCase {
         XCTAssertEqual(model.items.map(\.id), ["post-9"] + (1...5).map { "post-\($0)" })
         XCTAssertEqual(model.next, "p2")
         XCTAssertTrue(clock.said.isEmpty)
-        XCTAssertEqual(model.pulledNew, 1)
     }
 
-    func testANewPostOnTopScrollsUpWithoutAToast() async throws {
+    func testANewPostGoesOnTopWithoutAToast() async throws {
         let (model, _, newer, clock) = try await pulled()
         newer.batch = HomeFeedBatch(items: [post(7)], next: nil, newest: "0.7", gap: false)
 
@@ -419,7 +417,6 @@ final class HomeRemoteTailTests: XCTestCase {
 
         XCTAssertEqual(model.rows.first?.id, "post-7")
         XCTAssertTrue(clock.said.isEmpty)
-        XCTAssertEqual(model.pulledNew, 1)
     }
 
     func testBothFailingSaysTheRefreshFailed() async throws {
@@ -430,7 +427,6 @@ final class HomeRemoteTailTests: XCTestCase {
         await model.refresh()
 
         XCTAssertEqual(clock.said, [Self.couldNotRefresh])
-        XCTAssertEqual(model.pulledNew, 0)
     }
 
     func testWithForYouStillDownAPullSaysNothingNew() async throws {
@@ -449,7 +445,6 @@ final class HomeRemoteTailTests: XCTestCase {
         await model.refresh()
 
         XCTAssertTrue(clock.said.isEmpty)
-        XCTAssertEqual(model.pulledNew, 1)
         XCTAssertEqual(model.remote?.items.count, 2)
     }
 
