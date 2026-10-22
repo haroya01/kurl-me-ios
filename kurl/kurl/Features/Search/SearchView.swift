@@ -213,7 +213,7 @@ struct SearchView: View {
         .noteTextLinks()
         .brandRefreshable {
             async let discovery: Void = loadDiscovery()
-            await streams[lane == .remote ? .latest : .trending]?.reload()
+            await streams[lane == .remote ? .forYou : .trending]?.reload()
             await discovery
         }
     }
@@ -238,7 +238,7 @@ struct SearchView: View {
     }
 
     @ViewBuilder private var remoteLane: some View {
-        if let model = streams[.latest] {
+        if let model = streams[.forYou] {
             let measuring = router.selection == TabRouter.exploreTab && navigation.path.isEmpty
             RemoteStreamRows(model: model, gutter: Metrics.noteGutter, measuresSeen: measuring)
                 .task { await model.loadIfNeeded() }

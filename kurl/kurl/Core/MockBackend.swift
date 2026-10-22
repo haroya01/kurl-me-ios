@@ -1970,6 +1970,20 @@ enum MockBackend {
                 return json(["items": kept, "next": NSNull()])
             }
         }
+        if method == "GET", parts == ["federation", "for-you"] {
+            let pool = trendingNotes()
+            let ranked = [5, 3, 2, 1, 0, 4, 6].map { pool[$0] }
+            let unseen = ranked.filter { !remoteSeen.contains($0["uri"] as? String ?? "") }
+            let seen = ranked.filter { remoteSeen.contains($0["uri"] as? String ?? "") }
+            let order = unseen + seen
+            let second = query?.first(where: { $0.name == "cursor" })?.value?.hasPrefix("f") == true
+            let items = second ? [order[3]] + order[4...] : Array(order[..<4])
+            var page: [String: Any] = ["items": items, "next": second ? NSNull() : "f\(Int(Date().timeIntervalSince1970 * 1000)).4"]
+            if let first = items.firstIndex(where: { remoteSeen.contains($0["uri"] as? String ?? "") }) {
+                page["seenFrom"] = first
+            }
+            return json(page)
+        }
         if method == "GET", parts == ["federation", "latest"] {
             let items = trendingNotes().map { item -> [String: Any] in
                 var latest = item

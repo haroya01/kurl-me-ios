@@ -127,6 +127,7 @@ final class TrendingNoteActions {
 struct TrendingNoteRow: View {
     let item: TrendingNote
     var showsContext = true
+    var marker: Text?
     @State private var actions: TrendingNoteActions
     @State private var replyTarget: Note?
     @State private var quoteTarget: Note?
@@ -140,9 +141,10 @@ struct TrendingNoteRow: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
 
-    init(item: TrendingNote, showsContext: Bool = true) {
+    init(item: TrendingNote, showsContext: Bool = true, context: Text? = nil) {
         self.item = item
         self.showsContext = showsContext
+        self.marker = context
         _actions = State(initialValue: TrendingNoteActions(item: item))
     }
 
@@ -171,6 +173,7 @@ struct TrendingNoteRow: View {
     }
 
     private var context: Text? {
+        if let marker { return marker }
         guard showsContext, let first = item.servers.first else { return nil }
         let others = item.servers.count - 1
         return others > 0 ? Text("\(first) 외 \(others)곳에서 인기") : Text("\(first)에서 인기")

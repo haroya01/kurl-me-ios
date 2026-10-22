@@ -279,6 +279,7 @@ struct NoteRowView: View {
     var position: String? = nil
     var onReplied: ((Note) -> Void)? = nil
     var detached: NoteRowDetached? = nil
+    var context: Text? = nil
 
     @State private var replying = false
     @State private var replyPosts = 0
@@ -322,7 +323,7 @@ struct NoteRowView: View {
          onQuoted: ((Note) -> Void)? = nil, repostedBy: String? = nil,
          showsPin: Bool = false, replyHeader: ReplyHeader? = nil,
          threadLineBelow: Bool = false, focused: Bool = false, position: String? = nil,
-         onReplied: ((Note) -> Void)? = nil, detached: NoteRowDetached? = nil) {
+         onReplied: ((Note) -> Void)? = nil, detached: NoteRowDetached? = nil, context: Text? = nil) {
         self.note = note
         self.onChange = onChange
         self.onDelete = onDelete
@@ -335,6 +336,7 @@ struct NoteRowView: View {
         self.position = position
         self.onReplied = onReplied
         self.detached = detached
+        self.context = context
         _liked = State(initialValue: note.likedByMe == true)
         _likeCount = State(initialValue: note.likeCount)
         _reposted = State(initialValue: note.repostedByMe == true)
@@ -388,7 +390,7 @@ struct NoteRowView: View {
 
     private var content: some View {
         VStack(alignment: .leading, spacing: 6) {
-            if let context = detached?.context {
+            if let context = detached?.context ?? context {
                 HStack(spacing: 12) {
                     Color.clear.frame(width: 36 * unit, height: 1)
                     context
@@ -1879,6 +1881,7 @@ struct NoteFeedItem: View {
     var repostedBy: String? = nil
     var showsPin = false
     var replyHeader: ReplyHeader? = nil
+    var context: Text? = nil
 
     var body: some View {
         let thread = note.thread
@@ -1894,7 +1897,8 @@ struct NoteFeedItem: View {
                 onDelete: onDelete, onQuoted: onQuoted, repostedBy: repostedBy, showsPin: showsPin,
                 replyHeader: replyHeader,
                 threadLineBelow: next != nil,
-                position: next == nil ? nil : thread.map { "1/\($0.total)" })
+                position: next == nil ? nil : thread.map { "1/\($0.total)" },
+                context: context)
             if let thread, let next {
                 NoteRowView(
                     note: next,
@@ -1987,6 +1991,7 @@ struct NoteDetailView: View {
         .sensoryFeedback(.success, trigger: replied)
         .loginPrompt(isPresented: $showLoginSheet, message: "답글을 달려면 로그인하세요")
         .task { if thread == nil { await load() } }
+        .dwellsOnRemoteNote(noteId)
     }
 
     private func content(_ thread: NoteThread) -> some View {
