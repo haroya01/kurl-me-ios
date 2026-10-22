@@ -1,6 +1,6 @@
 //
 //  로그아웃 뒤 기기에 남는 이전 계정 자취 — 쓰다 만 글은 주인에게만 복구로 뜨고, 최근 검색·내보낸 CSV 는
-//  다음 계정에 보이지 않으며, 저장 실패의 '다시 시도'가 다른 계정에 초안을 만들지 않게 못박는다.
+//  다음 계정에 보이지 않으며, 저장 실패의 '다시 시도'와 줄 선 플러시가 다른 계정에 초안을 만들지 않게 못박는다.
 //
 
 import XCTest
@@ -163,5 +163,116 @@ final class LogoutWipeTests: XCTestCase {
 
         XCTAssertNil(ToastCenter.shared.message)
         XCTAssertNil(ToastCenter.shared.actionLabel)
+    }
+
+    // MARK: 대기 중인 플러시의 주인
+
+    private func recorder(gated: Bool = false) -> FlushRecorder {
+        let recorder = FlushRecorder(gated: gated)
+        Self.flushers.append(recorder.flusher)
+        return recorder
+    }
+
+    private func payload(_ markdown: String) -> DraftFlusher.Payload {
+        var payload = payload()
+        payload.markdown = markdown
+        return payload
+    }
+
+    private func waitUntil(_ condition: () -> Bool) async {
+        let deadline = Date().addingTimeInterval(3)
+        while !condition(), Date() < deadline {
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+    }
+
+    private func settle() async {
+        try? await Task.sleep(for: .milliseconds(150))
+    }
+
+    func testQueuedFlushIsHeldForItsOwnerWhileAnotherUserIsSignedIn() async {
+        let recorder = recorder()
+        let flusher = recorder.flusher
+        flusher.flush(payload("A의 글"))
+        owner = 8
+        await settle()
+
+        XCTAssertEqual(recorder.sent, [])
+        XCTAssertEqual(flusher.pendingDraftKeys.count, 1)
+
+        flusher.flush(payload("B의 글"))
+        await waitUntil { recorder.sent == ["B의 글"] }
+        flusher.resumeHeld()
+        await settle()
+        XCTAssertEqual(recorder.sent, ["B의 글"])
+
+        owner = 7
+        flusher.resumeHeld()
+        await waitUntil { recorder.sent.count == 2 }
+        XCTAssertEqual(recorder.sent, ["B의 글", "A의 글"])
+        XCTAssertTrue(flusher.pendingDraftKeys.isEmpty)
+    }
+
+    func testQueuedFlushResumesWhenItsOwnerSignsBackInAfterExpiry() async {
+        let recorder = recorder()
+        let flusher = recorder.flusher
+        flusher.flush(payload("A의 글"))
+        owner = nil
+        await settle()
+        XCTAssertEqual(recorder.sent, [])
+
+        owner = 7
+        flusher.resumeHeld()
+        await waitUntil { !recorder.sent.isEmpty }
+
+        XCTAssertEqual(recorder.sent, ["A의 글"])
+        XCTAssertTrue(flusher.pendingDraftKeys.isEmpty)
+    }
+
+    func testDiscardDropsQueuedAndHeldFlushes() async {
+        let held = recorder()
+        held.flusher.flush(payload("보류된 글"))
+        owner = nil
+        await settle()
+        held.flusher.discardQueued()
+        XCTAssertTrue(held.flusher.pendingDraftKeys.isEmpty)
+        owner = 7
+        held.flusher.resumeHeld()
+        await settle()
+        XCTAssertEqual(held.sent, [])
+
+        let gated = recorder(gated: true)
+        gated.flusher.flush(payload("가는 중"))
+        await waitUntil { gated.waiting == 1 }
+        gated.flusher.flush(payload("줄 선 글"))
+        gated.flusher.discardQueued()
+        gated.releaseAll()
+        await waitUntil { gated.flusher.pendingDraftKeys.isEmpty }
+        await settle()
+
+        XCTAssertEqual(gated.sent, ["가는 중"])
+    }
+}
+
+@MainActor
+private final class FlushRecorder {
+    private(set) var sent: [String] = []
+    private var gates: [CheckedContinuation<Void, Never>] = []
+    private let gated: Bool
+    private(set) lazy var flusher = DraftFlusher { payload in
+        if self.gated { await withCheckedContinuation { self.gates.append($0) } }
+        self.sent.append(payload.markdown)
+    }
+
+    var waiting: Int { gates.count }
+
+    init(gated: Bool) {
+        self.gated = gated
+    }
+
+    func releaseAll() {
+        let pending = gates
+        gates = []
+        pending.forEach { $0.resume() }
     }
 }

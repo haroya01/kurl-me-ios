@@ -41,6 +41,8 @@ final class DraftFlusher {
 
     /// 차례를 기다리거나 서버로 가는 중인 플러시 — 맨 앞이 지금 보내는 것.
     private var queue: [Payload] = []
+    /// 차례가 왔을 때 지금 사용자가 주인이 아니던 플러시 — 보내지 않고, 주인이 다시 로그인하면 이어 보낸다.
+    private var held: [Payload] = []
     private let perform: @MainActor (inout Payload) async throws -> Void
 
     init(perform: @escaping @MainActor (inout Payload) async throws -> Void = DraftFlusher.saveToServer) {
@@ -48,7 +50,7 @@ final class DraftFlusher {
     }
 
     /// 아직 서버에 닿지 않은 새 글의 금고 키 — 새 글 화면이 이 슬롯을 복구 대상으로 오인하지 않게.
-    var pendingDraftKeys: Set<UUID> { Set(queue.map(\.draftKey)) }
+    var pendingDraftKeys: Set<UUID> { Set((queue + held).map(\.draftKey)) }
 
     /// 편집을 떠날 때 호출 — 넘겨받은 스냅샷으로 저장을 끝까지 수행한다. 앞 플러시가 가는 중이면
     /// 버리지 않고 뒤에 세운다. 성공하면 조용히, 실패하면 루트 토스트로 알리고 '다시 시도'로 재플러시할 수 있게 한다.
@@ -60,8 +62,27 @@ final class DraftFlusher {
         Task { await drain() }
     }
 
+    /// 로그인 직후 — 이 사용자가 주인인 보류 플러시를 다시 줄 세운다.
+    func resumeHeld() {
+        let owner = ComposeRecoveryStore.currentOwner()
+        let mine = held.filter { $0.ownerId == owner }
+        held.removeAll { $0.ownerId == owner }
+        mine.forEach(flush)
+    }
+
+    /// 명시 로그아웃 — 그 계정의 대기·보류 플러시를 버린다. 이미 서버로 가는 맨 앞은 멈출 수 없어 둔다.
+    func discardQueued() {
+        held = []
+        queue = Array(queue.prefix(1))
+    }
+
     private func drain() async {
         while var payload = queue.first {
+            guard payload.ownerId == ComposeRecoveryStore.currentOwner() else {
+                held.append(payload)
+                queue.removeFirst()
+                continue
+            }
             do {
                 try await perform(&payload)
                 // 서버에 실렸다 — 기기 금고 슬롯을 비운다(초안을 만들었으면 승격된 id 슬롯).

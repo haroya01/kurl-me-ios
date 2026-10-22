@@ -249,6 +249,7 @@ final class AuthStore {
         let refresh = refreshToken
         let device = Config.useMocks ? nil : PushRegistrar.storedToken
         forgetSession()
+        DraftFlusher.shared.discardQueued()
         ComposeRecoveryStore.wipeAll()
         ToastCenter.shared.dismissActionToast()
         Task {
@@ -298,6 +299,7 @@ final class AuthStore {
             isSignedIn = true
             Task { await loadMe() }
             PushRegistrar.syncAfterSignIn()
+            DraftFlusher.shared.resumeHeld()
         }
     }
 
