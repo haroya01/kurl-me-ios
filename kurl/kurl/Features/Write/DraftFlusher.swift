@@ -35,6 +35,8 @@ final class DraftFlusher {
         var access: PostAccessDraft.Patch?
         /// 편집 화면의 버전 게이트 — 화면에서 가던 쓰기 뒤에 줄 서고, 그 쓰기가 받은 버전을 base 로 쓴다.
         var gate = PostVersionGate()
+        /// 이 편집을 쓴 사용자 — 비우면 flush 가 지금 사용자로 채운다.
+        var ownerId: Int64?
     }
 
     /// 차례를 기다리거나 서버로 가는 중인 플러시 — 맨 앞이 지금 보내는 것.
@@ -51,6 +53,8 @@ final class DraftFlusher {
     /// 편집을 떠날 때 호출 — 넘겨받은 스냅샷으로 저장을 끝까지 수행한다. 앞 플러시가 가는 중이면
     /// 버리지 않고 뒤에 세운다. 성공하면 조용히, 실패하면 루트 토스트로 알리고 '다시 시도'로 재플러시할 수 있게 한다.
     func flush(_ payload: Payload) {
+        var payload = payload
+        if payload.ownerId == nil { payload.ownerId = ComposeRecoveryStore.currentOwner() }
         queue.append(payload)
         guard queue.count == 1 else { return }
         Task { await drain() }
@@ -71,6 +75,7 @@ final class DraftFlusher {
             } catch {
                 // 화면은 이미 사라졌다 — 루트에 살아있는 토스트로 반드시 알린다(조용한 유실 금지).
                 // '다시 시도'는 이미 만든 초안 id 를 든 스냅샷으로 재플러시한다(초안 중복 생성 방지).
+                // 그 사이 다른 계정으로 바뀌었으면 아무것도 하지 않는다(남의 계정에 초안을 만들지 않게).
                 // 원인이 인증이면 "네트워크 확인" 은 거짓 처방 — 다시 로그인을 말한다.
                 let retry = payload
                 ToastCenter.shared.show(
@@ -79,6 +84,7 @@ final class DraftFlusher {
                         : String(localized: "저장하지 못했어요. 네트워크를 확인하고 다시 시도해 주세요"),
                     actionLabel: String(localized: "다시 시도")
                 ) { [weak self] in
+                    guard ComposeRecoveryStore.currentOwner() == retry.ownerId else { return }
                     self?.flush(retry)
                 }
             }
