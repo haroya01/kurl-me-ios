@@ -35,12 +35,20 @@ final class RemoteStreamModel {
         return false
     }
 
+    var rows: [(index: Int, item: RemoteStreamItem, key: String)] {
+        items.enumerated().map { ($0.offset, $0.element, "\(feed.rawValue)-\($0.element.id)") }
+    }
+
     var firstKeptID: String? {
         items.first { if case .kept = $0 { true } else { false } }?.id
     }
 
     func loadIfNeeded() async {
         if case .idle = phase { await reload() }
+    }
+
+    var seenDividerID: String? {
+        firstSeenID == items.first?.id ? nil : firstSeenID
     }
 
     func isSeen(_ item: RemoteStreamItem) -> Bool {
@@ -144,7 +152,7 @@ struct RemoteStreamRows: View {
                 )
                 .padding(.top, 24)
             }
-            ForEach(Array(model.items.enumerated()), id: \.element.id) { index, item in
+            ForEach(model.rows, id: \.key) { index, item, _ in
                 RemoteStreamRow(item: item, model: model, measuresSeen: measuresSeen)
                     .task { await model.loadMoreIfNeeded(current: item) }
                 if index < model.items.count - 1 { Hairline().padding(.horizontal, -gutter) }
@@ -175,7 +183,7 @@ struct RemoteStreamRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if item.id == model.firstSeenID {
+            if item.id == model.seenDividerID {
                 RailHeading("이미 본 글")
                     .padding(.top, 20)
                     .accessibilityIdentifier("remote.seen")

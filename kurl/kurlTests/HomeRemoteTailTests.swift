@@ -246,7 +246,33 @@ final class RemoteSeenTests: XCTestCase {
         await model.reload()
 
         XCTAssertEqual(model.firstSeenID, "t-\(Self.uri(3))")
+        XCTAssertEqual(model.seenDividerID, "t-\(Self.uri(3))")
         XCTAssertEqual(model.items.map { model.isSeen($0) }, [false, false, true, true])
+    }
+
+    func testTheSameNoteInTwoFeedsGetsADifferentRowKey() async throws {
+        let page = try Self.page([1, 2], next: nil)
+        let trending = RemoteStreamModel(feed: .trending) { _, _ in page }
+        let latest = RemoteStreamModel(feed: .latest) { _, _ in page }
+        Self.kept += [trending, latest]
+
+        await trending.reload()
+        await latest.reload()
+
+        XCTAssertEqual(trending.items.map(\.id), latest.items.map(\.id))
+        XCTAssertTrue(Set(trending.rows.map(\.key)).isDisjoint(with: latest.rows.map(\.key)))
+        XCTAssertEqual(latest.rows.map(\.index), [0, 1])
+    }
+
+    func testWhenEverythingIsSeenThereIsNoDividerUnderTheHeading() async throws {
+        let pager = Pager(["first": try Self.page([1, 2], next: nil, seenFrom: 0)])
+        let model = stream(pager)
+
+        await model.reload()
+
+        XCTAssertEqual(model.firstSeenID, "t-\(Self.uri(1))")
+        XCTAssertNil(model.seenDividerID)
+        XCTAssertEqual(model.items.map { model.isSeen($0) }, [true, true])
     }
 
     func testTheSeenPartCanStartOnALaterPageAndOnlyTheFirstOneCounts() async throws {
