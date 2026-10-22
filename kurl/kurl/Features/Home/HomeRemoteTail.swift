@@ -32,7 +32,7 @@ struct HomeRemoteTail<Fallback: View>: View {
     @ViewBuilder
     private var rows: some View {
         if follows > 0 { Hairline().padding(.horizontal, -Metrics.noteGutter) }
-        RailHeading("다른 서버 최신")
+        RailHeading(model.feed == .latest ? "다른 서버 최신" : "다른 서버")
             .padding(.top, 20)
             .accessibilityIdentifier("home.remoteTail")
         ForEach(Array(model.items.enumerated()), id: \.element.id) { index, item in

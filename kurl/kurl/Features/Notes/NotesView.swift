@@ -1987,6 +1987,7 @@ struct NoteDetailView: View {
         .sensoryFeedback(.success, trigger: replied)
         .loginPrompt(isPresented: $showLoginSheet, message: "답글을 달려면 로그인하세요")
         .task { if thread == nil { await load() } }
+        .dwellsOnRemoteNote(noteId)
     }
 
     private func content(_ thread: NoteThread) -> some View {

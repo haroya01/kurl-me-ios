@@ -3,6 +3,7 @@ import SwiftUI
 extension RemoteStreamFeed {
     var label: LocalizedStringKey {
         switch self {
+        case .forYou: "추천"
         case .trending: "인기"
         case .latest: "최신"
         }
@@ -83,8 +84,8 @@ final class RemoteStreamModel {
             defer { isLoadingMore = false }
             guard let page = try? await page(after: cursor, epoch: myEpoch), myEpoch == epoch else { return }
             next = page.next
-            let seen = Set(items.map(\.id))
-            let fresh = Self.unique(page.items).filter { !seen.contains($0.id) }
+            let seen = Set(items.map(\.key))
+            let fresh = Self.unique(page.items).filter { !seen.contains($0.key) }
             items.append(contentsOf: fresh)
             if firstSeenID == nil { firstSeenID = Self.seenStart(page, shown: Set(fresh.map(\.id))) }
         }.value
@@ -118,7 +119,7 @@ final class RemoteStreamModel {
 
     static func unique(_ items: [RemoteStreamItem]) -> [RemoteStreamItem] {
         var seen = Set<String>()
-        return items.filter { seen.insert($0.id).inserted }
+        return items.filter { seen.insert($0.key).inserted }
     }
 }
 
@@ -138,7 +139,7 @@ struct RemoteStreamRows: View {
         case .loaded:
             if model.items.isEmpty {
                 FeedPlaceholder(
-                    title: model.feed == .trending ? "아직 받은 다른 서버 노트가 없어요" : "아직 다른 서버 최신 노트가 없어요",
+                    title: model.feed == .latest ? "아직 다른 서버 최신 노트가 없어요" : "아직 받은 다른 서버 노트가 없어요",
                     actionTitle: "다시 시도",
                     action: { Task { model.next == nil ? await model.reload() : await model.loadMore() } }
                 )
@@ -194,10 +195,11 @@ struct RemoteStreamRow: View {
                     onDelete: { model.removed($0) })
             }
         }
-        .marksRemoteSeen(measuring ? item.seenURI : nil)
+        .marksRemoteSeen(seenTarget)
     }
 
-    private var measuring: Bool {
-        measuresSeen && model.feed == .latest && !model.isSeen(item)
+    private var seenTarget: RemoteSeenTarget? {
+        guard measuresSeen, model.feed.measuresSeen, let uri = item.seenURI else { return nil }
+        return RemoteSeenTarget(uri: uri, feed: model.feed, noteID: item.keptID, marks: !model.isSeen(item))
     }
 }

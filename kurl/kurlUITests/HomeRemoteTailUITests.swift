@@ -48,4 +48,23 @@ final class HomeRemoteTailUITests: XCTestCase {
         XCTAssertTrue(oldestUnseen.exists, "안 본 글 마지막 행이 없음")
         XCTAssertLessThan(oldestUnseen.frame.maxY, seen.frame.minY, "안 본 글은 구분선 위에 와야 함")
     }
+
+    func testExploreOtherServersOpensOnForYouAndTheSwitchTurnsToLatest() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "search", "--explore-lane", "remote"]
+        app.launch()
+
+        let feed = app.segmentedControls["remote.feed"]
+        XCTAssertTrue(feed.waitForExistence(timeout: 12), "다른 서버 칸에 추천·최신 전환이 없음")
+        XCTAssertTrue(feed.buttons.element(boundBy: 0).isSelected, "기본이 추천이 아님")
+        let first = app.descendants(matching: .any).matching(identifier: "trending.note").firstMatch
+        XCTAssertTrue(first.waitForExistence(timeout: 10))
+        XCTAssertTrue(first.label.contains("작은 서버"), "추천 첫 글이 아님: \(first.label)")
+
+        feed.buttons.element(boundBy: 1).tap()
+        let latest = NSPredicate(format: "label CONTAINS %@", "fediverse")
+        expectation(for: latest, evaluatedWith: app.descendants(matching: .any).matching(identifier: "trending.note").firstMatch)
+        waitForExpectations(timeout: 10)
+        XCTAssertTrue(feed.buttons.element(boundBy: 1).isSelected)
+    }
 }

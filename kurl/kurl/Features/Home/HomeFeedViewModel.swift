@@ -27,7 +27,7 @@ final class HomeFeedViewModel {
         self.load = load
         self.newer = newer
         self.settled = settled
-        self.tail = tab == .latest ? RemoteStreamModel(feed: .latest, load: remote) : nil
+        self.tail = tab == .latest ? RemoteStreamModel(feed: .forYou, load: remote) : nil
     }
 
     var showsTail: Bool {

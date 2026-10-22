@@ -93,6 +93,26 @@ final class HomeRemoteTailTests: XCTestCase {
         XCTAssertTrue(model.showsTail)
     }
 
+    func testTheTailIsTheForYouFeed() async throws {
+        let home = Home(["first": HomeFeedBatch(items: [], next: nil)], newer: HomeFeedBatch(items: [], next: nil))
+        var feeds: [RemoteStreamFeed] = []
+        let model = HomeFeedViewModel(
+            tab: .latest,
+            remote: { feed, _ in
+                feeds.append(feed)
+                return try Self.page([1], next: nil)
+            },
+            newer: { _, _ in home.newer },
+            load: { _, cursor in try home.page(cursor) })
+        Self.kept += [model, home]
+
+        await model.reload()
+        await model.tail?.loadIfNeeded()
+
+        XCTAssertEqual(model.tail?.feed, .forYou)
+        XCTAssertEqual(feeds, [.forYou])
+    }
+
     func testOnlyLatestHasATail() async {
         for tab in [HomeFeedTab.trending, .following] {
             let home = Home(["first": HomeFeedBatch(items: [post(1)], next: nil)], newer: HomeFeedBatch(items: [], next: nil))
@@ -194,11 +214,13 @@ final class RemoteSeenTests: XCTestCase {
 
     @MainActor
     private final class Sink {
-        var batches: [[String]] = []
+        var sent: [RemoteSeenBatch] = []
         var failures = 0
 
-        func send(_ uris: [String]) throws {
-            batches.append(uris)
+        var batches: [[String]] { sent.map(\.uris) }
+
+        func send(_ batch: RemoteSeenBatch) throws {
+            sent.append(batch)
             if failures > 0 {
                 failures -= 1
                 throw APIError.http(status: 503)
@@ -316,11 +338,11 @@ final class RemoteSeenTests: XCTestCase {
         let sink = Sink()
         let reporter = reporter(sink)
 
-        for n in 1...19 { reporter.mark(Self.uri(n)) }
+        for n in 1...19 { reporter.mark(Self.uri(n), feed: .latest) }
         await Task.yield()
         XCTAssertEqual(sink.batches.count, 0)
 
-        reporter.mark(Self.uri(20))
+        reporter.mark(Self.uri(20), feed: .latest)
         await settle { !sink.batches.isEmpty }
         XCTAssertEqual(sink.batches, [(1...20).map(Self.uri)])
         XCTAssertEqual(reporter.queued, 0)
@@ -331,8 +353,8 @@ final class RemoteSeenTests: XCTestCase {
         let gate = Gate()
         let reporter = reporter(sink, gate: gate)
 
-        reporter.mark(Self.uri(1))
-        reporter.mark(Self.uri(2))
+        reporter.mark(Self.uri(1), feed: .latest)
+        reporter.mark(Self.uri(2), feed: .latest)
         await Task.yield()
         XCTAssertEqual(sink.batches.count, 0)
 
@@ -345,11 +367,11 @@ final class RemoteSeenTests: XCTestCase {
         let sink = Sink()
         let reporter = reporter(sink)
 
-        reporter.mark(Self.uri(1))
-        reporter.mark(Self.uri(1))
+        reporter.mark(Self.uri(1), feed: .latest)
+        reporter.mark(Self.uri(1), feed: .latest)
         await reporter.flush().value
-        reporter.mark(Self.uri(1))
-        reporter.mark(Self.uri(2))
+        reporter.mark(Self.uri(1), feed: .latest)
+        reporter.mark(Self.uri(2), feed: .latest)
         await reporter.flush().value
         await reporter.flush().value
 
@@ -361,16 +383,16 @@ final class RemoteSeenTests: XCTestCase {
         sink.failures = 2
         let reporter = reporter(sink)
 
-        reporter.mark(Self.uri(1))
+        reporter.mark(Self.uri(1), feed: .latest)
         await reporter.flush().value
         XCTAssertEqual(reporter.queued, 1)
 
-        reporter.mark(Self.uri(2))
+        reporter.mark(Self.uri(2), feed: .latest)
         await reporter.flush().value
         XCTAssertEqual(sink.batches, [[Self.uri(1)], [Self.uri(1), Self.uri(2)]])
         XCTAssertEqual(reporter.queued, 1, "uri 1 failed twice and is dropped, uri 2 waits for one more try")
 
-        reporter.mark(Self.uri(1))
+        reporter.mark(Self.uri(1), feed: .latest)
         await reporter.flush().value
         XCTAssertEqual(sink.batches.last, [Self.uri(2), Self.uri(1)])
         XCTAssertEqual(reporter.queued, 0)
@@ -388,7 +410,7 @@ final class RemoteSeenTests: XCTestCase {
             wait: { await Gate().wait() })
         Self.kept += [reporter, down]
 
-        for n in 1...220 { reporter.mark(Self.uri(n)) }
+        for n in 1...220 { reporter.mark(Self.uri(n), feed: .latest) }
         await settle { calls == 11 }
         XCTAssertEqual(calls, 11)
         XCTAssertEqual(reporter.queued, 0)
@@ -396,7 +418,126 @@ final class RemoteSeenTests: XCTestCase {
         down.open()
         await settle { reporter.queued == RemoteSeenReporter.queueLimit }
         XCTAssertEqual(reporter.queued, 200)
-        reporter.mark(Self.uri(999))
+        reporter.mark(Self.uri(999), feed: .latest)
         XCTAssertEqual(reporter.queued, 200)
+    }
+
+    private static func kept(_ id: Int64, _ n: Int) -> String {
+        #"{"id":\#(id),"uri":"\#(uri(n))","body":"kept","createdAt":"2026-10-16T01:00:00Z","editedAt":null,"likeCount":null,"likedByMe":false,"author":{"id":-9800,"username":"mina@mastodon.social","bio":null,"avatarUrl":null,"displayName":"Mina","remoteId":9800,"url":"https://mastodon.social/@mina"},"media":[],"quotedPost":null,"inReplyToId":null,"replyCount":0,"repostCount":null,"repostedByMe":false,"quotedNote":null,"linkPreview":null}"#
+    }
+
+    private static func mixed(_ items: [String], next: String?, seenFrom: Int? = nil) throws -> RemoteStreamPage {
+        let seen = seenFrom.map { #","seenFrom":\#($0)"# } ?? ""
+        let json = #"{"items":[\#(items.joined(separator: ","))],"next":\#(next.map { "\"\($0)\"" } ?? "null")\#(seen)}"#
+        return try JSONDecoder.blog.decode(RemoteStreamPage.self, from: Data(json.utf8))
+    }
+
+    func testForYouHandsTheCursorBackAsItCameAndDropsAUriItAlreadyShows() async throws {
+        var asked: [String?] = []
+        let pages = [
+            "first": try Self.mixed([Self.kept(7, 1), Self.pool(2), Self.pool(2)], next: "f1792656810855.3"),
+            "f1792656810855.3": try Self.mixed([Self.pool(1), Self.pool(3), Self.kept(9, 4)], next: nil, seenFrom: 1),
+        ]
+        let model = RemoteStreamModel(feed: .forYou) { feed, cursor in
+            XCTAssertEqual(feed, .forYou)
+            asked.append(cursor)
+            return try XCTUnwrap(pages[cursor ?? "first"])
+        }
+        Self.kept.append(model)
+
+        await model.reload()
+        XCTAssertEqual(model.items.map(\.key), [Self.uri(1), Self.uri(2)], "a uri twice on one page shows once")
+        await model.loadMore()
+
+        XCTAssertEqual(asked, [nil, "f1792656810855.3"])
+        XCTAssertEqual(
+            model.items.map(\.id), ["n-7", "t-\(Self.uri(2))", "t-\(Self.uri(3))", "n-9"],
+            "the pool copy of a stored note already on screen is dropped by its uri")
+        XCTAssertEqual(model.firstSeenID, "t-\(Self.uri(3))")
+        XCTAssertNil(model.next)
+    }
+
+    func testEachFeedSendsItsOwnBatchNamingTheFeed() async {
+        let sink = Sink()
+        let reporter = reporter(sink)
+
+        reporter.mark(Self.uri(1), feed: .forYou)
+        reporter.mark(Self.uri(2), feed: .latest)
+        reporter.mark(Self.uri(3), feed: .forYou)
+        await reporter.flush().value
+
+        XCTAssertEqual(sink.sent, [
+            RemoteSeenBatch(uris: [Self.uri(1), Self.uri(3)], dwell: nil, feed: "for-you"),
+            RemoteSeenBatch(uris: [Self.uri(2)], dwell: nil, feed: "latest"),
+        ])
+    }
+
+    func testDwellAddsUpPerUriAndRidesWithTheMarksOfItsFeed() async {
+        let sink = Sink()
+        let reporter = reporter(sink)
+
+        reporter.mark(Self.uri(1), feed: .forYou)
+        reporter.dwell(Self.uri(1), ms: 600, feed: .forYou)
+        reporter.dwell(Self.uri(2), ms: 999, feed: .forYou)
+        reporter.dwell(Self.uri(1), ms: 700, feed: .forYou)
+        reporter.dwell(Self.uri(3), ms: 900_000, feed: .forYou)
+        await reporter.flush().value
+
+        XCTAssertEqual(sink.sent, [RemoteSeenBatch(
+            uris: [Self.uri(1)],
+            dwell: [RemoteDwell(uri: Self.uri(1), ms: 1_300), RemoteDwell(uri: Self.uri(3), ms: 600_000)],
+            feed: "for-you")],
+            "under a second waits for more, over ten minutes is cut")
+
+        reporter.dwell(Self.uri(2), ms: 1, feed: .latest)
+        reporter.dwell(Self.uri(1), ms: 2_000, feed: .latest)
+        await reporter.flush().value
+        XCTAssertEqual(sink.sent.last, RemoteSeenBatch(
+            uris: [],
+            dwell: [RemoteDwell(uri: Self.uri(1), ms: 3_300), RemoteDwell(uri: Self.uri(2), ms: 1_000)],
+            feed: "latest"),
+            "a uri already reported sends its running total, and dwell goes out on its own")
+    }
+
+    func testDwellAloneStartsTheTimer() async {
+        let sink = Sink()
+        let gate = Gate()
+        let reporter = reporter(sink, gate: gate)
+
+        reporter.dwell(Self.uri(1), ms: 4_000, feed: .forYou)
+        await Task.yield()
+        XCTAssertTrue(sink.sent.isEmpty)
+
+        gate.open()
+        await settle { !sink.sent.isEmpty }
+        XCTAssertEqual(sink.sent, [RemoteSeenBatch(uris: [], dwell: [RemoteDwell(uri: Self.uri(1), ms: 4_000)], feed: "for-you")])
+    }
+
+    func testAFailedDwellIsTriedOnceMore() async {
+        let sink = Sink()
+        sink.failures = 2
+        let reporter = reporter(sink)
+
+        reporter.dwell(Self.uri(1), ms: 2_000, feed: .forYou)
+        await reporter.flush().value
+        await reporter.flush().value
+        await reporter.flush().value
+
+        XCTAssertEqual(sink.sent.map(\.dwell), [
+            [RemoteDwell(uri: Self.uri(1), ms: 2_000)], [RemoteDwell(uri: Self.uri(1), ms: 2_000)],
+        ])
+    }
+
+    func testTimeOnANoteOpenedFromAMeasuredRowCountsForItsUri() async {
+        let sink = Sink()
+        let reporter = reporter(sink)
+
+        reporter.dwell(note: 7, ms: 9_000)
+        reporter.remember(7, uri: Self.uri(1), feed: .forYou)
+        reporter.dwell(Self.uri(1), ms: 1_500, feed: .forYou)
+        reporter.dwell(note: 7, ms: 9_000)
+        await reporter.flush().value
+
+        XCTAssertEqual(sink.sent, [RemoteSeenBatch(uris: [], dwell: [RemoteDwell(uri: Self.uri(1), ms: 10_500)], feed: "for-you")])
     }
 }
