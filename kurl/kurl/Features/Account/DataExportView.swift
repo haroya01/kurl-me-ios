@@ -236,12 +236,22 @@ struct DataExportView: View {
             defer { busy = nil }
             do {
                 let data = try await APIClient.shared.getAuthenticatedData("/users/me/exports/\(kind.rawValue)")
-                let url = FileManager.default.temporaryDirectory.appendingPathComponent(kind.filename)
+                let url = Self.downloadURL(kind)
                 try data.write(to: url, options: .atomic)
                 ready = Ready(url: url)
             } catch {
                 ToastCenter.shared.show(String(localized: "내보내지 못했어요"))
             }
+        }
+    }
+
+    static func downloadURL(_ kind: Kind) -> URL {
+        FileManager.default.temporaryDirectory.appendingPathComponent(kind.filename)
+    }
+
+    static func removeDownloads() {
+        for kind in Kind.allCases {
+            try? FileManager.default.removeItem(at: downloadURL(kind))
         }
     }
 }

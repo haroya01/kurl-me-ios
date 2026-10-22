@@ -4,6 +4,7 @@ import Foundation
 import Observation
 import Security
 import UIKit
+import UserNotifications
 import WidgetKit
 
 enum AuthError: LocalizedError {
@@ -314,6 +315,12 @@ final class AuthStore {
         PostAccess.shared.reset()
         AnalyticsSnapshot.clear()
         MyPostsCache.posts = nil
+        ComposeChooserSheet.lastRooms = []
+        ComposeRecoveryStore.wipeAll()
+        SearchRecents.clear()
+        DataExportView.removeDownloads()
+        UNUserNotificationCenter.current().removeAllDeliveredNotifications()
+        UNUserNotificationCenter.current().setBadgeCount(0)
         WidgetCenter.shared.reloadAllTimelines()
     }
 }

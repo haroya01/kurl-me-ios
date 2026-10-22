@@ -89,9 +89,8 @@ enum ComposeRecoveryStore {
             .max { $0.draft.savedAt < $1.draft.savedAt }
     }
 
-    /// 금고 전체를 비운다 — 슬롯이 파일이라 앱 재실행·다른 UITest 사이에도 남는다. 컴포즈 계열
-    /// UITest 가 앞선 테스트의 잔여 슬롯(→ 복구 다이얼로그)에 오염되지 않게 setUp 에서 초기화하는 용도
-    /// (`--reset-recovery`). 운영엔 호출부가 없다.
+    /// 금고 전체를 비운다 — 슬롯이 파일이라 앱 재실행 사이에도 남는다. 로그아웃(다음 계정에 복구로 뜨지 않게)과
+    /// 컴포즈 계열 UITest 의 `--reset-recovery` 가 부른다.
     static func wipeAll() {
         try? FileManager.default.removeItem(at: directory)
     }

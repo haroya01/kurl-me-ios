@@ -31,7 +31,7 @@ struct ComposeChooserSheet: View {
     }
 
     private static var lastContentHeight: CGFloat = 320
-    private static var lastRooms: [RoomListItem] = []
+    static var lastRooms: [RoomListItem] = []
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var posts = MyPostsCache.posts ?? []
