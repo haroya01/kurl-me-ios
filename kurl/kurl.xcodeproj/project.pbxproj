@@ -42,6 +42,7 @@
 		F1A000000000000000000111 /* RelativeDateFormatTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000112 /* RelativeDateFormatTests.swift */; };
 		F1A000000000000000000121 /* HeaderActionsLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000122 /* HeaderActionsLayoutTests.swift */; };
 		F1A000000000000000000131 /* EnglishPluralTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000132 /* EnglishPluralTests.swift */; };
+		CA4DED11C0A1B2C3D4E5F611 /* NameHandleLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA4DED11C0A1B2C3D4E5F612 /* NameHandleLayoutTests.swift */; };
 		F1A000000000000000000141 /* FollowStatusUnknownTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000142 /* FollowStatusUnknownTests.swift */; };
 		F1A000000000000000000151 /* NoteVideoSoundTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000152 /* NoteVideoSoundTests.swift */; };
 		F1A000000000000000000161 /* NotePollSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000162 /* NotePollSnapshotTests.swift */; };
@@ -129,6 +130,7 @@
 		F1A000000000000000000112 /* RelativeDateFormatTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RelativeDateFormatTests.swift; sourceTree = "<group>"; };
 		F1A000000000000000000122 /* HeaderActionsLayoutTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HeaderActionsLayoutTests.swift; sourceTree = "<group>"; };
 		F1A000000000000000000132 /* EnglishPluralTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EnglishPluralTests.swift; sourceTree = "<group>"; };
+		CA4DED11C0A1B2C3D4E5F612 /* NameHandleLayoutTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NameHandleLayoutTests.swift; sourceTree = "<group>"; };
 		F1A000000000000000000142 /* FollowStatusUnknownTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FollowStatusUnknownTests.swift; sourceTree = "<group>"; };
 		F1A000000000000000000152 /* NoteVideoSoundTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NoteVideoSoundTests.swift; sourceTree = "<group>"; };
 		F1A000000000000000000162 /* NotePollSnapshotTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NotePollSnapshotTests.swift; sourceTree = "<group>"; };
@@ -279,6 +281,7 @@
 				F1A000000000000000000112 /* RelativeDateFormatTests.swift */,
 				F1A000000000000000000122 /* HeaderActionsLayoutTests.swift */,
 				F1A000000000000000000132 /* EnglishPluralTests.swift */,
+				CA4DED11C0A1B2C3D4E5F612 /* NameHandleLayoutTests.swift */,
 				F1A000000000000000000172 /* NoteCameraTests.swift */,
 				F1A000000000000000000182 /* RoomBandTests.swift */,
 				F1A000000000000000000192 /* HomeFeedRefreshTests.swift */,
@@ -498,6 +501,7 @@
 				F1A000000000000000000111 /* RelativeDateFormatTests.swift in Sources */,
 				F1A000000000000000000121 /* HeaderActionsLayoutTests.swift in Sources */,
 				F1A000000000000000000131 /* EnglishPluralTests.swift in Sources */,
+				CA4DED11C0A1B2C3D4E5F611 /* NameHandleLayoutTests.swift in Sources */,
 				F1A000000000000000000171 /* NoteCameraTests.swift in Sources */,
 				F1A000000000000000000181 /* RoomBandTests.swift in Sources */,
 				F1A000000000000000000191 /* HomeFeedRefreshTests.swift in Sources */,

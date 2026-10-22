@@ -59,15 +59,9 @@ struct ComposeChooserSheet: View {
                     RailHeading("무엇을")
                         .padding(.bottom, 10)
                     HStack(spacing: 10) {
-                        kindCard(
-                            "노트", hint: room == nil ? "짧게, 바로 올라가요" : "지금 하는 걸 짧게",
-                            systemImage: "text.bubble"
-                        ) { onChoose(.note(room)) }
+                        kindCard("노트", systemImage: "text.bubble") { onChoose(.note(room)) }
                             .accessibilityIdentifier("compose.chooser.note")
-                        kindCard(
-                            "긴 글", hint: room == nil ? "제목이 있는 블로그 글" : "방 멤버만 읽는 블로그 글",
-                            systemImage: "doc.richtext"
-                        ) { onChoose(.newPost(room)) }
+                        kindCard("긴 글", systemImage: "doc.richtext") { onChoose(.newPost(room)) }
                             .accessibilityIdentifier("compose.chooser.post")
                     }
                     if !drafts.isEmpty {
@@ -154,26 +148,18 @@ struct ComposeChooserSheet: View {
     }
 
     private func kindCard(
-        _ title: LocalizedStringKey, hint: LocalizedStringKey, systemImage: String, action: @escaping () -> Void
+        _ title: LocalizedStringKey, systemImage: String, action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 10) {
                 Image(systemName: systemImage)
                     .font(.system(size: 22, weight: .regular))
                     .foregroundStyle(Palette.ink)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(title)
-                        .typeScale(.titleSmall)
-                        .foregroundStyle(Palette.ink)
-                    Text(hint)
-                        .typeScale(.meta)
-                        .foregroundStyle(Palette.secondary)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                        .contentTransition(.opacity)
-                }
+                Text(title)
+                    .typeScale(.titleSmall)
+                    .foregroundStyle(Palette.ink)
             }
-            .frame(maxWidth: .infinity, minHeight: 84, alignment: .topLeading)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(16)
             .background(Palette.chipBg, in: RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
             .contentShape(RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))

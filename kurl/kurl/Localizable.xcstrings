@@ -45495,90 +45495,6 @@
         }
       }
     },
-    "짧게, 바로 올라가요": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Short, posted right away"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "छोटा, तुरंत पोस्ट"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "短く、すぐに投稿"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ngắn, đăng ngay"
-          }
-        }
-      }
-    },
-    "제목이 있는 블로그 글": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A blog post with a title"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "शीर्षक वाली ब्लॉग पोस्ट"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "タイトルのあるブログ記事"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bài blog có tiêu đề"
-          }
-        }
-      }
-    },
-    "방 멤버만 읽는 블로그 글": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A blog post only room members read"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "सिर्फ़ रूम सदस्यों के लिए ब्लॉग पोस्ट"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ルームのメンバーだけが読むブログ記事"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bài blog chỉ thành viên phòng đọc"
-          }
-        }
-      }
-    },
     "지우면 이 방에 올린 내 노트·블로그 글·댓글이 모두 지워져요.": {
       "localizations": {
         "en": {
@@ -46219,34 +46135,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bạn đang làm gì?"
-          }
-        }
-      }
-    },
-    "지금 하는 걸 짧게": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A quick line on what you're up to"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "अभी जो कर रहे हैं, छोटे में"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "いましていることを短く"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ngắn gọn điều bạn đang làm"
           }
         }
       }
