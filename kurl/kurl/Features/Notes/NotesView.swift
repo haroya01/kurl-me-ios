@@ -947,7 +947,10 @@ struct NoteRowView: View {
     @ViewBuilder private func remoteCardAttachments(_ shape: RemoteNoteShape) -> some View {
         let picture = RemoteNoteCard.picture(in: note)
         if !folded {
-            RemoteNoteCard(noteId: note.id, shape: shape, summary: shownBody, picture: picture, full: focused)
+            RemoteNoteCard(
+                noteId: note.id, shape: shape,
+                summary: NoteText.hidingCardedLink(shownBody, card: shape.original.flatMap { _ in shape.url }),
+                picture: picture, full: focused)
                 .padding(.top, focused ? 0 : 6)
             if !note.body.isEmpty { translationLine }
         }

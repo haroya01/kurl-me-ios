@@ -1241,6 +1241,26 @@ final class NotesFeedUITests: XCTestCase {
         XCTAssertFalse(body.label.contains("https://sora.example/tools"), "카드로 뜬 끝 주소가 본문에 또 보임")
     }
 
+    func testALinkOnlyNoteStillOpensItsDetailFromTheRow() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let card = app.descendants(matching: .any)["note.linkCard.9511"]
+        var tries = 0
+        while !card.exists || !card.isHittable, tries < 8 { app.swipeUp(); tries += 1 }
+        XCTAssertTrue(card.waitForExistence(timeout: 6), "주소만 있는 노트에 링크 카드가 없음")
+        XCTAssertFalse(app.buttons["note.body.9511"].exists, "카드로 뜬 주소가 본문으로 또 보임")
+        let menu = app.buttons["note.menu.9511"]
+        XCTAssertTrue(menu.exists)
+        app.coordinate(withNormalizedOffset: .zero)
+            .withOffset(CGVector(dx: menu.frame.minX - 40, dy: menu.frame.midY))
+            .tap()
+        XCTAssertTrue(app.buttons["note.reply"].waitForExistence(timeout: 6), "본문이 빈 노트의 행을 눌러도 상세가 안 열림")
+        attach(app, "note-link-only-opened")
+    }
+
     func testRepostMenuTogglesAndQuotePostsAboveTheFeed() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]

@@ -223,6 +223,12 @@ enum MockBackend {
         MockNote(id: 9508, body: "@honggildong 다음 주 회고, 둘이 먼저 맞춰 볼래요?",
                  createdAt: Date().addingTimeInterval(-110_000), likeCount: 0, authorId: 2, username: "yuki_dev",
                  visibility: "direct"),
+        MockNote(id: 9511, body: "https://youtu.be/0mwm1_-aQaE",
+                 createdAt: Date().addingTimeInterval(-120_000), likeCount: 0, authorId: 3, username: "reader_kim",
+                 linkPreview: [
+                    "url": "https://youtu.be/0mwm1_-aQaE", "title": "あかめとあおめの切り抜きゲーム実況【ドラゴンクエスト9】",
+                    "description": NSNull(), "image": NSNull(),
+                 ]),
     ]
     private static var nextNoteId: Int64 = 9600
     private static var likedNotes: Set<Int64> = []
