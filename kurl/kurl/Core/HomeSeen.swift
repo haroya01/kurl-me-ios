@@ -19,22 +19,43 @@ extension HomeFeedItem {
 @MainActor
 final class HomeSeenLog {
     static let shared = HomeSeenLog()
-    static let storageKey = "homeSeenLog"
+    static let storagePrefix = "homeSeenLog."
     static let keep: TimeInterval = 14 * 24 * 60 * 60
     static let limit = 3_000
 
     private let defaults: UserDefaults
     private let now: () -> Date
+    private let viewer: @MainActor () -> Int64?
+    private var storageKey: String
     private var seen: [String: Double]
     private var saving: Task<Void, Never>?
 
-    init(defaults: UserDefaults = .standard, now: @escaping () -> Date = Date.init) {
+    init(
+        defaults: UserDefaults = .standard,
+        now: @escaping () -> Date = Date.init,
+        viewer: @escaping @MainActor () -> Int64? = { AuthStore.shared.accountId }
+    ) {
         self.defaults = defaults
         self.now = now
-        seen = (defaults.dictionary(forKey: Self.storageKey) as? [String: Double]) ?? [:]
+        self.viewer = viewer
+        storageKey = Self.storageKey(for: viewer())
+        seen = (defaults.dictionary(forKey: storageKey) as? [String: Double]) ?? [:]
+    }
+
+    static func storageKey(for account: Int64?) -> String {
+        storagePrefix + (account.map { "user.\($0)" } ?? "device")
+    }
+
+    private func follow() {
+        let current = Self.storageKey(for: viewer())
+        guard current != storageKey else { return }
+        save()
+        storageKey = current
+        seen = (defaults.dictionary(forKey: storageKey) as? [String: Double]) ?? [:]
     }
 
     func contains(_ key: String) -> Bool {
+        follow()
         guard let at = seen[key] else { return false }
         return now().timeIntervalSince1970 - at < Self.keep
     }
@@ -60,7 +81,16 @@ final class HomeSeenLog {
     func save() {
         saving?.cancel()
         saving = nil
-        defaults.set(seen, forKey: Self.storageKey)
+        defaults.set(seen, forKey: storageKey)
+    }
+
+    func wipeAccounts() {
+        saving?.cancel()
+        saving = nil
+        for key in defaults.dictionaryRepresentation().keys where key.hasPrefix(Self.storagePrefix + "user.") {
+            defaults.removeObject(forKey: key)
+        }
+        if storageKey.hasPrefix(Self.storagePrefix + "user.") { seen = [:] }
     }
 }
 

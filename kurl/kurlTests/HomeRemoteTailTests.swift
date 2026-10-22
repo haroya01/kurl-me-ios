@@ -944,22 +944,45 @@ final class RemoteSeenTests: XCTestCase {
         let suite = "home-seen-\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
-        let log = HomeSeenLog(defaults: defaults, now: clock)
+        let log = HomeSeenLog(defaults: defaults, now: clock, viewer: { nil })
         Self.kept.append(log)
         return log
+    }
+
+    func testTheLocalSeenLogKeepsEachAccountAndTheDeviceApart() {
+        let suite = "home-seen-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        var viewer: Int64? = 7
+        let log = HomeSeenLog(defaults: defaults, viewer: { viewer })
+        Self.kept.append(log)
+
+        log.record("kurl:note:1")
+        viewer = nil
+        XCTAssertFalse(log.contains("kurl:note:1"), "the device does not see what account 7 saw")
+        log.record("kurl:note:2")
+        viewer = 8
+        XCTAssertFalse(log.contains("kurl:note:1"))
+        XCTAssertFalse(log.contains("kurl:note:2"))
+        viewer = 7
+        XCTAssertTrue(log.contains("kurl:note:1"))
+        XCTAssertFalse(log.contains("kurl:note:2"))
+        log.save()
+        XCTAssertNotNil(defaults.dictionary(forKey: HomeSeenLog.storageKey(for: 7)))
+        XCTAssertNotNil(defaults.dictionary(forKey: HomeSeenLog.storageKey(for: nil)))
+        defaults.removePersistentDomain(forName: suite)
     }
 
     func testTheLocalSeenLogKeepsKeysForFourteenDaysAndSurvivesARestart() {
         var now = Date(timeIntervalSince1970: 1_792_000_000)
         let suite = "home-seen-\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
-        let log = HomeSeenLog(defaults: defaults, now: { now })
+        let log = HomeSeenLog(defaults: defaults, now: { now }, viewer: { nil })
         log.record("kurl:note:1")
         XCTAssertTrue(log.contains("kurl:note:1"))
         XCTAssertFalse(log.contains("kurl:note:2"))
         log.save()
 
-        let again = HomeSeenLog(defaults: defaults, now: { now })
+        let again = HomeSeenLog(defaults: defaults, now: { now }, viewer: { nil })
         Self.kept += [log, again]
         XCTAssertTrue(again.contains("kurl:note:1"), "the log is read back after a restart")
 

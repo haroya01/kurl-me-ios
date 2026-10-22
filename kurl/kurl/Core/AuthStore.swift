@@ -251,6 +251,7 @@ final class AuthStore {
         forgetSession()
         DraftFlusher.shared.discardQueued()
         ComposeRecoveryStore.wipeAll()
+        HomeSeenLog.shared.wipeAccounts()
         ToastCenter.shared.dismissActionToast()
         Task {
             // logout 으로 폐기할 refresh — 아래에서 재발급이 일어나면 회전된 쪽으로 바뀐다.
