@@ -4,41 +4,55 @@ import SwiftUI
 struct RemoteFollowButton: View {
     @Binding var account: RemoteAccount
     var outlined = false
+    var compact = false
     @State private var busy = false
     @State private var confirmUnfollow = false
     @State private var showLogin = false
     @State private var toggles = 0
 
     var body: some View {
-        ToggleCapsuleButton(
-            isOn: account.following || account.requested,
-            on: account.following ? "팔로잉" : "요청됨",
-            off: "팔로우",
-            prominent: outlined ? false : nil,
-            expandTap: 6
-        ) {
-            if !AuthStore.shared.isSignedIn {
-                showLogin = true
-            } else if account.following || account.requested {
-                confirmUnfollow = true
-            } else {
-                Task { await set(true) }
+        capsule
+            .disabled(busy)
+            .accessibilityIdentifier("remote.follow.\(account.acct)")
+            .sensoryFeedback(.impact(weight: .light), trigger: toggles)
+            .loginPrompt(isPresented: $showLogin, message: "팔로우하려면 로그인하세요") {
+                if let fresh = try? await FederationAPI.account(id: account.id) { account = fresh }
             }
-        }
-        .disabled(busy)
-        .accessibilityIdentifier("remote.follow.\(account.acct)")
-        .sensoryFeedback(.impact(weight: .light), trigger: toggles)
-        .loginPrompt(isPresented: $showLogin, message: "팔로우하려면 로그인하세요") {
-            if let fresh = try? await FederationAPI.account(id: account.id) { account = fresh }
-        }
-        .alert(
-            account.following ? "\(account.acct) 팔로우를 끊을까요?" : "팔로우 요청을 취소할까요?",
-            isPresented: $confirmUnfollow
-        ) {
-            Button(account.following ? "팔로우 끊기" : "요청 취소", role: .destructive) {
-                Task { await set(false) }
+            .alert(
+                account.following ? "\(account.acct) 팔로우를 끊을까요?" : "팔로우 요청을 취소할까요?",
+                isPresented: $confirmUnfollow
+            ) {
+                Button(account.following ? "팔로우 끊기" : "요청 취소", role: .destructive) {
+                    Task { await set(false) }
+                }
+                Button("취소", role: .cancel) {}
             }
-            Button("취소", role: .cancel) {}
+    }
+
+    @ViewBuilder
+    private var capsule: some View {
+        let title: LocalizedStringKey = account.following ? "팔로잉" : account.requested ? "요청됨" : "팔로우"
+        if compact {
+            Button(action: tap) { RowFollowCapsuleLabel(title: title) }
+                .buttonStyle(PaperCapsuleStyle(prominent: false))
+        } else {
+            ToggleCapsuleButton(
+                isOn: account.following || account.requested,
+                on: account.following ? "팔로잉" : "요청됨",
+                off: "팔로우",
+                prominent: outlined ? false : nil,
+                expandTap: 6,
+                action: tap)
+        }
+    }
+
+    private func tap() {
+        if !AuthStore.shared.isSignedIn {
+            showLogin = true
+        } else if account.following || account.requested {
+            confirmUnfollow = true
+        } else {
+            Task { await set(true) }
         }
     }
 
@@ -64,9 +78,10 @@ struct RemoteAccountRow: View {
     @Binding var account: RemoteAccount
     var linksByValue = true
     var roomy = false
+    var inFollowList = false
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: inFollowList ? 11 : 12) {
             Group {
                 if linksByValue {
                     NavigationLink(value: Route.remoteAccount(id: account.id)) { label }
@@ -76,18 +91,25 @@ struct RemoteAccountRow: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("remote.row.\(account.acct)")
-            RemoteFollowButton(account: $account, outlined: true)
+            RemoteFollowButton(account: $account, outlined: true, compact: inFollowList)
         }
         .padding(.vertical, roomy ? 12 : 10)
     }
 
+    @ViewBuilder
+    private var name: some View {
+        if inFollowList {
+            Text(account.shownName).typeScale(.titleSmall)
+        } else {
+            Text(account.shownName).typeScale(.body).fontWeight(.semibold)
+        }
+    }
+
     private var label: some View {
-        HStack(spacing: 12) {
-            AvatarView(author: account.asAuthor, size: roomy ? 44 : 40)
+        HStack(spacing: inFollowList ? 11 : 12) {
+            AvatarView(author: account.asAuthor, size: roomy || inFollowList ? 44 : 40)
             VStack(alignment: .leading, spacing: 2) {
-                Text(account.shownName)
-                    .typeScale(.body)
-                    .fontWeight(.semibold)
+                name
                     .foregroundStyle(Palette.ink)
                     .lineLimit(1)
                 Text(verbatim: "@\(account.acct)")

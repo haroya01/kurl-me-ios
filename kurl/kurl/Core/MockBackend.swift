@@ -271,7 +271,7 @@ enum MockBackend {
     /// 다른 서버 계정 — 찾으면 생기고, 팔로우 요청 뒤 다시 읽으면 수락된다(마스토돈 기본 계정처럼).
     /// 알림을 끈 대화 — 목은 대화 루트 대신 누른 노트 id로 둔다.
     private static var mutedConversations: Set<Int64> = []
-    private static var remoteAccounts: [Int64: [String: Any]] = [
+    static var remoteAccounts: [Int64: [String: Any]] = [
         9810: [
             "id": Int64(9810), "acct": "carol@fosstodon.org", "username": "carol",
             "domain": "fosstodon.org", "displayName": "Carol", "avatarUrl": NSNull(),
@@ -1240,6 +1240,9 @@ enum MockBackend {
         headers: [String: String] = [:]
     ) throws -> Data? {
         let parts = path.split(separator: "/").map(String.init)
+        if let lists = MockFollowLists.respond(parts: parts, method: method, query: query, body: body) {
+            return lists
+        }
         if let rooms = MockRooms.respond(parts: parts, method: method, body: body) { return rooms }
 
         if parts.count >= 5, parts[0] == "public", parts[1] == "profiles", parts[3] == "posts",
@@ -2330,6 +2333,7 @@ enum MockBackend {
             if !hidden {
                 payload["followerCount"] = state.count
                 payload["followingCount"] = 5
+                payload.merge(MockFollowLists.counts(username: username, me: myUsername)) { _, new in new }
             }
             return json(payload)
         }
