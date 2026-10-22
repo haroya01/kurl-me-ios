@@ -258,16 +258,25 @@ final class HomeRemoteTailTests: XCTestCase {
 
     private final class Newer {
         var batch = HomeFeedBatch(items: [], next: nil, newest: "0.6", gap: false)
+        var fails = false
+
+        func answer() throws -> HomeFeedBatch {
+            if fails { throw APIError.server(status: 503, code: nil, detail: "") }
+            return batch
+        }
     }
 
-    private func pulling(own: [HomeFeedItem], remote: Remote, newer: Newer, clock: Clock) -> HomeFeedViewModel {
+    private func pulling(
+        _ tab: HomeFeedTab = .latest, own: [HomeFeedItem], remote: Remote, newer: Newer, clock: Clock
+    ) -> HomeFeedViewModel {
         let home = Home(["first": HomeFeedBatch(items: own, next: nil, newest: "0.6")], newer: newer.batch)
         let model = HomeFeedViewModel(
-            tab: .latest,
+            tab: tab,
             now: { clock.now },
             notify: { clock.said.append($0) },
+            cached: { _ in nil },
             remote: { _, cursor in try remote.page(cursor) },
-            newer: { _, _ in newer.batch },
+            newer: { _, _ in try newer.answer() },
             load: { _, cursor in try home.page(cursor) })
         Self.kept += [model, home, remote, newer, clock]
         return model
@@ -347,6 +356,110 @@ final class HomeRemoteTailTests: XCTestCase {
 
         XCTAssertEqual(shape(model.rows), before)
         XCTAssertEqual(clock.said, [String(localized: "새 글이 없어요")])
+    }
+
+    private static var nothingNew: String { String(localized: "새 글이 없어요") }
+    private static var couldNotRefresh: String { String(localized: "새로고침하지 못했습니다") }
+
+    private func pulled(
+        _ tab: HomeFeedTab = .latest, remoteUp: Bool = true
+    ) async throws -> (HomeFeedViewModel, Remote, Newer, Clock) {
+        let old = Self.t0.addingTimeInterval(-3_600)
+        let pages = remoteUp ? ["first": try Self.datedPage([1, 2].map { Self.dated($0, old) }, next: nil)] : [:]
+        let remote = Remote(pages)
+        let newer = Newer()
+        let clock = Clock()
+        let model = pulling(tab, own: (1...6).map(post), remote: remote, newer: newer, clock: clock)
+        await model.reload()
+        clock.now = Self.t0.addingTimeInterval(60)
+        return (model, remote, newer, clock)
+    }
+
+    func testForYouFailingOnAPullWithNothingNewOfMineStillSaysNothingNew() async throws {
+        let (model, remote, _, clock) = try await pulled()
+        let before = shape(model.rows)
+        remote.pages = [:]
+
+        await model.refresh()
+
+        XCTAssertEqual(shape(model.rows), before)
+        XCTAssertEqual(clock.said, [Self.nothingNew])
+        XCTAssertEqual(model.pulledNew, 0)
+    }
+
+    func testAGapThatBringsNothingNewKeepsTheListAndSaysSo() async throws {
+        let (model, _, newer, clock) = try await pulled()
+        let before = shape(model.rows)
+        newer.batch = HomeFeedBatch(items: (1...6).map(post), next: "p2", newest: "0.6", gap: true)
+
+        await model.refresh()
+
+        XCTAssertEqual(shape(model.rows), before)
+        XCTAssertNil(model.next, "the list is not swapped for the same page")
+        XCTAssertEqual(clock.said, [Self.nothingNew])
+    }
+
+    func testAGapWithNewPostsReplacesTheListAndScrollsUpWithoutAToast() async throws {
+        let (model, _, newer, clock) = try await pulled()
+        newer.batch = HomeFeedBatch(items: [post(9)] + (1...5).map(post), next: "p2", newest: "0.9", gap: true)
+
+        await model.refresh()
+
+        XCTAssertEqual(model.items.map(\.id), ["post-9"] + (1...5).map { "post-\($0)" })
+        XCTAssertEqual(model.next, "p2")
+        XCTAssertTrue(clock.said.isEmpty)
+        XCTAssertEqual(model.pulledNew, 1)
+    }
+
+    func testANewPostOnTopScrollsUpWithoutAToast() async throws {
+        let (model, _, newer, clock) = try await pulled()
+        newer.batch = HomeFeedBatch(items: [post(7)], next: nil, newest: "0.7", gap: false)
+
+        await model.refresh()
+
+        XCTAssertEqual(model.rows.first?.id, "post-7")
+        XCTAssertTrue(clock.said.isEmpty)
+        XCTAssertEqual(model.pulledNew, 1)
+    }
+
+    func testBothFailingSaysTheRefreshFailed() async throws {
+        let (model, remote, newer, clock) = try await pulled()
+        remote.pages = [:]
+        newer.fails = true
+
+        await model.refresh()
+
+        XCTAssertEqual(clock.said, [Self.couldNotRefresh])
+        XCTAssertEqual(model.pulledNew, 0)
+    }
+
+    func testWithForYouStillDownAPullSaysNothingNew() async throws {
+        let (model, _, _, clock) = try await pulled(remoteUp: false)
+        guard case .failed = model.remote?.phase else { return XCTFail("for-you should be down") }
+
+        await model.refresh()
+
+        XCTAssertEqual(clock.said, [Self.nothingNew])
+    }
+
+    func testForYouComingBackOnAPullCountsAsNew() async throws {
+        let (model, remote, _, clock) = try await pulled(remoteUp: false)
+        remote.pages["first"] = try Self.page([1, 2], next: nil)
+
+        await model.refresh()
+
+        XCTAssertTrue(clock.said.isEmpty)
+        XCTAssertEqual(model.pulledNew, 1)
+        XCTAssertEqual(model.remote?.items.count, 2)
+    }
+
+    func testTheFollowingFeedAlsoSaysNothingNew() async throws {
+        let (model, _, _, clock) = try await pulled(.following)
+
+        await model.refresh()
+
+        XCTAssertNil(model.remote)
+        XCTAssertEqual(clock.said, [Self.nothingNew])
     }
 
     func testComingBackAfterThirtyMinutesReloadsBothAndShorterDoesNot() async throws {

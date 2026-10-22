@@ -158,6 +158,9 @@ struct HomeFeedPage: View {
             guard active, router.topTab == TabRouter.homeTab else { return }
             withAnimation(reduceMotion ? nil : Motion.move) { position.scrollTo(edge: .top) }
         }
+        .onChange(of: model.pulledNew) {
+            withAnimation(reduceMotion ? nil : Motion.move) { position.scrollTo(edge: .top) }
+        }
         .onChange(of: choice.arrivingID) { _, id in
             guard active, id != nil else { return }
             Task { @MainActor in
