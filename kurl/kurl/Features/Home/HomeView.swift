@@ -159,6 +159,7 @@ struct HomeFeedPage: View {
         }
         .environment(\.noteFilterContext, .home)
         .environment(\.skeletonAnimates, active)
+        .flushesRemoteSeen(while: measuresSeen)
         .task(id: [warm, AuthStore.shared.isSignedIn]) {
             let signedIn = AuthStore.shared.isSignedIn
             guard warm, loadedSignedIn != signedIn else { return }
@@ -189,19 +190,52 @@ struct HomeFeedPage: View {
             case .failed(let message):
                 ErrorState(message: message, retry: { Task { await model.reload() } })
             case .loaded:
-                if !model.items.isEmpty { rows }
-                if model.showsTail, let tail = model.tail {
-                    HomeRemoteTail(
-                        model: tail, follows: model.items.count,
-                        measuresSeen: active && router.selection == TabRouter.homeTab && choice.path.isEmpty
-                    ) {
-                        empty.padding(.top, 24)
-                    }
-                } else if model.items.isEmpty {
+                let rows = model.rows
+                if !rows.isEmpty { self.rows(rows) }
+                if let remote = model.remote, model.next == nil {
+                    remoteEnd(remote, empty: rows.isEmpty)
+                } else if rows.isEmpty {
                     empty.padding(.top, 24)
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func remoteEnd(_ remote: RemoteStreamModel, empty showsEmpty: Bool) -> some View {
+        switch remote.phase {
+        case .idle, .loading:
+            if showsEmpty {
+                NoteSkeleton()
+            } else {
+                KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
+            }
+        case .failed:
+            if showsEmpty {
+                empty.padding(.top, 24)
+            } else {
+                Button {
+                    Task { await remote.reload() }
+                } label: {
+                    Text("더 불러오지 못했어요. 다시 시도")
+                        .typeScale(.meta)
+                        .foregroundStyle(Palette.ink)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 18)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        case .loaded:
+            if showsEmpty { empty.padding(.top, 24) }
+            if remote.isLoadingMore {
+                KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
+            }
+        }
+    }
+
+    private var measuresSeen: Bool {
+        active && router.selection == TabRouter.homeTab && choice.path.isEmpty
     }
 
     @ViewBuilder
@@ -223,37 +257,47 @@ struct HomeFeedPage: View {
     }
 
     @ViewBuilder
-    private var rows: some View {
-        ForEach(Array(model.items.enumerated()), id: \.element.id) { index, item in
+    private func rows(_ rows: [HomeMix.Row]) -> some View {
+        ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
             Group {
-                switch item.kind {
-                case .note(let note):
-                    NoteFeedItem(
-                        note: note,
-                        onChange: { model.replaced($0) },
-                        onDelete: { model.removed($0) },
-                        onQuoted: { model.inserted($0) },
-                        repostedBy: note.repostedBy?.username
-                    )
-                    .modifier(QuietAppear(index: note.id == choice.arrivingID ? .max : index))
-                    .modifier(NoteArrival(active: note.id == choice.arrivingID))
-                case .post(let post):
-                    PostFeedRow(post: post)
-                        .modifier(QuietAppear(index: index))
+                switch row {
+                case .own(let item):
+                    switch item.kind {
+                    case .note(let note):
+                        NoteFeedItem(
+                            note: note,
+                            onChange: { model.replaced($0) },
+                            onDelete: { model.removed($0) },
+                            onQuoted: { model.inserted($0) },
+                            repostedBy: note.repostedBy?.username
+                        )
+                        .modifier(QuietAppear(index: note.id == choice.arrivingID ? .max : index))
+                        .modifier(NoteArrival(active: note.id == choice.arrivingID))
+                    case .post(let post):
+                        PostFeedRow(post: post)
+                            .modifier(QuietAppear(index: index))
+                    }
+                case .remote(let item, let mixed):
+                    if let remote = model.remote {
+                        RemoteStreamRow(
+                            item: item, model: remote, headsKept: false, measuresSeen: measuresSeen,
+                            headsSeen: !mixed, context: Text("다른 서버"))
+                            .modifier(QuietAppear(index: index))
+                    }
                 }
             }
-            .environment(\.insideRoom, roomShownAbove(index))
-            .task { await model.loadMoreIfNeeded(current: item) }
-            if index < model.items.count - 1 { Hairline().padding(.horizontal, -Metrics.noteGutter) }
+            .environment(\.insideRoom, roomShownAbove(rows, index))
+            .task { await model.loadMoreIfNeeded(current: row) }
+            if index < rows.count - 1 { Hairline().padding(.horizontal, -Metrics.noteGutter) }
         }
         if model.isLoadingMore {
             KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
         }
     }
 
-    private func roomShownAbove(_ index: Int) -> Int64? {
-        guard index > 0, let room = model.items[index].roomId,
-              model.items[index - 1].roomId == room else { return nil }
+    private func roomShownAbove(_ rows: [HomeMix.Row], _ index: Int) -> Int64? {
+        guard index > 0, case .own(let item) = rows[index], let room = item.roomId,
+              case .own(let above) = rows[index - 1], above.roomId == room else { return nil }
         return room
     }
 }

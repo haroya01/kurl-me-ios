@@ -14,7 +14,7 @@ final class HomeFeedViewModel {
     private let load: (HomeFeedTab, String?) async throws -> HomeFeedBatch
     private let newer: (HomeFeedTab, String) async throws -> HomeFeedBatch
     private let settled: @MainActor () -> Void
-    let tail: RemoteStreamModel?
+    let remote: RemoteStreamModel?
 
     init(
         tab: HomeFeedTab,
@@ -27,30 +27,28 @@ final class HomeFeedViewModel {
         self.load = load
         self.newer = newer
         self.settled = settled
-        self.tail = tab == .latest ? RemoteStreamModel(feed: .forYou, load: remote) : nil
+        self.remote = tab == .latest ? RemoteStreamModel(feed: .forYou, load: remote) : nil
     }
 
-    var showsTail: Bool {
-        guard tail != nil, case .loaded = phase else { return false }
-        return next == nil
+    var rows: [HomeMix.Row] {
+        guard let remote, case .loaded = phase else { return items.map { .own($0) } }
+        return HomeMix.rows(own: items, remote: remote.items, ownDone: next == nil)
     }
 
     func refresh() async {
-        async let remote: Void = restartTail()
+        async let other: Void = reloadRemote()
         await refreshOwn()
-        await remote
+        await other
     }
 
     func reload(settlesLaunch: Bool = false) async {
-        async let remote: Void = restartTail()
+        async let other: Void = reloadRemote()
         await reloadOwn(settlesLaunch: settlesLaunch)
-        await remote
+        await other
     }
 
-    private func restartTail() async {
-        guard let tail else { return }
-        if case .idle = tail.phase { return }
-        await tail.reload()
+    private func reloadRemote() async {
+        await remote?.reload()
     }
 
     private func refreshOwn() async {
@@ -114,6 +112,26 @@ final class HomeFeedViewModel {
             let seen = Set(items.map(\.id))
             items.append(contentsOf: Self.unique(page.items).filter { !seen.contains($0.id) })
         }.value
+    }
+
+    func loadMoreIfNeeded(current row: HomeMix.Row) async {
+        switch row {
+        case .own(let item):
+            await loadMoreIfNeeded(current: item)
+            await topUpRemote()
+        case .remote(let item, let mixed):
+            if mixed {
+                await topUpRemote()
+            } else {
+                await remote?.loadMoreIfNeeded(current: item)
+            }
+        }
+    }
+
+    private func topUpRemote() async {
+        guard let remote, remote.next != nil,
+              HomeMix.unused(own: items, remote: remote.items) < HomeMix.lowWater else { return }
+        await remote.loadMore()
     }
 
     func inserted(_ note: Note) {

@@ -67,7 +67,6 @@ struct SearchView: View {
     @State private var followSuggestions: [FollowSuggestion] = []
     @State private var remoteSuggestions: [RemoteAccount] = []
     @State private var lane: ExploreLane = .picks
-    @State private var remoteFeed: RemoteStreamFeed = .forYou
     @State private var streams = Dictionary(
         uniqueKeysWithValues: RemoteStreamFeed.allCases.map { ($0, RemoteStreamModel(feed: $0)) })
 
@@ -162,9 +161,6 @@ struct SearchView: View {
                 if let raw = Config.launchValue(after: "--explore-lane"), let picked = ExploreLane(rawValue: raw) {
                     lane = picked
                 }
-                if let raw = Config.launchValue(after: "--remote-feed"), let picked = RemoteStreamFeed(rawValue: raw) {
-                    remoteFeed = picked
-                }
                 #endif
             }
         }
@@ -217,7 +213,7 @@ struct SearchView: View {
         .noteTextLinks()
         .brandRefreshable {
             async let discovery: Void = loadDiscovery()
-            await streams[lane == .remote ? remoteFeed : .trending]?.reload()
+            await streams[lane == .remote ? .forYou : .trending]?.reload()
             await discovery
         }
     }
@@ -242,18 +238,10 @@ struct SearchView: View {
     }
 
     @ViewBuilder private var remoteLane: some View {
-        Picker("다른 서버", selection: $remoteFeed) {
-            ForEach([RemoteStreamFeed.forYou, .latest], id: \.self) { Text($0.label).tag($0) }
-        }
-        .pickerStyle(.segmented)
-        .labelsHidden()
-        .accessibilityIdentifier("remote.feed")
-        .padding(.vertical, 12)
-        .sensoryFeedback(.selection, trigger: remoteFeed)
-        if let model = streams[remoteFeed] {
+        if let model = streams[.forYou] {
             let measuring = router.selection == TabRouter.exploreTab && navigation.path.isEmpty
             RemoteStreamRows(model: model, gutter: Metrics.noteGutter, measuresSeen: measuring)
-                .task(id: remoteFeed) { await model.loadIfNeeded() }
+                .task { await model.loadIfNeeded() }
                 .flushesRemoteSeen(while: measuring)
         }
     }

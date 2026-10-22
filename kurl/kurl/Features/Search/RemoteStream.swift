@@ -1,15 +1,5 @@
 import SwiftUI
 
-extension RemoteStreamFeed {
-    var label: LocalizedStringKey {
-        switch self {
-        case .forYou: "맞춤"
-        case .trending: "인기"
-        case .latest: "최신"
-        }
-    }
-}
-
 @MainActor
 @Observable
 final class RemoteStreamModel {
@@ -173,17 +163,19 @@ struct RemoteStreamRow: View {
     let model: RemoteStreamModel
     var headsKept = true
     var measuresSeen = false
+    var headsSeen = true
+    var context: Text?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if item.id == model.firstSeenID {
+            if headsSeen, item.id == model.firstSeenID {
                 RailHeading("이미 본 글")
                     .padding(.top, 20)
                     .accessibilityIdentifier("remote.seen")
             }
             switch item {
             case .trending(let note):
-                TrendingNoteRow(item: note, showsContext: model.feed == .trending)
+                TrendingNoteRow(item: note, showsContext: model.feed == .trending, context: context)
             case .kept(let note):
                 if headsKept, item.id == model.firstKeptID {
                     RailHeading("받은 노트")
@@ -192,7 +184,8 @@ struct RemoteStreamRow: View {
                 NoteFeedItem(
                     note: note,
                     onChange: { model.replaced($0) },
-                    onDelete: { model.removed($0) })
+                    onDelete: { model.removed($0) },
+                    context: context)
             }
         }
         .marksRemoteSeen(seenTarget)

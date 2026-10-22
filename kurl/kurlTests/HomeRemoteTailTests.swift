@@ -61,9 +61,72 @@ final class HomeRemoteTailTests: XCTestCase {
         return model
     }
 
-    private func ids(_ tail: RemoteStreamModel?) -> [String] { tail?.items.map(\.id) ?? [] }
+    private func ids(_ remote: RemoteStreamModel?) -> [String] { remote?.items.map(\.id) ?? [] }
 
-    func testTheTailWaitsUntilKurlHasNoNextPage() async throws {
+    private func shape(_ rows: [HomeMix.Row]) -> [String] {
+        rows.map { row in
+            switch row {
+            case .own(let item): item.id
+            case .remote(let item, let mixed): "\(mixed ? "mix" : "end"):\(item.key.split(separator: "/").last ?? "")"
+            }
+        }
+    }
+
+    private static func pool(_ ns: [Int]) throws -> [RemoteStreamItem] {
+        try page(ns, next: nil).items
+    }
+
+    func testTwoForYouPostsFollowEveryFiveOfMine() throws {
+        let own = (1...12).map(post)
+        let rows = HomeMix.rows(own: own, remote: try Self.pool(Array(1...9)), ownDone: false)
+        XCTAssertEqual(shape(rows), [
+            "post-1", "post-2", "post-3", "post-4", "post-5", "mix:1", "mix:2",
+            "post-6", "post-7", "post-8", "post-9", "post-10", "mix:3", "mix:4",
+            "post-11", "post-12",
+        ])
+        XCTAssertEqual(HomeMix.unused(own: own, remote: try Self.pool(Array(1...9))), 5)
+    }
+
+    func testOnceMineRunsOutTheRestOfForYouCarriesOn() throws {
+        let rows = HomeMix.rows(own: (1...6).map(post), remote: try Self.pool([1, 2, 3, 4]), ownDone: true)
+        XCTAssertEqual(shape(rows), [
+            "post-1", "post-2", "post-3", "post-4", "post-5", "mix:1", "mix:2", "post-6", "end:3", "end:4",
+        ])
+        XCTAssertEqual(
+            shape(HomeMix.rows(own: [], remote: try Self.pool([1, 2]), ownDone: true)), ["end:1", "end:2"])
+    }
+
+    func testAnEmptyForYouLeavesMyFeedAsItIs() {
+        let own = (1...7).map(post)
+        XCTAssertEqual(shape(HomeMix.rows(own: own, remote: [], ownDone: true)), own.map(\.id))
+        XCTAssertEqual(shape(HomeMix.rows(own: own, remote: [], ownDone: false)), own.map(\.id))
+    }
+
+    func testAStoredNoteAlreadyInMyFeedIsNotMixedInAgain() throws {
+        let stored = #"{"id":7,"uri":"https://mastodon.social/users/mina/statuses/7","body":"kept","createdAt":"2026-10-16T01:00:00Z","editedAt":null,"likeCount":null,"likedByMe":false,"author":{"id":-9800,"username":"mina@mastodon.social","bio":null,"avatarUrl":null,"displayName":"Mina","remoteId":9800,"url":"https://mastodon.social/@mina"},"media":[],"quotedPost":null,"inReplyToId":null,"replyCount":0,"repostCount":null,"repostedByMe":false,"quotedNote":null,"linkPreview":null}"#
+        let json = #"{"items":[\#(stored),\#(Self.pool(1)),\#(Self.pool(2))],"next":null}"#
+        let remote = try JSONDecoder.blog.decode(RemoteStreamPage.self, from: Data(json.utf8)).items
+        guard case .kept(let note) = remote[0] else { return XCTFail("stored note did not decode") }
+        var own = (1...4).map(post)
+        own.insert(HomeFeedItem(kind: .note(note)), at: 2)
+
+        XCTAssertEqual(
+            shape(HomeMix.rows(own: own, remote: remote, ownDone: false)),
+            ["post-1", "post-2", "note-7", "post-3", "post-4", "mix:1", "mix:2"])
+    }
+
+    func testAnotherPageOfMineKeepsWhatWasAlreadyPlaced() throws {
+        let remote = try Self.pool(Array(1...6))
+        let first = HomeMix.rows(own: (1...7).map(post), remote: remote, ownDone: false)
+        let more = HomeMix.rows(own: (1...14).map(post), remote: remote, ownDone: false)
+        XCTAssertEqual(Array(shape(more).prefix(first.count)), shape(first))
+        XCTAssertEqual(shape(more).filter { $0.hasPrefix("mix") }, ["mix:1", "mix:2", "mix:3", "mix:4"])
+        XCTAssertEqual(
+            shape(HomeMix.rows(own: (1...14).map(post), remote: remote, ownDone: false)), shape(more),
+            "the same answers place the same way")
+    }
+
+    func testForYouLoadsWithMyFeedAndCarriesOnOnlyAfterMineRunsOut() async throws {
         let home = Home(
             ["first": HomeFeedBatch(items: [post(2)], next: "1.1", newest: "0.2"),
              "1.1": HomeFeedBatch(items: [post(1)], next: nil)],
@@ -72,28 +135,42 @@ final class HomeRemoteTailTests: XCTestCase {
         let model = model(home: home, remote: remote)
 
         await model.reload()
-        XCTAssertFalse(model.showsTail)
-        XCTAssertEqual(remote.asked, [], "a reload before the tail is reached asks no other server")
+        XCTAssertEqual(remote.asked, ["first"], "for-you comes in with the first page of mine")
+        XCTAssertEqual(shape(model.rows), ["post-2"])
 
-        await model.loadMoreIfNeeded(current: model.items[0])
+        await model.loadMoreIfNeeded(current: model.rows[0])
         XCTAssertNil(model.next)
-        XCTAssertTrue(model.showsTail)
-
-        await model.tail?.loadIfNeeded()
-        XCTAssertEqual(remote.asked, ["first"])
-        XCTAssertEqual(model.tail?.next, "r2")
+        XCTAssertEqual(shape(model.rows), ["post-2", "post-1", "end:1", "end:2"])
     }
 
-    func testAnEmptyFirstPageGoesStraightToTheTail() async {
+    func testRunningLowOnForYouAsksForTheNextPage() async throws {
+        let home = Home(
+            ["first": HomeFeedBatch(items: (1...10).map(post), next: "p2", newest: "0.10"),
+             "p2": HomeFeedBatch(items: (11...20).map(post), next: "p3")],
+            newer: HomeFeedBatch(items: [], next: nil))
+        let remote = Remote([
+            "first": try Self.page([1, 2, 3, 4, 5], next: "r2"),
+            "r2": try Self.page([6, 7, 8, 9], next: nil),
+        ])
+        let model = model(home: home, remote: remote)
+        await model.reload()
+        XCTAssertEqual(remote.asked, ["first"])
+
+        await model.loadMoreIfNeeded(current: model.rows[0])
+        XCTAssertEqual(remote.asked, ["first", "r2"], "one left after two slots is below the low water")
+        XCTAssertEqual(model.remote?.items.count, 9)
+    }
+
+    func testAnEmptyFirstPageIsAllForYou() async throws {
         let home = Home(["first": HomeFeedBatch(items: [], next: nil)], newer: HomeFeedBatch(items: [], next: nil))
-        let model = model(home: home, remote: Remote([:]))
+        let model = model(home: home, remote: Remote(["first": try Self.page([1], next: nil)]))
 
         await model.reload()
         XCTAssertTrue(model.items.isEmpty)
-        XCTAssertTrue(model.showsTail)
+        XCTAssertEqual(shape(model.rows), ["end:1"])
     }
 
-    func testTheTailIsTheForYouFeed() async throws {
+    func testTheMixIsTheForYouFeed() async throws {
         let home = Home(["first": HomeFeedBatch(items: [], next: nil)], newer: HomeFeedBatch(items: [], next: nil))
         var feeds: [RemoteStreamFeed] = []
         let model = HomeFeedViewModel(
@@ -107,44 +184,40 @@ final class HomeRemoteTailTests: XCTestCase {
         Self.kept += [model, home]
 
         await model.reload()
-        await model.tail?.loadIfNeeded()
 
-        XCTAssertEqual(model.tail?.feed, .forYou)
+        XCTAssertEqual(model.remote?.feed, .forYou)
         XCTAssertEqual(feeds, [.forYou])
     }
 
-    func testOnlyLatestHasATail() async {
+    func testOnlyLatestMixes() async throws {
         for tab in [HomeFeedTab.trending, .following] {
-            let home = Home(["first": HomeFeedBatch(items: [post(1)], next: nil)], newer: HomeFeedBatch(items: [], next: nil))
-            let model = model(tab, home: home, remote: Remote([:]))
+            let home = Home(["first": HomeFeedBatch(items: (1...6).map(post), next: nil)], newer: HomeFeedBatch(items: [], next: nil))
+            let remote = Remote(["first": try Self.page([1, 2], next: nil)])
+            let model = model(tab, home: home, remote: remote)
             await model.reload()
-            XCTAssertNil(model.tail, "\(tab)")
-            XCTAssertFalse(model.showsTail, "\(tab)")
+            XCTAssertNil(model.remote, "\(tab)")
+            XCTAssertEqual(shape(model.rows), (1...6).map { "post-\($0)" }, "\(tab)")
+            XCTAssertEqual(remote.asked, [], "\(tab)")
         }
     }
 
-    func testPullingToRefreshKeepsTheTailAndAsksForItsFirstPageAgain() async throws {
+    func testPullingToRefreshAsksBothAgain() async throws {
         let home = Home(
             ["first": HomeFeedBatch(items: [post(1)], next: nil, newest: "0.1")],
             newer: HomeFeedBatch(items: [post(2)], next: nil, newest: "0.2", gap: false))
         let remote = Remote(["first": try Self.page([1, 2], next: "r2"), "r2": try Self.page([3], next: nil)])
         let model = model(home: home, remote: remote)
         await model.reload()
-        await model.tail?.loadIfNeeded()
-        let last = try XCTUnwrap(model.tail?.items.last)
-        await model.tail?.loadMoreIfNeeded(current: last)
-        XCTAssertEqual(ids(model.tail).count, 3)
+        await model.loadMoreIfNeeded(current: try XCTUnwrap(model.rows.last))
+        XCTAssertEqual(ids(model.remote).count, 3)
 
         remote.pages["first"] = try Self.page([4, 1], next: "r1")
         await model.refresh()
 
         XCTAssertEqual(model.items.map(\.id), ["post-2", "post-1"])
         XCTAssertEqual(remote.asked, ["first", "r2", "first"])
-        XCTAssertEqual(
-            ids(model.tail),
-            ["t-https://mstdn.jp/users/a/statuses/4", "t-https://mstdn.jp/users/a/statuses/1"])
-        XCTAssertEqual(model.tail?.next, "r1")
-        XCTAssertTrue(model.showsTail)
+        XCTAssertEqual(shape(model.rows), ["post-2", "post-1", "end:4", "end:1"])
+        XCTAssertEqual(model.remote?.next, "r1")
     }
 
     func testARefreshThatFailsOnTheOtherServerKeepsWhatWasThere() async throws {
@@ -154,31 +227,28 @@ final class HomeRemoteTailTests: XCTestCase {
         let remote = Remote(["first": try Self.page([1], next: nil)])
         let model = model(home: home, remote: remote)
         await model.reload()
-        await model.tail?.loadIfNeeded()
 
         remote.pages = [:]
         await model.refresh()
 
         XCTAssertEqual(remote.asked, ["first", "first"])
-        XCTAssertEqual(ids(model.tail), ["t-https://mstdn.jp/users/a/statuses/1"])
-        XCTAssertTrue(model.showsTail)
+        XCTAssertEqual(shape(model.rows), ["post-1", "end:1"])
     }
 
-    func testAGapRefreshHidesTheTailUntilKurlRunsOutAgain() async throws {
+    func testAGapRefreshStopsTheCarryOnUntilMineRunsOutAgain() async throws {
         let home = Home(
             ["first": HomeFeedBatch(items: [post(1)], next: nil, newest: "0.1")],
             newer: HomeFeedBatch(items: [post(9)], next: "9.0", newest: "0.9", gap: true))
         let remote = Remote(["first": try Self.page([1], next: nil)])
         let model = model(home: home, remote: remote)
         await model.reload()
-        await model.tail?.loadIfNeeded()
+        XCTAssertEqual(shape(model.rows), ["post-1", "end:1"])
 
         await model.refresh()
 
         XCTAssertEqual(model.next, "9.0")
-        XCTAssertFalse(model.showsTail)
+        XCTAssertEqual(shape(model.rows), ["post-9"])
         XCTAssertEqual(remote.asked, ["first", "first"])
-        XCTAssertEqual(ids(model.tail), ["t-https://mstdn.jp/users/a/statuses/1"])
     }
 }
 
