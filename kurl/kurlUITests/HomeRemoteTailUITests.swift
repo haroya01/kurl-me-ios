@@ -46,9 +46,15 @@ final class HomeRemoteTailUITests: XCTestCase {
         app.launchArguments = ["--mocks", "--tab", "search", "--explore-lane", "remote"]
         app.launch()
 
-        let first = app.descendants(matching: .any).matching(identifier: "trending.note").firstMatch
-        XCTAssertTrue(first.waitForExistence(timeout: 12))
-        XCTAssertTrue(first.label.contains("작은 서버"), "맞춤 첫 글이 아님: \(first.label)")
+        func row(_ text: String) -> XCUIElement {
+            app.descendants(matching: .any).matching(identifier: "trending.note")
+                .matching(NSPredicate(format: "label CONTAINS %@", text)).firstMatch
+        }
+        let top = row("작은 서버")
+        let later = row("紫陽花")
+        XCTAssertTrue(top.waitForExistence(timeout: 12), "맞춤 첫 글이 없음")
+        XCTAssertTrue(later.waitForExistence(timeout: 5))
+        XCTAssertLessThan(top.frame.minY, later.frame.minY, "맞춤 순서가 아님(최신이면 はな 글이 먼저)")
         XCTAssertFalse(app.segmentedControls.firstMatch.exists, "다른 서버 칸에 전환이 남아 있음")
     }
 }
