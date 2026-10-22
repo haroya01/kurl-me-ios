@@ -5,14 +5,15 @@ struct ConversationName: View {
     let author: Author?
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 4) {
+        Group {
             if let author, author.hasDisplayName {
-                Text(verbatim: author.displayName ?? "")
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Palette.ink)
-                    .layoutPriority(1)
-                Text(verbatim: "@\(author.username)")
-                    .foregroundStyle(Palette.secondary)
+                NameHandleLayout(spacing: 4) {
+                    Text(verbatim: author.displayName ?? "")
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Palette.ink)
+                    Text(verbatim: "@\(author.username)")
+                        .foregroundStyle(Palette.secondary)
+                }
             } else {
                 Text(verbatim: "@\(author?.username ?? "?")")
                     .fontWeight(.semibold)
@@ -37,6 +38,57 @@ struct ConversationName: View {
         parts.append(body)
         if likes > 0 { parts.append(String(localized: "좋아요 \(likes)")) }
         return parts.joined(separator: ", ")
+    }
+}
+
+struct NameHandleLayout: Layout {
+    var spacing: CGFloat
+
+    static func widths(available: CGFloat, name: CGFloat, handle: CGFloat, floor: CGFloat, spacing: CGFloat)
+        -> (name: CGFloat, handle: CGFloat) {
+        guard name + spacing + handle > available else { return (name, handle) }
+        let kept = min(handle, max(floor, available - spacing - name))
+        return (max(0, available - spacing - kept), kept)
+    }
+
+    private func split(_ width: CGFloat?, _ subviews: Subviews) -> (name: CGFloat, handle: CGFloat) {
+        let name = subviews[0].sizeThatFits(.unspecified)
+        let handle = subviews[1].sizeThatFits(.unspecified)
+        return Self.widths(
+            available: width ?? .infinity, name: name.width, handle: handle.width,
+            floor: handle.height * 3.5, spacing: spacing)
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard subviews.count == 2 else { return .zero }
+        let widths = split(proposal.width, subviews)
+        let name = subviews[0].sizeThatFits(ProposedViewSize(width: widths.name, height: nil))
+        let handle = subviews[1].sizeThatFits(ProposedViewSize(width: widths.handle, height: nil))
+        return CGSize(width: name.width + spacing + handle.width, height: max(name.height, handle.height))
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard subviews.count == 2 else { return }
+        let widths = split(proposal.width ?? bounds.width, subviews)
+        let name = subviews[0].dimensions(in: ProposedViewSize(width: widths.name, height: nil))
+        let handle = subviews[1].dimensions(in: ProposedViewSize(width: widths.handle, height: nil))
+        let baseline = max(name[.firstTextBaseline], handle[.firstTextBaseline])
+        subviews[0].place(
+            at: CGPoint(x: bounds.minX, y: bounds.minY + baseline - name[.firstTextBaseline]),
+            proposal: ProposedViewSize(width: widths.name, height: nil))
+        subviews[1].place(
+            at: CGPoint(x: bounds.minX + name.width + spacing, y: bounds.minY + baseline - handle[.firstTextBaseline]),
+            proposal: ProposedViewSize(width: widths.handle, height: nil))
+    }
+
+    func explicitAlignment(
+        of guide: VerticalAlignment, in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
+    ) -> CGFloat? {
+        guard guide == .firstTextBaseline || guide == .lastTextBaseline, subviews.count == 2 else { return nil }
+        let widths = split(proposal.width ?? bounds.width, subviews)
+        let name = subviews[0].dimensions(in: ProposedViewSize(width: widths.name, height: nil))
+        let handle = subviews[1].dimensions(in: ProposedViewSize(width: widths.handle, height: nil))
+        return bounds.minY + max(name[.firstTextBaseline], handle[.firstTextBaseline])
     }
 }
 
