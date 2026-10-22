@@ -191,7 +191,10 @@ struct HomeFeedPage: View {
             case .loaded:
                 if !model.items.isEmpty { rows }
                 if model.showsTail, let tail = model.tail {
-                    HomeRemoteTail(model: tail, follows: model.items.count) {
+                    HomeRemoteTail(
+                        model: tail, follows: model.items.count,
+                        measuresSeen: active && router.selection == TabRouter.homeTab && choice.path.isEmpty
+                    ) {
                         empty.padding(.top, 24)
                     }
                 } else if model.items.isEmpty {

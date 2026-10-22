@@ -470,6 +470,7 @@ struct Note: Decodable, Identifiable, Hashable {
     var canReply: Bool? = nil
     var remote: RemoteNoteShape? = nil
     var room: NoteRoom? = nil
+    var uri: String? = nil
 
     var noteVisibility: NoteVisibility {
         room != nil ? .private : NoteVisibility(rawValue: visibility ?? "public") ?? .public

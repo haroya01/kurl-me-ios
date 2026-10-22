@@ -505,6 +505,10 @@ enum MockBackend {
         !remoteBlocked.contains(id) && remoteMuted[id] == nil
     }
     private static var federationNoticeSeen = false
+    private static var remoteSeen: Set<String> = {
+        let count = Config.launchValue(after: "--mock-seen-latest").flatMap(Int.init) ?? 0
+        return Set(trendingNotes().prefix(count).compactMap { $0["uri"] as? String })
+    }()
     private static var shortSeq = 0
 
     // 리더 소셜 하이라이트 + 답글 스레드 — 본 글 리더의 칠하기·탭→스레드·메모·답글 왕복을 검증.
@@ -1969,7 +1973,17 @@ enum MockBackend {
                 latest["servers"] = Array(((item["servers"] as? [String]) ?? []).prefix(1))
                 return latest
             }
-            return json(["items": items, "next": NSNull()])
+            guard headers[RemoteSeenDevice.header] != nil else { return json(["items": items, "next": NSNull()]) }
+            let unseen = items.filter { !remoteSeen.contains($0["uri"] as? String ?? "") }
+            let seen = items.filter { remoteSeen.contains($0["uri"] as? String ?? "") }
+            var page: [String: Any] = ["items": unseen + seen, "next": NSNull()]
+            if !seen.isEmpty { page["seenFrom"] = unseen.count }
+            return json(page)
+        }
+        if method == "POST", parts == ["federation", "seen"] {
+            let req = (try? JSONSerialization.jsonObject(with: body ?? Data())) as? [String: Any]
+            remoteSeen.formUnion((req?["uris"] as? [String] ?? []).prefix(100))
+            return Data()
         }
         if method == "GET", parts == ["federation", "domains"] {
             let raw = (query?.first(where: { $0.name == "prefix" })?.value ?? "").lowercased()

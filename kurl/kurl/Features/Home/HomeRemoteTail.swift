@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeRemoteTail<Fallback: View>: View {
     let model: RemoteStreamModel
     let follows: Int
+    var measuresSeen = false
     @ViewBuilder var fallback: Fallback
 
     var body: some View {
@@ -25,6 +26,7 @@ struct HomeRemoteTail<Fallback: View>: View {
             }
         }
         .task { await model.loadIfNeeded() }
+        .flushesRemoteSeen(while: measuresSeen)
     }
 
     @ViewBuilder
@@ -34,7 +36,7 @@ struct HomeRemoteTail<Fallback: View>: View {
             .padding(.top, 20)
             .accessibilityIdentifier("home.remoteTail")
         ForEach(Array(model.items.enumerated()), id: \.element.id) { index, item in
-            RemoteStreamRow(item: item, model: model, headsKept: false)
+            RemoteStreamRow(item: item, model: model, headsKept: false, measuresSeen: measuresSeen)
                 .modifier(QuietAppear(index: follows + index))
                 .task { await model.loadMoreIfNeeded(current: item) }
             if index < model.items.count - 1 { Hairline().padding(.horizontal, -Metrics.noteGutter) }

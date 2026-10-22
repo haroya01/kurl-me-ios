@@ -9082,6 +9082,34 @@
         }
       }
     },
+    "이미 본 글": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Already seen"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पहले देखे गए"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "もう見たノート"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đã xem"
+          }
+        }
+      }
+    },
     "이미지 아래에 보일 설명이에요. 비우면 캡션이 사라져요.": {
       "localizations": {
         "en": {

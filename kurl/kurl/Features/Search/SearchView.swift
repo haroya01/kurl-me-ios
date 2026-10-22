@@ -42,6 +42,7 @@ struct SearchView: View {
     @State private var domainTask: Task<Void, Never>?
     @Namespace private var zoomNS
     @State private var navigation = ExploreNavigation()
+    @State private var router = TabRouter.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     /// 최근 검색 칩의 지우기(×) 아이콘 — 칩 라벨(.meta)과 함께 커지도록 고정 pt 를 우회한다.
@@ -238,8 +239,10 @@ struct SearchView: View {
 
     @ViewBuilder private var remoteLane: some View {
         if let model = streams[.latest] {
-            RemoteStreamRows(model: model, gutter: Metrics.noteGutter)
+            let measuring = router.selection == TabRouter.exploreTab && navigation.path.isEmpty
+            RemoteStreamRows(model: model, gutter: Metrics.noteGutter, measuresSeen: measuring)
                 .task { await model.loadIfNeeded() }
+                .flushesRemoteSeen(while: measuring)
         }
     }
 
