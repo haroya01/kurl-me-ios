@@ -186,6 +186,7 @@ struct RemoteStreamRow: View {
     var measuresSeen = false
     var headsSeen = true
     var context: Text?
+    var marksSeen = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -214,6 +215,6 @@ struct RemoteStreamRow: View {
 
     private var seenTarget: RemoteSeenTarget? {
         guard measuresSeen, model.feed.measuresSeen, let uri = item.seenURI else { return nil }
-        return RemoteSeenTarget(uri: uri, feed: model.feed, noteID: item.keptID, marks: !model.isSeen(item))
+        return RemoteSeenTarget(uri: uri, feed: model.feed, noteID: item.keptID, marks: marksSeen && !model.isSeen(item))
     }
 }

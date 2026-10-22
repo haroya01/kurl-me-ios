@@ -16,6 +16,13 @@ enum HomeMix {
             case .remote(let item, _): "remote-\(item.id)"
             }
         }
+
+        var seenKey: String? {
+            switch self {
+            case .own(let item): item.seenKey
+            case .remote(let item, _): item.seenURI
+            }
+        }
     }
 
     enum Slot: Hashable {

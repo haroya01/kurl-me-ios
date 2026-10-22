@@ -254,6 +254,7 @@ final class HomeRemoteTailTests: XCTestCase {
     private final class Clock {
         var now = HomeRemoteTailTests.t0
         var said: [String] = []
+        var events: [String] = []
     }
 
     private final class Newer {
@@ -274,9 +275,14 @@ final class HomeRemoteTailTests: XCTestCase {
             tab: tab,
             now: { clock.now },
             notify: { clock.said.append($0) },
+            flushSeen: { clock.events.append("flush") },
+            seenBefore: { _ in false },
             cached: { _ in nil },
             remote: { _, cursor in try remote.page(cursor) },
-            newer: { _, _ in try newer.answer() },
+            newer: { _, _ in
+                clock.events.append("newer")
+                return try newer.answer()
+            },
             load: { _, cursor in try home.page(cursor) })
         Self.kept += [model, home, remote, newer, clock]
         return model
@@ -455,6 +461,62 @@ final class HomeRemoteTailTests: XCTestCase {
 
         XCTAssertNil(model.remote)
         XCTAssertEqual(clock.said, [Self.nothingNew])
+    }
+
+    func testAPullOnLatestSendsWhatWasSeenBeforeAskingForNewPosts() async throws {
+        let (model, _, _, clock) = try await pulled()
+
+        await model.refresh()
+
+        XCTAssertEqual(clock.events, ["flush", "newer"])
+    }
+
+    func testAPullOnFollowingDoesNotWaitForTheSeenBatch() async throws {
+        let (model, _, _, clock) = try await pulled(.following)
+
+        await model.refresh()
+
+        XCTAssertEqual(clock.events, ["newer"])
+    }
+
+    func testComingBackAfterThirtyMinutesSendsWhatWasSeenFirst() async throws {
+        let (model, remote, _, clock) = try await pulled()
+        model.left()
+        clock.now = clock.now.addingTimeInterval(1_800)
+
+        await model.returned()
+
+        XCTAssertEqual(clock.events, ["flush"])
+        XCTAssertEqual(remote.asked, ["first", "first"])
+    }
+
+    func testTheCachedFirstPageLeavesOutWhatWasSeenOnLatestOnly() async {
+        let saved = (1...3).map(post)
+        for tab in [HomeFeedTab.latest, .following] {
+            let model = HomeFeedViewModel(
+                tab: tab,
+                seenBefore: { $0.id == "post-2" },
+                cached: { _ in HomeFeedBatch(items: saved, next: "p2", newest: "0.3") },
+                remote: { _, _ in throw APIError.server(status: 503, code: nil, detail: "") },
+                newer: { _, _ in HomeFeedBatch(items: [], next: nil) },
+                load: { _, _ in throw APIError.server(status: 503, code: nil, detail: "") })
+            Self.kept.append(model)
+
+            await model.reload()
+
+            XCTAssertEqual(
+                model.items.map(\.id), tab == .latest ? ["post-1", "post-3"] : ["post-1", "post-2", "post-3"], "\(tab)")
+        }
+    }
+
+    func testEveryHomeRowHasTheKeyItIsReportedBy() throws {
+        let stored = #"{"id":7,"uri":"https://mastodon.social/users/mina/statuses/7","body":"kept","createdAt":"2026-10-16T01:00:00Z","editedAt":null,"likeCount":null,"likedByMe":false,"author":{"id":-9800,"username":"mina@mastodon.social","bio":null,"avatarUrl":null,"displayName":"Mina","remoteId":9800,"url":"https://mastodon.social/@mina"},"media":[],"quotedPost":null,"inReplyToId":null,"replyCount":0,"repostCount":null,"repostedByMe":false,"quotedNote":null,"linkPreview":null}"#
+        let note = try JSONDecoder.blog.decode(Note.self, from: Data(stored.utf8))
+        let remote = try Self.pool([3])
+        let rows = HomeMix.rows(
+            own: [post(5), HomeFeedItem(kind: .note(note))], remote: remote, ownDone: true)
+
+        XCTAssertEqual(rows.map(\.seenKey), ["kurl:post:5", "kurl:note:7", Self.uri(3)])
     }
 
     func testComingBackAfterThirtyMinutesReloadsBothAndShorterDoesNot() async throws {
@@ -876,5 +938,47 @@ final class RemoteSeenTests: XCTestCase {
         await reporter.flush().value
 
         XCTAssertEqual(sink.sent, [RemoteSeenBatch(uris: [], dwell: [RemoteDwell(uri: Self.uri(1), ms: 10_500)], feed: "for-you")])
+    }
+
+    private func log(_ clock: @escaping () -> Date) -> HomeSeenLog {
+        let suite = "home-seen-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        let log = HomeSeenLog(defaults: defaults, now: clock)
+        Self.kept.append(log)
+        return log
+    }
+
+    func testTheLocalSeenLogKeepsKeysForFourteenDaysAndSurvivesARestart() {
+        var now = Date(timeIntervalSince1970: 1_792_000_000)
+        let suite = "home-seen-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        let log = HomeSeenLog(defaults: defaults, now: { now })
+        log.record("kurl:note:1")
+        XCTAssertTrue(log.contains("kurl:note:1"))
+        XCTAssertFalse(log.contains("kurl:note:2"))
+        log.save()
+
+        let again = HomeSeenLog(defaults: defaults, now: { now })
+        Self.kept += [log, again]
+        XCTAssertTrue(again.contains("kurl:note:1"), "the log is read back after a restart")
+
+        now = now.addingTimeInterval(HomeSeenLog.keep - 1)
+        XCTAssertTrue(log.contains("kurl:note:1"))
+        now = now.addingTimeInterval(1)
+        XCTAssertFalse(log.contains("kurl:note:1"))
+        defaults.removePersistentDomain(forName: suite)
+    }
+
+    func testTheLocalSeenLogDropsTheOldestPastItsLimit() {
+        var now = Date(timeIntervalSince1970: 1_792_000_000)
+        let log = log { now }
+        for n in 0...HomeSeenLog.limit {
+            now = now.addingTimeInterval(1)
+            log.record("kurl:post:\(n)")
+        }
+        XCTAssertFalse(log.contains("kurl:post:0"))
+        XCTAssertTrue(log.contains("kurl:post:1"))
+        XCTAssertTrue(log.contains("kurl:post:\(HomeSeenLog.limit)"))
     }
 }

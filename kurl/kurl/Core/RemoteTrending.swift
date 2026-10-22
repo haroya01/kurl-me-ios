@@ -132,7 +132,16 @@ extension FederationAPI {
     }
 
     static func stream(_ feed: RemoteStreamFeed, cursor: String?) async throws -> RemoteStreamPage {
-        let query: [String: String?] = ["limit": String(trendingLimit), "cursor": cursor]
+        try await stream(feed, cursor: cursor, hidingSeen: false)
+    }
+
+    static func homeStream(_ feed: RemoteStreamFeed, cursor: String?) async throws -> RemoteStreamPage {
+        try await stream(feed, cursor: cursor, hidingSeen: true)
+    }
+
+    static func stream(_ feed: RemoteStreamFeed, cursor: String?, hidingSeen: Bool) async throws -> RemoteStreamPage {
+        var query: [String: String?] = ["limit": String(trendingLimit), "cursor": cursor]
+        if hidingSeen { query["seen"] = "hide" }
         let headers = feed.measuresSeen ? [RemoteSeenDevice.header: RemoteSeenDevice.id()] : [:]
         return try await client.getAsViewer(feed.path, query: query, headers: headers)
     }

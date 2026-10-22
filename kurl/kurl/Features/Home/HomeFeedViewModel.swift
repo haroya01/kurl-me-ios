@@ -17,6 +17,8 @@ final class HomeFeedViewModel {
     private let settled: @MainActor () -> Void
     private let now: @MainActor () -> Date
     private let notify: @MainActor (String) -> Void
+    private let flushSeen: @MainActor () async -> Void
+    private let seenBefore: @MainActor (HomeFeedItem) -> Bool
     let remote: RemoteStreamModel?
     private(set) var top: [HomeMix.Slot] = []
     private var pulledAt: Date?
@@ -32,8 +34,10 @@ final class HomeFeedViewModel {
         settled: @escaping @MainActor () -> Void = { LaunchReadiness.shared.markFirstFeedSettled() },
         now: @escaping @MainActor () -> Date = Date.init,
         notify: @escaping @MainActor (String) -> Void = { ToastCenter.shared.show($0) },
+        flushSeen: @escaping @MainActor () async -> Void = { await RemoteSeenReporter.shared.flush().value },
+        seenBefore: @escaping @MainActor (HomeFeedItem) -> Bool = HomeFeedViewModel.seenBefore,
         cached: @escaping (HomeFeedTab) async -> HomeFeedBatch? = { await HomeFeedCache.shared.read($0) },
-        remote: @escaping (RemoteStreamFeed, String?) async throws -> RemoteStreamPage = FederationAPI.stream,
+        remote: @escaping (RemoteStreamFeed, String?) async throws -> RemoteStreamPage = FederationAPI.homeStream,
         newer: @escaping (HomeFeedTab, String) async throws -> HomeFeedBatch = HomeFeedAPI.newer,
         load: @escaping (HomeFeedTab, String?) async throws -> HomeFeedBatch = HomeFeedAPI.page
     ) {
@@ -44,6 +48,8 @@ final class HomeFeedViewModel {
         self.settled = settled
         self.now = now
         self.notify = notify
+        self.flushSeen = flushSeen
+        self.seenBefore = seenBefore
         self.remote = tab == .latest ? RemoteStreamModel(feed: .forYou, load: remote) : nil
     }
 
@@ -52,7 +58,12 @@ final class HomeFeedViewModel {
         return HomeMix.rows(own: items, remote: remote.items, ownDone: next == nil, top: top)
     }
 
+    static func seenBefore(_ item: HomeFeedItem) -> Bool {
+        HomeSeenLog.shared.contains(item.seenKey) && item.authorID != AuthStore.shared.me?.id
+    }
+
     func refresh() async {
+        if tab.hidesSeen { await flushSeen() }
         let outcome: PullOutcome?
         if let remote, case .loaded = remote.phase, let since = pulledAt, let marker = newest, !items.isEmpty {
             outcome = await pull(remote, since: since, marker: marker)
@@ -88,6 +99,7 @@ final class HomeFeedViewModel {
     func returned() async {
         defer { leftAt = nil }
         guard remote != nil, HomeMix.needsReload(leftAt: leftAt, now: now()) else { return }
+        await flushSeen()
         await reload()
     }
 
@@ -178,7 +190,7 @@ final class HomeFeedViewModel {
         epoch += 1
         let myEpoch = epoch
         if items.isEmpty, let saved = await cached(tab), myEpoch == epoch, items.isEmpty {
-            items = Self.unique(saved.items)
+            items = Self.unique(saved.items).filter { !tab.hidesSeen || !seenBefore($0) }
             next = saved.next
             newest = saved.newest
             phase = .loaded(true)

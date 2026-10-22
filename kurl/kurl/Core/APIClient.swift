@@ -94,8 +94,11 @@ struct APIClient {
     }
 
     /// `getAsViewer` 의 원문판 — 오프라인 저장소가 받는 글 상세도 로그인한 사람 기준으로 받는다.
-    func getDataAsViewer(_ path: String, query: [String: String?] = [:]) async throws -> Data {
+    func getDataAsViewer(
+        _ path: String, query: [String: String?] = [:], headers: [String: String] = [:]
+    ) async throws -> Data {
         var request = try makeRequest(path: path, query: query, method: "GET")
+        for (field, value) in headers { request.setValue(value, forHTTPHeaderField: field) }
         if let token = await viewerToken() {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
