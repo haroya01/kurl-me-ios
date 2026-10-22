@@ -174,6 +174,8 @@ extension View {
 /// 토큰은 인스턴스마다 하나로 고정한다 — onAppear 가 여러 번 불려도(하위 푸시에서 되돌아옴)
 /// 같은 토큰을 다시 넣을 뿐이라 무해하고, onDisappear 는 제 토큰만 뺀다. 집합이라 넣고 빼는
 /// 순서가 뒤엉켜도 결과가 안정적이다(카운트식은 순서가 어긋나면 바가 영영 안 돌아왔다).
+/// pop 의 onDisappear 는 전환이 끝난 뒤(약 0.6초)에야 불려서, 화면이 오른쪽 밖(minX ≥ 폭)으로
+/// 빠지기 시작하는 순간 먼저 뺀다. 스와이프 pop 을 되돌리면 제자리로 와 다시 넣는다.
 private struct HidesTabBar: ViewModifier {
     let active: Bool
     @Environment(\.tabBarVisibility) private var visibility
@@ -186,5 +188,11 @@ private struct HidesTabBar: ViewModifier {
                 if on { visibility?.addHider(token) } else { visibility?.removeHider(token) }
             }
             .onDisappear { visibility?.removeHider(token) }
+            .onGeometryChange(for: Bool.self) { proxy in
+                let frame = proxy.frame(in: .global)
+                return frame.width > 0 && frame.minX >= frame.width
+            } action: { leaving in
+                if leaving { visibility?.removeHider(token) } else if active { visibility?.addHider(token) }
+            }
     }
 }
