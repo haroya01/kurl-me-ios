@@ -1215,6 +1215,32 @@ final class NotesFeedUITests: XCTestCase {
         app.alerts.firstMatch.buttons["버리기"].tap()
     }
 
+    func testATrailingLinkDrawnAsACardLeavesTheBodyWhileAMidLinkStays() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let mid = app.buttons["note.body.9503"]
+        var tries = 0
+        while !mid.exists || !mid.isHittable, tries < 4 { app.swipeUp(); tries += 1 }
+        XCTAssertTrue(mid.waitForExistence(timeout: 6))
+        XCTAssertTrue(mid.label.contains("https://kurl.me/about"), "본문 중간 주소가 카드 때문에 사라짐")
+        attach(app, "note-mid-link-kept")
+
+        openMore(app, "다른 서버")
+        assertMoreFeed(app, "다른 서버")
+        let body = app.buttons.matching(NSPredicate(format: "label BEGINSWITH '長く使える道具の選び方'")).firstMatch
+        tries = 0
+        while !body.exists || !body.isHittable, tries < 6 { app.swipeUp(); tries += 1 }
+        XCTAssertTrue(body.waitForExistence(timeout: 6), "다른 서버 노트 본문이 없음")
+        let card = app.descendants(matching: .any).matching(
+            NSPredicate(format: "label CONTAINS 'sora.example' AND NOT (label CONTAINS '選び方')")).firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 4), "끝 주소의 링크 카드가 없음")
+        attach(app, "note-trailing-link-hidden")
+        XCTAssertFalse(body.label.contains("https://sora.example/tools"), "카드로 뜬 끝 주소가 본문에 또 보임")
+    }
+
     func testRepostMenuTogglesAndQuotePostsAboveTheFeed() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]

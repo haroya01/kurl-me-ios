@@ -187,7 +187,7 @@ enum MockBackend {
                  editedAt: Date().addingTimeInterval(-3_000), quotedNoteId: 9501),
         MockNote(id: 9502, body: "긴 글로 정리하기 전의 생각 조각을 둘 곳이 필요했는데, 노트가 딱 그 자리다.",
                  createdAt: Date().addingTimeInterval(-7_200), likeCount: 11, authorId: 1, username: "honggildong"),
-        MockNote(id: 9503, body: "라이트 모드 캔버스를 순백에서 slate-50 으로 바꿨더니 카드가 비로소 떠 보인다. 배경은 색이 아니라 깊이다. https://kurl.me/about",
+        MockNote(id: 9503, body: "https://kurl.me/about 의 라이트 모드 캔버스를 순백에서 slate-50 으로 바꿨더니 카드가 비로소 떠 보인다. 배경은 색이 아니라 깊이다.",
                  createdAt: Date().addingTimeInterval(-26_000), likeCount: 7, authorId: 3, username: "reader_kim",
                  linkPreview: [
                     "url": "https://kurl.me/about", "title": "kurl — 짧은 링크와 글이 오래 사는 곳",
@@ -471,7 +471,7 @@ enum MockBackend {
                     "remote": ["kind": "QUESTION", "title": NSNull(),
                                "url": "https://planet.moe/@jun/3301", "community": NSNull()] as [String: Any],
                  ]),
-            item("https://fedibird.com/users/sora/statuses/4401", "長く使える道具の選び方について書きました。",
+            item("https://fedibird.com/users/sora/statuses/4401", "長く使える道具の選び方について書きました。\nhttps://sora.example/tools",
                  "sora@fedibird.com", "そら", ago: 15_000, servers: ["fedibird.com"], replies: 2, language: "ja",
                  extra: ["linkPreview": ["url": "https://sora.example/tools", "title": "長く使える道具",
                                          "description": "十年使った鞄とペンの話", "image": NSNull()] as [String: Any]]),
