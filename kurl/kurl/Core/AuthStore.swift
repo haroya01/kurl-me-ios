@@ -281,6 +281,7 @@ final class AuthStore {
         Keychain.save(pair.accessToken, account: Self.accessAccount)
         Keychain.save(pair.refreshToken, account: Self.refreshAccount)
         if !isSignedIn {
+            HomeFeedCache.shared.wipe()
             isSignedIn = true
             Task { await loadMe() }
             PushRegistrar.syncAfterSignIn()
@@ -304,6 +305,7 @@ final class AuthStore {
     /// 계정으로 로그인했을 때 A 의 오프라인 사본·읽음 기록·북마크·분석 위젯이 B 에게 보이지
     /// 않게(프라이버시). refresh 토큰이 죽어 세션이 끊긴 경로(refreshTokens 401)도 여기를 탄다.
     private func tearDownSessionState() {
+        HomeFeedCache.shared.wipe()
         BookmarkStore.shared.reset()
         LikeStore.shared.reset()
         PostReadStore.shared.reset()

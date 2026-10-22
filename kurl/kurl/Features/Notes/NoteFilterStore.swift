@@ -49,6 +49,7 @@ final class NoteFilterStore {
                 try await NoteAPI.createFilter(draft)
             }
         patterns[saved.id] = nil
+        HomeFeedCache.shared.wipe()
         if let index = filters.firstIndex(where: { $0.id == saved.id }) {
             filters[index] = saved
         } else {
@@ -58,6 +59,7 @@ final class NoteFilterStore {
 
     func delete(_ filter: NoteFilter) async throws {
         try await NoteAPI.deleteFilter(id: filter.id)
+        HomeFeedCache.shared.wipe()
         filters.removeAll { $0.id == filter.id }
     }
 

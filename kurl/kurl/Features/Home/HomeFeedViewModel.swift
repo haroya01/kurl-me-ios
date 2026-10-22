@@ -14,11 +14,13 @@ final class HomeFeedViewModel {
     private let load: (HomeFeedTab, String?) async throws -> HomeFeedBatch
     private let newer: (HomeFeedTab, String) async throws -> HomeFeedBatch
     private let settled: @MainActor () -> Void
+    private let cached: (HomeFeedTab) async -> HomeFeedBatch?
     let tail: RemoteStreamModel?
 
     init(
         tab: HomeFeedTab,
         settled: @escaping @MainActor () -> Void = { LaunchReadiness.shared.markFirstFeedSettled() },
+        cached: @escaping (HomeFeedTab) async -> HomeFeedBatch? = { await HomeFeedCache.shared.read($0) },
         remote: @escaping (RemoteStreamFeed, String?) async throws -> RemoteStreamPage = FederationAPI.stream,
         newer: @escaping (HomeFeedTab, String) async throws -> HomeFeedBatch = HomeFeedAPI.newer,
         load: @escaping (HomeFeedTab, String?) async throws -> HomeFeedBatch = HomeFeedAPI.page
@@ -27,6 +29,7 @@ final class HomeFeedViewModel {
         self.load = load
         self.newer = newer
         self.settled = settled
+        self.cached = cached
         self.tail = tab == .latest ? RemoteStreamModel(feed: .latest, load: remote) : nil
     }
 
@@ -85,6 +88,13 @@ final class HomeFeedViewModel {
         defer { if settlesLaunch { settled() } }
         epoch += 1
         let myEpoch = epoch
+        if items.isEmpty, let saved = await cached(tab), myEpoch == epoch, items.isEmpty {
+            items = Self.unique(saved.items)
+            next = saved.next
+            newest = saved.newest
+            phase = .loaded(true)
+            if settlesLaunch { settled() }
+        }
         if items.isEmpty { phase = .loading }
         do {
             let first = try await load(tab, nil)
@@ -132,6 +142,7 @@ final class HomeFeedViewModel {
     }
 
     func removed(_ id: Int64) {
+        HomeFeedCache.shared.wipe()
         withMotion(Motion.move) { items.removeAll { $0.note?.id == id } }
     }
 

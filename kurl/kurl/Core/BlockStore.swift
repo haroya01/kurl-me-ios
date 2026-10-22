@@ -66,6 +66,7 @@ final class BlockStore {
         let insertedId = blockedIds.insert(id).inserted
         do {
             try await api.block(username)
+            HomeFeedCache.shared.wipe()
             await reload() // 서버 기준 최신순 목록(관리 화면)으로 정렬.
         } catch {
             if insertedName { blockedUsernames.remove(username) }
@@ -82,6 +83,7 @@ final class BlockStore {
         let removedRow = removedIndex.map { blocked.remove(at: $0) }
         do {
             try await api.unblock(username)
+            HomeFeedCache.shared.wipe()
         } catch {
             if let removedName { blockedUsernames.insert(removedName) }
             if let removedId { blockedIds.insert(removedId) }

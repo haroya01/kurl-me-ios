@@ -111,9 +111,18 @@ enum HomeFeedAPI {
     static func page(_ tab: HomeFeedTab, cursor: String?) async throws -> HomeFeedBatch {
         do {
             let query: [String: String?] = ["tab": tab.rawValue, "limit": String(limit), "cursor": cursor]
-            return tab.requiresAuth
-                ? try await client.get("/public/home", query: query, authenticated: true)
-                : try await client.getAsViewer("/public/home", query: query)
+            let ticket = HomeFeedCache.shared.ticket()
+            let data = tab.requiresAuth
+                ? try await client.getAuthenticatedData("/public/home", query: query)
+                : try await client.getDataAsViewer("/public/home", query: query)
+            let batch: HomeFeedBatch
+            do {
+                batch = try JSONDecoder.blog.decode(HomeFeedBatch.self, from: data)
+            } catch {
+                throw APIError.decoding(error)
+            }
+            if cursor == nil { HomeFeedCache.shared.store(data, batch: batch, tab: tab, ticket: ticket) }
+            return batch
         } catch APIError.server(let status, _, _) where status == 404 || status == 405 {
             return try await merged(tab, page: cursor.flatMap { Int($0.dropFirst()) } ?? 0)
         }

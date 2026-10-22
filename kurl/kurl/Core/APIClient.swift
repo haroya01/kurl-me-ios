@@ -100,8 +100,8 @@ struct APIClient {
     }
 
     /// 인증이 필요한 원문 GET — 내려받을 파일(CSV 내보내기 등).
-    func getAuthenticatedData(_ path: String) async throws -> Data {
-        try await perform(try makeRequest(path: path, query: [:], method: "GET"), authenticated: true)
+    func getAuthenticatedData(_ path: String, query: [String: String?] = [:]) async throws -> Data {
+        try await perform(try makeRequest(path: path, query: query, method: "GET"), authenticated: true)
     }
 
     /// 응답 본문이 없는 POST (예: 조회 비콘). 실패해도 호출측에서 무시할 수 있다.
