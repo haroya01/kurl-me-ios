@@ -575,9 +575,9 @@ private struct FloatingTabBar<TabMenu: View>: View {
         }
         .padding(.horizontal, Metrics.gutter)
         .padding(.bottom, 2)
-        .scaleEffect(scale, anchor: .center)
-        .animation(reduceMotion ? nil : .smooth(duration: 0.25), value: compact)
-        .animation(reduceMotion ? nil : .smooth(duration: 0.2), value: dragX == nil)
+        .scaleEffect(scale, anchor: .bottom)
+        .animation(reduceMotion ? nil : Motion.move, value: compact)
+        .animation(reduceMotion ? nil : Motion.micro, value: dragX == nil)
         .offset(y: hidden ? 132 : sink)
         .opacity(hidden ? 0 : 1)
         .animation(reduceMotion ? nil : Motion.move, value: hidden)

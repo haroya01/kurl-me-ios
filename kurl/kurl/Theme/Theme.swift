@@ -285,8 +285,8 @@ enum Metrics {
     static let tabBarReservedHeight: CGFloat = 66
 
     /// 스크롤로 작아진 하단바의 배율과 그때 독이 비워 둘 높이 — 둘은 같이 바꾼다.
-    static let tabBarCompactScale: CGFloat = 0.86
-    static let tabBarCompactReservedHeight: CGFloat = 58
+    static let tabBarCompactScale: CGFloat = 0.80
+    static let tabBarCompactReservedHeight: CGFloat = 50
 }
 
 /// Liquid Glass 토큰 — "종이 본문, 액체 크롬"(DESIGN.md §1).
