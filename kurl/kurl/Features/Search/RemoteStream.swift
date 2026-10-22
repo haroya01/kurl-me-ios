@@ -3,7 +3,7 @@ import SwiftUI
 extension RemoteStreamFeed {
     var label: LocalizedStringKey {
         switch self {
-        case .forYou: "추천"
+        case .forYou: "맞춤"
         case .trending: "인기"
         case .latest: "최신"
         }
