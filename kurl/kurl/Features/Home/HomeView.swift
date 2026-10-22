@@ -50,7 +50,7 @@ struct HomeView: View {
         NavigationStack(path: $choice.path) {
             ZStack {
                 SwipePager(
-                    tabs: HomeFeedTab.allCases, selection: $choice.tab, loadOnSelect: [.following],
+                    tabs: HomeFeedTab.allCases, selection: $choice.tab, loadOnSelect: [.following], settled: settled,
                     suspended: choice.more != nil && moreDragX == 0
                 ) { tab, active, warm in
                     HomeFeedPage(model: model(tab), active: active && choice.more == nil, warm: warm)
@@ -119,6 +119,13 @@ struct HomeView: View {
         }
         .onChange(of: choice.posted?.id) {
             if let note = choice.posted { model(choice.tab).inserted(note) }
+        }
+    }
+
+    private var settled: Bool {
+        switch model(choice.tab).phase {
+        case .idle, .loading: false
+        case .loaded, .failed: true
         }
     }
 
