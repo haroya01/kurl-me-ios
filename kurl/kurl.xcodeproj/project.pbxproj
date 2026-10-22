@@ -49,8 +49,6 @@
 		F1A000000000000000000181 /* RoomBandTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000182 /* RoomBandTests.swift */; };
 		F1A000000000000000000191 /* HomeFeedRefreshTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000192 /* HomeFeedRefreshTests.swift */; };
 		F1A000000000000000000201 /* PostDetailSideLoadTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000202 /* PostDetailSideLoadTests.swift */; };
-		F1A000000000000000000221 /* QuietAppearTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000222 /* QuietAppearTests.swift */; };
-		F1A000000000000000000231 /* LoadStateStageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000232 /* LoadStateStageTests.swift */; };
 		F1A000000000000000000211 /* MotionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000212 /* MotionTests.swift */; };
 		F1A000000000000000000E71 /* HomeRemoteTailTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000E72 /* HomeRemoteTailTests.swift */; };
 /* End PBXBuildFile section */
@@ -138,8 +136,6 @@
 		F1A000000000000000000182 /* RoomBandTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RoomBandTests.swift; sourceTree = "<group>"; };
 		F1A000000000000000000192 /* HomeFeedRefreshTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HomeFeedRefreshTests.swift; sourceTree = "<group>"; };
 		F1A000000000000000000202 /* PostDetailSideLoadTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PostDetailSideLoadTests.swift; sourceTree = "<group>"; };
-		F1A000000000000000000222 /* QuietAppearTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = QuietAppearTests.swift; sourceTree = "<group>"; };
-		F1A000000000000000000232 /* LoadStateStageTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LoadStateStageTests.swift; sourceTree = "<group>"; };
 		F1A000000000000000000212 /* MotionTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MotionTests.swift; sourceTree = "<group>"; };
 		F1A000000000000000000E72 /* HomeRemoteTailTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HomeRemoteTailTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -287,8 +283,6 @@
 				F1A000000000000000000182 /* RoomBandTests.swift */,
 				F1A000000000000000000192 /* HomeFeedRefreshTests.swift */,
 				F1A000000000000000000202 /* PostDetailSideLoadTests.swift */,
-				F1A000000000000000000222 /* QuietAppearTests.swift */,
-				F1A000000000000000000232 /* LoadStateStageTests.swift */,
 				F1A000000000000000000212 /* MotionTests.swift */,
 				F1A000000000000000000E72 /* HomeRemoteTailTests.swift */,
 				F1A000000000000000000162 /* NotePollSnapshotTests.swift */,
@@ -508,8 +502,6 @@
 				F1A000000000000000000181 /* RoomBandTests.swift in Sources */,
 				F1A000000000000000000191 /* HomeFeedRefreshTests.swift in Sources */,
 				F1A000000000000000000201 /* PostDetailSideLoadTests.swift in Sources */,
-				F1A000000000000000000221 /* QuietAppearTests.swift in Sources */,
-				F1A000000000000000000231 /* LoadStateStageTests.swift in Sources */,
 				F1A000000000000000000211 /* MotionTests.swift in Sources */,
 				F1A000000000000000000E71 /* HomeRemoteTailTests.swift in Sources */,
 				F1A000000000000000000161 /* NotePollSnapshotTests.swift in Sources */,
