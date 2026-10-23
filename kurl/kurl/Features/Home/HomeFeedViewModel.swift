@@ -93,7 +93,7 @@ final class HomeFeedViewModel {
         let theirsLoaded = await theirs
         guard let mine else { return nil }
         let after = rows
-        let failed = !mine || (items.isEmpty && !theirsLoaded)
+        let failed = !mine || !theirsLoaded
         return PullOutcome(
             added: Set(after.map(\.id)).subtracting(before).count, failed: failed, empty: !failed && after.isEmpty)
     }

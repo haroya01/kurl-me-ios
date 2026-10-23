@@ -85,12 +85,17 @@ private struct DwellCase: Decodable {
     let sentMs: Int?
 }
 
+private enum HeaderVerdict: String, Decodable {
+    case required
+    case notNeeded
+}
+
 private struct RequestCase: Decodable {
     let id: String
     let surface: String
     let what: String
     let seenHide: Bool
-    let deviceHeader: Bool
+    let deviceHeader: HeaderVerdict
 }
 
 private struct CacheCase: Decodable {
@@ -136,14 +141,10 @@ private struct SeenRulesVectors: Decodable {
 final class FeedVectorTests: XCTestCase {
     private static var kept: [AnyObject] = []
 
-    static let homeMixSHA256 = "a8b48c25c93821da8fcca802e70665227b12d6b6700102eb7ceecd106a9687a2"
-    static let seenRulesSHA256 = "49f34eb20e4c0cad594db594276fe73c93d49e6c0800a87167680dcceb550e9a"
+    static let homeMixSHA256 = "bc1b2ce72b62acf353f10623b3e66e231811b63c1b903f6df74f47fc84aa686b"
+    static let seenRulesSHA256 = "d0cc9eecac30b352dd5e5c03994976aa00c9aa28c5966e982033707b37901b22"
 
-    static let knownDifferences: [String: String] = [
-        "request-006": "following sends no X-Kurl-Device",
-        "request-007": "trending sends no X-Kurl-Device",
-        "pull-011": "my feed failing with new for-you rows ends silently as new rows (v2 pull rule agrees with iOS)",
-    ]
+    static let knownDifferences: [String: String] = [:]
 
     override func tearDown() async throws {
         FederationAPI.client = .shared
@@ -235,11 +236,11 @@ final class FeedVectorTests: XCTestCase {
         XCTAssertEqual(sha(try Self.data("seen-rules")), Self.seenRulesSHA256)
         let mix = try Self.homeMix()
         XCTAssertEqual(mix.schema, "kurl.home-mix")
-        XCTAssertEqual(mix.version, 1)
+        XCTAssertEqual(mix.version, 2)
         XCTAssertTrue(mix.tables.base.platforms.contains("ios"))
         let seen = try Self.seenRules()
         XCTAssertEqual(seen.schema, "kurl.seen-rules")
-        XCTAssertEqual(seen.version, 1)
+        XCTAssertEqual(seen.version, 2)
     }
 
     // MARK: home-mix
@@ -345,7 +346,9 @@ final class FeedVectorTests: XCTestCase {
             let device = request.value(forHTTPHeaderField: RemoteSeenDevice.header) != nil
             check(vector.id) {
                 XCTAssertEqual(hides, vector.seenHide, "\(vector.id) seen=hide")
-                XCTAssertEqual(device, vector.deviceHeader, "\(vector.id) device header")
+                if vector.deviceHeader == .required {
+                    XCTAssertTrue(device, "\(vector.id) device header")
+                }
             }
         }
     }

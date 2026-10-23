@@ -346,13 +346,13 @@ final class HomeRemoteTailTests: XCTestCase {
         XCTAssertEqual(it.clock.said, [Self.couldNotRefresh])
     }
 
-    func testAPullWithOnlyForYouFailingAndNothingNewSaysNothingNew() async throws {
+    func testAPullWithOnlyForYouFailingAndNothingNewSaysTheRefreshFailed() async throws {
         let it = try await pulled()
         it.remote.pages = [:]
 
         await it.model.refresh()
 
-        XCTAssertEqual(it.clock.said, [Self.nothingNew])
+        XCTAssertEqual(it.clock.said, [Self.couldNotRefresh])
     }
 
     func testFollowingStillAsksOnlyForNewerPostsAndDoesNotWaitForTheSeenBatch() async throws {
