@@ -58,7 +58,11 @@ final class HomeFeedViewModel {
     }
 
     static func seenBefore(_ item: HomeFeedItem) -> Bool {
-        HomeSeenLog.shared.contains(item.seenKey) && item.authorID != AuthStore.shared.me?.id
+        leftOutOfCache(item, log: HomeSeenLog.shared, me: AuthStore.shared.me?.id)
+    }
+
+    static func leftOutOfCache(_ item: HomeFeedItem, log: HomeSeenLog, me: Int64?) -> Bool {
+        log.contains(item.seenKey) && item.authorID != me
     }
 
     func refresh() async {

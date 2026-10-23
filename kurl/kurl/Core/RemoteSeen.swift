@@ -186,10 +186,10 @@ private struct RemoteSeenMark: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .onScrollVisibilityChange(threshold: 0.5) { visible = $0 }
+            .onScrollVisibilityChange(threshold: SeenExposure.exploreThreshold) { visible = $0 }
             .task(id: marking) {
                 guard let target, marking else { return }
-                guard (try? await Task.sleep(for: .seconds(1))) != nil else { return }
+                guard (try? await Task.sleep(for: SeenExposure.exploreHold)) != nil else { return }
                 RemoteSeenReporter.shared.mark(target.uri, feed: target.feed)
             }
             .onChange(of: dwelling) { _, now in

@@ -440,7 +440,7 @@ final class FederationSuggestTests: XCTestCase {
     }
 }
 
-private final class ScriptedFederation: URLProtocol, @unchecked Sendable {
+final class ScriptedFederation: URLProtocol, @unchecked Sendable {
     enum Reply {
         case json(Int, String)
         case fail(URLError.Code)

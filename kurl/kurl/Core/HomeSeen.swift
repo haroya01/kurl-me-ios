@@ -94,6 +94,28 @@ final class HomeSeenLog {
     }
 }
 
+enum SeenSurface: String {
+    case homeLatest = "home-latest"
+    case homeFollowing = "home-following"
+    case homeTrending = "home-trending"
+    case exploreRemote = "explore-remote"
+}
+
+enum SeenExposure {
+    static let homeThreshold = 0.0
+    static let exploreThreshold = 0.5
+    static let exploreHold: Duration = .seconds(1)
+
+    static func counts(_ surface: SeenSurface, visibleRatio: Double, visibleFor: Duration, appActive: Bool) -> Bool {
+        guard appActive else { return false }
+        switch surface {
+        case .homeLatest: return visibleRatio > homeThreshold
+        case .exploreRemote: return visibleRatio >= exploreThreshold && visibleFor >= exploreHold
+        case .homeFollowing, .homeTrending: return false
+        }
+    }
+}
+
 private struct HomeSeenMark: ViewModifier {
     let key: String?
     @State private var visible = false
@@ -101,7 +123,7 @@ private struct HomeSeenMark: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .onScrollVisibilityChange(threshold: 0) { visible = $0 }
+            .onScrollVisibilityChange(threshold: SeenExposure.homeThreshold) { visible = $0 }
             .onChange(of: visible && key != nil && scenePhase == .active, initial: true) { _, now in
                 guard now, let key else { return }
                 HomeSeenLog.shared.record(key)
