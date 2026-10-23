@@ -1,4 +1,4 @@
-//  홈 머리 — 가운데 [추천 · 팔로잉], 오른쪽 벨. 더 보기 칸은 로그인한 팔로잉에서만(리포스트 보기).
+//  홈 머리 — 가운데 [추천 · 팔로잉 · 블로그], 오른쪽 벨. 더 보기 칸은 로그인한 팔로잉에서만(리포스트 보기).
 //  관리 항목은 메뉴가 아니라 서재·설정에 있다.
 //
 
@@ -19,7 +19,7 @@ final class FeedHeadersUITests: XCTestCase {
         )).firstMatch
     }
 
-    func testTheHomeHeaderIsForYouThenFollowingAndOnlyFollowingHasMore() throws {
+    func testTheHomeHeaderIsForYouFollowingBlogAndOnlyFollowingHasMore() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks"]
         app.launch()
@@ -28,21 +28,35 @@ final class FeedHeadersUITests: XCTestCase {
         XCTAssertTrue(forYou.waitForExistence(timeout: 15), "홈 머리에 추천이 없음")
         XCTAssertTrue(following.exists, "홈 머리에 팔로잉이 없음")
         XCTAssertTrue(forYou.isSelected, "홈이 추천으로 열리지 않음")
+        let blog = app.buttons["segment.blog"]
+        XCTAssertTrue(blog.exists, "홈 머리에 블로그가 없음")
         XCTAssertLessThan(forYou.frame.midX, following.frame.midX, "추천 · 팔로잉 순서가 아님")
+        XCTAssertLessThan(following.frame.midX, blog.frame.midX, "팔로잉 · 블로그 순서가 아님")
         XCTAssertFalse(app.buttons["segment.trending"].exists, "인기 칸이 남아 있음")
         XCTAssertFalse(app.buttons["home.more"].exists, "추천에 더 보기 칸이 있음")
         let bell = app.buttons.matching(NSPredicate(format: "label == '알림'")).firstMatch
         XCTAssertTrue(bell.exists, "로그인했는데 벨이 없음")
-        XCTAssertGreaterThan(bell.frame.minX, following.frame.maxX, "벨이 스위처 오른쪽에 있지 않음")
+        XCTAssertGreaterThan(bell.frame.minX, blog.frame.maxX, "벨이 스위처 오른쪽에 있지 않음")
+        XCTAssertLessThanOrEqual(bell.frame.maxX, app.frame.maxX, "벨이 화면 밖으로 밀림")
         shot("home-header-for-you")
 
         following.tap()
         let more = app.buttons["home.more"]
         XCTAssertTrue(more.waitForExistence(timeout: 5), "팔로잉에 더 보기 칸이 없음")
+        XCTAssertGreaterThan(more.frame.minX, blog.frame.maxX, "더 보기 칸이 블로그 오른쪽에 있지 않음")
+        XCTAssertLessThan(more.frame.maxX, bell.frame.minX, "더 보기 칸이 벨과 겹침")
+        XCTAssertGreaterThanOrEqual(forYou.frame.minX, app.frame.minX, "추천이 화면 밖으로 밀림")
+        shot("home-header-following")
         more.tap()
         XCTAssertTrue(menuItem(app, "리포스트 보기").waitForExistence(timeout: 4), "팔로잉 더 보기에 리포스트 보기가 없음")
         XCTAssertFalse(menuItem(app, "추천").exists, "더 보기에 옛 블로그 추천이 남아 있음")
         shot("home-header-following-more")
+        app.tap()
+
+        blog.tap()
+        XCTAssertTrue(app.staticTexts["발행된 목 글"].firstMatch.waitForExistence(timeout: 8), "블로그에 글이 없음")
+        XCTAssertFalse(app.buttons["home.more"].waitForExistence(timeout: 2), "블로그에 더 보기 칸이 있음")
+        shot("home-header-blog")
     }
 
     func testSignedOutHomeHeaderHasNoBellAndNoMore() throws {
@@ -56,6 +70,9 @@ final class FeedHeadersUITests: XCTestCase {
         app.buttons["segment.following"].tap()
         XCTAssertFalse(app.buttons["home.more"].waitForExistence(timeout: 2), "비로그인 팔로잉에 더 보기 칸이 있음")
         shot("home-header-signed-out-following")
+        app.buttons["segment.blog"].tap()
+        XCTAssertTrue(app.staticTexts["발행된 목 글"].firstMatch.waitForExistence(timeout: 8), "비로그인 블로그에 글이 없음")
+        shot("home-header-signed-out-blog")
     }
 
     func testManagementLivesInTheLibraryAndSettings() throws {

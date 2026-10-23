@@ -11,7 +11,7 @@ struct HomeView: View {
     var body: some View {
         NavigationStack(path: $choice.path) {
             SwipePager(
-                tabs: HomeFeedTab.allCases, selection: $choice.tab, loadOnSelect: [.following], settled: settled
+                tabs: HomeFeedTab.allCases, selection: $choice.tab, loadOnSelect: HomeFeedTab.loadOnSelect, settled: settled
             ) { tab, active, warm in
                 HomeFeedPage(model: model(tab), active: active, warm: warm)
                     .environment(\.postZoom, PostZoom(prefix: "post", ns: zoomNS, active: active))
@@ -59,6 +59,9 @@ struct HomeView: View {
         }
         .onChange(of: choice.posted?.id) {
             if let note = choice.posted { model(choice.tab).inserted(note) }
+        }
+        .onChange(of: choice.publishedPosts) {
+            Task { await model(.blog).catchUp() }
         }
     }
 
@@ -186,6 +189,8 @@ struct HomeFeedPage: View {
             )
         case .forYou:
             allSeen
+        case .blog:
+            FeedPlaceholder(title: "아직 글이 없어요")
         }
     }
 
@@ -206,7 +211,7 @@ struct HomeFeedPage: View {
                     .modifier(QuietAppear(index: note.id == choice.arrivingID ? .max : index))
                     .modifier(NoteArrival(active: note.id == choice.arrivingID))
                 case .post(let post):
-                    PostFeedRow(post: post)
+                    PostFeedRow(post: post, namesKind: model.tab != .blog)
                         .modifier(QuietAppear(index: index))
                 case .remote(.trending(let note)):
                     TrendingNoteRow(item: note, showsContext: false, context: Text("다른 서버"))

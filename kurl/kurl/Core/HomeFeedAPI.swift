@@ -3,6 +3,7 @@ import Foundation
 enum HomeFeedTab: String, CaseIterable, Identifiable, Hashable {
     case forYou = "for-you"
     case following
+    case blog
 
     var id: String { rawValue }
 
@@ -10,6 +11,7 @@ enum HomeFeedTab: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .forYou: String(localized: "추천")
         case .following: String(localized: "팔로잉")
+        case .blog: String(localized: "블로그")
         }
     }
 
@@ -17,10 +19,13 @@ enum HomeFeedTab: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .forYou: "binoculars"
         case .following: "person.2"
+        case .blog: "doc.text"
         }
     }
 
     var requiresAuth: Bool { self == .following }
+
+    static let loadOnSelect: Set<HomeFeedTab> = [.following, .blog]
 
     var hidesSeen: Bool { self == .forYou }
 
@@ -38,6 +43,7 @@ enum HomeFeedTab: String, CaseIterable, Identifiable, Hashable {
     init?(stored: String) {
         switch stored {
         case "following": self = .following
+        case "blog": self = .blog
         case "for-you", "forYou", "recent", "everyone", "latest", "trending": self = .forYou
         default: return nil
         }
@@ -183,6 +189,7 @@ enum HomeFeedAPI {
             guard await AuthStore.shared.isSignedIn else { return NoteFeed(items: [], page: 0, hasNext: false) }
             return try await NoteAPI.following(page: page)
         case .forYou: return try await NoteAPI.everyone(page: page)
+        case .blog: return NoteFeed(items: [], page: 0, hasNext: false)
         }
     }
 
@@ -193,7 +200,7 @@ enum HomeFeedAPI {
                 return PublicFeedView(items: [], page: 0, size: 20, hasNext: false)
             }
             return try await LibraryAPI.followingFeed(page: page)
-        case .forYou: return try await BlogAPI.feed(sort: .recent, page: page)
+        case .forYou, .blog: return try await BlogAPI.feed(sort: .recent, page: page)
         }
     }
 }

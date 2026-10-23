@@ -828,9 +828,11 @@ final class RemoteTrendingTests: XCTestCase {
         _ = try await HomeFeedAPI.page(.forYou, cursor: "r1792656810855.20")
         _ = try await HomeFeedAPI.page(.following, cursor: nil)
         _ = try await FederationAPI.stream(.forYou, cursor: nil)
+        _ = try await HomeFeedAPI.page(.blog, cursor: nil)
+        _ = try await HomeFeedAPI.newer(.blog, since: "b1792656810855000.9")
 
         let requests = ScriptedFederation.requests
-        XCTAssertEqual(requests.count, 4)
+        XCTAssertEqual(requests.count, 6)
         func query(_ request: URLRequest) -> [String: String] {
             let items = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)?.queryItems ?? []
             return Dictionary(items.map { ($0.name, $0.value ?? "") }, uniquingKeysWith: { first, _ in first })
@@ -848,6 +850,13 @@ final class RemoteTrendingTests: XCTestCase {
         XCTAssertEqual(requests[3].url?.path, "/api/v1/federation/for-you")
         XCTAssertNil(query(requests[3])["seen"], "explore for-you keeps seen posts at the back")
         XCTAssertEqual(requests[3].value(forHTTPHeaderField: "X-Kurl-Device"), device)
+        for index in 4..<6 {
+            XCTAssertEqual(requests[index].url?.path, "/api/v1/public/home")
+            XCTAssertEqual(query(requests[index])["tab"], "blog")
+            XCTAssertNil(query(requests[index])["seen"], "블로그 does not hide \(index)")
+            XCTAssertNil(requests[index].value(forHTTPHeaderField: "X-Kurl-Device"), "블로그 \(index)")
+        }
+        XCTAssertEqual(query(requests[5])["since"], "b1792656810855000.9")
     }
 
     func testLatestAndForYouCarryTheDeviceAndSeenPostsTheUrisWithTheirFeed() async throws {

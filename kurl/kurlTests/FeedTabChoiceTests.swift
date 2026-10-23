@@ -11,10 +11,19 @@ final class FeedTabChoiceTests: XCTestCase {
         return defaults
     }
 
-    func testHomeShowsForYouThenFollowing() {
-        XCTAssertEqual(HomeFeedTab.allCases, [.forYou, .following])
+    func testHomeShowsForYouFollowingAndBlog() {
+        XCTAssertEqual(HomeFeedTab.allCases, [.forYou, .following, .blog])
         XCTAssertEqual(HomeFeedTab.forYou.rawValue, "for-you")
         XCTAssertEqual(HomeFeedTab.forYou.label, String(localized: "추천"))
+        XCTAssertEqual(HomeFeedTab.blog.rawValue, "blog")
+        XCTAssertEqual(HomeFeedTab.blog.label, String(localized: "블로그"))
+        XCTAssertFalse(HomeFeedTab.blog.hidesSeen)
+        XCTAssertFalse(HomeFeedTab.blog.requiresAuth)
+    }
+
+    func testBlogIsKeptAndOpenedByLaunchArgument() {
+        XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["home.tab": "blog"]), signedIn: true), .blog)
+        XCTAssertEqual(HomeFeedChoice.initialTab(launched: "blog", defaults: nil, signedIn: false), .blog)
     }
 
     func testASignedInReaderKeepsFollowingAndEveryOtherOldTabOpensOnForYou() {
@@ -47,12 +56,15 @@ final class FeedTabChoiceTests: XCTestCase {
         XCTAssertEqual(HomeFeedChoice.initialTab(launched: "trending", defaults: nil, signedIn: false), .forYou)
     }
 
-    func testFollowingNextToForYouWaitsUntilItIsFirstChosen() {
+    func testFollowingAndBlogNextToForYouWaitUntilFirstChosen() {
+        XCTAssertEqual(HomeFeedTab.loadOnSelect, [.following, .blog])
         let tabs = HomeFeedTab.allCases
         func warm(_ tab: HomeFeedTab, selection: HomeFeedTab, opened: Set<HomeFeedTab> = []) -> Bool {
-            SwipePagerWarmth.warm(tab, tabs: tabs, selection: selection, loadOnSelect: [.following], opened: opened)
+            SwipePagerWarmth.warm(tab, tabs: tabs, selection: selection, loadOnSelect: HomeFeedTab.loadOnSelect, opened: opened)
         }
         XCTAssertFalse(warm(.following, selection: .forYou), "opening on 추천 must not fetch 팔로잉 too")
+        XCTAssertFalse(warm(.blog, selection: .forYou), "opening on 추천 must not fetch 블로그 too")
+        XCTAssertTrue(warm(.blog, selection: .blog))
         XCTAssertTrue(warm(.following, selection: .following))
         XCTAssertTrue(warm(.following, selection: .forYou, opened: [.following]))
         XCTAssertTrue(warm(.forYou, selection: .following))
@@ -98,6 +110,10 @@ final class FeedTabChoiceTests: XCTestCase {
         choice.select(.following)
         TabRouter.shared.revealPosted(note)
         XCTAssertEqual(choice.tab, .following, "the tab the reader was on stays")
+
+        choice.select(.blog)
+        TabRouter.shared.revealPosted(note)
+        XCTAssertEqual(choice.tab, .forYou, "a note has no place on the blog shelf")
     }
 }
 

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PostFeedRow: View {
     let post: FeedItem
+    var namesKind = true
 
     @State private var likes = LikeStore.shared
     @State private var bookmarks = BookmarkStore.shared
@@ -101,11 +102,13 @@ struct PostFeedRow: View {
                         .multilineTextAlignment(.leading)
                 }
                 HStack(spacing: 4) {
-                    Text("블로그 글")
+                    if namesKind { Text("블로그 글") }
                     if let readMinutes = post.readMinutes {
-                        Text(verbatim: "·")
-                            .foregroundStyle(Palette.faint)
-                            .accessibilityHidden(true)
+                        if namesKind {
+                            Text(verbatim: "·")
+                                .foregroundStyle(Palette.faint)
+                                .accessibilityHidden(true)
+                        }
                         Text("\(readMinutes)분 읽기")
                     }
                     AccessMarks(marks: quoted.access)

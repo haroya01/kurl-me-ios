@@ -14,6 +14,12 @@ final class HomeFeedCacheTests: XCTestCase {
         #"{"kind":"post","post":{"id":\#(id),"author":{"id":2,"username":"writer","bio":null,"avatarUrl":null},"slug":"p\#(id)","title":"글 \#(id)","excerpt":"요약","ogImageUrl":null,"languageTag":"ko","tags":[],"publishedAt":"2026-10-22T00:00:00Z","viewCount":3,"likeCount":5}}"#
     }
 
+    private static func remote(_ id: Int64, author: String = "far") -> String {
+        note(id, author: author).replacingOccurrences(
+            of: #"{"kind":"note","note":{"#,
+            with: #"{"kind":"remote","remote":{"uri":"https://far.example/n/\#(id)","#)
+    }
+
     private static func page(_ items: [String], next: String? = "1.1") -> Data {
         Data(#"{"items":[\#(items.joined(separator: ","))],"next":\#(next.map { "\"\($0)\"" } ?? "null"),"newest":"0.9"}"#.utf8)
     }
@@ -55,6 +61,17 @@ final class HomeFeedCacheTests: XCTestCase {
         XCTAssertEqual(forYou?.newest, "0.9")
         let following = await cache.read(.following)
         XCTAssertNil(following)
+        let blog = await cache.read(.blog)
+        XCTAssertNil(blog)
+    }
+
+    func testOtherServerRowsComeBackUnlessWithheld() async throws {
+        let cache = cache()
+        try await store(cache, Self.page([Self.remote(9700), Self.note(1), Self.remote(9701, author: "blocked")])) {
+            $0.keptNote?.author.username == "blocked"
+        }
+        let saved = await cache.read(.forYou)
+        XCTAssertEqual(saved?.items.map(\.id), ["remote-n-9700", "note-1"])
     }
 
     func testRoomNotesNeverReachTheDisk() async throws {

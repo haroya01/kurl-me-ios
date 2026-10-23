@@ -67,6 +67,7 @@ enum MockBackend {
     private static let publishedBodyImage =
         ProcessInfo.processInfo.arguments.contains("--published-body-image") ? "\n\n![](\(mockUploadedImageURL))" : ""
 
+    private static var publishedHere: [Int64] = []
     private static var posts: [MockPost] = draftFixtures([
         MockPost(id: 9001, slug: "p-mock-1", title: "목 초안 — 헥사고날 정리", status: "DRAFT",
                  markdown: "# 헥사고날\n\n포트와 어댑터.", publishedAt: nil, updatedAt: Date(),
@@ -1754,6 +1755,26 @@ enum MockBackend {
             }
             return json(["items": ranked, "next": NSNull()])
         }
+        if method == "GET", parts == ["public", "home"], query?.first(where: { $0.name == "tab" })?.value == "blog" {
+            let since = query?.first { $0.name == "since" }?.value
+            let fresh: [[String: Any]] = publishedHere.reversed().compactMap { id in
+                guard let post = posts.first(where: { $0.id == id && $0.status == "PUBLISHED" }) else { return nil }
+                var item = feedItem(id: post.id, title: post.title, slug: post.slug, tags: post.tags)
+                item["excerpt"] = post.excerpt ?? NSNull()
+                item["publishedAt"] = iso(post.publishedAt ?? Date())
+                return item
+            }
+            let shelf = [
+                feedItem(id: 9201, title: "이름이 곧 경계다", slug: "walk-notes", excerpt: "유키의 노트에서 시작한 글."),
+                feedItem(id: 8201, title: "헥사고날로 갈아탄 지 석 달", slug: "hexagonal-after-3-months"),
+                feedItem(id: 9002, title: "발행된 목 글", slug: "p-mock-2"),
+            ]
+            let above = since.map { marker in Array(fresh.prefix { "b\($0["id"] ?? "")" != marker }) } ?? fresh + shelf
+            return json([
+                "items": above.map { ["kind": "post", "post": $0] as [String: Any] },
+                "next": NSNull(), "newest": fresh.first.map { "b\($0["id"] ?? "")" } ?? "b9201", "gap": false,
+            ])
+        }
         if method == "GET", parts == ["public", "home"], ProcessInfo.processInfo.arguments.contains("--short-latest"),
            query?.first(where: { $0.name == "tab" })?.value == "latest" {
             let fresh = query?.contains { $0.name == "since" } != true
@@ -2350,6 +2371,7 @@ enum MockBackend {
             }
             posts[idx].status = "PUBLISHED"
             posts[idx].publishedAt = Date()
+            publishedHere.append(posts[idx].id)
             return json(postView(posts[idx]))
         }
 

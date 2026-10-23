@@ -72,6 +72,11 @@ final class HomeFeedViewModel {
         say(await restart(announcesFailure: false))
     }
 
+    func catchUp() async {
+        guard case .loaded = phase else { return }
+        _ = await refreshOwn()
+    }
+
     func reload(settlesLaunch: Bool = false) async {
         await restart(settlesLaunch: settlesLaunch)
     }

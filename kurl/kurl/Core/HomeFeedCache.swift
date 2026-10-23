@@ -100,13 +100,21 @@ final class HomeFeedCache {
               let items = page["items"] as? [[String: Any]]
         else { return nil }
         page["items"] = items.filter { item in
-            guard let kind = item["kind"] as? String,
-                  let body = item[kind == "post" ? "post" : "note"] as? [String: Any],
-                  let id = (body["id"] as? NSNumber)?.int64Value
-            else { return false }
-            return !dropped.contains("\(kind == "post" ? "post" : "note")-\(id)")
+            guard let key = key(item) else { return false }
+            return !dropped.contains(key)
         }
         page["gap"] = nil
         return try? JSONSerialization.data(withJSONObject: page)
+    }
+
+    nonisolated private static func key(_ item: [String: Any]) -> String? {
+        let kind = item["kind"] as? String ?? "note"
+        guard let body = item[["post", "remote"].contains(kind) ? kind : "note"] as? [String: Any] else { return nil }
+        let id = (body["id"] as? NSNumber)?.int64Value
+        switch kind {
+        case "post": return id.map { "post-\($0)" }
+        case "remote": return id.map { "remote-n-\($0)" } ?? (body["uri"] as? String).map { "remote-t-\($0)" }
+        default: return id.map { "note-\($0)" }
+        }
     }
 }

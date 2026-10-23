@@ -15,6 +15,7 @@ final class HomeRemoteTailUITests: XCTestCase {
         XCTAssertTrue(forYou.waitForExistence(timeout: 12), "홈 머리에 추천이 없음")
         XCTAssertTrue(forYou.isSelected, "옛 최신 값이 추천으로 열리지 않음")
         XCTAssertTrue(app.buttons["segment.following"].exists, "홈 머리에 팔로잉이 없음")
+        XCTAssertTrue(app.buttons["segment.blog"].exists, "홈 머리에 블로그가 없음")
         XCTAssertFalse(app.buttons["segment.trending"].exists, "인기 탭이 남아 있음")
         XCTAssertFalse(app.buttons["segment.latest"].exists, "최신 탭이 남아 있음")
         XCTAssertLessThan(forYou.frame.midX, app.buttons["segment.following"].frame.midX, "추천이 첫 탭이 아님")

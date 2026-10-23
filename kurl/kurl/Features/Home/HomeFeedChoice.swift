@@ -14,6 +14,7 @@ final class HomeFeedChoice {
     var pendingLogin: HomeFeedTab?
     private(set) var posted: Note?
     private(set) var arrivingID: Int64?
+    private(set) var publishedPosts = 0
 
     private init() {
         tab = Self.initialTab(
@@ -54,8 +55,13 @@ final class HomeFeedChoice {
 
     func revealPosted(_ note: Note) {
         path = NavigationPath()
+        if tab == .blog { tab = .forYou }
         posted = note
         arrived(note.id)
+    }
+
+    func postPublished() {
+        publishedPosts += 1
     }
 
     func arrived(_ id: Int64) {

@@ -2064,6 +2064,7 @@ struct ComposeView: View {
                 status = published.status
                 takenDown = published.isTakenDown
                 publishedSlug = published.slug
+                HomeFeedChoice.shared.postPublished()
             }
             lastSavedSignature = snapshot
             lastSavedAt = Date()
