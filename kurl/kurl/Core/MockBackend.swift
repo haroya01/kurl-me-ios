@@ -342,6 +342,27 @@ enum MockBackend {
         ]
     }
 
+    private static func storedRemoteView(_ item: [String: Any], id: Int64) -> [String: Any] {
+        let author = item["author"] as? [String: Any] ?? [:]
+        var view: [String: Any] = [
+            "id": id, "uri": item["uri"] ?? NSNull(), "body": item["body"] ?? "",
+            "createdAt": item["createdAt"] ?? NSNull(), "editedAt": NSNull(),
+            "likeCount": item["likeCount"] ?? 0, "likedByMe": likedNotes.contains(id),
+            "author": [
+                "id": -id, "username": author["username"] ?? "", "avatarUrl": NSNull(),
+                "displayName": author["displayName"] ?? NSNull(), "remoteId": id, "url": author["url"] ?? NSNull(),
+            ] as [String: Any],
+            "inReplyToId": NSNull(), "quotedPost": NSNull(), "quotedNote": NSNull(),
+            "replyCount": item["replyCount"] ?? 0, "repostCount": item["repostCount"] ?? 0, "repostedByMe": false,
+            "bookmarkedByMe": false, "quoteCount": 0, "mentions": [] as [String], "pinned": false,
+            "visibility": "public",
+        ]
+        for key in ["media", "contentWarning", "sensitive", "language", "poll", "linkPreview", "remote"] {
+            view[key] = item[key] ?? NSNull()
+        }
+        return view
+    }
+
     private static func remoteShapeViews() -> [[String: Any]] {
         func author(_ remoteId: Int64, _ acct: String, _ name: String, _ url: String) -> [String: Any] {
             ["id": -remoteId, "username": acct, "avatarUrl": NSNull(), "displayName": name,
@@ -1720,9 +1741,10 @@ enum MockBackend {
             let mine = topLevelNotes().filter { $0.visibility == "public" }.prefix(short ? 2 : 6)
                 .filter { !hides || !remoteSeen.contains("kurl:note:\($0.id)") }
                 .map { ["kind": "note", "note": noteView($0)] as [String: Any] }
-            let theirs = [5, 3, 2, 1, 0, 4, 6].map { trendingNotes()[$0] }
-                .filter { !hides || !remoteSeen.contains($0["uri"] as? String ?? "") }
-                .map { ["kind": "remote", "remote": $0] as [String: Any] }
+            let pool = trendingNotes()
+            let theirs = [5, 3, 2, 1, 0, 4, 6].map { (index: $0, item: pool[$0]) }
+                .filter { !hides || !remoteSeen.contains($0.item["uri"] as? String ?? "") }
+                .map { ["kind": "remote", "remote": storedRemoteView($0.item, id: 9700 + Int64($0.index))] as [String: Any] }
             var ranked: [[String: Any]] = []
             var ownLeft = Array(mine), remoteLeft = Array(theirs)
             while !ownLeft.isEmpty || !remoteLeft.isEmpty {
@@ -2673,20 +2695,6 @@ enum MockBackend {
             return json([
                 "items": items, "page": 0, "size": 20, "hasNext": false, "seriesNotes": seriesNotes,
             ])
-        }
-
-        if method == "GET", parts == ["feed", "for-you"] {
-            let items = emptyFeeds ? [] : [
-                feedItem(id: 9101, title: "헥사고날로 갈아탄 지 석 달, 무엇이 남았나",
-                         slug: "hexagonal-after-3-months",
-                         excerpt: "레이어드를 버린 결정의 회고 — 경계가 준 것과 가져간 것.",
-                         tags: ["아키텍처", "회고"]),
-                feedItem(id: 9102, title: "토큰이 사라진 밤 — 새로고침 회전 레이스를 쫓다",
-                         slug: "the-night-tokens-vanished",
-                         excerpt: "글을 쓰다 로그아웃되는 버그. 범인은 회전하는 리프레시 토큰이었다.",
-                         tags: ["디버깅", "인증"]),
-            ]
-            return json(["items": items, "page": 0, "size": 20, "hasNext": false])
         }
 
         // 공개 하이라이트 목록(+replyCount) — 본 글 리더가 문단에 칠한다.
