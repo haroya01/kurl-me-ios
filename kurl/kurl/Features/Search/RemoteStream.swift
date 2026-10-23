@@ -48,7 +48,7 @@ final class RemoteStreamModel {
         return index >= start
     }
 
-    func reload() async {
+    func reload(announcesFailure: Bool = true) async {
         epoch += 1
         let myEpoch = epoch
         if items.isEmpty { phase = .loading }
@@ -63,23 +63,10 @@ final class RemoteStreamModel {
             guard myEpoch == epoch, !Task.isCancelled else { return }
             if items.isEmpty {
                 phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
-            } else {
+            } else if announcesFailure {
                 ToastCenter.shared.show(String(localized: "새로고침하지 못했습니다"))
             }
         }
-    }
-
-    func fresh(since: Date) async throws -> [RemoteStreamItem] {
-        let first = try await page(after: nil, epoch: epoch)
-        let shown = Set(items.map(\.key))
-        return Self.unique(first.items).filter { item in
-            !shown.contains(item.key) && item.createdAt.map { $0 > since } == true
-        }
-    }
-
-    func prepend(_ fresh: [RemoteStreamItem]) {
-        let shown = Set(items.map(\.key))
-        items.insert(contentsOf: fresh.filter { !shown.contains($0.key) }, at: 0)
     }
 
     func loadMoreIfNeeded(current item: RemoteStreamItem) async {

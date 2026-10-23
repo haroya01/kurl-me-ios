@@ -20,13 +20,12 @@ final class HomeFeedViewModel {
     private let flushSeen: @MainActor () async -> Void
     private let seenBefore: @MainActor (HomeFeedItem) -> Bool
     let remote: RemoteStreamModel?
-    private(set) var top: [HomeMix.Slot] = []
-    private var pulledAt: Date?
     private var leftAt: Date?
 
     struct PullOutcome: Equatable {
         var added = 0
         var failed = false
+        var empty = false
     }
 
     init(
@@ -55,7 +54,7 @@ final class HomeFeedViewModel {
 
     var rows: [HomeMix.Row] {
         guard let remote, case .loaded = phase else { return items.map { .own($0) } }
-        return HomeMix.rows(own: items, remote: remote.items, ownDone: next == nil, top: top)
+        return HomeMix.rows(own: items, remote: remote.items, ownDone: next == nil)
     }
 
     static func seenBefore(_ item: HomeFeedItem) -> Bool {
@@ -63,33 +62,35 @@ final class HomeFeedViewModel {
     }
 
     func refresh() async {
-        if tab.hidesSeen { await flushSeen() }
-        let outcome: PullOutcome?
-        if let remote, case .loaded = remote.phase, let since = pulledAt, let marker = newest, !items.isEmpty {
-            outcome = await pull(remote, since: since, marker: marker)
-        } else if let remote {
-            pulledAt = now()
-            let before = remote.items.count
-            async let other: Void = remote.reload()
-            var own = await refreshOwn()
-            await other
-            if before == 0 { own?.added += remote.items.count }
-            outcome = own
-        } else {
-            outcome = await refreshOwn()
+        guard tab.hidesSeen else {
+            say(await refreshOwn())
+            return
         }
-        guard let outcome, tab != .trending else { return }
-        if case .failed = phase { return }
-        guard outcome.added == 0 else { return }
-        notify(outcome.failed ? String(localized: "새로고침하지 못했습니다") : String(localized: "새 글이 없어요"))
+        await flushSeen()
+        say(await restart(announcesFailure: false))
     }
 
     func reload(settlesLaunch: Bool = false) async {
-        top = []
-        pulledAt = now()
-        async let other: Void = reloadRemote()
-        await reloadOwn(settlesLaunch: settlesLaunch)
-        await other
+        await restart(settlesLaunch: settlesLaunch)
+    }
+
+    private func say(_ outcome: PullOutcome?) {
+        guard let outcome, tab != .trending else { return }
+        if case .failed = phase { return }
+        guard outcome.added == 0, !outcome.empty else { return }
+        notify(outcome.failed ? String(localized: "새로고침하지 못했습니다") : String(localized: "새 글이 없어요"))
+    }
+
+    @discardableResult
+    private func restart(settlesLaunch: Bool = false, announcesFailure: Bool = true) async -> PullOutcome? {
+        let before = Set(rows.map(\.id))
+        async let theirs: Void = reloadRemote(announcesFailure: announcesFailure)
+        let mine = await reloadOwn(settlesLaunch: settlesLaunch, announcesFailure: announcesFailure)
+        await theirs
+        guard let mine else { return nil }
+        let after = rows
+        return PullOutcome(
+            added: Set(after.map(\.id)).subtracting(before).count, failed: !mine, empty: mine && after.isEmpty)
     }
 
     func left() {
@@ -103,53 +104,8 @@ final class HomeFeedViewModel {
         await reload()
     }
 
-    private func reloadRemote() async {
-        await remote?.reload()
-    }
-
-    private func pull(_ remote: RemoteStreamModel, since: Date, marker: String) async -> PullOutcome? {
-        epoch += 1
-        let myEpoch = epoch
-        let started = now()
-        async let theirs = try? remote.fresh(since: since)
-        let batch: HomeFeedBatch?
-        do {
-            batch = try await newer(tab, marker)
-        } catch {
-            batch = nil
-        }
-        let fresh = await theirs
-        guard myEpoch == epoch else { return nil }
-        if fresh != nil { pulledAt = started }
-        let added = fresh ?? []
-        guard let batch else {
-            withMotion(Motion.move) {
-                remote.prepend(added)
-                top = HomeMix.block(own: [], remote: added) + top
-            }
-            return PullOutcome(added: added.count, failed: true)
-        }
-        let incoming = Self.unique(batch.items)
-        let known = Set(items.map(\.id))
-        let mine = incoming.filter { !known.contains($0.id) }
-        if batch.gap == true, !mine.isEmpty {
-            withMotion(Motion.move) {
-                items = incoming
-                next = batch.next
-                remote.prepend(added)
-                top = HomeMix.block(own: [], remote: added)
-            }
-        } else {
-            let updates = Dictionary(incoming.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-            withMotion(Motion.move) {
-                items = mine + items.map { updates[$0.id] ?? $0 }
-                remote.prepend(added)
-                top = HomeMix.block(own: mine, remote: added) + top
-            }
-        }
-        newest = batch.newest ?? newest
-        phase = .loaded(true)
-        return PullOutcome(added: mine.count + added.count)
+    private func reloadRemote(announcesFailure: Bool) async {
+        await remote?.reload(announcesFailure: announcesFailure)
     }
 
     private func refreshOwn() async -> PullOutcome? {
@@ -255,7 +211,6 @@ final class HomeFeedViewModel {
             phase = .loaded(true)
             items.removeAll { $0.id == item.id }
             items.insert(item, at: 0)
-            top.insert(.own(item.id), at: 0)
         }
     }
 
