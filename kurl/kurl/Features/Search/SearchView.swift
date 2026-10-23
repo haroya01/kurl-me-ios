@@ -67,6 +67,8 @@ struct SearchView: View {
     @State private var followSuggestions: [FollowSuggestion] = []
     @State private var remoteSuggestions: [RemoteAccount] = []
     @State private var lane: ExploreLane = .picks
+    @State private var searchPinned = false
+    @State private var searchActive = false
     @State private var streams = Dictionary(
         uniqueKeysWithValues: RemoteStreamFeed.allCases.map { ($0, RemoteStreamModel(feed: $0)) })
 
@@ -120,7 +122,7 @@ struct SearchView: View {
             }
             .background(Palette.readingBg)
             // 스크롤을 내리면 탭바가 사라지고 올리면 돌아온다(스레드식) — 활성 스크롤 표면을 관측.
-            .tracksTabBarVisibility()
+            .tracksTabBarVisibility(!showsLanes)
             .navigationTitle("둘러보기")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -139,10 +141,11 @@ struct SearchView: View {
             // 스택 안쪽에 부착 — 바깥이면 push 된 글 상세에도 검색바가 남는다.
             // 상단 고정(navigationBarDrawer) — iOS 26+ 는 .searchable 을 하단에 도킹하는데, 우리
             // 커스텀 FloatingTabBar 가 그 자리를 덮어 필드가 통째로 가려졌다. 검색 탭의 필드는
-            // 제목 아래 상단에 항상 보이게 못 박는다.
+            // 제목 아래 상단에 둔다.
             .searchable(
                 text: $query,
-                placement: .navigationBarDrawer(displayMode: .always),
+                isPresented: $searchActive,
+                placement: .navigationBarDrawer(displayMode: searchPinned ? .always : .automatic),
                 prompt: "글·노트 찾기")
             .searchPresentationToolbarBehavior(.avoidHidingContent)
             .searchScopes($scope, activation: .onTextEntry) {
@@ -173,6 +176,14 @@ struct SearchView: View {
             scheduleRemoteLookup(newValue)
         }
         .onChange(of: scope) { runSearch(query) }
+        .onChange(of: lane) {
+            guard !searchActive else { return }
+            searchPinned = true
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(100))
+                searchPinned = false
+            }
+        }
         .onChange(of: recents) { SearchRecents.save(recents) }
         .onChange(of: AuthStore.shared.isSignedIn) { _, signedIn in
             if !signedIn { recents = [] }
@@ -193,17 +204,35 @@ struct SearchView: View {
         }
     }
 
+    private var showsLanes: Bool {
+        let typed = !activeQuery.isEmpty || !query.trimmingCharacters(in: .whitespaces).isEmpty
+        guard !(scope != .posts && typed), !resolvesRemotely(query), case .idle = phase else { return false }
+        return true
+    }
+
     private var idleState: some View {
+        SwipePager(
+            tabs: ExploreLane.allCases, selection: $lane, mountsNeighborsWhileMoving: true, locked: searchActive
+        ) { lane, active, warm in
+            lanePage(lane, active: active, warm: warm)
+        }
+    }
+
+    private func lanePage(_ lane: ExploreLane, active: Bool, warm: Bool) -> some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
-                SearchingOnly {
-                    recentsRail.padding(.bottom, 18)
-                    tagStrip.padding(.bottom, 18)
+                if active {
+                    SearchingOnly {
+                        recentsRail.padding(.bottom, 18)
+                        tagStrip.padding(.bottom, 18)
+                    }
                 }
-                switch lane {
-                case .picks: picks
-                case .remote: remoteLane
-                case .people: peopleLane
+                if warm {
+                    switch lane {
+                    case .picks: picks
+                    case .remote: remoteLane(active: active)
+                    case .people: peopleLane
+                    }
                 }
             }
             .padding(.top, lane == .people ? 14 : 0)
@@ -215,6 +244,7 @@ struct SearchView: View {
         .scrollIndicators(.hidden)
         // 숨은 검색 범위 막대도 위 가장자리 효과에 제 높이를 잡아, 그 띠가 첫 행의 터치를 먹는다.
         .scrollEdgeEffectHidden(true, for: .top)
+        .tracksTabBarVisibility(active)
         .noteTextLinks()
         .brandRefreshable {
             async let discovery: Void = loadDiscovery()
@@ -242,9 +272,9 @@ struct SearchView: View {
         }
     }
 
-    @ViewBuilder private var remoteLane: some View {
+    @ViewBuilder private func remoteLane(active: Bool) -> some View {
         if let model = streams[.forYou] {
-            let measuring = router.selection == TabRouter.exploreTab && navigation.path.isEmpty
+            let measuring = active && router.selection == TabRouter.exploreTab && navigation.path.isEmpty
             RemoteStreamRows(model: model, gutter: Metrics.noteGutter, measuresSeen: measuring)
                 .task { await model.loadIfNeeded() }
                 .flushesRemoteSeen(while: measuring)
@@ -282,6 +312,7 @@ struct SearchView: View {
                 }
             }
             .scrollClipDisabled()
+            .holdsSwipePager()
         }
     }
 
@@ -319,6 +350,7 @@ struct SearchView: View {
                     }
                 }
                 .scrollClipDisabled()
+                .holdsSwipePager()
             }
         }
     }
@@ -397,6 +429,7 @@ struct SearchView: View {
                             }
                         }
                     }
+                    .holdsSwipePager()
                 }
             }
     }

@@ -75,6 +75,19 @@ final class FeedTabChoiceTests: XCTestCase {
         XCTAssertEqual(FeedSource.forYou.moreChoice, SegmentMoreChoice(title: String(localized: "추천"), symbol: "binoculars"))
     }
 
+    func testHomeKeepsEveryPageMountedAndExploreMountsNeighborsOnlyWhileMoving() {
+        for tab in HomeFeedTab.allCases {
+            for moving in [false, true] {
+                XCTAssertTrue(SwipePagerMount.mounted(tab, selection: .latest, onlySelectionAtRest: false, moving: moving))
+            }
+        }
+        XCTAssertEqual(ExploreLane.allCases, [.picks, .remote, .people])
+        XCTAssertTrue(SwipePagerMount.mounted(ExploreLane.picks, selection: .picks, onlySelectionAtRest: true, moving: false))
+        XCTAssertFalse(SwipePagerMount.mounted(ExploreLane.remote, selection: .picks, onlySelectionAtRest: true, moving: false))
+        XCTAssertFalse(SwipePagerMount.mounted(ExploreLane.people, selection: .picks, onlySelectionAtRest: true, moving: false))
+        XCTAssertTrue(SwipePagerMount.mounted(ExploreLane.remote, selection: .picks, onlySelectionAtRest: true, moving: true))
+    }
+
     func testARightSwipeOnAMoreFeedStepsBackToTheLastTab() {
         let right = CGSize(width: 120, height: 6), left = CGSize(width: -120, height: 6)
         let fast = CGSize(width: 700, height: 0), still = CGSize.zero
