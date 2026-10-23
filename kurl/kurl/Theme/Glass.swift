@@ -124,6 +124,7 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable, More: View>: View {
     var moreChoice: SegmentMoreChoice?
     var moreLabel: LocalizedStringKey = ""
     var moreIdentifier = ""
+    var showsMore = true
     @ViewBuilder var more: More
     @Namespace private var ns
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -238,7 +239,7 @@ struct GlassSegmentSwitcher<T: Hashable & Identifiable, More: View>: View {
         if bare { collapsed } else { collapsed.glassEffect(.regular.interactive(), in: .capsule) }
     }
 
-    private var hasMore: Bool { More.self != EmptyView.self }
+    private var hasMore: Bool { More.self != EmptyView.self && showsMore }
 
     private func moreMenu(scale: CGFloat, padding: CGFloat, named: Bool, collapsed: Bool = false) -> some View {
         let active = moreChoice != nil

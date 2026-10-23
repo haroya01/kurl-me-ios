@@ -35682,7 +35682,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "For You"
+            "value": "For you"
           }
         },
         "hi": {
@@ -46247,6 +46247,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Xem Đang theo dõi"
+          }
+        }
+      }
+    },
+    "추천 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "See For you"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपके लिए देखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "おすすめを見る"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xem Dành cho bạn"
           }
         }
       }

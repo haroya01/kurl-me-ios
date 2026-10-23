@@ -1,17 +1,11 @@
 import SwiftUI
 
 extension HomeFeedItem {
-    var seenKey: String {
+    var seenKey: String? {
         switch kind {
         case .note(let note): "kurl:note:\(note.id)"
         case .post(let post): "kurl:post:\(post.id)"
-        }
-    }
-
-    var authorID: Int64 {
-        switch kind {
-        case .note(let note): note.author.id
-        case .post(let post): post.author.id
+        case .remote(let item): item.seenURI
         }
     }
 }
@@ -95,9 +89,8 @@ final class HomeSeenLog {
 }
 
 enum SeenSurface: String {
-    case homeLatest = "home-latest"
+    case homeForYou = "home-for-you"
     case homeFollowing = "home-following"
-    case homeTrending = "home-trending"
     case exploreRemote = "explore-remote"
 }
 
@@ -109,9 +102,9 @@ enum SeenExposure {
     static func counts(_ surface: SeenSurface, visibleRatio: Double, visibleFor: Duration, appActive: Bool) -> Bool {
         guard appActive else { return false }
         switch surface {
-        case .homeLatest: return visibleRatio > homeThreshold
+        case .homeForYou: return visibleRatio > homeThreshold
         case .exploreRemote: return visibleRatio >= exploreThreshold && visibleFor >= exploreHold
-        case .homeFollowing, .homeTrending: return false
+        case .homeFollowing: return false
         }
     }
 }

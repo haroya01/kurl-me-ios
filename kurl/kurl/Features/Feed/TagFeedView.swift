@@ -156,9 +156,9 @@ struct TagFeedView: View {
             if notes.items.isEmpty {
                 FeedPlaceholder(
                     title: "이 태그의 노트가 아직 없어요.",
-                    actionTitle: "인기 노트 보기",
+                    actionTitle: "추천 보기",
                     action: {
-                        HomeFeedChoice.shared.show(HomeFeedTab.trending)
+                        HomeFeedChoice.shared.show(HomeFeedTab.forYou)
                         TabRouter.shared.switchTo(TabRouter.homeTab, reduceMotion: reduceMotion)
                     }
                 )
