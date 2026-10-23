@@ -27,9 +27,9 @@ final class HomeFeedRefreshTests: XCTestCase {
         return model
     }
 
-    func testRefreshPutsOnlyTheNewOnesAboveWhatIsThere() async {
+    func testRefreshOnFollowingPutsOnlyTheNewOnesAboveWhatIsThere() async {
         let model = model(
-            .latest,
+            .following,
             first: HomeFeedBatch(items: [post(2), post(1)], next: "1.1", newest: "0.2"),
             newer: HomeFeedBatch(items: [post(3)], next: nil, newest: "0.3", gap: false))
         await model.reload()

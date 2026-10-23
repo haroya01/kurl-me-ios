@@ -702,6 +702,7 @@ final class RemoteTrendingTests: XCTestCase {
     override func tearDown() async throws {
         FederationAPI.client = .shared
         NoteAPI.client = .shared
+        HomeFeedAPI.client = .shared
         ScriptedFederation.reset()
     }
 
@@ -812,6 +813,41 @@ final class RemoteTrendingTests: XCTestCase {
             XCTAssertEqual(question.poll?.ownVotes, signedIn ? [] : nil)
             XCTAssertEqual(found[1].originalURL?.absoluteString, "https://misskey.io/notes/a1b2c3d4e5")
         }
+    }
+
+    func testHomeLatestAndHomeForYouAskToHideWhatWasSeenAndNothingElseDoes() async throws {
+        serve([
+            "/public/home": .json(200, #"{"items":[],"next":null,"newest":"1.1"}"#),
+            "/federation/for-you": .json(200, #"{"items":[],"next":null}"#),
+        ])
+        HomeFeedAPI.client = FederationAPI.client
+
+        _ = try await HomeFeedAPI.page(.latest, cursor: nil)
+        _ = try await HomeFeedAPI.page(.latest, cursor: "h1792656810855.20.3")
+        _ = try await HomeFeedAPI.newer(.latest, since: "1.1")
+        _ = try await HomeFeedAPI.page(.trending, cursor: nil)
+        _ = try await FederationAPI.homeStream(.forYou, cursor: "f1792656810855.20")
+        _ = try await FederationAPI.stream(.forYou, cursor: nil)
+
+        let requests = ScriptedFederation.requests
+        XCTAssertEqual(requests.count, 6)
+        func query(_ request: URLRequest) -> [String: String] {
+            let items = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)?.queryItems ?? []
+            return Dictionary(items.map { ($0.name, $0.value ?? "") }, uniquingKeysWith: { first, _ in first })
+        }
+        let device = RemoteSeenDevice.id()
+        for index in 0..<3 {
+            XCTAssertEqual(query(requests[index])["seen"], "hide", "home latest \(index)")
+            XCTAssertEqual(query(requests[index])["tab"], "latest")
+            XCTAssertEqual(requests[index].value(forHTTPHeaderField: "X-Kurl-Device"), device, "home latest \(index)")
+        }
+        XCTAssertEqual(query(requests[1])["cursor"], "h1792656810855.20.3", "the cursor goes back as it came")
+        XCTAssertEqual(query(requests[2])["since"], "1.1")
+        XCTAssertNil(query(requests[3])["seen"], "trending does not hide")
+        XCTAssertNil(requests[3].value(forHTTPHeaderField: "X-Kurl-Device"))
+        XCTAssertEqual(query(requests[4])["seen"], "hide", "home for-you hides")
+        XCTAssertEqual(query(requests[4])["cursor"], "f1792656810855.20")
+        XCTAssertNil(query(requests[5])["seen"], "explore for-you keeps seen posts at the back")
     }
 
     func testLatestAndForYouCarryTheDeviceAndSeenPostsTheUrisWithTheirFeed() async throws {

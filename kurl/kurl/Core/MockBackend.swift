@@ -515,6 +515,8 @@ enum MockBackend {
         let count = Config.launchValue(after: "--mock-seen-latest").flatMap(Int.init) ?? 0
         return Set(trendingNotes().prefix(count).compactMap { $0["uri"] as? String })
     }()
+    private static var remoteSeenAt: [String: Date] = Dictionary(
+        uniqueKeysWithValues: remoteSeen.map { ($0, Date.distantPast) })
     private static var shortSeq = 0
 
     // 리더 소셜 하이라이트 + 답글 스레드 — 본 글 리더의 칠하기·탭→스레드·메모·답글 왕복을 검증.
@@ -1715,8 +1717,11 @@ enum MockBackend {
         if method == "GET", parts == ["public", "home"], ProcessInfo.processInfo.arguments.contains("--short-latest"),
            query?.first(where: { $0.name == "tab" })?.value == "latest" {
             let fresh = query?.contains { $0.name == "since" } != true
+            let hides = query?.contains { $0.name == "seen" && $0.value == "hide" } == true
             let items = fresh
-                ? topLevelNotes().filter { $0.visibility == "public" }.prefix(2).map { ["kind": "note", "note": noteView($0)] }
+                ? topLevelNotes().filter { $0.visibility == "public" }.prefix(2)
+                    .filter { !hides || $0.authorId == 1 || !remoteSeen.contains("kurl:note:\($0.id)") }
+                    .map { ["kind": "note", "note": noteView($0)] }
                 : []
             return json(["items": items, "next": NSNull(), "newest": "m1", "gap": false])
         }
@@ -1979,13 +1984,19 @@ enum MockBackend {
         if method == "GET", parts == ["federation", "for-you"] {
             let pool = trendingNotes()
             let ranked = [5, 3, 2, 1, 0, 4, 6].map { pool[$0] }
-            let unseen = ranked.filter { !remoteSeen.contains($0["uri"] as? String ?? "") }
-            let seen = ranked.filter { remoteSeen.contains($0["uri"] as? String ?? "") }
-            let order = unseen + seen
+            let cursor = query?.first(where: { $0.name == "cursor" })?.value
+            let asOf = cursor.flatMap { Double($0.dropFirst().split(separator: ".").first ?? "") }
+                .map { Date(timeIntervalSince1970: $0 / 1000) } ?? Date()
+            let seenThen = { (item: [String: Any]) in (remoteSeenAt[item["uri"] as? String ?? ""] ?? .distantFuture) < asOf }
+            let unseen = ranked.filter { !seenThen($0) }
+            let seen = ranked.filter(seenThen)
+            let hides = query?.contains { $0.name == "seen" && $0.value == "hide" } == true
+            let order = hides ? unseen : unseen + seen
             let second = query?.first(where: { $0.name == "cursor" })?.value?.hasPrefix("f") == true
-            let items = second ? [order[3]] + order[4...] : Array(order[..<4])
-            var page: [String: Any] = ["items": items, "next": second ? NSNull() : "f\(Int(Date().timeIntervalSince1970 * 1000)).4"]
-            if let first = items.firstIndex(where: { remoteSeen.contains($0["uri"] as? String ?? "") }) {
+            let items = second ? Array(order.dropFirst(3)) : Array(order.prefix(4))
+            let more = !second && order.count > 4
+            var page: [String: Any] = ["items": items, "next": more ? "f\(Int(asOf.timeIntervalSince1970 * 1000)).4" : NSNull()]
+            if let first = items.firstIndex(where: seenThen) {
                 page["seenFrom"] = first
             }
             return json(page)
@@ -2005,7 +2016,9 @@ enum MockBackend {
         }
         if method == "POST", parts == ["federation", "seen"] {
             let req = (try? JSONSerialization.jsonObject(with: body ?? Data())) as? [String: Any]
-            remoteSeen.formUnion((req?["uris"] as? [String] ?? []).prefix(100))
+            let sent = (req?["uris"] as? [String] ?? []).prefix(100)
+            remoteSeen.formUnion(sent)
+            for uri in sent where remoteSeenAt[uri] == nil { remoteSeenAt[uri] = Date() }
             return Data()
         }
         if method == "GET", parts == ["federation", "domains"] {

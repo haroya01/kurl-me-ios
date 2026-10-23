@@ -242,11 +242,24 @@ struct HomeFeedPage: View {
                 .buttonStyle(.plain)
             }
         case .loaded:
-            if showsEmpty { empty.padding(.top, 24) }
-            if remote.isLoadingMore {
+            if showsEmpty {
+                empty.padding(.top, 24)
+            } else if remote.isLoadingMore {
                 KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
+            } else if remote.next == nil, model.tab.hidesSeen {
+                Hairline().padding(.horizontal, -Metrics.noteGutter)
+                allSeen.padding(.vertical, 24)
             }
         }
+    }
+
+    private var allSeen: some View {
+        FeedPlaceholder(
+            title: "다 봤어요",
+            actionTitle: "팔로잉 보기",
+            actionIdentifier: "home.allSeen.following",
+            action: { choice.select(.following) }
+        )
     }
 
     private var showing: Bool {
@@ -266,7 +279,9 @@ struct HomeFeedPage: View {
                 actionTitle: "둘러보기",
                 action: { TabRouter.shared.selection = TabRouter.exploreTab }
             )
-        case .latest, .trending:
+        case .latest:
+            allSeen
+        case .trending:
             FeedPlaceholder(
                 title: "아직 노트와 글이 없어요",
                 actionTitle: "둘러보기",
@@ -300,12 +315,13 @@ struct HomeFeedPage: View {
                     if let remote = model.remote {
                         RemoteStreamRow(
                             item: item, model: remote, headsKept: false, measuresSeen: measuresSeen,
-                            headsSeen: !mixed, context: Text("다른 서버"))
+                            headsSeen: !mixed, context: Text("다른 서버"), marksSeen: false)
                             .modifier(QuietAppear(index: index))
                     }
                 }
             }
             .environment(\.insideRoom, roomShownAbove(rows, index))
+            .marksHomeSeen(model.tab.hidesSeen && measuresSeen ? row.seenKey : nil)
             .task { await model.loadMoreIfNeeded(current: row) }
             if index < rows.count - 1 { Hairline().padding(.horizontal, -Metrics.noteGutter) }
         }

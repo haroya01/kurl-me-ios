@@ -81,6 +81,21 @@ final class LogoutWipeTests: XCTestCase {
         assertVaultEmpty(key)
     }
 
+    func testSignOutForgetsWhatAccountsSawOnHomeButKeepsTheDeviceLog() {
+        let stamp = Date().timeIntervalSince1970
+        let accounts = [HomeSeenLog.storageKey(for: 7), HomeSeenLog.storageKey(for: 8)]
+        let device = HomeSeenLog.storageKey(for: nil)
+        let before = UserDefaults.standard.dictionary(forKey: device)
+        for key in accounts { UserDefaults.standard.set(["kurl:note:1": stamp], forKey: key) }
+        UserDefaults.standard.set(["kurl:note:2": stamp], forKey: device)
+
+        AuthStore.shared.signOut()
+
+        for key in accounts { XCTAssertNil(UserDefaults.standard.dictionary(forKey: key), key) }
+        XCTAssertEqual(UserDefaults.standard.dictionary(forKey: device) as? [String: Double], ["kurl:note:2": stamp])
+        UserDefaults.standard.set(before, forKey: device)
+    }
+
     func testSignOutClearsRecentSearches() {
         SearchRecents.save(["kurl", "swift"])
         XCTAssertEqual(SearchRecents.load(), ["kurl", "swift"])

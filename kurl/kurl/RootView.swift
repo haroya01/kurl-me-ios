@@ -344,7 +344,10 @@ struct RootView: View {
             }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { Task { await AnalyticsSnapshot.refreshIfStale() } }
-                if phase == .background { RemoteSeenReporter.shared.flushBeforeSuspending() }
+                if phase == .background {
+                    RemoteSeenReporter.shared.flushBeforeSuspending()
+                    HomeSeenLog.shared.save()
+                }
             }
     }
 

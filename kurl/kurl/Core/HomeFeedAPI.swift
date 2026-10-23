@@ -25,6 +25,19 @@ enum HomeFeedTab: String, CaseIterable, Identifiable, Hashable {
 
     var requiresAuth: Bool { self == .following }
 
+    var hidesSeen: Bool { self == .latest }
+
+    func query(_ rest: [String: String?]) -> [String: String?] {
+        var query = rest
+        query["tab"] = rawValue
+        if hidesSeen { query["seen"] = "hide" }
+        return query
+    }
+
+    var headers: [String: String] {
+        hidesSeen ? [RemoteSeenDevice.header: RemoteSeenDevice.id()] : [:]
+    }
+
     init?(stored: String) {
         switch stored {
         case "following": self = .following
@@ -102,19 +115,19 @@ enum HomeFeedAPI {
     static let limit = 20
 
     static func newer(_ tab: HomeFeedTab, since: String) async throws -> HomeFeedBatch {
-        let query: [String: String?] = ["tab": tab.rawValue, "limit": String(limit), "since": since]
+        let query = tab.query(["limit": String(limit), "since": since])
         return tab.requiresAuth
             ? try await client.get("/public/home", query: query, authenticated: true)
-            : try await client.getAsViewer("/public/home", query: query)
+            : try await client.getAsViewer("/public/home", query: query, headers: tab.headers)
     }
 
     static func page(_ tab: HomeFeedTab, cursor: String?) async throws -> HomeFeedBatch {
         do {
-            let query: [String: String?] = ["tab": tab.rawValue, "limit": String(limit), "cursor": cursor]
+            let query = tab.query(["limit": String(limit), "cursor": cursor])
             let ticket = HomeFeedCache.shared.ticket()
             let data = tab.requiresAuth
                 ? try await client.getAuthenticatedData("/public/home", query: query)
-                : try await client.getDataAsViewer("/public/home", query: query)
+                : try await client.getDataAsViewer("/public/home", query: query, headers: tab.headers)
             let batch: HomeFeedBatch
             do {
                 batch = try JSONDecoder.blog.decode(HomeFeedBatch.self, from: data)
