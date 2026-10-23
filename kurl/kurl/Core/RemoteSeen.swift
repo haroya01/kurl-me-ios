@@ -94,7 +94,7 @@ final class RemoteSeenReporter {
     }
 
     func dwell(_ uri: String, ms: Int, feed: RemoteStreamFeed) {
-        guard ms > 0 else { return }
+        guard ms > 0, uri.hasPrefix("https://") || uri.hasPrefix("http://") else { return }
         let total = min(Self.dwellCap, dwelt[uri, default: 0] + ms)
         dwelt[uri] = total
         guard total >= Self.dwellFloor else { return }
@@ -186,10 +186,10 @@ private struct RemoteSeenMark: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .onScrollVisibilityChange(threshold: 0.5) { visible = $0 }
+            .onScrollVisibilityChange(threshold: SeenExposure.exploreThreshold) { visible = $0 }
             .task(id: marking) {
                 guard let target, marking else { return }
-                guard (try? await Task.sleep(for: .seconds(1))) != nil else { return }
+                guard (try? await Task.sleep(for: SeenExposure.exploreHold)) != nil else { return }
                 RemoteSeenReporter.shared.mark(target.uri, feed: target.feed)
             }
             .onChange(of: dwelling) { _, now in
