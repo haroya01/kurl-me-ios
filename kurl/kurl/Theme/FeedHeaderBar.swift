@@ -7,6 +7,7 @@ struct FeedHeaderBar<Item: Hashable & Identifiable, More: View>: View {
     let moreChoice: SegmentMoreChoice?
     let moreLabel: LocalizedStringKey
     let moreIdentifier: String
+    var showsMore = true
     @ViewBuilder var more: More
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -18,7 +19,7 @@ struct FeedHeaderBar<Item: Hashable & Identifiable, More: View>: View {
                 Spacer(minLength: 0)
                 GlassSegmentSwitcher(
                     items: items, selection: $selection, label: label, moreChoice: moreChoice,
-                    moreLabel: moreLabel, moreIdentifier: moreIdentifier
+                    moreLabel: moreLabel, moreIdentifier: moreIdentifier, showsMore: showsMore
                 ) {
                     more
                 }

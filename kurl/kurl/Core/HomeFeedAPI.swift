@@ -1,31 +1,28 @@
 import Foundation
 
 enum HomeFeedTab: String, CaseIterable, Identifiable, Hashable {
+    case forYou = "for-you"
     case following
-    case latest
-    case trending
 
     var id: String { rawValue }
 
     var label: String {
         switch self {
+        case .forYou: String(localized: "추천")
         case .following: String(localized: "팔로잉")
-        case .latest: String(localized: "최신")
-        case .trending: String(localized: "인기")
         }
     }
 
     var symbol: String {
         switch self {
+        case .forYou: "binoculars"
         case .following: "person.2"
-        case .latest: "clock"
-        case .trending: "flame"
         }
     }
 
     var requiresAuth: Bool { self == .following }
 
-    var hidesSeen: Bool { self == .latest }
+    var hidesSeen: Bool { self == .forYou }
 
     func query(_ rest: [String: String?]) -> [String: String?] {
         var query = rest
@@ -41,8 +38,7 @@ enum HomeFeedTab: String, CaseIterable, Identifiable, Hashable {
     init?(stored: String) {
         switch stored {
         case "following": self = .following
-        case "recent", "everyone", "latest": self = .latest
-        case "trending": self = .trending
+        case "for-you", "forYou", "recent", "everyone", "latest", "trending": self = .forYou
         default: return nil
         }
     }
@@ -52,6 +48,7 @@ struct HomeFeedItem: Identifiable, Hashable {
     enum Kind: Hashable {
         case note(Note)
         case post(FeedItem)
+        case remote(RemoteStreamItem)
     }
 
     var kind: Kind
@@ -67,6 +64,8 @@ struct HomeFeedItem: Identifiable, Hashable {
         switch kind {
         case .note(let note): Int64(note.replyCount)
         case .post(let post): post.commentCount ?? 0
+        case .remote(.trending(let note)): note.replyCount
+        case .remote(.kept(let note)): Int64(note.replyCount)
         }
     }
 
@@ -74,6 +73,7 @@ struct HomeFeedItem: Identifiable, Hashable {
         switch kind {
         case .note(let note): "note-\(note.id)"
         case .post(let post): "post-\(post.id)"
+        case .remote(let item): "remote-\(item.id)"
         }
     }
 
@@ -81,11 +81,18 @@ struct HomeFeedItem: Identifiable, Hashable {
         switch kind {
         case .note(let note): note.createdAt
         case .post(let post): post.publishedAt
+        case .remote(.trending(let note)): note.createdAt
+        case .remote(.kept(let note)): note.createdAt
         }
     }
 
     var note: Note? {
         if case .note(let note) = kind { return note }
+        return nil
+    }
+
+    var keptNote: Note? {
+        if case .remote(.kept(let note)) = kind { return note }
         return nil
     }
 }
@@ -98,12 +105,13 @@ struct HomeFeedBatch: Decodable {
 }
 
 extension HomeFeedItem: Decodable {
-    private enum CodingKeys: String, CodingKey { case kind, note, post, replies }
+    private enum CodingKeys: String, CodingKey { case kind, note, post, remote, replies }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         switch try container.decode(String.self, forKey: .kind) {
         case "post": kind = .post(try container.decode(FeedItem.self, forKey: .post))
+        case "remote": kind = .remote(try container.decode(RemoteStreamItem.self, forKey: .remote))
         default: kind = .note(try container.decode(Note.self, forKey: .note))
         }
         replies = (try? container.decodeIfPresent([ReplyPreview].self, forKey: .replies)) ?? []
@@ -148,7 +156,7 @@ enum HomeFeedAPI {
         let items = merge(
             notes: noteFeed.items.map { HomeFeedItem(kind: .note($0)) },
             posts: postFeed.items.map { HomeFeedItem(kind: .post($0)) },
-            byTime: tab != .trending)
+            byTime: true)
         return HomeFeedBatch(items: items, next: noteFeed.hasNext || postFeed.hasNext ? "f\(page + 1)" : nil)
     }
 
@@ -174,8 +182,7 @@ enum HomeFeedAPI {
         case .following:
             guard await AuthStore.shared.isSignedIn else { return NoteFeed(items: [], page: 0, hasNext: false) }
             return try await NoteAPI.following(page: page)
-        case .latest: return try await NoteAPI.everyone(page: page)
-        case .trending: return try await NoteAPI.trending(page: page)
+        case .forYou: return try await NoteAPI.everyone(page: page)
         }
     }
 
@@ -186,8 +193,7 @@ enum HomeFeedAPI {
                 return PublicFeedView(items: [], page: 0, size: 20, hasNext: false)
             }
             return try await LibraryAPI.followingFeed(page: page)
-        case .latest: return try await BlogAPI.feed(sort: .recent, page: page)
-        case .trending: return try await BlogAPI.feed(sort: .trending, page: page)
+        case .forYou: return try await BlogAPI.feed(sort: .recent, page: page)
         }
     }
 }

@@ -8,74 +8,22 @@ struct HomeView: View {
     @Namespace private var zoomNS
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var moreDragX: CGFloat = 0
-    @State private var width: CGFloat = 0
-    @State private var moreGate = SwipePagerGate()
-    @State private var moreBlocked = false
-
-    private var moreBack: some Gesture {
-        DragGesture(minimumDistance: 18)
-            .onChanged { value in
-                if moreGate.held { moreBlocked = true }
-                guard !moreBlocked, !reduceMotion,
-                      abs(value.translation.width) > abs(value.translation.height) else { return }
-                let dx = value.translation.width
-                moreDragX = dx > 0 ? dx : dx * 0.28
-            }
-            .onEnded { value in
-                defer { moreBlocked = false }
-                let dx = value.translation.width
-                let dy = value.translation.height
-                let flick = value.velocity.width > 260 && dx > 20
-                let deliberate = dx > 48 && abs(dx) > abs(dy) * 1.2
-                guard !moreBlocked, abs(dx) > abs(dy), flick || deliberate, width > 0 else {
-                    withAnimation(reduceMotion ? nil : Motion.move) { moreDragX = 0 }
-                    return
-                }
-                if reduceMotion {
-                    choice.leaveMore()
-                    moreDragX = 0
-                    return
-                }
-                withAnimation(Motion.move) {
-                    moreDragX = width
-                } completion: {
-                    choice.leaveMore()
-                    moreDragX = 0
-                }
-            }
-    }
-
     var body: some View {
         NavigationStack(path: $choice.path) {
-            ZStack {
-                SwipePager(
-                    tabs: HomeFeedTab.allCases, selection: $choice.tab, loadOnSelect: [.following], settled: settled,
-                    suspended: choice.more != nil && moreDragX == 0
-                ) { tab, active, warm in
-                    HomeFeedPage(model: model(tab), active: active && choice.more == nil, warm: warm)
-                        .environment(\.postZoom, PostZoom(prefix: "post", ns: zoomNS, active: active && choice.more == nil))
-                }
-                .offset(x: choice.more == nil ? 0 : moreDragX - width)
-                if let more = choice.more {
-                    FeedPage(source: more, active: true, warm: true, zoom: zoomNS)
-                        .id(more)
-                        .transition(.opacity)
-                        .disabled(moreDragX != 0)
-                        .offset(x: moreDragX)
-                        .environment(\.swipePagerGate, moreGate)
-                        .simultaneousGesture(moreBack)
-                }
+            SwipePager(
+                tabs: HomeFeedTab.allCases, selection: $choice.tab, loadOnSelect: [.following], settled: settled
+            ) { tab, active, warm in
+                HomeFeedPage(model: model(tab), active: active, warm: warm)
+                    .environment(\.postZoom, PostZoom(prefix: "post", ns: zoomNS, active: active))
             }
-            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
-            .animation(reduceMotion ? nil : Motion.move, value: choice.more)
             .reservesTabBarSpace()
             .safeAreaBar(edge: .top) {
                 FeedHeaderBar(
                     items: HomeFeedTab.allCases,
                     selection: Binding(get: { choice.tab }, set: { choice.select($0) }),
-                    label: \.label, moreChoice: choice.more?.moreChoice,
-                    moreLabel: "홈 더 보기", moreIdentifier: "home.more"
+                    label: \.label, moreChoice: nil,
+                    moreLabel: "홈 더 보기", moreIdentifier: "home.more",
+                    showsMore: HomeMoreMenu.shows(tab: choice.tab)
                 ) {
                     HomeMoreMenu()
                 }
@@ -103,14 +51,6 @@ struct HomeView: View {
             }
             .onChange(of: AuthStore.shared.isSignedIn) { _, signedIn in
                 if !signedIn { choice.signedOut() }
-            }
-            .loginPrompt(
-                isPresented: Binding(
-                    get: { choice.pendingMoreLogin != nil },
-                    set: { if !$0 { choice.pendingMoreLogin = nil } }),
-                message: choice.pendingMoreLogin?.loginMessage ?? ""
-            ) { [feed = choice.pendingMoreLogin] in
-                if let feed { choice.show(feed) }
             }
         }
         .environment(\.openNoteRoute) { choice.path.append($0) }
@@ -205,50 +145,15 @@ struct HomeFeedPage: View {
             case .failed(let message):
                 ErrorState(message: message, retry: { Task { await model.reload() } })
             case .loaded:
-                let rows = model.rows
-                if !rows.isEmpty { self.rows(rows) }
-                if let remote = model.remote, model.next == nil {
-                    remoteEnd(remote, empty: rows.isEmpty)
-                } else if rows.isEmpty {
+                if model.items.isEmpty {
                     empty.padding(.top, 24)
+                } else {
+                    rows
+                    if model.next == nil, model.tab.hidesSeen, !model.isLoadingMore {
+                        Hairline().padding(.horizontal, -Metrics.noteGutter)
+                        allSeen.padding(.vertical, 24)
+                    }
                 }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func remoteEnd(_ remote: RemoteStreamModel, empty showsEmpty: Bool) -> some View {
-        switch remote.phase {
-        case .idle, .loading:
-            if showsEmpty {
-                NoteSkeleton()
-            } else {
-                KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
-            }
-        case .failed:
-            if showsEmpty {
-                empty.padding(.top, 24)
-            } else {
-                Button {
-                    Task { await remote.reload() }
-                } label: {
-                    Text("더 불러오지 못했어요. 다시 시도")
-                        .typeScale(.meta)
-                        .foregroundStyle(Palette.ink)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 18)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-            }
-        case .loaded:
-            if showsEmpty {
-                empty.padding(.top, 24)
-            } else if remote.isLoadingMore {
-                KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
-            } else if remote.next == nil, model.tab.hidesSeen {
-                Hairline().padding(.horizontal, -Metrics.noteGutter)
-                allSeen.padding(.vertical, 24)
             }
         }
     }
@@ -279,60 +184,61 @@ struct HomeFeedPage: View {
                 actionTitle: "둘러보기",
                 action: { TabRouter.shared.selection = TabRouter.exploreTab }
             )
-        case .latest:
+        case .forYou:
             allSeen
-        case .trending:
-            FeedPlaceholder(
-                title: "아직 노트와 글이 없어요",
-                actionTitle: "둘러보기",
-                action: { TabRouter.shared.selection = TabRouter.exploreTab }
-            )
         }
     }
 
     @ViewBuilder
-    private func rows(_ rows: [HomeMix.Row]) -> some View {
-        ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
+    private var rows: some View {
+        let items = model.items
+        ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
             Group {
-                switch row {
-                case .own(let item):
-                    switch item.kind {
-                    case .note(let note):
-                        NoteFeedItem(
-                            note: note,
-                            onChange: { model.replaced($0) },
-                            onDelete: { model.removed($0) },
-                            onQuoted: { model.inserted($0) },
-                            repostedBy: note.repostedBy?.username
-                        )
-                        .modifier(QuietAppear(index: note.id == choice.arrivingID ? .max : index))
-                        .modifier(NoteArrival(active: note.id == choice.arrivingID))
-                    case .post(let post):
-                        PostFeedRow(post: post)
-                            .modifier(QuietAppear(index: index))
-                    }
-                case .remote(let item, let mixed):
-                    if let remote = model.remote {
-                        RemoteStreamRow(
-                            item: item, model: remote, headsKept: false, measuresSeen: measuresSeen,
-                            headsSeen: !mixed, context: Text("다른 서버"), marksSeen: false)
-                            .modifier(QuietAppear(index: index))
-                    }
+                switch item.kind {
+                case .note(let note):
+                    NoteFeedItem(
+                        note: note,
+                        onChange: { model.replaced($0) },
+                        onDelete: { model.removed($0) },
+                        onQuoted: { model.inserted($0) },
+                        repostedBy: note.repostedBy?.username
+                    )
+                    .modifier(QuietAppear(index: note.id == choice.arrivingID ? .max : index))
+                    .modifier(NoteArrival(active: note.id == choice.arrivingID))
+                case .post(let post):
+                    PostFeedRow(post: post)
+                        .modifier(QuietAppear(index: index))
+                case .remote(.trending(let note)):
+                    TrendingNoteRow(item: note, showsContext: false, context: Text("다른 서버"))
+                        .modifier(QuietAppear(index: index))
+                case .remote(.kept(let note)):
+                    NoteFeedItem(
+                        note: note,
+                        onChange: { model.replaced($0) },
+                        onDelete: { model.removed($0) },
+                        context: Text("다른 서버"))
+                        .modifier(QuietAppear(index: index))
                 }
             }
-            .environment(\.insideRoom, roomShownAbove(rows, index))
-            .marksHomeSeen(model.tab.hidesSeen && measuresSeen ? row.seenKey : nil)
-            .task { await model.loadMoreIfNeeded(current: row) }
-            if index < rows.count - 1 { Hairline().padding(.horizontal, -Metrics.noteGutter) }
+            .environment(\.insideRoom, roomShownAbove(items, index))
+            .marksRemoteSeen(dwellTarget(item))
+            .marksHomeSeen(model.tab.hidesSeen && measuresSeen ? item.seenKey : nil)
+            .task { await model.loadMoreIfNeeded(current: item) }
+            if index < items.count - 1 { Hairline().padding(.horizontal, -Metrics.noteGutter) }
         }
         if model.isLoadingMore {
             KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
         }
     }
 
-    private func roomShownAbove(_ rows: [HomeMix.Row], _ index: Int) -> Int64? {
-        guard index > 0, case .own(let item) = rows[index], let room = item.roomId,
-              case .own(let above) = rows[index - 1], above.roomId == room else { return nil }
+    private func dwellTarget(_ item: HomeFeedItem) -> RemoteSeenTarget? {
+        guard measuresSeen, model.tab.hidesSeen, case .remote(let remote) = item.kind,
+              let uri = remote.seenURI else { return nil }
+        return RemoteSeenTarget(uri: uri, feed: .forYou, noteID: remote.keptID, marks: false)
+    }
+
+    private func roomShownAbove(_ items: [HomeFeedItem], _ index: Int) -> Int64? {
+        guard index > 0, let room = items[index].roomId, items[index - 1].roomId == room else { return nil }
         return room
     }
 }

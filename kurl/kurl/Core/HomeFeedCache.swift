@@ -54,6 +54,11 @@ final class HomeFeedCache {
                 || NoteFilterStore.shared.verdict(for: note, in: .home) != nil
         case .post(let post):
             return BlockStore.shared.isBlocked(post.author.username)
+        case .remote(.kept(let note)):
+            return BlockStore.shared.isBlocked(note.author.username)
+                || NoteFilterStore.shared.verdict(for: note, in: .home) != nil
+        case .remote(.trending(let note)):
+            return BlockStore.shared.isBlocked(note.author.username)
         }
     }
 

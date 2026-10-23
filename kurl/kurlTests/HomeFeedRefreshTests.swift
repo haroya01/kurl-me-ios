@@ -50,10 +50,10 @@ final class HomeFeedRefreshTests: XCTestCase {
         XCTAssertEqual(model.next, "2.0")
     }
 
-    func testTrendingAlwaysStartsOver() async {
+    func testForYouAlwaysStartsOverAndNeverAsksForNewer() async {
         var asked = 0
         let model = model(
-            .trending,
+            .forYou,
             first: HomeFeedBatch(items: [post(1)], next: nil, newest: "0.1"),
             newer: nil, asked: { asked += 1 })
         await model.reload()
@@ -65,9 +65,9 @@ final class HomeFeedRefreshTests: XCTestCase {
     func testOnlyTheReloadThatSettlesLaunchLiftsTheSplash() async {
         var settled = 0
         let quiet = HomeFeedViewModel(
-            tab: .trending, settled: { settled += 1 }, load: { _, _ in HomeFeedBatch(items: [], next: nil) })
+            tab: .following, settled: { settled += 1 }, load: { _, _ in HomeFeedBatch(items: [], next: nil) })
         let shown = HomeFeedViewModel(
-            tab: .latest, settled: { settled += 1 }, load: { _, _ in throw URLError(.timedOut) })
+            tab: .forYou, settled: { settled += 1 }, load: { _, _ in throw URLError(.timedOut) })
         Self.kept += [quiet, shown]
 
         await quiet.reload()
@@ -79,7 +79,7 @@ final class HomeFeedRefreshTests: XCTestCase {
     func testTheNextPageStartsFiveRowsBeforeTheEnd() async {
         var asked: [String?] = []
         let items = (1...8).map { post(Int64($0)) }
-        let model = HomeFeedViewModel(tab: .latest, load: { _, cursor in
+        let model = HomeFeedViewModel(tab: .forYou, load: { _, cursor in
             asked.append(cursor)
             return cursor == nil
                 ? HomeFeedBatch(items: items, next: "c1")
@@ -97,7 +97,7 @@ final class HomeFeedRefreshTests: XCTestCase {
 
     func testARowScrollingAwayDoesNotCancelTheNextPage() async {
         let first = HomeFeedBatch(items: [post(1)], next: "c1")
-        let model = HomeFeedViewModel(tab: .latest, load: { _, cursor in
+        let model = HomeFeedViewModel(tab: .forYou, load: { _, cursor in
             guard cursor != nil else { return first }
             try await Task.sleep(for: .milliseconds(150))
             return HomeFeedBatch(items: [self.post(2)], next: nil)

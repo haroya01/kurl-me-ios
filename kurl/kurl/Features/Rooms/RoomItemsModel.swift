@@ -5,6 +5,7 @@ extension HomeFeedItem {
         switch kind {
         case .note(let note): note.room?.id
         case .post(let post): post.room?.id
+        case .remote: nil
         }
     }
 
@@ -12,6 +13,7 @@ extension HomeFeedItem {
         switch kind {
         case .note(let note): note.room
         case .post(let post): post.room
+        case .remote: nil
         }
     }
 }

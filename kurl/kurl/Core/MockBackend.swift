@@ -1714,6 +1714,24 @@ enum MockBackend {
             return json(["items": topLevelNotes().filter { $0.visibility == "public" }.map(noteView),
                          "page": 0, "hasNext": false])
         }
+        if method == "GET", parts == ["public", "home"], query?.first(where: { $0.name == "tab" })?.value == "for-you" {
+            let hides = query?.contains { $0.name == "seen" && $0.value == "hide" } == true
+            let short = ProcessInfo.processInfo.arguments.contains("--short-latest")
+            let mine = topLevelNotes().filter { $0.visibility == "public" }.prefix(short ? 2 : 6)
+                .filter { !hides || !remoteSeen.contains("kurl:note:\($0.id)") }
+                .map { ["kind": "note", "note": noteView($0)] as [String: Any] }
+            let theirs = [5, 3, 2, 1, 0, 4, 6].map { trendingNotes()[$0] }
+                .filter { !hides || !remoteSeen.contains($0["uri"] as? String ?? "") }
+                .map { ["kind": "remote", "remote": $0] as [String: Any] }
+            var ranked: [[String: Any]] = []
+            var ownLeft = Array(mine), remoteLeft = Array(theirs)
+            while !ownLeft.isEmpty || !remoteLeft.isEmpty {
+                if !remoteLeft.isEmpty { ranked.append(remoteLeft.removeFirst()) }
+                if !ownLeft.isEmpty { ranked.append(ownLeft.removeFirst()) }
+                if !remoteLeft.isEmpty { ranked.append(remoteLeft.removeFirst()) }
+            }
+            return json(["items": ranked, "next": NSNull()])
+        }
         if method == "GET", parts == ["public", "home"], ProcessInfo.processInfo.arguments.contains("--short-latest"),
            query?.first(where: { $0.name == "tab" })?.value == "latest" {
             let fresh = query?.contains { $0.name == "since" } != true

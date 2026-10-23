@@ -6,16 +6,23 @@ final class HomeRemoteTailUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    func testLatestMixesInOtherServerPostsMarkedAsSuch() {
+    func testHomeIsForYouThenFollowingWithKurlAndOtherServerPostsInOneList() {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--feed", "latest"]
         app.launch()
 
-        let mixed = app.descendants(matching: .any).matching(identifier: "trending.note")
+        let forYou = app.buttons["segment.for-you"]
+        XCTAssertTrue(forYou.waitForExistence(timeout: 12), "홈 머리에 추천이 없음")
+        XCTAssertTrue(forYou.isSelected, "옛 최신 값이 추천으로 열리지 않음")
+        XCTAssertTrue(app.buttons["segment.following"].exists, "홈 머리에 팔로잉이 없음")
+        XCTAssertFalse(app.buttons["segment.trending"].exists, "인기 탭이 남아 있음")
+        XCTAssertFalse(app.buttons["segment.latest"].exists, "최신 탭이 남아 있음")
+        XCTAssertLessThan(forYou.frame.midX, app.buttons["segment.following"].frame.midX, "추천이 첫 탭이 아님")
+
+        let remote = app.descendants(matching: .any).matching(identifier: "trending.note")
             .matching(NSPredicate(format: "label CONTAINS %@", "다른 서버")).firstMatch
-        for _ in 0..<6 where !(mixed.exists && mixed.frame.minX >= 0 && mixed.isHittable) { app.swipeUp() }
-        XCTAssertTrue(mixed.waitForExistence(timeout: 10), "최신 피드 중간에 다른 서버 표시가 붙은 글이 없음")
-        XCTAssertGreaterThanOrEqual(mixed.frame.minX, 0, "섞인 글이 지금 보는 최신 탭이 아닌 옆 탭에 있음")
+        XCTAssertTrue(remote.waitForExistence(timeout: 10), "추천에 다른 서버 표시가 붙은 글이 없음")
+        XCTAssertLessThan(remote.frame.minY, app.frame.height, "첫 화면에 다른 서버 글이 없음(한 줄 랭킹이 아님)")
     }
 
     func testSeenOtherServerPostsStayOutOfHomeAndTheEndSaysAllSeen() {
