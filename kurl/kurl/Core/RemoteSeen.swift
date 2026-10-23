@@ -94,7 +94,7 @@ final class RemoteSeenReporter {
     }
 
     func dwell(_ uri: String, ms: Int, feed: RemoteStreamFeed) {
-        guard ms > 0 else { return }
+        guard ms > 0, uri.hasPrefix("https://") || uri.hasPrefix("http://") else { return }
         let total = min(Self.dwellCap, dwelt[uri, default: 0] + ms)
         dwelt[uri] = total
         guard total >= Self.dwellFloor else { return }

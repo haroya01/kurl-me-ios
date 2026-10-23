@@ -140,14 +140,9 @@ final class FeedVectorTests: XCTestCase {
     static let seenRulesSHA256 = "49f34eb20e4c0cad594db594276fe73c93d49e6c0800a87167680dcceb550e9a"
 
     static let knownDifferences: [String: String] = [
-        "base-120": "two kept notes with the same note id but different uris both stay (dedupe is by uri)",
-        "dwell-001": "the reporter keeps dwell for a kurl key when handed one",
-        "dwell-002": "the reporter keeps dwell for a kurl key when handed one",
         "request-006": "following sends no X-Kurl-Device",
         "request-007": "trending sends no X-Kurl-Device",
         "pull-011": "my feed failing with new for-you rows ends silently as new rows (v2 pull rule agrees with iOS)",
-        "pull-015": "my feed empty with for-you failing says nothing new",
-        "pull-016": "an empty home with for-you failing ends as caught up",
     ]
 
     override func tearDown() async throws {

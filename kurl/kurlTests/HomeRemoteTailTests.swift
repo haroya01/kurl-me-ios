@@ -726,6 +726,21 @@ final class RemoteSeenTests: XCTestCase {
         XCTAssertNil(model.next)
     }
 
+    func testAStoredNoteShowsOnceEvenUnderAnotherUriOnTheSameOrALaterPage() async throws {
+        let pages = [
+            "first": try Self.mixed([Self.kept(7, 1), Self.kept(7, 2), Self.pool(3)], next: "f2"),
+            "f2": try Self.mixed([Self.kept(7, 4), Self.pool(5)], next: nil),
+        ]
+        let model = RemoteStreamModel(feed: .forYou) { _, cursor in try XCTUnwrap(pages[cursor ?? "first"]) }
+        Self.kept.append(model)
+
+        await model.reload()
+        XCTAssertEqual(model.items.map(\.id), ["n-7", "t-\(Self.uri(3))"])
+        await model.loadMore()
+
+        XCTAssertEqual(model.items.map(\.id), ["n-7", "t-\(Self.uri(3))", "t-\(Self.uri(5))"])
+    }
+
     func testEachFeedSendsItsOwnBatchNamingTheFeed() async {
         let sink = Sink()
         let reporter = reporter(sink)

@@ -88,13 +88,14 @@ final class HomeFeedViewModel {
     @discardableResult
     private func restart(settlesLaunch: Bool = false, announcesFailure: Bool = true) async -> PullOutcome? {
         let before = Set(rows.map(\.id))
-        async let theirs: Void = reloadRemote(announcesFailure: announcesFailure)
+        async let theirs = reloadRemote(announcesFailure: announcesFailure)
         let mine = await reloadOwn(settlesLaunch: settlesLaunch, announcesFailure: announcesFailure)
-        await theirs
+        let theirsLoaded = await theirs
         guard let mine else { return nil }
         let after = rows
+        let failed = !mine || (items.isEmpty && !theirsLoaded)
         return PullOutcome(
-            added: Set(after.map(\.id)).subtracting(before).count, failed: !mine, empty: mine && after.isEmpty)
+            added: Set(after.map(\.id)).subtracting(before).count, failed: failed, empty: !failed && after.isEmpty)
     }
 
     func left() {
@@ -108,8 +109,8 @@ final class HomeFeedViewModel {
         await reload()
     }
 
-    private func reloadRemote(announcesFailure: Bool) async {
-        await remote?.reload(announcesFailure: announcesFailure)
+    private func reloadRemote(announcesFailure: Bool) async -> Bool {
+        await remote?.reload(announcesFailure: announcesFailure) ?? true
     }
 
     private func refreshOwn() async -> PullOutcome? {

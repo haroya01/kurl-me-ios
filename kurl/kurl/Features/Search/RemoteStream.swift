@@ -48,24 +48,27 @@ final class RemoteStreamModel {
         return index >= start
     }
 
-    func reload(announcesFailure: Bool = true) async {
+    @discardableResult
+    func reload(announcesFailure: Bool = true) async -> Bool {
         epoch += 1
         let myEpoch = epoch
         if items.isEmpty { phase = .loading }
         do {
             let first = try await page(after: nil, epoch: myEpoch)
-            guard myEpoch == epoch else { return }
+            guard myEpoch == epoch else { return true }
             items = Self.unique(first.items)
             next = first.next
             firstSeenID = Self.seenStart(first, shown: Set(items.map(\.id)))
             phase = .loaded(true)
+            return true
         } catch {
-            guard myEpoch == epoch, !Task.isCancelled else { return }
+            guard myEpoch == epoch, !Task.isCancelled else { return false }
             if items.isEmpty {
                 phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
             } else if announcesFailure {
                 ToastCenter.shared.show(String(localized: "새로고침하지 못했습니다"))
             }
+            return false
         }
     }
 
@@ -82,8 +85,7 @@ final class RemoteStreamModel {
             defer { isLoadingMore = false }
             guard let page = try? await page(after: cursor, epoch: myEpoch), myEpoch == epoch else { return }
             next = page.next
-            let seen = Set(items.map(\.key))
-            let fresh = Self.unique(page.items).filter { !seen.contains($0.key) }
+            let fresh = Self.unique(page.items, besides: items)
             items.append(contentsOf: fresh)
             if firstSeenID == nil { firstSeenID = Self.seenStart(page, shown: Set(fresh.map(\.id))) }
         }.value
@@ -115,9 +117,13 @@ final class RemoteStreamModel {
         items.removeAll { if case .kept(let note) = $0 { note.id == id } else { false } }
     }
 
-    static func unique(_ items: [RemoteStreamItem]) -> [RemoteStreamItem] {
-        var seen = Set<String>()
-        return items.filter { seen.insert($0.key).inserted }
+    static func unique(_ items: [RemoteStreamItem], besides shown: [RemoteStreamItem] = []) -> [RemoteStreamItem] {
+        var seen = Set(shown.flatMap { [$0.key, $0.id] })
+        return items.filter { item in
+            guard !seen.contains(item.key), !seen.contains(item.id) else { return false }
+            seen.formUnion([item.key, item.id])
+            return true
+        }
     }
 }
 
@@ -139,7 +145,11 @@ struct RemoteStreamRows: View {
                 FeedPlaceholder(
                     title: model.feed == .latest ? "아직 다른 서버 최신 노트가 없어요" : "아직 받은 다른 서버 노트가 없어요",
                     actionTitle: "다시 시도",
-                    action: { Task { model.next == nil ? await model.reload() : await model.loadMore() } }
+                    action: {
+                        Task {
+                            if model.next == nil { await model.reload() } else { await model.loadMore() }
+                        }
+                    }
                 )
                 .padding(.top, 24)
             }
