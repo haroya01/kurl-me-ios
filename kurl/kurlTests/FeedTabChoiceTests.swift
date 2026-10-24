@@ -80,7 +80,7 @@ final class FeedTabChoiceTests: XCTestCase {
     func testHomeKeepsEveryPageMountedAndExploreMountsNeighborsOnlyWhileMoving() {
         for tab in HomeFeedTab.allCases {
             for moving in [false, true] {
-                XCTAssertTrue(SwipePagerMount.mounted(tab, selection: .latest, onlySelectionAtRest: false, moving: moving))
+                XCTAssertTrue(SwipePagerMount.mounted(tab, selection: .forYou, onlySelectionAtRest: false, moving: moving))
             }
         }
         XCTAssertEqual(ExploreLane.allCases, [.picks, .remote, .people])
