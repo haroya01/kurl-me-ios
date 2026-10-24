@@ -4,6 +4,8 @@ import XCTest
 
 @MainActor
 final class FeedTabChoiceTests: XCTestCase {
+    private static var gates: [SwipePagerGate] = []
+
     private func defaults(_ values: [String: String]) -> UserDefaults {
         let name = "home-tab-\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: name)!
@@ -88,6 +90,18 @@ final class FeedTabChoiceTests: XCTestCase {
         XCTAssertFalse(SwipePagerMount.mounted(ExploreLane.remote, selection: .picks, onlySelectionAtRest: true, moving: false))
         XCTAssertFalse(SwipePagerMount.mounted(ExploreLane.people, selection: .picks, onlySelectionAtRest: true, moving: false))
         XCTAssertTrue(SwipePagerMount.mounted(ExploreLane.remote, selection: .picks, onlySelectionAtRest: true, moving: true))
+    }
+
+    func testASwipeThatStartsOnAHeldStripDoesNotTurnThePage() {
+        let gate = SwipePagerGate()
+        Self.gates.append(gate)
+        XCTAssertFalse(gate.holds(CGPoint(x: 100, y: 500)))
+        gate.frames[UUID()] = CGRect(x: 0, y: 400, width: 402, height: 190)
+        XCTAssertTrue(gate.holds(CGPoint(x: 100, y: 500)), "a swipe that starts on the strip stays with the strip")
+        XCTAssertFalse(gate.holds(CGPoint(x: 100, y: 300)), "a swipe above the strip turns the page")
+        XCTAssertFalse(gate.holds(CGPoint(x: 100, y: 600)), "a swipe below the strip turns the page")
+        gate.held = true
+        XCTAssertTrue(gate.holds(CGPoint(x: 100, y: 300)), "a strip still gliding holds every swipe")
     }
 
     func testARightSwipeOnAMoreFeedStepsBackToTheLastTab() {

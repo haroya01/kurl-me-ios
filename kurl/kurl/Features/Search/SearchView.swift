@@ -312,7 +312,6 @@ struct SearchView: View {
                 }
             }
             .scrollClipDisabled()
-            .holdsSwipePager()
         }
     }
 
@@ -429,7 +428,6 @@ struct SearchView: View {
                             }
                         }
                     }
-                    .holdsSwipePager()
                 }
             }
     }

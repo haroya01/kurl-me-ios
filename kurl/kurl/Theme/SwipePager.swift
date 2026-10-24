@@ -92,9 +92,9 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
     }
 
     private var drag: some Gesture {
-        DragGesture(minimumDistance: 18)
+        DragGesture(minimumDistance: 18, coordinateSpace: .global)
             .onChanged { value in
-                if gate.held || locked { blocked = true }
+                if gate.holds(value.startLocation) || locked { blocked = true }
                 if blocked {
                     if dragX != 0 { dragX = 0 }
                     return
@@ -172,6 +172,11 @@ enum SwipePagerWarmth {
 
 final class SwipePagerGate {
     var held = false
+    var frames: [UUID: CGRect] = [:]
+
+    func holds(_ start: CGPoint) -> Bool {
+        held || frames.values.contains { $0.contains(start) }
+    }
 }
 
 private struct SwipePagerGateKey: EnvironmentKey {
@@ -187,19 +192,16 @@ extension EnvironmentValues {
 
 private struct HoldsSwipePager: ViewModifier {
     @Environment(\.swipePagerGate) private var gate
-    @GestureState private var touching = false
-    @State private var scrolling = false
+    @State private var id = UUID()
 
     func body(content: Content) -> some View {
         content
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 0).updating($touching) { _, state, _ in state = true })
-            .onChange(of: touching) { _, now in gate?.held = now || scrolling }
-            .onScrollPhaseChange { _, phase in
-                scrolling = phase != .idle
-                gate?.held = touching || scrolling
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { gate?.frames[id] = $0 }
+            .onScrollPhaseChange { _, phase in gate?.held = phase != .idle }
+            .onDisappear {
+                gate?.frames[id] = nil
+                gate?.held = false
             }
-            .onDisappear { gate?.held = false }
     }
 }
 
@@ -219,9 +221,9 @@ struct SwipeSelects<Tab: Hashable>: ViewModifier {
             .environment(\.swipePagerGate, gate)
             .disabled(swiping)
             .simultaneousGesture(
-                DragGesture(minimumDistance: 24)
+                DragGesture(minimumDistance: 24, coordinateSpace: .global)
                     .onChanged { value in
-                        if gate.held, !blocked { blocked = true }
+                        if gate.holds(value.startLocation), !blocked { blocked = true }
                         let horizontal = abs(value.translation.width) > abs(value.translation.height)
                         if !blocked, horizontal, !swiping { swiping = true }
                     }
