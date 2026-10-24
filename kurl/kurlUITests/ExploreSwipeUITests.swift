@@ -41,7 +41,7 @@ final class ExploreSwipeUITests: XCTestCase {
         XCTAssertTrue(selected(app, "remote"), "오른쪽으로 밀었는데 다른 서버로 안 돌아옴")
 
         app.buttons["segment.picks"].tap()
-        XCTAssertTrue(selected(app, "picks"), "스위처를 눌렀는데 추천으로 안 바뀜")
+        XCTAssertTrue(selected(app, "picks"), "스위처를 눌렀는데 발견으로 안 바뀜")
         shot("explore-picks-after-swipes")
     }
 

@@ -82,6 +82,8 @@ final class FeedTabChoiceTests: XCTestCase {
             }
         }
         XCTAssertEqual(ExploreLane.allCases, [.picks, .remote, .people])
+        XCTAssertEqual(ExploreLane.picks.label, String(localized: "발견"))
+        XCTAssertEqual(ExploreLane.picks.rawValue, "picks")
         XCTAssertTrue(SwipePagerMount.mounted(ExploreLane.picks, selection: .picks, onlySelectionAtRest: true, moving: false))
         XCTAssertFalse(SwipePagerMount.mounted(ExploreLane.remote, selection: .picks, onlySelectionAtRest: true, moving: false))
         XCTAssertFalse(SwipePagerMount.mounted(ExploreLane.people, selection: .picks, onlySelectionAtRest: true, moving: false))

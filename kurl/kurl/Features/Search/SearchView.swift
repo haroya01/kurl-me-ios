@@ -11,7 +11,7 @@ enum ExploreLane: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .picks: String(localized: "추천")
+        case .picks: String(localized: "발견")
         case .remote: String(localized: "다른 서버")
         case .people: String(localized: "사람")
         }
