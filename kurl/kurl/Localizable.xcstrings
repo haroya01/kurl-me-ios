@@ -22257,7 +22257,7 @@
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "खोजें"
+            "value": "चुनिंदा"
           }
         },
         "ja": {
@@ -22269,7 +22269,7 @@
         "vi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Khám phá"
+            "value": "Tuyển chọn"
           }
         }
       }

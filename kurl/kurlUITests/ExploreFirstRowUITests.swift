@@ -13,7 +13,7 @@ final class ExploreFirstRowUITests: XCTestCase {
 
         let title = app.descendants(matching: .any)
             .matching(NSPredicate(format: "identifier BEGINSWITH 'home.post.'")).firstMatch
-        XCTAssertTrue(title.waitForExistence(timeout: 15), "추천에 글 행이 없음")
+        XCTAssertTrue(title.waitForExistence(timeout: 15), "발견에 글 행이 없음")
         title.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: -30, dy: -10)).tap()
         XCTAssertTrue(app.buttons["author.card"].waitForExistence(timeout: 8), "첫 행 아바타를 눌렀는데 작가 화면이 안 열림")
     }
@@ -25,7 +25,7 @@ final class ExploreFirstRowUITests: XCTestCase {
 
         let title = app.descendants(matching: .any)
             .matching(NSPredicate(format: "identifier BEGINSWITH 'home.post.'")).firstMatch
-        XCTAssertTrue(title.waitForExistence(timeout: 15), "추천에 글 행이 없음")
+        XCTAssertTrue(title.waitForExistence(timeout: 15), "발견에 글 행이 없음")
         let chips = app.buttons["segment.picks"]
         XCTAssertTrue(chips.exists, "둘러보기 칩이 없음")
         title.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.05)).tap()
