@@ -26,9 +26,9 @@ struct LinkNotesView: View {
                 if notes.items.isEmpty {
                     FeedPlaceholder(
                         title: "아직 이 링크를 실은 노트가 없어요",
-                        actionTitle: "인기 노트 보기",
+                        actionTitle: "추천 보기",
                         action: {
-                            HomeFeedChoice.shared.show(HomeFeedTab.trending)
+                            HomeFeedChoice.shared.show(HomeFeedTab.forYou)
                             TabRouter.shared.switchTo(TabRouter.homeTab, reduceMotion: reduceMotion)
                         }
                     )

@@ -815,19 +815,21 @@ final class RemoteTrendingTests: XCTestCase {
         }
     }
 
-    func testHomeLatestAndHomeForYouAskToHideWhatWasSeenAndNothingElseDoes() async throws {
+    func testHomeForYouIsOneRequestThatHidesWhatWasSeenAndNothingElseDoes() async throws {
         serve([
             "/public/home": .json(200, #"{"items":[],"next":null,"newest":"1.1"}"#),
             "/federation/for-you": .json(200, #"{"items":[],"next":null}"#),
         ])
-        HomeFeedAPI.client = FederationAPI.client
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [ScriptedFederation.self]
+        HomeFeedAPI.client = APIClient(session: URLSession(configuration: config), viewerToken: { nil }, bearerToken: { "t" })
 
-        _ = try await HomeFeedAPI.page(.latest, cursor: nil)
-        _ = try await HomeFeedAPI.page(.latest, cursor: "h1792656810855.20.3")
-        _ = try await HomeFeedAPI.newer(.latest, since: "1.1")
-        _ = try await HomeFeedAPI.page(.trending, cursor: nil)
-        _ = try await FederationAPI.homeStream(.forYou, cursor: "f1792656810855.20")
+        _ = try await HomeFeedAPI.page(.forYou, cursor: nil)
+        _ = try await HomeFeedAPI.page(.forYou, cursor: "r1792656810855.20")
+        _ = try await HomeFeedAPI.page(.following, cursor: nil)
         _ = try await FederationAPI.stream(.forYou, cursor: nil)
+        _ = try await HomeFeedAPI.page(.blog, cursor: nil)
+        _ = try await HomeFeedAPI.newer(.blog, since: "b1792656810855000.9")
 
         let requests = ScriptedFederation.requests
         XCTAssertEqual(requests.count, 6)
@@ -836,18 +838,25 @@ final class RemoteTrendingTests: XCTestCase {
             return Dictionary(items.map { ($0.name, $0.value ?? "") }, uniquingKeysWith: { first, _ in first })
         }
         let device = RemoteSeenDevice.id()
-        for index in 0..<3 {
-            XCTAssertEqual(query(requests[index])["seen"], "hide", "home latest \(index)")
-            XCTAssertEqual(query(requests[index])["tab"], "latest")
-            XCTAssertEqual(requests[index].value(forHTTPHeaderField: "X-Kurl-Device"), device, "home latest \(index)")
+        for index in 0..<2 {
+            XCTAssertEqual(requests[index].url?.path, "/api/v1/public/home")
+            XCTAssertEqual(query(requests[index])["tab"], "for-you")
+            XCTAssertEqual(query(requests[index])["seen"], "hide", "home 추천 \(index)")
+            XCTAssertEqual(requests[index].value(forHTTPHeaderField: "X-Kurl-Device"), device, "home 추천 \(index)")
         }
-        XCTAssertEqual(query(requests[1])["cursor"], "h1792656810855.20.3", "the cursor goes back as it came")
-        XCTAssertEqual(query(requests[2])["since"], "1.1")
-        XCTAssertNil(query(requests[3])["seen"], "trending does not hide")
-        XCTAssertNil(requests[3].value(forHTTPHeaderField: "X-Kurl-Device"))
-        XCTAssertEqual(query(requests[4])["seen"], "hide", "home for-you hides")
-        XCTAssertEqual(query(requests[4])["cursor"], "f1792656810855.20")
-        XCTAssertNil(query(requests[5])["seen"], "explore for-you keeps seen posts at the back")
+        XCTAssertEqual(query(requests[1])["cursor"], "r1792656810855.20", "the cursor goes back as it came")
+        XCTAssertEqual(query(requests[2])["tab"], "following")
+        XCTAssertNil(query(requests[2])["seen"], "following does not hide")
+        XCTAssertEqual(requests[3].url?.path, "/api/v1/federation/for-you")
+        XCTAssertNil(query(requests[3])["seen"], "explore for-you keeps seen posts at the back")
+        XCTAssertEqual(requests[3].value(forHTTPHeaderField: "X-Kurl-Device"), device)
+        for index in 4..<6 {
+            XCTAssertEqual(requests[index].url?.path, "/api/v1/public/home")
+            XCTAssertEqual(query(requests[index])["tab"], "blog")
+            XCTAssertNil(query(requests[index])["seen"], "블로그 does not hide \(index)")
+            XCTAssertNil(requests[index].value(forHTTPHeaderField: "X-Kurl-Device"), "블로그 \(index)")
+        }
+        XCTAssertEqual(query(requests[5])["since"], "b1792656810855000.9")
     }
 
     func testLatestAndForYouCarryTheDeviceAndSeenPostsTheUrisWithTheirFeed() async throws {

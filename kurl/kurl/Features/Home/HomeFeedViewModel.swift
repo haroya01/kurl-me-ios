@@ -19,8 +19,8 @@ final class HomeFeedViewModel {
     private let notify: @MainActor (String) -> Void
     private let flushSeen: @MainActor () async -> Void
     private let seenBefore: @MainActor (HomeFeedItem) -> Bool
-    let remote: RemoteStreamModel?
     private var leftAt: Date?
+    static let staleAfter: TimeInterval = 30 * 60
 
     struct PullOutcome: Equatable {
         var added = 0
@@ -36,7 +36,6 @@ final class HomeFeedViewModel {
         flushSeen: @escaping @MainActor () async -> Void = { await RemoteSeenReporter.shared.flush().value },
         seenBefore: @escaping @MainActor (HomeFeedItem) -> Bool = HomeFeedViewModel.seenBefore,
         cached: @escaping (HomeFeedTab) async -> HomeFeedBatch? = { await HomeFeedCache.shared.read($0) },
-        remote: @escaping (RemoteStreamFeed, String?) async throws -> RemoteStreamPage = FederationAPI.homeStream,
         newer: @escaping (HomeFeedTab, String) async throws -> HomeFeedBatch = HomeFeedAPI.newer,
         load: @escaping (HomeFeedTab, String?) async throws -> HomeFeedBatch = HomeFeedAPI.page
     ) {
@@ -49,20 +48,19 @@ final class HomeFeedViewModel {
         self.notify = notify
         self.flushSeen = flushSeen
         self.seenBefore = seenBefore
-        self.remote = tab == .latest ? RemoteStreamModel(feed: .forYou, load: remote) : nil
-    }
-
-    var rows: [HomeMix.Row] {
-        guard let remote, case .loaded = phase else { return items.map { .own($0) } }
-        return HomeMix.rows(own: items, remote: remote.items, ownDone: next == nil)
     }
 
     static func seenBefore(_ item: HomeFeedItem) -> Bool {
-        leftOutOfCache(item, log: HomeSeenLog.shared, me: AuthStore.shared.me?.id)
+        leftOutOfCache(item, log: HomeSeenLog.shared)
     }
 
-    static func leftOutOfCache(_ item: HomeFeedItem, log: HomeSeenLog, me: Int64?) -> Bool {
-        log.contains(item.seenKey) && item.authorID != me
+    static func leftOutOfCache(_ item: HomeFeedItem, log: HomeSeenLog) -> Bool {
+        item.seenKey.map(log.contains) ?? false
+    }
+
+    static func needsReload(leftAt: Date?, now: Date) -> Bool {
+        guard let leftAt else { return false }
+        return now.timeIntervalSince(leftAt) >= staleAfter
     }
 
     func refresh() async {
@@ -74,12 +72,17 @@ final class HomeFeedViewModel {
         say(await restart(announcesFailure: false))
     }
 
+    func catchUp() async {
+        guard case .loaded = phase else { return }
+        _ = await refreshOwn()
+    }
+
     func reload(settlesLaunch: Bool = false) async {
         await restart(settlesLaunch: settlesLaunch)
     }
 
     private func say(_ outcome: PullOutcome?) {
-        guard let outcome, tab != .trending else { return }
+        guard let outcome else { return }
         if case .failed = phase { return }
         guard outcome.added == 0, !outcome.empty else { return }
         notify(outcome.failed ? String(localized: "새로고침하지 못했습니다") : String(localized: "새 글이 없어요"))
@@ -87,15 +90,12 @@ final class HomeFeedViewModel {
 
     @discardableResult
     private func restart(settlesLaunch: Bool = false, announcesFailure: Bool = true) async -> PullOutcome? {
-        let before = Set(rows.map(\.id))
-        async let theirs = reloadRemote(announcesFailure: announcesFailure)
-        let mine = await reloadOwn(settlesLaunch: settlesLaunch, announcesFailure: announcesFailure)
-        let theirsLoaded = await theirs
-        guard let mine else { return nil }
-        let after = rows
-        let failed = !mine || !theirsLoaded
+        let before = Set(items.map(\.id))
+        guard let loaded = await reloadOwn(settlesLaunch: settlesLaunch, announcesFailure: announcesFailure) else {
+            return nil
+        }
         return PullOutcome(
-            added: Set(after.map(\.id)).subtracting(before).count, failed: failed, empty: !failed && after.isEmpty)
+            added: Set(items.map(\.id)).subtracting(before).count, failed: !loaded, empty: loaded && items.isEmpty)
     }
 
     func left() {
@@ -104,17 +104,13 @@ final class HomeFeedViewModel {
 
     func returned() async {
         defer { leftAt = nil }
-        guard remote != nil, HomeMix.needsReload(leftAt: leftAt, now: now()) else { return }
+        guard tab.hidesSeen, Self.needsReload(leftAt: leftAt, now: now()) else { return }
         await flushSeen()
         await reload()
     }
 
-    private func reloadRemote(announcesFailure: Bool) async -> Bool {
-        await remote?.reload(announcesFailure: announcesFailure) ?? true
-    }
-
     private func refreshOwn() async -> PullOutcome? {
-        guard tab != .trending, let marker = newest, !items.isEmpty else {
+        guard let marker = newest, !items.isEmpty else {
             let known = Set(items.map(\.id))
             guard let loaded = await reloadOwn(announcesFailure: false) else { return nil }
             return PullOutcome(added: items.filter { !known.contains($0.id) }.count, failed: !loaded)
@@ -190,26 +186,6 @@ final class HomeFeedViewModel {
         }.value
     }
 
-    func loadMoreIfNeeded(current row: HomeMix.Row) async {
-        switch row {
-        case .own(let item):
-            await loadMoreIfNeeded(current: item)
-            await topUpRemote()
-        case .remote(let item, let mixed):
-            if mixed {
-                await topUpRemote()
-            } else {
-                await remote?.loadMoreIfNeeded(current: item)
-            }
-        }
-    }
-
-    private func topUpRemote() async {
-        guard let remote, remote.next != nil,
-              HomeMix.unused(own: items, remote: remote.items) < HomeMix.lowWater else { return }
-        await remote.loadMore()
-    }
-
     func inserted(_ note: Note) {
         let item = HomeFeedItem(kind: .note(note))
         withMotion(Motion.move) {
@@ -220,6 +196,10 @@ final class HomeFeedViewModel {
     }
 
     func replaced(_ note: Note) {
+        if let index = items.firstIndex(where: { $0.keptNote?.id == note.id }) {
+            items[index] = HomeFeedItem(kind: .remote(.kept(note)))
+            return
+        }
         guard let index = items.firstIndex(where: { $0.note?.id == note.id }), let old = items[index].note else { return }
         var next = note
         next.repostedBy = next.repostedBy ?? old.repostedBy
@@ -228,7 +208,7 @@ final class HomeFeedViewModel {
 
     func removed(_ id: Int64) {
         HomeFeedCache.shared.wipe()
-        withMotion(Motion.move) { items.removeAll { $0.note?.id == id } }
+        withMotion(Motion.move) { items.removeAll { $0.note?.id == id || $0.keptNote?.id == id } }
     }
 
     static func unique(_ items: [HomeFeedItem]) -> [HomeFeedItem] {

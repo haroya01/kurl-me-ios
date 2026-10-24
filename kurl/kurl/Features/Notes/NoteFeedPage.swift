@@ -132,20 +132,20 @@ struct NoteFeedPage: View {
         case .federated:
             FeedPlaceholder(
                 title: "아직 받은 다른 서버 노트가 없어요",
-                actionTitle: "최신 노트 보기",
-                action: { HomeFeedChoice.shared.open(.latest) }
+                actionTitle: "추천 보기",
+                action: { HomeFeedChoice.shared.open(.forYou) }
             )
         case .following:
             FeedPlaceholder(
                 title: "팔로우한 사람의 노트가 아직 없어요",
-                actionTitle: "인기 노트 보기",
-                action: { HomeFeedChoice.shared.open(.trending) }
+                actionTitle: "추천 보기",
+                action: { HomeFeedChoice.shared.open(.forYou) }
             )
         case .bookmarks:
             FeedPlaceholder(
                 title: "북마크한 노트가 없어요",
-                actionTitle: "인기 노트 보기",
-                action: { HomeFeedChoice.shared.open(.trending) }
+                actionTitle: "추천 보기",
+                action: { HomeFeedChoice.shared.open(.forYou) }
             )
         case .list:
             FeedPlaceholder(
