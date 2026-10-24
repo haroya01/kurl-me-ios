@@ -8,12 +8,16 @@ import SwiftUI
 /// 선택 ±1 칸만 그려 곧 보일 페이지만 첫 로드한다(`warm`). 이웃은 선택 페이지가 처음 `settled` 된 뒤에 데운다.
 /// `loadOnSelect` 탭은 처음 고를 때까지 미룬다.
 /// `suspended` 면 페이지를 숨기고 손이 닿지 않게 하되 데이터·스크롤은 그대로 둔다(더 보기 피드가 위에 설 때).
+/// `mountsNeighborsWhileMoving` 이면 선택 페이지만 살려 두고 이웃은 끌거나 미끄러지는 동안에만 올린다.
+/// `locked` 면 스와이프로 넘기지 않는다.
 struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
     let tabs: [Tab]
     @Binding var selection: Tab
     var loadOnSelect: Set<Tab> = []
     var settled = true
     var suspended = false
+    var mountsNeighborsWhileMoving = false
+    var locked = false
     @ViewBuilder let page: (_ tab: Tab, _ active: Bool, _ warm: Bool) -> Page
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -28,21 +32,25 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
     @State private var blocked = false
     @State private var opened: Set<Tab> = []
     @State private var neighborsReady = false
+    @State private var moving = false
 
     var body: some View {
         ZStack {
             ForEach(tabs) { tab in
-                page(tab, tab == selection, SwipePagerWarmth.warm(
-                    tab, tabs: tabs, selection: selection, loadOnSelect: loadOnSelect, opened: opened,
-                    settled: neighborsReady))
-                    // 슬라이드 중 중앙을 벗어난 분면은 살짝 가라앉는다 — 옆 칸이 "뒤에 있다"는 얕은 깊이.
-                    .opacity(opacity(tab))
-                    // 드래그 중엔 페이지 콘텐츠를 비활성화 — 카드가 손가락과 함께 움직여 탭이 안 취소되던 것.
-                    .disabled(dragX != 0)
-                    .allowsHitTesting(tab == selection && !suspended)
-                    .accessibilityHidden(tab != selection || suspended)
-                    .offset(x: offset(tab))
-                    .environment(\.swipePagerGate, gate)
+                if SwipePagerMount.mounted(
+                    tab, selection: selection, onlySelectionAtRest: mountsNeighborsWhileMoving, moving: moving) {
+                    page(tab, tab == selection, SwipePagerWarmth.warm(
+                        tab, tabs: tabs, selection: selection, loadOnSelect: loadOnSelect, opened: opened,
+                        settled: neighborsReady))
+                        // 슬라이드 중 중앙을 벗어난 분면은 살짝 가라앉는다 — 옆 칸이 "뒤에 있다"는 얕은 깊이.
+                        .opacity(opacity(tab))
+                        // 드래그 중엔 페이지 콘텐츠를 비활성화 — 카드가 손가락과 함께 움직여 탭이 안 취소되던 것.
+                        .disabled(dragX != 0)
+                        .allowsHitTesting(tab == selection && !suspended)
+                        .accessibilityHidden(tab != selection || suspended)
+                        .offset(x: offset(tab))
+                        .environment(\.swipePagerGate, gate)
+                }
             }
         }
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { containerWidth = $0 }
@@ -60,8 +68,9 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
             guard !reduceMotion, containerWidth > 0,
                   let from = tabs.firstIndex(of: old),
                   let to = tabs.firstIndex(of: new), from != to else { return }
+            moving = true
             dragX = CGFloat(to - from) * containerWidth
-            withAnimation(Motion.move) { dragX = 0 }
+            settle()
         }
     }
 
@@ -83,15 +92,16 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
     }
 
     private var drag: some Gesture {
-        DragGesture(minimumDistance: 18)
+        DragGesture(minimumDistance: 18, coordinateSpace: .global)
             .onChanged { value in
-                if gate.held { blocked = true }
+                if gate.holds(value.startLocation) || locked { blocked = true }
                 if blocked {
                     if dragX != 0 { dragX = 0 }
                     return
                 }
                 guard !reduceMotion,
                       abs(value.translation.width) > abs(value.translation.height) else { return }
+                moving = true
                 var dx = value.translation.width
                 let i = selectionIndex
                 // 끝 탭에서 더 끌면 고무줄 저항 — 들어올 페이지가 없다.
@@ -102,6 +112,7 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
                 if blocked {
                     blocked = false
                     withAnimation(reduceMotion ? nil : Motion.move) { dragX = 0 }
+                    moving = false
                     return
                 }
                 let dx = value.translation.width
@@ -112,7 +123,7 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
                 let deliberate = abs(dx) > 48 && abs(dx) > abs(dy) * 1.2
                 let canGo = dx < 0 ? i < tabs.count - 1 : i > 0
                 guard abs(dx) > abs(dy), flick || deliberate, canGo else {
-                    withAnimation(reduceMotion ? nil : Motion.move) { dragX = 0 }
+                    settle()
                     return
                 }
                 let next = tabs[dx < 0 ? i + 1 : i - 1]
@@ -120,14 +131,32 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
                 if reduceMotion {
                     selection = next
                     dragX = 0
+                    moving = false
                     return
                 }
                 // 선택을 곧바로 바꾸고(햅틱 즉시) dragX 를 ±폭만큼 보정해 한 프레임에 같이 적용 —
                 // 인덱스 변화와 상쇄돼 시각은 연속. 그 뒤 dragX 를 0 으로 애니메이트해 안착시킨다.
                 selection = next
                 dragX += dx < 0 ? containerWidth : -containerWidth
-                withAnimation(Motion.move) { dragX = 0 }
+                settle()
             }
+    }
+
+    private func settle() {
+        guard !reduceMotion else {
+            dragX = 0
+            moving = false
+            return
+        }
+        withAnimation(Motion.move) { dragX = 0 } completion: {
+            if dragX == 0 { moving = false }
+        }
+    }
+}
+
+enum SwipePagerMount {
+    static func mounted<Tab: Hashable>(_ tab: Tab, selection: Tab, onlySelectionAtRest: Bool, moving: Bool) -> Bool {
+        !onlySelectionAtRest || tab == selection || moving
     }
 }
 
@@ -143,6 +172,11 @@ enum SwipePagerWarmth {
 
 final class SwipePagerGate {
     var held = false
+    var frames: [UUID: CGRect] = [:]
+
+    func holds(_ start: CGPoint) -> Bool {
+        held || frames.values.contains { $0.contains(start) }
+    }
 }
 
 private struct SwipePagerGateKey: EnvironmentKey {
@@ -158,19 +192,16 @@ extension EnvironmentValues {
 
 private struct HoldsSwipePager: ViewModifier {
     @Environment(\.swipePagerGate) private var gate
-    @GestureState private var touching = false
-    @State private var scrolling = false
+    @State private var id = UUID()
 
     func body(content: Content) -> some View {
         content
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 0).updating($touching) { _, state, _ in state = true })
-            .onChange(of: touching) { _, now in gate?.held = now || scrolling }
-            .onScrollPhaseChange { _, phase in
-                scrolling = phase != .idle
-                gate?.held = touching || scrolling
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { gate?.frames[id] = $0 }
+            .onScrollPhaseChange { _, phase in gate?.held = phase != .idle }
+            .onDisappear {
+                gate?.frames[id] = nil
+                gate?.held = false
             }
-            .onDisappear { gate?.held = false }
     }
 }
 
@@ -190,9 +221,9 @@ struct SwipeSelects<Tab: Hashable>: ViewModifier {
             .environment(\.swipePagerGate, gate)
             .disabled(swiping)
             .simultaneousGesture(
-                DragGesture(minimumDistance: 24)
+                DragGesture(minimumDistance: 24, coordinateSpace: .global)
                     .onChanged { value in
-                        if gate.held, !blocked { blocked = true }
+                        if gate.holds(value.startLocation), !blocked { blocked = true }
                         let horizontal = abs(value.translation.width) > abs(value.translation.height)
                         if !blocked, horizontal, !swiping { swiping = true }
                     }
