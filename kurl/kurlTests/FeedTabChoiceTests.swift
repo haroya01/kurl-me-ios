@@ -4,6 +4,8 @@ import XCTest
 
 @MainActor
 final class FeedTabChoiceTests: XCTestCase {
+    private static var gates: [SwipePagerGate] = []
+
     private func defaults(_ values: [String: String]) -> UserDefaults {
         let name = "home-tab-\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: name)!
@@ -11,68 +13,95 @@ final class FeedTabChoiceTests: XCTestCase {
         return defaults
     }
 
-    func testHomeShowsFollowingLatestTrendingInOrder() {
-        XCTAssertEqual(HomeFeedTab.allCases, [.following, .latest, .trending])
-        XCTAssertEqual(HomeFeedTab.allCases.last, .trending)
+    func testHomeShowsForYouFollowingAndBlog() {
+        XCTAssertEqual(HomeFeedTab.allCases, [.forYou, .following, .blog])
+        XCTAssertEqual(HomeFeedTab.forYou.rawValue, "for-you")
+        XCTAssertEqual(HomeFeedTab.forYou.label, String(localized: "추천"))
+        XCTAssertEqual(HomeFeedTab.blog.rawValue, "blog")
+        XCTAssertEqual(HomeFeedTab.blog.label, String(localized: "블로그"))
+        XCTAssertFalse(HomeFeedTab.blog.hidesSeen)
+        XCTAssertFalse(HomeFeedTab.blog.requiresAuth)
     }
 
-    func testASignedInReaderKeepsTheRememberedTabFromEitherOldFeed() {
-        XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["home.tab": "trending"]), signedIn: true), .trending)
+    func testBlogIsKeptAndOpenedByLaunchArgument() {
+        XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["home.tab": "blog"]), signedIn: true), .blog)
+        XCTAssertEqual(HomeFeedChoice.initialTab(launched: "blog", defaults: nil, signedIn: false), .blog)
+    }
+
+    func testASignedInReaderKeepsFollowingAndEveryOtherOldTabOpensOnForYou() {
+        XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["home.tab": "following"]), signedIn: true), .following)
         XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["feed.tab": "following"]), signedIn: true), .following)
-        XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["feed.tab": "recent"]), signedIn: true), .latest)
-        XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["notes.feed": "everyone"]), signedIn: true), .latest)
+        for old in ["latest", "trending", "for-you"] {
+            XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["home.tab": old]), signedIn: true), .forYou, old)
+        }
+        XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["feed.tab": "recent"]), signedIn: true), .forYou)
+        XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["feed.tab": "forYou"]), signedIn: true), .forYou)
+        XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["notes.feed": "everyone"]), signedIn: true), .forYou)
         XCTAssertEqual(
-            HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["feed.tab": "trending", "notes.feed": "following"]), signedIn: true),
-            .trending, "the blog feed's choice wins over the notes feed's")
-        XCTAssertEqual(
-            HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["home.tab": "latest", "feed.tab": "trending"]), signedIn: true),
-            .latest, "once 홈 has its own choice, the old ones are ignored")
+            HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["home.tab": "trending", "feed.tab": "following"]), signedIn: true),
+            .forYou, "once 홈 has its own choice, the old ones are ignored")
     }
 
-    func testOldMenuOnlyFeedsOpenOnLatest() {
-        XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["feed.tab": "forYou"]), signedIn: true), .latest)
-        XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["notes.feed": "bookmarks"]), signedIn: true), .latest)
-        XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["notes.feed": "federated"]), signedIn: true), .latest)
+    func testOldMenuOnlyFeedsOpenOnForYou() {
+        XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["notes.feed": "bookmarks"]), signedIn: true), .forYou)
+        XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["notes.feed": "federated"]), signedIn: true), .forYou)
     }
 
-    func testASignedOutReaderOpensOnLatest() {
-        XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["home.tab": "following"]), signedIn: false), .latest)
-        XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: nil, signedIn: false), .latest)
+    func testASignedOutReaderOpensOnForYou() {
+        XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: defaults(["home.tab": "following"]), signedIn: false), .forYou)
+        XCTAssertEqual(HomeFeedChoice.initialTab(launched: nil, defaults: nil, signedIn: false), .forYou)
     }
 
     func testALaunchArgumentWins() {
-        XCTAssertEqual(HomeFeedChoice.initialTab(launched: "trending", defaults: defaults(["home.tab": "following"]), signedIn: true), .trending)
-        XCTAssertEqual(HomeFeedChoice.initialTab(launched: "recent", defaults: nil, signedIn: false), .latest)
+        XCTAssertEqual(HomeFeedChoice.initialTab(launched: "following", defaults: defaults(["home.tab": "latest"]), signedIn: true), .following)
+        XCTAssertEqual(HomeFeedChoice.initialTab(launched: "latest", defaults: defaults(["home.tab": "following"]), signedIn: true), .forYou)
+        XCTAssertEqual(HomeFeedChoice.initialTab(launched: "trending", defaults: nil, signedIn: false), .forYou)
     }
 
-    func testFollowingNextToLatestWaitsUntilItIsFirstChosen() {
+    func testFollowingAndBlogNextToForYouWaitUntilFirstChosen() {
+        XCTAssertEqual(HomeFeedTab.loadOnSelect, [.following, .blog])
         let tabs = HomeFeedTab.allCases
         func warm(_ tab: HomeFeedTab, selection: HomeFeedTab, opened: Set<HomeFeedTab> = []) -> Bool {
-            SwipePagerWarmth.warm(tab, tabs: tabs, selection: selection, loadOnSelect: [.following], opened: opened)
+            SwipePagerWarmth.warm(tab, tabs: tabs, selection: selection, loadOnSelect: HomeFeedTab.loadOnSelect, opened: opened)
         }
-        XCTAssertFalse(warm(.following, selection: .latest), "opening on 최신 must not fetch 팔로잉 too")
-        XCTAssertTrue(warm(.trending, selection: .latest))
+        XCTAssertFalse(warm(.following, selection: .forYou), "opening on 추천 must not fetch 팔로잉 too")
+        XCTAssertFalse(warm(.blog, selection: .forYou), "opening on 추천 must not fetch 블로그 too")
+        XCTAssertTrue(warm(.blog, selection: .blog))
         XCTAssertTrue(warm(.following, selection: .following))
-        XCTAssertTrue(warm(.following, selection: .latest, opened: [.following]))
-        XCTAssertFalse(warm(.following, selection: .trending, opened: [.following]))
+        XCTAssertTrue(warm(.following, selection: .forYou, opened: [.following]))
+        XCTAssertTrue(warm(.forYou, selection: .following))
     }
 
-    func testNeighborsWaitUntilTheChosenPageHasSettled() {
-        let tabs = HomeFeedTab.allCases
-        func warm(_ tab: HomeFeedTab, selection: HomeFeedTab, opened: Set<HomeFeedTab> = [], settled: Bool) -> Bool {
-            SwipePagerWarmth.warm(
-                tab, tabs: tabs, selection: selection, loadOnSelect: [.following], opened: opened, settled: settled)
+    func testTheMoreMenuOnlyAppearsOnFollowingForASignedInReader() {
+        XCTAssertFalse(HomeMoreMenu.shows(tab: .forYou))
+        XCTAssertEqual(HomeMoreMenu.shows(tab: .following), AuthStore.shared.isSignedIn)
+    }
+
+    func testHomeKeepsEveryPageMountedAndExploreMountsNeighborsOnlyWhileMoving() {
+        for tab in HomeFeedTab.allCases {
+            for moving in [false, true] {
+                XCTAssertTrue(SwipePagerMount.mounted(tab, selection: .forYou, onlySelectionAtRest: false, moving: moving))
+            }
         }
-        XCTAssertTrue(warm(.latest, selection: .latest, settled: false), "the chosen page loads at once")
-        XCTAssertFalse(warm(.trending, selection: .latest, settled: false), "인기 waits while 최신 is still loading")
-        XCTAssertTrue(warm(.trending, selection: .latest, settled: true))
-        XCTAssertTrue(warm(.trending, selection: .latest, opened: [.trending], settled: false), "a page once chosen stays warm")
-        XCTAssertFalse(warm(.following, selection: .latest, settled: true), "settling does not wake 팔로잉")
+        XCTAssertEqual(ExploreLane.allCases, [.picks, .remote, .people])
+        XCTAssertEqual(ExploreLane.picks.label, String(localized: "발견"))
+        XCTAssertEqual(ExploreLane.picks.rawValue, "picks")
+        XCTAssertTrue(SwipePagerMount.mounted(ExploreLane.picks, selection: .picks, onlySelectionAtRest: true, moving: false))
+        XCTAssertFalse(SwipePagerMount.mounted(ExploreLane.remote, selection: .picks, onlySelectionAtRest: true, moving: false))
+        XCTAssertFalse(SwipePagerMount.mounted(ExploreLane.people, selection: .picks, onlySelectionAtRest: true, moving: false))
+        XCTAssertTrue(SwipePagerMount.mounted(ExploreLane.remote, selection: .picks, onlySelectionAtRest: true, moving: true))
     }
 
-    func testTheMoreMenuHoldsForYouOnly() {
-        XCTAssertEqual(HomeMoreMenu.feeds, [.forYou])
-        XCTAssertEqual(FeedSource.forYou.moreChoice, SegmentMoreChoice(title: String(localized: "추천"), symbol: "binoculars"))
+    func testASwipeThatStartsOnAHeldStripDoesNotTurnThePage() {
+        let gate = SwipePagerGate()
+        Self.gates.append(gate)
+        XCTAssertFalse(gate.holds(CGPoint(x: 100, y: 500)))
+        gate.frames[UUID()] = CGRect(x: 0, y: 400, width: 402, height: 190)
+        XCTAssertTrue(gate.holds(CGPoint(x: 100, y: 500)), "a swipe that starts on the strip stays with the strip")
+        XCTAssertFalse(gate.holds(CGPoint(x: 100, y: 300)), "a swipe above the strip turns the page")
+        XCTAssertFalse(gate.holds(CGPoint(x: 100, y: 600)), "a swipe below the strip turns the page")
+        gate.held = true
+        XCTAssertTrue(gate.holds(CGPoint(x: 100, y: 300)), "a strip still gliding holds every swipe")
     }
 
     func testARightSwipeOnAMoreFeedStepsBackToTheLastTab() {
@@ -95,21 +124,25 @@ final class FeedTabChoiceTests: XCTestCase {
             id: 77, body: "방금", createdAt: nil, editedAt: nil, likeCount: nil, likedByMe: nil,
             author: Author(id: 1, username: "author", bio: nil, avatarUrl: nil), media: [], quotedPost: nil,
             inReplyToId: nil, replyCount: 0, repostCount: nil, repostedByMe: nil, quotedNote: nil)
-        choice.select(.trending)
+        choice.select(.forYou)
         choice.path.append(Route.note(id: 1))
         TabRouter.shared.selection = TabRouter.accountTab
 
         TabRouter.shared.revealPosted(note)
 
         XCTAssertEqual(TabRouter.shared.selection, TabRouter.homeTab)
-        XCTAssertEqual(choice.tab, .latest, "인기 doesn't have the note you just wrote")
+        XCTAssertEqual(choice.tab, .forYou)
         XCTAssertTrue(choice.path.isEmpty)
         XCTAssertEqual(choice.posted?.id, 77)
         XCTAssertEqual(choice.arrivingID, 77)
 
         choice.select(.following)
         TabRouter.shared.revealPosted(note)
-        XCTAssertEqual(choice.tab, .following, "팔로잉 and 최신 stay")
+        XCTAssertEqual(choice.tab, .following, "the tab the reader was on stays")
+
+        choice.select(.blog)
+        TabRouter.shared.revealPosted(note)
+        XCTAssertEqual(choice.tab, .forYou, "a note has no place on the blog shelf")
     }
 }
 
@@ -186,7 +219,7 @@ final class HomeFeedTests: XCTestCase {
             "1.1": try Self.batch([Self.post(7, at: "2026-10-20T02:00:00Z"), Self.note(2, at: "2026-10-20T01:00:00Z")], next: nil),
         ])
         Self.kept.append(pager)
-        let model = HomeFeedViewModel(tab: .latest) { _, cursor in try pager.page(cursor) }
+        let model = HomeFeedViewModel(tab: .forYou) { _, cursor in try pager.page(cursor) }
         Self.kept.append(model)
 
         await model.reload()

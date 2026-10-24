@@ -6,16 +6,23 @@ final class HomeRemoteTailUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    func testLatestMixesInOtherServerPostsMarkedAsSuch() {
+    func testHomeIsForYouThenFollowingWithKurlAndOtherServerPostsInOneList() {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--feed", "latest"]
         app.launch()
 
-        let mixed = app.descendants(matching: .any).matching(identifier: "trending.note")
-            .matching(NSPredicate(format: "label CONTAINS %@", "다른 서버")).firstMatch
-        for _ in 0..<6 where !(mixed.exists && mixed.frame.minX >= 0 && mixed.isHittable) { app.swipeUp() }
-        XCTAssertTrue(mixed.waitForExistence(timeout: 10), "최신 피드 중간에 다른 서버 표시가 붙은 글이 없음")
-        XCTAssertGreaterThanOrEqual(mixed.frame.minX, 0, "섞인 글이 지금 보는 최신 탭이 아닌 옆 탭에 있음")
+        let forYou = app.buttons["segment.for-you"]
+        XCTAssertTrue(forYou.waitForExistence(timeout: 12), "홈 머리에 추천이 없음")
+        XCTAssertTrue(forYou.isSelected, "옛 최신 값이 추천으로 열리지 않음")
+        XCTAssertTrue(app.buttons["segment.following"].exists, "홈 머리에 팔로잉이 없음")
+        XCTAssertTrue(app.buttons["segment.blog"].exists, "홈 머리에 블로그가 없음")
+        XCTAssertFalse(app.buttons["segment.trending"].exists, "인기 탭이 남아 있음")
+        XCTAssertFalse(app.buttons["segment.latest"].exists, "최신 탭이 남아 있음")
+        XCTAssertLessThan(forYou.frame.midX, app.buttons["segment.following"].frame.midX, "추천이 첫 탭이 아님")
+
+        let remote = app.staticTexts["다른 서버"].firstMatch
+        XCTAssertTrue(remote.waitForExistence(timeout: 10), "추천에 다른 서버 표시가 붙은 글이 없음")
+        XCTAssertLessThan(remote.frame.minY, app.frame.height, "첫 화면에 다른 서버 글이 없음(한 줄 랭킹이 아님)")
     }
 
     func testSeenOtherServerPostsStayOutOfHomeAndTheEndSaysAllSeen() {
@@ -23,16 +30,14 @@ final class HomeRemoteTailUITests: XCTestCase {
         app.launchArguments = ["--mocks", "--feed", "latest", "--short-latest", "--mock-seen-latest", "2"]
         app.launch()
 
-        func row(_ text: String) -> XCUIElement {
-            app.descendants(matching: .any).matching(identifier: "trending.note")
-                .matching(NSPredicate(format: "label CONTAINS %@", text)).firstMatch
-        }
+        func body(_ id: Int) -> XCUIElement { app.descendants(matching: .any)["note.body.\(id)"] }
         let end = app.buttons["home.allSeen.following"]
-        XCTAssertTrue(row("작은 서버").waitForExistence(timeout: 12), "맞춤 첫 글이 없음")
+        XCTAssertTrue(body(9705).waitForExistence(timeout: 12), "추천 첫 글이 없음")
         for _ in 0..<12 where !(end.exists && end.isHittable) { app.swipeUp() }
         XCTAssertTrue(end.waitForExistence(timeout: 10), "목록 끝에 다 봤어요가 없음")
-        XCTAssertTrue(row("Morning light").exists, "안 본 다른 서버 글이 빠짐")
-        XCTAssertFalse(row("fediverse").exists, "본 다른 서버 글이 홈에 다시 나옴")
+        XCTAssertTrue(body(9706).exists, "안 본 다른 서버 글이 빠짐")
+        XCTAssertFalse(body(9700).exists, "본 다른 서버 글이 홈에 다시 나옴")
+        XCTAssertFalse(body(9701).exists, "본 다른 서버 글이 홈에 다시 나옴")
         XCTAssertFalse(app.staticTexts["remote.seen"].exists, "홈에 이미 본 글 구분선이 나옴")
     }
 

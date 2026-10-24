@@ -67,6 +67,7 @@ enum MockBackend {
     private static let publishedBodyImage =
         ProcessInfo.processInfo.arguments.contains("--published-body-image") ? "\n\n![](\(mockUploadedImageURL))" : ""
 
+    private static var publishedHere: [Int64] = []
     private static var posts: [MockPost] = draftFixtures([
         MockPost(id: 9001, slug: "p-mock-1", title: "목 초안 — 헥사고날 정리", status: "DRAFT",
                  markdown: "# 헥사고날\n\n포트와 어댑터.", publishedAt: nil, updatedAt: Date(),
@@ -340,6 +341,27 @@ enum MockBackend {
                 "community": NSNull(),
             ] as [String: Any],
         ]
+    }
+
+    private static func storedRemoteView(_ item: [String: Any], id: Int64) -> [String: Any] {
+        let author = item["author"] as? [String: Any] ?? [:]
+        var view: [String: Any] = [
+            "id": id, "uri": item["uri"] ?? NSNull(), "body": item["body"] ?? "",
+            "createdAt": item["createdAt"] ?? NSNull(), "editedAt": NSNull(),
+            "likeCount": item["likeCount"] ?? 0, "likedByMe": likedNotes.contains(id),
+            "author": [
+                "id": -id, "username": author["username"] ?? "", "avatarUrl": NSNull(),
+                "displayName": author["displayName"] ?? NSNull(), "remoteId": id, "url": author["url"] ?? NSNull(),
+            ] as [String: Any],
+            "inReplyToId": NSNull(), "quotedPost": NSNull(), "quotedNote": NSNull(),
+            "replyCount": item["replyCount"] ?? 0, "repostCount": item["repostCount"] ?? 0, "repostedByMe": false,
+            "bookmarkedByMe": false, "quoteCount": 0, "mentions": [] as [String], "pinned": false,
+            "visibility": "public",
+        ]
+        for key in ["media", "contentWarning", "sensitive", "language", "poll", "linkPreview", "remote"] {
+            view[key] = item[key] ?? NSNull()
+        }
+        return view
     }
 
     private static func remoteShapeViews() -> [[String: Any]] {
@@ -1714,6 +1736,45 @@ enum MockBackend {
             return json(["items": topLevelNotes().filter { $0.visibility == "public" }.map(noteView),
                          "page": 0, "hasNext": false])
         }
+        if method == "GET", parts == ["public", "home"], query?.first(where: { $0.name == "tab" })?.value == "for-you" {
+            let hides = query?.contains { $0.name == "seen" && $0.value == "hide" } == true
+            let short = ProcessInfo.processInfo.arguments.contains("--short-latest")
+            let mine = topLevelNotes().filter { $0.visibility == "public" }.prefix(short ? 2 : 6)
+                .filter { !hides || !remoteSeen.contains("kurl:note:\($0.id)") }
+                .map { ["kind": "note", "note": noteView($0)] as [String: Any] }
+            let pool = trendingNotes()
+            let theirs = [5, 3, 2, 1, 0, 4, 6].map { (index: $0, item: pool[$0]) }
+                .filter { !hides || !remoteSeen.contains($0.item["uri"] as? String ?? "") }
+                .map { ["kind": "remote", "remote": storedRemoteView($0.item, id: 9700 + Int64($0.index))] as [String: Any] }
+            var ranked: [[String: Any]] = []
+            var ownLeft = Array(mine), remoteLeft = Array(theirs)
+            while !ownLeft.isEmpty || !remoteLeft.isEmpty {
+                if !remoteLeft.isEmpty { ranked.append(remoteLeft.removeFirst()) }
+                if !ownLeft.isEmpty { ranked.append(ownLeft.removeFirst()) }
+                if !remoteLeft.isEmpty { ranked.append(remoteLeft.removeFirst()) }
+            }
+            return json(["items": ranked, "next": NSNull()])
+        }
+        if method == "GET", parts == ["public", "home"], query?.first(where: { $0.name == "tab" })?.value == "blog" {
+            let since = query?.first { $0.name == "since" }?.value
+            let fresh: [[String: Any]] = publishedHere.reversed().compactMap { id in
+                guard let post = posts.first(where: { $0.id == id && $0.status == "PUBLISHED" }) else { return nil }
+                var item = feedItem(id: post.id, title: post.title, slug: post.slug, tags: post.tags)
+                item["excerpt"] = post.excerpt ?? NSNull()
+                item["publishedAt"] = iso(post.publishedAt ?? Date())
+                return item
+            }
+            let shelf = [
+                feedItem(id: 9201, title: "이름이 곧 경계다", slug: "walk-notes", excerpt: "유키의 노트에서 시작한 글."),
+                feedItem(id: 8201, title: "헥사고날로 갈아탄 지 석 달", slug: "hexagonal-after-3-months"),
+                feedItem(id: 9002, title: "발행된 목 글", slug: "p-mock-2"),
+            ]
+            let above = since.map { marker in Array(fresh.prefix { "b\($0["id"] ?? "")" != marker }) } ?? fresh + shelf
+            return json([
+                "items": above.map { ["kind": "post", "post": $0] as [String: Any] },
+                "next": NSNull(), "newest": fresh.first.map { "b\($0["id"] ?? "")" } ?? "b9201", "gap": false,
+            ])
+        }
         if method == "GET", parts == ["public", "home"], ProcessInfo.processInfo.arguments.contains("--short-latest"),
            query?.first(where: { $0.name == "tab" })?.value == "latest" {
             let fresh = query?.contains { $0.name == "since" } != true
@@ -2310,6 +2371,7 @@ enum MockBackend {
             }
             posts[idx].status = "PUBLISHED"
             posts[idx].publishedAt = Date()
+            publishedHere.append(posts[idx].id)
             return json(postView(posts[idx]))
         }
 
@@ -2655,20 +2717,6 @@ enum MockBackend {
             return json([
                 "items": items, "page": 0, "size": 20, "hasNext": false, "seriesNotes": seriesNotes,
             ])
-        }
-
-        if method == "GET", parts == ["feed", "for-you"] {
-            let items = emptyFeeds ? [] : [
-                feedItem(id: 9101, title: "헥사고날로 갈아탄 지 석 달, 무엇이 남았나",
-                         slug: "hexagonal-after-3-months",
-                         excerpt: "레이어드를 버린 결정의 회고 — 경계가 준 것과 가져간 것.",
-                         tags: ["아키텍처", "회고"]),
-                feedItem(id: 9102, title: "토큰이 사라진 밤 — 새로고침 회전 레이스를 쫓다",
-                         slug: "the-night-tokens-vanished",
-                         excerpt: "글을 쓰다 로그아웃되는 버그. 범인은 회전하는 리프레시 토큰이었다.",
-                         tags: ["디버깅", "인증"]),
-            ]
-            return json(["items": items, "page": 0, "size": 20, "hasNext": false])
         }
 
         // 공개 하이라이트 목록(+replyCount) — 본 글 리더가 문단에 칠한다.

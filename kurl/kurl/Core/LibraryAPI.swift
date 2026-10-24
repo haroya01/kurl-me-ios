@@ -25,14 +25,6 @@ enum LibraryAPI {
         )
     }
 
-    /// For You — 태그 친화도 개인화 발견 피드. 신호 없으면 서버가 트렌딩으로 폴백한다.
-    static func forYouFeed(page: Int = 0, size: Int = 20) async throws -> PublicFeedView {
-        try await client.get(
-            "/feed/for-you",
-            query: ["page": String(page), "size": String(size)],
-            authenticated: true
-        )
-    }
 }
 
 struct BookmarkItem: Decodable, Identifiable {

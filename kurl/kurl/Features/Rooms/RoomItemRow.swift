@@ -33,6 +33,8 @@ struct RoomItemRow: View {
         switch item.kind {
         case .note(let note): openNoteRoute?(.note(id: note.id))
         case .post(let post): openNoteRoute?(.post(username: post.author.username, slug: post.slug))
+        case .remote(.kept(let note)): openNoteRoute?(.note(id: note.id))
+        case .remote(.trending): break
         }
     }
 
@@ -45,6 +47,10 @@ struct RoomItemRow: View {
         case .post(let post):
             PostFeedRow(post: post)
                 .environment(\.insideRoom, showsRoom ? nil : post.room?.id)
+        case .remote(.kept(let note)):
+            NoteFeedItem(note: note, onChange: onReplace, onDelete: onRemove, onQuoted: onQuoted)
+        case .remote(.trending(let note)):
+            TrendingNoteRow(item: note)
         }
     }
 

@@ -38,19 +38,16 @@ final class SignedInScreensUITests: XCTestCase {
         library.tap()
     }
 
-    func testForYouFeed() throws {
+    func testHomeBlog() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks"]
         app.launch()
 
-        let more = app.buttons["feed.more"]
-        XCTAssertTrue(more.waitForExistence(timeout: 12), "피드 머리에 더 보기가 없음")
-        more.tap()
-        let forYou = app.buttons["추천"].firstMatch
-        XCTAssertTrue(forYou.waitForExistence(timeout: 4), "피드 더 보기에 '추천'이 없음")
-        forYou.tap()
+        let blog = app.buttons["segment.blog"]
+        XCTAssertTrue(blog.waitForExistence(timeout: 12), "홈 머리에 블로그가 없음")
+        blog.tap()
         _ = app.staticTexts["발행된 목 글"].firstMatch.waitForExistence(timeout: 8)
-        shoot("for-you-feed")
+        shoot("home-blog")
     }
 
     func testMyHighlights() throws {
