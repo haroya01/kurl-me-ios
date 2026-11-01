@@ -135,9 +135,9 @@ struct EmojiText: View {
 
     private func glyph(_ code: String, height: CGFloat) -> Text {
         let name = ":\(code):"
-        guard let url = urls[code], let slot = slots[url] else { return Text(verbatim: name) }
+        guard let url = urls[code] else { return Text(verbatim: name) }
         let ratio: CGFloat
-        switch slot {
+        switch slots[url] ?? .square {
         case .text: return Text(verbatim: name)
         case let .sized(value): ratio = value
         case .square: ratio = 1
