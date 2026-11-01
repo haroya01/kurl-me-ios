@@ -11,6 +11,7 @@ struct Author: Decodable, Hashable, Identifiable {
     /// 다른 서버 계정 — username 자리에 아이디@서버가 오고, id 는 음수다(회원 id 와 겹치지 않게).
     var remoteId: Int64? = nil
     var url: String? = nil
+    var emojis: [CustomEmoji]? = nil
 
     var isRemote: Bool { remoteId != nil }
 

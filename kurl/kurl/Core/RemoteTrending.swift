@@ -6,6 +6,7 @@ struct TrendingAuthor: Decodable, Hashable {
     let avatarUrl: String?
     let url: String?
     let remoteId: Int64?
+    var emojis: [CustomEmoji]? = nil
 }
 
 struct TrendingNote: Decodable, Hashable, Identifiable {
@@ -24,6 +25,7 @@ struct TrendingNote: Decodable, Hashable, Identifiable {
     let linkPreview: NoteLinkPreview?
     let remote: RemoteNoteShape?
     let servers: [String]
+    var emojis: [CustomEmoji]? = nil
 
     var id: String { uri }
 
@@ -43,7 +45,7 @@ struct TrendingNote: Decodable, Hashable, Identifiable {
             likeCount: nil, likedByMe: nil,
             author: Author(
                 id: 0, username: author.username, bio: nil, avatarUrl: author.avatarUrl,
-                displayName: author.displayName, remoteId: 0, url: author.url),
+                displayName: author.displayName, remoteId: 0, url: author.url, emojis: author.emojis),
             media: media, quotedPost: nil, inReplyToId: nil, replyCount: replyCount,
             repostCount: nil, repostedByMe: nil, quotedNote: nil, linkPreview: linkPreview)
         note.contentWarning = contentWarning
@@ -51,6 +53,7 @@ struct TrendingNote: Decodable, Hashable, Identifiable {
         note.language = language
         note.poll = poll
         note.remote = remote
+        note.emojis = emojis
         return note
     }
 

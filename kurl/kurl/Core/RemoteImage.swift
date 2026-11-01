@@ -94,6 +94,10 @@ final class RemoteImageCache {
         cache.object(forKey: key(for: url, maxPixel: maxPixel, slotWidth: slotWidth))
     }
 
+    func hasFailed(_ url: URL) -> Bool {
+        failed.contains(url)
+    }
+
     func cachedVariant(_ url: URL) -> UIImage? {
         cache.object(forKey: Self.variantKey(url, width: 1080))
             ?? cache.object(forKey: Self.variantKey(url, width: 480))

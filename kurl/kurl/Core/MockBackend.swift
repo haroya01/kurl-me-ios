@@ -320,15 +320,23 @@ enum MockBackend {
             "url": "https://tube.example/a/trailcam", "following": true, "requested": false,
         ],
     ]
+    private static func twemoji(_ shortcode: String, _ code: String) -> [String: Any] {
+        ["shortcode": shortcode, "url": "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/\(code).png"]
+    }
+    private static let minaBody = "Hello from the fediverse :blobcat_wave:\u{200B}:coffee:\u{200B} #kurl"
+    private static var minaNoteEmojis: [[String: Any]] { [twemoji("blobcat_wave", "1f431"), twemoji("coffee", "2615")] }
+    private static var minaNameEmojis: [[String: Any]] { [twemoji("verified", "2705")] }
+
     /// 팔로우한 다른 서버 계정(mina)의 노트 — 팔로잉 피드 끝과 그 계정 화면에 보인다.
     private static func remoteNoteView() -> [String: Any] {
         [
-            "id": Int64(9600), "body": "Hello from the fediverse 👋 #kurl",
+            "id": Int64(9600), "body": minaBody, "emojis": minaNoteEmojis,
             "createdAt": iso(Date().addingTimeInterval(-1_800)), "editedAt": NSNull(),
             "likeCount": 2, "likedByMe": likedNotes.contains(9600),
             "author": [
                 "id": -9800, "username": "mina@mastodon.social", "avatarUrl": NSNull(),
-                "displayName": "Mina", "remoteId": 9800, "url": "https://mastodon.social/@mina",
+                "displayName": "Mina :verified:", "remoteId": 9800, "url": "https://mastodon.social/@mina",
+                "emojis": minaNameEmojis,
             ] as [String: Any],
             "media": [] as [Any], "quotedPost": NSNull(), "inReplyToId": NSNull(),
             "replyCount": 0, "repostCount": 0, "repostedByMe": false,
@@ -352,13 +360,14 @@ enum MockBackend {
             "author": [
                 "id": -id, "username": author["username"] ?? "", "avatarUrl": NSNull(),
                 "displayName": author["displayName"] ?? NSNull(), "remoteId": id, "url": author["url"] ?? NSNull(),
+                "emojis": author["emojis"] ?? [] as [Any],
             ] as [String: Any],
             "inReplyToId": NSNull(), "quotedPost": NSNull(), "quotedNote": NSNull(),
             "replyCount": item["replyCount"] ?? 0, "repostCount": item["repostCount"] ?? 0, "repostedByMe": false,
             "bookmarkedByMe": false, "quoteCount": 0, "mentions": [] as [String], "pinned": false,
             "visibility": "public",
         ]
-        for key in ["media", "contentWarning", "sensitive", "language", "poll", "linkPreview", "remote"] {
+        for key in ["media", "contentWarning", "sensitive", "language", "poll", "linkPreview", "remote", "emojis"] {
             view[key] = item[key] ?? NSNull()
         }
         return view
@@ -376,6 +385,7 @@ enum MockBackend {
             var view = remoteNoteView()
             view["id"] = id
             view["body"] = body
+            view["emojis"] = [] as [Any]
             view["createdAt"] = iso(Date().addingTimeInterval(-ago))
             view["likeCount"] = NSNull()
             view["likedByMe"] = likedNotes.contains(id)
@@ -460,7 +470,8 @@ enum MockBackend {
             let known: Int64? = acct == "mina@mastodon.social" ? 9800 : nil
             return ["id": known.map { -$0 as Any } ?? NSNull(), "username": acct, "displayName": name,
                     "avatarUrl": NSNull(), "remoteId": known.map { $0 as Any } ?? NSNull(),
-                    "url": "https://\(pieces[1])/@\(pieces[0])"]
+                    "url": "https://\(pieces[1])/@\(pieces[0])",
+                    "emojis": known == nil ? [] as [Any] : minaNameEmojis]
         }
         func item(
             _ uri: String, _ body: String, _ acct: String, _ name: String, ago: TimeInterval,
@@ -479,9 +490,9 @@ enum MockBackend {
             return value
         }
         return [
-            item("https://mastodon.social/users/mina/statuses/9600", "Hello from the fediverse 👋 #kurl",
-                 "mina@mastodon.social", "Mina", ago: 1_800, servers: ["mastodon.social", "mstdn.jp"],
-                 replies: 3, language: "en"),
+            item("https://mastodon.social/users/mina/statuses/9600", minaBody,
+                 "mina@mastodon.social", "Mina :verified:", ago: 1_800, servers: ["mastodon.social", "mstdn.jp"],
+                 replies: 3, language: "en", extra: ["emojis": minaNoteEmojis]),
             item("https://mstdn.jp/users/hana/statuses/1131", "今日は朝から雨。駅前の紫陽花がいちばんきれいな季節になった。",
                  "hana@mstdn.jp", "はな", ago: 5_400, servers: ["mstdn.jp"], replies: 12, language: "ja",
                  extra: ["media": [["url": mockUploadedImageURL, "altText": "雨に濡れた紫陽花",
