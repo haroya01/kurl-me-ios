@@ -76,6 +76,34 @@ final class CustomEmojiTests: XCTestCase {
         XCTAssertEqual(name("Ged  :other:", verified), "Ged  :other:")
     }
 
+    func testRemoteAccountNameFromMisskeyWithZeroWidthSpaces() throws {
+        let name = "\u{200B}:new_l:\u{200B} ぽぽよもちのキャンディー屋さん \u{200B}:new_r:\u{200B}"
+        let json = #"""
+        {"id":7,"acct":"popo@misskey.io","username":"popo","domain":"misskey.io","displayName":"\#(name)",
+         "avatarUrl":null,"url":"https://misskey.io/@popo","following":false,"requested":false,"domainBlocked":false,
+         "emojis":[{"shortcode":"new_l","url":"https://e.example/l.png"},{"shortcode":"new_r","url":"https://e.example/r.png"}]}
+        """#
+        let account = try JSONDecoder.blog.decode(RemoteAccount.self, from: Data(json.utf8))
+
+        XCTAssertEqual(
+            shown(NoteText.inlines(AttributedString(account.shownName), emojis: Set(CustomEmoji.table(account.emojis).keys))),
+            ["<new_l>", " ぽぽよもちのキャンディー屋さん ", "<new_r>"])
+        XCTAssertEqual(account.plainName, "ぽぽよもちのキャンディー屋さん")
+
+        let again = try JSONDecoder.blog.decode(RemoteAccount.self, from: JSONEncoder().encode(account))
+        XCTAssertEqual(again.emojis, account.emojis)
+
+        let bare = try JSONDecoder.blog.decode(
+            RemoteAccount.self, from: Data(json.replacingOccurrences(of: #""emojis":["#, with: #""x":["#).utf8))
+        XCTAssertNil(bare.emojis)
+        XCTAssertEqual(bare.plainName, name)
+
+        let request = FollowRequest(
+            origin: .remote(id: 7), handle: "popo@misskey.io", displayName: ":new_l: :new_r:", avatarUrl: nil,
+            requestedAt: nil, emojis: account.emojis)
+        XCTAssertEqual(request.plainName, "popo@misskey.io")
+    }
+
     func testDecodingWithoutEmojisIsEmpty() throws {
         let note = try JSONDecoder.blog.decode(Note.self, from: Data(Self.note(emojis: nil, authorEmojis: nil).utf8))
 

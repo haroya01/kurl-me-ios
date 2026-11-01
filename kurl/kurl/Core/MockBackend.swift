@@ -286,8 +286,9 @@ enum MockBackend {
         ],
         9800: [
             "id": Int64(9800), "acct": "mina@mastodon.social", "username": "mina",
-            "domain": "mastodon.social", "displayName": "Mina", "avatarUrl": NSNull(),
+            "domain": "mastodon.social", "displayName": "Mina :verified:", "avatarUrl": NSNull(),
             "url": "https://mastodon.social/@mina", "following": true, "requested": false,
+            "emojis": minaNameEmojis,
         ],
         9820: [
             "id": Int64(9820), "acct": "alice@mastodon.social", "username": "alice",
@@ -301,8 +302,9 @@ enum MockBackend {
         ],
         9840: [
             "id": Int64(9840), "acct": "haruto@misskey.io", "username": "haruto",
-            "domain": "misskey.io", "displayName": "Haruto", "avatarUrl": NSNull(),
-            "url": "https://misskey.io/@haruto", "following": false, "requested": false,
+            "domain": "misskey.io", "displayName": "\u{200B}:new_l:\u{200B} ぽぽよもちのキャンディー屋さん \u{200B}:new_r:\u{200B}",
+            "avatarUrl": NSNull(), "url": "https://misskey.io/@haruto", "following": false, "requested": false,
+            "emojis": [twemoji("new_l", "1f195"), twemoji("new_r", "1f36d")],
         ],
         9850: [
             "id": Int64(9850), "acct": "jiwoo@blog.example", "username": "jiwoo",
@@ -3008,7 +3010,8 @@ enum MockBackend {
                 guard let account = remoteAccounts[id] else { return nil }
                 return ["id": id, "acct": account["acct"] ?? "", "username": account["username"] ?? "",
                         "domain": account["domain"] ?? "", "displayName": account["displayName"] ?? NSNull(),
-                        "avatarUrl": NSNull(), "url": account["url"] ?? "", "requestedAt": iso(at)]
+                        "avatarUrl": NSNull(), "url": account["url"] ?? "", "requestedAt": iso(at),
+                        "emojis": account["emojis"] ?? [] as [Any]]
             })
         }
         if method == "POST", parts.count == 4, parts[0] == "federation", parts[1] == "follow-requests",

@@ -28,7 +28,7 @@ struct MentionSuggestionList: View {
                 Button {
                     onPickRemote?(account)
                 } label: {
-                    row(author: account.asAuthor, name: account.shownName, handle: account.acct)
+                    row(author: account.asAuthor, name: account.shownName, handle: account.acct, emojis: account.emojis)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("mention.remote.\(account.acct)")
@@ -58,11 +58,11 @@ struct MentionSuggestionList: View {
         .accessibilityLabel(Text("멘션할 사람"))
     }
 
-    private func row(author: Author, name: String, handle: String) -> some View {
+    private func row(author: Author, name: String, handle: String, emojis: [CustomEmoji]? = nil) -> some View {
         HStack(spacing: 10) {
             AvatarView(author: author, size: 28 * unit)
             VStack(alignment: .leading, spacing: 1) {
-                Text(verbatim: name)
+                EmojiText(verbatim: name, emojis: emojis)
                     .typeScale(.body)
                     .foregroundStyle(Palette.ink)
                     .lineLimit(1)

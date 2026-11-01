@@ -414,7 +414,7 @@ struct RemoteNoteShape: Decodable, Hashable {
     }
 }
 
-struct CustomEmoji: Decodable, Hashable {
+struct CustomEmoji: Codable, Hashable {
     let shortcode: String
     let url: URL?
 
@@ -432,6 +432,12 @@ struct CustomEmoji: Decodable, Hashable {
         url = raw.flatMap(URL.init(string:)).flatMap { url in
             url.scheme?.lowercased() == "https" && url.host()?.isEmpty == false ? url : nil
         }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(shortcode, forKey: .shortcode)
+        try container.encodeIfPresent(url?.absoluteString, forKey: .url)
     }
 
     static func table(_ emojis: [CustomEmoji]?) -> [String: URL] {
