@@ -187,8 +187,6 @@ final class MediaViewerItemTests: XCTestCase {
 @MainActor
 final class NoteEngagementTests: XCTestCase {
 
-    private static var kept: [NoteEngagement] = []
-
     private enum Failure: Error {
         case offline
     }
@@ -210,9 +208,7 @@ final class NoteEngagementTests: XCTestCase {
         like: @escaping (Int64, Bool) async throws -> Int64 = { _, _ in 0 },
         repost: @escaping (Int64, Bool) async throws -> Int64 = { _, _ in 0 }
     ) -> NoteEngagement {
-        let made = NoteEngagement(note, signedIn: { signedIn }, like: like, repost: repost)
-        Self.kept.append(made)
-        return made
+        NoteEngagement(note, signedIn: { signedIn }, like: like, repost: repost)
     }
 
     func testALikeShowsBeforeTheServerAnswersAndThenTakesItsCount() async {

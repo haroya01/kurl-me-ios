@@ -1,7 +1,7 @@
 import SwiftUI
 
 @Observable
-final class NoteEngagement {
+nonisolated final class NoteEngagement {
     enum Outcome: Equatable {
         case done
         case signIn
@@ -35,7 +35,7 @@ final class NoteEngagement {
         self.repost = repost
     }
 
-    func sync(_ note: Note) {
+    @MainActor func sync(_ note: Note) {
         noteId = note.id
         liked = note.likedByMe == true
         likeCount = note.likeCount
@@ -43,7 +43,7 @@ final class NoteEngagement {
         repostCount = note.repostCount
     }
 
-    func toggleLike() async -> Outcome {
+    @MainActor func toggleLike() async -> Outcome {
         guard signedIn() else { return .signIn }
         let target = !liked
         let previous = likeCount
@@ -62,7 +62,7 @@ final class NoteEngagement {
         }
     }
 
-    func toggleRepost() async -> Outcome {
+    @MainActor func toggleRepost() async -> Outcome {
         guard signedIn() else { return .signIn }
         let target = !reposted
         let previous = repostCount
