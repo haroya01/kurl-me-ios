@@ -219,6 +219,7 @@ struct MediaViewer<Actions: View>: View {
                 .expandTapTarget(4)
         }
         .buttonStyle(.plain)
+        .environment(\.colorScheme, .dark)
         .padding(.leading, Metrics.gutter)
         .padding(.top, 8)
         .opacity(chromeShown ? 1 : 0)

@@ -37,6 +37,7 @@ struct NoteViewerActions: View {
             }
         }
         .foregroundStyle(.white)
+        .environment(\.colorScheme, .dark)
         .sheet(isPresented: $replying) {
             NoteComposeSheet(mode: .reply(note)) { onReplied($0) }
         }

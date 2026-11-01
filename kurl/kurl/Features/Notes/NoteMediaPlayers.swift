@@ -340,16 +340,17 @@ struct VideoPage: View {
         ZStack {
             Color.clear
             PlayerSurface(player: playback?.player)
+                .accessibilityElement()
+                .accessibilityLabel(Text(item.label))
+                .accessibilityAddTraits(.startsMediaSession)
                 .aspectRatio(ratio, contentMode: .fit)
                 .overlay(alignment: .bottom) {
                     if ratio > 1 {
                         fullScreenPill
-                            .alignmentGuide(.bottom) { $0[.top] - 16 }
+                            .padding(.top, 16)
+                            .frame(height: 0, alignment: .top)
                     }
                 }
-                .accessibilityElement()
-                .accessibilityLabel(Text(item.label))
-                .accessibilityAddTraits(.startsMediaSession)
             if playback?.failed == true {
                 Text("동영상을 불러오지 못했어요")
                     .typeScale(.meta)
@@ -376,6 +377,7 @@ struct VideoPage: View {
                 .contentShape(Capsule())
         }
         .buttonStyle(.plain)
+        .environment(\.colorScheme, .dark)
         .opacity(offersFullScreen ? 1 : 0)
         .animation(reduceMotion ? nil : Motion.micro, value: offersFullScreen)
         .allowsHitTesting(offersFullScreen)
@@ -458,6 +460,7 @@ struct VideoControls: View {
         }
         .foregroundStyle(.white)
         .buttonStyle(.plain)
+        .environment(\.colorScheme, .dark)
     }
 
     private var position: Binding<Double> {
