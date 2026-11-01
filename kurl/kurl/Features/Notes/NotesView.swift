@@ -283,12 +283,9 @@ struct NoteRowView: View {
 
     @State private var replying = false
     @State private var replyPosts = 0
-    @State private var liked: Bool
-    @State private var likeCount: Int64?
+    @State private var engagement: NoteEngagement
     @State private var likeTaps = 0
-    @State private var reposted: Bool
     @State private var addingToSeries = false
-    @State private var repostCount: Int64?
     @State private var repostTaps = 0
     @State private var bookmarked: Bool
     @State private var bookmarkTaps = 0
@@ -337,10 +334,7 @@ struct NoteRowView: View {
         self.onReplied = onReplied
         self.detached = detached
         self.context = context
-        _liked = State(initialValue: note.likedByMe == true)
-        _likeCount = State(initialValue: note.likeCount)
-        _reposted = State(initialValue: note.repostedByMe == true)
-        _repostCount = State(initialValue: note.repostCount)
+        _engagement = State(initialValue: NoteEngagement(note))
         _bookmarked = State(initialValue: note.bookmarkedByMe == true)
         _conversationMuted = State(initialValue: note.conversationMuted == true)
     }
@@ -541,10 +535,7 @@ struct NoteRowView: View {
         .task(id: "\(note.id)|\(note.body.hashValue)|\(note.language ?? "")") { await probeTranslation() }
         .translationRunner($translationRequest)
         .onChange(of: note) { _, next in
-            liked = next.likedByMe == true
-            likeCount = next.likeCount
-            reposted = next.repostedByMe == true
-            repostCount = next.repostCount
+            engagement.sync(next)
             bookmarked = next.bookmarkedByMe == true
             conversationMuted = next.conversationMuted == true
         }
@@ -939,7 +930,7 @@ struct NoteRowView: View {
             }
             NoteImagesView(
                 media: note.media, concealed: mediaConcealed, revealIdentifier: "note.sensitive.\(note.id)",
-                reveal: revealMedia)
+                reveal: revealMedia, viewerActions: viewerActions)
             if !folded {
                 quotedAttachments
             }
@@ -958,7 +949,13 @@ struct NoteRowView: View {
         }
         NoteImagesView(
             media: note.media.filter { $0 != picture }, concealed: mediaConcealed,
-            revealIdentifier: "note.sensitive.\(note.id)", reveal: revealMedia)
+            revealIdentifier: "note.sensitive.\(note.id)", reveal: revealMedia, viewerActions: viewerActions)
+    }
+
+    private var viewerActions: NoteViewerActions? {
+        guard detached == nil else { return nil }
+        return NoteViewerActions(
+            note: note, engagement: engagement, shareURL: shareURL, onReplied: replied, onQuoted: onQuoted)
     }
 
     @ViewBuilder private var quotedAttachments: some View {
@@ -1070,22 +1067,23 @@ struct NoteRowView: View {
                 Task { await toggleLike() }
             } label: {
                 HStack(spacing: 4) {
-                    NoteGlyphView(glyph: .heart, active: liked, size: Self.actionBox * unit)
-                        .modifier(GlyphPop(trigger: reduceMotion ? false : liked))
-                    if let likeCount, likeCount > 0 {
+                    NoteGlyphView(glyph: .heart, active: engagement.liked, size: Self.actionBox * unit)
+                        .modifier(GlyphPop(trigger: reduceMotion ? false : engagement.liked))
+                    if let likeCount = engagement.likeCount, likeCount > 0 {
                         Text("\(likeCount)")
                             .monospacedDigit()
                             .contentTransition(.numericText(value: Double(likeCount)))
                     }
                 }
                 .typeScale(.lede)
-                .foregroundStyle(liked ? Palette.accent : Palette.ink)
+                .foregroundStyle(engagement.liked ? Palette.accent : Palette.ink)
                 .expandTapTarget()
             }
             .buttonStyle(.plain)
             .sensoryFeedback(.impact(weight: .light), trigger: likeTaps)
             .accessibilityLabel(Text("좋아요"))
-            .accessibilityAddTraits(liked ? [.isSelected] : [])
+            .accessibilityAddTraits(engagement.liked ? [.isSelected] : [])
+            .accessibilityIdentifier("note.like.\(note.id)")
 
             if spread { Spacer(minLength: 0) }
             replyButton
@@ -1169,12 +1167,12 @@ struct NoteRowView: View {
 
     private var shareableRepostMenu: some View {
         Menu {
-            Button(role: reposted ? .destructive : nil) {
+            Button(role: engagement.reposted ? .destructive : nil) {
                 repostTaps += 1
                 Task { await toggleRepost() }
             } label: {
                 Label(
-                    reposted ? LocalizedStringKey("리포스트 취소") : LocalizedStringKey("리포스트"),
+                    engagement.reposted ? LocalizedStringKey("리포스트 취소") : LocalizedStringKey("리포스트"),
                     systemImage: "arrow.2.squarepath")
             }
             Button {
@@ -1184,43 +1182,34 @@ struct NoteRowView: View {
             }
         } label: {
             HStack(spacing: 4) {
-                NoteGlyphView(glyph: .repost, active: reposted, size: Self.actionBox * unit)
-                    .modifier(GlyphPop(trigger: reduceMotion ? false : reposted))
-                if let repostCount, repostCount > 0 {
+                NoteGlyphView(glyph: .repost, active: engagement.reposted, size: Self.actionBox * unit)
+                    .modifier(GlyphPop(trigger: reduceMotion ? false : engagement.reposted))
+                if let repostCount = engagement.repostCount, repostCount > 0 {
                     Text("\(repostCount)")
                         .monospacedDigit()
                         .contentTransition(.numericText(value: Double(repostCount)))
                 }
             }
             .typeScale(.lede)
-            .foregroundStyle(reposted ? Palette.accent : Palette.ink)
+            .foregroundStyle(engagement.reposted ? Palette.accent : Palette.ink)
             .expandTapTarget()
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.impact(weight: .light), trigger: repostTaps)
         .accessibilityLabel(Text("리포스트 메뉴"))
-        .accessibilityAddTraits(reposted ? [.isSelected] : [])
+        .accessibilityAddTraits(engagement.reposted ? [.isSelected] : [])
         .accessibilityIdentifier("note.repost.\(note.id)")
     }
 
     private func toggleRepost() async {
-        guard AuthStore.shared.isSignedIn else {
-            askLogin("리포스트하려면 로그인하세요")
-            return
-        }
-        let target = !reposted
-        let previous = repostCount
-        withMotion(Motion.micro) {
-            reposted = target
-            repostCount = max((repostCount ?? 0) + (target ? 1 : -1), 0)
-        }
-        do {
-            let status = try await NoteAPI.setRepost(id: note.id, on: target)
-            withMotion(Motion.micro) { repostCount = status.repostCount }
-        } catch {
-            reposted = !target
-            repostCount = previous
-            ToastCenter.shared.show(String(localized: "리포스트하지 못했어요"))
+        settle(await engagement.toggleRepost(), signIn: "리포스트하려면 로그인하세요")
+    }
+
+    private func settle(_ outcome: NoteEngagement.Outcome, signIn message: LocalizedStringKey) {
+        switch outcome {
+        case .done: break
+        case .signIn: askLogin(message)
+        case .failed(let text): ToastCenter.shared.show(text)
         }
     }
 
@@ -1316,24 +1305,7 @@ struct NoteRowView: View {
     }
 
     private func toggleLike() async {
-        guard AuthStore.shared.isSignedIn else {
-            askLogin("좋아요를 누르려면 로그인하세요")
-            return
-        }
-        let target = !liked
-        let previous = likeCount
-        withMotion(Motion.micro) {
-            liked = target
-            likeCount = max((likeCount ?? 0) + (target ? 1 : -1), 0)
-        }
-        do {
-            let status = try await NoteAPI.setLike(id: note.id, on: target)
-            withMotion(Motion.micro) { likeCount = status.likeCount }
-        } catch {
-            liked = !target
-            likeCount = previous
-            ToastCenter.shared.show(String(localized: "좋아요를 반영하지 못했어요"))
-        }
+        settle(await engagement.toggleLike(), signIn: "좋아요를 누르려면 로그인하세요")
     }
 
     private func delete() async {
@@ -1544,6 +1516,7 @@ private struct NoteImagesView: View {
     var concealed = false
     var revealIdentifier: String? = nil
     var reveal: () -> Void = {}
+    var viewerActions: NoteViewerActions? = nil
     @State private var opened: NoteMedia?
 
     private var visual: [NoteMedia] { media.filter { !$0.isAudio } }
@@ -1583,12 +1556,12 @@ private struct NoteImagesView: View {
             }
             .padding(.top, 6)
             .fullScreenCover(item: $opened) { item in
-                if let url = URL(string: item.url) {
-                    if item.isVideo {
-                        VideoLightbox(url: url)
-                    } else {
-                        ImageLightbox(url: url, caption: item.altText)
-                    }
+                let items = visual.compactMap { ViewerItem($0) }
+                let start = URL(string: item.url)
+                if let viewerActions {
+                    MediaViewer(items: items, start: start) { viewerActions }
+                } else {
+                    MediaViewer(items: items, start: start)
                 }
             }
         }

@@ -764,7 +764,11 @@ private struct ImageBlockView: View {
                 .accessibilityAddTraits(.isButton)
                 .accessibilityHint(Text("두 번 탭하면 크게 봅니다"))
                 .fullScreenCover(isPresented: $showLightbox) {
-                    ImageLightbox(url: url, caption: payload.caption)
+                    MediaViewer(items: [
+                        ViewerItem(
+                            url: url, kind: .photo, caption: payload.caption,
+                            fallbackLabel: String(localized: "본문 이미지")),
+                    ])
                 }
             }
             if let caption = payload.caption, !caption.isEmpty {
