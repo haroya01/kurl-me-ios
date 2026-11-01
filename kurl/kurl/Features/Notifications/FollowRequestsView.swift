@@ -94,7 +94,7 @@ private struct FollowRequestRow: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        let buttons = AnswerButtons(origin: request.origin, name: request.shownName)
+        let buttons = AnswerButtons(origin: request.origin, name: request.plainName)
         Group {
             if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: 10) {
@@ -119,7 +119,7 @@ private struct FollowRequestRow: View {
             HStack(spacing: 12) {
                 AvatarView(author: request.asAuthor, size: 44)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(verbatim: request.shownName)
+                    EmojiText(verbatim: request.shownName, emojis: request.emojis)
                         .typeScale(.body)
                         .fontWeight(.semibold)
                         .foregroundStyle(Palette.ink)

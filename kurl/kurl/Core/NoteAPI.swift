@@ -414,6 +414,50 @@ struct RemoteNoteShape: Decodable, Hashable {
     }
 }
 
+struct CustomEmoji: Codable, Hashable {
+    let shortcode: String
+    let url: URL?
+
+    private enum CodingKeys: String, CodingKey { case shortcode, url }
+
+    init(shortcode: String, url: URL?) {
+        self.shortcode = shortcode
+        self.url = url
+    }
+
+    init(from decoder: Decoder) {
+        let container = try? decoder.container(keyedBy: CodingKeys.self)
+        shortcode = (try? container?.decodeIfPresent(String.self, forKey: .shortcode)) ?? ""
+        let raw = (try? container?.decodeIfPresent(String.self, forKey: .url)) ?? nil
+        url = raw.flatMap(URL.init(string:)).flatMap { url in
+            url.scheme?.lowercased() == "https" && url.host()?.isEmpty == false ? url : nil
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(shortcode, forKey: .shortcode)
+        try container.encodeIfPresent(url?.absoluteString, forKey: .url)
+    }
+
+    static func table(_ emojis: [CustomEmoji]?) -> [String: URL] {
+        var table: [String: URL] = [:]
+        for emoji in emojis ?? [] {
+            guard let url = emoji.url, isShortcode(emoji.shortcode), table[emoji.shortcode] == nil else { continue }
+            table[emoji.shortcode] = url
+        }
+        return table
+    }
+
+    nonisolated static func isShortcode(_ text: String) -> Bool {
+        text.unicodeScalars.count >= 2 && text.unicodeScalars.allSatisfy(isShortcodeScalar)
+    }
+
+    nonisolated static func isShortcodeScalar(_ scalar: Unicode.Scalar) -> Bool {
+        ("a"..."z").contains(scalar) || ("A"..."Z").contains(scalar) || ("0"..."9").contains(scalar) || scalar == "_"
+    }
+}
+
 struct QuotedNote: Decodable, Hashable, Identifiable {
     let id: Int64
     let body: String
@@ -422,6 +466,7 @@ struct QuotedNote: Decodable, Hashable, Identifiable {
     let media: [NoteMedia]
     var contentWarning: String? = nil
     var sensitive: Bool? = nil
+    var emojis: [CustomEmoji]? = nil
 }
 
 struct Note: Decodable, Identifiable, Hashable {
@@ -471,6 +516,7 @@ struct Note: Decodable, Identifiable, Hashable {
     var remote: RemoteNoteShape? = nil
     var room: NoteRoom? = nil
     var uri: String? = nil
+    var emojis: [CustomEmoji]? = nil
 
     var noteVisibility: NoteVisibility {
         room != nil ? .private : NoteVisibility(rawValue: visibility ?? "public") ?? .public

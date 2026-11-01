@@ -576,7 +576,7 @@ struct NoteRowView: View {
                 .accessibilityHidden(true)
                 NavigationLink(value: note.author.notesRoute) {
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(note.author.shownName)
+                        EmojiText(verbatim: note.author.shownName, emojis: note.author.emojis)
                             .typeScale(.note)
                             .fontWeight(.semibold)
                             .foregroundStyle(Palette.ink)
@@ -609,7 +609,7 @@ struct NoteRowView: View {
                     if folded {
                         shield(.noteFocus)
                     } else {
-                        Text(NoteText.attributed(displayBody, mentions: note.mentions ?? []))
+                        EmojiText(NoteText.attributed(displayBody, mentions: note.mentions ?? []), emojis: note.emojis)
                             .typeScale(.noteFocus)
                             .foregroundStyle(Palette.ink)
                             .tint(Palette.link)
@@ -731,7 +731,7 @@ struct NoteRowView: View {
     }
 
     private var feedBody: some View {
-        Text(NoteText.attributed(displayBody, mentions: note.mentions ?? []))
+        EmojiText(NoteText.attributed(displayBody, mentions: note.mentions ?? []), emojis: note.emojis)
             .typeScale(.note)
             .foregroundStyle(Palette.ink)
             .tint(Palette.link)
@@ -881,7 +881,7 @@ struct NoteRowView: View {
 
     @ViewBuilder private var warningLine: some View {
         if let warning = note.contentWarning {
-            Text(translated?.warning ?? warning)
+            EmojiText(verbatim: translated?.warning ?? warning, emojis: note.emojis)
                 .typeScale(focused ? .noteFocus : .note)
                 .foregroundStyle(Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
@@ -952,7 +952,7 @@ struct NoteRowView: View {
             RemoteNoteCard(
                 noteId: note.id, shape: shape,
                 summary: NoteText.hidingCardedLink(shownBody, card: shape.original.flatMap { _ in shape.url }),
-                picture: picture, full: focused)
+                picture: picture, full: focused, emojis: note.emojis)
                 .padding(.top, focused ? 0 : 6)
             if !note.body.isEmpty { translationLine }
         }
@@ -1387,7 +1387,10 @@ extension VerticalAlignment {
 
 extension Author {
     var addressedName: String {
-        if hasDisplayName, let displayName { return displayName }
+        if hasDisplayName, let displayName {
+            let name = NoteText.withoutEmojis(displayName, emojis: emojis)
+            if !name.isEmpty { return name }
+        }
         return "@\(username.split(separator: "@").first.map(String.init) ?? username)"
     }
 }
@@ -1477,7 +1480,7 @@ struct QuotedNoteCard: View {
                 .alignmentGuide(.noteNameLine) { $0[.firstTextBaseline] - nameCapHalf }
             }
             if let warning = note.contentWarning {
-                Text(verbatim: warning)
+                EmojiText(verbatim: warning, emojis: note.emojis)
                     .typeScale(.note)
                     .foregroundStyle(Palette.ink)
                     .lineLimit(2)
@@ -1491,7 +1494,7 @@ struct QuotedNoteCard: View {
                         .accessibilityHidden(true)
                 }
             } else if !note.body.isEmpty {
-                Text(note.body)
+                EmojiText(verbatim: note.body, emojis: note.emojis)
                     .typeScale(.note)
                     .foregroundStyle(Palette.ink)
                     .lineLimit(full ? nil : 4)
@@ -1533,7 +1536,7 @@ extension QuotedNote {
     init(_ note: Note) {
         self.init(
             id: note.id, body: note.body, createdAt: note.createdAt, author: note.author, media: note.media,
-            contentWarning: note.contentWarning, sensitive: note.sensitive)
+            contentWarning: note.contentWarning, sensitive: note.sensitive, emojis: note.emojis)
     }
 }
 
@@ -2768,11 +2771,16 @@ struct NoteComposeSheet: View {
         }
     }
 
-    private func targetExcerpt(_ target: Note) -> Text {
-        if let warning = target.contentWarning { return Text(verbatim: warning) }
-        if !target.body.isEmpty { return Text(verbatim: target.body) }
-        if !target.media.isEmpty { return Text("사진 \(target.media.count)장") }
-        return Text(verbatim: "")
+    @ViewBuilder private func targetExcerpt(_ target: Note) -> some View {
+        if let warning = target.contentWarning {
+            EmojiText(verbatim: warning, emojis: target.emojis)
+        } else if !target.body.isEmpty {
+            EmojiText(verbatim: target.body, emojis: target.emojis)
+        } else if !target.media.isEmpty {
+            Text("사진 \(target.media.count)장")
+        } else {
+            Text(verbatim: "")
+        }
     }
 
     /// 아바타 아래로 다음 노트까지 잇는 스레드 선 — 스레드 작성 화면과 같은 문법.
