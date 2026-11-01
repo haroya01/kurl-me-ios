@@ -142,8 +142,38 @@ struct MediaViewer<Actions: View>: View {
     private var dismissProgress: CGFloat { zoomed ? 0 : min(1, max(0, drag.height) / 300) }
     private var chromeShown: Bool { chrome.visible && dismissProgress <= 0.05 }
     private var videoInLandscape: Bool { landscape && currentItem?.kind == .video }
+    private var isPlaying: Bool { playback?.playing ?? false }
 
     var body: some View {
+        framed
+            .onAppear {
+                chrome.setAutoHides(!voiceOver, at: ContinuousClock.now)
+                withAnimation(reduceMotion ? nil : Motion.move) { appeared = true }
+            }
+            .task(id: current) { await load(current) }
+            .task(id: chrome.hideAt) { await autoHide() }
+            .onChange(of: isPlaying) { _, playing in chrome.playback(playing, at: ContinuousClock.now) }
+            .onChange(of: voiceOver) { _, on in chrome.setAutoHides(!on, at: ContinuousClock.now) }
+            .onChange(of: landscape) { _, wide in if !wide { forcedLandscape = false } }
+            .onDisappear {
+                playback?.stop()
+                restorePortrait()
+            }
+    }
+
+    private var framed: some View {
+        stage
+            .onGeometryChange(for: CGSize.self) { $0.size } action: { stageSize = $0 }
+            .overlay(alignment: .topLeading) { closeButton }
+            .overlay(alignment: .bottom) { bottomChrome }
+            .statusBarHidden(true)
+            .persistentSystemOverlays(chromeShown ? .automatic : .hidden)
+            .presentationBackground(.clear)
+            .modifier(ToastHost())
+            .accessibilityAction(.escape) { close() }
+    }
+
+    private var stage: some View {
         ZStack {
             Color.black
                 .opacity(appeared ? 1 - Double(dismissProgress) * 0.65 : 0)
@@ -152,27 +182,6 @@ struct MediaViewer<Actions: View>: View {
                 .scaleEffect(appeared ? 1 - dismissProgress * 0.12 : 0.94)
                 .opacity(appeared ? 1 - dismissProgress * 0.3 : 0)
                 .offset(x: zoomed ? 0 : drag.width * 0.4, y: zoomed ? 0 : max(0, drag.height))
-        }
-        .onGeometryChange(for: CGSize.self) { $0.size } action: { stageSize = $0 }
-        .overlay(alignment: .topLeading) { closeButton }
-        .overlay(alignment: .bottom) { bottomChrome }
-        .statusBarHidden(true)
-        .persistentSystemOverlays(chromeShown ? .automatic : .hidden)
-        .presentationBackground(.clear)
-        .modifier(ToastHost())
-        .accessibilityAction(.escape) { close() }
-        .onAppear {
-            chrome.setAutoHides(!voiceOver, at: .now)
-            withAnimation(reduceMotion ? nil : Motion.move) { appeared = true }
-        }
-        .task(id: current) { await load(current) }
-        .task(id: chrome.hideAt) { await autoHide() }
-        .onChange(of: playback?.playing ?? false) { _, playing in chrome.playback(playing, at: .now) }
-        .onChange(of: voiceOver) { _, on in chrome.setAutoHides(!on, at: .now) }
-        .onChange(of: landscape) { _, wide in if !wide { forcedLandscape = false } }
-        .onDisappear {
-            playback?.stop()
-            restorePortrait()
         }
     }
 
@@ -192,24 +201,54 @@ struct MediaViewer<Actions: View>: View {
         .scrollIndicators(.hidden)
         .scrollDisabled(items.count < 2 || zoomed)
         .ignoresSafeArea()
-        .gesture(DownwardPan(isEnabled: !zoomed, changed: { drag = $0 }, ended: dragEnded))
+        .gesture(downwardPan)
+    }
+
+    private var downwardPan: DownwardPan {
+        let changed: (CGSize) -> Void = { drag = $0 }
+        let ended: (CGSize, CGSize) -> Void = { translation, predicted in dragEnded(translation, predicted) }
+        return DownwardPan(isEnabled: !zoomed, changed: changed, ended: ended)
     }
 
     @ViewBuilder private func page(_ item: ViewerItem) -> some View {
         switch item.kind {
         case .photo:
-            PhotoPage(item: item, isCurrent: item.url == current, onTap: toggleChrome) { zoom in
-                if item.url == current { zoomed = zoom }
-            }
+            photoPage(item)
         case .video:
-            VideoPage(
-                item: item, playback: playback?.url == item.url ? playback : nil,
-                offersFullScreen: !landscape && chromeShown, onTap: toggleChrome, enterFullScreen: enterFullScreen)
+            videoPage(item)
         }
     }
 
+    private func photoPage(_ item: ViewerItem) -> PhotoPage {
+        let isCurrent = item.url == current
+        let onTap: () -> Void = { toggleChrome() }
+        let onZoom: (Bool) -> Void = { zoom in
+            if item.url == current { zoomed = zoom }
+        }
+        return PhotoPage(item: item, isCurrent: isCurrent, onTap: onTap, onZoom: onZoom)
+    }
+
+    private func videoPage(_ item: ViewerItem) -> VideoPage {
+        let shown: VideoPlayback? = playback?.url == item.url ? playback : nil
+        let onTap: () -> Void = { toggleChrome() }
+        let enter: () -> Void = { enterFullScreen() }
+        return VideoPage(
+            item: item, playback: shown, offersFullScreen: !landscape && chromeShown, onTap: onTap,
+            enterFullScreen: enter)
+    }
+
     private var closeButton: some View {
-        Button { close() } label: {
+        closeGlyph
+            .padding(.leading, Metrics.gutter)
+            .padding(.top, 8)
+            .modifier(ChromeFade(shown: chromeShown, animated: !reduceMotion))
+            .accessibilityLabel(Text("닫기"))
+            .accessibilityIdentifier("viewer.close")
+    }
+
+    private var closeGlyph: some View {
+        let action: () -> Void = { close() }
+        return Button(action: action) {
             Image(systemName: "xmark")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.white)
@@ -220,53 +259,70 @@ struct MediaViewer<Actions: View>: View {
         }
         .buttonStyle(.plain)
         .environment(\.colorScheme, .dark)
-        .padding(.leading, Metrics.gutter)
-        .padding(.top, 8)
-        .opacity(chromeShown ? 1 : 0)
-        .animation(reduceMotion ? nil : Motion.micro, value: chromeShown)
-        .allowsHitTesting(chromeShown)
-        .accessibilityHidden(!chromeShown)
-        .accessibilityLabel(Text("닫기"))
-        .accessibilityIdentifier("viewer.close")
     }
 
     private var bottomChrome: some View {
+        bottomStack
+            .padding(.horizontal, Metrics.gutter)
+            .padding(.top, 28)
+            .padding(.bottom, 6)
+            .background { bottomScrim }
+            .modifier(ChromeFade(shown: chromeShown, animated: !reduceMotion))
+    }
+
+    private var bottomStack: some View {
         VStack(spacing: 16) {
-            if let item = currentItem {
-                if item.kind == .photo, let caption = item.caption, !caption.isEmpty {
-                    Text(caption)
-                        .font(.system(size: captionSize))
-                        .foregroundStyle(.white.opacity(0.88))
-                        .multilineTextAlignment(.center)
-                        .frame(maxWidth: .infinity)
-                        .accessibilityHidden(true)
-                }
-                if item.kind == .video, let playback, playback.url == item.url {
-                    VideoControls(
-                        playback: playback,
-                        exitFullScreen: forcedLandscape && landscape ? exitFullScreen : nil,
-                        onScrub: { chrome.scrubbing($0, at: .now) },
-                        onInteract: { chrome.touched(at: .now) })
-                }
-            }
+            captionLine
+            videoControls
             if !videoInLandscape {
                 actions()
             }
         }
-        .padding(.horizontal, Metrics.gutter)
-        .padding(.top, 28)
-        .padding(.bottom, 6)
-        .background {
-            if hasBottomContent {
-                LinearGradient(colors: [.clear, .black.opacity(0.55)], startPoint: .top, endPoint: .bottom)
-                    .ignoresSafeArea(edges: .bottom)
-                    .allowsHitTesting(false)
-            }
+    }
+
+    @ViewBuilder private var captionLine: some View {
+        if let item = currentItem, item.kind == .photo, let caption = item.caption, !caption.isEmpty {
+            Text(caption)
+                .font(.system(size: captionSize))
+                .foregroundStyle(.white.opacity(0.88))
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .accessibilityHidden(true)
         }
-        .opacity(chromeShown ? 1 : 0)
-        .animation(reduceMotion ? nil : Motion.micro, value: chromeShown)
-        .allowsHitTesting(chromeShown)
-        .accessibilityHidden(!chromeShown)
+    }
+
+    @ViewBuilder private var videoControls: some View {
+        if let current = currentPlayback {
+            VideoControls(
+                playback: current, exitFullScreen: exitAction, onScrub: scrubAction, onInteract: interactAction)
+        }
+    }
+
+    @ViewBuilder private var bottomScrim: some View {
+        if hasBottomContent {
+            LinearGradient(colors: [.clear, .black.opacity(0.55)], startPoint: .top, endPoint: .bottom)
+                .ignoresSafeArea(edges: .bottom)
+                .allowsHitTesting(false)
+        }
+    }
+
+    private var currentPlayback: VideoPlayback? {
+        guard let item = currentItem, item.kind == .video, let playback, playback.url == item.url else { return nil }
+        return playback
+    }
+
+    private var exitAction: (() -> Void)? {
+        guard forcedLandscape, landscape else { return nil }
+        let action: () -> Void = { exitFullScreen() }
+        return action
+    }
+
+    private var scrubAction: (Bool) -> Void {
+        { on in chrome.scrubbing(on, at: ContinuousClock.now) }
+    }
+
+    private var interactAction: () -> Void {
+        { chrome.touched(at: ContinuousClock.now) }
     }
 
     private var hasBottomContent: Bool {
@@ -278,14 +334,14 @@ struct MediaViewer<Actions: View>: View {
     }
 
     private func toggleChrome() {
-        chrome.toggle(at: .now)
+        chrome.toggle(at: ContinuousClock.now)
     }
 
     private func autoHide() async {
         guard let deadline = chrome.hideAt else { return }
         try? await Task.sleep(until: deadline, clock: .continuous)
         guard !Task.isCancelled else { return }
-        chrome.tick(at: .now)
+        chrome.tick(at: ContinuousClock.now)
     }
 
     private func load(_ url: URL?) async {
@@ -335,6 +391,19 @@ struct MediaViewer<Actions: View>: View {
     private func restorePortrait() {
         guard forcedLandscape else { return }
         exitFullScreen()
+    }
+}
+
+private struct ChromeFade: ViewModifier {
+    let shown: Bool
+    let animated: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(shown ? 1 : 0)
+            .animation(animated ? Motion.micro : nil, value: shown)
+            .allowsHitTesting(shown)
+            .accessibilityHidden(!shown)
     }
 }
 

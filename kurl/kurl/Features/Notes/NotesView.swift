@@ -955,7 +955,7 @@ struct NoteRowView: View {
     private var viewerActions: NoteViewerActions? {
         guard detached == nil else { return nil }
         return NoteViewerActions(
-            note: note, engagement: engagement, shareURL: shareURL, onReplied: replied, onQuoted: onQuoted)
+            note: note, engagement: engagement, shareURL: shareURL, onReplied: { replied($0) }, onQuoted: onQuoted)
     }
 
     @ViewBuilder private var quotedAttachments: some View {

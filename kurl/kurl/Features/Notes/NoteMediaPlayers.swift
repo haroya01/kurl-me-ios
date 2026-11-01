@@ -339,26 +339,8 @@ struct VideoPage: View {
     var body: some View {
         ZStack {
             Color.clear
-            PlayerSurface(player: playback?.player)
-                .accessibilityElement()
-                .accessibilityLabel(Text(item.label))
-                .accessibilityAddTraits(.startsMediaSession)
-                .aspectRatio(ratio, contentMode: .fit)
-                .overlay(alignment: .bottom) {
-                    if ratio > 1 {
-                        fullScreenPill
-                            .padding(.top, 16)
-                            .frame(height: 0, alignment: .top)
-                    }
-                }
-            if playback?.failed == true {
-                Text("동영상을 불러오지 못했어요")
-                    .typeScale(.meta)
-                    .foregroundStyle(.white.opacity(0.7))
-            } else if playback?.player == nil {
-                KurlLoadingMark()
-                    .frame(width: 44, height: 26)
-            }
+            surface
+            status
         }
         .contentShape(Rectangle())
         .onTapGesture(perform: onTap)
@@ -366,7 +348,45 @@ struct VideoPage: View {
         .accessibilityIdentifier("viewer.video")
     }
 
+    private var surface: some View {
+        PlayerSurface(player: playback?.player)
+            .accessibilityElement()
+            .accessibilityLabel(Text(item.label))
+            .accessibilityAddTraits(.startsMediaSession)
+            .aspectRatio(ratio, contentMode: .fit)
+            .overlay(alignment: .bottom) { pillSlot }
+    }
+
+    @ViewBuilder private var pillSlot: some View {
+        if ratio > 1 {
+            fullScreenPill
+                .padding(.top, 16)
+                .frame(height: 0, alignment: .top)
+        }
+    }
+
+    @ViewBuilder private var status: some View {
+        if playback?.failed == true {
+            Text("동영상을 불러오지 못했어요")
+                .typeScale(.meta)
+                .foregroundStyle(.white.opacity(0.7))
+        } else if playback?.player == nil {
+            KurlLoadingMark()
+                .frame(width: 44, height: 26)
+        }
+    }
+
     private var fullScreenPill: some View {
+        pillLabel
+            .environment(\.colorScheme, .dark)
+            .opacity(offersFullScreen ? 1 : 0)
+            .animation(reduceMotion ? nil : Motion.micro, value: offersFullScreen)
+            .allowsHitTesting(offersFullScreen)
+            .accessibilityHidden(!offersFullScreen)
+            .accessibilityIdentifier("viewer.fullScreen")
+    }
+
+    private var pillLabel: some View {
         Button(action: enterFullScreen) {
             Text("전체 화면")
                 .font(.subheadline.weight(.semibold))
@@ -377,12 +397,6 @@ struct VideoPage: View {
                 .contentShape(Capsule())
         }
         .buttonStyle(.plain)
-        .environment(\.colorScheme, .dark)
-        .opacity(offersFullScreen ? 1 : 0)
-        .animation(reduceMotion ? nil : Motion.micro, value: offersFullScreen)
-        .allowsHitTesting(offersFullScreen)
-        .accessibilityHidden(!offersFullScreen)
-        .accessibilityIdentifier("viewer.fullScreen")
     }
 }
 
@@ -394,77 +408,105 @@ struct VideoControls: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            Button {
-                playback.togglePlay()
-                onInteract()
-            } label: {
-                Image(systemName: playback.playing ? "pause.fill" : "play.fill")
-                    .font(.system(size: 18, weight: .semibold))
-                    .frame(width: 24, height: 24)
-                    .contentTransition(.symbolEffect(.replace))
-                    .expandTapTarget(10)
-            }
-            .accessibilityLabel(playback.playing ? Text("일시 정지") : Text("재생"))
-            .accessibilityIdentifier("viewer.play")
-
-            Slider(value: position, in: 0...max(playback.duration, 0.01)) { editing in
-                if editing { playback.beginScrub() } else { playback.endScrub() }
-                onScrub(editing)
-            }
-            .tint(.white)
-            .disabled(playback.duration <= 0)
-            .accessibilityLabel(Text("재생 위치"))
-            .accessibilityValue(
-                Text("\(MediaClock.spoken(playback.elapsed)), 전체 \(MediaClock.spoken(playback.duration))"))
-            .accessibilityAdjustableAction { direction in
-                switch direction {
-                case .increment: playback.skip(by: 10)
-                case .decrement: playback.skip(by: -10)
-                @unknown default: break
-                }
-                onInteract()
-            }
-            .accessibilityIdentifier("viewer.scrubber")
-
-            Text(verbatim: "\(MediaClock.label(playback.elapsed)) / \(MediaClock.label(playback.duration))")
-                .font(.footnote.monospacedDigit())
-                .foregroundStyle(.white.opacity(0.85))
-                .fixedSize()
-                .accessibilityHidden(true)
-
-            if playback.sound == true {
-                Button {
-                    playback.toggleMute()
-                    onInteract()
-                } label: {
-                    Image(systemName: playback.muted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                        .font(.system(size: 17, weight: .semibold))
-                        .frame(width: 24, height: 24)
-                        .contentTransition(.symbolEffect(.replace))
-                        .expandTapTarget(10)
-                }
-                .accessibilityLabel(playback.muted ? Text("소리 켜기") : Text("소리 끄기"))
-                .accessibilityIdentifier("viewer.mute")
-            }
-
-            if let exitFullScreen {
-                Button(action: exitFullScreen) {
-                    Image(systemName: "arrow.down.right.and.arrow.up.left")
-                        .font(.system(size: 16, weight: .semibold))
-                        .frame(width: 24, height: 24)
-                        .expandTapTarget(10)
-                }
-                .accessibilityLabel(Text("전체 화면 끝내기"))
-                .accessibilityIdentifier("viewer.exitFullScreen")
-            }
+            playButton
+            scrubber
+            timeLabel
+            muteButton
+            exitButton
         }
         .foregroundStyle(.white)
         .buttonStyle(.plain)
         .environment(\.colorScheme, .dark)
     }
 
+    private var playButton: some View {
+        let action: () -> Void = {
+            playback.togglePlay()
+            onInteract()
+        }
+        return Button(action: action) {
+            Image(systemName: playback.playing ? "pause.fill" : "play.fill")
+                .font(.system(size: 18, weight: .semibold))
+                .frame(width: 24, height: 24)
+                .contentTransition(.symbolEffect(.replace))
+                .expandTapTarget(10)
+        }
+        .accessibilityLabel(playback.playing ? Text("일시 정지") : Text("재생"))
+        .accessibilityIdentifier("viewer.play")
+    }
+
+    private var scrubber: some View {
+        Slider(value: position, in: 0...max(playback.duration, 0.01), onEditingChanged: { editingChanged($0) })
+            .tint(.white)
+            .disabled(playback.duration <= 0)
+            .accessibilityLabel(Text("재생 위치"))
+            .accessibilityValue(spokenPosition)
+            .accessibilityAdjustableAction { adjust($0) }
+            .accessibilityIdentifier("viewer.scrubber")
+    }
+
+    private var timeLabel: some View {
+        Text(verbatim: "\(MediaClock.label(playback.elapsed)) / \(MediaClock.label(playback.duration))")
+            .font(.footnote.monospacedDigit())
+            .foregroundStyle(.white.opacity(0.85))
+            .fixedSize()
+            .accessibilityHidden(true)
+    }
+
+    @ViewBuilder private var muteButton: some View {
+        if playback.sound == true {
+            Button(action: { toggleMute() }) {
+                Image(systemName: playback.muted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                    .font(.system(size: 17, weight: .semibold))
+                    .frame(width: 24, height: 24)
+                    .contentTransition(.symbolEffect(.replace))
+                    .expandTapTarget(10)
+            }
+            .accessibilityLabel(playback.muted ? Text("소리 켜기") : Text("소리 끄기"))
+            .accessibilityIdentifier("viewer.mute")
+        }
+    }
+
+    @ViewBuilder private var exitButton: some View {
+        if let exitFullScreen {
+            Button(action: exitFullScreen) {
+                Image(systemName: "arrow.down.right.and.arrow.up.left")
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(width: 24, height: 24)
+                    .expandTapTarget(10)
+            }
+            .accessibilityLabel(Text("전체 화면 끝내기"))
+            .accessibilityIdentifier("viewer.exitFullScreen")
+        }
+    }
+
+    private var spokenPosition: Text {
+        let elapsed = MediaClock.spoken(playback.elapsed)
+        let total = MediaClock.spoken(playback.duration)
+        return Text("\(elapsed), 전체 \(total)")
+    }
+
     private var position: Binding<Double> {
         Binding(get: { playback.elapsed }, set: { playback.scrub(to: $0) })
+    }
+
+    private func editingChanged(_ editing: Bool) {
+        if editing { playback.beginScrub() } else { playback.endScrub() }
+        onScrub(editing)
+    }
+
+    private func toggleMute() {
+        playback.toggleMute()
+        onInteract()
+    }
+
+    private func adjust(_ direction: AccessibilityAdjustmentDirection) {
+        switch direction {
+        case .increment: playback.skip(by: 10)
+        case .decrement: playback.skip(by: -10)
+        @unknown default: break
+        }
+        onInteract()
     }
 }
 
