@@ -1387,7 +1387,10 @@ extension VerticalAlignment {
 
 extension Author {
     var addressedName: String {
-        if hasDisplayName, let displayName { return displayName }
+        if hasDisplayName, let displayName {
+            let name = NoteText.withoutEmojis(displayName, emojis: emojis)
+            if !name.isEmpty { return name }
+        }
         return "@\(username.split(separator: "@").first.map(String.init) ?? username)"
     }
 }

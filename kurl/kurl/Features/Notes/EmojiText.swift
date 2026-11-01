@@ -47,6 +47,15 @@ extension NoteText {
         return result
     }
 
+    static func withoutEmojis(_ text: String, emojis: [CustomEmoji]?) -> String {
+        let codes = Set(CustomEmoji.table(emojis).keys)
+        guard !codes.isEmpty else { return text }
+        let pieces = inlines(AttributedString(text), emojis: codes)
+        guard pieces.contains(where: { if case .emoji = $0 { true } else { false } }) else { return text }
+        let kept = pieces.map { if case let .text(text) = $0 { String(text.characters) } else { " " } }.joined()
+        return kept.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+    }
+
     private static func shortcode(in scalars: [Unicode.Scalar], at start: Int) -> String? {
         guard scalars[start] == ":" else { return nil }
         var end = start + 1

@@ -62,6 +62,20 @@ final class CustomEmojiTests: XCTestCase {
         ])
     }
 
+    func testNamesInPlainTextDropTheirShortcodes() {
+        let verified = [CustomEmoji(shortcode: "verified", url: URL(string: "https://e.example/v.png"))]
+        func name(_ displayName: String, _ emojis: [CustomEmoji]?) -> String {
+            Author(id: -1, username: "ged@mastodon.social", bio: nil, avatarUrl: nil, displayName: displayName,
+                   remoteId: 1, emojis: emojis).addressedName
+        }
+
+        XCTAssertEqual(name("Ged :verified:", verified), "Ged")
+        XCTAssertEqual(name(":verified:Ged\u{200B}:verified: Smith", verified), "Ged Smith")
+        XCTAssertEqual(name(":verified:", verified), "@ged")
+        XCTAssertEqual(name("Ged :verified:", nil), "Ged :verified:")
+        XCTAssertEqual(name("Ged  :other:", verified), "Ged  :other:")
+    }
+
     func testDecodingWithoutEmojisIsEmpty() throws {
         let note = try JSONDecoder.blog.decode(Note.self, from: Data(Self.note(emojis: nil, authorEmojis: nil).utf8))
 
