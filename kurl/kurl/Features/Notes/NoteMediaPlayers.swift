@@ -101,9 +101,9 @@ private struct MutedLoopingVideo: UIViewRepresentable {
     let url: URL
     let onSound: (Bool) -> Void
 
-    func makeUIView(context: Context) -> PlayerView {
+    func makeUIView(context: Context) -> PlayerLayerView {
         AudioSessionMode.mixWithOthers()
-        let view = PlayerView()
+        let view = PlayerLayerView()
         let player = AVQueuePlayer()
         player.isMuted = true
         player.preventsDisplaySleepDuringVideoPlayback = false
@@ -118,9 +118,9 @@ private struct MutedLoopingVideo: UIViewRepresentable {
         return view
     }
 
-    func updateUIView(_ uiView: PlayerView, context: Context) {}
+    func updateUIView(_ uiView: PlayerLayerView, context: Context) {}
 
-    static func dismantleUIView(_ uiView: PlayerView, coordinator: Coordinator) {
+    static func dismantleUIView(_ uiView: PlayerLayerView, coordinator: Coordinator) {
         uiView.playerLayer.player?.pause()
         uiView.playerLayer.player = nil
         coordinator.looper = nil
@@ -133,11 +133,11 @@ private struct MutedLoopingVideo: UIViewRepresentable {
         var looper: AVPlayerLooper?
         var probe: Task<Void, Never>?
     }
+}
 
-    final class PlayerView: UIView {
-        override static var layerClass: AnyClass { AVPlayerLayer.self }
-        var playerLayer: AVPlayerLayer { layer as! AVPlayerLayer }
-    }
+final class PlayerLayerView: UIView {
+    override static var layerClass: AnyClass { AVPlayerLayer.self }
+    var playerLayer: AVPlayerLayer { layer as! AVPlayerLayer }
 }
 
 enum NoteVideoSound {
@@ -176,54 +176,337 @@ enum AudioSessionMode {
     }
 }
 
-struct VideoLightbox: View {
+@Observable
+final class VideoPlayback {
     let url: URL
-    @State private var player: AVPlayer?
-    @State private var looper: AVPlayerLooper?
-    @State private var withSound = false
-    @Environment(\.dismiss) private var dismiss
+    private(set) var player: AVPlayer?
+    private(set) var sound: Bool?
+    private(set) var playing = false
+    private(set) var muted = false
+    private(set) var elapsed: Double = 0
+    private(set) var duration: Double = 0
+    private(set) var ratio: CGFloat?
+    private(set) var failed = false
+    @ObservationIgnored private var looper: AVPlayerLooper?
+    @ObservationIgnored private var timeObserver: Any?
+    @ObservationIgnored private var observations: [NSKeyValueObservation] = []
+    @ObservationIgnored private var holdsAudio = false
+    @ObservationIgnored private var scrubbing = false
+    @ObservationIgnored private var resumeAfterScrub = false
+    @ObservationIgnored private var stopped = false
+
+    init(url: URL) {
+        self.url = url
+    }
+
+    func start() async {
+        guard player == nil, !stopped else { return }
+        let item = AVPlayerItem(url: url)
+        let sound = await NoteVideoSound.hasAudio(item.asset)
+        guard !stopped, !Task.isCancelled else { return }
+        self.sound = sound
+        let next: AVPlayer
+        switch NoteVideoSound.playback(sound: sound) {
+        case .loopSilently:
+            AudioSessionMode.mixWithOthers()
+            let queue = AVQueuePlayer()
+            let looper = AVPlayerLooper(player: queue, templateItem: item)
+            observations.append(looper.observe(\.status, options: [.new]) { [weak self] looper, _ in
+                guard looper.status == .failed else { return }
+                Task { @MainActor [weak self] in self?.failed = true }
+            })
+            self.looper = looper
+            next = queue
+        case .withSound:
+            AudioSessionMode.withSound()
+            holdsAudio = true
+            observations.append(item.observe(\.status, options: [.new]) { [weak self] item, _ in
+                guard item.status == .failed else { return }
+                Task { @MainActor [weak self] in self?.failed = true }
+            })
+            next = AVPlayer(playerItem: item)
+        }
+        observations.append(next.observe(\.timeControlStatus, options: [.initial, .new]) { [weak self] player, _ in
+            let playing = player.timeControlStatus != .paused
+            Task { @MainActor [weak self] in self?.playing = playing }
+        })
+        timeObserver = next.addPeriodicTimeObserver(
+            forInterval: CMTime(value: 1, timescale: 10), queue: .main
+        ) { [weak self] time in
+            MainActor.assumeIsolated { self?.advance(to: time) }
+        }
+        player = next
+        next.play()
+    }
+
+    func togglePlay() {
+        guard let player else { return }
+        if playing {
+            player.pause()
+            return
+        }
+        if duration > 0, player.currentTime().seconds >= duration - 0.25 {
+            elapsed = 0
+            player.seek(to: .zero)
+        }
+        player.play()
+    }
+
+    func toggleMute() {
+        muted.toggle()
+        player?.isMuted = muted
+    }
+
+    func beginScrub() {
+        scrubbing = true
+        resumeAfterScrub = playing
+        player?.pause()
+    }
+
+    func scrub(to seconds: Double) {
+        elapsed = min(max(seconds, 0), duration)
+        player?.seek(
+            to: CMTime(seconds: elapsed, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero)
+    }
+
+    func endScrub() {
+        scrubbing = false
+        if resumeAfterScrub { player?.play() }
+        resumeAfterScrub = false
+    }
+
+    func skip(by seconds: Double) {
+        scrub(to: elapsed + seconds)
+    }
+
+    func stop() {
+        stopped = true
+        player?.pause()
+        if let timeObserver { player?.removeTimeObserver(timeObserver) }
+        timeObserver = nil
+        observations.forEach { $0.invalidate() }
+        observations = []
+        looper?.disableLooping()
+        looper = nil
+        player = nil
+        playing = false
+        if holdsAudio {
+            holdsAudio = false
+            AudioSessionMode.done()
+        }
+    }
+
+    private func advance(to time: CMTime) {
+        guard let item = player?.currentItem else { return }
+        let total = item.duration.seconds
+        if total.isFinite, total > 0 { duration = total }
+        if !scrubbing, time.seconds.isFinite { elapsed = max(0, time.seconds) }
+        let size = item.presentationSize
+        if ratio == nil, size.width > 0, size.height > 0 { ratio = size.width / size.height }
+    }
+}
+
+struct PlayerSurface: UIViewRepresentable {
+    let player: AVPlayer?
+
+    func makeUIView(context: Context) -> PlayerLayerView {
+        let view = PlayerLayerView()
+        view.playerLayer.videoGravity = .resizeAspect
+        view.playerLayer.player = player
+        return view
+    }
+
+    func updateUIView(_ uiView: PlayerLayerView, context: Context) {
+        if uiView.playerLayer.player !== player { uiView.playerLayer.player = player }
+    }
+
+    static func dismantleUIView(_ uiView: PlayerLayerView, coordinator: ()) {
+        uiView.playerLayer.player = nil
+    }
+}
+
+struct VideoPage: View {
+    let item: ViewerItem
+    let playback: VideoPlayback?
+    let offersFullScreen: Bool
+    let onTap: () -> Void
+    let enterFullScreen: () -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var ratio: CGFloat { playback?.ratio ?? item.ratio ?? 16.0 / 9.0 }
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
-            Color.black.ignoresSafeArea()
-            if let player {
-                VideoPlayer(player: player)
-                    .ignoresSafeArea()
-            }
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 40, height: 40)
-                    .background(.ultraThinMaterial, in: Circle())
-            }
-            .padding()
-            .accessibilityLabel("닫기")
+        ZStack {
+            Color.clear
+            surface
+            status
         }
-        .task {
-            let item = AVPlayerItem(url: url)
-            switch NoteVideoSound.playback(sound: await NoteVideoSound.hasAudio(item.asset)) {
-            case .loopSilently:
-                AudioSessionMode.mixWithOthers()
-                let queue = AVQueuePlayer()
-                looper = AVPlayerLooper(player: queue, templateItem: item)
-                player = queue
-                queue.play()
-            case .withSound:
-                AudioSessionMode.withSound()
-                withSound = true
-                let next = AVPlayer(playerItem: item)
-                player = next
-                next.play()
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onTap)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("viewer.video")
+    }
+
+    private var surface: some View {
+        PlayerSurface(player: playback?.player)
+            .accessibilityElement()
+            .accessibilityLabel(Text(item.label))
+            .accessibilityAddTraits(.startsMediaSession)
+            .aspectRatio(ratio, contentMode: .fit)
+            .overlay(alignment: .bottom) { pillSlot }
+    }
+
+    @ViewBuilder private var pillSlot: some View {
+        if ratio > 1 {
+            fullScreenPill
+                .padding(.top, 16)
+                .frame(height: 0, alignment: .top)
+        }
+    }
+
+    @ViewBuilder private var status: some View {
+        if playback?.failed == true {
+            Text("동영상을 불러오지 못했어요")
+                .typeScale(.meta)
+                .foregroundStyle(.white.opacity(0.7))
+        } else if playback?.player == nil {
+            KurlLoadingMark()
+                .frame(width: 44, height: 26)
+        }
+    }
+
+    private var fullScreenPill: some View {
+        pillLabel
+            .environment(\.colorScheme, .dark)
+            .opacity(offersFullScreen ? 1 : 0)
+            .animation(reduceMotion ? nil : Motion.micro, value: offersFullScreen)
+            .allowsHitTesting(offersFullScreen)
+            .accessibilityHidden(!offersFullScreen)
+            .accessibilityIdentifier("viewer.fullScreen")
+    }
+
+    private var pillLabel: some View {
+        Button(action: enterFullScreen) {
+            Text("전체 화면")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .glassEffect(.regular, in: Capsule())
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct VideoControls: View {
+    let playback: VideoPlayback
+    let exitFullScreen: (() -> Void)?
+    let onScrub: (Bool) -> Void
+    let onInteract: () -> Void
+
+    var body: some View {
+        HStack(spacing: 14) {
+            playButton
+            scrubber
+            timeLabel
+            muteButton
+            exitButton
+        }
+        .foregroundStyle(.white)
+        .buttonStyle(.plain)
+        .environment(\.colorScheme, .dark)
+    }
+
+    private var playButton: some View {
+        let action: () -> Void = {
+            playback.togglePlay()
+            onInteract()
+        }
+        return Button(action: action) {
+            Image(systemName: playback.playing ? "pause.fill" : "play.fill")
+                .font(.system(size: 18, weight: .semibold))
+                .frame(width: 24, height: 24)
+                .contentTransition(.symbolEffect(.replace))
+                .expandTapTarget(10)
+        }
+        .accessibilityLabel(playback.playing ? Text("일시 정지") : Text("재생"))
+        .accessibilityIdentifier("viewer.play")
+    }
+
+    private var scrubber: some View {
+        Slider(value: position, in: 0...max(playback.duration, 0.01), onEditingChanged: { editingChanged($0) })
+            .tint(.white)
+            .disabled(playback.duration <= 0)
+            .accessibilityLabel(Text("재생 위치"))
+            .accessibilityValue(spokenPosition)
+            .accessibilityAdjustableAction { adjust($0) }
+            .accessibilityIdentifier("viewer.scrubber")
+    }
+
+    private var timeLabel: some View {
+        Text(verbatim: "\(MediaClock.label(playback.elapsed)) / \(MediaClock.label(playback.duration))")
+            .font(.footnote.monospacedDigit())
+            .foregroundStyle(.white.opacity(0.85))
+            .fixedSize()
+            .accessibilityHidden(true)
+    }
+
+    @ViewBuilder private var muteButton: some View {
+        if playback.sound == true {
+            Button(action: { toggleMute() }) {
+                Image(systemName: playback.muted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                    .font(.system(size: 17, weight: .semibold))
+                    .frame(width: 24, height: 24)
+                    .contentTransition(.symbolEffect(.replace))
+                    .expandTapTarget(10)
             }
+            .accessibilityLabel(playback.muted ? Text("소리 켜기") : Text("소리 끄기"))
+            .accessibilityIdentifier("viewer.mute")
         }
-        .onDisappear {
-            player?.pause()
-            looper = nil
-            if withSound { AudioSessionMode.done() }
+    }
+
+    @ViewBuilder private var exitButton: some View {
+        if let exitFullScreen {
+            Button(action: exitFullScreen) {
+                Image(systemName: "arrow.down.right.and.arrow.up.left")
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(width: 24, height: 24)
+                    .expandTapTarget(10)
+            }
+            .accessibilityLabel(Text("전체 화면 끝내기"))
+            .accessibilityIdentifier("viewer.exitFullScreen")
         }
+    }
+
+    private var spokenPosition: Text {
+        let elapsed = MediaClock.spoken(playback.elapsed)
+        let total = MediaClock.spoken(playback.duration)
+        return Text("\(elapsed), 전체 \(total)")
+    }
+
+    private var position: Binding<Double> {
+        Binding(get: { playback.elapsed }, set: { playback.scrub(to: $0) })
+    }
+
+    private func editingChanged(_ editing: Bool) {
+        if editing { playback.beginScrub() } else { playback.endScrub() }
+        onScrub(editing)
+    }
+
+    private func toggleMute() {
+        playback.toggleMute()
+        onInteract()
+    }
+
+    private func adjust(_ direction: AccessibilityAdjustmentDirection) {
+        switch direction {
+        case .increment: playback.skip(by: 10)
+        case .decrement: playback.skip(by: -10)
+        @unknown default: break
+        }
+        onInteract()
     }
 }
 
