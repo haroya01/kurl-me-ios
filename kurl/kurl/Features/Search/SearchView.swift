@@ -522,7 +522,7 @@ struct SearchView: View {
                 HStack(spacing: 11) {
                     AvatarView(author: value.asAuthor, size: 44)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(verbatim: value.shownName)
+                        EmojiText(verbatim: value.shownName, emojis: value.emojis)
                             .typeScale(.titleSmall)
                             .foregroundStyle(Palette.ink)
                             .lineLimit(1)
@@ -821,7 +821,7 @@ struct SearchView: View {
             HStack(spacing: 11) {
                 AvatarView(author: account.asAuthor, size: 44)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(verbatim: account.shownName)
+                    EmojiText(verbatim: account.shownName, emojis: account.emojis)
                         .typeScale(.titleSmall)
                         .foregroundStyle(Palette.ink)
                         .lineLimit(1)

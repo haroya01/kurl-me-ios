@@ -13,6 +13,7 @@ struct RemoteAccount: Codable, Identifiable, Hashable {
     var domainBlocked: Bool?
     var blocking: Bool? = nil
     var muting: Bool? = nil
+    var emojis: [CustomEmoji]? = nil
 
     var isDomainBlocked: Bool { domainBlocked ?? false }
     var isBlocking: Bool { blocking ?? false }
@@ -22,6 +23,11 @@ struct RemoteAccount: Codable, Identifiable, Hashable {
     var shownName: String {
         if let displayName, !displayName.isEmpty { return displayName }
         return username.isEmpty ? acct : username
+    }
+
+    var plainName: String {
+        let name = NoteText.withoutEmojis(shownName, emojis: emojis)
+        return name.isEmpty ? (username.isEmpty ? acct : username) : name
     }
 
     var asAuthor: Author {

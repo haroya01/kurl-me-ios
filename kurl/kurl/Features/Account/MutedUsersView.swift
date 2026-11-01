@@ -46,7 +46,7 @@ struct MuteSheet: View {
 
     init(remote account: RemoteAccount, onMuted: @escaping (RemoteAccount) -> Void) {
         name = account.acct
-        shortName = account.shownName
+        shortName = account.plainName
         remote = true
         send = { notifications, duration in
             onMuted(try await FederationAPI.mute(id: account.id, notifications: notifications, duration: duration))

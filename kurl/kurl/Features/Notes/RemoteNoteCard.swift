@@ -6,6 +6,7 @@ struct RemoteNoteCard: View {
     let summary: String
     let picture: NoteMedia?
     var full = false
+    var emojis: [CustomEmoji]? = nil
     @State private var opened: LegalLink?
 
     static func picture(in note: Note) -> NoteMedia? {
@@ -64,7 +65,7 @@ struct RemoteNoteCard: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 if !summary.isEmpty {
-                    Text(verbatim: summary)
+                    EmojiText(verbatim: summary, emojis: emojis)
                         .typeScale(.note)
                         .foregroundStyle(full ? Palette.ink : Palette.secondary)
                         .lineLimit(full ? nil : 3)

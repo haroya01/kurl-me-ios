@@ -12,6 +12,7 @@ struct FollowRequest: Identifiable, Hashable {
     let displayName: String?
     let avatarUrl: String?
     let requestedAt: Date?
+    var emojis: [CustomEmoji]? = nil
 
     var id: String {
         switch origin {
@@ -23,6 +24,11 @@ struct FollowRequest: Identifiable, Hashable {
     var shownName: String {
         if let displayName, !displayName.isEmpty { return displayName }
         return handle
+    }
+
+    var plainName: String {
+        let name = NoteText.withoutEmojis(shownName, emojis: emojis)
+        return name.isEmpty ? handle : name
     }
 
     var asAuthor: Author {
@@ -58,6 +64,7 @@ enum FollowRequestsAPI {
         let displayName: String?
         let avatarUrl: String?
         let requestedAt: Date?
+        var emojis: [CustomEmoji]? = nil
     }
 
     /// 두 목록의 첫 쪽(각 40)을 함께 받아 요청 시각 최신순으로 섞는다.
@@ -73,7 +80,7 @@ enum FollowRequestsAPI {
             + remotes.map {
                 FollowRequest(
                     origin: .remote(id: $0.id), handle: $0.acct, displayName: $0.displayName,
-                    avatarUrl: $0.avatarUrl, requestedAt: $0.requestedAt)
+                    avatarUrl: $0.avatarUrl, requestedAt: $0.requestedAt, emojis: $0.emojis)
             }
         return all.sorted { ($0.requestedAt ?? .distantPast) > ($1.requestedAt ?? .distantPast) }
     }

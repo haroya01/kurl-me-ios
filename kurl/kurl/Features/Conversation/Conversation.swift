@@ -8,7 +8,7 @@ struct ConversationName: View {
         Group {
             if let author, author.hasDisplayName {
                 NameHandleLayout(spacing: 4) {
-                    Text(verbatim: author.displayName ?? "")
+                    EmojiText(verbatim: author.displayName ?? "", emojis: author.emojis)
                         .fontWeight(.semibold)
                         .foregroundStyle(Palette.ink)
                     Text(verbatim: "@\(author.username)")

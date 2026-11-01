@@ -99,9 +99,9 @@ struct RemoteAccountRow: View {
     @ViewBuilder
     private var name: some View {
         if inFollowList {
-            Text(account.shownName).typeScale(.titleSmall)
+            EmojiText(verbatim: account.shownName, emojis: account.emojis).typeScale(.titleSmall)
         } else {
-            Text(account.shownName).typeScale(.body).fontWeight(.semibold)
+            EmojiText(verbatim: account.shownName, emojis: account.emojis).typeScale(.body).fontWeight(.semibold)
         }
     }
 
@@ -314,7 +314,7 @@ struct RemoteAccountView: View {
             HStack(alignment: .center, spacing: 14) {
                 AvatarView(author: value.asAuthor, size: 64)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(value.shownName)
+                    EmojiText(verbatim: value.shownName, emojis: value.emojis)
                         .typeScale(.name)
                         .foregroundStyle(Palette.ink)
                         .lineLimit(2)
