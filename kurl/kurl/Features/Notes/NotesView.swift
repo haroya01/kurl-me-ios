@@ -1958,6 +1958,7 @@ struct NoteDetailView: View {
     @State private var showLoginSheet = false
     @State private var replied = 0
     @State private var landed: Int64?
+    @State private var unread = UnreadStore.shared
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.openNoteRoute) private var openNoteRoute
@@ -2006,6 +2007,10 @@ struct NoteDetailView: View {
         .sensoryFeedback(.success, trigger: replied)
         .loginPrompt(isPresented: $showLoginSheet, message: "답글을 달려면 로그인하세요")
         .task { if thread == nil { await load() } }
+        .onChange(of: unread.arrival) { _, arrival in
+            guard thread?.reloads(onPush: arrival.type, me: AuthStore.shared.me?.id) == true else { return }
+            Task { await load() }
+        }
         .dwellsOnRemoteNote(noteId)
     }
 

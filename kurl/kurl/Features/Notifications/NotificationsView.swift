@@ -5,24 +5,17 @@ import UserNotifications
 /// 미읽음은 왼쪽 그린 점 하나로 조용히 표시한다.
 struct NotificationsView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @State private var filter: NotificationFilter = .all
-    @State private var items: [AppNotification] = []
-    @State private var nextCursor: Int64?
-    @State private var hasMore = false
-    @State private var loading = true
-    @State private var loadingMore = false
-    @State private var loadError: String?
+    @State private var model = NotificationsViewModel()
     /// "모두 읽음" 성공 햅틱 트리거 — 글 완독 성공 햅틱과 같은 결의 확인음.
     @State private var markAllPulse = 0
-    /// refresh 가 in-flight loadMore 의 스테일 응답을 폐기하기 위한 세대 토큰.
-    @State private var epoch = 0
     /// 마지막 load 시점의 로그인 상태 — 행 push 후 pop-back 이 .task 를 재시작해도
-    /// 같은 상태면 재fetch 하지 않아 쌓인 페이지·스크롤 위치를 보존한다.
+    /// 같은 상태면 첫 페이지로 갈아엎지 않아 쌓인 페이지·스크롤 위치를 보존한다.
     @State private var loadedForSignIn: Bool?
     @State private var showLoginSheet = false
     @State private var pushStatus: UNAuthorizationStatus?
     @State private var followRequests = FollowRequestStore.shared
     @State private var filtered = FilteredNotificationStore.shared
+    @State private var unread = UnreadStore.shared
     @Environment(\.openURL) private var openURL
     /// "모두 읽음" 툴바 액션 — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
     @ScaledMetric(relativeTo: .subheadline) private var actionSize: CGFloat = 13
@@ -35,13 +28,13 @@ struct NotificationsView: View {
             if !AuthStore.shared.isSignedIn {
                 // 알림은 인증 피드 — 비로그인은 네트워크 에러가 아니라 로그인 게이트로(막다른 길 금지).
                 loggedOutGate
-            } else if loading {
+            } else if model.loading {
                 KurlLoadingMark()
                     .frame(maxWidth: .infinity, minHeight: 240)
-            } else if items.isEmpty, let loadError {
+            } else if model.items.isEmpty, let loadError = model.loadError {
                 ErrorState(message: loadError, retry: { Task { await load() } })
                     .padding(.top, 60)
-            } else if items.isEmpty, filter == .mentions {
+            } else if model.items.isEmpty, model.filter == .mentions {
                 directEntry
                 FeedPlaceholder(
                     title: "아직 멘션이나 답글이 없어요",
@@ -49,7 +42,7 @@ struct NotificationsView: View {
                     action: { TabRouter.shared.selection = TabRouter.homeTab }
                 )
                 .padding(.top, 24)
-            } else if items.isEmpty {
+            } else if model.items.isEmpty {
                 followRequestsEntry
                 filteredEntry
                 // 막다른 길 금지 — 알림은 사람을 팔로우하고 반응하면 흐른다. 검색의 작가 레일로 이어준다
@@ -71,7 +64,7 @@ struct NotificationsView: View {
         .toolbar {
             if AuthStore.shared.isSignedIn {
                 ToolbarItem(placement: .principal) {
-                    Picker("알림 보기", selection: $filter) {
+                    Picker("알림 보기", selection: $model.filter) {
                         Text("전체").tag(NotificationFilter.all)
                         Text("멘션").tag(NotificationFilter.mentions)
                     }
@@ -94,9 +87,9 @@ struct NotificationsView: View {
                         Button("모두 읽음") {
                             Task {
                                 do {
-                                    try await NotificationsAPI.markAllRead(filter: filter)
+                                    try await NotificationsAPI.markAllRead(filter: model.filter)
                                     withAnimation(.easeOut(duration: 0.25)) {
-                                        items = items.map(asRead)
+                                        model.items = model.items.map(asRead)
                                     }
                                     markAllPulse += 1
                                 } catch {
@@ -111,25 +104,31 @@ struct NotificationsView: View {
             }
         }
         .task(id: AuthStore.shared.isSignedIn) {
-            // 로그인 상태가 바뀌었을 때만 자동 로드 — pop-back 재시작은 통과시킨다.
-            // 명시적 갱신은 refreshable·다시 시도 버튼이 맡는다.
+            // 로그인 상태가 바뀌었을 때만 처음부터 로드 — pop-back 재시작은 미읽음이 있을 때만 조용히 다시 읽는다.
             let signedIn = AuthStore.shared.isSignedIn
-            guard loadedForSignIn != signedIn else { return }
+            guard loadedForSignIn != signedIn else {
+                await resume()
+                return
+            }
             loadedForSignIn = signedIn
             await load()
         }
         .refreshable { await load() }
-        .onChange(of: filter) {
-            items = []
-            loading = true
+        .onChange(of: model.filter) {
+            model.switchedFilter()
             Task { await load() }
         }
-        .sensoryFeedback(.selection, trigger: filter)
+        .sensoryFeedback(.selection, trigger: model.filter)
         // 걸러진 알림을 받으면 그 알림이 목록으로 들어온다 — 돌아왔을 때 보이게 다시 읽는다.
         .onChange(of: filtered.acceptedCount) { Task { await load() } }
+        .onChange(of: unread.arrival) {
+            guard AuthStore.shared.isSignedIn else { return }
+            Task { await model.catchUp() }
+        }
         .task { await reloadPushStatus() }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
             Task { await reloadPushStatus() }
+            Task { await resume() }
         }
         .sensoryFeedback(.success, trigger: markAllPulse)
         .onDisappear {
@@ -186,20 +185,7 @@ struct NotificationsView: View {
     }
 
     private var shownItems: [AppNotification] {
-        items.filter { !hiddenByFilter($0) }
-    }
-
-    // 서버(RecordBlogNotificationUseCase.othersText)와 같은 규칙 — 남의 노트 발췌가 실린 알림만 필터가 읽는다.
-    private func hiddenByFilter(_ n: AppNotification) -> Bool {
-        let others: String? =
-            switch n.type {
-            case "NOTE_REPLY", "NOTE_QUOTE": n.sourceExcerpt
-            case "NOTE_MENTION", "POST_QUOTE", "NOTE_POST", "NOTE_EDIT": n.noteExcerpt
-            case "NOTE_POLL" where n.actorUsername != AuthStore.shared.me?.username: n.noteExcerpt
-            default: nil
-            }
-        guard let others else { return false }
-        return NoteFilterStore.shared.verdict(for: others, in: .notifications) == .hide
+        model.items.filter { !NotificationsViewModel.hiddenByFilter($0) }
     }
 
     @ViewBuilder
@@ -305,7 +291,7 @@ struct NotificationsView: View {
 
     @ViewBuilder
     private var list: some View {
-        if filter == .all {
+        if model.filter == .all {
             followRequestsEntry
             filteredEntry
         } else {
@@ -315,11 +301,11 @@ struct NotificationsView: View {
         ForEach(Array(shown.enumerated()), id: \.element.id) { index, notification in
             notificationRow(notification)
                 .task {
-                    if index >= shown.count - 3 { await loadMore() }
+                    if index >= shown.count - 3 { await model.loadMore() }
                 }
             if index < shown.count - 1 { Hairline() }
         }
-        if loadingMore {
+        if model.loadingMore {
             KurlLoadingMark()
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
@@ -360,7 +346,7 @@ struct NotificationsView: View {
                 if n.type == "FOLLOW_REQUEST", let origin = requestOrigin(n) {
                     AnswerButtons(origin: origin, name: n.actorUsername ?? "") {
                         withAnimation(.snappy(duration: 0.2)) {
-                            items.removeAll { $0.id == n.id }
+                            model.items.removeAll { $0.id == n.id }
                         }
                     }
                 }
@@ -611,15 +597,15 @@ struct NotificationsView: View {
     private func markRead(_ n: AppNotification) {
         guard !n.read else { return }
         // 낙관적으로 점을 끄되, 서버 실패 시 그 줄만 되돌린다 — 거짓 성공을 만들지 않는다.
-        guard let idx = items.firstIndex(where: { $0.id == n.id }) else { return }
-        let snapshot = items[idx]
-        items[idx] = asRead(snapshot)
+        guard let idx = model.items.firstIndex(where: { $0.id == n.id }) else { return }
+        let snapshot = model.items[idx]
+        model.items[idx] = asRead(snapshot)
         Task {
             do {
                 try await NotificationsAPI.markRead(id: n.id)
             } catch {
-                if let cur = items.firstIndex(where: { $0.id == n.id }) {
-                    items[cur] = snapshot
+                if let cur = model.items.firstIndex(where: { $0.id == n.id }) {
+                    model.items[cur] = snapshot
                 }
                 ToastCenter.shared.show(String(localized: "읽음으로 바꾸지 못했어요"))
             }
@@ -635,71 +621,17 @@ struct NotificationsView: View {
     private func load() async {
         // 비로그인이면 인증 엔드포인트를 때리지 않는다 — 401→영구 재시도 데드엔드 방지(게이트가 화면을 맡는다).
         guard AuthStore.shared.isSignedIn else {
-            items = []
-            loadError = nil
-            loading = false
+            model.signedOut()
             followRequests.reset()
             filtered.reset()
             return
         }
-        epoch += 1
-        let myEpoch = epoch
-        Task { await followRequests.load() }
-        Task { await filtered.load() }
-        do {
-            let page = try await NotificationsAPI.list(filter: filter)
-            guard myEpoch == epoch else { return }
-            items = sortedByRecency(page.items)
-            nextCursor = page.nextCursor
-            hasMore = page.hasMore
-            loadError = nil
-            readHidden()
-        } catch {
-            guard myEpoch == epoch else { return }
-            // 실패가 빈 상태로 위장하지 않게 — 이미 보이던 목록은 보존한다.
-            if items.isEmpty { loadError = error.localizedDescription }
-        }
-        loading = false
+        await model.load()
     }
 
-    private func loadMore() async {
-        guard hasMore, !loadingMore, let cursor = nextCursor else { return }
-        loadingMore = true
-        defer { loadingMore = false }
-        let myEpoch = epoch
-        if let page = try? await NotificationsAPI.list(before: cursor, filter: filter) {
-            // refresh 가 끼어들었으면 이 응답은 옛 세대 — 버린다(append 도 커서 갱신도 없음).
-            guard myEpoch == epoch else { return }
-            items = sortedByRecency(items + page.items)
-            nextCursor = page.nextCursor
-            hasMore = page.hasMore
-            readHidden()
-        }
-    }
-
-    private func readHidden() {
-        let ids = Set(items.filter { !$0.read && hiddenByFilter($0) }.map(\.id))
-        guard !ids.isEmpty else { return }
-        items = items.map { ids.contains($0.id) ? asRead($0) : $0 }
-        Task {
-            for id in ids { try? await NotificationsAPI.markRead(id: id) }
-            await UnreadStore.shared.refresh()
-        }
-    }
-
-    /// 인박스는 항상 최신순 — 서버/목이 순서를 보장하지 않아도 클라이언트에서 createdAt 내림차순으로
-    /// 못 박는다(그래프 알림이 오래된 항목 아래로 새던 것). createdAt 이 없는 항목은 뒤로 보내되
-    /// 서로 간엔 원래 순서를 지킨다.
-    private func sortedByRecency(_ list: [AppNotification]) -> [AppNotification] {
-        list.enumerated().sorted { lhs, rhs in
-            switch (lhs.element.createdAt, rhs.element.createdAt) {
-            case let (l?, r?):
-                if l != r { return l > r }
-                return lhs.offset < rhs.offset
-            case (nil, .some): return false
-            case (.some, nil): return true
-            case (nil, nil): return lhs.offset < rhs.offset
-            }
-        }.map(\.element)
+    private func resume() async {
+        guard AuthStore.shared.isSignedIn else { return }
+        await unread.refresh()
+        await model.resume(unread: unread.count)
     }
 }
