@@ -10,16 +10,16 @@ final class InboxLiveRefreshTests: XCTestCase {
         var now = Date(timeIntervalSince1970: 1_000)
     }
 
-    private func row(_ id: Int64) -> AppNotification {
+    private func row(_ id: Int64, type: String = "NOTE_REPLY", post: Int64? = nil, count: Int? = nil) -> AppNotification {
         AppNotification(
-            id: id, type: "NOTE_REPLY", actorUsername: "yuki_dev", actorAvatarUrl: nil,
-            postId: nil, postSlug: nil, postTitle: nil, postAuthorUsername: nil, commentId: nil, highlightId: nil,
+            id: id, type: type, actorUsername: "yuki_dev", actorAvatarUrl: nil,
+            postId: post, postSlug: nil, postTitle: nil, postAuthorUsername: nil, commentId: nil, highlightId: nil,
             seriesId: nil, seriesSlug: nil, seriesTitle: nil, collectionId: nil, collectionName: nil,
-            read: false, createdAt: Date(timeIntervalSince1970: TimeInterval(id)))
+            read: false, createdAt: Date(timeIntervalSince1970: TimeInterval(id)), count: count)
     }
 
     private func page(_ ids: [Int64], more: Bool = false) -> NotificationsPage {
-        NotificationsPage(items: ids.map(row), nextCursor: more ? ids.last : nil, hasMore: more)
+        NotificationsPage(items: ids.map { row($0) }, nextCursor: more ? ids.last : nil, hasMore: more)
     }
 
     private func model(
@@ -146,6 +146,52 @@ final class InboxLiveRefreshTests: XCTestCase {
         await model.load()
         await model.catchUp()
         XCTAssertEqual(model.items.map(\.id), [7])
+    }
+
+    func testOnlyAQuietRefetchMarksArrivalsAndOnlyTheNewRows() async {
+        var answer = page([2, 1])
+        let model = model { _, _, _ in answer }
+        await model.load()
+        XCTAssertEqual(model.arrivals, .init(), "the first load marks nothing")
+        answer = page([3, 2, 1])
+        await model.catchUp()
+        XCTAssertEqual(model.arrivals.ids, [3])
+        XCTAssertEqual(model.arrivals.regrouped, [])
+        await model.catchUp()
+        XCTAssertEqual(model.arrivals.ids, [], "rows already shown are not marked again")
+        answer = page([4, 3, 2, 1])
+        await model.catchUp()
+        await model.load()
+        XCTAssertEqual(model.arrivals, .init(), "a pull replaces the list without marks")
+    }
+
+    func testAFilterSwitchMarksNothing() async {
+        let model = model { _, _, filter in
+            filter == .mentions ? self.page([9, 8]) : self.page([2, 1])
+        }
+        await model.load()
+        model.filter = .mentions
+        model.switchedFilter()
+        await model.load()
+        XCTAssertEqual(model.arrivals, .init())
+        model.filter = .all
+        model.switchedFilter()
+        await model.catchUp()
+        XCTAssertEqual(model.items.map(\.id), [2, 1])
+        XCTAssertEqual(model.arrivals, .init(), "a refetch landing on an emptied list is a first load")
+    }
+
+    func testAFoldedLikeThatJumpsToTheTopIsMarkedWithoutMoving() {
+        let before = [row(5, type: "LIKE", post: 9, count: 1), row(4)]
+        let folded = NotificationsViewModel.arrivals(
+            from: before, to: [row(8, type: "LIKE", post: 9, count: 2), row(4)])
+        XCTAssertEqual(folded.ids, [8])
+        XCTAssertEqual(folded.regrouped, [8])
+
+        let other = NotificationsViewModel.arrivals(
+            from: before, to: [row(10, type: "LIKE", post: 7, count: 2)] + before)
+        XCTAssertEqual(other.ids, [10])
+        XCTAssertEqual(other.regrouped, [])
     }
 
     private func note(_ id: Int64, by author: Int64) -> Note {

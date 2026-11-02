@@ -1,5 +1,5 @@
+import Foundation
 import Observation
-import SwiftUI
 
 @MainActor
 @Observable
@@ -11,6 +11,7 @@ final class NotificationsViewModel {
     private(set) var loadError: String?
     private(set) var nextCursor: Int64?
     private(set) var hasMore = false
+    private(set) var arrivals = Arrivals()
     private var epoch = 0
     private var catchingUp = false
     private var caughtUpAgain = false
@@ -23,6 +24,21 @@ final class NotificationsViewModel {
     private let now: @MainActor () -> Date
     private let companions: @MainActor () -> Void
     private let hides: @MainActor (AppNotification) -> Bool
+
+    struct Arrivals: Equatable {
+        var ids: Set<Int64> = []
+        var regrouped: Set<Int64> = []
+    }
+
+    private struct Subject: Hashable {
+        let type: String
+        let targets: [Int64?]
+
+        init(_ n: AppNotification) {
+            type = n.type
+            targets = [n.postId, n.noteId, n.commentId, n.highlightId, n.seriesId, n.collectionId]
+        }
+    }
 
     init(
         now: @escaping @MainActor () -> Date = Date.init,
@@ -56,8 +72,19 @@ final class NotificationsViewModel {
         return NoteFilterStore.shared.verdict(for: others, in: .notifications) == .hide
     }
 
+    static func arrivals(from before: [AppNotification], to after: [AppNotification]) -> Arrivals {
+        let known = Set(before.map(\.id))
+        let fresh = after.filter { !known.contains($0.id) }
+        let kept = Set(after.map(\.id))
+        let gone = Set(before.filter { !kept.contains($0.id) }.map(Subject.init))
+        return Arrivals(
+            ids: Set(fresh.map(\.id)),
+            regrouped: Set(fresh.filter { ($0.count ?? 1) > 1 && gone.contains(Subject($0)) }.map(\.id)))
+    }
+
     func signedOut() {
         items = []
+        arrivals = Arrivals()
         loadError = nil
         loading = false
         loadedAt = nil
@@ -66,11 +93,13 @@ final class NotificationsViewModel {
     func switchedFilter() {
         epoch += 1
         items = []
+        arrivals = Arrivals()
+        loadedAt = nil
         loading = true
     }
 
     func load() async {
-        await loadFirst(size: Self.pageSize, animated: false)
+        await loadFirst(size: Self.pageSize, quiet: false)
     }
 
     func catchUp() async {
@@ -82,7 +111,7 @@ final class NotificationsViewModel {
         defer { catchingUp = false }
         repeat {
             caughtUpAgain = false
-            await loadFirst(size: min(max(items.count, Self.pageSize), Self.serverPageCap), animated: true)
+            await loadFirst(size: min(max(items.count, Self.pageSize), Self.serverPageCap), quiet: true)
         } while caughtUpAgain
     }
 
@@ -106,24 +135,32 @@ final class NotificationsViewModel {
         }
     }
 
-    private func loadFirst(size: Int, animated: Bool) async {
+    private func loadFirst(size: Int, quiet: Bool) async {
         companions()
         epoch += 1
         let myEpoch = epoch
         do {
             let page = try await list(nil, size, filter)
             guard myEpoch == epoch else { return }
-            if animated {
-                withMotion(Motion.move) { apply(page) }
-            } else {
-                apply(page)
-            }
+            let before = items
+            let seen = quiet && loadedAt != nil
+            apply(page)
+            arrive(seen ? Self.arrivals(from: before, to: items) : Arrivals())
         } catch {
             guard myEpoch == epoch else { return }
             // 실패가 빈 상태로 위장하지 않게 — 이미 보이던 목록은 보존한다.
             if items.isEmpty { loadError = error.localizedDescription }
         }
         loading = false
+    }
+
+    private func arrive(_ next: Arrivals) {
+        arrivals = next
+        guard !next.ids.isEmpty else { return }
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(2))
+            if self?.arrivals == next { self?.arrivals = Arrivals() }
+        }
     }
 
     private func apply(_ page: NotificationsPage) {

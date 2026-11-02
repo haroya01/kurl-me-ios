@@ -300,6 +300,11 @@ struct NotificationsView: View {
         let shown = shownItems
         ForEach(Array(shown.enumerated()), id: \.element.id) { index, notification in
             notificationRow(notification)
+                .modifier(NoteArrival(
+                    active: model.arrivals.ids.contains(notification.id),
+                    moves: !model.arrivals.regrouped.contains(notification.id),
+                    gutter: Metrics.gutter,
+                    wash: Palette.chipBg))
                 .task {
                     if index >= shown.count - 3 { await model.loadMore() }
                 }

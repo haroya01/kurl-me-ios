@@ -237,6 +237,9 @@ struct NoteFeedScreen: View {
 
 struct NoteArrival: ViewModifier {
     let active: Bool
+    var moves = true
+    var gutter = Metrics.noteGutter
+    var wash = Palette.rowHighlight
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var settled = true
     @State private var washed = true
@@ -246,14 +249,14 @@ struct NoteArrival: ViewModifier {
             .opacity(settled ? 1 : 0)
             .offset(y: settled ? 0 : -16)
             .background {
-                Palette.rowHighlight
+                wash
                     .opacity(washed ? 0 : 1)
-                    .padding(.horizontal, -Metrics.noteGutter)
+                    .padding(.horizontal, -gutter)
             }
             .onAppear {
                 guard active else { return }
                 washed = false
-                settled = reduceMotion
+                settled = reduceMotion || !moves
                 withMotion(Motion.stage) { settled = true }
                 withAnimation(.smooth(duration: 1.2)) { washed = true }
             }
