@@ -19,6 +19,7 @@ struct InboxRow: Equatable {
     }
 
     let name: String?
+    let emojis: [CustomEmoji]
     let others: Int
     let kind: Kind
     let detail: Detail?
@@ -88,6 +89,7 @@ struct InboxRow: Equatable {
             default: mine
             }
         self.name = actorless ? nil : Self.name(display: n.actorDisplayName, username: n.actorUsername)
+        self.emojis = n.actorEmojis ?? []
         self.others = max((n.count ?? 1) - 1, 0)
         self.kind = kind
         self.detail = detail

@@ -70,6 +70,22 @@ final class InboxRowTests: XCTestCase {
         XCTAssertEqual(InboxRow(named, me: nil).name, "alice")
     }
 
+    func testARemoteDisplayNameKeepsItsEmojisAndAnOldServerSendsNone() throws {
+        let json = #"""
+        {"id":1,"type":"NOTE_LIKE","actorUsername":"ged@m.example","actorDisplayName":"Ged :verified:",
+         "actorEmojis":[{"shortcode":"verified","url":"https://files.m.example/v.png"}],"count":2,"read":false}
+        """#
+        let decoded = try JSONDecoder().decode(AppNotification.self, from: Data(json.utf8))
+        let row = InboxRow(decoded, me: nil)
+        XCTAssertEqual(row.name, "Ged :verified:")
+        XCTAssertEqual(row.emojis.map(\.shortcode), ["verified"])
+
+        let old = try JSONDecoder().decode(
+            AppNotification.self, from: Data(#"{"id":2,"type":"FOLLOW","actorUsername":"bob@f.org","read":true}"#.utf8))
+        XCTAssertEqual(InboxRow(old, me: nil).name, "bob")
+        XCTAssertEqual(InboxRow(old, me: nil).emojis, [])
+    }
+
     func testAGroupCountsTheOthersBesideTheNewestPerson() {
         XCTAssertEqual(InboxRow(notice("NOTE_LIKE"), me: nil).others, 0)
         XCTAssertEqual(InboxRow(notice("NOTE_LIKE", count: 1), me: nil).others, 0)

@@ -487,13 +487,9 @@ struct NotificationsView: View {
         let weight: Font.Weight = unread ? .semibold : .regular
         if let name = row.name {
             HStack(alignment: .firstTextBaseline, spacing: 5) {
-                Group {
-                    if row.others > 0 {
-                        Text("\(name) 외 \(row.others)명")
-                    } else {
-                        Text(verbatim: name)
-                    }
-                }
+                EmojiText(
+                    row.others > 0 ? AttributedString(localized: "\(name) 외 \(row.others)명") : AttributedString(name),
+                    emojis: row.emojis)
                 .fontWeight(weight)
                 .foregroundStyle(Palette.ink)
                 .layoutPriority(1)
