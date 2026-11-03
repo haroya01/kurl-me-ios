@@ -14,9 +14,17 @@ struct PushFaceActor: Equatable {
     var name: String { displayName ?? username }
 }
 
+struct PushFaceMessage: Equatable {
+    let sender: PushFaceActor
+    let thread: String?
+    let type: String?
+    let text: String?
+    let context: String?
+}
+
 enum PushFacePlan: Equatable {
     case untouched
-    case conversation(PushFaceActor, thread: String?, group: String?, type: String?)
+    case conversation(PushFaceMessage)
     case thumbnail(PushFaceActor, avatar: URL)
 }
 
@@ -26,13 +34,15 @@ enum PushFace {
     static let faceSide = 240
 
     static func plan(_ userInfo: [AnyHashable: Any], thread: String) -> PushFacePlan {
-        guard let actor = actor(userInfo["actor"] ?? (userInfo["actors"] as? [Any])?.first) else {
-            return .untouched
-        }
+        guard let actor = actor(userInfo["actor"]) else { return .untouched }
         if (userInfo["communication"] as? NSNumber)?.boolValue == true {
-            let room = (userInfo["room"] as? [String: Any])?["name"] as? String
             return .conversation(
-                actor, thread: filled(thread), group: filled(room), type: userInfo["type"] as? String)
+                PushFaceMessage(
+                    sender: actor,
+                    thread: filled(thread),
+                    type: userInfo["type"] as? String,
+                    text: filled(userInfo["text"] as? String),
+                    context: filled(userInfo["context"] as? String)))
         }
         guard let avatar = actor.avatar else { return .untouched }
         return .thumbnail(actor, avatar: avatar)
@@ -42,14 +52,16 @@ enum PushFace {
         guard let raw = raw as? [String: Any], let username = filled(raw["username"] as? String) else {
             return nil
         }
-        let id: String? =
-            switch raw["id"] {
-            case let value as String: filled(value)
-            case let value as NSNumber: value.stringValue
-            default: nil
+        let id: String =
+            if let member = raw["id"] as? NSNumber {
+                "user:\(member.stringValue)"
+            } else if let remote = raw["remoteId"] as? NSNumber {
+                "remote:\(remote.stringValue)"
+            } else {
+                username
             }
         return PushFaceActor(
-            id: id ?? username,
+            id: id,
             username: username,
             displayName: filled(raw["displayName"] as? String),
             avatar: allowedAvatar(raw["avatarUrl"] as? String))
@@ -140,30 +152,28 @@ enum PushFace {
         return output as Data
     }
 
-    static func intent(
-        _ actor: PushFaceActor, thread: String?, group: String?, type: String?, body: String, image: INImage?
-    ) -> INSendMessageIntent {
+    static func intent(_ message: PushFaceMessage, body: String, image: INImage?) -> INSendMessageIntent {
         let sender = INPerson(
-            personHandle: INPersonHandle(value: actor.username, type: .unknown),
+            personHandle: INPersonHandle(value: message.sender.username, type: .unknown),
             nameComponents: nil,
-            displayName: actor.name,
+            displayName: message.sender.name,
             image: image,
             contactIdentifier: nil,
-            customIdentifier: actor.id,
+            customIdentifier: message.sender.id,
             isMe: false,
             suggestionType: .socialProfile)
         let intent = INSendMessageIntent(
             recipients: nil,
             outgoingMessageType: .outgoingMessageText,
             content: body,
-            speakableGroupName: group.map { INSpeakableString(spokenPhrase: $0) },
-            conversationIdentifier: thread,
+            speakableGroupName: nil,
+            conversationIdentifier: message.thread,
             serviceName: nil,
             sender: sender,
             attachments: nil)
         let metadata = INSendMessageIntentDonationMetadata()
-        metadata.mentionsCurrentUser = type == "MENTION" || type == "NOTE_MENTION"
-        metadata.isReplyToCurrentUser = type == "REPLY" || type == "NOTE_REPLY"
+        metadata.mentionsCurrentUser = message.type == "MENTION" || message.type == "NOTE_MENTION"
+        metadata.isReplyToCurrentUser = message.type == "REPLY" || message.type == "NOTE_REPLY"
         intent.donationMetadata = metadata
         return intent
     }
@@ -201,19 +211,21 @@ struct PushFaceDecorator: Sendable {
         switch PushFace.plan(content.userInfo, thread: content.threadIdentifier) {
         case .untouched:
             return content
-        case let .conversation(actor, thread, group, type):
+        case let .conversation(message):
             var image: INImage?
-            if let avatar = actor.avatar {
+            if let avatar = message.sender.avatar {
                 guard let face = await face(avatar, round: false) else { return content }
                 image = INImage(imageData: face)
             }
-            let intent = PushFace.intent(
-                actor, thread: thread, group: group, type: type, body: content.body, image: image)
+            guard let worded = content.mutableCopy() as? UNMutableNotificationContent else { return content }
+            if let text = message.text { worded.body = text }
+            if let context = message.context { worded.subtitle = context }
+            let intent = PushFace.intent(message, body: worded.body, image: image)
             let interaction = INInteraction(intent: intent, response: nil)
             interaction.direction = .incoming
             do {
                 try await donate(interaction)
-                return try adopt(content, intent)
+                return try adopt(worded, intent)
             } catch {
                 return content
             }

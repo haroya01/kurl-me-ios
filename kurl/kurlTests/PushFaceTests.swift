@@ -58,12 +58,14 @@ final class PushFaceTests: XCTestCase {
 
     func testSomeoneTalkingToMeBecomesAConversation() {
         let plan = PushFace.plan(
-            ["type": "REPLY", "communication": true, "actor": actor()], thread: "post:42")
+            ["type": "NOTE_REPLY", "communication": true, "actor": actor(), "text": "저도요", "context": "내 노트에 답글"],
+            thread: "note:812")
         XCTAssertEqual(
             plan,
             .conversation(
-                PushFaceActor(id: "7", username: "sori", displayName: "소리", avatar: URL(string: face)),
-                thread: "post:42", group: nil, type: "REPLY"))
+                PushFaceMessage(
+                    sender: PushFaceActor(id: "user:7", username: "sori", displayName: "소리", avatar: URL(string: face)),
+                    thread: "note:812", type: "NOTE_REPLY", text: "저도요", context: "내 노트에 답글")))
     }
 
     func testAReactionKeepsTheAppIconAndCarriesTheFace() {
@@ -71,7 +73,7 @@ final class PushFaceTests: XCTestCase {
         XCTAssertEqual(
             plan,
             .thumbnail(
-                PushFaceActor(id: "7", username: "sori", displayName: "소리", avatar: URL(string: face)),
+                PushFaceActor(id: "user:7", username: "sori", displayName: "소리", avatar: URL(string: face)),
                 avatar: URL(string: face)!))
     }
 
@@ -108,16 +110,24 @@ final class PushFaceTests: XCTestCase {
         let foreign = PushFace.plan(
             ["communication": true, "actor": actor(["avatarUrl": "https://files.mastodon.social/a.jpg"])],
             thread: "t")
-        guard case let .conversation(sender, _, _, _) = foreign else { return XCTFail("\(foreign)") }
-        XCTAssertNil(sender.avatar)
+        guard case let .conversation(message) = foreign else { return XCTFail("\(foreign)") }
+        XCTAssertNil(message.sender.avatar)
     }
 
-    func testABundleShowsItsFirstPerson() {
-        let plan = PushFace.plan(
-            ["type": "LIKE", "actors": [actor(), actor(["id": 8, "username": "yuki"])]],
-            thread: "")
-        guard case let .thumbnail(first, _) = plan else { return XCTFail("\(plan)") }
-        XCTAssertEqual(first.username, "sori")
+    func testEachPushInOneThreadKeepsItsOwnSender() async throws {
+        let photo = photo()
+        var senders: [String?] = []
+        var threads: [String?] = []
+        for person in [actor(), actor(["id": NSNumber(value: 8), "username": "yuki", "displayName": NSNull()])] {
+            let adopted = IntentBox()
+            _ = await decorator(fetch: { _ in photo }, adopted: adopted)
+                .decorate(content(["type": "NOTE_REPLY", "communication": true, "actor": person], thread: "note:812"))
+            let intent = try XCTUnwrap(adopted.intent)
+            senders.append(intent.sender?.customIdentifier)
+            threads.append(intent.conversationIdentifier)
+        }
+        XCTAssertEqual(senders, ["user:7", "user:8"])
+        XCTAssertEqual(threads, ["note:812", "note:812"])
     }
 
     func testAFailedDownloadKeepsTheOriginal() async {
@@ -148,22 +158,36 @@ final class PushFaceTests: XCTestCase {
         XCTAssertTrue(result === original)
     }
 
-    func testTheConversationCarriesTheSenderAndTheThread() async throws {
+    func testTheConversationShowsWhatTheyWroteUnderTheirName() async throws {
         let photo = photo()
         let adopted = IntentBox()
         let donated = Counter()
-        _ = await decorator(
+        let result = await decorator(
             fetch: { _ in photo }, donate: { $0.direction == .incoming ? donated.add() : () }, adopted: adopted
-        ).decorate(content(["type": "MENTION", "communication": true, "actor": actor()], body: "같이 봐요"))
+        ).decorate(
+            content(
+                ["type": "MENTION", "communication": true, "actor": actor(), "text": "같이 봐요", "context": "멘션"],
+                body: "sori님이 회원님을 언급했습니다"))
         let intent = try XCTUnwrap(adopted.intent)
         XCTAssertEqual(donated.value, 1)
         XCTAssertEqual(intent.sender?.displayName, "소리")
-        XCTAssertEqual(intent.sender?.customIdentifier, "7")
+        XCTAssertEqual(intent.sender?.customIdentifier, "user:7")
         XCTAssertNotNil(intent.sender?.image)
         XCTAssertEqual(intent.conversationIdentifier, "post:42")
         XCTAssertEqual(intent.content, "같이 봐요")
-        XCTAssertNil(intent.speakableGroupName)
+        XCTAssertEqual(result.body, "같이 봐요")
+        XCTAssertEqual(result.subtitle, "멘션")
         XCTAssertEqual((intent.donationMetadata as? INSendMessageIntentDonationMetadata)?.mentionsCurrentUser, true)
+    }
+
+    func testWithoutTheirWordsTheServerSentenceStays() async throws {
+        let photo = photo()
+        let adopted = IntentBox()
+        let result = await decorator(fetch: { _ in photo }, adopted: adopted)
+            .decorate(content(["type": "COMMENT", "communication": true, "actor": actor()], body: "sori님이 댓글을 남겼습니다"))
+        XCTAssertEqual(result.body, "sori님이 댓글을 남겼습니다")
+        XCTAssertEqual(result.subtitle, "")
+        XCTAssertEqual(try XCTUnwrap(adopted.intent).content, "sori님이 댓글을 남겼습니다")
     }
 
     func testATappedConversationStillOpensTheReply() async throws {
@@ -182,18 +206,23 @@ final class PushFaceTests: XCTestCase {
             .postSpot(username: "me", slug: "p-mock-2", spot: .comment(5)))
     }
 
-    func testANamelessSenderInARoomShowsTheUsernameAndTheRoom() async throws {
+    func testARemoteSenderInARoomShowsTheirHandleAndTheRoom() async throws {
         let adopted = IntentBox()
         let fetched = Counter()
-        _ = await decorator(fetch: { _ in fetched.add(); return Data() }, adopted: adopted).decorate(
-            content([
-                "communication": true, "room": ["name": "도쿄 산책"],
-                "actor": actor(["displayName": "", "avatarUrl": NSNull()]),
-            ]))
+        let result = await decorator(fetch: { _ in fetched.add(); return Data() }, adopted: adopted).decorate(
+            content(
+                [
+                    "type": "NOTE_MENTION", "communication": true, "text": "여기 봐요", "context": "도쿄 산책",
+                    "actor": ["remoteId": NSNumber(value: 42), "username": "dal@qdon.space"],
+                ],
+                thread: "room:3"))
         let intent = try XCTUnwrap(adopted.intent)
-        XCTAssertEqual(intent.sender?.displayName, "sori")
+        XCTAssertEqual(intent.sender?.displayName, "dal@qdon.space")
+        XCTAssertEqual(intent.sender?.customIdentifier, "remote:42")
         XCTAssertNil(intent.sender?.image)
-        XCTAssertEqual(intent.speakableGroupName?.spokenPhrase, "도쿄 산책")
+        XCTAssertNil(intent.speakableGroupName)
+        XCTAssertEqual(intent.conversationIdentifier, "room:3")
+        XCTAssertEqual(result.subtitle, "도쿄 산책")
         XCTAssertEqual(fetched.value, 0)
     }
 
