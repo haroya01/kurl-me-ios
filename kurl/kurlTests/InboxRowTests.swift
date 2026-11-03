@@ -60,6 +60,16 @@ final class InboxRowTests: XCTestCase {
         XCTAssertNil(InboxRow.displayName(nil))
     }
 
+    func testADisplayNameWinsAndABlankOneFallsBackToTheTrimmedHandle() {
+        var named = notice("NOTE_REPLY", actor: "alice@mastodon.social", sourceExcerpt: "좋네요")
+        named.actorDisplayName = "앨리스"
+        XCTAssertEqual(InboxRow(named, me: nil).name, "앨리스")
+        named.actorDisplayName = "  "
+        XCTAssertEqual(InboxRow(named, me: nil).name, "alice")
+        named.actorDisplayName = nil
+        XCTAssertEqual(InboxRow(named, me: nil).name, "alice")
+    }
+
     func testAGroupCountsTheOthersBesideTheNewestPerson() {
         XCTAssertEqual(InboxRow(notice("NOTE_LIKE"), me: nil).others, 0)
         XCTAssertEqual(InboxRow(notice("NOTE_LIKE", count: 1), me: nil).others, 0)

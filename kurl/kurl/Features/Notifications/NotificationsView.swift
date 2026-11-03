@@ -328,6 +328,7 @@ struct NotificationsView: View {
         return HStack(alignment: .top, spacing: 10) {
             kindGlyph(row, unread: !n.read)
             avatarLink(n, row)
+                .fixedSize()
             VStack(alignment: .leading, spacing: 8) {
                 rowBody(n, row)
                 if n.type == "FOLLOW_REQUEST", let origin = requestOrigin(n) {
@@ -338,6 +339,7 @@ struct NotificationsView: View {
             }
         }
         .padding(.vertical, 10)
+        .navigationLinkIndicatorVisibility(.hidden)
     }
 
     private func kindGlyph(_ row: InboxRow, unread: Bool) -> some View {

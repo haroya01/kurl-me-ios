@@ -87,11 +87,18 @@ struct InboxRow: Equatable {
             case .firstReader, .readMilestone: true
             default: mine
             }
-        self.name = actorless ? nil : Self.displayName(n.actorUsername)
+        self.name = actorless ? nil : Self.name(display: n.actorDisplayName, username: n.actorUsername)
         self.others = max((n.count ?? 1) - 1, 0)
         self.kind = kind
         self.detail = detail
         self.symbol = Self.symbol(n.type)
+    }
+
+    static func name(display: String?, username: String?) -> String? {
+        if let display = display?.trimmingCharacters(in: .whitespacesAndNewlines), !display.isEmpty {
+            return display
+        }
+        return displayName(username)
     }
 
     static func displayName(_ username: String?) -> String? {
