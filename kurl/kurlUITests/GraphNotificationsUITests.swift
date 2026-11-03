@@ -26,6 +26,15 @@ final class GraphNotificationsUITests: XCTestCase {
         app.buttons.matching(NSPredicate(format: "label CONTAINS %@", label)).firstMatch
     }
 
+    private func revealed(_ app: XCUIApplication, _ element: XCUIElement) -> Bool {
+        _ = rowButton(app, contains: "내 노트를 좋아해요").waitForExistence(timeout: 12)
+        for _ in 0..<6 {
+            if element.exists && element.isHittable { return true }
+            app.swipeUp()
+        }
+        return element.exists
+    }
+
     /// 계정 탭에서 알림 인박스로 — 헤더의 벨(값 기반 링크)을 눌러 연다. 값 링크로 밀어야 인박스
     /// 안의 딥링크(글·컬렉션)가 같은 스택에서 이어 밀린다(디버그 `--open` 은 isPresented 라 딥링크 불가).
     private func launchInbox() -> XCUIApplication {
@@ -44,12 +53,11 @@ final class GraphNotificationsUITests: XCTestCase {
 
         let connected = app.buttons
             .matching(NSPredicate(format: "label CONTAINS '엮었어요'")).firstMatch
-        XCTAssertTrue(connected.waitForExistence(timeout: 12), "인박스에 CONNECTED 알림이 없음")
-        if !connected.isHittable { app.swipeUp() }
+        XCTAssertTrue(revealed(app, connected), "인박스에 CONNECTED 알림이 없음")
 
         let pathGrew = app.buttons
             .matching(NSPredicate(format: "label CONTAINS '이어졌어요'")).firstMatch
-        XCTAssertTrue(pathGrew.waitForExistence(timeout: 8), "인박스에 PATH_GREW 알림이 없음")
+        XCTAssertTrue(revealed(app, pathGrew), "인박스에 PATH_GREW 알림이 없음")
 
         // 컬렉션 이름이 문장에 박혀 온다 — 카피가 collectionName 을 실제로 끼웠는지 확인.
         XCTAssertTrue(
@@ -64,7 +72,7 @@ final class GraphNotificationsUITests: XCTestCase {
 
         let connected = app.buttons
             .matching(NSPredicate(format: "label CONTAINS '엮었어요'")).firstMatch
-        XCTAssertTrue(connected.waitForExistence(timeout: 12), "인박스에 CONNECTED 알림이 없음")
+        XCTAssertTrue(revealed(app, connected), "인박스에 CONNECTED 알림이 없음")
         connected.tap()
 
         // CollectionDetailView 도달 — 컬렉션 설명·연결 이유는 상세에만 있다(인박스 행엔 없어
