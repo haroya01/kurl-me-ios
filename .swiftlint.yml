@@ -8,6 +8,7 @@ only_rules:
 included:
   - kurl/kurl
   - kurl/kurlWidget
+  - kurl/kurlNotificationService
 
 custom_rules:
   brand_no_raw_red:

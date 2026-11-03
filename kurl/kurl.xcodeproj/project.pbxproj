@@ -60,6 +60,8 @@
 		F1A000000000000000000E71 /* HomeRemoteTailTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000E72 /* HomeRemoteTailTests.swift */; };
 		F1A000000000000000000E91 /* HomeFeedCacheTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000E92 /* HomeFeedCacheTests.swift */; };
 		F1A000000000000000000F71 /* MediaViewerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A000000000000000000F72 /* MediaViewerTests.swift */; };
+		B0F1CE0000000000000000AC /* kurlNotificationService.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B0F1CE0000000000000000A1 /* kurlNotificationService.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		B0F1CE0000000000000000C1 /* PushFaceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0F1CE0000000000000000C2 /* PushFaceTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -84,6 +86,13 @@
 			remoteGlobalIDString = D3696C7B2FD48A89006D9F90;
 			remoteInfo = kurl;
 		};
+		B0F1CE0000000000000000AA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D3696C742FD48A89006D9F90 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B0F1CE0000000000000000A6;
+			remoteInfo = kurlNotificationService;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -94,6 +103,7 @@
 			dstSubfolderSpec = 13;
 			files = (
 				D400000000000000000000AC /* kurlWidgetExtension.appex in Embed Foundation Extensions */,
+				B0F1CE0000000000000000AC /* kurlNotificationService.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -156,6 +166,8 @@
 		F1A000000000000000000E72 /* HomeRemoteTailTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HomeRemoteTailTests.swift; sourceTree = "<group>"; };
 		F1A000000000000000000E92 /* HomeFeedCacheTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HomeFeedCacheTests.swift; sourceTree = "<group>"; };
 		F1A000000000000000000F72 /* MediaViewerTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MediaViewerTests.swift; sourceTree = "<group>"; };
+		B0F1CE0000000000000000A1 /* kurlNotificationService.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = kurlNotificationService.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		B0F1CE0000000000000000C2 /* PushFaceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PushFaceTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -166,11 +178,36 @@
 			);
 			target = D400000000000000000000A6 /* kurlWidgetExtension */;
 		};
+		B0F1CE0000000000000000AE /* Exceptions for "kurlNotificationService" folder in "kurlNotificationService" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = B0F1CE0000000000000000A6 /* kurlNotificationService */;
+		};
+		B0F1CE0000000000000000AF /* Exceptions for "kurlNotificationService" folder in "kurlTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				NotificationService.swift,
+				PushFace.swift,
+			);
+			target = 2A8089AAE8A270D01EC4791A /* kurlTests */;
+		};
+		B0F1CE0000000000000000B0 /* Exceptions for "kurl" folder in "kurl" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = D3696C7B2FD48A89006D9F90 /* kurl */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		D3696C7E2FD48A89006D9F90 /* kurl */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				B0F1CE0000000000000000B0 /* Exceptions for "kurl" folder in "kurl" target */,
+			);
 			path = kurl;
 			sourceTree = "<group>";
 		};
@@ -185,6 +222,15 @@
 		D500000000000000000000B4 /* kurlUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = kurlUITests;
+			sourceTree = "<group>";
+		};
+		B0F1CE0000000000000000A2 /* kurlNotificationService */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				B0F1CE0000000000000000AE /* Exceptions for "kurlNotificationService" folder in "kurlNotificationService" target */,
+				B0F1CE0000000000000000AF /* Exceptions for "kurlNotificationService" folder in "kurlTests" target */,
+			);
+			path = kurlNotificationService;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -220,6 +266,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B0F1CE0000000000000000A4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -245,6 +298,7 @@
 				D3696C7E2FD48A89006D9F90 /* kurl */,
 				D400000000000000000000A2 /* kurlWidget */,
 				D500000000000000000000B4 /* kurlUITests */,
+				B0F1CE0000000000000000A2 /* kurlNotificationService */,
 				D3696C7D2FD48A89006D9F90 /* Products */,
 				8BC6B003A66B4459134CD8F9 /* Frameworks */,
 				E9FEEA2BA22342C871A72312 /* kurlTests */,
@@ -256,6 +310,7 @@
 			children = (
 				D3696C7C2FD48A89006D9F90 /* kurl.app */,
 				D400000000000000000000A1 /* kurlWidgetExtension.appex */,
+				B0F1CE0000000000000000A1 /* kurlNotificationService.appex */,
 				D500000000000000000000B1 /* kurlUITests.xctest */,
 				5226FDED204BF66D262A0C1D /* kurlTests.xctest */,
 			);
@@ -279,6 +334,7 @@
 				AB10CE11F0A1B2C3D4E5F632 /* FeedRowLayoutTests.swift */,
 				AB10CE11F0A1B2C3D4E5F642 /* FeedTabChoiceTests.swift */,
 				E7A41C2D9B3F4E6A8C1D2F31 /* PushPromptTests.swift */,
+				B0F1CE0000000000000000C2 /* PushFaceTests.swift */,
 				DEF2000000000000000000A2 /* WriteV2RoundTripTests.swift */,
 				DEF2000000000000000000B2 /* WriteV2FocusEngineTests.swift */,
 				DEF2000000000000000000C2 /* InlineImageMarkdownTests.swift */,
@@ -356,6 +412,7 @@
 			);
 			dependencies = (
 				D400000000000000000000AB /* PBXTargetDependency */,
+				B0F1CE0000000000000000AB /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				D3696C7E2FD48A89006D9F90 /* kurl */,
@@ -383,6 +440,26 @@
 			name = kurlWidgetExtension;
 			productName = kurlWidgetExtension;
 			productReference = D400000000000000000000A1 /* kurlWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		B0F1CE0000000000000000A6 /* kurlNotificationService */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B0F1CE0000000000000000A7 /* Build configuration list for PBXNativeTarget "kurlNotificationService" */;
+			buildPhases = (
+				B0F1CE0000000000000000A3 /* Sources */,
+				B0F1CE0000000000000000A4 /* Frameworks */,
+				B0F1CE0000000000000000A5 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				B0F1CE0000000000000000A2 /* kurlNotificationService */,
+			);
+			name = kurlNotificationService;
+			productName = kurlNotificationService;
+			productReference = B0F1CE0000000000000000A1 /* kurlNotificationService.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 		D500000000000000000000B5 /* kurlUITests */ = {
@@ -422,6 +499,9 @@
 					D400000000000000000000A6 = {
 						CreatedOnToolsVersion = 26.0.1;
 					};
+					B0F1CE0000000000000000A6 = {
+						CreatedOnToolsVersion = 26.0.1;
+					};
 					D500000000000000000000B5 = {
 						CreatedOnToolsVersion = 26.0.1;
 						TestTargetID = D3696C7B2FD48A89006D9F90;
@@ -451,6 +531,7 @@
 			targets = (
 				D3696C7B2FD48A89006D9F90 /* kurl */,
 				D400000000000000000000A6 /* kurlWidgetExtension */,
+				B0F1CE0000000000000000A6 /* kurlNotificationService */,
 				D500000000000000000000B5 /* kurlUITests */,
 				2A8089AAE8A270D01EC4791A /* kurlTests */,
 			);
@@ -487,6 +568,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B0F1CE0000000000000000A5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -508,6 +596,7 @@
 				AB10CE11F0A1B2C3D4E5F631 /* FeedRowLayoutTests.swift in Sources */,
 				AB10CE11F0A1B2C3D4E5F641 /* FeedTabChoiceTests.swift in Sources */,
 				E7A41C2D9B3F4E6A8C1D2F30 /* PushPromptTests.swift in Sources */,
+				B0F1CE0000000000000000C1 /* PushFaceTests.swift in Sources */,
 				DEF2000000000000000000A1 /* WriteV2RoundTripTests.swift in Sources */,
 				DEF2000000000000000000B1 /* WriteV2FocusEngineTests.swift in Sources */,
 				DEF2000000000000000000C1 /* InlineImageMarkdownTests.swift in Sources */,
@@ -567,6 +656,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B0F1CE0000000000000000A3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -585,6 +681,11 @@
 			isa = PBXTargetDependency;
 			target = D3696C7B2FD48A89006D9F90 /* kurl */;
 			targetProxy = D500000000000000000000B2 /* PBXContainerItemProxy */;
+		};
+		B0F1CE0000000000000000AB /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B0F1CE0000000000000000A6 /* kurlNotificationService */;
+			targetProxy = B0F1CE0000000000000000AA /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -738,6 +839,7 @@
 				DEVELOPMENT_TEAM = 5R78H9H4YU;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = kurl/Info.plist;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "노트에 바로 사진을 찍어 붙이려면 카메라가 필요해요.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -773,6 +875,7 @@
 				DEVELOPMENT_TEAM = 5R78H9H4YU;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = kurl/Info.plist;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "노트에 바로 사진을 찍어 붙이려면 카메라가 필요해요.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -844,6 +947,54 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		B0F1CE0000000000000000A8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 35;
+				DEVELOPMENT_TEAM = 5R78H9H4YU;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = kurlNotificationService/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = kurl;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.3.2;
+				PRODUCT_BUNDLE_IDENTIFIER = focustime.kurl.NotificationService;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		B0F1CE0000000000000000A9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 35;
+				DEVELOPMENT_TEAM = 5R78H9H4YU;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = kurlNotificationService/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = kurl;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.3.2;
+				PRODUCT_BUNDLE_IDENTIFIER = focustime.kurl.NotificationService;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
@@ -938,6 +1089,15 @@
 			buildConfigurations = (
 				D400000000000000000000A8 /* Debug */,
 				D400000000000000000000A9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B0F1CE0000000000000000A7 /* Build configuration list for PBXNativeTarget "kurlNotificationService" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B0F1CE0000000000000000A8 /* Debug */,
+				B0F1CE0000000000000000A9 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
