@@ -100,7 +100,7 @@ enum PushFace {
 
     static func download(_ url: URL) async throws -> Data {
         guard allows(url) else { throw URLError(.badURL) }
-        let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 5)
+        let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 10)
         let (bytes, response) = try await session.bytes(for: request)
         guard accepts(response) else { throw URLError(.badServerResponse) }
         return try await collect(bytes, limit: avatarByteLimit)
@@ -108,8 +108,8 @@ enum PushFace {
 
     private static let session: URLSession = {
         let configuration = URLSessionConfiguration.ephemeral
-        configuration.timeoutIntervalForRequest = 5
-        configuration.timeoutIntervalForResource = 5
+        configuration.timeoutIntervalForRequest = 10
+        configuration.timeoutIntervalForResource = 10
         configuration.httpCookieStorage = nil
         configuration.urlCache = nil
         return URLSession(configuration: configuration)
@@ -204,7 +204,7 @@ struct PushFaceDecorator: Sendable {
     var adopt: @Sendable (UNNotificationContent, INSendMessageIntent) throws -> UNNotificationContent = {
         try $0.updating(from: $1)
     }
-    var budget: Duration = .seconds(5)
+    var budget: Duration = .seconds(10)
     var directory: URL = FileManager.default.temporaryDirectory
 
     func decorate(_ content: UNNotificationContent) async -> UNNotificationContent {
@@ -219,7 +219,13 @@ struct PushFaceDecorator: Sendable {
             }
             guard let worded = content.mutableCopy() as? UNMutableNotificationContent else { return content }
             if let text = message.text { worded.body = text }
-            if let context = message.context { worded.subtitle = context }
+            if let context = message.context {
+                if message.thread?.hasPrefix("room:") == true {
+                    worded.body = "\(context) · \(worded.body)"
+                } else {
+                    worded.subtitle = context
+                }
+            }
             let intent = PushFace.intent(message, body: worded.body, image: image)
             let interaction = INInteraction(intent: intent, response: nil)
             interaction.direction = .incoming

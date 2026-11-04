@@ -222,7 +222,9 @@ final class PushFaceTests: XCTestCase {
         XCTAssertNil(intent.sender?.image)
         XCTAssertNil(intent.speakableGroupName)
         XCTAssertEqual(intent.conversationIdentifier, "room:3")
-        XCTAssertEqual(result.subtitle, "도쿄 산책")
+        XCTAssertEqual(intent.content, "도쿄 산책 · 여기 봐요")
+        XCTAssertEqual(result.body, "도쿄 산책 · 여기 봐요")
+        XCTAssertEqual(result.subtitle, "")
         XCTAssertEqual(fetched.value, 0)
     }
 
