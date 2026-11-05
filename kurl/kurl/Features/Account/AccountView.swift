@@ -7,7 +7,7 @@ struct AccountView: View {
 
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var showNotifications = false
+    @State private var path = NavigationPath()
     @State private var showStudio = false
     // 피드 탭 벨과 UnreadStore 공유 — 각자 fetch 해 같은 GET 이 2회 나가지 않게.
     private var unreadCount: Int64 { UnreadStore.shared.count }
@@ -15,7 +15,7 @@ struct AccountView: View {
     @State private var meLoadFailed = false
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             Group {
                 if auth.isSignedIn {
                     if let username = auth.me?.username, !username.isEmpty {
@@ -76,9 +76,6 @@ struct AccountView: View {
                     }
                 }
             }
-            .navigationDestination(isPresented: $showNotifications) {
-                NotificationsView()
-            }
             .navigationDestination(isPresented: $showStudio) {
                 StudioView()
             }
@@ -86,12 +83,6 @@ struct AccountView: View {
                 guard pending else { return }
                 TabRouter.shared.pendingStudio = false
                 showStudio = true
-            }
-            .onChange(of: showNotifications) { _, open in
-                // 알림에서 돌아오면 미읽음 점 갱신 — 모두 읽었는데 점이 남지 않게.
-                if !open, auth.isSignedIn {
-                    Task { await UnreadStore.shared.refresh() }
-                }
             }
             .onChange(of: auth.isSignedIn) { _, _ in
                 Task { await UnreadStore.shared.refresh() }
@@ -118,7 +109,7 @@ struct AccountView: View {
                 // `--open compose|analytics` 는 스튜디오 몫이라 알림일 때만 소비한다.
                 if Config.launchValue(after: "--open") == "notifications",
                     Config.consumeLaunchValue(after: "--open") != nil {
-                    showNotifications = true
+                    path.append(Route.notifications)
                 }
             }
         }

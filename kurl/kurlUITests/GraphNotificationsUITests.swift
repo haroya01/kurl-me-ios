@@ -131,7 +131,7 @@ final class GraphNotificationsUITests: XCTestCase {
         let app = launchInbox()
         shoot("inbox-with-push-prompt")
         let comment = rowButton(app, contains: "댓글을 남겼어요")
-        XCTAssertTrue(comment.waitForExistence(timeout: 12), "인박스에 댓글 알림이 없음")
+        XCTAssertTrue(revealed(app, comment), "인박스에 댓글 알림이 없음")
         comment.tap()
         XCTAssertTrue(app.buttons["모두 읽음"].firstMatch.waitForNonExistence(timeout: 10), "댓글 알림을 누르면 인박스에서 넘어가야 함")
         let target = app.staticTexts
@@ -145,7 +145,7 @@ final class GraphNotificationsUITests: XCTestCase {
     func testAMentionInACommentOpensThatMembersPosts() throws {
         let app = launchInbox()
         let comment = rowButton(app, contains: "댓글을 남겼어요")
-        XCTAssertTrue(comment.waitForExistence(timeout: 12), "인박스에 댓글 알림이 없음")
+        XCTAssertTrue(revealed(app, comment), "인박스에 댓글 알림이 없음")
         comment.tap()
         let mention = app.links["@yuki_dev"].firstMatch
         XCTAssertTrue(mention.waitForExistence(timeout: 10), "댓글의 회원 멘션이 링크가 아님")
@@ -159,7 +159,7 @@ final class GraphNotificationsUITests: XCTestCase {
     func testReplyingToAReplyCallsItsAuthorInTheSameThread() throws {
         let app = launchInbox()
         let comment = rowButton(app, contains: "댓글을 남겼어요")
-        XCTAssertTrue(comment.waitForExistence(timeout: 12), "인박스에 댓글 알림이 없음")
+        XCTAssertTrue(revealed(app, comment), "인박스에 댓글 알림이 없음")
         comment.tap()
         let reply = app.buttons["comment.reply.507"]
         XCTAssertTrue(reply.waitForExistence(timeout: 10), "답글에 답글 버튼이 없음")
@@ -175,7 +175,7 @@ final class GraphNotificationsUITests: XCTestCase {
     func testTypingAnAtSignInACommentOffersPeopleAndFillsTheHandle() throws {
         let app = launchInbox()
         let comment = rowButton(app, contains: "댓글을 남겼어요")
-        XCTAssertTrue(comment.waitForExistence(timeout: 12), "인박스에 댓글 알림이 없음")
+        XCTAssertTrue(revealed(app, comment), "인박스에 댓글 알림이 없음")
         comment.tap()
         let reply = app.buttons["comment.reply.506"]
         XCTAssertTrue(reply.waitForExistence(timeout: 10), "댓글 답글 버튼이 없음")
@@ -200,7 +200,7 @@ final class GraphNotificationsUITests: XCTestCase {
     func testAPostQuotedInNotesShowsANotesTabBesideItsComments() throws {
         let app = launchInbox()
         let comment = rowButton(app, contains: "댓글을 남겼어요")
-        XCTAssertTrue(comment.waitForExistence(timeout: 12), "인박스에 댓글 알림이 없음")
+        XCTAssertTrue(revealed(app, comment), "인박스에 댓글 알림이 없음")
         comment.tap()
         let notesTab = app.buttons["discussion.notes"]
         XCTAssertTrue(notesTab.waitForExistence(timeout: 10), "노트가 인용한 글인데 노트 탭이 없음")
@@ -229,7 +229,7 @@ final class GraphNotificationsUITests: XCTestCase {
         let mention = app.buttons
             .matching(NSPredicate(format: "label CONTAINS '나를 언급했어요' AND NOT label CONTAINS '노트에서'"))
             .firstMatch
-        XCTAssertTrue(mention.waitForExistence(timeout: 12), "인박스에 언급 알림이 없음")
+        XCTAssertTrue(revealed(app, mention), "인박스에 언급 알림이 없음")
         let clearOfTabBar = app.windows.firstMatch.frame.maxY - 120
         for _ in 0..<4 where !(mention.isHittable && mention.frame.maxY < clearOfTabBar) {
             app.swipeUp(velocity: .slow)
