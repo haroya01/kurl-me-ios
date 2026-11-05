@@ -1119,7 +1119,7 @@ struct NoteRowView: View {
 
     private static let actionBox: CGFloat = 20
 
-    /// X의 공유 메뉴처럼 — 시스템 공유, 링크 복사, 그리고 이 노트를 카드로 실은 새 블로그 글.
+    /// X의 공유 메뉴처럼 — 시스템 공유, 링크 복사, 그리고 이 노트를 인용한 새 노트와 카드로 실은 새 블로그 글.
     private func shareMenu(_ url: URL) -> some View {
         Menu {
             ShareLink(item: url) {
@@ -1132,6 +1132,11 @@ struct NoteRowView: View {
                 Label("링크 복사", systemImage: "link")
             }
             if note.noteVisibility.shareable {
+                Button {
+                    if AuthStore.shared.isSignedIn { quoting = true } else { askLogin("인용하려면 로그인하세요") }
+                } label: {
+                    Label("노트로 인용", systemImage: "quote.opening")
+                }
                 Button {
                     if AuthStore.shared.isSignedIn { writingPost = true } else { askLogin("블로그 글로 인용하려면 로그인하세요") }
                 } label: {
