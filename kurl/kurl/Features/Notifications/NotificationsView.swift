@@ -5,65 +5,24 @@ import UserNotifications
 /// 미읽음은 왼쪽 그린 점 하나로 조용히 표시한다.
 struct NotificationsView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @State private var filter: NotificationFilter = .all
-    @State private var items: [AppNotification] = []
-    @State private var nextCursor: Int64?
-    @State private var hasMore = false
-    @State private var loading = true
-    @State private var loadingMore = false
-    @State private var loadError: String?
+    @State private var model = NotificationsViewModel()
     /// "모두 읽음" 성공 햅틱 트리거 — 글 완독 성공 햅틱과 같은 결의 확인음.
     @State private var markAllPulse = 0
-    /// refresh 가 in-flight loadMore 의 스테일 응답을 폐기하기 위한 세대 토큰.
-    @State private var epoch = 0
     /// 마지막 load 시점의 로그인 상태 — 행 push 후 pop-back 이 .task 를 재시작해도
-    /// 같은 상태면 재fetch 하지 않아 쌓인 페이지·스크롤 위치를 보존한다.
+    /// 같은 상태면 첫 페이지로 갈아엎지 않아 쌓인 페이지·스크롤 위치를 보존한다.
     @State private var loadedForSignIn: Bool?
     @State private var showLoginSheet = false
     @State private var pushStatus: UNAuthorizationStatus?
     @State private var followRequests = FollowRequestStore.shared
     @State private var filtered = FilteredNotificationStore.shared
+    @State private var unread = UnreadStore.shared
+    @AppStorage("inboxPushBannerDismissed") private var pushBannerDismissed = false
     @Environment(\.openURL) private var openURL
     /// "모두 읽음" 툴바 액션 — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
     @ScaledMetric(relativeTo: .subheadline) private var actionSize: CGFloat = 13
 
     var body: some View {
-        ReadingColumn(spacing: 0) {
-            if AuthStore.shared.isSignedIn, let pushStatus, pushStatus == .notDetermined || pushStatus == .denied {
-                pushPrompt(pushStatus)
-            }
-            if !AuthStore.shared.isSignedIn {
-                // 알림은 인증 피드 — 비로그인은 네트워크 에러가 아니라 로그인 게이트로(막다른 길 금지).
-                loggedOutGate
-            } else if loading {
-                KurlLoadingMark()
-                    .frame(maxWidth: .infinity, minHeight: 240)
-            } else if items.isEmpty, let loadError {
-                ErrorState(message: loadError, retry: { Task { await load() } })
-                    .padding(.top, 60)
-            } else if items.isEmpty, filter == .mentions {
-                directEntry
-                FeedPlaceholder(
-                    title: "아직 멘션이나 답글이 없어요",
-                    actionTitle: "피드 둘러보기",
-                    action: { TabRouter.shared.selection = TabRouter.homeTab }
-                )
-                .padding(.top, 24)
-            } else if items.isEmpty {
-                followRequestsEntry
-                filteredEntry
-                // 막다른 길 금지 — 알림은 사람을 팔로우하고 반응하면 흐른다. 검색의 작가 레일로 이어준다
-                // (다른 빈 면과 같은 언어 = FeedPlaceholder).
-                FeedPlaceholder(
-                    title: "아직 알림이 없어요",
-                    actionTitle: "검색에서 작가 찾기",
-                    action: { TabRouter.shared.selection = TabRouter.exploreTab }
-                )
-                .padding(.top, 24)
-            } else {
-                list
-            }
-        }
+        screen
         .reservesTabBarSpace()
         .navigationTitle("알림")
         .toolbarRole(.editor)
@@ -71,7 +30,7 @@ struct NotificationsView: View {
         .toolbar {
             if AuthStore.shared.isSignedIn {
                 ToolbarItem(placement: .principal) {
-                    Picker("알림 보기", selection: $filter) {
+                    Picker("알림 보기", selection: $model.filter) {
                         Text("전체").tag(NotificationFilter.all)
                         Text("멘션").tag(NotificationFilter.mentions)
                     }
@@ -94,9 +53,9 @@ struct NotificationsView: View {
                         Button("모두 읽음") {
                             Task {
                                 do {
-                                    try await NotificationsAPI.markAllRead(filter: filter)
+                                    try await NotificationsAPI.markAllRead(filter: model.filter)
                                     withAnimation(.easeOut(duration: 0.25)) {
-                                        items = items.map(asRead)
+                                        model.items = model.items.map(asRead)
                                     }
                                     markAllPulse += 1
                                 } catch {
@@ -111,25 +70,31 @@ struct NotificationsView: View {
             }
         }
         .task(id: AuthStore.shared.isSignedIn) {
-            // 로그인 상태가 바뀌었을 때만 자동 로드 — pop-back 재시작은 통과시킨다.
-            // 명시적 갱신은 refreshable·다시 시도 버튼이 맡는다.
+            // 로그인 상태가 바뀌었을 때만 처음부터 로드 — pop-back 재시작은 미읽음이 있을 때만 조용히 다시 읽는다.
             let signedIn = AuthStore.shared.isSignedIn
-            guard loadedForSignIn != signedIn else { return }
+            guard loadedForSignIn != signedIn else {
+                await resume()
+                return
+            }
             loadedForSignIn = signedIn
             await load()
         }
         .refreshable { await load() }
-        .onChange(of: filter) {
-            items = []
-            loading = true
+        .onChange(of: model.filter) {
+            model.switchedFilter()
             Task { await load() }
         }
-        .sensoryFeedback(.selection, trigger: filter)
+        .sensoryFeedback(.selection, trigger: model.filter)
         // 걸러진 알림을 받으면 그 알림이 목록으로 들어온다 — 돌아왔을 때 보이게 다시 읽는다.
         .onChange(of: filtered.acceptedCount) { Task { await load() } }
+        .onChange(of: unread.arrival) {
+            guard AuthStore.shared.isSignedIn else { return }
+            Task { await model.catchUp() }
+        }
         .task { await reloadPushStatus() }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
             Task { await reloadPushStatus() }
+            Task { await resume() }
         }
         .sensoryFeedback(.success, trigger: markAllPulse)
         .onDisappear {
@@ -141,17 +106,102 @@ struct NotificationsView: View {
         }
     }
 
-    private func pushPrompt(_ status: UNAuthorizationStatus) -> some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("푸시 알림이 꺼져 있어요")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Palette.ink)
-                Text("좋아요·댓글·새 글을 휴대폰 알림으로 바로 받아요.")
-                    .font(.footnote)
-                    .foregroundStyle(Palette.secondary)
+    @ViewBuilder
+    private var screen: some View {
+        if !AuthStore.shared.isSignedIn {
+            // 알림은 인증 피드 — 비로그인은 네트워크 에러가 아니라 로그인 게이트로(막다른 길 금지).
+            ReadingColumn(spacing: 0) { loggedOutGate }
+        } else if model.loading {
+            ReadingColumn(spacing: 0) {
+                KurlLoadingMark()
+                    .frame(maxWidth: .infinity, minHeight: 240)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+        } else if model.items.isEmpty, let loadError = model.loadError {
+            ReadingColumn(spacing: 0) {
+                ErrorState(message: loadError, retry: { Task { await load() } })
+                    .padding(.top, 60)
+            }
+        } else {
+            inbox
+        }
+    }
+
+    private var inbox: some View {
+        let shown = shownItems
+        let tail = Set(shown.suffix(3).map(\.id))
+        return ReadingColumn(spacing: 0) {
+            if let pushStatus, !pushBannerDismissed, pushStatus == .notDetermined || pushStatus == .denied {
+                pushBanner(pushStatus)
+                Hairline()
+            }
+            if model.filter == .all {
+                followRequestsEntry
+                filteredEntry
+            } else {
+                directEntry
+            }
+            if shown.isEmpty {
+                emptyPlaceholder
+            }
+            ForEach(InboxSection.buckets(shown, now: .now, calendar: .current)) { bucket in
+                Section {
+                    ForEach(Array(bucket.items.enumerated()), id: \.element.id) { index, notification in
+                        notificationRow(notification)
+                            .modifier(NoteArrival(
+                                active: model.arrivals.ids.contains(notification.id),
+                                moves: !model.arrivals.regrouped.contains(notification.id),
+                                gutter: Metrics.gutter,
+                                wash: Palette.chipBg))
+                            .task {
+                                if tail.contains(notification.id) { await model.loadMore() }
+                            }
+                        if index < bucket.items.count - 1 { Hairline() }
+                    }
+                } header: {
+                    RailHeading(resource: bucket.section.title)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 22)
+                        .padding(.bottom, 4)
+                        .accessibilityAddTraits(.isHeader)
+                }
+            }
+            if model.loadingMore {
+                KurlLoadingMark()
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var emptyPlaceholder: some View {
+        if model.filter == .mentions {
+            FeedPlaceholder(
+                title: "아직 멘션이나 답글이 없어요",
+                actionTitle: "피드 둘러보기",
+                action: { TabRouter.shared.selection = TabRouter.homeTab }
+            )
+            .padding(.top, 24)
+        } else {
+            // 막다른 길 금지 — 알림은 사람을 팔로우하고 반응하면 흐른다. 검색의 작가 레일로 이어준다
+            // (다른 빈 면과 같은 언어 = FeedPlaceholder).
+            FeedPlaceholder(
+                title: "아직 알림이 없어요",
+                actionTitle: "검색에서 작가 찾기",
+                action: { TabRouter.shared.selection = TabRouter.exploreTab }
+            )
+            .padding(.top, 24)
+        }
+    }
+
+    private func pushBanner(_ status: UNAuthorizationStatus) -> some View {
+        HStack(spacing: 10) {
+            Text("푸시 알림이 꺼져 있어요")
+                .typeScale(.meta)
+                .fontWeight(.semibold)
+                .foregroundStyle(Palette.ink)
+                .lineLimit(1)
+            Spacer(minLength: 8)
             Button(status == .denied ? "설정 열기" : "켜기") {
                 if status == .denied {
                     if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
@@ -164,10 +214,22 @@ struct NotificationsView: View {
             }
             .buttonStyle(.glassProminent)
             .tint(Palette.accentFill)
+            .controlSize(.small)
             .accessibilityIdentifier("push-prompt-action")
+            Button {
+                pushBannerDismissed = true
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Palette.secondary)
+                    .frame(width: 28, height: 28)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.borderless)
+            .accessibilityLabel(Text("닫기"))
+            .accessibilityIdentifier("push-prompt-dismiss")
         }
-        .padding(.vertical, 14)
-        .overlay(alignment: .bottom) { Hairline() }
+        .padding(.vertical, 6)
     }
 
     private func reloadPushStatus() async {
@@ -186,20 +248,7 @@ struct NotificationsView: View {
     }
 
     private var shownItems: [AppNotification] {
-        items.filter { !hiddenByFilter($0) }
-    }
-
-    // 서버(RecordBlogNotificationUseCase.othersText)와 같은 규칙 — 남의 노트 발췌가 실린 알림만 필터가 읽는다.
-    private func hiddenByFilter(_ n: AppNotification) -> Bool {
-        let others: String? =
-            switch n.type {
-            case "NOTE_REPLY", "NOTE_QUOTE": n.sourceExcerpt
-            case "NOTE_MENTION", "POST_QUOTE", "NOTE_POST", "NOTE_EDIT": n.noteExcerpt
-            case "NOTE_POLL" where n.actorUsername != AuthStore.shared.me?.username: n.noteExcerpt
-            default: nil
-            }
-        guard let others else { return false }
-        return NoteFilterStore.shared.verdict(for: others, in: .notifications) == .hide
+        model.items.filter { !NotificationsViewModel.hiddenByFilter($0) }
     }
 
     @ViewBuilder
@@ -207,30 +256,11 @@ struct NotificationsView: View {
         let waiting = followRequests.requests
         if !waiting.isEmpty {
             NavigationLink(value: Route.followRequests) {
-                HStack(spacing: 12) {
-                    Image(systemName: "person.badge.clock")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Palette.ink)
-                        .frame(width: 38, height: 38)
-                        .background(Palette.chipBg, in: Circle())
-                        .accessibilityHidden(true)
-                    Text("팔로우 요청")
-                        .typeScale(.body)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(Palette.ink)
-                    Spacer(minLength: 8)
+                entryLabel("팔로우 요청", symbol: "person.badge.clock") {
                     Text(verbatim: "\(waiting.count)")
-                        .typeScale(.meta)
                         .monospacedDigit()
-                        .foregroundStyle(Palette.secondary)
                         .contentTransition(.numericText())
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Palette.faint)
-                        .accessibilityHidden(true)
                 }
-                .padding(.vertical, 11)
-                .contentShape(Rectangle())
             }
             .buttonStyle(RowButtonStyle())
             .accessibilityIdentifier("notifications.followRequests")
@@ -238,33 +268,14 @@ struct NotificationsView: View {
         }
     }
 
+    @ViewBuilder
     private var directEntry: some View {
-        VStack(spacing: 0) {
-            NavigationLink(value: Route.noteFeed(.kind(.direct))) {
-                HStack(spacing: 12) {
-                    Image(systemName: NoteFeedKind.direct.symbol)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Palette.ink)
-                        .frame(width: 38, height: 38)
-                        .background(Palette.chipBg, in: Circle())
-                        .accessibilityHidden(true)
-                    Text("개인 멘션")
-                        .typeScale(.body)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(Palette.ink)
-                    Spacer(minLength: 8)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Palette.faint)
-                        .accessibilityHidden(true)
-                }
-                .padding(.vertical, 11)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(RowButtonStyle())
-            .accessibilityIdentifier("notifications.direct")
-            Hairline()
+        NavigationLink(value: Route.noteFeed(.kind(.direct))) {
+            entryLabel("개인 멘션", symbol: NoteFeedKind.direct.symbol) { EmptyView() }
         }
+        .buttonStyle(RowButtonStyle())
+        .accessibilityIdentifier("notifications.direct")
+        Hairline()
     }
 
     @ViewBuilder
@@ -272,30 +283,9 @@ struct NotificationsView: View {
         let senders = filtered.senders
         if !senders.isEmpty {
             NavigationLink(value: Route.filteredNotifications) {
-                HStack(spacing: 12) {
-                    Image(systemName: "line.3.horizontal.decrease")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Palette.ink)
-                        .frame(width: 38, height: 38)
-                        .background(Palette.chipBg, in: Circle())
-                        .accessibilityHidden(true)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("걸러진 알림")
-                            .typeScale(.body)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(Palette.ink)
-                        Text("\(senders.count)명이 보낸 알림 \(senders.reduce(0) { $0 + $1.count })개")
-                            .typeScale(.meta)
-                            .foregroundStyle(Palette.secondary)
-                    }
-                    Spacer(minLength: 8)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Palette.faint)
-                        .accessibilityHidden(true)
+                entryLabel("걸러진 알림", symbol: "line.3.horizontal.decrease") {
+                    Text("\(senders.count)명이 보낸 알림 \(senders.reduce(0) { $0 + $1.count })개")
                 }
-                .padding(.vertical, 11)
-                .contentShape(Rectangle())
             }
             .buttonStyle(RowButtonStyle())
             .accessibilityIdentifier("notifications.filtered")
@@ -303,201 +293,157 @@ struct NotificationsView: View {
         }
     }
 
-    @ViewBuilder
-    private var list: some View {
-        if filter == .all {
-            followRequestsEntry
-            filteredEntry
-        } else {
-            directEntry
+    private func entryLabel<Trailing: View>(
+        _ title: LocalizedStringKey, symbol: String, @ViewBuilder trailing: () -> Trailing
+    ) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: symbol)
+                .font(.system(size: 15))
+                .foregroundStyle(Palette.secondary)
+                .frame(width: 18)
+                .accessibilityHidden(true)
+            Text(title)
+                .typeScale(.body)
+                .fontWeight(.semibold)
+                .foregroundStyle(Palette.ink)
+                .lineLimit(1)
+            Spacer(minLength: 8)
+            trailing()
+                .typeScale(.meta)
+                .foregroundStyle(Palette.secondary)
+                .lineLimit(1)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Palette.faint)
+                .accessibilityHidden(true)
         }
-        let shown = shownItems
-        ForEach(Array(shown.enumerated()), id: \.element.id) { index, notification in
-            notificationRow(notification)
-                .task {
-                    if index >= shown.count - 3 { await loadMore() }
-                }
-            if index < shown.count - 1 { Hairline() }
-        }
-        if loadingMore {
-            KurlLoadingMark()
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-        }
+        .padding(.vertical, 11)
+        .contentShape(Rectangle())
     }
 
     /// 알림 한 줄 — 아바타는 행위자 프로필로 가는 섬(행 대상과 별개), 본문은 알림 대상(글/시리즈/작가)으로.
     /// 좋아요·댓글 알림에서 좋아요 누른 사람을 눌러도 글이 아니라 그 사람에게 간다(중첩 앵커 대신 형제 링크).
-    @ViewBuilder
     private func notificationRow(_ n: AppNotification) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            if let remoteId = n.actorRemoteId {
-                NavigationLink(value: Route.remoteAccount(id: remoteId)) {
-                    avatarBadge(n)
-                }
-                .buttonStyle(.plain)
-                .simultaneousGesture(TapGesture().onEnded { markRead(n) })
-                .accessibilityLabel(Text("\(n.actorUsername ?? "") 프로필"))
-            } else if let remote = n.actorProfileUrl.flatMap(URL.init(string:)) {
-                Link(destination: remote) {
-                    avatarBadge(n)
-                }
-                .buttonStyle(.plain)
-                .simultaneousGesture(TapGesture().onEnded { markRead(n) })
-                .accessibilityLabel(Text("\(n.actorUsername ?? "") 프로필"))
-            } else if let actor = n.actorUsername, !actor.isEmpty {
-                NavigationLink(value: Route.author(username: actor)) {
-                    avatarBadge(n)
-                }
-                .buttonStyle(.plain)
-                .simultaneousGesture(TapGesture().onEnded { markRead(n) })
-                .accessibilityLabel(Text("\(actor) 프로필"))
-            } else {
-                avatarBadge(n)
-            }
+        let row = InboxRow(n, me: AuthStore.shared.me?.username)
+        return HStack(alignment: .top, spacing: 10) {
+            kindGlyph(row, unread: !n.read)
+            avatarLink(n, row)
             VStack(alignment: .leading, spacing: 8) {
-                rowBody(n)
+                rowBody(n, row)
                 if n.type == "FOLLOW_REQUEST", let origin = requestOrigin(n) {
                     AnswerButtons(origin: origin, name: n.actorUsername ?? "") {
-                        withAnimation(.snappy(duration: 0.2)) {
-                            items.removeAll { $0.id == n.id }
-                        }
+                        model.items.removeAll { $0.id == n.id }
                     }
                 }
             }
         }
-        .padding(.vertical, 11)
+        .padding(.vertical, 10)
     }
 
-    private func rowBody(_ n: AppNotification) -> some View {
+    private func kindGlyph(_ row: InboxRow, unread: Bool) -> some View {
+        Group {
+            if row.name == nil {
+                Text(verbatim: " ")
+            } else {
+                Text(Image(systemName: row.symbol))
+            }
+        }
+        .typeScale(.body)
+        .foregroundStyle(Palette.secondary)
+        .frame(width: 18)
+        .overlay(alignment: .leading) {
+            if unread {
+                Circle()
+                    .fill(Palette.accent)
+                    .frame(width: 8, height: 8)
+                    .offset(x: -14)
+            }
+        }
+        .accessibilityHidden(true)
+    }
+
+    @ViewBuilder
+    private func avatarLink(_ n: AppNotification, _ row: InboxRow) -> some View {
+        if row.name == nil {
+            Image(systemName: row.symbol)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Palette.secondary)
+                .frame(width: 38, height: 38)
+                .background(Palette.chipBg, in: Circle())
+                .accessibilityHidden(true)
+        } else if let remoteId = n.actorRemoteId {
+            NavigationLink(value: Route.remoteAccount(id: remoteId)) {
+                avatar(n)
+            }
+            .buttonStyle(.plain)
+            .simultaneousGesture(TapGesture().onEnded { markRead(n) })
+            .accessibilityLabel(Text("\(n.actorUsername ?? "") 프로필"))
+        } else if let remote = n.actorProfileUrl.flatMap(URL.init(string:)) {
+            Link(destination: remote) {
+                avatar(n)
+            }
+            .buttonStyle(.plain)
+            .simultaneousGesture(TapGesture().onEnded { markRead(n) })
+            .accessibilityLabel(Text("\(n.actorUsername ?? "") 프로필"))
+        } else if let actor = n.actorUsername, !actor.isEmpty {
+            NavigationLink(value: Route.author(username: actor)) {
+                avatar(n)
+            }
+            .buttonStyle(.plain)
+            .simultaneousGesture(TapGesture().onEnded { markRead(n) })
+            .accessibilityLabel(Text("\(actor) 프로필"))
+        } else {
+            avatar(n)
+        }
+    }
+
+    private func avatar(_ n: AppNotification) -> some View {
+        AvatarView(
+            author: Author(id: 0, username: n.actorUsername ?? "", bio: nil, avatarUrl: n.actorAvatarUrl),
+            size: 38)
+            .accessibilityHidden(true)
+    }
+
+    private func rowBody(_ n: AppNotification, _ row: InboxRow) -> some View {
         Group {
             if n.type == "FOLLOW_REQUEST" {
                 NavigationLink(value: Route.followRequests) {
-                    content(n)
+                    rowText(n, row)
                 }
                 .buttonStyle(RowButtonStyle())
                 .simultaneousGesture(TapGesture().onEnded { markRead(n) })
             } else if n.type == "REMOTE_FOLLOW", let remoteId = n.actorRemoteId {
                 NavigationLink(value: Route.remoteAccount(id: remoteId)) {
-                    content(n)
+                    rowText(n, row)
                 }
                 .buttonStyle(RowButtonStyle())
                 .simultaneousGesture(TapGesture().onEnded { markRead(n) })
             } else if let route = NotificationRoute.route(for: n) {
                 NavigationLink(value: route) {
-                    content(n)
+                    rowText(n, row)
                 }
                 .buttonStyle(RowButtonStyle())
                 .simultaneousGesture(TapGesture().onEnded { markRead(n) })
             } else if n.type == "REMOTE_FOLLOW", let remote = n.actorProfileUrl.flatMap(URL.init(string:)) {
                 Link(destination: remote) {
-                    content(n)
+                    rowText(n, row)
                 }
                 .buttonStyle(RowButtonStyle())
                 .simultaneousGesture(TapGesture().onEnded { markRead(n) })
             } else {
-                content(n)
+                rowText(n, row)
                     .onTapGesture { markRead(n) }
             }
         }
         .accessibilityElement(children: .combine)
+        .accessibilityLabel(spokenLabel(n))
         .accessibilityValue(n.read ? Text(verbatim: "") : Text("읽지 않음"))
     }
 
-    // 아바타 = 피드와 같은 문법(0.5px 링). 미읽음은 아바타 우하단의 그린 점 하나로 —
-    // 왼쪽 점 칸을 없애 행이 조여지고, 초록은 행당 한 점만(§10 색 규율).
-    // 좌하단엔 알림 종류(좋아요·댓글·팔로우…)를 중립 회색 심볼 배지로 얹어, 행마다
-    // 똑같아 보이던 아바타 목록에서 종류를 한눈에 훑게 한다 — 초록은 미읽음에만 남긴다.
-    @ViewBuilder
-    private func avatarBadge(_ n: AppNotification) -> some View {
-        if n.actorUsername == nil {
-            Image(systemName: typeIcon(n.type))
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Palette.secondary)
-                .frame(width: 38, height: 38)
-                .background(Palette.chipBg, in: Circle())
-                .overlay(alignment: .bottomTrailing) {
-                    if !n.read {
-                        Circle()
-                            .fill(Palette.accent)
-                            .frame(width: 10, height: 10)
-                            .overlay(Circle().strokeBorder(Palette.pageBg, lineWidth: 2))
-                            .offset(x: 1, y: 1)
-                    }
-                }
-                .accessibilityHidden(true)
-        } else {
-            actorAvatar(n)
-        }
-    }
-
-    private func actorAvatar(_ n: AppNotification) -> some View {
-        AvatarView(
-            author: Author(
-                id: 0, username: n.actorUsername ?? "", bio: nil, avatarUrl: n.actorAvatarUrl),
-            size: 38)
-            .overlay(alignment: .bottomLeading) {
-                Image(systemName: typeIcon(n.type))
-                    .font(.system(size: 8, weight: .semibold))
-                    .foregroundStyle(Palette.secondary)
-                    .frame(width: 15, height: 15)
-                    .background(Palette.chipBg, in: Circle())
-                    .overlay(Circle().strokeBorder(Palette.pageBg, lineWidth: 1.5))
-                    .offset(x: -2, y: 2)
-            }
-            .overlay(alignment: .bottomTrailing) {
-                if !n.read {
-                    Circle()
-                        .fill(Palette.accent)
-                        .frame(width: 10, height: 10)
-                        .overlay(Circle().strokeBorder(Palette.pageBg, lineWidth: 2))
-                        .offset(x: 1, y: 1)
-                }
-            }
-            .accessibilityHidden(true)
-    }
-
-    /// 알림 종류 → 조용한 SF 심볼. 헤드라인 문장과 짝이 맞는 중립 글리프(§10: 색 없이 형태로만).
-    private func typeIcon(_ type: String) -> String {
-        switch type {
-        case "LIKE": return "heart.fill"
-        case "COMMENT": return "bubble.left.fill"
-        case "REPLY": return "arrowshape.turn.up.left.fill"
-        case "FOLLOW": return "person.fill.badge.plus"
-        case "SERIES_SUBSCRIBE": return "books.vertical.fill"
-        case "NEW_POST": return "doc.text.fill"
-        case "MENTION": return "at"
-        case "HIGHLIGHT": return "highlighter"
-        case "POST_QUOTE", "NOTE_EMBED": return "quote.bubble.fill"
-        case "COMMENT_LIKE": return "heart.fill"
-        // 연결 그래프 — 엮임은 사슬(link), 길이 자람은 가지치는 흐름(§0 읽기 그래프).
-        case "CONNECTED": return "link"
-        case "PATH_GREW": return "arrow.triangle.branch"
-        case "NOTE_LIKE": return "heart.fill"
-        case "NOTE_REPOST": return "arrow.2.squarepath"
-        case "NOTE_REPLY": return "arrowshape.turn.up.left.fill"
-        case "NOTE_QUOTE": return "quote.bubble.fill"
-        case "NOTE_MENTION": return "at"
-        case "NOTE_POLL": return "chart.bar.xaxis"
-        case "NOTE_POST": return "bell.fill"
-        case "NOTE_EDIT": return "pencil"
-        case "REMOTE_FOLLOW": return "person.fill.badge.plus"
-        case "FOLLOW_REQUEST": return "person.badge.clock"
-        case "POST_FIRST_READER", "POST_READ_MILESTONE": return "person.fill"
-        default: return "bell.fill"
-        }
-    }
-
-    private func content(_ n: AppNotification) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            // 한 줄에 문장 + 오른쪽 끝 상대시간(행마다 시간이 한 열로 정렬돼 훑기 쉽게).
+    private func rowText(_ n: AppNotification, _ row: InboxRow) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                headline(n)
-                    .typeScale(.body)
-                    // 읽은 알림은 한 톤 가라앉혀 — 안 읽은 줄로 눈이 가게. 이름은 이미 semibold.
-                    .foregroundStyle(n.read ? Palette.secondary : Palette.ink)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
+                title(row, unread: !n.read)
                 Spacer(minLength: 4)
                 if let date = n.createdAt, !dynamicTypeSize.isAccessibilitySize {
                     Text(date.relativeShort)
@@ -511,14 +457,62 @@ struct NotificationsView: View {
                     .typeScale(.footnote)
                     .foregroundStyle(Palette.secondary)
             }
-            if let subtitle = subtitle(n) {
-                Text(subtitle)
-                    .typeScale(.meta)
+            switch row.detail {
+            case .theirs(let text):
+                Text(verbatim: text)
+                    .typeScale(.lede)
                     .foregroundStyle(Palette.secondary)
-                    .lineLimit(1)
+                    .lineLimit(2)
+            case .mine(let target, let text):
+                HStack(spacing: 0) {
+                    Text(target.label)
+                        .layoutPriority(1)
+                    Text(verbatim: " · \(text)")
+                }
+                .typeScale(.meta)
+                .foregroundStyle(Palette.faint)
+                .lineLimit(1)
+            case nil:
+                EmptyView()
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
+    }
+
+    @ViewBuilder
+    private func title(_ row: InboxRow, unread: Bool) -> some View {
+        let weight: Font.Weight = unread ? .semibold : .regular
+        if let name = row.name {
+            HStack(alignment: .firstTextBaseline, spacing: 5) {
+                EmojiText(
+                    row.others > 0 ? AttributedString(localized: "\(name) 외 \(row.others)명") : AttributedString(name),
+                    emojis: row.emojis)
+                .fontWeight(weight)
+                .foregroundStyle(Palette.ink)
+                .layoutPriority(1)
+                if let label = row.kind.label {
+                    Text(label)
+                        .foregroundStyle(Palette.secondary)
+                }
+            }
+            .typeScale(.body)
+            .lineLimit(1)
+        } else if let label = row.kind.label {
+            Text(label)
+                .typeScale(.body)
+                .fontWeight(weight)
+                .foregroundStyle(Palette.ink)
+                .lineLimit(1)
+        }
+    }
+
+    private func spokenLabel(_ n: AppNotification) -> Text {
+        let rest = [subtitle(n), n.createdAt?.relativeShort]
+            .compactMap { $0 }
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
+        return rest.isEmpty ? headline(n) : Text("\(headline(n)), \(rest)")
     }
 
     /// 헤드라인 — 작가 이름만 semibold 로 얹어 위계를 세운다(색·크기는 호출측). 지역화 키는
@@ -611,15 +605,15 @@ struct NotificationsView: View {
     private func markRead(_ n: AppNotification) {
         guard !n.read else { return }
         // 낙관적으로 점을 끄되, 서버 실패 시 그 줄만 되돌린다 — 거짓 성공을 만들지 않는다.
-        guard let idx = items.firstIndex(where: { $0.id == n.id }) else { return }
-        let snapshot = items[idx]
-        items[idx] = asRead(snapshot)
+        guard let idx = model.items.firstIndex(where: { $0.id == n.id }) else { return }
+        let snapshot = model.items[idx]
+        model.items[idx] = asRead(snapshot)
         Task {
             do {
                 try await NotificationsAPI.markRead(id: n.id)
             } catch {
-                if let cur = items.firstIndex(where: { $0.id == n.id }) {
-                    items[cur] = snapshot
+                if let cur = model.items.firstIndex(where: { $0.id == n.id }) {
+                    model.items[cur] = snapshot
                 }
                 ToastCenter.shared.show(String(localized: "읽음으로 바꾸지 못했어요"))
             }
@@ -635,71 +629,17 @@ struct NotificationsView: View {
     private func load() async {
         // 비로그인이면 인증 엔드포인트를 때리지 않는다 — 401→영구 재시도 데드엔드 방지(게이트가 화면을 맡는다).
         guard AuthStore.shared.isSignedIn else {
-            items = []
-            loadError = nil
-            loading = false
+            model.signedOut()
             followRequests.reset()
             filtered.reset()
             return
         }
-        epoch += 1
-        let myEpoch = epoch
-        Task { await followRequests.load() }
-        Task { await filtered.load() }
-        do {
-            let page = try await NotificationsAPI.list(filter: filter)
-            guard myEpoch == epoch else { return }
-            items = sortedByRecency(page.items)
-            nextCursor = page.nextCursor
-            hasMore = page.hasMore
-            loadError = nil
-            readHidden()
-        } catch {
-            guard myEpoch == epoch else { return }
-            // 실패가 빈 상태로 위장하지 않게 — 이미 보이던 목록은 보존한다.
-            if items.isEmpty { loadError = error.localizedDescription }
-        }
-        loading = false
+        await model.load()
     }
 
-    private func loadMore() async {
-        guard hasMore, !loadingMore, let cursor = nextCursor else { return }
-        loadingMore = true
-        defer { loadingMore = false }
-        let myEpoch = epoch
-        if let page = try? await NotificationsAPI.list(before: cursor, filter: filter) {
-            // refresh 가 끼어들었으면 이 응답은 옛 세대 — 버린다(append 도 커서 갱신도 없음).
-            guard myEpoch == epoch else { return }
-            items = sortedByRecency(items + page.items)
-            nextCursor = page.nextCursor
-            hasMore = page.hasMore
-            readHidden()
-        }
-    }
-
-    private func readHidden() {
-        let ids = Set(items.filter { !$0.read && hiddenByFilter($0) }.map(\.id))
-        guard !ids.isEmpty else { return }
-        items = items.map { ids.contains($0.id) ? asRead($0) : $0 }
-        Task {
-            for id in ids { try? await NotificationsAPI.markRead(id: id) }
-            await UnreadStore.shared.refresh()
-        }
-    }
-
-    /// 인박스는 항상 최신순 — 서버/목이 순서를 보장하지 않아도 클라이언트에서 createdAt 내림차순으로
-    /// 못 박는다(그래프 알림이 오래된 항목 아래로 새던 것). createdAt 이 없는 항목은 뒤로 보내되
-    /// 서로 간엔 원래 순서를 지킨다.
-    private func sortedByRecency(_ list: [AppNotification]) -> [AppNotification] {
-        list.enumerated().sorted { lhs, rhs in
-            switch (lhs.element.createdAt, rhs.element.createdAt) {
-            case let (l?, r?):
-                if l != r { return l > r }
-                return lhs.offset < rhs.offset
-            case (nil, .some): return false
-            case (.some, nil): return true
-            case (nil, nil): return lhs.offset < rhs.offset
-            }
-        }.map(\.element)
+    private func resume() async {
+        guard AuthStore.shared.isSignedIn else { return }
+        await unread.refresh()
+        await model.resume(unread: unread.count)
     }
 }

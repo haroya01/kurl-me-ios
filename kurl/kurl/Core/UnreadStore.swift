@@ -10,9 +10,20 @@ final class UnreadStore {
     static let shared = UnreadStore()
 
     private(set) var count: Int64 = 0
+    private(set) var arrival = Arrival()
     @ObservationIgnored private var inFlight: Task<Void, Never>?
 
+    struct Arrival: Equatable {
+        var serial = 0
+        var type: String?
+    }
+
     private init() {}
+
+    func arrived(type: String?) async {
+        arrival = Arrival(serial: arrival.serial + 1, type: type)
+        await refresh()
+    }
 
     func refresh() async {
         guard AuthStore.shared.isSignedIn else {

@@ -740,6 +740,11 @@ enum NoteReplyLanding: Equatable {
 }
 
 extension NoteThread {
+    func reloads(onPush type: String?, me: Int64?) -> Bool {
+        guard type == "NOTE_REPLY", let me else { return false }
+        return ([note] + (continuation ?? [])).contains { $0.author.id == me }
+    }
+
     func adding(_ reply: Note) -> (thread: NoteThread, landing: NoteReplyLanding) {
         var next = self
         let parts = continuation ?? []

@@ -117,13 +117,14 @@ final class PushDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCen
         // 시뮬레이터·프로비저닝 부재 — 푸시 없이도 앱은 그대로 동작해야 한다.
     }
 
-    /// 앱이 떠 있는 동안 도착한 푸시도 배너로 — 알림 센터에 묻히지 않게. 그 알림이 벨에도 바로 서도록
-    /// 미읽음 수를 다시 읽는다(벨은 포그라운드 복귀·인박스 이탈 때만 갱신돼 점이 늦게 켜졌다).
+    /// 앱이 떠 있는 동안 도착한 푸시도 배너로 — 알림 센터에 묻히지 않게. 그 알림이 벨과 열린 알림함에도
+    /// 바로 서도록 도착을 알린다(벨은 포그라운드 복귀·인박스 이탈 때만 갱신돼 점이 늦게 켜졌다).
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
-        await UnreadStore.shared.refresh()
+        let type = notification.request.content.userInfo["type"] as? String
+        await UnreadStore.shared.arrived(type: type)
         return [.banner, .sound]
     }
 
