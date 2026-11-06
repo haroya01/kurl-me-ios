@@ -292,6 +292,43 @@ final class NotesFeedUITests: XCTestCase {
         attach(app, "quote-post-closed")
     }
 
+    func testTheShareMenuQuotesTheNoteInANewNote() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--tab", "notes"]
+        app.launch()
+        openNotes(app)
+
+        let share = app.buttons["note.share.9501"]
+        XCTAssertTrue(share.waitForExistence(timeout: 10), "공유 버튼 없음")
+        share.tap()
+        let quote = app.buttons["노트로 인용"]
+        XCTAssertTrue(quote.waitForExistence(timeout: 4), "공유 메뉴에 노트로 인용이 없음")
+        let post = app.buttons["블로그 글로 인용"]
+        XCTAssertTrue(post.exists, "공유 메뉴에 블로그 글로 인용이 없음")
+        XCTAssertLessThan(quote.frame.minY, post.frame.minY, "노트로 인용이 블로그 글로 인용 위에 있지 않음")
+        attach(app, "note-share-menu-quote")
+        quote.tap()
+
+        XCTAssertTrue(app.navigationBars["노트 인용"].waitForExistence(timeout: 8), "노트 인용 작성 시트가 안 열림")
+        attach(app, "note-quote-composer")
+        app.navigationBars["노트 인용"].buttons["취소"].tap()
+        XCTAssertTrue(share.waitForExistence(timeout: 6), "작성 시트를 닫아도 노트로 돌아오지 않음")
+    }
+
+    func testTheShareMenuOfANoteOnlyMentionedPeopleSeeOffersNoQuotes() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--push", #"{"type":"NOTE_MENTION","noteId":9508}"#]
+        app.launch()
+
+        let share = app.buttons["note.share.9508"]
+        XCTAssertTrue(share.waitForExistence(timeout: 15), "멘션 전용 노트에 공유 버튼이 없음")
+        share.tap()
+        XCTAssertTrue(app.buttons["링크 복사"].waitForExistence(timeout: 4), "공유 메뉴가 안 열림")
+        XCTAssertFalse(app.buttons["노트로 인용"].exists, "멘션 전용 노트를 노트로 인용할 수 있음")
+        XCTAssertFalse(app.buttons["블로그 글로 인용"].exists, "멘션 전용 노트를 블로그 글로 인용할 수 있음")
+        attach(app, "direct-note-share-menu")
+    }
+
     func testRepostsHideForTheWholeFollowingFeedAndForOnePerson() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "notes"]
