@@ -129,57 +129,48 @@ struct NotificationsView: View {
     private var inbox: some View {
         let shown = shownItems
         let tail = Set(shown.suffix(3).map(\.id))
-        return List {
-            Section {
-                if let pushStatus, !pushBannerDismissed, pushStatus == .notDetermined || pushStatus == .denied {
-                    pushBanner(pushStatus)
-                        .inboxRow()
-                }
-                if model.filter == .all {
-                    followRequestsEntry
-                    filteredEntry
-                } else {
-                    directEntry
-                }
-                if shown.isEmpty {
-                    emptyPlaceholder
-                        .inboxRow()
-                        .listRowSeparator(.hidden)
-                }
+        return ReadingColumn(spacing: 0) {
+            if let pushStatus, !pushBannerDismissed, pushStatus == .notDetermined || pushStatus == .denied {
+                pushBanner(pushStatus)
+                Hairline()
+            }
+            if model.filter == .all {
+                followRequestsEntry
+                filteredEntry
+            } else {
+                directEntry
+            }
+            if shown.isEmpty {
+                emptyPlaceholder
             }
             ForEach(InboxSection.buckets(shown, now: .now, calendar: .current)) { bucket in
                 Section {
-                    ForEach(bucket.items) { notification in
+                    ForEach(Array(bucket.items.enumerated()), id: \.element.id) { index, notification in
                         notificationRow(notification)
                             .modifier(NoteArrival(
                                 active: model.arrivals.ids.contains(notification.id),
                                 moves: !model.arrivals.regrouped.contains(notification.id),
                                 gutter: Metrics.gutter,
                                 wash: Palette.chipBg))
-                            .inboxRow()
                             .task {
                                 if tail.contains(notification.id) { await model.loadMore() }
                             }
+                        if index < bucket.items.count - 1 { Hairline() }
                     }
                 } header: {
-                    Text(bucket.section.title)
+                    RailHeading(resource: bucket.section.title)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 22)
+                        .padding(.bottom, 4)
+                        .accessibilityAddTraits(.isHeader)
                 }
             }
             if model.loadingMore {
                 KurlLoadingMark()
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .inboxRow()
-                    .listRowSeparator(.hidden)
             }
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .scrollIndicators(.hidden)
-        .scrollEdgeEffectStyle(.soft, for: .top)
-        .frame(maxWidth: Metrics.readingColumn)
-        .frame(maxWidth: .infinity)
-        .background(Palette.pageBg)
     }
 
     @ViewBuilder
@@ -271,17 +262,20 @@ struct NotificationsView: View {
                         .contentTransition(.numericText())
                 }
             }
+            .buttonStyle(RowButtonStyle())
             .accessibilityIdentifier("notifications.followRequests")
-            .inboxRow()
+            Hairline()
         }
     }
 
+    @ViewBuilder
     private var directEntry: some View {
         NavigationLink(value: Route.noteFeed(.kind(.direct))) {
             entryLabel("개인 멘션", symbol: NoteFeedKind.direct.symbol) { EmptyView() }
         }
+        .buttonStyle(RowButtonStyle())
         .accessibilityIdentifier("notifications.direct")
-        .inboxRow()
+        Hairline()
     }
 
     @ViewBuilder
@@ -293,8 +287,9 @@ struct NotificationsView: View {
                     Text("\(senders.count)명이 보낸 알림 \(senders.reduce(0) { $0 + $1.count })개")
                 }
             }
+            .buttonStyle(RowButtonStyle())
             .accessibilityIdentifier("notifications.filtered")
-            .inboxRow()
+            Hairline()
         }
     }
 
@@ -317,8 +312,13 @@ struct NotificationsView: View {
                 .typeScale(.meta)
                 .foregroundStyle(Palette.secondary)
                 .lineLimit(1)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Palette.faint)
+                .accessibilityHidden(true)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 11)
+        .contentShape(Rectangle())
     }
 
     /// 알림 한 줄 — 아바타는 행위자 프로필로 가는 섬(행 대상과 별개), 본문은 알림 대상(글/시리즈/작가)으로.
@@ -328,7 +328,6 @@ struct NotificationsView: View {
         return HStack(alignment: .top, spacing: 10) {
             kindGlyph(row, unread: !n.read)
             avatarLink(n, row)
-                .fixedSize()
             VStack(alignment: .leading, spacing: 8) {
                 rowBody(n, row)
                 if n.type == "FOLLOW_REQUEST", let origin = requestOrigin(n) {
@@ -339,7 +338,6 @@ struct NotificationsView: View {
             }
         }
         .padding(.vertical, 10)
-        .navigationLinkIndicatorVisibility(.hidden)
     }
 
     private func kindGlyph(_ row: InboxRow, unread: Bool) -> some View {
@@ -643,13 +641,5 @@ struct NotificationsView: View {
         guard AuthStore.shared.isSignedIn else { return }
         await unread.refresh()
         await model.resume(unread: unread.count)
-    }
-}
-
-private extension View {
-    func inboxRow() -> some View {
-        listRowInsets(EdgeInsets(top: 0, leading: Metrics.gutter, bottom: 0, trailing: Metrics.gutter))
-            .listRowBackground(Color.clear)
-            .listRowSeparatorTint(Palette.hairline)
     }
 }
