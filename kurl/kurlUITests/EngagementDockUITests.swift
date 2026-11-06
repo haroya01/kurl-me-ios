@@ -34,7 +34,7 @@ final class EngagementDockUITests: XCTestCase {
     /// 읽어 내려가는 동안엔 독이 본문을 가리지 않고, 멈춰도 숨은 채이며, 위로 올리면 돌아온다.
     func testDockHidesWhileReadingDownAndReturnsOnlyWhenScrolledBackUp() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["--mocks", "--post", "honggildong/hexagonal-after-3-months"]
+        app.launchArguments = ["--mocks", "--post", "honggildong/hexagonal-after-3-months", "--force-coach"]
         app.launch()
 
         let like = app.buttons["dock.like"]

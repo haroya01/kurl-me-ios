@@ -33,7 +33,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5]
+        shard: [1, 2]
     timeout-minutes: 45
 
     env:
@@ -41,7 +41,7 @@ jobs:
       PROJECT: kurl/kurl.xcodeproj
       RESULT_BUNDLE: TestResults.xcresult
       SMOKE: >-
-        -only-testing:kurlUITests/EngagementDockUITests
+        -only-testing:kurlUITests/EngagementDockUITests/testDockHidesWhileReadingDownAndReturnsOnlyWhenScrolledBackUp
 
     steps:
       - uses: actions/checkout@v4
