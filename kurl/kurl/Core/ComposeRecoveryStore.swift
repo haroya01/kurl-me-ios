@@ -107,6 +107,11 @@ enum ComposeRecoveryStore {
         try? FileManager.default.removeItem(at: directory)
     }
 
+    static var isEmpty: Bool {
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
+        return !names.contains { $0.hasSuffix(".json") && read(directory.appendingPathComponent($0)) != nil }
+    }
+
     /// 새 글이 초안 id 를 얻는 순간 — 그 글의 새 글 슬롯을 id 슬롯으로 승격(중간에 죽어도 이어지게).
     static func promote(_ draftKey: UUID, to postId: Int64) {
         guard var draft = peek(postId: nil, draftKey: draftKey) else { return }

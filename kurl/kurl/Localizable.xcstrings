@@ -47410,6 +47410,62 @@
           }
         }
       }
+    },
+    "로그아웃할까요?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign out?"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "साइन आउट करें?"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ログアウトしますか？"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đăng xuất?"
+          }
+        }
+      }
+    },
+    "서버에 저장하지 못한 글은 이 기기에서 지워져요.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Writing that hasn’t been saved to the server will be removed from this device."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "जो लेखन सर्वर पर सहेजा नहीं जा सका, वह इस डिवाइस से हट जाएगा।"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サーバーに保存できていない文章は、この端末から削除されます。"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bài viết chưa lưu được lên máy chủ sẽ bị xóa khỏi thiết bị này."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

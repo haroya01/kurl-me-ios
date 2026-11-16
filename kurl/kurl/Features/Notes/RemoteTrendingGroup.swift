@@ -242,9 +242,11 @@ struct TrendingNoteRow: View {
                 .typeScale(.lede)
                 .foregroundStyle(actions.reposted ? Palette.accent : Palette.ink)
                 .animation(reduceMotion ? nil : Motion.move, value: actions.repostCount)
-                .expandTapTarget()
+                .padding(12)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .menuHitSlop(horizontal: 12, vertical: 12)
             .sensoryFeedback(.impact(weight: .light), trigger: repostTaps)
             .accessibilityLabel(Text("리포스트 메뉴"))
             .accessibilityAddTraits(actions.reposted ? [.isSelected] : [])
@@ -276,10 +278,11 @@ struct TrendingNoteRow: View {
             Image(systemName: "ellipsis")
                 .font(.system(size: 15 * unit, weight: .semibold))
                 .foregroundStyle(Palette.secondary)
-                .frame(width: 32 * unit, height: 22 * unit)
+                .frame(width: 32 * unit + 12, height: 22 * unit + 22)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .menuHitSlop(horizontal: 6, vertical: 11)
         .accessibilityLabel(Text("노트 메뉴"))
         .accessibilityIdentifier("trending.menu")
     }

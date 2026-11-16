@@ -122,9 +122,11 @@ struct NoteViewerActions: View {
                 }
                 .typeScale(.lede)
                 .foregroundStyle(engagement.reposted ? Palette.accent : .white)
-                .expandTapTarget()
+                .padding(12)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .menuHitSlop(horizontal: 12, vertical: 12)
             .sensoryFeedback(.impact(weight: .light), trigger: repostTaps)
             .accessibilityLabel(Text("리포스트 메뉴"))
             .accessibilityAddTraits(engagement.reposted ? [.isSelected] : [])

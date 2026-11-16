@@ -33,6 +33,8 @@ struct AuthorBlogView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var position = ScrollPosition()
+    @State private var onScreen = false
     /// "명함" 버튼 라벨 — 사다리에 딱 맞는 롤이 없어 크기 보존 + Dynamic Type.
     @ScaledMetric(relativeTo: .headline) private var cardLabelSize: CGFloat = 14
 
@@ -120,6 +122,13 @@ struct AuthorBlogView: View {
             .frame(maxWidth: .infinity)
             .padding(.horizontal, Metrics.gutter)
         }
+        .scrollPosition($position)
+        .onAppear { onScreen = true }
+        .onDisappear { onScreen = false }
+        .onTabReselect(TabRouter.accountTab) {
+            guard showsOwnerTools, onScreen else { return }
+            withAnimation(reduceMotion ? nil : Motion.move) { position.scrollTo(edge: .top) }
+        }
         .swipeSelects(tabs, selection: Binding(get: { shownTab }, set: { tab = $0 }))
         .scrollIndicators(.hidden)
         .scrollEdgeEffectStyle(.soft, for: .top)
@@ -186,9 +195,8 @@ struct AuthorBlogView: View {
                         if BlockStore.shared.isBlocked(id: author.id) {
                             Button {
                                 Task {
-                                    try? await BlockStore.shared.unblock(
+                                    await BlockStore.shared.unblockAndAnnounce(
                                         id: author.id, username: author.username)
-                                    ToastCenter.shared.show(String(localized: "차단을 해제했어요"))
                                 }
                             } label: {
                                 Label("차단 해제", systemImage: "hand.raised.slash")
@@ -658,8 +666,7 @@ struct AuthorBlogView: View {
     }
 
     private func unblock(_ author: Author) async {
-        try? await BlockStore.shared.unblock(id: author.id, username: author.username)
-        ToastCenter.shared.show(String(localized: "차단을 해제했어요"))
+        guard await BlockStore.shared.unblockAndAnnounce(id: author.id, username: author.username) else { return }
         await load()
     }
 

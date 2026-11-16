@@ -54,6 +54,7 @@ struct RoomsView: View {
     @State private var joining = false
     @State private var quickCreating = false
     @State private var showLogin = false
+    @State private var position = ScrollPosition()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -88,7 +89,7 @@ struct RoomsView: View {
                     }
                     #endif
                 }
-                .refreshable { await load() }
+                .refreshable { await load(pulled: true) }
                 .sheet(item: $creating) { request in
                     CreateRoomSheet(friends: request.friends) { room in
                         creating = nil
@@ -111,6 +112,12 @@ struct RoomsView: View {
                 }
         }
         .environment(\.openNoteRoute) { router.path.append($0) }
+        .onTabReselect(TabRouter.roomsTab) {
+            switch TabRouter.reselectAction(pathIsEmpty: router.path.isEmpty) {
+            case .popToRoot: router.path = NavigationPath()
+            case .scrollToTop: withAnimation(reduceMotion ? nil : Motion.move) { position.scrollTo(edge: .top) }
+            }
+        }
     }
 
     @ViewBuilder
@@ -127,6 +134,8 @@ struct RoomsView: View {
             case .failed(let message):
                 ErrorState(message: message) { Task { await load() } }
                     .padding(.horizontal, Metrics.gutter)
+                    .frame(maxHeight: .infinity, alignment: .top)
+                    .padding(.top, 24)
             case .loaded(let rooms):
                 if modeRaw == RoomsMode.all.rawValue {
                     everything
@@ -138,7 +147,7 @@ struct RoomsView: View {
     }
 
     private var everything: some View {
-        ReadingColumn(spacing: 0, background: Palette.readingBg, gutter: Metrics.noteGutter) {
+        ReadingColumn(spacing: 0, background: Palette.readingBg, gutter: Metrics.noteGutter, position: $position) {
             if !invitations.isEmpty {
                 section("초대받은 방") {
                     ForEach(invitations) { invitation in
@@ -209,7 +218,7 @@ struct RoomsView: View {
         let lively = rooms.filter { $0.pinned == true || RoomBand.isLively($0) }
             .sorted { ($0.pinned == true ? 0 : 1) < ($1.pinned == true ? 0 : 1) }
         let quiet = rooms.filter { !lively.contains($0) }
-        return ReadingColumn(spacing: 0, background: Palette.readingBg, gutter: Metrics.noteGutter) {
+        return ReadingColumn(spacing: 0, background: Palette.readingBg, gutter: Metrics.noteGutter, position: $position) {
             if !invitations.isEmpty {
                 section("초대받은 방") {
                     ForEach(invitations) { invitation in
@@ -324,9 +333,9 @@ struct RoomsView: View {
         people.prefix(2).map { $0.displayName ?? $0.username }.joined(separator: ", ")
     }
 
-    private func load() async {
+    private func load(pulled: Bool = false) async {
         guard AuthStore.shared.isSignedIn else { return }
-        if case .loaded = phase {} else { phase = .loading }
+        if !phase.isLoaded { phase = .loading }
         do {
             async let rooms = RoomAPI.mine()
             async let suggestions = RoomAPI.suggestions()
@@ -337,7 +346,10 @@ struct RoomsView: View {
             suggested = (try? await suggestions)?.friends ?? []
             invitations = (try? await received) ?? []
         } catch {
-            phase = .failed(error.localizedDescription)
+            if pulled, phase.isLoaded {
+                ToastCenter.shared.show(String(localized: "새로고침하지 못했습니다"))
+            }
+            phase = phase.failing(error.localizedDescription)
         }
     }
 

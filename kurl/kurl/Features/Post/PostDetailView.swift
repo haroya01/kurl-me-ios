@@ -784,9 +784,8 @@ private struct PostDetailReader: View {
                 if BlockStore.shared.isBlocked(id: author.id) {
                     Button {
                         Task {
-                            try? await BlockStore.shared.unblock(
+                            await BlockStore.shared.unblockAndAnnounce(
                                 id: author.id, username: author.username)
-                            ToastCenter.shared.show(String(localized: "차단을 해제했어요"))
                         }
                     } label: {
                         Label("차단 해제", systemImage: "hand.raised.slash")
@@ -1797,10 +1796,13 @@ private struct PostDetailReader: View {
                         .disabled(!choice.available)
                     }
                 } label: {
-                    Text("번역하기").expandTapTarget(15)
+                    Text("번역하기")
+                        .padding(15)
+                        .contentShape(Rectangle())
                 }
                 .menuStyle(.button)
                 .buttonStyle(.borderless)
+                .menuHitSlop(horizontal: 15, vertical: 15)
                 .tint(Palette.ink)
                 .accessibilityIdentifier("post.translate")
             }
@@ -2297,8 +2299,7 @@ struct CommentRow: View {
     private func unblock() {
         guard let author = comment.author else { return }
         Task {
-            try? await BlockStore.shared.unblock(id: author.id, username: author.username)
-            ToastCenter.shared.show(String(localized: "차단을 해제했어요"))
+            await BlockStore.shared.unblockAndAnnounce(id: author.id, username: author.username)
         }
     }
 }

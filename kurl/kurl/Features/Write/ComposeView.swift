@@ -283,6 +283,7 @@ struct ComposeView: View {
         // 발행 준비 = 살아있는 카드 미리보기 폼(전체 화면). 미리보기·예약은 이 폼 위에
         // 바로 떠서 폼을 잃지 않는다(닫았다 다시 여는 왕복을 없앴다).
         .fullScreenCover(isPresented: $showPublish) { publishSheet }
+        .onChange(of: showPublish) { if showPublish { focusedField = nil } }
         // ⋯ 메뉴의 미리보기(폼 밖) 경로 — 발행 전 글은 인앱 사파리(미리보기 토큰 URL).
         .sheet(item: $previewItem) { item in
             SafariView(url: item.url)
@@ -898,6 +899,7 @@ struct ComposeView: View {
                             .padding(.vertical, 9)
                             .contentShape(Capsule())
                         }
+                        .tint(.primary)
                         .glassEffect(.regular.interactive(), in: .capsule)
                     }
 
@@ -1265,8 +1267,10 @@ struct ComposeView: View {
             }
         } label: {
             coverChip("변경")
-                .expandTapTarget(8)
+                .padding(8)
+                .contentShape(Rectangle())
         }
+        .menuHitSlop(horizontal: 8, vertical: 8)
         .accessibilityLabel(Text("커버 변경"))
     }
 
@@ -1770,6 +1774,7 @@ struct ComposeView: View {
             if initialMarkdown != nil, !initialMarkdownIsDraft { lastSavedSignature = signature }
             rebuildEditorDocumentIfNeeded()
             offerRecoveryIfAny()
+            if title.isEmpty, pendingRecovery == nil { focusedField = .title }
         }
         seriesList = (try? await series) ?? []
     }
@@ -3388,6 +3393,13 @@ private struct TagsField: View {
             } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 9 * metaUnit, weight: .bold))
+                    .padding(.vertical, 12)
+                    .padding(.leading, 6)
+                    .padding(.trailing, 12)
+                    .contentShape(Rectangle())
+                    .padding(.vertical, -12)
+                    .padding(.leading, -6)
+                    .padding(.trailing, -12)
             }
             .buttonStyle(.plain)
             .accessibilityLabel(Text("\(tag) 삭제"))
