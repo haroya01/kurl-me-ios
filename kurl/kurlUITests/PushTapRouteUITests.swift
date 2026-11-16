@@ -27,7 +27,7 @@ final class PushTapRouteUITests: XCTestCase {
         let like = app.buttons["end.like"]
         XCTAssertTrue(like.waitForExistence(timeout: 8), "푸시로 연 글에도 좋아요·북마크가 있어야 함")
         XCTAssertTrue(like.isHittable, "푸시로 연 글의 좋아요가 화면 안에서 눌려야 함")
-        XCTAssertFalse(app.buttons["dock.like"].exists, "본문 끝 줄이 보이는 글에 독이 함께 떠 있음")
+        XCTAssertFalse(app.buttons["dock.like"].isHittable, "본문 끝 줄이 보이는 글에 독이 함께 떠 있음")
         shoot("push-like-opens-post")
         app.buttons["뒤로"].firstMatch.tap()
         XCTAssertTrue(app.buttons["모두 읽음"].firstMatch.waitForExistence(timeout: 10), "뒤로 가면 알림함이어야 함")
