@@ -367,3 +367,26 @@ final class HighlightLibraryTests: XCTestCase {
         XCTAssertEqual(item.quote, "문장")
     }
 }
+
+@MainActor
+final class EngagementDockTests: XCTestCase {
+    func testFloatingDockYieldsOnceTheBodyEndRowRisesAboveItsBottomEdge() {
+        let viewport: CGFloat = 800
+        let tabBar: CGFloat = 80
+
+        XCTAssertFalse(EngagementDock.yieldsToBodyEnd(rowTop: 1400, viewport: viewport, bottomInset: tabBar))
+        XCTAssertFalse(EngagementDock.yieldsToBodyEnd(rowTop: 712, viewport: viewport, bottomInset: tabBar))
+        XCTAssertTrue(EngagementDock.yieldsToBodyEnd(rowTop: 708, viewport: viewport, bottomInset: tabBar))
+        XCTAssertTrue(EngagementDock.yieldsToBodyEnd(rowTop: 300, viewport: viewport, bottomInset: tabBar))
+        XCTAssertTrue(EngagementDock.yieldsToBodyEnd(rowTop: -2400, viewport: viewport, bottomInset: tabBar))
+    }
+
+    func testWithoutBottomChromeTheRowTakesOverAtTheDocksOwnGap() {
+        XCTAssertFalse(EngagementDock.yieldsToBodyEnd(rowTop: 792, viewport: 800, bottomInset: 0))
+        XCTAssertTrue(EngagementDock.yieldsToBodyEnd(rowTop: 788, viewport: 800, bottomInset: 0))
+    }
+
+    func testNothingYieldsBeforeTheScrollViewIsMeasured() {
+        XCTAssertFalse(EngagementDock.yieldsToBodyEnd(rowTop: -50, viewport: 0, bottomInset: 0))
+    }
+}

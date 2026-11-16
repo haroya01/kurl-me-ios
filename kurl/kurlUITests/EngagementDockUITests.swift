@@ -1,7 +1,8 @@
 import XCTest
 
-/// 인게이지 독(연결·좋아요·북마크) 버튼 독립성 회귀.
-/// `--mocks --post honggildong/p-mock-2` 로 글 상세를 열어 독을 띄운다.
+/// 인게이지 독(연결·좋아요·북마크)과 본문 끝 줄.
+/// `--mocks --post honggildong/hexagonal-after-3-months` 는 읽는 동안 독이 뜨는 긴 글,
+/// `honggildong/p-mock-2` 는 첫 화면에서 본문이 끝나는 글이다.
 final class EngagementDockUITests: XCTestCase {
 
     override func setUpWithError() throws {
@@ -11,7 +12,7 @@ final class EngagementDockUITests: XCTestCase {
     /// 좋아요만 눌렀을 때 북마크·연결이 함께 반응하지 않아야 한다(독립성).
     func testLikeDoesNotToggleNeighbors() throws {
         let app = XCUIApplication()
-        app.launchArguments = ["--mocks", "--post", "honggildong/p-mock-2"]
+        app.launchArguments = ["--mocks", "--post", "honggildong/hexagonal-after-3-months"]
         app.launch()
 
         let like = app.buttons["dock.like"]
@@ -89,15 +90,54 @@ final class EngagementDockUITests: XCTestCase {
         XCTAssertTrue(like.isHittable, "본문으로 되돌아오면 독이 다시 떠야 함")
     }
 
-    /// 첫 화면에서 본문이 끝나는 글 — 처음엔 독이 떠 있고, 댓글로 내려가면 물러나 댓글 입구를 가리지 않는다.
-    func testDockStepsAsideForCommentsOnAPostWhoseBodyEndsOnTheFirstScreen() throws {
+    /// 본문 끝 줄이 독을 이어받는다 — 줄이 보이는 동안 독은 물러나 있고, 줄에서 누른 좋아요는 독에도 그대로다.
+    func testTheBodyEndRowTakesOverFromTheDockAndSharesItsState() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mocks", "--post", "honggildong/hexagonal-after-3-months"]
+        app.launch()
+
+        let dockLike = app.buttons["dock.like"]
+        let endLike = app.buttons["end.like"]
+        XCTAssertTrue(dockLike.waitForExistence(timeout: 15), "독에 좋아요 버튼이 없음")
+        XCTAssertFalse(dockLike.isSelected, "처음부터 좋아요가 눌려 있음")
+
+        for _ in 0..<60 where !endLike.isHittable {
+            dragContent(app, by: -300)
+        }
+        XCTAssertTrue(endLike.isHittable, "본문이 끝난 자리에 좋아요가 없음")
+        XCTAssertTrue(app.buttons["end.bookmark"].isHittable, "본문이 끝난 자리에 북마크가 없음")
+        XCTAssertFalse(dockLike.isHittable, "본문 끝 줄이 보이는데 독이 함께 떠 있음")
+        attach("body-end-row")
+
+        endLike.tap()
+        Thread.sleep(forTimeInterval: 0.8)
+        XCTAssertTrue(endLike.isSelected, "본문 끝 줄의 좋아요가 선택 상태가 아님")
+
+        for _ in 0..<12 where !dockLike.isHittable {
+            app.swipeDown()
+            Thread.sleep(forTimeInterval: 0.4)
+        }
+        XCTAssertTrue(dockLike.isHittable, "본문으로 되돌아오면 독이 다시 떠야 함")
+        XCTAssertTrue(dockLike.isSelected, "본문 끝 줄에서 누른 좋아요가 독에 반영되지 않음")
+    }
+
+    /// 첫 화면에서 본문이 끝나는 글 — 좋아요·북마크는 처음부터 본문 끝 줄에 있고, 독은 그 줄과 함께 뜨지 않는다.
+    func testAPostWhoseBodyEndsOnTheFirstScreenShowsTheEndRowInsteadOfTheDock() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--post", "honggildong/p-mock-2"]
         app.launch()
 
-        let like = app.buttons["dock.like"]
-        XCTAssertTrue(like.waitForExistence(timeout: 15), "독에 좋아요 버튼이 없음")
-        XCTAssertTrue(like.isHittable, "처음 연 짧은 글에서도 독이 보여야 함")
+        let endLike = app.buttons["end.like"]
+        let endBookmark = app.buttons["end.bookmark"]
+        XCTAssertTrue(endLike.waitForExistence(timeout: 15), "본문이 끝난 자리에 좋아요가 없음")
+        XCTAssertTrue(endLike.isHittable, "처음 연 짧은 글에서 좋아요를 누를 수 없음")
+        XCTAssertFalse(app.buttons["dock.like"].isHittable, "본문 끝 줄이 보이는데 독이 함께 떠 있음")
+
+        let bookmarkSelectedBefore = endBookmark.isSelected
+        endLike.tap()
+        Thread.sleep(forTimeInterval: 0.8)
+        XCTAssertTrue(endLike.isSelected, "좋아요 탭 후 좋아요가 선택 상태가 아님")
+        XCTAssertEqual(endBookmark.isSelected, bookmarkSelectedBefore, "좋아요를 눌렀는데 북마크 선택 상태가 바뀜")
 
         for _ in 0..<10 {
             app.swipeUp()
@@ -107,13 +147,15 @@ final class EngagementDockUITests: XCTestCase {
         let prompt = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "댓글 쓰기")).firstMatch
         XCTAssertTrue(prompt.isHittable, "댓글 입구가 가려짐")
         nudgeContentDown(app)
-        XCTAssertFalse(like.isHittable, "댓글에서 살짝 올렸는데 독이 댓글 위에 떠 있음")
+        XCTAssertFalse(app.buttons["dock.like"].isHittable, "댓글에서 살짝 올렸는데 독이 댓글 위에 떠 있음")
+    }
 
-        for _ in 0..<12 where !like.isHittable {
-            app.swipeDown()
-            Thread.sleep(forTimeInterval: 0.4)
-        }
-        XCTAssertTrue(like.isHittable, "본문으로 되돌아오면 독이 다시 떠야 함")
+    /// 관성 없이 끌어 내용을 옮긴다 — 한 번에 화면 하나를 넘기지 않아 본문 끝 줄을 건너뛰지 않는다.
+    private func dragContent(_ app: XCUIApplication, by dy: CGFloat) {
+        let start = app.windows.firstMatch.coordinate(
+            withNormalizedOffset: CGVector(dx: 0.5, dy: dy < 0 ? 0.7 : 0.35))
+        start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: dy)))
+        Thread.sleep(forTimeInterval: 0.35)
     }
 
     /// 관성 없이 150pt 만 끌어 내용을 아래로 — 스크롤 방향 판정 임계(44pt)는 넘고, 글 끝 영역은 화면에 남긴다.
