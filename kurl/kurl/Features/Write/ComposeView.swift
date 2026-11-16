@@ -880,26 +880,9 @@ struct ComposeView: View {
                                 Label("새 시리즈 만들기…", systemImage: "plus")
                             }
                         } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: "square.stack.3d.up")
-                                    .font(.system(size: 12 * metaUnit))
-                                Text(
-                                    seriesList.first(where: { $0.id == seriesId })?.title
-                                        ?? String(localized: "시리즈 없음")
-                                )
-                                .typeScale(.lede)
-                                .lineLimit(1)
-                                Image(systemName: "chevron.up.chevron.down")
-                                    .font(.system(size: 10 * metaUnit))
-                            }
-                            .foregroundStyle(
-                                seriesId == nil
-                                    ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 9)
-                            .contentShape(Capsule())
+                            seriesChipLabel
                         }
-                        .tint(.primary)
+                        .tint(Color.primary)
                         .glassEffect(.regular.interactive(), in: .capsule)
                     }
 
@@ -1441,6 +1424,27 @@ struct ComposeView: View {
                 sheetNote("이 나라에서는 제목만 보여요. VPN을 쓰면 막지 못해요.")
             }
         }
+    }
+
+    private var seriesChipLabel: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "square.stack.3d.up")
+                .font(.system(size: 12 * metaUnit))
+            Text(
+                seriesList.first(where: { $0.id == seriesId })?.title
+                    ?? String(localized: "시리즈 없음")
+            )
+            .typeScale(.lede)
+            .lineLimit(1)
+            Image(systemName: "chevron.up.chevron.down")
+                .font(.system(size: 10 * metaUnit))
+        }
+        .foregroundStyle(
+            seriesId == nil
+                ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
+        .padding(.horizontal, 14)
+        .padding(.vertical, 9)
+        .contentShape(Capsule())
     }
 
     private func sheetCapsule(_ text: Text, indicator: String, muted: Bool = false) -> some View {
