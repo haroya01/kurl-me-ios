@@ -8,10 +8,14 @@ import SwiftUI
 struct EngagementDock: View {
     enum Placement { case floating, bodyEnd }
 
-    static let floatingBottomGap: CGFloat = 10
+    nonisolated static let floatingBottomGap: CGFloat = 10
 
-    static func yieldsToBodyEnd(rowTop: CGFloat, viewport: CGFloat, bottomInset: CGFloat) -> Bool {
+    nonisolated static func yieldsToBodyEnd(rowTop: CGFloat, viewport: CGFloat, bottomInset: CGFloat) -> Bool {
         viewport > 0 && rowTop < viewport - bottomInset - floatingBottomGap
+    }
+
+    nonisolated static func bodyEndIsBelow(bodyBottom: CGFloat, viewport: CGFloat, bottomInset: CGFloat) -> Bool {
+        viewport > 0 && bodyBottom >= viewport - bottomInset - floatingBottomGap
     }
 
     private let model: EngagementModel

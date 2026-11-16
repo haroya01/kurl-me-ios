@@ -388,5 +388,13 @@ final class EngagementDockTests: XCTestCase {
 
     func testNothingYieldsBeforeTheScrollViewIsMeasured() {
         XCTAssertFalse(EngagementDock.yieldsToBodyEnd(rowTop: -50, viewport: 0, bottomInset: 0))
+        XCTAssertFalse(EngagementDock.bodyEndIsBelow(bodyBottom: 4000, viewport: 0, bottomInset: 0))
+    }
+
+    func testABodyThatRunsPastTheDocksBottomEdgeBringsTheDockBack() {
+        XCTAssertTrue(EngagementDock.bodyEndIsBelow(bodyBottom: 4000, viewport: 800, bottomInset: 80))
+        XCTAssertTrue(EngagementDock.bodyEndIsBelow(bodyBottom: 710, viewport: 800, bottomInset: 80))
+        XCTAssertFalse(EngagementDock.bodyEndIsBelow(bodyBottom: 709, viewport: 800, bottomInset: 80))
+        XCTAssertFalse(EngagementDock.bodyEndIsBelow(bodyBottom: 420, viewport: 800, bottomInset: 80))
     }
 }

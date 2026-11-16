@@ -159,9 +159,9 @@ private struct PostDetailReader: View {
 
     /// 떠 있는 독과 본문 끝 줄이 함께 보는 좋아요·북마크 상태.
     @State private var engagement: EngagementModel?
-    /// 본문 끝 줄이 화면에 들어왔거나 이미 지나갔는가 — 그동안 떠 있는 독은 물러난다.
-    /// 키보드가 떠 있는 동안(댓글 입력)도 물러난다.
-    @State private var endVisible = false
+    /// 떠 있는 독이 본문 끝 줄에 자리를 내준 상태 — 줄이 화면에 들어왔거나 이미 지나갔다.
+    /// 첫 레이아웃이 줄의 위치를 알려 주기 전에는 내준 것으로 본다. 반대로 두면 첫 화면에서 본문이 끝나는 글에서 독이 떴다가 사라진다.
+    @State private var dockYields = true
     @State private var scrollable = false
     @State private var keyboardUp = false
     @State private var readingDirection = TabBarVisibility()
@@ -497,7 +497,7 @@ private struct PostDetailReader: View {
             // 숨김↔표시 사이클마다 hydrate GET 2건이 재발사되고 좋아요가 잠깐 꺼져 깜빡였다.
             if case .loaded(let detail) = model.phase, detail.post.locked == nil, let engagement {
                 let readingDown = !embedded && !voiceOverOn && readingDirection.scrollHidden
-                let dockHidden = keyboardUp || composerActive || readingDown || endVisible
+                let dockHidden = keyboardUp || composerActive || readingDown || dockYields
                 // 목차를 상단 크롬에서 내려 독 바로 위에 얹는다 — 항해 보조와 인게이지를 한 손
                 // 닿는 자리에 모은다. 목차·독은 성격이 다른 독립 컨트롤이라 spacing 12 로 띄워
                 // 각자 제 유리로 읽히게 하고(독 내부 문법과 동일), 후퇴는 독과 함께 한다.
@@ -562,7 +562,7 @@ private struct PostDetailReader: View {
         .onChange(of: access.lockouts[PostAccess.address(username: model.username, slug: model.slug)]) {
             Task { await model.reloadAfterLockout() }
         }
-        .animation(reduceMotion ? nil : Motion.move, value: endVisible)
+        .animation(reduceMotion ? nil : Motion.move, value: dockYields)
         .animation(reduceMotion ? nil : Motion.move, value: keyboardUp)
         .task {
             async let loaded: Void = model.load()
@@ -1028,7 +1028,7 @@ private struct PostDetailReader: View {
             try? await Task.sleep(for: .milliseconds(420))
             withAnimation(reduceMotion ? nil : Motion.stage) {
                 proxy.scrollTo(Self.commentsAnchor, anchor: .top)
-                endVisible = true
+                dockYields = true
             }
             guard visible else { return }
             try? await Task.sleep(for: .milliseconds(reduceMotion ? 50 : 600))
@@ -1356,6 +1356,7 @@ private struct PostDetailReader: View {
 
     @ViewBuilder
     private func readableContent(_ detail: PublicPostDetail, translated: PostTranslationPlan.Applied?) -> some View {
+        let endInset = pushedTabBarBottomInset
         AnyView(header(detail, titleTranslated: translated?.titleTranslated ?? false))
         if model.isOfflineCopy {
             // 기기 사본 렌더 중 — 조용한 한 줄. 댓글·좋아요가 비어 있는 이유까지 여기서 설명된다.
@@ -1422,6 +1423,14 @@ private struct PostDetailReader: View {
             scrollProgress.bodyMinY = frame.minY
             scrollProgress.bodyHeight = frame.height
         }
+        // 본문이 독 아랫변 아래까지 이어지면 그 뒤의 줄은 아직 만들어지지 않아 위치를 알려 오지 못한다.
+        .onGeometryChange(for: Bool.self) { proxy in
+            EngagementDock.bodyEndIsBelow(
+                bodyBottom: proxy.frame(in: .scrollView).maxY,
+                viewport: proxy.bounds(of: .scrollView)?.height ?? 0, bottomInset: endInset)
+        } action: { below in
+            if below, dockYields { dockYields = false }
+        }
 
         if !ContentValidity.renderableTags(detail.post.tags).isEmpty {
             FlowTags(tags: detail.post.tags)
@@ -1436,10 +1445,12 @@ private struct PostDetailReader: View {
             )
             .padding(.top, 24)
             .padding(.bottom, 6)
-            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .scrollView).minY } action: { minY in
-                let reached = EngagementDock.yieldsToBodyEnd(
-                    rowTop: minY, viewport: scrollProgress.containerH, bottomInset: pushedTabBarBottomInset)
-                if reached != endVisible { endVisible = reached }
+            .onGeometryChange(for: Bool.self) { proxy in
+                EngagementDock.yieldsToBodyEnd(
+                    rowTop: proxy.frame(in: .scrollView).minY,
+                    viewport: proxy.bounds(of: .scrollView)?.height ?? 0, bottomInset: endInset)
+            } action: { reached in
+                if reached != dockYields { dockYields = reached }
             }
         }
         // 완독 직후의 연결 — 다음 편 카드(시리즈) → 작가 카드 → 댓글 순. 카드 탭도 제자리 교체.
