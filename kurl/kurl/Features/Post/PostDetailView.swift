@@ -157,15 +157,12 @@ private struct PostDetailReader: View {
     @State private var flashCommentId: Int64?
     @State private var didFocusSpot = false
 
-    /// 떠 있는 유리 독 — 글 끝(컴포저·다음 글 큐 영역)에 닿으면 materialize 로 물러나
-    /// 입력을 가리지 않는다. 후퇴는 "스크롤 여유가 충분한 글"에만 — 한 화면 남짓 글은
-    /// 시작부터 끝이 보여 독이 영영 안 뜨는 회귀가 있었다(여유 120pt 미만이면 항상 유지).
-    /// 키보드가 떠 있는 동안(댓글 입력)은 길이와 무관하게 물러난다.
-    @State private var endVisible = false
+    /// 떠 있는 독과 본문 끝 줄이 함께 보는 좋아요·북마크 상태.
+    @State private var engagement: EngagementModel?
+    /// 떠 있는 독이 본문 끝 줄에 자리를 내준 상태 — 줄이 화면에 들어왔거나 이미 지나갔다.
+    /// 첫 레이아웃이 줄의 위치를 알려 주기 전에는 내준 것으로 본다. 반대로 두면 첫 화면에서 본문이 끝나는 글에서 독이 떴다가 사라진다.
+    @State private var dockYields = true
     @State private var scrollable = false
-    /// 끝맺음 감지선이 한 번이라도 화면 밖에 있었는가 — 처음부터 끝이 보이는 짧은 글은
-    /// 래치 대상이 아니라는 표식(끝맺음까지 합치면 짧은 글도 scrollable 이라 이 가드가 필요).
-    @State private var endSentinelWasHidden = false
     @State private var keyboardUp = false
     @State private var readingDirection = TabBarVisibility()
     @State private var readingReporter = UUID()
@@ -313,9 +310,9 @@ private struct PostDetailReader: View {
             }
         }
         .background(Palette.readingBg.ignoresSafeArea())
-        // 스크롤 여유가 충분한지 — 독 후퇴 판정의 전제(짧은 글은 독이 유일한 인게이지 표면).
+        // 스크롤 여유가 충분한지 — 스크러버·진행 바·읽음 판정의 전제.
         // 한 번 스크롤 가능으로 판정되면 유지한다(글 길이는 스크롤로 줄지 않는데, 바닥에 닿으면
-        // contentSize↔containerSize 관계가 잠깐 뒤집혀 false 로 흘러 끝맺음 위 독이 되살아났다).
+        // contentSize↔containerSize 관계가 잠깐 뒤집혀 false 로 흐른다).
         .onScrollGeometryChange(for: Bool.self) { geometry in
             geometry.contentSize.height > geometry.containerSize.height + 120
         } action: { _, isScrollable in
@@ -493,22 +490,21 @@ private struct PostDetailReader: View {
         // 엣지 스와이프 백은 숨긴 바에서도 살아 있다(종전 접힘 상태에서 실증된 동작).
         .toolbar(embedded ? .automatic : .hidden, for: .navigationBar)
         .overlay(alignment: .bottomTrailing) {
-            // 단독·덱 임베드 공통의 단일 인게이지 문법 — 임베드별 인라인 줄을 두지 않는다.
+            // 단독·덱 임베드 공통의 단일 인게이지 문법 — 읽는 동안은 떠 있는 독, 본문이 끝난 자리는 줄.
             // 덱에선 장마다 제 페이지 안에 떠서 페이지와 함께 밀려 나간다.
             // 컴포저가 깨어나는 즉시 물러난다 — keyboardUp(키보드 알림)은 한 박자 늦어 잠깐 겹쳤다.
             // 숨김은 opacity 로만 — hierarchy 에서 빼면 독의 @State 모델이 새로 만들어져
             // 숨김↔표시 사이클마다 hydrate GET 2건이 재발사되고 좋아요가 잠깐 꺼져 깜빡였다.
-            if case .loaded(let detail) = model.phase, detail.post.locked == nil {
+            if case .loaded(let detail) = model.phase, detail.post.locked == nil, let engagement {
                 let readingDown = !embedded && !voiceOverOn && readingDirection.scrollHidden
-                let dockHidden = keyboardUp || composerActive || readingDown || (endVisible && scrollable && !voiceOverOn)
+                let dockHidden = keyboardUp || composerActive || readingDown || dockYields
                 // 목차를 상단 크롬에서 내려 독 바로 위에 얹는다 — 항해 보조와 인게이지를 한 손
                 // 닿는 자리에 모은다. 목차·독은 성격이 다른 독립 컨트롤이라 spacing 12 로 띄워
                 // 각자 제 유리로 읽히게 하고(독 내부 문법과 동일), 후퇴는 독과 함께 한다.
                 VStack(spacing: 12) {
                     if headings.count >= 2 { tocButton(proxy) }
                     EngagementDock(
-                        postId: detail.post.id, initialLikeCount: detail.post.likeCount,
-                        offlineRef: (username: detail.author.username, slug: detail.post.slug),
+                        model: engagement,
                         connectTarget: (title: detail.post.title, postId: detail.post.id)
                     )
                 }
@@ -516,7 +512,7 @@ private struct PostDetailReader: View {
                 .padding(.trailing, 14)
                 // 진입 직후엔 커스텀 탭바가 떠 있어 독 맨 아래 버튼을 가린다 — 탭바 예약 높이만큼 띄운다.
                 // 스크롤로 탭바가 사라지면(hidden) 그 여백을 걷어 독이 허공에 뜨지 않게(§1 크롬 문법).
-                .padding(.bottom, 10 + dockTabBarInset)
+                .padding(.bottom, EngagementDock.floatingBottomGap + dockTabBarInset)
                 .opacity(dockHidden ? 0 : 1)
                 .allowsHitTesting(!dockHidden)
                 .accessibilityHidden(dockHidden)
@@ -566,7 +562,7 @@ private struct PostDetailReader: View {
         .onChange(of: access.lockouts[PostAccess.address(username: model.username, slug: model.slug)]) {
             Task { await model.reloadAfterLockout() }
         }
-        .animation(reduceMotion ? nil : Motion.move, value: endVisible)
+        .animation(reduceMotion ? nil : Motion.move, value: dockYields)
         .animation(reduceMotion ? nil : Motion.move, value: keyboardUp)
         .task {
             async let loaded: Void = model.load()
@@ -784,9 +780,8 @@ private struct PostDetailReader: View {
                 if BlockStore.shared.isBlocked(id: author.id) {
                     Button {
                         Task {
-                            try? await BlockStore.shared.unblock(
+                            await BlockStore.shared.unblockAndAnnounce(
                                 id: author.id, username: author.username)
-                            ToastCenter.shared.show(String(localized: "차단을 해제했어요"))
                         }
                     } label: {
                         Label("차단 해제", systemImage: "hand.raised.slash")
@@ -1032,7 +1027,7 @@ private struct PostDetailReader: View {
             try? await Task.sleep(for: .milliseconds(420))
             withAnimation(reduceMotion ? nil : Motion.stage) {
                 proxy.scrollTo(Self.commentsAnchor, anchor: .top)
-                endVisible = true
+                dockYields = true
             }
             guard visible else { return }
             try? await Task.sleep(for: .milliseconds(reduceMotion ? 50 : 600))
@@ -1086,7 +1081,13 @@ private struct PostDetailReader: View {
         guard case .loaded(let detail) = model.phase, detail.post.locked == nil else {
             headings = []
             readingMinutes = nil
+            engagement = nil
             return
+        }
+        if engagement?.postId != detail.post.id {
+            engagement = EngagementModel(
+                postId: detail.post.id, likeCount: detail.post.likeCount,
+                offlineRef: (username: detail.author.username, slug: detail.post.slug))
         }
         headings = Self.extractHeadings(detail.blocks)
         readingMinutes = Self.estimateReadingMinutes(detail.blocks)
@@ -1354,6 +1355,7 @@ private struct PostDetailReader: View {
 
     @ViewBuilder
     private func readableContent(_ detail: PublicPostDetail, translated: PostTranslationPlan.Applied?) -> some View {
+        let endInset = pushedTabBarBottomInset
         AnyView(header(detail, titleTranslated: translated?.titleTranslated ?? false))
         if model.isOfflineCopy {
             // 기기 사본 렌더 중 — 조용한 한 줄. 댓글·좋아요가 비어 있는 이유까지 여기서 설명된다.
@@ -1420,10 +1422,35 @@ private struct PostDetailReader: View {
             scrollProgress.bodyMinY = frame.minY
             scrollProgress.bodyHeight = frame.height
         }
+        // 본문이 독 아랫변 아래까지 이어지면 그 뒤의 줄은 아직 만들어지지 않아 위치를 알려 오지 못한다.
+        .onGeometryChange(for: Bool.self) { proxy in
+            EngagementDock.bodyEndIsBelow(
+                bodyBottom: proxy.frame(in: .scrollView).maxY,
+                viewport: proxy.bounds(of: .scrollView)?.height ?? 0, bottomInset: endInset)
+        } action: { below in
+            if below, dockYields { dockYields = false }
+        }
 
         if !ContentValidity.renderableTags(detail.post.tags).isEmpty {
             FlowTags(tags: detail.post.tags)
                 .padding(.top, 26)
+        }
+        // 보임 여부(onScrollVisibilityChange)가 아니라 위치로 판정한다 — 지연 스택은 줄을 화면 근처에서
+        // 다시 만들 때 처음부터 보이는 상태로 만들어 변화 알림이 오지 않는다.
+        if let engagement {
+            EngagementDock(
+                model: engagement, placement: .bodyEnd,
+                connectTarget: (title: detail.post.title, postId: detail.post.id)
+            )
+            .padding(.top, 24)
+            .padding(.bottom, 6)
+            .onGeometryChange(for: Bool.self) { proxy in
+                EngagementDock.yieldsToBodyEnd(
+                    rowTop: proxy.frame(in: .scrollView).minY,
+                    viewport: proxy.bounds(of: .scrollView)?.height ?? 0, bottomInset: endInset)
+            } action: { reached in
+                if reached != dockYields { dockYields = reached }
+            }
         }
         // 완독 직후의 연결 — 다음 편 카드(시리즈) → 작가 카드 → 댓글 순. 카드 탭도 제자리 교체.
         if let nav = detail.series {
@@ -1431,19 +1458,6 @@ private struct PostDetailReader: View {
                 nav: nav.trail, username: detail.author.username,
                 goToEpisode: embedded ? nil : goToEpisode)
         }
-        // 본문이 끝나고 '끝맺음'(레일·작가 카드·댓글)이 시작되는 감지선. 스크롤을 시작한 뒤 감지선이 아래에서
-        // 올라오면(긴 글) 또는 화면 위쪽 절반으로 올라가면(첫 화면에 본문이 끝나는 짧은 글) 독이 물러나고,
-        // 맨 위나 본문으로 되돌아오면 뜬다. 보임 여부(onScrollVisibilityChange)가 아니라 위치로 판정한다 —
-        // 지연 스택은 감지선을 화면 근처에서 다시 만들 때 처음부터 보이는 상태로 만들어 변화 알림이 오지 않았다.
-        Color.clear.frame(height: 1)
-            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .scrollView).minY } action: { minY in
-                let viewport = scrollProgress.containerH
-                guard viewport > 0 else { return }
-                if minY > viewport { endSentinelWasHidden = true }
-                let reached = scrollProgress.read > 0
-                    && ((endSentinelWasHidden && minY < viewport * 0.9) || minY < viewport * 0.5)
-                if reached != endVisible { endVisible = reached }
-            }
         // 글 = 엣지가 보이는 노드 — 다 읽은 뒤, 이 글이 담긴 컬렉션으로 나간다.
         // 담긴 공개 컬렉션이 없으면 그려지지 않고(막다른 길 방지는 아래 태그 기반 작가 레일이 맡는다),
         // 덱 임베드는 여러 장이 lazy 로 살아 있어 켜지 않는다(본 글에서만).
@@ -1467,11 +1481,7 @@ private struct PostDetailReader: View {
             // "시리즈 전체 보기"를 이미 세우므로 여기선 여정의 끝만 담담히 알린다.
             LastEpisodeCue()
         }
-        // 바닥 여백 — 단독 글엔 떠 있는 독(바닥 원판 52 + 아래 10)만큼 자리를 비워 둔다.
-        // 짧은 글(스크롤 없음)은 독이 물러날 계기(endVisible)가 없어 하단 댓글 프롬프트·작가
-        // 카드 위에 영영 겹쳤다 — 이 여백이 마지막 인터랙션을 독 위로 올린다. 스크롤되는 글은
-        // 끝에서 독이 후퇴하므로 이 여백이 남아돌 뿐 해가 없다(scrollable 에 의존하지 않아
-        // 여백↔scrollable 되먹임 진동도 없다). 덱 임베드는 페이지마다 독이 함께 밀려 나가 제외.
+        // 바닥 여백 — 마지막 인터랙션(댓글 프롬프트·작가 카드)이 화면 바닥에 붙지 않게 비워 둔다.
         //
         // 탭 스택에 푸시된 단독 글은 커스텀 탭바가 떠 그 뒤로 끝맺음(작가
         // 카드)이 눌려 잘렸다 — 커스텀 바는 시스템 인셋을 안 주므로(Root, 독과 같은 사연) 예약
@@ -1797,10 +1807,13 @@ private struct PostDetailReader: View {
                         .disabled(!choice.available)
                     }
                 } label: {
-                    Text("번역하기").expandTapTarget(15)
+                    Text("번역하기")
+                        .padding(15)
+                        .contentShape(Rectangle())
                 }
                 .menuStyle(.button)
                 .buttonStyle(.borderless)
+                .menuHitSlop(horizontal: 15, vertical: 15)
                 .tint(Palette.ink)
                 .accessibilityIdentifier("post.translate")
             }
@@ -2297,8 +2310,7 @@ struct CommentRow: View {
     private func unblock() {
         guard let author = comment.author else { return }
         Task {
-            try? await BlockStore.shared.unblock(id: author.id, username: author.username)
-            ToastCenter.shared.show(String(localized: "차단을 해제했어요"))
+            await BlockStore.shared.unblockAndAnnounce(id: author.id, username: author.username)
         }
     }
 }

@@ -86,12 +86,7 @@ struct BlockedUsersView: View {
             Spacer(minLength: 8)
             Button("차단 해제") {
                 Task {
-                    do {
-                        try await BlockStore.shared.unblock(id: u.id, username: u.username)
-                        ToastCenter.shared.show(String(localized: "차단을 해제했어요"))
-                    } catch {
-                        ToastCenter.shared.show(String(localized: "해제하지 못했어요"))
-                    }
+                    await BlockStore.shared.unblockAndAnnounce(id: u.id, username: u.username)
                 }
             }
             .typeScale(.meta)

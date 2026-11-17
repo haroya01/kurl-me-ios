@@ -69,6 +69,7 @@ struct SearchView: View {
     @State private var lane: ExploreLane = .picks
     @State private var searchPinned = false
     @State private var searchActive = false
+    @State private var laneTopRequests = 0
     @State private var streams = Dictionary(
         uniqueKeysWithValues: RemoteStreamFeed.allCases.map { ($0, RemoteStreamModel(feed: $0)) })
 
@@ -137,6 +138,12 @@ struct SearchView: View {
                 PostZoomDestination(
                     route: route, zoom: PostZoom(prefix: "search", ns: zoomNS),
                     fromRoot: !reduceMotion && navigation.path.count == 1)
+            }
+            .onTabReselect(TabRouter.exploreTab) {
+                switch TabRouter.reselectAction(pathIsEmpty: navigation.path.isEmpty) {
+                case .popToRoot: navigation.path = NavigationPath()
+                case .scrollToTop: laneTopRequests += 1
+                }
             }
             // 스택 안쪽에 부착 — 바깥이면 push 된 글 상세에도 검색바가 남는다.
             // 상단 고정(navigationBarDrawer) — iOS 26+ 는 .searchable 을 하단에 도킹하는데, 우리
@@ -219,6 +226,16 @@ struct SearchView: View {
     }
 
     private func lanePage(_ lane: ExploreLane, active: Bool, warm: Bool) -> some View {
+        ScrollViewReader { proxy in
+            laneScroll(lane, active: active, warm: warm)
+                .onChange(of: laneTopRequests) {
+                    guard active else { return }
+                    withAnimation(reduceMotion ? nil : Motion.move) { proxy.scrollTo(lane, anchor: .top) }
+                }
+        }
+    }
+
+    private func laneScroll(_ lane: ExploreLane, active: Bool, warm: Bool) -> some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 if active {
@@ -240,6 +257,7 @@ struct SearchView: View {
             .frame(maxWidth: Metrics.readingColumn)
             .frame(maxWidth: .infinity)
             .padding(.horizontal, lane == .people ? Metrics.gutter : Metrics.noteGutter)
+            .id(lane)
         }
         .scrollIndicators(.hidden)
         // 숨은 검색 범위 막대도 위 가장자리 효과에 제 높이를 잡아, 그 띠가 첫 행의 터치를 먹는다.
@@ -587,9 +605,10 @@ struct SearchView: View {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(Palette.secondary)
-                    .frame(width: 30, height: 44)
-                    .expandTapTarget(7)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
+            .menuHitSlop(horizontal: 7)
             .accessibilityLabel("더 보기")
             .accessibilityIdentifier("suggestion.more.\(suggestion.username)")
         }

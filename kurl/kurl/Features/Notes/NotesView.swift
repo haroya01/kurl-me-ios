@@ -1050,9 +1050,10 @@ struct NoteRowView: View {
             Image(systemName: "ellipsis")
                 .font(.system(size: 15 * unit, weight: .semibold))
                 .foregroundStyle(Palette.secondary)
-                .frame(width: 32 * unit, height: 22 * unit)
+                .frame(width: 32 * unit + 12, height: 22 * unit + 22)
                 .contentShape(Rectangle())
         }
+        .menuHitSlop(horizontal: 6, vertical: 11)
         .accessibilityLabel("노트 메뉴")
         .accessibilityIdentifier("note.menu.\(note.id)")
         .reportDialog(
@@ -1146,9 +1147,11 @@ struct NoteRowView: View {
         } label: {
             NoteGlyphView(glyph: .share, size: Self.actionBox * unit)
                 .foregroundStyle(Palette.ink)
-                .expandTapTarget()
+                .padding(12)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .menuHitSlop(horizontal: 12, vertical: 12)
         .accessibilityLabel(Text("공유"))
         .accessibilityIdentifier("note.share.\(note.id)")
     }
@@ -1197,9 +1200,11 @@ struct NoteRowView: View {
             }
             .typeScale(.lede)
             .foregroundStyle(engagement.reposted ? Palette.accent : Palette.ink)
-            .expandTapTarget()
+            .padding(12)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .menuHitSlop(horizontal: 12, vertical: 12)
         .sensoryFeedback(.impact(weight: .light), trigger: repostTaps)
         .accessibilityLabel(Text("리포스트 메뉴"))
         .accessibilityAddTraits(engagement.reposted ? [.isSelected] : [])
@@ -2416,8 +2421,10 @@ struct NoteComposeSheet: View {
                                         .foregroundStyle(
                                             picked.count >= NoteAPI.maxImages || poll != nil ? Palette.faint : Palette.secondary)
                                         .frame(width: 32, height: 28, alignment: .leading)
+                                        .padding(8)
                                         .contentShape(Rectangle())
                                 }
+                                .menuHitSlop(horizontal: 8, vertical: 8)
                                 .disabled(picked.count >= NoteAPI.maxImages || poll != nil)
                                 .accessibilityLabel("사진 추가")
                                 if NoteCamera.isAvailable {
@@ -2429,7 +2436,7 @@ struct NoteComposeSheet: View {
                                             .foregroundStyle(
                                                 picked.count >= NoteAPI.maxImages || poll != nil ? Palette.faint : Palette.secondary)
                                             .frame(width: 32, height: 28, alignment: .leading)
-                                            .contentShape(Rectangle())
+                                            .expandTapTarget(8)
                                     }
                                     .disabled(picked.count >= NoteAPI.maxImages || poll != nil)
                                     .accessibilityLabel("사진 찍기")
@@ -2445,7 +2452,7 @@ struct NoteComposeSheet: View {
                                         .foregroundStyle(
                                             poll != nil ? Palette.ink : picked.isEmpty ? Palette.secondary : Palette.faint)
                                         .frame(width: 32, height: 28, alignment: .leading)
-                                        .contentShape(Rectangle())
+                                        .expandTapTarget(8)
                                 }
                                 .buttonStyle(.plain)
                                 .disabled(!picked.isEmpty)
@@ -2462,7 +2469,7 @@ struct NoteComposeSheet: View {
                                         .lineLimit(1)
                                         .fixedSize()
                                         .frame(minHeight: 28)
-                                        .contentShape(Rectangle())
+                                        .expandTapTarget(8)
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityAddTraits(warns ? .isSelected : [])
@@ -2475,7 +2482,7 @@ struct NoteComposeSheet: View {
                                             .font(.system(size: 17))
                                             .foregroundStyle(sensitive ? Palette.ink : Palette.secondary)
                                             .frame(width: 32, height: 28, alignment: .leading)
-                                            .contentShape(Rectangle())
+                                            .expandTapTarget(8)
                                     }
                                     .buttonStyle(.plain)
                                     .accessibilityLabel(sensitive ? "민감한 사진 표시 끄기" : "민감한 사진으로 표시")
@@ -2660,8 +2667,11 @@ struct NoteComposeSheet: View {
                 } label: {
                     visibilityLabel
                         .fixedSize()
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .menuHitSlop(vertical: 6)
                 .accessibilityIdentifier("noteCompose.visibility")
                 Menu {
                     Picker("언어", selection: $language) {
@@ -2676,10 +2686,11 @@ struct NoteComposeSheet: View {
                         .fontWeight(.semibold)
                         .foregroundStyle(Palette.secondary)
                         .padding(.horizontal, 6)
-                        .frame(minHeight: 32)
+                        .frame(minHeight: 44)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .menuHitSlop(vertical: 6)
                 .accessibilityLabel(Text("언어"))
                 .accessibilityValue(Text(verbatim: NoteLanguages.name(language)))
                 .accessibilityIdentifier("noteCompose.language")
@@ -2699,7 +2710,7 @@ struct NoteComposeSheet: View {
                         .foregroundStyle(scheduledAt == nil ? Palette.secondary : Palette.ink)
                         .padding(.horizontal, 8)
                         .frame(minHeight: 32)
-                        .contentShape(Rectangle())
+                        .expandTapTarget(6)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(scheduledAt == nil ? Text("예약") : Text("예약 시각 바꾸기"))
@@ -2804,7 +2815,7 @@ struct NoteComposeSheet: View {
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(Palette.secondary)
                             .frame(width: 28, height: 28)
-                            .contentShape(Rectangle())
+                            .expandTapTarget(8)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("이 노트 빼기")
@@ -2848,7 +2859,7 @@ struct NoteComposeSheet: View {
                 Spacer(minLength: 0)
             }
             .frame(minHeight: 32)
-            .contentShape(Rectangle())
+            .expandTapTarget(6)
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("noteCompose.addPart")
@@ -2874,7 +2885,7 @@ struct NoteComposeSheet: View {
                                     .foregroundStyle(.white)
                                     .frame(width: 24, height: 24)
                                     .background(GlassTokens.mediaChip, in: Circle())
-                                    .contentShape(Circle())
+                                    .expandTapTarget(10)
                             }
                             .buttonStyle(.plain)
                             .padding(6)
@@ -2913,7 +2924,7 @@ struct NoteComposeSheet: View {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(Palette.faint)
                         .frame(width: 32, height: 32)
-                        .contentShape(Rectangle())
+                        .expandTapTarget(6)
                 }
                 .buttonStyle(.plain)
                 .padding(4)

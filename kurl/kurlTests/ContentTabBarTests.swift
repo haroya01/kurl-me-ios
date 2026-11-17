@@ -20,6 +20,15 @@ final class ContentTabBarTests: XCTestCase {
     }
 }
 
+@MainActor
+final class TabReselectTests: XCTestCase {
+
+    func testReselectingATabPopsFirstThenScrollsToTop() {
+        XCTAssertEqual(TabRouter.reselectAction(pathIsEmpty: false), .popToRoot)
+        XCTAssertEqual(TabRouter.reselectAction(pathIsEmpty: true), .scrollToTop)
+    }
+}
+
 final class PullTriggerTests: XCTestCase {
 
     func testHoldingAPullFiresOnceEvenAfterTheRefreshEnds() {

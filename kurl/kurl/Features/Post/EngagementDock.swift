@@ -1,33 +1,65 @@
 import SwiftUI
 
-/// 글 상세의 좋아요·북마크 — 우하단에 떠 있는 유리 독(DESIGN.md §1).
-/// 단독 상세와 덱 임베드가 이 문법 하나를 쓴다 — 같은 화면에 두 인게이지 UI 금지.
-/// 댓글 진입도 본문 끝 인라인 한 곳뿐이라 독은 토글만 든다.
-/// 활성 상태는 캡슐 전체가 그린(700) 유리로 차오르고, 토글은 낙관(즉시 반영 →
+/// 글 상세의 좋아요·북마크 — 우하단에 떠 있는 유리 독(DESIGN.md §1)과, 본문이 끝난 자리의 줄.
+/// 둘은 한 모델을 보고, 줄이 화면에 들어오면 독이 물러나 동시에 보이지 않는다.
+/// 댓글 진입은 본문 끝 인라인 한 곳뿐이라 여기는 토글만 든다.
+/// 독의 활성 상태는 캡슐 전체가 그린(700) 유리로 차오르고, 토글은 낙관(즉시 반영 →
 /// 실패 시 서버 응답/원상태로 복귀). 로그아웃 상태에서 누르면 그 자리 로그인.
 struct EngagementDock: View {
-    @State private var model: EngagementModel
+    enum Placement { case floating, bodyEnd }
+
+    nonisolated static let floatingBottomGap: CGFloat = 10
+
+    nonisolated static func yieldsToBodyEnd(rowTop: CGFloat, viewport: CGFloat, bottomInset: CGFloat) -> Bool {
+        viewport > 0 && rowTop < viewport - bottomInset - floatingBottomGap
+    }
+
+    nonisolated static func bodyEndIsBelow(bodyBottom: CGFloat, viewport: CGFloat, bottomInset: CGFloat) -> Bool {
+        viewport > 0 && bodyBottom >= viewport - bottomInset - floatingBottomGap
+    }
+
+    private let model: EngagementModel
+    private let placement: Placement
     @State private var showLoginPrompt = false
     @State private var loginMessage: LocalizedStringKey = "좋아요를 누르려면 로그인하세요"
     @State private var showConnect = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .body) private var unit: CGFloat = 1
     @Namespace private var glassNS
 
     /// "연결" 시트가 잇는 대상(글 제목·글 id). 없으면 연결 버튼을 감춘다.
     private let connectTarget: (title: String, postId: Int64)?
 
     init(
-        postId: Int64, initialLikeCount: Int64,
-        offlineRef: (username: String, slug: String)? = nil,
+        model: EngagementModel, placement: Placement = .floating,
         connectTarget: (title: String, postId: Int64)? = nil
     ) {
+        self.model = model
+        self.placement = placement
         self.connectTarget = connectTarget
-        _model = State(
-            initialValue: EngagementModel(
-                postId: postId, likeCount: initialLikeCount, offlineRef: offlineRef))
     }
 
     var body: some View {
+        Group {
+            switch placement {
+            case .floating: floating
+            case .bodyEnd: bodyEnd
+            }
+        }
+        .loginPrompt(isPresented: $showLoginPrompt, message: loginMessage) {
+            await model.hydrate()
+        }
+        .sheet(isPresented: $showConnect) {
+            if let target = connectTarget {
+                ConnectSheet(
+                    targetKind: "글", targetTitle: target.title,
+                    blockType: .post, refId: target.postId)
+            }
+        }
+    }
+
+    // 햅틱과 내 상태 불러오기는 떠 있는 독 한 곳에서만 — 줄과 독이 함께 마운트돼 있어 양쪽에 달면 두 번 울리고 두 번 요청한다.
+    private var floating: some View {
         // spacing 0 — 연결·좋아요·북마크는 성격이 다른 독립 컨트롤이라 서로 녹아 붙으면 안 된다.
         // clusterSpacing(18) 안에선 하트를 누르는 순간 인터랙티브 유리가 부풀어 세 디스크가 한
         // 캡슐로 이어 붙어(누른 버튼이 이웃까지 함께 반응) 버튼 독립성이 깨졌다. 0 = 실제로 닿을
@@ -43,23 +75,70 @@ struct EngagementDock: View {
         }
         .sensoryFeedback(.impact(weight: .light), trigger: model.userToggleCount)
         .task(id: AuthStore.shared.isSignedIn) { await model.hydrate() }
-        .loginPrompt(isPresented: $showLoginPrompt, message: loginMessage) {
-            await model.hydrate()
-        }
-        .sheet(isPresented: $showConnect) {
-            if let target = connectTarget {
-                ConnectSheet(
-                    targetKind: "글", targetTitle: target.title,
-                    blockType: .post, refId: target.postId)
-            }
-        }
     }
 
+    private var bodyEnd: some View {
+        HStack(spacing: 26) {
+            endLike
+            Spacer(minLength: 0)
+            if connectTarget != nil { endConnect }
+            endBookmark
+        }
+        .animation(reduceMotion ? nil : Motion.move, value: model.likeCount)
+    }
+
+    private var endLike: some View {
+        Button(action: toggleLike) {
+            HStack(spacing: 5) {
+                NoteGlyphView(glyph: .heart, active: model.liked, size: Self.rowGlyph * unit)
+                    .modifier(GlyphPop(trigger: reduceMotion ? false : model.liked))
+                if model.likeCount > 0 {
+                    Text("\(model.likeCount)")
+                        .monospacedDigit()
+                        .contentTransition(.numericText(value: Double(model.likeCount)))
+                }
+            }
+            .typeScale(.lede)
+            .foregroundStyle(model.liked ? Palette.accent : Palette.ink)
+            .expandTapTarget()
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text("좋아요"))
+        .accessibilityValue(Text(model.likeCount > 0 ? "\(model.likeCount)" : ""))
+        .accessibilityAddTraits(model.liked ? [.isSelected] : [])
+        .accessibilityIdentifier("end.like")
+    }
+
+    private var endConnect: some View {
+        Button(action: openConnect) {
+            Image(systemName: "rectangle.stack.badge.plus")
+                .font(.system(size: 19 * unit))
+                .foregroundStyle(Palette.ink)
+                .frame(height: Self.rowGlyph * unit)
+                .expandTapTarget()
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text("컬렉션에 연결"))
+        .accessibilityIdentifier("end.connect")
+    }
+
+    private var endBookmark: some View {
+        Button(action: toggleBookmark) {
+            NoteGlyphView(glyph: .bookmark, active: model.bookmarked, size: Self.rowGlyph * unit)
+                .modifier(GlyphPop(trigger: reduceMotion ? false : model.bookmarked))
+                .foregroundStyle(model.bookmarked ? Palette.accent : Palette.ink)
+                .expandTapTarget()
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text("북마크"))
+        .accessibilityAddTraits(model.bookmarked ? [.isSelected] : [])
+        .accessibilityIdentifier("end.bookmark")
+    }
+
+    private static let rowGlyph: CGFloat = 22
+
     private var connect: some View {
-        Button {
-            guard AuthStore.shared.isSignedIn else { askLogin("컬렉션에 연결하려면 로그인하세요"); return }
-            showConnect = true
-        } label: {
+        Button(action: openConnect) {
             Image(systemName: "rectangle.stack.badge.plus")
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(.primary)
@@ -75,11 +154,7 @@ struct EngagementDock: View {
     }
 
     private var like: some View {
-        Button {
-            interact(failure: String(localized: "좋아요를 반영하지 못했어요"), login: "좋아요를 누르려면 로그인하세요") {
-                try await model.toggleLike()
-            }
-        } label: {
+        Button(action: toggleLike) {
             VStack(spacing: 3) {
                 Image(systemName: model.liked ? "heart.fill" : "heart")
                     .font(.system(size: 17, weight: .semibold))
@@ -103,11 +178,7 @@ struct EngagementDock: View {
     }
 
     private var bookmark: some View {
-        Button {
-            interact(failure: String(localized: "북마크를 반영하지 못했습니다"), login: "북마크하려면 로그인하세요") {
-                try await model.toggleBookmark()
-            }
-        } label: {
+        Button(action: toggleBookmark) {
             Image(systemName: model.bookmarked ? "bookmark.fill" : "bookmark")
                 .font(.system(size: 16, weight: .semibold))
                 .symbolEffect(.bounce, value: reduceMotion ? false : model.bookmarked)
@@ -123,6 +194,23 @@ struct EngagementDock: View {
         .accessibilityLabel(Text("북마크"))
         .accessibilityIdentifier("dock.bookmark")
         .accessibilityAddTraits(model.bookmarked ? [.isSelected] : [])
+    }
+
+    private func openConnect() {
+        guard AuthStore.shared.isSignedIn else { askLogin("컬렉션에 연결하려면 로그인하세요"); return }
+        showConnect = true
+    }
+
+    private func toggleLike() {
+        interact(failure: String(localized: "좋아요를 반영하지 못했어요"), login: "좋아요를 누르려면 로그인하세요") {
+            try await model.toggleLike()
+        }
+    }
+
+    private func toggleBookmark() {
+        interact(failure: String(localized: "북마크를 반영하지 못했습니다"), login: "북마크하려면 로그인하세요") {
+            try await model.toggleBookmark()
+        }
     }
 
     private func askLogin(_ message: LocalizedStringKey) {
@@ -152,7 +240,7 @@ final class EngagementModel {
     /// 햅틱 트리거 — 서버 hydrate 가 아닌 사용자 토글에만 증가.
     private(set) var userToggleCount = 0
 
-    private let postId: Int64
+    let postId: Int64
     /// 오프라인 저장 짝지 — 북마크 켜짐=기기 사본 확보, 꺼짐=사본 제거.
     private let offlineRef: (username: String, slug: String)?
 

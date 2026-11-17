@@ -8,6 +8,7 @@ struct RoomSettingsView: View {
     @State private var requests: [RoomJoinRequest] = []
     @State private var invitees: [RoomInvitee] = []
     @State private var hidden: Bool
+    @State private var savedHidden: Bool
     @State private var name: String
     @State private var approval: Bool
     @State private var saving = false
@@ -19,6 +20,7 @@ struct RoomSettingsView: View {
         self.onChange = onChange
         _detail = State(initialValue: detail)
         _hidden = State(initialValue: detail.hiddenFromFeed)
+        _savedHidden = State(initialValue: detail.hiddenFromFeed)
         _name = State(initialValue: detail.name)
         _approval = State(initialValue: detail.approvalRequired)
     }
@@ -148,7 +150,8 @@ struct RoomSettingsView: View {
             heading("내 피드")
             toggleRow("이 방 글 숨기기", note: "홈에서만 숨겨요. 이 방 안에서는 그대로 보여요.", isOn: $hidden)
                 .onChange(of: hidden) { _, next in
-                    Task { _ = try? await RoomAPI.setHiddenFromFeed(detail.id, hidden: next) }
+                    guard next != savedHidden else { return }
+                    Task { await setHidden(next) }
                 }
             Hairline().padding(.top, 20)
             Button {
@@ -268,30 +271,55 @@ struct RoomSettingsView: View {
         }
     }
 
+    private func setHidden(_ on: Bool) async {
+        do {
+            savedHidden = try await RoomAPI.setHiddenFromFeed(detail.id, hidden: on)
+        } catch {
+            ToastCenter.shared.show(String(localized: "바꾸지 못했어요"))
+        }
+        hidden = savedHidden
+    }
+
     private func decide(_ request: RoomJoinRequest, approve: Bool) async {
-        if approve {
-            try? await RoomAPI.approve(detail.id, member: request.person.id)
-        } else {
-            try? await RoomAPI.reject(detail.id, member: request.person.id)
+        do {
+            if approve {
+                try await RoomAPI.approve(detail.id, member: request.person.id)
+            } else {
+                try await RoomAPI.reject(detail.id, member: request.person.id)
+            }
+        } catch {
+            ToastCenter.shared.show(String(localized: "처리하지 못했어요"))
+            return
         }
         requests.removeAll { $0.id == request.id }
         await refresh()
     }
 
     private func cancel(_ invitee: RoomInvitee) async {
-        try? await RoomAPI.cancelInvitation(detail.id, person: invitee.id)
-        invitees.removeAll { $0.id == invitee.id }
+        do {
+            try await RoomAPI.cancelInvitation(detail.id, person: invitee.id)
+            invitees.removeAll { $0.id == invitee.id }
+        } catch {
+            ToastCenter.shared.show(String(localized: "처리하지 못했어요"))
+        }
     }
 
     private func disable(_ invite: RoomInvite) async {
-        if let next = try? await RoomAPI.disable(detail.id, invite: invite.id) {
+        do {
+            let next = try await RoomAPI.disable(detail.id, invite: invite.id)
             invites = invites.map { $0.id == next.id ? next : $0 }
+        } catch {
+            ToastCenter.shared.show(String(localized: "처리하지 못했어요"))
         }
     }
 
     private func remove(_ member: RoomDetail.Member) async {
-        try? await RoomAPI.remove(detail.id, member: member.id)
-        await refresh()
+        do {
+            try await RoomAPI.remove(detail.id, member: member.id)
+            await refresh()
+        } catch {
+            ToastCenter.shared.show(String(localized: "처리하지 못했어요"))
+        }
     }
 
     private func leave(deleting: Bool) async {
