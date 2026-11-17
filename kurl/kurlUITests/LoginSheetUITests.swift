@@ -91,19 +91,19 @@ final class LoginSheetUITests: XCTestCase {
         attach("guest-account-sheet")
     }
 
-    func testTheSheetSaysWhatEachDockActionNeedsSignInFor() throws {
+    func testTheSheetSaysWhatEachPostActionNeedsSignInFor() throws {
         let app = launch(["--mocks", "--logged-out", "--post", "honggildong/p-mock-2"])
         let cases: [(button: String, message: String)] = [
-            ("dock.like", "좋아요를 누르려면 로그인하세요"),
-            ("dock.bookmark", "북마크하려면 로그인하세요"),
-            ("dock.connect", "컬렉션에 연결하려면 로그인하세요"),
+            ("end.like", "좋아요를 누르려면 로그인하세요"),
+            ("end.bookmark", "북마크하려면 로그인하세요"),
+            ("end.connect", "컬렉션에 연결하려면 로그인하세요"),
         ]
-        XCTAssertTrue(app.buttons["dock.like"].waitForExistence(timeout: 15), "글 상세에 독이 없음")
+        XCTAssertTrue(app.buttons["end.like"].waitForExistence(timeout: 15), "글 상세에 좋아요·북마크 줄이 없음")
         for (button, message) in cases {
             app.buttons[button].tap()
             XCTAssertTrue(loginSheet(app).waitForExistence(timeout: 5), "\(button)에서 로그인 시트가 뜨지 않음")
             XCTAssertTrue(app.staticTexts[message].exists, "\(button)의 시트 문구가 \(message)가 아님")
-            attach("dock-\(button)")
+            attach("post-\(button)")
             dismissSheet(app)
             let gone = NSPredicate(format: "exists == false")
             expectation(for: gone, evaluatedWith: loginSheet(app))

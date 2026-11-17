@@ -24,9 +24,10 @@ final class PushTapRouteUITests: XCTestCase {
         let app = launch(push: #"{"type":"LIKE","actorUsername":"reader_kim","ownerUsername":"honggildong","postSlug":"p-mock-2"}"#)
         let readingTime = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH '읽는 시간'")).firstMatch
         XCTAssertTrue(readingTime.waitForExistence(timeout: 15), "좋아요 푸시를 누르면 그 글이 열려야 함")
-        let like = app.buttons["좋아요"].firstMatch
-        XCTAssertTrue(like.waitForExistence(timeout: 8), "푸시로 연 글에도 좋아요·북마크 독이 있어야 함")
-        XCTAssertTrue(like.isHittable, "푸시로 연 글의 독이 화면 안에서 눌려야 함")
+        let like = app.buttons["end.like"]
+        XCTAssertTrue(like.waitForExistence(timeout: 8), "푸시로 연 글에도 좋아요·북마크가 있어야 함")
+        XCTAssertTrue(like.isHittable, "푸시로 연 글의 좋아요가 화면 안에서 눌려야 함")
+        XCTAssertFalse(app.buttons["dock.like"].isHittable, "본문 끝 줄이 보이는 글에 독이 함께 떠 있음")
         shoot("push-like-opens-post")
         app.buttons["뒤로"].firstMatch.tap()
         XCTAssertTrue(app.buttons["모두 읽음"].firstMatch.waitForExistence(timeout: 10), "뒤로 가면 알림함이어야 함")
