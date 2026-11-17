@@ -119,6 +119,36 @@ final class FollowBlockRollbackTests: XCTestCase {
         XCTAssertFalse(store.isBlocked(id: 1))
         XCTAssertEqual(store.blocked.map(\.id), [2])
     }
+
+    func testFailedUnblockIsNotAnnouncedAsDone() async throws {
+        let rows = try blockedRows()
+        var api = BlockStore.API()
+        api.list = { rows }
+        api.unblock = { _ in throw Offline() }
+        let store = BlockStore(api: api)
+        _ = await store.reload()
+
+        let done = await store.unblockAndAnnounce(id: 1, username: "a")
+
+        XCTAssertFalse(done)
+        XCTAssertTrue(store.isBlocked("a"))
+        XCTAssertEqual(ToastCenter.shared.message, String(localized: "해제하지 못했어요"))
+    }
+
+    func testSuccessfulUnblockIsAnnounced() async throws {
+        let rows = try blockedRows()
+        var api = BlockStore.API()
+        api.list = { rows }
+        api.unblock = { _ in }
+        let store = BlockStore(api: api)
+        _ = await store.reload()
+
+        let done = await store.unblockAndAnnounce(id: 1, username: "a")
+
+        XCTAssertTrue(done)
+        XCTAssertFalse(store.isBlocked("a"))
+        XCTAssertEqual(ToastCenter.shared.message, String(localized: "차단을 해제했어요"))
+    }
 }
 
 @MainActor

@@ -71,6 +71,12 @@ final class TabRouter {
         topRequests += 1
     }
 
+    enum ReselectAction: Equatable { case popToRoot, scrollToTop }
+
+    static func reselectAction(pathIsEmpty: Bool) -> ReselectAction {
+        pathIsEmpty ? .scrollToTop : .popToRoot
+    }
+
     func revealPosted(_ note: Note) {
         selection = Self.homeTab
         HomeFeedChoice.shared.revealPosted(note)
@@ -670,6 +676,24 @@ private struct ComposeHarness: View {
             }
         }
         .task { post = try? await WriteAPI.myPosts().first { $0.id == postId } }
+    }
+}
+
+private struct TabReselect: ViewModifier {
+    let tab: Int
+    let action: () -> Void
+    @State private var router = TabRouter.shared
+
+    func body(content: Content) -> some View {
+        content.onChange(of: router.reselections) {
+            if router.reselectedTab == tab { action() }
+        }
+    }
+}
+
+extension View {
+    func onTabReselect(_ tab: Int, perform action: @escaping () -> Void) -> some View {
+        modifier(TabReselect(tab: tab, action: action))
     }
 }
 

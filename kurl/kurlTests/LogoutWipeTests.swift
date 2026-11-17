@@ -81,6 +81,23 @@ final class LogoutWipeTests: XCTestCase {
         assertVaultEmpty(key)
     }
 
+    func testVaultIsEmptyUnlessTheCurrentUserHasUnsavedWriting() {
+        XCTAssertTrue(ComposeRecoveryStore.isEmpty)
+
+        _ = stashAll()
+        XCTAssertFalse(ComposeRecoveryStore.isEmpty)
+
+        owner = 8
+        XCTAssertTrue(ComposeRecoveryStore.isEmpty)
+
+        owner = 7
+        ComposeRecoveryStore.stashConflict(postId: 42, title: "밀려난 내용", markdown: "C")
+        XCTAssertFalse(ComposeRecoveryStore.isEmpty)
+
+        AuthStore.shared.signOut()
+        XCTAssertTrue(ComposeRecoveryStore.isEmpty)
+    }
+
     func testSignOutForgetsWhatAccountsSawOnHomeButKeepsTheDeviceLog() {
         let stamp = Date().timeIntervalSince1970
         let accounts = [HomeSeenLog.storageKey(for: 7), HomeSeenLog.storageKey(for: 8)]

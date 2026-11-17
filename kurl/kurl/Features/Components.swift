@@ -34,6 +34,14 @@ enum LoadState<Value> {
         case .failed: 2
         }
     }
+
+    var isLoaded: Bool {
+        if case .loaded = self { true } else { false }
+    }
+
+    func failing(_ message: String) -> LoadState {
+        isLoaded ? self : .failed(message)
+    }
 }
 
 private struct LoadTransition: ViewModifier {
@@ -609,6 +617,12 @@ extension View {
         padding(inset)
             .contentShape(Rectangle())
             .padding(-inset)
+    }
+
+    /// Menu·PhotosPicker 는 라벨의 contentShape 가 아니라 프레임으로 터치를 받는다 — 라벨 프레임을 키우고 바깥에서 그만큼 되돌린다.
+    func menuHitSlop(horizontal: CGFloat = 0, vertical: CGFloat = 0) -> some View {
+        padding(.horizontal, -horizontal)
+            .padding(.vertical, -vertical)
     }
 }
 

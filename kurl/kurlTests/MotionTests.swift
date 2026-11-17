@@ -30,4 +30,17 @@ final class MotionTests: XCTestCase {
         XCTAssertNotEqual(LoadState<Int>.loading.stage, LoadState<Int>.loaded(1).stage)
         XCTAssertNotEqual(LoadState<Int>.loaded(1).stage, LoadState<Int>.failed("x").stage)
     }
+
+    func testFailedReloadKeepsWhatWasAlreadyLoaded() {
+        guard case .loaded(let kept) = LoadState<Int>.loaded(7).failing("x") else {
+            return XCTFail("보이던 목록이 오류 화면으로 바뀜")
+        }
+        XCTAssertEqual(kept, 7)
+        for first in [LoadState<Int>.idle, .loading, .failed("y")] {
+            guard case .failed(let message) = first.failing("x") else {
+                return XCTFail("첫 로드 실패가 오류로 서지 않음")
+            }
+            XCTAssertEqual(message, "x")
+        }
+    }
 }

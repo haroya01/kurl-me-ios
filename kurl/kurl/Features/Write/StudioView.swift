@@ -23,6 +23,7 @@ struct StudioView: View {
     @State private var filter: HubFilter = .all
     @State private var seriesList: [MySeries] = []
     @State private var seriesLoaded = false
+    @State private var seriesFailed = false
     @State private var composing = false
     @State private var editing: MyPost?
     /// 방금 발행한 글 — 셀레브레이션 "글 보기" 가 에디터를 닫고 여기로 이어 보낸다(라이브 상세).
@@ -550,7 +551,10 @@ struct StudioView: View {
                 .padding(.top, 14)
                 .padding(.bottom, 8)
             Hairline()
-            if seriesLoaded, seriesList.isEmpty {
+            if seriesFailed {
+                ErrorState(retry: { Task { await loadSeries() } })
+                    .padding(.top, 24)
+            } else if seriesLoaded, seriesList.isEmpty {
                 Text("아직 시리즈가 없어요")
                     .typeScale(.body)
                     .foregroundStyle(Palette.secondary)
@@ -591,12 +595,19 @@ struct StudioView: View {
         }
         .task {
             if auth.me == nil { await auth.loadMe() } // 행 링크의 username 용.
-            seriesList = (try? await WriteAPI.mySeries()) ?? []
-            seriesLoaded = true
+            await loadSeries()
         }
-        .refreshable {
-            seriesList = (try? await WriteAPI.mySeries()) ?? seriesList
+        .refreshable { await loadSeries() }
+    }
+
+    private func loadSeries() async {
+        do {
+            seriesList = try await WriteAPI.mySeries()
+            seriesFailed = false
+        } catch {
+            seriesFailed = seriesList.isEmpty
         }
+        seriesLoaded = true
     }
 }
 

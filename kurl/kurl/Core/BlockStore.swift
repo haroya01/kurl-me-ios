@@ -94,6 +94,18 @@ final class BlockStore {
         }
     }
 
+    @discardableResult
+    func unblockAndAnnounce(id: Int64, username: String) async -> Bool {
+        do {
+            try await unblock(id: id, username: username)
+            ToastCenter.shared.show(String(localized: "차단을 해제했어요"))
+            return true
+        } catch {
+            ToastCenter.shared.show(String(localized: "해제하지 못했어요"))
+            return false
+        }
+    }
+
     /// 로그아웃 시 — 다음 사용자가 이전 사용자의 차단 목록을 물려받지 않게.
     func reset() {
         blockedUsernames = []

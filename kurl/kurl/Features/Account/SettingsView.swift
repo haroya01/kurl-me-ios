@@ -11,6 +11,8 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @State private var confirmDelete = false
+    @State private var confirmSignOut = false
+    @State private var signOutLosesDrafts = false
     @State private var deleting = false
     @State private var deleteFailed = false
     /// 옛 글쓰기 화면(마크다운 원문 에디터)으로 되돌리는 복귀 스위치 — 이제 블록 에디터(WriteV2)가
@@ -47,8 +49,8 @@ struct SettingsView: View {
                 .buttonStyle(.plain)
                 Hairline()
                 Button {
-                    auth.signOut()
-                    dismiss()
+                    signOutLosesDrafts = !ComposeRecoveryStore.isEmpty || !DraftFlusher.shared.pendingDraftKeys.isEmpty
+                    confirmSignOut = true
                 } label: {
                     HStack(spacing: 10) {
                         Text("로그아웃")
@@ -424,6 +426,17 @@ struct SettingsView: View {
             Text("글·시리즈·댓글이 모두 삭제 대상이 됩니다.")
                 + Text(verbatim: "\n")
                 + Text("이 동작은 되돌릴 수 없습니다.")
+        }
+        .alert("로그아웃할까요?", isPresented: $confirmSignOut) {
+            Button("로그아웃", role: .destructive) {
+                auth.signOut()
+                dismiss()
+            }
+            Button("취소", role: .cancel) {}
+        } message: {
+            if signOutLosesDrafts {
+                Text("서버에 저장하지 못한 글은 이 기기에서 지워져요.")
+            }
         }
         .alert("탈퇴하지 못했습니다", isPresented: $deleteFailed) {
             Button("확인", role: .cancel) {}
