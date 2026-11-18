@@ -24,19 +24,7 @@ struct AccountView: View {
                     } else if meLoadFailed {
                         VStack(alignment: .leading, spacing: 20) {
                             ErrorState(retry: { Task { await reloadMe() } })
-                            if !OfflineStore.shared.cachedKeys.isEmpty {
-                                NavigationLink {
-                                    BookmarksView()
-                                } label: {
-                                    Text("기기에 저장된 글 보기")
-                                        .typeScale(.body)
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(Palette.ink)
-                                        .expandTapTarget(12)
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityIdentifier("account.offlineCopies")
-                            }
+                            OfflineCopiesLink()
                         }
                         .padding(.horizontal, Metrics.gutter)
                         .padding(.top, 24)

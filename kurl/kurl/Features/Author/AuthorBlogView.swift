@@ -114,6 +114,9 @@ struct AuthorBlogView: View {
                 case .failed(let message):
                     ErrorState(message: message, retry: { Task { await load() } })
                         .padding(.top, 80)
+                    if showsOwnerTools {
+                        OfflineCopiesLink().padding(.top, 20)
+                    }
                 case .loaded(let view):
                     content(view)
                 }
