@@ -615,14 +615,22 @@ enum MockBackend {
                 post("moim.example", "sae", "새벽", 7131,
                      "밤 10시까지면 퇴근하고도 들를 수 있겠다. 이런 소식이 제일 반갑다.\nhttps://news.example/library-night", ago: 900,
                      likes: 15, reposts: 3, replies: 1, card: card),
-                post("byeol.example", "nara", "나라", 7132,
-                     "열람실 자리 싸움은 좀 줄려나. 우리 동네도 해 줬으면 좋겠네\nhttps://news.example/library-night", ago: 2_700,
+                post("byeol.example", "nara", "나라", 7132, "https://news.example/library-night", ago: 2_700,
                      likes: 6, card: card),
                 post("moim.example", "onyu", "온유", 7133,
                      "야간 개방하면 사서 선생님들 근무는 어떻게 되는지도 같이 알려 주면 좋겠다", ago: 4_800, likes: 11, replies: 4),
             ]
         default:
             return []
+        }
+    }
+
+    private static func mockTopicNotes() -> [[String: Any]] {
+        let topics = ["tag:첫눈", "tag:아키텍처", "tag:朝の一枚", "link:https://news.example/library-night"]
+        return topics.flatMap(mockTopicPosts).compactMap { item in
+            guard let number = (item["uri"] as? String)?.split(separator: "/").last.flatMap({ Int64($0) })
+            else { return nil }
+            return storedRemoteView(item, id: number)
         }
     }
 
@@ -1976,7 +1984,7 @@ enum MockBackend {
         if method == "GET", parts.count == 3, parts[0] == "public", parts[1] == "notes",
            let nid = Int64(parts[2]) {
             guard let note = allNotes().first(where: { $0.id == nid }) else {
-                if let remote = (remoteNoteViews(of: 9800) + remoteShapeViews())
+                if let remote = (remoteNoteViews(of: 9800) + remoteShapeViews() + mockTopicNotes())
                     .first(where: { ($0["id"] as? Int64) == nid }) {
                     return json([
                         "note": remote, "parent": NSNull(), "replies": [] as [Any],
@@ -2245,6 +2253,9 @@ enum MockBackend {
         }
         if method == "GET", parts == ["federation", "resolve"] {
             let q = (query?.first(where: { $0.name == "q" })?.value ?? "").trimmingCharacters(in: .whitespaces)
+            if let kept = mockTopicNotes().first(where: { ($0["uri"] as? String) == q }) {
+                return json(["account": NSNull(), "note": kept])
+            }
             let address = q.lowercased().hasPrefix("https://") ? URL(string: q) : nil
             let domain = (address?.host() ?? String(q.split(separator: "@").last ?? "")).lowercased()
             if domain.hasPrefix("down.") {

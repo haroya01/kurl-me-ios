@@ -46,14 +46,22 @@ struct Topic: Hashable, Identifiable {
 
     func meta(locale: Locale = .current) -> String? {
         var parts: [String] = []
-        if case .link(_, _, let source) = subject {
-            parts.append(String(localized: "뉴스"))
-            if let source, !source.isEmpty { parts.append(source) }
+        if case .link(let url, _, let source) = subject {
+            if let source, !source.isEmpty {
+                parts.append(source)
+            } else if let host = Self.host(of: url) {
+                parts.append(host)
+            }
         }
         if !own, let language, let name = locale.localizedString(forLanguageCode: language) {
             parts.append(name)
         }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
+    private static func host(of url: String) -> String? {
+        guard let host = URL(string: url)?.host(), !host.isEmpty else { return nil }
+        return host.hasPrefix("www.") ? String(host.dropFirst(4)) : host
     }
 }
 

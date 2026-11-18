@@ -1313,16 +1313,21 @@ final class TopicTests: XCTestCase {
         XCTAssertEqual(list.items[1].route, .noteLink(url: "https://news.example/a", title: "駅前の喫茶店が閉店"))
     }
 
-    func testARowNamesTheSourceAndOnlyAnotherLanguage() {
-        let news = String(localized: "뉴스")
+    func testARowNamesTheSourceOrTheHostAndOnlyAnotherLanguage() {
         XCTAssertNil(Self.tag("첫눈", own: true).meta(locale: Self.korean))
         XCTAssertEqual(Self.tag("朝の一枚", own: false, language: "ja").meta(locale: Self.korean), "일본어")
         XCTAssertNil(Self.tag("misc", own: false, language: nil).meta(locale: Self.korean))
-        XCTAssertEqual(Self.link("a", source: "새벽일보", own: true).meta(locale: Self.korean), "\(news) · 새벽일보")
-        XCTAssertEqual(Self.link("b", own: true).meta(locale: Self.korean), news)
+        XCTAssertEqual(Self.link("a", source: "새벽일보", own: true).meta(locale: Self.korean), "새벽일보")
+        XCTAssertEqual(Self.link("b", own: true).meta(locale: Self.korean), "news.example")
+        XCTAssertEqual(Self.link("b", source: "", own: true).meta(locale: Self.korean), "news.example")
         XCTAssertEqual(
             Self.link("c", source: "あおぞら新聞", own: false, language: "ja").meta(locale: Self.korean),
-            "\(news) · あおぞら新聞 · 일본어")
+            "あおぞら新聞 · 일본어")
+        XCTAssertEqual(Self.link("e", own: false, language: "ja").meta(locale: Self.korean), "news.example · 일본어")
+        let www = Topic(
+            id: "link:https://www.photos.example/p/1", subject: .link(url: "https://www.photos.example/p/1", title: "사진", source: nil),
+            language: "ko", own: true, people: 4, related: [])
+        XCTAssertEqual(www.meta(locale: Self.korean), "photos.example", "the host stands in without its www.")
         XCTAssertEqual(Self.tag("첫눈", own: true).title, "#첫눈")
         XCTAssertEqual(Self.link("d", title: nil, own: true).title, "https://news.example/d")
     }

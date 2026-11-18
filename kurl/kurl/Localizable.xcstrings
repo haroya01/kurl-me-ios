@@ -18488,34 +18488,6 @@
         }
       }
     },
-    "뉴스": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "News"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "समाचार"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ニュース"
-          }
-        },
-        "vi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tin tức"
-          }
-        }
-      }
-    },
     "뉴스레터": {
       "localizations": {
         "en": {

@@ -281,6 +281,7 @@ struct HighlightThreadSheet: View {
             }
         }
         .environment(\.readerInSheet, true)
+        .environment(\.openNoteRoute) { path.append($0) }
         .modifier(ToastHost())
         .loginPrompt(isPresented: $showLikeLogin, message: "좋아요를 누르려면 로그인하세요")
         .presentationDetents([.large])

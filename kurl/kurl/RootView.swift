@@ -141,6 +141,7 @@ private struct NotificationsSheet: View {
                 .navigationDestination(for: Route.self) { RouteView(route: $0) }
         }
         .environment(\.readerInSheet, true)
+        .environment(\.openNoteRoute) { path.append($0) }
         .onChange(of: TabRouter.shared.pendingPushRoute) { _, route in
             if let route { path = [route] }
         }
@@ -180,18 +181,18 @@ struct RootView: View {
     var body: some View {
         // `--post user/slug`·`--author user`·`--series user/slug` — 검증 진입로(simctl 터치 불가 우회).
         if let link = Config.launchValue(after: "--post").flatMap(PostLink.init(target:)) {
-            NavigationStack {
+            RouteStack {
                 PostDetailView(username: link.username, slug: link.slug)
                     .navigationDestination(for: Route.self) { RouteView(route: $0) }
             }
         } else if let author = Config.launchValue(after: "--author") {
-            NavigationStack {
+            RouteStack {
                 AuthorBlogView(username: author)
                     .navigationDestination(for: Route.self) { RouteView(route: $0) }
             }
         } else if let target = Config.launchValue(after: "--series"),
                   let slash = target.firstIndex(of: "/") {
-            NavigationStack {
+            RouteStack {
                 SeriesDetailView(
                     username: String(target[..<slash]),
                     slug: String(target[target.index(after: slash)...])
@@ -199,7 +200,7 @@ struct RootView: View {
                 .navigationDestination(for: Route.self) { RouteView(route: $0) }
             }
         } else if let tag = Config.launchValue(after: "--tag") {
-            NavigationStack {
+            RouteStack {
                 TagFeedView(tag: tag)
                     .navigationDestination(for: Route.self) { RouteView(route: $0) }
             }
@@ -232,11 +233,11 @@ struct RootView: View {
             DiscoverDeckView()
         } else if Config.launchValue(after: "--screen") == "collections" {
             // 컬렉션 프로토타입 — 계정 탭 안 푸시라 simctl 로 못 띄운다, 검증 진입로.
-            NavigationStack { CollectionsListView() }
+            RouteStack { CollectionsListView() }
         } else if Config.launchValue(after: "--screen") == "collection-detail" {
             // 컬렉션 상세 — 목록 탭으로만 들어가 simctl 로 못 띄운다, 검증 진입로(목 백엔드 id).
             // `--collection <id>` 로 특정 컬렉션(예: PATH 104) 지정, 없으면 101.
-            NavigationStack {
+            RouteStack {
                 CollectionDetailView(
                     collectionId: Int64(Config.launchValue(after: "--collection") ?? "") ?? 101)
                     .navigationDestination(for: Route.self) { RouteView(route: $0) }
@@ -247,7 +248,7 @@ struct RootView: View {
             ConnectHarness()
         } else if Config.launchValue(after: "--screen") == "businesscard" {
             // 명함(/u) 인앱 웹뷰 — 블로그 헤더에서 푸시로만 들어가 simctl 로 못 띄운다 — 검증 진입로.
-            NavigationStack {
+            RouteStack {
                 BusinessCardView(username: Config.launchValue(after: "--author") ?? "kurl")
                     .navigationDestination(for: Route.self) { RouteView(route: $0) }
             }
@@ -256,7 +257,7 @@ struct RootView: View {
             ComposeHarness(postId: id)
         } else if Config.launchValue(after: "--screen") == "highlights" {
             // 내 하이라이트(서재)는 계정 탭 서재 안 푸시라 simctl 로 못 띄운다 — 검증 진입로.
-            NavigationStack {
+            RouteStack {
                 MyHighlightsView()
                     .navigationDestination(for: Route.self) { RouteView(route: $0) }
             }
@@ -314,7 +315,7 @@ struct RootView: View {
             .sensoryFeedback(.success, trigger: notesPosted)
             // 위젯이 가리킨 저장 글 — 현재 탭 위 시트로. 읽기가 끝나면 원래 자리로 그대로 돌아온다.
             .sheet(item: $router.pendingPost) { ref in
-                NavigationStack {
+                RouteStack {
                     PostDetailView(username: ref.username, slug: ref.slug)
                         .navigationDestination(for: Route.self) { RouteView(route: $0) }
                 }

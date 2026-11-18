@@ -35,6 +35,7 @@ struct LinkNotesView: View {
                     .padding(.top, 24)
                 } else {
                     TopicPostRows(model: notes, gutter: Metrics.noteGutter)
+                        .environment(\.linkPageURL, url)
                 }
             }
         }

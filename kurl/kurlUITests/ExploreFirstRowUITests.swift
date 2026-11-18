@@ -33,9 +33,20 @@ final class ExploreFirstRowUITests: XCTestCase {
         let header = app.buttons["linkNotes.open"]
         XCTAssertTrue(header.waitForExistence(timeout: 8), "첫 행 윗부분을 눌렀는데 링크 화면이 안 열림")
         XCTAssertTrue(header.label.contains("동네 도서관"), header.label)
+        let said = post(app, containing: "퇴근하고도 들를 수 있겠다")
+        XCTAssertTrue(said.waitForExistence(timeout: 8), "링크 화면에 이 기사를 이야기하는 다른 서버 글이 없음")
+        let card = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label BEGINSWITH %@", "news.example,")).firstMatch
+        let onlyTheLink = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS %@", "@nara@byeol.example")).firstMatch
+        XCTAssertTrue(card.exists, "링크만 올린 글에 카드가 없음")
+        XCTAssertGreaterThan(card.frame.minY, onlyTheLink.frame.minY, "말을 덧붙인 글이 머리의 링크 카드를 다시 그림")
+
+        said.tap()
+        XCTAssertTrue(app.navigationBars["노트"].waitForExistence(timeout: 8), "링크 화면의 다른 서버 글을 눌렀는데 노트가 안 열림")
         XCTAssertTrue(
-            post(app, containing: "퇴근하고도 들를 수 있겠다").waitForExistence(timeout: 8),
-            "링크 화면에 이 기사를 이야기하는 다른 서버 글이 없음")
+            app.descendants(matching: .any)["note.linkCard.7131"].waitForExistence(timeout: 5),
+            "노트 화면에서는 링크 카드가 보여야 함")
     }
 
     func testOtherLanguageTopicsFollowUnderTheirHeadingAndPopularPostsComeLast() throws {
@@ -90,6 +101,11 @@ final class ExploreFirstRowUITests: XCTestCase {
         let first = post(app, containing: "눈 온다, 진짜로")
         XCTAssertTrue(first.waitForExistence(timeout: 8), "태그 화면에 다른 서버 글이 없음")
         XCTAssertLessThan(related.frame.minY, first.frame.minY, "관련 기사가 글 목록 위에 있지 않음")
+
+        first.tap()
+        XCTAssertTrue(app.navigationBars["노트"].waitForExistence(timeout: 8), "태그 화면의 다른 서버 글을 눌렀는데 노트가 안 열림")
+        app.navigationBars["노트"].buttons.firstMatch.tap()
+        XCTAssertTrue(related.waitForExistence(timeout: 8), "노트에서 돌아왔는데 태그 화면이 아님")
     }
 
     func testWithoutTopicsTheFirstPopularPostOpensItsAuthorFromTheAvatar() throws {
