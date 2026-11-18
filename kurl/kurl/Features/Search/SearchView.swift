@@ -224,6 +224,7 @@ struct SearchView: View {
         ) { lane, active, warm in
             lanePage(lane, active: active, warm: warm)
         }
+        .overlay(alignment: .top) { TopBarBand() }
     }
 
     private func lanePage(_ lane: ExploreLane, active: Bool, warm: Bool) -> some View {
@@ -1090,6 +1091,23 @@ struct SearchView: View {
             guard myGen == generation, !error.isCancellation else { return }
             loadMoreFailed = true
         }
+    }
+}
+
+/// 갈래 스크롤은 위 가장자리 효과를 끄고 쓴다(그 띠가 첫 행의 터치를 먹는다). 터치를 받지 않는 바탕 띠로 대신한다.
+private struct TopBarBand: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            Palette.readingBg
+                .frame(height: 0)
+                .background(Palette.readingBg.ignoresSafeArea(edges: .top))
+            LinearGradient(
+                colors: [Palette.readingBg, Palette.readingBg.opacity(0)], startPoint: .top, endPoint: .bottom
+            )
+            .frame(height: 10)
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 
