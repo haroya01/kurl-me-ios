@@ -40,21 +40,4 @@ final class HomeRemoteTailUITests: XCTestCase {
         XCTAssertFalse(body(9701).exists, "본 다른 서버 글이 홈에 다시 나옴")
         XCTAssertFalse(app.staticTexts["remote.seen"].exists, "홈에 이미 본 글 구분선이 나옴")
     }
-
-    func testExploreOtherServersIsForYouWithoutASwitch() {
-        let app = XCUIApplication()
-        app.launchArguments = ["--mocks", "--tab", "search", "--explore-lane", "remote"]
-        app.launch()
-
-        func row(_ text: String) -> XCUIElement {
-            app.descendants(matching: .any).matching(identifier: "trending.note")
-                .matching(NSPredicate(format: "label CONTAINS %@", text)).firstMatch
-        }
-        let top = row("작은 서버")
-        let later = row("紫陽花")
-        XCTAssertTrue(top.waitForExistence(timeout: 12), "맞춤 첫 글이 없음")
-        XCTAssertTrue(later.waitForExistence(timeout: 5))
-        XCTAssertLessThan(top.frame.minY, later.frame.minY, "맞춤 순서가 아님(최신이면 はな 글이 먼저)")
-        XCTAssertFalse(app.segmentedControls.firstMatch.exists, "다른 서버 칸에 전환이 남아 있음")
-    }
 }

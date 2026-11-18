@@ -466,43 +466,45 @@ enum MockBackend {
         return withDomainBlock(account)
     }
 
+    private static func trendingAuthor(_ acct: String, _ name: String) -> [String: Any] {
+        let pieces = acct.split(separator: "@").map(String.init)
+        let known: Int64? = acct == "mina@mastodon.social" ? 9800 : nil
+        return ["id": known.map { -$0 as Any } ?? NSNull(), "username": acct, "displayName": name,
+                "avatarUrl": NSNull(), "remoteId": known.map { $0 as Any } ?? NSNull(),
+                "url": "https://\(pieces[1])/@\(pieces[0])",
+                "emojis": known == nil ? [] as [Any] : minaNameEmojis]
+    }
+
+    private static func trendingItem(
+        _ uri: String, _ body: String, _ acct: String, _ name: String, ago: TimeInterval,
+        servers: [String], replies: Int = 0, language: String = "ko",
+        extra: [String: Any] = [:]
+    ) -> [String: Any] {
+        var value: [String: Any] = [
+            "uri": uri, "body": body, "createdAt": iso(Date().addingTimeInterval(-ago)),
+            "author": trendingAuthor(acct, name), "media": [] as [Any], "contentWarning": NSNull(),
+            "sensitive": false, "language": language, "likeCount": 120, "repostCount": 40,
+            "replyCount": replies, "poll": NSNull(), "linkPreview": NSNull(),
+            "remote": ["kind": "NOTE", "title": NSNull(), "url": uri, "community": NSNull()] as [String: Any],
+            "servers": servers,
+        ]
+        value.merge(extra) { $1 }
+        return value
+    }
+
     private static func trendingNotes() -> [[String: Any]] {
-        func author(_ acct: String, _ name: String) -> [String: Any] {
-            let pieces = acct.split(separator: "@").map(String.init)
-            let known: Int64? = acct == "mina@mastodon.social" ? 9800 : nil
-            return ["id": known.map { -$0 as Any } ?? NSNull(), "username": acct, "displayName": name,
-                    "avatarUrl": NSNull(), "remoteId": known.map { $0 as Any } ?? NSNull(),
-                    "url": "https://\(pieces[1])/@\(pieces[0])",
-                    "emojis": known == nil ? [] as [Any] : minaNameEmojis]
-        }
-        func item(
-            _ uri: String, _ body: String, _ acct: String, _ name: String, ago: TimeInterval,
-            servers: [String], replies: Int = 0, language: String = "ko",
-            extra: [String: Any] = [:]
-        ) -> [String: Any] {
-            var value: [String: Any] = [
-                "uri": uri, "body": body, "createdAt": iso(Date().addingTimeInterval(-ago)),
-                "author": author(acct, name), "media": [] as [Any], "contentWarning": NSNull(),
-                "sensitive": false, "language": language, "likeCount": 120, "repostCount": 40,
-                "replyCount": replies, "poll": NSNull(), "linkPreview": NSNull(),
-                "remote": ["kind": "NOTE", "title": NSNull(), "url": uri, "community": NSNull()] as [String: Any],
-                "servers": servers,
-            ]
-            value.merge(extra) { $1 }
-            return value
-        }
         return [
-            item("https://mastodon.social/users/mina/statuses/9600", minaBody,
+            trendingItem("https://mastodon.social/users/mina/statuses/9600", minaBody,
                  "mina@mastodon.social", "Mina :verified:", ago: 1_800, servers: ["mastodon.social", "mstdn.jp"],
                  replies: 3, language: "en", extra: ["emojis": minaNoteEmojis]),
-            item("https://mstdn.jp/users/hana/statuses/1131", "今日は朝から雨。駅前の紫陽花がいちばんきれいな季節になった。",
+            trendingItem("https://mstdn.jp/users/hana/statuses/1131", "今日は朝から雨。駅前の紫陽花がいちばんきれいな季節になった。",
                  "hana@mstdn.jp", "はな", ago: 5_400, servers: ["mstdn.jp"], replies: 12, language: "ja",
                  extra: ["media": [["url": mockUploadedImageURL, "altText": "雨に濡れた紫陽花",
                                     "contentType": "image/jpeg", "width": 1200, "height": 800]] as [Any]]),
-            item("https://qdon.space/users/dal/statuses/2201", "어제 본 영화 결말 이야기. 아직 안 본 분은 접어 두세요.",
+            trendingItem("https://qdon.space/users/dal/statuses/2201", "어제 본 영화 결말 이야기. 아직 안 본 분은 접어 두세요.",
                  "dal@qdon.space", "달", ago: 9_000, servers: ["qdon.space", "planet.moe"], replies: 5,
                  extra: ["contentWarning": "영화 결말 있음", "sensitive": true]),
-            item("https://planet.moe/users/jun/statuses/3301", "주말에 가장 오래 하는 일은?",
+            trendingItem("https://planet.moe/users/jun/statuses/3301", "주말에 가장 오래 하는 일은?",
                  "jun@planet.moe", "준", ago: 12_000, servers: ["planet.moe"], replies: 8,
                  extra: [
                     "poll": ["expiresAt": iso(Date().addingTimeInterval(86_400)), "expired": false,
@@ -512,14 +514,140 @@ enum MockBackend {
                     "remote": ["kind": "QUESTION", "title": NSNull(),
                                "url": "https://planet.moe/@jun/3301", "community": NSNull()] as [String: Any],
                  ]),
-            item("https://fedibird.com/users/sora/statuses/4401", "長く使える道具の選び方について書きました。\nhttps://sora.example/tools",
+            trendingItem("https://fedibird.com/users/sora/statuses/4401", "長く使える道具の選び方について書きました。\nhttps://sora.example/tools",
                  "sora@fedibird.com", "そら", ago: 15_000, servers: ["fedibird.com"], replies: 2, language: "ja",
                  extra: ["linkPreview": ["url": "https://sora.example/tools", "title": "長く使える道具",
                                          "description": "十年使った鞄とペンの話", "image": NSNull()] as [String: Any]]),
-            item("https://social.silicon.moe/users/lee/statuses/5501", "작은 서버를 오래 운영하며 배운 것 세 가지.",
+            trendingItem("https://social.silicon.moe/users/lee/statuses/5501", "작은 서버를 오래 운영하며 배운 것 세 가지.",
                  "lee@social.silicon.moe", "이", ago: 20_000, servers: ["social.silicon.moe"], replies: 1),
-            item("https://mastodon.social/users/alice/statuses/6601", "Morning light over the harbour.",
+            trendingItem("https://mastodon.social/users/alice/statuses/6601", "Morning light over the harbour.",
                  "alice@mastodon.social", "Alice", ago: 26_000, servers: ["mastodon.social"], language: "en"),
+        ]
+    }
+
+    private static func mockTopics(reader: String) -> [[String: Any]] {
+        func tag(
+            _ name: String, _ language: String, people: Int, related: [[String: Any]] = []
+        ) -> [String: Any] {
+            ["id": "tag:\(name.lowercased())", "kind": "tag", "tag": name, "url": NSNull(), "title": NSNull(),
+             "source": NSNull(), "image": NSNull(), "language": language, "own": language == reader,
+             "people": people, "servers": ["moim.example", "byeol.example"], "related": related]
+        }
+        func link(_ url: String, _ title: String, _ source: String?, _ language: String, people: Int) -> [String: Any] {
+            ["id": "link:\(url)", "kind": "link", "tag": NSNull(), "url": url, "title": title,
+             "source": source.map { $0 as Any } ?? NSNull(), "image": NSNull(), "language": language,
+             "own": language == reader, "people": people, "servers": ["moim.example"], "related": [] as [Any]]
+        }
+        func article(_ url: String, _ title: String, _ source: String) -> [String: Any] {
+            ["url": url, "title": title, "source": source, "image": NSNull()]
+        }
+        let pool = [
+            link("https://news.example/library-night", "동네 도서관, 다음 달부터 평일 밤 10시까지 연다", "새벽일보", "ko", people: 31),
+            tag("첫눈", "ko", people: 24, related: [
+                article("https://weather.example/first-snow", "주말 중부 내륙에 첫눈 예보, 쌓이는 눈은 1~3cm", "바람날씨"),
+                article("https://walk.example/first-snow-paths", "첫눈 오는 날 걷기 좋은 길 다섯 곳", "동네산책"),
+            ]),
+            link("https://salim.example/lunch-price", "편의점 도시락 값 또 올랐다, 직장인 점심 평균 만 원 넘어", "오늘의 살림", "ko", people: 18),
+            tag("아키텍처", "ko", people: 9),
+            link("https://read.example/short-stories", "퇴근길 버스에서 읽기 좋은 단편 일곱 편", nil, "ko", people: 7),
+            link("https://dongne.example/flea-market", "주말 플리마켓, 비가 와도 실내에서 연다", "동네소식", "ko", people: 5),
+            tag("朝の一枚", "ja", people: 58),
+            link("https://aozora.example/kissaten", "駅前の喫茶店、来月で六十年の営業に幕", "あおぞら新聞", "ja", people: 41),
+            link("https://machikado.example/illumination", "商店街のイルミネーション、今年は点灯を一時間早めます", "まちかど通信", "ja", people: 22),
+            tag("読書メモ", "ja", people: 15),
+            link("https://kurashi.example/ketsuro", "冬の朝、窓の結露を減らす三つの方法", nil, "ja", people: 6),
+            link("https://harborpost.example/library-hours", "City library will stay open until midnight during exam weeks", "Harbor Post", "en", people: 19),
+            tag("smallweb", "en", people: 12),
+            link("https://weeklybyte.example/tiny-server", "A reader's guide to running your own tiny server", "The Weekly Byte", "en", people: 8),
+        ]
+        return pool.sorted { lhs, rhs in
+            let (lo, ro) = ((lhs["own"] as? Bool) == true, (rhs["own"] as? Bool) == true)
+            if lo != ro { return lo }
+            let (lp, rp) = ((lhs["people"] as? Int) ?? 0, (rhs["people"] as? Int) ?? 0)
+            if lp != rp { return lp > rp }
+            return ((lhs["id"] as? String) ?? "") < ((rhs["id"] as? String) ?? "")
+        }
+    }
+
+    private static func mockTopicPosts(_ id: String) -> [[String: Any]] {
+        func post(
+            _ host: String, _ user: String, _ name: String, _ number: Int, _ body: String, ago: TimeInterval,
+            likes: Int, reposts: Int = 0, replies: Int = 0, language: String = "ko", card: [String: Any]? = nil
+        ) -> [String: Any] {
+            trendingItem(
+                "https://\(host)/users/\(user)/statuses/\(number)", body, "\(user)@\(host)", name, ago: ago,
+                servers: [host], replies: replies, language: language,
+                extra: ["likeCount": likes, "repostCount": reposts, "linkPreview": card.map { $0 as Any } ?? NSNull()])
+        }
+        switch id {
+        case "tag:첫눈":
+            return [
+                post("moim.example", "bom", "봄", 7101, "창밖 보다가 소리 질렀다. 눈 온다, 진짜로. #첫눈", ago: 540,
+                     likes: 23, reposts: 4, replies: 2),
+                post("byeol.example", "nuri", "누리", 7102, "첫눈 오면 보자던 사람은 연락이 없고 나는 붕어빵 줄에 서 있다 #첫눈",
+                     ago: 1_900, likes: 61, reposts: 17, replies: 5),
+                post("moim.example", "dam", "담", 7103, "출근길 눈은 낭만이 아니라 재난인데, 그래도 사진은 찍었다. #첫눈", ago: 3_300,
+                     likes: 12),
+                post("byeol.example", "gyeol", "결", 7104, "강아지가 눈을 처음 봐서 현관에서 십 분째 얼어 있음 #첫눈", ago: 5_200,
+                     likes: 88, reposts: 30, replies: 9),
+            ]
+        case "tag:아키텍처":
+            return [
+                post("moim.example", "sol", "솔", 7111,
+                     "포트와 어댑터를 화이트보드에 그리면 다들 끄덕이는데 코드로 옮기면 왜 사람마다 다르게 나올까 #아키텍처", ago: 2_600,
+                     likes: 9, reposts: 2, replies: 1),
+                post("byeol.example", "haru", "하루", 7112, "계층 나누다 하루가 갔다. 내일의 내가 고마워하길. #아키텍처", ago: 6_000,
+                     likes: 4),
+            ]
+        case "tag:朝の一枚":
+            return [
+                post("asa.example", "kiri", "きり", 7121, "駅までの道、今朝は霧で真っ白だった #朝の一枚", ago: 1_200,
+                     likes: 34, reposts: 6, language: "ja"),
+                post("asa.example", "mugi", "むぎ", 7122, "ベランダの朝顔、十一月なのにまだ咲いてる #朝の一枚", ago: 4_000,
+                     likes: 19, replies: 3, language: "ja"),
+            ]
+        case "link:https://news.example/library-night":
+            let card: [String: Any] = [
+                "url": "https://news.example/library-night", "title": "동네 도서관, 다음 달부터 평일 밤 10시까지 연다",
+                "description": NSNull(), "image": NSNull(),
+            ]
+            return [
+                post("moim.example", "sae", "새벽", 7131,
+                     "밤 10시까지면 퇴근하고도 들를 수 있겠다. 이런 소식이 제일 반갑다.\nhttps://news.example/library-night", ago: 900,
+                     likes: 15, reposts: 3, replies: 1, card: card),
+                post("byeol.example", "nara", "나라", 7132,
+                     "열람실 자리 싸움은 좀 줄려나. 우리 동네도 해 줬으면 좋겠네\nhttps://news.example/library-night", ago: 2_700,
+                     likes: 6, card: card),
+                post("moim.example", "onyu", "온유", 7133,
+                     "야간 개방하면 사서 선생님들 근무는 어떻게 되는지도 같이 알려 주면 좋겠다", ago: 4_800, likes: 11, replies: 4),
+            ]
+        default:
+            return []
+        }
+    }
+
+    private static func mockTopicPage(_ query: [URLQueryItem]?, reader: String) -> [String: Any] {
+        func value(_ name: String) -> String? { query?.first(where: { $0.name == name })?.value }
+        let tag = value("tag")
+        let id = tag.map { "tag:\($0.lowercased())" } ?? "link:\(value("url") ?? "")"
+        let topic = Config.launchValue(after: "--mock-topics") == nil
+            ? mockTopics(reader: reader).first { ($0["id"] as? String) == id } : nil
+        let kept: [MockNote]
+        if let tag {
+            kept = allNotes().filter { $0.body.lowercased().contains("#" + tag.lowercased()) }
+        } else {
+            kept = topic == nil ? Array(allNotes().filter { $0.visibility == "public" }.prefix(2)) : []
+        }
+        let merged = (kept.map(noteView) + (topic == nil ? [] : mockTopicPosts(id))).sorted {
+            (($0["createdAt"] as? String) ?? "") > (($1["createdAt"] as? String) ?? "")
+        }
+        let limit = min(max(value("limit").flatMap(Int.init) ?? 20, 1), 40)
+        let offset = value("cursor").flatMap { Int($0.dropFirst()) } ?? 0
+        let more = offset + limit < merged.count
+        return [
+            "topic": topic.map { $0 as Any } ?? NSNull(),
+            "items": Array(merged.dropFirst(offset).prefix(limit)),
+            "next": more ? "t\(offset + limit)" as Any : NSNull(),
         ]
     }
 
@@ -1580,13 +1708,6 @@ enum MockBackend {
             if method == "PUT" { bookmarkedNotes.insert(nid, at: 0) }
             return json(["bookmarked": method == "PUT"])
         }
-        if method == "GET", parts == ["public", "notes", "trending-tags"] {
-            return json([
-                ["tag": "아키텍처", "accounts": 4, "uses": 9, "history": [0, 1, 1, 2, 1, 2, 2]],
-                ["tag": "산책", "accounts": 3, "uses": 5, "history": [1, 0, 0, 1, 0, 1, 2]],
-                ["tag": "kurl", "accounts": 2, "uses": 2, "history": [0, 0, 0, 0, 0, 1, 1]],
-            ])
-        }
         if method == "GET", parts == ["public", "notes", "trending-links"] {
             return json([
                 ["url": "https://example.com/slow-web", "title": "느린 웹을 위한 변론", "description": NSNull(),
@@ -1594,10 +1715,6 @@ enum MockBackend {
                 ["url": "https://blog.example.org/hexagonal", "title": "Hexagonal, three years in", "description": NSNull(),
                  "imageUrl": NSNull(), "accounts": 2, "uses": 2, "history": [0, 0, 0, 0, 1, 0, 1]],
             ])
-        }
-        if method == "GET", parts == ["public", "notes", "links"] {
-            let hits = Array(allNotes().filter { $0.visibility == "public" }.prefix(2)).map(noteView)
-            return json(["items": hits, "page": 0, "hasNext": false])
         }
         if method == "GET", parts == ["public", "notes", "search"] {
             let q = (query?.first(where: { $0.name == "q" })?.value ?? "").lowercased()
@@ -1609,11 +1726,6 @@ enum MockBackend {
                 ? []
                 : remoteNoteViews(of: 9800).filter { (($0["body"] as? String) ?? "").lowercased().contains(q) }
             return json(["items": hits.map(noteView) + remote, "page": 0, "hasNext": false])
-        }
-        if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "notes", parts[2] == "tags" {
-            let needle = "#" + parts[3].lowercased()
-            let items = allNotes().filter { $0.body.lowercased().contains(needle) }.map(noteView)
-            return json(["items": items, "page": 0, "hasNext": false])
         }
         if method == "GET", parts.count == 4, parts[0] == "public", parts[1] == "notes", parts[3] == "posts",
            let nid = Int64(parts[2]) {
@@ -2054,6 +2166,19 @@ enum MockBackend {
                     + remoteShapeViews().filter { remoteHeard(remoteAuthorId($0) ?? 0) }
                 return json(["items": kept, "next": NSNull()])
             }
+        }
+        if method == "GET", parts == ["federation", "topics"] {
+            switch Config.launchValue(after: "--mock-topics") {
+            case "empty": return json(["items": [] as [Any]])
+            case "fail": throw APIError.server(status: 503, code: nil, detail: "topics unavailable")
+            default:
+                let limit = min(max(query?.first(where: { $0.name == "limit" })?.value.flatMap(Int.init) ?? 20, 1), 40)
+                let reader = headers["Accept-Language"] ?? "ko"
+                return json(["items": Array(mockTopics(reader: reader).prefix(limit))])
+            }
+        }
+        if method == "GET", parts == ["federation", "topics", "posts"] {
+            return json(mockTopicPage(query, reader: headers["Accept-Language"] ?? "ko"))
         }
         if method == "GET", parts == ["federation", "for-you"] {
             let pool = trendingNotes()

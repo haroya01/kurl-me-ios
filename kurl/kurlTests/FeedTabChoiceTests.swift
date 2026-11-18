@@ -83,13 +83,12 @@ final class FeedTabChoiceTests: XCTestCase {
                 XCTAssertTrue(SwipePagerMount.mounted(tab, selection: .forYou, onlySelectionAtRest: false, moving: moving))
             }
         }
-        XCTAssertEqual(ExploreLane.allCases, [.picks, .remote, .people])
-        XCTAssertEqual(ExploreLane.picks.label, String(localized: "발견"))
-        XCTAssertEqual(ExploreLane.picks.rawValue, "picks")
-        XCTAssertTrue(SwipePagerMount.mounted(ExploreLane.picks, selection: .picks, onlySelectionAtRest: true, moving: false))
-        XCTAssertFalse(SwipePagerMount.mounted(ExploreLane.remote, selection: .picks, onlySelectionAtRest: true, moving: false))
-        XCTAssertFalse(SwipePagerMount.mounted(ExploreLane.people, selection: .picks, onlySelectionAtRest: true, moving: false))
-        XCTAssertTrue(SwipePagerMount.mounted(ExploreLane.remote, selection: .picks, onlySelectionAtRest: true, moving: true))
+        XCTAssertEqual(ExploreLane.allCases, [.trends, .people])
+        XCTAssertEqual(ExploreLane.trends.label, String(localized: "트렌드"))
+        XCTAssertEqual(ExploreLane.trends.rawValue, "trends")
+        XCTAssertTrue(SwipePagerMount.mounted(ExploreLane.trends, selection: .trends, onlySelectionAtRest: true, moving: false))
+        XCTAssertFalse(SwipePagerMount.mounted(ExploreLane.people, selection: .trends, onlySelectionAtRest: true, moving: false))
+        XCTAssertTrue(SwipePagerMount.mounted(ExploreLane.people, selection: .trends, onlySelectionAtRest: true, moving: true))
     }
 
     func testALockedPagerSwallowsSidewaysDragsButNotInnerStripsOrVerticalScroll() {
