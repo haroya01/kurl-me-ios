@@ -34,8 +34,10 @@ final class RoomQuoteUITests: XCTestCase {
     }
 
     private func post(_ app: XCUIApplication) {
-        app.buttons["noteCompose.post"].tap()
+        let button = app.buttons["noteCompose.post"]
+        button.tap()
         XCTAssertFalse(app.alerts.firstMatch.waitForExistence(timeout: 2), "방 노트에 다른 서버로 전해진다는 안내가 뜸")
+        XCTAssertTrue(button.waitForNonExistence(timeout: 8), "올린 뒤 작성기가 닫히지 않음")
     }
 
     func testARoomNoteIsQuotedInsideItsRoom() {
@@ -103,6 +105,8 @@ final class RoomQuoteUITests: XCTestCase {
         let destination = app.buttons["noteCompose.destination"]
         XCTAssertTrue(destination.waitForExistence(timeout: 6), "공개 노트 인용이 올릴 곳을 고르게 하지 않음")
         XCTAssertTrue(destination.label.contains("내 노트"), "올릴 곳 기본값이 내 노트가 아님: \(destination.label)")
+        XCTAssertGreaterThanOrEqual(
+            destination.frame.height, app.buttons["취소"].firstMatch.frame.height, "올릴 곳 고르기의 터치 영역이 옆 버튼보다 낮음")
         XCTAssertTrue(app.buttons["noteCompose.visibility"].exists, "내 노트로 올리는데 공개 범위가 없음")
         attach("public-note-quote-sheet")
 
@@ -121,7 +125,6 @@ final class RoomQuoteUITests: XCTestCase {
         attach("public-note-quote-into-a-room")
         post(app)
 
-        XCTAssertTrue(repost.waitForExistence(timeout: 8), "올린 뒤 홈으로 돌아오지 않음")
         XCTAssertFalse(text(app, containing: "uitest into room").exists, "방에 올린 인용이 홈 목록에 끼어듦")
 
         app.buttons["방"].firstMatch.tap()
@@ -157,8 +160,15 @@ final class RoomQuoteUITests: XCTestCase {
         post(app)
 
         let notes = app.buttons["discussion.notes"]
-        if !notes.waitForExistence(timeout: 3) { app.swipeUp() }
-        XCTAssertTrue(notes.waitForExistence(timeout: 8), "방 안에서 한 인용이 글의 노트 탭에 들지 않음")
+        let window = app.windows.firstMatch.frame
+        for _ in 0..<6 where !notes.waitForExistence(timeout: 2) || notes.frame.midY > window.height * 0.7 {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7))
+                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.4)))
+        }
+        XCTAssertTrue(notes.waitForExistence(timeout: 4), "방 안에서 한 인용이 글의 노트 탭에 들지 않음")
+        XCTAssertEqual(notes.label, "노트 1")
+        notes.tap()
+        XCTAssertTrue(app.buttons["note.quotedPost.8801"].waitForExistence(timeout: 4), "노트 탭에 방금 올린 인용이 없음")
         attach("room-post-notes-tab")
     }
 

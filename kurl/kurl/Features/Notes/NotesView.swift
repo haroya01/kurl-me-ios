@@ -2352,6 +2352,8 @@ struct NoteComposeSheet: View {
                 .typeScale(.note)
                 .fontWeight(.semibold)
                 .foregroundStyle(Palette.ink)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
             }
             .accessibilityIdentifier("noteCompose.destination")
         }
