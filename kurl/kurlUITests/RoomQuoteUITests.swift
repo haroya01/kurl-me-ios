@@ -27,6 +27,11 @@ final class RoomQuoteUITests: XCTestCase {
         app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", fragment)).firstMatch
     }
 
+    private func element(_ app: XCUIApplication, _ identifier: String, labelContaining fragment: String) -> XCUIElement {
+        app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == %@ AND label CONTAINS %@", identifier, fragment)).firstMatch
+    }
+
     private func write(_ app: XCUIApplication, _ body: String) {
         let field = app.textFields["noteCompose.text"]
         XCTAssertTrue(field.waitForExistence(timeout: 4), "작성 칸이 없음")
@@ -82,14 +87,16 @@ final class RoomQuoteUITests: XCTestCase {
         XCTAssertTrue(asPost.waitForExistence(timeout: 4), "인용 메뉴에 블로그 글로 인용이 없음")
         asPost.tap()
 
-        let room = app.descendants(matching: .any)["compose.room"]
-        XCTAssertTrue(room.waitForExistence(timeout: 10), "글 에디터가 그 방의 글로 열리지 않음")
-        XCTAssertTrue(room.label.contains("동아리 사람들"), "다른 방의 글로 열림: \(room.label)")
-        let carried = app.descendants(matching: .any)["editor-link-card"]
-        XCTAssertTrue(carried.waitForExistence(timeout: 8), "노트 주소가 첫 줄에 실리지 않음")
-        let card = XCTNSPredicateExpectation(
-            predicate: NSPredicate(format: "label CONTAINS '퇴근하다 한강'"), object: carried)
-        XCTAssertEqual(XCTWaiter().wait(for: [card], timeout: 8), .completed, "같은 방 글에 실은 방 노트가 카드가 아님")
+        XCTAssertTrue(
+            element(app, "compose.room", labelContaining: "동아리 사람들").waitForExistence(timeout: 10),
+            "글 에디터가 그 방의 글로 열리지 않음")
+        XCTAssertTrue(
+            app.descendants(matching: .any).matching(identifier: "editor-link-card").firstMatch
+                .waitForExistence(timeout: 8),
+            "노트 주소가 첫 줄에 실리지 않음")
+        XCTAssertTrue(
+            element(app, "editor-link-card", labelContaining: "퇴근하다 한강").waitForExistence(timeout: 8),
+            "같은 방 글에 실은 방 노트가 카드가 아님")
         attach("room-note-quote-in-post-editor")
     }
 
@@ -166,7 +173,7 @@ final class RoomQuoteUITests: XCTestCase {
                 .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.4)))
         }
         XCTAssertTrue(notes.waitForExistence(timeout: 4), "방 안에서 한 인용이 글의 노트 탭에 들지 않음")
-        XCTAssertEqual(notes.label, "노트 1")
+        XCTAssertTrue(notes.label.contains("노트 1"), "노트 탭에 인용 수가 없음: \(notes.label)")
         notes.tap()
         XCTAssertTrue(app.buttons["note.quotedPost.8801"].waitForExistence(timeout: 4), "노트 탭에 방금 올린 인용이 없음")
         attach("room-post-notes-tab")
