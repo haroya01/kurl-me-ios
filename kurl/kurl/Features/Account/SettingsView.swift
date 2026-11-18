@@ -167,7 +167,7 @@ struct SettingsView: View {
                         Text("옛 글쓰기 화면")
                             .typeScale(.body)
                             .foregroundStyle(Palette.ink)
-                        Text("마크다운 문법을 직접 쓰던 화면으로 돌아갑니다.")
+                        Text("마크다운 문법을 직접 쓰던 화면으로 돌아가요.")
                             .typeScale(.footnote)
                             .foregroundStyle(Palette.secondary)
                     }
@@ -423,9 +423,9 @@ struct SettingsView: View {
             Button("탈퇴", role: .destructive) { deleteAccount() }
             Button("취소", role: .cancel) {}
         } message: {
-            Text("글·시리즈·댓글이 모두 삭제 대상이 됩니다.")
+            Text("글·시리즈·댓글이 모두 삭제 대상이 돼요.")
                 + Text(verbatim: "\n")
-                + Text("이 동작은 되돌릴 수 없습니다.")
+                + Text("이 동작은 되돌릴 수 없어요.")
         }
         .alert("로그아웃할까요?", isPresented: $confirmSignOut) {
             Button("로그아웃", role: .destructive) {
@@ -438,7 +438,7 @@ struct SettingsView: View {
                 Text("서버에 저장하지 못한 글은 이 기기에서 지워져요.")
             }
         }
-        .alert("탈퇴하지 못했습니다", isPresented: $deleteFailed) {
+        .alert("탈퇴하지 못했어요", isPresented: $deleteFailed) {
             Button("확인", role: .cancel) {}
         } message: {
             Text("잠시 후 다시 시도해 주세요.")
@@ -505,7 +505,7 @@ struct SettingsView: View {
                 try await AuthAPI.deleteAccount()
                 auth.signOut()
                 // 토스트는 루트(ToastHost)에 떠 dismiss 뒤에도 살아남는다 — 화면이 사라져 무피드백이던 자리.
-                ToastCenter.shared.show(String(localized: "계정을 삭제했습니다"))
+                ToastCenter.shared.show(String(localized: "계정을 삭제했어요"))
                 dismiss()
             } catch {
                 deleteFailed = true

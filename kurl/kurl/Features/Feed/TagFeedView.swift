@@ -218,7 +218,7 @@ struct TagFeedView: View {
             phase = .loaded(result.items)
         } catch {
             if case .loaded = phase {
-                ToastCenter.shared.show(String(localized: "새로고침하지 못했습니다"))
+                ToastCenter.shared.show(String(localized: "새로고침하지 못했어요"))
             } else {
                 phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
             }

@@ -122,7 +122,7 @@ struct SeriesDetailView: View {
             phase = .loaded(fresh)
         } catch {
             // 재로드 실패는 화면을 갈아엎지 않는다 — 기존 상세를 그대로 두고 조용히 넘어간다.
-            ToastCenter.shared.show(String(localized: "새로고침하지 못했습니다"))
+            ToastCenter.shared.show(String(localized: "새로고침하지 못했어요"))
         }
     }
 
@@ -132,7 +132,7 @@ struct SeriesDetailView: View {
             try await WriteAPI.deleteSeries(id: detail.series.id)
             dismiss()
         } catch {
-            ToastCenter.shared.show(String(localized: "시리즈를 삭제하지 못했습니다"))
+            ToastCenter.shared.show(String(localized: "시리즈를 삭제하지 못했어요"))
         }
     }
 

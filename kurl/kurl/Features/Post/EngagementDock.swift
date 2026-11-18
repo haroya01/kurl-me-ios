@@ -208,7 +208,7 @@ struct EngagementDock: View {
     }
 
     private func toggleBookmark() {
-        interact(failure: String(localized: "북마크를 반영하지 못했습니다"), login: "북마크하려면 로그인하세요") {
+        interact(failure: String(localized: "북마크를 반영하지 못했어요"), login: "북마크하려면 로그인하세요") {
             try await model.toggleBookmark()
         }
     }

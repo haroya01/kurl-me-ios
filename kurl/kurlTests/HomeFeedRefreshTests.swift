@@ -72,7 +72,7 @@ final class HomeFeedRefreshTests: XCTestCase {
         await model.reload()
 
         await model.refresh()
-        XCTAssertEqual(said, [String(localized: "새로고침하지 못했습니다")])
+        XCTAssertEqual(said, [String(localized: "새로고침하지 못했어요")])
         XCTAssertEqual(model.items.map(\.id), ["post-2", "post-1"], "a failed pull keeps the rows")
 
         answer = .success(HomeFeedBatch(items: [], next: nil, newest: "0.2", gap: false))

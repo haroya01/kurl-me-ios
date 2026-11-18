@@ -129,10 +129,10 @@ struct EditSeriesSheet: View {
             if case .http(let status) = error, status == 409 {
                 ToastCenter.shared.show(String(localized: "이미 쓰고 있는 주소예요"))
             } else {
-                ToastCenter.shared.show(String(localized: "수정하지 못했습니다"))
+                ToastCenter.shared.show(String(localized: "수정하지 못했어요"))
             }
         } catch {
-            ToastCenter.shared.show(String(localized: "수정하지 못했습니다"))
+            ToastCenter.shared.show(String(localized: "수정하지 못했어요"))
         }
     }
 }

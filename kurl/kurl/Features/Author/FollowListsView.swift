@@ -339,7 +339,7 @@ private struct RowFollowToggle: View {
                 following = status.following
             } catch {
                 following = !target
-                ToastCenter.shared.show(String(localized: "팔로우를 반영하지 못했습니다"))
+                ToastCenter.shared.show(String(localized: "팔로우를 반영하지 못했어요"))
             }
         }
     }

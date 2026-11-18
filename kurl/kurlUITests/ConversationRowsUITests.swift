@@ -263,7 +263,7 @@ final class ConversationRowsUITests: XCTestCase {
         XCTAssertFalse(app.buttons["차단"].exists, "로그아웃 ⋯ 에 차단이 보임")
         report.tap()
         XCTAssertTrue(
-            app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH '이 답글을 신고합니다'")).firstMatch
+            app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH '이 답글을 신고해요'")).firstMatch
                 .waitForExistence(timeout: 6),
             "답글 신고 시트가 안 뜸")
         attach("highlight-reply-report")

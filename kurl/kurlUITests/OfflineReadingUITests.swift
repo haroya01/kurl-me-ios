@@ -40,7 +40,7 @@ final class OfflineReadingUITests: XCTestCase {
         app.launchArguments = ["--offline", "--post", "offline-fixture/never-cached"]
         app.launch()
 
-        let failed = app.staticTexts["불러오지 못했습니다"].firstMatch
+        let failed = app.staticTexts["불러오지 못했어요"].firstMatch
         XCTAssertTrue(failed.waitForExistence(timeout: 10), "오프라인 실패 상태가 안 보임")
     }
 }

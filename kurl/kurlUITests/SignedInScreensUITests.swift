@@ -146,7 +146,7 @@ final class SignedInScreensUITests: XCTestCase {
         XCTAssertEqual(newPost.value as? String, "1", "탭 후에도 새 글 토글이 on 으로 뒤집히지 않음")
         // 목 PUT 은 항상 성공하므로 되돌림 토스트가 떠선 안 된다 — 거짓 성공(값만 바뀌고 저장 실패)을 배제.
         XCTAssertFalse(
-            app.staticTexts["설정을 저장하지 못했습니다"].exists,
+            app.staticTexts["설정을 저장하지 못했어요"].exists,
             "저장 성공인데 되돌림 토스트가 떴음(거짓 성공)")
         shoot("notification-preferences-toggled")
     }

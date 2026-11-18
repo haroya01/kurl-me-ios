@@ -45,7 +45,7 @@ struct NoteListsView: View {
                         Button(role: .destructive) {
                             Task { try? await store.delete(list) }
                         } label: {
-                            Label("지우기", systemImage: "trash")
+                            Label("삭제", systemImage: "trash")
                         }
                         Button {
                             renameTitle = list.title
@@ -57,7 +57,7 @@ struct NoteListsView: View {
                     .accessibilityIdentifier("noteList.row.\(list.id)")
                 }
             } footer: {
-                Text("리스트는 나만 봐요. 담은 사람의 노트만 모아 노트 탭 메뉴에서 볼 수 있어요.")
+                Text("리스트는 나만 봐요. 담은 사람의 노트만 모아 서재에서 볼 수 있어요.")
             }
             Section("새 리스트") {
                 HStack {

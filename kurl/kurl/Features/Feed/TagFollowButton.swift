@@ -63,7 +63,7 @@ struct TagFollowButton: View {
         }
         Task {
             do { try await model.toggle() }
-            catch { ToastCenter.shared.show(String(localized: "구독을 반영하지 못했습니다")) }
+            catch { ToastCenter.shared.show(String(localized: "구독을 반영하지 못했어요")) }
         }
     }
 
@@ -76,10 +76,10 @@ struct TagFollowButton: View {
             do {
                 try await model.toggleHidden()
                 ToastCenter.shared.show(model.hidden
-                    ? String(localized: "이 태그를 숨겼습니다")
-                    : String(localized: "숨김을 해제했습니다"))
+                    ? String(localized: "이 태그를 숨겼어요")
+                    : String(localized: "숨김을 해제했어요"))
             } catch {
-                ToastCenter.shared.show(String(localized: "반영하지 못했습니다"))
+                ToastCenter.shared.show(String(localized: "반영하지 못했어요"))
             }
         }
     }

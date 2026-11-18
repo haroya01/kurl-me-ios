@@ -366,7 +366,7 @@ struct SubscribedTagsView: View {
                         tags.insert(tag, at: min(index ?? tags.count, tags.count))
                     }
                 }
-                ToastCenter.shared.show(String(localized: "구독 해제를 반영하지 못했습니다"))
+                ToastCenter.shared.show(String(localized: "구독 해제를 반영하지 못했어요"))
             }
         }
     }

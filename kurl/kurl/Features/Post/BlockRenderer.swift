@@ -762,7 +762,7 @@ private struct ImageBlockView: View {
                 .contentShape(Rectangle())
                 .onTapGesture { showLightbox = true }
                 .accessibilityAddTraits(.isButton)
-                .accessibilityHint(Text("두 번 탭하면 크게 봅니다"))
+                .accessibilityHint(Text("두 번 탭하면 크게 봐요"))
                 .fullScreenCover(isPresented: $showLightbox) {
                     MediaViewer(items: [
                         ViewerItem(

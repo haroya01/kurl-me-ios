@@ -72,7 +72,7 @@ struct AddNoteToSeriesSheet: View {
         do {
             series = try await WriteAPI.mySeries()
         } catch {
-            ToastCenter.shared.show(String(localized: "시리즈를 불러오지 못했습니다"))
+            ToastCenter.shared.show(String(localized: "시리즈를 불러오지 못했어요"))
         }
         loading = false
     }
@@ -85,7 +85,7 @@ struct AddNoteToSeriesSheet: View {
             ToastCenter.shared.show(String(localized: "‘\(item.title)’에 넣었어요"))
             dismiss()
         } catch {
-            ToastCenter.shared.show(String(localized: "시리즈에 넣지 못했습니다"))
+            ToastCenter.shared.show(String(localized: "시리즈에 넣지 못했어요"))
         }
     }
 
@@ -104,7 +104,7 @@ struct AddNoteToSeriesSheet: View {
             ToastCenter.shared.show(String(localized: "‘\(created.title)’에 넣었어요"))
             dismiss()
         } catch {
-            ToastCenter.shared.show(String(localized: "시리즈에 넣지 못했습니다"))
+            ToastCenter.shared.show(String(localized: "시리즈에 넣지 못했어요"))
         }
     }
 }

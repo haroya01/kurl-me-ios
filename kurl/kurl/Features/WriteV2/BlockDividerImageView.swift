@@ -159,7 +159,7 @@ struct BlockImageView: View {
                 Label("삭제", systemImage: "trash").labelStyle(.titleAndIcon)
             }
             .foregroundStyle(Palette.secondary)
-            .accessibilityHint(Text("이 이미지를 지웁니다"))
+            .accessibilityHint(Text("이 이미지를 삭제해요"))
         }
         .font(.system(size: 13, weight: .medium))
     }

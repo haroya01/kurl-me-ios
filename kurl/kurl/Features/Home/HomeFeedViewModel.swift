@@ -86,7 +86,7 @@ final class HomeFeedViewModel {
         guard let outcome else { return }
         if case .failed = phase { return }
         guard outcome.added == 0, !outcome.empty else { return }
-        notify(outcome.failed ? String(localized: "새로고침하지 못했습니다") : String(localized: "새 글이 없어요"))
+        notify(outcome.failed ? String(localized: "새로고침하지 못했어요") : String(localized: "새 글이 없어요"))
     }
 
     @discardableResult
@@ -170,7 +170,7 @@ final class HomeFeedViewModel {
             if items.isEmpty {
                 phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
             } else if announcesFailure {
-                ToastCenter.shared.show(String(localized: "새로고침하지 못했습니다"))
+                ToastCenter.shared.show(String(localized: "새로고침하지 못했어요"))
             }
             return false
         }

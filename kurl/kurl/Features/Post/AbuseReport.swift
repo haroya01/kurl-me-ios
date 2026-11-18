@@ -49,7 +49,7 @@ extension View {
             }
             Button("취소", role: .cancel) {}
         } message: {
-            Text("차단하면 이 사용자의 글·댓글·노트가 더는 보이지 않습니다.")
+            Text("차단하면 이 사용자의 글·댓글·노트가 더는 보이지 않아요.")
         }
     }
 
@@ -118,7 +118,7 @@ struct ReportReasonSheet: View {
             Text("신고 사유를 선택하세요")
                 .font(.system(size: titleSize, weight: .bold))
                 .foregroundStyle(Palette.ink)
-            Text("\(noun) 신고합니다. 검토 후 조치됩니다.")
+            Text("\(noun) 신고해요. 검토 후 조치돼요.")
                 .typeScale(.footnote)
                 .foregroundStyle(Palette.secondary)
                 .padding(.top, 6)
@@ -252,7 +252,7 @@ struct ReportReasonSheet: View {
                 try await InteractionsAPI.report(
                     subjectType: subjectType, subjectId: subjectId,
                     reasonCode: reasonCode, detail: detail, forward: forwardDomain != nil && forward)
-                ToastCenter.shared.show(String(localized: "신고가 접수되었습니다"))
+                ToastCenter.shared.show(String(localized: "신고가 접수됐어요"))
                 dismiss()
             } catch {
                 // 시트를 유지 — 사유·서술이 그대로 남아 바로 재시도할 수 있다.

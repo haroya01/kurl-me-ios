@@ -17,9 +17,9 @@ enum AuthError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .cancelled: return nil
-        case .provider: return String(localized: "로그인에 실패했습니다. 다시 시도해 주세요.")
-        case .malformedCallback: return String(localized: "로그인 응답을 처리하지 못했습니다.")
-        case .notSignedIn: return String(localized: "로그인이 필요합니다.")
+        case .provider: return String(localized: "로그인에 실패했어요. 다시 시도해 주세요.")
+        case .malformedCallback: return String(localized: "로그인 응답을 처리하지 못했어요.")
+        case .notSignedIn: return String(localized: "로그인이 필요해요.")
         }
     }
 }

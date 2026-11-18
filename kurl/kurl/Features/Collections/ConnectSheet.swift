@@ -89,7 +89,7 @@ struct ConnectSheet: View {
             }
             didDisconnect += 1
         } catch {
-            ToastCenter.shared.show(String(localized: "연결을 끊지 못했습니다"))
+            ToastCenter.shared.show(String(localized: "연결을 끊지 못했어요"))
         }
     }
 
@@ -278,7 +278,7 @@ struct ConnectSheet: View {
                 .padding(.bottom, 10)
             whyField
 
-            Text("\(selected.count)개 컬렉션에 추가됩니다.")
+            Text("\(selected.count)개 컬렉션에 추가돼요.")
                 .typeScale(.footnote)
                 .foregroundStyle(Palette.secondary)
                 .padding(.top, 12)
@@ -374,6 +374,6 @@ struct ConnectSheet: View {
         }
         // 일부만 실패 — 시트를 닫지 않고 실패한 컬렉션과 쓴 "왜"를 그대로 둔다(다시 시도).
         selected = stillFailing
-        ToastCenter.shared.show(String(localized: "일부 연결에 실패했습니다"))
+        ToastCenter.shared.show(String(localized: "일부 연결에 실패했어요"))
     }
 }

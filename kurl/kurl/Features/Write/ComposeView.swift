@@ -70,7 +70,7 @@ struct ComposeView: View {
     @State private var busy = false
     /// 발행 성공 모먼트(전체화면 블룸) 표시.
     @State private var celebrating = false
-    /// 예약 발행 모먼트 = 같은 마크 환호지만 "예약되었습니다" + 발행 예정 시각, "글 보기"는 없음(아직 비공개).
+    /// 예약 발행 모먼트 = 같은 마크 환호지만 "예약됐어요" + 발행 예정 시각, "글 보기"는 없음(아직 비공개).
     @State private var celebrationIsSchedule = false
     @State private var celebrationSubtitle: String?
     @State private var errorMessage: String?
@@ -990,7 +990,7 @@ struct ComposeView: View {
                 Button("만들기") { createNewSeries() }
                 Button("취소", role: .cancel) {}
             } message: {
-                Text("이 글이 들어갈 새 시리즈를 만듭니다. 제목은 나중에 시리즈에서 바꿀 수 있어요.")
+                Text("이 글이 들어갈 새 시리즈를 만들어요. 제목은 나중에 시리즈에서 바꿀 수 있어요.")
             }
             // 발행/저장 실패는 폼 자체에 — 루트 알럿은 fullScreenCover 뒤에 가린다.
             .alert(
@@ -1027,9 +1027,9 @@ struct ComposeView: View {
             .overlay {
                 if celebrating {
                     PublishCelebrationView(
-                        title: celebrationIsSchedule ? "예약되었습니다" : "발행되었습니다",
+                        title: celebrationIsSchedule ? "예약됐어요" : "발행됐어요",
                         announcement: String(
-                            localized: celebrationIsSchedule ? "예약되었습니다" : "발행되었습니다"),
+                            localized: celebrationIsSchedule ? "예약됐어요" : "발행됐어요"),
                         subtitle: celebrationSubtitle,
                         onView: celebrationIsSchedule ? nil : publishedSlug.map { slug in
                             { showPublish = false; dismiss(); onOpenPublished?(slug) }
@@ -1039,8 +1039,8 @@ struct ComposeView: View {
                         let toast =
                             celebrationIsSchedule
                             ? (celebrationSubtitle.map { String(localized: "예약됨 · \($0)") }
-                                ?? String(localized: "예약되었습니다"))
-                            : String(localized: "발행되었습니다")
+                                ?? String(localized: "예약됐어요"))
+                            : String(localized: "발행됐어요")
                         ToastCenter.shared.show(toast)
                         showPublish = false
                         dismiss()
@@ -1543,7 +1543,7 @@ struct ComposeView: View {
             }
             .padding(Metrics.gutter)
             .alert(
-                "예약하지 못했습니다",
+                "예약하지 못했어요",
                 isPresented: .init(get: { scheduleError != nil }, set: { if !$0 { scheduleError = nil } })
             ) {
                 Button("확인", role: .cancel) {}
@@ -2179,7 +2179,7 @@ struct ComposeView: View {
         // 저장이 자체 busy 를 관리하므로 먼저 끝낸다 — busy 선점은 저장 스킵을 만든다.
         await save(publish: false)
         guard signature == lastSavedSignature else {
-            scheduleError = errorMessage ?? String(localized: "저장하지 못했습니다")
+            scheduleError = errorMessage ?? String(localized: "저장하지 못했어요")
             // save 실패가 루트 errorMessage 에 남긴 알럿을 소비한다 —
             // 안 그러면 발행 폼을 닫을 때 같은 에러가 루트 알럿으로 한 번 더 뜬다.
             errorMessage = nil
@@ -2233,7 +2233,7 @@ struct ComposeView: View {
                 onSaved()
             } catch {
                 // 커버 업로드는 타이핑 곁에서 도는 자동 동작 — 실패해도 모달 대신 토스트로.
-                ToastCenter.shared.show(String(localized: "커버 이미지를 올리지 못했습니다"))
+                ToastCenter.shared.show(String(localized: "커버 이미지를 올리지 못했어요"))
             }
         }
     }
@@ -2254,7 +2254,7 @@ struct ComposeView: View {
                 seriesId = (list.first { $0.slug == slug } ?? list.first { $0.title == title })?.id
                 newSeriesTitle = ""
             } catch {
-                ToastCenter.shared.show(String(localized: "시리즈를 만들지 못했습니다"))
+                ToastCenter.shared.show(String(localized: "시리즈를 만들지 못했어요"))
             }
         }
     }
@@ -2312,9 +2312,9 @@ struct ComposeView: View {
         case .addRow: editorController.addTableRow()
         case .addColumn: editorController.addTableColumn()
         case .deleteRow:
-            if editorController.deleteTableRow() { showUndoToast(String(localized: "행을 지웠어요")) }
+            if editorController.deleteTableRow() { showUndoToast(String(localized: "행을 삭제했어요")) }
         case .deleteColumn:
-            if editorController.deleteTableColumn() { showUndoToast(String(localized: "열을 지웠어요")) }
+            if editorController.deleteTableColumn() { showUndoToast(String(localized: "열을 삭제했어요")) }
         case .alignLeft: editorController.setTableColumnAlign(.left)
         case .alignCenter: editorController.setTableColumnAlign(.center)
         case .alignRight: editorController.setTableColumnAlign(.right)
@@ -2375,7 +2375,7 @@ struct ComposeView: View {
             showEditImageCaption = true
             return  // 알럿 확인에서 동기화한다.
         case .delete:
-            if editorController.removeImage() { showUndoToast(String(localized: "이미지를 지웠어요")) }
+            if editorController.removeImage() { showUndoToast(String(localized: "이미지를 삭제했어요")) }
         }
         syncMarkdownFromEditor()
         refreshCaretContext()
@@ -2401,7 +2401,7 @@ struct ComposeView: View {
             return
         case .delete:
             if editorController.removeEmbedLine() {
-                showUndoToast(String(localized: "동영상을 지웠어요"))
+                showUndoToast(String(localized: "동영상을 삭제했어요"))
             }
         }
         syncMarkdownFromEditor()
@@ -2519,7 +2519,7 @@ struct ComposeView: View {
             syncMarkdownFromEditor()
             editorController.focus()
             if failed > 0 {
-                ToastCenter.shared.show(String(localized: "이미지 \(failed)장을 올리지 못했습니다"))
+                ToastCenter.shared.show(String(localized: "이미지 \(failed)장을 올리지 못했어요"))
             }
         }
     }
@@ -2552,7 +2552,7 @@ struct ComposeView: View {
                 refreshCaretContext()
                 editorController.focus()
             } catch {
-                ToastCenter.shared.show(String(localized: "이미지를 올리지 못했습니다"))
+                ToastCenter.shared.show(String(localized: "이미지를 올리지 못했어요"))
             }
         }
     }
@@ -2618,7 +2618,7 @@ struct ComposeView: View {
             }
             syncFromDocument()
             if failed > 0 {
-                ToastCenter.shared.show(String(localized: "이미지를 올리지 못했습니다"))
+                ToastCenter.shared.show(String(localized: "이미지를 올리지 못했어요"))
             }
         }
     }
@@ -2683,7 +2683,7 @@ struct ComposeView: View {
                 // 커버가 비어 있으면 이 첫 이미지를 기본 커버로(현행 경로와 동일).
                 maybeSetCoverFromBodyImage(url: uploaded.url, key: uploaded.key)
             } catch {
-                ToastCenter.shared.show(String(localized: "이미지를 올리지 못했습니다"))
+                ToastCenter.shared.show(String(localized: "이미지를 올리지 못했어요"))
             }
         }
     }
@@ -2911,8 +2911,8 @@ private struct TableActionBar: View {
         // 삭제는 즉시·비가역이라 VoiceOver 가 결과를 알리도록 힌트를 단다(색은 §10 대로 조용히).
         var hint: LocalizedStringKey {
             switch self {
-            case .deleteRow: "이 행을 지웁니다"
-            case .deleteColumn: "이 열을 지웁니다"
+            case .deleteRow: "이 행을 삭제해요"
+            case .deleteColumn: "이 열을 삭제해요"
             default: ""
             }
         }
@@ -3006,7 +3006,7 @@ private struct ImageActionBar: View {
 
                     barButton("캡션", icon: "text.bubble", tint: .primary) { perform(.caption) }
                     barButton(
-                        "삭제", icon: "trash", tint: .secondary, hint: "이 이미지를 지웁니다"
+                        "삭제", icon: "trash", tint: .secondary, hint: "이 이미지를 삭제해요"
                     ) { perform(.delete) }
                 }
                 .padding(.horizontal, 4)
@@ -3050,7 +3050,7 @@ private struct VideoActionBar: View {
         var id: Self { self }
         var symbol: String { self == .replace ? "arrow.triangle.2.circlepath" : "trash" }
         var label: LocalizedStringKey { self == .replace ? "주소 바꾸기" : "삭제" }
-        var hint: LocalizedStringKey { self == .delete ? "이 동영상을 지웁니다" : "" }
+        var hint: LocalizedStringKey { self == .delete ? "이 동영상을 삭제해요" : "" }
     }
 
     var body: some View {
@@ -3466,9 +3466,9 @@ private struct FlowLayout: Layout {
 /// 그린 블룸(컨페티) + 체크 + 햅틱 시퀀스. reduce-motion 이면 정적 체크만 띄운다.
 private struct PublishCelebrationView: View {
     /// 발행=「발행되었습니다」, 예약=「예약되었습니다」. 보조줄(예약 시각 등)은 있을 때만.
-    var title: LocalizedStringKey = "발행되었습니다"
+    var title: LocalizedStringKey = "발행됐어요"
     /// VoiceOver 로 읽어줄 성공 문구(title 의 해석본) — 오버레이가 타이머로 사라지기 전에 말해진다.
-    var announcement: String = String(localized: "발행되었습니다")
+    var announcement: String = String(localized: "발행됐어요")
     var subtitle: String? = nil
     /// "글 보기" 한 틱 — 있으면 버튼을 띄우고 자동 닫힘을 늦춘다(탭할 시간을 준다).
     var onView: (() -> Void)? = nil

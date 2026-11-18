@@ -214,7 +214,7 @@ final class NotesViewModel {
             if loaded.isEmpty {
                 phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
             } else {
-                ToastCenter.shared.show(String(localized: "새로고침하지 못했습니다"))
+                ToastCenter.shared.show(String(localized: "새로고침하지 못했어요"))
             }
         }
     }
@@ -542,8 +542,8 @@ struct NoteRowView: View {
         .fullScreenCover(isPresented: $writingPost) {
             if let shareURL { PostComposerCover(initialMarkdown: "\(shareURL.absoluteString)\n\n") }
         }
-        .alert("이 노트를 지울까요?", isPresented: $confirmDelete) {
-            Button("지우기", role: .destructive) { Task { await delete() } }
+        .alert("이 노트를 삭제할까요?", isPresented: $confirmDelete) {
+            Button("삭제", role: .destructive) { Task { await delete() } }
             Button("취소", role: .cancel) {}
         } message: {
             Text("다른 서버로 퍼진 사본에도 지우라는 요청을 보내요.")
@@ -1340,7 +1340,7 @@ struct NoteRowView: View {
             try await NoteAPI.delete(id: note.id)
             onDelete(note.id)
         } catch {
-            ToastCenter.shared.show(String(localized: "노트를 삭제하지 못했습니다"))
+            ToastCenter.shared.show(String(localized: "노트를 삭제하지 못했어요"))
         }
     }
 }
@@ -1667,7 +1667,7 @@ private struct NoteImageTile: View {
             .accessibilityElement()
             .accessibilityAddTraits([.isImage, .isButton])
             .accessibilityLabel(Text(image.altText ?? String(localized: "사진")))
-            .accessibilityHint(Text("두 번 탭하면 크게 봅니다"))
+            .accessibilityHint(Text("두 번 탭하면 크게 봐요"))
             .accessibilityHidden(concealed)
         }
     }
@@ -3141,7 +3141,7 @@ struct FederationSettingRow: View {
             settings = try await NoteAPI.updateFederationSettings(enabled: enabled)
         } catch {
             settings = previous
-            ToastCenter.shared.show(String(localized: "설정을 바꾸지 못했습니다"))
+            ToastCenter.shared.show(String(localized: "설정을 바꾸지 못했어요"))
         }
     }
 }

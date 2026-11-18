@@ -216,7 +216,7 @@ struct CreateCollectionSheet: View {
             onCreated(created)
             dismiss()
         } catch {
-            ToastCenter.shared.show(String(localized: "컬렉션을 만들지 못했습니다"))
+            ToastCenter.shared.show(String(localized: "컬렉션을 만들지 못했어요"))
         }
     }
 }
@@ -330,7 +330,7 @@ struct EditCollectionSheet: View {
             onSaved()
             dismiss()
         } catch {
-            ToastCenter.shared.show(String(localized: "수정하지 못했습니다"))
+            ToastCenter.shared.show(String(localized: "수정하지 못했어요"))
         }
     }
 }

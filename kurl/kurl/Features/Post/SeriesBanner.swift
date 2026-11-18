@@ -106,7 +106,7 @@ struct SeriesBanner: View {
                 }
             }
         } else if loadFailed {
-            Text("목록을 불러오지 못했습니다")
+            Text("목록을 불러오지 못했어요")
                 .typeScale(.footnote)
                 .foregroundStyle(Palette.secondary)
                 .padding(.vertical, 6)

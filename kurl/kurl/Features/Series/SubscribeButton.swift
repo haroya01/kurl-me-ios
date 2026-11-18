@@ -54,7 +54,7 @@ struct SubscribeButton: View {
         }
         Task {
             do { try await model.toggle() }
-            catch { ToastCenter.shared.show(String(localized: "구독을 반영하지 못했습니다")) }
+            catch { ToastCenter.shared.show(String(localized: "구독을 반영하지 못했어요")) }
         }
     }
 }

@@ -41,7 +41,7 @@ final class HomeRankedTests: XCTestCase {
     }
 
     private static var nothingNew: String { String(localized: "새 글이 없어요") }
-    private static var couldNotRefresh: String { String(localized: "새로고침하지 못했습니다") }
+    private static var couldNotRefresh: String { String(localized: "새로고침하지 못했어요") }
     private static var failed: Error { APIError.server(status: 503, code: nil, detail: "") }
 
     private func home(_ first: HomeFeedBatch, tab: HomeFeedTab = .forYou) async -> (HomeFeedViewModel, Answers) {

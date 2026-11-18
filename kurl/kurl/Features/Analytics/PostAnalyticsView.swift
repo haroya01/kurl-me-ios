@@ -35,7 +35,7 @@ struct PostAnalyticsView: View {
                     .frame(maxWidth: .infinity, minHeight: 240)
             case .failed:
                 ErrorState(
-                    title: "분석을 불러오지 못했습니다",
+                    title: "분석을 불러오지 못했어요",
                     message: String(localized: "잠시 후 다시 시도해 주세요."),
                     retry: { Task { await load() } })
                     .padding(.top, 40)

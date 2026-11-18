@@ -72,7 +72,7 @@ struct NoteVideoTile: View {
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel(Text(media.altText ?? String(localized: "동영상")))
         .accessibilityValue(playing ? Text("소리 없이 재생 중") : Text(""))
-        .accessibilityHint(sound == false ? Text("두 번 탭하면 크게 봅니다") : Text("두 번 탭하면 소리와 함께 재생합니다"))
+        .accessibilityHint(sound == false ? Text("두 번 탭하면 크게 봐요") : Text("두 번 탭하면 소리와 함께 재생해요"))
         .accessibilityIdentifier("note.video")
     }
 

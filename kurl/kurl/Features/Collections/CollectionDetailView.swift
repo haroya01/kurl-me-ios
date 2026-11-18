@@ -138,7 +138,7 @@ struct CollectionDetailView: View {
             disconnects += 1
         } catch {
             withMotion(Motion.move) { connections = snapshot }
-            ToastCenter.shared.show(String(localized: "연결을 끊지 못했습니다"))
+            ToastCenter.shared.show(String(localized: "연결을 끊지 못했어요"))
         }
     }
 
@@ -147,7 +147,7 @@ struct CollectionDetailView: View {
             try await CollectionsAPI.delete(id: collectionId)
             dismiss()
         } catch {
-            ToastCenter.shared.show(String(localized: "컬렉션을 삭제하지 못했습니다"))
+            ToastCenter.shared.show(String(localized: "컬렉션을 삭제하지 못했어요"))
         }
     }
 

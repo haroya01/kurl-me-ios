@@ -68,7 +68,7 @@ final class RemoteStreamModel {
             if items.isEmpty {
                 phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
             } else if announcesFailure {
-                ToastCenter.shared.show(String(localized: "새로고침하지 못했습니다"))
+                ToastCenter.shared.show(String(localized: "새로고침하지 못했어요"))
             }
             return false
         }
