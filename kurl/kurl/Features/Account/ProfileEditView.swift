@@ -164,7 +164,7 @@ struct ProfileEditView: View {
             Task { await loadPicked(item) }
         }
         .alert(
-            "저장하지 못했습니다",
+            "저장하지 못했어요",
             isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })
         ) {
             Button("확인", role: .cancel) {}

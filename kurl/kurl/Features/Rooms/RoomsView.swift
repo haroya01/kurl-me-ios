@@ -179,6 +179,9 @@ struct RoomsView: View {
                         .onAppear { if let note = item.note { saw(note) } }
                         .task { await stream.loadMoreIfNeeded(current: item) }
                     }
+                    LoadMoreTail(loading: stream.loadingMore, failed: stream.loadMoreFailed) {
+                        Task { await stream.retryLoadMore() }
+                    }
                 }
             }
         }
@@ -347,7 +350,7 @@ struct RoomsView: View {
             invitations = (try? await received) ?? []
         } catch {
             if pulled, phase.isLoaded {
-                ToastCenter.shared.show(String(localized: "새로고침하지 못했습니다"))
+                ToastCenter.shared.show(String(localized: "새로고침하지 못했어요"))
             }
             phase = phase.failing(error.localizedDescription)
         }

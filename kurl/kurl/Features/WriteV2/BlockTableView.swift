@@ -101,7 +101,7 @@ struct BlockTableView: View {
                 }
                 .foregroundStyle(Palette.secondary)
                 .accessibilityLabel(Text("행 삭제"))
-                .accessibilityHint(Text("마지막 행을 지웁니다"))
+                .accessibilityHint(Text("마지막 행을 삭제해요"))
             }
             if table.columnCount >= 2 {
                 Button(action: onDeleteColumn) {
@@ -109,7 +109,7 @@ struct BlockTableView: View {
                 }
                 .foregroundStyle(Palette.secondary)
                 .accessibilityLabel(Text("열 삭제"))
-                .accessibilityHint(Text("마지막 열을 지웁니다"))
+                .accessibilityHint(Text("마지막 열을 삭제해요"))
             }
             // 열 정렬 순환 — 현재 포커스 열을 모르므로 첫 열부터 순환(Phase 2b: 캐럿 열 감지).
             Menu {
@@ -127,7 +127,7 @@ struct BlockTableView: View {
             }
             .foregroundStyle(Palette.secondary)
             .accessibilityLabel(Text("표 삭제"))
-            .accessibilityHint(Text("이 표를 통째로 지웁니다"))
+            .accessibilityHint(Text("이 표를 통째로 삭제해요"))
         }
         .font(.system(size: 13, weight: .medium))
         .foregroundStyle(Palette.ink)

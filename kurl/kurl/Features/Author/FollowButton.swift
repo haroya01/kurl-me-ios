@@ -121,7 +121,7 @@ struct FollowButton: View {
                     ToastCenter.shared.show(String(localized: "새 노트 알림을 껐어요"))
                 }
             } catch {
-                ToastCenter.shared.show(String(localized: "알림 설정을 바꾸지 못했습니다"))
+                ToastCenter.shared.show(String(localized: "알림 설정을 바꾸지 못했어요"))
             }
         }
     }
@@ -138,7 +138,7 @@ struct FollowButton: View {
                     ToastCenter.shared.show(String(localized: "팔로우를 요청했어요. 승인되면 팔로잉이 돼요"))
                 }
             } catch {
-                ToastCenter.shared.show(String(localized: "팔로우를 반영하지 못했습니다"))
+                ToastCenter.shared.show(String(localized: "팔로우를 반영하지 못했어요"))
             }
         }
     }

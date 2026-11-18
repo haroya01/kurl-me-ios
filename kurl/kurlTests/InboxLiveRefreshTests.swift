@@ -73,6 +73,31 @@ final class InboxLiveRefreshTests: XCTestCase {
         XCTAssertEqual(model.items.map(\.id), [3])
     }
 
+    func testAFailedOlderPageWaitsForRetry() async {
+        var fails = false
+        var calls = 0
+        let model = model { before, limit, _ in
+            calls += 1
+            if before != nil, fails { throw URLError(.notConnectedToInternet) }
+            let top = before.map { $0 - 1 } ?? 1_000
+            return self.page(Array(stride(from: top, to: top - Int64(limit), by: -1)), more: true)
+        }
+        await model.load()
+        let loaded = model.items.count
+
+        fails = true
+        await model.loadMoreIfNeeded()
+        XCTAssertTrue(model.loadMoreFailed)
+        XCTAssertEqual(model.items.count, loaded, "실패해도 보이던 알림은 그대로다")
+        await model.loadMoreIfNeeded()
+        XCTAssertEqual(calls, 2, "실패 표시가 떠 있는 동안에는 다시 부르지 않는다")
+
+        fails = false
+        await model.retryLoadMore()
+        XCTAssertFalse(model.loadMoreFailed)
+        XCTAssertEqual(model.items.count, loaded * 2)
+    }
+
     func testARefetchAsksForEveryLoadedRowUpToTheServerCap() async {
         var asked: [Int] = []
         let model = model { before, limit, _ in

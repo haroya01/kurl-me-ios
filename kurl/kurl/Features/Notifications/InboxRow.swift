@@ -155,7 +155,7 @@ extension InboxRow.Kind {
         case .followRequest: LocalizedStringResource("inbox.kind.followRequest", defaultValue: "팔로우 요청")
         case .subscribe: LocalizedStringResource("inbox.kind.subscribe", defaultValue: "시리즈 구독")
         case .newPost: LocalizedStringResource("inbox.kind.newPost", defaultValue: "새 글")
-        case .mention: LocalizedStringResource("inbox.kind.mention", defaultValue: "언급")
+        case .mention: LocalizedStringResource("inbox.kind.mention", defaultValue: "멘션")
         case .repost: LocalizedStringResource("inbox.kind.repost", defaultValue: "리포스트")
         case .pollEnded: LocalizedStringResource("inbox.kind.pollEnded", defaultValue: "투표 마감")
         case .newNote: LocalizedStringResource("inbox.kind.newNote", defaultValue: "새 노트")

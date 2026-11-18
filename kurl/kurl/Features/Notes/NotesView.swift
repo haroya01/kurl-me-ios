@@ -8,6 +8,7 @@ final class NotesViewModel {
     private(set) var loaded: [Note] = []
     private(set) var phase: LoadState<Bool> = .idle
     private(set) var isLoadingMore = false
+    private(set) var loadMoreFailed = false
 
     var items: [Note] {
         guard source.filterContext != nil else { return loaded }
@@ -186,6 +187,7 @@ final class NotesViewModel {
         guard next != source else { return }
         source = next
         epoch += 1
+        loadMoreFailed = false
         loaded = []
         page = 0
         hasNext = true
@@ -195,6 +197,7 @@ final class NotesViewModel {
 
     func reload() async {
         epoch += 1
+        loadMoreFailed = false
         let myEpoch = epoch
         if loaded.isEmpty { phase = .loading }
         do {
@@ -211,24 +214,38 @@ final class NotesViewModel {
             if loaded.isEmpty {
                 phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
             } else {
-                ToastCenter.shared.show(String(localized: "새로고침하지 못했습니다"))
+                ToastCenter.shared.show(String(localized: "새로고침하지 못했어요"))
             }
         }
     }
 
     func loadMoreIfNeeded(current note: Note) async {
-        guard hasNext, !isLoadingMore, items.suffix(5).contains(where: { $0.id == note.id }) else { return }
+        guard !loadMoreFailed, items.suffix(5).contains(where: { $0.id == note.id }) else { return }
+        await loadMore()
+    }
+
+    func retryLoadMore() async {
+        loadMoreFailed = false
+        await loadMore()
+    }
+
+    private func loadMore() async {
+        guard hasNext, !isLoadingMore else { return }
         isLoadingMore = true
         let myEpoch = epoch
         await Task {
             defer { isLoadingMore = false }
-            if let next = try? await Self.collectVisible(
-                from: page + 1, seen: Set(loaded.map(\.id)), isVisible: isVisible, fetch: { try await self.load($0) }
-            ) {
+            do {
+                let next = try await Self.collectVisible(
+                    from: page + 1, seen: Set(loaded.map(\.id)), isVisible: isVisible, fetch: { try await self.load($0) }
+                )
                 guard myEpoch == epoch else { return }
                 page = next.page
                 hasNext = next.hasNext
                 loaded.append(contentsOf: next.notes)
+            } catch {
+                guard myEpoch == epoch, !error.isCancellation else { return }
+                loadMoreFailed = true
             }
         }.value
     }
@@ -525,8 +542,8 @@ struct NoteRowView: View {
         .fullScreenCover(isPresented: $writingPost) {
             if let shareURL { PostComposerCover(initialMarkdown: "\(shareURL.absoluteString)\n\n") }
         }
-        .alert("이 노트를 지울까요?", isPresented: $confirmDelete) {
-            Button("지우기", role: .destructive) { Task { await delete() } }
+        .alert("이 노트를 삭제할까요?", isPresented: $confirmDelete) {
+            Button("삭제", role: .destructive) { Task { await delete() } }
             Button("취소", role: .cancel) {}
         } message: {
             Text("다른 서버로 퍼진 사본에도 지우라는 요청을 보내요.")
@@ -1323,7 +1340,7 @@ struct NoteRowView: View {
             try await NoteAPI.delete(id: note.id)
             onDelete(note.id)
         } catch {
-            ToastCenter.shared.show(String(localized: "노트를 삭제하지 못했습니다"))
+            ToastCenter.shared.show(String(localized: "노트를 삭제하지 못했어요"))
         }
     }
 }
@@ -1650,7 +1667,7 @@ private struct NoteImageTile: View {
             .accessibilityElement()
             .accessibilityAddTraits([.isImage, .isButton])
             .accessibilityLabel(Text(image.altText ?? String(localized: "사진")))
-            .accessibilityHint(Text("두 번 탭하면 크게 봅니다"))
+            .accessibilityHint(Text("두 번 탭하면 크게 봐요"))
             .accessibilityHidden(concealed)
         }
     }
@@ -2173,6 +2190,18 @@ struct NoteDetailView: View {
 
 /// 노트 작성·고치기 시트. 새 노트는 사진(최대 4장, 장마다 대체 텍스트)과 블로그 글 인용을 받는다.
 /// 처음 올릴 때 한 번, 다른 서버로 퍼진 사본은 지운다는 보장을 못 한다는 안내를 확인받는다.
+enum NoteComposeCaret {
+    static let main = "noteCompose.caret.main"
+
+    static func part(_ id: UUID) -> String { "noteCompose.caret.\(id.uuidString)" }
+
+    /// 한글 조합은 끝 글자를 바꿔 쓰므로 접두 비교가 아니라 끝 두 글자를 뺀 앞부분이 같은지로 본다.
+    static func editsTail(old: String, new: String) -> Bool {
+        let keep = max(0, min(old.count, new.count) - 2)
+        return old.prefix(keep) == new.prefix(keep)
+    }
+}
+
 struct NoteComposeSheet: View {
     enum Mode {
         case new(quote: QuotedPost?, inReplyToId: Int64?)
@@ -2221,6 +2250,7 @@ struct NoteComposeSheet: View {
     @State private var altTarget: AltTarget?
     @State private var linkCard: NoteLinkPreview?
     @State private var poll: NotePollDraft?
+    @State private var leavingPoll = NotePollDraft()
     @State private var scheduledAt: Date?
     @State private var language = NoteLanguages.posting
     @State private var pickingSchedule = false
@@ -2228,6 +2258,8 @@ struct NoteComposeSheet: View {
     @State private var confirmLongForm = false
     @FocusState private var focused: Bool
     @FocusState private var focusedPart: UUID?
+    @State private var caretTarget = NoteComposeCaret.main
+    @State private var caretTick = 0
     @AccessibilityFocusState private var targetFocused: Bool
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
     @Environment(\.dismiss) private var dismiss
@@ -2350,6 +2382,7 @@ struct NoteComposeSheet: View {
 
     var body: some View {
         NavigationStack {
+            ScrollViewReader { scroller in
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     if let replyTarget { targetRow(replyTarget) }
@@ -2380,6 +2413,7 @@ struct NoteComposeSheet: View {
                                     .lineLimit(1...20)
                                     .focused($focused)
                                     .accessibilityIdentifier("noteCompose.text")
+                                    .onChange(of: text) { old, new in followCaret(old, new, NoteComposeCaret.main) }
                                 if focused {
                                     MentionSuggestionList(
                                         query: MentionDraft.trailingQuery(in: text, allowingServer: true),
@@ -2392,8 +2426,9 @@ struct NoteComposeSheet: View {
                                         })
                                 }
                             }
-                            if let draft = Binding($poll) {
-                                NotePollEditor(draft: draft)
+                            .id(NoteComposeCaret.main)
+                            if poll != nil {
+                                NotePollEditor(draft: pollDraft)
                                     .transition(.opacity.combined(with: .move(edge: .top)))
                             }
                             if !picked.isEmpty { pickedStrip }
@@ -2444,7 +2479,12 @@ struct NoteComposeSheet: View {
                                 }
                                 Button {
                                     withMotion(Motion.micro) {
-                                        poll = poll == nil ? NotePollDraft() : nil
+                                        if let current = poll {
+                                            leavingPoll = current
+                                            poll = nil
+                                        } else {
+                                            poll = NotePollDraft()
+                                        }
                                     }
                                 } label: {
                                     Image(systemName: "chart.bar.xaxis")
@@ -2519,6 +2559,8 @@ struct NoteComposeSheet: View {
                             ? "쓴 내용이 새 글 본문으로 옮겨져요."
                             : "쓴 내용이 새 글 본문으로 옮겨져요. 사진과 투표는 옮겨지지 않아요.")
                 }
+            }
+            .onChange(of: caretTick) { scroller.scrollTo(caretTarget, anchor: .bottom) }
             }
             .scrollDismissesKeyboard(.interactively)
             .background(Palette.sheetBg)
@@ -2825,6 +2867,9 @@ struct NoteComposeSheet: View {
                     .lineLimit(1...20)
                     .focused($focusedPart, equals: id)
                     .accessibilityIdentifier("noteCompose.part")
+                    .onChange(of: part.wrappedValue.text) { old, new in
+                        followCaret(old, new, NoteComposeCaret.part(id))
+                    }
                 if focusedPart == id {
                     MentionSuggestionList(
                         query: MentionDraft.trailingQuery(in: part.wrappedValue.text, allowingServer: true),
@@ -2838,9 +2883,25 @@ struct NoteComposeSheet: View {
                         })
                 }
             }
+            .id(NoteComposeCaret.part(id))
             .padding(.bottom, 14)
         }
         .transition(.opacity.combined(with: .move(edge: .top)))
+    }
+
+    /// 투표를 빼도 편집기는 사라지는 전환 동안 남아 바인딩을 읽는다. 옵셔널을 풀어 만든 바인딩(`Binding($poll)`)은 그때 nil 을 강제로 풀다 죽는다.
+    private var pollDraft: Binding<NotePollDraft> {
+        Binding(
+            get: { poll ?? leavingPoll },
+            set: { next in
+                if poll != nil { poll = next }
+            })
+    }
+
+    private func followCaret(_ old: String, _ new: String, _ target: String) {
+        guard NoteComposeCaret.editsTail(old: old, new: new) else { return }
+        caretTarget = target
+        caretTick += 1
     }
 
     private var addPartRow: some View {
@@ -3124,7 +3185,7 @@ struct FederationSettingRow: View {
             settings = try await NoteAPI.updateFederationSettings(enabled: enabled)
         } catch {
             settings = previous
-            ToastCenter.shared.show(String(localized: "설정을 바꾸지 못했습니다"))
+            ToastCenter.shared.show(String(localized: "설정을 바꾸지 못했어요"))
         }
     }
 }

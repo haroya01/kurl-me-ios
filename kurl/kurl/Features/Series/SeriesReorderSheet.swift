@@ -111,7 +111,7 @@ struct SeriesReorderSheet: View {
             }
             original = items
         } catch {
-            ToastCenter.shared.show(String(localized: "회차를 불러오지 못했습니다"))
+            ToastCenter.shared.show(String(localized: "회차를 불러오지 못했어요"))
             dismiss()
         }
         loading = false
@@ -129,7 +129,7 @@ struct SeriesReorderSheet: View {
             dismiss()
         } catch {
             saving = false
-            ToastCenter.shared.show(String(localized: "순서를 저장하지 못했습니다"))
+            ToastCenter.shared.show(String(localized: "순서를 저장하지 못했어요"))
         }
     }
 }
@@ -177,7 +177,9 @@ struct SeriesNotePicker: View {
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("series.pickNote.\(note.id)")
                 }
-                if hasNext && !loading {
+                if failed && !candidates.isEmpty && !loading {
+                    LoadMoreTail(loading: false, failed: true, padding: 12) { Task { await loadMore() } }
+                } else if hasNext && !loading {
                     Button("더 불러오기") { Task { await loadMore() } }
                         .foregroundStyle(Palette.ink)
                 }
@@ -190,7 +192,7 @@ struct SeriesNotePicker: View {
             .background(Palette.sheetBg)
             .overlay(alignment: .top) {
                 if !loading && candidates.isEmpty {
-                    FeedPlaceholder(title: failed ? "노트를 불러오지 못했습니다" : "더할 수 있는 노트가 없어요. 팔로워만·멘션한 사람만 보는 노트는 시리즈에 넣을 수 없어요.")
+                    FeedPlaceholder(title: failed ? "노트를 불러오지 못했어요" : "더할 수 있는 노트가 없어요. 팔로워만·멘션한 사람만 보는 노트는 시리즈에 넣을 수 없어요.")
                         .padding(.horizontal, Metrics.gutter)
                         .padding(.top, 24)
                 }

@@ -290,7 +290,7 @@ final class FeedVectorTests: XCTestCase {
             await model.refresh()
 
             let notice: String
-            if answers.said == [String(localized: "새로고침하지 못했습니다")] {
+            if answers.said == [String(localized: "새로고침하지 못했어요")] {
                 notice = "failed"
             } else if answers.said == [String(localized: "새 글이 없어요")] {
                 notice = "nothingNew"

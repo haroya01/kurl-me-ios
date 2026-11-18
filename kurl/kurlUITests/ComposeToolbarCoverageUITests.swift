@@ -124,7 +124,7 @@ final class ComposeToolbarCoverageUITests: XCTestCase {
 
         app.buttons["행 삭제"].tap()
         XCTAssertTrue(
-            app.staticTexts["행을 지웠어요"].waitForExistence(timeout: 3),
+            app.staticTexts["행을 삭제했어요"].waitForExistence(timeout: 3),
             "행 삭제에 되돌리기 토스트가 안 뜸")
     }
 }

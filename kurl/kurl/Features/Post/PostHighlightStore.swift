@@ -182,7 +182,7 @@ final class PostHighlightStore {
                 }
             } catch {
                 ToastCenter.shared.show((error as? HighlightValidationError)?.localizedDescription
-                    ?? String(localized: "하이라이트를 저장하지 못했습니다"))
+                    ?? String(localized: "하이라이트를 저장하지 못했어요"))
             }
         }
     }

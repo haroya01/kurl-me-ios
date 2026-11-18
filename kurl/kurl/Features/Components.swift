@@ -154,7 +154,7 @@ extension View {
 }
 
 struct ErrorState: View {
-    var title: LocalizedStringKey = "불러오지 못했습니다"
+    var title: LocalizedStringKey = "불러오지 못했어요"
     /// 서버가 준 사유. 비어 있으면 기본 안내 문구로 대체한다(빈 줄이 서지 않게).
     var message: String?
     var retry: (() -> Void)?
@@ -492,7 +492,7 @@ enum CardQuickActions {
             username: item.author.username, slug: item.slug)
         perform(
             failure: String(localized: "좋아요를 반영하지 못했어요"),
-            done: String(localized: "좋아요했습니다")
+            done: String(localized: "좋아요했어요")
         ) {
             _ = try await InteractionsAPI.setLike(postId: item.id, on: true)
             // 발견 미리보기의 내 좋아요 표식과 어긋나지 않게 함께 반영(멱등 켜기).
@@ -508,10 +508,10 @@ enum CardQuickActions {
     static func bookmark(_ item: FeedItem) {
         let target = !BookmarkStore.shared.contains(item.id)
         perform(
-            failure: String(localized: "북마크를 반영하지 못했습니다"),
+            failure: String(localized: "북마크를 반영하지 못했어요"),
             done: target
-                ? String(localized: "북마크에 추가했습니다")
-                : String(localized: "북마크를 해제했습니다")
+                ? String(localized: "북마크에 추가했어요")
+                : String(localized: "북마크를 해제했어요")
         ) {
             _ = try await InteractionsAPI.setBookmark(postId: item.id, on: target)
             BookmarkStore.shared.set(
@@ -534,7 +534,7 @@ enum CardQuickActions {
         failure: String, done: String, _ action: @escaping () async throws -> Void
     ) {
         guard AuthStore.shared.isSignedIn else {
-            ToastCenter.shared.show(String(localized: "로그인이 필요합니다"))
+            ToastCenter.shared.show(String(localized: "로그인이 필요해요"))
             return
         }
         Task {

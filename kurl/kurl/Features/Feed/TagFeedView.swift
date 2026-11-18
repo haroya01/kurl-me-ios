@@ -29,6 +29,7 @@ struct TagFeedView: View {
     @State private var page = 0
     @State private var hasNext = false
     @State private var loadingMore = false
+    @State private var loadMoreFailed = false
     @State private var showNavTitle = false
 
     init(tag: String, initialTab: TagFeedTab = .posts) {
@@ -133,12 +134,12 @@ struct TagFeedView: View {
                     .rowDivider(index > 0)
                     .modifier(QuietAppear(index: index))
                     .task {
-                        if index >= items.count - 5 { await loadMore() }
+                        if index >= items.count - 5, !loadMoreFailed { await loadMore() }
                     }
                 }
-                if loadingMore {
-                    KurlLoadingMark()
-                        .frame(maxWidth: .infinity).padding(.vertical, 18)
+                LoadMoreTail(loading: loadingMore, failed: loadMoreFailed, padding: 18) {
+                    loadMoreFailed = false
+                    Task { await loadMore() }
                 }
             }
         }
@@ -175,8 +176,8 @@ struct TagFeedView: View {
                         .task { await notes.loadMoreIfNeeded(current: note) }
                         if index < notes.items.count - 1 { Hairline().padding(.horizontal, -Metrics.gutter) }
                     }
-                    if notes.isLoadingMore {
-                        KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
+                    LoadMoreTail(loading: notes.isLoadingMore, failed: notes.loadMoreFailed) {
+                        Task { await notes.retryLoadMore() }
                     }
                 }
                 .environment(\.noteFilterContext, notes.filterContext)
@@ -209,6 +210,7 @@ struct TagFeedView: View {
     }
 
     private func reload() async {
+        loadMoreFailed = false
         do {
             let result = try await BlogAPI.feed(tag: tag, page: 0, size: 30)
             page = 0
@@ -216,7 +218,7 @@ struct TagFeedView: View {
             phase = .loaded(result.items)
         } catch {
             if case .loaded = phase {
-                ToastCenter.shared.show(String(localized: "새로고침하지 못했습니다"))
+                ToastCenter.shared.show(String(localized: "새로고침하지 못했어요"))
             } else {
                 phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
             }
@@ -227,10 +229,13 @@ struct TagFeedView: View {
         guard hasNext, !loadingMore, case .loaded(let current) = phase else { return }
         loadingMore = true
         defer { loadingMore = false }
-        if let result = try? await BlogAPI.feed(tag: tag, page: page + 1, size: 30) {
+        do {
+            let result = try await BlogAPI.feed(tag: tag, page: page + 1, size: 30)
             page += 1
             hasNext = result.hasNext
             phase = .loaded(current + result.items)
+        } catch {
+            if !error.isCancellation { loadMoreFailed = true }
         }
     }
 }

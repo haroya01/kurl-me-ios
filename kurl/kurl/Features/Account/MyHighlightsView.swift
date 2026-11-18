@@ -197,7 +197,7 @@ struct MyHighlightsView: View {
                 if !items.contains(where: { $0.id == item.id }) {
                     withAnimation(.snappy(duration: 0.25)) { items.insert(item, at: min(idx, items.count)) }
                 }
-                ToastCenter.shared.show(String(localized: "하이라이트를 삭제하지 못했습니다"))
+                ToastCenter.shared.show(String(localized: "하이라이트를 삭제하지 못했어요"))
             }
         }
     }

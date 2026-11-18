@@ -11,11 +11,11 @@ enum APIError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .invalidURL: return String(localized: "잘못된 요청입니다.")
+        case .invalidURL: return String(localized: "잘못된 요청이에요.")
         case .http(let status): return String(localized: "서버 오류 (\(status))")
         case .server(_, let code, let detail): return code.flatMap(Self.localizedReason) ?? detail
-        case .decoding: return String(localized: "응답을 읽지 못했습니다.")
-        case .transport: return String(localized: "네트워크에 연결할 수 없습니다.")
+        case .decoding: return String(localized: "응답을 읽지 못했어요.")
+        case .transport: return String(localized: "네트워크에 연결할 수 없어요.")
         }
     }
 

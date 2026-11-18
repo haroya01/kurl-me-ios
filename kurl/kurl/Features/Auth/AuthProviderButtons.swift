@@ -89,7 +89,7 @@ struct AuthProviderButtons: View {
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
             .fixedSize(horizontal: false, vertical: true)
-            .accessibilityHint(Text("이용약관과 개인정보 처리방침을 엽니다"))
+            .accessibilityHint(Text("이용약관과 개인정보 처리방침을 열어요"))
             // 약관·방침은 외부 Safari 로 나가지 않고 앱 안 인앱 브라우저로 — 로그인 흐름을 끊지 않는다.
             .environment(\.openURL, OpenURLAction { url in
                 legalLink = LegalLink(url: url)
@@ -243,11 +243,11 @@ struct TwoFactorSheet: View {
                 // 코드 거절(4xx)과 일시 장애(네트워크·서버)를 갈라 보여준다 — 둘 다 "코드 오류"로 묻지 않는다.
                 if let status = (error as? APIError)?.statusCode, (400...422).contains(status) {
                     errorText = useRecovery
-                        ? String(localized: "복구 코드가 올바르지 않습니다.")
-                        : String(localized: "코드가 올바르지 않습니다.")
+                        ? String(localized: "복구 코드가 올바르지 않아요.")
+                        : String(localized: "코드가 올바르지 않아요.")
                 } else {
                     errorText = (error as? APIError)?.localizedDescription
-                        ?? String(localized: "확인하지 못했습니다. 잠시 후 다시 시도해 주세요.")
+                        ?? String(localized: "확인하지 못했어요. 잠시 후 다시 시도해 주세요.")
                 }
             }
         }

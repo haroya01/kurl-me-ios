@@ -114,6 +114,9 @@ struct AuthorBlogView: View {
                 case .failed(let message):
                     ErrorState(message: message, retry: { Task { await load() } })
                         .padding(.top, 80)
+                    if showsOwnerTools {
+                        OfflineCopiesLink().padding(.top, 20)
+                    }
                 case .loaded(let view):
                     content(view)
                 }
@@ -482,8 +485,8 @@ struct AuthorBlogView: View {
                         .task { await notes.loadMoreIfNeeded(current: note) }
                         if index < notes.items.count - 1 { Hairline().padding(.horizontal, -Metrics.gutter) }
                     }
-                    if notes.isLoadingMore {
-                        KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
+                    LoadMoreTail(loading: notes.isLoadingMore, failed: notes.loadMoreFailed) {
+                        Task { await notes.retryLoadMore() }
                     }
                 }
                 .environment(\.noteFilterContext, notes.filterContext)
@@ -519,8 +522,8 @@ struct AuthorBlogView: View {
                         .task { await replies.loadMoreIfNeeded(current: item) }
                         if index < shown.count - 1 { Hairline().padding(.horizontal, -Metrics.gutter) }
                     }
-                    if replies.isLoadingMore {
-                        KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
+                    LoadMoreTail(loading: replies.isLoadingMore, failed: replies.loadMoreFailed) {
+                        Task { await replies.retryLoadMore() }
                     }
                 }
                 .environment(\.noteFilterContext, .account)
@@ -553,8 +556,8 @@ struct AuthorBlogView: View {
                 }
                 .padding(.top, 2)
                 .accessibilityIdentifier("profile.media.grid")
-                if media.isLoadingMore {
-                    KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
+                LoadMoreTail(loading: media.isLoadingMore, failed: media.loadMoreFailed) {
+                    Task { await media.retryLoadMore() }
                 }
             }
         }
@@ -589,8 +592,8 @@ struct AuthorBlogView: View {
                         .task { await reposts.loadMoreIfNeeded(current: note) }
                         if index < reposts.items.count - 1 { Hairline().padding(.horizontal, -Metrics.gutter) }
                     }
-                    if reposts.isLoadingMore {
-                        KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
+                    LoadMoreTail(loading: reposts.isLoadingMore, failed: reposts.loadMoreFailed) {
+                        Task { await reposts.retryLoadMore() }
                     }
                 }
                 .environment(\.noteFilterContext, reposts.filterContext)

@@ -186,7 +186,7 @@ struct NotificationPreferencesView: View {
             } catch {
                 prefs[kind] = previous
                 revertPulse += 1
-                ToastCenter.shared.show(String(localized: "설정을 저장하지 못했습니다"))
+                ToastCenter.shared.show(String(localized: "설정을 저장하지 못했어요"))
             }
         }
     }

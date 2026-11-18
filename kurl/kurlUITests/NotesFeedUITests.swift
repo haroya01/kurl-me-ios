@@ -849,7 +849,7 @@ final class NotesFeedUITests: XCTestCase {
         attach(app, "remote-note-report-sheet")
         app.buttons["스팸·광고"].tap()
         XCTAssertTrue(
-            app.staticTexts["신고가 접수되었습니다"].waitForExistence(timeout: 5), "전달을 켠 신고가 접수되지 않음")
+            app.staticTexts["신고가 접수됐어요"].waitForExistence(timeout: 5), "전달을 켠 신고가 접수되지 않음")
     }
 
     func testADisplayNameLeadsTheRowWithTheHandleBesideIt() throws {

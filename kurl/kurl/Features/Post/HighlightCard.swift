@@ -66,7 +66,7 @@ struct HighlightCardLayer: View {
             if await store.delete(id: highlight.id) {
                 ToastCenter.shared.show(String(localized: "하이라이트를 삭제했어요"))
             } else {
-                ToastCenter.shared.show(String(localized: "하이라이트를 삭제하지 못했습니다"))
+                ToastCenter.shared.show(String(localized: "하이라이트를 삭제하지 못했어요"))
             }
         }
     }

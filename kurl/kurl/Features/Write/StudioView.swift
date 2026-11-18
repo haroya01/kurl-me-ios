@@ -517,7 +517,7 @@ struct StudioView: View {
             ToastCenter.shared.show(String(localized: "발행을 취소했어요"))
             await load()
         } catch {
-            ToastCenter.shared.show(String(localized: "발행을 취소하지 못했습니다"))
+            ToastCenter.shared.show(String(localized: "발행을 취소하지 못했어요"))
         }
     }
 
@@ -528,7 +528,7 @@ struct StudioView: View {
             ToastCenter.shared.show(String(localized: "글을 삭제했어요"))
             await load()
         } catch {
-            ToastCenter.shared.show(String(localized: "글을 삭제하지 못했습니다"))
+            ToastCenter.shared.show(String(localized: "글을 삭제하지 못했어요"))
         }
     }
 

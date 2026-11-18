@@ -26,6 +26,7 @@ private final class ExploreNavigation {
 }
 
 struct SearchView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @State private var scope: SearchScope = .posts
     @State private var noteResults = NotesViewModel(search: "")
     @State private var peopleResults = PeopleSearchModel()
@@ -54,6 +55,7 @@ struct SearchView: View {
     @State private var page = 0
     @State private var hasNext = false
     @State private var loadingMore = false
+    @State private var loadMoreFailed = false
     @State private var generation = 0
 
     // 대기 화면의 출발점들 — 최근 검색은 기기 로컬, 트렌딩·태그·작가는 공개 API 1회 캐시.
@@ -126,6 +128,9 @@ struct SearchView: View {
             .tracksTabBarVisibility(!showsLanes)
             .navigationTitle("둘러보기")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Palette.readingBg, for: .navigationBar)
+            .toolbarBackgroundVisibility(lanesBarBackground, for: .navigationBar)
+            .toolbarColorScheme(lanesBarScheme, for: .navigationBar)
             .toolbar {
                 if query.isEmpty {
                     ToolbarItem(placement: .principal) {
@@ -211,6 +216,12 @@ struct SearchView: View {
         }
     }
 
+    /// 갈래 스크롤은 위 가장자리 효과를 끄고 쓴다(그 띠가 첫 행의 터치를 먹는다). 대신 바 배경을 칠해 글이 상태 표시줄 밑으로 비치지 않게 한다.
+    private var lanesBarBackground: Visibility { showsLanes ? .visible : .automatic }
+
+    /// 바는 밑에 깔린 내용이 어두우면 스스로 어두운 모양으로 바뀐다. 칠한 배경이 그 모양을 따라가지 않게 앱의 모양에 묶는다.
+    private var lanesBarScheme: ColorScheme? { showsLanes ? colorScheme : nil }
+
     private var showsLanes: Bool {
         let typed = !activeQuery.isEmpty || !query.trimmingCharacters(in: .whitespaces).isEmpty
         guard !(scope != .posts && typed), !resolvesRemotely(query), case .idle = phase else { return false }
@@ -240,8 +251,8 @@ struct SearchView: View {
             LazyVStack(alignment: .leading, spacing: 0) {
                 if active {
                     SearchingOnly {
-                        recentsRail.padding(.bottom, 18)
-                        tagStrip.padding(.bottom, 18)
+                        recentsRail.holdsSwipePager().padding(.bottom, 18)
+                        tagStrip.holdsSwipePager().padding(.bottom, 18)
                     }
                 }
                 if warm {
@@ -814,14 +825,14 @@ struct SearchView: View {
                                 .rowDivider(index > 0)
                                 .modifier(QuietAppear(index: index))
                                 .task {
-                                    if index >= items.count - 5 { await loadMore() }
+                                    if index >= items.count - 5, !loadMoreFailed { await loadMore() }
                                 }
                             }
                         }
                     }
-                    if loadingMore {
-                        KurlLoadingMark()
-                            .frame(maxWidth: .infinity).padding(.vertical, 18)
+                    LoadMoreTail(loading: loadingMore, failed: loadMoreFailed, padding: 18) {
+                        loadMoreFailed = false
+                        Task { await loadMore() }
                     }
                 }
                 .padding(.vertical, 16)
@@ -1034,6 +1045,7 @@ struct SearchView: View {
             return
         }
         generation += 1
+        loadMoreFailed = false
         let myGen = generation
         // 결과를 보다가 검색어를 다듬는 경우엔 이전 결과를 그대로 둔다 — 스켈레톤으로
         // 갈아치우면 ScrollView identity 가 깨져 매번 깜빡이고 보던 위치가 사라진다.
@@ -1075,7 +1087,8 @@ struct SearchView: View {
         loadingMore = true
         defer { loadingMore = false }
         let myGen = generation
-        if let result = try? await BlogAPI.feed(query: activeQuery, page: page + 1, size: 30) {
+        do {
+            let result = try await BlogAPI.feed(query: activeQuery, page: page + 1, size: 30)
             // 그 사이 새 검색이 시작됐으면 이 페이지는 옛 질의의 것 — 버린다.
             guard myGen == generation else { return }
             page += 1
@@ -1083,6 +1096,9 @@ struct SearchView: View {
             // 서버 페이지가 겹쳐 와도 같은 id 카드가 두 번 박히지 않게 — 기존 id 와 겹치는 건 버린다.
             let seen = Set(current.map(\.id))
             phase = .loaded(current + result.items.filter { !seen.contains($0.id) })
+        } catch {
+            guard myGen == generation, !error.isCancellation else { return }
+            loadMoreFailed = true
         }
     }
 }

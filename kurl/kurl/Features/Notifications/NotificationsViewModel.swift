@@ -8,6 +8,7 @@ final class NotificationsViewModel {
     var items: [AppNotification] = []
     private(set) var loading = true
     private(set) var loadingMore = false
+    private(set) var loadMoreFailed = false
     private(set) var loadError: String?
     private(set) var nextCursor: Int64?
     private(set) var hasMore = false
@@ -92,6 +93,7 @@ final class NotificationsViewModel {
 
     func switchedFilter() {
         epoch += 1
+        loadMoreFailed = false
         items = []
         arrivals = Arrivals()
         loadedAt = nil
@@ -120,24 +122,39 @@ final class NotificationsViewModel {
         await catchUp()
     }
 
+    func loadMoreIfNeeded() async {
+        guard !loadMoreFailed else { return }
+        await loadMore()
+    }
+
+    func retryLoadMore() async {
+        loadMoreFailed = false
+        await loadMore()
+    }
+
     func loadMore() async {
         guard hasMore, !loadingMore, let cursor = nextCursor else { return }
         loadingMore = true
         defer { loadingMore = false }
         let myEpoch = epoch
-        if let page = try? await list(cursor, Self.pageSize, filter) {
+        do {
+            let page = try await list(cursor, Self.pageSize, filter)
             // refresh 가 끼어들었으면 이 응답은 옛 세대 — 버린다(append 도 커서 갱신도 없음).
             guard myEpoch == epoch else { return }
             items = Self.sortedByRecency(items + page.items)
             nextCursor = page.nextCursor
             hasMore = page.hasMore
             readHidden()
+        } catch {
+            guard myEpoch == epoch, !error.isCancellation else { return }
+            loadMoreFailed = true
         }
     }
 
     private func loadFirst(size: Int, quiet: Bool) async {
         companions()
         epoch += 1
+        loadMoreFailed = false
         let myEpoch = epoch
         do {
             let page = try await list(nil, size, filter)

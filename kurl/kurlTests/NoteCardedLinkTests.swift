@@ -41,3 +41,25 @@ final class NoteCardedLinkTests: XCTestCase {
         XCTAssertEqual(NoteText.hidingCardedLink(body, card: video), body)
     }
 }
+
+@MainActor
+final class NoteComposeCaretTests: XCTestCase {
+
+    func testTypingAndDeletingAtTheEndFollowsTheCaret() {
+        XCTAssertTrue(NoteComposeCaret.editsTail(old: "오늘 점심은", new: "오늘 점심은 냉"))
+        XCTAssertTrue(NoteComposeCaret.editsTail(old: "오늘 점심은 냉면", new: "오늘 점심은 냉"))
+        XCTAssertTrue(NoteComposeCaret.editsTail(old: "첫 줄", new: "첫 줄\n둘째 줄을 통째로 붙여 넣었다"))
+        XCTAssertTrue(NoteComposeCaret.editsTail(old: "", new: "가"))
+    }
+
+    func testAHangulSyllableBeingComposedStillCountsAsTheEnd() {
+        XCTAssertTrue(NoteComposeCaret.editsTail(old: "오늘 점심은 가", new: "오늘 점심은 간"))
+        XCTAssertTrue(NoteComposeCaret.editsTail(old: "오늘 점심은 간", new: "오늘 점심은 가나"))
+    }
+
+    func testEditingInTheMiddleOfALongNoteDoesNotPullTheViewToTheEnd() {
+        let old = "첫 문장이다. 둘째 문장이다. 셋째 문장이다."
+        XCTAssertFalse(NoteComposeCaret.editsTail(old: old, new: "첫 문장이었다. 둘째 문장이다. 셋째 문장이다."))
+        XCTAssertFalse(NoteComposeCaret.editsTail(old: old, new: "둘째 문장이다. 셋째 문장이다."))
+    }
+}

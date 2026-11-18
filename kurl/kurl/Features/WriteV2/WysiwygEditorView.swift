@@ -88,14 +88,14 @@ struct WysiwygEditorView: View {
             BlockDividerView(
                 isFocused: document.focus?.blockID == block.id,
                 onFocused: { document.focus = EditorFocus(blockID: block.id, caret: 0) },
-                onDelete: { deleteNonTextBlock(block.id, undoLabel: String(localized: "구분선을 지웠어요")) }
+                onDelete: { deleteNonTextBlock(block.id, undoLabel: String(localized: "구분선을 삭제했어요")) }
             )
         case .linkCard(let url):
             BlockLinkCardView(
                 url: url,
                 isFocused: document.focus?.blockID == block.id,
                 onFocused: { document.focus = EditorFocus(blockID: block.id, caret: 0) },
-                onDelete: { deleteNonTextBlock(block.id, undoLabel: String(localized: "링크 카드를 지웠어요")) }
+                onDelete: { deleteNonTextBlock(block.id, undoLabel: String(localized: "링크 카드를 삭제했어요")) }
             )
         case .image:
             BlockImageView(
@@ -115,7 +115,7 @@ struct WysiwygEditorView: View {
                 onAlignColumn: { document.cycleTableColumnAlignment(block.id, col: $0) },
                 onDeleteRow: { deleteTableRow(block.id) },
                 onDeleteColumn: { deleteTableColumn(block.id) },
-                onDeleteTable: { deleteNonTextBlock(block.id, undoLabel: String(localized: "표를 지웠어요")) },
+                onDeleteTable: { deleteNonTextBlock(block.id, undoLabel: String(localized: "표를 삭제했어요")) },
                 onFocused: { document.focus = EditorFocus(blockID: block.id, caret: 0) },
                 documentUndoManager: document.undoManager,
                 onEditingEnded: { document.endEditing(block.id) },
@@ -270,7 +270,7 @@ struct WysiwygEditorView: View {
     /// (레거시 TableActionBar 의 실행취소 토스트 문법 미러). 지운 게 없으면 조용히 무동작.
     private func deleteTableRow(_ id: UUID) {
         guard let before = document.tableSnapshot(id), document.deleteTableRow(id) else { return }
-        ToastCenter.shared.show(String(localized: "행을 지웠어요"), actionLabel: String(localized: "실행취소")) {
+        ToastCenter.shared.show(String(localized: "행을 삭제했어요"), actionLabel: String(localized: "실행취소")) {
             document.restoreTable(id, to: before)
         }
     }
@@ -278,14 +278,14 @@ struct WysiwygEditorView: View {
     /// 표 열 삭제 + 되돌리기 토스트 — 위와 동일(스냅샷 복원).
     private func deleteTableColumn(_ id: UUID) {
         guard let before = document.tableSnapshot(id), document.deleteTableColumn(id) else { return }
-        ToastCenter.shared.show(String(localized: "열을 지웠어요"), actionLabel: String(localized: "실행취소")) {
+        ToastCenter.shared.show(String(localized: "열을 삭제했어요"), actionLabel: String(localized: "실행취소")) {
             document.restoreTable(id, to: before)
         }
     }
 
     /// 이미지 블록 삭제 + 되돌리기 토스트 — 지운 블록을 원래 자리에 되돌린다(레거시 removeImage 미러).
     private func deleteImage(_ id: UUID) {
-        deleteNonTextBlock(id, undoLabel: String(localized: "이미지를 지웠어요"))
+        deleteNonTextBlock(id, undoLabel: String(localized: "이미지를 삭제했어요"))
     }
 
     /// 비텍스트 블록(구분선·이미지·표) 통째 삭제 + 되돌리기 토스트 — 지운 블록을 원래 자리에 되돌린다.

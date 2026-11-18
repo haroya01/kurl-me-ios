@@ -153,7 +153,7 @@ struct NotificationsView: View {
                                 gutter: Metrics.gutter,
                                 wash: Palette.chipBg))
                             .task {
-                                if tail.contains(notification.id) { await model.loadMore() }
+                                if tail.contains(notification.id) { await model.loadMoreIfNeeded() }
                             }
                         if index < bucket.items.count - 1 { Hairline() }
                     }
@@ -165,10 +165,8 @@ struct NotificationsView: View {
                         .accessibilityAddTraits(.isHeader)
                 }
             }
-            if model.loadingMore {
-                KurlLoadingMark()
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
+            LoadMoreTail(loading: model.loadingMore, failed: model.loadMoreFailed) {
+                Task { await model.retryLoadMore() }
             }
         }
     }

@@ -86,7 +86,7 @@ struct PathReorderSheet: View {
             dismiss()
         } catch {
             saving = false
-            ToastCenter.shared.show(String(localized: "순서를 저장하지 못했습니다"))
+            ToastCenter.shared.show(String(localized: "순서를 저장하지 못했어요"))
         }
     }
 }

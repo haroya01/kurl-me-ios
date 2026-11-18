@@ -93,6 +93,28 @@ final class ProfileTabsTests: XCTestCase {
         guard case .loaded = pager.phase else { return XCTFail("받은 뒤에는 loaded") }
     }
 
+    func testAFailedNextPageOfThePagerWaitsForRetry() async {
+        var asked: [Int] = []
+        var fails = true
+        let pager = ProfilePager<Row> { page in
+            asked.append(page)
+            if page == 0 { return ((1...7).map(Row.init), true) }
+            if fails { throw URLError(.timedOut) }
+            return ([Row(id: 8)], false)
+        }
+
+        await pager.reload()
+        await pager.loadMoreIfNeeded(current: Row(id: 7))
+        XCTAssertTrue(pager.loadMoreFailed)
+        await pager.loadMoreIfNeeded(current: Row(id: 7))
+        XCTAssertEqual(asked, [0, 1], "실패 표시가 떠 있는 동안에는 다시 부르지 않는다")
+
+        fails = false
+        await pager.retryLoadMore()
+        XCTAssertFalse(pager.loadMoreFailed)
+        XCTAssertEqual(pager.items.map(\.id), Array(1...8))
+    }
+
     func testAFailedFirstLoadShowsTheErrorAndAReplacedRowKeepsItsPlace() async {
         var fail = true
         let pager = ProfilePager<Row> { _ in

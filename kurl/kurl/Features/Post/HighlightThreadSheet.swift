@@ -400,7 +400,7 @@ struct HighlightThreadSheet: View {
                 await loadReplies()
                 await store.load()
             } catch {
-                ToastCenter.shared.show(String(localized: "답글을 삭제하지 못했습니다"))
+                ToastCenter.shared.show(String(localized: "답글을 삭제하지 못했어요"))
             }
         }
     }
@@ -421,7 +421,7 @@ struct HighlightThreadSheet: View {
             if await store.delete(id: highlight.id) {
                 dismiss()
             } else {
-                ToastCenter.shared.show(String(localized: "하이라이트를 삭제하지 못했습니다"))
+                ToastCenter.shared.show(String(localized: "하이라이트를 삭제하지 못했어요"))
             }
         }
     }

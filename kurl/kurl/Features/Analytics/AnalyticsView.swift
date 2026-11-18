@@ -44,7 +44,7 @@ struct AnalyticsView: View {
                     .frame(maxWidth: .infinity, minHeight: 280)
             case .failed:
                 ErrorState(
-                    title: "분석을 불러오지 못했습니다",
+                    title: "분석을 불러오지 못했어요",
                     message: String(localized: "잠시 후 다시 시도해 주세요."),
                     retry: { Task { await load() } })
                     .padding(.top, 60)
@@ -121,12 +121,14 @@ struct AnalyticsView: View {
         let sortAtStart = performanceSort
         Task {
             defer { loadingMorePosts = false }
-            if let next = try? await AnalyticsAPI.postPerformance(
-                sort: sortAtStart, page: current.page + 1),
-               sortAtStart == performanceSort
-            {
+            do {
+                let next = try await AnalyticsAPI.postPerformance(sort: sortAtStart, page: current.page + 1)
+                guard sortAtStart == performanceSort else { return }
                 performance = PostPerformanceResult(
                     items: current.items + next.items, page: next.page, hasNext: next.hasNext)
+            } catch {
+                guard sortAtStart == performanceSort, !error.isCancellation else { return }
+                ToastCenter.shared.show(String(localized: "더 불러오지 못했어요"))
             }
         }
     }

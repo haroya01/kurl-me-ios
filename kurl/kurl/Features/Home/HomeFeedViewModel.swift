@@ -8,6 +8,7 @@ final class HomeFeedViewModel {
     private(set) var items: [HomeFeedItem] = []
     private(set) var phase: LoadState<Bool> = .idle
     private(set) var isLoadingMore = false
+    private(set) var loadMoreFailed = false
     private(set) var next: String?
     private var epoch = 0
     private(set) var newest: String?
@@ -85,7 +86,7 @@ final class HomeFeedViewModel {
         guard let outcome else { return }
         if case .failed = phase { return }
         guard outcome.added == 0, !outcome.empty else { return }
-        notify(outcome.failed ? String(localized: "새로고침하지 못했습니다") : String(localized: "새 글이 없어요"))
+        notify(outcome.failed ? String(localized: "새로고침하지 못했어요") : String(localized: "새 글이 없어요"))
     }
 
     @discardableResult
@@ -116,6 +117,7 @@ final class HomeFeedViewModel {
             return PullOutcome(added: items.filter { !known.contains($0.id) }.count, failed: !loaded)
         }
         epoch += 1
+        loadMoreFailed = false
         let myEpoch = epoch
         do {
             let batch = try await newer(tab, marker)
@@ -145,6 +147,7 @@ final class HomeFeedViewModel {
     private func reloadOwn(settlesLaunch: Bool = false, announcesFailure: Bool = true) async -> Bool? {
         defer { if settlesLaunch { settled() } }
         epoch += 1
+        loadMoreFailed = false
         let myEpoch = epoch
         if items.isEmpty, let saved = await cached(tab), myEpoch == epoch, items.isEmpty {
             items = Self.unique(saved.items).filter { !tab.hidesSeen || !seenBefore($0) }
@@ -167,22 +170,38 @@ final class HomeFeedViewModel {
             if items.isEmpty {
                 phase = .failed((error as? APIError)?.localizedDescription ?? error.localizedDescription)
             } else if announcesFailure {
-                ToastCenter.shared.show(String(localized: "새로고침하지 못했습니다"))
+                ToastCenter.shared.show(String(localized: "새로고침하지 못했어요"))
             }
             return false
         }
     }
 
     func loadMoreIfNeeded(current item: HomeFeedItem) async {
-        guard let cursor = next, !isLoadingMore, items.suffix(5).contains(where: { $0.id == item.id }) else { return }
+        guard !loadMoreFailed, items.suffix(5).contains(where: { $0.id == item.id }) else { return }
+        await loadMore()
+    }
+
+    func retryLoadMore() async {
+        loadMoreFailed = false
+        await loadMore()
+    }
+
+    private func loadMore() async {
+        guard let cursor = next, !isLoadingMore else { return }
         isLoadingMore = true
         let myEpoch = epoch
         await Task {
             defer { isLoadingMore = false }
-            guard let page = try? await load(tab, cursor), myEpoch == epoch else { return }
-            next = page.next
-            let seen = Set(items.map(\.id))
-            items.append(contentsOf: Self.unique(page.items).filter { !seen.contains($0.id) })
+            do {
+                let page = try await load(tab, cursor)
+                guard myEpoch == epoch else { return }
+                next = page.next
+                let seen = Set(items.map(\.id))
+                items.append(contentsOf: Self.unique(page.items).filter { !seen.contains($0.id) })
+            } catch {
+                guard myEpoch == epoch, !error.isCancellation else { return }
+                loadMoreFailed = true
+            }
         }.value
     }
 

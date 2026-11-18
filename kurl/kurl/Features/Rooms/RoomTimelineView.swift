@@ -215,6 +215,9 @@ struct RoomTimelineView: View {
                         Hairline().padding(.horizontal, -Metrics.noteGutter)
                     }
                 }
+                LoadMoreTail(loading: model.loadingMore, failed: model.loadMoreFailed) {
+                    Task { await model.retryLoadMore() }
+                }
             }
         }
     }
