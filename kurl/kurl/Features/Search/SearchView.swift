@@ -251,8 +251,8 @@ struct SearchView: View {
             LazyVStack(alignment: .leading, spacing: 0) {
                 if active {
                     SearchingOnly {
-                        recentsRail.padding(.bottom, 18)
-                        tagStrip.padding(.bottom, 18)
+                        recentsRail.holdsSwipePager().padding(.bottom, 18)
+                        tagStrip.holdsSwipePager().padding(.bottom, 18)
                     }
                 }
                 if warm {

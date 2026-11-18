@@ -30,6 +30,7 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
     /// 페이지 안의 가로 스크롤(사진 넘기기)이 잡은 드래그는 페이지를 넘기지 않는다 — 둘이 같이 움직이던 것.
     @State private var gate = SwipePagerGate()
     @State private var blocked = false
+    @State private var swallowing = false
     @State private var opened: Set<Tab> = []
     @State private var neighborsReady = false
     @State private var moving = false
@@ -45,7 +46,7 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
                         // 슬라이드 중 중앙을 벗어난 분면은 살짝 가라앉는다 — 옆 칸이 "뒤에 있다"는 얕은 깊이.
                         .opacity(opacity(tab))
                         // 드래그 중엔 페이지 콘텐츠를 비활성화 — 카드가 손가락과 함께 움직여 탭이 안 취소되던 것.
-                        .disabled(dragX != 0)
+                        .disabled(dragX != 0 || swallowing)
                         .allowsHitTesting(tab == selection && !suspended)
                         .accessibilityHidden(tab != selection || suspended)
                         .offset(x: offset(tab))
@@ -94,9 +95,13 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
     private var drag: some Gesture {
         DragGesture(minimumDistance: 18, coordinateSpace: .global)
             .onChanged { value in
-                if gate.holds(value.startLocation) || locked { blocked = true }
+                let held = gate.holds(value.startLocation)
+                if held || locked { blocked = true }
                 if blocked {
                     if dragX != 0 { dragX = 0 }
+                    if !swallowing, SwipePagerLock.swallows(locked: locked, held: held, translation: value.translation) {
+                        swallowing = true
+                    }
                     return
                 }
                 guard !reduceMotion,
@@ -111,6 +116,7 @@ struct SwipePager<Tab: Hashable & Identifiable, Page: View>: View {
             .onEnded { value in
                 if blocked {
                     blocked = false
+                    swallowing = false
                     withAnimation(reduceMotion ? nil : Motion.move) { dragX = 0 }
                     moving = false
                     return
@@ -176,6 +182,14 @@ final class SwipePagerGate {
 
     func holds(_ start: CGPoint) -> Bool {
         held || frames.values.contains { $0.contains(start) }
+    }
+}
+
+enum SwipePagerLock {
+    /// 잠긴 동안의 가로 끌기는 페이지를 넘기지 않는다. 그대로 두면 손을 뗄 때 밑의 행이 눌리므로 끌기 동안 페이지를 꺼 둔다.
+    /// 안쪽 가로 스크롤이 잡은 끌기는 끄지 않는다(끄면 그 스크롤이 끊긴다).
+    static func swallows(locked: Bool, held: Bool, translation: CGSize) -> Bool {
+        locked && !held && abs(translation.width) > abs(translation.height)
     }
 }
 

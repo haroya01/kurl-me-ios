@@ -92,6 +92,16 @@ final class FeedTabChoiceTests: XCTestCase {
         XCTAssertTrue(SwipePagerMount.mounted(ExploreLane.remote, selection: .picks, onlySelectionAtRest: true, moving: true))
     }
 
+    func testALockedPagerSwallowsSidewaysDragsButNotInnerStripsOrVerticalScroll() {
+        let sideways = CGSize(width: -120, height: 8)
+        XCTAssertTrue(SwipePagerLock.swallows(locked: true, held: false, translation: sideways))
+        XCTAssertFalse(
+            SwipePagerLock.swallows(locked: true, held: true, translation: sideways),
+            "안쪽 가로 스크롤이 잡은 끌기까지 끄면 그 스크롤이 끊긴다")
+        XCTAssertFalse(SwipePagerLock.swallows(locked: true, held: false, translation: CGSize(width: 10, height: -90)))
+        XCTAssertFalse(SwipePagerLock.swallows(locked: false, held: false, translation: sideways))
+    }
+
     func testASwipeThatStartsOnAHeldStripDoesNotTurnThePage() {
         let gate = SwipePagerGate()
         Self.gates.append(gate)
