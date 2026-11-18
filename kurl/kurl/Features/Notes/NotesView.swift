@@ -2190,6 +2190,18 @@ struct NoteDetailView: View {
 
 /// 노트 작성·고치기 시트. 새 노트는 사진(최대 4장, 장마다 대체 텍스트)과 블로그 글 인용을 받는다.
 /// 처음 올릴 때 한 번, 다른 서버로 퍼진 사본은 지운다는 보장을 못 한다는 안내를 확인받는다.
+enum NoteComposeCaret {
+    static let main = "noteCompose.caret.main"
+
+    static func part(_ id: UUID) -> String { "noteCompose.caret.\(id.uuidString)" }
+
+    /// 한글 조합은 끝 글자를 바꿔 쓰므로 접두 비교가 아니라 끝 두 글자를 뺀 앞부분이 같은지로 본다.
+    static func editsTail(old: String, new: String) -> Bool {
+        let keep = max(0, min(old.count, new.count) - 2)
+        return old.prefix(keep) == new.prefix(keep)
+    }
+}
+
 struct NoteComposeSheet: View {
     enum Mode {
         case new(quote: QuotedPost?, inReplyToId: Int64?)
@@ -2238,6 +2250,7 @@ struct NoteComposeSheet: View {
     @State private var altTarget: AltTarget?
     @State private var linkCard: NoteLinkPreview?
     @State private var poll: NotePollDraft?
+    @State private var leavingPoll = NotePollDraft()
     @State private var scheduledAt: Date?
     @State private var language = NoteLanguages.posting
     @State private var pickingSchedule = false
@@ -2245,6 +2258,8 @@ struct NoteComposeSheet: View {
     @State private var confirmLongForm = false
     @FocusState private var focused: Bool
     @FocusState private var focusedPart: UUID?
+    @State private var caretTarget = NoteComposeCaret.main
+    @State private var caretTick = 0
     @AccessibilityFocusState private var targetFocused: Bool
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOver
     @Environment(\.dismiss) private var dismiss
@@ -2367,6 +2382,7 @@ struct NoteComposeSheet: View {
 
     var body: some View {
         NavigationStack {
+            ScrollViewReader { scroller in
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     if let replyTarget { targetRow(replyTarget) }
@@ -2397,6 +2413,7 @@ struct NoteComposeSheet: View {
                                     .lineLimit(1...20)
                                     .focused($focused)
                                     .accessibilityIdentifier("noteCompose.text")
+                                    .onChange(of: text) { old, new in followCaret(old, new, NoteComposeCaret.main) }
                                 if focused {
                                     MentionSuggestionList(
                                         query: MentionDraft.trailingQuery(in: text, allowingServer: true),
@@ -2409,8 +2426,9 @@ struct NoteComposeSheet: View {
                                         })
                                 }
                             }
-                            if let draft = Binding($poll) {
-                                NotePollEditor(draft: draft)
+                            .id(NoteComposeCaret.main)
+                            if poll != nil {
+                                NotePollEditor(draft: pollDraft)
                                     .transition(.opacity.combined(with: .move(edge: .top)))
                             }
                             if !picked.isEmpty { pickedStrip }
@@ -2461,7 +2479,12 @@ struct NoteComposeSheet: View {
                                 }
                                 Button {
                                     withMotion(Motion.micro) {
-                                        poll = poll == nil ? NotePollDraft() : nil
+                                        if let current = poll {
+                                            leavingPoll = current
+                                            poll = nil
+                                        } else {
+                                            poll = NotePollDraft()
+                                        }
                                     }
                                 } label: {
                                     Image(systemName: "chart.bar.xaxis")
@@ -2536,6 +2559,8 @@ struct NoteComposeSheet: View {
                             ? "쓴 내용이 새 글 본문으로 옮겨져요."
                             : "쓴 내용이 새 글 본문으로 옮겨져요. 사진과 투표는 옮겨지지 않아요.")
                 }
+            }
+            .onChange(of: caretTick) { scroller.scrollTo(caretTarget, anchor: .bottom) }
             }
             .scrollDismissesKeyboard(.interactively)
             .background(Palette.sheetBg)
@@ -2842,6 +2867,9 @@ struct NoteComposeSheet: View {
                     .lineLimit(1...20)
                     .focused($focusedPart, equals: id)
                     .accessibilityIdentifier("noteCompose.part")
+                    .onChange(of: part.wrappedValue.text) { old, new in
+                        followCaret(old, new, NoteComposeCaret.part(id))
+                    }
                 if focusedPart == id {
                     MentionSuggestionList(
                         query: MentionDraft.trailingQuery(in: part.wrappedValue.text, allowingServer: true),
@@ -2855,9 +2883,25 @@ struct NoteComposeSheet: View {
                         })
                 }
             }
+            .id(NoteComposeCaret.part(id))
             .padding(.bottom, 14)
         }
         .transition(.opacity.combined(with: .move(edge: .top)))
+    }
+
+    /// 투표를 빼도 편집기는 사라지는 전환 동안 남아 바인딩을 읽는다. 옵셔널을 풀어 만든 바인딩(`Binding($poll)`)은 그때 nil 을 강제로 풀다 죽는다.
+    private var pollDraft: Binding<NotePollDraft> {
+        Binding(
+            get: { poll ?? leavingPoll },
+            set: { next in
+                if poll != nil { poll = next }
+            })
+    }
+
+    private func followCaret(_ old: String, _ new: String, _ target: String) {
+        guard NoteComposeCaret.editsTail(old: old, new: new) else { return }
+        caretTarget = target
+        caretTick += 1
     }
 
     private var addPartRow: some View {
