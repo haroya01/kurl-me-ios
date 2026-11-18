@@ -32,32 +32,16 @@ struct FeedPlaceholder: View {
 /// 행 전체 press 하이라이트 — 본문 정렬 유지(양옆으로 살짝 번짐).
 struct RowButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        RowPress(configuration: configuration)
-    }
-}
-
-private struct RowPress: View {
-    let configuration: ButtonStyleConfiguration
-    @Environment(\.isEnabled) private var isEnabled
-    /// 비활성화된 행에 도착한 누름은 손을 떼도 isPressed 가 풀리지 않는다. 그 누름은 그리지 않는다.
-    @State private var cutOff = false
-
-    var body: some View {
-        let pressed = configuration.isPressed && !cutOff
-        configuration.label
-            .background(
-                RoundedRectangle(cornerRadius: Metrics.radius)
-                    .fill(pressed ? Palette.rowHighlight : .clear)
-                    .padding(.horizontal, -10)
-            )
-            .contentShape(Rectangle())
-            .animation(Motion.micro, value: pressed)
-            .onChange(of: isEnabled) { _, enabled in
-                if !enabled, configuration.isPressed { cutOff = true }
-            }
-            .onChange(of: configuration.isPressed) { _, now in
-                cutOff = now && !isEnabled
-            }
+        PressLatch(isPressed: configuration.isPressed) { pressed in
+            configuration.label
+                .background(
+                    RoundedRectangle(cornerRadius: Metrics.radius)
+                        .fill(pressed ? Palette.rowHighlight : .clear)
+                        .padding(.horizontal, -10)
+                )
+                .contentShape(Rectangle())
+                .animation(Motion.micro, value: pressed)
+        }
     }
 }
 

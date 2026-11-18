@@ -79,16 +79,18 @@ struct PaperCapsuleStyle: ButtonStyle {
     let prominent: Bool
 
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .background {
-                if prominent {
-                    Capsule().fill(Palette.accentFill)
-                } else {
-                    Capsule().strokeBorder(Palette.hairlineStrong, lineWidth: 1)
+        PressLatch(isPressed: configuration.isPressed) { pressed in
+            configuration.label
+                .background {
+                    if prominent {
+                        Capsule().fill(Palette.accentFill)
+                    } else {
+                        Capsule().strokeBorder(Palette.hairlineStrong, lineWidth: 1)
+                    }
                 }
-            }
-            .opacity(configuration.isPressed ? 0.6 : 1)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+                .opacity(pressed ? 0.6 : 1)
+                .animation(Motion.micro, value: pressed)
+        }
     }
 }
 
