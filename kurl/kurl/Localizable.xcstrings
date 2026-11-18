@@ -38871,6 +38871,34 @@
         }
       }
     },
+    "기기에 저장된 글 보기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View posts saved on this device"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस डिवाइस पर सहेजी पोस्ट देखें"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "端末に保存された記事を見る"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xem bài đã lưu trên máy"
+          }
+        }
+      }
+    },
     "다시 저장": {
       "localizations": {
         "en": {

@@ -22,10 +22,25 @@ struct AccountView: View {
                         // 내 계정 = 내 블로그 — 들어오면 내가 발행한 글이 바로 뜬다.
                         AuthorBlogView(username: username, showsOwnerTools: true)
                     } else if meLoadFailed {
-                        ErrorState(retry: { Task { await reloadMe() } })
-                            .padding(.horizontal, Metrics.gutter)
-                            .padding(.top, 24)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                        VStack(alignment: .leading, spacing: 20) {
+                            ErrorState(retry: { Task { await reloadMe() } })
+                            if !OfflineStore.shared.cachedKeys.isEmpty {
+                                NavigationLink {
+                                    BookmarksView()
+                                } label: {
+                                    Text("기기에 저장된 글 보기")
+                                        .typeScale(.body)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(Palette.ink)
+                                        .expandTapTarget(12)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityIdentifier("account.offlineCopies")
+                            }
+                        }
+                        .padding(.horizontal, Metrics.gutter)
+                        .padding(.top, 24)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     } else {
                         // me 로딩 중 — 잠깐의 빈자리를 막다른 길로 두지 않는다.
                         KurlLoadingMark()
