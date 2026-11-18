@@ -1290,6 +1290,7 @@ enum MockBackend {
         if let lists = MockFollowLists.respond(parts: parts, method: method, query: query, body: body) {
             return lists
         }
+        if let quotes = try MockRooms.quoteRoutes(parts: parts, method: method, body: body) { return quotes }
         if let rooms = MockRooms.respond(parts: parts, method: method, body: body) { return rooms }
 
         if parts.count >= 5, parts[0] == "public", parts[1] == "profiles", parts[3] == "posts",
@@ -3474,17 +3475,24 @@ enum MockBackend {
             "visibility": n.visibility,
             "poll": pollView(n) ?? NSNull(),
             "conversationMuted": mutedConversations.contains(n.id),
-            "quotedNote": n.quotedNoteId.flatMap { qid in allNotes().first { $0.id == qid } }
-                .map { q -> [String: Any] in
-                    [
-                        "id": q.id, "body": q.body, "createdAt": iso(q.createdAt),
-                        "author": ["id": q.authorId, "username": q.username, "avatarUrl": NSNull()],
-                        "media": q.media,
-                        "contentWarning": q.contentWarning ?? NSNull(),
-                        "sensitive": q.sensitive || q.contentWarning != nil,
-                    ]
-                } ?? NSNull(),
+            "quotedNote": n.quotedNoteId.flatMap(quotedNoteView) ?? NSNull(),
         ]
+    }
+
+    static func quotedNoteView(_ id: Int64) -> [String: Any]? {
+        allNotes().first { $0.id == id }.map { q in
+            [
+                "id": q.id, "body": q.body, "createdAt": iso(q.createdAt),
+                "author": ["id": q.authorId, "username": q.username, "avatarUrl": NSNull()],
+                "media": q.media,
+                "contentWarning": q.contentWarning ?? NSNull(),
+                "sensitive": q.sensitive || q.contentWarning != nil,
+            ]
+        }
+    }
+
+    static func noteVisibility(_ id: Int64) -> String? {
+        allNotes().first { $0.id == id }?.visibility
     }
 
     private static func pollView(_ n: MockNote) -> [String: Any]? {

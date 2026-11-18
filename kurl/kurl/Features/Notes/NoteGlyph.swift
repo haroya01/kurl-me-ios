@@ -1,10 +1,10 @@
 import os
 import SwiftUI
 
-/// 노트 반응 아이콘(좋아요·답글·리포스트·공유·북마크) — 웹(short-link-frontend note-glyph.tsx)과 같은 경로.
+/// 노트 반응 아이콘(좋아요·답글·리포스트·인용·공유·북마크) — 웹(short-link-frontend note-glyph.tsx)과 같은 경로.
 /// 24 격자, 선 1.8, 둥근 끝. 한쪽을 고치면 다른 쪽도 고친다.
 enum NoteGlyph {
-    case heart, reply, repost, share, bookmark
+    case heart, reply, repost, quote, share, bookmark
 
     fileprivate var paths: [String] {
         switch self {
@@ -19,6 +19,10 @@ enum NoteGlyph {
             "M16.5 3.5L19.25 6.25L16.5 9",
             "M19.25 12.75V14.25C19.25 16.18 17.68 17.75 15.75 17.75H4.75",
             "M7.5 20.5L4.75 17.75L7.5 15",
+        ]
+        case .quote: [
+            "M10.4 5.5C6.5 6.5 3.75 9.6 3.75 13.5V16.9C3.75 17.78 4.47 18.5 5.35 18.5H9.3C10.18 18.5 10.9 17.78 10.9 16.9V13.2C10.9 12.32 10.18 11.6 9.3 11.6H7.55C7.85 9.75 8.9 8.3 10.4 7.5V5.5Z",
+            "M19.75 5.5C15.85 6.5 13.1 9.6 13.1 13.5V16.9C13.1 17.78 13.82 18.5 14.7 18.5H18.65C19.53 18.5 20.25 17.78 20.25 16.9V13.2C20.25 12.32 19.53 11.6 18.65 11.6H16.9C17.2 9.75 18.25 8.3 19.75 7.5V5.5Z",
         ]
         case .share: [
             "M20.25 12L4.35 4.6L7.1 12L4.35 19.4Z",

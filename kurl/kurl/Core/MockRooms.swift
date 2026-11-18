@@ -25,6 +25,9 @@ enum MockRooms {
         let author: Person
         let body: String
         let minutesAgo: Double
+        var quotedNoteId: Int64? = nil
+        var quotedPostId: Int64? = nil
+        var media: [[String: Any]] = []
     }
 
     private static let me = Person(id: 1, username: "honggildong", displayName: "홍길동")
@@ -66,10 +69,16 @@ enum MockRooms {
         Post(id: 9904, roomId: 2, author: kim, body: "졸업앨범 받음 우리과 페이지 개웃김", minutesAgo: 60 * 20),
         Post(id: 9906, roomId: 2, author: minji, body: "퇴근하고 공방 다니는데 첫 컵 망함 ㅠ", minutesAgo: 60 * 3),
         Post(id: 9907, roomId: 1, author: me, body: "필카 첫 롤 현상 맡김", minutesAgo: 60 * 6),
-        Post(id: 9908, roomId: 1, author: junho, body: "어제 단체사진 보정 끝 표정 다 제각각 ㅋㅋ", minutesAgo: 60 * 27),
+        Post(id: 9908, roomId: 1, author: junho, body: "어제 단체사진 보정 끝 표정 다 제각각 ㅋㅋ", minutesAgo: 60 * 27,
+             media: [[
+                "url": "https://picsum.photos/seed/kurl-room-group/900/600", "altText": "엠티 단체 사진",
+                "contentType": "image/jpeg", "width": 900, "height": 600,
+             ]]),
         Post(id: 9909, roomId: 5, author: mom, body: "김장 끝 허리 나감", minutesAgo: 60 * 24 * 12),
         Post(id: 9910, roomId: 6, author: haneul, body: "앨범 정리하다 옛날 사진 나옴 다들 애기네", minutesAgo: 60 * 24 * 40),
         Post(id: 9905, roomId: 3, author: yuki, body: "포트 어댑터 이름 짓다가 한시간 날림", minutesAgo: 60 * 24 * 5),
+        Post(id: 9911, roomId: 1, author: yuki, body: "사진 고르는 기준은 블로그에 적어 둠", minutesAgo: 60 * 30,
+             quotedPostId: 9301),
     ]
 
     private struct RoomPost {
@@ -96,6 +105,15 @@ enum MockRooms {
                  minutesAgo: 60 * 24 * 2, cover: nil, readMinutes: 6),
     ]
 
+    /// 방 글이 본문에 실은 같은 방의 노트(글 → 노트).
+    private static let embedded: [Int64: Int64] = [8801: 9903]
+
+    /// 방 밖의 공개 글. 방 노트 9903 의 주소를 실었지만 방 밖이라 링크로만 보인다.
+    private static let outsidePost = (
+        id: Int64(9301), author: yuki, slug: "picking-mt-photos", title: "삼백 장에서 열 장 고르기")
+
+    private static var nextNoteId: Int64 = 9960
+
     private static var invites: [Int64: [[String: Any]]] = [:]
     private static var requests: [Int64: [Person]] = [1: [eunseong]]
     private static var suggested: [Person] = [minji, junho]
@@ -110,7 +128,7 @@ enum MockRooms {
 
     static func roomNotesForFollowing() -> [[String: Any]] {
         posts.filter { post in rooms.contains { $0.id == post.roomId && !$0.hiddenFromFeed } }
-            .sorted { $0.minutesAgo < $1.minutesAgo }
+            .sorted { newerFirst($0, $1) }
             .prefix(2)
             .map(noteView)
     }
@@ -163,7 +181,7 @@ enum MockRooms {
         }
         if parts == ["rooms", "feed"], method == "GET" {
             let mine = Set(rooms.map(\.id))
-            let items = posts.filter { mine.contains($0.roomId) }.sorted { $0.minutesAgo < $1.minutesAgo }.map(noteView)
+            let items = posts.filter { mine.contains($0.roomId) }.sorted { newerFirst($0, $1) }.map(noteView)
             return json(["items": items, "page": 0, "hasNext": false])
         }
         if parts == ["rooms", "invitations"], method == "GET" {
@@ -204,7 +222,7 @@ enum MockRooms {
             if let approval = decode(body)["approvalRequired"] as? Bool { rooms[index].approval = approval }
             return json(detail(rooms[index]))
         case ("GET", ["notes"]):
-            let items = posts.filter { $0.roomId == id }.sorted { $0.minutesAgo < $1.minutesAgo }.map(noteView)
+            let items = posts.filter { $0.roomId == id }.sorted { newerFirst($0, $1) }.map(noteView)
             return json(["items": items, "page": 0, "hasNext": false])
         case ("POST", ["read"]):
             rooms[index].unread = 0
@@ -272,6 +290,179 @@ enum MockRooms {
         }
     }
 
+    // MARK: 인용
+
+    /// 서버(NoteComposer)와 같은 쓰기 규칙 — 누구나 보는 것은 어디서나, 방의 것은 그 방에 올리는 노트만 인용한다.
+    private static func checkQuote(_ draft: [String: Any]) throws {
+        let roomId = (draft["roomId"] as? NSNumber)?.int64Value
+        if let roomId, !rooms.contains(where: { $0.id == roomId }) {
+            throw APIError.server(status: 404, code: "NOTE_ROOM_NOT_FOUND", detail: "room not found: \(roomId)")
+        }
+        if let quoted = (draft["quotedNoteId"] as? NSNumber)?.int64Value {
+            let allowed: Bool
+            if let roomNote = roomNote(quoted) {
+                allowed = roomNote.roomId == roomId
+            } else {
+                allowed = MockBackend.noteVisibility(quoted).map { ["public", "unlisted"].contains($0) } ?? true
+            }
+            if !allowed {
+                throw APIError.server(
+                    status: 400, code: "NOTE_NOT_SHAREABLE",
+                    detail: "only public and unlisted notes can be reposted or quoted")
+            }
+        }
+        if let quoted = (draft["quotedPostId"] as? NSNumber)?.int64Value,
+           let roomPost = roomPosts.first(where: { $0.id == quoted }), roomPost.roomId != roomId {
+            throw APIError.server(
+                status: 400, code: "NOTE_QUOTE_NOT_FOUND", detail: "quoted post is not published: \(quoted)")
+        }
+    }
+
+    private static func createNote(_ draft: [String: Any], roomId: Int64) -> Post {
+        let note = Post(
+            id: nextNoteId, roomId: roomId, author: me, body: draft["body"] as? String ?? "", minutesAgo: 0,
+            quotedNoteId: (draft["quotedNoteId"] as? NSNumber)?.int64Value,
+            quotedPostId: (draft["quotedPostId"] as? NSNumber)?.int64Value)
+        nextNoteId += 1
+        posts.insert(note, at: 0)
+        return note
+    }
+
+    static func quoteRoutes(parts: [String], method: String, body: Data?) throws -> Data? {
+        if method == "POST", parts == ["notes"] {
+            let draft = decode(body)
+            try checkQuote(draft)
+            guard let roomId = (draft["roomId"] as? NSNumber)?.int64Value else { return nil }
+            return json(noteView(createNote(draft, roomId: roomId)))
+        }
+        if method == "POST", parts == ["notes", "threads"] {
+            let drafts = (decode(body)["notes"] as? [[String: Any]]) ?? []
+            for draft in drafts { try checkQuote(draft) }
+            guard let roomId = (drafts.first?["roomId"] as? NSNumber)?.int64Value else { return nil }
+            return json(drafts.map { noteView(createNote($0, roomId: roomId)) })
+        }
+        if method == "POST", parts == ["notes", "scheduled"] {
+            try checkQuote(decode(body)["note"] as? [String: Any] ?? [:])
+            return nil
+        }
+        guard method == "GET", parts.first == "public" else { return nil }
+        if parts.count == 4, parts[1] == "notes", let id = Int64(parts[2]),
+           let quoted = posts.first(where: { $0.id == id }) {
+            if parts[3] == "quotes" {
+                let items = posts.filter { $0.quotedNoteId == id && $0.roomId == quoted.roomId }
+                    .sorted { newerFirst($0, $1) }.map(noteView)
+                return json(["items": items, "page": 0, "hasNext": false])
+            }
+            if parts[3] == "posts" {
+                let items = roomPosts.filter { embedded[$0.id] == id && $0.roomId == quoted.roomId }.map(postView)
+                return json(["items": items, "page": 0, "size": 20, "hasNext": false])
+            }
+        }
+        if parts.count == 4, parts[1] == "posts", parts[3] == "quotes", let id = Int64(parts[2]),
+           let quoted = roomPosts.first(where: { $0.id == id }) {
+            let items = posts.filter { $0.quotedPostId == id && $0.roomId == quoted.roomId }
+                .sorted { newerFirst($0, $1) }.map(noteView)
+            return json(["items": items, "page": 0, "hasNext": false, "total": items.count])
+        }
+        if parts.count == 5, parts[1] == "profiles", parts[3] == "posts" {
+            if let post = roomPosts.first(where: { $0.slug == parts[4] }) {
+                var blocks = [("PARAGRAPH", post.excerpt)]
+                if let note = embedded[post.id].flatMap({ id in posts.first { $0.id == id } }) {
+                    blocks.append(("EMBED", noteAddress(note)))
+                }
+                return json(detailView(
+                    id: post.id, author: post.author, slug: post.slug, title: post.title, excerpt: post.excerpt,
+                    minutesAgo: post.minutesAgo, blocks: blocks, room: rooms.first { $0.id == post.roomId }))
+            }
+            if parts[4] == outsidePost.slug, let note = posts.first(where: { $0.id == 9903 }) {
+                return json(detailView(
+                    id: outsidePost.id, author: outsidePost.author, slug: outsidePost.slug, title: outsidePost.title,
+                    excerpt: "흔들린 사진부터 지운다. 그다음은 같은 장면이 겹친 것.", minutesAgo: 60 * 31,
+                    blocks: [
+                        ("PARAGRAPH", "흔들린 사진부터 지운다. 그다음은 같은 장면이 겹친 것."),
+                        ("EMBED", noteAddress(note)),
+                        ("PARAGRAPH", "남은 서른 장에서 열 장은 하룻밤 자고 고른다."),
+                    ],
+                    room: nil))
+            }
+        }
+        return nil
+    }
+
+    private static func roomNote(_ id: Int64) -> Post? {
+        if let note = posts.first(where: { $0.id == id }) { return note }
+        for parent in posts {
+            if let reply = replies[parent.id]?.first(where: { $0.0 == id }) {
+                return Post(id: id, roomId: parent.roomId, author: reply.1, body: reply.2, minutesAgo: parent.minutesAgo / 2)
+            }
+        }
+        return nil
+    }
+
+    private static func newerFirst(_ a: Post, _ b: Post) -> Bool {
+        (a.minutesAgo, -a.id) < (b.minutesAgo, -b.id)
+    }
+
+    private static func noteAddress(_ note: Post) -> String {
+        "\(Config.blogBase)/@\(note.author.username)/notes/\(note.id)"
+    }
+
+    private static func detailView(
+        id: Int64, author: Person, slug: String, title: String, excerpt: String, minutesAgo: Double,
+        blocks: [(String, String)], room: Room?
+    ) -> [String: Any] {
+        var post: [String: Any] = [
+            "id": id, "slug": slug, "title": title, "excerpt": excerpt, "ogImageUrl": NSNull(),
+            "languageTag": "ko", "tags": [String](), "likeCount": 2, "pinned": false, "lastEditedAt": NSNull(),
+            "publishedAt": iso(minutesAgo: minutesAgo),
+        ]
+        if let room {
+            post["audience"] = "ROOM"
+            post["room"] = ["id": room.id, "name": room.name]
+        }
+        return [
+            "author": [
+                "id": author.id, "username": author.username, "bio": NSNull(), "avatarUrl": NSNull(),
+                "displayName": author.displayName ?? NSNull(),
+            ],
+            "post": post,
+            "blocks": blocks.enumerated().map { index, block in
+                ["type": block.0, "content": block.1, "blockOrder": index] as [String: Any]
+            },
+            "series": NSNull(),
+        ]
+    }
+
+    private static func quotedNoteView(_ post: Post) -> Any {
+        guard let id = post.quotedNoteId else { return NSNull() }
+        guard let quoted = roomNote(id) else {
+            return MockBackend.quotedNoteView(id) ?? NSNull()
+        }
+        return [
+            "id": quoted.id, "body": quoted.body, "createdAt": iso(minutesAgo: quoted.minutesAgo),
+            "author": person(quoted.author), "media": quoted.media, "contentWarning": NSNull(), "sensitive": false,
+        ] as [String: Any]
+    }
+
+    private static func quotedPostView(_ post: Post) -> Any {
+        guard let id = post.quotedPostId else { return NSNull() }
+        if let quoted = roomPosts.first(where: { $0.id == id }) {
+            return [
+                "id": quoted.id, "title": quoted.title, "slug": quoted.slug,
+                "authorUsername": quoted.author.username, "audience": "ROOM",
+            ] as [String: Any]
+        }
+        if id == outsidePost.id {
+            return [
+                "id": id, "title": outsidePost.title, "slug": outsidePost.slug,
+                "authorUsername": outsidePost.author.username, "audience": "PUBLIC",
+            ] as [String: Any]
+        }
+        return [
+            "id": id, "title": "인용한 글", "slug": "quoted", "authorUsername": me.username, "audience": "PUBLIC",
+        ] as [String: Any]
+    }
+
     private static let replies: [Int64: [(Int64, Person, String)]] = [
         9901: [(9951, junho, "나도 어제 거기 있었는데"), (9952, yuki, "사진 있으면 올려 줘요")],
         9902: [(9953, minji, "오 ㄷㄷ 다음엔 같이 뛰자")],
@@ -285,11 +476,11 @@ enum MockRooms {
     }
 
     private static func mixed(_ roomIds: Set<Int64>) -> [[String: Any]] {
-        var entries: [(Double, [String: Any])] = posts.filter { roomIds.contains($0.roomId) }
-            .map { ($0.minutesAgo, ["kind": "note", "note": noteView($0), "replies": replyViews($0.id)]) }
+        var entries: [(Double, Int64, [String: Any])] = posts.filter { roomIds.contains($0.roomId) }
+            .map { ($0.minutesAgo, $0.id, ["kind": "note", "note": noteView($0), "replies": replyViews($0.id)]) }
         entries += roomPosts.filter { roomIds.contains($0.roomId) }
-            .map { ($0.minutesAgo, ["kind": "post", "post": postView($0), "replies": replyViews($0.id)]) }
-        return entries.sorted { $0.0 < $1.0 }.map(\.1)
+            .map { ($0.minutesAgo, $0.id, ["kind": "post", "post": postView($0), "replies": replyViews($0.id)]) }
+        return entries.sorted { ($0.0, -$0.1) < ($1.0, -$1.1) }.map(\.2)
     }
 
     private static func postView(_ post: RoomPost) -> [String: Any] {
@@ -312,7 +503,7 @@ enum MockRooms {
     }
 
     private static func listItem(_ room: Room) -> [String: Any] {
-        let last = posts.filter { $0.roomId == room.id }.min { $0.minutesAgo < $1.minutesAgo }
+        let last = posts.filter { $0.roomId == room.id }.min { newerFirst($0, $1) }
         return [
             "id": room.id, "name": room.name, "memberCount": room.members.count,
             "role": room.owner ? "OWNER" : "MEMBER", "hiddenFromFeed": room.hiddenFromFeed,
@@ -346,11 +537,13 @@ enum MockRooms {
             "id": post.id, "body": post.body, "createdAt": iso(minutesAgo: post.minutesAgo),
             "editedAt": NSNull(), "likeCount": 0, "likedByMe": false,
             "author": person(post.author),
-            "media": [Any](), "quotedPost": NSNull(), "inReplyToId": NSNull(),
+            "media": post.media, "quotedPost": quotedPostView(post), "inReplyToId": NSNull(),
             "replyCount": replies[post.id]?.count ?? 0, "repostCount": 0, "repostedByMe": false, "bookmarkedByMe": false,
-            "quoteCount": 0, "linkPreview": NSNull(), "mentions": [Any](),
+            "quoteCount": posts.filter { $0.quotedNoteId == post.id && $0.roomId == post.roomId }.count
+                + roomPosts.filter { embedded[$0.id] == post.id && $0.roomId == post.roomId }.count,
+            "linkPreview": NSNull(), "mentions": [Any](),
             "contentWarning": NSNull(), "sensitive": false, "pinned": false,
-            "visibility": "room", "poll": NSNull(), "conversationMuted": false, "quotedNote": NSNull(),
+            "visibility": "room", "poll": NSNull(), "conversationMuted": false, "quotedNote": quotedNoteView(post),
             "room": ["id": post.roomId, "name": room?.name ?? ""],
         ]
     }

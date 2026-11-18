@@ -9,6 +9,7 @@ struct NoteViewerActions: View {
 
     @State private var replying = false
     @State private var quoting = false
+    @State private var writingPost = false
     @State private var showLogin = false
     @State private var loginMessage: LocalizedStringKey = "좋아요를 누르려면 로그인하세요"
     @State private var likeTaps = 0
@@ -21,19 +22,22 @@ struct NoteViewerActions: View {
 
     private var unit: CGFloat { min(scale, 1.8) }
     private var access: NoteReplyAccess { NoteReplyAccess(note, signedIn: AuthStore.shared.isSignedIn) }
+    private var reach: QuoteReach { QuoteReach(note: note) }
 
     var body: some View {
         HStack(spacing: 0) {
             likeButton
             Spacer(minLength: 0)
             replyButton
-            if note.room == nil {
-                Spacer(minLength: 0)
+            Spacer(minLength: 0)
+            if reach.room == nil {
                 repostControl
                 if let shareURL {
                     Spacer(minLength: 0)
                     shareButton(shareURL)
                 }
+            } else {
+                roomQuoteMenu
             }
         }
         .foregroundStyle(.white)
@@ -42,10 +46,13 @@ struct NoteViewerActions: View {
             NoteComposeSheet(mode: .reply(note)) { onReplied($0) }
         }
         .sheet(isPresented: $quoting) {
-            NoteComposeSheet(mode: .quote(QuotedNote(note))) { created in
+            NoteComposeSheet(mode: .quote(QuotedNote(note)), room: reach.room) { created in
                 ToastCenter.shared.show(String(localized: "인용 노트를 올렸어요"))
-                onQuoted?(created)
+                if QuoteReach.landsBeside(note, created) { onQuoted?(created) }
             }
+        }
+        .fullScreenCover(isPresented: $writingPost) {
+            if let shareURL { PostComposerCover(initialMarkdown: "\(shareURL.absoluteString)\n\n", room: reach.room) }
         }
         .loginPrompt(isPresented: $showLogin, message: loginMessage)
     }
@@ -143,6 +150,30 @@ struct NoteViewerActions: View {
                 .accessibilityLabel(Text("리포스트할 수 없는 노트"))
                 .accessibilityIdentifier("viewer.repost")
         }
+    }
+
+    private var roomQuoteMenu: some View {
+        Menu {
+            Button {
+                if AuthStore.shared.isSignedIn { quoting = true } else { askLogin("인용하려면 로그인하세요") }
+            } label: {
+                Label("노트로 인용", systemImage: "quote.opening")
+            }
+            Button {
+                if AuthStore.shared.isSignedIn { writingPost = true } else { askLogin("블로그 글로 인용하려면 로그인하세요") }
+            } label: {
+                Label("블로그 글로 인용", systemImage: "square.and.pencil")
+            }
+        } label: {
+            NoteGlyphView(glyph: .quote, size: Self.glyphBox * unit)
+                .foregroundStyle(.white)
+                .padding(12)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .menuHitSlop(horizontal: 12, vertical: 12)
+        .accessibilityLabel(Text("인용"))
+        .accessibilityIdentifier("viewer.quote")
     }
 
     private func shareButton(_ url: URL) -> some View {

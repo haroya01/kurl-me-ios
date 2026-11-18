@@ -43,6 +43,7 @@ jobs:
         -only-testing:kurlUITests/HomeRemoteTailUITests
         -only-testing:kurlUITests/ExploreFirstRowUITests
         -only-testing:kurlUITests/ExploreSwipeUITests
+        -only-testing:kurlUITests/RoomQuoteUITests
 
     steps:
       - uses: actions/checkout@v4
