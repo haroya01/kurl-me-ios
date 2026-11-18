@@ -29,7 +29,8 @@ final class RoomItemsModel {
     private(set) var items: [HomeFeedItem] = []
     private(set) var phase: LoadState<Bool> = .idle
     private var next: String?
-    private var loadingMore = false
+    private(set) var loadingMore = false
+    private(set) var loadMoreFailed = false
     private var epoch = 0
     private let source: Source
 
@@ -43,6 +44,7 @@ final class RoomItemsModel {
 
     func reload() async {
         epoch += 1
+        loadMoreFailed = false
         let mine = epoch
         if items.isEmpty { phase = .loading }
         do {
@@ -58,15 +60,31 @@ final class RoomItemsModel {
     }
 
     func loadMoreIfNeeded(current item: HomeFeedItem) async {
-        guard let next, !loadingMore, items.suffix(5).contains(where: { $0.id == item.id }) else { return }
+        guard !loadMoreFailed, items.suffix(5).contains(where: { $0.id == item.id }) else { return }
+        await loadMore()
+    }
+
+    func retryLoadMore() async {
+        loadMoreFailed = false
+        await loadMore()
+    }
+
+    private func loadMore() async {
+        guard let next, !loadingMore else { return }
         loadingMore = true
         let mine = epoch
         await Task {
             defer { loadingMore = false }
-            guard let batch = try? await load(next), mine == epoch else { return }
-            let known = Set(items.map(\.id))
-            items += batch.items.filter { !known.contains($0.id) }
-            self.next = batch.next
+            do {
+                let batch = try await load(next)
+                guard mine == epoch else { return }
+                let known = Set(items.map(\.id))
+                items += batch.items.filter { !known.contains($0.id) }
+                self.next = batch.next
+            } catch {
+                guard mine == epoch, !error.isCancellation else { return }
+                loadMoreFailed = true
+            }
         }.value
     }
 

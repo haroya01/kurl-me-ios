@@ -1724,14 +1724,7 @@ struct ComposeView: View {
         DraftFlusher.isAuthFailure(error)
     }
 
-    /// 태스크 취소로 끝난 저장인가 — URLSession 은 취소를 URLError(.cancelled)로,
-    /// APIClient 는 그걸 transport 로 감싼다. 셋 다 "실패"가 아니라 "물러남"이다.
-    private static func isCancellation(_ error: Error) -> Bool {
-        if error is CancellationError { return true }
-        if let urlError = error as? URLError, urlError.code == .cancelled { return true }
-        if case APIError.transport(let inner) = error { return isCancellation(inner) }
-        return false
-    }
+    private static func isCancellation(_ error: Error) -> Bool { error.isCancellation }
 
     private func saveStatusText(dirty: Bool) -> String {
         if autosaveNeedsLogin { return String(localized: "로그인이 풀렸어요. 다시 로그인해야 저장돼요") }

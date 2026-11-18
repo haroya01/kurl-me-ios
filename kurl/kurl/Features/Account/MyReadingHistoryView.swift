@@ -8,6 +8,7 @@ struct MyReadingHistoryView: View {
     @State private var hasNext = false
     @State private var loading = false
     @State private var loadingMore = false
+    @State private var loadMoreFailed = false
     @State private var loadedOnce = false
     @State private var failed = false
 
@@ -32,14 +33,13 @@ struct MyReadingHistoryView: View {
                     ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                         row(item)
                             .task {
-                                if index == items.count - 1 { await loadMore() }
+                                if index == items.count - 1, !loadMoreFailed { await loadMore() }
                             }
                         if index < items.count - 1 { Hairline() }
                     }
-                    if loadingMore {
-                        KurlLoadingMark()
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 18)
+                    LoadMoreTail(loading: loadingMore, failed: loadMoreFailed, padding: 18) {
+                        loadMoreFailed = false
+                        Task { await loadMore() }
                     }
                 }
             }
@@ -88,6 +88,7 @@ struct MyReadingHistoryView: View {
     private func reload() async {
         loading = true
         loadingMore = false
+        loadMoreFailed = false
         failed = false
         do {
             let res = try await ReadingHistoryAPI.list(page: 0)
@@ -105,12 +106,14 @@ struct MyReadingHistoryView: View {
     private func loadMore() async {
         guard hasNext, !loading, !loadingMore else { return }
         loadingMore = true
-        if let res = try? await ReadingHistoryAPI.list(page: page + 1) {
+        defer { loadingMore = false }
+        do {
+            let res = try await ReadingHistoryAPI.list(page: page + 1)
             items += res.items
             page = res.page
             hasNext = res.hasNext
+        } catch {
+            if !error.isCancellation { loadMoreFailed = true }
         }
-        // 실패하면 hasNext 는 그대로 둬서 마지막 행이 다시 보일 때 재시도된다.
-        loadingMore = false
     }
 }

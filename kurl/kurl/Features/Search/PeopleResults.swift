@@ -6,6 +6,7 @@ final class PeopleSearchModel {
     private(set) var phase: LoadState<[PersonMatch]> = .idle
     private(set) var tooShort = false
     private(set) var loadingMore = false
+    private(set) var loadMoreFailed = false
     var remote: [RemoteAccount]?
     private var query = ""
     private var page = 0
@@ -14,6 +15,7 @@ final class PeopleSearchModel {
 
     func show(_ raw: String) async {
         generation += 1
+        loadMoreFailed = false
         let myGen = generation
         query = raw
         page = 0
@@ -40,17 +42,32 @@ final class PeopleSearchModel {
     }
 
     func loadMoreIfNeeded(current person: PersonMatch) async {
-        guard hasNext, !loadingMore, case .loaded(let items) = phase,
+        guard !loadMoreFailed, case .loaded(let items) = phase,
               let index = items.firstIndex(of: person), index >= items.count - 3 else { return }
+        await loadMore()
+    }
+
+    func retryLoadMore() async {
+        loadMoreFailed = false
+        await loadMore()
+    }
+
+    private func loadMore() async {
+        guard hasNext, !loadingMore, case .loaded(let items) = phase else { return }
         loadingMore = true
         defer { loadingMore = false }
         let myGen = generation
-        guard let result = try? await PeopleAPI.search(query, page: page + 1) else { return }
-        guard myGen == generation else { return }
-        page += 1
-        hasNext = result.hasNext
-        let seen = Set(items.map(\.username))
-        phase = .loaded(items + result.items.filter { !seen.contains($0.username) })
+        do {
+            let result = try await PeopleAPI.search(query, page: page + 1)
+            guard myGen == generation else { return }
+            page += 1
+            hasNext = result.hasNext
+            let seen = Set(items.map(\.username))
+            phase = .loaded(items + result.items.filter { !seen.contains($0.username) })
+        } catch {
+            guard myGen == generation, !error.isCancellation else { return }
+            loadMoreFailed = true
+        }
     }
 
     private static func remoteMatches(_ raw: String) async -> [RemoteAccount]? {
@@ -91,9 +108,8 @@ struct PeopleResultsList: View {
                             .rowDivider(index > 0)
                             .task { await model.loadMoreIfNeeded(current: person) }
                     }
-                    if model.loadingMore {
-                        KurlLoadingMark()
-                            .frame(maxWidth: .infinity).padding(.vertical, 18)
+                    LoadMoreTail(loading: model.loadingMore, failed: model.loadMoreFailed, padding: 18) {
+                        Task { await model.retryLoadMore() }
                     }
                     if !(model.remote ?? []).isEmpty || showsHint(localPeople: people.count) {
                         RemotePeopleSection(accounts: remoteAccounts, divided: true)

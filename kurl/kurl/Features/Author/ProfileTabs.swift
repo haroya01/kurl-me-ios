@@ -7,6 +7,7 @@ final class ProfilePager<Item: Identifiable & Hashable> {
     private(set) var items: [Item] = []
     private(set) var phase: LoadState<Bool> = .idle
     private(set) var isLoadingMore = false
+    private(set) var loadMoreFailed = false
 
     private var page = 0
     private var hasNext = true
@@ -19,6 +20,7 @@ final class ProfilePager<Item: Identifiable & Hashable> {
 
     func reload() async {
         epoch += 1
+        loadMoreFailed = false
         let myEpoch = epoch
         if items.isEmpty { phase = .loading }
         do {
@@ -39,16 +41,32 @@ final class ProfilePager<Item: Identifiable & Hashable> {
     }
 
     func loadMoreIfNeeded(current item: Item) async {
-        guard hasNext, !isLoadingMore, items.suffix(5).contains(where: { $0.id == item.id }) else { return }
+        guard !loadMoreFailed, items.suffix(5).contains(where: { $0.id == item.id }) else { return }
+        await loadMore()
+    }
+
+    func retryLoadMore() async {
+        loadMoreFailed = false
+        await loadMore()
+    }
+
+    private func loadMore() async {
+        guard hasNext, !isLoadingMore else { return }
         isLoadingMore = true
         let myEpoch = epoch
         await Task {
             defer { isLoadingMore = false }
-            guard let next = try? await fetch(page + 1), myEpoch == epoch else { return }
-            let seen = Set(items.map(\.id))
-            page += 1
-            hasNext = next.hasNext
-            items.append(contentsOf: next.items.filter { !seen.contains($0.id) })
+            do {
+                let next = try await fetch(page + 1)
+                guard myEpoch == epoch else { return }
+                let seen = Set(items.map(\.id))
+                page += 1
+                hasNext = next.hasNext
+                items.append(contentsOf: next.items.filter { !seen.contains($0.id) })
+            } catch {
+                guard myEpoch == epoch, !error.isCancellation else { return }
+                loadMoreFailed = true
+            }
         }.value
     }
 

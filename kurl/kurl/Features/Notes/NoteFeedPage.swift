@@ -184,8 +184,8 @@ struct NoteFeedPage: View {
                     .task { await model.loadMoreIfNeeded(current: note) }
                     if index < model.items.count - 1 { Hairline().padding(.horizontal, -Metrics.noteGutter) }
                 }
-                if model.isLoadingMore {
-                    KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
+                LoadMoreTail(loading: model.isLoadingMore, failed: model.loadMoreFailed) {
+                    Task { await model.retryLoadMore() }
                 }
             }
         }

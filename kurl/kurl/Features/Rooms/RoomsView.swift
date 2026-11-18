@@ -179,6 +179,9 @@ struct RoomsView: View {
                         .onAppear { if let note = item.note { saw(note) } }
                         .task { await stream.loadMoreIfNeeded(current: item) }
                     }
+                    LoadMoreTail(loading: stream.loadingMore, failed: stream.loadMoreFailed) {
+                        Task { await stream.retryLoadMore() }
+                    }
                 }
             }
         }

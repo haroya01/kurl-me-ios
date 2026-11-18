@@ -300,8 +300,8 @@ struct RemoteAccountView: View {
                         .task { await notes.loadMoreIfNeeded(current: note) }
                         if index < notes.items.count - 1 { Hairline().padding(.horizontal, -Metrics.gutter) }
                     }
-                    if notes.isLoadingMore {
-                        KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
+                    LoadMoreTail(loading: notes.isLoadingMore, failed: notes.loadMoreFailed) {
+                        Task { await notes.retryLoadMore() }
                     }
                 }
                 .environment(\.noteFilterContext, notes.filterContext)

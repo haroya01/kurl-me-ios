@@ -8,6 +8,7 @@ final class NotesViewModel {
     private(set) var loaded: [Note] = []
     private(set) var phase: LoadState<Bool> = .idle
     private(set) var isLoadingMore = false
+    private(set) var loadMoreFailed = false
 
     var items: [Note] {
         guard source.filterContext != nil else { return loaded }
@@ -186,6 +187,7 @@ final class NotesViewModel {
         guard next != source else { return }
         source = next
         epoch += 1
+        loadMoreFailed = false
         loaded = []
         page = 0
         hasNext = true
@@ -195,6 +197,7 @@ final class NotesViewModel {
 
     func reload() async {
         epoch += 1
+        loadMoreFailed = false
         let myEpoch = epoch
         if loaded.isEmpty { phase = .loading }
         do {
@@ -217,18 +220,32 @@ final class NotesViewModel {
     }
 
     func loadMoreIfNeeded(current note: Note) async {
-        guard hasNext, !isLoadingMore, items.suffix(5).contains(where: { $0.id == note.id }) else { return }
+        guard !loadMoreFailed, items.suffix(5).contains(where: { $0.id == note.id }) else { return }
+        await loadMore()
+    }
+
+    func retryLoadMore() async {
+        loadMoreFailed = false
+        await loadMore()
+    }
+
+    private func loadMore() async {
+        guard hasNext, !isLoadingMore else { return }
         isLoadingMore = true
         let myEpoch = epoch
         await Task {
             defer { isLoadingMore = false }
-            if let next = try? await Self.collectVisible(
-                from: page + 1, seen: Set(loaded.map(\.id)), isVisible: isVisible, fetch: { try await self.load($0) }
-            ) {
+            do {
+                let next = try await Self.collectVisible(
+                    from: page + 1, seen: Set(loaded.map(\.id)), isVisible: isVisible, fetch: { try await self.load($0) }
+                )
                 guard myEpoch == epoch else { return }
                 page = next.page
                 hasNext = next.hasNext
                 loaded.append(contentsOf: next.notes)
+            } catch {
+                guard myEpoch == epoch, !error.isCancellation else { return }
+                loadMoreFailed = true
             }
         }.value
     }

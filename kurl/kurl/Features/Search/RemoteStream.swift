@@ -7,6 +7,7 @@ final class RemoteStreamModel {
     private(set) var items: [RemoteStreamItem] = []
     private(set) var phase: LoadState<Bool> = .idle
     private(set) var isLoadingMore = false
+    private(set) var loadMoreFailed = false
     private(set) var next: String?
     private(set) var firstSeenID: String?
     private var epoch = 0
@@ -51,6 +52,7 @@ final class RemoteStreamModel {
     @discardableResult
     func reload(announcesFailure: Bool = true) async -> Bool {
         epoch += 1
+        loadMoreFailed = false
         let myEpoch = epoch
         if items.isEmpty { phase = .loading }
         do {
@@ -73,7 +75,12 @@ final class RemoteStreamModel {
     }
 
     func loadMoreIfNeeded(current item: RemoteStreamItem) async {
-        guard items.suffix(5).contains(where: { $0.id == item.id }) else { return }
+        guard !loadMoreFailed, items.suffix(5).contains(where: { $0.id == item.id }) else { return }
+        await loadMore()
+    }
+
+    func retryLoadMore() async {
+        loadMoreFailed = false
         await loadMore()
     }
 
@@ -83,11 +90,17 @@ final class RemoteStreamModel {
         let myEpoch = epoch
         await Task {
             defer { isLoadingMore = false }
-            guard let page = try? await page(after: cursor, epoch: myEpoch), myEpoch == epoch else { return }
-            next = page.next
-            let fresh = Self.unique(page.items, besides: items)
-            items.append(contentsOf: fresh)
-            if firstSeenID == nil { firstSeenID = Self.seenStart(page, shown: Set(fresh.map(\.id))) }
+            do {
+                let page = try await page(after: cursor, epoch: myEpoch)
+                guard myEpoch == epoch else { return }
+                next = page.next
+                let fresh = Self.unique(page.items, besides: items)
+                items.append(contentsOf: fresh)
+                if firstSeenID == nil { firstSeenID = Self.seenStart(page, shown: Set(fresh.map(\.id))) }
+            } catch {
+                guard myEpoch == epoch, !error.isCancellation else { return }
+                loadMoreFailed = true
+            }
         }.value
     }
 
@@ -147,7 +160,7 @@ struct RemoteStreamRows: View {
                     actionTitle: "다시 시도",
                     action: {
                         Task {
-                            if model.next == nil { await model.reload() } else { await model.loadMore() }
+                            if model.next == nil { await model.reload() } else { await model.retryLoadMore() }
                         }
                     }
                 )
@@ -158,8 +171,8 @@ struct RemoteStreamRows: View {
                     .task { await model.loadMoreIfNeeded(current: item) }
                 if index < model.items.count - 1 { Hairline().padding(.horizontal, -gutter) }
             }
-            if model.isLoadingMore {
-                KurlLoadingMark().frame(maxWidth: .infinity).padding(.vertical, 14)
+            LoadMoreTail(loading: model.isLoadingMore, failed: model.loadMoreFailed) {
+                Task { await model.retryLoadMore() }
             }
             if model.reachedEnd, model.feed == .trending, !model.items.isEmpty, !AuthStore.shared.isSignedIn {
                 Hairline().padding(.horizontal, -gutter)

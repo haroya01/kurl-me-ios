@@ -185,4 +185,54 @@ final class HomeFeedRefreshTests: XCTestCase {
         XCTAssertNil(model.next)
         XCTAssertFalse(model.isLoadingMore)
     }
+
+    func testAFailedNextPageSaysSoAndWaitsForRetryInsteadOfAskingAgain() async {
+        var asked: [String?] = []
+        var fails = true
+        let items = (1...8).map { post(Int64($0)) }
+        let model = HomeFeedViewModel(tab: .forYou, load: { _, cursor in
+            asked.append(cursor)
+            if cursor == nil { return HomeFeedBatch(items: items, next: "c1") }
+            if fails { throw URLError(.notConnectedToInternet) }
+            return HomeFeedBatch(items: [self.post(9)], next: nil)
+        })
+        Self.kept.append(model)
+        await model.reload()
+
+        await model.loadMoreIfNeeded(current: items[7])
+        XCTAssertTrue(model.loadMoreFailed)
+        XCTAssertEqual(model.items.count, 8, "실패해도 보이던 행은 그대로다")
+        XCTAssertEqual(model.next, "c1")
+        await model.loadMoreIfNeeded(current: items[7])
+        XCTAssertEqual(asked, [nil, "c1"], "실패 표시가 떠 있는 동안 행이 다시 보여도 부르지 않는다")
+
+        fails = false
+        await model.retryLoadMore()
+        XCTAssertFalse(model.loadMoreFailed)
+        XCTAssertEqual(asked, [nil, "c1", "c1"])
+        XCTAssertEqual(model.items.last?.id, "post-9")
+    }
+
+    func testACancelledNextPageIsNotAFailureAndReloadingClearsAFailure() async {
+        var failure: Error = CancellationError()
+        let items = (1...8).map { post(Int64($0)) }
+        let model = HomeFeedViewModel(tab: .forYou, load: { _, cursor in
+            if cursor == nil { return HomeFeedBatch(items: items, next: "c1") }
+            throw failure
+        })
+        Self.kept.append(model)
+        await model.reload()
+
+        await model.loadMoreIfNeeded(current: items[7])
+        XCTAssertFalse(model.loadMoreFailed, "취소는 실패가 아니다")
+        failure = APIError.transport(URLError(.cancelled))
+        await model.loadMoreIfNeeded(current: items[7])
+        XCTAssertFalse(model.loadMoreFailed, "APIClient 가 감싼 취소도 실패가 아니다")
+
+        failure = APIError.transport(URLError(.notConnectedToInternet))
+        await model.loadMoreIfNeeded(current: items[7])
+        XCTAssertTrue(model.loadMoreFailed)
+        await model.reload()
+        XCTAssertFalse(model.loadMoreFailed, "새로 불러오면 실패 표시를 지운다")
+    }
 }

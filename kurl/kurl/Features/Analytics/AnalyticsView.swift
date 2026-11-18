@@ -121,12 +121,14 @@ struct AnalyticsView: View {
         let sortAtStart = performanceSort
         Task {
             defer { loadingMorePosts = false }
-            if let next = try? await AnalyticsAPI.postPerformance(
-                sort: sortAtStart, page: current.page + 1),
-               sortAtStart == performanceSort
-            {
+            do {
+                let next = try await AnalyticsAPI.postPerformance(sort: sortAtStart, page: current.page + 1)
+                guard sortAtStart == performanceSort else { return }
                 performance = PostPerformanceResult(
                     items: current.items + next.items, page: next.page, hasNext: next.hasNext)
+            } catch {
+                guard sortAtStart == performanceSort, !error.isCancellation else { return }
+                ToastCenter.shared.show(String(localized: "더 불러오지 못했어요"))
             }
         }
     }

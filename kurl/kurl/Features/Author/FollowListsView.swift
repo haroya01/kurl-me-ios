@@ -19,6 +19,7 @@ struct FollowListsView: View {
     @State private var page = 0
     @State private var hasNext = false
     @State private var loading = false
+    @State private var loadMoreFailed = false
     @State private var loadedOnce = false
     /// 네트워크 실패 — 빈 200 과 구분해 재시도를 노출한다(빈 상태 위장 방지).
     @State private var failed = false
@@ -68,14 +69,15 @@ struct FollowListsView: View {
                         }
                         .modifier(QuietAppear(index: index))
                         .task {
-                            if index == items.count - 1 { await loadMore() }
+                            if index == items.count - 1, !loadMoreFailed { await loadMore() }
                         }
                         if index < items.count - 1 { Hairline() }
                     }
                     if hasNext {
-                        KurlLoadingMark()
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 18)
+                        LoadMoreTail(loading: true, failed: loadMoreFailed, padding: 18) {
+                            loadMoreFailed = false
+                            Task { await loadMore() }
+                        }
                     }
                 }
             }
@@ -134,6 +136,7 @@ struct FollowListsView: View {
         loading = true
         failed = false
         epoch += 1
+        loadMoreFailed = false
         let myEpoch = epoch
         do {
             let res = try await fetch(page: 0)
@@ -165,14 +168,17 @@ struct FollowListsView: View {
         guard hasNext, !loading else { return }
         loading = true
         let myEpoch = epoch
-        let res = try? await fetch(page: page + 1)
         // reload 가 끼어들었으면 옛 세대 응답 — 목록도 loading 도 건드리지 않고 버린다
         // (다른 탭 행이 이어붙거나 page 를 되감는 오염 방지).
-        guard myEpoch == epoch else { return }
-        if let res {
+        do {
+            let res = try await fetch(page: page + 1)
+            guard myEpoch == epoch else { return }
             items += res.items
             page = res.page
             hasNext = res.hasNext
+        } catch {
+            guard myEpoch == epoch else { return }
+            if !error.isCancellation { loadMoreFailed = true }
         }
         loading = false
     }

@@ -177,7 +177,9 @@ struct SeriesNotePicker: View {
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("series.pickNote.\(note.id)")
                 }
-                if hasNext && !loading {
+                if failed && !candidates.isEmpty && !loading {
+                    LoadMoreTail(loading: false, failed: true, padding: 12) { Task { await loadMore() } }
+                } else if hasNext && !loading {
                     Button("더 불러오기") { Task { await loadMore() } }
                         .foregroundStyle(Palette.ink)
                 }
