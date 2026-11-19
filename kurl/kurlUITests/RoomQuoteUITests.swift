@@ -78,7 +78,7 @@ final class RoomQuoteUITests: XCTestCase {
         attach("room-timeline-quoting-a-room-note")
     }
 
-    func testARoomNoteIsQuotedInABlogPostOfItsRoom() {
+    func testARoomNoteIsQuotedIntoABlogPostOfItsRoom() {
         let app = launch(["--tab", "rooms", "--room", "1"])
         let quote = app.buttons["note.quote.9901"]
         XCTAssertTrue(quote.waitForExistence(timeout: 15), "방 노트에 인용 버튼이 없음")
