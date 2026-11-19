@@ -14,6 +14,7 @@ final class DiscoveryViewerTokenTests: XCTestCase {
         HighlightsAPI.client = .shared
         CollectionsAPI.client = .shared
         NoteAPI.client = .shared
+        FederationAPI.client = .shared
         PeopleAPI.client = .shared
         NotificationsAPI.client = .shared
         CapturingProtocol.reset()
@@ -80,6 +81,7 @@ final class DiscoveryViewerTokenTests: XCTestCase {
         HighlightsAPI.client = client
         CollectionsAPI.client = client
         NoteAPI.client = client
+        FederationAPI.client = client
     }
 
     /// 응답 모양은 보지 않는다 — 나간 요청의 헤더만 본다(빈 응답이 디코딩에 실패해도 요청은 이미 나갔다).
@@ -99,8 +101,9 @@ final class DiscoveryViewerTokenTests: XCTestCase {
         _ = try? await NoteAPI.thread(id: 3)
         _ = try? await NoteAPI.everyone()
         _ = try? await NoteAPI.trending()
-        _ = try? await NoteAPI.linked("https://kurl.me")
-        _ = try? await NoteAPI.tagged("swift")
+        _ = try? await FederationAPI.topics(limit: FederationAPI.topicLimit)
+        _ = try? await FederationAPI.topicPosts(.link("https://kurl.me"), cursor: nil)
+        _ = try? await FederationAPI.topicPosts(.tag("swift"), cursor: nil)
         _ = try? await NoteAPI.search("kurl")
         _ = try? await NoteAPI.quotes(of: 3)
         _ = try? await NoteAPI.postQuotes(1)
@@ -112,7 +115,7 @@ final class DiscoveryViewerTokenTests: XCTestCase {
         await callEveryViewerRead()
 
         let requests = CapturingProtocol.requests
-        XCTAssertEqual(requests.count, 21)
+        XCTAssertEqual(requests.count, 22)
         for request in requests {
             XCTAssertEqual(
                 request.value(forHTTPHeaderField: "Authorization"), "Bearer viewer-token",
@@ -125,7 +128,7 @@ final class DiscoveryViewerTokenTests: XCTestCase {
         await callEveryViewerRead()
 
         let requests = CapturingProtocol.requests
-        XCTAssertEqual(requests.count, 21)
+        XCTAssertEqual(requests.count, 22)
         for request in requests {
             XCTAssertNil(request.value(forHTTPHeaderField: "Authorization"), request.url?.absoluteString ?? "")
         }

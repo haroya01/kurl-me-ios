@@ -22,7 +22,7 @@ struct TagFeedView: View {
     let tag: String
 
     @State private var tab: TagFeedTab
-    @State private var notes: NotesViewModel
+    @State private var notes: TopicPostsModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var phase: LoadState<[FeedItem]> = .idle
@@ -35,7 +35,7 @@ struct TagFeedView: View {
     init(tag: String, initialTab: TagFeedTab = .posts) {
         self.tag = tag
         _tab = State(initialValue: initialTab)
-        _notes = State(initialValue: NotesViewModel(tag: tag))
+        _notes = State(initialValue: TopicPostsModel(key: .tag(tag)))
     }
 
     var body: some View {
@@ -94,7 +94,7 @@ struct TagFeedView: View {
         .task(id: tab) {
             switch tab {
             case .posts: await load()
-            case .notes: if case .idle = notes.phase { await notes.reload() }
+            case .notes: await notes.loadIfNeeded()
             }
         }
         .brandRefreshable {
@@ -154,34 +154,23 @@ struct TagFeedView: View {
             ErrorState(message: message, retry: { Task { await notes.reload() } })
                 .padding(.top, 60)
         case .loaded:
-            if notes.items.isEmpty {
-                FeedPlaceholder(
-                    title: "이 태그의 노트가 아직 없어요.",
-                    actionTitle: "추천 보기",
-                    action: {
-                        HomeFeedChoice.shared.show(HomeFeedTab.forYou)
-                        TabRouter.shared.switchTo(TabRouter.homeTab, reduceMotion: reduceMotion)
-                    }
-                )
-                .padding(.top, 24)
-            } else {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(notes.items.enumerated()), id: \.element.id) { index, note in
-                        NoteFeedItem(
-                            note: note,
-                            onChange: { notes.replaced($0) },
-                            onDelete: { notes.removed($0) }
-                        )
-                        .modifier(QuietAppear(index: index))
-                        .task { await notes.loadMoreIfNeeded(current: note) }
-                        if index < notes.items.count - 1 { Hairline().padding(.horizontal, -Metrics.gutter) }
-                    }
-                    LoadMoreTail(loading: notes.isLoadingMore, failed: notes.loadMoreFailed) {
-                        Task { await notes.retryLoadMore() }
-                    }
+            LazyVStack(alignment: .leading, spacing: 0) {
+                TopicRelatedArticles(articles: notes.related)
+                if notes.items.isEmpty {
+                    FeedPlaceholder(
+                        title: "이 태그의 노트가 아직 없어요.",
+                        actionTitle: "추천 보기",
+                        action: {
+                            HomeFeedChoice.shared.show(HomeFeedTab.forYou)
+                            TabRouter.shared.switchTo(TabRouter.homeTab, reduceMotion: reduceMotion)
+                        }
+                    )
+                    .padding(.top, 24)
+                } else {
+                    TopicPostRows(model: notes)
                 }
-                .environment(\.noteFilterContext, notes.filterContext)
             }
+            .environment(\.noteFilterContext, .public)
         }
     }
 

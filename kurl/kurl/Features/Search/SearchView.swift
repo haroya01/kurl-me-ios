@@ -5,14 +5,13 @@ enum SearchScope: Hashable {
 }
 
 enum ExploreLane: String, CaseIterable, Identifiable {
-    case picks, remote, people
+    case trends, people
 
     var id: Self { self }
 
     var label: String {
         switch self {
-        case .picks: String(localized: "발견")
-        case .remote: String(localized: "다른 서버")
+        case .trends: String(localized: "트렌드")
         case .people: String(localized: "사람")
         }
     }
@@ -43,7 +42,6 @@ struct SearchView: View {
     @State private var domainTask: Task<Void, Never>?
     @Namespace private var zoomNS
     @State private var navigation = ExploreNavigation()
-    @State private var router = TabRouter.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     /// 최근 검색 칩의 지우기(×) 아이콘 — 칩 라벨(.meta)과 함께 커지도록 고정 pt 를 우회한다.
@@ -63,17 +61,16 @@ struct SearchView: View {
     @State private var confirmingClear = false
     @State private var trending: [FeedItem] = []
     @State private var popularTags: [TagCount] = []
-    @State private var trendingNoteTags: [TrendingNoteTag] = []
+    @State private var topics = TopicsModel(limit: FederationAPI.topicLimit)
     @State private var suggestedAuthors: [SuggestedAuthor] = []
     /// 로그인한 사람의 팔로우 추천(마스토돈) — 있으면 익명 "작가" 레일 대신 선다.
     @State private var followSuggestions: [FollowSuggestion] = []
     @State private var remoteSuggestions: [RemoteAccount] = []
-    @State private var lane: ExploreLane = .picks
+    @State private var lane: ExploreLane = .trends
     @State private var searchPinned = false
     @State private var searchActive = false
     @State private var laneTopRequests = 0
-    @State private var streams = Dictionary(
-        uniqueKeysWithValues: RemoteStreamFeed.allCases.map { ($0, RemoteStreamModel(feed: $0)) })
+    @State private var popular = RemoteStreamModel(feed: .trending)
 
     var body: some View {
         NavigationStack(path: Bindable(navigation).path) {
@@ -166,7 +163,11 @@ struct SearchView: View {
                 Text("사람").tag(SearchScope.people)
             }
             // 태그·작가 갈래는 결과에서도 쓰므로 phase 와 무관하게 한 번 받아 둔다.
-            .task { await loadDiscovery() }
+            .task {
+                async let trends: Void = loadTrends()
+                await loadDiscovery()
+                await trends
+            }
             // `--query <term>` — simctl 은 터치를 못 넣으니, 결과·갈래·페이지네이션·무결과까지
             // 손 안 대고 닿는 검증 진입로(DEBUG 전용).
             .task {
@@ -181,6 +182,7 @@ struct SearchView: View {
                 #endif
             }
         }
+        .environment(\.openNoteRoute) { navigation.path.append($0) }
         .onChange(of: query) { _, newValue in
             remoteFallback = false
             scheduleDomainCompletion(newValue)
@@ -212,7 +214,10 @@ struct SearchView: View {
         // 첫 `.task` 가 실패하면 레일이 영구 빈 화면으로 굳는다 — 포그라운드 복귀 때
         // 빈 갈래만 다시 받아 자가치유(loadDiscovery 가 멱등이라 안전).
         .onChange(of: scenePhase) { _, newPhase in
-            if newPhase == .active { Task { await loadDiscovery() } }
+            if newPhase == .active {
+                Task { await loadDiscovery() }
+                Task { await loadTrends() }
+            }
         }
     }
 
@@ -257,8 +262,7 @@ struct SearchView: View {
                 }
                 if warm {
                     switch lane {
-                    case .picks: picks
-                    case .remote: remoteLane(active: active)
+                    case .trends: trendsLane
                     case .people: peopleLane
                     }
                 }
@@ -277,36 +281,25 @@ struct SearchView: View {
         .noteTextLinks()
         .brandRefreshable {
             async let discovery: Void = loadDiscovery()
-            await streams[lane == .remote ? .forYou : .trending]?.reload()
+            async let fresh: Void = topics.reload()
+            await popular.reload()
             await discovery
+            await fresh
         }
     }
 
-    @ViewBuilder private var picks: some View {
-        ForEach(Array(trending.enumerated()), id: \.element.id) { index, item in
-            if index > 0 { Hairline().padding(.horizontal, -Metrics.noteGutter) }
-            PostFeedRow(post: item)
-                .environment(\.postZoom, PostZoom(prefix: "search", ns: zoomNS))
-                .accessibilityIdentifier("search.trending.\(item.id)")
-            if index == min(2, trending.count - 1) {
-                Hairline().padding(.horizontal, -Metrics.noteGutter)
-                peopleStrip.padding(.vertical, 18)
+    @ViewBuilder private var trendsLane: some View {
+        if topics.settled {
+            let board = TopicBoard(topics.topics, cap: TopicBoard.laneCap)
+            TopicSection(board: board)
+            if !board.isEmpty {
+                RailHeading("인기 글")
+                    .padding(.top, 22)
+                    .padding(.bottom, 2)
             }
-        }
-        if trending.isEmpty { peopleStrip.padding(.vertical, 18) }
-        Hairline().padding(.horizontal, -Metrics.noteGutter)
-        if let model = streams[.trending] {
-            RemoteStreamRows(model: model, gutter: Metrics.noteGutter)
-                .task { await model.loadIfNeeded() }
-        }
-    }
-
-    @ViewBuilder private func remoteLane(active: Bool) -> some View {
-        if let model = streams[.forYou] {
-            let measuring = active && router.selection == TabRouter.exploreTab && navigation.path.isEmpty
-            RemoteStreamRows(model: model, gutter: Metrics.noteGutter, measuresSeen: measuring)
-                .task { await model.loadIfNeeded() }
-                .flushesRemoteSeen(while: measuring)
+            RemoteStreamRows(model: popular, gutter: Metrics.noteGutter)
+        } else {
+            NoteSkeleton()
         }
     }
 
@@ -319,7 +312,7 @@ struct SearchView: View {
     }
 
     @ViewBuilder private var tagStrip: some View {
-        let noteTags = trendingNoteTags.map(\.tag)
+        let noteTags = TopicBoard.chipTags(topics.topics)
         let postTags = popularTags.filter { ContentValidity.isRenderableTag($0.tag) }
             .filter { tag in !noteTags.contains { $0.caseInsensitiveCompare(tag.tag) == .orderedSame } }
         if !noteTags.isEmpty || !postTags.isEmpty {
@@ -342,79 +335,6 @@ struct SearchView: View {
             }
             .scrollClipDisabled()
         }
-    }
-
-    @ViewBuilder private var peopleStrip: some View {
-        let people = followSuggestions.isEmpty
-            ? suggestedAuthors.map { ($0.author, String(localized: "글 \($0.postCount)")) }
-            : followSuggestions.map {
-                ($0.asAuthor, $0.reason == .friends
-                    ? String(localized: "내가 팔로우하는 \($0.mutuals)명이 팔로우")
-                    : String(localized: "요즘 많이 팔로우해요"))
-            }
-        if !people.isEmpty {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    RailHeading("팔로우 추천")
-                    Spacer()
-                    Button {
-                        lane = .people
-                    } label: {
-                        HStack(spacing: 3) {
-                            Text("더 보기")
-                            Image(systemName: "chevron.right").font(.caption2.weight(.semibold))
-                        }
-                        .typeScale(.meta)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(Palette.secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(alignment: .top, spacing: 10) {
-                        ForEach(Array(people.prefix(8).enumerated()), id: \.offset) { _, person in
-                            personCard(person.0, reason: person.1)
-                        }
-                    }
-                }
-                .scrollClipDisabled()
-                .holdsSwipePager()
-            }
-        }
-    }
-
-    private func personCard(_ author: Author, reason: String) -> some View {
-        VStack(spacing: 8) {
-            NavigationLink(value: Route.author(username: author.username)) {
-                VStack(spacing: 6) {
-                    AvatarView(author: author, size: 56)
-                    Text(verbatim: author.displayName ?? author.username)
-                        .typeScale(.body)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(Palette.ink)
-                        .lineLimit(1)
-                    Text(verbatim: reason)
-                        .typeScale(.footnote)
-                        .foregroundStyle(Palette.secondary)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.center)
-                        .frame(height: 30, alignment: .top)
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            FollowButton(username: author.username, outlined: true)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 14)
-        .frame(width: 140)
-        .background(Palette.cardBg, in: RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
-                .strokeBorder(Palette.hairline, lineWidth: 1)
-        }
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("search.personCard.\(author.username)")
     }
 
     @ViewBuilder private var recentsRail: some View {
@@ -691,20 +611,24 @@ struct SearchView: View {
         async let feed = Self.fetch(trending.isEmpty) { try await BlogAPI.feed(sort: .trending, size: 10) }
         async let tags = Self.fetch(popularTags.isEmpty) { try await BlogAPI.popularTags(limit: 12) }
         async let authors = Self.fetch(suggestedAuthors.isEmpty) { try await BlogAPI.suggestedAuthors(limit: 5) }
-        async let noteTags = Self.fetch(trendingNoteTags.isEmpty) { try await NoteAPI.trendingTags() }
         async let people = Self.fetch(signedIn && needsPeople) {
             try await FollowSuggestionsAPI.suggestions()
         }
         async let remote = Self.fetch(signedIn && needsRemote) { await FederationAPI.suggestions() }
-        let (feedPage, tagList, authorList, noteTagList, peopleList, remoteList) =
-            await (feed, tags, authors, noteTags, people, remote)
+        let (feedPage, tagList, authorList, peopleList, remoteList) =
+            await (feed, tags, authors, people, remote)
         // 피드와 같은 가드 — 자모·구두점만 있는 제목("ㅇㅇ")은 카드로 그리지 않는다.
         if let feedPage { trending = Array(feedPage.items.filter(\.isRenderableCard).prefix(10)) }
         if let tagList { popularTags = Array(tagList.prefix(12)) }
         if let authorList { suggestedAuthors = authorList }
-        if let noteTagList { trendingNoteTags = Array(noteTagList.prefix(5)) }
         if let peopleList { followSuggestions = peopleList }
         if let remoteList { remoteSuggestions = remoteList ?? [] }
+    }
+
+    private func loadTrends() async {
+        async let stream: Void = popular.loadIfNeeded()
+        await topics.loadIfNeeded()
+        await stream
     }
 
     private static func fetch<T>(_ needed: Bool, _ request: () async throws -> T) async -> T? {

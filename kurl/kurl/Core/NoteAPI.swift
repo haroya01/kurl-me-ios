@@ -24,16 +24,6 @@ enum NoteAPI {
             "/notes/federated", query: ["page": String(page), "size": "20"], authenticated: true)
     }
 
-    /// 마스토돈 트렌드 — 이번 주 여러 계정이 쓴 노트 해시태그와 7일 동안 날마다 쓰인 수.
-    static func trendingTags() async throws -> [TrendingNoteTag] {
-        try await client.get("/public/notes/trending-tags", authenticated: false)
-    }
-
-    static func linked(_ url: String, page: Int = 0) async throws -> NoteFeed {
-        try await client.getAsViewer(
-            "/public/notes/links", query: ["url": url, "page": String(page), "size": "20"])
-    }
-
     static func trending(page: Int = 0) async throws -> NoteFeed {
         try await client.getAsViewer(
             "/public/notes", query: ["sort": "trending", "page": String(page), "size": "20"])
@@ -63,11 +53,6 @@ enum NoteAPI {
     /// 이 노트를 카드로 실은 공개 블로그 글, 최근 발행 순.
     static func quotingPosts(of id: Int64, page: Int = 0) async throws -> PublicFeedView {
         try await client.getAsViewer("/public/notes/\(id)/posts", query: ["page": String(page)])
-    }
-
-    static func tagged(_ tag: String, page: Int = 0) async throws -> NoteFeed {
-        try await client.getAsViewer(
-            "/public/notes/tags/\(tag)", query: ["page": String(page), "size": "20"])
     }
 
     static func search(_ query: String, page: Int = 0) async throws -> NoteFeed {
@@ -709,15 +694,6 @@ struct PostQuotesPage: Decodable {
     let page: Int
     let hasNext: Bool
     let total: Int
-}
-
-struct TrendingNoteTag: Decodable, Hashable, Identifiable {
-    let tag: String
-    let accounts: Int
-    let uses: Int
-    let history: [Int]
-
-    var id: String { tag }
 }
 
 struct NoteSelfThread: Decodable, Hashable {

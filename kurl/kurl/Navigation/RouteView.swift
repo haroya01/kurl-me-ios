@@ -46,6 +46,8 @@ struct RouteView: View {
             LinkNotesView(url: url, title: title)
         case let .noteFeed(feed):
             NoteFeedScreen(feed: feed)
+        case .topics:
+            TopicListView()
         }
     }
 }

@@ -33,6 +33,7 @@ enum Route: Hashable {
     case filteredNotifications
     case noteLink(url: String, title: String?)
     case noteFeed(NoteMoreFeed)
+    case topics
 }
 
 enum PostSpot: Hashable {

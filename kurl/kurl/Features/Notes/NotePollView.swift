@@ -244,9 +244,11 @@ struct NotePollView: View {
 private struct PollChoiceStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         let shape = RoundedRectangle(cornerRadius: Metrics.radius, style: .continuous)
-        configuration.label
-            .background(configuration.isPressed ? Palette.rowHighlight : .clear, in: shape)
-            .overlay(shape.strokeBorder(Palette.hairlineStrong, lineWidth: 1))
+        PressLatch(isPressed: configuration.isPressed) { pressed in
+            configuration.label
+                .background(pressed ? Palette.rowHighlight : .clear, in: shape)
+                .overlay(shape.strokeBorder(Palette.hairlineStrong, lineWidth: 1))
+        }
     }
 }
 

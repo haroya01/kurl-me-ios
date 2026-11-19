@@ -40,6 +40,21 @@ final class NoteCardedLinkTests: XCTestCase {
         let body = "여기 \(video)."
         XCTAssertEqual(NoteText.hidingCardedLink(body, card: video), body)
     }
+
+    func testALinkPageDropsItsOwnCardOnlyFromAPostThatSaysMore() {
+        let page = "https://news.example/library-night"
+        let said = NoteText.hidingCardedLink("퇴근하고도 들를 수 있겠다\n\(page)", card: page)
+        XCTAssertEqual(said, "퇴근하고도 들를 수 있겠다")
+        XCTAssertTrue(NoteText.repeatsPageLink(card: page, page: page, rest: said))
+        XCTAssertTrue(NoteText.repeatsPageLink(card: page + "/", page: page, rest: said), "a trailing slash is the same link")
+
+        let onlyTheLink = NoteText.hidingCardedLink(page, card: page)
+        XCTAssertFalse(
+            NoteText.repeatsPageLink(card: page, page: page, rest: onlyTheLink),
+            "a post that is only the link keeps its card")
+        XCTAssertFalse(NoteText.repeatsPageLink(card: video, page: page, rest: said), "a card for another link stays")
+        XCTAssertFalse(NoteText.repeatsPageLink(card: page, page: nil, rest: said), "outside a link page every card stays")
+    }
 }
 
 @MainActor

@@ -1219,3 +1219,292 @@ final class RemoteStreamTests: XCTestCase {
         XCTAssertEqual(model.items.count, 8)
     }
 }
+
+@MainActor
+final class TopicTests: XCTestCase {
+    private static var kept: [AnyObject] = []
+    private static let korean = Locale(identifier: "ko_KR")
+
+    override func tearDown() async throws {
+        FederationAPI.client = .shared
+        ScriptedFederation.reset()
+    }
+
+    private static func tag(_ name: String, own: Bool, language: String? = "ko", people: Int = 5) -> Topic {
+        Topic(id: "tag:\(name.lowercased())", subject: .tag(name), language: language, own: own, people: people, related: [])
+    }
+
+    private static func link(
+        _ path: String, title: String? = "제목", source: String? = nil, own: Bool, language: String? = "ko"
+    ) -> Topic {
+        let url = "https://news.example/\(path)"
+        return Topic(
+            id: "link:\(url)", subject: .link(url: url, title: title, source: source), language: language, own: own,
+            people: 3, related: [])
+    }
+
+    private static func pool(_ n: Int) -> String {
+        #"{"uri":"https://moim.example/users/a/statuses/\#(n)","body":"p\#(n)","createdAt":"2026-11-18T01:00:00Z","author":{"username":"a@moim.example","displayName":null,"avatarUrl":null,"url":"https://moim.example/@a"},"media":[],"contentWarning":null,"sensitive":false,"language":"ko","likeCount":1,"repostCount":0,"replyCount":0,"poll":null,"linkPreview":null,"remote":null,"servers":["moim.example"]}"#
+    }
+
+    private static func note(_ id: Int64) -> String {
+        #"{"id":\#(id),"body":"kept \#(id)","createdAt":"2026-11-17T01:00:00Z","editedAt":null,"likeCount":null,"likedByMe":false,"author":{"id":2,"username":"yuki_dev","bio":null,"avatarUrl":null},"media":[],"quotedPost":null,"inReplyToId":null,"replyCount":0,"repostCount":null,"repostedByMe":false,"quotedNote":null,"linkPreview":null}"#
+    }
+
+    private static func page(_ items: [String], next: String?, topic: String = "null") throws -> TopicPostsPage {
+        let json = #"{"topic":\#(topic),"items":[\#(items.joined(separator: ","))],"next":\#(next.map { "\"\($0)\"" } ?? "null")}"#
+        return try JSONDecoder.blog.decode(TopicPostsPage.self, from: Data(json.utf8))
+    }
+
+    private final class Pager {
+        let pages: [String: TopicPostsPage]
+        var failing: Set<String> = []
+        var asked: [String] = []
+
+        init(_ pages: [String: TopicPostsPage]) { self.pages = pages }
+
+        func page(_ cursor: String?) throws -> TopicPostsPage {
+            let key = cursor ?? "first"
+            asked.append(key)
+            guard !failing.contains(key), let page = pages[key] else {
+                throw APIError.server(status: 503, code: nil, detail: "")
+            }
+            return page
+        }
+    }
+
+    private func posts(
+        _ key: TopicKey, _ pager: Pager, isVisible: @escaping @MainActor @Sendable (Note) -> Bool = { _ in true }
+    ) -> TopicPostsModel {
+        let model = TopicPostsModel(key: key, load: { _, cursor in try pager.page(cursor) }, isVisible: isVisible)
+        Self.kept.append(model)
+        Self.kept.append(pager)
+        return model
+    }
+
+    private func topics(_ answers: [Result<[Topic], Error>]) -> (TopicsModel, () -> Int) {
+        var served = 0
+        let model = TopicsModel(limit: 20) { _ in
+            defer { served += 1 }
+            return try answers[min(served, answers.count - 1)].get()
+        }
+        Self.kept.append(model)
+        return (model, { served })
+    }
+
+    func testTheListSkipsAKindItDoesNotKnow() throws {
+        let json = #"""
+        {"items":[
+          {"id":"tag:첫눈","kind":"tag","tag":"첫눈","url":null,"title":null,"source":null,"image":null,"language":"ko","own":true,"people":24,"servers":["moim.example"],
+           "related":[{"url":"https://weather.example/a","title":"주말 첫눈 예보","source":"바람날씨","image":null}]},
+          {"id":"poll:1","kind":"poll","question":"?","language":"ko","own":true,"people":9,"servers":[],"related":[]},
+          {"id":"link:https://news.example/a","kind":"link","tag":null,"url":"https://news.example/a","title":"駅前の喫茶店が閉店","source":"あおぞら新聞","image":null,"language":"ja","own":false,"people":41,"servers":["asa.example"],"related":[]}
+        ]}
+        """#
+
+        let list = try JSONDecoder.blog.decode(TopicList.self, from: Data(json.utf8))
+
+        XCTAssertEqual(list.items.map(\.id), ["tag:첫눈", "link:https://news.example/a"])
+        XCTAssertEqual(list.items[0].subject, .tag("첫눈"))
+        XCTAssertEqual(list.items[0].related.map(\.shownTitle), ["주말 첫눈 예보"])
+        XCTAssertEqual(list.items[0].route, .noteTag("첫눈"))
+        XCTAssertEqual(list.items[1].people, 41)
+        XCTAssertFalse(list.items[1].own)
+        XCTAssertEqual(list.items[1].route, .noteLink(url: "https://news.example/a", title: "駅前の喫茶店が閉店"))
+    }
+
+    func testARowNamesTheSourceOrTheHostAndOnlyAnotherLanguage() {
+        XCTAssertNil(Self.tag("첫눈", own: true).meta(locale: Self.korean))
+        XCTAssertEqual(Self.tag("朝の一枚", own: false, language: "ja").meta(locale: Self.korean), "일본어")
+        XCTAssertNil(Self.tag("misc", own: false, language: nil).meta(locale: Self.korean))
+        XCTAssertEqual(Self.link("a", source: "새벽일보", own: true).meta(locale: Self.korean), "새벽일보")
+        XCTAssertEqual(Self.link("b", own: true).meta(locale: Self.korean), "news.example")
+        XCTAssertEqual(Self.link("b", source: "", own: true).meta(locale: Self.korean), "news.example")
+        XCTAssertEqual(
+            Self.link("c", source: "あおぞら新聞", own: false, language: "ja").meta(locale: Self.korean),
+            "あおぞら新聞 · 일본어")
+        XCTAssertEqual(Self.link("e", own: false, language: "ja").meta(locale: Self.korean), "news.example · 일본어")
+        let www = Topic(
+            id: "link:https://www.photos.example/p/1", subject: .link(url: "https://www.photos.example/p/1", title: "사진", source: nil),
+            language: "ko", own: true, people: 4, related: [])
+        XCTAssertEqual(www.meta(locale: Self.korean), "photos.example", "the host stands in without its www.")
+        XCTAssertEqual(Self.tag("첫눈", own: true).title, "#첫눈")
+        XCTAssertEqual(Self.link("d", title: nil, own: true).title, "https://news.example/d")
+    }
+
+    func testTheLaneShowsOwnLanguageFirstCapsAtTenAndNumbersThrough() {
+        let mixed = (1...12).map { Self.tag("t\($0)", own: $0.isMultiple(of: 3)) }
+
+        let lane = TopicBoard(mixed, cap: TopicBoard.laneCap)
+
+        XCTAssertEqual(lane.own.map(\.topic.id), ["tag:t3", "tag:t6", "tag:t9", "tag:t12"])
+        XCTAssertEqual(lane.others.map(\.topic.id), ["tag:t1", "tag:t2", "tag:t4", "tag:t5", "tag:t7", "tag:t8"])
+        XCTAssertEqual((lane.own + lane.others).map(\.rank), Array(1...10))
+        XCTAssertTrue(lane.headsOthers)
+        XCTAssertTrue(lane.hasMore)
+
+        let full = TopicBoard(mixed)
+        XCTAssertEqual((full.own + full.others).map(\.rank), Array(1...12))
+        XCTAssertFalse(full.hasMore)
+
+        let ownOnly = TopicBoard((1...10).map { Self.tag("o\($0)", own: true) }, cap: TopicBoard.laneCap)
+        XCTAssertFalse(ownOnly.headsOthers, "own rows alone need no 다른 언어 heading")
+        XCTAssertFalse(ownOnly.hasMore, "exactly ten rows leave nothing behind 더 보기")
+
+        let othersOnly = TopicBoard([Self.tag("x", own: false), Self.tag("y", own: false)], cap: TopicBoard.laneCap)
+        XCTAssertFalse(othersOnly.headsOthers, "other-language rows alone need no heading")
+        XCTAssertEqual(othersOnly.others.map(\.rank), [1, 2])
+        XCTAssertTrue(TopicBoard([], cap: TopicBoard.laneCap).isEmpty)
+
+        let repeated = TopicBoard([Self.tag("a", own: true), Self.tag("A", own: true)])
+        XCTAssertEqual(repeated.own.count, 1, "one row per topic id")
+    }
+
+    func testSearchChipsTakeOwnLanguageTagsFirstAndAtMostFive() {
+        let topics = [
+            Self.tag("朝の一枚", own: false, language: "ja"), Self.link("a", own: true), Self.tag("첫눈", own: true),
+            Self.tag("smallweb", own: false, language: "en"), Self.tag("아키텍처", own: true),
+            Self.link("b", own: false, language: "ja"), Self.tag("読書メモ", own: false, language: "ja"),
+            Self.tag("산책", own: true), Self.tag("caturday", own: false, language: "en"),
+        ]
+
+        XCTAssertEqual(TopicBoard.chipTags(topics), ["첫눈", "아키텍처", "산책", "朝の一枚", "smallweb"])
+        XCTAssertEqual(TopicBoard.chipTags([Self.link("a", own: true)]), [])
+    }
+
+    func testTheLaneWaitsForTopicsToSettleAndFailureLeavesItWithoutThem() async {
+        let (model, served) = topics([.failure(CancellationError()), .failure(URLError(.timedOut)), .success([Self.tag("첫눈", own: true)])])
+        XCTAssertFalse(model.settled)
+
+        await model.loadIfNeeded()
+        XCTAssertFalse(model.settled, "a cancelled request has not answered yet")
+
+        await model.loadIfNeeded()
+        XCTAssertTrue(model.settled)
+        XCTAssertTrue(model.failed)
+        XCTAssertTrue(TopicBoard(model.topics, cap: TopicBoard.laneCap).isEmpty)
+
+        await model.loadIfNeeded()
+        XCTAssertEqual(served(), 2, "a settled lane does not ask again by itself")
+
+        await model.reload()
+        XCTAssertEqual(model.topics.map(\.id), ["tag:첫눈"])
+        XCTAssertFalse(model.failed)
+    }
+
+    func testARefreshThatFailsKeepsTheTopicsAlreadyShown() async {
+        let (model, _) = topics([.success([Self.tag("첫눈", own: true)]), .failure(URLError(.timedOut))])
+
+        await model.loadIfNeeded()
+        await model.reload()
+
+        XCTAssertEqual(model.topics.map(\.id), ["tag:첫눈"])
+        XCTAssertFalse(model.failed)
+    }
+
+    func testATopicPagePagesByCursorAndKeepsTheFailedPageForRetry() async throws {
+        let topic = #"{"id":"tag:첫눈","kind":"tag","tag":"첫눈","url":null,"title":null,"source":null,"image":null,"language":"ko","own":true,"people":24,"servers":[],"related":[]}"#
+        let pager = Pager([
+            "first": try Self.page((1...6).map(Self.pool) + [Self.note(30)], next: "t7", topic: topic),
+            "t7": try Self.page([Self.pool(7), Self.pool(6), Self.note(20)], next: "r20", topic: topic),
+            "r20": try Self.page([Self.note(19), Self.note(18)], next: nil, topic: topic),
+        ])
+        pager.failing = ["t7"]
+        let model = posts(.tag("첫눈"), pager)
+
+        await model.loadIfNeeded()
+        XCTAssertEqual(model.topic?.id, "tag:첫눈")
+        XCTAssertEqual(model.items.count, 7)
+        XCTAssertEqual(model.items.last?.id, "n-30", "kept notes and other-server posts share one list")
+
+        await model.loadMoreIfNeeded(current: model.items[1])
+        XCTAssertEqual(pager.asked, ["first"], "only the last five rows ask for the next page")
+
+        await model.loadMoreIfNeeded(current: model.items[6])
+        XCTAssertTrue(model.loadMoreFailed)
+        XCTAssertEqual(model.items.count, 7)
+        await model.loadMoreIfNeeded(current: model.items[6])
+        XCTAssertEqual(pager.asked, ["first", "t7"], "a failed page waits for the retry button")
+
+        pager.failing = []
+        await model.retryLoadMore()
+        XCTAssertFalse(model.loadMoreFailed)
+        XCTAssertEqual(pager.asked, ["first", "t7", "t7"])
+        XCTAssertEqual(model.items.count, 9, "a post the first page already showed is not repeated")
+        XCTAssertEqual(model.next, "r20")
+
+        await model.loadMoreIfNeeded(current: model.items[8])
+        XCTAssertEqual(pager.asked.last, "r20")
+        XCTAssertEqual(model.items.suffix(3).map(\.id), ["n-20", "n-19", "n-18"])
+        XCTAssertNil(model.next)
+        await model.loadMoreIfNeeded(current: model.items[10])
+        XCTAssertEqual(pager.asked.count, 4, "no request past the end")
+    }
+
+    func testATagThatIsNotATopicStillListsTheNotesKurlKeeps() async throws {
+        let pager = Pager(["first": try Self.page([Self.note(41), Self.note(40)], next: nil)])
+        let model = posts(.tag("아키텍처"), pager)
+
+        await model.loadIfNeeded()
+
+        XCTAssertNil(model.topic)
+        XCTAssertTrue(model.related.isEmpty)
+        XCTAssertEqual(model.items.map(\.id), ["n-41", "n-40"])
+        XCTAssertNil(model.next)
+
+        let unknown = try Self.page([Self.note(41)], next: nil, topic: #"{"id":"poll:1","kind":"poll","own":true,"people":3}"#)
+        XCTAssertNil(unknown.topic)
+        XCTAssertEqual(unknown.items.count, 1, "a topic kind this build does not know still lists its posts")
+    }
+
+    func testATagTopicShowsUpToThreeRelatedArticlesWithSecureLinks() async throws {
+        let related = (1...4).map { #"{"url":"https://news.example/r\#($0)","title":"기사 \#($0)","source":"새벽일보","image":null}"# }
+            + [#"{"url":"http://news.example/plain","title":"평문","source":null,"image":null}"#]
+        let topic = #"{"id":"tag:첫눈","kind":"tag","tag":"첫눈","url":null,"title":null,"source":null,"image":null,"language":"ko","own":true,"people":24,"servers":[],"related":[\#(related.reversed().joined(separator: ","))]}"#
+        let pager = Pager(["first": try Self.page([Self.pool(1)], next: nil, topic: topic)])
+        let model = posts(.tag("첫눈"), pager)
+
+        await model.loadIfNeeded()
+
+        XCTAssertEqual(model.related.map(\.shownTitle), ["기사 4", "기사 3", "기사 2"])
+    }
+
+    func testAPageOfHiddenPostsIsFollowedToTheNextOne() async throws {
+        let pager = Pager([
+            "first": try Self.page([Self.note(50), Self.note(49)], next: "r49"),
+            "r49": try Self.page([Self.note(48)], next: nil),
+        ])
+        let model = posts(.link("https://news.example/a"), pager, isVisible: { $0.id == 48 })
+
+        await model.loadIfNeeded()
+
+        XCTAssertEqual(pager.asked, ["first", "r49"])
+        XCTAssertEqual(model.items.map(\.id), ["n-48"])
+    }
+
+    func testTopicRequestsAskForOneSubjectAndPassTheCursor() async throws {
+        ScriptedFederation.reset()
+        ScriptedFederation.replies = [
+            "/federation/topics": .json(200, #"{"items":[]}"#),
+            "/federation/topics/posts": .json(200, #"{"topic":null,"items":[],"next":null}"#),
+        ]
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [ScriptedFederation.self]
+        FederationAPI.client = APIClient(session: URLSession(configuration: config), viewerToken: { nil })
+
+        _ = try await FederationAPI.topics(limit: FederationAPI.topicListLimit)
+        _ = try await FederationAPI.topicPosts(.tag("첫눈"), cursor: nil)
+        _ = try await FederationAPI.topicPosts(.link("https://news.example/a?b=1"), cursor: "t20")
+
+        let asked = ScriptedFederation.requests.map { request -> [String: String] in
+            let items = request.url.flatMap { URLComponents(url: $0, resolvingAgainstBaseURL: false)?.queryItems } ?? []
+            return Dictionary(uniqueKeysWithValues: items.map { ($0.name, $0.value ?? "") })
+        }
+        XCTAssertEqual(
+            ScriptedFederation.paths.map { $0.components(separatedBy: "/federation/").last },
+            ["topics", "topics/posts", "topics/posts"])
+        XCTAssertEqual(asked[0], ["limit": "40"])
+        XCTAssertEqual(asked[1], ["tag": "첫눈", "limit": "20"])
+        XCTAssertEqual(asked[2], ["url": "https://news.example/a?b=1", "limit": "20", "cursor": "t20"])
+    }
+}

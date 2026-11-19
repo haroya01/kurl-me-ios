@@ -3,14 +3,14 @@ import SwiftUI
 struct LinkNotesView: View {
     let url: String
     let title: String?
-    @State private var notes: NotesViewModel
+    @State private var notes: TopicPostsModel
     @Environment(\.openURL) private var openURL
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(url: String, title: String?) {
         self.url = url
         self.title = title
-        _notes = State(initialValue: NotesViewModel(link: url))
+        _notes = State(initialValue: TopicPostsModel(key: .link(url)))
     }
 
     var body: some View {
@@ -34,26 +34,18 @@ struct LinkNotesView: View {
                     )
                     .padding(.top, 24)
                 } else {
-                    ForEach(Array(notes.items.enumerated()), id: \.element.id) { index, note in
-                        NoteFeedItem(
-                            note: note,
-                            onChange: { notes.replaced($0) },
-                            onDelete: { notes.removed($0) })
-                            .task { await notes.loadMoreIfNeeded(current: note) }
-                        if index < notes.items.count - 1 {
-                            Hairline().padding(.horizontal, -Metrics.noteGutter)
-                        }
-                    }
+                    TopicPostRows(model: notes, gutter: Metrics.noteGutter)
+                        .environment(\.linkPageURL, url)
                 }
             }
         }
-        .environment(\.noteFilterContext, notes.filterContext)
+        .environment(\.noteFilterContext, .public)
         .reservesTabBarSpace()
         .navigationTitle("링크")
         .noteTextLinks()
         .navigationBarTitleDisplayMode(.inline)
         .brandRefreshable { await notes.reload() }
-        .task { if notes.items.isEmpty { await notes.reload() } }
+        .task { await notes.loadIfNeeded() }
     }
 
     private var linkHeader: some View {

@@ -66,14 +66,12 @@ final class NotesViewModel {
         case author(String)
         case reposts(String)
         case quotes(Int64)
-        case tag(String)
-        case link(String)
         case search(String)
         case remoteAccount(Int64)
 
         var filterContext: NoteFilterContext? {
             switch self {
-            case .everyone, .federated, .trending, .tag, .link, .quotes, .search: .public
+            case .everyone, .federated, .trending, .quotes, .search: .public
             case .following, .list: .home
             case .author, .reposts, .remoteAccount: .account
             case .bookmarks, .direct, .room, .rooms: nil
@@ -121,14 +119,6 @@ final class NotesViewModel {
         source = .quotes(id)
     }
 
-    init(tag: String) {
-        source = .tag(tag)
-    }
-
-    init(link url: String) {
-        source = .link(url)
-    }
-
     init(search query: String) {
         source = .search(query)
     }
@@ -174,8 +164,6 @@ final class NotesViewModel {
         case let .room(id): try await RoomAPI.notes(room: id, page: page)
         case .rooms: try await RoomAPI.feed(page: page)
         case let .quotes(id): try await NoteAPI.quotes(of: id, page: page)
-        case let .tag(name): try await NoteAPI.tagged(name, page: page)
-        case let .link(url): try await NoteAPI.linked(url, page: page)
         case let .search(query): try await NoteAPI.search(query, page: page)
         case let .author(username): try await NoteAPI.byAuthor(username, page: page)
         case let .reposts(username): try await NoteAPI.reposts(username, page: page)
@@ -325,6 +313,7 @@ struct NoteRowView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.noteFilterContext) private var filterContext
     @Environment(\.openNoteRoute) private var openNoteRoute
+    @Environment(\.linkPageURL) private var linkPageURL
     @Environment(\.insideRoom) private var insideRoom
     @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
     @ScaledMetric(relativeTo: .callout) private var nameCapCenter: CGFloat = 9
@@ -836,13 +825,20 @@ struct NoteRowView: View {
     private var shownBody: String { translated?.body ?? note.body }
 
     private var displayBody: String {
-        NoteText.hidingCardedLink(shownBody, card: drawnLinkCard?.preview.url)
+        NoteText.hidingCardedLink(shownBody, card: attachedLinkCard?.preview.url)
     }
 
-    private var drawnLinkCard: (preview: NoteLinkPreview, url: URL)? {
+    private var attachedLinkCard: (preview: NoteLinkPreview, url: URL)? {
         guard !folded, note.remoteCard == nil, let card = note.linkPreview, let url = URL(string: card.url)
         else { return nil }
         return (card, url)
+    }
+
+    private var drawnLinkCard: (preview: NoteLinkPreview, url: URL)? {
+        guard let card = attachedLinkCard,
+              !NoteText.repeatsPageLink(card: card.preview.url, page: linkPageURL, rest: displayBody)
+        else { return nil }
+        return card
     }
 
     private var showsBody: Bool {
@@ -1374,6 +1370,7 @@ enum NoteReplyToast {
 
 extension EnvironmentValues {
     @Entry var openNoteRoute: ((Route) -> Void)? = nil
+    @Entry var linkPageURL: String? = nil
 }
 
 extension VerticalAlignment {
@@ -1849,6 +1846,11 @@ enum NoteText {
         let head = ns.substring(to: match.range.location)
         guard let end = head.lastIndex(where: { !$0.isWhitespace }) else { return "" }
         return String(head[...end])
+    }
+
+    static func repeatsPageLink(card: String, page: String?, rest: String) -> Bool {
+        guard let page, sameLink(card, page) else { return false }
+        return !rest.isEmpty
     }
 
     private static func sameLink(_ a: String, _ b: String) -> Bool {
@@ -3229,12 +3231,17 @@ enum NoteLinkTarget: Hashable {
 struct NoteTextLinks: ViewModifier {
     var memberTab: AuthorTab = .notes
     @State private var target: NoteLinkTarget?
+    @Environment(\.openNoteRoute) private var openNoteRoute
 
     func body(content: Content) -> some View {
         content
             .environment(\.openURL, OpenURLAction { url in
                 guard let found = NoteText.target(from: url) else { return .systemAction }
-                target = found
+                if let openNoteRoute, let route = route(found) {
+                    openNoteRoute(route)
+                } else {
+                    target = found
+                }
                 return .handled
             })
             .navigationDestination(item: $target) { target in
@@ -3243,6 +3250,18 @@ struct NoteTextLinks: ViewModifier {
                 case let .member(username): AuthorBlogView(username: username, initialTab: memberTab)
                 }
             }
+    }
+}
+
+extension NoteTextLinks {
+    /// 경로에 밀어 연 화면이어야 그 안에서 민 화면에서 돌아올 때 남아 있다. 경로를 주지 않는 스택에서만 item 목적지로 연다.
+    private func route(_ target: NoteLinkTarget) -> Route? {
+        switch (target, memberTab) {
+        case (.tag(let name), _): .noteTag(name)
+        case (.member(let username), .notes): .authorNotes(username: username)
+        case (.member(let username), .posts): .author(username: username)
+        case (.member, _): nil
+        }
     }
 }
 

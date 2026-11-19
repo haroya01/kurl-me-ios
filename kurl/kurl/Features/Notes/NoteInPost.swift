@@ -84,7 +84,7 @@ struct PostComposerCover: View {
     var room: NoteRoom?
 
     var body: some View {
-        NavigationStack {
+        RouteStack {
             ComposeView(
                 post: post, initialMarkdown: initialMarkdown.isEmpty ? nil : initialMarkdown,
                 initialMarkdownIsDraft: isDraft, room: room, onSaved: {})
