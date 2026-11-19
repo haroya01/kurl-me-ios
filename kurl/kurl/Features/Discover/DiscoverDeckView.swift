@@ -91,8 +91,7 @@ struct DiscoverDeckView: View {
     @AppStorage("deckSwipeHintSeen") private var swipeHintSeen = false
 
     var body: some View {
-        // path 바인딩 금지 — tabBarMinimizeBehavior 가 죽는다(FeedView 참조).
-        NavigationStack {
+        RouteStack {
             Group {
                 switch model.phase {
                 case .idle, .loading:

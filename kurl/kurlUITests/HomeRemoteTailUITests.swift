@@ -41,20 +41,24 @@ final class HomeRemoteTailUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["remote.seen"].exists, "홈에 이미 본 글 구분선이 나옴")
     }
 
-    func testExploreOtherServersIsForYouWithoutASwitch() {
+    func testAnOtherServerPostOnAHashtagPageOpensItsNoteAndComesBackToThePage() {
         let app = XCUIApplication()
-        app.launchArguments = ["--mocks", "--tab", "search", "--explore-lane", "remote"]
+        app.launchArguments = ["--mocks", "--tag", "아키텍처"]
         app.launch()
 
-        func row(_ text: String) -> XCUIElement {
-            app.descendants(matching: .any).matching(identifier: "trending.note")
-                .matching(NSPredicate(format: "label CONTAINS %@", text)).firstMatch
-        }
-        let top = row("작은 서버")
-        let later = row("紫陽花")
-        XCTAssertTrue(top.waitForExistence(timeout: 12), "맞춤 첫 글이 없음")
-        XCTAssertTrue(later.waitForExistence(timeout: 5))
-        XCTAssertLessThan(top.frame.minY, later.frame.minY, "맞춤 순서가 아님(최신이면 はな 글이 먼저)")
-        XCTAssertFalse(app.segmentedControls.firstMatch.exists, "다른 서버 칸에 전환이 남아 있음")
+        let notes = app.buttons["tag.tab.notes"]
+        XCTAssertTrue(notes.waitForExistence(timeout: 15), "태그 화면이 안 열림")
+        notes.tap()
+        XCTAssertTrue(app.buttons["note.menu.9501"].waitForExistence(timeout: 8), "태그 화면에 kurl 노트가 없음")
+        let remote = app.descendants(matching: .any).matching(identifier: "trending.note")
+            .matching(NSPredicate(format: "label CONTAINS %@", "화이트보드")).firstMatch
+        XCTAssertTrue(remote.waitForExistence(timeout: 8), "태그 화면에 다른 서버 글이 없음")
+
+        remote.tap()
+        XCTAssertTrue(app.navigationBars["노트"].waitForExistence(timeout: 8), "다른 서버 글을 눌렀는데 노트가 안 열림")
+        XCTAssertFalse(notes.exists, "노트 화면 밑에 태그 화면이 그대로 보임")
+        app.navigationBars["노트"].buttons.firstMatch.tap()
+        XCTAssertTrue(notes.waitForExistence(timeout: 8), "노트에서 돌아왔는데 태그 화면이 아님")
+        XCTAssertTrue(notes.isSelected, "돌아온 태그 화면이 노트 탭이 아님")
     }
 }

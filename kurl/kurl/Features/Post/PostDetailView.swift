@@ -256,6 +256,7 @@ private struct PostDetailReader: View {
                 // 본문 문단이 선택→하이라이트 + 공개 하이라이트 페인트를 띄울 수 있게. 번역문으로 바뀐
                 // 문단은 블록마다 하이라이트를 끈다(BlockView.translated).
                 .environment(\.postHighlightStore, highlights)
+                .environment(\.postRoomId, detail.post.room?.id)
                 .task(id: "\(detail.post.id)-\(detail.post.locked == nil)") { await probeTranslation(detail) }
                 .translationRunner($translationRequest)
                 .onChange(of: translations.partial(key)) { refreshTranslation(detail, key: key) }
@@ -477,7 +478,7 @@ private struct PostDetailReader: View {
         }
         .sheet(isPresented: $showAdminEdit) { adminEditSheet }
         .sheet(item: $quotingInNote) { quote in
-            NoteComposeSheet(mode: .new(quote: quote, inReplyToId: nil)) { note in
+            NoteComposeSheet(mode: .new(quote: quote, inReplyToId: nil), room: model.quoteReach.room) { note in
                 model.addQuotingNote(note)
                 ToastCenter.shared.show(String(localized: "노트를 올렸어요"))
             }
@@ -840,13 +841,13 @@ private struct PostDetailReader: View {
     @ViewBuilder
     private var quoteInNoteItem: some View {
         if AuthStore.shared.isSignedIn, case .loaded(let detail) = model.phase, detail.post.locked == nil,
-           detail.post.audience != .unlisted {
+           model.quoteReach != .nowhere {
             Button {
                 quotingInNote = QuotedPost(
                     id: detail.post.id, title: detail.post.title, slug: detail.post.slug,
-                    authorUsername: detail.author.username)
+                    authorUsername: detail.author.username, audience: detail.post.audience)
             } label: {
-                Label("노트로 인용", systemImage: "quote.bubble")
+                Label("노트로 인용", systemImage: "quote.opening")
             }
         }
     }
@@ -1962,6 +1963,7 @@ private struct PostDetailReader: View {
                 Hairline()
             }
         }
+        .environment(\.insideRoom, model.quoteReach.room?.id)
     }
 
     @ViewBuilder

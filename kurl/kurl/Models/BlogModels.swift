@@ -113,6 +113,7 @@ struct PostListItem: Decodable, Hashable, Identifiable {
     var hasPassword: Bool? = nil
     var unlistedUrl: String? = nil
     var blockedCountries: [String]? = nil
+    var room: NoteRoom? = nil
 
     var access: PostAccessMarks {
         PostAccessMarks(

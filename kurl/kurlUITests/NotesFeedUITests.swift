@@ -622,13 +622,21 @@ final class NotesFeedUITests: XCTestCase {
         let field = app.searchFields.firstMatch
         XCTAssertTrue(field.waitForExistence(timeout: 12), "검색 필드가 없음")
         field.tap()
-        let trend = app.buttons["search.trendingTag.산책"]
+        let trend = app.buttons["search.trendingTag.아키텍처"]
         XCTAssertTrue(trend.waitForExistence(timeout: 12), "검색창을 눌렀는데 뜨는 해시태그가 없음")
+        XCTAssertLessThan(
+            app.buttons["search.trendingTag.첫눈"].frame.minX, app.buttons["search.trendingTag.朝の一枚"].frame.minX,
+            "읽는 사람 언어의 태그가 먼저가 아님")
         attach(app, "search-trending-tags")
         trend.tap()
         let notesTab = app.buttons["tag.tab.notes"]
         XCTAssertTrue(notesTab.waitForExistence(timeout: 8), "태그 화면이 안 열림")
         XCTAssertTrue(notesTab.isSelected, "뜨는 해시태그가 노트 탭으로 열리지 않음")
+        XCTAssertTrue(app.buttons["note.menu.9501"].waitForExistence(timeout: 8), "태그 화면에 kurl 노트가 없음")
+        XCTAssertTrue(
+            app.descendants(matching: .any).matching(identifier: "trending.note")
+                .matching(NSPredicate(format: "label CONTAINS %@", "화이트보드")).firstMatch.exists,
+            "kurl 노트와 다른 서버 글이 한 목록에 있지 않음")
     }
 
     func testSearchFindsNotesInTheNotesScope() throws {

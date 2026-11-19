@@ -2553,6 +2553,34 @@
         }
       }
     },
+    "%lld명이 이야기 중": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld people talking"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld लोग बात कर रहे हैं"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld人が話題にしています"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld người đang bàn luận"
+          }
+        }
+      }
+    },
     "%lld분 남음": {
       "localizations": {
         "en": {
@@ -6029,6 +6057,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Chỉnh sửa ghi chú bạn đã chia sẻ"
+          }
+        }
+      }
+    },
+    "관련 기사": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Related articles"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "संबंधित लेख"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "関連記事"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bài viết liên quan"
           }
         }
       }
@@ -13252,6 +13308,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "Người theo dõi ở máy chủ khác"
+          }
+        }
+      }
+    },
+    "다른 언어": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other languages"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अन्य भाषाएँ"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ほかの言語"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ngôn ngữ khác"
           }
         }
       }
@@ -24050,6 +24134,34 @@
         }
       }
     },
+    "트렌드": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trends"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ट्रेंड"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "トレンド"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xu hướng"
+          }
+        }
+      }
+    },
     "파일을 읽지 못했어요": {
       "localizations": {
         "en": {
@@ -31874,6 +31986,34 @@
         }
       }
     },
+    "인기 글": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Popular posts"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "लोकप्रिय पोस्ट"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "人気の投稿"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bài viết nổi bật"
+          }
+        }
+      }
+    },
     "인기 태그": {
       "localizations": {
         "en": {
@@ -34450,6 +34590,62 @@
           "stringUnit": {
             "state": "translated",
             "value": "Lưu lại ngay"
+          }
+        }
+      }
+    },
+    "지금 도는 이야기": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trending now"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी चर्चा में"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "いま話題"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Đang được bàn tán"
+          }
+        }
+      }
+    },
+    "지금 도는 이야기가 없어요": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing is trending right now"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "अभी कुछ चर्चा में नहीं है"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "いま話題になっているものはありません"
+          }
+        },
+        "vi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hiện chưa có gì đang được bàn tán"
           }
         }
       }

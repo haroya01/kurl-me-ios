@@ -66,14 +66,12 @@ final class NotesViewModel {
         case author(String)
         case reposts(String)
         case quotes(Int64)
-        case tag(String)
-        case link(String)
         case search(String)
         case remoteAccount(Int64)
 
         var filterContext: NoteFilterContext? {
             switch self {
-            case .everyone, .federated, .trending, .tag, .link, .quotes, .search: .public
+            case .everyone, .federated, .trending, .quotes, .search: .public
             case .following, .list: .home
             case .author, .reposts, .remoteAccount: .account
             case .bookmarks, .direct, .room, .rooms: nil
@@ -121,14 +119,6 @@ final class NotesViewModel {
         source = .quotes(id)
     }
 
-    init(tag: String) {
-        source = .tag(tag)
-    }
-
-    init(link url: String) {
-        source = .link(url)
-    }
-
     init(search query: String) {
         source = .search(query)
     }
@@ -174,8 +164,6 @@ final class NotesViewModel {
         case let .room(id): try await RoomAPI.notes(room: id, page: page)
         case .rooms: try await RoomAPI.feed(page: page)
         case let .quotes(id): try await NoteAPI.quotes(of: id, page: page)
-        case let .tag(name): try await NoteAPI.tagged(name, page: page)
-        case let .link(url): try await NoteAPI.linked(url, page: page)
         case let .search(query): try await NoteAPI.search(query, page: page)
         case let .author(username): try await NoteAPI.byAuthor(username, page: page)
         case let .reposts(username): try await NoteAPI.reposts(username, page: page)
@@ -325,6 +313,7 @@ struct NoteRowView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.noteFilterContext) private var filterContext
     @Environment(\.openNoteRoute) private var openNoteRoute
+    @Environment(\.linkPageURL) private var linkPageURL
     @Environment(\.insideRoom) private var insideRoom
     @ScaledMetric(relativeTo: .body) private var scale: CGFloat = 1
     @ScaledMetric(relativeTo: .callout) private var nameCapCenter: CGFloat = 9
@@ -357,6 +346,7 @@ struct NoteRowView: View {
     }
 
     private var isMine: Bool { AuthStore.shared.me?.id == note.author.id }
+    private var reach: QuoteReach { QuoteReach(note: note) }
     /// 시리즈에 넣을 수 있는 노트 — 내 노트이고 시리즈 독자가 읽을 수 있는 범위(공개·조용한 공개).
     private var seriesAddable: Bool { isMine && note.noteVisibility.shareable }
 
@@ -527,9 +517,9 @@ struct NoteRowView: View {
         }
         .sensoryFeedback(.success, trigger: replyPosts)
         .sheet(isPresented: $quoting) {
-            NoteComposeSheet(mode: .quote(QuotedNote(note))) { created in
+            NoteComposeSheet(mode: .quote(QuotedNote(note)), room: reach.room) { created in
                 ToastCenter.shared.show(String(localized: "인용 노트를 올렸어요"))
-                onQuoted?(created)
+                if QuoteReach.landsBeside(note, created) { onQuoted?(created) }
             }
         }
         .sheet(isPresented: $connecting) {
@@ -540,7 +530,7 @@ struct NoteRowView: View {
                 .presentationDetents([.medium, .large])
         }
         .fullScreenCover(isPresented: $writingPost) {
-            if let shareURL { PostComposerCover(initialMarkdown: "\(shareURL.absoluteString)\n\n") }
+            if let shareURL { PostComposerCover(initialMarkdown: "\(shareURL.absoluteString)\n\n", room: reach.room) }
         }
         .alert("이 노트를 삭제할까요?", isPresented: $confirmDelete) {
             Button("삭제", role: .destructive) { Task { await delete() } }
@@ -836,13 +826,20 @@ struct NoteRowView: View {
     private var shownBody: String { translated?.body ?? note.body }
 
     private var displayBody: String {
-        NoteText.hidingCardedLink(shownBody, card: drawnLinkCard?.preview.url)
+        NoteText.hidingCardedLink(shownBody, card: attachedLinkCard?.preview.url)
     }
 
-    private var drawnLinkCard: (preview: NoteLinkPreview, url: URL)? {
+    private var attachedLinkCard: (preview: NoteLinkPreview, url: URL)? {
         guard !folded, note.remoteCard == nil, let card = note.linkPreview, let url = URL(string: card.url)
         else { return nil }
         return (card, url)
+    }
+
+    private var drawnLinkCard: (preview: NoteLinkPreview, url: URL)? {
+        guard let card = attachedLinkCard,
+              !NoteText.repeatsPageLink(card: card.preview.url, page: linkPageURL, rest: displayBody)
+        else { return nil }
+        return card
     }
 
     private var showsBody: Bool {
@@ -982,6 +979,7 @@ struct NoteRowView: View {
             }
             .buttonStyle(.plain)
             .padding(.top, 6)
+            .accessibilityIdentifier("note.quotedPost.\(post.id)")
         }
         if let quoted = note.quotedNote {
             NavigationLink(value: Route.note(id: quoted.id)) {
@@ -1106,10 +1104,8 @@ struct NoteRowView: View {
             if spread { Spacer(minLength: 0) }
             replyButton
 
-            if note.room == nil {
-                if spread { Spacer(minLength: 0) }
-                repostMenu
-            }
+            if spread { Spacer(minLength: 0) }
+            if reach.room == nil { repostMenu } else { roomQuoteMenu }
 
             if spread {
                 Spacer(minLength: 0)
@@ -1171,6 +1167,31 @@ struct NoteRowView: View {
         .menuHitSlop(horizontal: 12, vertical: 12)
         .accessibilityLabel(Text("공유"))
         .accessibilityIdentifier("note.share.\(note.id)")
+    }
+
+    /// 방 노트는 리포스트할 수 없다 — 그 자리에서 같은 방 안으로만 인용한다.
+    private var roomQuoteMenu: some View {
+        Menu {
+            Button {
+                if AuthStore.shared.isSignedIn { quoting = true } else { askLogin("인용하려면 로그인하세요") }
+            } label: {
+                Label("노트로 인용", systemImage: "quote.opening")
+            }
+            Button {
+                if AuthStore.shared.isSignedIn { writingPost = true } else { askLogin("블로그 글로 인용하려면 로그인하세요") }
+            } label: {
+                Label("블로그 글로 인용", systemImage: "square.and.pencil")
+            }
+        } label: {
+            NoteGlyphView(glyph: .quote, size: Self.actionBox * unit)
+                .foregroundStyle(Palette.ink)
+                .padding(12)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .menuHitSlop(horizontal: 12, vertical: 12)
+        .accessibilityLabel(Text("인용"))
+        .accessibilityIdentifier("note.quote.\(note.id)")
     }
 
     @ViewBuilder private var repostMenu: some View {
@@ -1374,6 +1395,7 @@ enum NoteReplyToast {
 
 extension EnvironmentValues {
     @Entry var openNoteRoute: ((Route) -> Void)? = nil
+    @Entry var linkPageURL: String? = nil
 }
 
 extension VerticalAlignment {
@@ -1424,7 +1446,7 @@ struct QuotedPostCard: View {
                         Text("\(readMinutes)분 읽기")
                             .foregroundStyle(Palette.secondary)
                     }
-                    AccessMarks(marks: post.access)
+                    AccessMarks(marks: post.cardMarks)
                 }
                 .typeScale(.meta)
                 Text(post.title)
@@ -1849,6 +1871,11 @@ enum NoteText {
         let head = ns.substring(to: match.range.location)
         guard let end = head.lastIndex(where: { !$0.isWhitespace }) else { return "" }
         return String(head[...end])
+    }
+
+    static func repeatsPageLink(card: String, page: String?, rest: String) -> Bool {
+        guard let page, sameLink(card, page) else { return false }
+        return !rest.isEmpty
     }
 
     private static func sameLink(_ a: String, _ b: String) -> Bool {
@@ -2294,7 +2321,11 @@ struct NoteComposeSheet: View {
     private var isEdit: Bool { if case .edit = mode { true } else { false } }
 
     private var picksDestination: Bool {
-        if case .new(_, nil) = mode { fixedRoom == nil && AuthStore.shared.isSignedIn } else { false }
+        guard fixedRoom == nil, AuthStore.shared.isSignedIn else { return false }
+        switch mode {
+        case .new(_, nil), .quote: return true
+        case .new, .reply, .edit: return false
+        }
     }
 
     @ViewBuilder
@@ -2323,6 +2354,8 @@ struct NoteComposeSheet: View {
                 .typeScale(.note)
                 .fontWeight(.semibold)
                 .foregroundStyle(Palette.ink)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
             }
             .accessibilityIdentifier("noteCompose.destination")
         }
@@ -3074,7 +3107,9 @@ struct NoteComposeSheet: View {
             return
         }
         let needsNotice: Bool
-        if let settings = try? await NoteAPI.federationSettings() {
+        if destination != nil || replyTarget?.room != nil {
+            needsNotice = false
+        } else if let settings = try? await NoteAPI.federationSettings() {
             needsNotice = settings.enabled && !settings.noticeSeen
         } else {
             needsNotice = true
@@ -3229,12 +3264,17 @@ enum NoteLinkTarget: Hashable {
 struct NoteTextLinks: ViewModifier {
     var memberTab: AuthorTab = .notes
     @State private var target: NoteLinkTarget?
+    @Environment(\.openNoteRoute) private var openNoteRoute
 
     func body(content: Content) -> some View {
         content
             .environment(\.openURL, OpenURLAction { url in
                 guard let found = NoteText.target(from: url) else { return .systemAction }
-                target = found
+                if let openNoteRoute, let route = route(found) {
+                    openNoteRoute(route)
+                } else {
+                    target = found
+                }
                 return .handled
             })
             .navigationDestination(item: $target) { target in
@@ -3243,6 +3283,18 @@ struct NoteTextLinks: ViewModifier {
                 case let .member(username): AuthorBlogView(username: username, initialTab: memberTab)
                 }
             }
+    }
+}
+
+extension NoteTextLinks {
+    /// 경로에 밀어 연 화면이어야 그 안에서 민 화면에서 돌아올 때 남아 있다. 경로를 주지 않는 스택에서만 item 목적지로 연다.
+    private func route(_ target: NoteLinkTarget) -> Route? {
+        switch (target, memberTab) {
+        case (.tag(let name), _): .noteTag(name)
+        case (.member(let username), .notes): .authorNotes(username: username)
+        case (.member(let username), .posts): .author(username: username)
+        case (.member, _): nil
+        }
     }
 }
 

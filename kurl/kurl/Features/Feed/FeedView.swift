@@ -32,14 +32,16 @@ struct FeedPlaceholder: View {
 /// 행 전체 press 하이라이트 — 본문 정렬 유지(양옆으로 살짝 번짐).
 struct RowButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .background(
-                RoundedRectangle(cornerRadius: Metrics.radius)
-                    .fill(configuration.isPressed ? Palette.rowHighlight : .clear)
-                    .padding(.horizontal, -10)
-            )
-            .contentShape(Rectangle())
-            .animation(Motion.micro, value: configuration.isPressed)
+        PressLatch(isPressed: configuration.isPressed) { pressed in
+            configuration.label
+                .background(
+                    RoundedRectangle(cornerRadius: Metrics.radius)
+                        .fill(pressed ? Palette.rowHighlight : .clear)
+                        .padding(.horizontal, -10)
+                )
+                .contentShape(Rectangle())
+                .animation(Motion.micro, value: pressed)
+        }
     }
 }
 

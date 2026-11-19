@@ -15,7 +15,7 @@ struct AccountView: View {
     @State private var meLoadFailed = false
 
     var body: some View {
-        NavigationStack {
+        RouteStack {
             Group {
                 if auth.isSignedIn {
                     if let username = auth.me?.username, !username.isEmpty {

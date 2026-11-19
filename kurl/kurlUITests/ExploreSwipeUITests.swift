@@ -7,7 +7,7 @@ final class ExploreSwipeUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--mocks", "--tab", "search"]
         app.launch()
-        XCTAssertTrue(app.buttons["segment.picks"].waitForExistence(timeout: 15), "둘러보기 갈래 스위처가 없음")
+        XCTAssertTrue(app.buttons["segment.trends"].waitForExistence(timeout: 15), "둘러보기 갈래 스위처가 없음")
         return app
     }
 
@@ -29,20 +29,23 @@ final class ExploreSwipeUITests: XCTestCase {
 
     func testSwipingMovesBetweenLanesAndTheSwitcherFollows() throws {
         let app = launch()
-        XCTAssertTrue(selected(app, "picks"))
+        XCTAssertTrue(selected(app, "trends"))
+        XCTAssertFalse(app.buttons["segment.remote"].exists, "다른 서버 갈래가 남아 있음")
 
-        flick(app, from: 0.85, to: 0.1)
-        XCTAssertTrue(selected(app, "remote"), "왼쪽으로 밀었는데 다른 서버로 안 넘어감")
         flick(app, from: 0.85, to: 0.1)
         XCTAssertTrue(selected(app, "people"), "왼쪽으로 밀었는데 사람으로 안 넘어감")
         flick(app, from: 0.85, to: 0.1)
         XCTAssertTrue(selected(app, "people"), "끝 갈래에서 더 넘어감")
         flick(app, from: 0.15, to: 0.9)
-        XCTAssertTrue(selected(app, "remote"), "오른쪽으로 밀었는데 다른 서버로 안 돌아옴")
+        XCTAssertTrue(selected(app, "trends"), "오른쪽으로 밀었는데 트렌드로 안 돌아옴")
+        flick(app, from: 0.15, to: 0.9)
+        XCTAssertTrue(selected(app, "trends"), "첫 갈래에서 더 넘어감")
 
-        app.buttons["segment.picks"].tap()
-        XCTAssertTrue(selected(app, "picks"), "스위처를 눌렀는데 발견으로 안 바뀜")
-        shot("explore-picks-after-swipes")
+        app.buttons["segment.people"].tap()
+        XCTAssertTrue(selected(app, "people"), "스위처를 눌렀는데 사람으로 안 바뀜")
+        app.buttons["segment.trends"].tap()
+        XCTAssertTrue(selected(app, "trends"), "스위처를 눌렀는데 트렌드로 안 바뀜")
+        shot("explore-trends-after-swipes")
     }
 
     func testTheSearchFieldFoldsWhenReadingDownAndALaneArrivesWithItOpen() throws {
@@ -57,7 +60,7 @@ final class ExploreSwipeUITests: XCTestCase {
         shot("explore-read-down")
 
         flick(app, from: 0.85, to: 0.1)
-        XCTAssertTrue(selected(app, "remote"))
+        XCTAssertTrue(selected(app, "people"))
         expectation(for: NSPredicate(format: "exists == true AND isHittable == true"), evaluatedWith: field)
         waitForExpectations(timeout: 5)
         shot("explore-lane-arrived")
@@ -70,7 +73,7 @@ final class ExploreSwipeUITests: XCTestCase {
         field.tap()
 
         flick(app, from: 0.85, to: 0.1, y: 0.45)
-        XCTAssertTrue(selected(app, "picks"), "검색칸에 포커스가 있는데 갈래가 넘어감")
+        XCTAssertTrue(selected(app, "trends"), "검색칸에 포커스가 있는데 갈래가 넘어감")
         shot("explore-focused-held")
     }
 }

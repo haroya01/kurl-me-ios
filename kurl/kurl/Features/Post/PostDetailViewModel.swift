@@ -192,8 +192,13 @@ final class PostDetailViewModel {
         }
     }
 
+    var quoteReach: QuoteReach {
+        guard case .loaded(let detail) = phase else { return .nowhere }
+        return QuoteReach(post: detail.post.audience, room: detail.post.room)
+    }
+
     func addQuotingNote(_ note: Note) {
-        guard note.noteVisibility.shareable, !quotingNotes.contains(where: { $0.id == note.id }) else { return }
+        guard quoteReach.lists(note), !quotingNotes.contains(where: { $0.id == note.id }) else { return }
         quotingNotes.insert(note, at: 0)
         quotingTotal += 1
     }

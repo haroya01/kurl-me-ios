@@ -205,6 +205,7 @@ struct ComposeView: View {
 
     var body: some View {
         insertDialogs(stateDialogs(chrome))
+            .environment(\.postRoomId, accessDraft.audience == .room ? accessDraft.room?.id : nil)
     }
 
     private var recoveryAlertPresented: Binding<Bool> {
