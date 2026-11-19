@@ -447,6 +447,7 @@ enum MockRooms {
     private static func quotedPostView(_ post: Post) -> Any {
         guard let id = post.quotedPostId else { return NSNull() }
         if let quoted = roomPosts.first(where: { $0.id == id }) {
+            guard rooms.contains(where: { $0.id == quoted.roomId }) else { return NSNull() }
             return [
                 "id": quoted.id, "title": quoted.title, "slug": quoted.slug,
                 "authorUsername": quoted.author.username, "audience": "ROOM",

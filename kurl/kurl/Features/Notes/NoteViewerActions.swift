@@ -9,7 +9,6 @@ struct NoteViewerActions: View {
 
     @State private var replying = false
     @State private var quoting = false
-    @State private var writingPost = false
     @State private var showLogin = false
     @State private var loginMessage: LocalizedStringKey = "좋아요를 누르려면 로그인하세요"
     @State private var likeTaps = 0
@@ -37,7 +36,7 @@ struct NoteViewerActions: View {
                     shareButton(shareURL)
                 }
             } else {
-                roomQuoteMenu
+                roomQuoteButton
             }
         }
         .foregroundStyle(.white)
@@ -50,9 +49,6 @@ struct NoteViewerActions: View {
                 ToastCenter.shared.show(String(localized: "인용 노트를 올렸어요"))
                 if QuoteReach.landsBeside(note, created) { onQuoted?(created) }
             }
-        }
-        .fullScreenCover(isPresented: $writingPost) {
-            if let shareURL { PostComposerCover(initialMarkdown: "\(shareURL.absoluteString)\n\n", room: reach.room) }
         }
         .loginPrompt(isPresented: $showLogin, message: loginMessage)
     }
@@ -152,27 +148,16 @@ struct NoteViewerActions: View {
         }
     }
 
-    private var roomQuoteMenu: some View {
-        Menu {
-            Button {
-                if AuthStore.shared.isSignedIn { quoting = true } else { askLogin("인용하려면 로그인하세요") }
-            } label: {
-                Label("노트로 인용", systemImage: "quote.opening")
-            }
-            Button {
-                if AuthStore.shared.isSignedIn { writingPost = true } else { askLogin("블로그 글로 인용하려면 로그인하세요") }
-            } label: {
-                Label("블로그 글로 인용", systemImage: "square.and.pencil")
-            }
+    private var roomQuoteButton: some View {
+        Button {
+            if AuthStore.shared.isSignedIn { quoting = true } else { askLogin("인용하려면 로그인하세요") }
         } label: {
             NoteGlyphView(glyph: .quote, size: Self.glyphBox * unit)
                 .foregroundStyle(.white)
-                .padding(12)
-                .contentShape(Rectangle())
+                .expandTapTarget()
         }
         .buttonStyle(.plain)
-        .menuHitSlop(horizontal: 12, vertical: 12)
-        .accessibilityLabel(Text("인용"))
+        .accessibilityLabel(Text("노트로 인용"))
         .accessibilityIdentifier("viewer.quote")
     }
 

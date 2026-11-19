@@ -1449,7 +1449,7 @@ struct QuotedPostCard: View {
                         Text("\(readMinutes)분 읽기")
                             .foregroundStyle(Palette.secondary)
                     }
-                    AccessMarks(marks: post.access)
+                    AccessMarks(marks: post.cardMarks)
                 }
                 .typeScale(.meta)
                 Text(post.title)

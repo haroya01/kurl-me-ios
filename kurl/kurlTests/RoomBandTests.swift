@@ -171,6 +171,10 @@ final class RoomQuoteMockTests: XCTestCase {
         XCTAssertEqual(made.quotedPost?.id, 8801)
         XCTAssertEqual(made.quotedPost?.audience, .room)
         XCTAssertNil(made.quotedPost?.locked)
+        XCTAssertEqual(made.quotedPost?.cardMarks.isMarked, false, "방 글 인용 카드에 자물쇠나 표시가 붙음")
+        XCTAssertTrue(
+            QuotedPost(id: 1, title: "", slug: "", authorUsername: "", audience: .followers).cardMarks.isMarked,
+            "팔로워만 글의 인용 카드 표시가 사라짐")
         let quotes: PostQuotesPage = try send("GET", "public/posts/8801/quotes")
         XCTAssertTrue(quotes.items.contains { $0.id == made.id })
         XCTAssertEqual(quotes.total, quotes.items.count)
@@ -201,6 +205,19 @@ final class RoomQuoteMockTests: XCTestCase {
 
     func testARoomIAmNotInTakesNoNote() {
         XCTAssertEqual(refusal(body: ["body": "초대만 받은 방", "roomId": 4]), "NOTE_ROOM_NOT_FOUND")
+        XCTAssertEqual(
+            refusal(body: ["body": "방도 인용도 안 됨", "quotedNoteId": 9901, "roomId": 4]), "NOTE_ROOM_NOT_FOUND",
+            "방 확인이 인용 확인보다 먼저가 아님")
+    }
+
+    func testAfterLeavingTheRoomMyNoteStillReadsWithoutItsQuotedRoomPost() throws {
+        let made = try post(["body": "레시피 고마워", "quotedPostId": 8803, "roomId": 5])
+        XCTAssertEqual(made.quotedPost?.id, 8803)
+
+        _ = try MockBackend.respond(path: "rooms/5/leave", method: "POST", body: nil)
+        let mine: NoteThread = try send("GET", "public/notes/\(made.id)")
+        XCTAssertEqual(mine.note.body, "레시피 고마워")
+        XCTAssertNil(mine.note.quotedPost, "방을 나간 사람에게 방 글 카드가 남음")
     }
 
     func testThreadsAndScheduledNotesGetTheSameAnswer() {

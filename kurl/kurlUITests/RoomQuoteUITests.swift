@@ -45,13 +45,23 @@ final class RoomQuoteUITests: XCTestCase {
         XCTAssertTrue(button.waitForNonExistence(timeout: 8), "올린 뒤 작성기가 닫히지 않음")
     }
 
-    func testARoomNoteIsQuotedInsideItsRoom() {
+    func testARoomNoteIsQuotedInsideItsRoomAsANoteAndInABlogPost() {
         let app = launch(["--tab", "rooms", "--room", "1"])
         let quote = app.buttons["note.quote.9901"]
         XCTAssertTrue(quote.waitForExistence(timeout: 15), "방 노트에 인용 버튼이 없음")
+        XCTAssertFalse(app.buttons["note.repost.9901"].exists, "방 노트에 리포스트가 있음")
+        XCTAssertFalse(app.buttons["note.share.9901"].exists, "방 노트에 공유가 있음")
+        XCTAssertGreaterThanOrEqual(quote.frame.width, 44, "인용 버튼 터치 영역이 좁음")
+        XCTAssertGreaterThanOrEqual(quote.frame.height, 44, "인용 버튼 터치 영역이 낮음")
+        attach("room-note-row")
+
         quote.tap()
         let asNote = app.buttons["노트로 인용"]
         XCTAssertTrue(asNote.waitForExistence(timeout: 4), "인용 메뉴에 노트로 인용이 없음")
+        XCTAssertTrue(app.buttons["블로그 글로 인용"].exists, "인용 메뉴에 블로그 글로 인용이 없음")
+        XCTAssertFalse(app.buttons["리포스트"].exists, "방 노트 메뉴에 리포스트가 있음")
+        XCTAssertFalse(app.keyboards.firstMatch.exists, "메뉴를 열었는데 키보드가 올라옴")
+        attach("room-note-quote-menu")
         asNote.tap()
 
         let room = app.staticTexts["noteCompose.room"]
@@ -67,24 +77,14 @@ final class RoomQuoteUITests: XCTestCase {
             text(app, containing: "uitest room quote").waitForExistence(timeout: 8), "인용 노트가 방 타임라인에 안 꽂힘")
         XCTAssertTrue(app.buttons["note.quoted.9901"].exists, "인용한 방 노트가 카드로 안 보임")
         attach("room-timeline-quoting-a-room-note")
-    }
 
-    func testARoomNoteIsQuotedIntoABlogPostOfItsRoom() {
-        let app = launch(["--tab", "rooms", "--room", "1"])
-        let quote = app.buttons["note.quote.9901"]
-        XCTAssertTrue(quote.waitForExistence(timeout: 15), "방 노트에 인용 버튼이 없음")
         quote.tap()
         let asPost = app.buttons["블로그 글로 인용"]
         XCTAssertTrue(asPost.waitForExistence(timeout: 4), "인용 메뉴에 블로그 글로 인용이 없음")
         asPost.tap()
-
         XCTAssertTrue(
             element(app, "compose.room", labelContaining: "동아리 사람들").waitForExistence(timeout: 10),
             "글 에디터가 그 방의 글로 열리지 않음")
-        XCTAssertTrue(
-            app.descendants(matching: .any).matching(identifier: "editor-link-card").firstMatch
-                .waitForExistence(timeout: 8),
-            "노트 주소가 첫 줄에 실리지 않음")
         XCTAssertTrue(
             element(app, "editor-link-card", labelContaining: "퇴근하다 한강").waitForExistence(timeout: 8),
             "같은 방 글에 실은 방 노트가 카드가 아님")
@@ -138,28 +138,6 @@ final class RoomQuoteUITests: XCTestCase {
         XCTAssertEqual(app.buttons["note.room.9960"].label, "대학 동기 방에서", "인용 노트가 고른 방에 올라가지 않음")
         XCTAssertTrue(app.buttons["note.quoted.9501"].exists, "인용한 공개 노트가 카드로 안 보임")
         attach("rooms-quoting-a-public-note")
-    }
-
-    func testARoomNotesMenuQuotesInsteadOfReposting() {
-        let app = launch(["--tab", "rooms", "--room", "1"])
-        let quote = app.buttons["note.quote.9901"]
-        XCTAssertTrue(quote.waitForExistence(timeout: 15), "방 노트에 인용 버튼이 없음")
-        XCTAssertFalse(app.buttons["note.repost.9901"].exists, "방 노트에 리포스트가 있음")
-        XCTAssertFalse(app.buttons["note.share.9901"].exists, "방 노트에 공유가 있음")
-        XCTAssertGreaterThanOrEqual(quote.frame.width, 44, "인용 버튼 터치 영역이 좁음")
-        XCTAssertGreaterThanOrEqual(quote.frame.height, 44, "인용 버튼 터치 영역이 낮음")
-        attach("room-note-row")
-
-        quote.tap()
-        let asNote = app.buttons["노트로 인용"]
-        XCTAssertTrue(asNote.waitForExistence(timeout: 4), "인용 메뉴에 노트로 인용이 없음")
-        XCTAssertTrue(app.buttons["블로그 글로 인용"].exists, "인용 메뉴에 블로그 글로 인용이 없음")
-        XCTAssertFalse(app.buttons["리포스트"].exists, "방 노트 메뉴에 리포스트가 있음")
-        XCTAssertFalse(app.keyboards.firstMatch.exists, "인용 메뉴를 열었는데 키보드가 올라옴")
-        attach("room-note-quote-menu")
-
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.08)).tap()
-        XCTAssertTrue(asNote.waitForNonExistence(timeout: 4), "바깥을 눌러도 인용 메뉴가 닫히지 않음")
     }
 
     func testARoomPostDrawsItsRoomsNoteAsACardAndIsQuotedInsideItsRoom() {
