@@ -7,22 +7,10 @@ extension Notification.Name {
     static let deviceDidShake = Notification.Name("kurl.deviceDidShake")
 }
 
-/// 흔들기(좌우 모션)를 잡는 0픽셀 감지기 — 모션 이벤트는 first responder→responder 체인으로
-/// 올라오므로, 화면 어딘가에 first responder 가 될 빈 VC 하나만 심어 두면 잡힌다.
-private struct ShakeDetector: UIViewControllerRepresentable {
-    func makeUIViewController(context: Context) -> ShakeViewController { ShakeViewController() }
-    func updateUIViewController(_ vc: ShakeViewController, context: Context) {}
-}
-
-private final class ShakeViewController: UIViewController {
-    override var canBecomeFirstResponder: Bool { true }
-
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        becomeFirstResponder()
-    }
-
-    override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
+/// 흔들기는 first responder 에서 시작해 창까지 올라온다. 받으려고 빈 뷰 컨트롤러를 first responder 로 심어 두면
+/// iOS 26.5 에서 메뉴가 열릴 때마다 키보드가 함께 올라온다 — 아무것도 first responder 로 두지 않고 창에서 받는다.
+extension UIWindow {
+    open override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
         if motion == .motionShake {
             NotificationCenter.default.post(name: .deviceDidShake, object: nil)
         }
@@ -33,8 +21,7 @@ private final class ShakeViewController: UIViewController {
 extension View {
     /// 기기를 흔들면 action — 관리자 진단 진입에 쓴다(게이트는 호출측).
     func onShake(perform action: @escaping () -> Void) -> some View {
-        background(ShakeDetector().frame(width: 0, height: 0).accessibilityHidden(true))
-            .onReceive(NotificationCenter.default.publisher(for: .deviceDidShake)) { _ in action() }
+        onReceive(NotificationCenter.default.publisher(for: .deviceDidShake)) { _ in action() }
     }
 }
 

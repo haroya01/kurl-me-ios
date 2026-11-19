@@ -346,6 +346,7 @@ struct NoteRowView: View {
     }
 
     private var isMine: Bool { AuthStore.shared.me?.id == note.author.id }
+    private var reach: QuoteReach { QuoteReach(note: note) }
     /// 시리즈에 넣을 수 있는 노트 — 내 노트이고 시리즈 독자가 읽을 수 있는 범위(공개·조용한 공개).
     private var seriesAddable: Bool { isMine && note.noteVisibility.shareable }
 
@@ -516,9 +517,9 @@ struct NoteRowView: View {
         }
         .sensoryFeedback(.success, trigger: replyPosts)
         .sheet(isPresented: $quoting) {
-            NoteComposeSheet(mode: .quote(QuotedNote(note))) { created in
+            NoteComposeSheet(mode: .quote(QuotedNote(note)), room: reach.room) { created in
                 ToastCenter.shared.show(String(localized: "인용 노트를 올렸어요"))
-                onQuoted?(created)
+                if QuoteReach.landsBeside(note, created) { onQuoted?(created) }
             }
         }
         .sheet(isPresented: $connecting) {
@@ -529,7 +530,7 @@ struct NoteRowView: View {
                 .presentationDetents([.medium, .large])
         }
         .fullScreenCover(isPresented: $writingPost) {
-            if let shareURL { PostComposerCover(initialMarkdown: "\(shareURL.absoluteString)\n\n") }
+            if let shareURL { PostComposerCover(initialMarkdown: "\(shareURL.absoluteString)\n\n", room: reach.room) }
         }
         .alert("이 노트를 삭제할까요?", isPresented: $confirmDelete) {
             Button("삭제", role: .destructive) { Task { await delete() } }
@@ -978,6 +979,7 @@ struct NoteRowView: View {
             }
             .buttonStyle(.plain)
             .padding(.top, 6)
+            .accessibilityIdentifier("note.quotedPost.\(post.id)")
         }
         if let quoted = note.quotedNote {
             NavigationLink(value: Route.note(id: quoted.id)) {
@@ -1102,10 +1104,8 @@ struct NoteRowView: View {
             if spread { Spacer(minLength: 0) }
             replyButton
 
-            if note.room == nil {
-                if spread { Spacer(minLength: 0) }
-                repostMenu
-            }
+            if spread { Spacer(minLength: 0) }
+            if reach.room == nil { repostMenu } else { roomQuoteMenu }
 
             if spread {
                 Spacer(minLength: 0)
@@ -1167,6 +1167,31 @@ struct NoteRowView: View {
         .menuHitSlop(horizontal: 12, vertical: 12)
         .accessibilityLabel(Text("공유"))
         .accessibilityIdentifier("note.share.\(note.id)")
+    }
+
+    /// 방 노트는 리포스트할 수 없다 — 그 자리에서 같은 방 안으로만 인용한다.
+    private var roomQuoteMenu: some View {
+        Menu {
+            Button {
+                if AuthStore.shared.isSignedIn { quoting = true } else { askLogin("인용하려면 로그인하세요") }
+            } label: {
+                Label("노트로 인용", systemImage: "quote.opening")
+            }
+            Button {
+                if AuthStore.shared.isSignedIn { writingPost = true } else { askLogin("블로그 글로 인용하려면 로그인하세요") }
+            } label: {
+                Label("블로그 글로 인용", systemImage: "square.and.pencil")
+            }
+        } label: {
+            NoteGlyphView(glyph: .quote, size: Self.actionBox * unit)
+                .foregroundStyle(Palette.ink)
+                .padding(12)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .menuHitSlop(horizontal: 12, vertical: 12)
+        .accessibilityLabel(Text("인용"))
+        .accessibilityIdentifier("note.quote.\(note.id)")
     }
 
     @ViewBuilder private var repostMenu: some View {
@@ -1421,7 +1446,7 @@ struct QuotedPostCard: View {
                         Text("\(readMinutes)분 읽기")
                             .foregroundStyle(Palette.secondary)
                     }
-                    AccessMarks(marks: post.access)
+                    AccessMarks(marks: post.cardMarks)
                 }
                 .typeScale(.meta)
                 Text(post.title)
@@ -2296,7 +2321,11 @@ struct NoteComposeSheet: View {
     private var isEdit: Bool { if case .edit = mode { true } else { false } }
 
     private var picksDestination: Bool {
-        if case .new(_, nil) = mode { fixedRoom == nil && AuthStore.shared.isSignedIn } else { false }
+        guard fixedRoom == nil, AuthStore.shared.isSignedIn else { return false }
+        switch mode {
+        case .new(_, nil), .quote: return true
+        case .new, .reply, .edit: return false
+        }
     }
 
     @ViewBuilder
@@ -2325,6 +2354,8 @@ struct NoteComposeSheet: View {
                 .typeScale(.note)
                 .fontWeight(.semibold)
                 .foregroundStyle(Palette.ink)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
             }
             .accessibilityIdentifier("noteCompose.destination")
         }
@@ -3076,7 +3107,9 @@ struct NoteComposeSheet: View {
             return
         }
         let needsNotice: Bool
-        if let settings = try? await NoteAPI.federationSettings() {
+        if destination != nil || replyTarget?.room != nil {
+            needsNotice = false
+        } else if let settings = try? await NoteAPI.federationSettings() {
             needsNotice = settings.enabled && !settings.noticeSeen
         } else {
             needsNotice = true

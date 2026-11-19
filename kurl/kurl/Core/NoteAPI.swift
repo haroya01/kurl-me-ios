@@ -343,6 +343,12 @@ struct QuotedPost: Codable, Hashable, Identifiable {
     var access: PostAccessMarks {
         PostAccessMarks(audience: audience, locked: locked, regionRestricted: regionRestricted == true)
     }
+
+    /// 노트에 붙은 인용 카드의 표시. 방 글의 카드는 같은 방 사람에게만 오므로 방 표시를 달지 않는다.
+    var cardMarks: PostAccessMarks {
+        PostAccessMarks(
+            audience: audience == .room ? nil : audience, locked: locked, regionRestricted: regionRestricted == true)
+    }
 }
 
 struct NoteLinkPreview: Decodable, Hashable {

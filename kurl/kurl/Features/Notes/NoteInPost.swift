@@ -23,25 +23,36 @@ private extension Character {
     var isASCIIDigit: Bool { isASCII && isNumber }
 }
 
-/// 글에 실린 노트. 웹 독자는 노트를 익명으로 불러오므로, 누구나 볼 수 있는 노트만 카드로 —
-/// 팔로워 공개·지워진 노트는 독자마다 다르게 보이지 않게 링크 카드로 둔다.
+extension EnvironmentValues {
+    /// 그리고 있는 글이 속한 방. 방 글이 아니면 nil.
+    @Entry var postRoomId: Int64? = nil
+}
+
+/// 글에 실린 노트. 한 글의 독자가 모두 같은 답을 받게, 누구나 볼 수 있는 노트와 방 글에 실린 같은 방의 노트만 카드로 —
+/// 팔로워 공개·다른 방·지워진 노트는 내가 읽을 수 있어도 링크 카드로 둔다.
 struct NoteEmbedCard<Fallback: View>: View {
     let noteId: Int64
     @ViewBuilder let fallback: () -> Fallback
 
-    @State private var note: Note?
+    @State private var loaded: Note?
     @State private var failed = false
+    @Environment(\.postRoomId) private var postRoomId
+
+    private var carded: Note? {
+        guard let loaded, QuoteReach(note: loaded).allows(roomId: postRoomId) else { return nil }
+        return loaded
+    }
 
     var body: some View {
         Group {
-            if let note {
+            if let note = carded {
                 NavigationLink(value: Route.note(id: note.id)) {
                     QuotedNoteCard(note: QuotedNote(note), full: true)
                 }
                 .buttonStyle(.plain)
                 .padding(.vertical, 6)
                 .accessibilityIdentifier("post.noteEmbed.\(noteId)")
-            } else if failed {
+            } else if failed || loaded != nil {
                 fallback()
             } else {
                 RoundedRectangle(cornerRadius: Metrics.radius)
@@ -51,14 +62,9 @@ struct NoteEmbedCard<Fallback: View>: View {
             }
         }
         .task(id: noteId) {
-            guard note == nil else { return }
+            guard loaded == nil else { return }
             do {
-                let thread = try await NoteAPI.thread(id: noteId)
-                if thread.note.noteVisibility.shareable {
-                    note = thread.note
-                } else {
-                    failed = true
-                }
+                loaded = try await NoteAPI.thread(id: noteId).note
             } catch {
                 failed = true
             }

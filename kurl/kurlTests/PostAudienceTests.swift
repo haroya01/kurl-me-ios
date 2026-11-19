@@ -524,6 +524,58 @@ final class PostAudienceTests: XCTestCase {
         XCTAssertEqual(draft.unlistedUrl, "https://blog.kurl.me/@me/s?k=new")
         XCTAssertNil(draft.patch(silent: false))
     }
+
+    // MARK: 인용한 노트가 노트 탭에 드는 조건
+
+    private func quote(_ id: Int64, visibility: String, room: NoteRoom? = nil) -> Note {
+        var note = Note(
+            id: id, body: "인용", createdAt: nil, editedAt: nil, likeCount: nil, likedByMe: nil,
+            author: Author(id: 1, username: "me", bio: nil, avatarUrl: nil), media: [], quotedPost: nil,
+            inReplyToId: nil, replyCount: 0, repostCount: nil, repostedByMe: nil, quotedNote: nil)
+        note.visibility = visibility
+        note.room = room
+        return note
+    }
+
+    private func loaded(_ extra: String) async -> PostDetailViewModel {
+        useStub()
+        AudienceStub.route("GET", "/public/profiles/writer/posts/memo", body: Self.detail(extra))
+        AudienceStub.route("GET", "/public/posts/42/comments", body: "[]")
+        AudienceStub.route("GET", "/public/posts/42/quotes", body: #"{"items":[],"page":0,"hasNext":false,"total":0}"#)
+        let vm = model()
+        await vm.load()
+        return vm
+    }
+
+    func testARoomPostsNotesTabTakesAQuoteMadeInItsRoomOnly() async {
+        let club = NoteRoom(id: 1, name: "동아리 사람들")
+        let vm = await loaded(#","audience":"ROOM","room":{"id":1,"name":"동아리 사람들"}"#)
+        XCTAssertEqual(vm.quoteReach.room, club, "방 글 인용이 그 방에 묶이지 않음")
+
+        vm.addQuotingNote(quote(1, visibility: "room", room: club))
+        XCTAssertEqual(vm.quotingNotes.map(\.id), [1])
+        XCTAssertEqual(vm.quotingTotal, 1)
+
+        vm.addQuotingNote(quote(2, visibility: "room", room: NoteRoom(id: 2, name: "대학 동기")))
+        vm.addQuotingNote(quote(3, visibility: "public"))
+        XCTAssertEqual(vm.quotingNotes.map(\.id), [1], "다른 방·방 밖의 노트가 방 글의 노트 탭에 듦")
+    }
+
+    func testAnOpenPostsNotesTabTakesOnlyPublicQuotes() async {
+        let vm = await loaded("")
+        XCTAssertEqual(vm.quoteReach, .anywhere)
+
+        vm.addQuotingNote(quote(1, visibility: "public"))
+        vm.addQuotingNote(quote(2, visibility: "private"))
+        vm.addQuotingNote(quote(3, visibility: "room", room: NoteRoom(id: 1, name: "동아리 사람들")))
+        XCTAssertEqual(vm.quotingNotes.map(\.id), [1], "방 안에서 한 인용이 공개 글의 노트 탭에 듦")
+        XCTAssertEqual(vm.quotingTotal, 1)
+    }
+
+    func testALinkOnlyPostOffersNoQuote() async {
+        let vm = await loaded(#","audience":"UNLISTED""#)
+        XCTAssertEqual(vm.quoteReach, .nowhere)
+    }
 }
 
 private final class AudienceStub: URLProtocol, @unchecked Sendable {
