@@ -98,6 +98,10 @@ final class RoomQuoteUITests: XCTestCase {
             element(app, "editor-link-card", labelContaining: "퇴근하다 한강").waitForExistence(timeout: 8),
             "같은 방 글에 실은 방 노트가 카드가 아님")
         attach("room-note-quote-in-post-editor")
+
+        app.navigationBars["새 글"].buttons.element(boundBy: 0).tap()
+        let back = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: quote)
+        XCTAssertEqual(XCTWaiter().wait(for: [back], timeout: 8), .completed, "에디터를 닫아도 방으로 돌아오지 않음")
     }
 
     func testAPublicNoteQuoteOffersWhereToPostAndGoesIntoThePickedRoom() {
@@ -156,6 +160,7 @@ final class RoomQuoteUITests: XCTestCase {
         more.tap()
         let asNote = app.buttons["노트로 인용"].firstMatch
         XCTAssertTrue(asNote.waitForExistence(timeout: 4), "방 글 메뉴에 노트로 인용이 없음")
+        attach("room-post-menu")
         asNote.tap()
 
         let room = app.staticTexts["noteCompose.room"]
